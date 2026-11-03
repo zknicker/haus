@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v16.6.0 - 2026-11-03
+
+- Claude Code Agents can start sub-agents that keep working in the background after the turn ends, and stay reachable in chat meanwhile. When a sub-agent finishes, its Agent wakes to pick up the result. An Agent's hover card shows how many sub-agents it has running, for example "Online · 2 sub-agents running".
+- Heartbeats and nightly dreams wait while an Agent still has background work running, then run once it finishes.
+- Haus Computer 13.0.0 runs Claude Code, Codex, and Grok Build Agents directly and keeps each Agent's runtime process warm for 30 minutes between turns. Codex Agents report their reasoning on every turn.
+- Pi is no longer an Agent runtime. Agents that used Pi move to Claude Code when their Computer has it, otherwise to the Computer's first other runtime, and start a fresh session. Update Haus Computer to 13.0.0.
+- Agents see message senders by name, without the leading @. Haus Agent 11.5.0 carries this and the sub-agent behavior.
+
 ## v16.5.1 - 2026-11-03
 
 - When an Agent refers to a Channel message that has no Thread yet, the reference is now a link to that message instead of plain text.

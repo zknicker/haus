@@ -38,13 +38,17 @@ export function resolveTurnRowTitle(
     if (!trigger || trigger.kind === 'private') {
         return { kind: 'none' };
     }
-    // The nightly dream, heartbeats and their reports have no Chat, so no place.
+    // The nightly dream, heartbeats, their reports, and a sub-agent wake have no Chat, so
+    // they have no place.
     if (
         trigger.kind === 'dream' ||
         trigger.kind === 'heartbeat' ||
         trigger.kind === 'heartbeat_report'
     ) {
         return resolveRunTitle(trigger, chats, live);
+    }
+    if (trigger.kind === 'subagent') {
+        return { kind: 'text', place: null, text: 'Sub-agent finished' };
     }
     const chat = chats.get(trigger.chatId);
     const place = chat ? chatPlace(chat) : null;

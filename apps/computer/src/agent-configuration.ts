@@ -37,7 +37,6 @@ export async function applyAgentConfiguration(input: {
     serverId: string;
     prepareWorkspace?: (agentRoot: string) => Promise<unknown>;
 }): Promise<AppliedAgentConfiguration> {
-    const applied = resolveConfiguration(input.command, input.inventory);
     const agentRoot = join(
         input.dataRoot,
         'servers',
@@ -51,13 +50,53 @@ export async function applyAgentConfiguration(input: {
             mkdir(join(agentRoot, directory), { mode: 0o700, recursive: true })
         )
     );
-    if (input.prepareWorkspace) {
-        await input.prepareWorkspace(agentRoot);
-    } else {
-        await mkdir(join(agentRoot, 'workspace'), { mode: 0o700, recursive: true });
+    if (!(await prepareAgentWorkspace(input, agentRoot))) {
+        // Nothing is seeded: a plain workspace directory would be adopted as an
+        // uncapped legacy workspace by the next apply.
+        const unavailable: AppliedAgentConfiguration = {
+            missingResources: ['workspace'],
+            modelId: null,
+            reasoningEffort: reasoningEffortFor(input.command),
+            runtimeId: null,
+        };
+        await writeAppliedConfiguration(agentRoot, unavailable, input.command);
+        return unavailable;
     }
     await seedOrdinaryWorkspace(input.command, join(agentRoot, 'workspace'));
     await seedAgentManagedSkills(agentRoot);
+    const applied = resolveConfiguration(input.command, input.inventory);
+    await writeAppliedConfiguration(agentRoot, applied, input.command);
+    return applied;
+}
+
+/**
+ * A workspace the Computer cannot provide (no reserved capacity, a failed mount) is a missing
+ * resource the report names, not a failed apply that leaves the Agent looking session-less.
+ */
+async function prepareAgentWorkspace(
+    input: Parameters<typeof applyAgentConfiguration>[0],
+    agentRoot: string
+): Promise<boolean> {
+    if (!input.prepareWorkspace) {
+        await mkdir(join(agentRoot, 'workspace'), { mode: 0o700, recursive: true });
+        return true;
+    }
+    try {
+        await input.prepareWorkspace(agentRoot);
+        return true;
+    } catch (error) {
+        console.error(
+            `Agent ${input.command.agentId} workspace is unavailable: ${error instanceof Error ? error.message : error}`
+        );
+        return false;
+    }
+}
+
+async function writeAppliedConfiguration(
+    agentRoot: string,
+    applied: AppliedAgentConfiguration,
+    command: AgentConfigureCommand
+) {
     const destination = join(agentRoot, 'configuration.json');
     const temporary = `${destination}.${process.pid}.tmp`;
     await writeFile(
@@ -65,17 +104,16 @@ export async function applyAgentConfiguration(input: {
         `${JSON.stringify({
             ...applied,
             seed: {
-                agentDescription: input.command.agentDescription,
-                agentName: input.command.agentName,
-                brief: input.command.brief,
-                briefAuthorHandle: input.command.briefAuthorHandle,
-                factoryKind: input.command.factoryKind,
+                agentDescription: command.agentDescription,
+                agentName: command.agentName,
+                brief: command.brief,
+                briefAuthorHandle: command.briefAuthorHandle,
+                factoryKind: command.factoryKind,
             },
         })}\n`,
         { mode: 0o600 }
     );
     await rename(temporary, destination);
-    return applied;
 }
 
 export async function readAppliedAgentConfiguration(

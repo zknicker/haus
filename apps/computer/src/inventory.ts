@@ -6,7 +6,7 @@ import type {
 } from '@haus/api';
 import { type ComputerRuntimeId, computerRuntimeCatalog } from '@haus/api/computer-runtime';
 import { detectCloudAgentProviders } from './cloud-agents/registry.ts';
-import { supportsSubagents } from './harness/runtime-harness.ts';
+import { supportsSubagents } from './runtime/runtime-subagents.ts';
 import { resolveRuntimeById } from './runtime-discovery.ts';
 
 type ComputerRuntime = ComputerInventory['runtimes'][number];
@@ -37,7 +37,6 @@ const knownRuntimes: ComputerRuntime[] = [
         { id: 'claude-sonnet-5-5', label: 'Claude Sonnet 5.5' },
         { id: 'claude-haiku-5-5', label: 'Claude Haiku 5.5' },
     ]),
-    supportedRuntime('pi', [{ id: 'pi', label: 'Pi' }]),
     supportedRuntime('grok-build', [
         { id: 'grok-4.6', label: 'Grok 4.6' },
         { id: 'grok-4.5', label: 'Grok 4.5' },
@@ -98,7 +97,7 @@ function supportedRuntime(
     };
 }
 
-/** The installed AI SDK adapters expose settings, not per-model capability discovery. */
+/** The runtimes expose effort settings, not per-model capability discovery. */
 export function reasoningEffortsForModel(
     runtimeId: ComputerRuntimeId,
     modelId: string
@@ -115,10 +114,11 @@ export function reasoningEffortsForModel(
 }
 
 /**
- * Core abilities as Haus launches each runtime, so this list must follow the harness settings:
- * sub-agents come from `supportsSubagents` (runtime-harness.ts), with Codex's `agents.enabled =
- * false` (codex-acp.ts) and Grok's `GROK_SUBAGENTS=0` (create-agent.ts) switching them off.
- * Codex and Grok Build keep their native image generation; Claude Code and Pi have none.
+ * Core abilities as Haus launches each runtime, so this list must follow the driver launch:
+ * sub-agents come from `supportsSubagents` (runtime/runtime-subagents.ts), with Codex's
+ * `agents.enabled = false` (codex-launch.ts) and Grok's `GROK_SUBAGENTS=0` (grok-launch.ts)
+ * switching them off.
+ * Codex and Grok Build keep their native image generation; Claude Code has none.
  */
 export function featuresForRuntime(runtimeId: ComputerRuntimeId): ComputerModelFeature[] {
     const features: ComputerModelFeature[] = [];

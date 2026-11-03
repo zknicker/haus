@@ -1,13 +1,12 @@
 import { readFile, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { HarnessCapabilityUnsupportedError } from '@ai-sdk/harness';
-import type { HarnessAgentSession } from '@ai-sdk/harness/agent';
 import { Effect } from 'effect';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
+import type { RuntimeSession } from '../runtime/driver.ts';
 import type { HarnessTurnInput } from './executor.ts';
 
 export function createNoticeDelivery(
-    session: HarnessAgentSession,
+    session: Pick<RuntimeSession, 'steer'>,
     turn: Pick<HarnessTurnInput, 'agentId' | 'agentRoot' | 'runId' | 'runtime' | 'runtimeId'>,
     alreadyVisible: string | null = null
 ) {
@@ -84,26 +83,25 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     return value !== null && typeof value === 'object';
 }
 
-/** Unsupported steering leaves the durable notice for the next turn. */
+/** Undelivered steering leaves the durable notice for the next turn. */
 export async function steerInboxNotice(
-    session: Pick<HarnessAgentSession, 'experimental_steerTurn' | 'hasUnfinishedTurn'>,
+    session: Pick<RuntimeSession, 'steer'>,
     notice: string,
     runtime: DaemonRuntime
 ): Promise<boolean> {
-    try {
-        await session.experimental_steerTurn(notice);
+    const result = await session.steer(notice);
+    if (result.delivered) {
         return true;
-    } catch (error) {
-        if (session.hasUnfinishedTurn() && !HarnessCapabilityUnsupportedError.isInstance(error)) {
-            await runtime.runPromise(
-                Effect.logWarning('Inbox notice delivery failed; retained for the next turn.').pipe(
-                    Effect.annotateLogs({
-                        event: 'inbox-notice-deferred',
-                        errorType: error instanceof Error ? error.name : 'unknown',
-                    })
-                )
-            );
-        }
-        return false;
     }
+    if (result.reason === 'failed') {
+        await runtime.runPromise(
+            Effect.logWarning('Inbox notice delivery failed; retained for the next turn.').pipe(
+                Effect.annotateLogs({
+                    event: 'inbox-notice-deferred',
+                    errorType: result.error instanceof Error ? result.error.name : 'unknown',
+                })
+            )
+        );
+    }
+    return false;
 }

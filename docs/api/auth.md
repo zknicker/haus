@@ -17,7 +17,7 @@ read_when:
 | Computer attachment → Server | Revocable credential scoped to one Server Computer |
 | Computer runner → Server | Per-launch Agent runner credential, held behind the localhost proxy |
 | Managed Agent → Computer | Per-launch local proxy token file; never valid at Server |
-| Computer → provider | Native Codex, Claude Code, Grok Build, or Pi login owned by that runtime |
+| Computer → provider | Native Codex, Claude Code, or Grok Build login owned by that runtime |
 
 Cloudflare Access protects only `/auth/complete` and `/auth/session` on
 `haus.chat`. Haus Server verifies the signed assertion against the configured
@@ -113,8 +113,8 @@ the Computer keeps it only in the login macOS Keychain
 
 Claude's isolated Agent home cannot read the host's macOS Keychain login
 directly. At each native start, Computer resolves the current host-owned login
-and supplies its access token only in the Claude bridge process environment.
-It never writes the token into Agent files or persisted bridge turn settings,
+and supplies its access token only in the Claude Code process environment.
+It never writes the token into Agent files or any Haus-written launch record,
 and it leaves explicit native environment authentication intact. Missing native
 credentials fail with a sign-in instruction. Other runtimes reference their
 native credential files while preserving separate Agent homes and sessions.

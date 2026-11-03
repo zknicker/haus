@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
+import { supportsSubagents } from '../runtime/runtime-subagents.ts';
 import { composeAgentInstructions } from './instructions.ts';
-import { supportsSubagents } from './runtime-harness.ts';
 
 const facts = {
     agentId: 'agt_cove',
@@ -12,18 +12,17 @@ const facts = {
 
 test('only Claude Code supports sub-agents', () => {
     expect(supportsSubagents('claude-code')).toBe(true);
-    for (const runtimeId of ['codex', 'grok-build', 'pi', 'unknown']) {
+    for (const runtimeId of ['codex', 'grok-build', 'unknown']) {
         expect(supportsSubagents(runtimeId)).toBe(false);
     }
 });
 
 test('runtimes without sub-agents get no delegation section', () => {
-    const [codex, grok, pi] = ['codex', 'grok-build', 'pi'].map(
+    const [codex, grok] = ['codex', 'grok-build'].map(
         (runtimeId) => composeAgentInstructions({ ...facts, runtimeId }).instructions
     );
     expect(codex).not.toContain('## Working through sub-agents');
     expect(grok).toBe(codex);
-    expect(pi).toBe(codex);
 });
 
 // Raft v1.21 renders its conditional sub-agent section between task splitting and @Mentions.
@@ -41,7 +40,11 @@ test('Claude Code learns sub-agent delegation between task splitting and @Mentio
     expect(prompt).toContain(
         '5. **Only you speak in Haus.** Tell every sub-agent not to run `haus`'
     );
-    expect(prompt).toContain('7. **Finish within your turn.** Sub-agents end when your turn ends');
+    // Raft's rule 7, verbatim: background sub-agents outlive the turn that starts them.
+    expect(prompt).toContain(
+        '7. **Stay reachable while work runs.** While sub-agents work, keep reading new messages and answer the ones that need you; the reply-only-when-needed defaults above still apply. "Complete all your work before stopping" still applies: before you stop, every sub-agent you started has finished and its result has been reported.'
+    );
+    expect(prompt).not.toContain('Finish within your turn');
     // The section is the only difference, so other runtimes keep their prompt byte for byte.
     const section = prompt.slice(subagents, mentions);
     expect(prompt.replace(section, '')).toBe(codex.instructions);

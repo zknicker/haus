@@ -5,6 +5,7 @@ import {
     closeDaemonRuntimeResources,
     type DaemonRuntime,
 } from './daemon-runtime.ts';
+import { openRuntimeContext } from './runtime/runtime-context.ts';
 import { replayPendingServerPurges } from './server-partition-purge.ts';
 import {
     detachServerWorkspaces,
@@ -59,6 +60,8 @@ export async function withAttachmentShutdown<T>(
     );
     try {
         await reclaimPartitionStorage(partition);
+        // The daemon's host-tool server and warm runtime pool; `work.close()` closes them.
+        openRuntimeContext(runtime, { background: work.backgroundWork });
         return await run();
     } finally {
         await work

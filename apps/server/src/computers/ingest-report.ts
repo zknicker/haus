@@ -2,7 +2,6 @@ import {
     agentDeliveryAckSchema,
     agentDreamRecordSchema,
     agentEffectiveStateSchema,
-    agentHeartbeatRequestSchema,
     agentNoticeAckSchema,
     agentSkillFileResultSchema,
     agentSkillImportResultSchema,
@@ -23,7 +22,6 @@ import {
 } from '@haus/api';
 import { z } from 'zod';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import { requestAgentHeartbeat } from '../agent-delivery/heartbeat-request.ts';
 import { recordCoveApplyResult } from '../onboarding/create-cove.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentUpdatedTopic, computerUpdatedTopic } from '../realtime/topics.ts';
@@ -36,6 +34,7 @@ import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { ingestCloudAgentReport } from './cloud-agent-reports.ts';
 import type { ComputerConnections } from './connections.ts';
 import { ingestAgentRunFrame } from './ingest-agent-run-frame.ts';
+import { ingestBackgroundWorkFrame } from './ingest-background-work.ts';
 import { ingestExecutionJournalUpload } from './ingest-execution-journal.ts';
 import { recordComputerInventory, recordInvalidComputerInventory } from './record-inventory.ts';
 import { recordComputerManagementEvents, reportComputerUpdateProgress } from './service.ts';
@@ -136,13 +135,9 @@ export async function ingestReport(
         return;
     }
 
-    const heartbeatRequest = agentHeartbeatRequestSchema.safeParse(frame);
-    if (heartbeatRequest.success) {
-        await requestAgentHeartbeat(db, delivery, {
-            computerId,
-            request: heartbeatRequest.data,
-            serverId,
-        });
+    if (
+        await ingestBackgroundWorkFrame(db, delivery, { computerId, connections, frame, serverId })
+    ) {
         return;
     }
     const dreamRecord = agentDreamRecordSchema.safeParse(frame);

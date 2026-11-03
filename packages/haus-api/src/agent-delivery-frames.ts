@@ -123,6 +123,46 @@ export const agentHeartbeatRequestSchema = z.discriminatedUnion('kind', [
 export type AgentHeartbeatRequest = z.infer<typeof agentHeartbeatRequestSchema>;
 
 /**
+ * The sub-agent wake: a private turn for background work the Agent started on its runtime (a
+ * Claude Code background sub-agent or shell) that finished or stopped after the turn that
+ * started it ended. It has no Chat, sender, or body: the runtime's own report is already in the
+ * Agent's conversation. `id` is its inbox identity (`subagent:<agentId>:<wake id>`).
+ */
+export const agentSubagentWakeAttentionSchema = z
+    .object({ createdAt: timestampSchema, id: idSchema })
+    .strict();
+
+export type AgentSubagentWakeAttention = z.infer<typeof agentSubagentWakeAttentionSchema>;
+
+/**
+ * Computer→Server: how many background sub-agents (`subagents`) and background tasks of any
+ * kind, shells included (`tasks`), each listed Agent runs right now, past the turn that started
+ * them. Sent for one Agent when either count changes, and for every Agent the Computer hosts on
+ * each connect, so a restarted Computer clears counts its processes took with them. A count is
+ * volatile runtime state; the Server stores only the latest. A report without `tasks` (an older
+ * Computer) counts its sub-agents as its tasks.
+ */
+export const agentBackgroundWorkReportSchema = z
+    .object({
+        agents: z
+            .array(
+                z
+                    .object({
+                        agentId: idSchema,
+                        subagents: z.number().int().min(0).max(64),
+                        tasks: z.number().int().min(0).max(1000).optional(),
+                    })
+                    .strict()
+            )
+            .min(1)
+            .max(500),
+        type: z.literal('agent-background-work'),
+    })
+    .strict();
+
+export type AgentBackgroundWorkReport = z.infer<typeof agentBackgroundWorkReportSchema>;
+
+/**
  * The inbox items whose bodies may enter this run's prompt. Eligibility is
  * Server-owned; the lane is not. The Computer knows whether its harness session
  * resumed, so it drains {@link agentStartCommandSchema.shape.drainItemIds} on
@@ -141,7 +181,7 @@ export const agentStartCommandSchema = z
         agentConversationStyle: z.string().max(10_000).optional(),
         /** The Agent's pickup reaction; null means the Computer's default. */
         agentSignatureEmoji: z.string().min(1).max(64).nullable().default(null),
-        /** The run's Chat; null only for a heartbeat or heartbeat-report run. */
+        /** The run's Chat; null only for a heartbeat, heartbeat-report, or sub-agent wake run. */
         chatId: idSchema.nullable(),
         /** Chips the Server's connections add to chat; the prompt teaches the ones an Agent must write. */
         connectionChips: z.array(connectionChipKindSchema).max(16).default([]),
@@ -159,6 +199,8 @@ export const agentStartCommandSchema = z
         runId: idSchema,
         runtimeId: z.string().trim().min(1).max(64),
         sessionGeneration: z.number().int().positive(),
+        /** Present only on a sub-agent wake run, which carries no inbox items. */
+        subagentWake: agentSubagentWakeAttentionSchema.optional(),
         totalPending: z.number().int().nonnegative(),
         traceContext: traceCarrierSchema.optional(),
         type: z.literal('start'),
@@ -170,13 +212,15 @@ export const agentStartCommandSchema = z
     .strict()
     .refine(
         (frame) => {
-            const chatless = frame.heartbeat !== undefined || frame.heartbeatReport !== undefined;
-            if (!chatless) {
+            const attentions = [frame.heartbeat, frame.heartbeatReport, frame.subagentWake].filter(
+                (attention) => attention !== undefined
+            ).length;
+            if (attentions === 0) {
                 return frame.chatId !== null;
             }
             return (
+                attentions === 1 &&
                 frame.chatId === null &&
-                !(frame.heartbeat && frame.heartbeatReport) &&
                 frame.inbox.length === 0 &&
                 frame.drainItemIds.length === 0 &&
                 frame.warmDrainItemIds.length === 0 &&
@@ -185,7 +229,7 @@ export const agentStartCommandSchema = z
         },
         {
             message:
-                'Only a heartbeat or heartbeat-report run is chatless, and it carries nothing but its attention.',
+                'Only a heartbeat, heartbeat-report, or sub-agent wake run is chatless, and it carries nothing but its attention.',
             path: ['chatId'],
         }
     );

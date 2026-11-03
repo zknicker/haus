@@ -1,8 +1,21 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { formatAgentDelegationSummary } from './agent-hover-delegations.ts';
+import { agentHoverMeta, formatAgentDelegationSummary } from './agent-hover-delegations.ts';
 
 const now = Date.parse('2026-10-06T12:10:00.000Z');
+
+test('the hover meta names background sub-agents an idle Agent left running', () => {
+    const idle = { availability: 'idle', wakePause: null } as const;
+    assert.equal(agentHoverMeta({ ...idle, backgroundSubagents: 0 }), 'Online');
+    assert.equal(
+        agentHoverMeta({ ...idle, backgroundSubagents: 1 }),
+        'Online · 1 sub-agent running'
+    );
+    assert.equal(
+        agentHoverMeta({ availability: 'working', backgroundSubagents: 3, wakePause: null }),
+        'Working · 3 sub-agents running'
+    );
+});
 
 test('the delegation line is hidden when no sub-agent is running', () => {
     assert.equal(formatAgentDelegationSummary(undefined, now), null);

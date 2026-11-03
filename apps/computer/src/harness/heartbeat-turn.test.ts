@@ -2,14 +2,16 @@ import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { access, mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { HarnessAgent } from '@ai-sdk/harness/agent';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
+import type { RuntimeDriverOptions } from '../runtime/driver.ts';
+import type { RuntimeResumeState } from '../runtime/resume-state.ts';
+import { fakeRuntimeDriver } from '../runtime/testing/fake-runtime-driver.ts';
+import type { TurnEvent } from '../runtime/turn-event.ts';
 import {
     type HarnessTurnInput,
     runHarnessTurn,
-    setHarnessAgentFactoryForTesting,
-    setHarnessBootstrapRefreshForTesting,
+    setRuntimeDriverFactoryForTesting,
 } from './executor.ts';
 import { readQuietRunNote, recordHeartbeatSettled } from './heartbeat-note.ts';
 import { harnessSessionOwner } from './session-lifecycle.ts';
@@ -28,33 +30,48 @@ const heartbeat = {
     reminders: [],
     since: null,
 };
-const mainResume = {
-    data: { nativeSessionId: 'main_native' },
-    harnessId: 'fake',
-    type: 'resume-session',
+const mainResume: RuntimeResumeState = {
+    runtime: 'codex',
+    threadId: 'main_native',
+    version: 1,
 };
 
 let agentRoot: string;
-let createSessionCalls: Array<{ resumeFrom: unknown; sessionId: string }>;
+let opens: Array<{ resumeFrom: unknown; sessionId: string }>;
+let launches: RuntimeDriverOptions[];
 let destroyed: string[];
-let detached: string[];
+let detached: number;
 let prompts: string[];
 let streamFails: boolean;
-let restore: Array<() => void>;
+let restore: () => void;
 
 beforeEach(async () => {
     agentRoot = await mkdtemp(join(tmpdir(), 'haus-heartbeat-turn-'));
-    createSessionCalls = [];
+    opens = [];
+    launches = [];
     destroyed = [];
-    detached = [];
+    detached = 0;
     prompts = [];
     streamFails = false;
-    restore = [
-        setHarnessAgentFactoryForTesting(() => fakeAgent()),
-        setHarnessBootstrapRefreshForTesting(async () => undefined),
-    ];
+    const { factory } = fakeRuntimeDriver<HarnessTurnInput>({
+        destroy: () => {
+            destroyed.push(opens.at(-1)?.sessionId ?? '');
+        },
+        detach: () => {
+            detached += 1;
+            return mainResume;
+        },
+        open: async ({ resumeFrom, sessionId }, { options }) => {
+            opens.push({ resumeFrom, sessionId });
+            launches.push(options);
+            // A run directory the executor must clean up after a throwaway session.
+            await mkdir(join(agentRoot, '.agent-runs', sessionId), { recursive: true });
+        },
+        turn: ({ prompt }) => scriptedTurn(prompt),
+    });
+    restore = setRuntimeDriverFactoryForTesting(factory);
     await writeAgentSessionState(agentRoot, {
-        bootstrapFingerprint: null,
+        bootstrapFingerprint: 'fake-bootstrap',
         effectiveModel: { modelId: 'gpt-5.6-sol', runtimeId: 'codex' },
         generation: 1,
         hausAgentAppliedAt: null,
@@ -67,60 +84,18 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-    for (const undo of restore) {
-        undo();
-    }
+    restore();
     await rm(agentRoot, { force: true, recursive: true });
 });
 
-function fakeAgent(): Pick<HarnessAgent, 'createSession' | 'stream'> {
-    return {
-        createSession: (async (options: { resumeFrom?: unknown; sessionId: string }) => {
-            createSessionCalls.push({
-                resumeFrom: options.resumeFrom,
-                sessionId: options.sessionId,
-            });
-            // A native run directory the executor must clean up after a throwaway session.
-            await mkdir(join(agentRoot, '.agent-runs', options.sessionId), { recursive: true });
-            return {
-                destroy: async () => {
-                    destroyed.push(options.sessionId);
-                },
-                detach: async () => {
-                    detached.push(options.sessionId);
-                    return mainResume;
-                },
-                isResume: Boolean(options.resumeFrom),
-                sessionId: options.sessionId,
-                stop: async () => mainResume,
-            };
-        }) as unknown as HarnessAgent['createSession'],
-        stream: (async (options: { prompt: string }) => {
-            prompts.push(options.prompt);
-            return {
-                consumeStream: async () => undefined,
-                fullStream: (async function* () {
-                    yield { type: 'finish-step', usage: usage() };
-                    if (streamFails) {
-                        yield { error: new Error('provider failed'), type: 'error' };
-                    } else {
-                        yield { totalUsage: usage(), type: 'finish' };
-                    }
-                })(),
-            };
-        }) as unknown as HarnessAgent['stream'],
-    };
-}
-
-function usage() {
-    return {
-        inputTokenDetails: { cacheReadTokens: 0, cacheWriteTokens: 0, noCacheTokens: 1 },
-        inputTokens: 1,
-        outputTokenDetails: { reasoningTokens: undefined, textTokens: 1 },
-        outputTokens: 1,
-        raw: undefined,
-        totalTokens: 2,
-    };
+function* scriptedTurn(prompt: string): Generator<TurnEvent> {
+    prompts.push(prompt);
+    yield { contextTokens: 1, type: 'step-finish', usage: null };
+    if (streamFails) {
+        yield { error: new Error('provider failed'), type: 'error' };
+    } else {
+        yield { claudePlanUsage: null, type: 'turn-finish', usage: null };
+    }
 }
 
 function turnInput(overrides: Partial<HarnessTurnInput> = {}): HarnessTurnInput {
@@ -146,7 +121,7 @@ function turnInput(overrides: Partial<HarnessTurnInput> = {}): HarnessTurnInput 
         serverId: 'srv_test',
         sessionGeneration: 1,
         skillsDir: join(agentRoot, 'skills'),
-        tools: {},
+        tools: [],
         totalPending: 0,
         unreadElsewhere: [],
         warmDrainItemIds: [],
@@ -159,22 +134,18 @@ async function sessionFile(): Promise<string> {
     return await readFile(join(agentRoot, 'session.json'), 'utf8');
 }
 
-test('a heartbeat opens a fresh session, leaves session.json and the main lease alone, and destroys it', async () => {
+test('a heartbeat opens a fresh session under its own warm key, leaves the main session alone, and destroys it', async () => {
     const before = await sessionFile();
     const owner = harnessSessionOwner(runtime);
     const mainLease = owner.begin(agentRoot);
-    mainLease.prepare(mainResume as never, async () => {
-        throw new Error('the main session must not be resumed');
-    });
 
     const result = await runHarnessTurn(turnInput({ heartbeat }));
 
     expect(result.aborted).toBe(false);
-    expect(createSessionCalls).toEqual([
-        { resumeFrom: undefined, sessionId: 'agt_test-hb-run_hb' },
-    ]);
+    expect(opens).toEqual([{ resumeFrom: undefined, sessionId: 'agt_test-hb-run_hb' }]);
+    expect(launches[0]?.throwawayKey).toBe(`${agentRoot}#agt_test-hb-run_hb`);
     expect(destroyed).toEqual(['agt_test-hb-run_hb']);
-    expect(detached).toEqual([]);
+    expect(detached).toBe(0);
     expect(prompts[0]).toContain('[Haus daytime heartbeat]');
     expect(await sessionFile()).toBe(before);
     expect(
@@ -206,9 +177,7 @@ test('a heartbeat neither reads nor clears the quiet-run note', async () => {
 });
 
 test('the next main-session turn starts with the quiet-run line, resumes the main session, and clears it', async () => {
-    await recordHeartbeatSettled(agentRoot, {
-        reported: false,
-    });
+    await recordHeartbeatSettled(agentRoot, { reported: false });
     await recordHeartbeatSettled(agentRoot, { reported: true });
 
     await runHarnessTurn(
@@ -234,7 +203,8 @@ test('the next main-session turn starts with the quiet-run line, resumes the mai
     expect(prompts[0]?.split('\n')[0]).toBe(
         'Your heartbeat ran 2× since your last turn (1 reported).'
     );
-    expect(createSessionCalls[0]?.resumeFrom).toMatchObject({ type: 'resume-session' });
+    expect(opens[0]?.resumeFrom).toEqual(mainResume);
+    expect(launches[0]?.throwawayKey).toBeUndefined();
     expect(await readQuietRunNote(agentRoot)).toBeNull();
 });
 
@@ -261,6 +231,6 @@ test('a report run resumes the main session and clears the note without renderin
     );
     expect(prompts[0]).toContain('[Haus heartbeat report]');
     expect(prompts[0]).not.toContain('Your heartbeat ran');
-    expect(createSessionCalls[0]).toMatchObject({ sessionId: 'main_session' });
+    expect(opens[0]).toMatchObject({ resumeFrom: mainResume, sessionId: 'main_session' });
     expect(await readQuietRunNote(agentRoot)).toBeNull();
 });

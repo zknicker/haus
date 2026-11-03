@@ -43,9 +43,14 @@ test('projects explicit adapter tool fixtures without inspecting tool inputs', a
             toolName: 'write',
             category: 'editing_files',
         },
-        { nativeName: 'edit', runtimeId: 'pi', toolName: 'edit', category: 'editing_files' },
-        { runtimeId: 'pi', toolName: 'glob', category: 'reading_files' },
-        { runtimeId: 'pi', toolName: 'ls', category: 'reading_files' },
+        {
+            nativeName: 'edit',
+            runtimeId: 'grok-build',
+            toolName: 'edit',
+            category: 'editing_files',
+        },
+        { runtimeId: 'claude-code', toolName: 'glob', category: 'reading_files' },
+        { runtimeId: 'grok-build', toolName: 'list_dir', category: 'reading_files' },
         { runtimeId: 'grok-build', toolName: 'bash', category: 'running_command' },
         { runtimeId: 'grok-build', toolName: 'write', category: 'editing_files' },
         { runtimeId: 'grok-build', toolName: 'webSearch', category: 'searching_web' },
@@ -159,7 +164,7 @@ test('pairs preliminary, failure, interruption, and restart journal evidence by 
         journal,
         activity: activityRun(events),
         registry: createComputerActivityRegistry(),
-        runtimeId: 'pi',
+        runtimeId: 'grok-build',
     });
 
     await projector.observe({
@@ -207,7 +212,7 @@ test('pairs preliminary, failure, interruption, and restart journal evidence by 
         journal: reopened,
         activity: activityRun(events),
         registry: createComputerActivityRegistry(),
-        runtimeId: 'pi',
+        runtimeId: 'grok-build',
     }).observe({
         input: { command: 'echo two' },
         nativeName: 'bash',
@@ -219,7 +224,7 @@ test('pairs preliminary, failure, interruption, and restart journal evidence by 
         journal: reopened,
         activity: activityRun(events),
         registry: createComputerActivityRegistry(),
-        runtimeId: 'pi',
+        runtimeId: 'grok-build',
     }).observe({
         output: 'restarted output',
         toolCallId: 'call_interrupted',

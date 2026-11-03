@@ -4,7 +4,7 @@ import { executionToolFailure, executionTurnFailure } from './agent-execution-jo
 test('names a failed turn by its terminal error line, not its stack', () => {
     expect(
         executionTurnFailure(
-            'Error: Harness session agt_present-1 has an unfinished turn and must be continued before accepting a new prompt.\n    at requirePromptableTurn (/repo/node_modules/@ai-sdk/harness/dist/agent/index.js:3244:15)'
+            'Error: Harness session agt_present-1 has an unfinished turn and must be continued before accepting a new prompt.\n    at requirePromptableTurn (/repo/node_modules/runtime-agent/dist/agent/index.js:3244:15)'
         )
     ).toEqual({
         message:

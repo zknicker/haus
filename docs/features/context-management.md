@@ -42,7 +42,7 @@ model session. Per-turn message delivery is an inbox concern; see
   heartbeats ran since its last turn, how many reported, and where the latest checkpoint is. A
   heartbeat report already reaches the main session as an inbox item.
 - Explicit MCP requests use the fixed `execute` tool to discover and invoke currently granted
-  Server tools. MCP grants and discovery results never change the harness tool catalog.
+  Server tools. MCP grants and discovery results never change the host-tool catalog.
   Missing tools call for the specific connection or grant to be repaired; local configuration
   searches do not establish Server-owned MCP access. General capability selection still considers
   other authorized execution methods, and requested setup troubleshooting can inspect local state.
@@ -51,10 +51,10 @@ model session. Per-turn message delivery is an inbox concern; see
   details and revisions; the coordinating Agent brings a concise outcome and link back to the
   requester conversation. Questions to a person are @mentions where the work lives, and automation placement follows its own contract.
 - Sessions never rotate because of age or idle time.
-- The Harness supplies current composed instructions on every accepted turn. When the persisted
-  instruction fingerprint differs, the same native conversation therefore adopts them without
-  adapter rotation. Bootstrap drift or Restart parks the adapter at the turn boundary, applies the
-  current content-addressed bootstrap, and resumes that conversation. Activity History records the
+- The runtime driver mounts the current composed instructions on every accepted turn. When the
+  persisted instruction fingerprint differs, the same native conversation therefore adopts them
+  without session rotation. Bootstrap drift (a changed runtime CLI pin) or Restart parks the
+  session at the turn boundary, refreshes the driver's install, and resumes that conversation. Activity History records the
   update as started, completed, or failed without prompt text, local paths, commands, or hashes.
 - Before Cove turns, Computer also reconciles recognized prior factory revisions of the playbook
   and FAQ. It never replaces Cove's memory, objectives, missing files, or edited guidance. A
@@ -65,13 +65,13 @@ model session. Per-turn message delivery is an inbox concern; see
   can retry. Only rejection of the stored native resume state enters Server-authorized session
   recovery; Computer never silently discards conversation context.
 - The independently released Haus Agent version is the public receipt for this managed behavior,
-  including instructions, actions, recipes and Manual content, Harness bootstrap, and factory
+  including instructions, actions, recipes and Manual content, runtime bootstrap, and factory
   guidance. Version drift uses the same next-turn refresh path. Computer marks the version current
   only after a successful turn, preserves the previous applied version on failure, and reports the
   pending/current/failed state to Server for the Agent profile. Exact fingerprints remain
   Computer-local implementation evidence.
 - A fresh session starts only for initial creation, a runtime, model, or reasoning-effort switch,
-  manual session reset, or one automatic recovery after the harness rejects a stored resume state.
+  manual session reset, or one automatic recovery after the runtime rejects a stored resume state.
 - A rotation posts no message in any chat and draws nothing in the transcript. It is recorded
   durably and stamped on the Agent's messages (`sessionGeneration`).
 - An execution-configuration change never interrupts an active turn. The active turn finishes
@@ -111,29 +111,31 @@ itself, as the prompt directs. Computer enforces this per runtime:
 
 | Runtime | Ambient instruction loading | Haus setting |
 | --- | --- | --- |
-| Claude Code | `project`/`local` settings (`CLAUDE.md`, `.claude/`) in the workspace and every ancestor | `settingSources: ['user']`; Agent `HOME` keeps its own `.claude.json`, never a link to the operator's (login resolves from host credentials) |
-| Codex | `AGENTS.md` in the workspace and every directory up to its git root | `project_doc_max_bytes = 0` in `CODEX_CONFIG`; isolated `CODEX_HOME` |
-| Pi | `AGENTS.md`/`CLAUDE.md` in the workspace and every ancestor to `/` | `noContextFiles` ([Dependency Patches](../operations/dependency-patches.md)) |
+| Claude Code | `project`/`local` settings (`CLAUDE.md`, `.claude/`) in the workspace and every ancestor | `--setting-sources user` and `--strict-mcp-config`; Agent `HOME` keeps its own `.claude.json`, never a link to the operator's (login resolves from host credentials) |
+| Codex | `AGENTS.md` in the workspace and every directory up to its git root | `project_doc_max_bytes = 0` on every thread request (`codex-launch.ts`); isolated `CODEX_HOME` |
 | Grok Build | Claude/Cursor files (`.claude/CLAUDE.md`, `.claude/rules/`, `~/.claude/`), plus generic names below | `GROK_{CLAUDE,CURSOR}_{AGENTS,RULES}_ENABLED=false`; isolated `GROK_HOME` |
 
 Known gap: Grok Build 1.0.13 has no switch for generic `AGENTS.md`,
 `CLAUDE.md`, `AGENT.md`, `CLAUDE.local.md`, or `.grok/rules/` in the workspace
 and every directory up to its git root, and its binary cannot be patched. Outside a git repository
 (the shipped `~/.haus/computer` layout) it reads only the workspace itself, so a
-Grok Agent still sees such files it or a repository puts in its workspace. Haus instructions reach Grok through `$GROK_HOME/AGENTS.md`. The
-`*-context-isolation*.test.ts` files under `apps/computer/src/harness/` prove
-each row; the Grok live test fails when Grok changes this behavior.
+Grok Agent still sees such files it or a repository puts in its workspace. Haus instructions reach Grok through `$GROK_HOME/AGENTS.md`. Each driver's
+launch test proves its row (`claude-launch.test.ts`, `codex-launch.test.ts`,
+`grok-launch.test.ts` under `apps/computer/src/runtime/`); the opt-in
+`claude-context-isolation-live.test.ts` and `codex-isolation-live.test.ts` prove it against the
+real CLI, and the Grok live test fails when Grok changes this behavior.
 
-Sub-agents run on Claude Code only, and only in the foreground. Claude Code runs no background
-work at all: the harness bridge opens one query per turn and ends the CLI at that turn's result,
-so anything left running in the background would die with the turn and its completion notice
-would never arrive. `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` removes `run_in_background` from the
-Agent and Bash tools, turns off auto-backgrounding (a foreground command that times out stops
-instead of detaching), and disables Ctrl+B; `Monitor` is in the disallowed tools
-(`CLAUDE_INACTIVE_TOOLS`). A sub-agent therefore finishes inside its parent turn. Codex launches with `agents.enabled = false` and
-`features.multi_agent = false` in `CODEX_CONFIG`, and Grok Build with `GROK_SUBAGENTS=0`, so
-neither offers a spawn tool.
+Sub-agents run on Claude Code only, in the foreground or the background, as in Raft. A
+background sub-agent or shell outlives the turn that starts it: that turn ends, the Agent stays
+reachable for new messages, and when the work finishes Claude Code starts a turn of its own to
+report it, which Haus runs as a sub-agent wake (specs/runtime-drivers.md "Background work"). The
+one long-lived `claude` process per Agent session carries the work between turns, so the warm
+pool never closes it for idleness while work runs. At most four sub-agents run at once
+(`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`). `Monitor` stays in the disallowed tools
+(`CLAUDE_DISALLOWED_TOOLS` in `claude-launch.ts`). Codex launches with `agents.enabled = false`
+and `features.multi_agent = false` in its thread config (`codexThreadConfig`), and Grok Build with
+`GROK_SUBAGENTS=0`, so neither offers a spawn tool.
 
 The Server stores desired configuration and canonical history. Computer stores
-effective harness state and resume evidence. The App reports that distinction
+effective runtime session state and resume evidence. The App reports that distinction
 instead of inferring session health from process presence.

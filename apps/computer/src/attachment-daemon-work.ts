@@ -1,10 +1,17 @@
+import { join } from 'node:path';
 import { settle } from '@haus/effect';
 import { Data, Effect } from 'effect';
+import { holdAgentLaunchHostForWake } from './agent-launch-host.ts';
 import { AgentWorkCoordinator } from './agent-work-coordinator.ts';
+import {
+    type BackgroundWorkReporter,
+    createBackgroundWorkReporter,
+} from './background-work-reporter.ts';
 import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
-import { stopSandboxProcesses } from './harness/sandbox-process-owner.ts';
 import { harnessSessionOwner } from './harness/session-lifecycle.ts';
+import { stopRuntimeProcesses } from './runtime/process-registry.ts';
+import { closeRuntimeContext, fenceWarmRuntime } from './runtime/runtime-context.ts';
 
 export interface AttachmentFrameSender {
     send(frame: unknown): boolean;
@@ -20,6 +27,9 @@ export class AttachmentDaemonWork {
     readonly resettingAgents = new Set<string>();
     readonly retiredAgents = new Set<string>();
 
+    /** Background work Agents' runtimes run between turns; absent without a partition (tests). */
+    readonly backgroundWork?: BackgroundWorkReporter;
+
     private closePromise: Promise<void> | null = null;
     private closing = false;
     private sender: AttachmentFrameSender | null = null;
@@ -27,9 +37,46 @@ export class AttachmentDaemonWork {
 
     constructor(
         private readonly runtime: DaemonRuntime,
-        readonly cloudAgents?: CloudAgentWorkSupervisor
+        readonly cloudAgents?: CloudAgentWorkSupervisor,
+        partition?: { dataRoot: string; serverId: string }
     ) {
         this.agentWork = new AgentWorkCoordinator(runtime);
+        if (partition) {
+            this.backgroundWork = createBackgroundWorkReporter({
+                agentsDir: join(partition.dataRoot, 'servers', partition.serverId, 'agents'),
+                closing: () => this.closing,
+                fence: (agentRoot) => fenceWarmRuntime(runtime, agentRoot),
+                holdForWake: (agentId, ms) =>
+                    holdAgentLaunchHostForWake(partition.serverId, agentId, ms),
+                onError: (error) => this.reportBackgroundWorkError(error),
+                send: (frame) => this.send(frame),
+            });
+        }
+    }
+
+    /**
+     * On each connect: reports every Agent's running sub-agents (clearing counts a restart made
+     * stale), resends every wake request the Server has not answered, then, once, asks a wake
+     * for background work the previous daemon took with it.
+     */
+    async syncBackgroundWork(): Promise<void> {
+        const work = this.backgroundWork;
+        await work
+            ?.reportCounts()
+            .then(() => work.resendPendingWakes())
+            .then(() => work.recoverLostWork())
+            .catch((error: unknown) => this.reportBackgroundWorkError(error));
+    }
+
+    private reportBackgroundWorkError(error: unknown) {
+        void this.runtime.runPromise(
+            Effect.logWarning('A background work report failed; the next change retries.').pipe(
+                Effect.annotateLogs({
+                    error: error instanceof Error ? error.message : String(error),
+                    event: 'background-work-report-failed',
+                })
+            )
+        );
     }
 
     attachSender(sender: AttachmentFrameSender): () => void {
@@ -112,9 +159,14 @@ export class AttachmentDaemonWork {
                 );
             } finally {
                 try {
-                    await stopSandboxProcesses(this.runtime);
+                    // Every warm runtime process ends, then the host-tool server they called.
+                    await closeRuntimeContext(this.runtime);
                 } finally {
-                    this.sender = null;
+                    try {
+                        await stopRuntimeProcesses(this.runtime);
+                    } finally {
+                        this.sender = null;
+                    }
                 }
             }
         })();

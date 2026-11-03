@@ -122,11 +122,6 @@ export function AgentsUsageOverview({ serverId }: { serverId: string }) {
                             <TokenUsageRangePicker days={days} onChange={setDays} />
                         </>
                     }
-                    emptyMessage={
-                        runtimeId === 'pi'
-                            ? 'Usage will appear after a Pi Agent completes a model turn.'
-                            : undefined
-                    }
                     view={view}
                 />
             ) : usage.data ? (

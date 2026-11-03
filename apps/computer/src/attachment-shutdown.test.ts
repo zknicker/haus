@@ -12,7 +12,7 @@ import { makeDaemonRuntime } from './daemon-runtime.ts';
 import { fakeHdiutil } from './workspace-volumes/disk-fixtures.ts';
 
 // Run the real signal handler in another OS process: this test process must survive SIGTERM.
-test('SIGTERM drains writers and reaps a detached harness tree before daemon exit', async () => {
+test('SIGTERM drains writers and reaps a runtime process tree before daemon exit', async () => {
     const root = await mkdtemp(join(tmpdir(), 'haus-daemon-shutdown-'));
     const source = join(root, 'daemon.ts');
     const childFile = join(root, 'child.cjs');
@@ -27,11 +27,11 @@ test('SIGTERM drains writers and reaps a detached harness tree before daemon exi
         import { AttachmentDaemonWork } from ${module('./attachment-daemon-work.ts')};
         import { makeDaemonRuntime } from ${module('./daemon-runtime.ts')};
         import { withAttachmentShutdown } from ${module('./attachment-shutdown.ts')};
-        import { createSandboxProcessRegistry } from ${module('./harness/sandbox-processes.ts')};
+        import { spawnClaudeProcess } from ${module('./runtime/claude-code/claude-process.ts')};
+        import { runtimeProcessOwner } from ${module('./runtime/process-registry.ts')};
         const runtime = makeDaemonRuntime();
         const work = new AttachmentDaemonWork(runtime);
-        const registry = createSandboxProcessRegistry({runtime, defaultWorkingDirectory: ${JSON.stringify(root)}, env: {}, resolveWorkingDirectory: value => value});
-        const child = await registry.spawn({command: ${JSON.stringify(`exec node '${childFile}'`)}});
+        const child = spawnClaudeProcess({args: [${JSON.stringify(childFile)}], binaryPath: 'node', cwd: ${JSON.stringify(root)}, env: {PATH: process.env.PATH ?? ''}, processes: runtimeProcessOwner(runtime)});
         const reservation = work.agentWork.reserve('test', 'run');
         work.track(new Promise(resolve => reservation.controller.signal.addEventListener('abort', async () => {
             await Bun.sleep(75);

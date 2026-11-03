@@ -227,6 +227,15 @@ async function failLaunch({
                           ? 'The cloud agent did not start within five minutes.'
                           : 'The cloud agent launch failed before the provider confirmed it started.',
               };
+    // The summary Server sees stays generic; the provider's own words stay in this Computer's log.
+    console.error('Cloud Agent launch failed.', {
+        cause: cause instanceof Error ? cause.message : String(cause),
+        errorCode: rejection.errorCode,
+        operation: 'cloud-agent.launch',
+        provider: ref.provider,
+        runId: ref.runId,
+        workId: ref.workId,
+    });
     await journal.reject(input.serverId, ref, rejection);
     const stopped = await journal.read(input.serverId, ref);
     const failure =

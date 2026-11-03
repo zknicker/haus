@@ -1,8 +1,8 @@
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { promisify } from 'node:util';
-import type { ToolSet } from '@ai-sdk/provider-utils';
 import * as z from 'zod';
+import { defineHostTool, type HostToolSet } from '../host-tools/host-tool.ts';
 import { runtimeSearchPath } from '../runtime-discovery.ts';
 import { SystemCdpProber } from './cdp-probe.ts';
 import { getBrowserService } from './service.ts';
@@ -56,14 +56,14 @@ export function validateBrowserCommand(args: string[]): void {
 }
 
 /** Resolve the selected browser on every call, including after external recovery. */
-export function createBrowserTools(input: { agentId: string; root: string }): ToolSet {
-    return {
-        browser: {
+export function createBrowserTools(input: { agentId: string; root: string }): HostToolSet {
+    return [
+        defineHostTool({
+            name: 'browser',
             description:
                 'Use the Chrome browser selected in this Computer’s Browser settings. Pass agent-browser command arguments, for example ["tab","new","https://example.com"], ["snapshot","-i"], ["click","@e1"]. Agents share signed-in accounts and tabs. Create your own tab and operate only on your own tabs; leave service and other agents’ tabs alone. Browser startup, shutdown and connection settings belong to the operator. If unavailable, ask the operator to configure Browser on the Computer.',
             inputSchema: commandSchema,
-            execute: async (value, options) => {
-                const { args } = commandSchema.parse(value);
+            execute: async ({ args }, options) => {
                 validateBrowserCommand(args);
                 const service = getBrowserService();
                 if (!service || service.root !== input.root) {
@@ -71,8 +71,8 @@ export function createBrowserTools(input: { agentId: string; root: string }): To
                         'Browser is disabled or unavailable. Configure it in this Computer’s settings.'
                     );
                 }
-                return await service.commandQueue.run(async () => {
-                    options.abortSignal?.throwIfAborted();
+                const stdout = await service.commandQueue.run(async () => {
+                    options.signal.throwIfAborted();
                     if (
                         getBrowserService() !== service ||
                         (await service.observer.status()).state !== 'healthy'
@@ -99,13 +99,14 @@ export function createBrowserTools(input: { agentId: string; root: string }): To
                         ['--session', `haus-${session}`, '--cdp', webSocketDebuggerUrl, ...args],
                         {
                             maxBuffer: 1024 * 1024,
-                            signal: options.abortSignal,
+                            signal: options.signal,
                             timeout: 60_000,
                         }
                     );
                     return result.stdout;
                 });
+                return { type: 'text', text: stdout };
             },
-        },
-    };
+        }),
+    ];
 }

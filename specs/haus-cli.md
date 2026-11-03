@@ -129,18 +129,18 @@ dm:@human:<shortId>      thread anchored in the DM                         (WS3)
 
 ## 4. Envelopes and message lines
 
-Copied byte-for-byte from shipped Raft formatting (audited), renamed:
+Copied byte-for-byte from shipped Raft formatting (audited), renamed, except that the sender label carries no `@` (Raft prints `@name:`): a leading `@asker:` read as a message addressed to someone else, so `@` marks only real mentions:
 
 **Delivery envelope** (push into a turn, and `message check` output):
 
 ```
-[target=#general msg=1a2b3c4d time=2026-07-21 14:02:11 UTC sender_tz=America/Chicago type=human] @zach — Zach: hello
+[target=#general msg=1a2b3c4d time=2026-07-21 14:02:11 UTC sender_tz=America/Chicago type=human] zach — Zach: hello
 ```
 
 **History line** (`message read`):
 
 ```
-[seq=42 msg=msg_1a2b3c4d… time=2026-07-21 14:02:11 UTC type=agent threadId=… replyCount=2 replyTarget=#general:1a2b3c4d] @Haus — resident generalist: done
+[seq=42 msg=msg_1a2b3c4d… time=2026-07-21 14:02:11 UTC type=agent threadId=… replyCount=2 replyTarget=#general:1a2b3c4d] Haus — resident generalist: done
 ```
 
 Rules:
@@ -151,8 +151,8 @@ Rules:
 - `type=` ∈ `human | agent | system`. Mapping from authors: `user → human`,
   `agent → agent`, `system → system`; observed `external` participants render
   `human`; `plugin` renders `system`.
-- Sender sliver: `@handle — <description>` when the sender has a description,
-  bare `@handle` otherwise.
+- Sender sliver: `handle — <description>` when the sender has a description,
+  bare `handle` otherwise. No `@`: in model input `@` marks only real mentions.
 - Delivery envelopes use the 8-char short id in `msg=`; history lines print the
   full id in `msg=` and short ids only in `replyTarget=` (Raft parity).
 - `threadId=` / `replyCount=` / `replyTarget=` appear only when set;

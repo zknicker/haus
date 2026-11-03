@@ -9,7 +9,7 @@ const attachments = [
 
 test('a drained envelope carries its Message attachments as the Raft suffix', () => {
     expect(composeInboxDrain([item({ message: { attachments } })])).toContain(
-        '[target=#general msg=first time=2026-07-27 00:00:00 UTC type=human] @zach: See attached' +
+        '[target=#general msg=first time=2026-07-27 00:00:00 UTC type=human] zach: See attached' +
             ' [2 attachments: plan.md (id:att_1), mock.png (id:att_2) — use haus attachment view to download]'
     );
 });
@@ -27,13 +27,13 @@ test('the attachment suffix precedes the inline reply context', () => {
         }),
     ]);
     expect(drain).toContain(
-        '@zach: See attached [1 attachment: plan.md (id:att_1) — use haus attachment view to download]\n[Inline reply context]'
+        'zach: See attached [1 attachment: plan.md (id:att_1) — use haus attachment view to download]\n[Inline reply context]'
     );
 });
 
 test('an attachment without its identity is counted, never guessed at', () => {
     expect(composeInboxDrain([item({ message: { attachments: [{ id: 'att_1' }] } })])).toContain(
-        '@zach: See attached [1 attachment]'
+        'zach: See attached [1 attachment]'
     );
 });
 

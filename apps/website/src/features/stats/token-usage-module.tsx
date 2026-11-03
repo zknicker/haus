@@ -21,11 +21,9 @@ const ranges: TokenUsageRange[] = [7, 30, 90];
  */
 export function TokenUsageDashboard({
     controls,
-    emptyMessage,
     view,
 }: {
     controls?: ReactNode;
-    emptyMessage?: string;
     view: TokenUsageView;
 }) {
     return (
@@ -36,24 +34,18 @@ export function TokenUsageDashboard({
                         <Toolbar aria-label="Usage filters">{controls}</Toolbar>
                     </div>
                 ) : null}
-                <TokenUsageCluster emptyMessage={emptyMessage} view={view} />
+                <TokenUsageCluster view={view} />
             </div>
             <TokenConfigurationGrid rows={view.configurations} />
         </>
     );
 }
 
-function TokenUsageCluster({
-    emptyMessage,
-    view,
-}: {
-    emptyMessage?: string;
-    view: TokenUsageView;
-}) {
+function TokenUsageCluster({ view }: { view: TokenUsageView }) {
     return (
         <div className="grid gap-3">
             <TokenTotalKpis totals={view.totals} />
-            <TokenUsageChart emptyMessage={emptyMessage} view={view} />
+            <TokenUsageChart view={view} />
         </div>
     );
 }

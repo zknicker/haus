@@ -1,6 +1,7 @@
 import type { AgentInboxLocation, VisibleMessageIdentity } from './inbox-store.ts';
 import { attestVisibleMessages } from './visibility-receipt.ts';
 
+/** A freshness receipt that never holds the proxied response more than 250ms. */
 export async function awaitBestEffortAttestation(
     serverOrigin: string,
     runnerToken: string,

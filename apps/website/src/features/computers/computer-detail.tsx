@@ -142,7 +142,6 @@ export function ComputerDetail({
                         computerId={computerId}
                         detectedRuntimeIds={detectedRuntimeIds}
                         serverId={serverId}
-                        serverSlug={serverSlug}
                     />
                 </ItemCardGroup>
             </section>
@@ -163,7 +162,7 @@ export function ComputerDetail({
 }
 
 function isComputerRuntimeId(value: string): value is ComputerRuntimeId {
-    return value === 'codex' || value === 'claude-code' || value === 'grok-build' || value === 'pi';
+    return value === 'codex' || value === 'claude-code' || value === 'grok-build';
 }
 
 function formatTimestamp(value: Date | string) {

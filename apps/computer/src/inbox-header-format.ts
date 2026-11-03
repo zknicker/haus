@@ -28,6 +28,17 @@ export function formatInboxTimeFields(timestamp: string, senderTimezone?: string
 }
 
 /**
+ * The author label after every inbox and history header: `name — description`,
+ * or bare `name`. It carries no `@`, unlike Raft's `@name:`, so an `@handle` in
+ * model input only ever means a mention: a leading `@asker:` read as a message
+ * addressed to someone else and silenced direct questions.
+ */
+export function formatSenderLabel(handle: string, description?: string | null): string {
+    const name = indentContinuationLines(handle);
+    return description ? `${name} — ${indentContinuationLines(description)}` : name;
+}
+
+/**
  * An id that addresses no Chat message: a Trigger fire (`trf_…`), a Reminder
  * fire (`rmf_…`), or a Cloud Agent Run (`car_…`). None of them can be read,
  * threaded on, reacted to, or handed to `--message-id`. Each carries the id

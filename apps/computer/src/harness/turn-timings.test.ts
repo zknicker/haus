@@ -2,31 +2,48 @@ import { expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { HarnessAgentSession } from '@ai-sdk/harness/agent';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { AgentTurnTimings } from '../agent-turn-timings.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
-import { type HarnessAgentFactory, runHarnessTurn } from './executor.ts';
+import type { RuntimeSession } from '../runtime/driver.ts';
+import { runHarnessTurn, type TurnDriverFactory } from './executor.ts';
 
 test('records native startup and stream boundaries without inventing message sends', async () => {
     const root = await mkdtemp(join(tmpdir(), 'haus-turn-timings-'));
     const runtime = makeDaemonRuntime();
     const timings = new AgentTurnTimings();
-    const session = {
+    const session: RuntimeSession = {
         isResume: false,
         sessionId: 'test-session',
-        detach: async () => ({ type: 'resume-session', harnessId: 'fake', data: {} }),
+        detach: async () => ({ runtime: 'codex', threadId: 'test-thread', version: 1 }),
         destroy: async () => {},
-    } as unknown as HarnessAgentSession;
-    const factory: HarnessAgentFactory = () => ({
-        createSession: async () => session,
-        stream: (async () => ({
-            fullStream: (async function* () {
-                yield { type: 'tool-call', toolCallId: 'call_one', toolName: 'read' };
-                yield { type: 'tool-result', toolCallId: 'call_one', toolName: 'read', result: {} };
-                yield { type: 'finish', totalUsage: { inputTokens: 10, outputTokens: 2 } };
+        startTurn: async () => ({
+            events: (async function* () {
+                yield { input: {}, type: 'tool-call', toolCallId: 'call_one', toolName: 'read' };
+                yield { type: 'tool-result', toolCallId: 'call_one', toolName: 'read', output: {} };
+                yield {
+                    claudePlanUsage: null,
+                    type: 'turn-finish',
+                    usage: {
+                        cacheReadTokens: 0,
+                        cacheWriteTokens: 0,
+                        inputTokens: 10,
+                        outputTokens: 2,
+                        totalTokens: 12,
+                    },
+                };
             })(),
-        })) as unknown as ReturnType<HarnessAgentFactory>['stream'],
+            settle: async () => undefined,
+            unconsumedSteers: () => [],
+        }),
+        steer: async () => ({ delivered: false, reason: 'idle' }),
+        stop: async () => ({ runtime: 'codex', threadId: 'test-thread', version: 1 }),
+    };
+    const factory: TurnDriverFactory = () => ({
+        bootstrapFingerprint: async () => null,
+        openSession: async () => session,
+        refreshBootstrap: async () => undefined,
+        runtimeId: 'codex',
     });
     try {
         await runHarnessTurn({
@@ -37,7 +54,7 @@ test('records native startup and stream boundaries without inventing message sen
             dataRoot: root,
             env: {},
             factoryKind: 'ordinary',
-            harnessAgentFactory: factory,
+            runtimeDriverFactory: factory,
             homeDir: join(root, 'home'),
             homeTimezone: 'UTC',
             inbox: [],
@@ -47,14 +64,14 @@ test('records native startup and stream boundaries without inventing message sen
             unreadElsewhere: [],
             warmDrainItemIds: [],
             initialRole: null,
-            modelId: 'test-model',
+            modelId: 'gpt-5.6-sol',
             reasoningEffort: 'high',
             runId: 'run_timing',
             runtime,
             runtimeId: 'codex',
             sessionGeneration: 1,
             skillsDir: join(root, 'skills'),
-            tools: {},
+            tools: [],
             totalPending: 0,
             turnTimings: timings,
             workspaceDir: join(root, 'workspace'),

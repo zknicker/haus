@@ -1,5 +1,22 @@
-import type { AgentActiveDelegation } from '@haus/api';
+import type { Agent, AgentActiveDelegation } from '@haus/api';
+import { availabilityLabel } from '../computers/presentation.ts';
 import { formatElapsedSince, type HoverTimedLine } from './agent-hover-activity-model.ts';
+
+/**
+ * The hover card's availability clause, plus the background sub-agents the Agent left running
+ * past its turn: `Online · 2 sub-agents running`. The Agent itself stays reachable meanwhile,
+ * so the availability is still its own.
+ */
+export function agentHoverMeta(
+    agent: Pick<Agent, 'availability' | 'backgroundSubagents' | 'wakePause'>
+): string {
+    const label = availabilityLabel(agent);
+    const count = agent.backgroundSubagents;
+    if (count === 0) {
+        return label;
+    }
+    return `${label} · ${count === 1 ? '1 sub-agent' : `${count} sub-agents`} running`;
+}
 
 /**
  * The hover card's one line about running sub-agents: how many, and how long

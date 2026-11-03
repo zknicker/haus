@@ -1,7 +1,7 @@
 ---
 summary: Haus Computer Agent daemon lifecycle, structured delivery, exact visibility proofs, crash recovery, and invariant tests.
 read_when:
-  - changing Computer Agent execution or AI SDK Harness session lifecycle
+  - changing Computer Agent execution or runtime-driver session lifecycle
   - changing Server-to-Computer Agent delivery or busy notices
   - changing accepted, served, or seen semantics, or the retained delivery ledger
   - changing which visibility writes or lifecycle facts start and end chat engagement
@@ -23,11 +23,12 @@ the Server and Computer implementation.
 - Server owns canonical Chats, messages, pending work, exact model visibility,
   verified contiguous seen boundaries, and the 16-turn automation chain budget.
 - Computer owns one isolated execution host per assigned Agent: workspace,
-  HOME, skills, durable inbox acceptance, AI SDK Harness session state, and a
+  HOME, skills, durable inbox acceptance, runtime session state, and a
   resident loopback proxy.
-- AI SDK Harness remains the execution implementation. A settled turn detaches
-  its local session handle, parking the sandbox and resume state for the next
-  delivery. Reset or retirement destroys that Agent host.
+- Haus runtime drivers are the execution implementation
+  ([Runtime drivers](../../specs/runtime-drivers.md)). A settled turn detaches its session,
+  parking resume state (and, while it stays warm, the native process) for the next delivery.
+  Reset or retirement destroys that Agent host.
 - Runtime discovery and launch share one exhaustive runtime-to-executable map. Detection proves
   the executable answers its version probe, not that a provider login or Agent turn will succeed.
 - The Agent sees only the managed `haus` wrapper and its stable local proxy
@@ -104,7 +105,7 @@ mentioned as immutable per-recipient attention metadata; delivery suppression an
 visibility do not infer from that flag.
 
 Server also marks which inbox rows may be drained into the run's prompt:
-`drainItemIds` on any start, `warmDrainItemIds` only when the harness session
+`drainItemIds` on any start, `warmDrainItemIds` only when the runtime session
 resumes. Server cannot pick between them — it parks sessions between turns and
 does not know whether the next `createSession` resumes or cold-starts — so the
 Computer decides the lane from `isResume` and attests what it composed at
@@ -143,25 +144,22 @@ includes its action identity, originating Chat, created Agent identity, and
 executed result; its result is never exposed by the ordinary message-check path.
 
 Busy notices queue behind the active turn and inject only after a completed
-tool boundary with no other tool call still in flight, using AI SDK Harness's acknowledged
-`experimental_steerTurn` API. The harness reports compaction only after it completes, so no
-compaction gate exists.
+tool boundary with no other tool call still in flight, through the runtime session's acknowledged
+`steer` (`SteerResult`, [Runtime drivers](../../specs/runtime-drivers.md#steering-and-busy-delivery)).
+Runtimes report compaction only after it completes, so no compaction gate exists.
 Computer acknowledges only successful runtime acceptance, never a local queue write.
-Every runtime steers. Claude Code and Pi do so natively. Grok Build and Codex run behind
-`@ai-sdk/harness-acp`, whose Haus patch forwards the message as the agent's own steering request:
-`_x.ai/interject` for Grok Build, and `_session/steering` for Codex, which runs as
-[codex-acp](https://github.com/agentclientprotocol/codex-acp) over `codex app-server`
-(`validateComputerBridgeAssets` refuses either bridge without its request). Codex accepts a
-message only when codex-acp answers `injected`; a steer that reaches codex-acp after the turn
-ended starts a turn Haus does not own, so the bridge cancels that turn and rejects the message.
+Every runtime steers: Claude Code takes another stream-json user message on stdin, Codex takes
+`turn/steer` against the running turn id (only after `turn/started`), and Grok Build takes
+`_x.ai/interject`. A steer the runtime acknowledged but the model never received (a Stop
+cancelled it, or it was still queued at turn end) goes back on the pending-notice path.
 If steering is unsupported, rejected, or no safe boundary remains, the durable notice stays
 unacknowledged. Server wakes the same Agent session again after settlement. The composed system
 prompt tells every Agent that a notice may arrive mid-turn; a runtime that cannot steer must
-bring back a next-turn prompt variant before it joins the runtime table in
-`apps/computer/src/harness/runtime-harness.ts`. The Agent can still pull its inbox during the active turn;
+bring back a next-turn prompt variant before it joins the driver map in
+`apps/computer/src/runtime/driver-factory.ts`. The Agent can still pull its inbox during the active turn;
 those exact visibility receipts prevent a redundant wake for already-read work.
 Rejected steering also preserves the notice without changing the primary turn's
-outcome. Unexpected failures while the SDK still has an active turn emit an
+outcome. A steer a running turn refused (`failed`) emits an
 `inbox-notice-deferred` warning; already-ended turns need no warning. A notice the runtime
 accepted logs one `inbox-notice-injected` line on Computer (Agent, run, runtime, and `elapsedMs`
 since the notice file was written), and Server logs one `inbox-notice-acked` line per consumed
@@ -208,19 +206,18 @@ system needs a generic delivery-bypass flag.
 
 Computer maintains one resident execution host and one global model session
 per assigned Agent. The session spans every Chat and does not rotate because
-of age or idle time. A settled turn parks its harness state for the next
+of age or idle time. A settled turn parks its runtime session for the next
 delivery; a Computer restart resumes that stored state.
 
 On SIGTERM, SIGINT, or an update restart, the attachment daemon closes admission,
-cancels active turns, and waits for their AI SDK streams to settle before calling
-`session.stop()`. Parked sessions are reattached and stopped through the same SDK
-contract. Computer saves each returned opaque resume state without rotating the
-generation or discarding conversation context, then reaps all owned sandbox process
-groups before exiting. Ordinary turn completion still uses `session.detach()`. A Stop or the
-no-progress deadline also waits for the SDK turn to settle before detaching: parking a turn that is
-still running stores a `continueFrom` continuation, and the SDK then refuses every new prompt until
-that turn is continued. Haus never continues a turn, so a stored `continueFrom` is dropped on read.
-Server requeues the interrupted run's unseen inbox items, so Start (or the retry after a timeout)
+cancels active turns, and waits for each to settle at its runtime's idle boundary before
+calling `session.stop()`. A parked session needs no reopening: parking and stopping store the
+same versioned resume state, and its warm native process ends with the warm pool. Computer saves
+each returned resume state without rotating the generation or discarding conversation context,
+then closes the warm pool and host-tool server and reaps every registered runtime process group
+before exiting. Ordinary turn completion uses `session.detach()`. A Stop or the no-progress
+deadline also waits for the turn to settle (at most 20 seconds) before detaching, so the parked
+state never carries a turn the next prompt cannot start over. Server requeues the interrupted run's unseen inbox items, so Start (or the retry after a timeout)
 offers the same work again. The runtime records the cancelled tool call as the user declining it,
 so the session store marks the turn interrupted and the next resumed prompt opens with a line
 saying Haus interrupted it and nobody declined it (`apps/computer/src/harness/turn-prompt.ts`);
@@ -232,7 +229,7 @@ replacement daemon waits for the old PID to exit; a timeout blocks replacement.
 Forced OS termination and power loss cannot perform this graceful checkpoint.
 
 Initial creation, runtime or model switch, and manual session reset start a
-fresh session. If the harness rejects stored resume state, Computer discards
+fresh session. If the runtime rejects stored resume state, Computer discards
 only that state, advances the generation, and cold-starts once. The Agent then
 recovers durable context from its unchanged `MEMORY.md`, notes, and canonical
 Server history.
@@ -251,9 +248,9 @@ recreates the runner boundary, resumes the same native conversation, and
 uses the same fingerprinted instruction/bootstrap refresh path as automatic drift.
 
 Before every accepted turn, Computer composes current instructions and fingerprints both them and
-the selected Harness bootstrap. The AI SDK Harness supplies those instructions on each stream call,
-so instruction-only drift keeps the adapter attached. Bootstrap drift or Restart parks the adapter,
-applies the content-addressed bootstrap recipe, and resumes the same native conversation. Before a
+the driver's bootstrap (its pinned CLI). The driver mounts those instructions on the runtime's
+native instruction layer, so instruction-only drift keeps the session. Bootstrap drift or Restart
+parks the session, refreshes the driver's install, and resumes the same native conversation. Before a
 Cove turn, Computer also replaces exact recognized prior playbook and FAQ revisions and privately
 asks the same session to re-read them; edited or missing files are preserved and reported as a
 conflict. The receipt advances only after the turn completes and returns valid resume state. Failure
@@ -290,6 +287,25 @@ fire reaches the transcript: the Server validates the fire against the sending
 Agent and records the provenance with the message. A fire the Agent does not
 answer stays in the automation's fire history and nowhere else.
 
+A Claude Code background sub-agent or shell outlives the turn that started it
+([Runtime drivers](../../specs/runtime-drivers.md#background-work)). When it
+finishes while the Agent is idle, Claude Code starts a turn of its own; the
+Computer asks the Server for a sub-agent wake (`agent-subagent-wake`) and holds
+the Agent's `haus` calls at the loopback proxy until that run's runner arrives.
+The Server queues one chatless concrete row (source `subagent`, built like a
+dream run) for the Agent's current session generation only; the wake run adopts
+Claude Code's turn instead of writing a prompt. The Server answers every request
+with `agent-subagent-wake-result`: `accepted`, or `refused` (wrong generation or
+Computer, a stopped Agent, or the automation chain at its ceiling with no reset
+work queued), on which the Computer interrupts Claude Code's turn so it calls no
+more tools unadmitted. The Computer persists each request and resends it on
+every connect until it is answered. A human message's run that reaches the
+session first folds Claude Code's turn in and sends `agent-subagent-wake-retire`
+for that wake. Work a dying process takes with it wakes the Agent as `stopped`.
+A human Stop sends `agent-stop-background` (also with no active run), which ends
+the runtime process once any turn settled; Restart ends it the same way. Stop
+and session reset retire queued wakes.
+
 ## Bounds And Failures
 
 One Agent admits one turn at a time; different Agents run concurrently. A heartbeat
@@ -299,9 +315,9 @@ harness session that never touches the main session's resume state
 when the Agent is busy and yields its slot when a message addressed to the Agent is waiting; the
 nightly run queues and retires after four hours.
 Sixteen consecutive drains containing only automation-authored work (Agent
-messages, Trigger fires, Trigger problem notices, and Linear session events
-another Agent's write started: sources `agent:*`, `trigger`, `trigger_problem`,
-and `linear_session_automated`) are allowed. The seventeenth remains queued
+messages, Trigger fires, Trigger problem notices, Linear session events
+another Agent's write started, and sub-agent wakes: sources `agent:*`, `trigger`,
+`trigger_problem`, `linear_session_automated`, and `subagent`) are allowed. The seventeenth remains queued
 until human input arrives; human input resets the counter on arrival, and any
 drain containing other work (a human message, a reminder, a task assignment)
 resets it at settlement. Admission judges the drain that will actually run: at
@@ -351,15 +367,13 @@ raw text) cross the Server boundary, and Computer logs one `harness-turn-failed`
 line with the Agent, run, runtime, kind, and code.
 
 A provider failure must settle the turn as failed even when the runtime ends
-it normally. codex-acp does that by default: it reports a provider error as
-assistant text beside `end_turn`. Computer therefore advertises codex-acp's
-typed session-failure capability (`_meta.jetbrains.air.sessionFailure`), and
-the turn stream fails on a terminal failure (`severity: error`, carried on the
-prompt response) and on a retry warning whose category is `access`. Codex
-retries a rejected credential five times per transport, roughly 30 seconds, so
-Computer stops reading at the first such warning and cancels the runtime turn.
-Other retry warnings stay transient and let Codex finish its own retries.
-Claude Code's bridge already ends a 401, 403, or 404 without retrying.
+it normally. Drivers report provider failures in-band as `session-failure` events: the Codex
+driver maps the app-server's `error` and `thread/status/changed` `systemError` notifications to a
+policy category, and the turn stream fails on a terminal failure (`severity: error`) and on a
+retry warning whose category is `access`. Codex retries a rejected credential five times per
+transport, roughly 30 seconds, so Computer stops reading at the first such warning and destroys
+the runtime session. Other retry warnings stay transient and let Codex finish its own retries.
+Claude Code already ends a 401, 403, or 404 without retrying.
 
 An `authentication` failure also records the runtime's issue in
 `runtime-health/<runtime>.json`. The Computer report sent after every settled
@@ -411,7 +425,7 @@ phases from product boundaries:
 | `settled` | The active run completes, fails, or is stopped | Reconcile Agent availability, delivery state, and durable Activity |
 
 Lifecycle remains the coarse availability projection. ADR 0023 adds a separate semantic Agent
-activity journal: Computer maps known Harness and product boundaries into safe categories, Server
+activity journal: Computer maps known runtime and product boundaries into safe categories, Server
 persists them, and the Inbox projects the latest category for each unsettled Agent. Unknown
 and MCP tools remain generic. Neither lifecycle nor semantic activity carries arguments, command
 contents, model reasoning, draft messages, tool outputs, or private file contents.
@@ -434,7 +448,7 @@ composition bubble remains tied only to an explicit in-flight message and its co
 | --- | --- |
 | One persistent session; pending delivery or cold `Start.`, then resume | `apps/computer/src/harness/executor.test.ts` |
 | Restart preserves generation and refreshes instructions exactly once | `apps/server/test/agent-delivery.test.ts`, `apps/computer/src/harness/executor.test.ts`, `apps/computer/src/harness/session-restart.test.ts` |
-| Instruction, bridge, or Haus Agent version drift refreshes once in place and exposes the outcome safely | `apps/computer/src/harness/executor.test.ts`, `apps/computer/src/harness/bootstrap-refresh.test.ts`, `packages/haus-api/src/agent-activity.test.ts` |
+| Instruction, runtime bootstrap, or Haus Agent version drift refreshes once in place and exposes the outcome safely | `apps/computer/src/harness/executor.test.ts`, `packages/haus-api/src/agent-activity.test.ts` |
 | Known tools map through the semantic registry; unknown and MCP tools remain generic | `apps/computer/src/harness/executor.test.ts` |
 | Runtime/model switch and rejected resume start exactly one fresh generation | `apps/computer/src/harness/executor.test.ts` |
 | Session reset preserves workspace and skills; full reset restores the Agent-kind workspace and only factory-managed skills | `apps/computer/src/launch.test.ts` |
@@ -458,7 +472,7 @@ composition bubble remains tied only to an explicit in-flight message and its co
 | Terminal vs retryable runtime failures | `apps/computer/src/runtime-failure.test.ts`, `apps/server/src/agent-delivery/failure-policy.test.ts` |
 | Backoff schedule and rate-limit exemption | `apps/server/src/agent-delivery/retry-policy.test.ts`, `apps/server/test/agent-delivery-backoff.test.ts` |
 | Wake pause opens on a repeated or persistent failure, probes 1h → 4h → 24h, clears on success, and lifts only for human intent | `apps/server/src/agent-delivery/wake-pause.test.ts`, `apps/server/test/agent-wake-pause.test.ts`, `apps/server/test/haus-agent-wake-pause.test.ts` |
-| A typed provider failure fails the turn; a rejected credential ends it at the first retry; the runtime issue clears on success | `apps/computer/src/harness/runtime-session-failure.test.ts`, `apps/computer/src/harness/runtime-session-failure-turn.test.ts`, `apps/computer/src/launch-runtime-auth.test.ts`, opt-in `apps/computer/src/harness/codex-auth-live.test.ts` |
+| A typed provider failure fails the turn; a rejected credential ends it at the first retry; the runtime issue clears on success | `apps/computer/src/harness/runtime-session-failure.test.ts`, `apps/computer/src/harness/runtime-session-failure-turn.test.ts`, `apps/computer/src/launch-runtime-auth.test.ts`, `apps/computer/src/runtime/codex/codex-turn-failures.test.ts` |
 | Dispatch, acceptance, and settlement project semantic lifecycle phases | `apps/server/test/agent-delivery.test.ts` |
 | `As Task` enters the inbox with canonical task metadata | `apps/server/test/haus-agent-run.test.ts`, `apps/computer/src/inbox-format.test.ts` |
 | Fresh Agent Thread replies materialize the authorized anchor | `apps/server/test/haus-agent-run.test.ts` |

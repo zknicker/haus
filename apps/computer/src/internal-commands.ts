@@ -1,6 +1,6 @@
 import { runAgentCli } from './agent-cli.ts';
-import { validateComputerBridgeAssets } from './harness/bridge-bootstrap.ts';
 import { validateMcpExecutor } from './mcp-executor-release.ts';
+import { validateComputerRuntimeAssets } from './runtime/runtime-assets.ts';
 
 export async function runInternalCommand(args: string[]): Promise<boolean> {
     switch (args[0]) {
@@ -11,7 +11,7 @@ export async function runInternalCommand(args: string[]): Promise<boolean> {
             process.exitCode = await runAgentCli(args.slice(1));
             return true;
         case '__release-check':
-            await validateComputerBridgeAssets();
+            validateComputerRuntimeAssets();
             await validateMcpExecutor();
             console.log('Haus Computer release assets are ready.');
             return true;

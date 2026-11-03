@@ -1,0 +1,1 @@
+ALTER TABLE "agents" ADD COLUMN "effective_background_tasks" integer DEFAULT 0 NOT NULL;

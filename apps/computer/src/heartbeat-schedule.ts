@@ -155,7 +155,7 @@ async function writeSentSlots(path: string, sent: SentSlots): Promise<void> {
     await rename(temporary, path);
 }
 
-/** Agent folders only; dot-entries such as `.harness-bridge-prewarm` are Computer scratch. */
+/** Agent folders only; dot-entries such as an older Computer's `.harness-bridge-prewarm` are Computer scratch. */
 async function listAgentIds(agentsDir: string): Promise<string[]> {
     try {
         const entries = await readdir(agentsDir, { withFileTypes: true });

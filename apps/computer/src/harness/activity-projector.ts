@@ -1,5 +1,5 @@
 import type { AgentActivityRun } from '../agent-activity-run.ts';
-import { createAcpReadSteps } from './acp-read-steps.ts';
+import type { ToolTurnEvent, TurnEvent } from '../runtime/turn-event.ts';
 import {
     type ComputerActivityRegistry,
     createComputerActivityRegistry,
@@ -12,6 +12,7 @@ import {
     type NativeImageToolAction,
     nativeImageToolAction,
 } from './generated-images.ts';
+import { createReadLocationSteps } from './read-location-steps.ts';
 import { observeReasoningPart } from './reasoning-capture.ts';
 import { createSubagentSteps, delegationOperationId } from './subagent-steps.ts';
 import { describeFileChange, describeToolAction } from './thought-action.ts';
@@ -33,7 +34,7 @@ export function createComputerActivityProjector(input: {
         findings: createToolFindings(input.thoughts),
         images: createGeneratedImageSteps(input),
         pending: new Map(),
-        reads: createAcpReadSteps(input.workspaceDir),
+        reads: createReadLocationSteps(input.workspaceDir),
         skipped,
         subagents: createSubagentSteps(input.journal),
     };
@@ -63,25 +64,34 @@ export function createComputerActivityProjector(input: {
             calls.subagents.clear();
             await input.journal?.flushReasoning();
         },
-        async observe(part: unknown) {
-            if (!isRecord(part) || typeof part.type !== 'string') {
-                return;
+        async observe(event: TurnEvent) {
+            switch (event.type) {
+                case 'tool-read-location':
+                    calls.reads.observeLocation(event);
+                    return;
+                case 'subagent-progress':
+                case 'subagent-started':
+                case 'subagent-status':
+                case 'subagent-tool-call':
+                case 'subagent-tool-result':
+                    await calls.subagents.observe(event);
+                    return;
+                case 'tool-call':
+                    await observeToolCall(event, input, calls);
+                    return;
+                case 'tool-error':
+                case 'tool-result':
+                    await observeToolOutcome(event, input, calls);
+                    return;
+                case 'reasoning-delta':
+                case 'reasoning-end':
+                case 'reasoning-start':
+                    input.thoughts?.observe(event);
+                    await observeReasoningPart(event, input.journal);
+                    return;
+                default:
+                    return;
             }
-            if (part.type === 'raw') {
-                calls.reads.observeRaw(part);
-                await calls.subagents.observeRaw(part);
-                return;
-            }
-            if (part.type === 'tool-call') {
-                await observeToolCall(part, input, calls);
-                return;
-            }
-            if (part.type === 'tool-result' || part.type === 'tool-error') {
-                await observeToolOutcome(part, input, calls);
-                return;
-            }
-            input.thoughts?.observe(part);
-            await observeReasoningPart(part, input.journal);
         },
     };
 }
@@ -97,7 +107,7 @@ export function createHarnessActivityProjector(
 }
 
 async function observeToolCall(
-    part: Record<string, unknown>,
+    part: Extract<ToolTurnEvent, { type: 'tool-call' }>,
     input: {
         activity: AgentActivityRun;
         journal?: ComputerExecutionJournal;
@@ -159,7 +169,7 @@ async function observeToolCall(
 
 /** Handles both `tool-result` and the `tool-error` a failed tool call ends on. */
 async function observeToolOutcome(
-    part: Record<string, unknown>,
+    part: Extract<ToolTurnEvent, { type: 'tool-error' | 'tool-result' }>,
     input: {
         activity: AgentActivityRun;
         journal?: ComputerExecutionJournal;
@@ -196,8 +206,8 @@ async function observeToolOutcome(
         toolCallId,
     });
     const failed = part.type === 'tool-error' || part.isError === true;
-    const isPreliminary = part.preliminary === true;
-    // The translated stream carries payloads on `output`; `tool-error` on `error`.
+    const isPreliminary = part.type === 'tool-result' && part.preliminary === true;
+    // A result carries its payload on `output`; `tool-error` on `error`.
     const output =
         part.type === 'tool-error'
             ? part.error
@@ -219,7 +229,10 @@ async function observeToolOutcome(
         return;
     }
     if (calls.pending.get(toolCallId)?.category === 'delegating') {
-        await calls.subagents.observeResult(toolCallId, part.output);
+        await calls.subagents.observeResult(
+            toolCallId,
+            part.type === 'tool-result' ? part.output : undefined
+        );
     }
     calls.findings.finished(toolCallId, output, failed);
     calls.skipped.delete(toolCallId);
@@ -262,7 +275,7 @@ interface ToolCalls {
     findings: ReturnType<typeof createToolFindings>;
     images: ReturnType<typeof createGeneratedImageSteps>;
     pending: Map<string, ComputerToolActivity>;
-    reads: ReturnType<typeof createAcpReadSteps>;
+    reads: ReturnType<typeof createReadLocationSteps>;
     skipped: Set<string>;
     subagents: ReturnType<typeof createSubagentSteps>;
 }
@@ -280,10 +293,6 @@ function mediaOperationCategory(
 
 function toolActivityKey(toolCallId: string): string {
     return `tool:${toolCallId}`;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null;
 }
 
 function stringValue(value: unknown): string | undefined {

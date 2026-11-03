@@ -1,11 +1,12 @@
-import type {
-    AddressedReason,
-    Agent,
-    AgentActivityEvent,
-    AgentCommand,
-    AgentTurnSummary,
-    ReminderScriptCommand,
-    ReminderScriptResult,
+import {
+    type AddressedReason,
+    type Agent,
+    type AgentActivityEvent,
+    type AgentCommand,
+    type AgentTurnSummary,
+    isChatlessInboxSource,
+    type ReminderScriptCommand,
+    type ReminderScriptResult,
 } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
 import { and, eq, sql } from 'drizzle-orm';
@@ -53,11 +54,10 @@ import {
     startFrame,
 } from './drain-selection.ts';
 import * as failureHold from './failure-hold.ts';
-import { planHeartbeatRun, retireStaleHeartbeats } from './heartbeat-run.ts';
+import { heartbeatLeadGate, planHeartbeatRun } from './heartbeat-run.ts';
 import { type YieldedHeartbeat, yieldHeartbeatToAddressed } from './heartbeat-yield.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import {
-    isChatlessInboxSource,
     isConcreteInboxSource as isConcreteSource,
     isNoticelessInboxSource,
 } from './inbox-lanes.ts';
@@ -67,6 +67,7 @@ import { consumeNoticeAck } from './notice-ack.ts';
 import { isBackedOff } from './retry-policy.ts';
 import { recordSessionRotation } from './session-rotation.ts';
 import * as store from './store.ts';
+import { retireQueuedSubagentWakes } from './subagent-wake-request.ts';
 import { attachSummaryVisibility } from './summary-visibility.ts';
 import { readUnreadElsewhere } from './unread-elsewhere.ts';
 
@@ -179,71 +180,20 @@ export class AgentDelivery {
     /**
      * Human Stop: persist the flag, revoke the live run's runner credential so the
      * Stop holds even if the Computer is offline or restarts, requeue the run's
-     * work, and best-effort kill the live turn.
+     * work, and best-effort kill the live turn and any background sub-agents the
+     * Agent left running between turns (their queued wakes retire with them).
      */
     async stop(input: { agentId: string; serverId: string }): Promise<void> {
-        const kill = await this.db.transaction(async (tx) => {
-            await lockServerRow(tx, input.serverId);
-            const state = await store.readDeliveryState(tx, input.agentId);
-            await store.setStopped(tx, { ...input, stopped: true });
-            if (!(state?.activeRunId && state.activeRunComputerId)) {
-                return null;
-            }
-            await revokeRunnerCredentialsForRun(tx, {
-                agentId: input.agentId,
-                runId: state.activeRunId,
-                serverId: input.serverId,
-            });
-            await store.requeueInboxItemsForRun(tx, {
-                agentId: input.agentId,
-                runId: state.activeRunId,
-            });
-            const activity = await appendServerAgentActivity(tx, {
-                agentId: input.agentId,
-                category: 'working',
-                phase: 'failed',
-                runId: state.activeRunId,
-                serverId: input.serverId,
-            });
-            const configuration = await rotateDeferredConfiguration(tx, {
-                activeRunModelId: state.activeRunModelId,
-                activeRunReasoningEffort: state.activeRunReasoningEffort,
-                activeRunRuntimeId: state.activeRunRuntimeId,
-                agentId: input.agentId,
-                serverId: input.serverId,
-            });
-            const taskEvents = await settleAgentBackgroundClaims(tx, killedRun(input, state));
-            await store.clearActiveRun(tx, input.agentId);
-            return {
-                activity,
-                chatId: state.activeRunChatId,
-                computerId: state.activeRunComputerId,
-                configuration,
-                runId: state.activeRunId,
-                taskEvents,
-            };
-        });
+        const kill = await interruptActiveRun(this.db, input, { stop: true });
         if (kill) {
-            publishRealtime(kill.taskEvents);
-            if (kill.activity) {
-                publishCommittedAgentActivity(kill.activity);
-            }
-            publishAgentLifecycle({
+            this.announceKilledRun(input, kill);
+        }
+        const config = await readAgentDispatchConfig(this.db, input.agentId);
+        if (config?.computerId) {
+            this.transport.send(config.computerId, {
                 agentId: input.agentId,
-                chatId: kill.chatId,
-                outcome: 'stopped',
-                phase: 'settled',
-                runId: kill.runId,
-                serverId: input.serverId,
+                type: 'agent-stop-background',
             });
-            this.transport.send(kill.computerId, {
-                agentId: input.agentId,
-                runId: kill.runId,
-                type: 'stop',
-            });
-            if (kill.configuration) {
-                sendDeferredConfiguration(this.transport, input.agentId, kill.configuration);
-            }
         }
     }
 
@@ -267,26 +217,7 @@ export class AgentDelivery {
         }
         const interrupted = await interruptActiveRun(this.db, input);
         if (interrupted) {
-            publishRealtime(interrupted.taskEvents);
-            if (interrupted.activity) {
-                publishCommittedAgentActivity(interrupted.activity);
-            }
-            publishAgentLifecycle({
-                agentId: input.agentId,
-                chatId: interrupted.chatId,
-                outcome: 'stopped',
-                phase: 'settled',
-                runId: interrupted.runId,
-                serverId: input.serverId,
-            });
-            this.transport.send(interrupted.computerId, {
-                agentId: input.agentId,
-                runId: interrupted.runId,
-                type: 'stop',
-            });
-            if (interrupted.configuration) {
-                sendDeferredConfiguration(this.transport, input.agentId, interrupted.configuration);
-            }
+            this.announceKilledRun(input, interrupted);
         }
         if (
             !this.transport.send(config.computerId, {
@@ -327,6 +258,7 @@ export class AgentDelivery {
                 await store.clearActiveRun(tx, input.agentId);
             }
             await store.clearInboxNotices(tx, { agentId: input.agentId });
+            await retireQueuedSubagentWakes(tx, input.agentId);
             await failureHold.clearDeliveryFailures(tx, input.agentId);
             const [rotated] = await tx
                 .update(agentsTable)
@@ -964,14 +896,14 @@ export class AgentDelivery {
         if (isBackedOff(state)) {
             return null;
         }
-        await retireStaleHeartbeats(tx, agentId);
+        const mayLead = await heartbeatLeadGate(tx, agentId);
         // Sequential: planning runs inside the transaction holding the Server
         // row, and overlapping reads on its one connection wedge it.
         const unnoticed = await store.listUnnoticedQueuedItems(tx, agentId, maxDrainRows);
         const concreteRows = await store.listQueuedConcreteItems(tx, agentId, maxDrainRows);
         const candidates = [
             ...new Map([...unnoticed, ...concreteRows].map((row) => [row.id, row])).values(),
-        ];
+        ].filter(mayLead);
         const preferred = preferredDrainLead(candidates);
         if (!preferred) {
             return null;
@@ -979,12 +911,13 @@ export class AgentDelivery {
         const chainTurns = await restartIdleAgentChain(tx, agentId, state.agentChainTurns);
         const drain = { agentId, candidates, chainTurns, lead: preferred };
         const admitted = await admitQueuedAgentDrain(tx, drain, boundedCompatibleRows);
-        if (!admitted) {
+        if (!(admitted && mayLead(admitted.lead))) {
             return null;
         }
         const { lead: first, selected } = admitted;
-        // A dream, heartbeat, or report is concrete work with no Chat: a chatless run.
-        // It resets the chain, so admission may also pick it as the lead at the ceiling.
+        // A dream, heartbeat, report, or sub-agent wake is concrete work with no Chat: a
+        // chatless run. A heartbeat-family run resets the chain, so admission may also pick
+        // it as the lead at the ceiling.
         if (isChatlessInboxSource(first.source)) {
             return await planHeartbeatRun(tx, { agentId, config, row: first, state });
         }
@@ -1119,6 +1052,33 @@ export class AgentDelivery {
                 runId: plan.frame.runId,
                 serverId: plan.serverId,
             });
+        }
+    }
+
+    /** Tells the live run's Computer and every viewer that a run was killed. */
+    private announceKilledRun(
+        input: { agentId: string; serverId: string },
+        kill: NonNullable<Awaited<ReturnType<typeof interruptActiveRun>>>
+    ) {
+        publishRealtime(kill.taskEvents);
+        if (kill.activity) {
+            publishCommittedAgentActivity(kill.activity);
+        }
+        publishAgentLifecycle({
+            agentId: input.agentId,
+            chatId: kill.chatId,
+            outcome: 'stopped',
+            phase: 'settled',
+            runId: kill.runId,
+            serverId: input.serverId,
+        });
+        this.transport.send(kill.computerId, {
+            agentId: input.agentId,
+            runId: kill.runId,
+            type: 'stop',
+        });
+        if (kill.configuration) {
+            sendDeferredConfiguration(this.transport, input.agentId, kill.configuration);
         }
     }
 }

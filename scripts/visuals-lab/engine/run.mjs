@@ -9,13 +9,13 @@
 // visuals skill, the runtime-native skill links, the auth-profile symlinks) and
 // hands the sales data to the model inline, then captures whatever ```visual
 // fence comes back. What it measures is therefore the skill text and the model,
-// with the product's plumbing held constant: every model runs the harness
-// bridge Haus itself ships.
+// with the product's plumbing held constant: every model runs the runtime
+// driver Haus itself ships.
 import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { readAgentSkillNames } from '../../../apps/computer/src/harness/agent-skill-names.ts';
 import { ensureNativeSkillLinks } from '../../../apps/computer/src/harness/native-skill-links.ts';
-import { readAgentSkills } from '../../../apps/computer/src/harness/skills.ts';
 import { seedFactoryManagedSkills } from '../../../packages/agent-workspace/src/index.ts';
 import {
     splitVisualFences,
@@ -55,7 +55,7 @@ for (const dir of [homeDir, path.join(agentRoot, 'runtime'), skillsDir, workspac
 await seedFactoryManagedSkills(skillsDir);
 const skillOverrides = skillDir ? await overrideVisualsSkill(skillsDir, skillDir) : [];
 await ensureNativeSkillLinks(homeDir, skillsDir);
-const skills = await readAgentSkills(skillsDir);
+const skills = await readAgentSkillNames(skillsDir);
 assert(skills.length > 0, `no skills seeded into ${skillsDir}`);
 
 const runner = createHarnessRunner({
@@ -68,7 +68,7 @@ const runner = createHarnessRunner({
 });
 
 process.stdout.write(
-    `visuals lab: ${runLabel} · ${items.length} prompt(s) · skills ${skills.map((skill) => skill.name).join(', ')}\n`
+    `visuals lab: ${runLabel} · ${items.length} prompt(s) · skills ${skills.join(', ')}\n`
 );
 process.stdout.write(
     skillDir

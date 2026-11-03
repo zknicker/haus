@@ -76,7 +76,6 @@ const runtimeCommands: Record<ComputerRuntimeId, string> = {
     'claude-code': 'claude',
     codex: 'codex',
     'grok-build': 'grok',
-    pi: 'pi',
 };
 
 export function resolveRuntimeById(runtimeId: string, options: { searchPath?: string } = {}) {

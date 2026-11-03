@@ -60,14 +60,14 @@ observes itself. The App pages through the retained history with the focused
 grows without bound. Keeping the report separate lets older peers ignore the capability without
 rejecting the ordinary inventory report.
 
-At its one check per night Computer may send `agent-dream-request` (`{ agentId, localDate }`)
-for an Agent whose memory changed ([workspace](../../specs/workspace.md#dreaming)). Server answers
-only by dispatch: it queues the dream for any running Agent, busy or not, and when the dream's
-turn comes it starts the one chatless run,
-a `start` frame with `chatId: null`, a `dream` attention (`{ id, createdAt }`), and no inbox
-items; the runner mint for that run carries `chatId: null` too. Only a Computer that sends the
-request can receive a dream start, so the frame needs no protocol bump: an older Server ignores
-the request and an older Computer never asks.
+At each heartbeat slot Computer may send `agent-heartbeat-request`
+(`{ agentId, kind, localDate, slot }`; [heartbeat](../../specs/heartbeat.md)). When Claude Code
+starts a turn on its own to report background work, Computer sends `agent-subagent-wake`
+([runtime drivers](../../specs/runtime-drivers.md#background-work)). Server queues each as a
+chatless inbox item and starts it as a chatless run: a `start` frame with `chatId: null`, one
+`heartbeat`, `heartbeatReport`, or `subagentWake` attention, and no inbox items; the runner mint
+for that run carries `chatId: null` too. Only a Computer that sends the request can receive such
+a start, so the frame needs no protocol bump.
 
 Cross-boundary types use Haus product nouns and narrow discriminated unions. Do not add aliases
 for the retired standalone Runtime or SDK surfaces.

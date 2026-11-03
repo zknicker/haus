@@ -146,7 +146,7 @@ test('message check interleaves an automation fire with messages by createdAt', 
     expect(lines[0]).toContain('[target=#general msg=first ');
     // A fire addresses no Chat message, so its `msg=` slot is `-`.
     expect(lines[1]).toStartWith('[target=#general msg=- ');
-    expect(lines[1]).toEndWith('type=trigger] @trigger: \u26a1 Trigger: Sentry alerts');
+    expect(lines[1]).toEndWith('type=trigger] trigger: \u26a1 Trigger: Sentry alerts');
     expect(lines[2]).toContain('[target=#general msg=third ');
     expect(lines[3]).toBe('No more new messages.');
 });
@@ -175,7 +175,7 @@ test('message check renders an automations-only pull instead of an empty inbox',
 
     expect(outputs[0]).not.toContain('No new messages.');
     expect(outputs[0]).toContain(
-        'type=system] @reminder: \ud83d\udd14 Reminder: Stand-up\nfire=rmf_9a8b7c6d'
+        'type=system] reminder: \ud83d\udd14 Reminder: Stand-up\nfire=rmf_9a8b7c6d'
     );
     expect(outputs[0]).toEndWith('No more new messages.\n');
 });
@@ -222,8 +222,8 @@ test('message check pages on automations that arrive with no messages', async ()
 
     expect(calls).toBe(2);
     // Neither page's fire prints an id in `msg=`; the body names which fire it is.
-    expect(outputs[0]).toContain('type=trigger] @trigger: \u26a1 Trigger: first fire');
-    expect(outputs[0]).toContain('type=trigger] @trigger: \u26a1 Trigger: second fire');
+    expect(outputs[0]).toContain('type=trigger] trigger: \u26a1 Trigger: first fire');
+    expect(outputs[0]).toContain('type=trigger] trigger: \u26a1 Trigger: second fire');
     expect(outputs[0]).toContain('[target=#general msg=- ');
     expect(outputs[0]).not.toContain('msg=aaaaaaaa');
     expect(outputs[0]).toEndWith('No more new messages.\n');
@@ -257,7 +257,7 @@ test('message check renders a task assignment through the fire envelope header',
     // the id the Agent can actually read, thread on, or react to.
     expect(lines[0]).toStartWith('[target=#general msg=1a2b3c4d ');
     expect(lines[0]).toEndWith(
-        'type=system] @haus: [Haus task assignment task=#7 target=#general assignedBy=@operator] Ship the release notes'
+        'type=system] haus: [Haus task assignment task=#7 target=#general assignedBy=@operator] Ship the release notes'
     );
     expect(outputs[0]).not.toContain('No new messages.');
 });
@@ -297,8 +297,8 @@ test('message check orders a task assignment against fires and messages by creat
 
     const lines = (outputs[0] ?? '').trimEnd().split('\n');
     expect(lines[0]).toContain('[target=#general msg=first ');
-    expect(lines[1]).toContain('@haus: [Haus task assignment task=#7 target=#general] Ship it');
-    expect(lines[2]).toContain('@trigger: \u26a1 Trigger: Sentry alerts');
+    expect(lines[1]).toContain('] haus: [Haus task assignment task=#7 target=#general] Ship it');
+    expect(lines[2]).toContain('] trigger: \u26a1 Trigger: Sentry alerts');
     expect(lines[3]).toContain('[target=#general msg=fourth ');
     expect(lines[4]).toBe('No more new messages.');
 });

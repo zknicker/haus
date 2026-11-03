@@ -1,9 +1,9 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { type CliRenderer, plainCliRenderer } from './cli/render.ts';
-import { validateComputerBridgeAssets } from './harness/bridge-bootstrap.ts';
 import type { Attachment } from './launch.ts';
 import { readComputerLoginSession } from './login.ts';
+import { validateComputerRuntimeAssets } from './runtime/runtime-assets.ts';
 
 interface AttachmentStatus {
     daemon: 'running' | 'setup-required' | 'stopped';
@@ -66,9 +66,7 @@ export async function doctorComputer(
     checks.push({ label: 'At least one Server is attached', ok: attachments.length > 0 });
     checks.push({
         label: 'Bundled Agent runtimes are ready',
-        ok: await validateComputerBridgeAssets()
-            .then(() => true)
-            .catch(() => false),
+        ok: runtimeAssetsReady(),
     });
     for (const attachment of attachments) {
         const path = join(dataRoot, 'servers', attachment.serverId, 'attachment.json');
@@ -223,4 +221,13 @@ async function exists(path: string) {
     return await stat(path)
         .then(() => true)
         .catch(() => false);
+}
+
+function runtimeAssetsReady() {
+    try {
+        validateComputerRuntimeAssets();
+        return true;
+    } catch {
+        return false;
+    }
 }

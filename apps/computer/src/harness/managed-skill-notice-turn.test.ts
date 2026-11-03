@@ -2,7 +2,6 @@ import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { HarnessAgent } from '@ai-sdk/harness/agent';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import {
@@ -11,12 +10,13 @@ import {
     readManagedSkillChangeNotice,
     seedAgentManagedSkills,
 } from '../managed-skill-changes.ts';
+import { fakeRuntimeDriver, finishedTurn } from '../runtime/testing/fake-runtime-driver.ts';
+import type { TurnEvent } from '../runtime/turn-event.ts';
 import {
     HarnessTurnFailedError,
     type HarnessTurnInput,
     runHarnessTurn,
-    setHarnessAgentFactoryForTesting,
-    setHarnessBootstrapRefreshForTesting,
+    setRuntimeDriverFactoryForTesting,
 } from './executor.ts';
 
 const runtime = makeDaemonRuntime();
@@ -26,7 +26,6 @@ let agentRoot: string;
 let failStream: boolean;
 let prompts: string[];
 let restore: () => void;
-let restoreBootstrapRefresh: () => void;
 
 const release = (visuals: string): ManagedSkillFactory => ({
     hashes: () => ({ visuals }),
@@ -38,15 +37,13 @@ beforeEach(async () => {
     agentRoot = await mkdtemp(join(tmpdir(), 'haus-skill-notice-turn-'));
     failStream = false;
     prompts = [];
-    restore = setHarnessAgentFactoryForTesting(() => fakeAgent());
-    restoreBootstrapRefresh = setHarnessBootstrapRefreshForTesting(async () => undefined);
+    restore = setRuntimeDriverFactoryForTesting(fakeDriver);
     await seedAgentManagedSkills(agentRoot, release('v1'));
     await seedAgentManagedSkills(agentRoot, release('v2'));
 });
 
 afterEach(async () => {
     restore();
-    restoreBootstrapRefresh();
     await rm(agentRoot, { force: true, recursive: true });
 });
 
@@ -71,29 +68,14 @@ test('a turn that fails keeps the notice for the next turn', async () => {
     expect(await readManagedSkillChangeNotice(agentRoot)).toBeNull();
 });
 
-function fakeAgent(): Pick<HarnessAgent, 'createSession' | 'stream'> {
-    return {
-        createSession: (async () => ({
-            destroy: async () => undefined,
-            detach: async () => ({ data: {}, harnessId: 'fake', type: 'resume-session' }),
-            isResume: false,
-            sessionId: 'engine_session_1',
-            stop: async () => ({ data: {}, harnessId: 'fake', type: 'resume-session' }),
-        })) as unknown as HarnessAgent['createSession'],
-        stream: (async (options: { prompt: string }) => {
-            prompts.push(options.prompt);
-            return { consumeStream: async () => undefined, fullStream: parts() };
-        }) as unknown as HarnessAgent['stream'],
-    };
-}
-
-async function* parts(): AsyncGenerator<unknown> {
-    if (failStream) {
-        yield { error: new Error('provider failed'), type: 'error' };
-        return;
-    }
-    yield { totalUsage: undefined, type: 'finish' };
-}
+const { factory: fakeDriver } = fakeRuntimeDriver<HarnessTurnInput>({
+    turn: ({ prompt }): TurnEvent[] => {
+        prompts.push(prompt);
+        return failStream
+            ? [{ error: new Error('provider failed'), type: 'error' }]
+            : finishedTurn();
+    },
+});
 
 function turnInput(): HarnessTurnInput {
     return {
@@ -118,7 +100,7 @@ function turnInput(): HarnessTurnInput {
         serverId: 'srv_skill_notice_test',
         sessionGeneration: 1,
         skillsDir: join(agentRoot, 'skills'),
-        tools: {},
+        tools: [],
         totalPending: 0,
         unreadElsewhere: [],
         warmDrainItemIds: [],

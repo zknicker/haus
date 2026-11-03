@@ -1,3 +1,5 @@
+import type { RuntimeTurn } from '../runtime/driver.ts';
+
 /** How long a cancelled turn may take to reach the SDK's idle boundary before it is torn down. */
 export const stoppedTurnSettleMs = 20_000;
 
@@ -16,7 +18,7 @@ export class StoppedTurnTimeoutError extends Error {
  * session and keeps the conversation's last idle resume state.
  */
 export async function settleStoppedTurn(
-    turn: { consumeStream: () => PromiseLike<void> },
+    turn: Pick<RuntimeTurn, 'settle'>,
     runtimeId: string,
     timeoutMs = stoppedTurnSettleMs
 ): Promise<void> {
@@ -28,7 +30,7 @@ export async function settleStoppedTurn(
         );
     });
     try {
-        await Promise.race([turn.consumeStream(), deadline]);
+        await Promise.race([turn.settle(), deadline]);
     } finally {
         clearTimeout(timer);
     }

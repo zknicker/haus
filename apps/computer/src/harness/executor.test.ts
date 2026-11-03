@@ -2,22 +2,25 @@ import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { HarnessCapabilityUnsupportedError } from '@ai-sdk/harness';
-import type { HarnessAgent } from '@ai-sdk/harness/agent';
 import { seedCoveWorkspace } from '@haus/agent-workspace';
 import { hausAgentVersion } from '@haus/api';
+import type { ClaudeUsageSnapshot } from '@haus/claude-usage';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { composeInboxDrain, composeInboxNotice } from '../inbox-format.ts';
 import { acceptRunInbox, replacePendingInbox } from '../inbox-store.ts';
+import { claudePlanUsageFromResponse } from '../runtime/claude-code/claude-plan-usage.ts';
+import { RuntimeResumeRejectedError } from '../runtime/resume-rejected.ts';
+import type { RuntimeResumeState } from '../runtime/resume-state.ts';
+import { fakeRuntimeDriver } from '../runtime/testing/fake-runtime-driver.ts';
+import type { RuntimeTokenUsage, TurnEvent } from '../runtime/turn-event.ts';
 import { readClaudePlanUsageState } from '../usage/claude-plan-usage-state.ts';
 import { readComputerExecutionJournal } from './execution-journal.ts';
 import {
     HarnessTurnFailedError,
     type HarnessTurnInput,
     runHarnessTurn,
-    setHarnessAgentFactoryForTesting,
-    setHarnessBootstrapRefreshForTesting,
+    setRuntimeDriverFactoryForTesting,
 } from './executor.ts';
 import { legacyCoveFaq, legacyCovePlaybook } from './executor-fixtures.ts';
 import { AgentSessionResumeRejectedError } from './resume-rejection.ts';
@@ -36,14 +39,14 @@ let agentInstructions: string[];
 let createSessionCalls: CreateSessionCall[];
 let detachedSessions: number;
 let restore: () => void;
-let restoreBootstrapRefresh: () => void;
 let rejectResume: boolean;
+let refreshFails: boolean;
 let refreshedBootstraps: number;
 let sentUserMessages: string[];
 let stoppedSessions: number;
 let streamIncludesToolBoundary: boolean;
 let streamAborts: boolean;
-let streamProviderMetadata: Record<string, unknown> | undefined;
+let streamPlanUsage: ClaudeUsageSnapshot | null;
 let streamFails: boolean;
 let streamUsageScale: number;
 let streamedPrompts: string[];
@@ -58,125 +61,111 @@ beforeEach(async () => {
     createSessionCalls = [];
     detachedSessions = 0;
     rejectResume = false;
+    refreshFails = false;
     refreshedBootstraps = 0;
     sentUserMessages = [];
     stoppedSessions = 0;
     streamAborts = false;
     streamIncludesToolBoundary = false;
-    streamProviderMetadata = undefined;
+    streamPlanUsage = null;
     streamFails = false;
     streamUsageScale = 1;
     streamedPrompts = [];
     streamToolNames = [];
     streamedCoveFaqs = [];
     streamedCovePlaybooks = [];
-    restore = setHarnessAgentFactoryForTesting((input, options) => {
-        agentInstructions.push(options.instructions);
-        return fakeAgent(input);
-    });
-    restoreBootstrapRefresh = setHarnessBootstrapRefreshForTesting(async () => {
-        refreshedBootstraps += 1;
-    });
+    restore = setRuntimeDriverFactoryForTesting(fakeDriver);
 });
 
 afterEach(async () => {
     restore();
-    restoreBootstrapRefresh();
     await rm(agentRoot, { force: true, recursive: true });
 });
 
-function fakeAgent(input: HarnessTurnInput): Pick<HarnessAgent, 'createSession' | 'stream'> {
-    return {
-        createSession: (async (options: { resumeFrom?: unknown; sessionId: string }) => {
-            createSessionCalls.push({
-                resumeFrom: options.resumeFrom,
-                sessionId: options.sessionId,
-            });
-            if (options.resumeFrom && rejectResume) {
-                throw new Error('No conversation found with session ID: native_session_1');
-            }
-            return {
-                detach: async () => {
-                    detachedSessions += 1;
-                    return {
-                        data: { detachSequence: detachedSessions },
-                        harnessId: 'fake',
-                        type: 'resume-session',
-                    };
-                },
-                destroy: async () => undefined,
-                isResume: Boolean(options.resumeFrom),
-                experimental_steerTurn: async (message: string) => {
-                    sentUserMessages.push(message);
-                    if (!acceptsUserMessages) {
-                        throw new HarnessCapabilityUnsupportedError({
-                            harnessId: 'codex',
-                            message: 'Harness does not support steering active turns.',
-                        });
-                    }
-                },
-                hasUnfinishedTurn: () => true,
-                sessionId: 'engine_session_1',
-                stop: async () => {
-                    stoppedSessions += 1;
-                    return {
-                        data: { nativeSessionId: 'native_session_1' },
-                        harnessId: 'fake',
-                        type: 'resume-session',
-                    };
-                },
+/** A parked native conversation: `stop` keeps the native session, `detach` numbers each park. */
+const stoppedState: RuntimeResumeState = {
+    runtime: 'codex',
+    threadId: 'native_session_1',
+    version: 1,
+};
+
+const { factory: fakeDriver } = fakeRuntimeDriver<HarnessTurnInput>({
+    sessionId: 'engine_session_1',
+    detach: () => {
+        detachedSessions += 1;
+        return { runtime: 'codex', threadId: `detached_${detachedSessions}`, version: 1 };
+    },
+    open: ({ resumeFrom, sessionId }, { options }) => {
+        agentInstructions.push(options.instructions);
+        createSessionCalls.push({ resumeFrom, sessionId });
+        if (resumeFrom && rejectResume) {
+            throw new RuntimeResumeRejectedError(
+                'codex',
+                'missing',
+                'No conversation found with session ID: native_session_1'
+            );
+        }
+    },
+    refreshBootstrap: async () => {
+        if (refreshFails) {
+            throw new Error('bootstrap rejected');
+        }
+        refreshedBootstraps += 1;
+    },
+    steer: (message) => {
+        sentUserMessages.push(message);
+        return acceptsUserMessages
+            ? { delivered: true }
+            : { delivered: false, reason: 'unsupported' };
+    },
+    stop: () => {
+        stoppedSessions += 1;
+        return stoppedState;
+    },
+    turn: ({ input, prompt }) => scriptedTurn(input, prompt),
+});
+
+async function* scriptedTurn(input: HarnessTurnInput, prompt: string): AsyncGenerator<TurnEvent> {
+    streamedPrompts.push(prompt);
+    if (input.factoryKind === 'cove') {
+        streamedCoveFaqs.push(
+            await readOptionalText(join(input.workspaceDir, 'notes', 'onboarding_knowledge_faq.md'))
+        );
+        streamedCovePlaybooks.push(
+            await readOptionalText(join(input.workspaceDir, 'notes', 'onboarding_playbook.md'))
+        );
+    }
+    for (const [index, toolName] of streamToolNames.entries()) {
+        yield { input: {}, toolCallId: `call_${index}`, toolName, type: 'tool-call' };
+    }
+    if (streamIncludesToolBoundary) {
+        if (streamToolNames.length === 0) {
+            yield {
+                output: null,
+                toolCallId: 'boundary',
+                toolName: 'boundary',
+                type: 'tool-result',
             };
-        }) as unknown as HarnessAgent['createSession'],
-        stream: (async (options: { prompt: string }) => {
-            streamedPrompts.push(options.prompt);
-            if (input.factoryKind === 'cove') {
-                streamedCoveFaqs.push(
-                    await readOptionalText(
-                        join(input.workspaceDir, 'notes', 'onboarding_knowledge_faq.md')
-                    )
-                );
-                streamedCovePlaybooks.push(
-                    await readOptionalText(
-                        join(input.workspaceDir, 'notes', 'onboarding_playbook.md')
-                    )
-                );
+        } else {
+            for (const [index, toolName] of streamToolNames.entries()) {
+                yield {
+                    output: { ok: true },
+                    toolCallId: `call_${index}`,
+                    toolName,
+                    type: 'tool-result',
+                };
             }
-            return {
-                consumeStream: async () => undefined,
-                fullStream: (async function* () {
-                    for (const [index, toolName] of streamToolNames.entries()) {
-                        yield { toolCallId: `call_${index}`, toolName, type: 'tool-call' };
-                    }
-                    if (streamIncludesToolBoundary) {
-                        if (streamToolNames.length === 0) {
-                            yield { type: 'tool-result' };
-                        } else {
-                            for (const [index, toolName] of streamToolNames.entries()) {
-                                yield {
-                                    output: { ok: true },
-                                    toolCallId: `call_${index}`,
-                                    toolName,
-                                    type: 'tool-result',
-                                };
-                            }
-                        }
-                    }
-                    yield { type: 'finish-step', usage: publicUsage(streamUsageScale) };
-                    if (streamAborts) {
-                        yield { type: 'abort' };
-                    } else if (streamFails) {
-                        yield { error: new Error('provider failed'), type: 'error' };
-                    } else {
-                        yield {
-                            providerMetadata: streamProviderMetadata,
-                            totalUsage: publicUsage(streamUsageScale),
-                            type: 'finish',
-                        };
-                    }
-                })(),
-            };
-        }) as unknown as HarnessAgent['stream'],
-    };
+        }
+    }
+    const usage = tokenUsage(streamUsageScale);
+    yield { contextTokens: usage.inputTokens, type: 'step-finish', usage };
+    if (streamAborts) {
+        yield { type: 'abort' };
+    } else if (streamFails) {
+        yield { error: new Error('provider failed'), type: 'error' };
+    } else {
+        yield { claudePlanUsage: streamPlanUsage, type: 'turn-finish', usage };
+    }
 }
 
 async function readOptionalText(path: string): Promise<string | null> {
@@ -193,17 +182,12 @@ async function readOptionalText(path: string): Promise<string | null> {
     });
 }
 
-function publicUsage(scale = 1) {
+function tokenUsage(scale = 1): RuntimeTokenUsage {
     return {
-        inputTokenDetails: {
-            cacheReadTokens: 8 * scale,
-            cacheWriteTokens: 2 * scale,
-            noCacheTokens: 2 * scale,
-        },
+        cacheReadTokens: 8 * scale,
+        cacheWriteTokens: 2 * scale,
         inputTokens: 10 * scale,
-        outputTokenDetails: { reasoningTokens: undefined, textTokens: 5 * scale },
         outputTokens: 5 * scale,
-        raw: undefined,
         totalTokens: 15 * scale,
     };
 }
@@ -256,7 +240,7 @@ function turnInput(overrides: TestTurnOverrides = {}): HarnessTurnInput {
         unreadElsewhere: [],
         warmDrainItemIds: [],
         ...inputOverrides,
-        tools: overrides.tools ?? {},
+        tools: overrides.tools ?? [],
     };
     // A concrete frame drains everything it carries; the Server sets the same
     // ids on the wire, so the default keeps these turns behaving as they did.
@@ -278,9 +262,7 @@ test('effort changes restart the native process and resume the same conversation
     expect(updated.generation).toBe(original.generation);
     expect(updated.runtimeSessionId).toBe(original.runtimeSessionId);
     expect(updated.effectiveReasoningEffort).toBe('high');
-    expect(createSessionCalls.at(-1)?.resumeFrom).toMatchObject({
-        data: { nativeSessionId: 'native_session_1' },
-    });
+    expect(createSessionCalls.at(-1)?.resumeFrom).toMatchObject({ threadId: 'native_session_1' });
     await runHarnessTurn({ ...turnInput(), reasoningEffort: 'high' });
     expect(stoppedSessions).toBe(1);
 });
@@ -300,9 +282,9 @@ test('cold-starts a fresh Agent then resumes its one global session', async () =
     const afterFirst = await readSession();
     expect(afterFirst.generation).toBe(1);
     expect(afterFirst.runtimeSessionId).toBe('engine_session_1');
-    expect(afterFirst.resumeState).toMatchObject({ type: 'resume-session' });
+    expect(afterFirst.resumeState).toMatchObject({ runtime: 'codex' });
     expect(streamedPrompts[0]).toContain(
-        '[target=dm:@operator msg=test time=2026-07-27 00:00:00 UTC type=human] @operator: Hello Cove'
+        '[target=dm:@operator msg=test time=2026-07-27 00:00:00 UTC type=human] operator: Hello Cove'
     );
     expect(streamedPrompts).toHaveLength(1);
     expect(sentUserMessages).toEqual([]);
@@ -310,9 +292,9 @@ test('cold-starts a fresh Agent then resumes its one global session', async () =
     streamUsageScale = 2;
     const second = await runHarnessTurn(turnInput());
     // Second turn resumes: the stored resume state is handed back to the engine.
-    expect(createSessionCalls[1]?.resumeFrom).toMatchObject({ type: 'resume-session' });
+    expect(createSessionCalls[1]?.resumeFrom).toMatchObject({ runtime: 'codex' });
     expect((await readSession()).generation).toBe(1);
-    // codex-acp reports each turn's own usage; nothing is diffed against a baseline.
+    // The Codex driver reports each turn's own usage; nothing is diffed against a baseline.
     expect(second.tokenUsage).toEqual({
         cacheReadTokens: 16,
         cacheWriteTokens: 4,
@@ -321,25 +303,21 @@ test('cold-starts a fresh Agent then resumes its one global session', async () =
         totalTokens: 30,
     });
 });
-test('persists Claude plan limits emitted by the managed SDK turn', async () => {
-    streamProviderMetadata = {
-        'claude-code': {
-            planUsage: {
-                rate_limits: {
-                    five_hour: {
-                        resets_at: '2026-08-14T20:00:00.000Z',
-                        utilization: 12,
-                    },
-                    seven_day: {
-                        resets_at: '2026-08-20T20:00:00.000Z',
-                        utilization: 34,
-                    },
-                },
-                rate_limits_available: true,
-                subscription_type: 'max',
+test('persists Claude plan limits the turn reports', async () => {
+    streamPlanUsage = claudePlanUsageFromResponse({
+        rate_limits: {
+            five_hour: {
+                resets_at: '2026-08-14T20:00:00.000Z',
+                utilization: 12,
+            },
+            seven_day: {
+                resets_at: '2026-08-20T20:00:00.000Z',
+                utilization: 34,
             },
         },
-    };
+        rate_limits_available: true,
+        subscription_type: 'max',
+    });
 
     const result = await runHarnessTurn(turnInput({ runtimeId: 'claude-code' }));
 
@@ -491,7 +469,7 @@ test('projects a concrete fire and a task assignment into the first prompt', asy
     // is `-` and the fire id rides the `fire=`/`--cause` lines instead.
     expect(streamedPrompts[0]).toContain(composeInboxDrain([fire]));
     expect(streamedPrompts[0]).toContain(
-        '[target=#general msg=- time=2026-07-27 00:00:00 UTC type=system] @reminder: 🔔 Reminder: Check the deploy'
+        '[target=#general msg=- time=2026-07-27 00:00:00 UTC type=system] reminder: 🔔 Reminder: Check the deploy'
     );
     expect(streamedPrompts[0]).toContain('reply with: --cause rmf_9a8b7c6d on the command');
 
@@ -511,7 +489,7 @@ test('projects a concrete fire and a task assignment into the first prompt', asy
     await runHarnessTurn(turnInput({ inbox: [assignment], inboxDelivery: 'concrete' }));
 
     expect(streamedPrompts[0]).toContain(
-        '[target=#general msg=1a2b3c4d time=2026-07-27 00:00:00 UTC type=system mentioned=true] @haus: [Haus task assignment task=#1 target=#general assignedBy=@zach] Scout the release notes'
+        '[target=#general msg=1a2b3c4d time=2026-07-27 00:00:00 UTC type=system mentioned=true] haus: [Haus task assignment task=#1 target=#general assignedBy=@zach] Scout the release notes'
     );
 });
 
@@ -607,8 +585,7 @@ test('Restart resumes the same session and refreshes its current instructions on
         sessionId: 'engine_session_1',
     });
     expect(createSessionCalls[2]?.resumeFrom).toMatchObject({
-        data: { nativeSessionId: 'native_session_1' },
-        type: 'resume-session',
+        threadId: 'native_session_1',
     });
     expect(stoppedSessions).toBe(1);
     expect(refreshedBootstraps).toBe(1);
@@ -616,7 +593,7 @@ test('Restart resumes the same session and refreshes its current instructions on
     await expect(access(join(runtimeDir, 'restart-requested'))).rejects.toThrow();
 
     await runHarnessTurn(turnInput());
-    expect(createSessionCalls[3]?.resumeFrom).toMatchObject({ type: 'resume-session' });
+    expect(createSessionCalls[3]?.resumeFrom).toMatchObject({ runtime: 'codex' });
     expect(refreshedBootstraps).toBe(1);
 });
 
@@ -772,7 +749,7 @@ test('an aborted warm instruction and version update retries on the same session
         instructionFingerprint: firstSession.instructionFingerprint,
         runtimeSessionId: 'engine_session_1',
     });
-    expect(abortedSession.resumeState).toMatchObject({ data: { detachSequence: 2 } });
+    expect(abortedSession.resumeState).toMatchObject({ threadId: 'detached_2' });
     expect(abortedActivity).toEqual([
         { category: 'updating_instructions', phase: 'started' },
         { category: 'thinking', phase: 'started' },
@@ -1067,11 +1044,7 @@ test('bootstrap drift parks and refreshes the same native session once with curr
         sessionId: 'engine_session_1',
     });
     expect(createSessionCalls[2]).toEqual({
-        resumeFrom: {
-            data: { nativeSessionId: 'native_session_1' },
-            harnessId: 'fake',
-            type: 'resume-session',
-        },
+        resumeFrom: stoppedState,
         sessionId: 'engine_session_1',
     });
     expect(agentInstructions[1]).toContain('Own the updated lane.');
@@ -1117,10 +1090,7 @@ test('a failed bootstrap refresh stays stale without rejecting the native sessio
         join(agentRoot, 'session.json'),
         `${JSON.stringify({ ...staleSession, bootstrapFingerprint: 'stale' })}\n`
     );
-    restoreBootstrapRefresh();
-    restoreBootstrapRefresh = setHarnessBootstrapRefreshForTesting(async () => {
-        throw new Error('bootstrap rejected');
-    });
+    refreshFails = true;
     const activity: Array<{ category: string; phase: string }> = [];
 
     const failure = await runHarnessTurn(
@@ -1176,7 +1146,7 @@ test('a rejected resume returns control to the Server without local rotation', a
     );
 
     // The Server must authorize the next generation before a cold start.
-    expect(createSessionCalls[1]?.resumeFrom).toMatchObject({ type: 'resume-session' });
+    expect(createSessionCalls[1]?.resumeFrom).toMatchObject({ runtime: 'codex' });
     expect(createSessionCalls).toHaveLength(2);
     expect((await readSession()).generation).toBe(1);
 });
@@ -1315,9 +1285,9 @@ test('a resumed DM greeting is not followed by its stale notice from prior task 
 
     await runHarnessTurn(scopedTurn([greeting]));
 
-    expect(createSessionCalls.at(-1)?.resumeFrom).toMatchObject({ type: 'resume-session' });
+    expect(createSessionCalls.at(-1)?.resumeFrom).toMatchObject({ runtime: 'codex' });
     expect(streamedPrompts.at(-1)).toContain(
-        '[target=dm:@operator msg=dm_greet time=2026-08-03 20:01:00 UTC type=human] @operator: Hey Blippy!'
+        '[target=dm:@operator msg=dm_greet time=2026-08-03 20:01:00 UTC type=human] operator: Hey Blippy!'
     );
     expect(streamedPrompts.at(-1)).not.toContain('avatar');
     expect(sentUserMessages).toEqual([]);
@@ -1349,7 +1319,7 @@ test('an alive session drains a human message that a cold start only notices', a
     // drains the body instead of noticing it, and injects no second notice.
     await runHarnessTurn(warmDrain);
 
-    expect(createSessionCalls.at(-1)?.resumeFrom).toMatchObject({ type: 'resume-session' });
+    expect(createSessionCalls.at(-1)?.resumeFrom).toMatchObject({ runtime: 'codex' });
     expect(streamedPrompts.at(-1)).toContain('Standup moved to ten.');
     expect(streamedPrompts.at(-1)).not.toContain('[Haus inbox notice:');
     expect(sentUserMessages).toEqual([]);

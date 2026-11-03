@@ -6,7 +6,7 @@ struct SettingsRuntimeDisplayNameTests {
         #expect(settingsRuntimeDisplayName("codex") == "Codex")
         #expect(settingsRuntimeDisplayName("claude-code") == "Claude Code")
         #expect(settingsRuntimeDisplayName("claude_code") == "Claude Code")
-        #expect(settingsRuntimeDisplayName("pi") == "Pi")
+        #expect(settingsRuntimeDisplayName("grok-build") == "Grok Build")
     }
 
     @Test func passesThroughUnknownSlugsUnchanged() {

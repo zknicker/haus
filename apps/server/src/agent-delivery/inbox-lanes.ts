@@ -1,13 +1,6 @@
-/**
- * The attentions with no Chat: the nightly dream, a daytime heartbeat, and a
- * heartbeat's report to the main session. Each leads its own chatless run
- * (specs/heartbeat.md), and the schema's chat checks name exactly these sources.
- */
-export const chatlessInboxSources = ['dream', 'heartbeat', 'heartbeat_report'] as const;
-
-export function isChatlessInboxSource(source: string): boolean {
-    return (chatlessInboxSources as readonly string[]).includes(source);
-}
+// The attentions with no Chat (dream, heartbeat, heartbeat report, sub-agent wake) are a
+// first-party contract; `@haus/api` owns the list.
+import { chatlessInboxSources } from '@haus/api';
 
 /**
  * Which inbox items ride the concrete lane. A concrete item's envelope is
@@ -31,6 +24,7 @@ export const concreteInboxSources = [
     'dream',
     'heartbeat',
     'heartbeat_report',
+    'subagent',
     'linear_session',
     'linear_session_automated',
 ] as const;

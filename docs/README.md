@@ -18,7 +18,7 @@ Computer owns machine-local Agent execution.
 - **Agents.** Agents are chat participants. Each agent owns one ongoing
   global session across all of its chats and speaks only by sending messages
   (see [Agent Inbox](../specs/inbox.md)).
-- **Agent execution.** Claude Code, Codex, Grok Build, and Pi run as execution runtimes inside Computer.
+- **Agent execution.** Claude Code, Codex, and Grok Build run as execution runtimes inside Computer.
 - **Models.** Computer reports executable model inventory and
   Agent default model settings. A model change takes effect on the agent's
   next turn with a fresh session.

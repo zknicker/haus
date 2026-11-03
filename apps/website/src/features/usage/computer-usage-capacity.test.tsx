@@ -17,7 +17,6 @@ test('keeps a Computer plan snapshot visible while the Computer is offline', () 
     expect(markup).toContain('13%');
     expect(markup).toContain('Usage out of date');
     expect(markup).not.toContain('Last updated');
-    expect(markup).not.toContain('Pi');
 });
 
 test('renders only detected runtime cards without token details', () => {
@@ -90,7 +89,6 @@ test('renders only detected runtime cards without token details', () => {
     expect(markup).toContain('Claude Code');
     expect(markup).toContain('Grok Build');
     expect(markup).not.toContain('Codex');
-    expect(markup).not.toContain('Pi');
     expect(markup).toContain('Weekly Limit');
     expect(markup).toContain('5h limit');
     expect(markup).toContain('>11%<');
@@ -110,35 +108,6 @@ test('renders only detected runtime cards without token details', () => {
     expect(markup).not.toContain('30-day processed tokens');
     expect(markup).not.toContain('claude-opus-4-1');
     expect(markup).not.toContain('grok-code-fast-1');
-    expect(markup).not.toContain('OpenRouter');
-});
-
-test('represents Pi as a detected runtime with a filtered Agent usage link', () => {
-    const markup = renderToStaticMarkup(
-        <ComputerUsageCapacityView
-            computer={computerWith({
-                usage: {
-                    ...usage,
-                    connectedProviders: ['openrouter'],
-                    openRouter: {
-                        error: null,
-                        overview: {
-                            ...usage.openRouter.overview,
-                            status: 'ready',
-                        },
-                        status: 'ok',
-                    },
-                },
-            })}
-            detectedRuntimeIds={['pi']}
-            onViewPiUsage={() => undefined}
-            piAgentCount={2}
-        />
-    );
-
-    expect(markup).toContain('Pi');
-    expect(markup).toContain('API-backed · 2 Agents');
-    expect(markup).toContain('View usage');
     expect(markup).not.toContain('OpenRouter');
 });
 

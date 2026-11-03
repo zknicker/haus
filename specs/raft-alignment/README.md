@@ -79,12 +79,10 @@ As in Raft, an Agent's one global session inherently serializes its turns; new w
 Agent waits in that Agent's pending inbox rather than entering a separate scheduler. Different
 Agents run concurrently on the same Computer, including across Server attachments. There is no
 Computer-wide job queue.
-Codex, Claude Code, and Pi all receive an isolated per-Agent logical `HOME`; native locations such
+Every runtime receives an isolated per-Agent logical `HOME`; native locations such
 as `.agents/skills` and `.claude/skills` resolve to the Agent's canonical writable `skills/`
 directory. Each executor reads that native location, making it the exact set visible to every
-executor while excluding host-global, cross-Agent, and cross-Computer skills. Pi runs inside the
-Computer process, so a bounded `@ai-sdk/harness-pi` patch points its skill loader at the Agent's
-native `.agents/skills` instead of the operator's HOME and the workspace. This deliberately diverges from Raft's ambient host-global discovery:
+executor while excluding host-global, cross-Agent, and cross-Computer skills. This deliberately diverges from Raft's ambient host-global discovery:
 runtime-compatible global skill folders on the physical machine are opt-in import sources only.
 Haus also diverges from Raft on ambient instruction files: Raft treats a runtime's
 `CLAUDE.md`/`AGENTS.md` loading as a feature of the runtime (Raft source
@@ -92,7 +90,7 @@ Haus also diverges from Raft on ambient instruction files: Raft treats a runtime
 included, so an Agent's context is the composed prompt plus what it reads itself. The per-runtime
 settings and the one Grok Build gap live in
 [Context Management](../../docs/features/context-management.md).
-Changing an Agent between Codex, Claude Code, or Pi keeps that same library unchanged. Haus
+Changing an Agent between runtimes keeps that same library unchanged. Haus
 creates no per-runtime copies or variants, performs no conversion or compatibility filtering, and
 treats runtime-specific instructions as ordinary Agent-owned skill content.
 Haus App may copy a selected bundle into one Agent library while its Computer is online, after which
@@ -267,7 +265,7 @@ inbox. Human **Start** resumes the current session and drains that work.
   an in-flight `message send` streams its stdin body into a provisional bubble (typing with
   content; visibly retracted on a freshness hold). Widget/visual fences ride send bodies.
 - **D2 — Raft envelope + target grammar; ids, display names, and handles are distinct.**
-  `[target=… msg=… time=… type=human|agent|system] @sender — <description>: …`; targets
+  `[target=… msg=… time=… type=human|agent|system] sender — <description>: …` (the sender label carries no `@`, unlike Raft, so `@` marks only mentions); targets
   `#channel`, `dm:@name`, `#channel:shortid`, `dm:@name:shortid`. No title/slug split — the
   channel name is the single unique handle and rename changes it (Raft parity); human and Agent
   participant handles share one case-insensitive Server namespace while display names remain
@@ -399,11 +397,11 @@ inbox. Human **Start** resumes the current session and drains that work.
   arrive through `message check` or a bounded concrete resume batch. The Computer already has
   the full socket-delivered envelope; content-free describes the runtime input, not the
   Computer transport. Haus flushes notices only at a tool boundary with no tool call still in
-  flight, so parallel calls hold a notice until the last one resolves. This is a Haus choice
-  for AI SDK steering, not Raft parity: Raft's Claude, Codex, and Pi drivers write notices
-  directly into the runtime's own input queue (`busyDeliveryMode = "direct"`). Raft holds
-  flushes while compacting; the AI SDK harness reports compaction only after it completes, so
-  Haus has no compaction gate. Two carve-outs are Haus extensions beyond Raft, whose idle wakes
+  flight, so parallel calls hold a notice until the last one resolves. This is a Haus choice,
+  not Raft parity: Raft's Claude, Codex, and Pi drivers write notices directly into the
+  runtime's own input queue (`busyDeliveryMode = "direct"`), and the Haus drivers could too, but
+  Haus keeps the boundary gate. Raft holds flushes while compacting; the runtimes report
+  compaction only after it completes, so Haus has no compaction gate. Two carve-outs are Haus extensions beyond Raft, whose idle wakes
   stay content-free ([ADR 0034](../../docs/adr/0034-addressed-messages-ride-the-wake.md)): a
   wake that **resumes a live session** drains human bodies as full envelopes, and a **cold
   start** drains the items addressed to this Agent — a DM, an @mention, or a committed Jev
@@ -439,10 +437,10 @@ inbox. Human **Start** resumes the current session and drains that work.
   the evolved role lives in MEMORY.md. `SOUL.md`, its prompt section, its injection mechanism,
   and its settings editor all retire at the flip; existing SOUL content folds into
   description/MEMORY.md at manual cutover. (b) **The Skills prompt section is dropped.** Skill
-  discovery is harness-native (our engine drives Claude Code/Codex/Pi harnesses via AI SDK
-  adapters; each Agent's local library materializes into its harness's own skill system) — listing
-  it again in our prompt was redundant. There is no Server-owned skill assignment; the Agent's
-  writable local library gates what the harness sees. `haus skill …` management verbs stay CLI
+  discovery is runtime-native (Haus drives Claude Code, Codex, and Grok Build through its own
+  runtime drivers; each Agent's local library is linked into its runtime's own skill directory) —
+  listing it again in our prompt was redundant. There is no Server-owned skill assignment; the
+  Agent's writable local library gates what the runtime sees. `haus skill …` management verbs stay CLI
   family 9 (WS5); the
   save-as-a-skill habit teaching moves to WS8 seeded notes. Net: the composed prompt drops
   ~0.9k below Raft's own length.
@@ -514,7 +512,7 @@ section; `## Chat History` tool teaching; all prompt-taught tool catalogs.
 | --- | --- |
 | First session turn | Pending notice/attention when present; otherwise `Start.` (+ one fresh-session line after resets) |
 | Trigger delivery | `New message received:` + envelopes + Raft's two-line trailer; unseen rows of the triggering chat ride along as additional envelopes |
-| Envelope | `[target=… msg=… time=… type=…] @sender — <description>: …` + Raft's attachment suffix. Pulled and read envelopes add Raft's trailing `[task #N status=… assignee=…]`; a drained envelope compresses the same work facts inside its bracket (`task=#N:status:assignee`, `ask=…`, `mentioned=true`, haus-cli.md §4). Both may end with the `[Inline reply context]` block (ADR 0029) |
+| Envelope | `[target=… msg=… time=… type=…] sender — <description>: …` (no `@` on the sender label, unlike Raft) + Raft's attachment suffix. Pulled and read envelopes add Raft's trailing `[task #N status=… assignee=…]`; a drained envelope compresses the same work facts inside its bracket (`task=#N:status:assignee`, `ask=…`, `mentioned=true`, haus-cli.md §4). Both may end with the `[Inline reply context]` block (ADR 0029) |
 | Thread mention context | Raft's `thread_join_context` parity: a drained @mention in a Thread the Agent has no model-visible context for is preceded, once per Thread target, by `[Haus thread context: …]` with parent/Thread targets, a `haus message read --target …` next step, the parent message, and up to ten earlier replies (`(truncated)` when bounded). Server builds it for the first such mention per Thread and budgets it inside the 24,000-character drain; Computer renders it in cold and warm drains only (ADR 0034 lanes) |
 | Mid-turn traffic | Content-free inbox notices, Raft row format (first/latest msg, sender, `· task/thread/dm/mention` tags) |
 | Unread elsewhere | Per-target counts for chats no row of the frame represents, appended to every wake; `haus inbox check` for the rest (notice rows only when they change) |

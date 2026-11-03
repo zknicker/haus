@@ -28,7 +28,7 @@ test('model features are a bounded known vocabulary', () => {
 });
 
 test('only the Grok adapter requires a fresh session for an effort change', () => {
-    for (const runtimeId of ['claude-code', 'codex', 'pi']) {
+    for (const runtimeId of ['claude-code', 'codex']) {
         expect(reasoningChangeResetsSession(runtimeId)).toBe(false);
     }
     expect(reasoningChangeResetsSession('grok-build')).toBe(true);

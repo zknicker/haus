@@ -121,17 +121,16 @@ cannot give itself servers by editing its execution runtime's config (`claude mc
 `codex mcp add`, `grok mcp add`, `.mcp.json`, and the like). Each runtime enforces this at launch,
 outside any file the Agent can edit:
 
-- Claude Code runs with `strictMcpConfig` (Haus's harness bridge patch): only the servers Haus
-  passes load, never user, project, plugin, or agent-frontmatter MCP config. The Agent home keeps its
-  own Claude Code state file, never a link to the operator's `~/.claude.json`
-  ([Context Management](../docs/features/context-management.md)).
-- Codex: Haus's codex-acp patch disables, per thread and title thread, every server Codex's config
-  layers declare (`$CODEX_HOME/config.toml`, project `.codex/config.toml`). Launch config also sets
-  `features.apps = false` and `features.plugins = false`, so ChatGPT apps (the operator's
-  connectors, served as `codex_apps`) and plugin MCP servers never load. Codex merges same-named
-  server entries field by field, so an Agent that declares Haus's reserved server name
-  (`ai-sdk-harness-tools`) in its Codex config can break its own Codex session.
-- Pi loads no filesystem extensions, so it has no MCP source besides Haus.
+- Claude Code runs with `--strict-mcp-config` and the Haus host-tool server as its only
+  `--mcp-config` entry: only that server loads, never user, project, plugin, or
+  agent-frontmatter MCP config. The Agent home keeps its own Claude Code state file, never a link
+  to the operator's `~/.claude.json` ([Context Management](../docs/features/context-management.md)).
+- Codex: the Codex driver reads every server Codex's config layers declare
+  (`$CODEX_HOME/config.toml`, project `.codex/config.toml`) through `config/read` and overrides
+  each with a disabled entry on the thread request (`codexMcpServers`), leaving the Haus host-tool
+  server (`haus`) the only enabled one; a config layer that declares that name cannot replace it.
+  Thread config also sets `features.apps = false` and `features.plugins = false`, so ChatGPT apps
+  (the operator's connectors, served as `codex_apps`) and plugin MCP servers never load.
 - Grok Build launches with its Claude Code, Cursor, Codex, and xAI-managed MCP sources off. Known
   gap: the Grok CLI has no per-process switch for its own `$GROK_HOME/config.toml`, trusted
   project, or plugin MCP servers, so a server an Agent adds there loads in its next Grok session.

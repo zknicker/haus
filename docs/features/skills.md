@@ -9,20 +9,16 @@ read_when:
 # Skills
 
 A skill is an instruction bundle in one Agent's library on its assigned Computer.
-Each Agent has one canonical, writable library. The harness and native skill
-paths read that exact directory, so an Agent never executes the operator's
+Each Agent has one canonical, writable library. Every runtime's native skill
+path reads that exact directory, so an Agent never executes the operator's
 global skills or another Agent's library by accident.
 
 Every runtime reaches the library through its own native skill directory, which
 Computer links to the library when it prepares the Agent home. Computer never
-asks the harness to materialize a second copy: the harness only overwrites skill
-directories it owns, and the canonical library is not one of them. A patched
-`@ai-sdk/harness` also keeps its ownership manifest out of the library, and
-Computer removes any manifest an earlier version left there before each turn.
-Pi rereads the library every turn but lists skills in its own system prompt
-only when the session is built or its instructions change. The turn prompt
-still names the library's current skills so an Agent knows what it can
-activate.
+materializes a second copy. It removes any skills manifest the retired AI SDK
+harness left in the library before each turn.
+The turn prompt names the library's current skills so an Agent knows what it
+can activate.
 
 ## Importing
 

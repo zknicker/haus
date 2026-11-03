@@ -35,7 +35,8 @@ ordinary Chat work, the rendered envelope as its content, and the recipient Agen
 | `reminder` | One reminder fire | The fire id | Concrete |
 | `trigger` | One Trigger fire | The fire id | Concrete |
 | `onboarding` | Cove's one-shot bootstrap instruction | Its own bootstrap identity | Concrete |
-| `dream` | One nightly dreaming turn the Agent's Computer requested ([workspace.md](workspace.md#dreaming)); the only row with no Chat | `dream:<agentId>:<Computer-local date>` | Concrete; queued even while the Agent is busy or has work waiting, then ordered like any other concrete item. Never listed in a notice, the digest, or `haus inbox check` (it has no Chat). Retired as `seen` instead of led once it has been queued four hours |
+| `dream` | One nightly dreaming turn the Agent's Computer requested ([workspace.md](workspace.md#dreaming)); no Chat | `dream:<agentId>:<Computer-local date>` | Concrete; queued even while the Agent is busy or has work waiting, then ordered like any other concrete item. Never listed in a notice, the digest, or `haus inbox check` (it has no Chat). Retired as `seen` instead of led once it has been queued four hours |
+| `subagent` | A wake for background work the Agent started on its runtime that finished or stopped ([runtime-drivers.md](runtime-drivers.md#background-work)); no Chat | `subagent:<agentId>:<wake id>` | Concrete; at most one queued per Agent, only for the current session generation. Never in a notice, the digest, or `haus inbox check`. Spends the automation chain; refused, not queued, at the chain ceiling. Retired by Stop, a session reset, or a run that adopted the turn it was for |
 
 Only ordinary Chat work is backed by a `chat_messages` row; the rest exist solely
 here, because a fact only an Agent needs is never written to a transcript humans read

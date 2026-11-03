@@ -46,6 +46,14 @@ export function acquireAgentLaunchHost(input: {
     return created;
 }
 
+/**
+ * A turn the runtime started on its own is running with no run: its `haus` calls wait up to
+ * `ms` for the wake run the Computer asked the Server for. No host means no such turn exists.
+ */
+export function holdAgentLaunchHostForWake(serverId: string, agentId: string, ms: number): void {
+    launchHosts.get(hostKey(serverId, agentId))?.proxy.holdForRunner(ms);
+}
+
 /** Ends the Computer-local execution host for an Agent reset or retirement. */
 export function disposeAgentLaunchHost(serverId: string, agentId: string): void {
     const key = hostKey(serverId, agentId);

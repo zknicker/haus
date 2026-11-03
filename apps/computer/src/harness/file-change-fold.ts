@@ -1,9 +1,10 @@
+import type { ToolCallTurnEvent } from '../runtime/turn-event.ts';
 import type { ComputerExecutionJournal } from './execution-journal.ts';
 
 /**
- * An ACP runtime's own edit call (codex-acp's `apply_patch`) and the harness's
- * synthetic `fileChange` for the same edit describe one edit. harness-acp tags
- * that `fileChange` with the ACP tool call it came from, so the projector folds
+ * A runtime's own edit call (a Codex patch, a Grok Build edit) and the synthetic
+ * `fileChange` for the same edit describe one edit. The driver tags that
+ * `fileChange` with the call it came from (`sourceToolCallId`), so the projector folds
  * it into its source call instead of counting the edit twice: the source keeps
  * the edit's one Activity, and a source step with no input of its own (Codex's
  * patch) takes the first file's name. A patch's further files keep journal steps
@@ -30,7 +31,7 @@ export function createFileChangeFold(skippedActivity: Set<string>) {
         },
         /** Journals a sourced file change itself and reports that it did; it opens no Activity. */
         async observeCall(
-            call: { part: Record<string, unknown>; toolCallId: string; toolName: string },
+            call: { part: ToolCallTurnEvent; toolCallId: string; toolName: string },
             journal: ComputerExecutionJournal | undefined
         ): Promise<boolean> {
             const sourceId = fileChangeSourceId(call.part);
@@ -68,16 +69,14 @@ export function createFileChangeFold(skippedActivity: Set<string>) {
     };
 }
 
-function fileChangeSourceId(part: Record<string, unknown>): string | undefined {
+function fileChangeSourceId(part: ToolCallTurnEvent): string | undefined {
     if (part.toolName !== 'fileChange' || part.providerExecuted !== true) {
         return;
     }
-    const acp = isRecord(part.providerMetadata) ? part.providerMetadata.acp : undefined;
-    const toolCallId = isRecord(acp) ? acp.toolCallId : undefined;
-    return typeof toolCallId === 'string' && toolCallId.length > 0 ? toolCallId : undefined;
+    return part.sourceToolCallId || undefined;
 }
 
-/** codex-acp sends a patch call with no raw input, which harness-acp streams as `{}`. */
+/** A patch call with no input of its own arrives as `{}`. */
 function isBare(input: unknown): boolean {
     if (typeof input === 'string') {
         return input.trim() === '' || input.trim() === '{}';

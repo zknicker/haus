@@ -19,17 +19,27 @@ const compactCount = new Intl.NumberFormat('en', {
     notation: 'compact',
 });
 
-/** The sub-agent's own status wins: the parent call can settle before it does. */
+/**
+ * The sub-agent's own status wins: the parent call can settle before it does. A background
+ * sub-agent still running when its run's evidence ends reports in a later turn, so this run
+ * shows its launch call's status rather than a row that never stops running.
+ */
 export function resolveSubagentStatus(tool: AgentExecutionJournalTool): SubagentStatus {
-    return tool.subagent?.status ?? tool.status;
+    return isBackgroundedRunning(tool) ? tool.status : (tool.subagent?.status ?? tool.status);
 }
 
 export function formatSubagentLabel(tool: AgentExecutionJournalTool): string {
     const input = readRecord(tool.input);
     const task =
         tool.subagent?.label ?? readString(input?.description) ?? readString(input?.subagent_type);
-    const prefix = labelPrefixes[resolveSubagentStatus(tool)];
+    const prefix = isBackgroundedRunning(tool)
+        ? 'Started background sub-agent'
+        : labelPrefixes[resolveSubagentStatus(tool)];
     return task ? `${prefix}: ${task}` : prefix;
+}
+
+function isBackgroundedRunning(tool: AgentExecutionJournalTool): boolean {
+    return tool.subagent?.backgrounded === true && tool.subagent.status === 'running';
 }
 
 /**

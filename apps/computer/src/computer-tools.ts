@@ -1,13 +1,16 @@
 import { join } from 'node:path';
 import { createBrowserTools } from './browser/agent-tool.ts';
+import type { HostToolSet } from './host-tools/host-tool.ts';
 import { createServerMcpTools } from './server-mcp-tools.ts';
 
-export function createComputerTools(input: {
+interface ComputerToolsInput {
     command: { agentId: string };
     host: { proxyToken: string; proxy: { url: string } };
     options: { dataRoot: string; attachment: { serverId: string } };
-}) {
-    return {
+}
+
+export function createComputerTools(input: ComputerToolsInput): HostToolSet {
+    return [
         ...createServerMcpTools({
             proxyToken: input.host.proxyToken,
             proxyUrl: input.host.proxy.url,
@@ -21,5 +24,5 @@ export function createComputerTools(input: {
                 'browser'
             ),
         }),
-    };
+    ];
 }

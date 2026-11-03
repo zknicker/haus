@@ -44,4 +44,8 @@ export const migrationsSince0060 = [
     '0101_kittl-preset',
     '0102_cloudflare-human-auth',
     '0103_thread-message-tasks',
+    '0104_retire-pi-runtime',
+    '0105_subagent-wake',
+    '0106_background-subagents',
+    '0107_background-tasks',
 ];

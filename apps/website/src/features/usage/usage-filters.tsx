@@ -82,8 +82,6 @@ function runtimeLabel(runtimeId: string) {
             return 'Grok Build';
         case 'codex':
             return 'Codex';
-        case 'pi':
-            return 'Pi';
         default:
             return runtimeId;
     }

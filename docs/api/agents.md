@@ -100,9 +100,10 @@ once at dispatch in `agent_run_triggers` so it survives a failed run requeueing 
 rows: `{ kind: 'message', author: 'human' | 'agent', chatId, messageId, preview }`,
 `{ kind: 'task', chatId, messageId, preview }` (the task's message), or
 `{ kind: 'reminder' | 'trigger' | 'cloud_agent' | 'onboarding', chatId }`, or one of the chatless
-sources (`dream`, `heartbeat`, `heartbeat_report`), whose runs need no Chat visibility to read ([workspace](../../specs/workspace.md#dreaming),
-[heartbeat](../../specs/heartbeat.md)) and carry what the run came to, so the Activity Log can
-say it under the row's title:
+sources (`dream`, `heartbeat`, `heartbeat_report`, `subagent`), whose runs need no Chat visibility to read ([workspace](../../specs/workspace.md#dreaming),
+[heartbeat](../../specs/heartbeat.md), [runtime drivers](../../specs/runtime-drivers.md#background-work)).
+The heartbeat family carries what the run came to, so the Activity Log can say it under the
+row's title:
 
 - `{ kind: 'dream', learned, added, removed }`: the Agent's private nightly heartbeat. `learned`
   is the first non-empty line of its `agent_dream_summaries` text with a leading `- ` removed
@@ -115,6 +116,7 @@ say it under the row's title:
   `yielded` marks a run `yieldHeartbeatToAddressed` stopped, which `agent_heartbeat_checks`
   records because nothing else tells a stopped run from a finished one.
 - `{ kind: 'heartbeat_report', heartbeatRunId }`: a heartbeat's report arriving in the main session.
+- `{ kind: 'subagent' }`: a wake for background work the Agent started that finished or stopped.
 
 The dream and heartbeat facts for a page come from a few bounded reads keyed by the page's run
 ids, never one per turn.
@@ -611,9 +613,8 @@ Computer protocol 21 so an older Computer cannot fall back to opening its own br
 
 Computer protocol 23 adds per-model `reasoningEfforts` and `defaultReasoningEffort` to inventory and supports `default`,
 `low`, `medium`, `high`, `xhigh`, and `max`. Computer maintains the capability list beside its
-model inventory; AI SDK adapter settings define the runtime's accepted vocabulary, but do not
-provide a per-model discovery API. Claude Haiku has only `default`; Pi's alias uses its adapter's
-thinking budgets, with the native model determining their effect. Inventories predating this
+model inventory; each runtime's CLI defines its accepted vocabulary, but none provides a
+per-model discovery API. Claude Haiku has only `default`. Inventories predating this
 field retain the original low/medium/high contract. Server validates explicit creation and
 configuration choices against the assigned Computer's report. Configurable models report a concrete
 default (currently Haus's Medium), which the App selects when a prior choice is unsupported.
@@ -623,8 +624,8 @@ the effort setting at the adapter boundary. An applied value records the request
 Computer protocol 28 adds per-model `features`: the core abilities an Agent gets on that model as
 Haus launches its runtime, from `subagents` and `image-generation`. Computer declares them beside
 the effort list in `apps/computer/src/inventory.ts`, following the harness settings: Claude Code
-has sub-agents; Codex and Grok Build keep native image generation with sub-agents switched off;
-Pi has neither. Codex image generation needs a paid ChatGPT plan and drops silently otherwise.
+has sub-agents; Codex and Grok Build keep native image generation with sub-agents switched off.
+Codex image generation needs a paid ChatGPT plan and drops silently otherwise.
 Web search is not a reported feature. An absent list means an older Computer, not "none". The
 App shows these facts in the Agent model picker and Settings -> Models.
 

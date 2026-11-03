@@ -152,8 +152,7 @@ describe('provisioning', () => {
         expect(peer.displayName).toBe(`Eval Worker ${harness.stamp}-2`);
     });
 
-    // Concurrent applies race the Computer into a degraded Agent missing its
-    // session, so the semaphore is global to the process, not per scenario.
+    // The semaphore is global to the process, not per scenario.
     test('bounds concurrent creation across every scenario in the process', async () => {
         const harness = createFakeHarness({ createDelayMs: 20 });
         const requests = Array.from({ length: 5 }, () => ({ kind: 'worker' }));

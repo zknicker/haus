@@ -4,11 +4,13 @@ import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
 import type { AgentSkillImportCommand, AgentSkillImportRecord } from '@haus/api';
+import { handleBackgroundFrame } from './agent-background-frames.ts';
 import * as commandFrames from './agent-command-frames.ts';
 import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
-import { disposeAgentLaunchHost, disposeServerLaunchHosts } from './agent-launch-host.ts';
+import { disposeServerLaunchHosts } from './agent-launch-host.ts';
 import {
     agentWorkspacePreparation,
+    handleRestartFrame,
     resetOwnedAgentState,
     retireOwnedAgentState,
 } from './agent-partition-lifecycle.ts';
@@ -78,8 +80,6 @@ import {
     readComputerStatus,
 } from './diagnostics.ts';
 import { attachmentJournalUploads } from './execution-journal-upload/attachment-journal-uploads.ts';
-import { createBridgePrewarmer } from './harness/bridge-prewarm.ts';
-import { requestSessionRestart } from './harness/session-restart.ts';
 import { startHeartbeatSchedule } from './heartbeat-schedule.ts';
 import { handleHostSkillFileRequest } from './host-skill-file.ts';
 import {
@@ -121,6 +121,7 @@ import {
     runComputerLogin,
 } from './login.ts';
 import { parseReminderScriptCommand, runReminderScript } from './reminder-script.ts';
+import { createRuntimePrewarmer } from './runtime/runtime-prewarm.ts';
 import { runtimeSearchPath } from './runtime-discovery.ts';
 import { handleComputerSecretsRequest } from './secrets/requests.ts';
 import { deleteServerPartition } from './server-partition-purge.ts';
@@ -400,17 +401,14 @@ async function main(args: string[]) {
             throw new Error('This Server is not attached to this Haus Computer.');
         }
         await finishRestart(dataRoot);
-        const prewarm = createBridgePrewarmer({
-            agentsRoot: join(dataRoot, 'servers', attachment.serverId, 'agents'),
-            ...(process.env.HAUS_DEV_STACK === '1' ? { harnessIds: ['codex'] } : {}),
+        const prewarm = createRuntimePrewarmer({
+            ...(process.env.HAUS_DEV_STACK === '1' ? { runtimes: ['codex'] } : {}),
         });
         process.exitCode = await withDaemonRuntime(
             async (runtime) => {
                 const partition = { dataRoot, serverId: attachment.serverId };
-                const daemonWork = new AttachmentDaemonWork(
-                    runtime,
-                    new CloudAgentWorkSupervisor(runtime, partition)
-                );
+                const cloudAgents = new CloudAgentWorkSupervisor(runtime, partition);
+                const daemonWork = new AttachmentDaemonWork(runtime, cloudAgents, partition);
                 return withAttachmentShutdown(daemonWork, runtime, partition, () =>
                     runAttachmentDaemon(runtime, {
                         attachmentExists: async () => (await readAttachment(target)) !== null,
@@ -1096,6 +1094,7 @@ async function connect(
                             await sendUsageReport(sendFrame);
                         }
                     });
+                    void trackWriter(daemonWork.syncBackgroundWork());
                     void trackWriter(initialReport.catch(reportStateError)).finally(() => {
                         if (process.env.HAUS_COMPUTER_ONESHOT === '1') {
                             socket.close();
@@ -1150,25 +1149,13 @@ async function connect(
             ) {
                 return;
             }
-            const stop = commandFrames.parseStopCommand(frame);
-            if (stop) {
-                agentWork.abortRun(stop.runId);
-                return;
-            }
-            const restart = commandFrames.parseRestartCommand(frame);
-            if (restart) {
-                if (retiredAgents.has(restart.agentId)) {
-                    return;
-                }
-                void trackWriter(
-                    agentWork
-                        .enqueueConfiguration(restart.agentId, async () => {
-                            await agentWork.waitForRun(restart.agentId);
-                            disposeAgentLaunchHost(attachment.serverId, restart.agentId);
-                            await requestSessionRestart(join(agentsDir, restart.agentId));
-                        })
-                        .catch(reportStateError)
-                );
+            const { backgroundWork } = daemonWork;
+            const { serverId } = attachment;
+            const deps = { agentWork, onError: reportStateError, runtime, track: trackWriter };
+            if (
+                handleBackgroundFrame(frame, { ...deps, agentsDir, backgroundWork }) ||
+                handleRestartFrame(frame, { ...deps, dataRoot, retiredAgents, serverId })
+            ) {
                 return;
             }
             const retirement = parseAgentRetireCommand(frame);

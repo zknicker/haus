@@ -13,7 +13,7 @@ const taskAssignmentKeyPattern = /^task-assign:([^:]+):\d+$/u;
 
 /** A run's recorded trigger row, with whether the reader can see its Chat. */
 export interface AgentTurnTriggerRecord {
-    /** Null only for a chatless run: a dream, heartbeat, or heartbeat report. */
+    /** Null only for a chatless run: a dream, heartbeat, heartbeat report, or sub-agent wake. */
     readonly chatId: string | null;
     /** The run this trigger woke; a heartbeat needs it to find its report. */
     readonly runId?: string;
@@ -48,9 +48,9 @@ export function agentTurnTriggerRunIds(records: readonly (AgentTurnTriggerRecord
  * Names a turn's recorded trigger in the narrow API shape. A trigger in a Chat the
  * reader cannot see is `private`; one with no record, or a source this Server
  * does not recognize, is absent (null) rather than guessed. A message or task
- * trigger quotes its message from `previews`. A dream has no Chat to gate on: it
- * names only itself, so any reader who may see the Agent's turns sees it. A dream
- * and a heartbeat carry what the run came to from `outcomes`.
+ * trigger quotes its message from `previews`. A dream or sub-agent wake has no Chat to
+ * gate on: it names only itself, so any reader who may see the Agent's turns sees it. A
+ * dream and a heartbeat carry what the run came to from `outcomes`.
  */
 export function agentTurnTrigger(
     record: AgentTurnTriggerRecord | null,
@@ -76,6 +76,9 @@ export function agentTurnTrigger(
         return isReportKey(record.workId)
             ? { heartbeatRunId: heartbeatRunIdOfReport(record.workId), kind: 'heartbeat_report' }
             : null;
+    }
+    if (record.source === 'subagent') {
+        return { kind: 'subagent' };
     }
     const trigger = triggerFor(record, previews);
     if (!trigger) {

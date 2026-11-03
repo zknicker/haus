@@ -1,35 +1,23 @@
 import type { ComputerInventory, ComputerRuntimeId, ComputerUsage } from '@haus/api';
 import { Card } from '@heroui/react';
-import { useNavigate } from 'react-router-dom';
-import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { useUsage } from '../../hooks/servers/use-usage.ts';
 import { computerLabel } from '../computers/presentation.ts';
-import { usageRoute } from '../servers/server-routes.ts';
 import { DetectedRuntimeUsage, DetectedRuntimeUsageSkeleton } from './detected-runtime-usage.tsx';
 
 export function ComputerUsageCapacity({
     computerId,
     detectedRuntimeIds,
     serverId,
-    serverSlug,
 }: {
     computerId: string;
     detectedRuntimeIds: ComputerRuntimeId[];
     serverId: string;
-    serverSlug: string;
 }) {
-    const navigate = useNavigate();
     const usage = useUsage(serverId);
-    const agents = useAgents(serverId);
     const computers = useComputers(serverId);
     const host = computers.data?.find((item) => item.id === computerId);
     const computer = usage.data?.computers.find((item) => item.computerId === computerId);
-    const piAgentCount = agents.data
-        ? agents.data.filter(
-              (agent) => agent.computerId === computerId && agent.desiredRuntimeId === 'pi'
-          ).length
-        : null;
 
     return (
         <ComputerUsageCapacityView
@@ -38,8 +26,6 @@ export function ComputerUsageCapacity({
             detectedRuntimeIds={detectedRuntimeIds}
             error={usage.data ? undefined : usage.error?.message}
             isPending={!usage.data && usage.isPending}
-            onViewPiUsage={() => navigate(usageRoute(serverSlug, { computerId, runtimeId: 'pi' }))}
-            piAgentCount={piAgentCount}
             runtimeIssues={host?.reportedInventory?.runtimeIssues}
         />
     );
@@ -50,8 +36,6 @@ export function ComputerUsageCapacityView({
     detectedRuntimeIds,
     error,
     isPending = false,
-    piAgentCount = null,
-    onViewPiUsage,
     runtimeIssues,
     computerName,
 }: {
@@ -59,8 +43,6 @@ export function ComputerUsageCapacityView({
     detectedRuntimeIds: ComputerRuntimeId[];
     error?: string;
     isPending?: boolean;
-    piAgentCount?: number | null;
-    onViewPiUsage?: () => void;
     runtimeIssues?: ComputerInventory['runtimeIssues'];
     computerName?: string;
 }) {
@@ -87,8 +69,6 @@ export function ComputerUsageCapacityView({
         <DetectedRuntimeUsage
             computerName={computerName}
             detectedRuntimeIds={detectedRuntimeIds}
-            onViewPiUsage={onViewPiUsage}
-            piAgentCount={piAgentCount}
             runtimeIssues={runtimeIssues}
             usage={computer.usage}
         />

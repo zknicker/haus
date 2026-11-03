@@ -1,10 +1,9 @@
-import type { AgentCommand } from '@haus/api';
+import { type AgentCommand, isChatlessInboxSource } from '@haus/api';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { type AgentDispatchConfig, startPromptFacts } from './dispatch-config.ts';
 import { heartbeatStartFrame } from './heartbeat-run.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import {
-    isChatlessInboxSource,
     isConcreteInboxSource as isConcreteSource,
     isNoticelessInboxSource,
 } from './inbox-lanes.ts';

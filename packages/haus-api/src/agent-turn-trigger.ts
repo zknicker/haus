@@ -49,6 +49,7 @@ export type AgentTurnHeartbeatReport = z.infer<typeof agentTurnHeartbeatReportSc
  *   session, null when it stayed quiet; `yielded` is a run the Server stopped for a message.
  * - `heartbeat_report`: a heartbeat's report arriving in the main session; no Chat.
  *   `heartbeatRunId` names the heartbeat run that sent it.
+ * - `subagent`: background work the Agent started finished or stopped; no Chat.
  * - `private`: the turn has a recorded trigger in a Chat the reader cannot see.
  */
 export const agentTurnTriggerSchema = z.discriminatedUnion('kind', [
@@ -89,6 +90,7 @@ export const agentTurnTriggerSchema = z.discriminatedUnion('kind', [
         })
         .strict(),
     z.object({ heartbeatRunId: idSchema, kind: z.literal('heartbeat_report') }).strict(),
+    z.object({ kind: z.literal('subagent') }).strict(),
     z.object({ kind: z.literal('private') }).strict(),
 ]);
 

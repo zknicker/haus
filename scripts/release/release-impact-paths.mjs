@@ -44,6 +44,7 @@ export const requiredPrefixes = {
         'apps/computer/src/agent-cli/',
         'apps/computer/src/harness/',
         'apps/computer/src/inbox-format.ts',
+        'apps/computer/src/runtime/',
         'apps/server/src/agent-api/',
         'packages/agent-manual/src/',
         'packages/agent-workspace/src/',

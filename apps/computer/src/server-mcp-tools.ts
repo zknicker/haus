@@ -1,7 +1,7 @@
-import type { ToolSet } from '@ai-sdk/provider-utils';
 import { executeMcpCode } from '@haus/mcp-executor';
 import * as z from 'zod';
 import { computerEntrypoint } from './build-identity.ts';
+import { defineHostTool, type HostToolSet } from './host-tools/host-tool.ts';
 import { createServerMcpClient } from './server-mcp-client.ts';
 import { ServerMcpToolError } from './server-mcp-response.ts';
 
@@ -18,20 +18,21 @@ const codeSchema = z
     .strict();
 
 /** The harness catalog stays fixed. Every discovery/call observes Server's current grants. */
-export function createServerMcpTools(input: { proxyToken: string; proxyUrl: string }): ToolSet {
+export function createServerMcpTools(input: { proxyToken: string; proxyUrl: string }): HostToolSet {
     const client = createServerMcpClient(input);
     const entrypoint = computerEntrypoint();
-    return {
-        execute: {
+    return [
+        defineHostTool({
+            name: 'execute',
             description:
                 'Run JavaScript in an isolated sandbox to discover and call your authorized Server MCP tools. All tools calls are asynchronous: await every call. Discover with await tools.search({query:"keywords"}); inspect inputSchema with await tools.describe({name:"exact discovered name"}); invoke with await tools.call({name:"exact discovered name",args:{...}}). Return your result. Grants can change: search again when access changes. Errors have an error object with code and message. Search returns {tools:[{name,title,description}],total} with at most 50 tools; narrow query when total is larger. Describe returns {name,title,description,inputSchema}. Call returns the MCP tool result {content,structuredContent?,isError?}; read structuredContent when it is present, because its duplicate text copy is dropped. No network, filesystem, credentials, or persistent state inside the sandbox. Execution is bounded to 60 seconds, 50 calls, 64 KiB code and 1 MiB per result. Example: return await tools.search({query:"calendar"});',
             inputSchema: codeSchema,
-            execute: async (inputCode, options) => {
-                const { code } = codeSchema.parse(inputCode);
-                return await executeMcpCode({
+            execute: async ({ code }, options) => ({
+                type: 'json',
+                value: await executeMcpCode({
                     code,
                     command: { ...entrypoint, args: [...entrypoint.args, '__mcp-executor'] },
-                    signal: options.abortSignal,
+                    signal: options.signal,
                     invoke: async ({ path, args, signal }) => {
                         try {
                             signal.throwIfAborted();
@@ -67,10 +68,10 @@ export function createServerMcpTools(input: { proxyToken: string; proxyUrl: stri
                             return mcpFailure(cause);
                         }
                     },
-                });
-            },
-        },
-    };
+                }),
+            }),
+        }),
+    ];
 }
 
 function mcpFailure(cause: unknown) {

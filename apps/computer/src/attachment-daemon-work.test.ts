@@ -60,11 +60,11 @@ test('terminal shutdown aborts active runs and waits for accepted writers', asyn
 test('shutdown deadline still reaps sandbox owners and reports the incomplete checkpoint', async () => {
     const { makeTestRuntime } = await import('@haus/effect');
     const { TestClock } = await import('effect');
-    const { sandboxProcessOwner } = await import('./harness/sandbox-process-owner.ts');
+    const { runtimeProcessOwner } = await import('./runtime/process-registry.ts');
     const runtime = makeTestRuntime();
     const work = new AttachmentDaemonWork(runtime);
     let reaped = false;
-    sandboxProcessOwner(runtime).add(async () => {
+    runtimeProcessOwner(runtime).add(async () => {
         reaped = true;
     });
     work.track(new Promise(() => {}));
@@ -91,18 +91,15 @@ test('shutdown drains an accepted reset before considering its old parked sessio
     const root = await mkdtemp(join(tmpdir(), 'haus-shutdown-reset-'));
     const runtime = makeDaemonRuntime();
     const work = new AttachmentDaemonWork(runtime);
-    const state = resolveTurnSession(null, { generation: 1, modelId: 'test', runtimeId: 'test' });
-    const parked = {
-        type: 'resume-session',
-        specificationVersion: 'harness-v1',
-        harnessId: 'test',
-        data: {},
-    } as const;
+    const state = resolveTurnSession(null, {
+        generation: 1,
+        modelId: 'gpt-5.6-sol',
+        runtimeId: 'codex',
+    });
+    const parked = { runtime: 'codex', threadId: 'thread_parked', version: 1 } as const;
     await writeAgentSessionState(root, { ...state, resumeState: parked });
     const lease = harnessSessionOwner(runtime).begin(root);
-    lease.attach({ detach: async () => parked, stop: async () => parked }, async () => {
-        throw new Error('must not resurrect the reset session');
-    });
+    lease.attach({ detach: async () => parked, stop: async () => parked });
     await lease.checkpoint();
     lease.finish();
     const gate = Promise.withResolvers<void>();

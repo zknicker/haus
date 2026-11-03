@@ -2,7 +2,7 @@ import type { AgentCommand } from '@haus/api';
 import { and, eq, isNull, lt, or } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { agentInboxTable, agentRunTriggersTable } from '../postgres/schema.ts';
+import { agentInboxTable, agentRunTriggersTable, agentsTable } from '../postgres/schema.ts';
 import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import { recordRunTrigger } from '../server-agents/record-agent-turn.ts';
 import type { ConfiguredAgent } from './deferred-configuration.ts';
@@ -62,10 +62,40 @@ export async function retireStaleHeartbeats(db: HausDatabase, agentId: string): 
 }
 
 /**
- * Starts the run a queued dream, heartbeat, or heartbeat report leads. Each is
- * concrete work with no Chat, so its run carries it alone: no inbox items, no
- * Chat lifecycle event. Busy notices, settlement, failure, and Stop treat it
- * like any concrete run.
+ * Whether the Agent's main session holds background work (sub-agents or shells) its Computer
+ * last reported. A dream or daytime heartbeat waits for it: its fresh session shares the
+ * Agent's loopback proxy, so a turn the main session starts on its own when that work ends
+ * would make `haus` calls as the heartbeat run (specs/heartbeat.md "Background work").
+ */
+export async function holdsBackgroundWork(db: HausDatabase, agentId: string): Promise<boolean> {
+    const [row] = await db
+        .select({ tasks: agentsTable.effectiveBackgroundTasks })
+        .from(agentsTable)
+        .where(eq(agentsTable.id, agentId));
+    return (row?.tasks ?? 0) > 0;
+}
+
+/**
+ * Prepares an idle Agent's drain: retires its stale heartbeats, then answers which queued rows
+ * may lead now. A dream or daytime heartbeat (the runs that execute in a fresh session) waits
+ * out the main session's background work; everything else drains past it. Applied to the
+ * candidates and again to the admitted lead, since admission at the chain ceiling may widen to
+ * a queued dream it was not offered.
+ */
+export async function heartbeatLeadGate(
+    db: HausDatabase,
+    agentId: string
+): Promise<(row: Pick<store.InboxItemRow, 'source'>) => boolean> {
+    await retireStaleHeartbeats(db, agentId);
+    const holding = await holdsBackgroundWork(db, agentId);
+    return (row) => !(holding && heartbeatKindOf(row.source) !== null);
+}
+
+/**
+ * Starts the run a queued dream, heartbeat, heartbeat report, or sub-agent wake
+ * leads. Each is concrete work with no Chat, so its run carries it alone: no
+ * inbox items, no Chat lifecycle event. Busy notices, settlement, failure, and
+ * Stop treat it like any concrete run.
  */
 export async function planHeartbeatRun(
     tx: HausDatabase,
@@ -156,6 +186,10 @@ async function attentionOf(
     row: Pick<store.InboxItemRow, 'content' | 'createdAt' | 'dedupeKey' | 'source'>
 ) {
     const createdAt = row.createdAt.toISOString();
+    if (row.source === 'subagent') {
+        // The runtime's own report is already in the conversation; the wake carries no body.
+        return { subagentWake: { createdAt, id: row.dedupeKey } };
+    }
     const kind = heartbeatKindOf(row.source);
     if (!kind) {
         const heartbeatRunId = heartbeatRunIdOfReport(row.dedupeKey);

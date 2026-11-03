@@ -4,9 +4,9 @@ import { randomBytes } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
-import { bridgeStoreDirForHost } from './bridge-bootstrap.ts';
+import { createDriver } from '../runtime/driver-factory.ts';
+import { closeRuntimeContext, openRuntimeContext } from '../runtime/runtime-context.ts';
 import { coveGuidanceConflictNotice, coveTurnGuidanceNotice } from './cove-guidance-refresh.ts';
 import { coveTestBootstrap } from './cove-weekly-bootstrap.mjs';
 import {
@@ -15,8 +15,6 @@ import {
     setWeeklyChannelArchived,
 } from './cove-weekly-server-state.mjs';
 import { composeWeeklyTurn, streamWeeklyTurn } from './cove-weekly-turn.mjs';
-import { createHarnessForRuntime } from './runtime-harness.ts';
-import { createLocalTrustedSandboxProvider } from './sandbox.ts';
 
 export async function withWeeklyCove(
     fixture,
@@ -116,35 +114,37 @@ export async function withWeeklyCove(
         initialRole: ordinary ? 'Workstream assistant' : 'Onboarding Assistant',
         workspacePath: workspace,
     });
-    const agent = new HarnessAgent({
-        harness: createHarnessForRuntime('codex', 'default', bridgeStoreDirForHost()),
-        model,
-        instructions,
-        permissionMode: 'allow-all',
-        sandbox: createLocalTrustedSandboxProvider({
-            authProfiles: ['codex'],
+    const codex = createDriver(
+        {
+            agentRoot: root,
             homeDir,
-            rootDir: root,
-            runtime,
+            modelId: model,
+            reasoningEffort: 'default',
+            runtimeId: 'codex',
+            tools: [],
+            workspaceDir: workspace,
+        },
+        {
             env: {
-                HOME: homeDir,
-                CODEX_HOME: join(homeDir, '.codex'),
                 COREPACK_HOME: join(tmpdir(), 'haus-cove-corepack-cache'),
                 PATH: `${join(root, 'bin')}:${process.env.PATH}`,
                 HAUS_AGENT_ID: subjectAgentId,
                 HAUS_SERVER_URL: proxy.url.toString(),
                 HAUS_AGENT_TOKEN_FILE: tokenPath,
             },
-        }),
-        sandboxConfig: { workDir: 'workspace' },
-    });
+            instructions,
+        },
+        openRuntimeContext(runtime)
+    );
+    const openSession = (resumeFrom) =>
+        codex.openSession({ resumeFrom, sessionId: crypto.randomUUID() });
     let session;
     const evidence = {
         model,
         reasoning: 'default',
         synthetic: true,
         legacyBootstrap: bootstrap.legacy,
-        transport: 'controlled native adapter, not Computer daemon',
+        transport: 'Haus Codex driver, not Computer daemon',
         turns: [],
     };
     async function persistEvidence() {
@@ -159,7 +159,7 @@ export async function withWeeklyCove(
     const notes = join(workspace, 'notes', 'coordination.md');
     const humanSend = (content, nonce) => sendWeeklyOwnerMessage(fixture, content, nonce);
     const streamTurn = (prompt) =>
-        streamWeeklyTurn({ agent, session, turn, notes, persistEvidence, prompt });
+        streamWeeklyTurn({ session, turn, notes, persistEvidence, prompt });
     const composed = (inbox, runId, frame = {}) =>
         composeWeeklyTurn({
             fixture,
@@ -177,11 +177,11 @@ export async function withWeeklyCove(
         evidence,
         async cold() {
             await session.destroy();
-            session = await agent.createSession();
+            session = await openSession(undefined);
         },
         async resume() {
             const saved = await session.stop();
-            session = await agent.createSession({ resumeFrom: saved });
+            session = await openSession(saved);
             evidence.resumed = true;
         },
         async fire(frame, { refresh = false } = {}) {
@@ -282,12 +282,13 @@ export async function withWeeklyCove(
         },
     };
     try {
-        session = await agent.createSession();
+        session = await openSession(undefined);
         await run(driver);
     } finally {
         await persistEvidence();
         await session?.destroy();
         proxy.stop(true);
+        await closeRuntimeContext(runtime);
         await runtime.dispose();
         await rm(root, { recursive: true, force: true });
     }

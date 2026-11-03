@@ -1,5 +1,6 @@
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { randomBytes } from 'node:crypto';
+import { link, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import type { StoredNoticeReceipt } from '../delivery.ts';
 
 export async function deliverStoredNotice(
@@ -30,6 +31,29 @@ export async function deliverStoredNotice(
         }
     } finally {
         onReady?.();
+    }
+}
+
+/**
+ * Puts a notice the runtime accepted but never handed the model back on the pending path, so
+ * the next turn delivers it. A notice stored since is a newer, complete inbox summary and wins:
+ * the restore only creates the file (an atomic hard link), never replaces one.
+ */
+export async function restorePendingNotice(agentRoot: string, notice: string): Promise<boolean> {
+    const destination = pendingNoticePath(agentRoot);
+    await mkdir(dirname(destination), { mode: 0o700, recursive: true });
+    const temporary = `${destination}.${randomBytes(8).toString('hex')}.tmp`;
+    await writeFile(temporary, `${JSON.stringify({ notice })}\n`, { mode: 0o600 });
+    try {
+        await link(temporary, destination);
+        return true;
+    } catch (cause) {
+        if (isRecord(cause) && cause.code === 'EEXIST') {
+            return false;
+        }
+        throw cause;
+    } finally {
+        await rm(temporary, { force: true });
     }
 }
 

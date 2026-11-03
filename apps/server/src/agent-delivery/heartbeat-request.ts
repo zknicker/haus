@@ -9,6 +9,7 @@ import { isConfigured } from './deferred-configuration.ts';
 import type { AgentDelivery } from './delivery.ts';
 import { readAgentDispatchConfig } from './dispatch-config.ts';
 import { dreamDedupeKey, heartbeatDedupeKey } from './heartbeat-keys.ts';
+import { holdsBackgroundWork } from './heartbeat-run.ts';
 import { isHeartbeatUsagePaused } from './heartbeat-usage-pause.ts';
 import { hasQueuedAddressedMessage } from './heartbeat-yield.ts';
 import * as store from './store.ts';
@@ -29,7 +30,8 @@ type Resolution = Decision | { outcome: 'repeat' };
  * running Agent, and a weekly meter under the pause line. A nightly run also needs
  * activity since the last one; a busy Agent still gets it, queued behind its work
  * and retired after four hours. A daytime run is skipped, never queued, while the
- * Agent has an active run or concrete work waiting, and one that cannot start within
+ * Agent has an active run, concrete work waiting, or background work in its main
+ * session (which a queued dream also waits out), and one that cannot start within
  * half an hour is retired. The dedupe keys make a repeat of the same slot a no-op.
  * Every decision is a `haus.heartbeat.request` span. Returns whether a run was queued.
  */
@@ -184,7 +186,8 @@ async function decide(
     const busy =
         Boolean(state?.activeRunId) ||
         (await store.listQueuedConcreteItems(tx, agentId, 1)).length > 0 ||
-        (await hasQueuedAddressedMessage(tx, agentId));
+        (await hasQueuedAddressedMessage(tx, agentId)) ||
+        (await holdsBackgroundWork(tx, agentId));
     return busy ? { outcome: 'skipped', reason: 'busy' } : { outcome: 'queued' };
 }
 

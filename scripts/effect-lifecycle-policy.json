@@ -274,17 +274,6 @@
         "timer": 0
       }
     },
-    "apps/computer/src/harness/bootstrap-refresh.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Each bootstrap refresh resumes one foreign sandbox and stops it in a bounded finalizer before returning.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
     "apps/computer/src/harness/execution-journal-file.ts": {
       "disposition": "finite-cleanup",
       "reason": "The per-journal Promise tail serializes finite atomic writes, and callers await the current write failure.",
@@ -298,35 +287,24 @@
     },
     "apps/computer/src/harness/executor.ts": {
       "disposition": "effect-owned",
-      "reason": "The daemon runtime owns turn streaming, notice delivery, and final cleanup across the foreign harness boundary. One turn-local controller lets the no-progress deadline interrupt through the same abort path as Stop.",
+      "reason": "The daemon runtime owns turn streaming and final cleanup across the foreign runtime-driver boundary; turn-notices.ts owns notice delivery. One turn-local controller lets the no-progress deadline interrupt through the same abort path as Stop.",
       "risks": {
         "abortController": 1,
         "catchAndIgnore": 2,
-        "finallyBlock": 2,
-        "manualPromise": 1,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/harness/heartbeat-turn.ts": {
-      "disposition": "effect-owned",
-      "reason": "The daemon runtime owns the heartbeat turn's throwaway session across the foreign harness boundary. One turn-local controller lets the no-progress deadline interrupt through the same abort path as Stop.",
-      "risks": {
-        "abortController": 1,
-        "catchAndIgnore": 1,
         "finallyBlock": 2,
         "manualPromise": 0,
         "timer": 0
       }
     },
-    "apps/computer/src/harness/sandbox-processes.ts": {
+    "apps/computer/src/harness/heartbeat-turn.ts": {
       "disposition": "effect-owned",
-      "reason": "An Effect scope owns sandbox child processes; Promises and timers implement the foreign stop and kill adapters.",
+      "reason": "The daemon runtime owns the heartbeat turn's throwaway session across the foreign runtime driver boundary. One turn-local controller lets the no-progress deadline interrupt through the same abort path as Stop.",
       "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
+        "abortController": 1,
+        "catchAndIgnore": 1,
         "finallyBlock": 1,
-        "manualPromise": 3,
-        "timer": 2
+        "manualPromise": 0,
+        "timer": 0
       }
     },
     "apps/computer/src/agent-cli/commands/agent-image.ts": {
@@ -349,17 +327,6 @@
         "finallyBlock": 0,
         "manualPromise": 0,
         "timer": 2
-      }
-    },
-    "apps/computer/src/harness/sandbox.ts": {
-      "disposition": "effect-owned",
-      "reason": "The daemon runtime owns sandbox resources; the Promise bridges Node port reservation into the scoped harness.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 0
       }
     },
     "apps/computer/src/inbox-store.ts": {
@@ -837,11 +804,11 @@
     },
     "apps/computer/src/attachment-daemon-work.ts": {
       "disposition": "effect-owned",
-      "reason": "The attachment runtime bounds accepted work and SDK session checkpoints with an Effect deadline; final cleanup reaps every owned sandbox process before releasing routing.",
+      "reason": "The attachment runtime bounds accepted work and session checkpoints with an Effect deadline; nested finally blocks then close the runtime context (warm processes, host-tool server) and reap every owned sandbox process before releasing routing.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 0,
-        "finallyBlock": 2,
+        "finallyBlock": 3,
         "manualPromise": 0,
         "timer": 0
       }
@@ -859,7 +826,7 @@
     },
     "apps/computer/src/harness/session-lifecycle.ts": {
       "disposition": "external-adapter",
-      "reason": "Finite AI SDK detach and stop calls share a checkpoint with the turn writer. The attachment runtime owns shutdown admission, cancellation, deadline, and sandbox reaping.",
+      "reason": "Finite runtime-driver detach and stop calls share a checkpoint with the turn writer. The attachment runtime owns shutdown admission, cancellation, deadline, and process reaping.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 0,
@@ -881,7 +848,7 @@
     },
     "apps/computer/src/harness/stopped-turn.ts": {
       "disposition": "external-adapter",
-      "reason": "Bounds the foreign AI SDK turn's consumeStream settlement with one deadline timer that the finally block always clears; the executor owns the turn and fails it when the deadline wins.",
+      "reason": "Bounds a runtime driver turn's settle with one deadline timer that the finally block always clears; the executor owns the turn and fails it when the deadline wins.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 0,
@@ -892,11 +859,11 @@
     },
     "apps/computer/src/harness/stored-notice.ts": {
       "disposition": "external-adapter",
-      "reason": "The executor owns this finite foreign notice-delivery queue and always closes it when the turn settles; unresolved callback Promises are settled on close.",
+      "reason": "The executor owns this finite foreign notice-delivery queue and always closes it when the turn settles; unresolved callback Promises are settled on close. A returned notice's temporary file is removed in finally whether or not its link won.",
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 0,
-        "finallyBlock": 1,
+        "finallyBlock": 2,
         "manualPromise": 1,
         "timer": 0
       }
@@ -1030,6 +997,391 @@
         "catchAndIgnore": 0,
         "finallyBlock": 1,
         "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/host-tools/mcp-server.ts": {
+      "disposition": "external-adapter",
+      "reason": "Loopback MCP adapter: each tools/call owns one cancel controller removed in lexical finally; session close and server stop abort a per-session controller. The Computer owner stops the Bun server.",
+      "risks": {
+        "abortController": 4,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/proxy-runner-hold.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "Holds Agent requests between turns until a wake run's runner arrives: each waiter's Promise resolves on release or on its own bounded timer, which it clears; proxy close releases every waiter.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 1,
+        "timer": 1
+      }
+    },
+    "apps/computer/src/harness/turn-notices.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "One resolver per turn says the stored notice reached delivery; the executor always awaits close(), which unregisters the notice sink, closes the coordinator, and awaits the stored delivery and every steer still in flight.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 1,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/runtime/runtime-context.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "The attachment daemon opens one context and closes it at shutdown; close ends every warm process and stops the host-tool server in finally, so a failed process close never leaves the server bound. An eviction marks its Agent root as a deliberate end and clears the mark in finally.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 2,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/runtime/process-group.ts": {
+      "disposition": "external-adapter",
+      "reason": "Ends a foreign runtime child's whole process group: SIGTERM then SIGKILL grace periods whose timers clear in finally, a bounded liveness poll, and a registry entry held until no member is left; a failed termination resets so Computer shutdown retries it.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 1,
+        "timer": 2
+      }
+    },
+    "apps/computer/src/runtime/handshake-deadline.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "One controller per runtime handshake, aborted by the caller's signal or a timeout; every caller clears the timer and the parent listener in finally.",
+      "risks": {
+        "abortController": 1,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 0,
+        "timer": 1
+      }
+    },
+    "apps/computer/src/runtime/testing/process-group-testing.ts": {
+      "disposition": "test-support",
+      "reason": "A test process registry resolves one promise when its last registered stop is removed.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 1,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/runtime/warm-pool.ts": {
+      "disposition": "external-adapter",
+      "reason": "Parks foreign runtime processes between turns. Each parked process holds one unref'd idle timer, re-armed while the process holds background work and cleared whenever the entry leaves the pool (claim, evict, exit, close); a process that exits while parked is still closed, and idle or exit close failures go to the daemon logger through onCloseError.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 0,
+        "timer": 3
+      }
+    },
+    "apps/computer/src/runtime/json-rpc-connection.ts": {
+      "disposition": "external-adapter",
+      "reason": "One resolver per JSON-RPC request, settled by its response, a local abort, a failed write, or close(). A reply to a peer that already closed is dropped because close() owns and reports that failure.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 1,
+        "finallyBlock": 0,
+        "manualPromise": 1,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/runtime/claude-code/claude-connection.ts": {
+      "disposition": "external-adapter",
+      "reason": "Each control request to the foreign claude process races its answer against one timeout timer cleared in finally; pending controls are rejected when the process exits.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 2,
+        "timer": 2
+      }
+    },
+    "apps/computer/src/runtime/claude-code/claude-install.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "One awaited pinned-binary install unpacks into a staging directory that finally always removes; concurrent callers share the same install promise.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/runtime/claude-code/claude-process.ts": {
+      "disposition": "external-adapter",
+      "reason": "The foreign claude child's exit promise settles on close, error, or an unref'd post-exit grace timer; its process group is owned by process-group.ts, which stays in the Computer process registry until the group is gone.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 2,
+        "timer": 1
+      }
+    },
+    "apps/computer/src/runtime/claude-code/claude-turn-steers.ts": {
+      "disposition": "external-adapter",
+      "reason": "A turn's steers on the foreign claude process: each acknowledgement Promise settles on Claude Code's queued, started, cancelled, or discarded receipt and is raced against claude-steer-receipt.ts's bounded timeout.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 1,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/runtime/claude-code/claude-turn.ts": {
+      "disposition": "external-adapter",
+      "reason": "One turn on the foreign claude process: its settle resolver ends with the turn (steer acknowledgements live in claude-turn-steers.ts, the receipt timeout in claude-steer-receipt.ts), and the interrupt's hard-kill timer clears on settle. A kill that fails leaves the turn unsettled for the executor's settle deadline.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 1,
+        "finallyBlock": 1,
+        "manualPromise": 1,
+        "timer": 1
+      }
+    },
+    "apps/computer/src/runtime/claude-code/claude-steer-receipt.ts": {
+      "disposition": "external-adapter",
+      "reason": "Races one written steer's lifecycle receipt from the foreign claude process against a timeout whose timer clears in finally; the receipt promise itself is owned by the turn.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 1,
+        "timer": 2
+      }
+    },
+    "apps/computer/src/runtime/event-queue.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "A single-consumer event queue: at most one pending wake resolver, resolved by the next push or by end(), which every Claude Code and Grok Build turn reaches on settlement or its consumer reaches by stopping early.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 1,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/runtime/claude-code/fixtures/capture.ts": {
+      "disposition": "test-support",
+      "reason": "Fixture capture script run by hand against the real CLI; its exit promise and step timeout live only for one scripted capture.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 2,
+        "timer": 1
+      }
+    },
+    "apps/computer/src/runtime/claude-code/fixtures/fake-driver.ts": {
+      "disposition": "test-support",
+      "reason": "Test harness for the Claude Code driver over a stand-in CLI; the controller only builds a never-aborted signal for test opens.",
+      "risks": {
+        "abortController": 1,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/runtime/claude-code/fixtures/fixture-replay.ts": {
+      "disposition": "test-support",
+      "reason": "Replays a recorded stream as a fake process; its exit resolver settles when the fixture ends or the test stops it.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 1,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/runtime/codex/app-server.ts": {
+      "disposition": "external-adapter",
+      "reason": "The host-tool readiness resolver settles on the app-server's MCP status or its exit, and the bounded wait for it clears its timer in finally.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 2,
+        "timer": 2
+      }
+    },
+    "apps/computer/src/runtime/codex/codex-transport.ts": {
+      "disposition": "external-adapter",
+      "reason": "The foreign app-server's exit promise settles on close or spawn error; its whole process group is terminated through process-group.ts, also after the leader exits on its own.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 2,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/runtime/codex/codex-driver.ts": {
+      "disposition": "external-adapter",
+      "reason": "Opens one foreign app-server per session; the handshake deadline clears in finally, and a failed open releases the process and its host-tool scope before rethrowing.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/runtime/codex/fixtures/capture-fixtures.ts": {
+      "disposition": "test-support",
+      "reason": "Fixture capture script run by hand against the pinned Codex; it aborts scripted turns and tears its scratch root down in finally.",
+      "risks": {
+        "abortController": 1,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/runtime/codex/testing/fake-app-server.ts": {
+      "disposition": "test-support",
+      "reason": "In-memory app-server for tests; its exit resolver settles when a test crashes or kills it.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 1,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/runtime/codex/testing/replay-driver.ts": {
+      "disposition": "test-support",
+      "reason": "Test driver over recorded transports; the controller aborts one replayed step the way the capture script did.",
+      "risks": {
+        "abortController": 1,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/runtime/testing/fake-runtime-driver.ts": {
+      "disposition": "test-support",
+      "reason": "In-memory runtime driver for executor tests; each turn's drain resolver settles when the test consumes or abandons its scripted events.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 1,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/runtime/codex/testing/replay-transport.ts": {
+      "disposition": "test-support",
+      "reason": "Replays a recorded app-server stream; its resolvers settle as the fixture advances, ends, or the test kills the transport.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 4,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/runtime/codex/testing/session-harness.ts": {
+      "disposition": "test-support",
+      "reason": "Test helpers that start fake turns with their own abort controllers and flush queued fake replies with zero-delay timers.",
+      "risks": {
+        "abortController": 2,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 1,
+        "timer": 1
+      }
+    },
+    "apps/computer/src/runtime/codex/turn-router.ts": {
+      "disposition": "external-adapter",
+      "reason": "A thread systemError gets one grace timer, replaced by the next, before it ends the run; ending a run is idempotent, so a timer firing after settlement does nothing.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 0,
+        "timer": 2
+      }
+    },
+    "apps/computer/src/runtime/codex/turn-run.ts": {
+      "disposition": "external-adapter",
+      "reason": "One Codex turn's state: its idle resolver settles when the run ends, steer-gate waits are bounded by a timer cleared on resolution, and event and turn-id waits wake on every state change including the end.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 4,
+        "timer": 1
+      }
+    },
+    "apps/computer/src/runtime/grok/fixtures/capture.ts": {
+      "disposition": "test-support",
+      "reason": "Fixture capture script run by hand against the installed grok; scripted cancels use their own controllers and one delay timer per scenario.",
+      "risks": {
+        "abortController": 4,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 0,
+        "timer": 1
+      }
+    },
+    "apps/computer/src/runtime/grok/fixtures/fake-grok.ts": {
+      "disposition": "test-support",
+      "reason": "In-memory Grok for session tests; its never-settling exit promise stands for a process that outlives the test.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 1,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/runtime/grok/grok-live.ts": {
+      "disposition": "external-adapter",
+      "reason": "Launching Grok terminates the child on abort; that memoized termination's failure is reported by the launch failure path that awaits it, and finally removes the abort listener.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 1,
+        "finallyBlock": 1,
+        "manualPromise": 0,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/runtime/grok/grok-process.ts": {
+      "disposition": "external-adapter",
+      "reason": "The foreign grok child's exit promise settles on close or spawn error; a failed write waits a grace period whose timer clears in finally, and its process group is owned by process-group.ts until no member is left.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 1,
+        "manualPromise": 3,
+        "timer": 2
+      }
+    },
+    "apps/computer/src/runtime/grok/grok-turn.ts": {
+      "disposition": "external-adapter",
+      "reason": "One session/prompt: its started and settled resolvers resolve at the prompt response. A session/cancel that cannot be written is dropped because the closed connection fails the prompt request itself.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 1,
+        "finallyBlock": 0,
+        "manualPromise": 2,
         "timer": 0
       }
     }

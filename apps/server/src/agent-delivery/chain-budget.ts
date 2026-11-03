@@ -28,13 +28,16 @@ export interface AgentChain {
 /**
  * Automation-authored typed sources. Agent messages (`agent:*`) are the rest.
  * A Linear session event caused by a Haus write is automation; one caused by
- * a person (`linear_session`) resets the chain like a human message.
+ * a person (`linear_session`) resets the chain like a human message. A sub-agent
+ * wake is the Agent's own earlier turn calling back, so an Agent that starts new
+ * background work on every wake spends the chain instead of looping forever.
  */
 const automationInboxSources = [
     'trigger',
     'trigger_problem',
     'image_generation_failed',
     'linear_session_automated',
+    'subagent',
 ] as const;
 
 export function isAutomationAuthored(row: AuthoredWork): boolean {
@@ -145,6 +148,21 @@ export async function restartIdleAgentChain(
         )
         .returning({ agentId: agentDeliveryTable.agentId });
     return restarted.length > 0 ? 0 : currentTurns;
+}
+
+/**
+ * Whether automation work queued now would only hold: the chain is at its ceiling (which
+ * never times out) and no work that resets it is queued to lead first.
+ */
+export async function isAgentChainHeld(
+    tx: HausDatabase,
+    agentId: string,
+    currentTurns: number
+): Promise<boolean> {
+    return (
+        currentTurns >= maxAgentChainTurns &&
+        (await findOldestQueuedChainResetItem(tx, agentId)) === undefined
+    );
 }
 
 /** Records a completed drain's effect on the chain (see {@link nextAgentChain}). */

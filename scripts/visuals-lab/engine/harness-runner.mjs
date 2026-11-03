@@ -1,15 +1,16 @@
-// The turn runner: the same harness agent the Computer executor builds.
+// The turn runner: the same runtime driver the Computer executor builds.
 //
-// This is what Haus actually runs, so it is the lab's only lane. The bridge
-// installs and pins its own copy of each runtime, which means a lab result is a
-// judgement about the product rather than about whichever CLI happens to be
-// installed on this Mac.
+// This is what Haus actually runs, so it is the lab's only lane. Claude Code and
+// Codex run the pinned CLI their driver installs, so a lab result is a judgement
+// about the product rather than about whichever CLI happens to be installed on
+// this Mac; Grok Build runs the operator's installed `grok`, as Haus does.
 import path from 'node:path';
 import { makeDaemonRuntime } from '../../../apps/computer/src/daemon-runtime.ts';
-import { bridgeStoreDirForHost } from '../../../apps/computer/src/harness/bridge-bootstrap.ts';
-import { createHarnessAgent } from '../../../apps/computer/src/harness/create-agent.ts';
-import { createHarnessForRuntime } from '../../../apps/computer/src/harness/runtime-harness.ts';
-import { readTokenUsage } from '../../../apps/computer/src/harness/token-usage.ts';
+import { createDriver } from '../../../apps/computer/src/runtime/driver-factory.ts';
+import {
+    closeRuntimeContext,
+    openRuntimeContext,
+} from '../../../apps/computer/src/runtime/runtime-context.ts';
 import { labInstructions } from './instructions.mjs';
 
 /** Builds the runner one lab run drives: one `runTurn` per battery prompt. */
@@ -22,65 +23,70 @@ export const createHarnessRunner = ({
     workspaceDir,
 }) => {
     const runtime = makeDaemonRuntime();
-    const agent = createHarnessAgent(
+    const context = openRuntimeContext(runtime);
+    const driver = createDriver(
         {
-            agentId: 'agt_visuals_lab',
-            env: { PATH: [path.dirname(executable.path), executable.searchPath].join(':') },
+            agentRoot: path.dirname(workspaceDir),
             homeDir,
             modelId,
-            runtime,
+            reasoningEffort,
             runtimeId,
-            tools: {},
+            tools: [],
             workspaceDir,
         },
         {
-            harness: createHarnessForRuntime(
-                runtimeId,
-                reasoningEffort,
-                bridgeStoreDirForHost(),
-                modelId
-            ),
+            env: { PATH: [path.dirname(executable.path), executable.searchPath].join(':') },
             instructions: labInstructions,
-        }
+        },
+        context
     );
 
     return {
-        dispose: () => runtime.dispose(),
-        runTurn: ({ prompt, timeoutMs }) => runTurn({ agent, prompt, timeoutMs }),
+        dispose: async () => {
+            await closeRuntimeContext(runtime);
+            await runtime.dispose();
+        },
+        runTurn: ({ prompt, timeoutMs }) => runTurn({ driver, prompt, timeoutMs }),
     };
 };
 
-async function runTurn({ agent, prompt, timeoutMs }) {
-    const session = await agent.createSession({ sessionId: crypto.randomUUID() });
+async function runTurn({ driver, prompt, timeoutMs }) {
+    const signal = AbortSignal.timeout(timeoutMs);
+    // A fresh session per prompt, so no battery item sees another's conversation.
+    const session = await driver.openSession({
+        resumeFrom: undefined,
+        sessionId: crypto.randomUUID(),
+        signal,
+    });
     const trace = [];
+    let text = '';
     let usage = null;
     let streamError = null;
     try {
-        const result = await agent.stream({
-            abortSignal: AbortSignal.timeout(timeoutMs),
-            prompt,
-            session,
-        });
-        for await (const part of result.fullStream) {
-            if (part.type === 'tool-call') {
+        const turn = await session.startTurn({ prompt, signal });
+        for await (const event of turn.events) {
+            if (event.type === 'tool-call') {
                 trace.push({
                     at: new Date().toISOString(),
-                    input: JSON.stringify(part.input ?? null).slice(0, 400),
-                    name: part.toolName,
+                    input: JSON.stringify(event.input ?? null).slice(0, 400),
+                    name: event.toolName,
                 });
-            } else if (part.type === 'finish') {
-                usage = readTokenUsage(part.totalUsage);
-            } else if (part.type === 'error') {
-                streamError ??= part.error;
+            } else if (event.type === 'text-delta') {
+                text += event.text;
+            } else if (event.type === 'turn-finish') {
+                usage = event.usage;
+            } else if (event.type === 'error') {
+                streamError ??= event.error;
+            } else if (event.type === 'abort') {
+                streamError ??= new Error(`turn timed out after ${timeoutMs}ms`);
             }
         }
         if (streamError) {
             throw streamError;
         }
-        // The bridge surfaces a failure as a stream error, so there is no
-        // stderr of its own to keep; the field stays because the trace writer
-        // records one when there is one.
-        return { costUsd: null, stderr: '', text: await result.text, trace, usage };
+        // The driver surfaces a failure as a stream error, so there is no stderr of
+        // its own to keep; the field stays because the trace writer records one.
+        return { costUsd: null, stderr: '', text, trace, usage };
     } finally {
         await session.destroy();
     }

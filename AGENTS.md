@@ -201,7 +201,7 @@ so `docs:list` routes future agents correctly.
 
 - Haus Computer owns runtime discovery, model inventory, instruction composition, tools, and the
   chat-to-Agent turn runner under `apps/computer/src/`.
-- Codex, Claude Code, and Pi are execution runtimes inside Computer. Do not use “Haus Runtime” as
+- Claude Code, Codex, and Grok Build are execution runtimes inside Computer. Do not use “Haus Runtime” as
   a product, service, release, compatibility, or ownership term.
 - After a coherent execution change, select deterministic and live verification from
   [Change Routing](docs/operations/testing.md#change-routing).
@@ -213,7 +213,7 @@ The composed agent system prompt is a guarded contract. Its sources live under
 `managed-instructions.test.ts`.
 
 Every sentence here changes the behavior of every Agent, so the prompt must stay deliberate,
-reviewed, and bounded. `managed-instructions.test.ts` asserts a size cap (currently 39,247
+reviewed, and bounded. `managed-instructions.test.ts` asserts a size cap (currently 39,416
 characters). The cap is a ratchet that forces a deliberate decision, not a hard limit, and no
 adapter enforces a prompt length. A justified addition raises the cap to the measured render in
 the same change, with a one-line reason in the register. Never delete, trim, merge, or

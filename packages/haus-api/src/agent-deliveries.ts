@@ -2,7 +2,16 @@ import * as z from 'zod';
 import { agentDetailInputSchema } from './agent.ts';
 import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
 
-const chatlessSources: ReadonlySet<string> = new Set(['dream', 'heartbeat', 'heartbeat_report']);
+/**
+ * Inbox sources with no Chat: the nightly dream, a daytime heartbeat, a heartbeat's
+ * report to the main session, and the sub-agent wake. Each leads its own chatless run
+ * (specs/heartbeat.md), and the Server schema's chat checks name exactly these sources.
+ */
+export const chatlessInboxSources = ['dream', 'heartbeat', 'heartbeat_report', 'subagent'] as const;
+
+export function isChatlessInboxSource(source: string): boolean {
+    return (chatlessInboxSources as readonly string[]).includes(source);
+}
 
 /**
  * One durable delivery of one unit of work to one Agent. `seen` rows are
@@ -14,7 +23,7 @@ export const agentDeliveryRecordSchema = z
     .object({
         acceptedAt: timestampSchema.nullable(),
         agentId: idSchema,
-        /** Null only for a `dream`, `heartbeat`, or `heartbeat_report`. */
+        /** Null only for a chatless source: `dream`, `heartbeat`, `heartbeat_report`, `subagent`. */
         chatId: idSchema.nullable(),
         createdAt: timestampSchema,
         /** Null for typed work that carries no Chat message. */
@@ -27,8 +36,9 @@ export const agentDeliveryRecordSchema = z
         workId: idSchema,
     })
     .strict()
-    .refine((record) => (record.chatId === null) === chatlessSources.has(record.source), {
-        message: 'Only a dream, heartbeat, or heartbeat report delivery is chatless.',
+    .refine((record) => (record.chatId === null) === isChatlessInboxSource(record.source), {
+        message:
+            'Only a dream, heartbeat, heartbeat report, or sub-agent wake delivery is chatless.',
         path: ['chatId'],
     });
 

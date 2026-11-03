@@ -1,5 +1,7 @@
 import { agentNoticeCommandSchema, agentStartCommandSchema } from './agent-delivery-frames.ts';
 import { agentExecutionJournalAckSchema } from './agent-execution-journal-upload.ts';
+import { agentStopBackgroundCommandSchema, agentStopCommandSchema } from './agent-stop-commands.ts';
+import { agentSubagentWakeResultSchema } from './agent-subagent-wake-frames.ts';
 import { browserRequestSchema } from './browser-frames.ts';
 import {
     cloudAgentCancelCommandSchema,
@@ -10,6 +12,8 @@ import {
 export * from './agent-delivery-frames.ts';
 export * from './agent-execution-journal.ts';
 export * from './agent-inbox.ts';
+export * from './agent-stop-commands.ts';
+export * from './agent-subagent-wake-frames.ts';
 export * from './browser-frames.ts';
 export * from './cloud-agent-protocol.ts';
 
@@ -34,21 +38,6 @@ import { computerSecretsRequestSchema } from './computer-secrets.ts';
 import { hostSkillFileRequestSchema } from './host-skill-file.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
-
-/**
- * Terminates the named in-flight run on the Computer. A human Stop persists
- * Server-side and rides this frame down to kill the live turn; the Computer
- * kills the run's child process and reports nothing model-visible.
- */
-export const agentStopCommandSchema = z
-    .object({
-        agentId: idSchema,
-        runId: idSchema,
-        type: z.literal('stop'),
-    })
-    .strict();
-
-export type AgentStopCommand = z.infer<typeof agentStopCommandSchema>;
 
 /**
  * Recreates one Agent's harness runner while preserving its native conversation.
@@ -157,6 +146,8 @@ export const agentCommandSchema = z.discriminatedUnion('type', [
     computerInventoryRefreshRequestSchema,
     agentStartCommandSchema,
     agentStopCommandSchema,
+    agentStopBackgroundCommandSchema,
+    agentSubagentWakeResultSchema,
     agentRestartCommandSchema,
     agentResetCommandSchema,
     agentRetireCommandSchema,
@@ -340,7 +331,7 @@ export type AgentWorkspaceResult = z.infer<typeof agentWorkspaceResultSchema>;
 /**
  * A Computer mints a per-launch runner credential from its Computer credential
  * before spawning the Agent. The credential is scoped to exactly one Agent,
- * run, and Server. The launch chat (null for a dream run) is context only; Agent
+ * run, and Server. The launch chat (null for a chatless run) is context only; Agent
  * API routes still resolve each target and membership Server-side.
  */
 export const runnerMintRequestSchema = z

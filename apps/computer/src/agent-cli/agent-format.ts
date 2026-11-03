@@ -1,6 +1,11 @@
 import { cloudAgentPullRequestNumber, formatCloudAgentWorkSuffix } from '@haus/api';
 import { formatAttachmentSuffix, formatThreadFollowRestoration } from '../inbox-format.ts';
-import { formatInboxTime, indentContinuationLines, shortInboxId } from '../inbox-header-format.ts';
+import {
+    formatInboxTime,
+    formatSenderLabel,
+    indentContinuationLines,
+    shortInboxId,
+} from '../inbox-header-format.ts';
 import { formatInlineReplyContext } from '../inline-reply-format.ts';
 import type { AgentCliAutomationEvent, AgentCliMessage } from './agent-api-schemas.ts';
 import { AgentCliError } from './agent-error.ts';
@@ -49,7 +54,7 @@ export function formatDeliveryEnvelope(
  * A bodiless inbox item served on `haus message check`: a Trigger or Reminder
  * fire, or a task assignment. None of them has a Chat message, so the item's own
  * identity fills the envelope: `msg=` is its short id, `type=` is `trigger` or
- * `system`, and the sender is `@trigger`, `@reminder`, or `@haus` — the exact
+ * `system`, and the sender is `trigger`, `reminder`, or `haus` — the exact
  * header the launch drain prints for the same item.
  */
 export function formatAutomationEnvelope(event: AgentCliAutomationEvent): string {
@@ -59,16 +64,13 @@ export function formatAutomationEnvelope(event: AgentCliAutomationEvent): string
         `time=${formatUtcTime(event.createdAt)}`,
         `type=${event.senderType}`,
     ];
-    return `[${attributes.join(' ')}] @${event.senderHandle}: ${event.content}`;
+    return `[${attributes.join(' ')}] ${formatSenderLabel(event.senderHandle)}: ${event.content}`;
 }
 
 export function formatSender(message: AgentCliMessage): string {
     // System and unlabeled authors legitimately have no handle (Raft renders
-    // them as @unknown too); never fail a whole read over one such row.
-    const handle = indentContinuationLines(message.sender.handle ?? 'unknown');
-    return message.sender.description
-        ? `@${handle} — ${indentContinuationLines(message.sender.description)}`
-        : `@${handle}`;
+    // them as @unknown); never fail a whole read over one such row.
+    return formatSenderLabel(message.sender.handle ?? 'unknown', message.sender.description);
 }
 
 /** A human sender's saved zone, right after `time=`; Agents and zoneless humans print none. */

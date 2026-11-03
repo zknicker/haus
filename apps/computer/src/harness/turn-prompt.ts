@@ -34,6 +34,8 @@ export interface TurnDelivery {
     inboxDelivery: 'concrete' | 'notice';
     runId: string;
     serverId: string;
+    /** A sub-agent wake run: background work the Agent started finished or stopped. */
+    subagentWake?: AgentStartCommand['subagentWake'];
     totalPending: number;
     unreadElsewhere: UnreadElsewhere[];
     warmDrainItemIds: string[];
@@ -63,12 +65,21 @@ const resetContextLine =
 const firstTurnGreetingLine =
     'On your first turn, say hello in #all in your own voice: who you are, what you own, and what your first output will be and when.';
 
+/**
+ * The input of a sub-agent wake run when no turn of the runtime's own is there to adopt: the
+ * report landed while nothing could act on it (its turn already ended, or the Computer
+ * restarted and the work was lost). The runtime's own notice is already in the conversation.
+ */
+export const subagentWakeTurnLine =
+    '[Haus sub-agent turn] Haus started this turn because background work you started (a sub-agent or a background command) finished or stopped; its notice is above in your conversation. If you have not reported it yet, report the result where it was asked for, or say it stopped before finishing. Otherwise stop. If new messages arrive meanwhile, handle them normally.';
+
 /** The delivery facets of a start command, exactly as one turn composes them. */
 export function turnDeliveryOf(command: AgentStartCommand) {
     return {
         connectionChips: command.connectionChips ?? [],
         ...(command.heartbeat ? { heartbeat: command.heartbeat } : {}),
         ...(command.heartbeatReport ? { heartbeatReport: command.heartbeatReport } : {}),
+        ...(command.subagentWake ? { subagentWake: command.subagentWake } : {}),
         drainItemIds: command.drainItemIds ?? [],
         inbox: command.inbox ?? [],
         inboxDelivery: command.inboxDelivery,
@@ -94,13 +105,18 @@ export interface TurnPrompt {
  * and notices the rest, which is Raft's hybrid shape (specs/inbox.md).
  */
 export function composeTurnPrompt(input: TurnDelivery, session: TurnSession): TurnPrompt {
-    if (input.heartbeatReport) {
+    const chatlessLine = input.heartbeatReport
+        ? composeHeartbeatReportInput(input.heartbeatReport)
+        : input.subagentWake
+          ? subagentWakeTurnLine
+          : null;
+    if (chatlessLine) {
         return {
             drained: [],
             notice: null,
             turnContent: [
                 session.resumesInterruptedTurn ? interruptedTurnLine : null,
-                openingPrompt(session, composeHeartbeatReportInput(input.heartbeatReport), false),
+                openingPrompt(session, chatlessLine, false),
             ]
                 .filter(Boolean)
                 .join('\n\n'),

@@ -59,27 +59,16 @@ export const computerNativeToolActivityFixtures = {
         list_dir: 'reading_files',
         read_file: 'reading_files',
         reference_to_video: 'using_tool',
-        // Grok's native fetch, which its harness declares no builtin for.
+        // Grok's native fetch, which reaches the driver under its wire name.
         web_fetch: 'browsing',
         webSearch: 'searching_web',
-        write: 'editing_files',
-    },
-    pi: {
-        bash: 'running_command',
-        edit: 'editing_files',
-        glob: 'reading_files',
-        grep: 'reading_files',
-        ls: 'reading_files',
-        read: 'reading_files',
         write: 'editing_files',
     },
 } as const satisfies Record<string, Readonly<Record<string, ComputerAgentActivityCategory>>>;
 
 /**
- * The AI SDK harness projects runtime events that have no first-class stream
- * part as synthetic `dynamic: true, providerExecuted: true` tool-call/result
- * pairs under reserved names (@ai-sdk/harness 1.0.78
- * `src/agent/internal/translate-stream-part.ts:160-244`). `fileChange` is the
+ * Drivers report runtime events that have no first-class `TurnEvent` as synthetic
+ * `providerExecuted: true` tool calls under reserved names. `fileChange` is the
  * only file-edit evidence some runtimes emit; `compaction` is context
  * bookkeeping the journal keeps but Activity must stay silent about.
  */
@@ -92,10 +81,8 @@ export function syntheticHarnessToolActivity(
     toolName: string,
     providerExecuted: boolean
 ): ComputerAgentActivityCategory | 'skip' | undefined {
-    // Host and MCP tools are the ones run-prompt dispatches, and it dispatches
-    // only calls that are not provider-executed (@ai-sdk/harness 1.0.78
-    // `src/agent/internal/run-prompt.ts:859`), so this flag keeps a same-named
-    // third-party tool on the generic path.
+    // Haus host tools are reported without `providerExecuted`, so this flag keeps a
+    // same-named host or MCP tool on the generic path.
     if (!providerExecuted) {
         return undefined;
     }

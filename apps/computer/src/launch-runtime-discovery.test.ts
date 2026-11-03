@@ -21,14 +21,14 @@ test('launch accepts every runtime advertised by executable discovery', async ()
             join(root, 'servers', 'srv_discovery', 'agents', 'agt_discovery', 'workspace'),
             { recursive: true }
         );
-        for (const command of ['codex', 'claude', 'grok', 'pi']) {
+        for (const command of ['codex', 'claude', 'grok']) {
             const path = join(root, command);
             await writeFile(path, '#!/bin/sh\necho "test-runtime 1.0.0"\n');
             await chmod(path, 0o755);
         }
         process.env.PATH = root;
         const inventory = detectInventory({ searchPath: root });
-        expect(inventory.runtimes).toHaveLength(4);
+        expect(inventory.runtimes).toHaveLength(3);
         for (const detected of inventory.runtimes) {
             const turn = await runAgentLaunch({
                 attachment: {

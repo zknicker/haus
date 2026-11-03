@@ -31,6 +31,11 @@ from two ingresses: the "+" action on the sidebar's Direct messages group
 header, and the `+` action on the Agents section header of Settings →
 Members.
 
+The supported runtimes are Codex, Claude Code, and Grok Build. Pi is retired: migration
+`0104_retire-pi-runtime` moved every Agent configured on Pi to Claude Code when its Computer
+reports it (otherwise the Computer's first other reported runtime, or Claude Code when the
+Computer never reported), with that runtime's first model.
+
 Creation adds the Agent to every current human member's implicit DM roster. It
 does not create an Owner DM or any other Chat row. There is no archetype field,
 picker, automatic lane-note seed, or special creation
@@ -241,7 +246,7 @@ on every execution runtime and runs on the Server Owner's own provider keys
 ([ADR 0047](../adr/0047-agents-generate-images-through-haus.md),
 [Image generation](../../specs/image-generation.md)). Computer also does not suppress image-generation capabilities
 native to an Agent's selected execution runtime: Codex (on ChatGPT plans that include image
-generation) and Grok Build generate images natively; Claude Code and Pi do not. Availability
+generation) and Grok Build generate images natively; Claude Code does not. Availability
 follows that runtime and model; it is separate from Haus's avatar service and is not controlled by
 an App setting. A generated image reaches a chat only as an attachment: the Agent uploads the saved
 file with `haus attachment upload` and sends it with `--attachment-id`. Native tools save inside

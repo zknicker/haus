@@ -33,7 +33,7 @@ test('an expired reset is historical even when its snapshot was just captured', 
 });
 
 test('a Codex snapshot without a weekly window has no weekly allowance to show', () => {
-    const built = buildRuntimeRow('codex', usageWithCodexWindows([codexSession(14_400)]), null);
+    const built = buildRuntimeRow('codex', usageWithCodexWindows([codexSession(14_400)]));
 
     expect(built.window).toBeNull();
     expect(built.status).toBe('Plan limits unavailable');
@@ -44,14 +44,14 @@ test('a session window too long to be a 5-hour allowance leaves that column empt
     // An older Computer without duration-based Codex classification still
     // reports a weekly allowance as `current-session`; a weekly number must
     // never be labelled a rolling 5-hour limit.
-    const built = buildRuntimeRow('codex', usageWithCodexWindows([codexSession(480_000)]), null);
+    const built = buildRuntimeRow('codex', usageWithCodexWindows([codexSession(480_000)]));
 
     expect(built.fiveHourWindow).toBeNull();
     expect(built.status).toBe('Plan limits unavailable');
 });
 
 test('a session window with no duration hint stays in the 5-hour column', () => {
-    const built = buildRuntimeRow('codex', usageWithCodexWindows([codexSession(null)]), null);
+    const built = buildRuntimeRow('codex', usageWithCodexWindows([codexSession(null)]));
 
     expect(built.fiveHourWindow).toMatchObject({ id: 'current-session', usedPercent: 17 });
 });
@@ -68,8 +68,7 @@ test('a Codex weekly window stays in the weekly column', () => {
                 resetsAt: '2026-08-14T16:00:00.000Z',
                 usedPercent: 13,
             },
-        ]),
-        null
+        ])
     );
 
     expect(built.window).toMatchObject({ id: 'current-week', label: 'Weekly Limit' });
@@ -80,20 +79,19 @@ test('usage authentication failures do not imply execution authentication failed
     const usage = usageWithCodexWindows([]);
     const signedOut = { ...usage, claude: providerError('claude', 'auth') };
 
-    expect(buildRuntimeRow('claude-code', signedOut, null).issue).toBe('usage');
+    expect(buildRuntimeRow('claude-code', signedOut).issue).toBe('usage');
     expect(
-        buildRuntimeRow('codex', { ...usage, codex: providerError('codex', 'auth') }, null).issue
+        buildRuntimeRow('codex', { ...usage, codex: providerError('codex', 'auth') }).issue
     ).toBe('usage');
-    expect(buildRuntimeRow('grok-build', usage, null).issue).toBe('usage');
+    expect(buildRuntimeRow('grok-build', usage).issue).toBe('usage');
 });
 
 test('an expired usage login keeps its retained meters and reports unavailable usage', () => {
     const usage = usageWithCodexWindows([]);
-    const built = buildRuntimeRow(
-        'claude-code',
-        { ...usage, claude: retainedClaude({ at: '2026-08-14T15:15:00.000Z', code: 'auth' }) },
-        null
-    );
+    const built = buildRuntimeRow('claude-code', {
+        ...usage,
+        claude: retainedClaude({ at: '2026-08-14T15:15:00.000Z', code: 'auth' }),
+    });
 
     expect(built.window).toMatchObject({ label: 'Weekly Limit', usedPercent: 28 });
     expect(built.stale).toEqual({ at: '2026-08-14T15:15:00.000Z', code: 'auth' });
@@ -109,11 +107,10 @@ test('an expired usage login keeps its retained meters and reports unavailable u
 
 test('a runtime retained past a request failure keeps the generic stale copy', () => {
     const usage = usageWithCodexWindows([]);
-    const built = buildRuntimeRow(
-        'claude-code',
-        { ...usage, claude: retainedClaude({ at: '2026-08-14T15:15:00.000Z', code: 'request' }) },
-        null
-    );
+    const built = buildRuntimeRow('claude-code', {
+        ...usage,
+        claude: retainedClaude({ at: '2026-08-14T15:15:00.000Z', code: 'request' }),
+    });
 
     expect(built.status).toBe('Plan limits unavailable');
     expect(built.issue).toBe('usage');
@@ -122,10 +119,9 @@ test('a runtime retained past a request failure keeps the generic stale copy', (
 test('a non-authentication failure keeps the generic unavailable copy', () => {
     const usage = usageWithCodexWindows([]);
 
-    expect(buildRuntimeRow('claude-code', usage, null).status).toBe('Plan limits unavailable');
+    expect(buildRuntimeRow('claude-code', usage).status).toBe('Plan limits unavailable');
     expect(
-        buildRuntimeRow('grok-build', { ...usage, grok: providerError('grok', 'request') }, null)
-            .status
+        buildRuntimeRow('grok-build', { ...usage, grok: providerError('grok', 'request') }).status
     ).toBe('Weekly limit unavailable');
 });
 

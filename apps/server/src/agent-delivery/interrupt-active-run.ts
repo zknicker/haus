@@ -5,19 +5,27 @@ import { lockServerRow } from '../servers/server-lock.ts';
 import { settleAgentBackgroundClaims } from '../tasks/background-claims.ts';
 import { rotateDeferredConfiguration } from './deferred-configuration.ts';
 import * as store from './store.ts';
+import { retireQueuedSubagentWakes } from './subagent-wake-request.ts';
 
 /**
  * Clears an Agent's active run for a stop or a reset: revokes its credential,
  * requeues its inbox items, records the interruption, and settles its background
- * claims. Returns what the caller must announce, or null when no run is active.
+ * claims. A human Stop (`stop: true`) also sets the flag and retires queued
+ * sub-agent wakes. Returns what the caller must announce, or null when no run is
+ * active.
  */
 export async function interruptActiveRun(
     db: HausDatabase,
-    input: { agentId: string; serverId: string }
+    input: { agentId: string; serverId: string },
+    options: { stop?: boolean } = {}
 ) {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const state = await store.readDeliveryState(tx, input.agentId);
+        if (options.stop) {
+            await store.setStopped(tx, { ...input, stopped: true });
+            await retireQueuedSubagentWakes(tx, input.agentId);
+        }
         if (!(state?.activeRunId && state.activeRunComputerId)) {
             return null;
         }

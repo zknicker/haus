@@ -60,6 +60,12 @@ test('private and unrecorded triggers show nothing; typed work names itself', ()
         place: null,
         text: 'Dreamed',
     });
+    // Neither does the wake for a background sub-agent that finished.
+    expect(resolveTurnRowTitle({ kind: 'subagent' }, chats)).toEqual({
+        kind: 'text',
+        place: null,
+        text: 'Sub-agent finished',
+    });
     expect(resolveTurnRowTitle({ chatId: 'cht_product', kind: 'reminder' }, chats)).toEqual({
         kind: 'text',
         place: '#product',

@@ -1,25 +1,23 @@
-import type {
-    HarnessAgent,
-    HarnessAgentResumeSessionState,
-    HarnessAgentSession,
-} from '@ai-sdk/harness/agent';
 import type { AgentTurnTimings } from '../agent-turn-timings.ts';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
-import { AgentSessionResumeRejectedError, isResumeRejection } from './resume-rejection.ts';
+import type { RuntimeDriver, RuntimeSession } from '../runtime/driver.ts';
+import { isRuntimeResumeRejection } from '../runtime/resume-rejected.ts';
+import type { RuntimeResumeState } from '../runtime/resume-state.ts';
+import { AgentSessionResumeRejectedError } from './resume-rejection.ts';
 import type { HarnessSessionLease } from './session-lifecycle.ts';
 import { harnessStartupDeadlineMs, runHarnessStart, type StartupWindow } from './start-gate.ts';
 
 export interface HarnessSessionStart {
-    agent: Pick<HarnessAgent, 'createSession'>;
     agentId: string;
     deadlineMs?: number;
+    driver: Pick<RuntimeDriver, 'openSession'>;
     lease: HarnessSessionLease;
     phase: (label: string) => Promise<void>;
     /** Runs after parking, before the live session resumes the parked state. */
     refreshBootstrap?: (signal: AbortSignal) => Promise<void>;
     /** Parks the stored session and restarts its native process before resuming. */
     restartNative: boolean;
-    resumeFrom: HarnessAgentResumeSessionState | undefined;
+    resumeFrom: RuntimeResumeState | undefined;
     runtime: DaemonRuntime;
     sessionId: string;
     signal?: AbortSignal;
@@ -28,11 +26,9 @@ export interface HarnessSessionStart {
 
 /**
  * Creates the turn's live session inside the machine-wide start gate and the startup deadline.
- * Only specific evidence that stored state is unusable becomes a resume rejection.
+ * Only a driver's typed `RuntimeResumeRejectedError` becomes a resume rejection.
  */
-export async function startHarnessSession(
-    start: HarnessSessionStart
-): Promise<HarnessAgentSession> {
+export async function startHarnessSession(start: HarnessSessionStart): Promise<RuntimeSession> {
     return await runHarnessStart(
         start.runtime,
         start.signal,
@@ -52,13 +48,7 @@ export async function startHarnessSession(
                     await start.phase('session creation failed');
                     throw error;
                 });
-            start.lease.attach(live, (state, abortSignal) =>
-                start.agent.createSession({
-                    abortSignal,
-                    resumeFrom: state,
-                    sessionId: start.sessionId,
-                })
-            );
+            start.lease.attach(live);
             return live;
         }
     );
@@ -66,19 +56,19 @@ export async function startHarnessSession(
 
 async function createSession(
     start: HarnessSessionStart,
-    resumeFrom: HarnessAgentResumeSessionState | undefined,
+    resumeFrom: RuntimeResumeState | undefined,
     window: StartupWindow
-): Promise<HarnessAgentSession> {
+): Promise<RuntimeSession> {
     window.signal.throwIfAborted();
-    let session: HarnessAgentSession;
+    let session: RuntimeSession;
     try {
-        session = await start.agent.createSession({
-            abortSignal: window.signal,
+        session = await start.driver.openSession({
             resumeFrom,
             sessionId: start.sessionId,
+            signal: window.signal,
         });
     } catch (error) {
-        throw resumeFrom && isResumeRejection(error)
+        throw resumeFrom && isRuntimeResumeRejection(error)
             ? new AgentSessionResumeRejectedError(start.agentId, { cause: error })
             : error;
     }

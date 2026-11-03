@@ -1,17 +1,17 @@
 import { createHash } from 'node:crypto';
 import {
     EXECUTION_JOURNAL_SUBAGENT_LABEL_MAX_CHARS,
-    type ExecutionJournalStatus,
     type ExecutionJournalSubagent,
     type ExecutionJournalSubagentPatch,
 } from '@haus/api';
+import { taskUsage } from '../runtime/claude-subagent-events.ts';
+import type { SubagentStatus, SubagentTurnEvent } from '../runtime/turn-event.ts';
 import type { ComputerExecutionJournal } from './execution-journal.ts';
 
 /**
- * Claude Code runs a sub-agent inside its `Agent` tool call and reports it only
- * through raw SDK messages: `task_*` system messages about the sub-agent, and
- * the sub-agent's own assistant/user messages tagged with the parent call's
- * `parent_tool_use_id`. The harness translates none of them into stream parts.
+ * Claude Code runs a sub-agent inside its `Agent` tool call and reports it only through its own
+ * stream messages, which the driver normalizes into `subagent-*` turn events: the task's
+ * lifecycle, and the sub-agent's own calls tagged with the delegating call's id.
  *
  * Everything here is Computer-local journal evidence. A sub-agent's tool calls
  * never open durable activity and never feed thoughts; the parent call alone
@@ -31,19 +31,33 @@ export function createSubagentSteps(journal: ComputerExecutionJournal | undefine
         isChild(toolCallId: string): boolean {
             return children.has(toolCallId);
         },
-        async observeRaw(part: Record<string, unknown>) {
-            const message = isRecord(part.rawValue) ? part.rawValue : undefined;
-            if (!(message && journal)) {
+        async observe(event: SubagentTurnEvent) {
+            if (!journal) {
                 return;
             }
-            const parent = stringValue(message.parent_tool_use_id);
-            if (parent && (message.type === 'assistant' || message.type === 'user')) {
-                await recordChildBlocks(journal, children, parent, message);
+            if (event.type === 'subagent-tool-call') {
+                children.set(event.toolCallId, event.toolName);
+                await journal.recordToolCall({
+                    input: event.input,
+                    nativeName: event.toolName,
+                    parentToolCallId: event.parentToolCallId,
+                    toolCallId: event.toolCallId,
+                    toolName: event.toolName,
+                });
                 return;
             }
-            if (message.type === 'system') {
-                await recordTaskMessage(journal, tasks, message);
+            if (event.type === 'subagent-tool-result') {
+                await journal.recordToolResult({
+                    isError: event.isError,
+                    nativeName: children.get(event.toolCallId),
+                    output: event.output,
+                    preliminary: false,
+                    toolCallId: event.toolCallId,
+                    toolName: children.get(event.toolCallId) ?? 'tool',
+                });
+                return;
             }
+            await recordTaskEvent(journal, tasks, event);
         },
         /** The delegating call's own result carries the sub-agent's final totals. */
         async observeResult(toolCallId: string, output: unknown) {
@@ -60,130 +74,65 @@ export function delegationOperationId(toolCallId: string): string {
     return createHash('sha256').update(toolCallId).digest('hex').slice(0, 32);
 }
 
-async function recordTaskMessage(
+async function recordTaskEvent(
     journal: ComputerExecutionJournal,
     tasks: Map<string, string>,
-    message: Record<string, unknown>
+    event: Extract<
+        SubagentTurnEvent,
+        { type: 'subagent-progress' | 'subagent-started' | 'subagent-status' }
+    >
 ) {
-    const taskId = stringValue(message.task_id);
-    if (!taskId) {
-        return;
-    }
-    if (message.subtype === 'task_started') {
-        await recordTaskStarted(journal, tasks, taskId, message);
-        return;
-    }
-    const toolCallId = tasks.get(taskId);
-    if (!toolCallId) {
-        return;
-    }
-    if (message.subtype === 'task_progress') {
-        const latestAction = label(message.description);
-        const usage = taskUsage(message.usage);
-        await record(journal, toolCallId, {
-            ...(latestAction ? { latestAction } : {}),
-            ...(usage ? { usage } : {}),
+    if (event.type === 'subagent-started') {
+        tasks.set(event.taskId, event.toolCallId);
+        const description = label(event.description);
+        const subagentType = label(event.subagentType);
+        // A finished task may be revived under the same id; it runs again.
+        await record(journal, event.toolCallId, {
+            ...(event.backgrounded ? { backgrounded: true } : {}),
+            endedAt: null,
+            status: 'running',
+            ...(description ? { label: description } : {}),
+            ...(subagentType ? { subagentType } : {}),
         });
         return;
     }
-    const patch = isRecord(message.patch) ? message.patch : undefined;
-    if (message.subtype === 'task_updated' && patch) {
-        await recordStatus(journal, toolCallId, patch.status, patch.end_time);
+    const toolCallId = tasks.get(event.taskId);
+    if (!toolCallId) {
         return;
     }
-    if (message.subtype === 'task_notification') {
-        const usage = taskUsage(message.usage);
-        if (usage) {
-            await record(journal, toolCallId, { usage });
-        }
-        await recordStatus(journal, toolCallId, message.status, undefined);
-    }
-}
-
-async function recordTaskStarted(
-    journal: ComputerExecutionJournal,
-    tasks: Map<string, string>,
-    taskId: string,
-    message: Record<string, unknown>
-) {
-    const toolCallId = stringValue(message.tool_use_id);
-    // Background shells are tasks too; only a sub-agent belongs to a delegating call.
-    if (message.task_type !== 'local_agent' || !toolCallId) {
+    if (event.type === 'subagent-progress') {
+        const latestAction = label(event.description);
+        await record(journal, toolCallId, {
+            ...(latestAction ? { latestAction } : {}),
+            ...(event.usage ? { usage: event.usage } : {}),
+        });
         return;
     }
-    tasks.set(taskId, toolCallId);
-    const description = label(message.description);
-    const subagentType = label(message.subagent_type);
-    // A finished task may be revived under the same id; it runs again.
-    await record(journal, toolCallId, {
-        endedAt: null,
-        status: 'running',
-        ...(description ? { label: description } : {}),
-        ...(subagentType ? { subagentType } : {}),
-    });
+    if (event.usage) {
+        await record(journal, toolCallId, { usage: event.usage });
+    }
+    await recordStatus(journal, toolCallId, event.status, event.endTime);
 }
 
 async function recordStatus(
     journal: ComputerExecutionJournal,
     toolCallId: string,
-    reported: unknown,
-    endTime: unknown
+    status: SubagentStatus | undefined,
+    endTime: number | undefined
 ) {
-    const status = typeof reported === 'string' ? taskStatuses[reported] : undefined;
     if (!status) {
         return;
     }
     const endedAt =
         status === 'running'
             ? null
-            : typeof endTime === 'number' && Number.isFinite(endTime)
-              ? new Date(endTime).toISOString()
-              : undefined;
+            : endTime === undefined
+              ? undefined
+              : new Date(endTime).toISOString();
     await record(journal, toolCallId, {
         status,
         ...(endedAt === undefined ? {} : { endedAt }),
     });
-}
-
-async function recordChildBlocks(
-    journal: ComputerExecutionJournal,
-    children: Map<string, string>,
-    parentToolCallId: string,
-    message: Record<string, unknown>
-) {
-    const content = isRecord(message.message) ? message.message.content : undefined;
-    if (!Array.isArray(content)) {
-        return;
-    }
-    for (const block of content) {
-        if (!isRecord(block)) {
-            continue;
-        }
-        const id = stringValue(block.id);
-        const name = stringValue(block.name);
-        if (block.type === 'tool_use' && id && name) {
-            children.set(id, name);
-            await journal.recordToolCall({
-                input: block.input,
-                nativeName: name,
-                parentToolCallId,
-                toolCallId: id,
-                toolName: name,
-            });
-            continue;
-        }
-        const resultId = stringValue(block.tool_use_id);
-        if (block.type === 'tool_result' && resultId) {
-            await journal.recordToolResult({
-                isError: block.is_error === true,
-                nativeName: children.get(resultId),
-                output: block.content,
-                preliminary: false,
-                toolCallId: resultId,
-                toolName: children.get(resultId) ?? 'tool',
-            });
-        }
-    }
 }
 
 function record(
@@ -194,30 +143,6 @@ function record(
     return Object.keys(patch).length > 0
         ? journal.recordSubagent({ patch, toolCallId })
         : Promise.resolve();
-}
-
-/** Claude Code task states; `killed` and `stopped` are the runtime ending it early. */
-const taskStatuses: Record<string, ExecutionJournalStatus> = {
-    completed: 'completed',
-    failed: 'failed',
-    killed: 'interrupted',
-    pending: 'running',
-    running: 'running',
-    stopped: 'interrupted',
-};
-
-function taskUsage(value: unknown): ExecutionJournalSubagent['usage'] {
-    if (!isRecord(value)) {
-        return;
-    }
-    const [totalTokens, toolUses, durationMs] = [
-        value.total_tokens,
-        value.tool_uses,
-        value.duration_ms,
-    ].map(count);
-    return totalTokens === undefined || toolUses === undefined || durationMs === undefined
-        ? undefined
-        : { durationMs, toolUses, totalTokens };
 }
 
 function resultUsage(output: unknown): ExecutionJournalSubagent['usage'] {
@@ -231,21 +156,11 @@ function resultUsage(output: unknown): ExecutionJournalSubagent['usage'] {
     });
 }
 
-function count(value: unknown): number | undefined {
-    return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
-        ? value
-        : undefined;
-}
-
-function label(value: unknown): string | undefined {
-    const text = typeof value === 'string' ? value.replace(/\s+/gu, ' ').trim() : '';
+function label(value: string | undefined): string | undefined {
+    const text = value?.replace(/\s+/gu, ' ').trim() ?? '';
     return text ? text.slice(0, EXECUTION_JOURNAL_SUBAGENT_LABEL_MAX_CHARS) : undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function stringValue(value: unknown): string | undefined {
-    return typeof value === 'string' && value.length > 0 ? value : undefined;
 }

@@ -23,7 +23,7 @@ is an ordinary attachment and a file in the requesting Agent's workspace.
 ## Why
 
 Today only Codex (on qualifying ChatGPT plans) and Grok Build can make images, and neither exposes
-model, exact size, or cost. Claude Code and Pi Agents cannot make images at all except through
+model, exact size, or cost. Claude Code Agents cannot make images at all except through
 Computer Secrets and hand-rolled scripts. Agent workloads vary (illustrations, product art,
 diagrams, edits from references), and all of them need a real model id, an exact size, a file on
 disk, and a cost on every image.

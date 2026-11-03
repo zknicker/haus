@@ -80,6 +80,14 @@ edits it, while the nightly window already runs on Computer-local time.
   and when its Computer's latest usage snapshot shows the Agent's plan's weekly meter at 80% or
   more. The nightly run is never skipped for being busy; like today's dream it queues and
   retires after four hours. The 80% pause applies to both.
+- Background work counts as busy. While the main session holds background sub-agents or shells
+  (`agents.effective_background_tasks`, from the Computer's `agent-background-work` report), a
+  daytime slot is skipped `busy` and a queued dream or heartbeat is not led; other work still
+  drains past it. The report that drops the count to zero dispatches the Agent, so a waiting dream
+  starts then. The reason: the heartbeat's fresh session shares the Agent's loopback proxy, and a
+  task that finished mid-heartbeat would start a main-session turn of its own whose `haus` calls
+  ran as the heartbeat run instead of waiting for its sub-agent wake. One run at a time means no
+  background work can start while a heartbeat runs. The sub-agent wake itself is never held.
 - A concrete item addressed to the Agent (DM, mention, reply) arriving during a daytime run stops
   that run; the main session takes the message. The stopped run is not retried.
 - No heartbeat-specific time limit. Like Dots, a run continues while it has promising leads and
@@ -410,8 +418,9 @@ record read by SQL or Axiom (and by the trigger for `yielded`):
 
 ## Later
 
-- **Parallel runs.** If the runtime driver rework adds background sub-agents, or Haus adds a second
-  run slot, heartbeats can run beside the main session. Only the Computer and delivery change;
-  daytime runs already leave MEMORY.md alone, so there is no write race.
+- **Parallel runs.** If Haus adds a second run slot, heartbeats can run beside the main session,
+  including beside its background work, once each session's `haus` calls carry their own run
+  authority instead of the Agent-wide proxy's. Only the Computer and delivery change; daytime runs
+  already leave MEMORY.md alone, so there is no write race.
 - **More sources.** Haus has no email connection; a Gmail connection would let heartbeats catch
   the Dots-style "you got an email".

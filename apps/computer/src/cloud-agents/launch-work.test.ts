@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, test } from 'bun:test';
+import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -258,6 +258,27 @@ test('a lost launch response stops the work and replay never launches twice', as
     expect(attempts).toBe(1);
     expect(observations.map((entry) => entry.status)).toEqual(['failed', 'failed']);
     expect(observations[0]).toMatchObject({ errorCode: 'provider-launch-failed' });
+});
+
+test('a failed launch logs the provider cause but reports only the generic summary', async () => {
+    const provider = install(createFakeCloudAgentProvider());
+    provider.start = () => Promise.reject(new Error('Error: no cloud environment is available'));
+    const logged = spyOn(console, 'error').mockImplementation(() => undefined);
+    restores.push(() => logged.mockRestore());
+    stubServer();
+    const input = { dataRoot, supervisor, request, runnerToken: 'grtr_x', serverId, serverOrigin };
+    await expect(startCloudAgentWork(input)).rejects.toThrow(CloudAgentLaunchFailedError);
+    expect(logged).toHaveBeenCalledWith('Cloud Agent launch failed.', {
+        cause: 'Error: no cloud environment is available',
+        errorCode: 'provider-launch-failed',
+        operation: 'cloud-agent.launch',
+        provider: 'cursor',
+        runId,
+        workId,
+    });
+    expect(observations[0]?.summary).toBe(
+        'The cloud agent launch failed before the provider confirmed it started.'
+    );
 });
 
 test('a replayed rejection settles the same work without another provider launch', async () => {

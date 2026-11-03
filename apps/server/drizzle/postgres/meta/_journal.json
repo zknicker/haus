@@ -729,6 +729,34 @@
       "when": 1794100000000,
       "tag": "0103_thread-message-tasks",
       "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1794200000000,
+      "tag": "0104_retire-pi-runtime",
+      "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1794200000001,
+      "tag": "0105_subagent-wake",
+      "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1794200000002,
+      "tag": "0106_background-subagents",
+      "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1793726367853,
+      "tag": "0107_background-tasks",
+      "breakpoints": true
     }
   ]
 }

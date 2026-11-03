@@ -8,10 +8,8 @@ export const generatedImagesDirectoryName = 'generated-images';
 export type NativeImageToolAction = 'edit' | 'generate' | 'video';
 
 /**
- * Runtime-native media tools by wire name. Codex's `image_gen.imagegen` reaches
- * the stream as codex-acp's untitled "Image generation" call, which
- * `codexBuiltinTools` names `image_gen`; Grok Build's builtins keep their own
- * names (@ai-sdk/harness-grok-build 1.0.70).
+ * Runtime-native media tools by wire name. The Codex driver reports Codex's image
+ * generation item as `image_gen`; Grok Build's builtins keep their own names.
  */
 export const nativeImageToolFixtures = {
     codex: { image_gen: 'generate' },

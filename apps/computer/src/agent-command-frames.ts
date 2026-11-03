@@ -1,9 +1,14 @@
-import { agentHeartbeatAttentionSchema, agentHeartbeatReportAttentionSchema } from '@haus/api';
+import {
+    agentHeartbeatAttentionSchema,
+    agentHeartbeatReportAttentionSchema,
+    agentSubagentWakeAttentionSchema,
+} from '@haus/api';
 import type {
     AgentNoticeCommand,
     AgentResetCommand,
     AgentRestartCommand,
     AgentStartCommand,
+    AgentStopBackgroundCommand,
     AgentStopCommand,
     ServerDeleteCommand,
 } from './agent-commands.ts';
@@ -168,28 +173,50 @@ export function parseServerDeleteCommand(frame: unknown): ServerDeleteCommand | 
         : null;
 }
 
-/** Only a heartbeat or report run is chatless, and it carries nothing but its attention. */
+/** Validates a Server→Computer Stop of background work. Fails closed to null. */
+export function parseStopBackgroundCommand(frame: unknown): AgentStopBackgroundCommand | null {
+    return isRecord(frame) &&
+        frame.type === 'agent-stop-background' &&
+        typeof frame.agentId === 'string' &&
+        frame.agentId.length > 0
+        ? { agentId: frame.agentId, type: 'agent-stop-background' }
+        : null;
+}
+
+/**
+ * Only a heartbeat, report, or sub-agent wake run is chatless, and it carries nothing but
+ * its one attention.
+ */
 function parseRunChat(
     frame: Record<string, unknown>,
     itemCount: number
-): Pick<AgentStartCommand, 'chatId' | 'heartbeat' | 'heartbeatReport'> | null {
-    if (frame.heartbeat === undefined && frame.heartbeatReport === undefined) {
+): Pick<AgentStartCommand, 'chatId' | 'heartbeat' | 'heartbeatReport' | 'subagentWake'> | null {
+    const attentions = [frame.heartbeat, frame.heartbeatReport, frame.subagentWake].filter(
+        (attention) => attention !== undefined
+    ).length;
+    if (attentions === 0) {
         return typeof frame.chatId === 'string' && frame.chatId.length > 0
             ? { chatId: frame.chatId }
             : null;
     }
-    if (frame.heartbeat !== undefined && frame.heartbeatReport !== undefined) {
-        return null;
-    }
-    if (frame.chatId !== null || frame.inboxDelivery !== 'concrete' || itemCount !== 0) {
+    if (
+        attentions > 1 ||
+        frame.chatId !== null ||
+        frame.inboxDelivery !== 'concrete' ||
+        itemCount !== 0
+    ) {
         return null;
     }
     if (frame.heartbeat !== undefined) {
         const heartbeat = agentHeartbeatAttentionSchema.safeParse(frame.heartbeat);
         return heartbeat.success ? { chatId: null, heartbeat: heartbeat.data } : null;
     }
-    const report = agentHeartbeatReportAttentionSchema.safeParse(frame.heartbeatReport);
-    return report.success ? { chatId: null, heartbeatReport: report.data } : null;
+    if (frame.heartbeatReport !== undefined) {
+        const report = agentHeartbeatReportAttentionSchema.safeParse(frame.heartbeatReport);
+        return report.success ? { chatId: null, heartbeatReport: report.data } : null;
+    }
+    const wake = agentSubagentWakeAttentionSchema.safeParse(frame.subagentWake);
+    return wake.success ? { chatId: null, subagentWake: wake.data } : null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

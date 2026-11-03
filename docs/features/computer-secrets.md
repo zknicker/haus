@@ -40,8 +40,8 @@ The Computer never needs the `op` CLI. On connect it:
 1. Installs the pinned secrets runtime (`varlock` and `@varlock/1password-plugin`, versions
    matching the root `package.json`) into `<data root>/servers/<serverId>/secrets/` from the
    manifest and lockfile embedded in the Computer binary (`apps/computer/assets/secrets-runtime/`).
-   The install uses the same pinned pnpm and machine-wide store as the harness bridges, so it needs
-   Node.js 22+ with corepack on PATH, which bridges already require. A fingerprint marker skips a
+   The install uses a pinned pnpm (the release the Codex driver pins) and one machine-wide store,
+   so it needs Node.js 22+ with corepack on PATH. A fingerprint marker skips a
    matching install. If the install fails, nothing is stored and Connect reports the error.
 2. Stores the token in the login macOS Keychain (service `haus.computer.1password`, account = Server
    id) via `security -i`, so it never appears in argv.

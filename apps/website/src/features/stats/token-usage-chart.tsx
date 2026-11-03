@@ -3,13 +3,7 @@ import { BarChart } from '@heroui-pro/react/bar-chart';
 import { formatUsageDay, type TokenUsageView } from './token-usage-view.ts';
 import { formatTokens } from './usage-format.ts';
 
-export function TokenUsageChart({
-    emptyMessage = 'Token usage will appear after a Haus Agent completes a model turn.',
-    view,
-}: {
-    emptyMessage?: string;
-    view: TokenUsageView;
-}) {
+export function TokenUsageChart({ view }: { view: TokenUsageView }) {
     // An empty range still has real dates and a real scale, so draw the chart
     // rather than a placeholder panel: the frame is the answer, and the caption
     // says why it is flat.
@@ -43,7 +37,9 @@ export function TokenUsageChart({
                             a zero-height bar is what keeps the baseline drawn. */}
                         <BarChart.Bar dataKey="empty" fill="transparent" />
                     </BarChart>
-                    <p className="text-muted text-sm">{emptyMessage}</p>
+                    <p className="text-muted text-sm">
+                        Token usage will appear after a Haus Agent completes a model turn.
+                    </p>
                 </Widget.Content>
             </Widget>
         );
