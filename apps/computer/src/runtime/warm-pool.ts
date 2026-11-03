@@ -49,7 +49,11 @@ export interface WarmSlot {
     readonly pool: WarmProcessPool;
 }
 
-export const DEFAULT_WARM_IDLE_MS = 30 * 60_000;
+/**
+ * An hour, matching Claude Code's one-hour prompt cache: a turn inside it reuses both the warm
+ * process and the cached prefix, and a cold resume after it pays the cache write anyway.
+ */
+export const DEFAULT_WARM_IDLE_MS = 60 * 60_000;
 
 /** Long enough for a real research or build sub-agent; short enough that a hung one ends. */
 export const DEFAULT_BACKGROUND_LIMIT_MS = 4 * 60 * 60_000;

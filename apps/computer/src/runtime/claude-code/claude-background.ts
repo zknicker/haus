@@ -75,7 +75,8 @@ export class SelfStartedTurns {
     /**
      * Observes one line no Haus turn took. Returns `true` exactly once per self-started turn:
      * when it reaches the model. A turn that ends before (an orphan notice Claude Code records
-     * on resume without calling the model) never wakes anyone.
+     * on resume without calling the model) never wakes anyone, nor does work Claude Code runs on
+     * its own without asking the model (a compaction while idle): it is kept for adoption only.
      */
     observe(line: ParsedClaudeLine): boolean {
         const { message } = line;
@@ -91,7 +92,7 @@ export class SelfStartedTurns {
             return false;
         }
         this.current.lines.push(line);
-        if (this.current.announced) {
+        if (this.current.announced || !reachesModel(line)) {
             return false;
         }
         this.current.announced = true;
@@ -106,5 +107,19 @@ export class SelfStartedTurns {
         const taken = this.current;
         this.current = null;
         return taken;
+    }
+}
+
+/** The model is being asked: a request status, or the Agent's own streamed or whole message. */
+function reachesModel({ message }: ParsedClaudeLine): boolean {
+    switch (message.kind) {
+        case 'system':
+            return message.message.subtype === 'status' && message.message.status === 'requesting';
+        case 'stream':
+            return !message.message.parent_tool_use_id;
+        case 'conversation':
+            return message.message.type === 'assistant' && !message.message.parent_tool_use_id;
+        default:
+            return false;
     }
 }
