@@ -176,7 +176,8 @@ session generation or was served to the current run. A verified contiguous bound
 `agent_inbox_cursors` is only an optional compaction/baseline; exact identities beyond it never
 consume the gaps between them. Its `held_through_sequence` is the one exception, and only for
 freshness: a hold records the newest message it showed, so earlier messages it omitted do not
-hold the next send, while they stay queued and unseen. Outside a Thread, freshness counts only
+hold the next send, while they stay queued and unseen. The shown messages' queued rows are served
+to the active run, so delivery never brings them again. Outside a Thread, freshness counts only
 messages delivered to the Agent. Notices and wakes advance nothing, ever.
 
 ## Notice turns and system attention (I1)
@@ -321,7 +322,7 @@ turn starts when its creator sends the working brief.
 | A live session drains human bodies; a cold start drains only addressed items and notices the rest once | `apps/computer/src/harness/turn-prompt.test.ts`, `apps/computer/src/harness/executor.test.ts` |
 | A composed drain records exact run visibility and consumes its own notice rows | `apps/computer/src/harness/turn-prompt.test.ts` |
 | A drained wake message is exact-visible before settlement, and the freshness hold does not fire on it | `apps/server/test/agent-composed-drain-visibility.test.ts`, `apps/computer/src/harness/composed-drain-receipt.test.ts` |
-| Pre-join history never holds a send; a hold shows three, never walks back through what it omitted, and allows `--anyway` from the fourth hold | `apps/server/test/agent-send-hold.test.ts` |
+| Pre-join history never holds a send; a hold shows three, serves them to the active run once, never walks back through what it omitted, and allows `--anyway` from the fourth hold | `apps/server/test/agent-send-hold.test.ts` |
 | Addressing is decided at enqueue and survives stale, uncertain or kept routing | `apps/server/test/message-routing-addressing.test.ts`, `apps/server/test/agent-inbox-lanes.test.ts` |
 | A single-Agent channel addresses `sole` without Jev for one human and judges it at the gate for more | `apps/server/test/haus-message-routing-sole.test.ts` |
 | A Thread mention without visible context carries a bounded, budgeted package rendered once per Thread | `apps/server/test/agent-thread-context.test.ts`, `apps/computer/src/thread-context-format.test.ts` |

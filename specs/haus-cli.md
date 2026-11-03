@@ -310,7 +310,8 @@ Flow for `message send --target <t>`:
    - send unchanged: `message send --send-draft --target <t>` (no stdin, no
      `--attachment-id`; violations per §5 codes);
    - stay silent: do nothing.
-   Showing catch-up serves the shown messages to the run and records the
+   Showing catch-up serves the shown messages and their queued inbox rows to
+   the active run, so they are not delivered again, and records the
    newest as the session's held-through boundary (Raft's hold `seenUpToSeq`),
    so a re-post is held only for newer messages; the omitted earlier ones stay
    queued and `seen` does not pass them. Serve-time advancement is the pre-inbox approximation:

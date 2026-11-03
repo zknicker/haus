@@ -121,10 +121,32 @@ export async function attestAgentEvents(
     });
 }
 
+/**
+ * A freshness hold put these messages in front of the model, so their queued
+ * rows are served to the active run as a pull receipt serves them and are not
+ * delivered again (Raft marks a hold's shown messages delivered). The messages
+ * a hold omitted are not passed here and stay queued. Off an active run,
+ * nothing is attached.
+ */
+export async function serveHeldMessages(
+    tx: HausDatabase,
+    runner: ResolvedRunner,
+    messageIds: string[]
+) {
+    if (messageIds.length === 0) {
+        return;
+    }
+    const delivery = await readDeliveryState(tx, runner.agentId);
+    if (delivery?.activeRunId !== runner.runId || delivery.acceptedAt === null) {
+        return;
+    }
+    await serveReceiptRows(tx, runner, new Set(messageIds));
+}
+
 async function serveReceiptRows(
     tx: HausDatabase,
     runner: ResolvedRunner,
-    requested: Map<string, unknown>
+    requested: { has(messageId: string): boolean }
 ) {
     const [pending, attached] = await Promise.all([
         listQueuedMessageItems(tx, runner.agentId, 1000),

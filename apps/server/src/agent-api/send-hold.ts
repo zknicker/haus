@@ -13,6 +13,7 @@ import {
     readFreshnessScope,
     unseenAttention,
 } from './freshness-attention.ts';
+import { serveHeldMessages } from './inbox.ts';
 import { messageSelection, toAgentMessages } from './message-view.ts';
 import { clearAgentDraft, readDraft, requireDraft, saveDraft } from './send-draft-state.ts';
 import { AgentSendModeError, requireContent, validateMode } from './send-mode-validation.ts';
@@ -101,7 +102,7 @@ export async function prepareAgentSend(
  * The freshness check every Agent-authored post into a Chat runs: newer
  * messages delivered to this Agent (every reply in a Thread) that it has
  * neither seen nor been served (`unseenAttention`). A hold shows the latest
- * few, marks them served to this run, and records the newest as the session's
+ * few, marks them and their queued rows served to this run, and records the newest as the session's
  * held-through boundary, so a re-post is held only for messages newer still
  * (Raft's hold `seenUpToSeq`). A clean check advances the seen cursor.
  */
@@ -152,6 +153,11 @@ async function resolveHold(db: HausDatabase, runner: ResolvedRunner, chatId: str
         runId: runner.runId,
         serverId: runner.serverId,
     });
+    await serveHeldMessages(
+        db,
+        runner,
+        rows.map((row) => row.id)
+    );
     await recordHeldThrough(db, {
         agentId: runner.agentId,
         chatId,

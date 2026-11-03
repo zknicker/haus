@@ -8,7 +8,11 @@ import { joinChannelAgents } from '../src/chats/channel-agent-membership.ts';
 import type { ResolvedRunner } from '../src/computers/runner-credentials.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { agentInboxExactVisibilityTable, agentInboxTable } from '../src/postgres/schema.ts';
+import {
+    agentDeliveryTable,
+    agentInboxExactVisibilityTable,
+    agentInboxTable,
+} from '../src/postgres/schema.ts';
 import { seedAgent } from './agent-inbox-harness.ts';
 import { addThread, postMessage, readerRunner, seedReader } from './agent-read-fixture.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
@@ -141,6 +145,57 @@ test('a hold shows the latest three and does not walk back through the ones it o
         heldThrough: 5,
         seen: 0,
     });
+});
+
+test('a hold serves its shown messages to the active run once and leaves the omitted queued', async () => {
+    const db = connection.db;
+    const seed = await seedReader(db);
+    const runner = readerRunner(seed, 'run_hold_served');
+    await db.insert(agentDeliveryTable).values({
+        acceptedAt: new Date(),
+        activeRunComputerId: seed.computerId,
+        activeRunId: runner.runId,
+        activeRunModelId: 'fake-model',
+        activeRunReasoningEffort: 'default',
+        activeRunRuntimeId: 'fake',
+        agentId: seed.agentId,
+        serverId: seed.serverId,
+    });
+    const posted: string[] = [];
+    for (let index = 0; index < 5; index += 1) {
+        posted.push(
+            (
+                await postMessage(db, seed, {
+                    chatId: seed.channelId,
+                    content: `Update ${index}`,
+                    recipient: true,
+                })
+            ).id
+        );
+    }
+
+    const held = await send(runner, seed.channelId, 'Status report.');
+    expect(shownIds(held)).toEqual(posted.slice(2));
+
+    // The shown three left the queue for this run, so the next drain or pull
+    // cannot deliver them again; the omitted two still wait for delivery.
+    const queued = await db
+        .select({ dedupeKey: agentInboxTable.dedupeKey })
+        .from(agentInboxTable)
+        .where(and(eq(agentInboxTable.agentId, seed.agentId), eq(agentInboxTable.state, 'queued')));
+    expect(queued.map((row) => row.dedupeKey).sort()).toEqual(posted.slice(0, 2).sort());
+    const served = await db
+        .select({ dedupeKey: agentInboxTable.dedupeKey })
+        .from(agentInboxTable)
+        .where(
+            and(
+                eq(agentInboxTable.agentId, seed.agentId),
+                eq(agentInboxTable.runId, runner.runId),
+                eq(agentInboxTable.state, 'served')
+            )
+        );
+    expect(served.map((row) => row.dedupeKey).sort()).toEqual(posted.slice(2).sort());
+    expect(await sendDraft(runner, seed.channelId)).toMatchObject({ kind: 'send' });
 });
 
 test('--anyway is suggested and allowed from a draft’s fourth hold, as in Raft', async () => {
