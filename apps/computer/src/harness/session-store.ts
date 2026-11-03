@@ -14,12 +14,20 @@ import type { RuntimeTokenUsage } from '../runtime/turn-event.ts';
  */
 export interface AgentSessionState {
     bootstrapFingerprint: string | null;
+    /**
+     * The stable instruction fingerprint (`composeAgentInstructions`) this native session has
+     * actually received: as its launch instructions, or as an update in a turn's input. Only a
+     * completed turn that delivered them writes it; null means no record, which the next resumed
+     * turn treats as stale (`instructions-update.ts`).
+     */
+    deliveredInstructionFingerprint: string | null;
     effectiveModel: { modelId: string; runtimeId: string };
     effectiveReasoningEffort?: AgentReasoningEffort;
     generation: number;
     hausAgentAppliedAt: string | null;
     hausAgentStatus: 'current' | 'failed' | 'pending';
     hausAgentVersion: string | null;
+    /** The exact fingerprint of the instructions last delivered, host facts included. */
     instructionFingerprint: string | null;
     /**
      * The last turn was interrupted by Stop, restart, shutdown, or the no-progress deadline. The
@@ -56,6 +64,9 @@ export async function readAgentSessionState(agentRoot: string): Promise<AgentSes
             return {
                 ...parsed,
                 bootstrapFingerprint: parseFingerprint(parsed.bootstrapFingerprint),
+                deliveredInstructionFingerprint: parseFingerprint(
+                    parsed.deliveredInstructionFingerprint
+                ),
                 hausAgentAppliedAt: parseTimestamp(parsed.hausAgentAppliedAt),
                 hausAgentStatus: parseHausAgentStatus(parsed.hausAgentStatus),
                 hausAgentVersion: parseSemver(parsed.hausAgentVersion),
@@ -97,6 +108,7 @@ export function resolveTurnSession(
     if (stored === null || modelChanged || stored.generation !== assigned.generation) {
         return {
             bootstrapFingerprint: null,
+            deliveredInstructionFingerprint: null,
             effectiveModel: { modelId: assigned.modelId, runtimeId: assigned.runtimeId },
             generation: assigned.generation,
             hausAgentAppliedAt: null,

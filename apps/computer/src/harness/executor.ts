@@ -31,7 +31,9 @@ import {
 import { currentRuntimeDriverFactory, type TurnDriverFactory } from './executor-seams.ts';
 import { clearQuietRunNote, quietRunLine, readQuietRunNote } from './heartbeat-note.ts';
 import { runHeartbeatTurn } from './heartbeat-turn.ts';
+import { startInstructionRefreshActivity } from './instruction-refresh-activity.ts';
 import { composeAgentInstructions } from './instructions.ts';
+import { planInstructionsUpdate, withInstructionsUpdate } from './instructions-update.ts';
 import { journalError, journalOutcome } from './journal-outcome.ts';
 import { AgentSessionResumeRejectedError } from './resume-rejection.ts';
 import { projectMessageForAgent } from './rich-reference-projection.ts';
@@ -51,6 +53,7 @@ import type { HarnessTokenUsage } from './token-usage.ts';
 import { openTurnNotices, returnUnconsumedNotices } from './turn-notices.ts';
 import { createTurnPhaseLog } from './turn-phase-log.ts';
 import { attestComposedDrain, composeTurnPrompt, type TurnDelivery } from './turn-prompt.ts';
+import { completedTurnSession, interruptedTurnSession } from './turn-session-receipt.ts';
 import { HarnessStreamForeignError, observeTurnStream } from './turn-stream.ts';
 
 /** Drives one isolated, persistent Codex, Claude Code, or Grok Build Agent session. */
@@ -163,15 +166,15 @@ async function executeHarnessTurn(
     // For the prompt's activation hints; runtimes read the library natively.
     const skillNames = await readAgentSkillNames(input.skillsDir);
     // The turn input carries every Agent fact the prompt reads; only the workspace is renamed.
-    const { fingerprint: instructionFingerprint, instructions } = composeAgentInstructions({
-        ...input,
-        workspacePath: input.workspaceDir,
-    });
+    const composed = composeAgentInstructions({ ...input, workspacePath: input.workspaceDir });
+    const wake = input.subagentWake !== undefined;
+    const updateFor = (isResume: boolean) =>
+        planInstructionsUpdate({ composed, isResume, session, wake });
     const collectClaudePlanUsage =
         input.runtimeId === 'claude-code' && (await claimClaudeSdkUsageRefresh(input.dataRoot));
     const driver = (input.runtimeDriverFactory ?? currentRuntimeDriverFactory())(input, {
         env: collectClaudePlanUsage ? { ...input.env, HAUS_CLAUDE_USAGE_REFRESH: '1' } : input.env,
-        instructions,
+        instructions: composed.instructions,
     });
     const bootstrapFingerprint = await driver.bootstrapFingerprint(input.signal);
     let live: RuntimeSession | undefined;
@@ -194,22 +197,17 @@ async function executeHarnessTurn(
                 recursive: true,
             });
         }
-        const instructionDrift = session.instructionFingerprint !== instructionFingerprint;
         const bootstrapDrift = session.bootstrapFingerprint !== bootstrapFingerprint;
         const refreshBootstrap = resumeFrom !== undefined && (restartRequested || bootstrapDrift);
-        if (
-            resumeFrom &&
-            (restartRequested ||
-                instructionDrift ||
-                bootstrapDrift ||
-                (hausAgentVersionDrift && coveGuidance.versionCanApply)) &&
-            !input.activity.isActive(instructionActivityKey)
-        ) {
-            await input.activity.start({
-                category: 'updating_instructions',
-                key: instructionActivityKey,
-            });
-        }
+        await startInstructionRefreshActivity(input.activity, instructionActivityKey, {
+            bootstrapDrift,
+            restartRequested,
+            resumed: resumeFrom !== undefined,
+            // What a resume will carry; the live session's own `isResume` decides it after start.
+            update: updateFor(resumeFrom !== undefined),
+            versionCanApply: coveGuidance.versionCanApply,
+            versionDrift: hausAgentVersionDrift,
+        });
         const reasoningChanged = session.effectiveReasoningEffort !== input.reasoningEffort;
         const phase = createTurnPhaseLog(input);
         live = await startHarnessSession({
@@ -250,18 +248,23 @@ async function executeHarnessTurn(
         // Any main-session turn hears what its heartbeats did; a report run clears it unrendered.
         const quietNote = await readQuietRunNote(input.agentRoot);
         const quietLine = quietNote && !input.heartbeatReport ? quietRunLine(quietNote) : null;
+        const instructionsUpdate = updateFor(live.isResume);
         // The no-progress deadline interrupts through the same path as Stop, keeping resume state.
         const noProgress = new AbortController();
         const turnSignal = AbortSignal.any([noProgress.signal, input.signal ?? noProgress.signal]);
         const turn = await live.startTurn({
-            prompt: projectMessageForAgent({
-                content: [quietLine, coveGuidance.notice, turnContent, skillNotice?.text]
-                    .filter(Boolean)
-                    .join('\n\n'),
-                enabledSkillIds: skillNames,
-            }),
+            // The update leads, outside the projection: its text is instructions, not a message.
+            prompt: withInstructionsUpdate(
+                instructionsUpdate,
+                projectMessageForAgent({
+                    content: [quietLine, coveGuidance.notice, turnContent, skillNotice?.text]
+                        .filter(Boolean)
+                        .join('\n\n'),
+                    enabledSkillIds: skillNames,
+                })
+            ),
             signal: turnSignal,
-            wake: input.subagentWake !== undefined,
+            wake,
         });
         const notices = openTurnNotices(live, input, prompt.notice);
         let observation: HarnessTurnResult;
@@ -326,33 +329,27 @@ async function executeHarnessTurn(
         const resumeState = await lease.checkpoint();
         observation = { ...observation, aborted: observation.aborted || lease.stopping };
         if (observation.aborted) {
-            await writeAgentSessionState(input.agentRoot, {
-                ...session,
-                effectiveReasoningEffort: input.reasoningEffort,
-                hausAgentStatus: hausAgentVersionDrift ? 'failed' : session.hausAgentStatus,
-                interruptedTurn: true,
-                resumeState,
-                runtimeSessionId: live.sessionId,
-            });
+            await writeAgentSessionState(
+                input.agentRoot,
+                interruptedTurnSession(session, input.reasoningEffort, resumeState, live.sessionId)
+            );
             await input.activity.finish(instructionActivityKey, 'interrupted');
             return { ...observation, stalled: noProgress.signal.aborted && !input.signal?.aborted };
         }
-        const appliesHausAgentVersion = !hausAgentVersionDrift || coveGuidance.versionCanApply;
-        await writeAgentSessionState(input.agentRoot, {
-            bootstrapFingerprint,
-            effectiveModel: { modelId: input.modelId, runtimeId: input.runtimeId },
-            effectiveReasoningEffort: input.reasoningEffort,
-            generation: session.generation,
-            hausAgentAppliedAt:
-                hausAgentVersionDrift && appliesHausAgentVersion
-                    ? new Date().toISOString()
-                    : session.hausAgentAppliedAt,
-            hausAgentStatus: appliesHausAgentVersion ? 'current' : 'failed',
-            hausAgentVersion: appliesHausAgentVersion ? hausAgentVersion : session.hausAgentVersion,
-            instructionFingerprint,
-            resumeState,
-            runtimeSessionId: live.sessionId,
-        });
+        await writeAgentSessionState(
+            input.agentRoot,
+            completedTurnSession(session, {
+                bootstrapFingerprint,
+                composed,
+                coveGuidanceCanApply: coveGuidance.versionCanApply,
+                instructionsUpdate,
+                modelId: input.modelId,
+                reasoningEffort: input.reasoningEffort,
+                resumeState,
+                runtimeId: input.runtimeId,
+                runtimeSessionId: live.sessionId,
+            })
+        );
         if (coveGuidance.refreshPending && coveGuidance.refreshCanComplete) {
             await clearPendingCoveGuidanceRefresh(input.agentRoot);
         }

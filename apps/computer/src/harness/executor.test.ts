@@ -343,6 +343,7 @@ test('refreshes a pre-fingerprint session once without rotating it', async () =>
     await runHarnessTurn(turnInput());
     const {
         bootstrapFingerprint: _bootstrapFingerprint,
+        deliveredInstructionFingerprint: _deliveredInstructionFingerprint,
         instructionFingerprint: _instructionFingerprint,
         ...legacySession
     } = await readSession();
@@ -355,6 +356,7 @@ test('refreshes a pre-fingerprint session once without rotating it', async () =>
     expect(refreshed.generation).toBe(1);
     expect(refreshed.bootstrapFingerprint).not.toBeNull();
     expect(refreshed.instructionFingerprint).not.toBeNull();
+    expect(refreshed.deliveredInstructionFingerprint).not.toBeNull();
 });
 test('keeps detailed tool evidence local instead of returning raw tool names', async () => {
     streamToolNames = [
@@ -597,67 +599,7 @@ test('Restart resumes the same session and refreshes its current instructions on
     expect(refreshedBootstraps).toBe(1);
 });
 
-test('managed instruction drift reaches the next resumed turn once without rotating its session', async () => {
-    await runHarnessTurn(turnInput({ initialRole: 'Own the original lane.' }));
-    const firstSession = await readSession();
-    await writeFile(
-        join(agentRoot, 'session.json'),
-        `${JSON.stringify({
-            ...firstSession,
-            hausAgentAppliedAt: '2026-08-27T12:00:00.000Z',
-            hausAgentStatus: 'current',
-            hausAgentVersion: '0.9.0',
-        })}\n`
-    );
-    const updateActivity: Array<{ category: string; phase: string }> = [];
-
-    await runHarnessTurn(
-        turnInput({
-            initialRole: 'Own the updated lane.',
-            onActivity: (event) => updateActivity.push(event),
-        })
-    );
-
-    expect(agentInstructions[0]).toContain('Own the original lane.');
-    expect(agentInstructions[1]).toContain('Own the updated lane.');
-    expect(agentInstructions[1]).not.toBe(agentInstructions[0]);
-    expect(createSessionCalls[1]).toEqual({
-        resumeFrom: firstSession.resumeState,
-        sessionId: 'engine_session_1',
-    });
-    expect(stoppedSessions).toBe(0);
-    expect(refreshedBootstraps).toBe(0);
-    const updatedSession = await readSession();
-    expect(updatedSession.generation).toBe(1);
-    expect(updatedSession.runtimeSessionId).toBe('engine_session_1');
-    expect(updatedSession.hausAgentStatus).toBe('current');
-    expect(updatedSession.hausAgentVersion).toBe(hausAgentVersion);
-    expect(updatedSession.hausAgentAppliedAt).not.toBe('2026-08-27T12:00:00.000Z');
-    expect(updatedSession.instructionFingerprint).not.toBe(firstSession.instructionFingerprint);
-    expect(updateActivity).toEqual([
-        { category: 'updating_instructions', phase: 'started' },
-        { category: 'thinking', phase: 'started' },
-        { category: 'thinking', phase: 'completed' },
-        { category: 'updating_instructions', phase: 'completed' },
-    ]);
-
-    const settledActivity: Array<{ category: string; phase: string }> = [];
-    await runHarnessTurn(
-        turnInput({
-            initialRole: 'Own the updated lane.',
-            onActivity: (event) => settledActivity.push(event),
-        })
-    );
-
-    expect(createSessionCalls[2]?.resumeFrom).toEqual(updatedSession.resumeState);
-    expect((await readSession()).generation).toBe(1);
-    expect(settledActivity).toEqual([
-        { category: 'thinking', phase: 'started' },
-        { category: 'thinking', phase: 'completed' },
-    ]);
-    expect(stoppedSessions).toBe(0);
-    expect(refreshedBootstraps).toBe(0);
-});
+// Managed instruction drift on a resumed turn: executor-instructions-update.test.ts.
 
 test('version-only drift applies once on the same warm session', async () => {
     await runHarnessTurn(turnInput());
