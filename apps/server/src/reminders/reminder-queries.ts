@@ -1,11 +1,17 @@
 import { and, asc, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
+    agentsTable,
     reminderAgentAttentionTable,
     reminderFiresTable,
     remindersTable,
 } from '../postgres/schema.ts';
-import { requireActiveAgent, requireAgentAnchor } from './reminder-model.ts';
+import {
+    agentCanAccessAnchor,
+    type Reminder,
+    requireActiveAgent,
+    toReminder,
+} from './reminder-model.ts';
 
 export interface ReminderFire {
     firedAt: string;
@@ -36,7 +42,7 @@ export async function listReminderFires(
         serverId: string;
     }
 ): Promise<ReminderFire[]> {
-    await requireOwnedReminder(db, input.serverId, input.actor.agentId, input.reminderId);
+    await requireVisibleOwnedReminder(db, input.serverId, input.actor.agentId, input.reminderId);
     const rows = await db
         .select()
         .from(reminderFiresTable)
@@ -85,34 +91,58 @@ export async function listReminderAgentAttention(
     }));
 }
 
-async function requireOwnedReminder(
+/**
+ * Ownership only. Mutations that need anchor access check that themselves;
+ * cancel deliberately does not, so a left Chat can still be cleaned up.
+ */
+export async function readOwnedReminder(
+    db: HausDatabase,
+    input: { agentId: string; reminderId: string; serverId: string }
+): Promise<Reminder> {
+    await requireActiveAgent(db, input.serverId, input.agentId);
+    const [row] = await db
+        .select({ agent: agentsTable, reminder: remindersTable })
+        .from(remindersTable)
+        .innerJoin(
+            agentsTable,
+            and(
+                eq(agentsTable.serverId, remindersTable.serverId),
+                eq(agentsTable.id, remindersTable.ownerAgentId)
+            )
+        )
+        .where(
+            and(
+                eq(remindersTable.serverId, input.serverId),
+                eq(remindersTable.id, input.reminderId),
+                eq(remindersTable.ownerAgentId, input.agentId)
+            )
+        )
+        .limit(1);
+    if (!row) {
+        throw new Error('The reminder is not owned by this Agent.');
+    }
+    return toReminder(row.reminder, row.agent.handle);
+}
+
+/**
+ * Log visibility matches list: settled reminders whose anchor the author lost
+ * are hidden; still-scheduled ones remain readable so the author can inspect
+ * fires and cancel.
+ */
+async function requireVisibleOwnedReminder(
     db: HausDatabase,
     serverId: string,
     agentId: string,
     reminderId: string
 ) {
-    await requireActiveAgent(db, serverId, agentId);
-    const [reminder] = await db
-        .select({
-            anchorChatId: remindersTable.anchorChatId,
-            anchorMessageId: remindersTable.anchorMessageId,
-        })
-        .from(remindersTable)
-        .where(
-            and(
-                eq(remindersTable.serverId, serverId),
-                eq(remindersTable.id, reminderId),
-                eq(remindersTable.ownerAgentId, agentId)
-            )
-        )
-        .limit(1);
-    if (!reminder) {
-        throw new Error('The reminder is not owned by this Agent.');
-    }
-    await requireAgentAnchor(db, {
+    const reminder = await readOwnedReminder(db, { agentId, reminderId, serverId });
+    const anchorAccessible = await agentCanAccessAnchor(db, {
         agentId,
         anchorChatId: reminder.anchorChatId,
         anchorMessageId: reminder.anchorMessageId,
         serverId,
     });
+    if (!(anchorAccessible || reminder.status === 'scheduled')) {
+        throw new Error('The reminder is not owned by this Agent.');
+    }
 }

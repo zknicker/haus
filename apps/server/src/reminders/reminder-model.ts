@@ -1,14 +1,14 @@
 import { REMINDER_DESCRIPTION_MAX_CHARS, REMINDER_TITLE_MAX_CHARS } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    agentsTable,
-    channelAgentParticipantsTable,
-    chatMessagesTable,
-    chatsTable,
-    remindersTable,
-} from '../postgres/schema.ts';
+import { agentsTable, remindersTable } from '../postgres/schema.ts';
 import type { parseReminderRepeat } from './cadence.ts';
+
+export {
+    agentCanAccessAnchor,
+    ReminderAnchorAccessError,
+    requireAgentAnchor,
+} from './reminder-anchor-access.ts';
 
 export interface ReminderClock {
     now(): Date;
@@ -80,13 +80,6 @@ export class ReminderAgentInactiveError extends Error {
     }
 }
 
-export class ReminderAnchorAccessError extends Error {
-    constructor(message: string) {
-        super(message);
-        this.name = 'ReminderAnchorAccessError';
-    }
-}
-
 export async function requireActiveAgent(
     db: Pick<HausDatabase, 'select'>,
     serverId: string,
@@ -107,95 +100,6 @@ export async function requireActiveAgent(
         throw new ReminderAgentInactiveError();
     }
     return agent;
-}
-
-/**
- * The Agent can still reach where its automation lands. `anchorMessageId` is
- * null when the anchor is the Chat itself — a human wires a Trigger from the
- * Automations drawer with no asking message to point at — and then Chat access
- * is the whole check.
- */
-export async function requireAgentAnchor(
-    db: Pick<HausDatabase, 'select'>,
-    input: {
-        agentId: string;
-        anchorChatId: string;
-        anchorMessageId: string | null;
-        serverId: string;
-    }
-) {
-    const anchor = input.anchorMessageId
-        ? await readMessageAnchor(db, { ...input, anchorMessageId: input.anchorMessageId })
-        : await readChatAnchor(db, input);
-    const accessChatId = anchor?.chatKind === 'thread' ? anchor.parentChatId : input.anchorChatId;
-    if (!(anchor && accessChatId)) {
-        throw new ReminderAnchorAccessError('The reminder anchor is not a message in this Server.');
-    }
-    if (anchor.chatKind === 'dm' && anchor.dmAgentId === input.agentId) {
-        return anchor;
-    }
-    const [access] = await db
-        .select({ agentId: channelAgentParticipantsTable.agentId })
-        .from(channelAgentParticipantsTable)
-        .where(
-            and(
-                eq(channelAgentParticipantsTable.serverId, input.serverId),
-                eq(channelAgentParticipantsTable.chatId, accessChatId),
-                eq(channelAgentParticipantsTable.agentId, input.agentId)
-            )
-        )
-        .limit(1);
-    if (!access) {
-        throw new ReminderAnchorAccessError('The reminder author cannot access the anchor Chat.');
-    }
-    return anchor;
-}
-
-async function readMessageAnchor(
-    db: Pick<HausDatabase, 'select'>,
-    input: { anchorChatId: string; anchorMessageId: string; serverId: string }
-) {
-    const [anchor] = await db
-        .select({
-            chatKind: chatsTable.kind,
-            dmAgentId: chatsTable.dmAgentId,
-            messageId: chatMessagesTable.id,
-            parentChatId: chatsTable.parentChatId,
-        })
-        .from(chatMessagesTable)
-        .innerJoin(
-            chatsTable,
-            and(
-                eq(chatsTable.serverId, chatMessagesTable.serverId),
-                eq(chatsTable.id, chatMessagesTable.chatId)
-            )
-        )
-        .where(
-            and(
-                eq(chatMessagesTable.serverId, input.serverId),
-                eq(chatMessagesTable.chatId, input.anchorChatId),
-                eq(chatMessagesTable.id, input.anchorMessageId)
-            )
-        )
-        .limit(1);
-    return anchor ?? null;
-}
-
-async function readChatAnchor(
-    db: Pick<HausDatabase, 'select'>,
-    input: { anchorChatId: string; serverId: string }
-) {
-    const [anchor] = await db
-        .select({
-            chatKind: chatsTable.kind,
-            dmAgentId: chatsTable.dmAgentId,
-            messageId: chatsTable.id,
-            parentChatId: chatsTable.parentChatId,
-        })
-        .from(chatsTable)
-        .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.anchorChatId)))
-        .limit(1);
-    return anchor ?? null;
 }
 
 export async function readReminder(
