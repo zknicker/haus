@@ -110,19 +110,43 @@ keeps its frozen effort. Computer restarts the parked native process with the sa
 and the latest effort, preserving conversation context while refreshing constructor-only settings.
 
 Managed instruction, Cove factory-guidance, or runtime bootstrap drift does not rotate the session.
-The runtime driver mounts current composed instructions on every accepted turn. Bootstrap drift (a
-changed runtime CLI pin) or an explicit Restart additionally parks the session, refreshes the
+Bootstrap drift (a changed runtime CLI pin) or an explicit Restart parks the session, refreshes the
 driver's install, and resumes the same native conversation. A recognized prior Cove playbook or FAQ revision is replaced before the
 turn and the current session receives a one-turn re-read notice; edited or missing guidance is
 preserved as a conflict. Applied fingerprints persist only after the refreshed turn successfully
-successfully detaches. Activity History records refresh outcomes without instruction text or local implementation
+detaches. Activity History records refresh outcomes without instruction text or local implementation
 details. An interrupted turn, bootstrap failure, or turn failure keeps the previous fingerprints
 and generation for retry. Only
 rejection of stored native resume state uses Server-authorized recovery.
 
+### Instruction updates
+
+Every runtime launches a session on the current composed instructions, but a resumed session keeps
+the ones it started with (specs/runtime-drivers.md "Instructions on resume"). Haus keeps it current
+the way Raft does (`standingPromptRefresh.ts`), at the executor for every runtime
+(`harness/instructions-update.ts`):
+
+- The session records `deliveredInstructionFingerprint`: a hash of the instructions it has
+  received, rendered with the host facts (hostname, OS, runtime version) held fixed. A release that
+  changes only those facts is not an update; any Agent fact the instructions show (name, role,
+  conversation style, signature emoji, timezone, connection chips) is.
+- A resumed turn whose record differs, or is missing, starts with one `<haus-instructions-update>`
+  block carrying the full current instructions, marked as replacing the earlier ones, ahead of the
+  turn's own input. Nothing earlier in the conversation changes. A session without a record (one
+  that predates it) gets the block once instead of Raft's silent baseline: operator decision.
+- A fresh session needs no block: it launched on the current instructions. Heartbeat and dream runs
+  open fresh throwaway sessions, so they never carry one and never record one.
+- Only a completed turn that launched on or carried the current instructions advances the record.
+  An interrupted or failed turn keeps the old one, so the next turn carries the block again.
+- A sub-agent wake neither carries nor records it, because Claude Code's adopted wake turn replaces
+  the prompt; the next ordinary turn does.
+- The `updating_instructions` activity shows on a resumed turn that carries the block, a Restart,
+  bootstrap drift, or Haus Agent version drift that turn can apply.
+
 Haus Agent SemVer is the public release receipt layered over those exact fingerprints and managed
 factory inputs. A version change uses the same in-place, next-turn refresh path. It becomes current
-only after successful detach; failure preserves the prior applied version and is visible in the
+only after a successful turn that also delivered any due instruction update; a wake turn that
+deferred one leaves it pending. Failure preserves the prior applied version and is visible in the
 Agent profile and Activity History.
 
 Long-horizon continuity across resets comes from engine-native compaction

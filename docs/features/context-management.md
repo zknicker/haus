@@ -18,7 +18,7 @@ model session. Per-turn message delivery is an inbox concern; see
 - Computer composes managed product instructions, the Agent description, the house
   `## Personality` (every Agent, right after `## Who you are`), the Agent's private
   `## Conversation style` directly after it when set, its signature emoji in the pickup rule, assigned skills, and tool guidance for every accepted turn. It persists the
-  applied instruction and Harness bootstrap fingerprints with the resumed session.
+  delivered instruction and Harness bootstrap fingerprints with the resumed session.
 - Computer does not append Haus-specific model-family steering. Every model receives the same
   managed product contract; executor-native instructions remain owned by that executor.
 - Instructions include current time, home timezone, and the rule that old
@@ -51,23 +51,28 @@ model session. Per-turn message delivery is an inbox concern; see
   details and revisions; the coordinating Agent brings a concise outcome and link back to the
   requester conversation. Questions to a person are @mentions where the work lives, and automation placement follows its own contract.
 - Sessions never rotate because of age or idle time.
-- The runtime driver mounts the current composed instructions on every accepted turn. When the
-  persisted instruction fingerprint differs, the same native conversation therefore adopts them
-  without session rotation. Bootstrap drift (a changed runtime CLI pin) or Restart parks the
-  session at the turn boundary, refreshes the driver's install, and resumes that conversation. Activity History records the
+- A session launches on the current composed instructions, but no runtime re-reads them on resume.
+  When a resumed session's delivered-instruction fingerprint differs or is missing, its next
+  ordinary turn starts with a `<haus-instructions-update>` block carrying the full current
+  instructions, without session rotation; a release that changes only host facts sends none
+  ([sessions spec](../../specs/sessions.md#instruction-updates)). Bootstrap drift (a changed
+  runtime CLI pin) or Restart parks the session at the turn boundary, refreshes the driver's
+  install, and resumes that conversation. Activity History records the
   update as started, completed, or failed without prompt text, local paths, commands, or hashes.
 - Before Cove turns, Computer also reconciles recognized prior factory revisions of the playbook
   and FAQ. It never replaces Cove's memory, objectives, missing files, or edited guidance. A
   successful reconciliation gives the current session a one-turn private re-read notice; conflicts
   remain visible as failed instruction-update activity while the turn continues.
-- Fingerprints advance only after the refreshed turn successfully detaches with new resume state.
+- Fingerprints advance only after the refreshed turn successfully detaches with new resume state,
+  and the instruction receipt only on a turn that launched on or carried the current instructions
+  (a sub-agent wake defers the update to the next ordinary turn).
   A bootstrap or turn failure keeps the previous receipt and session generation so a later delivery
   can retry. Only rejection of the stored native resume state enters Server-authorized session
   recovery; Computer never silently discards conversation context.
 - The independently released Haus Agent version is the public receipt for this managed behavior,
   including instructions, actions, recipes and Manual content, runtime bootstrap, and factory
   guidance. Version drift uses the same next-turn refresh path. Computer marks the version current
-  only after a successful turn, preserves the previous applied version on failure, and reports the
+  only after a successful turn that delivered any due instruction update, preserves the previous applied version on failure, and reports the
   pending/current/failed state to Server for the Agent profile. Exact fingerprints remain
   Computer-local implementation evidence.
 - A fresh session starts only for initial creation, a runtime, model, or reasoning-effort switch,

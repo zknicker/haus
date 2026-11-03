@@ -247,7 +247,10 @@ uses the same fingerprinted instruction/bootstrap refresh path as automatic drif
 
 Before every accepted turn, Computer composes current instructions and fingerprints both them and
 the driver's bootstrap (its pinned CLI). The driver mounts those instructions on the runtime's
-native instruction layer, so instruction-only drift keeps the session. Bootstrap drift or Restart
+native instruction layer, which only a fresh session reads, so a resumed session whose delivered
+instruction fingerprint differs or is missing gets them re-delivered at the front of its next
+ordinary turn and keeps the session ([sessions spec](../../specs/sessions.md#instruction-updates)).
+Bootstrap drift or Restart
 parks the session, refreshes the driver's install, and resumes the same native conversation. Before a
 Cove turn, Computer also replaces exact recognized prior playbook and FAQ revisions and privately
 asks the same session to re-read them; edited or missing files are preserved and reported as a
@@ -399,8 +402,8 @@ activity journal: Computer maps known runtime and product boundaries into safe c
 persists them, and the Inbox projects the latest category for each unsettled Agent. Unknown
 and MCP tools remain generic. Neither lifecycle nor semantic activity carries arguments, command
 contents, model reasoning, draft messages, tool outputs, or private file contents.
-Instruction, Cove factory-guidance, or bootstrap drift adds an explicit `updating_instructions`
-activity lifecycle. Its rows contain no prompt text, paths, commands, hashes, file contents, or raw
+A re-delivered instruction update, Cove factory-guidance drift, bootstrap drift, or Restart adds an
+explicit `updating_instructions` activity lifecycle. Its rows contain no prompt text, paths, commands, hashes, file contents, or raw
 bootstrap errors.
 
 Computer separately records a detailed execution journal keyed by run, including tool outputs,
@@ -418,7 +421,8 @@ composition bubble remains tied only to an explicit in-flight message and its co
 | --- | --- |
 | One persistent session; pending delivery or cold `Start.`, then resume | `apps/computer/src/harness/executor.test.ts` |
 | Restart preserves generation and refreshes instructions exactly once | `apps/server/test/agent-delivery.test.ts`, `apps/computer/src/harness/executor.test.ts`, `apps/computer/src/harness/session-restart.test.ts` |
-| Instruction, runtime bootstrap, or Haus Agent version drift refreshes once in place and exposes the outcome safely | `apps/computer/src/harness/executor.test.ts`, `packages/haus-api/src/agent-activity.test.ts` |
+| Instruction, runtime bootstrap, or Haus Agent version drift refreshes once in place and exposes the outcome safely | `apps/computer/src/harness/executor.test.ts`, `apps/computer/src/harness/executor-instructions-update.test.ts`, `packages/haus-api/src/agent-activity.test.ts` |
+| A resumed session receives changed instructions exactly once, never on a host-facts-only release | `apps/computer/src/harness/instructions-update.test.ts`, `apps/computer/src/harness/executor-instructions-update.test.ts`; live: `instructions-update-live.test.ts` |
 | Known tools map through the semantic registry; unknown and MCP tools remain generic | `apps/computer/src/harness/executor.test.ts` |
 | Runtime/model switch and rejected resume start exactly one fresh generation | `apps/computer/src/harness/executor.test.ts` |
 | Session reset preserves workspace and skills; full reset restores the Agent-kind workspace and only factory-managed skills | `apps/computer/src/launch.test.ts` |

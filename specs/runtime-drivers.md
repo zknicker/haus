@@ -53,6 +53,17 @@ turn that never settled would store a continuation the next prompt cannot start 
 Startup is bounded by the machine-wide start gate and startup deadline (`start-gate.ts`); a
 session opened after its window was abandoned is destroyed.
 
+### Instructions on resume
+
+A driver hands the composed instructions to its runtime on every launch, but only a fresh session
+runs on them. A resumed native session keeps the instructions it started with, on every runtime
+(measured live): Claude Code reuses its transcript's system prompt on `--resume` and ignores
+`--append-system-prompt-file`, Codex ignores `developerInstructions` on `thread/resume`, and Grok
+Build's `session/load` ignores the rewritten `$GROK_HOME/AGENTS.md`. Drivers therefore make no
+promise about instructions on resume. The executor keeps resumed sessions current itself, the
+same way for every runtime (`harness/instructions-update.ts`, specs/sessions.md "Instruction
+updates").
+
 ## Session lifecycle
 
 | Runtime | Native process | Turn | Busy delivery |
@@ -232,7 +243,8 @@ SDK harness setup and its patches:
 - Background work on, `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS=4`, and the `initialize` handshake
   with `perTaskStopAffordance` (see Background work); `--effort` from reasoning effort; extended
   thinking enabled for `claude-haiku-4-5`; `--permission-mode bypassPermissions`.
-- Instructions through `--append-system-prompt-file` (owner-only file), never argv.
+- Instructions through `--append-system-prompt-file` (owner-only file), never argv; a fresh
+  session only (Instructions on resume).
 - Never persist live credentials in any Haus-written launch record.
 - Plan usage read after a turn when `HAUS_CLAUDE_USAGE_REFRESH=1` (`turn-finish.claudePlanUsage`).
 - A sub-agent's failure or error never ends the parent turn.
