@@ -3,6 +3,7 @@ import { composeAgentInstructions, volatileHostFacts } from './instructions.ts';
 import {
     deliveredInstructionReceipt,
     formatInstructionsUpdate,
+    type InstructionsUpdatePlan,
     planInstructionsUpdate,
     withInstructionsUpdate,
 } from './instructions-update.ts';
@@ -107,11 +108,14 @@ test('only a delivery advances the receipt', () => {
         deliveredInstructionFingerprint: 'new_stable',
         instructionFingerprint: 'new',
     };
+    const receipt = (plan: InstructionsUpdatePlan, completed = true) =>
+        deliveredInstructionReceipt(plan, stored, composed, { completed });
 
-    expect(deliveredInstructionReceipt({ kind: 'fresh' }, stored, composed)).toEqual(advanced);
-    expect(deliveredInstructionReceipt({ block: 'b', kind: 'inject' }, stored, composed)).toEqual(
-        advanced
-    );
-    expect(deliveredInstructionReceipt({ kind: 'deferred' }, stored, composed)).toEqual(stored);
-    expect(deliveredInstructionReceipt({ kind: 'current' }, stored, composed)).toEqual(stored);
+    expect(receipt({ kind: 'fresh' })).toEqual(advanced);
+    expect(receipt({ block: 'b', kind: 'inject' })).toEqual(advanced);
+    expect(receipt({ kind: 'deferred' })).toEqual(stored);
+    expect(receipt({ kind: 'current' })).toEqual(stored);
+    // A launch delivers even when its turn is interrupted; an interrupted update may not have.
+    expect(receipt({ kind: 'fresh' }, false)).toEqual(advanced);
+    expect(receipt({ block: 'b', kind: 'inject' }, false)).toEqual(stored);
 });

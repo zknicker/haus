@@ -64,15 +64,17 @@ export function formatInstructionsUpdate(instructions: string): string {
 }
 
 /**
- * The instruction receipt a completed turn on `plan` leaves: the current fingerprints when the
- * session launched on or was handed the current instructions, otherwise the stored ones.
+ * The instruction receipt a turn on `plan` leaves: the current fingerprints when the session
+ * launched on them, or a completed turn handed them over; otherwise the stored ones. A launch
+ * delivers even when the turn is then interrupted; an interrupted update may not have.
  */
 export function deliveredInstructionReceipt(
     plan: InstructionsUpdatePlan,
     session: Pick<AgentSessionState, 'deliveredInstructionFingerprint' | 'instructionFingerprint'>,
-    composed: Pick<ComposedInstructions, 'fingerprint' | 'stableFingerprint'>
+    composed: Pick<ComposedInstructions, 'fingerprint' | 'stableFingerprint'>,
+    turn: { completed: boolean }
 ): Pick<AgentSessionState, 'deliveredInstructionFingerprint' | 'instructionFingerprint'> {
-    if (plan.kind === 'fresh' || plan.kind === 'inject') {
+    if (plan.kind === 'fresh' || (turn.completed && plan.kind === 'inject')) {
         return {
             deliveredInstructionFingerprint: composed.stableFingerprint,
             instructionFingerprint: composed.fingerprint,

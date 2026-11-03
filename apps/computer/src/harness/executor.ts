@@ -53,7 +53,7 @@ import type { HarnessTokenUsage } from './token-usage.ts';
 import { openTurnNotices, returnUnconsumedNotices } from './turn-notices.ts';
 import { createTurnPhaseLog } from './turn-phase-log.ts';
 import { attestComposedDrain, composeTurnPrompt, type TurnDelivery } from './turn-prompt.ts';
-import { completedTurnSession, interruptedTurnSession } from './turn-session-receipt.ts';
+import { turnSessionRecord } from './turn-session-receipt.ts';
 import { HarnessStreamForeignError, observeTurnStream } from './turn-stream.ts';
 
 /** Drives one isolated, persistent Codex, Claude Code, or Grok Build Agent session. */
@@ -229,12 +229,15 @@ async function executeHarnessTurn(
             timings,
         });
         await phase('session ready');
+        const instructionsUpdate = updateFor(live.isResume);
+        const record = turnSessionRecord(session, {
+            composed,
+            instructionsUpdate,
+            reasoningEffort: input.reasoningEffort,
+            runtimeSessionId: live.sessionId,
+        });
         if (lease.stopping) {
-            await writeAgentSessionState(input.agentRoot, {
-                ...session,
-                resumeState: await lease.checkpoint(),
-                runtimeSessionId: live.sessionId,
-            });
+            await writeAgentSessionState(input.agentRoot, record.stopped(await lease.checkpoint()));
             return { aborted: true, claudePlanUsage: null, contextTokens: null, tokenUsage: null };
         }
         const prompt = composeTurnPrompt(input, resumedTurnSession(session, live.isResume));
@@ -248,7 +251,6 @@ async function executeHarnessTurn(
         // Any main-session turn hears what its heartbeats did; a report run clears it unrendered.
         const quietNote = await readQuietRunNote(input.agentRoot);
         const quietLine = quietNote && !input.heartbeatReport ? quietRunLine(quietNote) : null;
-        const instructionsUpdate = updateFor(live.isResume);
         // The no-progress deadline interrupts through the same path as Stop, keeping resume state.
         const noProgress = new AbortController();
         const turnSignal = AbortSignal.any([noProgress.signal, input.signal ?? noProgress.signal]);
@@ -329,25 +331,17 @@ async function executeHarnessTurn(
         const resumeState = await lease.checkpoint();
         observation = { ...observation, aborted: observation.aborted || lease.stopping };
         if (observation.aborted) {
-            await writeAgentSessionState(
-                input.agentRoot,
-                interruptedTurnSession(session, input.reasoningEffort, resumeState, live.sessionId)
-            );
+            await writeAgentSessionState(input.agentRoot, record.interrupted(resumeState));
             await input.activity.finish(instructionActivityKey, 'interrupted');
             return { ...observation, stalled: noProgress.signal.aborted && !input.signal?.aborted };
         }
         await writeAgentSessionState(
             input.agentRoot,
-            completedTurnSession(session, {
+            record.completed(resumeState, {
                 bootstrapFingerprint,
-                composed,
                 coveGuidanceCanApply: coveGuidance.versionCanApply,
-                instructionsUpdate,
                 modelId: input.modelId,
-                reasoningEffort: input.reasoningEffort,
-                resumeState,
                 runtimeId: input.runtimeId,
-                runtimeSessionId: live.sessionId,
             })
         );
         if (coveGuidance.refreshPending && coveGuidance.refreshCanComplete) {

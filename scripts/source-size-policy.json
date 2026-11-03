@@ -35,7 +35,7 @@
     "apps/computer/src/agent-cli/commands/agent-reminder.ts": 348,
     "apps/computer/src/agent-cli/commands/agent-trigger.test.ts": 304,
     "apps/computer/src/harness/executor.test.ts": 1268,
-    "apps/computer/src/harness/executor.ts": 378,
+    "apps/computer/src/harness/executor.ts": 372,
     "apps/computer/src/inbox-store.ts": 371,
     "apps/computer/src/index.test.ts": 929,
     "apps/computer/src/index.ts": 1604,

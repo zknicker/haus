@@ -16,9 +16,9 @@ export interface AgentSessionState {
     bootstrapFingerprint: string | null;
     /**
      * The stable instruction fingerprint (`composeAgentInstructions`) this native session has
-     * actually received: as its launch instructions, or as an update in a turn's input. Only a
-     * completed turn that delivered them writes it; null means no record, which the next resumed
-     * turn treats as stale (`instructions-update.ts`).
+     * actually received: as its launch instructions, or as an update in a turn's input. A fresh
+     * launch writes it however its turn ends; an update only a completed turn writes. Null means
+     * no record, which the next resumed turn treats as stale (`instructions-update.ts`).
      */
     deliveredInstructionFingerprint: string | null;
     effectiveModel: { modelId: string; runtimeId: string };

@@ -12,6 +12,7 @@ import {
     runHarnessTurn,
     setRuntimeDriverFactoryForTesting,
 } from './executor.ts';
+import { harnessSessionOwner } from './session-lifecycle.ts';
 import type { AgentSessionState } from './session-store.ts';
 
 const runtime = makeDaemonRuntime();
@@ -24,13 +25,21 @@ const productVersion = process.env.HAUS_COMPUTER_PRODUCT_VERSION;
 
 let agentRoot: string;
 let streamAborts: boolean;
+let stopOnOpen: boolean;
 let restore: () => void;
 let fake: ReturnType<typeof fakeRuntimeDriver<HarnessTurnInput>>;
 
 beforeEach(async () => {
     agentRoot = await mkdtemp(join(tmpdir(), 'haus-instructions-update-'));
     streamAborts = false;
+    stopOnOpen = false;
     fake = fakeRuntimeDriver<HarnessTurnInput>({
+        // Stop lands once the session is live, before the turn's prompt is sent.
+        open: () => {
+            if (stopOnOpen) {
+                void harnessSessionOwner(runtime).stopAgent(agentRoot);
+            }
+        },
         turn: (): TurnEvent[] =>
             streamAborts
                 ? [{ contextTokens: null, type: 'step-finish', usage: null }, { type: 'abort' }]
@@ -153,6 +162,32 @@ test('an interrupted update turn keeps the old receipt, so the next turn re-deli
 
     expect(fake.record.prompts[2]?.startsWith(updateOpening)).toBe(true);
     expect(fake.record.prompts[3]).not.toContain(updateTag);
+});
+
+test('an interrupted fresh launch still records the instructions it launched on', async () => {
+    streamAborts = true;
+    await runHarnessTurn(turnInput());
+    expect((await readSession()).deliveredInstructionFingerprint).toEqual(expect.any(String));
+
+    streamAborts = false;
+    await runHarnessTurn(turnInput());
+
+    expect(fake.record.opens[1]?.resumeFrom).toBeDefined();
+    expect(fake.record.prompts[1]).not.toContain(updateTag);
+});
+
+test('a fresh launch stopped before its prompt still records the instructions it launched on', async () => {
+    stopOnOpen = true;
+    const stopped = await runHarnessTurn(turnInput());
+    expect(stopped.aborted).toBe(true);
+    expect(fake.record.prompts).toHaveLength(0);
+    expect((await readSession()).deliveredInstructionFingerprint).toEqual(expect.any(String));
+
+    stopOnOpen = false;
+    await runHarnessTurn(turnInput());
+
+    expect(fake.record.opens[1]?.resumeFrom).toBeDefined();
+    expect(fake.record.prompts[0]).not.toContain(updateTag);
 });
 
 test('a sub-agent wake neither carries nor records an update; the next ordinary turn does', async () => {

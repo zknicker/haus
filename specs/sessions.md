@@ -136,8 +136,10 @@ the way Raft does (`standingPromptRefresh.ts`), at the executor for every runtim
   that predates it) gets the block once instead of Raft's silent baseline: operator decision.
 - A fresh session needs no block: it launched on the current instructions. Heartbeat and dream runs
   open fresh throwaway sessions, so they never carry one and never record one.
-- Only a completed turn that launched on or carried the current instructions advances the record.
-  An interrupted or failed turn keeps the old one, so the next turn carries the block again.
+- A fresh launch records the current instructions however its turn ends, even a Stop before its
+  prompt: the session already runs on them. Otherwise only a completed turn that carried the block
+  advances the record. An interrupted or failed update turn keeps the old one, so the next turn
+  carries the block again.
 - A sub-agent wake neither carries nor records it, because Claude Code's adopted wake turn replaces
   the prompt; the next ordinary turn does.
 - The `updating_instructions` activity shows on a resumed turn that carries the block, a Restart,
