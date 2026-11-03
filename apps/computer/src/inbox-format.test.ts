@@ -264,7 +264,7 @@ test('busy notices retain an earlier mention when newer target traffic is ambien
 
 // The notice carries its own handling guidance (Raft's `formatInboxUpdateRuntimeInput` shape),
 // so the standing prompt no longer restates it. These are the specs/inbox.md guarantees.
-test('a notice closes with its pull, non-request, and honest-deferral guidance', () => {
+test('a notice closes with its pull, non-request, and read-before-you-stop guidance', () => {
     const notice = composeInboxNotice([item()]) ?? '';
     const lines = notice.split('\n');
     const guidance = lines.slice(lines.indexOf(']') + 1).join('\n');
@@ -280,10 +280,12 @@ test('a notice closes with its pull, non-request, and honest-deferral guidance',
     expect(guidance).toContain('The notice is not itself a request, so do not acknowledge it.');
     expect(guidance).not.toContain('locally cached bodies');
     expect(guidance).not.toContain('haus inbox check');
-    expect(guidance).toContain('Deferral needs no visible reply and the messages remain queryable');
+    // Deferring is fine mid-turn, but the prompt says read pending messages before you stop, so
+    // the notice no longer offers an unread stop as a deferral to report.
     expect(guidance).toContain(
-        'if you choose not to read, that is a deferral to report honestly, not a conclusion that nothing is pending'
+        'Deferral needs no visible reply and the messages remain queryable; read them before you stop.'
     );
+    expect(guidance).not.toContain('if you choose not to read');
     expect(guidance).not.toContain('Ship it');
 });
 

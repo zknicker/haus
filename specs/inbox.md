@@ -227,8 +227,8 @@ asynchronously; choose when to read; a notice needs no immediate interruption). 
 states that the bodies are withheld to avoid flooding the Agent, not absent; that the notice is not
 itself a request and is not acknowledged; how to pull (`haus message read --target <target>
 --unread` for one conversation, `haus message check` for all of them, in Raft 26f77ef's wording);
-and that deferral needs no visible reply but must be reported honestly, never as a conclusion that
-nothing is pending. The unread-elsewhere digest closes by pointing at `haus inbox check`, which
+and that deferral needs no visible reply and the messages remain queryable, to be read before the
+Agent stops, as the prompt's Messaging section says. The unread-elsewhere digest closes by pointing at `haus inbox check`, which
 lists every unread conversation with the command that opens it. With no concrete message and no notice,
 the prompt's startup sequence stops the turn.
 
@@ -318,7 +318,7 @@ turn starts when its creator sends the working brief.
 | Unpulled work is offered once; new identities wake again; subsets and targets settle independently | `apps/server/test/agent-delivery.test.ts` |
 | Notices inject only at safe tool boundaries or remain durable for the next turn | `apps/computer/src/harness/executor.test.ts`, `apps/server/test/agent-delivery.test.ts` |
 | Creating an Agent creates no inbox item and no empty bootstrap turn for the new Agent | `apps/server/test/haus-agent-creation.test.ts` |
-| The notice teaches Raft's `--unread` / `message check` pull plus non-request and honest-deferral semantics; the digest points at `haus inbox check`; the prompt teaches asynchronous collaboration and FYI silence without losing required capabilities | `apps/computer/src/inbox-format.test.ts`, `apps/computer/src/harness/turn-prompt.test.ts`, `apps/computer/src/harness/managed-instructions.test.ts` |
+| The notice teaches Raft's `--unread` / `message check` pull plus non-request and read-before-you-stop semantics; the digest points at `haus inbox check`; the prompt teaches asynchronous collaboration and FYI silence without losing required capabilities | `apps/computer/src/inbox-format.test.ts`, `apps/computer/src/harness/turn-prompt.test.ts`, `apps/computer/src/harness/managed-instructions.test.ts` |
 | A live session drains human bodies; a cold start drains only addressed items and notices the rest once | `apps/computer/src/harness/turn-prompt.test.ts`, `apps/computer/src/harness/executor.test.ts` |
 | A composed drain records exact run visibility and consumes its own notice rows | `apps/computer/src/harness/turn-prompt.test.ts` |
 | A drained wake message is exact-visible before settlement, and the freshness hold does not fire on it | `apps/server/test/agent-composed-drain-visibility.test.ts`, `apps/computer/src/harness/composed-drain-receipt.test.ts` |
