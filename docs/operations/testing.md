@@ -268,6 +268,7 @@ HAUS_RUN_LIVE_CLAUDE_CODE_TEST=1 bun test apps/computer/src/runtime/claude-code
 HAUS_RUN_LIVE_CODEX_DRIVER_TEST=1 bun test apps/computer/src/runtime/codex
 HAUS_RUN_LIVE_GROK_DRIVER_TEST=1 bun test apps/computer/src/runtime/grok
 HAUS_RUN_LIVE_RUNTIME_E2E_TEST=1 bun test apps/computer/src/harness/runtime-driver-e2e-live.test.ts
+HAUS_RUN_LIVE_INSTRUCTIONS_UPDATE_TEST=1 bun test apps/computer/src/harness/instructions-update-live.test.ts
 ```
 
 The driver tests run a session through its lifecycle: turns, a steer mid-tool, a host-tool call,
@@ -278,7 +279,10 @@ drives every installed runtime through the real executor, driver factory, and ru
 two turns on one session with a busy notice steered into the first, printing the
 `AgentTurnTimings` per turn. `HAUS_LIVE_RUNTIMES` narrows it (comma-separated runtime ids), and
 `HAUS_LIVE_CLAUDE_MODEL`, `HAUS_LIVE_CODEX_MODEL`, and `HAUS_LIVE_GROK_MODEL` pick models (for
-example `grok-4.7` or `grok-4.7-build-fast`; Grok defaults to `grok-4.6`).
+example `grok-4.7` or `grok-4.7-build-fast`; Grok defaults to `grok-4.6`). The instructions-update
+canary uses the same runtime and model variables: it starts a session on instructions carrying
+`CANARY-ALPHA`, resumes it with `CANARY-BRAVO`, and expects the Agent to report `BRAVO`, which only
+the re-delivered `<haus-instructions-update>` block can make it do (specs/sessions.md).
 
 ## Manual Smoke Hygiene
 
