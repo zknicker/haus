@@ -2,12 +2,12 @@ import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { HarnessAgent } from '@ai-sdk/harness/agent';
 import { parseStartCommand } from './agent-command-frames.ts';
 import { disposeServerLaunchHosts } from './agent-launch-host.ts';
 import { makeDaemonRuntime } from './daemon-runtime.ts';
-import type { HarnessAgentFactory } from './harness/executor.ts';
+import type { HarnessTurnInput } from './harness/executor.ts';
 import { type AgentStartCommand, type Attachment, runAgentLaunch } from './launch.ts';
+import { fakeRuntimeDriver } from './runtime/testing/fake-runtime-driver.ts';
 
 // Raft db5e399's agentic #all greeting; turn-prompt.test.ts pins the full text.
 const greetingLead =
@@ -90,19 +90,7 @@ async function launchPrompt(frame: Record<string, unknown>): Promise<string> {
     if (!command) {
         throw new Error('The test start frame did not parse.');
     }
-    const prompts: string[] = [];
-    const harnessAgentFactory: HarnessAgentFactory = () => ({
-        createSession: (async () => ({
-            detach: async () => ({ data: {}, harnessId: 'fake', type: 'resume-session' }),
-            destroy: async () => undefined,
-            isResume: false,
-            sessionId: 'greeting-session',
-        })) as unknown as HarnessAgent['createSession'],
-        stream: (async (input: { prompt: unknown }) => {
-            prompts.push(promptText(input.prompt));
-            return { fullStream: (async function* () {})() };
-        }) as unknown as HarnessAgent['stream'],
-    });
+    const driver = fakeRuntimeDriver<HarnessTurnInput>();
     const attachment: Attachment = {
         computerId: 'cmp_greeting00000000',
         credential: 'launch-greeting-credential',
@@ -114,18 +102,14 @@ async function launchPrompt(frame: Record<string, unknown>): Promise<string> {
         attachment,
         command,
         dataRoot,
-        harnessAgentFactory,
         runtime,
+        runtimeDriverFactory: driver.factory,
         sendFrame: () => undefined,
         serverOrigin: attachment.serverOrigin,
     });
-    const [prompt] = prompts;
+    const [prompt] = driver.record.prompts;
     if (prompt === undefined) {
         throw new Error('The launch never prompted the model.');
     }
     return prompt;
-}
-
-function promptText(prompt: unknown): string {
-    return typeof prompt === 'string' ? prompt : JSON.stringify(prompt);
 }
