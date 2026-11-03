@@ -25,6 +25,13 @@ const idFlag = {
     valueName: '<id>',
 };
 
+const outputFlag = {
+    description:
+        'New private file for the webhook secret (created mode 0600; an existing path is refused)',
+    name: '--output',
+    valueName: '<new-private-path>',
+};
+
 export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
     {
         name: 'update',
@@ -74,13 +81,13 @@ export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
     },
     {
         examples: [
-            'haus trigger create --title "deploy finished" --message-id 1a2b3c4d',
-            'haus trigger create --title "sentry alert" --message-id 1a2b3c4d --instruction "Summarize the error in this thread and open a task when it is new."',
+            'haus trigger create --title "deploy finished" --message-id 1a2b3c4d --output ./deploy-trigger-secret',
+            'haus trigger create --title "sentry alert" --message-id 1a2b3c4d --output ./sentry-trigger-secret --instruction "Summarize the error in this thread and open a task when it is new."',
             'haus trigger create --kind github --title "CI failed on main" --message-id 1a2b3c4d --repo acme/api --event workflow_run --conclusion failure --branch main',
             'haus trigger create --kind github --title "new PRs" --message-id 1a2b3c4d --org acme --event pull_request --action opened --action ready_for_review',
         ],
         notes: [
-            'A webhook prints its URL and secret once. Never post the secret in any chat.',
+            'A webhook needs --output: its secret goes only to that new mode-0600 file, never to stdout. Without --output nothing is created. Install the file at the destination, then trash it. Never post the secret in any chat.',
             'A github Trigger has no URL or secret. --repo or --org names one GitHub account; the Server picks its Haus GitHub App installation, and a refusal names the accounts you can use.',
             `Events: ${githubTriggerEventNameSchema.options.join(', ')}. Comment events are not available.`,
             'Filter flags apply to every listed event that takes them and repeat or take commas:',
@@ -117,13 +124,14 @@ export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
                 name: '--kind',
                 valueName: '<kind>',
             },
+            { ...outputFlag, description: `Webhook only. ${outputFlag.description}` },
             ...GITHUB_CREATE_FLAGS,
         ],
         name: 'create',
         positionals: [],
         run: (args) => runTriggerCreate(args, defaultTriggerDeps()),
         summary: 'Create a webhook or GitHub Trigger that wakes you when an outside event happens',
-        usage: 'haus trigger create --title <text> --message-id <id> [--instruction <text>] [--kind github (--repo <owner/name>... | --org <login>) --event <name>... [filters]]',
+        usage: 'haus trigger create --title <text> --message-id <id> [--instruction <text>] (--output <new-private-path> | --kind github (--repo <owner/name>... | --org <login>) --event <name>... [filters])',
     },
     {
         examples: ['haus trigger list'],
@@ -162,13 +170,19 @@ export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
         usage: 'haus trigger enable --id <id>',
     },
     {
-        examples: ['haus trigger rotate --id trg_1a2b3c4d5e6f'],
-        flags: [idFlag],
+        examples: ['haus trigger rotate --id trg_1a2b3c4d5e6f --output ./trigger-secret'],
+        flags: [idFlag, outputFlag],
         name: 'rotate',
+        notes: [
+            '--output is required. The new secret goes only to that new mode-0600 file, never to stdout; without it the command fails before contacting the Server, so nothing is rotated.',
+            'Rotation invalidates the working secret at once. Never rotate to test or probe; test with the command the create receipt printed.',
+            'Install the file at the destination, then trash it. Never post the secret in any chat.',
+        ],
         positionals: [],
         run: (args) => runTriggerRotate(args, defaultTriggerDeps()),
-        summary: 'Mint a new webhook secret and invalidate the old one (github Triggers have none)',
-        usage: 'haus trigger rotate --id <id>',
+        summary:
+            'Mint a new webhook secret into a new private file and invalidate the old one (github Triggers have none)',
+        usage: 'haus trigger rotate --id <id> --output <new-private-path>',
     },
     {
         examples: ['haus trigger delete --id trg_1a2b3c4d5e6f'],

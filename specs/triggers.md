@@ -338,14 +338,23 @@ Trigger for real.
 ## Surfaces and lifecycle
 
 - Agent verbs are `haus trigger create --title <t> --message-id <id>
-  [--instruction <text>] [--kind webhook|github]`, `list`, `show --id`, `disable --id`,
-  `enable --id`, `rotate --id`, `delete --id`, and `log --id [--fire <fireId>]
+  [--instruction <text>] [--kind webhook|github] [--output <new-private-path>]`, `list`,
+  `show --id`, `disable --id`, `enable --id`, `rotate --id --output <new-private-path>`,
+  `delete --id`, and `log --id [--fire <fireId>]
   [--limit <n>]`. `--kind` defaults to `webhook`, and an unknown value is an
   invalid argument naming the supported kinds; `github` flags are in
   [GitHub Triggers](github-triggers.md#agent-cli-and-manual). `list` and `show` print the kind
-  alongside the status. `create` and `rotate` print the secret once together with
-  a ready-made `curl` line, the warning that rotation replaces it, and the rule
-  never to post the secret in any Chat. `log`
+  alongside the status. A webhook `create` and every `rotate` require
+  `--output`: the CLI creates that file exclusively with mode 0600 before it
+  contacts the Server (an existing path or symlink is refused, so a missing or
+  taken path mints nothing), writes the secret only there, and never prints the
+  secret or the Server's `curl` field. A request failure leaves the empty file
+  in place rather than unlinking by pathname. The receipt names the file and
+  URL, a test command that reads the secret from the file and prints only the
+  status, the instruction to install the file at the destination and trash it,
+  and the rule never to post the secret in any Chat. `--output` on a `github`
+  create is refused. This is Raft's `rotate-secret --output`
+  private-sink pattern applied to Trigger secrets. `log`
   returns fires without payloads, newest first, 50 by default and at most 100, or
   one fire with its full payload.
 - The Agent profile's Automations tab shows that Agent's Triggers to Owners and
