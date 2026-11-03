@@ -49,8 +49,8 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
 - A fresh session with no pending delivery starts with bare `Start.`. After a
   reset, the recovery line precedes either `Start.` or the pending notice/typed
   attention that becomes the first prompt. An Agent created with a standing
-  brief gets, in that same position on its first-generation cold start only, a
-  one-time line asking it to say hello in `#all`. Creating an Agent configures its
+  brief gets, in that same position on its first-generation cold start only,
+  Raft's one-time instruction to post one short self-introduction in `#all`. Creating an Agent configures its
   executor but never schedules an empty bootstrap turn. Startup never races a
   second mid-turn delivery.
 - A Computer starts at most five Agent runtimes at once; further starts queue. A runtime that

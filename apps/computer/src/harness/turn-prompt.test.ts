@@ -143,10 +143,16 @@ test('an empty digest renders nothing', () => {
 });
 
 test('a created Agent is told to greet only on its first-generation cold start', () => {
-    const greeting = 'On your first turn, say hello in #all in your own voice:';
+    // Raft's agentic #all greeting, verbatim: one short self-introduction, then normal work.
+    const greeting = [
+        'Post one short, natural self-introduction to #all so the team knows who you are and what you can help with.',
+        'Write it in your own voice, one or two sentences. Do NOT paste a fixed template. If a conversation is already going there, read the room and keep it brief.',
+        'This is a one-time greeting; after you post it, go back to normal work.',
+    ].join('\n');
     const greets = delivery({ greetsOnFirstTurn: true });
     const first = composeTurnPrompt(greets, cold).turnContent;
     expect(first.startsWith(greeting)).toBe(true);
+    expect(first).not.toContain('what your first output will be');
     expect(first).toContain('Can you look at the deploy?');
     const idle = delivery({ drainItemIds: [], greetsOnFirstTurn: true, inbox: [] });
     expect(composeTurnPrompt({ ...idle, totalPending: 0 }, cold).turnContent).toStartWith(

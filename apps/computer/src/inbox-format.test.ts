@@ -270,10 +270,12 @@ test('a notice closes with its pull, non-request, and honest-deferral guidance',
     const guidance = lines.slice(lines.indexOf(']') + 1).join('\n');
 
     expect(lines[0]).toBe('[Haus inbox notice:');
-    // Raft 26f77ef's closing line, noun-substituted, comes first and verbatim.
+    // Raft db5e399's closing line, noun-substituted, comes first and verbatim; Raft dropped its
+    // "Deferring them" sentence when the prompt came to say read them before you stop.
     expect(lines[lines.indexOf(']') + 1]).toBe(
-        "These messages have not been read. Choose when to read them: `haus message read --target <target> --unread` reads one conversation's unread messages; `haus message check` reads all of them. Deferring them does not establish that there is no work."
+        "These messages have not been read. Choose when to read them: `haus message read --target <target> --unread` reads one conversation's unread messages; `haus message check` reads all of them."
     );
+    expect(guidance).not.toContain('Deferring them does not establish');
     expect(guidance).toContain('Their bodies are withheld to avoid flooding you, not absent.');
     expect(guidance).toContain('The notice is not itself a request, so do not acknowledge it.');
     expect(guidance).not.toContain('locally cached bodies');

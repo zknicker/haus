@@ -60,10 +60,15 @@ const resetContextLine =
 
 /**
  * Raft's new-Agent greeting is a private one-time instruction, so it rides the
- * first turn's input instead of becoming permanent memory.
+ * first turn's input instead of becoming permanent memory. It is the new Agent's
+ * only introduction: its creator does not post one (ADR 0028, amended 2026-11-03).
+ * The lines are Raft db5e399's `buildAllChannelAgenticGreetingInstruction`.
  */
-const firstTurnGreetingLine =
-    'On your first turn, say hello in #all in your own voice: who you are, what you own, and what your first output will be and when.';
+const firstTurnGreetingLine = [
+    'Post one short, natural self-introduction to #all so the team knows who you are and what you can help with.',
+    'Write it in your own voice, one or two sentences. Do NOT paste a fixed template. If a conversation is already going there, read the room and keep it brief.',
+    'This is a one-time greeting; after you post it, go back to normal work.',
+].join('\n');
 
 /**
  * The input of a sub-agent wake run when no turn of the runtime's own is there to adopt: the

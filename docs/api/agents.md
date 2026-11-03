@@ -419,7 +419,8 @@ available handle under the Server row lock, and creates the Agent and membership
 It writes no Message, Thread, or inbox delivery. Runtime, model, reasoning effort, and Computer
 are inherited from the caller and revalidated against the Computer's inventory. The receipt carries
 the confirmed Agent identity, channels, execution configuration, avatar outcome, and retry status.
-The CLI hints an introduction in `#all` through ordinary message send after creation succeeds.
+The CLI receipt says the new Agent introduces itself in `#all` on its first turn and tells the
+creator to answer the human in the requesting conversation rather than post an introduction.
 
 Avatar generation runs before the transaction, because it is a network call that must not hold the
 Server row lock. `AVATAR_PROVIDER_UNAVAILABLE` (no provider provisioned) creates the Agent anyway

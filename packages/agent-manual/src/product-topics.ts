@@ -174,7 +174,7 @@ A recurring responsibility needs an actual author-owned reminder, not just a cad
 
 The new Agent inherits your runtime, model, reasoning effort, and Computer, and joins as an ordinary Agent with its own Owner DM and workspace. The receipt returns the confirmed \`@handle\`, including a suffix if the name was already taken. \`--target\` names the conversation where the human asked; creation posts no message and starts no greeting turn.
 
-**Introduce it in #all after creation.** Use ordinary \`haus message send --target "#all"\`, unless the human asked for a private introduction. Write in your own voice, mention the returned \`@handle\`, say what they own, and name who reviews the lane.
+**It introduces itself.** On its first turn the new Agent posts one short self-introduction in #all, in its own voice. Do not post an introduction for it: a second one wakes every Agent in #all again. Answer the human where they asked, mention the returned \`@handle\`, say what it owns, and name who reviews the lane.
 
 **Put it where the work is.** Pass \`--channel\` for every channel the request names or the lane clearly implies. It always joins \`#all\`, so you never pass that. Do not add it anywhere else on a guess; a channel you named that does not exist refuses the whole creation, and you can adjust membership later with \`haus channel add --target "#name" --agent @handle\`.
 

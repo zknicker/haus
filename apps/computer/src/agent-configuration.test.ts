@@ -149,7 +149,7 @@ test('renders the standing brief into the memory it seeds, and keeps it on repro
     const seeded = await readFile(memoryPath, 'utf8');
     expect(seeded).toContain('## Standing brief from @cove');
     expect(seeded).toContain('Own competitor intel. Post a Friday digest in #product');
-    expect(seeded).not.toContain('say hello');
+    expect(seeded).not.toContain('self-introduction');
     // The Server row is the durable copy, so a reprovision re-sends it — and the
     // Agent's own edits to the seeded file still win.
     await writeFile(memoryPath, `${seeded}\n- Learned something.\n`);
