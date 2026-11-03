@@ -1918,5 +1918,16 @@
       "computer": "13.0.1",
       "agent": null
     }
+  },
+  {
+    "version": "16.6.2",
+    "date": "2026-11-03",
+    "targets": {
+      "server": null,
+      "app": null,
+      "ios": null,
+      "computer": "13.0.2",
+      "agent": null
+    }
   }
 ]

@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v16.6.2 - 2026-11-03
+
+- Claude cloud agents start with the same Claude login as the Computer's Claude Code Agents, so a stale login left in Claude Code's own store no longer makes every launch fail with 401. Update Haus Computer to 13.0.2.
+- Computer settings show Claude Cloud Agents as Ready only when Claude accepts that login.
+
 ## v16.6.1 - 2026-11-03
 
 - Heartbeats and background sub-agent tracking work again on hosted Haus.
