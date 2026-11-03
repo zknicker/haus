@@ -135,16 +135,24 @@ export const agentSubagentWakeAttentionSchema = z
 export type AgentSubagentWakeAttention = z.infer<typeof agentSubagentWakeAttentionSchema>;
 
 /**
- * Computer→Server: how many background sub-agents each listed Agent runs right now, past the
- * turn that started them. Sent for one Agent when its count changes, and for every Agent the
- * Computer hosts on each connect, so a restarted Computer clears counts its processes took
- * with them. A count is volatile runtime state; the Server stores only the latest.
+ * Computer→Server: how many background sub-agents (`subagents`) and background tasks of any
+ * kind, shells included (`tasks`), each listed Agent runs right now, past the turn that started
+ * them. Sent for one Agent when either count changes, and for every Agent the Computer hosts on
+ * each connect, so a restarted Computer clears counts its processes took with them. A count is
+ * volatile runtime state; the Server stores only the latest. A report without `tasks` (an older
+ * Computer) counts its sub-agents as its tasks.
  */
 export const agentBackgroundWorkReportSchema = z
     .object({
         agents: z
             .array(
-                z.object({ agentId: idSchema, subagents: z.number().int().min(0).max(64) }).strict()
+                z
+                    .object({
+                        agentId: idSchema,
+                        subagents: z.number().int().min(0).max(64),
+                        tasks: z.number().int().min(0).max(1000).optional(),
+                    })
+                    .strict()
             )
             .min(1)
             .max(500),

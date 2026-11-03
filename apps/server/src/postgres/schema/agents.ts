@@ -53,6 +53,11 @@ export const agentsTable = pgTable(
         effectiveBackgroundSubagents: integer('effective_background_subagents')
             .notNull()
             .default(0),
+        /**
+         * Background tasks of any kind (sub-agents and shells) the assigned Computer last
+         * reported. While any run, heartbeats and dreams wait (specs/heartbeat.md).
+         */
+        effectiveBackgroundTasks: integer('effective_background_tasks').notNull().default(0),
         effectiveHausAgentAppliedAt: timestamp('effective_haus_agent_applied_at', {
             withTimezone: true,
         }),

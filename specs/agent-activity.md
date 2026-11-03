@@ -172,7 +172,9 @@ their turn, zero while that Computer is offline. The Computer sends `agent-backg
 restarted Computer clears what its processes took with them; the Server stores it on
 `agents.effective_background_subagents` and announces `agent.updated` only on change, which
 already invalidates `agent.get`. The App's Agent hover card states it after availability
-(`Online · 2 sub-agents running`). Background shells are not counted. In the execution journal a
+(`Online · 2 sub-agents running`). Background shells are not counted there; the same report's
+task count (shells included) lands on `agents.effective_background_tasks`, which only holds
+heartbeats and dreams (specs/heartbeat.md) and is never shown. In the execution journal a
 background sub-agent (`task_started` with `is_backgrounded`) is marked `backgrounded`: neither
 its launch call's result nor its turn's end settles it, so a completion within the run settles it
 with the real outcome and otherwise it stays `running` there. The turn trace reads such a row as

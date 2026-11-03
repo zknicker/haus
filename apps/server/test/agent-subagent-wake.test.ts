@@ -161,7 +161,7 @@ test('a Computer’s sub-agent counts are stored for its own Agents and projecte
             agents: [{ agentId: seed.agentId, subagents }],
             type: 'agent-background-work',
         });
-    expect(await report(seed.computerId, 2)).toEqual([seed.agentId]);
+    expect(await report(seed.computerId, 2)).toEqual([{ agentId: seed.agentId, idle: false }]);
     // An unchanged count announces nothing; another Computer's claim changes nothing.
     expect(await report(seed.computerId, 2)).toEqual([]);
     expect(await report('cmp_someoneelse00', 0)).toEqual([]);
@@ -170,7 +170,7 @@ test('a Computer’s sub-agent counts are stored for its own Agents and projecte
         .from(agentsTable)
         .where(eq(agentsTable.id, seed.agentId));
     expect(row?.count).toBe(2);
-    expect(await report(seed.computerId, 0)).toEqual([seed.agentId]);
+    expect(await report(seed.computerId, 0)).toEqual([{ agentId: seed.agentId, idle: true }]);
 });
 
 test('at the automation chain ceiling a wake is refused unless reset work leads first', async () => {

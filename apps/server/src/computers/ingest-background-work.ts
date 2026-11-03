@@ -34,8 +34,16 @@ export async function ingestBackgroundWorkFrame(
     const { computerId, frame, serverId } = input;
     const counts = agentBackgroundWorkReportSchema.safeParse(frame);
     if (counts.success) {
-        for (const agentId of await recordAgentBackgroundWork(db, computerId, counts.data)) {
+        for (const { agentId, idle } of await recordAgentBackgroundWork(
+            db,
+            computerId,
+            counts.data
+        )) {
             agentUpdatedTopic.announce({ agentId, serverId });
+            // A heartbeat or dream that waited for the work can lead now (specs/heartbeat.md).
+            if (idle) {
+                await delivery.dispatchAgent(agentId, serverId);
+            }
         }
         return true;
     }

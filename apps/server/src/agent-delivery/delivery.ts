@@ -54,7 +54,7 @@ import {
     startFrame,
 } from './drain-selection.ts';
 import * as failureHold from './failure-hold.ts';
-import { planHeartbeatRun, retireStaleHeartbeats } from './heartbeat-run.ts';
+import { heartbeatLeadGate, planHeartbeatRun } from './heartbeat-run.ts';
 import { type YieldedHeartbeat, yieldHeartbeatToAddressed } from './heartbeat-yield.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import {
@@ -896,14 +896,14 @@ export class AgentDelivery {
         if (isBackedOff(state)) {
             return null;
         }
-        await retireStaleHeartbeats(tx, agentId);
+        const mayLead = await heartbeatLeadGate(tx, agentId);
         // Sequential: planning runs inside the transaction holding the Server
         // row, and overlapping reads on its one connection wedge it.
         const unnoticed = await store.listUnnoticedQueuedItems(tx, agentId, maxDrainRows);
         const concreteRows = await store.listQueuedConcreteItems(tx, agentId, maxDrainRows);
         const candidates = [
             ...new Map([...unnoticed, ...concreteRows].map((row) => [row.id, row])).values(),
-        ];
+        ].filter(mayLead);
         const preferred = preferredDrainLead(candidates);
         if (!preferred) {
             return null;
@@ -911,7 +911,7 @@ export class AgentDelivery {
         const chainTurns = await restartIdleAgentChain(tx, agentId, state.agentChainTurns);
         const drain = { agentId, candidates, chainTurns, lead: preferred };
         const admitted = await admitQueuedAgentDrain(tx, drain, boundedCompatibleRows);
-        if (!admitted) {
+        if (!(admitted && mayLead(admitted.lead))) {
             return null;
         }
         const { lead: first, selected } = admitted;

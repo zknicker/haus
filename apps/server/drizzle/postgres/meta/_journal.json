@@ -750,6 +750,13 @@
       "when": 1794200000002,
       "tag": "0106_background-subagents",
       "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1793726367853,
+      "tag": "0107_background-tasks",
+      "breakpoints": true
     }
   ]
 }

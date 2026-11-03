@@ -86,21 +86,32 @@ const settled = () => Bun.sleep(20);
 const wakes = () => frames.filter((frame) => frame.type === 'agent-subagent-wake');
 const counts = () => frames.filter((frame) => frame.type === 'agent-background-work');
 
-test('each Agent’s running sub-agents reach the Server on change and on every connect', async () => {
+test('each Agent’s running sub-agents and tasks reach the Server on change and on every connect', async () => {
     await mkdir(join(agentsDir, 'agt_two'));
     const work = reporter();
     work.changed(agentRoot, { subagents: 2, tasks: 3 });
-    // A shell that changes the task count but not the sub-agent count says nothing new.
+    // A shell ending changes only the task count, which the Server's heartbeat hold reads.
+    work.changed(agentRoot, { subagents: 2, tasks: 2 });
     work.changed(agentRoot, { subagents: 2, tasks: 2 });
     work.lost(agentRoot, true);
     await work.reportCounts();
     expect(counts()).toEqual([
-        { agents: [{ agentId: 'agt_one', subagents: 2 }], type: 'agent-background-work' },
-        { agents: [{ agentId: 'agt_one', subagents: 0 }], type: 'agent-background-work' },
+        {
+            agents: [{ agentId: 'agt_one', subagents: 2, tasks: 3 }],
+            type: 'agent-background-work',
+        },
+        {
+            agents: [{ agentId: 'agt_one', subagents: 2, tasks: 2 }],
+            type: 'agent-background-work',
+        },
+        {
+            agents: [{ agentId: 'agt_one', subagents: 0, tasks: 0 }],
+            type: 'agent-background-work',
+        },
         {
             agents: [
-                { agentId: 'agt_one', subagents: 0 },
-                { agentId: 'agt_two', subagents: 0 },
+                { agentId: 'agt_one', subagents: 0, tasks: 0 },
+                { agentId: 'agt_two', subagents: 0, tasks: 0 },
             ],
             type: 'agent-background-work',
         },

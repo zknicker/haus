@@ -46,7 +46,7 @@ export function createBackgroundWorkReporter(
     input: BackgroundWorkReporterInput
 ): BackgroundWorkReporter {
     let recovered = false;
-    const counts = new Map<string, number>();
+    const counts = new Map<string, BackgroundWork>();
     const queue = createKeyedQueue(input.onError);
     const wakes = createSubagentWakeRequests({ fence: input.fence, queue, send: input.send });
     const sendCounts = (agents: AgentBackgroundWorkReport['agents']) => {
@@ -57,11 +57,13 @@ export function createBackgroundWorkReporter(
             } satisfies AgentBackgroundWorkReport);
         }
     };
-    const count = (agentRoot: string, subagents: number) => {
+    // Sub-agents show as Agent activity; any task holds the Agent's heartbeats and dreams.
+    const count = (agentRoot: string, work: BackgroundWork) => {
         const agentId = basename(agentRoot);
-        if ((counts.get(agentId) ?? 0) !== subagents) {
-            counts.set(agentId, subagents);
-            sendCounts([{ agentId, subagents }]);
+        const last = counts.get(agentId) ?? idleWork;
+        if (last.subagents !== work.subagents || last.tasks !== work.tasks) {
+            counts.set(agentId, work);
+            sendCounts([{ agentId, ...reported(work) }]);
         }
     };
     const clearMarker = (agentRoot: string) =>
@@ -73,11 +75,11 @@ export function createBackgroundWorkReporter(
             void wakes.absorbed(agentRoot);
         },
         changed(agentRoot: string, work: BackgroundWork) {
-            count(agentRoot, work.subagents);
+            count(agentRoot, work);
             void queue.run(agentRoot, () => writeMarker(agentRoot, work));
         },
         lost(agentRoot: string, deliberate: boolean) {
-            count(agentRoot, 0);
+            count(agentRoot, idleWork);
             if (deliberate) {
                 void clearMarker(agentRoot);
             } else if (!input.closing()) {
@@ -104,7 +106,7 @@ export function createBackgroundWorkReporter(
             sendCounts(
                 agents.slice(0, 500).map((agentId) => ({
                     agentId,
-                    subagents: counts.get(agentId) ?? 0,
+                    ...reported(counts.get(agentId) ?? idleWork),
                 }))
             );
         },
@@ -121,6 +123,13 @@ export function createBackgroundWorkReporter(
             void wakes.request(agentRoot, 'finished');
         },
     };
+}
+
+const idleWork: BackgroundWork = { subagents: 0, tasks: 0 };
+
+/** The wire counts, clamped to the report's bounds; a clamped count still reads as live. */
+function reported(work: BackgroundWork): { subagents: number; tasks: number } {
+    return { subagents: Math.min(work.subagents, 64), tasks: Math.min(work.tasks, 1000) };
 }
 
 async function writeMarker(agentRoot: string, work: BackgroundWork): Promise<void> {

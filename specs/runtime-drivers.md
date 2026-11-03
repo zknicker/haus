@@ -133,7 +133,8 @@ The Computer side (`background-work-reporter.ts`, wired through `RuntimeContext.
   unreported as Stop does, before disposing its loopback proxy; the next turn resumes the
   conversation on a new process.
 - **Activity.** The live sub-agent count reaches the Server as `agent-background-work`
-  (specs/agent-activity.md "Background sub-agents").
+  (specs/agent-activity.md "Background sub-agents"), with the live task count beside it. Any live
+  task holds the Agent's heartbeats and dreams (specs/heartbeat.md "Who runs, and who skips").
 
 ## TurnEvent
 
