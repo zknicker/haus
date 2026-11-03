@@ -145,8 +145,10 @@ an introduction, then Sentry posted a second, longer one. Every `#all` post wake
   `agentAllChannelGreetingEnabled` setting and no hidden-`#all` phase, so neither gate is ported.
 - The greeting is consumed only by a run that showed it. The Computer shows it on every run whose
   start frame sets `greets`, warm or cold, in any session generation; settlement consumes it with
-  that run's rows. While it waits, no chatless run leads, because a heartbeat report would open the
-  main session without it. A Stop or reset returns it to the queue with the run's other rows, and a
+  that run's rows. While it waits, no dream, heartbeat, or heartbeat report leads, because a report
+  would open the main session without it. A sub-agent wake still leads: it is never held
+  (specs/heartbeat.md), it exists only once the main session has run, and the greeting rides the
+  next ordinary run instead. A Stop or reset returns it to the queue with the run's other rows, and a
   reconnect replays an accepted run into its saved session, so a greeting whose `#all` already
   holds a message from the new Agent is retired, queued or attached, and never shown twice.
 - `greets` raised the Computer protocol to 33. An older Computer would drop the unknown flag and

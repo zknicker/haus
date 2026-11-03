@@ -51,7 +51,7 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
   attention that becomes the first prompt. A newly created Agent gets, after any
   recovery line, Raft's one-time instruction to post one short self-introduction
   in `#all`. Creating an Agent configures its executor and queues that greeting
-  as one wake, which rides the first non-chatless run whatever else it carries
+  as one wake, which rides the first ordinary (Chat) run whatever else it carries
   and shows on that run warm or cold, because the run consumes it (ADR 0028).
   Startup never races a second mid-turn delivery.
 - A Computer starts at most five Agent runtimes at once; further starts queue. A runtime that

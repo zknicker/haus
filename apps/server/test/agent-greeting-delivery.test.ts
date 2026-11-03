@@ -156,6 +156,25 @@ test('a queued heartbeat report never runs the main session ahead of the greetin
     expect(report?.greets).toBeUndefined();
 });
 
+test('a sub-agent wake is never held behind a waiting greeting, which rides the next run', async () => {
+    const seed = await seedAgent(connection.db);
+    const allChannelId = await greet(seed);
+    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const wakeRow = { agentId: seed.agentId, chatId: null, content: '', serverId: seed.serverId };
+    await connection.db.transaction(async (tx) => {
+        const dedupeKey = `subagent:${seed.agentId}:wake_1`;
+        await delivery.enqueue(tx, { ...wakeRow, dedupeKey, source: 'subagent' });
+    });
+
+    const first = await wake();
+    expect(first?.subagentWake).toBeDefined();
+    expect(first?.greets).toBeUndefined();
+    // Settling the wake dispatches the next run, which claims the waiting greeting.
+    await settle(delivery, seed, first?.runId ?? '');
+    const next = transport.framesOfType('start').at(-1);
+    expect(next).toMatchObject({ chatId: allChannelId, greets: true });
+});
+
 test('a greeting a stopped run already posted is spent; one it never posted rides the next run', async () => {
     const seed = await seedAgent(connection.db);
     const allChannelId = await greet(seed);
