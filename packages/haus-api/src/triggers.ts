@@ -4,10 +4,6 @@ import {
     githubTriggerConfigInputSchema,
     githubTriggerViewSchema,
 } from './github-trigger-events.ts';
-import {
-    linearTriggerConfigInputSchema,
-    linearTriggerViewSchema,
-} from './linear-trigger-events.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
 
@@ -46,10 +42,9 @@ export type TriggerStatus = z.infer<typeof triggerStatusSchema>;
 /**
  * What kind of outside stimulus wakes the Agent. A `webhook` is a POST to a
  * private URL with a bearer secret; a `github` Trigger is fed by the Haus
- * GitHub App's webhook and a `linear` Trigger by the Haus Linear app's
- * workspace webhook, and neither has a URL or a secret.
+ * GitHub App's webhook and has no URL or secret.
  */
-export const triggerKindSchema = z.enum(['webhook', 'github', 'linear']);
+export const triggerKindSchema = z.enum(['webhook', 'github']);
 export type TriggerKind = z.infer<typeof triggerKindSchema>;
 
 /**
@@ -67,20 +62,6 @@ export const triggerRequestRefusalSchema = z.enum([
     'github_permissions_missing',
     /** A selected repository is outside what the connection's GitHub user can reach. */
     'github_repositories_unavailable',
-    /** The workspace connection holds its cap of undeleted `linear` Triggers. */
-    'linear_trigger_limit',
-    /** The Linear workspace is not `active` on this Server. */
-    'linear_workspace_unavailable',
-    /** The Agent named no workspace and holds several; the message lists the url keys. */
-    'linear_workspace_ambiguous',
-    /** The owning Agent lacks the Linear connection grant. */
-    'linear_access_required',
-    /** A referenced Linear object cannot be resolved now. */
-    'linear_reference_unavailable',
-    /** A name resolves to more than one Linear object; the message lists candidates. */
-    'linear_reference_ambiguous',
-    /** A team is outside the workspace actor's team access. */
-    'linear_team_outside_access',
     /** The request names a field the Trigger's kind does not have. */
     'trigger_kind_mismatch',
     'trigger_has_no_secret',
@@ -129,16 +110,10 @@ export const githubTriggerSchema = z
     .strict();
 export type GithubTrigger = z.infer<typeof githubTriggerSchema>;
 
-export const linearTriggerSchema = z
-    .object({ ...triggerBaseShape, kind: z.literal('linear'), linear: linearTriggerViewSchema })
-    .strict();
-export type LinearTrigger = z.infer<typeof linearTriggerSchema>;
-
 /** One Agent-owned Trigger, a union on `kind`. */
 export const triggerSchema = z.discriminatedUnion('kind', [
     webhookTriggerSchema,
     githubTriggerSchema,
-    linearTriggerSchema,
 ]);
 export type Trigger = z.infer<typeof triggerSchema>;
 
@@ -212,30 +187,18 @@ export const triggerCreateInputSchema = z.discriminatedUnion('kind', [
             title: triggerTitleInputSchema,
         })
         .strict(),
-    z
-        .object({
-            agentId: idSchema,
-            instruction: triggerInstructionSchema.min(1).optional(),
-            kind: z.literal('linear'),
-            linear: linearTriggerConfigInputSchema,
-            serverId: idSchema,
-            title: triggerTitleInputSchema,
-        })
-        .strict(),
 ]);
 export type TriggerCreateInput = z.infer<typeof triggerCreateInputSchema>;
 
 /**
  * Update at least one editable field. `instruction: null` (or an empty string)
- * clears the standing instruction; omitting it leaves it alone. `github` and
- * `linear` replace that kind's configuration whole and are refused on any
- * other kind.
+ * clears the standing instruction; omitting it leaves it alone. `github`
+ * replaces that kind's configuration whole and is refused on any other kind.
  */
 export const triggerUpdateInputSchema = z
     .object({
         github: githubTriggerConfigInputSchema.optional(),
         instruction: triggerInstructionSchema.nullable().optional(),
-        linear: linearTriggerConfigInputSchema.optional(),
         serverId: idSchema,
         title: triggerTitleInputSchema.optional(),
         triggerId: idSchema,
@@ -245,9 +208,8 @@ export const triggerUpdateInputSchema = z
         (input) =>
             input.title !== undefined ||
             input.instruction !== undefined ||
-            input.github !== undefined ||
-            input.linear !== undefined,
-        'Provide a title, an instruction, or a GitHub or Linear configuration to update.'
+            input.github !== undefined,
+        'Provide a title, an instruction, or a GitHub configuration to update.'
     );
 
 export const triggerSetStatusInputSchema = z

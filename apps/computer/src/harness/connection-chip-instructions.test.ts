@@ -13,11 +13,10 @@ const amazonRef =
     "- B07XN9T11R: an Amazon ASIN renders as a product chip; write it beside a product's name whenever you name one";
 
 test('the ASIN ref joins the Formatting refs only while the Server provides product chips', () => {
-    const prompt = (connectionChips: ('amazon-product' | 'linear-issue')[]) =>
+    const prompt = (connectionChips: 'amazon-product'[]) =>
         composeAgentInstructions({ ...facts, connectionChips }).instructions;
 
     expect(prompt([])).not.toContain('B07XN9T11R');
-    expect(prompt(['linear-issue'])).not.toContain('B07XN9T11R');
     expect(prompt(['amazon-product'])).toContain(
         `ambiguous with other references)\n${amazonRef}\n\nWrite them inline`
     );

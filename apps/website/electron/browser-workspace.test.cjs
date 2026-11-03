@@ -199,7 +199,7 @@ describe('desktop browser workspace', () => {
     });
     test('an App-window link keeps its query and hash through the request and the load', () => {
         const url =
-            'https://linear.app/oauth/authorize?actor=app&response_type=code&scope=read%2Cwrite#section';
+            'https://auth.example.com/oauth/authorize?actor=app&response_type=code&scope=read%2Cwrite#section';
         const { workspace, window } = fixture();
         window.webContents.sent = [];
         workspace.open(url);

@@ -31,8 +31,6 @@ export interface TriggerFireRequest {
     dedupeKey: string | null;
     /** A `github` fire's summary line and provenance segments. */
     github?: TriggerSourceLines;
-    /** A `linear` fire's summary line and provenance segments. */
-    linear?: TriggerSourceLines;
     payload: string;
     trigger: AuthenticatedTrigger;
 }
@@ -194,7 +192,6 @@ export async function recordTriggerFire(
             fireId,
             github: request.github,
             instruction: locked.instruction,
-            linear: request.linear,
             payload: request.payload,
             payloadBytes,
             title: locked.title,

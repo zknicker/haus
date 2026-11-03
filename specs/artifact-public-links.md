@@ -9,7 +9,7 @@ read_when:
 # Files public links
 
 A public link lets people and tools outside the Server see one file in Files: paste it into
-Linear, Slack, a Markdown doc, or a browser. Everything else about Files stays membership-gated
+a GitHub issue, Slack, a Markdown doc, or a browser. Everything else about Files stays membership-gated
 ([Files](../docs/api/artifacts.md)).
 
 ## Contract
@@ -70,7 +70,7 @@ without reading storage.
 ### Unfurls and embeds
 
 The same URL serves both: a Markdown image (`![](…/f/<token>)`) and an unfurl bot both receive
-`image/*` bytes, which Linear, Slack, GitHub, and Discord render as an image. No OpenGraph page
+`image/*` bytes, which Slack, GitHub, and Discord render as an image. No OpenGraph page
 exists, so non-image files unfurl as a plain link or download. Serving user content as HTML on
 the App origin is never allowed, which an OpenGraph page would need care to avoid; add one only
 behind its own review.

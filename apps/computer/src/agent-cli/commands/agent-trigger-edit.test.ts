@@ -189,6 +189,14 @@ test('preview sends the raw sample to the Server and reports selection without f
                 }
             )
         ).rejects.toThrow('under 60,000 bytes');
+        await expect(
+            runTriggerPreview(args({ '--id': 'trg_gh', '--payload-file': path }), {
+                client: requester(() => {
+                    throw new Error('Should not send');
+                }),
+                write: () => undefined,
+            })
+        ).rejects.toThrow('Provide --event with the GitHub event name.');
     } finally {
         await rm(directory, { recursive: true, force: true });
     }

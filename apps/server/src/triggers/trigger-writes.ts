@@ -102,7 +102,7 @@ export async function createTriggerRow(
 /**
  * Arms or disables one trigger. Setting the status it already has changes
  * nothing, so a kill switch pressed twice does not churn the version. Arming
- * a `github` or `linear` Trigger re-derives its problem (only armed Triggers
+ * a `github` Trigger re-derives its problem (only armed Triggers
  * carry problems); `entered` names any notice the caller should wake for.
  */
 export async function setTriggerStatusRow(

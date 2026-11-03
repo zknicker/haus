@@ -10,8 +10,7 @@ import { chatlessInboxSources } from '@haus/api';
  * concrete because they exist nowhere but the inbox: a discretionary pull is
  * the only thing standing between the wake and its reason, and an unread one
  * leaves an answer with no provable cause (specs/inbox.md). A Trigger problem
- * notice is concrete for the same reason (specs/github-triggers.md#failure-modes),
- * and so is a Linear session event (specs/linear-app.md#inbox-sources).
+ * notice is concrete for the same reason (specs/github-triggers.md#failure-modes).
  */
 export const concreteInboxSources = [
     'onboarding',
@@ -25,8 +24,6 @@ export const concreteInboxSources = [
     'heartbeat',
     'heartbeat_report',
     'subagent',
-    'linear_session',
-    'linear_session_automated',
 ] as const;
 
 export function isConcreteInboxSource(source: string): boolean {
@@ -44,8 +41,6 @@ export const bodilessInboxSources = [
     'trigger_problem',
     'image_generation_failed',
     ...chatlessInboxSources,
-    'linear_session',
-    'linear_session_automated',
 ] as const;
 
 /**

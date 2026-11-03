@@ -7,7 +7,7 @@ test('a journal tool reads its kind from its wire name, in any case', () => {
     expect(readExecutionToolKind('Read')).toBe('file-read');
     expect(readExecutionToolKind('WebFetch')).toBe('web');
     expect(readExecutionToolKind('image_gen')).toBe('image');
-    expect(readExecutionToolKind('mcp__linear__list_issues')).toBe('mcp');
+    expect(readExecutionToolKind('mcp__github__list_issues')).toBe('mcp');
 });
 
 test('an unknown or prototype-shaped name is a generic call', () => {

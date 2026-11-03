@@ -208,11 +208,11 @@ test('an MCP call shows its wire name, then its input and result as JSON trees',
             input: { first: 2, team: 'PRD' },
             output: { content: [{ text: '{"issues":[{"id":"PRD-1"}],"total":1}', type: 'text' }] },
             toolCallId: 'call-mcp',
-            toolName: 'mcp__linear__list_issues',
+            toolName: 'mcp__tracker__list_issues',
         }),
     ]);
 
-    assert.match(markup, />mcp__linear__list_issues</);
+    assert.match(markup, />mcp__tracker__list_issues</);
     assert.equal(markup.match(/role="treegrid"/g)?.length, 2);
     assert.match(markup, /aria-label="Input"/);
     assert.match(markup, /aria-label="Result"/);

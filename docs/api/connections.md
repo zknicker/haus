@@ -1,10 +1,9 @@
 ---
-summary: Server tRPC and runner contracts for remote MCP connections, GitHub installations and the setup route, Linear workspace team membership, and connection-level Agent access.
+summary: Server tRPC and runner contracts for remote MCP connections, GitHub installations and the setup route, and connection-level Agent access.
 read_when:
   - changing MCP Server tRPC procedures
   - changing connection, secret, discovery, runner, or grant schemas
   - changing the `github` tRPC router or `/github/setup`
-  - changing `linear.workspaces` or `linear.identities` team fields, or Linear tool refusal codes
 ---
 
 # Connections API
@@ -46,6 +45,8 @@ discovery with no preset scope overrides or static credentials. Kittl uses
 without preset scopes or packaged credentials. Creating an account grants no
 Agent access. `vercel` is not an accepted preset; previously saved Vercel accounts migrate to
 custom connections (`preset: null`) without changing their configuration, secrets, or grants.
+`linear` is not an accepted preset either; a Server migration deleted saved Linear connections
+together with their grants and Triggers.
 
 `merchbase-atlas` creates an OAuth connection to `https://atlas.merchbase.co/mcp`
 with Cloudflare Managed OAuth discovery and no preset scopes. It needs no
@@ -201,25 +202,6 @@ Server-side GitHub reads use the connection's user token (`mcp_secrets`) and ref
 Agents have no GitHub installation route; they reach repositories through GitHub's hosted MCP
 tools and name a GitHub account on their Triggers ([Triggers API](triggers.md)).
 
-## Linear Workspaces
-
-The built-in Linear connection ([Linear app](../../specs/linear-app.md)) adds the `linear` tRPC
-router; schemas live in `@haus/api` `linear.ts`. Each `linear.workspaces` row carries `teams`
-(every team the Haus app reaches) and `memberTeamIds` (the subset the Haus app user is a member
-of). Each `linear.identities` row carries the identity's own `memberTeamIds`, empty until it is
-installed and synced. Both are as of the last team sync. Membership matters because a team's
-settings (workflow states, team labels) change only through a member; an identity joins exactly
-the teams the Haus app is a member of ([team scope](../../specs/linear-app.md#team-scope)).
-
-An Agent with an active identity always writes as that identity and never falls back to the Haus
-app. A write where a target team is outside the identity's effective access fails with
-`linear_team_outside_access`, and a team settings write where the identity is not a member of
-every target team fails with `linear_team_membership_required`; both messages name the Agent's
-Linear app and the teams, and say where a workspace admin changes it under Linear → Settings →
-Applications → the Agent → Team access. An Agent without an identity writes through the Haus app,
-and its team settings write fails with `linear_team_membership_required` naming Haus when the Haus
-app is not a member of every target team ([error codes](../../specs/linear-app.md#error-codes)).
-
 ## Connection Icons
 
 `icon` on a connection is `{ light, dark }`, each an inline `data:` image URI or `null`, or the
@@ -254,7 +236,7 @@ connection never carries the same bytes twice on a query that returns every row 
 
 Legacy curated presets retain their bundled marks (`mcpPresetIcons` in `@haus/api`).
 Handmade, Cloudflare, MerchBase Atlas, and Fulfillment own their icons upstream. Recommended, preset creation,
-Linear binding, the startup repair, and authenticated discovery share the Server's connection-branding resolver.
+the startup repair, and authenticated discovery share the Server's connection-branding resolver.
 Preset fallback discovery prefers the homepage's advertised icon links over `/favicon.ico`,
 regardless of sign-in state, so publisher-owned versioned assets replace cached legacy favicons.
 Authenticated discovery first uses standard MCP icon metadata. Failed resolution retains the last
@@ -265,9 +247,7 @@ Missing artwork falls back to a monogram when no valid image has been resolved.
 
 Icons resolve at write time and are stored on the connection; `mcp.list` is a pure PostgreSQL read
 and never fetches. Preset creation stores branding before sign-in. Icons refresh on connect and
-tool refresh. A Linear install resolves Linear's brand icon before its binding transaction (never
-under the Server lock) and stores it on the new connection; a reconnect fills a missing icon. A
-failed lookup stores `null` and never fails the install. Preset connections stored with a missing
+tool refresh. Preset connections stored with a missing
 or malformed icon, and no bundled mark, recover through a bounded background repair after Server
 startup, which stores each resolved icon and announces `mcp.onUpdated` for its Server.
 `mcp.presetIcons` (the Recommended catalog) still resolves on read behind the five-minute cache;

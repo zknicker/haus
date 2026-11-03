@@ -13,17 +13,10 @@ const rankWrangler = {
     tools: ['rankwrangler_product', 'rankwrangler_search'],
     url: rankWranglerMcpUrl,
 } satisfies ChipSourceConnection;
-const linear = {
-    connected: false,
-    preset: 'linear',
-    tools: [],
-    url: 'https://mcp.linear.app/mcp',
-} satisfies ChipSourceConnection;
 
 test('a connected RankWrangler with its product tool provides product chips', () => {
     expect(rankWranglerMcpUrl).toBe('https://rankwrangler.merchbase.co/mcp');
     expect(availableChipKinds([rankWrangler])).toEqual(['amazon-product']);
-    expect(availableChipKinds([rankWrangler, linear])).toEqual(['amazon-product', 'linear-issue']);
     expect(
         availableChipKinds([{ ...rankWrangler, url: 'https://rankwrangler-api.merchbase.co/mcp' }])
     ).toEqual([]);
@@ -39,11 +32,6 @@ test('RankWrangler without its product tool, signed out, or at another URL provi
     }
 });
 
-test('any Linear connection provides issue chips, as before', () => {
-    expect(availableChipKinds([linear])).toEqual(['linear-issue']);
-    expect(availableChipKinds([{ ...linear, preset: null }])).toEqual([]);
-});
-
 test('the chip connection is the first one that provides it', () => {
     const signedOut = { ...rankWrangler, connected: false, id: 'a' };
     const ready = { ...rankWrangler, id: 'b' };
@@ -53,7 +41,6 @@ test('the chip connection is the first one that provides it', () => {
 
 test('a preset page lists only its own chips', () => {
     expect(presetChips('rankwrangler').map((chip) => chip.title)).toEqual(['Product chips']);
-    expect(presetChips('linear').map((chip) => chip.title)).toEqual(['Issue chips']);
     expect(presetChips('github')).toEqual([]);
     expect(presetChips(null)).toEqual([]);
 });

@@ -9,20 +9,14 @@ import {
 const now = new Date('2026-10-11T12:00:00.000Z');
 
 test('allows exactly sixteen consecutive automation-authored drain turns', () => {
-    for (const source of [
-        'agent:wren',
-        'trigger',
-        'trigger_problem',
-        'image_generation_failed',
-        'linear_session_automated',
-    ]) {
+    for (const source of ['agent:wren', 'trigger', 'trigger_problem', 'image_generation_failed']) {
         expect(canBeginAgentDrain([{ source }], maxAgentChainTurns - 1)).toBe(true);
         expect(canBeginAgentDrain([{ source }], maxAgentChainTurns)).toBe(false);
     }
 });
 
-test('human, reminder, task, and person-caused Linear work resets the chain at the ceiling', () => {
-    for (const source of ['human', 'reminder', 'task', 'linear_session']) {
+test('human, reminder, and task work resets the chain at the ceiling', () => {
+    for (const source of ['human', 'reminder', 'task']) {
         const rows = [{ source: 'trigger' }, { source }];
         expect(canBeginAgentDrain(rows, maxAgentChainTurns)).toBe(true);
         expect(nextAgentChain(rows, maxAgentChainTurns, now)).toEqual({

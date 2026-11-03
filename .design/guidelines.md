@@ -892,7 +892,7 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   line's hover card, and in the Automations list (Agent profile) the ItemCard icon slot itself
   becomes the key (`automation-mark` in `default-theme.css`), keeping its stock box and radius. A
   listed Reminder's key shows its next hour in the viewer's zone; a listed Trigger's key shows its
-  source glyph (GitHub, Linear, webhook) in the trigger ink instead of the bolt.
+  source glyph (GitHub or webhook) in the trigger ink instead of the bolt.
   A Cloud Agent is the same key everywhere it appears (`CloudAgentKeycap`): a solid terminal in
   `--cloud-agent-mark`, with its provider's logo badged in the lower corner on keys 28px and up
   (the 40px work card, the 32px Inbox row, the Automations list). A Thread's 20px job rows print the

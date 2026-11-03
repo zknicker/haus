@@ -96,9 +96,9 @@ describe('action thought descriptions', () => {
             act(
                 'using_tool',
                 { body: { nested: true }, team: 'PRD', title: 'Fix login for ops@example.com' },
-                'mcp__linear__create_issue'
+                'mcp__tracker__create_issue'
             )
-        ).toBe('linear create_issue team: PRD title: Fix login for');
+        ).toBe('tracker create_issue team: PRD title: Fix login for');
         expect(
             act(
                 'using_tool',

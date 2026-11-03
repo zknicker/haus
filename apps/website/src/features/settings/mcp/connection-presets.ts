@@ -53,11 +53,6 @@ export const connectionPresets: readonly ConnectionPreset[] = [
         name: 'GitHub',
     },
     {
-        description: 'Find, create, and update issues, projects, and comments.',
-        id: 'linear',
-        name: 'Linear',
-    },
-    {
         description: 'Manage DNS, Workers, and other Cloudflare services.',
         id: 'cloudflare',
         name: 'Cloudflare',

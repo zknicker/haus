@@ -6,7 +6,7 @@ import { createReadStream } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { packageHostedMcp, packageLinearHostedMcp } from './package-hosted-mcp.mjs';
+import { packageHostedMcp } from './package-hosted-mcp.mjs';
 
 const repoRoot = fileURLToPath(new URL('../', import.meta.url));
 const releaseRoot = path.join(repoRoot, 'apps', 'server', 'release');
@@ -109,7 +109,6 @@ if (process.platform !== 'darwin' || process.arch !== 'arm64') {
     throw new Error('Server hosted MCP packaging requires an Apple Silicon macOS builder.');
 }
 await packageHostedMcp(path.join(stageRoot, 'share/haus-server/hosted-mcp/skool'));
-await packageLinearHostedMcp(path.join(stageRoot, 'share/haus-server/hosted-mcp/linear'));
 
 const contentDigest = await writeReleaseChecksums(stageRoot);
 await fs.writeFile(

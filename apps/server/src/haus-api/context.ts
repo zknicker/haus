@@ -10,7 +10,6 @@ import type { GithubApp } from '../github/github-app.ts';
 import type { CloudflareAdmissions } from '../identity/cloudflare-access.ts';
 import type { HausSessions } from '../identity/haus-sessions.ts';
 import type { SessionConnections } from '../identity/session-connections.ts';
-import type { LinearRuntime } from '../linear/linear-runtime.ts';
 import type { MessageRouter } from '../message-routing/jev.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { McpIconResolver } from '../server-mcp/icons.ts';
@@ -49,8 +48,6 @@ export interface HausContext {
     hausSessions: HausSessions;
     /** HTTP response handle for ending SSE subscriptions on local sign-out. */
     httpSessionConnection: HttpSessionConnection | null;
-    /** The Linear app (or null), its single refresh owner, and the tool transport. */
-    linear: LinearRuntime;
     mcpIconResolver: McpIconResolver;
     mcpOAuthRelay: McpOAuthRelay;
     mcpRuntime: McpRuntime;
@@ -98,8 +95,6 @@ export interface HausContextDependencies {
     githubApp: GithubApp | null;
     hausDb: HausDatabase;
     hausSessions: HausSessions;
-    /** The Linear app (or null), its single refresh owner, and the tool transport. */
-    linear: LinearRuntime;
     mcpIconResolver: McpIconResolver;
     mcpOAuthRelay: McpOAuthRelay;
     mcpRuntime: McpRuntime;

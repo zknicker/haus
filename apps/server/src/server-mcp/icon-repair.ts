@@ -14,7 +14,7 @@ const unbundledPresets = mcpPresetSchema.options.filter((preset) => !mcpPresetIc
 
 /**
  * Startup recovery for preset connections stored without usable branding,
- * such as Linear rows bound before install-time resolution. Reads never
+ * such as rows saved while their icon lookup failed. Reads never
  * fetch icons, so this pass is how those rows regain theirs. It runs in the
  * background, one connection at a time, and never throws.
  */

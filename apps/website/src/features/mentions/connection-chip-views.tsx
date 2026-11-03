@@ -2,13 +2,10 @@ import {
     type AmazonProductSummary,
     type ConnectionChipKind,
     connectionChipKindSchema,
-    type LinearIssueUrl,
     parseAmazonProduct,
-    parseLinearIssueUrl,
 } from '@haus/api';
 import type * as React from 'react';
 import { AmazonReference, AmazonReferenceChip } from './amazon-reference.tsx';
-import { LinearIssueChip, LinearIssueReference } from './linear-issue-reference.tsx';
 
 interface ChipLinkInput {
     /** What the link renders as when it is not this chip's, or the Server lacks the connection. */
@@ -46,33 +43,6 @@ export const connectionChipViews: Record<ConnectionChipKind, ConnectionChipView>
             />
         ),
     },
-    'linear-issue': {
-        link: ({ fallback, href, serverId }) => {
-            const issue = parseLinearIssueUrl(href);
-            return issue ? (
-                <LinearIssueReference
-                    fallback={fallback}
-                    href={href}
-                    issue={issue}
-                    serverId={serverId}
-                />
-            ) : null;
-        },
-        Sample: () => (
-            <LinearIssueChip
-                agents={[]}
-                href={sampleIssue.url}
-                issue={sampleIssue}
-                notice={null}
-                state={{
-                    kind: 'issue',
-                    label: `${sampleIssue.identifier} Onboarding tour`,
-                    pending: false,
-                    view: null,
-                }}
-            />
-        ),
-    },
 };
 
 /** The chip a website link becomes, or the link itself when no connection chip claims it. */
@@ -100,9 +70,3 @@ const sampleProduct = {
     thumbnail: { status: 'unavailable' },
     title: 'Pumpkin Patch Tee',
 } satisfies AmazonProductSummary;
-
-const sampleIssue: LinearIssueUrl = {
-    identifier: 'HAUS-42',
-    url: 'https://linear.app/haus/issue/HAUS-42',
-    urlKey: 'haus',
-};

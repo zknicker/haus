@@ -3,7 +3,7 @@ import { createTestServer } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 const authorizeUrl =
-    'https://linear.app/oauth/authorize?actor=app&client_id=abc&response_type=code&scope=read%2Cwrite&state=s1#section';
+    'https://auth.example.com/oauth/authorize?actor=app&client_id=abc&response_type=code&scope=read%2Cwrite&state=s1#section';
 
 test('a web page opened from the App keeps its query and hash', async ({ page }) => {
     await installDesktopBrowserStub(page);
@@ -27,7 +27,7 @@ test('a web page opened from the App keeps its query and hash', async ({ page })
         .getByRole('navigation', { exact: true, name: 'Right pane tabs' })
         .locator('.workspace-tab');
     await expect(right).toHaveCount(1);
-    await expect(right.first()).toContainText('linear.app');
+    await expect(right.first()).toContainText('auth.example.com');
     await expect
         .poll(() =>
             page.evaluate(() =>

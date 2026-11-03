@@ -10,7 +10,6 @@ import { ReferenceMarkdown } from './reference-markdown.tsx';
 const serverId = 'srv_chips';
 const amazonMessage =
     'Compare B07XN9T11R with [the listing](https://www.amazon.com/dp/B07XN9T11R).';
-const linearMessage = 'Tracked in [the issue](https://linear.app/haus/issue/HAUS-42).';
 const rankWrangler: McpConnection = {
     accountLabel: 'Merch team',
     auth: 'oauth',
@@ -26,14 +25,6 @@ const rankWrangler: McpConnection = {
     summary: null,
     tools: ['rankwrangler_product'],
     url: rankWranglerMcpUrl,
-};
-const linear: McpConnection = {
-    ...rankWrangler,
-    id: 'mcp_linear000000000001',
-    name: 'Linear',
-    preset: 'linear',
-    tools: [],
-    url: 'https://mcp.linear.app/mcp',
 };
 
 test('without RankWrangler an ASIN stays text and an Amazon link stays a website link', () => {
@@ -60,18 +51,10 @@ test('a RankWrangler connection without its product tool adds no chips', () => {
     expect(markup).toContain('<p>Compare B07XN9T11R with ');
 });
 
-test('while the connection list loads, ASINs render as chips like Linear links do', () => {
-    const markup = render(`${amazonMessage} ${linearMessage}`, undefined);
+test('while the connection list loads, ASINs render as chips', () => {
+    const markup = render(amazonMessage, undefined);
 
     expect(markup.match(/aria-label="Open B07XN9T11R on Amazon"/g)).toHaveLength(2);
-    expect(markup).toContain('aria-label="Open HAUS-42 in Linear"');
-});
-
-test('a Linear link is an issue chip only while the Server has Linear', () => {
-    expect(render(linearMessage, [linear])).toContain('aria-label="Open HAUS-42 in Linear"');
-    const plain = render(linearMessage, [rankWrangler]);
-    expect(plain).toContain('aria-label="Open the issue"');
-    expect(plain).not.toContain('in Linear');
 });
 
 function render(content: string, connections: McpConnection[] | undefined) {

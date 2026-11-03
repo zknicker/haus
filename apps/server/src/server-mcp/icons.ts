@@ -251,7 +251,7 @@ function sameOriginIconUrl(src: string, connectionUrl: string): null | string {
 /**
  * MCP endpoints are API hosts, not websites: of six real remote MCP servers
  * checked, one served a favicon at its own origin while four served one from
- * the site behind it (`mcp.linear.app` -> `linear.app`).
+ * the site behind it (`mcp.notion.com` -> `notion.com`).
  *
  * This is a heuristic, not a public-suffix lookup. Testing the leading label
  * happens to leave `example.co.uk` alone, but a connection on a shared

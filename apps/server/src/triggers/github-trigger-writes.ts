@@ -148,7 +148,7 @@ export function requireGithubTrigger(trigger: Trigger): GithubTrigger {
     if (trigger.kind !== 'github') {
         throw new TriggerRequestRefusedError(
             'trigger_kind_mismatch',
-            `A ${trigger.kind === 'linear' ? 'Linear' : 'webhook'} Trigger has no GitHub configuration to change.`
+            'A webhook Trigger has no GitHub configuration to change.'
         );
     }
     return trigger;

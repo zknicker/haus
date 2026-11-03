@@ -1,6 +1,5 @@
 import {
     type GithubTriggerView,
-    type LinearTriggerView,
     type Trigger,
     type TriggerFire,
     type TriggerKind,
@@ -10,7 +9,6 @@ import {
 } from '@haus/api';
 import { formatByteSize, formatRelativeTime } from '../../../lib/format.ts';
 import { githubProblemTitle } from './trigger-github-model.ts';
-import { linearProblemTitle } from './trigger-linear-model.ts';
 
 /**
  * A row speaks up about its state only when the Trigger is not doing its job:
@@ -22,7 +20,6 @@ export function triggerRowStatus(
     trigger: { status: TriggerStatus } & (
         | { kind: 'webhook' }
         | { github: Pick<GithubTriggerView, 'problem'>; kind: 'github' }
-        | { kind: 'linear'; linear: Pick<LinearTriggerView, 'problem'> }
     )
 ): string | null {
     if (trigger.status === 'disabled') {
@@ -31,18 +28,12 @@ export function triggerRowStatus(
     if (trigger.kind === 'github' && trigger.github.problem) {
         return githubProblemTitle(trigger.github.problem);
     }
-    if (trigger.kind === 'linear' && trigger.linear.problem) {
-        return linearProblemTitle(trigger.linear.problem);
-    }
     return null;
 }
 
-/** Every Trigger kind a human can author in the App; `linear` is read-only for now. */
-export type CreatableTriggerKind = Exclude<TriggerKind, 'linear'>;
-
 export interface TriggerKindOption {
     description: string;
-    kind: CreatableTriggerKind;
+    kind: TriggerKind;
     label: string;
 }
 
@@ -63,8 +54,8 @@ export const triggerKindOptions: readonly TriggerKindOption[] = [
     },
 ];
 
-export function triggerKindOption(kind: CreatableTriggerKind): TriggerKindOption {
-    // The creatable kinds and this list are the same closed set, so a miss is
+export function triggerKindOption(kind: TriggerKind): TriggerKindOption {
+    // The Trigger kinds and this list are the same closed set, so a miss is
     // a programming error rather than a rendering case.
     const option = triggerKindOptions.find((candidate) => candidate.kind === kind);
     if (!option) {
@@ -75,7 +66,6 @@ export function triggerKindOption(kind: CreatableTriggerKind): TriggerKindOption
 
 const triggerKindLabels: Record<TriggerKind, string> = {
     github: 'GitHub',
-    linear: 'Linear',
     webhook: 'Webhook',
 };
 
@@ -143,7 +133,7 @@ export function formatTriggerFireDetail(
 
 export interface TriggerDraft {
     instruction: string;
-    kind: CreatableTriggerKind | null;
+    kind: TriggerKind | null;
     title: string;
 }
 

@@ -2,7 +2,6 @@ import { join } from 'node:path';
 import type { McpPreset } from '@haus/api';
 
 export const skoolHostedUrl = 'https://hosted-mcp.haus.invalid/skool/mcp';
-export const linearHostedUrl = 'https://hosted-mcp.haus.invalid/linear/mcp';
 
 /**
  * The only way a connection reaches a private connector socket: its logical
@@ -11,7 +10,6 @@ export const linearHostedUrl = 'https://hosted-mcp.haus.invalid/linear/mcp';
  */
 const hostedConnectors: ReadonlyMap<string, { id: string; preset: McpPreset }> = new Map([
     [skoolHostedUrl, { id: 'skool', preset: 'skool' }],
-    [linearHostedUrl, { id: 'linear', preset: 'linear' }],
 ]);
 
 /** The connector id serving a connection, or undefined for an ordinary remote MCP. */
@@ -53,15 +51,5 @@ export function skoolHostedDefinition(packageRoot: string): HostedMcpDefinition 
             PYTHONUNBUFFERED: '1',
             PYTHONDONTWRITEBYTECODE: '1',
         },
-    };
-}
-
-/** The stateless Linear connector: one compiled Bun binary, no storage, no credentials. */
-export function linearHostedDefinition(packageRoot: string): HostedMcpDefinition {
-    return {
-        id: 'linear',
-        command: [join(packageRoot, 'bin/hosted-mcp-linear')],
-        cwd: packageRoot,
-        environment: { PATH: '/usr/bin:/bin' },
     };
 }

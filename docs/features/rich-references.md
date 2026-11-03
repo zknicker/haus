@@ -4,7 +4,7 @@ read_when:
   - changing chat mentions, rich reference rendering, autocomplete references, or explicit typed links in messages
   - changing the `cloud-agent://` or `image-generation://` link, its label, or which trailing link paragraph the transcript hides
   - adding a new reference type such as agent, skill, app, plugin, file, directory, pull request, product, ASIN, memory, chat, or session
-  - adding a chip a connection provides, or changing whether Amazon or Linear chips render without their connection
+  - adding a chip a connection provides, or changing whether Amazon chips render without their connection
 ---
 
 # Rich References
@@ -48,9 +48,8 @@ in an older note still requires checking against the current directory.
 
 ### Connection chips
 
-Some chips belong to a connection: Amazon product chips to RankWrangler, and
-Linear issue chips to Linear. `packages/haus-api/src/connection-chips.ts`
-declares each one with the single check for whether a connection provides it;
+Some chips belong to a connection: Amazon product chips belong to RankWrangler.
+`packages/haus-api/src/connection-chips.ts` declares each one with the single check for whether a connection provides it;
 the App's chip gate, the Server's chip reads, and the Agent's start facts all use
 that check. A chip renders only while the Server has a connection that provides
 it. Without one, the text or link it came from renders as it would anywhere else,
@@ -63,8 +62,7 @@ beside an inert sample drawn by the real chip component.
 The Agent's system prompt names a chip only when the Agent must write something
 specific to get it, and only while the Server provides it: with RankWrangler
 connected, the Formatting refs teach the Agent to write a product's ASIN beside
-its name. Linear issue chips come from linear.app links Agents already paste, so
-they add no prompt text. A connection change reaches an Agent at its next start.
+its name. A connection change reaches an Agent at its next start.
 
 ### Amazon prototype
 

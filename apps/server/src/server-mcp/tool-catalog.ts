@@ -44,74 +44,18 @@ export async function findModelTool(
     );
 }
 
-export type McpToolResult = Awaited<ReturnType<Client['callTool']>>;
-
-/** One Agent's `tools/call` as a built-in connection's transport sees it. */
-export interface McpToolCall {
-    agentId: string;
-    arguments: Record<string, unknown>;
-    connectionId: string;
-    /** The Server's invocation timeout; the call must finish inside it. */
-    deadlineMs: number;
-    /** `x-haus-mcp-request-id`: stable across the Computer's retries of one invocation. */
-    requestId: string | undefined;
-    serverId: string;
-    toolName: string;
-}
-
-/**
- * A built-in connection's per-call transport (specs/linear-app.md#per-request-actor-transport):
- * it chooses each request's `_meta`, may resend once, and answers only what
- * the Agent may see. Credentials it puts in `_meta` never appear in what it
- * answers or throws.
- */
-export interface McpToolCallTransport {
-    call(
-        call: McpToolCall,
-        send: (meta: Record<string, unknown>) => Promise<McpToolResult>
-    ): Promise<unknown>;
-}
-
-/** Calls the tool directly, or through its connection's transport when it has one. */
-export async function callModelTool(
-    client: Client,
-    tool: Tool,
-    call: McpToolCall,
-    options: McpRequestOptions,
-    transport: McpToolCallTransport | undefined
-): Promise<unknown> {
-    const send = (meta?: Record<string, unknown>) =>
-        callMcpTool(client, {
-            arguments: call.arguments,
-            definition: tool,
-            meta,
-            name: tool.name,
-            options,
-        });
-    return transport ? await transport.call(call, send) : await send();
-}
-
-/**
- * One `tools/call`. `meta` is request `_meta` a built-in connection's
- * transport supplies per call (it can carry a credential): it goes on the
- * wire and nowhere else.
- */
+/** One `tools/call`. */
 export async function callMcpTool(
     client: Client,
     request: {
         arguments: Record<string, unknown>;
         name: string;
         definition?: Tool;
-        meta?: Record<string, unknown>;
         options: McpRequestOptions;
     }
 ) {
     return await client.callTool(
-        {
-            arguments: request.arguments,
-            name: request.name,
-            ...(request.meta ? { _meta: request.meta } : {}),
-        },
+        { arguments: request.arguments, name: request.name },
         { ...request.options, toolDefinition: request.definition }
     );
 }

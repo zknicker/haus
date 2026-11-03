@@ -16,7 +16,6 @@ import { AgentCliError } from '../agent-error.ts';
 import { formatUtcTime } from '../agent-format.ts';
 import type { ParsedArgs } from '../parse.ts';
 import { readKind, readTriggerConfig } from './agent-trigger-config.ts';
-import { linearProblemFix } from './agent-trigger-linear-view.ts';
 import { describeTrigger, problemFix } from './agent-trigger-view.ts';
 
 // Request and render logic behind `haus trigger`. Trigger mutations are
@@ -52,9 +51,8 @@ export async function runTriggerCreate(args: ParsedArgs, deps: TriggerDeps): Pro
         body,
         method: 'POST',
     });
-    const source = config.kind === 'github' ? 'GitHub' : 'Linear';
     deps.write(
-        `Created. ${describeTrigger(response.trigger)}\nNo URL or secret: ${source} deliveries reach you directly. Check fires with haus trigger log --id ${response.trigger.id}.\n`
+        `Created. ${describeTrigger(response.trigger)}\nNo URL or secret: GitHub deliveries reach you directly. Check fires with haus trigger log --id ${response.trigger.id}.\n`
     );
     return 0;
 }
@@ -87,9 +85,6 @@ export async function runTriggerShow(args: ParsedArgs, deps: TriggerDeps): Promi
     }
     if (trigger.kind === 'github' && trigger.github.problem) {
         lines.push(`Not firing. ${problemFix(trigger.github.problem)}`);
-    }
-    if (trigger.kind === 'linear' && trigger.linear.problem) {
-        lines.push(`Not firing. ${linearProblemFix(trigger.linear.problem)}`);
     }
     deps.write(`${lines.join('\n')}\n`);
     return 0;
