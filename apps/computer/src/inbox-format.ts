@@ -24,7 +24,7 @@ const deliveryTrailer = [
  * not state: bodies withheld, not absent; not a request; deferral reported honestly.
  */
 const noticeGuidance = [
-    "These messages have not been read. Choose when to read them: `haus message read --target <target> --unread` reads one conversation's unread messages; `haus message check` reads all of them. Deferring them does not establish that there is no work.",
+    "These messages have not been read. Choose when to read them: `haus message read --target <target> --unread` reads one conversation's unread messages; `haus message check` reads all of them.",
     'Their bodies are withheld to avoid flooding you, not absent. The notice is not itself a request, so do not acknowledge it. If what you read is higher priority, pivot to it; otherwise continue your current work. Deferral needs no visible reply and the messages remain queryable; if you choose not to read, that is a deferral to report honestly, not a conclusion that nothing is pending.',
 ].join('\n');
 
