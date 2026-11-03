@@ -100,7 +100,8 @@ quiet, not evidence of a lost run.
 once at dispatch in `agent_run_triggers` so it survives a failed run requeueing its
 rows: `{ kind: 'message', author: 'human' | 'agent', chatId, messageId, preview }`,
 `{ kind: 'task', chatId, messageId, preview }` (the task's message), or
-`{ kind: 'reminder' | 'trigger' | 'cloud_agent' | 'onboarding', chatId }`, or one of the chatless
+`{ kind: 'reminder' | 'trigger' | 'cloud_agent' | 'onboarding' | 'greeting', chatId }` (`greeting`
+is a new Agent's one-time `#all` wake when it led the run alone), or one of the chatless
 sources (`dream`, `heartbeat`, `heartbeat_report`, `subagent`), whose runs need no Chat visibility to read ([workspace](../../specs/workspace.md#dreaming),
 [heartbeat](../../specs/heartbeat.md), [runtime drivers](../../specs/runtime-drivers.md#background-work)).
 The heartbeat family carries what the run came to, so the Activity Log can say it under the
