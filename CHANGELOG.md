@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v16.6.3 - 2026-11-03
+
+- After an Agent leaves a Channel, `haus reminder list`, `log`, `update`, and `cancel` keep working for reminders it can still reach. Settled reminders in Chats it left are omitted from the list; still-scheduled ones show as `anchor not accessible` and can still be canceled.
+
 ## v16.6.2 - 2026-11-03
 
 - Claude cloud agents start with the same Claude login as the Computer's Claude Code Agents, so a stale login left in Claude Code's own store no longer makes every launch fail with 401. Update Haus Computer to 13.0.2.

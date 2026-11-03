@@ -72,6 +72,12 @@ new command id.
 - **Retries never duplicate.** Every schedule and change carries an idempotency
   key; a retried request returns the original reminder, and reusing the key for
   different input is refused ([Agents API](../api/agents.md#reminder-routes)).
+- **Left Chats do not brick management.** `haus reminder list` and `log` check
+  access per reminder. Settled reminders anchored in a Chat the author left are
+  omitted; still-scheduled ones stay listed and print as anchored in
+  `anchor not accessible`. Update and snooze still need the anchor Chat;
+  cancel does not, so the author can clean up. One inaccessible reminder never
+  fails management or firing of the author's other reminders.
 - **Durable history.** PostgreSQL stores schedules, commands, fire logs, message
   provenance, pending attention, and durable reminder change events. Every fire
   is recorded, answered or not, so the run history is where "did it fire?" is

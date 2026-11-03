@@ -59,14 +59,19 @@ those is one a human asked for.
   from now when omitted, refused when supplied off-slot (ADR 0040).
 - A delayed Server fires one overdue logical slot, then recurring schedules
   advance from the current time. Missed slots never burst.
-- An active Agent may schedule, list, inspect logs, snooze, update, or cancel
-  only its own reminders and only while it can access the anchor. Owner and
-  Admin operators may list all Server reminders, inspect fire logs, and
-  cancel. Ordinary Members and cross-Server callers cannot.
+- An active Agent may schedule, snooze, or update only its own reminders and
+  only while it can access the anchor. List and log check access per reminder:
+  settled reminders whose anchor the author can no longer reach are omitted;
+  still-scheduled ones stay visible and are marked `anchor not accessible` on
+  the Agent CLI when the Chat is gone. Cancel is ownership-only so an author
+  can clean up after leaving a Chat. Owner and Admin operators may list all
+  Server reminders, inspect fire logs, and cancel. Ordinary Members and
+  cross-Server callers cannot.
 - Losing anchor access or retiring an Agent cancels each still-scheduled
   reminder when the scheduler next considers it due. That cancellation removes
   the reminder's unacknowledged attention snapshots; historical fire rows
-  remain.
+  remain. One inaccessible reminder never fails list, log, update, snooze,
+  cancel, or fire for the author's other reminders.
 - Commands carry an idempotency key and expected version. A repeated identical
   command returns its original result; reused input conflicts. PostgreSQL row
   locks serialize mutation/fire races. Every reminder write locks its Server
