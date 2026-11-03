@@ -61,37 +61,15 @@ export async function createChannel(
             throw new ChannelAgentNotFoundError();
         }
 
-        const id = createOpaqueId('cht');
-        try {
-            await tx.insert(chatsTable).values({
-                color: input.color ?? null,
-                description: input.description ?? null,
-                icon: input.icon ?? null,
-                id,
-                kind: 'channel',
-                name: input.name,
-                serverId: input.serverId,
-            });
-        } catch (error) {
-            if (violatesConstraint(error, 'chats_server_channel_name_key')) {
-                throw new ChannelNameTakenError();
-            }
-            throw error;
-        }
-
-        await tx.insert(channelParticipantsTable).values({
-            chatId: id,
+        return await insertChannel(tx, {
+            agentIds,
+            color: input.color,
+            description: input.description,
+            icon: input.icon,
+            name: input.name,
             serverId: input.serverId,
-            userId: member.id,
+            userIds: [member.id],
         });
-        await tx
-            .insert(channelAgentParticipantsTable)
-            .values(agentIds.map((agentId) => ({ agentId, chatId: id, serverId: input.serverId })));
-        for (const agentId of agentIds) {
-            await openAgentChatRead(tx, { agentId, chatId: id, serverId: input.serverId });
-        }
-        const event = prepareLifecycleEvent({ chatId: id, serverId: input.serverId }, 'created');
-        return { chatId: id, event };
     });
 
     const channel = (await listChats(db, member, input.serverId)).find(
@@ -101,4 +79,58 @@ export async function createChannel(
         throw new Error('Failed to open the new channel.');
     }
     return { chat: channel, event: created.event };
+}
+
+/** The participants and appearance one new channel starts with, already authorized. */
+export interface NewChannel {
+    agentIds: string[];
+    color?: ChannelCreateInput['color'];
+    description?: ChannelCreateInput['description'];
+    icon?: ChannelCreateInput['icon'];
+    name: string;
+    serverId: string;
+    userIds: string[];
+}
+
+/**
+ * The one write seam for a new channel, shared by the human dialog and
+ * `haus channel create`. The caller holds the Server lock and has authorized
+ * every participant; a human sees a channel only as its participant, so each
+ * caller names at least one human.
+ */
+export async function insertChannel(
+    tx: HausDatabase,
+    input: NewChannel
+): Promise<{ chatId: string; event: PreparedRealtimeEvent }> {
+    const id = createOpaqueId('cht');
+    try {
+        await tx.insert(chatsTable).values({
+            color: input.color ?? null,
+            description: input.description ?? null,
+            icon: input.icon ?? null,
+            id,
+            kind: 'channel',
+            name: input.name,
+            serverId: input.serverId,
+        });
+    } catch (error) {
+        if (violatesConstraint(error, 'chats_server_channel_name_key')) {
+            throw new ChannelNameTakenError();
+        }
+        throw error;
+    }
+
+    await tx
+        .insert(channelParticipantsTable)
+        .values(input.userIds.map((userId) => ({ chatId: id, serverId: input.serverId, userId })));
+    await tx
+        .insert(channelAgentParticipantsTable)
+        .values(
+            input.agentIds.map((agentId) => ({ agentId, chatId: id, serverId: input.serverId }))
+        );
+    for (const agentId of input.agentIds) {
+        await openAgentChatRead(tx, { agentId, chatId: id, serverId: input.serverId });
+    }
+    const event = prepareLifecycleEvent({ chatId: id, serverId: input.serverId }, 'created');
+    return { chatId: id, event };
 }

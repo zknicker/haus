@@ -433,6 +433,8 @@ GET  /api/agent/messages/{id}      (short or full id; 409 AMBIGUOUS_ID)
 GET  /api/agent/server             ?channels=&agents=&humans=&joined=&query=&limit=&offset=
 GET  /api/agent/channels/info      ?target=
 GET  /api/agent/channels/members   ?target=
+POST /api/agent/channels/create    { name, humans, description? }
+                                   → { target, humans, description }
 GET  /api/agent/events             (message check drain — WS4)
 GET  /api/agent/inbox              (pending peek: not-yet-delivered rows)
 GET  /api/agent/inbox/conversations ?view=unread|mentions&before=  (inbox check;

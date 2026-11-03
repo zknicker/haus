@@ -902,6 +902,26 @@ paths:
                 $ref: '#/components/schemas/AgentChannelMembers'
         default:
           $ref: '#/components/responses/AgentError'
+  /api/agent/channels/create:
+    post:
+      operationId: createAgentChannel
+      tags: [Agent CLI]
+      summary: Create a channel the calling Agent and the named humans join.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentCreateChannelRequest'
+      responses:
+        '200':
+          description: The new channel and the humans in it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentCreateChannelResponse'
+        default:
+          $ref: '#/components/responses/AgentError'
   /api/agent/channels/add:
     post:
       operationId: addAgentToChannel
@@ -1901,6 +1921,29 @@ components:
         reasoningEffort: { type: string, enum: [default, low, medium, high, xhigh, max] }
         runtimeId: { type: string }
         target: { type: string, minLength: 1 }
+    AgentCreateChannelRequest:
+      type: object
+      additionalProperties: false
+      required: [humans, name]
+      properties:
+        description: { type: string, minLength: 1, maxLength: 500 }
+        humans:
+          type: array
+          minItems: 1
+          maxItems: 10
+          description: Humans who join the channel, by `@handle`; a human sees a channel only as its participant.
+          items: { type: string, minLength: 1, maxLength: 64 }
+        name: { type: string, pattern: '^[A-Za-z0-9][A-Za-z0-9_-]{0,31}$' }
+    AgentCreateChannelResponse:
+      type: object
+      additionalProperties: false
+      required: [description, humans, target]
+      properties:
+        description: { type: [string, 'null'], minLength: 1, maxLength: 500 }
+        humans:
+          type: array
+          items: { type: string, minLength: 2, maxLength: 31 }
+        target: { type: string, pattern: '^#[A-Za-z0-9][A-Za-z0-9_-]{0,31}$' }
     AgentAddChannelAgentRequest:
       type: object
       additionalProperties: false

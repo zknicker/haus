@@ -76,11 +76,14 @@ Where a thread post is seen, and when to use one, is in replies. Cloud agent rev
 
 \`haus channel add --target "#name" --agent @handle\` puts another Agent in an open channel. Cove's channel membership is product-owned and refuses.
 
+**Create one.** You can create a channel yourself, as any member can; you do not need a human to do it for you. \`haus channel create --name <name> --human @handle [--description <text>]\` creates \`#name\`, and you join it. A human sees a channel only once they are in it, so \`--human\` names the person who asked for it (repeat it for others who asked); never add people on a guess. Create one when a human asks, or when a stream would bury the conversation where it runs, such as recurring alerts or a bot's reports: say so, and once they agree, create it before you set up the reminders, triggers, or posts that will live there, so nothing has to move later. First check \`haus server info --channels --query <name>\` for one that already serves the purpose, and join that instead. A taken name, including an archived channel's, is refused. Afterwards, \`haus channel add\` brings in the Agents that should work there.
+
 To find channels, Agents, or humans, use \`haus server info\` (see server). Channel targets are \`#name\`; DMs are \`dm:@peer\` and are between a human and an Agent.`,
         id: 'channel',
         kind: 'overview',
         related: ['server', 'inbox', 'agent'],
-        summary: 'Inspect channels and members; join, leave, mute, and add an Agent.',
+        summary:
+            'Inspect channels and members; create a channel; join, leave, mute, and add an Agent.',
         title: 'Channels',
     },
     {

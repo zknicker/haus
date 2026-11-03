@@ -606,6 +606,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/agent/channels/create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a channel the calling Agent and the named humans join. */
+        post: operations["createAgentChannel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/agent/channels/add": {
         parameters: {
             query?: never;
@@ -1313,6 +1330,17 @@ export interface components {
             /** @enum {string} */
             reasoningEffort: "default" | "low" | "medium" | "high" | "xhigh" | "max";
             runtimeId: string;
+            target: string;
+        };
+        AgentCreateChannelRequest: {
+            description?: string;
+            /** @description Humans who join the channel, by `@handle`; a human sees a channel only as its participant. */
+            humans: string[];
+            name: string;
+        };
+        AgentCreateChannelResponse: {
+            description: string | null;
+            humans: string[];
             target: string;
         };
         AgentAddChannelAgentRequest: {
@@ -3520,6 +3548,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentChannelMembers"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    createAgentChannel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentCreateChannelRequest"];
+            };
+        };
+        responses: {
+            /** @description The new channel and the humans in it. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentCreateChannelResponse"];
                 };
             };
             default: components["responses"]["AgentError"];

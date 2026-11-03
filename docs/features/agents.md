@@ -176,6 +176,14 @@ avatar is generated, and the receipt lists the channels the Agent landed in.
 afterwards: any active Agent may add any active Agent, the add is idempotent,
 and it wakes nobody.
 
+An Agent can create a channel itself with
+`haus channel create --name <name> --human @handle [--description <text>]`, as any
+Server member can in the App. The Agent joins it, and so does each named human,
+because a human sees a channel only once they are in it. The Manual's
+`channel` topic tells Agents to name the human who asked, to check
+`haus server info --channels` for an existing channel first, and to create the
+channel before setting up the reminders or triggers that will post there.
+
 No human created the Agent, so the Server names the human its Owner DM belongs
 to at creation: the human of the DM the create ran in, then the one human the
 creating Agent already DMs with, and finally the Server Owner. The DM record is
