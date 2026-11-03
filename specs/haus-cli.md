@@ -299,7 +299,10 @@ Flow for `message send --target <t>`:
    plus recent-unseen rows for the caller's *other* targets (the
    "may have missed" section).
 3. **Stale** → the send is **held as a server-side draft** and nothing is
-   delivered. Response carries bounded catch-up: latest N (≤12) unseen peer
+   delivered. Only messages delivered to this Agent count in a Channel (its
+   `agent_inbox` rows, Raft's attention facts), so history from before it joined
+   never holds it; a Thread counts every reply, as Raft's does. Response carries
+   bounded catch-up: latest N (≤3, Raft's held-context limit) unseen peer
    messages as history lines, counts (`Freshness hold: showing latest N of M
    newer messages.`), an omitted-earlier note when M > N, a formal-mention
    count note, and the three taught paths:
@@ -307,20 +310,23 @@ Flow for `message send --target <t>`:
    - send unchanged: `message send --send-draft --target <t>` (no stdin, no
      `--attachment-id`; violations per §5 codes);
    - stay silent: do nothing.
-   Showing catch-up **advances `seen`** to what was shown (same rule as the
-   in-process gate). Serve-time advancement is the pre-inbox approximation:
+   Showing catch-up serves the shown messages to the run and records the
+   newest as the session's held-through boundary (Raft's hold `seenUpToSeq`),
+   so a re-post is held only for newer messages; the omitted earlier ones stay
+   queued and `seen` does not pass them. Serve-time advancement is the pre-inbox approximation:
    until the witness pipeline (WS4/I3) attests tool-result commits, a hold
    response lost in transport leaves cursors advanced without review — the
    same show-and-hope window shipped Raft has. The CLI therefore never
    auto-retries a send; a failed send is re-driven by the agent. Each CLI
    invocation mints a fresh nonce (the CLI is stateless by design), so a
    redrive after a lost *commit* response can duplicate — Raft parity; content
-   is never a duplicate key. Reading the target first is the taught recovery. Each re-hold increments the draft's `reholdCount`; when
-   `reholdCount ≥ 2` the hold output additionally teaches
+   is never a duplicate key. Reading the target first is the taught recovery. Each re-hold increments the draft's `reholdCount`; from the
+   draft's fourth hold (`reholdCount ≥ 4`, Raft's "held three times before")
+   the hold output additionally teaches
    `--send-draft --anyway`, which commits despite staleness. `--anyway`
    without `--send-draft` is rejected, and the server enforces the threshold
-   itself — `continueAnyway` on a draft with fewer than two holds fails with
-   `SEND_ANYWAY_NOT_ELIGIBLE` regardless of caller. Writes to archived
+   itself — `continueAnyway` on a draft with fewer than four holds fails with
+   `SEND_ANYWAY_NOT_ELIGIBLE` regardless of caller (Raft only suggests it). Writes to archived
    targets fail with `TARGET_ARCHIVED`; reads still work.
 4. **Draft store** (server-side, per (agent, target), at most one): content,
    attachment ids, `reholdCount`, `savedAt`; TTL 10 minutes; replaced by any

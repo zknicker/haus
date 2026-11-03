@@ -23,6 +23,13 @@ export const agentInboxCursorsTable = pgTable(
     {
         agentId: text('agent_id').notNull(),
         chatId: text('chat_id').notNull(),
+        /**
+         * The newest message a freshness hold showed this session (Raft's hold
+         * `seenUpToSeq`). It bounds later freshness checks only: the earlier
+         * messages a hold omitted stay queued and unseen, and `seenUpToSequence`
+         * never moves past them.
+         */
+        heldThroughSequence: integer('held_through_sequence').notNull().default(0),
         seenUpToSequence: integer('seen_up_to_sequence').notNull().default(0),
         serverId: text('server_id').notNull(),
         sessionGeneration: integer('session_generation').notNull(),

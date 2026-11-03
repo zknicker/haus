@@ -1148,27 +1148,27 @@ test('a channel send holds a durable draft until the Agent catches up', async ()
     expect(drafts).toEqual([
         { content: '  This exact reply\n\n    keeps internal formatting.  \n\nHeld ending' },
     ]);
-
-    await owner.trpc.chat.send.mutate({
-        chatId: channelId,
-        content: 'One more update before release.',
-        nonce: 'human_hold_2',
-        serverId,
-    });
-    const reheld = await agentSend(minted.runnerToken, {
-        nonce: 'agent_hold_nonce_2',
-        sendDraft: true,
-        target: '#dispatch',
-    });
-    expect(reheld.body).toMatchObject({
-        continueAnywaySuggested: true,
-        reholdCount: 2,
-        state: 'held',
-    });
-
+    for (const reholdCount of [2, 3, 4]) {
+        await owner.trpc.chat.send.mutate({
+            chatId: channelId,
+            content: `Update ${reholdCount} before release.`,
+            nonce: `human_hold_${reholdCount}`,
+            serverId,
+        });
+        const reheld = await agentSend(minted.runnerToken, {
+            nonce: `agent_hold_nonce_${reholdCount}`,
+            sendDraft: true,
+            target: '#dispatch',
+        });
+        expect(reheld.body).toMatchObject({
+            continueAnywaySuggested: reholdCount === 4,
+            reholdCount,
+            state: 'held',
+        });
+    }
     const released = await agentSend(minted.runnerToken, {
         continueAnyway: true,
-        nonce: 'agent_hold_nonce_3',
+        nonce: 'agent_hold_nonce_release',
         sendDraft: true,
         target: '#dispatch',
     });

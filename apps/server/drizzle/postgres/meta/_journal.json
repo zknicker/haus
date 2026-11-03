@@ -764,6 +764,13 @@
       "when": 1794200000004,
       "tag": "0108_remove-linear",
       "breakpoints": true
+    },
+    {
+      "idx": 109,
+      "version": "7",
+      "when": 1794200000005,
+      "tag": "0109_freshness-hold-boundary",
+      "breakpoints": true
     }
   ]
 }
