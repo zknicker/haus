@@ -31,15 +31,19 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
   it gets a distinct continuation carrying the Run's status, summary, and branches. A
   busy Agent receives only the notice at the safe boundary and gets the concrete item on
   the next turn. The item has no Chat cursor or visible Chat receipt.
-- Chatless runs are dream, heartbeat, and heartbeat report. A dream is the nightly heartbeat;
-  a heartbeat is a daytime check-in; a heartbeat report is the inbox item a heartbeat files for
-  the main session. None has a Chat. Their start frames carry `chatId: null` and a `dream`,
-  `heartbeat`, or `heartbeatReport` attention instead of inbox items, they publish no Chat
-  lifecycle event, and their recorded triggers are `{ kind: 'dream' }`, `{ kind: 'heartbeat' }`,
-  and `{ kind: 'heartbeat_report' }`. Otherwise each is an ordinary concrete run: busy notices
-  reach it, and failure, Stop, and requeue treat it like any other ([heartbeat.md](heartbeat.md)).
-- A heartbeat (daytime or nightly) runs in its own throwaway harness session, `<agentId>-hb-<runId>`,
-  opened without resume. The main session is never touched by it: no `session.json` write, no
+- Chatless runs are dream, heartbeat, heartbeat report, and sub-agent wake. A dream is the
+  nightly heartbeat; a heartbeat is a daytime check-in; a heartbeat report is the inbox item a
+  heartbeat files for the main session; a sub-agent wake reports background work the Agent
+  started that finished or stopped ([runtime-drivers.md](runtime-drivers.md#background-work)).
+  None has a Chat. Their start frames carry `chatId: null` and a `heartbeat` (daytime or
+  nightly), `heartbeatReport`, or `subagentWake` attention instead of inbox items, they publish
+  no Chat lifecycle event, and their recorded triggers are `{ kind: 'dream' }`,
+  `{ kind: 'heartbeat' }`, `{ kind: 'heartbeat_report' }`, and `{ kind: 'subagent' }`.
+  Otherwise each is an ordinary concrete run: busy notices reach it, and failure, Stop, and
+  requeue treat it like any other ([heartbeat.md](heartbeat.md)).
+- A heartbeat (daytime or nightly) runs in its own throwaway runtime session, `<agentId>-hb-<runId>`,
+  opened without resume under its own warm-process key, so the main session's warm process and
+  its background work are untouched. The main session is never touched by it: no `session.json` write, no
   interrupt, no compaction or cache reset ([ADR 0049](../docs/adr/0049-heartbeats-run-in-throwaway-sessions.md)).
   A heartbeat report run resumes the main session.
 - A fresh session with no pending delivery starts with bare `Start.`. After a
