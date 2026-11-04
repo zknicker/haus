@@ -264,6 +264,7 @@ function item(overrides: { content?: string } = {}): ClaimListItem {
             sequence: 1,
             serverId: 'server_one',
             sessionGeneration: null,
+            taskLinks: [],
         },
         claim: {
             assigneeAgentId: null,

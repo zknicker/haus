@@ -132,6 +132,7 @@ function message(id: string, chatId: string): ChatMessage {
         sequence: 1,
         serverId: 'srv_one',
         sessionGeneration: null,
+        taskLinks: [],
     };
 }
 

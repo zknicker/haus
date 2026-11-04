@@ -86,8 +86,24 @@ event's Server. Because messages are append-only, reply-context quotes never cha
 | Change | Also invalidate |
 | --- | --- |
 | Task label renamed, recolored, or deleted | Entities whose `message.claim.labels` contains the label |
+| Board re-keyed (`board.onUpdated`) | Entities whose `message.taskLinks` name a Task on that board (each link's `key` is derived when read) |
 | Thread reply created | The anchor entity in the parent Chat (summary count and preview) |
 | Thread read or follow | The anchor entity (per-viewer `unreadCount`, `followed`) |
+
+### Board and Task streams
+
+Boards and Tasks ([specs/tasks.md](tasks.md), ADR 0051). Payloads carry ids and the new version;
+React Query owns the reads.
+
+| Procedure | Payload schema (file) | Payload fields | Audience | App response |
+| --- | --- | --- | --- | --- |
+| `board.onUpdated` | `boardUpdatedEventSchema` (`board.ts`) | `serverId`, `boardId`, `version` | Every member | **Invalidate** `board.list`, `task.list` for `boardId`, cached `task.get` on that board (a re-key re-keys its Tasks) |
+| `task.onCreated` | `taskCreatedEventSchema` (`task.ts`) | `serverId`, `boardId`, `taskId`, `version` | Every member | **Invalidate** `task.list`, `board.list` (open counts) |
+| `task.onUpdated` | `taskUpdatedEventSchema` (`task.ts`) | `serverId`, `boardId`, `taskId`, `version`; one per Task a `board.setColumns` moved or re-categorized, and one per Task a new Message references, at the same version | Every member | **Invalidate** `task.get` (taskId), `task.list`, `board.list` |
+| `taskInbox.onChanged` | `taskInboxChangedEventSchema` (`task-inbox.ts`) | `serverId`, `userId` | That person only (`audienceUserId`) | **Invalidate** `taskInbox.list` and `chat.unreadChatCount`. Publishes on assign, withdraw, clear, restore, and the assignee's move |
+
+`task.assigned` (`taskAssignedEventSchema`, `task-notification.ts`) is a Server-internal topic with
+no client stream: iPhone push is its only subscriber.
 
 ### Server-level streams
 
@@ -254,7 +270,7 @@ receives no realtime traffic.
   | Group | Streams | Count |
   | --- | --- | --- |
   | Every accessible Server | `server.onUpdated`, `member.onUpdated` | 2 × accessible Servers |
-  | Active Server, every role | `agent`, `computer`, `mcp`, `cloudAgentSettings`, `artifact` `.onUpdated`; `chat.onMessageCreated`, `chat.onMessageReactionUpdated`, `chat.onRead`, `thread.onFollowUpdated`, `chat.onLifecycle`, `claim.onChanged`, `taskLabel.onUpdated`, `cloudAgentWork.onUpdated`, `imageGeneration.onUpdated` | 14 |
+  | Active Server, every role | `agent`, `computer`, `mcp`, `cloudAgentSettings`, `artifact` `.onUpdated`; `chat.onMessageCreated`, `chat.onMessageReactionUpdated`, `chat.onRead`, `thread.onFollowUpdated`, `chat.onLifecycle`, `claim.onChanged`, `taskLabel.onUpdated`, `cloudAgentWork.onUpdated`, `imageGeneration.onUpdated`, `board.onUpdated`, `task.onCreated`, `task.onUpdated` | 17 |
   | Active Server, Owner/Admin only | `reminder.onUpdated`, `invitation.onUpdated` | 2 |
   | Active Server, kept Server-rooted | `agent.onLifecycle`, `agent.onActivity` (one mount each per window; the slice hoists duplicates) | 2 |
   | Per mounted Chat view (shown or kept, at most 5 kept) | `chat.onEngagement`, `chat.onThought`, `chat.onComposition` | 3 × mounted Chat views |

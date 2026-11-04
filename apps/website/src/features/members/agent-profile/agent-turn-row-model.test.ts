@@ -79,6 +79,15 @@ test('private and unrecorded triggers show nothing; typed work names itself', ()
     });
 });
 
+test('a board Task assignment names the Task by key and title, with no place', () => {
+    expect(
+        resolveTurnRowTitle(
+            { key: 'SEC-12', kind: 'task', taskId: 'tsk_sec_12', title: 'Rotate the deploy key' },
+            chats
+        )
+    ).toEqual({ kind: 'text', place: null, text: 'Task SEC-12 · Rotate the deploy key' });
+});
+
 test('a claim turn reads its claim message, and an attachment-only message says so', () => {
     const claim = {
         chatId: 'cht_dm',

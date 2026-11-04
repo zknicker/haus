@@ -15,6 +15,7 @@ import {
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { prepareTaskLinkEvents, readReminderTaskIds } from '../tasks/task-reference-links.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { AgentDeleteDeniedError } from './agent-config-errors.ts';
 
@@ -23,7 +24,12 @@ export async function deleteAgent(
     db: HausDatabase,
     member: HausUser | null,
     input: DeleteAgentInput
-): Promise<{ agentId: string; computerId: string; claimEvents: PreparedRealtimeEvent[] }> {
+): Promise<{
+    agentId: string;
+    claimEvents: PreparedRealtimeEvent[];
+    computerId: string;
+    taskEvents: PreparedRealtimeEvent[];
+}> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const server = await requireServerMembership(tx, member, input.serverId);
@@ -83,7 +89,7 @@ export async function deleteAgent(
                     eq(reminderAgentAttentionTable.agentId, agent.id)
                 )
             );
-        await tx
+        const canceled = await tx
             .update(remindersTable)
             .set({ status: 'canceled', updatedAt: new Date() })
             .where(
@@ -92,7 +98,15 @@ export async function deleteAgent(
                     eq(remindersTable.ownerAgentId, agent.id),
                     eq(remindersTable.status, 'scheduled')
                 )
-            );
+            )
+            .returning({ id: remindersTable.id });
+        const taskEvents = await prepareTaskLinkEvents(tx, {
+            serverId: input.serverId,
+            taskIds: await readReminderTaskIds(tx, {
+                reminderIds: canceled.map((reminder) => reminder.id),
+                serverId: input.serverId,
+            }),
+        });
         await tx
             .delete(channelAgentParticipantsTable)
             .where(
@@ -125,6 +139,6 @@ export async function deleteAgent(
                 retiredAt: new Date(),
             })
             .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, agent.id)));
-        return { agentId: agent.id, computerId: agent.computerId, claimEvents };
+        return { agentId: agent.id, claimEvents, computerId: agent.computerId, taskEvents };
     });
 }

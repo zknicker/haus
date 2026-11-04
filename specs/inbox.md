@@ -37,6 +37,7 @@ ordinary Chat work, the rendered envelope as its content, and the recipient Agen
 | `onboarding` | Cove's one-shot bootstrap instruction | Its own bootstrap identity | Concrete |
 | `dream` | One nightly dreaming turn the Agent's Computer requested ([workspace.md](workspace.md#dreaming)); no Chat | `dream:<agentId>:<Computer-local date>` | Concrete; queued even while the Agent is busy or has work waiting, then ordered like any other concrete item. Never listed in a notice, the digest, or `haus inbox check` (it has no Chat). Retired as `seen` instead of led once it has been queued four hours |
 | `subagent` | A wake for background work the Agent started on its runtime that finished or stopped ([runtime-drivers.md](runtime-drivers.md#background-work)); no Chat | `subagent:<agentId>:<wake id>` | Concrete; at most one queued per Agent, only for the current session generation. Never in a notice, the digest, or `haus inbox check`. Spends the automation chain; refused, not queued, at the chain ceiling. Retired by Stop, a session reset, or a run that adopted the turn it was for |
+| `task_assignment` | A board Task assigned to this Agent ([tasks.md](tasks.md)); no Chat | `task-assign:<taskId>:<version>` | Concrete, and the one kind that coalesces: every queued assignment rides one run in the main session, up to 50. A busy Agent gets a count in its notice, never a row. Not in the digest or `haus inbox check`. Retired by reassigning or unassigning before a run takes it |
 
 Only ordinary Chat work is backed by a `chat_messages` row; the rest exist solely
 here, because a fact only an Agent needs is never written to a transcript humans read
@@ -107,13 +108,24 @@ A durable `message.created` is planned once by Server delivery
   pointer to answer with `haus cloud-agent send`. It settles like the
   other concrete kinds; the result the human sees is whatever ordinary Message the woken Agent
   decides to post.
+- Assigning a board Task to another Agent queues one `task_assignment` item for that Agent, with
+  `mentioned=true`. It has no Chat, so the row holds its typed attention as JSON rather than an
+  envelope: the Task's key, title, board, column, priority, and the assigner's handle as they stood
+  when assigned. Self-assignment queues nothing. Reassigning or unassigning retires a queued item;
+  a run that already holds it keeps it, and a failed run forgets it on requeue
+  (`retireStaleRequeuedItems`), as it does when the same Agent already holds a newer assignment of
+  the Task. An assignment an Agent made is Agent-authored traffic and spends the automation chain;
+  one a person made resets it ([chain budget](github-triggers.md#automation-chain-budget)).
 - After planning, ordinary Chat work gives an idle Agent a notice turn and a busy Agent receives the
   same notice in its live turn. Concrete work — a settled Cloud Agent Run, an automation fire, a
   claim assignment — is the typed exception: an idle recipient receives the item's own envelope as
   the prompt of a distinct turn; a busy recipient receives only the content-free notice at a safe
   boundary, then the still-queued item in the next turn. A concrete drain never mixes kinds, so each
   concrete item earns its own dedicated wake, and a human drain never shares a run with a fire, which
-  is what keeps the sole-fire cause inference readable. An automation
+  is what keeps the sole-fire cause inference readable. Task assignments are the one batch: all
+  queued rows ride one chatless run, whose start frame carries them as `taskAssignments`, so ten
+  assignments wake an idle Agent once. That run resumes the main session, like a heartbeat report,
+  and the Computer renders one envelope line per Task and a one-line instruction. An automation
   fire's envelope prints `msg=-`, since a fire has no Chat message to address; its id rides the
   envelope's own `fire=` and `--cause` lines. Humans keep their own read/unread system; the inbox is
   agent-only state.
@@ -215,6 +227,12 @@ If the runtime cannot accept mid-turn notices or the turn ends first, the notice
 remains unacknowledged and is offered by the next turn in the same session.
 Runtime acceptance must be acknowledged; writing to an adapter's local input
 queue is insufficient. A notice advances no cursor.
+
+Task assignments have no target to list under, so the notice frame carries them beside its rows as
+`taskAssignments: { ids, total }`, and a notice may carry only that. The Agent reads one line, `N
+tasks assigned to you`, and the Tasks themselves arrive in its next turn. The ack covers those ids
+like any row, which stops the count repeating. The Computer keeps the count in its pending mirror
+and drops it when a Task assignment run is accepted.
 
 The notice carries its own handling guidance after the closing `]`, as Raft's inbox update does,
 so the standing system prompt keeps only the collaboration principle (collaborate
@@ -321,6 +339,7 @@ turn starts when its creator sends the working brief.
 | A single-Agent channel addresses `sole` without Jev for one human and judges it at the gate for more | `apps/server/test/haus-message-routing-sole.test.ts` |
 | A Thread mention without visible context carries a bounded, budgeted package rendered once per Thread | `apps/server/test/agent-thread-context.test.ts`, `apps/computer/src/thread-context-format.test.ts` |
 | The unread digest excludes notice-row chats and drained ids, so a bounded drain's remainder still shows | `apps/server/test/agent-inbox-digest.test.ts` |
+| Assignments coalesce into one main-session run, a busy Agent gets a count then the Tasks, and reassigning retires a queued item | `apps/server/test/haus-task-agent-delivery.test.ts`, `apps/computer/src/harness/task-assignment-turn.test.ts`, `apps/computer/src/inbox-store-task-assignments.test.ts` |
 
 ## Presentation split (I1/I4)
 

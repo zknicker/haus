@@ -98,7 +98,7 @@ export async function createAgentClaims(
             if (!numberedChat) {
                 throw new AgentClaimError('That claim target no longer exists.');
             }
-            const { cloudLinks, content, imageLinks } = await resolveMessageLinks(tx, {
+            const { cloudLinks, content, imageLinks, taskLinks } = await resolveMessageLinks(tx, {
                 author: { agentId: runner.agentId, kind: 'agent' },
                 content: title.trim(),
                 serverId: runner.serverId,
@@ -126,6 +126,7 @@ export async function createAgentClaims(
                 imageLinks,
                 messageId,
                 serverId: runner.serverId,
+                taskLinks,
             });
             // Own messages count as read; unseen messages from others below stay unread.
             await advanceAgentChatReadsSeen(tx, {
@@ -240,6 +241,7 @@ export async function createAgentClaims(
                     cloudLinks,
                     imageLinks,
                     serverId: runner.serverId,
+                    taskLinks,
                 }))
             );
             const [claim] = await tx

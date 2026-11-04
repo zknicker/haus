@@ -114,7 +114,7 @@ export async function createClaim(
             throw new Error('Failed to allocate claim-message identity.');
         }
 
-        const { cloudLinks, content, imageLinks } = await resolveMessageLinks(tx, {
+        const { cloudLinks, content, imageLinks, taskLinks } = await resolveMessageLinks(tx, {
             author: { kind: 'user', userId: member.id },
             content: input.content,
             serverId: input.serverId,
@@ -138,6 +138,7 @@ export async function createClaim(
             imageLinks,
             messageId: message.id,
             serverId: input.serverId,
+            taskLinks,
         });
 
         await tx.insert(messageClaimsTable).values({
@@ -193,6 +194,7 @@ export async function createClaim(
                     cloudLinks,
                     imageLinks,
                     serverId: input.serverId,
+                    taskLinks,
                 })),
             ],
             idempotent: false,

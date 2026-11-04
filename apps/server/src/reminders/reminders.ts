@@ -10,9 +10,10 @@ import {
 } from '../postgres/schema.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { recordTaskReminderLinks } from '../tasks/task-reference-links.ts';
 import { parseReminderRepeat } from './cadence.ts';
 import { lockReminderCommand, parseReminderCommandResult } from './mutations.ts';
-import { prepareReminderEvent } from './reminder-events.ts';
+import { prepareReminderEvents } from './reminder-events.ts';
 import {
     agentCanAccessAnchor,
     type Reminder,
@@ -193,6 +194,11 @@ export async function scheduleReminder(
         if (!(reminder && anchorChat)) {
             throw new Error('Failed to schedule the reminder.');
         }
+        await recordTaskReminderLinks(tx, {
+            description: reminder.description,
+            reminderId: reminder.id,
+            serverId: input.serverId,
+        });
         const shapedReminder = toReminder(reminder, agent.handle);
 
         await tx.insert(reminderCommandsTable).values({
@@ -209,14 +215,13 @@ export async function scheduleReminder(
             serverId: input.serverId,
         });
 
-        const reminderEvent = prepareReminderEvent({
-            action: 'scheduled',
-            ownerAgentId: agentId,
-            reminderId,
-            serverId: input.serverId,
-        });
         return {
-            events: [reminderEvent],
+            events: await prepareReminderEvents(tx, {
+                action: 'scheduled',
+                ownerAgentId: agentId,
+                reminderId,
+                serverId: input.serverId,
+            }),
             idempotent: false,
             reminder: shapedReminder,
         };

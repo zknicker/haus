@@ -50,6 +50,11 @@ export function resolveTurnRowTitle(
     if (trigger.kind === 'subagent') {
         return { kind: 'text', place: null, text: 'Sub-agent finished' };
     }
+    // A board Task assignment has no Chat; boards are visible to every member, so
+    // the trigger carries the Task's key and title.
+    if (trigger.kind === 'task') {
+        return { kind: 'text', place: null, text: `Task ${trigger.key} · ${trigger.title}` };
+    }
     const chat = chats.get(trigger.chatId);
     const place = chat ? chatPlace(chat) : null;
     if (trigger.kind === 'message' || trigger.kind === 'claim') {

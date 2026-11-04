@@ -50,4 +50,5 @@ export const migrationsSince0060 = [
     '0107_background-tasks',
     '0108_remove-linear',
     '0109_rename-tasks-to-claims',
+    '0110_task-boards',
 ];

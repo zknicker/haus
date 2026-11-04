@@ -1,4 +1,4 @@
-import type { CloudAgentBranch } from '@haus/api';
+import type { AgentTaskAssignment, CloudAgentBranch } from '@haus/api';
 import type { UnreadElsewhere } from './agent-commands.ts';
 import type { AgentCloudAgentWorkAttention, AgentInboxItem } from './agent-inbox-item.ts';
 import {
@@ -27,6 +27,13 @@ const noticeGuidance = [
     "These messages have not been read. Choose when to read them: `haus message read --target <target> --unread` reads one conversation's unread messages; `haus message check` reads all of them. Deferring them does not establish that there is no work.",
     'Their bodies are withheld to avoid flooding you, not absent. The notice is not itself a request, so do not acknowledge it. If what you read is higher priority, pivot to it; otherwise continue your current work. Deferral needs no visible reply and the messages remain queryable; if you choose not to read, that is a deferral to report honestly, not a conclusion that nothing is pending.',
 ].join('\n');
+
+/** Assignments are concrete work: they arrive in a turn of their own, so nothing is pulled. */
+const taskAssignmentNoticeGuidance =
+    'Their details arrive in your next turn. Keep working; the notice is not itself a request, so do not acknowledge it.';
+
+const taskAssignmentGuidance =
+    'Pick one by priority, then age. Move that one card to an active column and work it.';
 
 /** Exact model-visible drain shape from specs/inbox.md. */
 export function composeInboxDrain(items: AgentInboxItem[]): string {
@@ -80,14 +87,21 @@ export function formatUnreadElsewhere(entries: UnreadElsewhere[]): string | null
 
 /**
  * Content-free, target-level notice, closed by its handling guidance. Bodies never enter this
- * projection.
+ * projection. Queued Task assignments, which have no target to list under, add one count line.
  */
 export function composeInboxNotice(
     items: AgentInboxItem[],
-    totalPending = items.length
+    totalPending = items.length,
+    taskAssignments = 0
 ): string | null {
+    const taskLines =
+        taskAssignments > 0
+            ? [`${taskAssignments} ${plural(taskAssignments, 'task')} assigned to you`]
+            : [];
     if (items.length === 0) {
-        return null;
+        return taskLines.length > 0
+            ? ['[Haus inbox notice:', ...taskLines, ']', taskAssignmentNoticeGuidance].join('\n')
+            : null;
     }
     const hasAttention = items.some(isAttention);
     const targets = new Map<string, AgentInboxItem[]>();
@@ -120,9 +134,34 @@ export function composeInboxNotice(
             ? `Inbox update: ${totalPending} pending ${plural(totalPending, 'work item')} total; ${targets.size} changed ${plural(targets.size, 'target')}`
             : `Inbox update: ${totalPending} unread ${plural(totalPending, 'message')} total; ${targets.size} changed ${plural(targets.size, 'target')}`,
         ...lines,
+        ...taskLines,
         ']',
         noticeGuidance,
+        ...(taskLines.length > 0 ? [taskAssignmentNoticeGuidance] : []),
     ].join('\n');
+}
+
+/**
+ * The input of a Task assignment run: one line per Task, then how to take them. Each line is
+ * the envelope the contract names, built here from the typed attention. A title or name can
+ * hold anything a person typed, so none may open a new line or close the bracket.
+ */
+export function composeTaskAssignmentInput(assignments: readonly AgentTaskAssignment[]): string {
+    return [...assignments.map(formatTaskAssignment), '', taskAssignmentGuidance].join('\n');
+}
+
+function formatTaskAssignment(task: AgentTaskAssignment): string {
+    const assignedBy = task.assignedBy ? ` assignedBy=@${task.assignedBy}` : '';
+    const fields = `board=${headerValue(task.board)} column=${headerValue(task.column)} priority=${task.priority}${assignedBy}`;
+    return `[Haus task assignment ${task.key} ${fields}] ${flattened(task.title)}`;
+}
+
+function headerValue(value: string): string {
+    return flattened(value).replaceAll(/[[\]]/gu, '');
+}
+
+function flattened(value: string): string {
+    return value.replaceAll(/\s+/gu, ' ').trim();
 }
 
 function plural(count: number, singular: string): string {

@@ -1,6 +1,7 @@
 import {
     agentUpdatedEventSchema,
     artifactUpdatedEventSchema,
+    boardUpdatedEventSchema,
     chatLifecycleEventSchema,
     chatReadEventSchema,
     claimChangedEventSchema,
@@ -15,7 +16,11 @@ import {
     messageReactionUpdatedEventSchema,
     reminderUpdatedEventSchema,
     serverUpdatedEventSchema,
+    taskAssignedEventSchema,
+    taskCreatedEventSchema,
+    taskInboxChangedEventSchema,
     taskLabelUpdatedEventSchema,
+    taskUpdatedEventSchema,
     threadFollowUpdatedEventSchema,
 } from '@haus/api';
 import { createTopic } from './topic.ts';
@@ -68,3 +73,12 @@ export const cloudAgentSettingsUpdatedTopic = createTopic(
     'cloudAgentSettings.updated',
     cloudAgentSettingsUpdatedEventSchema
 );
+
+// Boards and Tasks (ADR 0051).
+export const boardUpdatedTopic = createTopic('board.updated', boardUpdatedEventSchema);
+export const taskCreatedTopic = createTopic('task.created', taskCreatedEventSchema);
+export const taskUpdatedTopic = createTopic('task.updated', taskUpdatedEventSchema);
+/** Assignee only: published with the person as `audienceUserId`. */
+export const taskInboxChangedTopic = createTopic('taskInbox.changed', taskInboxChangedEventSchema);
+/** Server-internal: iPhone push listens; no client stream carries it. */
+export const taskAssignedTopic = createTopic('task.assigned', taskAssignedEventSchema);

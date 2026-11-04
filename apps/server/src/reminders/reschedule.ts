@@ -4,6 +4,7 @@ import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { reminderCommandsTable, remindersTable } from '../postgres/schema.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { recordTaskReminderLinks } from '../tasks/task-reference-links.ts';
 import { nextReminderFireAt, parseReminderRepeat, parseReminderSnooze } from './cadence.ts';
 import {
     lockReminderCommand,
@@ -11,7 +12,7 @@ import {
     ReminderVersionConflictError,
     readExistingCommand,
 } from './mutations.ts';
-import { prepareReminderEvent } from './reminder-events.ts';
+import { prepareReminderEvents } from './reminder-events.ts';
 import {
     type Reminder,
     type ReminderClock,
@@ -192,6 +193,11 @@ async function applyReschedule(
         if (!updated) {
             throw new Error('Failed to change the reminder.');
         }
+        const formerTaskIds = await recordTaskReminderLinks(tx, {
+            description: values.description,
+            reminderId: updated.id,
+            serverId: input.serverId,
+        });
         await tx.insert(reminderCommandsTable).values({
             action: change.action,
             actorId: agentId,
@@ -205,8 +211,9 @@ async function applyReschedule(
             resultSnapshot: toReminder(updated, agent.handle),
             serverId: input.serverId,
         });
-        const event = prepareReminderEvent({
+        const event = await prepareReminderEvents(tx, {
             action: change.action === 'snooze' ? 'snoozed' : 'updated',
+            formerTaskIds,
             ownerAgentId: updated.ownerAgentId,
             reminderId: updated.id,
             serverId: updated.serverId,

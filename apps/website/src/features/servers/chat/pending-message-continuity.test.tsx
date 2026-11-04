@@ -92,6 +92,7 @@ const durableMessage: ChatMessage = {
     sequence: 1,
     serverId: 'srv_1',
     sessionGeneration: null,
+    taskLinks: [],
     claim: null,
 };
 

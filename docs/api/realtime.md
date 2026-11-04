@@ -152,12 +152,13 @@ facts (`authorUserId`, `conversationKind`, `mentionedUserIds`, `replyToAuthorUse
 `threadAnchorAuthorUserId`) that `messageNotificationReason` reads. Only live events notify; a
 restart's recovery reads never do, and a message whose Chat is read through it stays silent.
 
-**iPhone push** is a Server-side consumer of the in-process `message.created` topic after commit
-(`apps/server/src/push/`), with the same rule. Delivery is best-effort; see
+**iPhone push** is a Server-side consumer of the in-process `message.created` and `task.assigned`
+topics after commit (`apps/server/src/push/`), with the same rule for messages. Delivery is best-effort; see
 [iPhone push](../operations/ios-push.md).
 
-The [Inbox](../features/inbox.md) adds no event: its Unread section and badge are `chat.list` plus
-`thread.listUnread` ([ADR 0043](../adr/0043-threads-are-unread-on-their-own.md)). Every change to
+The [Inbox](../features/inbox.md)'s Unread section and badge are `chat.list` plus
+`thread.listUnread` ([ADR 0043](../adr/0043-threads-are-unread-on-their-own.md)) and add no event;
+its Task items are `taskInbox.list`, refreshed by `taskInbox.onChanged`. Every change to
 an unread Thread already has an event: `chat.onMessageCreated` and `chat.onRead` with a non-null
 `parentChatId` (a Thread reply, a Thread read), `thread.onFollowUpdated`, and `chat.onLifecycle`
 (a parent archived, deleted, or hidden).

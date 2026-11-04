@@ -1,5 +1,5 @@
-// The attentions with no Chat (dream, heartbeat, heartbeat report, sub-agent wake) are a
-// first-party contract; `@haus/api` owns the list.
+// The attentions with no Chat (dream, heartbeat, heartbeat report, sub-agent wake, Task
+// assignment) are a first-party contract; `@haus/api` owns the list.
 import { chatlessInboxSources } from '@haus/api';
 
 /**
@@ -24,6 +24,7 @@ export const concreteInboxSources = [
     'heartbeat',
     'heartbeat_report',
     'subagent',
+    'task_assignment',
 ] as const;
 
 export function isConcreteInboxSource(source: string): boolean {
@@ -44,9 +45,10 @@ export const bodilessInboxSources = [
 ] as const;
 
 /**
- * Concrete attentions no busy notice, unread digest, or `haus inbox check` lists,
+ * Concrete attentions no notice row, unread digest, or `haus inbox check` lists,
  * because each leads its own run: Cove's bootstrap, and the chatless attentions,
- * which have no Chat to list them under.
+ * which have no Chat to list them under. Only Task assignments reach a busy Agent
+ * at all, as a bare count beside those rows (`planBusyNotice`).
  */
 export const noticelessInboxSources = ['onboarding', ...chatlessInboxSources] as const;
 

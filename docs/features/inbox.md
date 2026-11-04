@@ -308,12 +308,13 @@ stops the next notification; only a message already read is not notified.
   push waits about 4 seconds and is skipped if the human has read the message by then anywhere —
   typically a focused App window that has the Chat (or the Thread) open. The
   title is the author, plus ` in #channel` outside a DM; the body is a plain-text preview cut to
-  180 characters; the badge is the human's unread Chats plus unread Threads across every Server —
-  the same count the sidebar badge shows per Server, summed. The app sets its icon from the same Server count
+  180 characters; the badge is the human's unread Chats, unread Threads, and uncleared Task items
+  across every Server. The app sets its icon from the same Server count
   (`chat.unreadChatCount`), so a badge never shrinks when the app opens. Pushes group by conversation and collapse by message id, and a
   tap opens the conversation (or Thread). The human's own messages, Chats they cannot see, and
   archived Chats never push. The Server sends only when an APNs key is configured; see
-  [iPhone Push](../operations/ios-push.md).
+  [iPhone Push](../operations/ios-push.md). A Task someone else assigned the human pushes too,
+  titled `<assigner> assigned you SEC-12`, unless its Inbox item clears within the same wait.
 - **iPhone Focus**: a push tells iOS why it addresses the human. A DM breaks through a Focus when
   its sender is an allowed person; in a Channel or Thread, only a mention of the human or a reply
   to their message does (for an allowed sender). Haus never marks pushes Time Sensitive.

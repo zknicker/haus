@@ -59,6 +59,7 @@ function claimItem(): ClaimListItem {
             sequence: 1,
             serverId: 'server_one',
             sessionGeneration: null,
+            taskLinks: [],
             claim,
         },
         claim,

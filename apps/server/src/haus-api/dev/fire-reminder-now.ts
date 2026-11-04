@@ -3,7 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { remindersTable } from '../../postgres/schema.ts';
 import { publishRealtime } from '../../realtime/topic.ts';
-import { prepareReminderEvent } from '../../reminders/reminder-events.ts';
+import { prepareReminderEvents } from '../../reminders/reminder-events.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
 import { lockServerRow } from '../../servers/server-lock.ts';
 import { memberProcedure } from '../server/procedure.ts';
@@ -65,7 +65,7 @@ export const fireReminderNowRoute = memberProcedure
             return moved;
         });
         publishRealtime(
-            prepareReminderEvent({
+            await prepareReminderEvents(ctx.hausDb, {
                 action: 'updated',
                 ownerAgentId: updated.ownerAgentId,
                 reminderId: updated.id,

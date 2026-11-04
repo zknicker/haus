@@ -87,6 +87,7 @@ function layout(id: string): ChatMessageLayout {
         sequence: Number(id.slice(-1)),
         serverId: 'srv_1',
         sessionGeneration: null,
+        taskLinks: [],
         claim: null,
     };
     return toChatMessageLayout(message);

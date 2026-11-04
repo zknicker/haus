@@ -1,5 +1,9 @@
 import * as z from 'zod';
 import { agentInboxItemSchema, unreadElsewhereSchema } from './agent-inbox.ts';
+import {
+    agentTaskAssignmentNoticeSchema,
+    agentTaskAssignmentsSchema,
+} from './agent-task-assignment.ts';
 import { idSchema } from './chat.ts';
 import { timestampSchema } from './chat-contract-primitives.ts';
 import { connectionChipKindSchema } from './connection-chips.ts';
@@ -181,7 +185,7 @@ export const agentStartCommandSchema = z
         agentConversationStyle: z.string().max(10_000).optional(),
         /** The Agent's pickup reaction; null means the Computer's default. */
         agentSignatureEmoji: z.string().min(1).max(64).nullable().default(null),
-        /** The run's Chat; null only for a heartbeat, heartbeat-report, or sub-agent wake run. */
+        /** The run's Chat; null only for a chatless run: a heartbeat, report, wake, or assignment. */
         chatId: idSchema.nullable(),
         /** Chips the Server's connections add to chat; the prompt teaches the ones an Agent must write. */
         connectionChips: z.array(connectionChipKindSchema).max(16).default([]),
@@ -201,6 +205,8 @@ export const agentStartCommandSchema = z
         sessionGeneration: z.number().int().positive(),
         /** Present only on a sub-agent wake run, which carries no inbox items. */
         subagentWake: agentSubagentWakeAttentionSchema.optional(),
+        /** Present only on a Task assignment run, which resumes the main session. */
+        taskAssignments: agentTaskAssignmentsSchema.optional(),
         totalPending: z.number().int().nonnegative(),
         traceContext: traceCarrierSchema.optional(),
         type: z.literal('start'),
@@ -212,9 +218,12 @@ export const agentStartCommandSchema = z
     .strict()
     .refine(
         (frame) => {
-            const attentions = [frame.heartbeat, frame.heartbeatReport, frame.subagentWake].filter(
-                (attention) => attention !== undefined
-            ).length;
+            const attentions = [
+                frame.heartbeat,
+                frame.heartbeatReport,
+                frame.subagentWake,
+                frame.taskAssignments,
+            ].filter((attention) => attention !== undefined).length;
             if (attentions === 0) {
                 return frame.chatId !== null;
             }
@@ -229,7 +238,7 @@ export const agentStartCommandSchema = z
         },
         {
             message:
-                'Only a heartbeat, heartbeat-report, or sub-agent wake run is chatless, and it carries nothing but its attention.',
+                'Only a heartbeat, heartbeat-report, sub-agent wake, or Task assignment run is chatless, and it carries nothing but its attention.',
             path: ['chatId'],
         }
     );
@@ -239,17 +248,25 @@ export type AgentStartCommand = z.infer<typeof agentStartCommandSchema>;
 /**
  * Work landed for a busy Agent. The full envelopes are accepted into the
  * Computer's durable inbox; only their content-free metadata projection is
- * injected into the live model turn.
+ * injected into the live model turn. Queued Task assignments have no envelope,
+ * so they ride beside the inbox as a count; a notice carries at least one of the two.
  */
 export const agentNoticeCommandSchema = z
     .object({
         agentId: idSchema,
-        inbox: z.array(agentInboxItemSchema).min(1).max(100),
+        inbox: z.array(agentInboxItemSchema).max(100),
         runId: idSchema,
-        totalPending: z.number().int().positive(),
+        taskAssignments: agentTaskAssignmentNoticeSchema.optional(),
+        totalPending: z.number().int().nonnegative(),
         type: z.literal('notice'),
         unreadElsewhere: z.array(unreadElsewhereSchema).max(50).default([]),
     })
-    .strict();
+    .strict()
+    .refine(
+        (frame) =>
+            frame.taskAssignments !== undefined ||
+            (frame.inbox.length > 0 && frame.totalPending > 0),
+        { message: 'A notice carries inbox work or Task assignments.', path: ['inbox'] }
+    );
 
 export type AgentNoticeCommand = z.infer<typeof agentNoticeCommandSchema>;

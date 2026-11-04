@@ -12,6 +12,7 @@ import {
     serverMembershipsTable,
     usersTable,
 } from '../postgres/schema.ts';
+import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
 import { readMessageBodies } from './message-bodies.ts';
 import { readChatMessageReactions } from './message-reactions.ts';
 import { readStoredAuthorProfile, toChatMessage } from './message-shape.ts';
@@ -64,7 +65,7 @@ export async function readMessagesById(
             and(eq(chatMessagesTable.serverId, serverId), inArray(chatMessagesTable.id, messageIds))
         );
     const foundIds = rows.map((row) => row.id);
-    const [attachments, claims, causes, bodies, works, images, reactions, replies] =
+    const [attachments, claims, causes, bodies, works, images, reactions, replies, taskLinks] =
         await Promise.all([
             readMessageAttachments(db, serverId, foundIds),
             listMessageClaimMap(db, serverId, foundIds),
@@ -74,6 +75,7 @@ export async function readMessagesById(
             readLinkedImageGenerations(db, serverId, foundIds),
             readChatMessageReactions(db, serverId, foundIds),
             readInlineReplyContexts(db, serverId, rows),
+            readMessageTaskLinks(db, serverId, foundIds),
         ]);
     return new Map(
         rows.map((row) => [
@@ -88,6 +90,7 @@ export async function readMessagesById(
                     imageGenerations: images.get(row.id),
                     reactions: reactions.get(row.id),
                     reply: replies.get(row.id) ?? null,
+                    taskLinks: taskLinks.get(row.id),
                 }),
                 claim: claims.get(row.id) ?? null,
             },

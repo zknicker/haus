@@ -30,6 +30,7 @@ import type { AgentConfigurationRotation } from '../server-agents/configure-agen
 import { recordAgentTurnSummary, recordRunTrigger } from '../server-agents/record-agent-turn.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { publishCommittedAgentActivity } from './activity-events.ts';
+import { planBusyNotice } from './busy-notice.ts';
 import { admitQueuedAgentDrain, restartIdleAgentChain, settleAgentChain } from './chain-budget.ts';
 import { advanceSeenForRun, markCursorSubsumedSeen } from './cursors.ts';
 import {
@@ -57,13 +58,10 @@ import {
     startFrame,
 } from './drain-selection.ts';
 import * as failureHold from './failure-hold.ts';
-import { heartbeatLeadGate, planHeartbeatRun } from './heartbeat-run.ts';
+import { heartbeatLeadGate, planChatlessRun } from './heartbeat-run.ts';
 import { type YieldedHeartbeat, yieldHeartbeatToAddressed } from './heartbeat-yield.ts';
 import { buildInboxItems } from './inbox-items.ts';
-import {
-    isConcreteInboxSource as isConcreteSource,
-    isNoticelessInboxSource,
-} from './inbox-lanes.ts';
+import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
 import { interruptActiveRun, killedRun } from './interrupt-active-run.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
 import { consumeNoticeAck } from './notice-ack.ts';
@@ -866,35 +864,18 @@ export class AgentDelivery {
                     serverId: state.serverId,
                 };
             }
-            const unnoticed = (
-                await store.listUnnoticedQueuedItems(tx, agentId, maxDrainRows)
-            ).filter((row) => !isNoticelessInboxSource(row.source));
-            if (unnoticed.length > 0) {
-                const pending = noticeWindow(
-                    (await store.listQueuedItems(tx, agentId, 1000)).filter(
-                        (row) => !isNoticelessInboxSource(row.source)
-                    ),
-                    unnoticed
-                );
-                return {
-                    computerId: state.activeRunComputerId,
-                    frame: {
-                        agentId,
-                        inbox: await buildInboxItems(tx, pending),
-                        runId: state.activeRunId,
-                        totalPending: await store.countQueuedNoticeItems(tx, agentId),
-                        type: 'notice',
-                        unreadElsewhere: await readUnreadElsewhere(tx, {
-                            agentId,
-                            drainedItemIds: [],
-                            representedChatIds: chatIdsOf(pending),
-                            serverId: state.serverId,
-                        }),
-                    },
-                    serverId: state.serverId,
-                };
-            }
-            return null;
+            const notice = await planBusyNotice(tx, {
+                agentId,
+                runId: state.activeRunId,
+                serverId: state.serverId,
+            });
+            return notice
+                ? {
+                      computerId: state.activeRunComputerId,
+                      frame: notice,
+                      serverId: state.serverId,
+                  }
+                : null;
         }
         if (isBackedOff(state)) {
             return null;
@@ -918,11 +899,13 @@ export class AgentDelivery {
             return null;
         }
         const { lead: first, selected } = admitted;
-        // A dream, heartbeat, report, or sub-agent wake is concrete work with no Chat: a
-        // chatless run. A heartbeat-family run resets the chain, so admission may also pick
-        // it as the lead at the ceiling.
+        // A dream, heartbeat, report, sub-agent wake, or Task assignment is concrete work with
+        // no Chat: a chatless run. A heartbeat-family run resets the chain, so admission may
+        // also pick it as the lead at the ceiling. Each runs alone, except Task assignments,
+        // which coalesce: ten assignments wake the Agent once (ADR 0051).
         if (isChatlessInboxSource(first.source)) {
-            return await planHeartbeatRun(tx, { agentId, config, row: first, state });
+            const rows = first.source === 'task_assignment' ? selected : [first];
+            return await planChatlessRun(tx, { agentId, config, rows, state });
         }
         const runId = createOpaqueId('run');
         const concrete = isConcreteSource(first.source);

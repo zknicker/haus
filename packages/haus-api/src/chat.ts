@@ -22,6 +22,7 @@ import {
     chatMessageContentMaxLength,
 } from './cloud-agent-work-link.ts';
 import { imageGenerationSchema } from './image-generation.ts';
+import { taskLinkSchema } from './task-key.ts';
 
 export { idSchema } from './chat-contract-primitives.ts';
 export * from './chat-message-context.ts';
@@ -61,6 +62,7 @@ export const chatMessageSchema = z
          */
         sessionGeneration: z.number().int().positive().nullable().default(null),
         serverId: idSchema,
+        taskLinks: z.array(taskLinkSchema).default([]),
     })
     .strict();
 

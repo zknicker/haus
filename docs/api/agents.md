@@ -372,6 +372,23 @@ The managed CLI ships inside Computer, so these claim, list, and Agent-only assi
 Computer protocol 25: an older Computer reports `update-required` and runs no Agent turns instead of failing to parse
 a claim or list response.
 
+### Task and board routes
+
+`GET /api/agent/tasks` lists Tasks by priority then age, 50 at most with the rest counted in
+`omitted`: `board`, `assignee` (`me`, `none`, or `@handle`), and `category` (a comma list; the open
+categories by default) narrow it. `GET /api/agent/tasks/show?key=SEC-12` adds the description,
+Mentioned in, and Reminders. `POST /api/agent/tasks/create`, `/move`, `/update`, and `/assign`
+address Tasks by key; `/move` answers `{ task, queue: { todo, active } }`. `GET /api/agent/boards`,
+`POST /api/agent/boards/create`, and `POST /api/agent/boards/columns` cover boards. Inputs are in
+`packages/haus-api/src/agent-task.ts`; the contract is [specs/tasks.md](../../specs/tasks.md#agent-routes).
+
+Omitting `expectedVersion` means the last write wins: a write that lost a race retries on the
+current version, a bounded number of times. A named `expectedVersion` that is stale, a race still
+lost after those retries, or a taken board key answers `409 TASK_CONFLICT`, a name that resolves to
+nothing `400 INVALID_ARG`, a missing Task or board `404 TASK_NOT_FOUND` or `BOARD_NOT_FOUND`, and any
+write from a heartbeat run `403 REGULAR_TURN_REQUIRED`. Assigning another Agent delivers a chatless
+`task_assignment` inbox item, which needs Computer protocol 33.
+
 ### Reminder routes
 
 `POST /api/agent/reminders/schedule`, `/snooze`, `/update`, and `/cancel` each carry a

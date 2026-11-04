@@ -13,7 +13,9 @@ const claimAssignmentKeyPattern = /^claim-assign:([^:]+):\d+$/u;
 
 /** A run's recorded trigger row, with whether the reader can see its Chat. */
 export interface AgentTurnTriggerRecord {
-    /** Null only for a chatless run: a dream, heartbeat, heartbeat report, or sub-agent wake. */
+    /** The run's Agent, which narrows a read of its settled inbox rows to that Agent's index. */
+    readonly agentId?: string;
+    /** Null only for a chatless run: a dream, heartbeat, report, wake, or Task assignment. */
     readonly chatId: string | null;
     /** The run this trigger woke; a heartbeat needs it to find its report. */
     readonly runId?: string;
@@ -24,6 +26,12 @@ export interface AgentTurnTriggerRecord {
 
 /** Message quotes by message id; a message absent here reads as gone (`preview: null`). */
 export type AgentTurnTriggerPreviews = ReadonlyMap<string, AgentTurnTriggerPreview>;
+
+/** Task assignment triggers by `workId`, read beside the page; one absent here is unknown. */
+export type AgentTurnTaskTriggers = ReadonlyMap<
+    string,
+    Extract<AgentTurnTrigger, { kind: 'task' }>
+>;
 
 const noPreviews: AgentTurnTriggerPreviews = new Map();
 const noOutcomes: AgentTurnOutcomes = {
@@ -50,12 +58,14 @@ export function agentTurnTriggerRunIds(records: readonly (AgentTurnTriggerRecord
  * does not recognize, is absent (null) rather than guessed. A message or claim
  * trigger quotes its message from `previews`. A dream or sub-agent wake has no Chat to
  * gate on: it names only itself, so any reader who may see the Agent's turns sees it. A
- * dream and a heartbeat carry what the run came to from `outcomes`.
+ * dream and a heartbeat carry what the run came to from `outcomes`. A Task assignment has
+ * no Chat either, and every member sees every board, so `tasks` names it ungated.
  */
 export function agentTurnTrigger(
     record: AgentTurnTriggerRecord | null,
     previews: AgentTurnTriggerPreviews = noPreviews,
-    outcomes: AgentTurnOutcomes = noOutcomes
+    outcomes: AgentTurnOutcomes = noOutcomes,
+    tasks: AgentTurnTaskTriggers = new Map()
 ): AgentTurnTrigger | null {
     if (!record) {
         return null;
@@ -79,6 +89,9 @@ export function agentTurnTrigger(
     }
     if (record.source === 'subagent') {
         return { kind: 'subagent' };
+    }
+    if (record.source === 'task_assignment') {
+        return tasks.get(record.workId) ?? null;
     }
     const trigger = triggerFor(record, previews);
     if (!trigger) {

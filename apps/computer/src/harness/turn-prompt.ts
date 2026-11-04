@@ -1,7 +1,12 @@
 import type { ConnectionChipKind } from '@haus/api';
 import type { AgentStartCommand, UnreadElsewhere } from '../agent-commands.ts';
 import type { AgentInboxItem } from '../agent-inbox-item.ts';
-import { composeInboxDrain, composeInboxNotice, formatUnreadElsewhere } from '../inbox-format.ts';
+import {
+    composeInboxDrain,
+    composeInboxNotice,
+    composeTaskAssignmentInput,
+    formatUnreadElsewhere,
+} from '../inbox-format.ts';
 import {
     consumeVisibleMessages,
     recordRunVisibleMessages,
@@ -36,6 +41,8 @@ export interface TurnDelivery {
     serverId: string;
     /** A sub-agent wake run: background work the Agent started finished or stopped. */
     subagentWake?: AgentStartCommand['subagentWake'];
+    /** A Task assignment run: the Tasks handed to the Agent, in its main session. */
+    taskAssignments?: AgentStartCommand['taskAssignments'];
     totalPending: number;
     unreadElsewhere: UnreadElsewhere[];
     warmDrainItemIds: string[];
@@ -80,6 +87,7 @@ export function turnDeliveryOf(command: AgentStartCommand) {
         ...(command.heartbeat ? { heartbeat: command.heartbeat } : {}),
         ...(command.heartbeatReport ? { heartbeatReport: command.heartbeatReport } : {}),
         ...(command.subagentWake ? { subagentWake: command.subagentWake } : {}),
+        ...(command.taskAssignments ? { taskAssignments: command.taskAssignments } : {}),
         drainItemIds: command.drainItemIds ?? [],
         inbox: command.inbox ?? [],
         inboxDelivery: command.inboxDelivery,
@@ -105,11 +113,7 @@ export interface TurnPrompt {
  * and notices the rest, which is Raft's hybrid shape (specs/inbox.md).
  */
 export function composeTurnPrompt(input: TurnDelivery, session: TurnSession): TurnPrompt {
-    const chatlessLine = input.heartbeatReport
-        ? composeHeartbeatReportInput(input.heartbeatReport)
-        : input.subagentWake
-          ? subagentWakeTurnLine
-          : null;
+    const chatlessLine = composeChatlessInput(input);
     if (chatlessLine) {
         return {
             drained: [],
@@ -148,6 +152,17 @@ export function composeTurnPrompt(input: TurnDelivery, session: TurnSession): Tu
             .filter(Boolean)
             .join('\n\n'),
     };
+}
+
+/** The whole input of a chatless main-session run, or null for an ordinary inbox turn. */
+function composeChatlessInput(input: TurnDelivery): string | null {
+    if (input.heartbeatReport) {
+        return composeHeartbeatReportInput(input.heartbeatReport);
+    }
+    if (input.taskAssignments) {
+        return composeTaskAssignmentInput(input.taskAssignments);
+    }
+    return input.subagentWake ? subagentWakeTurnLine : null;
 }
 
 /**

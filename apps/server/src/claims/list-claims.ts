@@ -9,6 +9,7 @@ import { readLinkedImageGenerations } from '../image-generation/linked-image-gen
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable, messageClaimsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
+import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
 import { listThreadSummaries } from '../threads/list-thread-summaries.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { projectMessageClaims } from './claim-shape.ts';
@@ -70,7 +71,7 @@ export async function listClaims(
     const visible = rows.filter((row) => row.chatKind === 'channel' || row.chatKind === 'dm');
     const messageIds = visible.map((row) => row.claim.messageId);
     const workAnchorIds = [...new Set(visible.map((row) => claimWorkThreadAnchorId(row.claim)))];
-    const [projected, bodies, works, images, reactions, summaries] = await Promise.all([
+    const [projected, bodies, works, images, reactions, summaries, taskLinks] = await Promise.all([
         projectMessageClaims(
             db,
             input.serverId,
@@ -84,6 +85,7 @@ export async function listClaims(
             anchorMessageIds: workAnchorIds,
             serverId: input.serverId,
         }),
+        readMessageTaskLinks(db, input.serverId, messageIds),
     ]);
     const claimByMessageId = new Map(projected.map((claim) => [claim.messageId, claim]));
     const summaryByAnchorId = new Map(
@@ -110,6 +112,7 @@ export async function listClaims(
                     cloudAgentWork: works.get(row.message.id),
                     imageGenerations: images.get(row.message.id),
                     reactions: reactions.get(row.message.id),
+                    taskLinks: taskLinks.get(row.message.id),
                 }),
                 claim,
             },

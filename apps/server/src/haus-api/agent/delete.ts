@@ -14,6 +14,7 @@ export const deleteAgentProcedure = memberProcedure
             for (const event of result.claimEvents) {
                 publishRealtime(event);
             }
+            publishRealtime(result.taskEvents);
             ctx.agentDelivery.retireAgent({
                 agentId: result.agentId,
                 computerId: result.computerId,

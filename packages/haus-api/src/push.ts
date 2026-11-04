@@ -1,11 +1,13 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
 import { messageNotificationReasons } from './message-notification.ts';
+import { taskKeySchema } from './task-key.ts';
 
 /**
  * iPhone push (APNs). A device registers its token for the signed-in human;
  * Server sends one alert per message that notifies that human under
- * `messageNotificationReason` (ADR 0038). Registration is per human, not per
+ * `messageNotificationReason` (ADR 0038), and one per Task assigned to them
+ * under `taskAssignmentNotifiedUserId` (ADR 0051). Registration is per human, not per
  * Server: a device receives pushes from every Server the human belongs to.
  */
 export const pushEnvironments = ['sandbox', 'production'] as const;
@@ -89,8 +91,8 @@ export const pushNotificationPayloadSchema = z
                     })
                     .strict(),
                 /**
-                 * The human's unread Chats across every Server: Channels and
-                 * DMs with an `unreadCount` above zero in `chat.list`.
+                 * The human's unread Inbox rows across every Server: unread
+                 * Chats and Threads, and uncleared Task items.
                  */
                 badge: z.number().int().nonnegative().optional(),
                 'mutable-content': z.literal(1),
@@ -109,9 +111,39 @@ export const pushNotificationPayloadSchema = z
     })
     .strict();
 
+/**
+ * The JSON body of one Task assignment push (ADR 0051): the assigner and key as
+ * the title, the Task's title as the body, and the ids a tap routes by. It has
+ * no sender or conversation, so it is a plain alert the Notification Service
+ * extension never rewrites. `kind` tells it from a message push.
+ */
+export const pushTaskAssignmentPayloadSchema = z
+    .object({
+        aps: z
+            .object({
+                alert: z
+                    .object({
+                        body: z.string().max(pushAlertBodyMaxLength),
+                        title: z.string().min(1),
+                    })
+                    .strict(),
+                /** As on a message push: the human's unread Inbox rows, this item included. */
+                badge: z.number().int().nonnegative().optional(),
+                sound: z.literal('default'),
+                'thread-id': idSchema,
+            })
+            .strict(),
+        key: taskKeySchema,
+        kind: z.literal('task_assignment'),
+        serverId: idSchema,
+        taskId: idSchema,
+    })
+    .strict();
+
 export type PushRegisterDeviceInput = z.infer<typeof pushRegisterDeviceInputSchema>;
 export type PushUnregisterDeviceInput = z.infer<typeof pushUnregisterDeviceInputSchema>;
 export type PushDeviceResult = z.infer<typeof pushDeviceResultSchema>;
 export type PushNotificationSender = z.infer<typeof pushNotificationSenderSchema>;
 export type PushNotificationConversation = z.infer<typeof pushNotificationConversationSchema>;
 export type PushNotificationPayload = z.infer<typeof pushNotificationPayloadSchema>;
+export type PushTaskAssignmentPayload = z.infer<typeof pushTaskAssignmentPayloadSchema>;

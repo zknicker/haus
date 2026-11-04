@@ -79,7 +79,7 @@ Agent can see it.
    `active`, `done`, or `canceled` column, a status picker reaches any column, and each clears the
    item with an Undo. Mark read clears it without moving the Task, and opening the Task clears it
    too; being seen never does. Reassigning before it clears withdraws it. There is no separate
-   Assigned to me page; whether the item also push-notifies is an open question below.
+   Assigned to me page. An assignment from someone else also pushes to the person's iPhone.
 
 6. **One active Task at a time.** An Agent already runs one turn at a time
    ([sessions](../../specs/sessions.md)). The prompt adds the pacing: list your assigned Tasks, pick
@@ -147,9 +147,6 @@ the plain word *task* on the thing nobody looks at. The product name wins.
 
 ## Open questions
 
-- Does a Task assignment's Inbox item also push-notify (iPhone and desktop), extending
-  [ADR 0038](0038-inbox-is-unread-not-attention.md)'s shared notification rule, or is the Inbox
-  item enough?
 - Can a Task move between boards, keeping its old key as an alias?
 - Should claims trim their status set (drop `todo` and `in_review`) once humans no longer create
   them?

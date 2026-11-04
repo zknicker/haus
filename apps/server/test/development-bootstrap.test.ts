@@ -14,6 +14,7 @@ import {
     agentsTable,
     attachmentsTable,
     avatarsTable,
+    boardsTable,
     chatMessagesTable,
     chatsTable,
     computersTable,
@@ -21,6 +22,8 @@ import {
     messageClaimsTable,
     serverOnboardingTable,
     serversTable,
+    taskMessageLinksTable,
+    tasksTable,
     threadFollowsTable,
     usersTable,
 } from '../src/postgres/schema.ts';
@@ -197,21 +200,25 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     expect(threads.every((thread) => thread.anchorMessageId && thread.parentChatId)).toBe(true);
     expect(await connection.db.select().from(threadFollowsTable)).toHaveLength(3);
 
-    // Every promoted claim carries its deterministic Thread. A claim does not:
-    // the Thread is materialized when somebody first replies in it, which is
-    // exactly what the seeded stalled claim never got.
+    // The General board's demo Tasks, each mentioned by the Thread-bearing message
+    // it came from. The board's counter is past them, so the first real Task
+    // does not collide with a seeded number.
     const threadIds = new Set(threads.map((thread) => thread.id));
+    const tasks = await connection.db.select().from(tasksTable);
+    const links = await connection.db.select().from(taskMessageLinksTable);
+    expect(tasks.map((task) => task.number).sort()).toEqual([1, 2]);
+    expect(tasks.every((task) => task.assigneeAgentId !== null)).toBe(true);
+    expect(links.map((link) => link.text).sort()).toEqual(['GEN-1', 'GEN-2']);
     expect(
-        claims
-            .filter((claim) => claim.chatId === allChannelId && claim.origin !== 'claimed')
-            .every((claim) => threadIds.has(`cht_thr_${claim.messageId.replace(/^msg_/u, '')}`))
+        links.every((link) => threadIds.has(`cht_thr_${link.messageId.replace(/^msg_/u, '')}`))
     ).toBe(true);
+    const [general] = await connection.db.select().from(boardsTable);
+    expect(general).toMatchObject({ key: 'GEN', nextNumber: 3 });
 
-    // Two Agent-held promoted claims in two statuses, plus
-    // the Inbox seed's stalled claim. The channel's counter is past all of
-    // them, so promoting a message in the seeded `#all` does not collide with
-    // a seeded claim number.
-    expect(claims).toHaveLength(13);
+    // The Inbox seed's stalled claim is the only one in `#all`. The channel's
+    // counter is past it, so promoting a message there does not collide with a
+    // seeded claim number.
+    expect(claims).toHaveLength(11);
     const [allChannel] = (await connection.db.select().from(chatsTable)).filter(
         (chat) => chat.isAll
     );
@@ -225,7 +232,7 @@ test('seeds a demo workspace an operator can actually look at', async () => {
             .filter((claim) => claim.chatId === allChannelId)
             .map((claim) => claim.status)
             .sort()
-    ).toEqual(['in_progress', 'in_progress', 'todo']);
+    ).toEqual(['in_progress']);
     // Claims are Agent work (ADR 0037): every seeded claim is held by an Agent.
     expect(claims.every((claim) => claim.assigneeAgentId !== null)).toBe(true);
 

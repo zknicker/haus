@@ -1,15 +1,18 @@
-import { randomBytes } from 'node:crypto';
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { AgentTaskAssignmentNotice } from '@haus/api';
 import type { AgentInboxItem } from './agent-inbox-item.ts';
 import { noticePath, type StoredNoticeReceipt, writePendingNotice } from './delivery.ts';
 import { composeInboxNotice } from './inbox-format.ts';
+import {
+    type AgentInboxLocation,
+    inboxRoot,
+    isMissingFile,
+    withInboxWrite,
+    writeJsonAtomic,
+} from './inbox-store-io.ts';
 
-export interface AgentInboxLocation {
-    agentId: string;
-    dataRoot: string;
-    serverId: string;
-}
+export type { AgentInboxLocation } from './inbox-store-io.ts';
 
 export interface VisibleMessageIdentity {
     chatId: string;
@@ -20,16 +23,21 @@ export interface VisibleMessageIdentity {
 export interface PendingInboxState {
     consumedMessageIds: string[];
     items: AgentInboxItem[];
+    /** Queued Task assignments as the busy notice counts them; no inbox item carries them. */
+    taskAssignments?: AgentTaskAssignmentNotice;
     totalPending: number;
 }
 
-const inboxWrites = new Map<string, Promise<void>>();
-
-/** Accepts a concrete run and reconciles its rows out of the busy-notice mirror. */
+/**
+ * Accepts a concrete run and reconciles its rows out of the busy-notice mirror. A Task
+ * assignment run carries what the notice was counting, so the count goes with it; any
+ * assignments past that run's batch come back in the Server's next notice.
+ */
 export async function acceptRunInbox(
     location: AgentInboxLocation,
     runId: string,
-    items: AgentInboxItem[]
+    items: AgentInboxItem[],
+    deliversTaskAssignments = false
 ): Promise<AgentInboxItem[]> {
     return await withInboxWrite(location, async () => {
         const root = inboxRoot(location);
@@ -39,6 +47,9 @@ export async function acceptRunInbox(
             location,
             items.map((item) => item.id)
         );
+        if (deliversTaskAssignments) {
+            await clearTaskAssignmentsLocked(location);
+        }
         return items;
     });
 }
@@ -49,7 +60,8 @@ export async function replacePendingInbox(
     items: AgentInboxItem[],
     totalPending = items.length,
     deliverNotice?: (notice: string) => Promise<void>,
-    receipt?: StoredNoticeReceipt
+    receipt?: StoredNoticeReceipt,
+    taskAssignments?: AgentTaskAssignmentNotice
 ): Promise<string | null> {
     const notice = await withInboxWrite(location, async () => {
         const current = await readPendingState(location);
@@ -70,12 +82,14 @@ export async function replacePendingInbox(
             items.filter((item) => consumed.has(item.id)).map((item) => item.id)
         ).size;
         const nextTotal = Math.max(pending.length, totalPending - visibleInSnapshot);
-        await writePendingState(location, {
+        const next = {
             consumedMessageIds: current.consumedMessageIds,
             items: pending,
+            ...(taskAssignments ? { taskAssignments } : {}),
             totalPending: nextTotal,
-        });
-        return await reconcilePendingNotice(location, pending, nextTotal, receipt);
+        };
+        await writePendingState(location, next);
+        return await reconcilePendingNotice(location, next, receipt);
     });
     if (notice && deliverNotice) {
         await deliverNotice(notice);
@@ -258,6 +272,7 @@ async function readPendingState(location: AgentInboxLocation): Promise<PendingIn
         return {
             consumedMessageIds: record.consumedMessageIds ?? [],
             items: record.items,
+            ...(record.taskAssignments ? { taskAssignments: record.taskAssignments } : {}),
             totalPending: record.totalPending,
         } as PendingInboxState;
     }
@@ -279,12 +294,21 @@ async function consumeVisibleIdsLocked(
         return;
     }
     const next = {
+        ...state,
         consumedMessageIds,
         items: remaining,
         totalPending: Math.max(remaining.length, state.totalPending - consumed),
     };
     await writePendingState(location, next);
-    await reconcilePendingNotice(location, next.items, next.totalPending);
+    await reconcilePendingNotice(location, next);
+}
+
+async function clearTaskAssignmentsLocked(location: AgentInboxLocation): Promise<void> {
+    const { taskAssignments, ...state } = await readPendingState(location);
+    if (taskAssignments) {
+        await writePendingState(location, state);
+        await reconcilePendingNotice(location, state);
+    }
 }
 
 async function writePendingState(
@@ -292,18 +316,6 @@ async function writePendingState(
     state: PendingInboxState
 ): Promise<void> {
     await writeJsonAtomic(pendingPath(location), state);
-}
-
-function inboxRoot(location: AgentInboxLocation) {
-    return join(
-        location.dataRoot,
-        'servers',
-        location.serverId,
-        'agents',
-        location.agentId,
-        'runtime',
-        'inbox'
-    );
 }
 
 function pendingPath(location: AgentInboxLocation) {
@@ -316,11 +328,14 @@ function runVisiblePath(location: AgentInboxLocation, runId: string) {
 
 async function reconcilePendingNotice(
     location: AgentInboxLocation,
-    items: AgentInboxItem[],
-    totalPending = items.length,
+    state: Pick<PendingInboxState, 'items' | 'taskAssignments' | 'totalPending'>,
     receipt?: StoredNoticeReceipt
 ): Promise<string | null> {
-    const notice = composeInboxNotice(items, totalPending);
+    const notice = composeInboxNotice(
+        state.items,
+        state.totalPending,
+        state.taskAssignments?.total
+    );
     if (!notice) {
         await rm(noticePath(location.dataRoot, location), { force: true });
         return null;
@@ -332,40 +347,4 @@ async function reconcilePendingNotice(
         serverId: location.serverId,
     });
     return notice;
-}
-
-async function writeJsonAtomic(path: string, value: unknown) {
-    await mkdir(join(path, '..'), { mode: 0o700, recursive: true });
-    const temporary = `${path}.${randomBytes(8).toString('hex')}.tmp`;
-    await writeFile(temporary, `${JSON.stringify(value)}\n`, { mode: 0o600 });
-    await rename(temporary, path);
-}
-
-function isMissingFile(error: unknown): boolean {
-    return (
-        error instanceof Error &&
-        'code' in error &&
-        (error as Error & { code?: string }).code === 'ENOENT'
-    );
-}
-
-async function withInboxWrite<T>(
-    location: AgentInboxLocation,
-    write: () => Promise<T>
-): Promise<T> {
-    const key = inboxRoot(location);
-    const previous = inboxWrites.get(key) ?? Promise.resolve();
-    const result = previous.then(write, write);
-    const settled = result.then(
-        () => undefined,
-        () => undefined
-    );
-    inboxWrites.set(key, settled);
-    try {
-        return await result;
-    } finally {
-        if (inboxWrites.get(key) === settled) {
-            inboxWrites.delete(key);
-        }
-    }
 }

@@ -1,5 +1,6 @@
 import { computerProtocolVersion, hausAgentVersion } from '@haus/api';
 import { eq } from 'drizzle-orm';
+import { insertGeneralBoard } from '../boards/board-create.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -11,7 +12,6 @@ import {
     chatsTable,
     computersTable,
     mcpConnectionsTable,
-    messageClaimsTable,
     serverMembershipsTable,
     serverOnboardingTable,
     serversTable,
@@ -23,6 +23,7 @@ import { allChannelDescription, type ServerSummary } from '../servers/contracts.
 import { demoTokenUsage } from './demo-token-usage.ts';
 import { developmentComputerCredentialHash } from './seed-computer-attachment.ts';
 import { insertSeedAvatars } from './seed-demo-avatars.ts';
+import { seedDemoTasks } from './seed-demo-tasks.ts';
 import { ensureDevelopmentSeedSteps, type SeedDevelopmentServerOptions } from './seed-steps.ts';
 
 const demoInventory = {
@@ -66,16 +67,15 @@ export async function seedDevelopmentServer(
         const now = new Date();
         // Messages that later rows point at need stable ids, so mint them up front.
         const planMessageId = createOpaqueId('msg');
-        const shipClaimMessageId = createOpaqueId('msg');
-        const auditClaimMessageId = createOpaqueId('msg');
+        const shipTaskMessageId = createOpaqueId('msg');
+        const auditTaskMessageId = createOpaqueId('msg');
         const threadChatId = demoThreadId(planMessageId);
         const avatarIds = await insertSeedAvatars(tx);
 
-        await tx.insert(serversTable).values({
-            displayName: 'Dev Server',
-            id: serverId,
-            slug: 'dev',
-        });
+        await tx
+            .insert(serversTable)
+            .values({ displayName: 'Dev Server', id: serverId, slug: 'dev' });
+        const generalBoardId = await insertGeneralBoard(tx, serverId);
         await tx.insert(serverMembershipsTable).values({
             id: membershipId,
             role: 'owner',
@@ -86,32 +86,6 @@ export async function seedDevelopmentServer(
             .update(usersTable)
             .set({ avatarId: avatarIds.owner })
             .where(eq(usersTable.id, userId));
-        // Two Agent claims in different states. The channel's claim counter starts
-        // past them, or the first real `claim.promote` collides with a seeded number.
-        const demoClaims = [
-            {
-                assigneeAgentId: blippyId,
-                chatId: channelId,
-                createdByUserId: userId,
-                messageId: shipClaimMessageId,
-                number: 1,
-                origin: 'composed' as const,
-                priority: 'high' as const,
-                serverId,
-                status: 'in_progress' as const,
-            },
-            {
-                assigneeAgentId: tinyId,
-                chatId: channelId,
-                createdByAgentId: tinyId,
-                messageId: auditClaimMessageId,
-                number: 2,
-                origin: 'converted' as const,
-                priority: 'medium' as const,
-                serverId,
-                status: 'todo' as const,
-            },
-        ];
         await tx.insert(chatsTable).values({
             description: allChannelDescription,
             id: channelId,
@@ -119,7 +93,6 @@ export async function seedDevelopmentServer(
             kind: 'channel',
             lastActivityAt: now,
             lastMessageSequence: 6,
-            lastClaimNumber: Math.max(...demoClaims.map((claim) => claim.number)),
             name: 'all',
             serverId,
         });
@@ -231,7 +204,7 @@ export async function seedDevelopmentServer(
                     authorUserId: userId,
                     content: 'Ship the avatar upload flow end to end.',
                 },
-                shipClaimMessageId
+                shipTaskMessageId
             ),
             demoMessage(
                 serverId,
@@ -241,7 +214,7 @@ export async function seedDevelopmentServer(
                     authorAgentId: tinyId,
                     content: 'Audit the member directory for stale copy.',
                 },
-                auditClaimMessageId
+                auditTaskMessageId
             ),
             demoMessage(serverId, demoChannelId, 1, {
                 authorUserId: userId,
@@ -261,14 +234,14 @@ export async function seedDevelopmentServer(
             }),
         ]);
 
-        // Every claim carries its deterministic Thread, and the plan message has
-        // a discussion thread the author follows.
+        // Each Task's source message carries its deterministic Thread, and the plan
+        // message has a discussion thread the author follows.
         await tx
             .insert(chatsTable)
             .values([
                 demoThread(serverId, channelId, planMessageId, now, 3),
-                demoThread(serverId, channelId, shipClaimMessageId, now, 0),
-                demoThread(serverId, channelId, auditClaimMessageId, now, 0),
+                demoThread(serverId, channelId, shipTaskMessageId, now, 0),
+                demoThread(serverId, channelId, auditTaskMessageId, now, 0),
             ]);
         await tx.insert(threadFollowsTable).values({
             followed: true,
@@ -292,8 +265,29 @@ export async function seedDevelopmentServer(
             }),
         ]);
 
-        // Two Agent claims in different states.
-        await tx.insert(messageClaimsTable).values(demoClaims);
+        // Two Tasks on the General board, one in flight and one waiting.
+        await seedDemoTasks(tx, {
+            boardId: generalBoardId,
+            serverId,
+            tasks: [
+                {
+                    assigneeAgentId: blippyId,
+                    category: 'active',
+                    createdByUserId: userId,
+                    messageId: shipTaskMessageId,
+                    priority: 'high',
+                    title: 'Ship the avatar upload flow end to end',
+                },
+                {
+                    assigneeAgentId: tinyId,
+                    category: 'todo',
+                    createdByAgentId: tinyId,
+                    messageId: auditTaskMessageId,
+                    priority: 'medium',
+                    title: 'Audit the member directory for stale copy',
+                },
+            ],
+        });
 
         // One Server-managed MCP connection for the Agent Connections surface to grant.
         await tx.insert(mcpConnectionsTable).values({

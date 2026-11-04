@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { retireRemovedTriggerItemsForRun } from '../src/agent-delivery/retire-removed-trigger-items.ts';
+import { retireStaleRequeuedItems } from '../src/agent-delivery/retire-stale-requeued-items.ts';
 import { reconcileGithubInstallation } from '../src/github/installation-reconcile.ts';
 import { sweepGithubInstallations } from '../src/github/installation-sweep.ts';
 import { refreshGithubRepositoryAccess } from '../src/github/repository-access.ts';
@@ -188,6 +188,6 @@ test('deleting the GitHub connection degrades every Trigger with one notice befo
     );
 
     // Problem notices are concrete and bodiless: retiring removed fires never touches them.
-    await retireRemovedTriggerItemsForRun(fixture.database.db, fixture.agentId);
+    await retireStaleRequeuedItems(fixture.database.db, fixture.agentId);
     expect(await problemNotices(fixture, 'trg_lifecyclebeta02')).not.toHaveLength(0);
 });

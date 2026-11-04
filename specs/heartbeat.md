@@ -261,6 +261,9 @@ Once per night, also:
   message claims (`LEAD_HELD_AS_TASK`, "@blippy has this as a task"). A message claim from a
   heartbeat run is refused (`REGULAR_TURN_REQUIRED`, pointing to `haus lead claim`): the throwaway
   session would follow replies it never reads and leave a tracked claim behind.
+- **Tasks are read-only.** A heartbeat run may list and show Tasks and boards, and every write is
+  refused (`REGULAR_TURN_REQUIRED`). Nothing a throwaway session does reaches other people except
+  through its report.
 - **Summary.** `haus heartbeat learned` (text on stdin; nightly run only) is stored on the run's
   `agent_dreams` row as `summary`, with the follow-up reminder ids scheduled during the run.
 - **Memory diffs.** Unchanged: the nightly run's snapshot and diff record exactly as dreams do

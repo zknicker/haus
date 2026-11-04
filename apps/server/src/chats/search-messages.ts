@@ -13,6 +13,7 @@ import {
     usersTable,
 } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
+import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { requireChatAccess } from './chat-access.ts';
 import { visibleChats } from './chat-visibility.ts';
@@ -118,15 +119,17 @@ export async function searchChatMessages(
         .limit(input.limit);
 
     const messageIds = rows.map((message) => message.id);
-    const [attachments, causes, bodies, works, images, reactions, replies] = await Promise.all([
-        readMessageAttachments(db, input.serverId, messageIds),
-        readMessageCauses(db, input.serverId, messageIds),
-        readMessageBodies(db, input.serverId, messageIds),
-        readLinkedCloudAgentWork(db, input.serverId, messageIds),
-        readLinkedImageGenerations(db, input.serverId, messageIds),
-        readChatMessageReactions(db, input.serverId, messageIds),
-        readInlineReplyContexts(db, input.serverId, rows),
-    ]);
+    const [attachments, causes, bodies, works, images, reactions, replies, taskLinks] =
+        await Promise.all([
+            readMessageAttachments(db, input.serverId, messageIds),
+            readMessageCauses(db, input.serverId, messageIds),
+            readMessageBodies(db, input.serverId, messageIds),
+            readLinkedCloudAgentWork(db, input.serverId, messageIds),
+            readLinkedImageGenerations(db, input.serverId, messageIds),
+            readChatMessageReactions(db, input.serverId, messageIds),
+            readInlineReplyContexts(db, input.serverId, rows),
+            readMessageTaskLinks(db, input.serverId, messageIds),
+        ]);
 
     return rows.map((message) => ({
         ...toChatMessage(message, {
@@ -138,6 +141,7 @@ export async function searchChatMessages(
             imageGenerations: images.get(message.id),
             reactions: reactions.get(message.id),
             reply: replies.get(message.id) ?? null,
+            taskLinks: taskLinks.get(message.id),
         }),
         chatArchivedAt: message.chatArchivedAt?.toISOString() ?? null,
     }));

@@ -4,6 +4,7 @@ import { artifactRouter } from './artifact/router.ts';
 import { attachmentRouter } from './attachment/router.ts';
 import { automationRouter } from './automation/router.ts';
 import { avatarRouter } from './avatar/router.ts';
+import { boardRouter } from './board/router.ts';
 import { browserRouter } from './browser/router.ts';
 import { chatRouter } from './chat/router.ts';
 import { claimRouter } from './claim/router.ts';
@@ -24,6 +25,8 @@ import { reminderRouter } from './reminder/router.ts';
 import { serverRouter } from './server/router.ts';
 import { sessionRouter } from './session/router.ts';
 import { statsRouter } from './stats/router.ts';
+import { taskRouter } from './task/router.ts';
+import { taskInboxRouter } from './task-inbox/router.ts';
 import { taskLabelRouter } from './task-label/router.ts';
 import { threadRouter } from './thread/router.ts';
 import { triggerRouter } from './trigger/router.ts';
@@ -39,6 +42,7 @@ export const hausRouter = createRouter({
     attachment: attachmentRouter,
     automation: automationRouter,
     avatar: avatarRouter,
+    board: boardRouter,
     browser: browserRouter,
     chat: chatRouter,
     cloudAgentProvider: cloudAgentProviderRouter,
@@ -59,6 +63,8 @@ export const hausRouter = createRouter({
     session: sessionRouter,
     stats: statsRouter,
     claim: claimRouter,
+    task: taskRouter,
+    taskInbox: taskInboxRouter,
     taskLabel: taskLabelRouter,
     thread: threadRouter,
     trigger: triggerRouter,

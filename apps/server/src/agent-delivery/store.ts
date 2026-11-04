@@ -14,7 +14,7 @@ import {
     concreteInboxSources,
     noticelessInboxSources,
 } from './inbox-lanes.ts';
-import { retireRemovedTriggerItemsForRun } from './retire-removed-trigger-items.ts';
+import { retireStaleRequeuedItems } from './retire-stale-requeued-items.ts';
 import type { WakeState } from './wake-pause.ts';
 
 export interface AgentDeliveryRow extends WakeState {
@@ -642,7 +642,7 @@ export async function requeueInboxItemsForRun(
                 ne(agentInboxTable.state, 'seen')
             )
         );
-    await retireRemovedTriggerItemsForRun(db, input.agentId);
+    await retireStaleRequeuedItems(db, input.agentId);
 }
 
 /**

@@ -5,6 +5,7 @@ import { listMessageClaimMap } from '../claims/claim-shape.ts';
 import { readLinkedCloudAgentWork } from '../cloud-agents/linked-cloud-agent-work.ts';
 import { readLinkedImageGenerations } from '../image-generation/linked-image-generations.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
 import { listThreadSummaries } from '../threads/list-thread-summaries.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { readMessageBodies } from './message-bodies.ts';
@@ -34,6 +35,7 @@ export async function projectChatMessages(
         imageGenerationsByMessageId,
         reactionsByMessageId,
         replyByMessageId,
+        taskLinksByMessageId,
     ] = await Promise.all([
         readMessageAttachments(db, input.serverId, messageIds),
         listMessageClaimMap(db, input.serverId, messageIds),
@@ -43,6 +45,7 @@ export async function projectChatMessages(
         readLinkedImageGenerations(db, input.serverId, messageIds),
         readChatMessageReactions(db, input.serverId, messageIds),
         readInlineReplyContexts(db, input.serverId, rows),
+        readMessageTaskLinks(db, input.serverId, messageIds),
     ]);
     const messages = rows.map((message) => ({
         ...toChatMessage(message, {
@@ -54,6 +57,7 @@ export async function projectChatMessages(
             imageGenerations: imageGenerationsByMessageId.get(message.id),
             reactions: reactionsByMessageId.get(message.id),
             reply: replyByMessageId.get(message.id) ?? null,
+            taskLinks: taskLinksByMessageId.get(message.id),
         }),
         claim: claimByMessageId.get(message.id) ?? null,
     }));

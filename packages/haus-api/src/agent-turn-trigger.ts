@@ -1,5 +1,7 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
+import { taskTitleSchema } from './task.ts';
+import { taskKeySchema } from './task-key.ts';
 
 /** How much of a waking message a trigger quotes: enough for any one-line title. */
 export const AGENT_TURN_TRIGGER_PREVIEW_MAX_LENGTH = 1000;
@@ -50,6 +52,9 @@ export type AgentTurnHeartbeatReport = z.infer<typeof agentTurnHeartbeatReportSc
  * - `heartbeat_report`: a heartbeat's report arriving in the main session; no Chat.
  *   `heartbeatRunId` names the heartbeat run that sent it.
  * - `subagent`: background work the Agent started finished or stopped; no Chat.
+ * - `task`: a board Task assigned to the Agent (`task_assignment`); no Chat. Boards are
+ *   visible to every member, so it carries the Task's key and title for the row title.
+ *   Assignments coalesce into one run: this is the oldest, and `more` counts the others.
  * - `private`: the turn has a recorded trigger in a Chat the reader cannot see.
  */
 export const agentTurnTriggerSchema = z.discriminatedUnion('kind', [
@@ -91,6 +96,15 @@ export const agentTurnTriggerSchema = z.discriminatedUnion('kind', [
         .strict(),
     z.object({ heartbeatRunId: idSchema, kind: z.literal('heartbeat_report') }).strict(),
     z.object({ kind: z.literal('subagent') }).strict(),
+    z
+        .object({
+            key: taskKeySchema,
+            kind: z.literal('task'),
+            more: z.number().int().positive().optional(),
+            taskId: idSchema,
+            title: taskTitleSchema,
+        })
+        .strict(),
     z.object({ kind: z.literal('private') }).strict(),
 ]);
 

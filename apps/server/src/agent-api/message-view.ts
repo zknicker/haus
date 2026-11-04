@@ -14,6 +14,7 @@ import {
     usersTable,
 } from '../postgres/schema.ts';
 import { readCreatedAgentsForMessages } from '../server-agents/agent-created-shape.ts';
+import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
 import { readMessageReactions } from './message-reactions.ts';
 import { agentMessageBodies } from './message-view-bodies.ts';
 
@@ -105,6 +106,7 @@ export async function toAgentMessages(
     const attachmentsByMessage = await readMessageAttachments(db, serverId, messageIds);
     const reactionsByMessage = await readMessageReactions(db, serverId, messageIds);
     const repliesByMessage = await readInlineReplyContexts(db, serverId, rows);
+    const taskLinksByMessage = await readMessageTaskLinks(db, serverId, messageIds);
     return rows.map((row) => {
         const agent = row.authorAgentId ? agentById.get(row.authorAgentId) : undefined;
         const human = row.authorUserId ? humanById.get(row.authorUserId) : undefined;
@@ -144,6 +146,11 @@ export async function toAgentMessages(
                 ...(!agent && human?.timezone ? { timezone: human.timezone } : {}),
             },
             sequence: row.sequence,
+            task_links: (taskLinksByMessage.get(row.id) ?? []).map((link) => ({
+                key: link.key,
+                task_id: link.taskId,
+                text: link.text,
+            })),
             ...agentMessageBodies({ cloudAgentWork, createdAgent }),
             ...(claim
                 ? {
