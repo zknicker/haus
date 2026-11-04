@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v17.3.0 - 2026-11-04
+
+- From Haus for Mac 7.2.0, a connected 1Password item's other useful fields are available too, not just its main one. An API Credential item with both a username and a credential now gives Agents `<TITLE>` and `<TITLE>_<FIELD>` (for example `PLAID_API_KEY` and `PLAID_API_KEY_USERNAME`), masked the same way as before. `haus-secrets --list` shows every name. Update Haus Computer to 15.2.0. Haus Agent 12.3.0 carries the updated secrets guidance.
+
 ## v17.2.0 - 2026-11-04
 
 - A script reminder can wake only when its output changes (`--wake-on-change`, on `haus reminder schedule`/`update`) or only after a run of consecutive failures (`--fail-after <n>`), so a noisy or flaky check stops repeating the same wake. `haus reminder log` and the Automations page now show each run's outcome, duration, and the tokens a wake cost, plus a 24h/7d/30d summary.
