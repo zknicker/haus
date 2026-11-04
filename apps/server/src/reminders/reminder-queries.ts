@@ -1,3 +1,4 @@
+import type { ReminderRunOutcome } from '@haus/api';
 import { and, asc, desc, eq, gte } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -17,7 +18,8 @@ export interface ReminderFire {
     durationMs: number | null;
     firedAt: string;
     id: string;
-    outcome: 'failed' | 'quiet' | 'recovered' | 'unchanged' | 'woke' | null;
+    /** Null means the Computer has not settled this script fire yet; callers resolve it to `not_reported`. */
+    outcome: ReminderRunOutcome | null;
     reminderId: string;
     scheduledFor: string;
     scriptExitCode?: number | null;

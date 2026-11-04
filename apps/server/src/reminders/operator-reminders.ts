@@ -113,7 +113,9 @@ export async function listOperatorReminderRuns(
         durationMs: row.durationMs,
         firedAt: row.firedAt.toISOString(),
         id: row.id,
-        outcome: row.outcome,
+        // Null means the Computer has not settled this script fire yet, not
+        // that it already woke the Agent: never guess `woke` for it.
+        outcome: row.outcome ?? 'not_reported',
         reminderId: row.reminderId,
         scheduledFor: row.scheduledFor.toISOString(),
         scriptExitCode: row.scriptExitCode,

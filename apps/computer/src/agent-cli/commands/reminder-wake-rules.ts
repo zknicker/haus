@@ -118,7 +118,7 @@ function formatReminderLogSummary(
     return windows
         .map(([label, key]) => {
             const window = summary[key];
-            return `${label}: ${window.runs} runs (${window.quiet} quiet, ${window.unchanged} unchanged, ${window.woke} woke, ${window.failed} failed, ${window.recovered} recovered) · ${window.tokens} tokens on wakes`;
+            return `${label}: ${window.runs} runs (${window.quiet} quiet, ${window.unchanged} unchanged, ${window.woke} woke, ${window.failed} failed, ${window.recovered} recovered, ${window.notReported} not reported) · ${window.tokens} tokens on wakes`;
         })
         .join('\n');
 }

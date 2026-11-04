@@ -101,7 +101,8 @@ export async function listOperatorReminderHistory(
             ? {
                   durationMs: row.durationMs,
                   exitCode: row.scriptExitCode,
-                  outcome: row.outcome,
+                  // Null means the Computer has not settled this fire yet.
+                  outcome: row.outcome ?? 'not_reported',
                   timedOut: row.scriptTimedOut,
               }
             : null,

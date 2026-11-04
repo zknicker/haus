@@ -83,36 +83,21 @@ test('filtering the schedule leaves the source snapshot untouched', () => {
     expect(rows.map((row) => row.id)).toEqual(['r_fired', 'r_next']);
 });
 
-test('a script with no recorded wake-rule outcome falls back to its exit, with success and failure meaning what they say', () => {
-    expect(reminderExecutionOutcome(execution({ script: script({ exitCode: 0 }) }))).toEqual({
-        color: 'success',
-        kind: 'script',
-        label: 'Exit 0',
-    });
-    expect(reminderExecutionOutcome(execution({ script: script({ exitCode: 2 }) }))).toEqual({
-        color: 'danger',
-        kind: 'script',
-        label: 'Exit 2',
-    });
-    expect(reminderExecutionOutcome(execution({ script: script({ timedOut: true }) }))).toEqual({
-        color: 'danger',
-        kind: 'script',
-        label: 'Timed out',
-    });
-});
-
-test('a script the Computer never reported on is neither a success nor a failure', () => {
+test('a script fire the Computer has not settled yet reads the same whatever its exit code says', () => {
     expect(reminderExecutionOutcome(execution({ script: script({ exitCode: null }) }))).toEqual({
         color: 'default',
         kind: 'script',
         label: 'Not reported',
     });
+    expect(
+        reminderExecutionOutcome(execution({ script: script({ exitCode: 1, timedOut: true }) }))
+    ).toEqual({ color: 'default', kind: 'script', label: 'Not reported' });
 });
 
-test('a settled fire reports its own recorded wake-rule outcome, not a re-derived exit label', () => {
+test('a settled fire reports its own recorded wake-rule outcome', () => {
     expect(
         reminderExecutionOutcome(execution({ script: script({ exitCode: 1, outcome: 'failed' }) }))
-    ).toEqual({ color: 'warning', kind: 'script', label: 'Failing (quiet)' });
+    ).toEqual({ color: 'warning', kind: 'script', label: 'Failing' });
     expect(
         reminderExecutionOutcome(
             execution({ script: script({ exitCode: 0, outcome: 'unchanged' }) })
@@ -123,6 +108,15 @@ test('a settled fire reports its own recorded wake-rule outcome, not a re-derive
             execution({ script: script({ exitCode: 0, outcome: 'recovered' }) })
         )
     ).toEqual({ color: 'success', kind: 'script', label: 'Recovered' });
+});
+
+test('a successful wake reads differently than a wake forced by a failing script', () => {
+    expect(
+        reminderExecutionOutcome(execution({ script: script({ exitCode: 0, outcome: 'woke' }) }))
+    ).toEqual({ color: 'success', kind: 'script', label: 'Woke' });
+    expect(
+        reminderExecutionOutcome(execution({ script: script({ exitCode: 1, outcome: 'woke' }) }))
+    ).toEqual({ color: 'warning', kind: 'script', label: 'Woke · failing' });
 });
 
 test('a scripted execution reports the script even when it also has an answer', () => {
@@ -187,28 +181,53 @@ test('the wake rules in effect name only the flags actually set', () => {
     );
 });
 
-test('a run states its duration and exit code, in that order, and neither when absent', () => {
+test('a run states its duration, exit code, and (when it woke) its tokens, and nothing when absent', () => {
     expect(formatReminderRunDetail({ durationMs: 842, outcome: 'woke', scriptExitCode: 0 })).toBe(
-        '842ms · exit 0'
+        '0.8s · exit 0'
     );
+    expect(
+        formatReminderRunDetail({
+            durationMs: 1010,
+            outcome: 'woke',
+            scriptExitCode: 0,
+            wakeTotalTokens: 12_345,
+        })
+    ).toBe('1.0s · exit 0 · 12,345 tokens');
     expect(
         formatReminderRunDetail({ durationMs: null, outcome: 'woke', scriptExitCode: null })
     ).toBeNull();
-    expect(formatReminderRunDetail({ durationMs: 50, outcome: null, scriptExitCode: null })).toBe(
-        '50ms'
-    );
+    // A quiet or unchanged run spent no tokens, so none is shown even if the field is zero.
+    expect(
+        formatReminderRunDetail({
+            durationMs: 50,
+            outcome: 'quiet',
+            scriptExitCode: null,
+            wakeTotalTokens: 0,
+        })
+    ).toBe('0.1s');
 });
 
-test('a chip exists for every recorded outcome and for none of the rest', () => {
-    expect(reminderOutcomeBadge('woke')?.label).toBe('Woke');
-    expect(reminderOutcomeBadge('failed')?.label).toBe('Failing (quiet)');
-    expect(reminderOutcomeBadge('recovered')?.label).toBe('Recovered');
-    expect(reminderOutcomeBadge('unchanged')?.label).toBe('Unchanged');
-    expect(reminderOutcomeBadge('quiet')?.label).toBe('Quiet');
-    expect(reminderOutcomeBadge(null)).toBeNull();
+test('a chip exists for every recorded outcome, and a "woke" from a failing script reads differently', () => {
+    expect(reminderOutcomeBadge('woke', { scriptExitCode: 0 })).toEqual({
+        color: 'success',
+        label: 'Woke',
+    });
+    expect(reminderOutcomeBadge('woke', { scriptExitCode: 1 })).toEqual({
+        color: 'warning',
+        label: 'Woke · failing',
+    });
+    expect(reminderOutcomeBadge('failed')).toEqual({ color: 'warning', label: 'Failing' });
+    expect(reminderOutcomeBadge('recovered')).toEqual({ color: 'success', label: 'Recovered' });
+    expect(reminderOutcomeBadge('unchanged')).toEqual({ color: 'default', label: 'Unchanged' });
+    expect(reminderOutcomeBadge('quiet')).toEqual({ color: 'default', label: 'Quiet' });
+    expect(reminderOutcomeBadge('not_reported')).toEqual({
+        color: 'default',
+        label: 'Not reported',
+    });
+    expect(reminderOutcomeBadge(null)).toEqual({ color: 'default', label: 'Not reported' });
 });
 
-test('summarizing runs counts each outcome once and totals tokens spent on wakes', () => {
+test('summarizing runs counts each outcome once, never folding a pending run into "woke", and totals tokens spent on wakes', () => {
     const { counts, tokens } = summarizeReminderRuns([
         { outcome: 'woke', wakeTotalTokens: 100 },
         { outcome: 'woke', wakeTotalTokens: 50 },
@@ -217,7 +236,14 @@ test('summarizing runs counts each outcome once and totals tokens spent on wakes
         { outcome: null, wakeTotalTokens: null },
     ]);
 
-    expect(counts).toEqual({ failed: 1, quiet: 0, recovered: 1, unchanged: 0, woke: 2 });
+    expect(counts).toEqual({
+        failed: 1,
+        not_reported: 1,
+        quiet: 0,
+        recovered: 1,
+        unchanged: 0,
+        woke: 2,
+    });
     expect(tokens).toBe(180);
 });
 
@@ -228,7 +254,7 @@ test('the run-history summary line leads with the latest outcome, then totals', 
             { outcome: 'woke', wakeTotalTokens: 40 },
         ])
     ).toBe(
-        'Last run: Unchanged · 1 woke, 0 failed, 0 recovered, 1 unchanged, 0 quiet · 40 tokens on wakes'
+        'Last run: Unchanged · 1 woke, 0 failed, 0 recovered, 1 unchanged, 0 quiet, 0 not reported · 40 tokens on wakes'
     );
     expect(formatReminderRunSummaryLine([])).toBeNull();
 });

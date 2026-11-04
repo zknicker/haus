@@ -37,6 +37,7 @@ export const reminderListSchema = z.object({ reminders: z.array(reminderViewSche
 
 const reminderLogWindowSchema = z.object({
     failed: z.number().int().nonnegative(),
+    notReported: z.number().int().nonnegative(),
     quiet: z.number().int().nonnegative(),
     recovered: z.number().int().nonnegative(),
     runs: z.number().int().nonnegative(),

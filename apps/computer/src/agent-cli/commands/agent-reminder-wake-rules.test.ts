@@ -186,6 +186,7 @@ describe('Agent reminder CLI: wake rules and log', () => {
             summary: {
                 '24h': {
                     failed: 0,
+                    notReported: 0,
                     quiet: 2,
                     recovered: 0,
                     runs: 3,
@@ -195,18 +196,20 @@ describe('Agent reminder CLI: wake rules and log', () => {
                 },
                 '7d': {
                     failed: 1,
+                    notReported: 1,
                     quiet: 10,
                     recovered: 1,
-                    runs: 14,
+                    runs: 15,
                     tokens: 980,
                     unchanged: 2,
                     woke: 2,
                 },
                 '30d': {
                     failed: 1,
+                    notReported: 1,
                     quiet: 40,
                     recovered: 1,
-                    runs: 56,
+                    runs: 57,
                     tokens: 980,
                     unchanged: 2,
                     woke: 14,
@@ -218,7 +221,10 @@ describe('Agent reminder CLI: wake rules and log', () => {
 
         const output = lines.join('');
         expect(output).toContain(
-            '24h: 3 runs (2 quiet, 0 unchanged, 1 woke, 0 failed, 0 recovered) · 140 tokens on wakes'
+            '24h: 3 runs (2 quiet, 0 unchanged, 1 woke, 0 failed, 0 recovered, 0 not reported) · 140 tokens on wakes'
+        );
+        expect(output).toContain(
+            '7d: 15 runs (10 quiet, 2 unchanged, 2 woke, 1 failed, 1 recovered, 1 not reported) · 980 tokens on wakes'
         );
         expect(output).toContain('842ms');
         expect(output).toContain('[woke]');
@@ -231,6 +237,7 @@ describe('Agent reminder CLI: wake rules and log', () => {
             summary: {
                 '24h': {
                     failed: 0,
+                    notReported: 0,
                     quiet: 0,
                     recovered: 0,
                     runs: 0,
@@ -240,6 +247,7 @@ describe('Agent reminder CLI: wake rules and log', () => {
                 },
                 '7d': {
                     failed: 0,
+                    notReported: 0,
                     quiet: 0,
                     recovered: 0,
                     runs: 0,
@@ -249,6 +257,7 @@ describe('Agent reminder CLI: wake rules and log', () => {
                 },
                 '30d': {
                     failed: 0,
+                    notReported: 0,
                     quiet: 0,
                     recovered: 0,
                     runs: 0,

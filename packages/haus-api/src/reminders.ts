@@ -13,9 +13,16 @@ const timestampSchema = z.iso.datetime({ offset: true });
 export const REMINDER_TITLE_MAX_CHARS = 60;
 export const REMINDER_DESCRIPTION_MAX_CHARS = 300;
 
-/** A wake rule's run outcome: see `decideReminderWake` in the Server for the exact rules. */
+/**
+ * A wake rule's run outcome: see `decideReminderWake` in the Server for the
+ * exact rules. `not_reported` is not a decision outcome — it is what a read
+ * shows for a script fire the Computer has not settled yet, so every reader
+ * (the CLI and the website) renders the same label instead of each guessing
+ * from a bare null.
+ */
 export const reminderRunOutcomeSchema = z.enum([
     'failed',
+    'not_reported',
     'quiet',
     'recovered',
     'unchanged',
@@ -87,7 +94,7 @@ export const reminderFireSchema = z
         durationMs: z.number().int().nonnegative().nullable().default(null),
         firedAt: timestampSchema,
         id: idSchema,
-        /** Null until a script fire settles; always `woke` for a reminder with no script. */
+        /** `not_reported` until a script fire settles; always `woke` for a reminder with no script. */
         outcome: reminderRunOutcomeSchema.nullable().default(null),
         reminderId: idSchema,
         scheduledFor: timestampSchema,
@@ -128,7 +135,7 @@ export const reminderHistoryEntrySchema = z
             .object({
                 durationMs: z.number().int().nonnegative().nullable().default(null),
                 exitCode: z.number().int().nullable(),
-                /** Null until the fire settles. */
+                /** `not_reported` until the fire settles. */
                 outcome: reminderRunOutcomeSchema.nullable().default(null),
                 timedOut: z.boolean(),
             })

@@ -192,11 +192,12 @@ test("logs every fire of the Agent's reminders, newest first", async () => {
 test('carries the script result the fire itself recorded, not the reminder as it stands now', async () => {
     const history = await owner.trpc.reminder.history.query({ agentId, serverId });
 
-    // The script was removed from the reminder after this fire ran it.
+    // The script was removed from the reminder after this fire ran it. Its
+    // outcome was never decided at write time, so it reads as not reported.
     expect(history.find((entry) => entry.reminderId === scriptReminderId)?.script).toEqual({
         durationMs: null,
         exitCode: 2,
-        outcome: null,
+        outcome: 'not_reported',
         timedOut: true,
     });
     // And added to the other reminder after this fire ran without one.

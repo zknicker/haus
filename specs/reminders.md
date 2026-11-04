@@ -140,8 +140,11 @@ fire wakes its Agent; neither changes behavior while unset:
 Every fire records one outcome: `quiet` (success, nothing to report), `woke`,
 `failed` (a failure held quiet by `fail_after`), `unchanged` (held quiet by
 `wake_on_change`), or `recovered`. A reminder with no script is always `woke`.
-When the woken turn settles and the runtime reports token usage, the Server
-links it back to the fire that triggered the run (`agent_run_triggers`,
+A script fire the Computer has not settled yet stores no outcome at all;
+every reader (the CLI and the website) resolves that null to `not_reported`
+at read time rather than guessing `woke`, so the two never disagree. When the
+woken turn settles and the runtime reports token usage, the Server links it
+back to the fire that triggered the run (`agent_run_triggers`,
 `source: 'reminder'`) and records the total on the fire; a run merged into a
 batch with other queued work is not attributed.
 

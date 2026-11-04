@@ -1,5 +1,6 @@
-import { Chip, Separator } from '@heroui/react';
+import { Button, Chip, Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import * as React from 'react';
 import { Fragment } from 'react';
 import { useReminderRuns } from '../../../hooks/members/use-reminder-runs.ts';
 import { useViewerTimeZone } from '../../../hooks/members/use-viewer-time-zone.ts';
@@ -15,6 +16,9 @@ import {
 
 type ReminderRun = ReminderRunLike & { firedAt: string; id: string; scheduledFor: string };
 
+/** Rows shown before "Show more" — enough to judge the pattern without opening every one. */
+const collapsedRunCount = 5;
+
 /** One run: when it fired, and — for a script reminder — its outcome, duration, and exit code. */
 function ReminderRunRow({
     hasScript,
@@ -27,7 +31,9 @@ function ReminderRunRow({
 }) {
     const delay = formatReminderRunDelay(run);
     const detail = hasScript ? formatReminderRunDetail(run) : null;
-    const badge = hasScript ? reminderOutcomeBadge(run.outcome) : null;
+    const badge = hasScript
+        ? reminderOutcomeBadge(run.outcome, { scriptExitCode: run.scriptExitCode })
+        : null;
 
     return (
         <ItemCard>
@@ -71,9 +77,12 @@ export function ReminderRunHistory({
 }) {
     const runs = useReminderRuns(serverId, reminderId, true);
     const viewerZone = useViewerTimeZone(serverId);
+    const [expanded, setExpanded] = React.useState(false);
     // The Server returns oldest first.
     const settled = runs.data ? [...runs.data].reverse() : undefined;
     const summaryLine = hasScript && settled ? formatReminderRunSummaryLine(settled) : null;
+    const visible = settled && !expanded ? settled.slice(0, collapsedRunCount) : settled;
+    const hiddenCount = settled ? settled.length - collapsedRunCount : 0;
 
     return (
         <ItemCardGroup variant="transparent">
@@ -91,9 +100,9 @@ export function ReminderRunHistory({
                         </ItemCard.Content>
                     </ItemCard>
                 </ItemCardGroup>
-            ) : settled ? (
-                <ItemCardGroup className="max-h-64 overflow-y-auto">
-                    {settled.length === 0 ? (
+            ) : visible ? (
+                <ItemCardGroup>
+                    {visible.length === 0 ? (
                         <ItemCard>
                             <ItemCard.Content>
                                 <ItemCard.Description>
@@ -102,7 +111,7 @@ export function ReminderRunHistory({
                             </ItemCard.Content>
                         </ItemCard>
                     ) : (
-                        settled.map((run, index) => (
+                        visible.map((run, index) => (
                             <Fragment key={run.id}>
                                 {index > 0 ? <Separator /> : null}
                                 <ReminderRunRow
@@ -114,6 +123,17 @@ export function ReminderRunHistory({
                         ))
                     )}
                 </ItemCardGroup>
+            ) : null}
+            {hiddenCount > 0 ? (
+                <Button
+                    aria-expanded={expanded}
+                    className="self-center"
+                    onPress={() => setExpanded((value) => !value)}
+                    size="sm"
+                    variant="ghost"
+                >
+                    {expanded ? 'Show less' : `Show ${hiddenCount} more`}
+                </Button>
             ) : null}
         </ItemCardGroup>
     );
