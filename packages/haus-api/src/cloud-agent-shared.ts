@@ -151,6 +151,21 @@ export const cloudAgentUsageSchema = z
     })
     .strict();
 
+/**
+ * One Anthropic-hosted cloud environment Claude Cloud can run a session on
+ * (`GET /v1/environment_providers`, `kind: "anthropic_cloud"`). Haus pins a
+ * Computer's Claude launches to one of these by id so a launch never lands on
+ * whichever environment Claude Code picks on its own.
+ */
+export const cloudAgentEnvironmentSchema = z
+    .object({
+        id: z.string().trim().min(1).max(200),
+        name: z.string().trim().min(1).max(200),
+    })
+    .strict();
+
+export type CloudAgentEnvironment = z.infer<typeof cloudAgentEnvironmentSchema>;
+
 /** Who asked for cancellation. Humans and the delegating Agent may both ask. */
 export const cloudAgentCancelRequestedBySchema = z.discriminatedUnion('kind', [
     z.object({ id: cloudAgentIdSchema, kind: z.literal('agent') }).strict(),
@@ -191,6 +206,10 @@ export const cloudAgentWorkSchema = z
         chatId: cloudAgentIdSchema,
         computerId: cloudAgentIdSchema,
         createdAt: cloudAgentTimestampSchema,
+        /** The Claude cloud environment this work's session launched on; null off Claude. */
+        environmentId: z.string().trim().min(1).max(200).nullable(),
+        /** The environment's name, when the Computer could read it, for display. */
+        environmentName: z.string().trim().min(1).max(200).nullable(),
         id: cloudAgentIdSchema,
         /** The Server's reading of the whole job across its Runs (`deriveCloudAgentJob`). */
         job: cloudAgentJobSchema,
@@ -218,6 +237,10 @@ export const cloudAgentCapabilityStateSchema = z
     .object({
         /** The provider account the resolved credential belongs to, when it names one. */
         accountEmail: z.string().trim().min(1).max(320).nullable(),
+        /** The Computer's pinned Claude cloud environment id; null is "not pinned". Claude only. */
+        environmentId: z.string().trim().min(1).max(200).nullable().optional(),
+        /** This Computer's Claude cloud environments to pin to; null off Claude. */
+        environments: z.array(cloudAgentEnvironmentSchema).max(200).nullable().optional(),
         /** When the resolved credential expires, when the provider dates it. */
         expiresAt: cloudAgentTimestampSchema.nullable(),
         /** Whether a launch that names no provider uses this one on this Computer. */
