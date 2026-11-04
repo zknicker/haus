@@ -173,7 +173,9 @@ which the Server projects from the Message's recorded links.
 Elapsed time uses the provider's Run creation timestamp when available, including after Computer
 reconnects. Observation timestamps track reporting freshness, not when hosted work began. A later
 provider reading can correct an earlier first-observed start; providers without a Run timestamp
-retain the first non-queued observation as the fallback.
+retain the first non-queued observation as the fallback. Claude's Run timestamp is when the session
+logged Haus's prompt. The job-state chip times the whole job from its first Run's start, so a
+follow-up never resets it; the follow-up note times the follow-up on its own.
 
 **One card everywhere.** Haus App renders Cloud Agent work as one full work card under each
 linking Message, the same card in the parent Chat — a Channel or a DM — inside the Thread, and in

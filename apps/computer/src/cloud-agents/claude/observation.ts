@@ -2,7 +2,7 @@ import { cloudAgentActivityMaxLength, cloudAgentSummaryMaxLength } from '@haus/a
 import type { CloudAgentProviderObservation } from '../provider.ts';
 import type { ClaudeSession, ClaudeSessionEvent } from './controller.ts';
 import { evidence } from './evidence.ts';
-import { type ClaudeLogEntry, claudeRunTag, logEntriesOf } from './session-events.ts';
+import { type ClaudeLogEntry, claudeRunTag, isRunPrompt, logEntriesOf } from './session-events.ts';
 
 type Entry<Kind extends ClaudeLogEntry['kind']> = Extract<ClaudeLogEntry, { kind: Kind }>;
 
@@ -51,12 +51,15 @@ export function claudeRunObservation(input: {
               );
     }
     const after = chronological.slice(start + 1);
+    // Claude took the prompt when it logged it; the reading's own time is only when Haus looked.
+    const startedAt = input.events.find((event) => isRunPrompt(event, tag))?.createdAt;
     return afterPrompt(
         {
             ...evidence(after),
             observedAt,
             providerRunId: prompt.id,
             rawStatus: session.workerStatus,
+            ...(startedAt ? { startedAt: new Date(startedAt).toISOString() } : {}),
         },
         after,
         input

@@ -11,7 +11,11 @@ const sessionSchema = z.object({
 });
 const pageSchema = z.object({
     data: z.array(
-        z.object({ payload: z.record(z.string(), z.unknown()), sequence_num: z.coerce.string() })
+        z.object({
+            created_at: z.iso.datetime({ offset: true }).nullish(),
+            payload: z.record(z.string(), z.unknown()),
+            sequence_num: z.coerce.string(),
+        })
     ),
     next_cursor: z.string().nullish(),
 });
@@ -30,6 +34,8 @@ export interface ClaudeSession {
 
 /** One entry of the session's event log, in Claude Code's stream-json vocabulary. */
 export interface ClaudeSessionEvent {
+    /** When Claude recorded the event, when it says. */
+    createdAt: string | null;
     payload: Record<string, unknown>;
     sequence: string;
 }
@@ -88,7 +94,11 @@ export function createClaudeController(): ClaudeController {
                     await request(sessionId, `/events?${params}`, signal)
                 );
                 for (const event of body.data) {
-                    const entry = { payload: event.payload, sequence: event.sequence_num };
+                    const entry = {
+                        createdAt: event.created_at ?? null,
+                        payload: event.payload,
+                        sequence: event.sequence_num,
+                    };
                     collected.push(entry);
                     if (stop(entry)) {
                         return collected;
