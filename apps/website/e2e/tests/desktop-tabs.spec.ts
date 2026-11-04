@@ -27,7 +27,7 @@ test('the sidebar navigates the current tab, Back returns, and Command-click ope
     await expect(tabs).toContainText('all');
     await openSection(page, 'Tasks');
     await expect(tabs).toHaveCount(1);
-    await expect(tabs).toContainText('Tasks');
+    await expect(tabs).toContainText('General');
 
     // Back (⌘[, the Go menu) walks the tab's own history.
     await desktopEvent(page, 'test:desktop-history');
@@ -38,7 +38,8 @@ test('the sidebar navigates the current tab, Back returns, and Command-click ope
     await page.getByRole('row', { exact: true, name: 'Tasks' }).click({ modifiers: ['Meta'] });
     await expect(tabs).toHaveCount(2);
     await expect(tabs.nth(0)).toContainText('all');
-    await expect(tabs.nth(1)).toContainText('Tasks');
+    // `/tasks` lands on a board, so the tab reads as the address until it reads as the board.
+    await expect(tabs.nth(1)).toContainText(/Tasks|General/u);
     await expect(tabs.nth(0)).toHaveAttribute('data-active', 'true');
     await expect(tabs.nth(1)).not.toHaveAttribute('data-active', 'true');
     await expect(page.getByRole('textbox', { name: 'Message all' })).toBeVisible();
@@ -54,7 +55,10 @@ test('the sidebar navigates the current tab, Back returns, and Command-click ope
     await expect(page.getByRole('textbox', { name: 'Message all' })).toBeHidden();
     await desktopEvent(page, 'test:desktop-close');
     await expect(tabs).toHaveCount(2);
-    await tabs.nth(1).getByRole('button', { name: 'Tasks', exact: true }).click();
+    await tabs
+        .nth(1)
+        .getByRole('button', { name: /^(Tasks|General)$/u })
+        .click();
     await expect(tabs.nth(1)).toHaveAttribute('data-active', 'true');
 
     // ⌘W closes the current tab; ⌘⇧T reopens it with its history.
@@ -65,7 +69,7 @@ test('the sidebar navigates the current tab, Back returns, and Command-click ope
         window.dispatchEvent(new CustomEvent('test:desktop-shortcut', { detail: 'reopen-tab' }))
     );
     await expect(tabs).toHaveCount(2);
-    await expect(tabs.nth(1)).toContainText('Tasks');
+    await expect(tabs.nth(1)).toContainText('General');
 
     // Tabs, their order, and their histories survive a reload.
     await page.reload();

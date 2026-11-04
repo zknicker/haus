@@ -104,8 +104,8 @@ hold theirs in one bordered group with a separator between each pair, inside the
 Unread sets its cards on the page (below). A quiet section says so in one muted row-shaped slot, so it keeps the section's shape
 rather than changing it to say so.
 
-**Unread** — every Channel, DM, and Thread with something the viewer has not read, newest
-activity first, one row each. A Channel or DM row is `chat.list`'s `unreadCount` above zero: its
+**Unread** — every Channel, DM, and Thread with something the viewer has not read, and every Task
+assigned to them ([Task cards](#task-cards)), newest activity first, one row each. A Channel or DM row is `chat.list`'s `unreadCount` above zero: its
 own messages from others above the viewer's read marker. A Thread is unread on its own, never
 through its parent ([ADR 0043](../adr/0043-threads-are-unread-on-their-own.md)): a Thread row is a
 `thread.listUnread` row, a Thread with replies from others above the viewer's Thread marker that
@@ -200,9 +200,8 @@ a failed send keeps its draft in that conversation's composer. Mark read on a Ch
 message and every Thread under it, so that Chat's Thread rows clear too; Mark read on a Thread row
 reads that Thread. Newer activity brings a row back.
 
-Stalled claims are not here. A claim an Agent took and stopped short of finishing belongs to the
-Tasks page, in its **Stopped before finishing** group after **Needs your review**
-([Claims](claims.md)).
+Stalled claims are not here. A claim an Agent took and stopped short of finishing belongs to that
+Agent's profile, under **Stopped before finishing** ([Claims](claims.md)).
 
 A failed Server onboarding appears on the owner's setup screen. Until setup completes,
 owners remain in setup and members and Admins remain on the waiting page, outside the Inbox.
@@ -247,6 +246,31 @@ ground back, and `.inbox-unread-selected` adds the ring.
 Rows in the Agents and Happening now lists stack a title over a subline instead, because a popover
 is narrow; each is a pressable `ItemCard` with a 32px mark (`inbox-list-row.tsx`). A Cloud Agent
 work row's trailing status disc is 16px, the app's icon size.
+
+### Task cards
+
+A Task assigned to the viewer by someone else is a card in the same feed, one per Task and never
+bundled ([ADR 0051](../adr/0051-tasks-are-boards-and-claims-are-the-lock.md),
+[`unread-task-row.tsx`](../../apps/website/src/features/servers/inbox/unread-task-row.tsx)). It
+sorts by its assignment and counts in the badge like any row, and J, K, E, R, and Return treat it
+as a queue item: E clears it, Return opens the Task, and R focuses its composer.
+
+The source line names the board, the key, and who assigned it. Under it sit the priority, title,
+due day, and the status picker; then the **context message**, the newest message referencing the
+Task, rendered as the transcript renders it under a line naming where it was written; then that
+message's Thread composer. A reply goes into that Thread and leaves the card waiting, because the
+Task is still the viewer's to resolve. With no context message there is no composer.
+
+**Start**, **Done**, and **Won't do** move the Task to the board's first `active`, `done`, or
+`canceled` column, and the picker reaches any column. A category the Task is already in is not
+offered. The card then gives way to a slim row where it sat, with an Undo that moves the Task back
+and restores the item. Only the newest resolve keeps its row: the next card worked takes it away.
+Mark read and opening the Task clear the card without moving the Task, and leave no row.
+
+The list paints once the Task items, and the boards and Threads they need, have settled, so no
+card grows under the reader. `taskInbox.list` does not say which Thread a context message that is
+a Thread reply sits in, so those Threads are read one at a time in a single query
+(`use-task-context-threads.ts`), never one request per card.
 
 ## Current stub
 

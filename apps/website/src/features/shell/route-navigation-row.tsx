@@ -4,7 +4,7 @@ import { usePressNavigationWith } from '../../hooks/shell/use-press-navigation.t
 import { RouteTabIcon } from './route-tab-presentation.tsx';
 
 /**
- * A Server section in the sidebar's lead menu (Tasks, Activity): the route's
+ * A Server section in the sidebar's lead menu (Files, Activity): the route's
  * glyph and name, opened on a plain mouse press like the Chat rows.
  */
 export function RouteNavigationRow({
@@ -18,7 +18,7 @@ export function RouteNavigationRow({
     isCurrent: boolean;
     label: string;
     onPreload: () => void;
-    tab: 'activity' | 'artifacts' | 'tasks';
+    tab: 'activity' | 'artifacts';
 }) {
     const pressRef = usePressNavigationWith(useSidebarNavigate(), href, onPreload);
 

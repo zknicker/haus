@@ -1,4 +1,4 @@
-import { Label, ListBox, Select } from '@heroui/react';
+import { Label, ListBox } from '@heroui/react';
 import { InlineSelect } from '@heroui-pro/react/inline-select';
 import {
     type ClaimStatus,
@@ -14,71 +14,22 @@ export interface ClaimStatusTarget {
     version: number;
 }
 
+/** A claim's status, inline so the value reads as text beside the Thread's other facts. */
 export function ClaimStatusSelect({
     error,
     isDisabled,
     onStatusChange,
-    presentation = 'boxed',
     claim,
 }: {
     error?: { message: string } | null;
     isDisabled: boolean;
     onStatusChange: (status: ClaimStatus) => void;
-    /** `inline` drops the field box so the value reads as text. */
-    presentation?: 'boxed' | 'inline';
     claim: ClaimStatusTarget;
 }) {
-    const onChange = (value: unknown) => {
-        const status = value as ClaimStatus;
-        if (status && status !== claim.status) {
-            onStatusChange(status);
-        }
-    };
-
-    if (presentation === 'inline') {
-        return (
-            <>
-                <InlineSelect
-                    aria-label={`Status for claim #${claim.number}`}
-                    isDisabled={isDisabled}
-                    onChange={onChange}
-                    value={claim.status}
-                >
-                    <InlineSelect.Trigger className="gap-1.5">
-                        <TaskStatusDisc className="size-3.5" status={claim.status} />
-                        <span className="truncate text-sm">{claimStatusLabels[claim.status]}</span>
-                        <InlineSelect.Indicator />
-                    </InlineSelect.Trigger>
-                    <InlineSelect.Popover className="w-44">
-                        <ListBox>
-                            {claimStatusOrder.map((status) => (
-                                <ListBox.Item
-                                    id={status}
-                                    key={status}
-                                    textValue={claimStatusLabels[status]}
-                                >
-                                    <TaskStatusDisc className="size-[14px]" status={status} />
-                                    <Label>{claimStatusLabels[status]}</Label>
-                                    <ListBox.ItemIndicator />
-                                </ListBox.Item>
-                            ))}
-                        </ListBox>
-                    </InlineSelect.Popover>
-                </InlineSelect>
-                {error ? (
-                    <span className="text-danger text-sm" role="alert">
-                        {error.message}
-                    </span>
-                ) : null}
-            </>
-        );
-    }
-
     return (
         <>
-            <Select
+            <InlineSelect
                 aria-label={`Status for claim #${claim.number}`}
-                fullWidth
                 isDisabled={isDisabled}
                 onChange={(value) => {
                     const status = value as ClaimStatus;
@@ -87,13 +38,13 @@ export function ClaimStatusSelect({
                     }
                 }}
                 value={claim.status}
-                variant="secondary"
             >
-                <Select.Trigger>
-                    <Select.Value>{claimStatusLabels[claim.status]}</Select.Value>
-                    <Select.Indicator />
-                </Select.Trigger>
-                <Select.Popover>
+                <InlineSelect.Trigger className="gap-1.5">
+                    <TaskStatusDisc className="size-3.5" status={claim.status} />
+                    <span className="truncate text-sm">{claimStatusLabels[claim.status]}</span>
+                    <InlineSelect.Indicator />
+                </InlineSelect.Trigger>
+                <InlineSelect.Popover className="w-44">
                     <ListBox>
                         {claimStatusOrder.map((status) => (
                             <ListBox.Item
@@ -101,13 +52,14 @@ export function ClaimStatusSelect({
                                 key={status}
                                 textValue={claimStatusLabels[status]}
                             >
+                                <TaskStatusDisc className="size-[14px]" status={status} />
                                 <Label>{claimStatusLabels[status]}</Label>
                                 <ListBox.ItemIndicator />
                             </ListBox.Item>
                         ))}
                     </ListBox>
-                </Select.Popover>
-            </Select>
+                </InlineSelect.Popover>
+            </InlineSelect>
             {error ? (
                 <span className="text-danger text-sm" role="alert">
                     {error.message}

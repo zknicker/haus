@@ -8,10 +8,14 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { usePreloadUnreadPreviews } from '../../hooks/inbox/use-unread-previews.ts';
 import { useAgentIds } from '../../hooks/members/use-agents.ts';
 import { useChatNavigationLayout } from '../../hooks/servers/use-chats.ts';
-import { SidebarNavigateProvider } from '../../hooks/shell/sidebar-navigate.tsx';
+import {
+    SidebarNavigateProvider,
+    useSidebarNavigate,
+} from '../../hooks/shell/sidebar-navigate.tsx';
 import { cn } from '../../lib/utils.ts';
 import { preloadServerSection } from '../../routes/app/server-route-modules.ts';
-import { activityRoute, inboxRoute, tasksRoute } from '../servers/server-routes.ts';
+import { activityRoute, boardRoute, inboxRoute, tasksRoute } from '../servers/server-routes.ts';
+import { NewBoardDialog } from '../tasks/new-board-dialog.tsx';
 import { AgentDmNavigationRow } from './agent-dm-navigation-row.tsx';
 import { ListedChatNavigationRow } from './chat-navigation-row.tsx';
 import { useCommandMenu } from './command-menu-provider.tsx';
@@ -21,6 +25,7 @@ import { sidebarActionIconSize } from './section-header.tsx';
 import { ShellSidebarPageContent, useSidebarSurface } from './shell-sidebar.tsx';
 import { SidebarInboxRow } from './sidebar-inbox-row.tsx';
 import { SortableChannelList } from './sortable-channel-list.tsx';
+import { newBoardRowKey, TasksNavigationRow, tasksRowKey } from './tasks-navigation-row.tsx';
 
 /**
  * The Server sidebar. It reads only the list's structure (which chats, in what
@@ -56,6 +61,8 @@ export function ChatNavigation({
     const layout = useChatNavigationLayout(serverId);
     const agentIds = useAgentIds(serverId);
     const preloadUnreadPreviews = usePreloadUnreadPreviews(serverId);
+    const tasksPath = readTasksPath(location.pathname, slug);
+    const [newBoardOpen, setNewBoardOpen] = React.useState(false);
 
     return (
         <SidebarNavigateProvider>
@@ -73,9 +80,12 @@ export function ChatNavigation({
                     it is an action item that names its own shortcut. */}
                     <Sidebar.Menu
                         aria-label="Server"
+                        expandedKeys={tasksPath === null ? noExpandedRows : tasksExpandedRows}
                         onAction={(key) => {
                             if (key === 'search') {
                                 openCommandMenu();
+                            } else if (key === newBoardRowKey) {
+                                setNewBoardOpen(true);
                             }
                         }}
                     >
@@ -101,12 +111,12 @@ export function ChatNavigation({
                                 <Sidebar.MenuLabel>Search</Sidebar.MenuLabel>
                             </Sidebar.MenuItemContent>
                         </Sidebar.MenuItem>
-                        <RouteNavigationRow
-                            href={tasksRoute(slug)}
-                            isCurrent={location.pathname.startsWith(tasksRoute(slug))}
-                            label="Tasks"
+                        <TasksNavigationRow
+                            boardKey={tasksPath?.boardKey ?? null}
+                            isExpanded={tasksPath !== null}
                             onPreload={() => onPreloadSection('tasks')}
-                            tab="tasks"
+                            serverId={serverId}
+                            slug={slug}
                         />
                         <RouteNavigationRow
                             href={`/s/${slug}/artifacts`}
@@ -187,8 +197,53 @@ export function ChatNavigation({
                         ))}
                     </Sidebar.Menu>
                 </ChatGroup>
+                <NewBoardRowDialog
+                    onOpenChange={setNewBoardOpen}
+                    open={newBoardOpen}
+                    serverId={serverId}
+                    slug={slug}
+                />
             </ShellSidebarPageContent>
         </SidebarNavigateProvider>
+    );
+}
+
+const noExpandedRows: readonly string[] = [];
+const tasksExpandedRows: readonly string[] = [tasksRowKey];
+
+/** Whether the path is under Tasks, and the board key it names. */
+function readTasksPath(pathname: string, slug: string) {
+    const prefix = tasksRoute(slug);
+    if (pathname !== prefix && !pathname.startsWith(`${prefix}/`)) {
+        return null;
+    }
+    const [boardKey] = pathname.slice(prefix.length + 1).split('/');
+    return { boardKey: boardKey ? decodeURIComponent(boardKey) : null };
+}
+
+/** New board goes to the board it made, through the sidebar's own navigate. */
+function NewBoardRowDialog({
+    onOpenChange,
+    open,
+    serverId,
+    slug,
+}: {
+    onOpenChange: (open: boolean) => void;
+    open: boolean;
+    serverId: string;
+    slug: string;
+}) {
+    const navigate = useSidebarNavigate();
+    return (
+        <NewBoardDialog
+            onCreated={(board) => {
+                onOpenChange(false);
+                navigate(boardRoute(slug, board.key));
+            }}
+            onOpenChange={onOpenChange}
+            open={open}
+            serverId={serverId}
+        />
     );
 }
 

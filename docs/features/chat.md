@@ -335,7 +335,7 @@ and [Agent Inbox](../../specs/inbox.md).
   first human send, Agent `dm:@<human-handle>` send, or Server activity that needs a
   durable message atomically materializes the canonical human-stint↔Agent Chat
   and message. Every materialized chat's actions menu offers its chat-scoped
-  surfaces: View tasks opens the Tasks page filtered to the chat, and Attachments
+  surfaces: View tasks opens Tasks, and Attachments
   opens a side pane (an Attachments page on desktop) listing attachments from its messages. Channels render with
   a hash or chosen catalog icon and optional channel color. Opening a Server
   restores that Server's last visited Chat when it still exists, then falls back

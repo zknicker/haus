@@ -176,8 +176,8 @@ test('claim inspection shows its inline conversation without creating a thread',
         replyToMessageId: root.message.id,
     });
     await signInAsAppHuman(page);
-    await page.goto(`/s/reply-claim/tasks?claim=${root.message.id}`);
-    const dialog = page.getByRole('dialog', { name: 'Claim #1 thread' });
+    await page.goto(`/s/reply-claim/chats/${chatId}?claim=${root.message.id}`);
+    const dialog = page.getByRole('complementary', { name: 'Thread' });
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText('Review yesterday’s sales', { exact: true })).toHaveCount(2);
     const quote = dialog.locator('[data-inline-reply-preview]');

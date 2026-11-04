@@ -66,14 +66,13 @@ export function ClaimThreadMetadata({
                             onStatusChange={(status) =>
                                 update.mutate(claimUpdateInput(serverId, target, { status }))
                             }
-                            presentation="inline"
                         />
                     </dd>
                 </div>
                 <div className="flex min-w-0 max-w-52 flex-col gap-1.5">
                     <dt className="text-muted text-sm">Assignee</dt>
                     <dd className="flex min-h-7 min-w-0 items-center">
-                        <ClaimAssignee claim={target} presentation="inline" serverId={serverId} />
+                        <ClaimAssignee claim={target} serverId={serverId} />
                     </dd>
                 </div>
                 <div className="flex min-w-0 flex-col gap-1.5">

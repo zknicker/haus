@@ -300,6 +300,8 @@ that owns its subscription and its exact cache response: `useMessageCreatedStrea
 Desktop and web message notifications consume `chat.onMessageCreated` and `chat.onRead` through
 the same single subscriptions: those hooks take an optional `onEvent` callback that
 `MessageNotifications` supplies. Notifications fire on live events only, never on recovery reads.
+Task assignment notifications ride `taskInbox.onChanged` the same way. The event names no item, so
+the notifier diffs the `taskInbox.list` read it triggers; a read no event asked for stays silent.
 
 ### Normalized transcript cache
 

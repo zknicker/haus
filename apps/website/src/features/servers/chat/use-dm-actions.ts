@@ -21,7 +21,7 @@ export function useDmActions({ openFiles, openPath, slug }: ChatActionRoutes & {
             if (key === 'profile' && agentId) {
                 openPath(agentProfileRoute(slug, agentId));
             } else if (key === 'tasks' && chatId) {
-                openPath(`${tasksRoute(slug)}?chat=${encodeURIComponent(chatId)}`);
+                openPath(tasksRoute(slug));
             } else if (key === 'files' && chatId) {
                 openFiles?.(chatId);
             }

@@ -38,10 +38,11 @@ export const serverRouteModules = {
     artifacts: cachedRouteModule(() => import('../../features/artifacts/artifact-library.tsx')),
     activity: cachedRouteModule(() => import('./activity-page-content.tsx')),
     agent: cachedRouteModule(loadAgentProfileContent),
+    board: cachedRouteModule(() => import('../../features/tasks/board-page.tsx')),
     chat: cachedRouteModule(() => import('./chat-page-content.tsx')),
     inbox: cachedRouteModule(() => import('./inbox-page-content.tsx')),
     settingsSection: cachedRouteModule(() => import('./settings-route.tsx')),
-    tasks: cachedRouteModule(() => import('./tasks-page-content.tsx')),
+    task: cachedRouteModule(() => import('../../features/tasks/task-page.tsx')),
 };
 
 const routeModulesBySection: Record<
@@ -55,7 +56,7 @@ const routeModulesBySection: Record<
     inbox: [serverRouteModules.inbox],
     search: [],
     settings: [serverRouteModules.settingsSection],
-    tasks: [serverRouteModules.tasks],
+    tasks: [serverRouteModules.board, serverRouteModules.task],
 };
 
 /** Best-effort route warming. A failed preload is retried by the real navigation. */

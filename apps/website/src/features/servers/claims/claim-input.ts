@@ -30,10 +30,3 @@ export function claimUpdateInput(
         serverId,
     };
 }
-
-export function toggledTaskLabelIds(currentIds: string[], labelId: string, selected: boolean) {
-    if (selected) {
-        return currentIds.includes(labelId) ? currentIds : [...currentIds, labelId];
-    }
-    return currentIds.filter((id) => id !== labelId);
-}

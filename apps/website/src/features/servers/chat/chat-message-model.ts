@@ -74,6 +74,7 @@ export function projectChatMessage(
             reply: message.reply,
             sendNonce: message.nonce,
             claim: messageClaim(message.claim, directories.handleByAgentId),
+            taskLinks: message.taskLinks,
             timestamp: message.createdAt,
         },
         responseId: agentId ? message.id : undefined,

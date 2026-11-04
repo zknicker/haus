@@ -1,5 +1,4 @@
 import type { ChatMessage, MessageClaim, ThreadSummary } from '@haus/api';
-import { serverChatRoute, serverChatThreadRoute } from '../server-routes.ts';
 
 /**
  * Where a claim's work is read, under its parent Channel or DM (`claim.chatId`).
@@ -46,27 +45,6 @@ export function claimThreadTarget({
         claimMessageId: message.id,
         threadChatId: claim.threadChatId,
     };
-}
-
-/**
- * "View in chat": the claim's Channel or DM, opened on the Thread a Thread
- * claim sits in. A top-level claim's message is in the chat itself.
- */
-export function claimChatRoute(
-    slug: string,
-    claim: Pick<ClaimThreadSource['claim'], 'chatId' | 'threadChatId'> & {
-        message: ClaimThreadSource['message'];
-        threadSummary: ClaimThreadSource['threadSummary'];
-    }
-): string {
-    const target = claimThreadTarget({
-        message: claim.message,
-        claim,
-        threadSummary: claim.threadSummary,
-    });
-    return target?.kind === 'in-thread'
-        ? serverChatThreadRoute(slug, claim.chatId, target.anchorMessageId)
-        : serverChatRoute(slug, claim.chatId);
 }
 
 /** A Thread claim's message lives in the Thread, not in the claim's Channel or DM. */

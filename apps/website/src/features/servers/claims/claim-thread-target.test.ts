@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { claimChatRoute, claimThreadTarget, isThreadClaim } from './claim-thread-target.ts';
+import { claimThreadTarget, isThreadClaim } from './claim-thread-target.ts';
 
 test('a top-level claim opens the Thread anchored on its own message', () => {
     const source = {
@@ -30,25 +30,6 @@ test('a Thread claim opens the Thread it sits in, anchored on that Thread’s an
         claimMessageId: 'msg_reply',
         threadChatId: 'cht_thr_anchor',
     });
-});
-
-test('"View in chat" opens a Thread claim’s parent chat on the Thread it sits in', () => {
-    expect(
-        claimChatRoute('acme', {
-            chatId: 'cht_dm',
-            message: { chatId: 'cht_thr_anchor', id: 'msg_reply' },
-            threadChatId: 'cht_thr_anchor',
-            threadSummary: { anchorMessageId: 'msg_anchor' },
-        })
-    ).toBe('/s/acme/chats/cht_dm?thread=msg_anchor');
-    expect(
-        claimChatRoute('acme', {
-            chatId: 'cht_dm',
-            message: { chatId: 'cht_dm', id: 'msg_claim' },
-            threadChatId: 'cht_thr_claim',
-            threadSummary: { anchorMessageId: 'msg_claim' },
-        })
-    ).toBe('/s/acme/chats/cht_dm');
 });
 
 test('a Thread claim never anchors a Thread on its own message', () => {

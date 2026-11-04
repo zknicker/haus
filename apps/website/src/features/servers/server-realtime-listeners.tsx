@@ -2,6 +2,7 @@ import * as React from 'react';
 import type { RealtimeServer } from '../../hooks/realtime/realtime-server.ts';
 import { useAgentUpdateStream } from '../../hooks/realtime/use-agent-update-stream.ts';
 import { useArtifactUpdateStream } from '../../hooks/realtime/use-artifact-update-stream.ts';
+import { useBoardUpdateStream } from '../../hooks/realtime/use-board-update-stream.ts';
 import { useChatLifecycleStream } from '../../hooks/realtime/use-chat-lifecycle-stream.ts';
 import { useClaimChangeStream } from '../../hooks/realtime/use-claim-change-stream.ts';
 import { useCloudAgentSettingsStream } from '../../hooks/realtime/use-cloud-agent-settings-stream.ts';
@@ -12,7 +13,9 @@ import { useInvitationUpdateStream } from '../../hooks/realtime/use-invitation-u
 import { useMcpUpdateStream } from '../../hooks/realtime/use-mcp-update-stream.ts';
 import { useMessageReactionStream } from '../../hooks/realtime/use-message-reaction-stream.ts';
 import { useReminderStream } from '../../hooks/realtime/use-reminder-stream.ts';
+import { useTaskCreatedStream } from '../../hooks/realtime/use-task-created-stream.ts';
 import { useTaskLabelStream } from '../../hooks/realtime/use-task-label-stream.ts';
+import { useTaskUpdatedStream } from '../../hooks/realtime/use-task-updated-stream.ts';
 import { useThreadFollowStream } from '../../hooks/realtime/use-thread-follow-stream.ts';
 import { MessageNotifications } from '../notifications/message-notifications.tsx';
 
@@ -40,6 +43,9 @@ export const ServerRealtimeListeners = React.memo(function ServerRealtimeListene
             <ChatLifecycleStream serverId={serverId} />
             <ClaimChangeStream serverId={serverId} />
             <TaskLabelStream serverId={serverId} />
+            <BoardUpdateStream serverId={serverId} />
+            <TaskCreatedStream serverId={serverId} />
+            <TaskUpdatedStream serverId={serverId} />
             <CloudAgentWorkStream serverId={serverId} />
             <ImageGenerationStream serverId={serverId} />
             <AgentUpdateStream server={server} />
@@ -79,6 +85,21 @@ function ClaimChangeStream({ serverId }: StreamProps) {
 
 function TaskLabelStream({ serverId }: StreamProps) {
     useTaskLabelStream(serverId);
+    return null;
+}
+
+function BoardUpdateStream({ serverId }: StreamProps) {
+    useBoardUpdateStream(serverId);
+    return null;
+}
+
+function TaskCreatedStream({ serverId }: StreamProps) {
+    useTaskCreatedStream(serverId);
+    return null;
+}
+
+function TaskUpdatedStream({ serverId }: StreamProps) {
+    useTaskUpdatedStream(serverId);
     return null;
 }
 

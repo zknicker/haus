@@ -1,9 +1,9 @@
 ---
-summary: Hosted chat-first claims (renamed from tasks by ADR 0051) — Agent work as canonical messages with Server-owned lifecycle metadata, Agent-only assignees, inline conversation, optional Threads, and the board/list lenses on the Tasks page.
+summary: Hosted chat-first claims (renamed from tasks by ADR 0051) — Agent work as canonical messages with Server-owned lifecycle metadata, Agent-only assignees, inline conversation, optional Threads, and the Agent profile's Stopped before finishing section.
 read_when:
   - changing claim promotion, claiming, assignment, statuses, priorities, or labels
   - changing hosted claim authorization, events, or Thread work surfaces
-  - changing the Server UI Tasks page board/list or the managed `haus claim` CLI contract
+  - changing the claim Thread, the Agent profile's stalled claims, or the managed `haus claim` CLI contract
 ---
 
 # Claims
@@ -122,37 +122,20 @@ stint.
 
 ## Server UI and realtime
 
-The hosted `/s/<slug>` Server UI's Tasks page provides List and Board lenses over claims (the page
-keeps its name until the board Tasks product replaces it); the Linear-style List is the
-default, and it opens on active work — done and closed claims are a deliberate widening carried as
-`?view=all`. The List leads with the `in_review` group, titled **Needs your review**, because a
-claim waiting on a person is the only kind a reader can finish by looking at it. The
-**Stopped before finishing** group follows it: `claimed` claims still `in_progress`, stamped tracked
-because their run settled without answering, and not `live` — each reads as the Agent that
-stopped and what was asked. Both groups show on web and iPhone. The Board keeps
-lifecycle column order, so it still reads as a pipeline. List rows are dense and display-only — priority glyph, claim number, status disc, title,
-labels, origin Chat, updated time, and assignee avatar — while create, assignment,
-status, priority, and task-label controls live on the Board cards and the claim Thread. The
-assignment picker lists the Chat's Agents only. Right-clicking either a List row or Board card
-opens the same claim actions: open, status, priority, assignment, labels, parent-Chat navigation,
-and a copyable claim link. Both lenses
-order the claims inside a group by priority, urgent first. Loading, empty, filtered-empty, and
-authorization failures are explicit. The Tasks topbar owns the chat-scope filter, layout, and creation controls —
-`?chat=<chatId>` carries the scope, and each chat's name menu deep-links here
-pre-scoped; Server-wide
-search opens from the contextual sidebar and finds claims through their canonical Chat messages;
-the ordinary Chat composer sends messages only, while existing top-level messages can be promoted;
-the contextual sidebar owns saved views and label filters. Opening a claim from either lens shows
-its request, inline replies, and optional Thread as one chronological conversation in a dialog over the Tasks page — `?task=<messageId>` owns the open claim,
-so deep links and Back work — while "View in channel" and artifact opens navigate to the parent
-Chat. Inside a Chat, opening a claim opens its Thread: the chat-owned side pane on the web, a Thread page on desktop. A claim Thread is
+Claims have no page in the App: *Tasks* in the nav is the board product ([Tasks](tasks.md)). A claim
+surfaces in its Chat, and `?claim=<messageId>` on a Chat opens it. Opening a claim opens its Thread:
+the chat-owned side pane on the web, a Thread page on desktop. A claim Thread is
 titled by its claim (`Claim #4`) in both hosts and shows the current status, assignee, creator, and
 parent Chat beneath its anchor message; the anchor's own claim mark is suppressed there, so no fact
 appears twice on one screen. Status and assignee are editable there by any member who can write in the
-parent Chat. Both controls mutate the same authoritative claim record used by Board and List views.
+parent Chat; the assignment picker lists the Chat's Agents only.
 
-Both lenses read the same query, and it excludes background-tier claims by default and reports how
-many it hid, so an Agent's own bookkeeping never crowds the surface a person reads.
+The Agent profile lists that Agent's stalled claims under **Stopped before finishing**: `claimed`
+claims still `in_progress`, stamped tracked because their run settled without answering, and not
+`live`. Each row opens the claim's Thread, and the section is absent when there are none.
+
+`claim.list` excludes background-tier claims by default and reports how many it hid, so an Agent's
+own bookkeeping never crowds a surface a person reads.
 `includeBackground` widens it to everything. The Tasks topbar spends that count on one quiet
 control — `N background` — which carries the widening as `?background=on`; it disappears entirely
 on a Server that has no background claims. In the widened lens those rows and cards wear a muted
@@ -197,8 +180,8 @@ populated Thread always states its claim, so a hidden claim whose Thread has rep
 `Claim #N · status` on its ingress card. The Tasks list carries the same `N background` widening
 ([iOS internals](../internals/ios.md)).
 
-A claim nobody finished is the one case a person needs told, and it is told on the Tasks page
-rather than in Chat: it appears in the **Stopped before finishing** group.
+A claim nobody finished is the one case a person needs told, and it is told on the Agent profile
+rather than in Chat: it appears under **Stopped before finishing**.
 
 Opening the claim's Thread states it in full in the metadata panel above the anchor, so the anchor
 drops its own chip there.

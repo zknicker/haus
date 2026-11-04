@@ -112,6 +112,59 @@ test('a followed Thread is its own Unread row, apart from its Channel, and opens
     await expect(page.getByText('All caught up.')).toBeVisible();
 });
 
+test('a Task card is a queue item among Chats: J reaches it, Return opens the Task and clears it', async ({
+    page,
+}) => {
+    const { client, server, session } = await createTestServer(page, {
+        displayName: 'Inbox Tasks',
+        slug: 'inbox-tasks',
+    });
+    await client.member.updateProfile.mutate({
+        description: null,
+        displayName: 'Ada',
+        handle: 'ada',
+        serverId: server.id,
+    });
+    const agent = await createChannelAgent({
+        channelName: 'all',
+        databaseUrl: session.databaseUrl,
+        serverId: server.id,
+        slug: 'inbox-tasks',
+        token: session.accessToken,
+    });
+    const { key } = await agent.createTask({
+        assignee: 'ada',
+        board: 'GEN',
+        title: 'Review the vault',
+    });
+    // Newer than the assignment, so the Channel leads the feed.
+    await agent.send('Deploy notes are posted.', 'tasks-channel');
+
+    await page.goto('/s/inbox-tasks/inbox');
+    const channelCard = page.getByRole('article', { exact: true, name: '#all' });
+    const taskCard = page.getByRole('article', { name: `${key}: Review the vault` });
+    await expect(channelCard).toHaveAttribute('data-selected', 'true');
+    await expect(taskCard).toBeVisible();
+    await expect(taskCard).not.toHaveAttribute('data-selected', 'true');
+    // A Task with no message referencing it has no conversation to reply in.
+    await expect(taskCard.getByRole('textbox')).toHaveCount(0);
+    await expect(page.getByLabel('2 unread chats')).toBeVisible();
+
+    await page.keyboard.press('j');
+    await expect(taskCard).toHaveAttribute('data-selected', 'true');
+    await page.keyboard.press('k');
+    await expect(channelCard).toHaveAttribute('data-selected', 'true');
+    await page.keyboard.press('j');
+    await expect(taskCard).toHaveAttribute('data-selected', 'true');
+
+    await page.keyboard.press('Enter');
+    const [board, number] = key.split('-');
+    await expect(page).toHaveURL(new RegExp(`/s/inbox-tasks/tasks/${board}/${number}$`, 'u'));
+    await expect
+        .poll(async () => (await client.taskInbox.list.query({ serverId: server.id })).items)
+        .toEqual([]);
+});
+
 test('Unread is a triage list: one open row, moved by keys and pressing, read by reply or E', async ({
     page,
 }) => {

@@ -56,6 +56,29 @@ export async function createChannelAgent(input: {
     return {
         agentId: created.agent.id,
         chatId,
+        /** Files a Task as the Agent; the viewer can't assign themselves into their own Inbox. */
+        createTask: async (input: {
+            assignee?: string;
+            board: string;
+            priority?: string;
+            title: string;
+        }) => {
+            const response = await fetch(`${hausOrigin()}/api/agent/tasks/create`, {
+                body: JSON.stringify(input),
+                headers: {
+                    authorization: `Bearer ${runnerToken}`,
+                    'content-type': 'application/json',
+                },
+                method: 'POST',
+            });
+            const payload = (await response.json()) as { task?: { key: string } };
+            if (response.status !== 200 || !payload.task) {
+                throw new Error(
+                    `The Task fixture could not file as its Agent: ${response.status} ${JSON.stringify(payload)}`
+                );
+            }
+            return payload.task;
+        },
         ownerUserId,
         /**
          * Posts as the Agent; `target` defaults to its own Channel. A send held

@@ -15,8 +15,8 @@ export interface StalledClaim {
  * `in_progress` means the work never landed; `tracked` is Server saying the
  * claiming run settled without answering, which is the one thing that lifts a
  * claim out of bookkeeping; and not `live` means no run holds it now, so no
- * reply is coming. Chat says nothing about these by default — the Tasks
- * List's "Stopped before finishing" group is where a person finds out.
+ * reply is coming. Chat says nothing about these by default — the Agent
+ * profile's "Stopped before finishing" section is where a person finds out.
  */
 export function selectStalledClaims<TClaim extends StalledClaim>(
     items: readonly TClaim[]

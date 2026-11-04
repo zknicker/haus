@@ -63,7 +63,7 @@ export function useChannelActions({
 
     const run = (chat: Chat, key: React.Key) => {
         if (key === 'tasks') {
-            openPath(`${tasksRoute(slug)}?chat=${encodeURIComponent(chat.id)}`);
+            openPath(tasksRoute(slug));
             return;
         }
         if (key === 'files') {

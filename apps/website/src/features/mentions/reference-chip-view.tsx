@@ -43,7 +43,9 @@ export function ReferenceChipView({
     const appearance = getMentionAppearance({ id, kind, label, metadata });
     const activationTarget = { id, kind, label, metadata };
     const previewable = chipHasPreview(preview, previewContent, kind, id);
-    const activatable = Boolean(onActivate && (kind === 'agent' || kind === 'chat'));
+    const activatable = Boolean(
+        onActivate && (kind === 'agent' || kind === 'chat' || kind === 'task')
+    );
     const chipColor = getMentionChipColor(kind);
     const chipStyle = referenceChipStyle(appearance, chipColor);
     const chip = (

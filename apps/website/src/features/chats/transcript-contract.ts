@@ -4,6 +4,7 @@ import type {
     ImageGeneration,
     MessageCause,
     TaskLabel,
+    TaskLink,
 } from '@haus/api';
 import type { ClaimOrigin, MessageClaim } from '../claims/claim-presentation.ts';
 import type { TranscriptSystemRow } from './transcript-system-row.ts';
@@ -114,6 +115,8 @@ export interface TranscriptMessage {
     sendNonce?: string | null;
     sourceSessionId?: string | null;
     sourceSessionKey: string;
+    /** The Tasks this Message references, in content order (ADR 0051); each renders as a chip. */
+    taskLinks?: readonly TaskLink[];
     timestamp: string;
 }
 
