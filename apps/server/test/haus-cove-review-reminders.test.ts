@@ -164,7 +164,7 @@ test('timezone capability discovery does not inspect inaccessible historical rem
     try {
         const options = { headers: { authorization: `Bearer ${runner.token}` } };
         const list = await fetch(new URL('/api/agent/reminders', fixture.harness.url), options);
-        expect(list.status).toBe(409);
+        expect(list.status).toBe(200);
         const capabilities = await fetch(
             new URL('/api/agent/reminders/capabilities', fixture.harness.url),
             options
