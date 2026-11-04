@@ -12,6 +12,7 @@ import {
     cloudAgentProviderActionInputSchema,
     cloudAgentProviderGetInputSchema,
     cloudAgentProviderOutputSchema,
+    cloudAgentProviderSetEnvironmentInputSchema,
 } from './contracts.ts';
 
 /**
@@ -19,6 +20,8 @@ import {
  * sign-in on that Computer and returns its browser link; Server never
  * sees, stores, or forwards the credential it mints. `makeDefault` names the
  * provider an Agent's `start` uses on that Computer when it names none.
+ * `setEnvironment` pins (or unpins, with `null`) the Anthropic-hosted cloud
+ * environment that Computer's Claude launches run on.
  */
 export const cloudAgentProviderRouter = createRouter({
     cancelSignIn: actionProcedure('cancel-sign-in'),
@@ -29,6 +32,12 @@ export const cloudAgentProviderRouter = createRouter({
         .input(cloudAgentProviderGetInputSchema)
         .output(cloudAgentProviderOutputSchema)
         .query(({ ctx, input }) => relay(ctx, input, { kind: 'get' })),
+    setEnvironment: memberProcedure
+        .input(cloudAgentProviderSetEnvironmentInputSchema)
+        .output(cloudAgentProviderOutputSchema)
+        .mutation(({ ctx, input }) =>
+            relay(ctx, input, { environmentId: input.environmentId, kind: 'set-environment' })
+        ),
 });
 
 function actionProcedure(kind: 'connect' | 'disconnect' | 'cancel-sign-in' | 'make-default') {

@@ -13,4 +13,7 @@ const cloudAgentProviderTargetSchema = z
 
 export const cloudAgentProviderGetInputSchema = cloudAgentProviderTargetSchema;
 export const cloudAgentProviderActionInputSchema = cloudAgentProviderTargetSchema;
+export const cloudAgentProviderSetEnvironmentInputSchema = cloudAgentProviderTargetSchema.extend({
+    environmentId: z.string().trim().min(1).max(200).nullable(),
+});
 export const cloudAgentProviderOutputSchema = cloudAgentCapabilityStateSchema;
