@@ -31,6 +31,8 @@ test('pending upload disables the control and shows a loading spinner', () => {
     expect(markup).toContain('disabled=""');
     expect(markup).toContain('aria-label="Loading"');
     expect(markup).toContain('role="status"');
+    expect(markup).toContain('Saving profile photo…');
+    expect(markup).toContain('aria-live="polite"');
 });
 
 test('generate menu trigger stays a menu button for ordinary Agents', () => {

@@ -149,7 +149,11 @@ export function AgentHeader({
             name={agent.displayName}
             subtitle={`@${agent.handle}`}
         >
-            {error ? <p className="text-danger text-sm">{error}</p> : null}
+            {error ? (
+                <p className="text-danger text-sm" role="alert">
+                    {error}
+                </p>
+            ) : null}
         </MemberProfileHeader>
     );
 }
