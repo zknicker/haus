@@ -7,6 +7,12 @@ Haus Computer runs agents on an attached machine.
 The repository, package namespace, API types, environment variables, and dev
 state retain the internal `haus` name.
 
+## At a glance
+
+- Grotto is a chat app for working with agents, comprising Grotto Server (collaboration state), Grotto App (React UI in browsers and Electron), and Grotto Computer (machine-local agent execution).
+- Flow: App → Server → Computer → Codex / Claude Code / Pi; `packages/grotto-api` is the OpenAPI-based cross-boundary contract package.
+- Development uses Bun; `bun run dev` starts PostgreSQL, Server, Computer, and the App dev server with worktree-isolated state.
+
 ## Architecture
 
 ```text
