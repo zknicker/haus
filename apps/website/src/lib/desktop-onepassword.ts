@@ -1,6 +1,7 @@
 import {
     onePasswordAccountSchema,
     onePasswordItemListSchema,
+    onePasswordSecondaryFieldListSchema,
     onePasswordServiceAccountNameSchema,
     onePasswordServiceAccountTokenSchema,
     onePasswordVaultSchema,
@@ -24,13 +25,18 @@ const vaultsReplySchema = z.discriminatedUnion('status', [
 ]);
 
 const itemsReplySchema = z.discriminatedUnion('status', [
-    z.object({ items: onePasswordItemListSchema, status: z.literal('ok') }),
+    z.object({
+        items: onePasswordItemListSchema,
+        secondaryFields: onePasswordSecondaryFieldListSchema,
+        status: z.literal('ok'),
+    }),
     unavailableSchema,
 ]);
 
 const connectReplySchema = z.discriminatedUnion('status', [
     z.object({
         items: onePasswordItemListSchema,
+        secondaryFields: onePasswordSecondaryFieldListSchema,
         serviceAccountName: onePasswordServiceAccountNameSchema,
         status: z.literal('ok'),
         token: onePasswordServiceAccountTokenSchema,

@@ -36,6 +36,7 @@ const connectInput = {
     account: 'my.1password.com',
     computerId,
     items,
+    secondaryFields: [],
     serviceAccountName: 'Haus Computer Mac 2026-10-13',
     token,
     vault,
@@ -112,6 +113,7 @@ test('refresh relays a new item list without a token', async () => {
     await owner.trpc.computerSecrets.refreshItems.mutate({
         computerId,
         items,
+        secondaryFields: [],
         serverId,
         vaultId: vault.id,
     });

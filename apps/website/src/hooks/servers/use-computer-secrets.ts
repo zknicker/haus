@@ -44,6 +44,7 @@ export function useComputerSecretsRefresh(target: ComputerSecretsTarget) {
             return await mutation.mutateAsync({
                 ...target,
                 items: reply.items,
+                secondaryFields: reply.secondaryFields,
                 vaultId: connection.vaultId,
             });
         } finally {

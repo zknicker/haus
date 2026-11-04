@@ -58,6 +58,25 @@ export type OnePasswordItem = z.infer<typeof onePasswordItemSchema>;
 
 export const onePasswordItemListSchema = z.array(onePasswordItemSchema).max(200);
 
+/**
+ * A non-primary field on a vault item: 1Password's own field id (used verbatim
+ * in the op:// reference — ids never need escaping, unlike labels with spaces)
+ * and the human label used to build <TITLE>_<FIELD>.
+ */
+export const onePasswordSecondaryFieldSchema = z
+    .object({
+        fieldId: z.string().trim().min(1).max(100),
+        itemId: onePasswordIdSchema,
+        label: z.string().trim().min(1).max(100),
+    })
+    .strict();
+
+export type OnePasswordSecondaryField = z.infer<typeof onePasswordSecondaryFieldSchema>;
+
+export const onePasswordSecondaryFieldListSchema = z
+    .array(onePasswordSecondaryFieldSchema)
+    .max(800);
+
 /** A service account name Haus creates; the Owner revokes it on 1password.com by this name. */
 export const onePasswordServiceAccountNameSchema = z.string().trim().min(1).max(120);
 
@@ -106,6 +125,7 @@ export const computerSecretsOperationSchema = z.discriminatedUnion('kind', [
             account: onePasswordAccountSchema,
             items: onePasswordItemListSchema,
             kind: z.literal('connect'),
+            secondaryFields: onePasswordSecondaryFieldListSchema,
             serviceAccountName: onePasswordServiceAccountNameSchema,
             token: onePasswordServiceAccountTokenSchema,
             vault: onePasswordVaultSchema,
@@ -115,6 +135,7 @@ export const computerSecretsOperationSchema = z.discriminatedUnion('kind', [
         .object({
             items: onePasswordItemListSchema,
             kind: z.literal('refresh-items'),
+            secondaryFields: onePasswordSecondaryFieldListSchema,
             vaultId: onePasswordIdSchema,
         })
         .strict(),

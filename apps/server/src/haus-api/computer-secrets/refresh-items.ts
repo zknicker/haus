@@ -2,6 +2,7 @@ import {
     computerSecretsStatusSchema,
     onePasswordIdSchema,
     onePasswordItemListSchema,
+    onePasswordSecondaryFieldListSchema,
 } from '@haus/api';
 import { memberProcedure } from '../server/procedure.ts';
 import { computerSecretsTargetSchema, relayComputerSecrets } from './relay.ts';
@@ -10,7 +11,11 @@ import { computerSecretsTargetSchema, relayComputerSecrets } from './relay.ts';
 export const refreshComputerSecretItemsProcedure = memberProcedure
     .input(
         computerSecretsTargetSchema
-            .extend({ items: onePasswordItemListSchema, vaultId: onePasswordIdSchema })
+            .extend({
+                items: onePasswordItemListSchema,
+                secondaryFields: onePasswordSecondaryFieldListSchema,
+                vaultId: onePasswordIdSchema,
+            })
             .strict()
     )
     .output(computerSecretsStatusSchema)
@@ -18,6 +23,7 @@ export const refreshComputerSecretItemsProcedure = memberProcedure
         relayComputerSecrets(ctx, input, {
             items: input.items,
             kind: 'refresh-items',
+            secondaryFields: input.secondaryFields,
             vaultId: input.vaultId,
         })
     );

@@ -1,4 +1,4 @@
-import type { ComputerSecretItem, OnePasswordItem } from '@haus/api';
+import type { ComputerSecretItem, OnePasswordItem, OnePasswordSecondaryField } from '@haus/api';
 import { keychainItemNotFoundExitCode, securityPath } from './keychain.ts';
 import { secretsRuntimePlugin } from './runtime.ts';
 
@@ -14,20 +14,45 @@ const reservedNames = new Set(['HAUS_OP_TOKEN', 'HOME', 'PATH', 'PWD', 'SHELL', 
  * Maps vault items to environment variables. References use vault and item
  * ids, so titles with `/` or quotes cannot break the `op://` path, and a
  * renamed item keeps resolving until the next refresh renames its variable.
+ *
+ * Pass 1 binds each item's primary field under its title (`<TITLE>`), exactly
+ * as before. Pass 2 binds every secondary field under `<TITLE>_<FIELD>`,
+ * deduping against the same `taken` set so a primary name always wins a
+ * collision against a same-named secondary.
  */
 export function secretBindings(
     vaultId: string,
-    items: readonly OnePasswordItem[]
+    items: readonly OnePasswordItem[],
+    secondaryFields: readonly OnePasswordSecondaryField[] = []
 ): SecretBinding[] {
     const taken = new Set<string>();
     const bindings: SecretBinding[] = [];
+    const titlesById = new Map<string, string>();
     for (const item of [...items].sort((a, b) => a.title.localeCompare(b.title))) {
         const envName = uniqueName(envNameForTitle(item.title), taken);
         taken.add(envName);
+        titlesById.set(item.id, item.title);
         bindings.push({
             envName,
             reference: `op://${vaultId}/${item.id}/${item.field}`,
             title: item.title.trim().slice(0, 200) || item.id,
+        });
+    }
+    const secondary = secondaryFields
+        .flatMap((field) => {
+            const title = titlesById.get(field.itemId);
+            return title ? [{ field, title }] : [];
+        })
+        .sort(
+            (a, b) => a.title.localeCompare(b.title) || a.field.label.localeCompare(b.field.label)
+        );
+    for (const { field, title } of secondary) {
+        const envName = uniqueName(envNameForTitle(`${title} ${field.label}`), taken);
+        taken.add(envName);
+        bindings.push({
+            envName,
+            reference: `op://${vaultId}/${field.itemId}/${field.fieldId}`,
+            title,
         });
     }
     return bindings.slice(0, 200);

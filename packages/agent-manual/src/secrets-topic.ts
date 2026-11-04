@@ -13,7 +13,7 @@ A Server Owner can connect one 1Password vault to a Computer from the desktop Ap
 
 ## Use a key
 
-\`haus-secrets --list\` prints the environment variable names this Computer provides, one per vault item, named from the item title (\`Stripe API Key\` becomes \`STRIPE_API_KEY\`). It prints names only, never values.
+\`haus-secrets --list\` prints the environment variable names this Computer provides. Each vault item's main field is named from the item title (\`Stripe API Key\` becomes \`STRIPE_API_KEY\`); any other field it carries, such as a username alongside a credential, is named \`<TITLE>_<FIELD>\` (\`Plaid API Key\` plus a \`username\` field becomes \`PLAID_API_KEY_USERNAME\`). It prints names only, never values.
 
 Run the script or CLI that needs a key as \`haus-secrets -- <command> [args...]\`. Each key is injected as an environment variable for that one command and its children, and is gone when it exits. Reference the variable inside the command (\`haus-secrets -- sh -c 'curl -H "Authorization: Bearer $STRIPE_API_KEY" https://api.stripe.com/v1/balance'\`), or let a tool read its usual variable on its own.
 
