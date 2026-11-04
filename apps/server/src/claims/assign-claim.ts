@@ -14,7 +14,7 @@ import {
 } from './claim-actor.ts';
 import { deliverClaimAssignment } from './claim-assignment-delivery.ts';
 import { ClaimConflictError, ClaimNotFoundError } from './claim-errors.ts';
-import { prepareClaimEvent } from './claim-events.ts';
+import { lockClaimPlacement, prepareClaimEvent } from './claim-events.ts';
 import { findMessageClaim } from './claim-shape.ts';
 import { resolveClaimAssignee } from './resolve-claim-assignee.ts';
 
@@ -81,14 +81,9 @@ export async function assignClaim(
             where server_id = ${input.serverId} and id = ${beforeLock.chatId}
             for update
         `);
-        await tx.execute(sql`
-            select message_id from message_claims
-            where server_id = ${input.serverId} and message_id = ${input.messageId}
-            for update
-        `);
-
+        const placement = await lockClaimPlacement(tx, input.serverId, input.messageId);
         const current = await findMessageClaim(tx, input.serverId, input.messageId);
-        if (!current) {
+        if (!(placement && current)) {
             throw new ClaimNotFoundError();
         }
         if (input.expectedVersion !== undefined && current.version !== input.expectedVersion) {
@@ -127,10 +122,8 @@ export async function assignClaim(
                 )
             );
         const claimEvent = prepareClaimEvent({
-            chatId: current.chatId,
-            messageId: current.messageId,
+            ...placement,
             serverId: input.serverId,
-            threadChatId: current.threadChatId,
             type: 'claim.updated',
         });
         const events: PreparedRealtimeEvent[] = claimEvent ? [claimEvent] : [];

@@ -61,9 +61,12 @@ test('inline replies send, survive reload, and navigate to an off-page parent', 
         ).toBeLessThan(1);
     }
     await page.getByRole('button', { name: 'Cancel reply' }).hover();
+    // Reply focuses the composer, and Cancel never takes that focus: the
+    // button does not focus on press, so the person keeps typing where they were.
     await page.mouse.down();
-    await expect(page.locator('.prompt-input:focus-within')).toHaveCount(0);
+    await expect(composer).toBeFocused();
     await page.mouse.up();
+    await expect(composer).toBeFocused();
     await expect(page.locator('[data-inline-reply-reference]')).toHaveCount(0);
     await expect(page.locator('.chat-reply-target')).toHaveCount(0);
     expect((await rootRow.boundingBox())?.y).toBe(initialMessageBox?.y);

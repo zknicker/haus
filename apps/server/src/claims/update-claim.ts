@@ -10,7 +10,7 @@ import {
     type ClaimMutationResult,
     ClaimNotFoundError,
 } from './claim-errors.ts';
-import { prepareClaimEvent } from './claim-events.ts';
+import { lockClaimPlacement, prepareClaimEvent } from './claim-events.ts';
 import { findMessageClaim } from './claim-shape.ts';
 import { type ClaimStatus, claimStatusColumns } from './claim-status-transitions.ts';
 
@@ -53,14 +53,9 @@ export async function updateClaim(
             where server_id = ${input.serverId} and id = ${beforeLock.chatId}
             for update
         `);
-        await tx.execute(sql`
-            select message_id from message_claims
-            where server_id = ${input.serverId} and message_id = ${input.messageId}
-            for update
-        `);
-
+        const placement = await lockClaimPlacement(tx, input.serverId, input.messageId);
         const current = await findMessageClaim(tx, input.serverId, input.messageId);
-        if (!current) {
+        if (!(placement && current)) {
             throw new ClaimNotFoundError();
         }
         if (current.version !== input.expectedVersion) {
@@ -97,10 +92,8 @@ export async function updateClaim(
                 )
             );
         const event = prepareClaimEvent({
-            chatId: current.chatId,
-            messageId: current.messageId,
+            ...placement,
             serverId: input.serverId,
-            threadChatId: current.threadChatId,
             type: 'claim.updated',
         });
         const claim = await findMessageClaim(tx, input.serverId, input.messageId);
