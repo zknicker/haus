@@ -227,6 +227,8 @@ export const reminderScriptResultSchema = z
     .object({
         agentId: idSchema,
         attentionId: idSchema,
+        /** Optional so an older Computer's result is still accepted without it. */
+        durationMs: z.number().int().nonnegative().optional(),
         exitCode: z.number().int(),
         fireId: idSchema,
         output: z.string().max(65_536),

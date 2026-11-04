@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Cause, Effect, Runtime } from 'effect';
@@ -10,6 +10,7 @@ import {
     runReminderScriptWithExecution,
 } from './reminder-script.ts';
 import { ReminderScriptExecutionFailure } from './reminder-script-execution.ts';
+import { secretsPaths } from './secrets/store.ts';
 
 let dataRoot: string;
 const runtime = makeDaemonRuntime();
@@ -125,6 +126,52 @@ test('runs with a minimal environment instead of Computer process secrets', asyn
             process.env.HAUS_REMINDER_TEST_SECRET = prior;
         }
     }
+});
+
+test("puts the Owner's haus-secrets on PATH, like the Agent's own shell commands get", async () => {
+    const serverId = 'srv_secrets_path';
+    const { binDir, wrapper } = secretsPaths(dataRoot, serverId);
+    await mkdir(binDir, { mode: 0o700, recursive: true });
+    await writeFile(wrapper, '#!/bin/sh\nprintf found\n', { mode: 0o700 });
+    await chmod(wrapper, 0o700);
+    const command = parseReminderScriptCommand({
+        agentId: 'agt_secrets_path',
+        attentionId: 'att_secrets_path0001',
+        fireId: 'rmf_secrets_path',
+        reminderId: 'rmd_secrets_path',
+        script: 'haus-secrets',
+        type: 'reminder-script',
+    });
+    if (!command) {
+        throw new Error('Fixture command did not parse.');
+    }
+
+    const result = await runReminderScript({ command, dataRoot, runtime, serverId });
+
+    expect(result).toMatchObject({ exitCode: 0, output: 'found' });
+});
+
+test('reports how long the script ran', async () => {
+    const command = parseReminderScriptCommand({
+        agentId: 'agt_duration',
+        attentionId: 'att_duration00000001',
+        fireId: 'rmf_duration',
+        reminderId: 'rmd_duration',
+        script: 'sleep 0.05',
+        type: 'reminder-script',
+    });
+    if (!command) {
+        throw new Error('Fixture command did not parse.');
+    }
+
+    const result = await runReminderScript({
+        command,
+        dataRoot,
+        runtime,
+        serverId: 'srv_duration',
+    });
+
+    expect(result.durationMs).toBeGreaterThanOrEqual(40);
 });
 
 test('bounds combined multibyte output by UTF-8 bytes', async () => {

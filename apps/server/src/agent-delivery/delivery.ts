@@ -20,6 +20,7 @@ import {
     listReminderScriptCommands,
     settleReminderScript,
 } from '../reminders/reminder-script-delivery.ts';
+import { recordReminderWakeUsage } from '../reminders/reminder-wake-usage.ts';
 import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import { readActiveAgentActivity } from '../server-agents/agent-activity-history.ts';
 import type { AgentConfigurationRotation } from '../server-agents/configure-agent.ts';
@@ -388,6 +389,11 @@ export class AgentDelivery {
         if (!serverId) {
             return;
         }
+        await recordReminderWakeUsage(
+            this.db,
+            { agentId: summary.agentId, runId: summary.runId, serverId },
+            summary.tokenUsage
+        );
         if (summary.failureKind === 'session-resume' && !summary.outputProduced) {
             const recovery = await this.db.transaction(async (tx) => {
                 await lockServerRow(tx, serverId);

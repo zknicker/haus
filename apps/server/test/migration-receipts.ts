@@ -51,4 +51,5 @@ export const migrationsSince0060 = [
     '0108_remove-linear',
     '0109_freshness-hold-boundary',
     '0110_idle-compaction',
+    '0111_reminder-wake-rules',
 ];

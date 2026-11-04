@@ -1,4 +1,5 @@
-import { and, asc, eq } from 'drizzle-orm';
+import type { ReminderRunOutcome } from '@haus/api';
+import { and, asc, desc, eq, gte } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
@@ -14,13 +15,17 @@ import {
 } from './reminder-model.ts';
 
 export interface ReminderFire {
+    durationMs: number | null;
     firedAt: string;
     id: string;
+    /** Null means the Computer has not settled this script fire yet; callers resolve it to `not_reported`. */
+    outcome: ReminderRunOutcome | null;
     reminderId: string;
     scheduledFor: string;
     scriptExitCode?: number | null;
     scriptOutput?: string | null;
     scriptTimedOut?: boolean;
+    wakeTotalTokens: number | null;
 }
 
 export interface ReminderAgentAttention {
@@ -34,11 +39,28 @@ export interface ReminderAgentAttention {
     script: string | null;
 }
 
+/**
+ * A pathological cadence (sub-minute, over the whole retention window) is the
+ * only realistic way to exceed this; it bounds worst-case memory without
+ * affecting the summary for any sane cadence, since retention already caps
+ * the window this reads from.
+ */
+const REMINDER_FIRES_QUERY_LIMIT = 10_000;
+
 export async function listReminderFires(
     db: HausDatabase,
     input: {
         actor: { agentId: string; kind: 'agent' };
         reminderId: string;
+        /**
+         * Bounds the query to fires at or after this time. Optional, rather
+         * than always defaulting to the real clock, because write-path tests
+         * fire reminders under an injected `ReminderClock` far from real
+         * "now" and then read them straight back; the one production caller
+         * (`readAgentReminderLog`) always passes `REMINDER_HISTORY_RETENTION_DAYS`
+         * back from its own `now`.
+         */
+        since?: Date;
         serverId: string;
     }
 ): Promise<ReminderFire[]> {
@@ -49,18 +71,26 @@ export async function listReminderFires(
         .where(
             and(
                 eq(reminderFiresTable.serverId, input.serverId),
-                eq(reminderFiresTable.reminderId, input.reminderId)
+                eq(reminderFiresTable.reminderId, input.reminderId),
+                ...(input.since ? [gte(reminderFiresTable.firedAt, input.since)] : [])
             )
         )
-        .orderBy(asc(reminderFiresTable.scheduledFor), asc(reminderFiresTable.id));
-    return rows.map((row) => ({
+        // Newest first under the cap, then restored to the caller's usual
+        // oldest-first order, so a long-lived reminder loses its oldest fires
+        // rather than its most recent ones if it ever exceeds the cap.
+        .orderBy(desc(reminderFiresTable.scheduledFor), desc(reminderFiresTable.id))
+        .limit(REMINDER_FIRES_QUERY_LIMIT);
+    return rows.reverse().map((row) => ({
+        durationMs: row.durationMs,
         firedAt: row.firedAt.toISOString(),
         id: row.id,
+        outcome: row.outcome,
         reminderId: row.reminderId,
         scheduledFor: row.scheduledFor.toISOString(),
         scriptExitCode: row.scriptExitCode,
         scriptOutput: row.scriptOutput,
         scriptTimedOut: row.scriptTimedOut,
+        wakeTotalTokens: row.wakeTotalTokens,
     }));
 }
 

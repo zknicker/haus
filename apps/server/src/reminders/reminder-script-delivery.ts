@@ -9,7 +9,8 @@ import {
     remindersTable,
 } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { reminderEnvelope, reminderScriptLines } from './reminder-envelope.ts';
+import { reminderEnvelope } from './reminder-envelope.ts';
+import { decideReminderWake } from './reminder-wake-decision.ts';
 
 export async function listReminderScriptCommands(
     db: HausDatabase,
@@ -108,9 +109,43 @@ export async function settleReminderScript(
         if (!attention) {
             return null;
         }
+        const [reminder] = await tx
+            .select({
+                consecutiveFailures: remindersTable.consecutiveFailures,
+                description: remindersTable.description,
+                failAfter: remindersTable.failAfter,
+                failureStreakWoken: remindersTable.failureStreakWoken,
+                fireAt: remindersTable.fireAt,
+                lastWakeOutputHash: remindersTable.lastWakeOutputHash,
+                status: remindersTable.status,
+                title: remindersTable.title,
+                wakeOnChange: remindersTable.wakeOnChange,
+            })
+            .from(remindersTable)
+            .where(
+                and(
+                    eq(remindersTable.serverId, identity.serverId),
+                    eq(remindersTable.id, attention.reminderId)
+                )
+            )
+            .limit(1)
+            .for('update');
+        if (!reminder) {
+            return null;
+        }
+
+        const script = {
+            exitCode: result.exitCode,
+            output: result.output,
+            timedOut: result.timedOut,
+        };
+        const decision = decideReminderWake(reminder, script);
+
         await tx
             .update(reminderFiresTable)
             .set({
+                durationMs: result.durationMs ?? null,
+                outcome: decision.outcome,
                 scriptExitCode: result.exitCode,
                 scriptOutput: result.output || null,
                 scriptTimedOut: result.timedOut,
@@ -122,6 +157,19 @@ export async function settleReminderScript(
                 )
             );
         await tx
+            .update(remindersTable)
+            .set({
+                consecutiveFailures: decision.nextState.consecutiveFailures,
+                failureStreakWoken: decision.nextState.failureStreakWoken,
+                lastWakeOutputHash: decision.nextState.lastWakeOutputHash,
+            })
+            .where(
+                and(
+                    eq(remindersTable.serverId, identity.serverId),
+                    eq(remindersTable.id, attention.reminderId)
+                )
+            );
+        await tx
             .delete(reminderAgentAttentionTable)
             .where(
                 and(
@@ -129,23 +177,11 @@ export async function settleReminderScript(
                     eq(reminderAgentAttentionTable.id, attention.id)
                 )
             );
-        // A script that succeeded with nothing to say stays silent: that is the
-        // whole point of a watchdog script.
-        const script = {
-            exitCode: result.exitCode,
-            output: result.output,
-            timedOut: result.timedOut,
-        };
-        if (!reminderScriptLines(script)) {
-            return;
+        if (!decision.wake) {
+            return null;
         }
-        const [reminder] = await tx
-            .select({
-                description: remindersTable.description,
-                fireAt: remindersTable.fireAt,
-                status: remindersTable.status,
-                title: remindersTable.title,
-            })
+        const [anchor] = await tx
+            .select({ anchorChatId: remindersTable.anchorChatId })
             .from(remindersTable)
             .innerJoin(
                 chatsTable,
@@ -173,8 +209,8 @@ export async function settleReminderScript(
                 )
             )
             .limit(1);
-        if (!reminder) {
-            return;
+        if (!anchor) {
+            return null;
         }
         await enqueue(tx, {
             agentId: attention.agentId,
@@ -183,7 +219,9 @@ export async function settleReminderScript(
                 fireId: attention.fireId,
                 nextFireAt: reminder.status === 'scheduled' ? reminder.fireAt : null,
                 reminder,
-                script,
+                ...(decision.outcome === 'recovered' && decision.failureStreak !== null
+                    ? { recoveredAfterFailures: decision.failureStreak }
+                    : { script }),
             }),
             createdAt: new Date(),
             dedupeKey: attention.fireId,

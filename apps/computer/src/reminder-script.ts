@@ -5,6 +5,8 @@ import {
     liveReminderScriptExecution,
     type ReminderScriptExecutionRunner,
 } from './reminder-script-execution.ts';
+import { runtimeSearchPath } from './runtime-discovery.ts';
+import { secretsPaths } from './secrets/store.ts';
 
 export interface ReminderScriptCommand {
     agentId: string;
@@ -18,6 +20,8 @@ export interface ReminderScriptCommand {
 export interface ReminderScriptResult {
     agentId: string;
     attentionId: string;
+    /** Wall-clock time the script ran for. */
+    durationMs: number;
     exitCode: number;
     fireId: string;
     output: string;
@@ -110,17 +114,19 @@ async function executeReminderScript(
         mkdir(home, { mode: 0o700, recursive: true }),
     ]);
 
+    const startedAt = Date.now();
     const execution = await runExecution(
         input.runtime,
         input.executionRunner({
             cwd: workspace,
-            env: reminderScriptEnvironment(home),
+            env: reminderScriptEnvironment(home, input.dataRoot, input.serverId),
             script: input.command.script,
         })
     );
     const result: ReminderScriptResult = {
         agentId: input.command.agentId,
         attentionId: input.command.attentionId,
+        durationMs: Date.now() - startedAt,
         exitCode: execution.exitCode,
         fireId: input.command.fireId,
         output: execution.output,
@@ -140,10 +146,21 @@ async function runExecution(
     return await settle(runtime, execution);
 }
 
-function reminderScriptEnvironment(home: string): Record<string, string> {
+/**
+ * The same PATH the Agent's own shell commands get, minus the live-turn-only
+ * pieces (the proxy-backed `haus` wrapper and a specific launched runtime's own
+ * directory) a standalone reminder script run has no equivalent of: the
+ * Owner's `haus-secrets` install, when connected, then the stable service PATH
+ * (`agentPath` in agent-path.ts composes the full set for a live Agent turn).
+ */
+function reminderScriptEnvironment(
+    home: string,
+    dataRoot: string,
+    serverId: string
+): Record<string, string> {
     const environment: Record<string, string> = {
         HOME: home,
-        PATH: process.env.PATH ?? '/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin',
+        PATH: [secretsPaths(dataRoot, serverId).binDir, runtimeSearchPath()].join(':'),
     };
     for (const name of ['LANG', 'LC_ALL', 'TMPDIR'] as const) {
         const value = process.env[name];
@@ -170,6 +187,7 @@ function isResult(value: unknown): value is ReminderScriptResult {
         typeof value.agentId === 'string' &&
         typeof value.attentionId === 'string' &&
         typeof value.fireId === 'string' &&
+        typeof value.durationMs === 'number' &&
         typeof value.exitCode === 'number' &&
         typeof value.output === 'string' &&
         typeof value.timedOut === 'boolean'
