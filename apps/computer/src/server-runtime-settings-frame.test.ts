@@ -1,4 +1,5 @@
 import { expect, spyOn, test } from 'bun:test';
+import { AttachmentDaemonWork } from './attachment-daemon-work.ts';
 import { makeDaemonRuntime } from './daemon-runtime.ts';
 import {
     closeRuntimeContext,
@@ -31,6 +32,25 @@ test('the Server’s runtime settings turn idle compaction on and off for the wa
             false
         );
     } finally {
+        await closeRuntimeContext(runtime);
+    }
+});
+
+test('a lost attachment socket turns idle compaction off until the next attach resends it', async () => {
+    const runtime = makeDaemonRuntime();
+    openRuntimeContext(runtime);
+    const work = new AttachmentDaemonWork(runtime);
+    try {
+        const setting = spyOn(requireRuntimeContext(runtime).warm, 'setIdleCompaction');
+        const detach = work.attachSender({ send: () => true });
+        handleServerRuntimeSettingsFrame(
+            { idleCompaction: true, type: 'server-runtime-settings' },
+            runtime
+        );
+        detach();
+        expect(setting.mock.calls).toEqual([[true], [false]]);
+    } finally {
+        await work.close();
         await closeRuntimeContext(runtime);
     }
 });

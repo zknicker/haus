@@ -27,7 +27,38 @@ test('idle compaction starts off; every member reads it and only an Owner change
     await fixture.owner.trpc.server.setIdleCompaction.mutate({ ...input, idleCompaction: false });
 });
 
-test('an attached Computer gets the setting on attach and on every change', async () => {
+test('an attach turns the setting on only when it is on; every change reaches attached Computers', async () => {
+    const first = await attachWatching();
+    try {
+        // Off is the Computer's own default: an attach while off sends nothing.
+        await Bun.sleep(200);
+        expect(first.settings).toEqual([]);
+        await fixture.owner.trpc.server.setIdleCompaction.mutate({
+            idleCompaction: true,
+            serverId: fixture.serverId,
+        });
+        await until(() => first.settings.length === 1);
+        expect(first.settings).toEqual([true]);
+    } finally {
+        first.socket.close();
+    }
+    // A Computer that attaches while it is on is told at once.
+    const second = await attachWatching();
+    try {
+        await until(() => second.settings.length === 1);
+        expect(second.settings).toEqual([true]);
+        await fixture.owner.trpc.server.setIdleCompaction.mutate({
+            idleCompaction: false,
+            serverId: fixture.serverId,
+        });
+        await until(() => second.settings.length === 2);
+        expect(second.settings).toEqual([true, false]);
+    } finally {
+        second.socket.close();
+    }
+});
+
+async function attachWatching() {
     const socket = new WebSocket(fixture.computerSocketUrl());
     const settings: boolean[] = [];
     socket.addEventListener('message', (event) => {
@@ -37,25 +68,9 @@ test('an attached Computer gets the setting on attach and on every change', asyn
         }
     });
     await fixture.opened(socket);
-    try {
-        socket.send(JSON.stringify(fixture.bootstrapFrame()));
-        await until(() => settings.length === 1);
-        expect(settings).toEqual([false]);
-
-        await fixture.owner.trpc.server.setIdleCompaction.mutate({
-            idleCompaction: true,
-            serverId: fixture.serverId,
-        });
-        await until(() => settings.length === 2);
-        expect(settings).toEqual([false, true]);
-    } finally {
-        socket.close();
-        await fixture.owner.trpc.server.setIdleCompaction.mutate({
-            idleCompaction: false,
-            serverId: fixture.serverId,
-        });
-    }
-});
+    socket.send(JSON.stringify(fixture.bootstrapFrame()));
+    return { settings, socket };
+}
 
 test('a reported idle compaction is the Agent’s completed turn, counted once in Usage', async () => {
     const socket = await fixture.attachComputer();

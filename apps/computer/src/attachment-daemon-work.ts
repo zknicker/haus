@@ -13,7 +13,11 @@ import { harnessSessionOwner } from './harness/session-lifecycle.ts';
 import { createIdleCompactionReporter } from './idle-compaction-reporter.ts';
 import type { IdleCompactionHooks } from './runtime/idle-compaction-scheduler.ts';
 import { stopRuntimeProcesses } from './runtime/process-registry.ts';
-import { closeRuntimeContext, fenceWarmRuntime } from './runtime/runtime-context.ts';
+import {
+    closeRuntimeContext,
+    fenceWarmRuntime,
+    setIdleCompaction,
+} from './runtime/runtime-context.ts';
 
 export interface AttachmentFrameSender {
     send(frame: unknown): boolean;
@@ -104,6 +108,9 @@ export class AttachmentDaemonWork {
             if (this.sender === sender) {
                 this.sender = null;
             }
+            // Server runtime settings last only as long as the socket that carried them: off
+            // until the next attach resends them, so a change missed offline never lingers.
+            setIdleCompaction(this.runtime, false);
         };
     }
 

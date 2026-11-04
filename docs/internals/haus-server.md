@@ -226,8 +226,10 @@ Settings → Server → Agents. Today there is one: **Idle compaction**
 (`servers.idle_compaction`, `server.setIdleCompaction`, default off), the launch gate
 for compacting parked Claude Code sessions before their prompt cache expires
 (specs/runtime-drivers.md "Idle compaction"). The settings a Computer's runtimes
-follow ride one `server-runtime-settings` frame (replace semantics): sent on every
-ordinary attach and, on a change, to every attached Computer of the Server. A
+follow ride one `server-runtime-settings` frame (replace semantics): sent to every
+attached Computer of the Server on a change, and on an ordinary attach while a setting
+is on. A Computer holds every setting off until a frame turns one on, and again whenever
+its attachment socket closes. A
 change also publishes `server.onUpdated`, which refreshes `server.settings` in
 every App. A Computer's idle compaction reports arrive as `agent-idle-compaction`
 and are recorded as the Agent's completed turn, so Usage counts them.

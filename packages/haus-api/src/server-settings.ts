@@ -4,7 +4,7 @@ import { idSchema } from './chat.ts';
 /**
  * Server-wide settings an Owner turns on for every Agent on the Server. Every member reads them;
  * only an Owner changes them. Runtime settings reach each attached Computer as one
- * `server-runtime-settings` frame (`server-commands.ts`), on attach and on every change.
+ * `server-runtime-settings` frame (`server-commands.ts`).
  */
 export const serverSettingsSchema = z
     .object({
