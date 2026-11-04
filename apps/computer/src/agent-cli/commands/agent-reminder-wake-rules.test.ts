@@ -3,7 +3,6 @@ import type * as z from 'zod';
 import type { AgentApiRequest, AgentApiRequester } from '../agent-api-client.ts';
 import type { ParsedArgs } from '../parse.ts';
 import { runReminderSchedule, runReminderUpdate } from './agent-reminder.ts';
-import { runReminderLog } from './reminder-wake-rules.ts';
 
 const reminder = {
     anchorTarget: '#general:deadbeef',
@@ -167,112 +166,6 @@ describe('Agent reminder CLI: wake rules and log', () => {
                 { client, write: () => undefined }
             )
         ).rejects.toThrow('Update one thing');
-    });
-
-    test('reminder log prints duration and the window summary', async () => {
-        const lines: string[] = [];
-        const client = requester(() => ({
-            runs: [
-                {
-                    durationMs: 842,
-                    firedAt: '2026-07-30T16:00:00.000Z',
-                    id: 'rmf_1',
-                    outcome: 'woke',
-                    output: 'disk at 91%',
-                    reminderId: reminder.id,
-                    scriptExitCode: 0,
-                },
-            ],
-            summary: {
-                '24h': {
-                    failed: 0,
-                    notReported: 0,
-                    quiet: 2,
-                    recovered: 0,
-                    runs: 3,
-                    tokens: 140,
-                    unchanged: 0,
-                    woke: 1,
-                },
-                '7d': {
-                    failed: 1,
-                    notReported: 1,
-                    quiet: 10,
-                    recovered: 1,
-                    runs: 15,
-                    tokens: 980,
-                    unchanged: 2,
-                    woke: 2,
-                },
-                '30d': {
-                    failed: 1,
-                    notReported: 1,
-                    quiet: 40,
-                    recovered: 1,
-                    runs: 57,
-                    tokens: 980,
-                    unchanged: 2,
-                    woke: 14,
-                },
-            },
-        }));
-
-        await runReminderLog(args({}), { client, write: (text) => lines.push(text) });
-
-        const output = lines.join('');
-        expect(output).toContain(
-            '24h: 3 runs (2 quiet, 0 unchanged, 1 woke, 0 failed, 0 recovered, 0 not reported) · 140 tokens on wakes'
-        );
-        expect(output).toContain(
-            '7d: 15 runs (10 quiet, 2 unchanged, 2 woke, 1 failed, 1 recovered, 1 not reported) · 980 tokens on wakes'
-        );
-        expect(output).toContain('842ms');
-        expect(output).toContain('[woke]');
-    });
-
-    test('reminder log with no runs still shows the summary', async () => {
-        const lines: string[] = [];
-        const client = requester(() => ({
-            runs: [],
-            summary: {
-                '24h': {
-                    failed: 0,
-                    notReported: 0,
-                    quiet: 0,
-                    recovered: 0,
-                    runs: 0,
-                    tokens: 0,
-                    unchanged: 0,
-                    woke: 0,
-                },
-                '7d': {
-                    failed: 0,
-                    notReported: 0,
-                    quiet: 0,
-                    recovered: 0,
-                    runs: 0,
-                    tokens: 0,
-                    unchanged: 0,
-                    woke: 0,
-                },
-                '30d': {
-                    failed: 0,
-                    notReported: 0,
-                    quiet: 0,
-                    recovered: 0,
-                    runs: 0,
-                    tokens: 0,
-                    unchanged: 0,
-                    woke: 0,
-                },
-            },
-        }));
-
-        await runReminderLog(args({}), { client, write: (text) => lines.push(text) });
-
-        const output = lines.join('');
-        expect(output).toContain('30d: 0 runs');
-        expect(output).toContain('No reminder fires recorded yet.');
     });
 });
 

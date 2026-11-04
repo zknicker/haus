@@ -50,6 +50,7 @@ export async function readAgentReminderLog(
             output: fire.scriptOutput ?? null,
             reminderId: fire.reminderId,
             scriptExitCode: fire.scriptExitCode ?? null,
+            wakeTotalTokens: fire.wakeTotalTokens ?? null,
         })),
         summary: Object.fromEntries(
             reminderLogWindows.map(([label, windowMs]) => [

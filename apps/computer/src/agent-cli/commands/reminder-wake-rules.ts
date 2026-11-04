@@ -98,13 +98,43 @@ export async function runReminderLog(args: ParsedArgs, deps: ReminderDeps): Prom
         return 0;
     }
     const lines = response.runs.map((run) => {
+        const label = reminderRunOutcomeLabel(run.outcome, run.scriptExitCode);
         const exit = run.scriptExitCode === null ? '' : ` exit=${run.scriptExitCode}`;
-        const duration = run.durationMs === null ? '' : ` ${run.durationMs}ms`;
+        const duration =
+            run.durationMs === null ? '' : ` ${formatReminderRunDuration(run.durationMs)}`;
+        const tokens = run.wakeTotalTokens
+            ? ` · ${formatReminderTokenCount(run.wakeTotalTokens)} tokens`
+            : '';
         const output = run.output ? ` — ${clip(run.output)}` : '';
-        return `${formatUtcTime(run.firedAt)} ${run.reminderId} [${run.outcome}]${exit}${duration}${output}`;
+        return `${formatUtcTime(run.firedAt)} ${run.reminderId} [${label}]${exit}${duration}${tokens}${output}`;
     });
     deps.write(`${summary}${lines.join('\n')}\n`);
     return 0;
+}
+
+/**
+ * A plain `woke` reads as a success; a failure that only woke because it hit
+ * `--fail-after` says so, matching the website's `reminderOutcomeBadge`. A
+ * never-settled fire prints its enum value with its underscore as a space.
+ */
+function reminderRunOutcomeLabel(outcome: string, scriptExitCode: number | null): string {
+    if (outcome === 'not_reported') {
+        return 'not reported';
+    }
+    if (outcome === 'woke' && scriptExitCode !== null && scriptExitCode !== 0) {
+        return 'woke · failing';
+    }
+    return outcome;
+}
+
+/** A whole number of tokens, the way a person would say it: "65,697". */
+function formatReminderTokenCount(value: number): string {
+    return new Intl.NumberFormat().format(value);
+}
+
+/** A run's duration in tenths of a second: "1.0s", "30.1s". */
+function formatReminderRunDuration(durationMs: number): string {
+    return `${(durationMs / 1000).toFixed(1)}s`;
 }
 
 function formatReminderLogSummary(
@@ -118,7 +148,7 @@ function formatReminderLogSummary(
     return windows
         .map(([label, key]) => {
             const window = summary[key];
-            return `${label}: ${window.runs} runs (${window.quiet} quiet, ${window.unchanged} unchanged, ${window.woke} woke, ${window.failed} failed, ${window.recovered} recovered, ${window.notReported} not reported) · ${window.tokens} tokens on wakes`;
+            return `${label}: ${window.runs} runs (${window.quiet} quiet, ${window.unchanged} unchanged, ${window.woke} woke, ${window.failed} failed, ${window.recovered} recovered, ${window.notReported} not reported) · ${formatReminderTokenCount(window.tokens)} tokens on wakes`;
         })
         .join('\n');
 }

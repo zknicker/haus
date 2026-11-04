@@ -56,6 +56,8 @@ export const reminderLogSchema = z.object({
             output: z.string().nullable(),
             reminderId: z.string(),
             scriptExitCode: z.number().nullable(),
+            // Omitted by a Server older than wake rules.
+            wakeTotalTokens: z.number().int().nullable().default(null),
         })
     ),
     // Omitted by a Server older than wake rules.
