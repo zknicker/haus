@@ -172,6 +172,17 @@ export class ComputerConnections implements DeliveryTransport {
         return sent;
     }
 
+    /** Sends a typed frame to every online Computer of the Server; returns how many took it. */
+    sendToServer(serverId: string, frame: AgentCommand): number {
+        let sent = 0;
+        for (const [computerId, computer] of this.attached) {
+            if (computer.serverId === serverId && this.send(computerId, frame)) {
+                sent += 1;
+            }
+        }
+        return sent;
+    }
+
     /** Sends a typed frame to the Computer, reporting whether it was online. */
     send(computerId: string, frame: AgentCommand): boolean {
         const computer = this.live(computerId);

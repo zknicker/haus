@@ -9,6 +9,7 @@ import { PageColumn } from '../../shell/page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 import { SettingsFact, SettingsRowError } from '../layout/settings-text.tsx';
+import { AgentSettingsGroup } from './agent-settings-group.tsx';
 
 export function ServerSettings({ server }: { server: ServerSummary }) {
     const navigate = useNavigate();
@@ -25,7 +26,7 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
     return (
         <PageColumn>
             <SettingsPageHeader
-                description="Identity and permanent actions for this Server."
+                description="Identity, Agent settings, and permanent actions for this Server."
                 title="Server"
             />
             <ItemCardGroup variant="transparent">
@@ -54,6 +55,7 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
                     </ItemCard>
                 </ItemCardGroup>
             </ItemCardGroup>
+            <AgentSettingsGroup isOwner={server.role === 'owner'} serverId={server.id} />
             {server.role === 'owner' ? (
                 <ItemCardGroup variant="transparent">
                     <ItemCardGroup.Header>
