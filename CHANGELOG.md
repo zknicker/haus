@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v17.1.0 - 2026-11-04
+
+- A new Idle compaction setting in Settings > Server > Agents compacts a large idle Claude Code session shortly before its prompt cache expires, so the next message does not pay to reload the whole session and long-running Agents pick up current Haus instructions. It is off by default, and only an Owner can turn it on.
+- Claude Code Agents stay warm for 60 minutes between turns instead of 30.
+- Haus Computer runs Claude Code 2.1.317, with its stream, resume, and memory fixes and Haiku 5.5 support. Claude Code sub-agents always start fresh instead of inheriting the Agent's whole session.
+- `haus cloud-agent start` returns once the work is recorded, so a slow repository checkout no longer launches the same Claude cloud agent several times. A Cloud Agent job's elapsed time counts from its first run instead of restarting with each follow-up.
+- Update Haus Computer to 15.0.0. The Server requires it, and an older Computer runs no Agents until it upgrades. Haus Agent 12.1.0 carries the Agent changes.
+
 ## v17.0.1 - 2026-11-03
 
 - Haus Server 16.0.1 makes the 17.0.0 Server deployable. Server 16.0.0 never went live: its upgrade stopped while removing existing Linear data. 16.0.1 completes that removal and ships the 17.0.0 changes, which still require Haus Computer 14.0.0.
