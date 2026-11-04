@@ -93,18 +93,20 @@ test('backfills outcome for settled fires and defaults the new wake-rule columns
         ]);
         expect(
             await database`SELECT wake_on_change, fail_after, consecutive_failures,
-                last_wake_output_hash FROM reminders ORDER BY id`
+                failure_streak_woken, last_wake_output_hash FROM reminders ORDER BY id`
         ).toEqual([
             {
                 wake_on_change: false,
                 fail_after: null,
                 consecutive_failures: 0,
+                failure_streak_woken: false,
                 last_wake_output_hash: null,
             },
             {
                 wake_on_change: false,
                 fail_after: null,
                 consecutive_failures: 0,
+                failure_streak_woken: false,
                 last_wake_output_hash: null,
             },
         ]);

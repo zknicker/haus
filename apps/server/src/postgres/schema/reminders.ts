@@ -29,6 +29,12 @@ export const remindersTable = pgTable(
         description: text('description'),
         /** `--fail-after`: consecutive failures required before waking once. Null disables it. */
         failAfter: integer('fail_after'),
+        /**
+         * Whether the current failure streak already woke the Agent once, so a
+         * `--fail-after` edited mid-streak (lowered past the current count, or
+         * disabled) can never wake it a second time for the same streak.
+         */
+        failureStreakWoken: boolean('failure_streak_woken').notNull().default(false),
         fireAt: timestamp('fire_at', { withTimezone: true }).notNull(),
         id: text('id').primaryKey(),
         /** Hash of the last script output that woke the Agent, for `--wake-on-change`. */

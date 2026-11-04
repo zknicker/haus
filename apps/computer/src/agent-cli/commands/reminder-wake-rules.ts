@@ -13,6 +13,11 @@ export const wakeOnChangeFlag = {
     description: "Wake only when the script's output differs from the output that last woke you",
     name: '--wake-on-change',
 };
+/** `update` only: `--wake-on-change` has no value to pass "off", so turning it off is a separate flag (mirrors `--clear-conversation-style`). */
+export const noWakeOnChangeFlag = {
+    description: 'Turn off --wake-on-change',
+    name: '--no-wake-on-change',
+};
 export const failAfterFlag = {
     description:
         'Wake once after this many consecutive script failures, then quiet until it wakes again',
@@ -31,6 +36,25 @@ export function requireScriptForWakeRules(args: ParsedArgs): void {
             { nextAction: 'Add --script, or drop these flags.' }
         );
     }
+}
+
+/** `update`'s `--wake-on-change`/`--no-wake-on-change`, as one value for the single-field-changed check. */
+export function resolveWakeOnChangeUpdate(args: ParsedArgs): boolean | undefined {
+    const enable = args.flags['--wake-on-change'] === true;
+    const disable = args.flags['--no-wake-on-change'] === true;
+    if (enable && disable) {
+        throw new AgentCliError(
+            'INVALID_ARG',
+            'Use --wake-on-change or --no-wake-on-change, not both.'
+        );
+    }
+    if (enable) {
+        return true;
+    }
+    if (disable) {
+        return false;
+    }
+    return undefined;
 }
 
 export function parseFailAfter(raw: string | undefined): number | undefined {

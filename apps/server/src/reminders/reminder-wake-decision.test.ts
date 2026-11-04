@@ -9,6 +9,7 @@ import {
 const baseState: ReminderWakeState = {
     consecutiveFailures: 0,
     failAfter: null,
+    failureStreakWoken: false,
     lastWakeOutputHash: null,
     wakeOnChange: false,
 };
@@ -36,7 +37,7 @@ describe("decideReminderWake without either flag (today's behavior)", () => {
         const first = decideReminderWake(baseState, { exitCode: 1, output: '', timedOut: false });
         expect(first).toMatchObject({ outcome: 'woke', wake: true });
         const second = decideReminderWake(
-            { ...baseState, consecutiveFailures: first.nextState.consecutiveFailures },
+            { ...baseState, ...first.nextState },
             { exitCode: 1, output: '', timedOut: false }
         );
         expect(second).toMatchObject({ outcome: 'woke', wake: true });
@@ -120,7 +121,8 @@ describe('decideReminderWake with --fail-after', () => {
             });
             expect(decision).toMatchObject({ outcome: 'failed', wake: false });
             expect(decision.nextState.consecutiveFailures).toBe(expectedStreak);
-            current = { ...current, consecutiveFailures: decision.nextState.consecutiveFailures };
+            expect(decision.nextState.failureStreakWoken).toBe(false);
+            current = { ...current, ...decision.nextState };
         }
     });
 
@@ -130,30 +132,80 @@ describe('decideReminderWake with --fail-after', () => {
             { exitCode: 1, output: 'disk check failed', timedOut: false }
         );
         expect(decision).toMatchObject({ outcome: 'woke', wake: true });
-        expect(decision.nextState.consecutiveFailures).toBe(3);
+        expect(decision.nextState).toMatchObject({
+            consecutiveFailures: 3,
+            failureStreakWoken: true,
+        });
     });
 
     test('further consecutive failures after the wake stay quiet', () => {
         const decision = decideReminderWake(
-            { ...state, consecutiveFailures: 3 },
+            { ...state, consecutiveFailures: 3, failureStreakWoken: true },
             { exitCode: 1, output: '', timedOut: false }
         );
         expect(decision).toMatchObject({ outcome: 'failed', wake: false });
-        expect(decision.nextState.consecutiveFailures).toBe(4);
+        expect(decision.nextState).toMatchObject({
+            consecutiveFailures: 4,
+            failureStreakWoken: true,
+        });
+    });
+
+    test('lowering --fail-after mid-streak still wakes exactly once', () => {
+        // The streak climbed to 3 under the original threshold of 5 (never woken).
+        const understate = { ...state, consecutiveFailures: 3, failAfter: 5 };
+        // --fail-after is lowered to 2, already below the current streak length.
+        const lowered = { ...understate, failAfter: 2 };
+        const decision = decideReminderWake(lowered, {
+            exitCode: 1,
+            output: '',
+            timedOut: false,
+        });
+        expect(decision).toMatchObject({ outcome: 'woke', wake: true });
+        expect(decision.nextState).toMatchObject({
+            consecutiveFailures: 4,
+            failureStreakWoken: true,
+        });
+
+        // And it does not wake again on the very next failure.
+        const again = decideReminderWake(
+            { ...lowered, ...decision.nextState },
+            { exitCode: 1, output: '', timedOut: false }
+        );
+        expect(again).toMatchObject({ outcome: 'failed', wake: false });
+    });
+
+    test('raising or disabling --fail-after after the wake never wakes the same streak again', () => {
+        const woken = { ...state, consecutiveFailures: 3, failureStreakWoken: true };
+        const raised = decideReminderWake(
+            { ...woken, failAfter: 10 },
+            { exitCode: 1, output: '', timedOut: false }
+        );
+        expect(raised).toMatchObject({ outcome: 'failed', wake: false });
+
+        const disabled = decideReminderWake(
+            { ...woken, failAfter: null },
+            { exitCode: 1, output: '', timedOut: false }
+        );
+        // Disabling --fail-after reverts to today's unconditional-wake behavior,
+        // which is a deliberate, immediate opt-out, not part of "the same streak".
+        expect(disabled).toMatchObject({ outcome: 'woke', wake: true });
     });
 
     test('the first success after a streak that woke sends one "recovered" notice', () => {
         const decision = decideReminderWake(
-            { ...state, consecutiveFailures: 5 },
+            { ...state, consecutiveFailures: 5, failureStreakWoken: true },
             { exitCode: 0, output: '', timedOut: false }
         );
         expect(decision).toMatchObject({ outcome: 'recovered', wake: true, failureStreak: 5 });
-        expect(decision.nextState.consecutiveFailures).toBe(0);
+        expect(decision.nextState).toMatchObject({
+            consecutiveFailures: 0,
+            failureStreakWoken: false,
+        });
     });
 
     test('recovery wakes even when the success has no output to report', () => {
         const decision = decideReminderWake(
-            { ...state, consecutiveFailures: 4 },
+            { ...state, consecutiveFailures: 4, failureStreakWoken: true },
             { exitCode: 0, output: '   \n  ', timedOut: false }
         );
         expect(decision.outcome).toBe('recovered');
@@ -184,7 +236,12 @@ describe('decideReminderWake with both flags together', () => {
     test('recovery always wakes even if its (empty) output matches the last remembered hash', () => {
         const remembered = hashReminderScriptOutput('');
         const decision = decideReminderWake(
-            { ...state, consecutiveFailures: 2, lastWakeOutputHash: remembered },
+            {
+                ...state,
+                consecutiveFailures: 2,
+                failureStreakWoken: true,
+                lastWakeOutputHash: remembered,
+            },
             { exitCode: 0, output: '', timedOut: false }
         );
         expect(decision).toMatchObject({ outcome: 'recovered', wake: true });

@@ -33,8 +33,10 @@ import {
 import {
     failAfterFlag,
     normalizeFailAfter,
+    noWakeOnChangeFlag,
     parseFailAfter,
     requireScriptForWakeRules,
+    resolveWakeOnChangeUpdate,
     runReminderLog,
     wakeOnChangeFlag,
 } from './reminder-wake-rules.ts';
@@ -109,6 +111,7 @@ export const REMINDER_SUBCOMMANDS: SubCommand[] = [
             'haus reminder update --id rem_1a2b3c4d5e6f --title "CI Check" --description "check CI and update task #3"',
             'haus reminder update --id rem_1a2b3c4d5e6f --fail-after 3',
             'haus reminder update --id rem_1a2b3c4d5e6f --fail-after none',
+            'haus reminder update --id rem_1a2b3c4d5e6f --no-wake-on-change',
         ],
         flags: [
             idFlag,
@@ -126,6 +129,7 @@ export const REMINDER_SUBCOMMANDS: SubCommand[] = [
                 valueName: '<command>',
             },
             wakeOnChangeFlag,
+            noWakeOnChangeFlag,
             {
                 ...failAfterFlag,
                 description: `${failAfterFlag.description}, or "none" to disable it`,
@@ -136,7 +140,7 @@ export const REMINDER_SUBCOMMANDS: SubCommand[] = [
         run: (args) => runReminderUpdate(args, defaultDeps()),
         summary:
             'Change one thing about a reminder: its label, time, cadence, script, or wake rules',
-        usage: 'haus reminder update --id <id> (--title <label> [--description <text>] | --description <text> | --fire-at <iso> | --repeat <cadence> [--timezone <iana>] | --script <command> | --wake-on-change | --fail-after <n|none>)',
+        usage: 'haus reminder update --id <id> (--title <label> [--description <text>] | --description <text> | --fire-at <iso> | --repeat <cadence> [--timezone <iana>] | --script <command> | --wake-on-change | --no-wake-on-change | --fail-after <n|none>)',
     },
     {
         examples: ['haus reminder cancel --id rem_1a2b3c4d5e6f'],
@@ -249,7 +253,7 @@ export async function runReminderSnooze(args: ParsedArgs, deps: ReminderDeps): P
 
 export async function runReminderUpdate(args: ParsedArgs, deps: ReminderDeps): Promise<number> {
     const id = requireFlag(args, '--id');
-    const wakeOnChange = args.flags['--wake-on-change'] === true ? true : undefined;
+    const wakeOnChange = resolveWakeOnChangeUpdate(args);
     const fields = {
         description: normalizeClearable(args.values['--description']),
         failAfter: normalizeFailAfter(args.values['--fail-after']),

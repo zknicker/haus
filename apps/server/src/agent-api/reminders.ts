@@ -1,3 +1,4 @@
+import { REMINDER_HISTORY_RETENTION_DAYS } from '@haus/api';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentCanAccessAnchor } from '../reminders/reminder-model.ts';
@@ -183,6 +184,7 @@ const reminderLogWindows = [
     ['7d', 7 * 24 * 60 * 60 * 1000],
     ['30d', 30 * 24 * 60 * 60 * 1000],
 ] as const;
+type ReminderLogWindowLabel = (typeof reminderLogWindows)[number][0];
 
 export async function readAgentReminderLog(
     db: HausDatabase,
@@ -195,6 +197,9 @@ export async function readAgentReminderLog(
               actor: { agentId: runner.agentId, kind: 'agent' },
               serverId: runner.serverId,
           });
+    const now = Date.now();
+    // Matches the longest summary window and what retention sweep keeps anyway.
+    const since = new Date(now - REMINDER_HISTORY_RETENTION_DAYS * 24 * 60 * 60 * 1000);
     const fires = (
         await Promise.all(
             reminders.map((reminder) =>
@@ -202,13 +207,13 @@ export async function readAgentReminderLog(
                     actor: { agentId: runner.agentId, kind: 'agent' },
                     reminderId: reminder.id,
                     serverId: runner.serverId,
+                    since,
                 })
             )
         )
     )
         .flat()
         .sort((left, right) => right.firedAt.localeCompare(left.firedAt));
-    const now = Date.now();
     return {
         runs: fires.slice(0, input.limit).map((fire) => ({
             durationMs: fire.durationMs ?? null,
@@ -226,10 +231,7 @@ export async function readAgentReminderLog(
                     fires.filter((fire) => now - Date.parse(fire.firedAt) <= windowMs)
                 ),
             ])
-        ) as Record<
-            (typeof reminderLogWindows)[number][0],
-            ReturnType<typeof summarizeReminderLogWindow>
-        >,
+        ) as Record<ReminderLogWindowLabel, ReturnType<typeof summarizeReminderLogWindow>>,
     };
 }
 

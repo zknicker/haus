@@ -119,6 +119,42 @@ describe('Agent reminder CLI: wake rules and log', () => {
         expect((mutations[0]?.body as { title?: string })?.title).toBeUndefined();
     });
 
+    test('--no-wake-on-change turns it back off', async () => {
+        const mutations: AgentApiRequest[] = [];
+        const client = requester((route, input) => {
+            if (route === '/api/agent/reminders') {
+                return { reminders: [{ ...reminder, script: true }] };
+            }
+            mutations.push(input);
+            return { reminder: { ...reminder, script: true } };
+        });
+
+        await runReminderUpdate(args({ '--id': reminder.id }, { '--no-wake-on-change': true }), {
+            client,
+            write: () => undefined,
+        });
+
+        expect(mutations[0]?.body).toMatchObject({ wakeOnChange: false });
+    });
+
+    test('rejects combining --wake-on-change with --no-wake-on-change', async () => {
+        const client = requester((route) =>
+            route === '/api/agent/reminders'
+                ? { reminders: [{ ...reminder, script: true }] }
+                : { reminder }
+        );
+
+        await expect(
+            runReminderUpdate(
+                args(
+                    { '--id': reminder.id },
+                    { '--no-wake-on-change': true, '--wake-on-change': true }
+                ),
+                { client, write: () => undefined }
+            )
+        ).rejects.toThrow('not both');
+    });
+
     test('rejects an update that combines --fail-after with another field', async () => {
         const client = requester((route) =>
             route === '/api/agent/reminders'

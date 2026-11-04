@@ -8,6 +8,7 @@
 ALTER TABLE "reminders" ADD COLUMN "wake_on_change" boolean DEFAULT false NOT NULL;--> statement-breakpoint
 ALTER TABLE "reminders" ADD COLUMN "fail_after" integer;--> statement-breakpoint
 ALTER TABLE "reminders" ADD COLUMN "consecutive_failures" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+ALTER TABLE "reminders" ADD COLUMN "failure_streak_woken" boolean DEFAULT false NOT NULL;--> statement-breakpoint
 ALTER TABLE "reminders" ADD COLUMN "last_wake_output_hash" text;--> statement-breakpoint
 ALTER TABLE "reminders" ADD CONSTRAINT "reminders_fail_after_range" CHECK ("reminders"."fail_after" is null or ("reminders"."fail_after" between 1 and 20));--> statement-breakpoint
 ALTER TABLE "reminders" ADD CONSTRAINT "reminders_consecutive_failures_range" CHECK ("reminders"."consecutive_failures" >= 0);--> statement-breakpoint

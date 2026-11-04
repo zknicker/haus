@@ -114,6 +114,7 @@ export async function settleReminderScript(
                 consecutiveFailures: remindersTable.consecutiveFailures,
                 description: remindersTable.description,
                 failAfter: remindersTable.failAfter,
+                failureStreakWoken: remindersTable.failureStreakWoken,
                 fireAt: remindersTable.fireAt,
                 lastWakeOutputHash: remindersTable.lastWakeOutputHash,
                 status: remindersTable.status,
@@ -159,6 +160,7 @@ export async function settleReminderScript(
             .update(remindersTable)
             .set({
                 consecutiveFailures: decision.nextState.consecutiveFailures,
+                failureStreakWoken: decision.nextState.failureStreakWoken,
                 lastWakeOutputHash: decision.nextState.lastWakeOutputHash,
             })
             .where(
