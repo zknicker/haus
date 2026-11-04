@@ -15,10 +15,11 @@ import { CloudLaunchJournal } from './launch-journal.ts';
 import { CloudAgentLaunchScope } from './launch-scope.ts';
 import { CloudAgentLocalRuns } from './local-runs.ts';
 import { type EnrichObservation, ObservationReports } from './observation-reports.ts';
-import type {
-    CloudAgentProvider,
-    CloudAgentProviderObservation,
-    CloudAgentRunRef,
+import {
+    type CloudAgentProvider,
+    type CloudAgentProviderObservation,
+    type CloudAgentRunRef,
+    cloudAgentLaunchObservation,
 } from './provider.ts';
 import { cloudAgentProvider } from './registry.ts';
 import { CloudAgentSendQueue } from './send-queue.ts';
@@ -266,13 +267,11 @@ export class CloudAgentWorkSupervisor {
                 providerAgentId: state.launch.providerAgentId,
                 providerRunId: run.ref.providerRunId ?? state.launch.providerRunId,
             };
-            const { providerRunId, providerUrl, ...launch } = state.launch;
-            self.observe(connection, run, {
-                ...launch,
-                ...(providerRunId ? { providerRunId } : {}),
-                ...(providerUrl ? { providerUrl } : {}),
-                observedAt: state.observedAt,
-            });
+            self.observe(
+                connection,
+                run,
+                cloudAgentLaunchObservation(state.launch, state.observedAt)
+            );
             return !run.terminal;
         });
     }
