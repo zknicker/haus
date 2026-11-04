@@ -21,14 +21,24 @@ struct SettingsUnavailableSheet: View {
     }
 }
 
-/// Tasks and Threads share the root stack, so a Thread opened from a claim pops
-/// back to the Tasks list rather than to the canvas underneath. The Inbox is not
+/// Tasks and Threads share the root stack, so a Thread opened from a Task pops
+/// back to that Task rather than to the canvas underneath. The Inbox is not
 /// here: it is the canvas itself, which is why it wears no navigation bar and
 /// no Back button — see `AuthenticatedHausView+Routes`.
 enum HausRootRoute: Hashable {
-    /// The Tasks list the sidebar opens.
+    /// The board picker the sidebar opens.
     case tasks
+    case board(boardID: String)
+    case task(taskID: String)
     case thread(ThreadSelection)
+
+    /// Whether this is one of the screens the sidebar's Tasks row stands for.
+    var isTasksRoute: Bool {
+        switch self {
+        case .tasks, .board, .task: true
+        case .thread: false
+        }
+    }
 }
 
 /// A Thread route anchored by the parent message, which exists before the child

@@ -30,13 +30,19 @@ public struct ChatRealtimeEffects: Sendable, Equatable {
     /// a reply, a follow, a parent's lifecycle — already reads the Chat list,
     /// which reads the unread Threads beside it.
     public private(set) var reloadsUnreadThreads = false
-    public private(set) var reloadsServerClaims = false
     public private(set) var reloadsActiveCloudAgentWork = false
     public private(set) var cloudAgentWorkChatIDs: Set<String> = []
     /// Work that changed. Every loaded Message and work list carrying one
     /// refreshes, whichever Chat links it (ADR 0044).
     public private(set) var cloudAgentWorkIDs: Set<String> = []
     public private(set) var changedLabelIDs: Set<String> = []
+    /// Boards whose Task lists read again: one read per list, however many of
+    /// its Tasks moved.
+    public private(set) var boardIDsToReload: Set<String> = []
+    /// Tasks whose open detail reads again, and whose Inbox item, if the
+    /// reader holds one, went stale.
+    public private(set) var changedTaskIDs: Set<String> = []
+    public private(set) var reloadsTaskInbox = false
     public private(set) var deletedChatIDs: Set<String> = []
     /// Messages whose reactions changed live, for the sticker arrival motion.
     public private(set) var liveReactionMessageIDs: Set<String> = []
@@ -61,6 +67,9 @@ public struct ChatRealtimeEffects: Sendable, Equatable {
         case let .claimChanged(event): absorb(claimChanged: event)
         case let .taskLabelUpdated(event): absorb(taskLabel: event)
         case let .cloudAgentWorkUpdated(event): absorb(cloudAgentWork: event)
+        case let .boardUpdated(event): boardIDsToReload.insert(event.boardID)
+        case let .taskChanged(event): absorb(taskChanged: event)
+        case .taskInboxChanged: reloadsTaskInbox = true
         }
     }
 
@@ -111,12 +120,17 @@ public struct ChatRealtimeEffects: Sendable, Equatable {
 
     mutating func absorb(claimChanged event: ClaimChangedEvent) {
         entityRefreshes.insert(EntityRefresh(chatID: event.chatID, messageID: event.messageID))
-        reloadsServerClaims = true
     }
 
     mutating func absorb(taskLabel event: TaskLabelUpdatedEvent) {
         changedLabelIDs.insert(event.labelID)
-        reloadsServerClaims = true
+    }
+
+    /// A Task's board list carries it, and its open detail shows Mentioned in
+    /// and Reminders, which is why a reference publishes this event too.
+    mutating func absorb(taskChanged event: TaskChangedEvent) {
+        boardIDsToReload.insert(event.boardID)
+        changedTaskIDs.insert(event.taskID)
     }
 
     /// One event per linking Message: refresh that Message and its Chat's work

@@ -42,6 +42,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
     private let currentAgentActivity: (String) -> AgentActivityPresentation?
     private let loadAgentActivity: @Sendable (String) async throws -> [AgentActivityPresentation]
     private let agentProfile: (String) -> AgentProfilePresentation?
+    private let agentStoppedClaims: AgentStoppedClaimsActions
     let mentionOptions: (ChatDestination) -> [MentionOptionPresentation]
     let loadMentionOptions: (ChatDestination) async -> Void
     /// The message ids the canvas transcript is showing. It passes straight
@@ -110,6 +111,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         currentAgentActivity: @escaping (String) -> AgentActivityPresentation? = { _ in nil },
         loadAgentActivity: @escaping @Sendable (String) async throws -> [AgentActivityPresentation] = { _ in [] },
         agentProfile: @escaping (String) -> AgentProfilePresentation? = { _ in nil },
+        agentStoppedClaims: AgentStoppedClaimsActions = .unavailable,
         mentionOptions: @escaping (ChatDestination) -> [MentionOptionPresentation] = { _ in [] },
         loadMentionOptions: @escaping (ChatDestination) async -> Void = { _ in },
         createChannel: @escaping @Sendable (NewChannelDraft) async throws -> CreatedChannelPresentation = { _ in
@@ -148,6 +150,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         self.currentAgentActivity = currentAgentActivity
         self.loadAgentActivity = loadAgentActivity
         self.agentProfile = agentProfile
+        self.agentStoppedClaims = agentStoppedClaims
         self.mentionOptions = mentionOptions
         self.loadMentionOptions = loadMentionOptions
         self.createChannel = createChannel
@@ -215,7 +218,8 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
                     currentActivity: agentActivity(for: chat),
                     loadAgentActivity: loadAgentActivity,
                     agentProfile: agentProfile,
-                    onOpenAgentProfile: openAgentProfile
+                    onOpenAgentProfile: openAgentProfile,
+                    stoppedClaims: agentStoppedClaims
                 )
             }
         }

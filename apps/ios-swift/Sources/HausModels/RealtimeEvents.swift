@@ -153,49 +153,6 @@ public struct ChatLifecycleEvent: Decodable, Sendable, Equatable {
     }
 }
 
-public enum ClaimChangeKind: String, Decodable, Sendable, Equatable {
-    case created
-    case updated
-}
-
-/// `claim.onChanged`: a claim on one message was created or changed.
-public struct ClaimChangedEvent: Decodable, Sendable, Equatable {
-    public let serverID: String
-    public let chatID: String
-    public let messageID: String
-    public let kind: ClaimChangeKind
-
-    public init(serverID: String, chatID: String, messageID: String, kind: ClaimChangeKind) {
-        self.serverID = serverID
-        self.chatID = chatID
-        self.messageID = messageID
-        self.kind = kind
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case serverID = "serverId"
-        case chatID = "chatId"
-        case messageID = "messageId"
-        case kind
-    }
-}
-
-/// `taskLabel.onUpdated`: a label was created, renamed, recolored, or deleted.
-public struct TaskLabelUpdatedEvent: Decodable, Sendable, Equatable {
-    public let serverID: String
-    public let labelID: String
-
-    public init(serverID: String, labelID: String) {
-        self.serverID = serverID
-        self.labelID = labelID
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case serverID = "serverId"
-        case labelID = "labelId"
-    }
-}
-
 /// `cloudAgentWork.onUpdated`: one Cloud Agent work changed. The Server sends
 /// one event per linking Message in a live Chat; `chatID`/`messageID` name
 /// that linking Message (ADR 0044).
@@ -229,37 +186,6 @@ public struct CloudAgentWorkUpdatedEvent: Decodable, Sendable, Equatable {
     }
 }
 
-/// `server.onUpdated`: the Server's name or membership changed. The stream is
-/// also the membership sentinel; its refusal, not this payload, reports loss.
-public struct ServerUpdatedEvent: Decodable, Sendable, Equatable {
-    public let serverID: String
-
-    public init(serverID: String) {
-        self.serverID = serverID
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case serverID = "serverId"
-    }
-}
-
-/// `computer.onUpdated`: a Computer attached, detached, reported, or moved
-/// its update. Nil `computerID` means a change broader than one Computer.
-public struct ComputerUpdatedEvent: Decodable, Sendable, Equatable {
-    public let computerID: String?
-    public let serverID: String
-
-    public init(computerID: String?, serverID: String) {
-        self.computerID = computerID
-        self.serverID = serverID
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case computerID = "computerId"
-        case serverID = "serverId"
-    }
-}
-
 /// One live Chat-family notification, as the Store buffers it.
 public enum ChatRealtimeEvent: Sendable, Equatable {
     case messageCreated(MessageCreatedEvent)
@@ -270,6 +196,9 @@ public enum ChatRealtimeEvent: Sendable, Equatable {
     case claimChanged(ClaimChangedEvent)
     case taskLabelUpdated(TaskLabelUpdatedEvent)
     case cloudAgentWorkUpdated(CloudAgentWorkUpdatedEvent)
+    case boardUpdated(BoardUpdatedEvent)
+    case taskChanged(TaskChangedEvent)
+    case taskInboxChanged(TaskInboxChangedEvent)
 
     public var serverID: String {
         switch self {
@@ -281,6 +210,9 @@ public enum ChatRealtimeEvent: Sendable, Equatable {
         case let .claimChanged(event): event.serverID
         case let .taskLabelUpdated(event): event.serverID
         case let .cloudAgentWorkUpdated(event): event.serverID
+        case let .boardUpdated(event): event.serverID
+        case let .taskChanged(event): event.serverID
+        case let .taskInboxChanged(event): event.serverID
         }
     }
 }

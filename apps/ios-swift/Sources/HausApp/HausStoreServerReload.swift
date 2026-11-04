@@ -191,7 +191,7 @@ extension HausStore {
         resetTranscripts()
         pendingMessagesByChatID = [:]
         cloudAgentWorkByChatID = [:]
-        serverClaims = nil
+        taskSnapshots.reset()
         activeCloudAgentWork = nil
         unreadThreads = nil
     }

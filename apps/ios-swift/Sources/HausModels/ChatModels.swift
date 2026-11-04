@@ -119,6 +119,9 @@ public struct ChatMessage: Codable, Identifiable, Sendable, Equatable {
     /// tolerantly and no reader may require it.
     public let sessionGeneration: Int?
     public let claim: MessageClaim?
+    /// The Tasks this Message references, in content order, resolved when it
+    /// was written (ADR 0051). Each draws a chip over its `text`.
+    public var taskLinks: [TaskLink] = []
 
     enum CodingKeys: String, CodingKey {
         case attachments
@@ -138,6 +141,7 @@ public struct ChatMessage: Codable, Identifiable, Sendable, Equatable {
         case serverID = "serverId"
         case sessionGeneration
         case claim
+        case taskLinks
     }
 }
 

@@ -64,7 +64,8 @@ extension MessageTimelineView {
             canOpenThread: true,
             onReact: { actionMessage = message },
             onReply: { onSelectInlineReply(message) },
-            onOpenThread: { onOpenThread(message) }
+            onOpenThread: { onOpenThread(message) },
+            onConvertToTask: MessageActionRoutes.convertToTaskAction(for: message)
         )
     }
 }

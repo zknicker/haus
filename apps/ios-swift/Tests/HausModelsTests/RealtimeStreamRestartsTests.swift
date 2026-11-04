@@ -11,7 +11,8 @@ final class RealtimeStreamRestartsTests: XCTestCase {
         XCTAssertEqual(Set(RealtimeStream.allCases.map(\.path)), [
             "chat.onMessageCreated", "chat.onMessageReactionUpdated", "chat.onRead",
             "thread.onFollowUpdated", "chat.onLifecycle", "cloudAgentWork.onUpdated",
-            "claim.onChanged", "taskLabel.onUpdated", "agent.onLifecycle", "agent.onActivity",
+            "claim.onChanged", "taskLabel.onUpdated", "board.onUpdated", "task.onCreated",
+            "task.onUpdated", "taskInbox.onChanged", "agent.onLifecycle", "agent.onActivity",
             "computer.onUpdated", "server.onUpdated",
         ])
     }
@@ -146,10 +147,14 @@ final class RealtimeStreamRestartsTests: XCTestCase {
         for stream in transcriptStreams {
             XCTAssertEqual(stream.ownedProjections, [.openTranscripts, .chatList], stream.path)
         }
-        XCTAssertEqual(RealtimeStream.claimChanged.ownedProjections, [.openTranscripts, .chatList, .claimLenses])
+        XCTAssertEqual(RealtimeStream.claimChanged.ownedProjections, [.openTranscripts, .chatList])
         // Labels are embedded in transcript entities, so label recovery
         // includes open transcript lists.
-        XCTAssertEqual(RealtimeStream.taskLabelUpdated.ownedProjections, [.openTranscripts, .claimLenses])
+        XCTAssertEqual(RealtimeStream.taskLabelUpdated.ownedProjections, [.openTranscripts, .taskLabels])
+        XCTAssertEqual(RealtimeStream.boardUpdated.ownedProjections, [.boards, .boardTasks])
+        XCTAssertEqual(RealtimeStream.taskCreated.ownedProjections, [.boards, .boardTasks, .taskInbox])
+        XCTAssertEqual(RealtimeStream.taskUpdated.ownedProjections, [.boards, .boardTasks, .taskInbox])
+        XCTAssertEqual(RealtimeStream.taskInboxChanged.ownedProjections, [.taskInbox])
         XCTAssertEqual(
             RealtimeStream.cloudAgentWorkUpdated.ownedProjections,
             [.openTranscripts, .chatList, .activeCloudAgentWork]

@@ -11,6 +11,10 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
     case cloudAgentWorkUpdated = "cloudAgentWork.onUpdated"
     case claimChanged = "claim.onChanged"
     case taskLabelUpdated = "taskLabel.onUpdated"
+    case boardUpdated = "board.onUpdated"
+    case taskCreated = "task.onCreated"
+    case taskUpdated = "task.onUpdated"
+    case taskInboxChanged = "taskInbox.onChanged"
     case agentLifecycle = "agent.onLifecycle"
     case agentActivity = "agent.onActivity"
     /// Attachment, inventory, or update progress. A Computer attaching is
@@ -38,14 +42,23 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
         case .messageCreated, .messageReactionUpdated, .chatRead, .threadFollowUpdated:
             [.openTranscripts, .chatList]
         case .claimChanged:
-            [.openTranscripts, .chatList, .claimLenses]
+            [.openTranscripts, .chatList]
         case .cloudAgentWorkUpdated:
             [.openTranscripts, .chatList, .activeCloudAgentWork]
         case .chatLifecycle:
             [.chatList]
         case .taskLabelUpdated:
-            // Labels are embedded in transcript entities as well as lenses.
-            [.openTranscripts, .claimLenses]
+            // Labels are embedded in transcript entities as well as boards.
+            [.openTranscripts, .taskLabels]
+        case .boardUpdated:
+            // A re-key re-keys every Task on the board.
+            [.boards, .boardTasks]
+        case .taskCreated, .taskUpdated:
+            // A Task moves its board's open count as well as its list, and an
+            // Inbox item carries a copy of it.
+            [.boards, .boardTasks, .taskInbox]
+        case .taskInboxChanged:
+            [.taskInbox]
         case .agentLifecycle:
             // A settled turn moves the usage the Inbox strip ranks.
             [.agentAvailability, .serverUsage]
@@ -82,8 +95,14 @@ public enum RealtimeProjection: Hashable, Sendable, CaseIterable {
     case chatList
     /// `server.list`: the active Server's name and the viewer's Servers.
     case serverList
-    /// Every loaded claim lens.
-    case claimLenses
+    /// `board.list`, once loaded.
+    case boards
+    /// Every loaded board's Tasks and every loaded Task detail.
+    case boardTasks
+    /// `taskLabel.list`, once loaded.
+    case taskLabels
+    /// `taskInbox.list`. Shell state like the Chat list: the Inbox dot counts it.
+    case taskInbox
     case activeCloudAgentWork
     case agentAvailability
     case agentActivity

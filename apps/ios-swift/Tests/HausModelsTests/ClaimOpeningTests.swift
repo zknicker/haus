@@ -3,6 +3,7 @@ import XCTest
 @testable import HausModels
 
 /// Where opening a claim from the Tasks lens lands.
+/// Where a stopped claim opens from the Agent profile.
 final class ClaimOpeningTests: XCTestCase {
     func testATopLevelClaimOpensTheThreadAnchoredOnItsMessage() throws {
         let item = try claimListItem(

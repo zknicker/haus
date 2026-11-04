@@ -4,8 +4,8 @@ import OSLog
 
 /// The Server-wide reads the Inbox and its sidebar dot stand on: the Chat
 /// list's unread Chats, the unread Threads (`HausStoreUnreadThreads.swift`),
-/// the Cloud Agent work running right now, and the Server's token-usage
-/// snapshot.
+/// the reader's Task items, the Cloud Agent work running right now, and the
+/// Server's token-usage snapshot.
 ///
 /// Each snapshot lives on the Store rather than on a screen because the dot
 /// outlives the Inbox: a durable event refreshes what this client already
@@ -17,9 +17,10 @@ extension HausStore {
     /// them. The reads are independent, so they run concurrently.
     func loadInbox() async {
         async let chats: Void = refreshInboxChats()
+        async let tasks: Void = loadTaskInbox()
         async let work: Void = loadActiveCloudAgentWork()
         async let usage: Void = loadServerUsage()
-        _ = await (chats, work, usage)
+        _ = await (chats, tasks, work, usage)
     }
 
     /// Mark read on one Unread row, a Chat's or a Thread's.
@@ -76,12 +77,133 @@ extension HausStore {
     }
 
     /// How many Unread rows there are, for surfaces that mark the Inbox
-    /// instead of opening it — the same Chats and Threads the section lists.
-    /// Nil until the Chat list has landed, so "nothing unread" is never
-    /// confused with "not yet known".
+    /// instead of opening it — the same Chats, Threads, and Task items the
+    /// section lists. Nil until the Chat list has landed, so "nothing unread"
+    /// is never confused with "not yet known".
     var unreadChatCount: Int? {
         guard let unreadChats else { return nil }
-        return unreadChats.count + visibleUnreadThreads.count
+        return unreadChats.count + visibleUnreadThreads.count + visibleTaskInboxItems.count
+    }
+
+    // MARK: - Task items
+
+    /// The reader's Task items, less any clear or resolution still settling.
+    var visibleTaskInboxItems: [TaskInboxItem] {
+        let settling = taskSnapshots.settlingInboxTaskIDs
+        return (taskSnapshots.inboxItems ?? []).filter { !settling.contains($0.id) }
+    }
+
+    /// One read for every item. Start, Done, and the status menu reach a
+    /// board's columns, which an item does not carry, so the first item brings
+    /// the board list with it: one more read, never one per row.
+    func loadTaskInbox() async {
+        guard let serverID = activeServer?.id else { return }
+        let readStart = realtimeReconciliation.beginRead()
+        do {
+            let list: TaskInboxList = try await client.query(
+                "taskInbox.list",
+                input: ServerScopedInput(serverId: serverID)
+            )
+            guard activeServer?.id == serverID,
+                  realtimeReconciliation.landed(.taskInbox, readStartedAt: readStart)
+            else { return }
+            if taskSnapshots.inboxItems != list.items { taskSnapshots.inboxItems = list.items }
+            if !list.items.isEmpty, taskSnapshots.boards == nil { try await reloadBoards() }
+        } catch {
+            Self.logger.error("Loading the task inbox failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Mark read, or opening the Task: the item leaves at once without the
+    /// Task moving. A failed clear puts it back, because nothing was recorded.
+    func clearTaskInboxItem(taskID: String) async throws {
+        let serverID = try activeServerID()
+        taskSnapshots.settlingInboxTaskIDs.insert(taskID)
+        defer { taskSnapshots.settlingInboxTaskIDs.remove(taskID) }
+        let _: TaskInboxMutationResult = try await client.mutation(
+            "taskInbox.clear",
+            input: TaskInboxItemInput(serverID: serverID, taskID: taskID)
+        )
+        taskSnapshots.inboxItems?.removeAll { $0.id == taskID }
+    }
+
+    /// Opening a Task clears its item, whichever surface opened it. Nothing is
+    /// sent for a Task the reader's Inbox is known not to hold; before the
+    /// first read, as on a cold launch from a push, the clear goes out anyway
+    /// and is a no-op on the Server if there was no item.
+    func clearTaskInboxItemOnOpen(taskID: String) async {
+        guard taskSnapshots.inboxItems?.contains(where: { $0.id == taskID }) ?? true else { return }
+        do {
+            try await clearTaskInboxItem(taskID: taskID)
+        } catch {
+            Self.logger.error("Clearing a task item failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// Start, Done, Won't do, or the status menu: moves the Task, which clears
+    /// the assignee's own item on the Server. The receipt is what an Undo
+    /// moves back from.
+    func moveTaskInboxItem(taskID: String, toColumnID columnID: String) async throws -> BoardTask {
+        guard let task = taskSnapshots.inboxItems?.first(where: { $0.id == taskID })?.task else {
+            throw HausStoreError.serverUnavailable
+        }
+        guard task.columnID != columnID else { return task }
+        taskSnapshots.settlingInboxTaskIDs.insert(taskID)
+        defer { taskSnapshots.settlingInboxTaskIDs.remove(taskID) }
+        let moved = try await moveTask(task, toColumnID: columnID)
+        taskSnapshots.inboxItems?.removeAll { $0.id == taskID }
+        return moved
+    }
+
+    /// Undo: moves the Task back if a move cleared it, then restores the item.
+    /// The restore comes last, because the assignee moving their own Task
+    /// clears the item again.
+    func undoTaskInboxClear(taskID: String, moved: BoardTask?, previousColumnID: String?) async throws {
+        let serverID = try activeServerID()
+        if let moved, let previousColumnID {
+            try await moveTask(moved, toColumnID: previousColumnID)
+        }
+        let _: TaskInboxMutationResult = try await client.mutation(
+            "taskInbox.restore",
+            input: TaskInboxItemInput(serverID: serverID, taskID: taskID)
+        )
+        await loadTaskInbox()
+    }
+
+    /// The item's composer: a reply in a Thread on its context message, so
+    /// discussion lands where the Task already lives and in its Mentioned in.
+    /// A context message that is itself a Thread reply answers in that Thread.
+    func replyToTaskInboxItem(taskID: String, content: String) async -> Bool {
+        guard let message = taskSnapshots.inboxItems?.first(where: { $0.id == taskID })?.contextMessage else {
+            return false
+        }
+        if chatsByID[message.chatID] != nil {
+            let outcome = await sendThreadReply(
+                content,
+                to: message.chatID,
+                anchorMessageID: message.id,
+                pendingChatID: threadChatID(parentChatID: message.chatID, anchorMessageID: message.id)
+                    ?? pendingThreadChatID(anchorMessageID: message.id)
+            )
+            return outcome != .rejected
+        }
+        guard let serverID = activeServer?.id else { return false }
+        do {
+            let thread: ThreadContext = try await client.query(
+                "thread.get",
+                input: ThreadContextInput(serverID: serverID, threadChatID: message.chatID)
+            )
+            let outcome = await sendThreadReply(
+                content,
+                to: thread.parentChatID,
+                anchorMessageID: thread.anchorMessageID,
+                pendingChatID: thread.threadChatID
+            )
+            return outcome != .rejected
+        } catch {
+            Self.logger.error("Replying from the Inbox failed: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
     }
 
     /// Every queued or running Cloud Agent work the viewer can see on this

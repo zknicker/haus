@@ -67,6 +67,18 @@ extension HausStore {
             streamTask(stream, serverID: serverID) { (store, event: TaskLabelUpdatedEvent) in
                 await store.receive(.taskLabelUpdated(event), serverID: serverID)
             }
+        case .boardUpdated:
+            streamTask(stream, serverID: serverID) { (store, event: BoardUpdatedEvent) in
+                await store.receive(.boardUpdated(event), serverID: serverID)
+            }
+        case .taskCreated, .taskUpdated:
+            streamTask(stream, serverID: serverID) { (store, event: TaskChangedEvent) in
+                await store.receive(.taskChanged(event), serverID: serverID)
+            }
+        case .taskInboxChanged:
+            streamTask(stream, serverID: serverID) { (store, event: TaskInboxChangedEvent) in
+                await store.receive(.taskInboxChanged(event), serverID: serverID)
+            }
         case .agentLifecycle:
             streamTask(stream, serverID: serverID) { (store, event: AgentLifecycleEvent) in
                 store.handle(lifecycleEvent: event)

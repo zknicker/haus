@@ -25,7 +25,7 @@ extension AuthenticatedHausView {
         switch path.last {
         case .thread:
             selectedThread?.resolvedChatID(selectedThread: selectedThread, store: store)
-        case .tasks:
+        case .tasks, .board, .task:
             nil
         case nil:
             canvasOpenChatID

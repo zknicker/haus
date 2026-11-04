@@ -67,6 +67,51 @@ public struct PushNotificationPayload: Sendable, Equatable {
     }
 }
 
+/// The keys a Task assignment push carries (ADR 0051). `kind` tells it from a
+/// message push, and it names no sender or conversation: it is a plain alert
+/// the Notification Service extension never rewrites.
+public struct PushTaskAssignmentPayload: Sendable, Equatable {
+    public static let kind = "task_assignment"
+
+    public let serverID: String
+    public let taskID: String
+    /// `SEC-12`, as it read when the push was sent.
+    public let key: String
+
+    public init(serverID: String, taskID: String, key: String) {
+        self.serverID = serverID
+        self.taskID = taskID
+        self.key = key
+    }
+
+    /// Nil for a message push, or when a required key is missing.
+    public init?(userInfo: [AnyHashable: Any]) {
+        guard userInfo["kind"] as? String == Self.kind,
+              let serverID = userInfo["serverId"] as? String, !serverID.isEmpty,
+              let taskID = userInfo["taskId"] as? String, !taskID.isEmpty,
+              let key = userInfo["key"] as? String, !key.isEmpty
+        else { return nil }
+        self.init(serverID: serverID, taskID: taskID, key: key)
+    }
+}
+
+/// What a tapped notification names.
+public enum PushOpenRequest: Sendable, Equatable {
+    case message(PushNotificationPayload)
+    case task(PushTaskAssignmentPayload)
+
+    /// Nil when `userInfo` is neither, so a malformed push opens nothing.
+    public init?(userInfo: [AnyHashable: Any]) {
+        if let task = PushTaskAssignmentPayload(userInfo: userInfo) {
+            self = .task(task)
+        } else if let message = PushNotificationPayload(userInfo: userInfo) {
+            self = .message(message)
+        } else {
+            return nil
+        }
+    }
+}
+
 /// The screen a tapped notification opens: a DM or Channel on the canvas, or
 /// a Thread pushed over it.
 public enum PushNotificationRoute: Sendable, Equatable {

@@ -32,6 +32,7 @@ extension AuthenticatedHausView {
             onMarkRead: { rowID in
                 Task { await store.markInboxRowRead(id: rowID) }
             },
+            taskActions: store.inboxTaskActions,
             onRefresh: { await store.loadInbox() },
             onOpenSidebar: onOpenSidebar,
             contentInsets: contentInsets
@@ -68,6 +69,8 @@ extension AuthenticatedHausView {
         case .cloudAgentWork(let workID):
             guard let work = store.activeCloudAgentWork?.first(where: { $0.work.id == workID }) else { return }
             openCloudAgentWork(work)
+        case .task(let taskID):
+            openTask(taskID)
         }
     }
 
@@ -104,10 +107,26 @@ extension AuthenticatedHausView {
         }
     }
 
-    /// A tapped notification opens the conversation it names: a DM or Channel
-    /// on the canvas, or its Thread pushed over whatever is showing.
-    /// A push for another Server opens nothing — this app shows one Server.
-    func openPushNotification(_ payload: PushNotificationPayload) async {
+    /// A tapped notification opens what it names: a conversation, or an
+    /// assigned Task pushed over whatever is showing.
+    func openPushNotification(_ request: PushOpenRequest) async {
+        switch request {
+        case .message(let payload):
+            await openPushNotification(payload)
+        case .task(let payload):
+            guard payload.serverID == store.activeServer?.id else {
+                PushNotifications.logger.notice("Ignoring a notification for another Server.")
+                return
+            }
+            path.removeAll()
+            openTask(payload.taskID)
+        }
+    }
+
+    /// A message push opens its conversation: a DM or Channel on the canvas, or
+    /// its Thread pushed over whatever is showing. A push for another Server
+    /// opens nothing — this app shows one Server.
+    private func openPushNotification(_ payload: PushNotificationPayload) async {
         guard payload.serverID == store.activeServer?.id else {
             PushNotifications.logger.notice("Ignoring a notification for another Server.")
             return
@@ -175,10 +194,9 @@ extension AuthenticatedHausView {
         )
     }
 
-    /// A Thread opened from the Tasks list pops back to the Tasks list, and the
-    /// claim's parent Chat may be one the user has never visited. Selecting it
-    /// would mark it read on the way back out and strand the user in it once the
-    /// Tasks list pops, so this route leaves the canvas selection alone. The
+    /// A stopped claim opens from an Agent profile, and its parent Chat may be
+    /// one the user has never visited. Selecting it would mark it read on the
+    /// way back out, so this route leaves the canvas selection alone. The
     /// Thread needs no selection of its own: its route carries the parent Chat
     /// id and the claim carries the child Chat id.
     ///

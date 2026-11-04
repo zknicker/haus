@@ -1,89 +1,44 @@
 import Foundation
 import HausModels
 import HausUI
-import OSLog
 
-/// Server-backed claim reads and lifecycle mutations for native claim lenses.
-///
-/// The store intentionally returns authoritative projections instead of
-/// maintaining a second claim cache. A parent surface can keep the returned
-/// snapshot in its own view state and replace it after each mutation.
+/// The one claim read left on the phone: an Agent profile's stopped claims.
+/// Claims have no list of their own, so this is one `claim.list` per profile
+/// opened, sliced to that Agent, rather than a snapshot events keep fresh.
 extension HausStore {
-    /// The claims a lens shows. The default lens is the tracked tier alone;
-    /// `includeBackground` widens it to the bookkeeping claims an Agent settles
-    /// inside one turn.
-    ///
-    /// The Server-wide default lens also records how many claims it hid, so a
-    /// surface can say "N background" without a second round trip. Every other
-    /// read leaves that count alone (`TaskBackgroundLens.recordsHiddenCount`):
-    /// a Chat-scoped read answers a different question, and a widened read
-    /// hides nothing and so reports zero — recording that would take the
-    /// number off the one control that leads back out of the widened lens.
-    func loadClaims(
-        chatID: String? = nil,
-        includeBackground: Bool = false
-    ) async throws -> [ClaimListItem] {
-        guard let serverID = activeServer?.id else {
-            throw HausStoreError.serverUnavailable
-        }
+    func agentStoppedClaims(
+        open: @escaping @MainActor @Sendable (ClaimListItem) -> Void
+    ) -> AgentStoppedClaimsActions {
+        AgentStoppedClaimsActions(
+            load: { [weak self] agentID in
+                guard let self else { throw CancellationError() }
+                return try await stoppedClaims(agentID: agentID)
+            },
+            open: open
+        )
+    }
+
+    private func stoppedClaims(agentID: String) async throws -> [ClaimListItem] {
         let list: ClaimList = try await client.query(
             "claim.list",
-            input: ClaimListInput(
-                serverID: serverID,
-                chatID: chatID,
-                includeBackground: includeBackground ? true : nil
-            )
+            input: ServerScopedInput(serverId: try activeServerID())
         )
-        if TaskBackgroundLens.recordsHiddenCount(chatID: chatID, includeBackground: includeBackground),
-           claimBackgroundCount != list.backgroundCount {
-            claimBackgroundCount = list.backgroundCount
-        }
-        return list.claims
+        return StoppedClaims.held(by: agentID, in: list.claims)
     }
 
-    /// Reloads the lens a claim surface is showing.
-    ///
-    /// The default lens is the Server-wide read the Store already owns, so it
-    /// lands on that one snapshot and every surface reading it repaints. The
-    /// widened lens is one reader's temporary question, so it is only returned.
-    func reloadClaimLens(includeBackground: Bool) async throws -> [ClaimListItem] {
-        if includeBackground {
-            return try await loadClaims(includeBackground: true)
-        }
-        let rows = try await loadClaims()
-        if serverClaims != rows { serverClaims = rows }
-        return rows
-    }
-
-    /// Refreshes the Server-wide default claim lens the Tasks list stands on.
-    func loadServerClaims() async {
-        guard let serverID = activeServer?.id else { return }
-        let readStart = realtimeReconciliation.beginRead()
-        do {
-            let claims = try await loadClaims()
-            guard activeServer?.id == serverID,
-                  realtimeReconciliation.landed(.claimLenses, readStartedAt: readStart)
-            else { return }
-            if serverClaims != claims { serverClaims = claims }
-        } catch {
-            Self.logger.error("Loading server claims failed: \(error.localizedDescription, privacy: .public)")
-        }
-    }
-
-    @discardableResult
-    func updateClaimStatus(_ claim: MessageClaim, status: ClaimStatus) async throws -> MessageClaim {
-        guard let serverID = activeServer?.id else {
-            throw HausStoreError.serverUnavailable
-        }
-        let receipt: ClaimMutationReceipt = try await client.mutation(
-            "claim.update",
-            input: ClaimUpdateInput(
-                serverID: serverID,
-                messageID: claim.messageID,
-                expectedVersion: claim.version,
-                patch: ClaimUpdatePatch(status: status)
-            )
+    /// Projects a claim row into the shared message presentation the Thread
+    /// route uses. Claims are canonical messages, so this must not invent a
+    /// second Thread presentation.
+    func claimMessagePresentation(_ item: ClaimListItem) -> MessagePresentation? {
+        guard let author = authorPresentation(item.message.author) else { return nil }
+        return MessagePresentation(
+            id: item.message.id,
+            author: author,
+            content: item.message.content,
+            createdAt: item.message.createdAt,
+            sequence: item.message.sequence,
+            thread: threadPresentation(item.threadSummary),
+            claim: claimPresentation(item.claim)
         )
-        return receipt.claim
     }
 }

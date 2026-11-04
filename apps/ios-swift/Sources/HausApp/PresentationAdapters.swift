@@ -93,7 +93,12 @@ extension HausStore {
             // Resolved here so the body goes through the parser that knows the
             // Server's Agents and members, and the trimmed string and its
             // segments always describe each other.
-            let parsed = parsedBody(id: message.id, content: message.displayContent, chatID: message.chatID)
+            let parsed = parsedBody(
+                id: message.id,
+                content: message.displayContent,
+                chatID: message.chatID,
+                taskLinks: message.taskLinks
+            )
             // Every linked work draws the same card, wherever the link sits.
             let linkedWork = message.cloudAgentWork
             return MessagePresentation(
@@ -160,29 +165,13 @@ extension HausStore {
         )
     }
 
-    /// Projects a claim-list row back into the shared message presentation used
-    /// by the Chat-owned Thread route. Claims are canonical messages, so the
-    /// list lens must not invent a second thread presentation.
-    func claimMessagePresentation(_ item: ClaimListItem) -> MessagePresentation? {
-        guard let author = authorPresentation(item.message.author) else { return nil }
-        return MessagePresentation(
-            id: item.message.id,
-            author: author,
-            content: item.message.content,
-            createdAt: item.message.createdAt,
-            sequence: item.message.sequence,
-            thread: threadPresentation(item.threadSummary),
-            claim: claimPresentation(item.claim)
-        )
-    }
-
-    private func threadPresentation(_ thread: ThreadSummary) -> ThreadPreviewPresentation {
+    func threadPresentation(_ thread: ThreadSummary) -> ThreadPreviewPresentation {
         ThreadPreviewProjection.presentation(for: thread) { reply in
             actorPresentation(agentID: reply.authorAgentID, userID: reply.authorUserID)
         }
     }
 
-    private func claimPresentation(_ claim: MessageClaim) -> ClaimPresentation {
+    func claimPresentation(_ claim: MessageClaim) -> ClaimPresentation {
         let status: ClaimStatusPresentation = switch claim.status {
         case .todo: .todo
         case .inProgress: .inProgress

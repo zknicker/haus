@@ -82,17 +82,12 @@ final class HausStore {
     /// The newest `thread.listUnread` read started, so an older answer that
     /// lands late writes nothing.
     var unreadThreadsReadToken = 0
-    /// The Server-wide default claim lens (`claim.list`), which the Tasks list
-    /// reads and durable claim events refresh.
-    var serverClaims: [ClaimListItem]?
+    /// Boards, their Tasks, and the reader's Task Inbox items (`HausStoreTasks.swift`).
+    let taskSnapshots = TaskSnapshots()
     var activeCloudAgentWork: [ActiveCloudAgentWork]?
     var serverUsage: ServerUsageSnapshot?
     /// Provisional send keys (a first Thread reply's) and the Chat Server put them in.
     var adoptedChatIDs: [String: String] = [:]
-    /// How many background-tier claims the Server-wide claim lens last hid. Zero
-    /// whenever the last Server-wide read already widened the lens, which is
-    /// what `claim.list` reports for it.
-    var claimBackgroundCount = 0
     var cloudAgentWorkByChatID: [String: [ThreadCloudAgentWork]] = [:] {
         didSet {
             guard oldValue != cloudAgentWorkByChatID else { return }

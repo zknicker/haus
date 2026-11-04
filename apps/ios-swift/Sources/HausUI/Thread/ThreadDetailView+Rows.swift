@@ -75,7 +75,8 @@ extension ThreadDetailView {
             canOpenThread: false,
             onReact: { actionMessage = message },
             onReply: {},
-            onOpenThread: {}
+            onOpenThread: {},
+            onConvertToTask: MessageActionRoutes.convertToTaskAction(for: message)
         )
     }
 

@@ -279,6 +279,7 @@ extension MentionPresentationKind {
         case .pullRequest: "Pull request"
         case .sharedArtifact: "File"
         case .skill: "Skill"
+        case .task: "Task"
         case .thread: "Thread"
         case .website: "Website"
         }
