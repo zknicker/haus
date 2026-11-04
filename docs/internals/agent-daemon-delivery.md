@@ -7,7 +7,6 @@ read_when:
   - changing which visibility writes or lifecycle facts start and end chat engagement
   - changing automation chain limits (Agent and Trigger wakes) or turn failure retry policy
   - changing how runtime provider or authentication failures are detected
-  - changing the `linear_session` inbox sources or how Linear session events reach an Agent
 ---
 
 # Agent Daemon And Delivery
@@ -43,8 +42,7 @@ Server queued work
   -> accepted ACK
   -> content-free notice (ordinary Chat work)
   -> Agent-chosen local message check (ordinary Chat work)
-  -> concrete typed attention (Cove, committed action, fire, task assignment,
-     Linear session event)
+  -> concrete typed attention (Cove, committed action, fire, task assignment)
   -> exact visibility receipt where applicable
   -> settled proof
   -> Server exact seen evidence + consumption
@@ -249,7 +247,10 @@ uses the same fingerprinted instruction/bootstrap refresh path as automatic drif
 
 Before every accepted turn, Computer composes current instructions and fingerprints both them and
 the driver's bootstrap (its pinned CLI). The driver mounts those instructions on the runtime's
-native instruction layer, so instruction-only drift keeps the session. Bootstrap drift or Restart
+native instruction layer, which only a fresh session reads, so a resumed session whose delivered
+instruction fingerprint differs or is missing gets them re-delivered at the front of its next
+ordinary turn and keeps the session ([sessions spec](../../specs/sessions.md#instruction-updates)).
+Bootstrap drift or Restart
 parks the session, refreshes the driver's install, and resumes the same native conversation. Before a
 Cove turn, Computer also replaces exact recognized prior playbook and FAQ revisions and privately
 asks the same session to re-read them; edited or missing files are preserved and reported as a
@@ -259,9 +260,12 @@ as resume rejection, so only Server-authorized recovery may advance the session 
 
 The release-owned Haus Agent version groups those managed behavior inputs into one public SemVer.
 When it differs from the session receipt, the next accepted turn enters the same
-`updating_instructions` lifecycle even when the lower-level fingerprints are unchanged. Success
-stores the new version and application time; failure or a Cove factory-guidance conflict preserves
-the old version and reports failed. Computer includes that receipt in effective state so Server and
+`updating_instructions` lifecycle even when the lower-level fingerprints are unchanged, unless it
+is a sub-agent wake deferring a due instruction update: that turn neither shows the activity nor
+applies the version, which stays pending for the next ordinary turn
+([sessions spec](../../specs/sessions.md#instruction-updates)). Success stores the new version and
+application time; failure or a Cove factory-guidance conflict preserves the old version and reports
+failed. Computer includes that receipt in effective state so Server and
 the App can distinguish pending, current, and failed application.
 
 Reminders are canonical Server schedules anchored to an Agent and Chat
@@ -315,9 +319,8 @@ harness session that never touches the main session's resume state
 when the Agent is busy and yields its slot when a message addressed to the Agent is waiting; the
 nightly run queues and retires after four hours.
 Sixteen consecutive drains containing only automation-authored work (Agent
-messages, Trigger fires, Trigger problem notices, Linear session events
-another Agent's write started, and sub-agent wakes: sources `agent:*`, `trigger`,
-`trigger_problem`, `linear_session_automated`, and `subagent`) are allowed. The seventeenth remains queued
+messages, Trigger fires, Trigger problem notices, and sub-agent wakes: sources
+`agent:*`, `trigger`, `trigger_problem`, and `subagent`) are allowed. The seventeenth remains queued
 until human input arrives; human input resets the counter on arrival, and any
 drain containing other work (a human message, a reminder, a task assignment)
 resets it at settlement. Admission judges the drain that will actually run: at
@@ -357,8 +360,8 @@ commits. Start, Restart, a session reset, and a configure that changes runtime
 or model also lift it, without rotating the session beyond what that action
 already does. Outside a pause, a human message releases a counted hold only
 after its window passes and never cuts a short or rate-limit backoff short.
-Agent-authored, reminder, trigger, task-assignment, Cloud Agent, and onboarding
-work never lifts a pause or releases a hold; it waits behind it. `agent.get`
+Agent-authored, reminder, trigger, task-assignment, Cloud Agent, onboarding, and
+greeting work never lifts a pause or releases a hold; it waits behind it. `agent.get`
 and `agent.list` project the pause as `wakePause` (failure count, last failure
 kind, code, and time, `pausedAt`, and `nextProbeAt`, null while the probe runs);
 availability stays `error`. Raw failure evidence remains Computer-local; only the
@@ -386,33 +389,6 @@ reports a configuration failure immediately, without acknowledging delivery or
 exposing the rejected payload. Server retains the inbox work for recovery instead
 of leaving the run on Starting work.
 
-## Linear Session Events
-
-A Linear session (someone mentioned or delegated to an Agent in Linear) reaches
-the Agent as an inbox row written by `apps/server/src/linear/session-inbox.ts`,
-inside the delivery worker's routing transaction
-([Linear app](../../specs/linear-app.md#inbox-sources)):
-
-- **Chat.** The DM between the Agent and the workspace's binder (or the
-  Server's longest-standing active Owner), found or created with
-  `ensureAgentDmRecord`. No Chat message is written; a DM created here is
-  announced after commit.
-- **Sources.** `linear_session` when a person caused the event (it resets the
-  chain like a human message) and `linear_session_automated` when the write
-  ledger ties it to a Haus write (it counts against the chain). Both are
-  concrete and bodiless: the envelope is the row's content, capped at 24,000
-  bytes, and Linear's `promptContext` inside it is marked untrusted.
-- **Dedupe.** `linear:<lss id>:<Linear-Delivery>`, so a replayed delivery never
-  queues a second row.
-- **Cancellation.** A session that becomes `complete`, `stopped`,
-  `handed_off`, or `orphaned` deletes its queued rows no run has taken (dedupe
-  prefix `linear:<lss id>:`); a session rerouted to another Agent drops only the
-  previous Agent's.
-
-Linear's 10-second acknowledgment never waits on a Computer: the routing
-transaction enqueues a `session_ack` outbox row and the outbox worker sends it
-first.
-
 ## App Work Projection
 
 Delivery state is durable; its live App projection is not. The Server emits three coarse lifecycle
@@ -429,8 +405,8 @@ activity journal: Computer maps known runtime and product boundaries into safe c
 persists them, and the Inbox projects the latest category for each unsettled Agent. Unknown
 and MCP tools remain generic. Neither lifecycle nor semantic activity carries arguments, command
 contents, model reasoning, draft messages, tool outputs, or private file contents.
-Instruction, Cove factory-guidance, or bootstrap drift adds an explicit `updating_instructions`
-activity lifecycle. Its rows contain no prompt text, paths, commands, hashes, file contents, or raw
+A re-delivered instruction update, Cove factory-guidance drift, bootstrap drift, or Restart adds an
+explicit `updating_instructions` activity lifecycle. Its rows contain no prompt text, paths, commands, hashes, file contents, or raw
 bootstrap errors.
 
 Computer separately records a detailed execution journal keyed by run, including tool outputs,
@@ -448,7 +424,8 @@ composition bubble remains tied only to an explicit in-flight message and its co
 | --- | --- |
 | One persistent session; pending delivery or cold `Start.`, then resume | `apps/computer/src/harness/executor.test.ts` |
 | Restart preserves generation and refreshes instructions exactly once | `apps/server/test/agent-delivery.test.ts`, `apps/computer/src/harness/executor.test.ts`, `apps/computer/src/harness/session-restart.test.ts` |
-| Instruction, runtime bootstrap, or Haus Agent version drift refreshes once in place and exposes the outcome safely | `apps/computer/src/harness/executor.test.ts`, `packages/haus-api/src/agent-activity.test.ts` |
+| Instruction, runtime bootstrap, or Haus Agent version drift refreshes once in place and exposes the outcome safely | `apps/computer/src/harness/executor.test.ts`, `apps/computer/src/harness/executor-instructions-update.test.ts`, `packages/haus-api/src/agent-activity.test.ts` |
+| A resumed session receives changed instructions exactly once, never on a host-facts-only release | `apps/computer/src/harness/instructions-update.test.ts`, `apps/computer/src/harness/executor-instructions-update.test.ts`; live: `instructions-update-live.test.ts` |
 | Known tools map through the semantic registry; unknown and MCP tools remain generic | `apps/computer/src/harness/executor.test.ts` |
 | Runtime/model switch and rejected resume start exactly one fresh generation | `apps/computer/src/harness/executor.test.ts` |
 | Session reset preserves workspace and skills; full reset restores the Agent-kind workspace and only factory-managed skills | `apps/computer/src/launch.test.ts` |

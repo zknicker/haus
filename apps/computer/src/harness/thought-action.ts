@@ -121,7 +121,7 @@ function fileAction(verb: string, path: string): string | null {
     return name ? bounded(`${verb} ${name}`) : null;
 }
 
-/** `mcp__linear__create_issue` → `linear create_issue`, then up to three short, non-secret scalar args. */
+/** `mcp__tracker__create_issue` → `tracker create_issue`, then up to three short, non-secret scalar args. */
 function toolAction(name: string, fields: Record<string, unknown>): string | null {
     const label = name
         .replace(/^mcp__/u, '')

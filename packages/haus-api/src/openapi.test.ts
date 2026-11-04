@@ -55,6 +55,7 @@ describe('Haus OpenAPI contract', () => {
             '/api/agent/server',
             '/api/agent/channels/info',
             '/api/agent/channels/members',
+            '/api/agent/channels/create',
             '/api/agent/channels/add',
             '/api/agent/tasks',
             '/api/agent/tasks/create',

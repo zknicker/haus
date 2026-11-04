@@ -19,8 +19,8 @@ test('reminder manual teaches a short title with the instruction in the descript
 test('trigger manual retains setup, recovery, and payload boundaries', () => {
     const body = getManualTopic('recipes/technique/trigger-webhook')?.body;
     for (const detail of [
-        'secret **once**',
-        'haus trigger rotate',
+        'written **once**',
+        'haus trigger rotate --id <id> --output <new-private-path>',
         'haus trigger disable',
         'haus trigger log',
         '--fire <fireId>',
@@ -48,21 +48,27 @@ test('webhook manual never sends a secret through chat', () => {
     expect(body).toContain('haus trigger create --help');
 });
 
+test('webhook secrets travel only through a new private --output file', () => {
+    const recipe = getManualTopic('recipes/technique/trigger-webhook')?.body ?? '';
+    const family = getManualTopic('trigger')?.body ?? '';
+    for (const body of [recipe, family]) {
+        expect(body).toContain('--output <new-private-path>');
+        expect(body).toContain('mode 0600');
+        expect(body).toContain('trash');
+        expect(body).toMatch(/never probe by running a real rotation/iu);
+    }
+    expect(recipe).toContain('--output ./sentry-trigger-secret');
+    expect(recipe).toContain(`$(cat '<file>')`);
+    expect(recipe).toContain('fails before contacting the Server, so nothing is rotated');
+    expect(recipe).not.toContain('Bearer <secret>"');
+});
+
 test('GitHub triggers defer their mechanics to CLI help, not a Manual topic', () => {
     const body = getManualTopic('trigger')?.body ?? '';
     expect(body).toContain('haus trigger create --kind github');
     expect(body).toContain('haus trigger create --help');
     expect(body).not.toContain('trigger-github');
     expect(getManualTopic('recipes/technique/trigger-github')).toBeNull();
-});
-
-test('Linear has no Manual topic of its own; the trigger family names the kind', () => {
-    expect(getManualTopic('linear')).toBeNull();
-    expect(getManualTopic('recipes/technique/trigger-linear')).toBeNull();
-    const trigger = getManualTopic('trigger')?.body ?? '';
-    expect(trigger).toContain('--kind linear');
-    expect(trigger).toContain('haus trigger create --help');
-    expect(trigger).not.toContain('trigger-linear');
 });
 
 test('reminder manual resolves calendar timezones from the requester, not home time', () => {

@@ -176,7 +176,7 @@ test('a tool step names its call kind as the turn trace classifies it', () => {
         tools: [
             tool({ input: { url: 'https://haus.dev' }, toolCallId: 'web', toolName: 'WebFetch' }),
             tool({ input: { prompt: 'a ghost' }, toolCallId: 'image', toolName: 'image_gen' }),
-            tool({ input: {}, toolCallId: 'mcp', toolName: 'mcp__linear__list_issues' }),
+            tool({ input: {}, toolCallId: 'mcp', toolName: 'mcp__tracker__list_issues' }),
             tool({ input: { x: 1 }, toolCallId: 'other', toolName: 'spreadsheet' }),
         ],
     });

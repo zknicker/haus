@@ -48,5 +48,7 @@ export const migrationsSince0060 = [
     '0105_subagent-wake',
     '0106_background-subagents',
     '0107_background-tasks',
-    '0108_idle-compaction',
+    '0108_remove-linear',
+    '0109_freshness-hold-boundary',
+    '0110_idle-compaction',
 ];

@@ -7,7 +7,6 @@ import { UsageError } from './args.mjs';
 import {
     attentionProfiles,
     githubTriggerProfiles,
-    linearTriggerProfiles,
     placementJudge,
     placementProfiles,
 } from './profiles.mjs';
@@ -91,22 +90,15 @@ export const evals = {
         summary:
             'Agents launch and link cloud work, use only granted MCP connections, keep Trigger secrets out of chat, and share files through Files.',
     },
-    // GitHub and Linear Triggers on a GitHub installation and a Linear workspace
-    // seeded on the eval stack itself: no GitHub or Linear account. The Linear
-    // fake behind HAUS_LINEAR_API_ORIGIN resolves names. Serial: the GitHub
-    // scenarios share an `acme` installation and the Linear ones the fake's port.
+    // GitHub Triggers on a GitHub installation seeded on the eval stack itself:
+    // no GitHub account. Serial: the scenarios share an `acme` installation.
     triggers: {
         judge: null,
         lanes: 1,
-        profiles: { ...githubTriggerProfiles, ...linearTriggerProfiles },
-        scenarios: [
-            'github-trigger-ci-setup',
-            'github-trigger-fire-reply',
-            'linear-trigger-setup',
-            'linear-trigger-fire-reply',
-        ],
+        profiles: githubTriggerProfiles,
+        scenarios: ['github-trigger-ci-setup', 'github-trigger-fire-reply'],
         summary:
-            'Agents set up a GitHub CI-failure or Linear state-transition Trigger from a plain ask and answer its fire once, top level, with --cause.',
+            'Agents set up a GitHub CI-failure Trigger from a plain ask and answer its fire once, top level, with --cause.',
     },
     // Two Agents and a human in one channel, each scenario with a decoy the
     // Manual card warns against. Serial: the scenarios assert silence.

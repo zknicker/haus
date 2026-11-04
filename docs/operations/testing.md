@@ -268,6 +268,7 @@ HAUS_RUN_LIVE_CLAUDE_CODE_TEST=1 bun test apps/computer/src/runtime/claude-code
 HAUS_RUN_LIVE_CODEX_DRIVER_TEST=1 bun test apps/computer/src/runtime/codex
 HAUS_RUN_LIVE_GROK_DRIVER_TEST=1 bun test apps/computer/src/runtime/grok
 HAUS_RUN_LIVE_RUNTIME_E2E_TEST=1 bun test apps/computer/src/harness/runtime-driver-e2e-live.test.ts
+HAUS_RUN_LIVE_INSTRUCTIONS_UPDATE_TEST=1 bun test apps/computer/src/harness/instructions-update-live.test.ts
 ```
 
 The driver tests run a session through its lifecycle: turns, a steer mid-tool, a host-tool call,
@@ -278,7 +279,10 @@ drives every installed runtime through the real executor, driver factory, and ru
 two turns on one session with a busy notice steered into the first, printing the
 `AgentTurnTimings` per turn. `HAUS_LIVE_RUNTIMES` narrows it (comma-separated runtime ids), and
 `HAUS_LIVE_CLAUDE_MODEL`, `HAUS_LIVE_CODEX_MODEL`, and `HAUS_LIVE_GROK_MODEL` pick models (for
-example `grok-4.7` or `grok-4.7-build-fast`; Grok defaults to `grok-4.6`).
+example `grok-4.7` or `grok-4.7-build-fast`; Grok defaults to `grok-4.6`). The instructions-update
+canary uses the same runtime and model variables: it starts a session on instructions carrying
+`CANARY-ALPHA`, resumes it with `CANARY-BRAVO`, and expects the Agent to report `BRAVO`, which only
+the re-delivered `<haus-instructions-update>` block can make it do (specs/sessions.md).
 
 ## Manual Smoke Hygiene
 
@@ -348,19 +352,6 @@ gates on one recorded fire, one top-level post in the anchor channel whose cause
 `explicit` attribution, no Thread posts, and a journaled `haus message send --cause <fireId>`.
 Both need the varlock environment, so run them by hand as
 `bunx varlock run -- bun scripts/agent-tests/cli.mjs --only github-trigger --lanes 1`.
-
-`linear-trigger-setup` and `linear-trigger-fire-reply` need no Linear account and never call
-api.linear.app. `scripts/agent-tests/linear-world.mjs` seeds a `linear` connection (on an
-unreachable URL, so the worker has no Linear tools), the worker's grant, an `active` workspace with
-a valid credential, and DES/ENG team access straight into the stack's PostgreSQL, and tombstones
-them afterwards. Eval stacks boot with `HAUS_LINEAR_API_ORIGIN` pointed at
-`scripts/agent-tests/fake-linear.mjs`, which answers the Trigger catalog the Server resolves names
-against. Setup gates on exactly one `linear` Trigger owned by the worker, anchored on the asking
-message, with an issue group whose `stateFrom`/`stateTo` hold the Design Review and Changes
-Requested state ids, and no token or webhook secret in any Chat or the journal. Fire creates the
-Trigger through the Agent route, POSTs the captured `issue-update-state` delivery re-pointed at the
-seeded workspace and signed with `HAUS_LINEAR_APP_WEBHOOK_SECRET` to `/api/linear/webhook`, and
-gates on one fire, one top-level `--cause` answer with `explicit` attribution, and no Thread posts.
 
 The memory-feedback scenarios seed two Standing Preferences, send one channel request (a
 self-contained question, with passing feedback for `implicit` and none for `control`), reset the
@@ -493,7 +484,7 @@ rendered as the report's "What was changed" section). The registry is
 | `placement` | An answer lands where the asker looks (inline reply, or the Thread they chose), says only what was asked, and stops. |
 | `attention` | A mention wakes only the addressed Agent and its unmentioned inline follow-up stays with it; an FYI DM gets a seen, silent turn; an irreversible publish waits for the human's pick; an explicit task is claimed and answered inline; tool-using work asked in a DM or Channel Thread is claimed on that Thread message and answered in the Thread with a `--done` send and no `--reply-to`; a reminder fires once. Serial. |
 | `memory` | Passing feedback becomes a Standing Preference that survives a session reset; with no feedback, nothing changes. Score rule quality with `memory-feedback-grade.mjs`. |
-| `triggers` | GitHub and Linear Triggers on an `acme` GitHub installation and a Linear workspace seeded on the eval stack (no GitHub or Linear account; a loopback fake Linear resolves names): a plain "wake me when CI fails on main" ask becomes one failure-filtered CI `github` Trigger, and "ping me when a Design issue goes from Design Review to Changes Requested" one state-transition `linear` Trigger, each with a short confirmation; a signed `workflow_run` failure or Issue update gets one top-level `--cause` answer naming the workflow and branch, or the issue. Serial. |
+| `triggers` | GitHub Triggers on an `acme` GitHub installation seeded on the eval stack (no GitHub account): a plain "wake me when CI fails on main" ask becomes one failure-filtered CI `github` Trigger with a short confirmation; a signed `workflow_run` failure gets one top-level `--cause` answer naming the workflow and branch. Serial. |
 | `room` | Two Agents and a human share a channel, and each scenario carries a decoy the Manual warns against: a multi-step pickup gets the signature reaction and at most one inline "on it" note while the bystander stays silent; a task a peer claimed is left to that peer; a peer handoff carrying its evidence is delivered without re-asking the human; a peer's guess at a pending question to the human is not taken as the human's answer; a reminder fire during a live Thread exchange is answered at its anchor with `--cause`, not in the Thread; a chart request gets one SVG visual fence, no table inside it, with text beyond a caption. Serial. |
 | `tools` | Work that leaves the chat: a Cloud Agent launch and cross-channel link (Cursor), granted-only MCP use with a hot grant, a webhook Trigger whose secret stays out of chat, and a file shared with the team without naming Files (one `haus files push` of a `.md` file whose stable URL is linked, not attached). |
 
@@ -537,7 +528,7 @@ with `bun run test:agents --only placement-found-the-kit-local`. The `attention`
 `mention-wakes-only-addressed` and `task-thread-routing` the same way. The `triggers` profiles
 grade each setup confirmation as an inline reply (one post, no question, no URL) and each fire
 answer from its first fire-caused post (one post in the anchor chat naming the GitHub workflow and
-branch, or the Linear issue identifier); `memory`, `room`, and `tools` are graded on runner verdicts alone.
+branch); `memory`, `room`, and `tools` are graded on runner verdicts alone.
 
 To isolate one failing scenario, use `bun run test:agents --only <name> --lanes 1` against
 `bun run dev`.

@@ -26,6 +26,10 @@ export const createAgentProcedure = memberProcedure
                 reasoningEffort: created.agent.desiredReasoningEffort,
                 runtimeId: created.agent.desiredRuntimeId,
             });
+            // After configure, so the Computer knows the Agent its greeting wakes.
+            await ctx.postCommitWork.wakeAgents(ctx.agentDelivery, [
+                { agentId: created.agent.id, serverId: input.serverId },
+            ]);
             agentUpdatedTopic.announce({
                 agentId: created.agent.id,
                 serverId: input.serverId,

@@ -1,10 +1,8 @@
 import {
-    type AgentTrigger,
     agentTriggerDeleteResultSchema,
     agentTriggerListSchema,
     agentTriggerLogSchema,
     agentTriggerResultSchema,
-    agentTriggerSecretResultSchema,
     type TriggerFire,
     type TriggerFireDetail,
     triggerInstructionMaxBytes,
@@ -16,7 +14,7 @@ import { AgentCliError } from '../agent-error.ts';
 import { formatUtcTime } from '../agent-format.ts';
 import type { ParsedArgs } from '../parse.ts';
 import { readKind, readTriggerConfig } from './agent-trigger-config.ts';
-import { linearProblemFix } from './agent-trigger-linear-view.ts';
+import { createWebhookTrigger, rotateWebhookSecret } from './agent-trigger-secret.ts';
 import { describeTrigger, problemFix } from './agent-trigger-view.ts';
 
 // Request and render logic behind `haus trigger`. Trigger mutations are
@@ -40,21 +38,21 @@ export async function runTriggerCreate(args: ParsedArgs, deps: TriggerDeps): Pro
     const config = readTriggerConfig(args, readKind(args), 'create');
     const body = { messageId, title, ...(instruction ? { instruction } : {}), ...config };
     if (config.kind === 'webhook') {
-        const response = await deps.client.request(
-            '/api/agent/triggers',
-            agentTriggerSecretResultSchema,
-            { body, method: 'POST' }
+        return createWebhookTrigger(args, deps, body);
+    }
+    if (args.values['--output'] !== undefined) {
+        throw new AgentCliError(
+            'INVALID_ARG',
+            `--output is for webhook triggers; a ${config.kind} trigger has no secret.`,
+            { nextAction: 'Drop --output and run the command again.' }
         );
-        deps.write(renderSecret(response));
-        return 0;
     }
     const response = await deps.client.request('/api/agent/triggers', agentTriggerResultSchema, {
         body,
         method: 'POST',
     });
-    const source = config.kind === 'github' ? 'GitHub' : 'Linear';
     deps.write(
-        `Created. ${describeTrigger(response.trigger)}\nNo URL or secret: ${source} deliveries reach you directly. Check fires with haus trigger log --id ${response.trigger.id}.\n`
+        `Created. ${describeTrigger(response.trigger)}\nNo URL or secret: GitHub deliveries reach you directly. Check fires with haus trigger log --id ${response.trigger.id}.\n`
     );
     return 0;
 }
@@ -88,9 +86,6 @@ export async function runTriggerShow(args: ParsedArgs, deps: TriggerDeps): Promi
     if (trigger.kind === 'github' && trigger.github.problem) {
         lines.push(`Not firing. ${problemFix(trigger.github.problem)}`);
     }
-    if (trigger.kind === 'linear' && trigger.linear.problem) {
-        lines.push(`Not firing. ${linearProblemFix(trigger.linear.problem)}`);
-    }
     deps.write(`${lines.join('\n')}\n`);
     return 0;
 }
@@ -111,15 +106,8 @@ export async function runTriggerStatus(
     return 0;
 }
 
-export async function runTriggerRotate(args: ParsedArgs, deps: TriggerDeps): Promise<number> {
-    const id = requireTriggerId(args);
-    const response = await deps.client.request(
-        `/api/agent/triggers/${encodeURIComponent(id)}/rotate`,
-        agentTriggerSecretResultSchema,
-        { method: 'POST' }
-    );
-    deps.write(`Rotated. The previous secret no longer works.\n${renderSecret(response)}`);
-    return 0;
+export function runTriggerRotate(args: ParsedArgs, deps: TriggerDeps): Promise<number> {
+    return rotateWebhookSecret(requireTriggerId(args), args, deps);
 }
 
 export async function runTriggerDelete(args: ParsedArgs, deps: TriggerDeps): Promise<number> {
@@ -158,23 +146,6 @@ export async function runTriggerLog(args: ParsedArgs, deps: TriggerDeps): Promis
         `${lines.join('\n')}\nRead one payload: haus trigger log --id ${id} --fire <fireId>\n`
     );
     return 0;
-}
-
-/** The only two responses that ever carry a secret; it is never readable again. */
-function renderSecret(result: {
-    curl: string;
-    secret: string;
-    trigger: AgentTrigger;
-    url: string;
-}): string {
-    return [
-        describeTrigger(result.trigger),
-        `Secret: ${result.secret}`,
-        `Shown once and never again — haus trigger rotate --id ${result.trigger.id} replaces it.`,
-        'Never post the secret in any chat, DM included. Install it at the destination with a tool, or share only the URL and have the requester reveal a fresh secret in the App (Agent profile → Automations → Rotate).',
-        `Test it from your own run only: ${result.curl}`,
-        '',
-    ].join('\n');
 }
 
 function describeFire(fire: TriggerFire): string {

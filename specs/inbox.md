@@ -35,6 +35,7 @@ ordinary Chat work, the rendered envelope as its content, and the recipient Agen
 | `reminder` | One reminder fire | The fire id | Concrete |
 | `trigger` | One Trigger fire | The fire id | Concrete |
 | `onboarding` | Cove's one-shot bootstrap instruction | Its own bootstrap identity | Concrete |
+| `greeting` | A newly created Agent's one-time `#all` greeting wake (ADR 0028) | `greeting:<agentId>`, so one per Agent | No lane of its own: attached to the next ordinary run whatever leads it (setting the start frame's `greets`), and leads a run only when nothing else waits; no dream, heartbeat, or heartbeat report leads while it waits (a sub-agent wake still does, since it is never held and the greeting rides the next ordinary run). Retired as `seen`, queued or attached, once the Agent has a message in its `#all`, so neither a Stop nor a reconnect replay makes it show twice. Bodiless; never listed in a notice, the digest, or `haus inbox check` |
 | `dream` | One nightly dreaming turn the Agent's Computer requested ([workspace.md](workspace.md#dreaming)); no Chat | `dream:<agentId>:<Computer-local date>` | Concrete; queued even while the Agent is busy or has work waiting, then ordered like any other concrete item. Never listed in a notice, the digest, or `haus inbox check` (it has no Chat). Retired as `seen` instead of led once it has been queued four hours |
 | `subagent` | A wake for background work the Agent started on its runtime that finished or stopped ([runtime-drivers.md](runtime-drivers.md#background-work)); no Chat | `subagent:<agentId>:<wake id>` | Concrete; at most one queued per Agent, only for the current session generation. Never in a notice, the digest, or `haus inbox check`. Spends the automation chain; refused, not queued, at the chain ceiling. Retired by Stop, a session reset, or a run that adopted the turn it was for |
 
@@ -173,7 +174,11 @@ identities tied to the active run. Concrete items use their own stable identity 
 delivery ledger and intentionally have no Chat cursor. Freshness treats an identity as visible when it settled in this
 session generation or was served to the current run. A verified contiguous boundary in
 `agent_inbox_cursors` is only an optional compaction/baseline; exact identities beyond it never
-consume the gaps between them. Notices and wakes advance nothing, ever.
+consume the gaps between them. Its `held_through_sequence` is the one exception, and only for
+freshness: a hold records the newest message it showed, so earlier messages it omitted do not
+hold the next send, while they stay queued and unseen. The shown messages' queued rows are served
+to the active run, so delivery never brings them again. Outside a Thread, freshness counts only
+messages delivered to the Agent. Notices and wakes advance nothing, ever.
 
 ## Notice turns and system attention (I1)
 
@@ -222,8 +227,8 @@ asynchronously; choose when to read; a notice needs no immediate interruption). 
 states that the bodies are withheld to avoid flooding the Agent, not absent; that the notice is not
 itself a request and is not acknowledged; how to pull (`haus message read --target <target>
 --unread` for one conversation, `haus message check` for all of them, in Raft 26f77ef's wording);
-and that deferral needs no visible reply but must be reported honestly, never as a conclusion that
-nothing is pending. The unread-elsewhere digest closes by pointing at `haus inbox check`, which
+and that deferral needs no visible reply and the messages remain queryable, to be read before the
+Agent stops, as the prompt's Messaging section says. The unread-elsewhere digest closes by pointing at `haus inbox check`, which
 lists every unread conversation with the command that opens it. With no concrete message and no notice,
 the prompt's startup sequence stops the turn.
 
@@ -313,10 +318,12 @@ turn starts when its creator sends the working brief.
 | Unpulled work is offered once; new identities wake again; subsets and targets settle independently | `apps/server/test/agent-delivery.test.ts` |
 | Notices inject only at safe tool boundaries or remain durable for the next turn | `apps/computer/src/harness/executor.test.ts`, `apps/server/test/agent-delivery.test.ts` |
 | Creating an Agent creates no inbox item and no empty bootstrap turn for the new Agent | `apps/server/test/haus-agent-creation.test.ts` |
-| The notice teaches Raft's `--unread` / `message check` pull plus non-request and honest-deferral semantics; the digest points at `haus inbox check`; the prompt teaches asynchronous collaboration and FYI silence without losing required capabilities | `apps/computer/src/inbox-format.test.ts`, `apps/computer/src/harness/turn-prompt.test.ts`, `apps/computer/src/harness/managed-instructions.test.ts` |
+| The notice teaches Raft's `--unread` / `message check` pull plus non-request and read-before-you-stop semantics; the digest points at `haus inbox check`; the prompt teaches asynchronous collaboration and FYI silence without losing required capabilities | `apps/computer/src/inbox-format.test.ts`, `apps/computer/src/harness/turn-prompt.test.ts`, `apps/computer/src/harness/managed-instructions.test.ts` |
 | A live session drains human bodies; a cold start drains only addressed items and notices the rest once | `apps/computer/src/harness/turn-prompt.test.ts`, `apps/computer/src/harness/executor.test.ts` |
 | A composed drain records exact run visibility and consumes its own notice rows | `apps/computer/src/harness/turn-prompt.test.ts` |
 | A drained wake message is exact-visible before settlement, and the freshness hold does not fire on it | `apps/server/test/agent-composed-drain-visibility.test.ts`, `apps/computer/src/harness/composed-drain-receipt.test.ts` |
+| Pre-join history never holds a send; a hold shows three, serves them to the active run once however deep the queued backlog, never walks back through what it omitted, and allows `--anyway` from the fourth hold | `apps/server/test/agent-send-hold.test.ts`, `apps/server/test/agent-send-hold-serving.test.ts` |
+| A queued greeting never holds or stales a send and survives the seen advance; the first send into a channel the Agent just created is not held | `apps/server/test/agent-freshness-new-chats.test.ts` |
 | Addressing is decided at enqueue and survives stale, uncertain or kept routing | `apps/server/test/message-routing-addressing.test.ts`, `apps/server/test/agent-inbox-lanes.test.ts` |
 | A single-Agent channel addresses `sole` without Jev for one human and judges it at the gate for more | `apps/server/test/haus-message-routing-sole.test.ts` |
 | A Thread mention without visible context carries a bounded, budgeted package rendered once per Thread | `apps/server/test/agent-thread-context.test.ts`, `apps/computer/src/thread-context-format.test.ts` |

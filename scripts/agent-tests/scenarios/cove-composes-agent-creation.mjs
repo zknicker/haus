@@ -7,8 +7,8 @@
 // create and resets Cove to factory — session, workspace, MEMORY.md — through
 // the product's own Full Reset.
 //
-// The Owner asks in a fresh channel. Cove creates there, then introduces the
-// returned identity in #all through ordinary message send.
+// The Owner asks in a fresh channel. Cove creates there and answers there with the
+// returned identity; the new Agent introduces itself in #all on its first turn.
 
 import { isAbsolute } from 'node:path';
 import { defineScenario } from '../scenario.mjs';
@@ -20,7 +20,7 @@ import {
 
 export default defineScenario({
     contract:
-        'Cove answers a natural Agent proposal request from its Owner without creating anything, then a separate creation request creates exactly one Agent inheriting Cove’s runtime and model, introduced through ordinary message send in #all with the same session generation, joined to #all and the requested #product, and carrying its standing brief in the workspace MEMORY.md on the Computer; repeating the request creates no second Agent.',
+        'Cove answers a natural Agent proposal request from its Owner without creating anything, then a separate creation request creates exactly one Agent inheriting Cove’s runtime and model, named by handle in Cove’s answer in the asking chat with the same session generation and with no introduction from Cove in #all, joined to #all and the requested #product, and carrying its standing brief in the workspace MEMORY.md on the Computer; repeating the request creates no second Agent.',
     name: 'cove-composes-agent-creation',
     optIn: true,
     async run({ expect, kit, log, marker, settleTurn }) {
@@ -136,36 +136,35 @@ export default defineScenario({
                 );
                 expect(createdAgent.computerId, 'inherited Computer').toBe(cove.computerId);
 
-                // A creation is a team event, so the announcement lands in #all —
-                // not in the chat the Owner happened to ask from.
-                const announcements = (await kit.readMessages(allChannel.id)).filter(
+                // The new Agent's own first-turn greeting is its only introduction,
+                // so Cove posts none in #all (ADR 0028, amended 2026-11-03).
+                const coveIntroductions = (await kit.readMessages(allChannel.id)).filter(
                     (message) =>
                         message.sequence > allHeadSequence &&
                         message.author.kind === 'agent' &&
+                        message.author.agentId === cove.id
+                );
+                expect(coveIntroductions, 'Cove posts no introduction in #all').toHaveLength(0);
+                // Cove answers the Owner where they asked. The mention is the only way
+                // a human reaches the new profile, so the answer names the teammate.
+                const answers = (await kit.readMessages(askChat.id)).filter(
+                    (message) =>
+                        message.author.kind === 'agent' &&
                         message.author.agentId === cove.id &&
                         message.body?.kind === 'text' &&
-                        message.content.includes(`agent://${createdAgent.id}`)
+                        message.content.includes(`@${createdAgent.handle}`)
                 );
-                expect(announcements, 'one ordinary introduction in #all').toHaveLength(1);
-                const announcement = announcements[0];
-                expect(announcement.body.kind, 'ordinary Message body').toBe('text');
-                expect(announcement.sessionGeneration, 'introduction keeps Cove’s session').toBe(
+                expect(
+                    answers.length,
+                    'Cove answers the Owner with the new handle'
+                ).toBeGreaterThan(0);
+                const answer = answers.at(-1);
+                expect(answer.sessionGeneration, 'the answer keeps Cove’s session').toBe(
                     proposalMessages.at(-1).sessionGeneration
                 );
-                expect(
-                    announcement.sessionGeneration,
-                    'introduction has a session stamp'
-                ).toBeGreaterThan(0);
-                expect(
-                    announcement.content.trim().length,
-                    'the announcement carries Cove’s own words'
-                ).toBeGreaterThan(0);
-                // The mention is the only way a human reaches the new profile,
-                // so the announcement has to name the teammate it made.
-                expect(
-                    announcement.content,
-                    'the announcement mentions the new Agent by handle'
-                ).toContain(`@${createdAgent.handle}`);
+                expect(answer.sessionGeneration, 'the answer has a session stamp').toBeGreaterThan(
+                    0
+                );
 
                 // #all is the Server's guarantee; #product is what the request named.
                 const membership = await kit.trpc('chat.list', { serverId: kit.serverId });
@@ -188,7 +187,7 @@ export default defineScenario({
                 );
                 // The first hello is one-time turn input, not permanent memory.
                 expect(
-                    memory.content.includes('say hello'),
+                    memory.content.includes('self-introduction'),
                     'the seeded memory leaves the first hello to turn input'
                 ).toBe(false);
                 // Nothing DMs the new Agent — a DM is human ↔ Agent.

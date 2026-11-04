@@ -20,7 +20,7 @@ function recordedController(input: {
         events(_id, stop) {
             const collected: ClaudeSessionEvent[] = [];
             for (const payload of [...input.events].reverse()) {
-                const event = { payload, sequence: '1' };
+                const event = { createdAt: null, payload, sequence: '1' };
                 collected.push(event);
                 if (stop(event)) {
                     break;

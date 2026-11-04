@@ -1,6 +1,5 @@
 import { type McpConnection, type McpGrant, mcpSummarySchema } from '@haus/api';
 import { and, asc, eq } from 'drizzle-orm';
-import { builtInConnection } from '../built-in-connections/built-in-connections.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentMcpConnectionGrantsTable,
@@ -54,10 +53,7 @@ export async function setMcpGrant(
             throw new McpDeniedError('Only a Server Owner or Admin can change Agent access.');
         }
         const [scope] = await tx
-            .select({
-                connected: mcpConnectionsTable.connected,
-                preset: mcpConnectionsTable.preset,
-            })
+            .select({ connected: mcpConnectionsTable.connected })
             .from(agentsTable)
             .innerJoin(
                 mcpConnectionsTable,
@@ -80,14 +76,7 @@ export async function setMcpGrant(
             serverId: input.serverId,
         };
         if (input.enabled) {
-            const added = await tx
-                .insert(agentMcpConnectionGrantsTable)
-                .values(key)
-                .onConflictDoNothing()
-                .returning({ agentId: agentMcpConnectionGrantsTable.agentId });
-            if (added.length > 0) {
-                await builtInConnection(scope.preset)?.agentGrantAdded?.(tx, key);
-            }
+            await tx.insert(agentMcpConnectionGrantsTable).values(key).onConflictDoNothing();
         } else {
             await tx
                 .delete(agentMcpConnectionGrantsTable)
@@ -98,7 +87,6 @@ export async function setMcpGrant(
                         eq(agentMcpConnectionGrantsTable.connectionId, input.connectionId)
                     )
                 );
-            await builtInConnection(scope.preset)?.agentGrantRemoved?.(tx, key);
         }
     });
     return { agentId: input.agentId, connectionId: input.connectionId };

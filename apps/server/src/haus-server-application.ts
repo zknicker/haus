@@ -31,7 +31,6 @@ import { createCloudflareAdmissions } from './identity/cloudflare-access.ts';
 import { ensureDevelopmentAuthUser } from './identity/development-auth.ts';
 import { createHausSessions } from './identity/haus-sessions.ts';
 import { SessionConnections } from './identity/session-connections.ts';
-import { createLinearServices } from './linear/linear-runtime.ts';
 import { isAllowedAppOrigin } from './origin.ts';
 import { connectHausDatabase } from './postgres/connection.ts';
 import { startServerRecurringWork } from './recurring-work.ts';
@@ -100,22 +99,10 @@ export async function createHausServerApplication(
         const hostedMcps = options.hostedMcps
             ? await startHostedMcps({ ...options.hostedMcps, runtime, scope: hostedScope })
             : undefined;
-        // One inbound budget per trigger, shared by the public route, Linear fires,
+        // One inbound budget per trigger, shared by the public route, GitHub fires,
         // and the operator's test fire: a test costs exactly what a real delivery does.
         const triggerRateLimiter = new TriggerRateLimiter();
-        // One refresh owner per process: tools, chips, ingest, and the outbox share it.
-        const linearServices = createLinearServices(options, {
-            agentDelivery,
-            db: connectedHaus.db,
-            postCommitWork: startedPostCommitWork,
-            runtime,
-            triggerRateLimiter,
-        });
-        const { linear } = linearServices;
-        const startedMcpRuntime = new McpRuntime(connectedHaus.db, runtime, {
-            hostedMcps,
-            toolCallTransports: new Map([['linear', linear.transport]]),
-        });
+        const startedMcpRuntime = new McpRuntime(connectedHaus.db, runtime, { hostedMcps });
         handles.mcpRuntime = startedMcpRuntime;
         void startedMcpRuntime.start();
         const mcpIconResolver = makeMcpIconResolver(runtime);
@@ -147,7 +134,6 @@ export async function createHausServerApplication(
                 options.computerReleaseManifestUrl ?? productionComputerManifestUrl,
             githubApp: options.githubApp ?? null,
             hausDb: connectedHaus.db,
-            linear,
             mcpIconResolver,
             mcpOAuthRelay,
             mcpRuntime: startedMcpRuntime,
@@ -186,7 +172,6 @@ export async function createHausServerApplication(
             createContext,
             githubIngest,
             imageGenerationAdapters: options.imageGenerationAdapters,
-            linearWebhook: linearServices.webhook,
             releaseIdentity: options.releaseIdentity,
         });
 
@@ -220,7 +205,6 @@ export async function createHausServerApplication(
             githubApp: options.githubApp ?? null,
             githubIngest,
             githubRecoveryIntervalMs: options.githubRecoveryIntervalMs,
-            linearWorkers: linearServices.workers,
             pushReadGraceMs: options.pushReadGraceMs,
             pushSender: options.pushSender ?? null,
             timers: options.sweepTimers,

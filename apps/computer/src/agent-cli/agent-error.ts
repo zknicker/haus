@@ -24,6 +24,7 @@ export type AgentCliErrorCode =
     | 'INVALID_ARG'
     | 'INVALID_JSON_RESPONSE'
     | 'INVALID_TARGET'
+    | 'LOCAL_WRITE_FAILED'
     | 'MISSING_AGENT_ID'
     | 'MISSING_CONTENT'
     | 'MISSING_SERVER_URL'

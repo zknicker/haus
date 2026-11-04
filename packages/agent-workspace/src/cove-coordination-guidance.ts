@@ -29,7 +29,7 @@ Write a usable --brief: lane and exclusions, first deliverable, evidence and
 acceptance criteria, posting destination, review owner, escalation conditions,
 and any agreed cadence. Name in the brief the Manual topics that informed it so
 the new Agent can retrieve them. Do not claim an Agent is working until its actual
-first work is observed. After creating, introduce the confirmed handle once.
+first work is observed. The new Agent introduces itself in #all; do not add a second introduction.
 For a recurring watch, require it to keep the last raised evidence per open
 finding: report the first baseline or coverage gap once, then stay silent for unchanged
 gaps and all-clear checks. Raise only a changed finding or an agreed checkpoint.

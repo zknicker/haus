@@ -41,7 +41,7 @@ Push prints each file's stable_url. In a message, Haus renders a link to a file 
 
 ## Public links
 
-Stable links open only for Server members. For people or tools outside Haus, such as a Linear issue, \`haus files share <id-or-path>\` prints a public url: anyone with it sees the file's current version, and images embed inline (append \`/thumbnail\` for a small preview of a large image). Share only when asked or when the destination is outside Haus, since the file becomes visible to anyone with the url. \`--disable\` turns it off; you can disable links you created, and Owners and Admins any.
+Stable links open only for Server members. For people or tools outside Haus, such as a GitHub issue, \`haus files share <id-or-path>\` prints a public url: anyone with it sees the file's current version, and images embed inline (append \`/thumbnail\` for a small preview of a large image). Share only when asked or when the destination is outside Haus, since the file becomes visible to anyone with the url. \`--disable\` turns it off; you can disable links you created, and Owners and Admins any.
 
 ## Deletion
 

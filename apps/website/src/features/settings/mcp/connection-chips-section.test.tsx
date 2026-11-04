@@ -15,15 +15,6 @@ test('RankWrangler says it adds product chips, beside an inert sample product ch
     );
 });
 
-test('Linear says it adds issue chips, beside an inert sample issue chip', () => {
-    const markup = renderToStaticMarkup(<ConnectionChipsSection preset="linear" />);
-
-    expect(markup).toContain('Issue chips');
-    expect(markup).toMatch(
-        /<span class="text-base" inert="">.*aria-label="Open HAUS-42 Onboarding tour in Linear"/
-    );
-});
-
 test('a connection that adds no chips has no In Chat section', () => {
     expect(renderToStaticMarkup(<ConnectionChipsSection preset="github" />)).toBe('');
     expect(renderToStaticMarkup(<ConnectionChipsSection preset={null} />)).toBe('');

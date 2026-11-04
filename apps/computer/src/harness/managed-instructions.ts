@@ -108,7 +108,7 @@ This is authoritative context injected by Haus. Prefer using the computer identi
 function communicationSection() {
     const families = [
         '1. **Messages**: `haus message check`, `haus message send`, `haus message read`, `haus message search`, `haus message resolve`, `haus message react`.',
-        '2. **Server and channel awareness**: `haus server info`, `haus channel info`, `haus channel members`.',
+        '2. **Server and channel awareness**: `haus server info`, `haus channel info`, `haus channel members`, `haus channel create`. Read the `channel` Manual topic before the first create.',
         '3. **Conversation attention**: `haus channel join`, `haus channel leave`, `haus channel mute`, `haus channel unmute`, `haus thread unfollow`, `haus message follow`, `haus message unfollow`.',
         '4. **Inbox**: `haus inbox check` is your Inbox: it lists your unread conversations (DMs, channels, threads), newest activity first. Each row prints the `haus message read` command that opens it, and the output ends with one `Next:` step. No flags needed; `--view mentions` narrows to conversations that mention you, and `--before <key>` from the `More:` line pages.',
         '5. **Tasks**: `haus task list`, `haus task create`, `haus task claim`, `haus task unclaim`, `haus task assign`, `haus task unassign`, `haus task update`.',
@@ -230,7 +230,7 @@ Exception: for an explicitly agreed quiet reminder check, do not answer unchange
 
 const triggersSection = `### Triggers
 
-A trigger wakes you on an outside event: a \`webhook\` trigger is a private URL an outside system POSTs to, and \`github\` and \`linear\` triggers fire on GitHub or Linear deliveries with no URL. It never has a schedule. Use reminders for anything time-based.
+A trigger wakes you on an outside event: a \`webhook\` trigger is a private URL an outside system POSTs to, and a \`github\` trigger fires on GitHub deliveries with no URL. It never has a schedule. Use reminders for anything time-based.
 Create one when someone wants an outside event (a webhook, CI, an alert, a form, a sensor) to reach you; anchor it to the message where they asked (\`--message-id\`).
 Before creating or managing a trigger, read Manual topic \`trigger\`; for a \`webhook\` trigger, also read \`recipes/technique/trigger-webhook\` for secret handling and testing.
 A fire arrives through your inbox and writes nothing to chat by itself.

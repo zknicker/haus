@@ -25,7 +25,7 @@ The page follows Raft's flow: list MCP servers, add a remote endpoint, choose no
 OAuth, complete authentication in a browser window, and inspect the connected identity and
 discovered tools. There is no Computer picker and no local or stdio transport.
 
-RankWrangler, Google Calendar, Handmade, MerchBase, MerchBase Atlas, MerchBase Fulfillment, Trademark Terminal, GitHub, Linear, Cloudflare, Factory, Kittl, X, CoinGecko, and Skool are presets for endpoint and auth defaults.
+RankWrangler, Google Calendar, Handmade, MerchBase, MerchBase Atlas, MerchBase Fulfillment, Trademark Terminal, GitHub, Cloudflare, Factory, Kittl, X, CoinGecko, and Skool are presets for endpoint and auth defaults.
 They remain ordinary MCP connections. CoinGecko connects to its free remote endpoint immediately
 without an account or API key, subject to shared upstream rate limits. Agent access still requires
 an explicit grant. GitHub is the one built-in connection
@@ -87,38 +87,6 @@ Kittl connects to its [official MCP](https://www.kittl.com/mcp) at
 Kittl account to discover its design, image generation, and mockup tools. Adding Kittl does
 not grant Agent access; enable it explicitly on the connection page.
 
-Linear connects by installing the Haus app in a Linear workspace; the install callback creates
-one connection per workspace, served by Haus Server's own Linear connector
-([Linear app](../../specs/linear-app.md)). Its page reads in setup order. The **Workspace** card
-names the workspace and **Agents can work in** (the teams the Haus app was granted, where Agents
-may write), with **Change in Linear**, which opens Linear's installed-applications settings where
-a workspace admin changes the Haus app's team access (a reconnect never asks again); with none it
-warns **No teams — Agents can't write**. Linear's permission-change webhook refreshes the teams on
-the open page, the workspace menu's **Refresh teams** re-reads them on demand, and an hourly sync
-backs both up. Every install Haus starts (connect, reconnect, an Agent's own app) opens Linear in a
-tab beside Settings; when Linear sends the browser back, that tab closes and the Settings tab that
-started the install shows the outcome, or the tab itself does when Settings has since closed. **Last delivery** shows only once Linear has been silent a week or
-the workspace is failing. Changing a team's statuses or labels needs team membership, not just
-access: an Agent with its own identity sends those writes as that identity, which must be a member
-(it never falls back to the Haus app), an Agent without one sends them through the Haus app, and
-the Server joins an Agent's own identity to the teams the Haus app is a member of when Linear
-allows it. While the Haus app is
-not a member of some of its teams, the card's **Team settings** row says so with **Change in
-Linear**: "Haus isn't a member of any team", or "Not a member of Design" naming the missing ones;
-an identity still missing one of those teams says "Not a member of Design" on its line, and its
-handle's menu offers **Change teams in Linear**. **Agent Access** is one list, each row's trailing side the switch alone;
-a granted Agent's description line says how it posts and carries its controls: "Posts via Haus ·
-Give own identity", "Posts via Haus · Finish setup", or "Posts as @handle" (which opens Replace
-webhook secret and Remove identity). The **Default Agent** that answers the Haus app closes the
-list, and one line under the title says what an identity is for. Giving an identity expands under
-that Agent's row, not in a dialog, so Linear's new-app page can sit in a browser tab beside
-Settings. It opens with a small before-and-after of how the Agent signs its work, then one step at
-a time (create the app in Linear, or **Use an existing app**, which opens Linear's app list; paste its client ID and
-webhook secret; install); a done step collapses to one ticked line with **Edit**, and the panel's
-height follows each change on one short spring. When the install returns, the Agent's row scrolls
-into view and marks its new handle instead of a page notice. The Agents' Linear **Triggers**
-follow.
-
 Vercel is not a built-in connection. Previously saved Vercel accounts remain custom MCP
 connections, retaining their credentials and Agent grants. Its official MCP requires approval of
 Haus's hosted OAuth callback before web sign-in can work.
@@ -158,13 +126,10 @@ that scrolls with Settings. It leads with the server's mark and name, a `···`
 ruled sections, actionable first: **Connected Account** (a card with the account label and its own
 `···` menu for Sign in again or Replace credentials and Disconnect account, plus **Add another
 account** for a built-in service; hidden for servers that take no credentials), **In Chat** for a
-connection that adds chat chips (RankWrangler's product chips, Linear's issue chips: each named
-with one line and an inert sample drawn by the real chip; see
-[Rich References](rich-references.md#connection-chips)), for GitHub
-**Installations** (see [GitHub App connection](../../specs/github-app-connection.md#app-ui)), **Agent Access**
-(one switch per Agent; a new grant waits for sign-in; a built-in definition may add a line under
-the title, per-Agent state and actions on each row, a panel expanding under a row, and footer
-rows), then the reference material: **Tools** (name chips with a count, collapsed to the first few
+connection that adds chat chips (RankWrangler's product chips, named with one line and an inert
+sample drawn by the real chip; see [Rich References](rich-references.md#connection-chips)), for
+GitHub **Installations** (see [GitHub App connection](../../specs/github-app-connection.md#app-ui)),
+**Agent Access** (one switch per Agent; a new grant waits for sign-in), then the reference material: **Tools** (name chips with a count, collapsed to the first few
 behind **Show all N**, expanding inline) and, for a custom connection only, **Information** (Server
 address and sign-in kind). The credentials form, the
 sign-in trust prompt, and the destructive confirmations stay dialogs over the page; the

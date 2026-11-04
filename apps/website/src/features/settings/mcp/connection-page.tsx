@@ -109,26 +109,12 @@ export function ConnectionPage({
                     usesToken={tokenPreset !== null}
                 />
                 <ConnectionChipsSection preset={connection.preset} />
-                <BuiltInConnectionSections
-                    connection={connection}
-                    placement="after-account"
-                    serverId={serverId}
-                />
+                <BuiltInConnectionSections connection={connection} serverId={serverId} />
                 <McpAgentAccessSection connection={connection} serverId={serverId} />
-                <BuiltInConnectionSections
-                    connection={connection}
-                    placement="after-agent-access"
-                    serverId={serverId}
-                />
                 <McpToolsSection
                     connection={connection}
                     pending={signIn.connecting}
                     tools={record.tools}
-                />
-                <BuiltInConnectionSections
-                    connection={connection}
-                    placement="after-tools"
-                    serverId={serverId}
                 />
                 {/* A built-in's address and sign-in are Haus's to know, not the reader's. */}
                 {connection.builtIn ? null : <McpConnectionFacts connection={connection} />}

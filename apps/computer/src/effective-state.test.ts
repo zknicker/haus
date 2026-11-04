@@ -22,12 +22,14 @@ test('effective-state reports are derived from durable per-Agent sessions', asyn
     await mkdir(appliedRoot, { recursive: true });
     await writeAgentSessionState(appliedRoot, {
         bootstrapFingerprint: 'bootstrap_current',
+        deliveredInstructionFingerprint: 'instructions_stable',
         effectiveModel: { modelId: 'gpt-5.6-sol', runtimeId: 'codex' },
         generation: 1,
         hausAgentAppliedAt: '2026-08-28T12:00:00.000Z',
         hausAgentStatus: 'current',
         hausAgentVersion,
         instructionFingerprint: 'instructions_current',
+        launchedInstructionFingerprint: 'instructions_stable',
         resumeState: { threadId: 'thread-local' },
         runtimeSessionId: 'session-local',
     });

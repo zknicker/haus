@@ -31,6 +31,7 @@ test('a launch records the work, keeps instructions local, and reports the provi
     const calls = fixture.stubServer();
 
     const result = await startCloudAgentWork(fixture.input());
+    await fixture.launched();
 
     expect(result).toMatchObject({ state: 'started', work: { id: workId } });
     expect(calls[0]?.url).toBe('https://haus.test/api/agent/cloud-agents');
@@ -64,6 +65,25 @@ test('a launch records the work, keeps instructions local, and reports the provi
     ]);
 });
 
+test('the receipt returns before a slow provider launch confirms', async () => {
+    const provider = fixture.install(createFakeCloudAgentProvider());
+    const confirm = Promise.withResolvers<void>();
+    const start = provider.start.bind(provider);
+    provider.start = async (input, signal) => {
+        await confirm.promise;
+        return await start(input, signal);
+    };
+    fixture.stubServer();
+
+    const result = await startCloudAgentWork(fixture.input());
+    expect(result).toMatchObject({ state: 'started', work: { id: workId } });
+    expect(fixture.observations).toHaveLength(0);
+
+    confirm.resolve();
+    await fixture.launched();
+    expect(fixture.observations).toMatchObject([{ runId, status: 'running', workId }]);
+});
+
 test('a Server refusal reaches the caller and reports nothing', async () => {
     fixture.install(createFakeCloudAgentProvider());
     fixture.stubServer({ code: 'TARGET_READ_ONLY', message: 'That channel is archived.' }, 409);
@@ -76,6 +96,7 @@ test('a lost identity report replays the journal address without a second launch
     const provider = fixture.install(createFakeCloudAgentProvider());
     fixture.stubServer();
     await startCloudAgentWork(fixture.input());
+    await fixture.launched();
     fixture.observations.length = 0;
     fixture.stubServer({ ...receipt, idempotent: true });
     await startCloudAgentWork(fixture.input());
@@ -101,5 +122,6 @@ test.each([
     const runs = [{ ...run, ...settled, runId, status: 'queued', summary: null, usage: null }];
     fixture.stubServer({ ...receipt, work: { ...receipt.work, runs } });
     await startCloudAgentWork(fixture.input());
+    await fixture.launched();
     expect(provider.launches[0]?.model).toEqual(sent);
 });

@@ -163,8 +163,12 @@ test('timezone capability discovery does not inspect inaccessible historical rem
         .sql`delete from channel_agent_participants where chat_id=${fixture.channelId} and agent_id=${fixture.coveAgentId}`;
     try {
         const options = { headers: { authorization: `Bearer ${runner.token}` } };
+        // One inaccessible reminder never fails the list; a still-scheduled one stays, marked.
         const list = await fetch(new URL('/api/agent/reminders', fixture.harness.url), options);
-        expect(list.status).toBe(409);
+        expect(list.status).toBe(200);
+        expect(await list.json()).toMatchObject({
+            reminders: [{ anchorTarget: 'anchor not accessible', status: 'scheduled' }],
+        });
         const capabilities = await fetch(
             new URL('/api/agent/reminders/capabilities', fixture.harness.url),
             options

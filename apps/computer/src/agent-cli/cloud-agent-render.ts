@@ -49,12 +49,12 @@ function renderStarted(
 ): string {
     const ref = request.startingRef ? `@${request.startingRef}` : '';
     const lines = [
-        `Cloud agent started for ${request.repository}${ref}. Work ID: ${receipt.work.id}`,
+        `Cloud agent launching for ${request.repository}${ref}. Work ID: ${receipt.work.id}`,
         `Posted to ${receipt.target}. Message ID: ${receipt.messageId}`,
         isThreadTarget(receipt.target)
             ? `Work thread: "${receipt.target}".`
             : `Work thread: "${receipt.target}:${shortMessageId(receipt.messageId)}".`,
-        'The result reaches your inbox when the run settles; post what you learn yourself.',
+        'The result reaches your inbox when the run settles, a failed launch included; post what you learn yourself.',
         // Agents paste this line; they never build a work link themselves.
         `Link: ${formatCloudAgentWorkLink(receipt.work.title, receipt.work.id)}`,
         linkSentence,

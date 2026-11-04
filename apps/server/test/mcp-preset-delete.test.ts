@@ -45,16 +45,6 @@ test('GitHub lands as an OAuth preset awaiting sign-in', async () => {
     await owner.trpc.mcp.delete.mutate({ connectionId: github.id, serverId });
 });
 
-test('Linear is a built-in connection, never an OAuth preset account', async () => {
-    await expect(
-        owner.trpc.mcp.addPresetAccount.mutate({
-            name: 'Linear',
-            preset: 'linear' as 'cloudflare',
-            serverId,
-        })
-    ).rejects.toThrow();
-});
-
 test.each([
     ['cloudflare', 'https://mcp.cloudflare.com/mcp'],
     ['kittl', 'https://mcp.kittl.com/mcp'],

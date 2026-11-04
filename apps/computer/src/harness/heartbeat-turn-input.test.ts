@@ -15,7 +15,7 @@ afterEach(async () => {
 });
 
 const heartbeat = {
-    connections: ['Etsy', 'Linear'],
+    connections: ['Etsy', 'GitHub'],
     createdAt: '2026-10-20T10:05:00.000Z',
     digest: {
         entries: [
@@ -137,7 +137,7 @@ test('a daytime heartbeat input carries what the run would fetch, and the recipe
     expect(text).toContain('Reported: quiet. Checked Etsy payouts.');
     expect(text).toContain('- led_1 @blippy: Why the Etsy payout was short');
     expect(text).toContain('- rem_1 "Check payout" fires 2026-10-21T09:00:00.000Z');
-    expect(text).toContain('Connections you can call with `execute`: Etsy, Linear.');
+    expect(text).toContain('Connections you can call with `execute`: Etsy, GitHub.');
     expect(text).toContain('connection names, not tool names');
     // Codex code mode lists `execute` as `mcp__…__execute` beside its own `tools.*` globals;
     // runs that searched their tool list for the connection name or bare `execute` gave up.

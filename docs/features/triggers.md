@@ -1,9 +1,8 @@
 ---
-summary: Agent-owned Triggers — secret-authenticated webhook wakes, GitHub App event wakes, and Linear workspace event wakes anchored to a Chat, created from the Agent profile's Automations section or by the Agent itself, answered by the Agent's own marked message, with bounded payloads and retained Agent-wide fire history.
+summary: Agent-owned Triggers — secret-authenticated webhook wakes and GitHub App event wakes anchored to a Chat, created from the Agent profile's Automations section or by the Agent itself, answered by the Agent's own marked message, with bounded payloads and retained Agent-wide fire history.
 read_when:
   - changing Trigger creation, secrets, firing, payload bounds, or fire history
   - changing what a GitHub Trigger listens to, its cap, or how its fires read
-  - changing what a Linear Trigger listens to, its cap, or how its fires read
   - changing the Automations section's Trigger walkthrough, detail view, or controls
   - changing how a Trigger fire appears in a conversation
   - deciding whether new work is a Reminder (time) or a Trigger (outside event)
@@ -30,8 +29,7 @@ Server Owners and Admins create Triggers on an Agent's profile, under
    it is the only standing direction the Agent has when a fire arrives.
 3. **Trigger type** — choose it in the select: **Webhook**, an outside system
    POSTing to a private URL, or **GitHub**, events in repositories the GitHub
-   connection reaches. Linear Triggers are created by the Agent and show
-   read-only here ([Linear Triggers](#linear-triggers)).
+   connection reaches.
 
 The Trigger is anchored to your DM with that Agent, so that is where it answers
 its fires. Creating it says nothing in that DM — the Trigger appears in the
@@ -91,7 +89,11 @@ the owning Agent.
   owning Agent is the one woken, and both can manage the same Trigger.
 - **Secret shown once.** Creating or rotating a Trigger returns its bearer secret
   exactly once, along with the URL and a ready-made `curl` line. Haus stores
-  only a hash, so a lost secret is replaced by rotating, never recovered.
+  only a hash, so a lost secret is replaced by rotating, never recovered. An
+  Agent never sees it in command output: `haus trigger create` and `rotate`
+  require `--output <new-private-path>` and write the secret only to that newly
+  created mode-0600 file, which the Agent installs at the destination and then
+  trashes.
 - **The answer is the row.** A fire posts nothing. It wakes the owning Agent
   with the payload as a `type=trigger` message, marked and indented as untrusted
   data — a Trigger can inform an Agent, it cannot command one. If the Agent has
@@ -189,41 +191,11 @@ Server routes each delivery to the Server that bound the installation.
   back-to-back automation-only turns hold further wakes until a person speaks,
   and a chain quiet for half an hour starts over.
 
-## Linear Triggers
-
-A **Linear** Trigger wakes its Agent when an issue, comment, or project changes
-in a Linear workspace the Server's Linear connection binds ([Connections](connections.md)).
-Work addressed to an Agent — a mention or a delegation — needs no Trigger; it
-arrives as a Linear session. A Linear Trigger is for watching: "wake me when a
-design moves to Changes Requested", "tell me when someone comments on my issues".
-
-- **What it listens to.** One to ten match groups, each an event (`issue`,
-  `comment`, `project`), its actions, and filters: teams, projects, labels,
-  workflow states (from, to, and type), changed fields, the Agent the issue is
-  delegated to, assignees, and who made the change. People and Agents type
-  names; Haus stores Linear's stable ids, so a rename in Linear never breaks a
-  Trigger. An ambiguous name is refused with its candidates.
-- **One event, one wake.** A label change is an issue update that changed
-  `labels`, never a separate event; a delivery that matches several groups
-  wakes the Agent once, with a Server-built `Linear:` line such as
-  `Linear: issue update · state · → Changes Requested · DES-142`.
-- **Never woken by itself.** A change the Agent made itself never fires its own
-  Trigger. A change another Agent made does — that is how one Agent hands work
-  to the next. The Trigger counts both kinds of skip so a noisy one can be
-  narrowed.
-- **Twenty-five per workspace.** A workspace connection holds at most 25 Linear
-  Triggers, and the owning Agent must hold the Linear connection grant.
-- **Problems, not silence.** A Linear Trigger whose workspace, sign-in, grant,
-  teams, or referenced labels and states break stays armed, stops firing, and
-  tells its Agent once why
-  ([Linear Triggers](../../specs/linear-triggers.md#failure-modes)).
-
-Webhook, GitHub, and Linear are the kinds Haus ships. Other provider verifiers,
+Webhook and GitHub are the kinds Haus ships. Other provider verifiers,
 payload filtering for webhooks, and Computer-executed scripts are not part of it.
 
 See `specs/triggers.md` for the normative persistence, route, firing, and secret
 contract, `specs/github-triggers.md` for the `github` kind,
-`specs/linear-triggers.md` for the `linear` kind,
 `specs/automation-provenance.md` for how a fire reaches the transcript,
 and [Triggers API](../api/triggers.md) for the wire surface.
 

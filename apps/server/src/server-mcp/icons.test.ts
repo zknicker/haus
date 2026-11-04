@@ -267,7 +267,7 @@ describe('fetch policy', () => {
 
 describe('siteFaviconUrl', () => {
     test.each([
-        ['https://mcp.linear.app/mcp', 'https://linear.app/favicon.ico'],
+        ['https://mcp.notion.com/mcp', 'https://notion.com/favicon.ico'],
         ['https://api.githubcopilot.com/mcp/', 'https://githubcopilot.com/favicon.ico'],
         ['https://example.com/mcp', 'https://example.com/favicon.ico'],
         // A public suffix must never be treated as the site.

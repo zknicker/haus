@@ -14,12 +14,20 @@ import type { RuntimeTokenUsage } from '../runtime/turn-event.ts';
  */
 export interface AgentSessionState {
     bootstrapFingerprint: string | null;
+    /**
+     * The stable instruction fingerprint (`composeAgentInstructions`) this native session has
+     * actually received: as its launch instructions, or as an update in a turn's input. A fresh
+     * launch writes it however its turn ends; an update only a completed turn writes. Null means
+     * no record, which the next resumed turn treats as stale (`instructions-update.ts`).
+     */
+    deliveredInstructionFingerprint: string | null;
     effectiveModel: { modelId: string; runtimeId: string };
     effectiveReasoningEffort?: AgentReasoningEffort;
     generation: number;
     hausAgentAppliedAt: string | null;
     hausAgentStatus: 'current' | 'failed' | 'pending';
     hausAgentVersion: string | null;
+    /** The exact fingerprint of the instructions last delivered, host facts included. */
     instructionFingerprint: string | null;
     /**
      * The last turn was interrupted by Stop, restart, shutdown, or the no-progress deadline. The
@@ -27,6 +35,12 @@ export interface AgentSessionState {
      * user declining it. Any completed turn clears it.
      */
     interruptedTurn?: true;
+    /**
+     * The stable instruction fingerprint this native session launched on, written by its fresh
+     * launch. A compaction can drop a delivered update, so a compacted turn sets the delivery
+     * receipt back to this. Null means unknown: a session that predates the record.
+     */
+    launchedInstructionFingerprint: string | null;
     resumeState: RuntimeResumeState | null;
     runtimeSessionId: string | null;
 }
@@ -56,10 +70,16 @@ export async function readAgentSessionState(agentRoot: string): Promise<AgentSes
             return {
                 ...parsed,
                 bootstrapFingerprint: parseFingerprint(parsed.bootstrapFingerprint),
+                deliveredInstructionFingerprint: parseFingerprint(
+                    parsed.deliveredInstructionFingerprint
+                ),
                 hausAgentAppliedAt: parseTimestamp(parsed.hausAgentAppliedAt),
                 hausAgentStatus: parseHausAgentStatus(parsed.hausAgentStatus),
                 hausAgentVersion: parseSemver(parsed.hausAgentVersion),
                 instructionFingerprint: parseFingerprint(parsed.instructionFingerprint),
+                launchedInstructionFingerprint: parseFingerprint(
+                    parsed.launchedInstructionFingerprint
+                ),
             };
         }
         return null;
@@ -97,12 +117,14 @@ export function resolveTurnSession(
     if (stored === null || modelChanged || stored.generation !== assigned.generation) {
         return {
             bootstrapFingerprint: null,
+            deliveredInstructionFingerprint: null,
             effectiveModel: { modelId: assigned.modelId, runtimeId: assigned.runtimeId },
             generation: assigned.generation,
             hausAgentAppliedAt: null,
             hausAgentStatus: 'pending',
             hausAgentVersion: null,
             instructionFingerprint: null,
+            launchedInstructionFingerprint: null,
             resumeState: null,
             runtimeSessionId: null,
         };

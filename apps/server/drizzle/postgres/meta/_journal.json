@@ -762,7 +762,21 @@
       "idx": 108,
       "version": "7",
       "when": 1794200000004,
-      "tag": "0108_idle-compaction",
+      "tag": "0108_remove-linear",
+      "breakpoints": true
+    },
+    {
+      "idx": 109,
+      "version": "7",
+      "when": 1794200000005,
+      "tag": "0109_freshness-hold-boundary",
+      "breakpoints": true
+    },
+    {
+      "idx": 110,
+      "version": "7",
+      "when": 1794200000006,
+      "tag": "0110_idle-compaction",
       "breakpoints": true
     }
   ]

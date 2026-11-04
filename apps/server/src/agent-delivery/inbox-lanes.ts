@@ -10,8 +10,7 @@ import { chatlessInboxSources } from '@haus/api';
  * concrete because they exist nowhere but the inbox: a discretionary pull is
  * the only thing standing between the wake and its reason, and an unread one
  * leaves an answer with no provable cause (specs/inbox.md). A Trigger problem
- * notice is concrete for the same reason (specs/github-triggers.md#failure-modes),
- * and so is a Linear session event (specs/linear-app.md#inbox-sources).
+ * notice is concrete for the same reason (specs/github-triggers.md#failure-modes).
  */
 export const concreteInboxSources = [
     'onboarding',
@@ -25,8 +24,6 @@ export const concreteInboxSources = [
     'heartbeat',
     'heartbeat_report',
     'subagent',
-    'linear_session',
-    'linear_session_automated',
 ] as const;
 
 export function isConcreteInboxSource(source: string): boolean {
@@ -40,20 +37,19 @@ export function isConcreteInboxSource(source: string): boolean {
  */
 export const bodilessInboxSources = [
     'onboarding',
+    'greeting',
     'cloud_agent_work',
     'trigger_problem',
     'image_generation_failed',
     ...chatlessInboxSources,
-    'linear_session',
-    'linear_session_automated',
 ] as const;
 
 /**
- * Concrete attentions no busy notice, unread digest, or `haus inbox check` lists,
- * because each leads its own run: Cove's bootstrap, and the chatless attentions,
- * which have no Chat to list them under.
+ * Attentions no busy notice, unread digest, or `haus inbox check` lists: Cove's
+ * bootstrap and the chatless attentions, which lead their own runs, and a new
+ * Agent's greeting, which rides a run rather than being read (greeting.ts).
  */
-export const noticelessInboxSources = ['onboarding', ...chatlessInboxSources] as const;
+export const noticelessInboxSources = ['onboarding', 'greeting', ...chatlessInboxSources] as const;
 
 export function isNoticelessInboxSource(source: string): boolean {
     return (noticelessInboxSources as readonly string[]).includes(source);

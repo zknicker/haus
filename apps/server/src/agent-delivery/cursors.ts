@@ -40,7 +40,43 @@ export async function readAgentInboxCursor(
             )
         )
         .limit(1);
-    return { generation, seen: row?.seenUpToSequence ?? 0 };
+    return {
+        generation,
+        heldThrough: row?.heldThroughSequence ?? 0,
+        seen: row?.seenUpToSequence ?? 0,
+    };
+}
+
+/**
+ * Records the newest message a freshness hold showed this session. Later
+ * freshness checks start after it; the seen boundary and delivery do not move.
+ */
+export async function recordHeldThrough(
+    db: HausDatabase,
+    input: { agentId: string; chatId: string; sequence: number; serverId: string }
+) {
+    const generation = await readAgentSessionGeneration(db, input.agentId);
+    await db
+        .insert(agentInboxCursorsTable)
+        .values({
+            agentId: input.agentId,
+            chatId: input.chatId,
+            heldThroughSequence: input.sequence,
+            serverId: input.serverId,
+            sessionGeneration: generation,
+        })
+        .onConflictDoUpdate({
+            set: {
+                heldThroughSequence: sql`greatest(${agentInboxCursorsTable.heldThroughSequence}, ${input.sequence})`,
+                updatedAt: new Date(),
+            },
+            target: [
+                agentInboxCursorsTable.serverId,
+                agentInboxCursorsTable.agentId,
+                agentInboxCursorsTable.sessionGeneration,
+                agentInboxCursorsTable.chatId,
+            ],
+        });
 }
 
 /** Advances only a verified contiguous model-visible boundary. */

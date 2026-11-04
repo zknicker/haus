@@ -1,21 +1,5 @@
-import {
-    isMcpBuiltInPreset,
-    type McpBuiltInPreset,
-    type McpIcon,
-    type McpPreset,
-    mcpIconSchema,
-    mcpPresetIcons,
-} from '@haus/api';
+import { type McpIcon, type McpPreset, mcpIconSchema, mcpPresetIcons } from '@haus/api';
 import type { McpIconResolver } from './icons.ts';
-
-/**
- * A built-in connection's stored URL is its Server-hosted connector, which has
- * no public site, so its icon resolves from the service's own address instead,
- * the same before and after an account is bound.
- */
-export const mcpBuiltInPresetBrandUrls: Record<McpBuiltInPreset, string> = {
-    linear: 'https://mcp.linear.app/mcp',
-};
 
 interface ConnectionBranding {
     icon: unknown;
@@ -49,9 +33,7 @@ export async function resolveMcpConnectionIcon(
     }
     return (
         (await resolveIcon({
-            connectionUrl: isMcpBuiltInPreset(connection.preset)
-                ? mcpBuiltInPresetBrandUrls[connection.preset]
-                : connection.url,
+            connectionUrl: connection.url,
             preferPageIcon: connection.preset !== null,
             serverInfoIcons: serverInfoIcons ?? [],
             timeoutMs: 4000,

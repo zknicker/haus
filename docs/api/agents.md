@@ -6,6 +6,7 @@ read_when:
   - changing the dream record (`agent.dreams`, `agent.dream`, `agent-dream-record`)
   - changing the Agent inbox list, `message read --unread`, or the Agent read position
   - changing an Agent's conversation style, signature emoji, or self-profile update
+  - changing Agent channel routes (`haus channel create`, `haus channel add`)
 ---
 
 # Agents API
@@ -99,7 +100,8 @@ quiet, not evidence of a lost run.
 once at dispatch in `agent_run_triggers` so it survives a failed run requeueing its
 rows: `{ kind: 'message', author: 'human' | 'agent', chatId, messageId, preview }`,
 `{ kind: 'task', chatId, messageId, preview }` (the task's message), or
-`{ kind: 'reminder' | 'trigger' | 'cloud_agent' | 'onboarding', chatId }`, or one of the chatless
+`{ kind: 'reminder' | 'trigger' | 'cloud_agent' | 'onboarding' | 'greeting', chatId }` (`greeting`
+is a new Agent's one-time `#all` wake when it led the run alone), or one of the chatless
 sources (`dream`, `heartbeat`, `heartbeat_report`, `subagent`), whose runs need no Chat visibility to read ([workspace](../../specs/workspace.md#dreaming),
 [heartbeat](../../specs/heartbeat.md), [runtime drivers](../../specs/runtime-drivers.md#background-work)).
 The heartbeat family carries what the run came to, so the Activity Log can say it under the
@@ -221,6 +223,17 @@ first. A named channel that does not exist or is archived refuses the whole requ
 active Agent may add any active Agent; Cove is refused. The add is idempotent — `added` is false when
 that Agent was already a member — and wakes nobody. Like the human channel save, it emits
 `chat.lifecycle{action:'updated'}` so member lists refresh.
+
+`POST /api/agent/channels/create` takes `{ name, humans, description? }` and backs
+`haus channel create`. Creating a channel is a member capability, as in the App's New channel
+dialog, so the runner credential is the whole authority. `name` is the bare channel name
+(`^[A-Za-z0-9][A-Za-z0-9_-]{0,31}$`). The creating Agent joins it, and so does every human in
+`humans` (1–10 `@handle`s of active Server members), because a human sees a channel only as its
+participant. The write goes through the same `insertChannel` seam as `chat.createChannel` and
+emits the same `chat.lifecycle{action:'created'}`. The receipt is `{ target, humans, description }`.
+A taken name, including an archived channel's, is `409 CHANNEL_NAME_TAKEN`. A handle that names no
+active human is `404 INVALID_TARGET` and creates nothing. A bad name or an empty `humans` is
+`400 INVALID_ARG`.
 
 ### Inbox and read position
 
@@ -419,7 +432,8 @@ available handle under the Server row lock, and creates the Agent and membership
 It writes no Message, Thread, or inbox delivery. Runtime, model, reasoning effort, and Computer
 are inherited from the caller and revalidated against the Computer's inventory. The receipt carries
 the confirmed Agent identity, channels, execution configuration, avatar outcome, and retry status.
-The CLI hints an introduction in `#all` through ordinary message send after creation succeeds.
+The CLI receipt says the new Agent introduces itself in `#all` on its first turn and tells the
+creator to answer the human in the requesting conversation rather than post an introduction.
 
 Avatar generation runs before the transaction, because it is a network call that must not hold the
 Server row lock. `AVATAR_PROVIDER_UNAVAILABLE` (no provider provisioned) creates the Agent anyway
@@ -450,8 +464,10 @@ Creation nonces and request hashes live on `agents`; announcements are not retry
 A request that changes any creation input under an existing nonce is refused before avatar generation.
 Creation emits `server.updated{scope:'agent'}`, channel membership lifecycle events, and
 `chat.lifecycle{action:'created'}` for the owner DM it opens, never `message.created`. Historical `agent-created` bodies remain readable; new introductions are ordinary text.
-Creating an Agent does not wake it. Its standing brief is already in the memory the Computer seeds,
-so its first turn is its next ordinary delivery and nothing DMs it.
+Creating an Agent wakes only the new Agent, once: both creation paths queue one bodiless,
+noticeless `greeting` inbox attention in `#all` (identity `greeting:<agentId>`) and dispatch after
+`agent-configure`. The run that carries it sets the start frame's `greets: true`, and the Computer
+adds the one-time `#all` greeting to that run's prompt, warm or cold. Nothing DMs it.
 
 ### Asking a human
 

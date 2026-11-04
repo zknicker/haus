@@ -2,22 +2,18 @@ import type {
     AgentGithubTriggerConfigInput,
     AgentTriggerUpdateInput,
     GithubTrigger,
-    LinearTrigger,
     Trigger,
     TriggerStatus,
     WebhookTrigger,
 } from '@haus/api';
 import { requireChatWritable } from '../chats/chat-access.ts';
-import type { LinearTriggerConfigAuthoring } from '../linear/trigger-references.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { requireActiveAgent, requireAgentAnchor } from '../reminders/reminder-model.ts';
 import { resolveAgentGithubConfig } from './github-trigger-account.ts';
 import type { GithubAuthoringDependencies } from './github-trigger-config.ts';
 import { createGithubTriggerRow, updateGithubTriggerRow } from './github-trigger-writes.ts';
-import type { LinearAuthoringDependencies } from './linear-trigger-config.ts';
-import { createLinearTriggerRow, updateLinearTriggerRow } from './linear-trigger-writes.ts';
 import type { TriggerAuthoringServices } from './operator-triggers.ts';
-import { type TriggerClock, TriggerRequestRefusedError } from './trigger-model.ts';
+import type { TriggerClock } from './trigger-model.ts';
 import { readOwnedTrigger } from './trigger-queries.ts';
 import {
     createTriggerRow,
@@ -103,33 +99,6 @@ export async function createAgentGithubTrigger(
     return created.trigger;
 }
 
-/**
- * Creates one armed `linear` Trigger for the calling Agent, anchored like a
- * webhook on the message where a person asked for it. It has no secret.
- */
-export async function createAgentLinearTrigger(
-    dependencies: LinearAuthoringDependencies,
-    agentId: string,
-    input: Omit<CreateTriggerInput, 'kind'> & { linear: LinearTriggerConfigAuthoring },
-    clock: TriggerClock
-): Promise<LinearTrigger> {
-    const created = await createLinearTriggerRow(
-        dependencies,
-        {
-            createdByUserId: null,
-            instruction: input.instruction,
-            linear: input.linear,
-            origin: input.origin,
-            ownerAgentId: agentId,
-            serverId: input.serverId,
-            title: input.title,
-        },
-        (tx) => anchorOnAskingMessage(tx, agentId, input),
-        clock
-    );
-    return created.trigger;
-}
-
 /** The Agent is active and can still reach and write the message it anchors on. */
 async function anchorOnAskingMessage(
     tx: HausDatabase,
@@ -185,8 +154,7 @@ export async function updateAgentOwnedTrigger(
     db: HausDatabase,
     services: TriggerAuthoringServices,
     agentId: string,
-    input: Omit<AgentTriggerUpdateInput, 'linear'> & {
-        linear?: LinearTriggerConfigAuthoring;
+    input: AgentTriggerUpdateInput & {
         origin: string;
         serverId: string;
         triggerId: string;
@@ -195,20 +163,6 @@ export async function updateAgentOwnedTrigger(
 ): Promise<Trigger> {
     const authorize = ownedBy(agentId, input);
     await authorize(db);
-    if (input.github && input.linear) {
-        throw new TriggerRequestRefusedError(
-            'trigger_kind_mismatch',
-            'A Trigger is either GitHub or Linear; send one configuration.'
-        );
-    }
-    if (input.linear) {
-        return await updateLinearTriggerRow(
-            services.linear,
-            { ...input, linear: input.linear },
-            authorize,
-            clock
-        );
-    }
     if (input.github) {
         const github = await resolveAgentGithubConfig(db, {
             agentId,

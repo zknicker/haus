@@ -90,7 +90,7 @@ async function remind(
 test('the heartbeat context lists granted connections, open leads, and scheduled reminders, bounded', async () => {
     const seed = await seedAgent(connection.db);
     await connect(seed, 'Etsy', { connected: true, granted: true });
-    await connect(seed, 'Linear', { connected: true, granted: true });
+    await connect(seed, 'Notion', { connected: true, granted: true });
     await connect(seed, 'Ungranted', { connected: true, granted: false });
     await connect(seed, 'Disconnected', { connected: false, granted: true });
     await lead(seed, 'Older open lead', 20);
@@ -114,7 +114,7 @@ test('the heartbeat context lists granted connections, open leads, and scheduled
 
     const context = await readHeartbeatContext(connection.db, seed);
 
-    expect(context.connections).toEqual(['Etsy', 'Linear']);
+    expect(context.connections).toEqual(['Etsy', 'Notion']);
     expect(context.leads.map((item) => item.topic)).toEqual([
         'Newest open lead',
         'Older open lead',

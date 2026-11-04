@@ -10,7 +10,6 @@ import { artifactZipTickets } from './artifacts/zip-tickets.ts';
 import { registerAttachmentRoutes } from './attachments/attachment-routes.ts';
 import { registerAvatarRoutes } from './avatars/avatar-routes.ts';
 import { registerComputerRoutes } from './computers/routes.ts';
-import { env } from './config/env.ts';
 import { type GithubRouteOptions, registerGithubRoutes } from './github/routes.ts';
 import { registerGithubSetupRoute } from './github/setup-route.ts';
 import type { createHausContextFactory, HausContextDependencies } from './haus-api/context.ts';
@@ -23,10 +22,6 @@ import {
     failInterruptedImageGenerations,
     type ImageProviderAdapters,
 } from './image-generation/run-image-generation.ts';
-import { linearChipToken } from './linear/issue-chip-tokens.ts';
-import { type LinearRouteOptions, registerLinearRoutes } from './linear/routes.ts';
-import { registerLinearSignedUrlRoutes } from './linear/signed-url-routes.ts';
-import { registerLinearThumbnailRoute } from './linear/thumbnail-route.ts';
 import { registerMcpOAuthCallback } from './server-mcp/oauth-callback-route.ts';
 import { registerTriggerRoutes } from './triggers/trigger-route.ts';
 
@@ -37,8 +32,6 @@ export interface HausServerRouteDependencies extends HausContextDependencies {
     githubIngest: GithubRouteOptions['ingest'];
     /** Test seam: replaces the OpenAI and Gemini image adapters outright. */
     imageGenerationAdapters?: ImageProviderAdapters;
-    /** Linear's webhook verification and durable ingest (`linear/linear-pipeline.ts`). */
-    linearWebhook: LinearRouteOptions['webhook'];
     releaseIdentity?: HausReleaseIdentity | null;
 }
 
@@ -106,7 +99,6 @@ export async function registerHausServerRoutes(
         db,
         githubApp: dependencies.githubApp,
         imageGeneration,
-        linear: dependencies.linear,
         mcpRuntime: dependencies.mcpRuntime,
         postCommitWork: dependencies.postCommitWork,
     });
@@ -122,26 +114,6 @@ export async function registerHausServerRoutes(
     await registerGithubRoutes(app, {
         githubApp: dependencies.githubApp,
         ingest: dependencies.githubIngest,
-    });
-    await registerLinearRoutes(app, {
-        oauthCallback: {
-            appOrigin: dependencies.appOrigin,
-            db,
-            linearApp: dependencies.linear.app,
-            mcpIconResolver: dependencies.mcpIconResolver,
-            mcpRuntime: dependencies.mcpRuntime,
-        },
-        webhook: dependencies.linearWebhook,
-    });
-    registerLinearSignedUrlRoutes(app, {
-        db,
-        signingKey: env.HAUS_LINEAR_URL_SIGNING_KEY ?? null,
-        storage: dependencies.artifactStorage,
-    });
-    registerLinearThumbnailRoute(app, {
-        connectionAccessToken: linearChipToken(dependencies.linear.refresher),
-        signingKey: env.HAUS_LINEAR_URL_SIGNING_KEY ?? null,
-        transport: fetch,
     });
     await registerTriggerRoutes(app, {
         db,

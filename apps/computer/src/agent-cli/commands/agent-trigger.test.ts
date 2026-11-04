@@ -1,4 +1,7 @@
-import { describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type * as z from 'zod';
 import type { AgentApiRequest, AgentApiRequester } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
@@ -51,66 +54,18 @@ const fire = {
     triggerId: trigger.id,
 };
 
+let work: string;
+
+beforeEach(() => {
+    work = mkdtempSync(join(tmpdir(), 'haus-trigger-'));
+});
+
+afterEach(() => {
+    rmSync(work, { force: true, recursive: true });
+});
+
+// Webhook create and rotate secret handling: agent-trigger-secret.test.ts.
 describe('Agent trigger CLI', () => {
-    test('creates a trigger and prints the secret exactly once', async () => {
-        const calls: { input: AgentApiRequest; route: string }[] = [];
-        const written: string[] = [];
-        const client = requester((route, input) => {
-            calls.push({ input, route });
-            return secretResult;
-        });
-
-        await runTriggerCreate(
-            args({
-                '--instruction': 'Summarize the deploy in this thread.',
-                '--message-id': 'deadbeef',
-                '--title': 'deploy finished',
-            }),
-            { client, write: (text) => written.push(text) }
-        );
-
-        expect(calls).toEqual([
-            {
-                input: {
-                    body: {
-                        instruction: 'Summarize the deploy in this thread.',
-                        kind: 'webhook',
-                        messageId: 'deadbeef',
-                        title: 'deploy finished',
-                    },
-                    method: 'POST',
-                },
-                route: '/api/agent/triggers',
-            },
-        ]);
-        const output = written.join('');
-        expect(output.match(/grtt_secret/gu)).toHaveLength(2); // the secret line and the curl line
-        expect(output).toContain('Shown once and never again');
-        expect(output).toContain('haus trigger rotate --id trg_test replaces it');
-        expect(output).toContain(secretResult.curl);
-        expect(output).toContain('trg_test [webhook · armed] "deploy finished"');
-        expect(output).toContain(trigger.url);
-    });
-
-    test('defaults the kind to webhook and omits an unset instruction', async () => {
-        const calls: AgentApiRequest[] = [];
-        const client = requester((_route, input) => {
-            calls.push(input);
-            return secretResult;
-        });
-
-        await runTriggerCreate(args({ '--message-id': 'deadbeef', '--title': 'deploy finished' }), {
-            client,
-            write: () => undefined,
-        });
-
-        expect(calls[0]?.body).toEqual({
-            kind: 'webhook',
-            messageId: 'deadbeef',
-            title: 'deploy finished',
-        });
-    });
-
     test('sends an explicit --kind and refuses one Haus does not have', async () => {
         const calls: AgentApiRequest[] = [];
         const client = requester((_route, input) => {
@@ -120,7 +75,12 @@ describe('Agent trigger CLI', () => {
         const deps = { client, write: () => undefined };
 
         await runTriggerCreate(
-            args({ '--kind': 'webhook', '--message-id': 'deadbeef', '--title': 'deploy finished' }),
+            args({
+                '--kind': 'webhook',
+                '--message-id': 'deadbeef',
+                '--output': join(work, 'secret'),
+                '--title': 'deploy finished',
+            }),
             deps
         );
         const refused = await runTriggerCreate(
@@ -133,7 +93,7 @@ describe('Agent trigger CLI', () => {
         expect(refused).toBeInstanceOf(AgentCliError);
         expect((refused as AgentCliError).code).toBe('INVALID_ARG');
         expect((refused as AgentCliError).message).toBe('--kind schedule is not a trigger kind.');
-        expect((refused as AgentCliError).options.nextAction).toContain('webhook, github, linear.');
+        expect((refused as AgentCliError).options.nextAction).toContain('webhook, github.');
     });
 
     test('never prints a secret in list or show', async () => {
@@ -198,7 +158,10 @@ describe('Agent trigger CLI', () => {
 
         await runTriggerStatus(args({ '--id': trigger.id }), deps, 'disable');
         await runTriggerStatus(args({ '--id': trigger.id }), deps, 'enable');
-        await runTriggerRotate(args({ '--id': trigger.id }), deps);
+        await runTriggerRotate(
+            args({ '--id': trigger.id, '--output': join(work, 'secret') }),
+            deps
+        );
         await runTriggerDelete(args({ '--id': trigger.id }), deps);
 
         expect(calls).toEqual([

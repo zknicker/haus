@@ -4,8 +4,6 @@ import {
     agentTriggerUpdateInputSchema,
     githubTriggerPreviewInputSchema,
     githubTriggerPreviewResultSchema,
-    linearTriggerPreviewInputSchema,
-    linearTriggerPreviewResultSchema,
 } from '@haus/api';
 import { AgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';
@@ -24,7 +22,6 @@ export async function runTriggerUpdate(args: ParsedArgs, deps: TriggerDeps): Pro
             ? {}
             : { instruction: args.values['--instruction'] || null }),
         ...(config?.kind === 'github' ? { github: config.github } : {}),
-        ...(config?.kind === 'linear' ? { linear: config.linear } : {}),
     });
     if (!input.success) {
         throw new AgentCliError('INVALID_ARG', input.error.issues[0]?.message ?? 'Invalid edit.');
@@ -38,29 +35,17 @@ export async function runTriggerUpdate(args: ParsedArgs, deps: TriggerDeps): Pro
     return 0;
 }
 
-/**
- * A GitHub sample names its event with `--event`; a Linear body names its own
- * (`type`), so a preview without `--event` is a Linear preview.
- */
+/** A GitHub sample names its event with `--event`, the delivery's `X-GitHub-Event`. */
 export async function runTriggerPreview(args: ParsedArgs, deps: TriggerDeps): Promise<number> {
     const id = requireId(args);
+    const event = args.values['--event']?.trim();
+    if (!event) {
+        throw new AgentCliError('INVALID_ARG', 'Provide --event with the GitHub event name.', {
+            nextAction: 'Use the delivery’s X-GitHub-Event, e.g. workflow_run.',
+        });
+    }
     const payload = await readPayload(args.values['--payload-file']);
     const route = `/api/agent/triggers/${encodeURIComponent(id)}/preview`;
-    const event = args.values['--event'];
-    if (event === undefined) {
-        const input = linearTriggerPreviewInputSchema.safeParse({ payload });
-        if (!input.success) {
-            throw new AgentCliError('INVALID_ARG', 'Provide a Linear webhook JSON object.', {
-                nextAction: 'For a GitHub trigger, also pass --event with the GitHub event name.',
-            });
-        }
-        const result = await deps.client.request(route, linearTriggerPreviewResultSchema, {
-            body: input.data,
-            method: 'POST',
-        });
-        deps.write(`${JSON.stringify(result, null, 2)}\n${previewNote}`);
-        return 0;
-    }
     const input = githubTriggerPreviewInputSchema.safeParse({ event, payload });
     if (!input.success) {
         throw new AgentCliError(

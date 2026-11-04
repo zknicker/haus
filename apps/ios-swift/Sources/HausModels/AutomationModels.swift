@@ -89,24 +89,12 @@ public struct ReminderMutationResult: Decodable, Sendable {
 }
 
 /// One Agent-owned Trigger as `trigger.list` returns it: a `webhook` or a
-/// `github` or a `linear` Trigger. The phone shows each read-only, so it keeps only the
-/// facts it renders.
+/// `github` Trigger. The phone shows each read-only, so it keeps only the facts it
+/// renders.
 public struct Trigger: Codable, Identifiable, Sendable, Equatable, Hashable {
     public enum Status: String, Codable, Sendable {
         case armed
         case disabled
-    }
-
-    /// What a `linear` Trigger's `linear` block carries that the phone shows.
-    /// `problem` is an open string so a Server that adds a problem still decodes.
-    public struct Linear: Codable, Sendable, Equatable, Hashable {
-        public let problem: String?
-        public let workspaceName: String
-
-        public init(workspaceName: String, problem: String? = nil) {
-            self.problem = problem
-            self.workspaceName = workspaceName
-        }
     }
 
     /// What a `github` Trigger's `github` block carries that the phone shows.
@@ -130,7 +118,6 @@ public struct Trigger: Codable, Identifiable, Sendable, Equatable, Hashable {
     public let instruction: String?
     public let kind: String
     public let lastFiredAt: Date?
-    public let linear: Linear?
     public let status: Status
     public let title: String
 
@@ -144,7 +131,6 @@ public struct Trigger: Codable, Identifiable, Sendable, Equatable, Hashable {
         instruction: String? = nil,
         kind: String = "webhook",
         lastFiredAt: Date? = nil,
-        linear: Linear? = nil,
         status: Status = .armed,
         title: String
     ) {
@@ -157,7 +143,6 @@ public struct Trigger: Codable, Identifiable, Sendable, Equatable, Hashable {
         self.instruction = instruction
         self.kind = kind
         self.lastFiredAt = lastFiredAt
-        self.linear = linear
         self.status = status
         self.title = title
     }
@@ -172,7 +157,6 @@ public struct Trigger: Codable, Identifiable, Sendable, Equatable, Hashable {
         case instruction
         case kind
         case lastFiredAt
-        case linear
         case status
         case title
     }

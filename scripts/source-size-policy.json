@@ -22,8 +22,8 @@
       "reason": "Static icon reference corpus shipped with the Agent visuals skill."
     },
     "packages/haus-api/src/generated/openapi.d.ts": {
-      "maxLines": 4723,
-      "reason": "Generated OpenAPI declarations, including additive inline-reply, task-assign, Agent idempotency-key, and Agent unread-inbox, standing-brief, conversation-style, create signature-emoji, human-timezone, Agent sender-timezone, linked Cloud Agent work, webhook-or-GitHub Trigger union, Agent GitHub installations, trigger edits, selection preview, Agent send failed-image-generation, linear Trigger, and Agent Linear workspaces contracts."
+      "maxLines": 4540,
+      "reason": "Generated OpenAPI declarations, including additive inline-reply, task-assign, Agent idempotency-key, and Agent unread-inbox, standing-brief, conversation-style, create signature-emoji, human-timezone, Agent sender-timezone, linked Cloud Agent work, webhook-or-GitHub Trigger union, Agent GitHub installations, trigger edits, selection preview, Agent send failed-image-generation, and Agent channel create contracts."
     },
     "packages/haus-api/src/runtime/contracts.ts": {
       "maxLines": 2300,
@@ -33,21 +33,21 @@
   "legacyCeilings": {
     "apps/computer/src/agent-cli/commands/agent-message.test.ts": 323,
     "apps/computer/src/agent-cli/commands/agent-reminder.ts": 348,
-    "apps/computer/src/agent-cli/commands/agent-trigger.test.ts": 341,
-    "apps/computer/src/harness/executor.test.ts": 1326,
-    "apps/computer/src/harness/executor.ts": 381,
+    "apps/computer/src/agent-cli/commands/agent-trigger.test.ts": 304,
+    "apps/computer/src/harness/executor.test.ts": 1268,
+    "apps/computer/src/harness/executor.ts": 372,
     "apps/computer/src/inbox-store.ts": 371,
     "apps/computer/src/index.test.ts": 929,
     "apps/computer/src/index.ts": 1604,
     "apps/computer/src/launch.test.ts": 526,
-    "apps/computer/src/launch.ts": 334,
+    "apps/computer/src/launch.ts": 333,
     "apps/computer/src/login.ts": 409,
     "apps/computer/src/proxy.test.ts": 752,
     "apps/computer/src/setup-resume.test.ts": 325,
     "apps/computer/src/update.test.ts": 340,
     "apps/ios-swift/Sources/HausUI/Chat/MessageComposerView.swift": 356,
     "apps/ios-swift/Tests/HausTransportTests/TRPCClientTests.swift": 322,
-    "apps/server/src/agent-delivery/delivery.ts": 1084,
+    "apps/server/src/agent-delivery/delivery.ts": 1057,
     "apps/server/src/agent-delivery/store.ts": 733,
     "apps/server/src/computers/login-service.ts": 321,
     "apps/server/src/computers/service.ts": 362,
@@ -63,7 +63,7 @@
     "apps/server/test/haus-computer-login.test.ts": 425,
     "apps/server/test/haus-reinvitation.test.ts": 301,
     "apps/server/test/haus-reminder-scheduler.test.ts": 506,
-    "apps/server/test/haus-reminders.test.ts": 902,
+    "apps/server/test/haus-reminders.test.ts": 862,
     "apps/server/test/haus-server-onboarding.test.ts": 783,
     "apps/server/test/haus-tasks.test.ts": 772,
     "apps/server/test/haus-trigger-api.test.ts": 597,

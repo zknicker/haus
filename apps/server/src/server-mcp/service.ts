@@ -1,6 +1,5 @@
 import {
     isMcpBearerTokenPreset,
-    isMcpBuiltInPreset,
     type McpConnection,
     type McpConnectionCreate,
     type McpOAuthStart,
@@ -8,7 +7,6 @@ import {
     type McpPreset,
 } from '@haus/api';
 import { eq } from 'drizzle-orm';
-import { builtInConnection } from '../built-in-connections/built-in-connections.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -138,10 +136,6 @@ export async function disconnectMcpConnection(
         await tx
             .delete(agentMcpConnectionGrantsTable)
             .where(eq(agentMcpConnectionGrantsTable.connectionId, input.connectionId));
-        await builtInConnection(connection.preset)?.connectionDisconnected?.(tx, {
-            connectionId: input.connectionId,
-            serverId: input.serverId,
-        });
         await tx
             .update(mcpSecretsTable)
             .set({
@@ -260,10 +254,7 @@ async function refreshInventory(
     const [updated] = await db
         .update(mcpConnectionsTable)
         .set({
-            // A built-in connection's account comes from its install flow.
-            accountLabel: isMcpBuiltInPreset(connection.preset)
-                ? connection.accountLabel
-                : discovery.accountLabel,
+            accountLabel: discovery.accountLabel,
             connected: true,
             icon,
             summary: summarizeInstructions(discovery.instructions),

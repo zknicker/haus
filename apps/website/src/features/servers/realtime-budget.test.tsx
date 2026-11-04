@@ -97,8 +97,6 @@ function expectedStreams(role: 'admin' | 'member') {
         'cloudAgentWork.onUpdated',
         'computer.onUpdated',
         'imageGeneration.onUpdated',
-        'linear.onIssueChanged',
-        'linear.onUpdated',
         'mcp.onUpdated',
         'task.onChanged',
         'taskLabel.onUpdated',
@@ -119,13 +117,13 @@ function expectedStreams(role: 'admin' | 'member') {
 
 /**
  * The per-window subscription budget (specs/realtime-events.md, "Topology"):
- * 2 × accessible Servers, 16 active-Server streams, 2 role-gated streams for
+ * 2 × accessible Servers, 14 active-Server streams, 2 role-gated streams for
  * Owners and Admins, the 2 hoisted Agent streams, and 3 per mounted Chat view.
  */
 describe('realtime subscription budget', () => {
     for (const [role, expected] of [
-        ['member', 30],
-        ['admin', 32],
+        ['member', 28],
+        ['admin', 30],
     ] as const) {
         test(`three Servers, one shown and one kept Chat view, as ${role}: ${expected} streams`, async () => {
             const harness = createRealtimeHarness(answer);

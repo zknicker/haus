@@ -7,7 +7,7 @@ import {
 } from './host-tool.ts';
 
 // JSON-RPC handling for the host-tool MCP server: stateless Streamable HTTP with JSON
-// responses, the same shape as the hosted Linear connector.
+// responses.
 
 const supportedVersions = ['2024-11-05', '2025-03-26', '2025-06-18', '2025-11-25'];
 const latestVersion = '2025-11-25';

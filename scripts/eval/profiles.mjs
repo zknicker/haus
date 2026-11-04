@@ -111,40 +111,6 @@ export const githubTriggerProfiles = {
 };
 
 /**
- * Linear Trigger setup and fire answers (specs/linear-triggers.md).
- *
- * Setup (L1): asked "ping me when a Design issue goes from Design Review to
- * Changes Requested", a good teammate sets it up and says so once, as an inline
- * reply in the channel: one short confirmation of what will wake it and where
- * it will post. No token or secret, no URL, no flag recap, and no question
- * when the ask is already clear. Wrong: a webhook, a question back, a recap of
- * the match group, or an offer to do more.
- *
- * Fire (L2): when an issue moves, the teammate posts one short top-level
- * message in the channel it was asked in, naming the issue by identifier, and
- * stops. Wrong: a Thread, a second post, a dump of the payload, or a tail offer.
- */
-export const linearTriggerProfiles = {
-    'linear-trigger-setup': {
-        cap: 45,
-        // Setup is multi-step work: a pickup note plus the result is the placement rule.
-        channel: [1, 2],
-        maxQuestions: 0,
-        noUrl: true,
-        spec: 'L1',
-    },
-    'linear-trigger-fire-reply': {
-        cap: 50,
-        channel: [1, 1],
-        inChat: true,
-        result: (post) => /\bDES-\d+\b/u.test(post.content),
-        since: (authored) =>
-            authored.find((message) => message.cause?.kind === 'trigger')?.createdAt,
-        spec: 'L2',
-    },
-};
-
-/**
  * Heartbeat quality (specs/heartbeat.md#evals), scored out of band by
  * `scripts/agent-tests/heartbeat-grade.mjs` from each run's evidence file. The
  * scenarios gate structure (files, reports, posts, reminders); a profile adds what

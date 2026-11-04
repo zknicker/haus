@@ -365,7 +365,10 @@ and [Agent Inbox](../../specs/inbox.md).
   the chosen Agents, each with its own remove control. Adding the last available
   Agent closes the dropdown and disables the field. Removing an Agent enables
   the field again. A search with no matches shows an empty result while other
-  Agents remain available.
+  Agents remain available. An Agent can create a channel too, with
+  `haus channel create --name <name> --human @handle`: the Agent and each named
+  human join it, and it reaches their sidebars the way a dialog-created channel
+  does, because a human sees a channel only once they are in it.
   Archive channel is an Owner/Admin action for a regular channel. It hides the
   channel from the active sidebar without deleting history. Settings carries an
   Archived chats entry that opens the archived channel view (`/s/:slug/archived`), where

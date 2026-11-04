@@ -131,6 +131,8 @@ function triggerFor(
             return { chatId, kind: 'cloud_agent' };
         case 'onboarding':
             return { chatId, kind: 'onboarding' };
+        case 'greeting':
+            return { chatId, kind: 'greeting' };
         default:
             return null;
     }

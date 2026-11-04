@@ -1,4 +1,5 @@
 import { isTerminalCloudAgentStatus } from '@haus/api';
+import { resolveRuntimeExecutable } from '../../runtime-discovery.ts';
 import {
     type CloudAgentLaunch,
     CloudAgentLaunchRejectedError,
@@ -11,7 +12,7 @@ import {
 } from '../provider.ts';
 import { withClaudeCheckout } from './checkout.ts';
 import { type ClaudeController, createClaudeController } from './controller.ts';
-import { ClaudeCodeMissingError, readClaudeNativeAccount } from './native-auth.ts';
+import { readClaudeNativeAccount } from './native-auth.ts';
 import { launchNativeClaudeCloud, sendNativeClaudeCloud } from './native-commands.ts';
 import { claudeRunObservation } from './observation.ts';
 import { claudeRunTag, isRunPrompt, logEntriesOf } from './session-events.ts';
@@ -54,17 +55,13 @@ export function createClaudeCloudAgentProvider(
         });
     };
     const readiness = async (): Promise<CloudAgentReadiness> => {
-        try {
-            const account = await readClaudeNativeAccount();
-            return account.signedIn
-                ? { account: { email: account.email, expiresAt: null }, ready: true }
-                : { ready: false, reason: 'not-connected' };
-        } catch (error) {
-            if (error instanceof ClaudeCodeMissingError) {
-                return { ready: false, reason: 'provider-unavailable' };
-            }
-            throw error;
+        if (!resolveRuntimeExecutable('claude')) {
+            return { ready: false, reason: 'provider-unavailable' };
         }
+        const account = await readClaudeNativeAccount();
+        return account.signedIn
+            ? { account: { email: account.email, expiresAt: null }, ready: true }
+            : { ready: false, reason: 'not-connected' };
     };
     return {
         async cancel(ref, signal) {

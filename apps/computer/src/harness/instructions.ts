@@ -30,9 +30,23 @@ export interface AgentInstructionFacts {
 }
 
 export interface ComposedInstructions {
+    /** The exact rendered text, host facts included. */
     fingerprint: string;
     instructions: string;
+    /**
+     * The render with `volatileHostFacts` held fixed: what decides whether a resumed session
+     * still needs these instructions re-delivered (`instructions-update.ts`).
+     */
+    stableFingerprint: string;
 }
+
+/**
+ * Host facts that change with a Computer release or the machine, never with what the Agent is
+ * told to do. The stable fingerprint renders them fixed, so a release with unchanged instruction
+ * text re-delivers nothing into resumed sessions (Raft's `STANDING_PROMPT_VOLATILE_FIELDS`). A
+ * fresh session still starts on the real values, and a re-delivery carries them.
+ */
+export const volatileHostFacts = { hostname: '', os: '', runtimeVersion: '' } as const;
 
 export function composeAgentInstructions(facts: AgentInstructionFacts): ComposedInstructions {
     const render: AgentPromptRenderInput = {
@@ -50,6 +64,13 @@ export function composeAgentInstructions(facts: AgentInstructionFacts): Composed
         workspacePath: facts.workspacePath,
     };
     const instructions = renderAgentInstructions(render);
-    const fingerprint = createHash('sha256').update(instructions).digest('hex');
-    return { fingerprint, instructions };
+    return {
+        fingerprint: sha256(instructions),
+        instructions,
+        stableFingerprint: sha256(renderAgentInstructions({ ...render, ...volatileHostFacts })),
+    };
+}
+
+function sha256(text: string): string {
+    return createHash('sha256').update(text).digest('hex');
 }

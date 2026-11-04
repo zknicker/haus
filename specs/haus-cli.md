@@ -299,7 +299,10 @@ Flow for `message send --target <t>`:
    plus recent-unseen rows for the caller's *other* targets (the
    "may have missed" section).
 3. **Stale** → the send is **held as a server-side draft** and nothing is
-   delivered. Response carries bounded catch-up: latest N (≤12) unseen peer
+   delivered. Only messages delivered to this Agent count in a Channel (its
+   `agent_inbox` rows, Raft's attention facts), so history from before it joined
+   never holds it; a Thread counts every reply, as Raft's does. Response carries
+   bounded catch-up: latest N (≤3, Raft's held-context limit) unseen peer
    messages as history lines, counts (`Freshness hold: showing latest N of M
    newer messages.`), an omitted-earlier note when M > N, a formal-mention
    count note, and the three taught paths:
@@ -307,20 +310,24 @@ Flow for `message send --target <t>`:
    - send unchanged: `message send --send-draft --target <t>` (no stdin, no
      `--attachment-id`; violations per §5 codes);
    - stay silent: do nothing.
-   Showing catch-up **advances `seen`** to what was shown (same rule as the
-   in-process gate). Serve-time advancement is the pre-inbox approximation:
+   Showing catch-up serves the shown messages and their queued inbox rows to
+   the active run, so they are not delivered again, and records the
+   newest as the session's held-through boundary (Raft's hold `seenUpToSeq`),
+   so a re-post is held only for newer messages; the omitted earlier ones stay
+   queued and `seen` does not pass them. Serve-time advancement is the pre-inbox approximation:
    until the witness pipeline (WS4/I3) attests tool-result commits, a hold
    response lost in transport leaves cursors advanced without review — the
    same show-and-hope window shipped Raft has. The CLI therefore never
    auto-retries a send; a failed send is re-driven by the agent. Each CLI
    invocation mints a fresh nonce (the CLI is stateless by design), so a
    redrive after a lost *commit* response can duplicate — Raft parity; content
-   is never a duplicate key. Reading the target first is the taught recovery. Each re-hold increments the draft's `reholdCount`; when
-   `reholdCount ≥ 2` the hold output additionally teaches
+   is never a duplicate key. Reading the target first is the taught recovery. Each re-hold increments the draft's `reholdCount`; from the
+   draft's fourth hold (`reholdCount ≥ 4`, Raft's "held three times before")
+   the hold output additionally teaches
    `--send-draft --anyway`, which commits despite staleness. `--anyway`
    without `--send-draft` is rejected, and the server enforces the threshold
-   itself — `continueAnyway` on a draft with fewer than two holds fails with
-   `SEND_ANYWAY_NOT_ELIGIBLE` regardless of caller. Writes to archived
+   itself — `continueAnyway` on a draft with fewer than four holds fails with
+   `SEND_ANYWAY_NOT_ELIGIBLE` regardless of caller (Raft only suggests it). Writes to archived
    targets fail with `TARGET_ARCHIVED`; reads still work.
 4. **Draft store** (server-side, per (agent, target), at most one): content,
    attachment ids, `reholdCount`, `savedAt`; TTL 10 minutes; replaced by any
@@ -400,10 +407,10 @@ per family:
 | attachment | `upload view` | WS5 (landed) | `upload --path [--mime-type]` returns an id; the send carries it via `--attachment-id` (divergence: no `--target` on upload, see §10) |
 | profile | `show update` | WS5 (landed) | Agent-facing `show [@handle]`, `update --description` (≤280 chars); human display names and handles are edited in App Settings |
 | reminder | `schedule list snooze update cancel log` | WS5 (landed) | D4 model: `schedule --title [--description] (--delay-seconds \| --fire-at) [--repeat] --message-id [--script]`; `--title` is a short label (60 chars, one line) and `--description` the full instruction; `update` changes one thing, with title and description counting as one; message anchors only |
-| trigger | `create update preview list show enable disable rotate delete log` | ADR 0027, ADR 0045 (landed) | Outside-event wakes: `create --title --message-id [--instruction] [--kind webhook\|github\|linear]`; `--kind` defaults to `webhook` and any other value is `INVALID_ARG` naming the supported kinds. `--kind github` takes `(--repo <owner/name>... \| --org <login>) --event <name>...` plus filters `--action --conclusion --branch --label --state --environment --workflow --check-name --authors`; repeatable flags also split on commas, each filter applies to every listed event that takes it and each value lands on the events that accept it, and a flag or value no listed event takes is `INVALID_ARG`. The CLI sends the repository owner or `--org` login as `account` without a lookup; the Server resolves the installation and its refusal names the reachable accounts and who installs the App. `create --help` carries the GitHub events, filters, and `--events-json` keys; an unknown `--events-json` key is `INVALID_ARG` listing that event's allowed keys. Flags only another kind takes are `INVALID_ARG` naming the kind. `--kind linear` takes `[--workspace <urlKey>] --event issue\|comment\|project` plus `--action --changed --state-from --state-to --state-type --team --project --label --exclude-label --delegate --assignee --actor --exclude-actor` to build one group, or `--groups-json` for up to ten; enumerated flags also split on commas, names only repeat, and a filter the event does not take is `INVALID_ARG`. The CLI sends `--workspace` (optional with exactly one workspace, and on `update` to keep the current one) as typed; the Server resolves it and refuses none, an unknown, or an inactive one with `linear_workspace_unavailable` and several unnamed with `linear_workspace_ambiguous`, listing the url keys. `--groups-json` keys the event does not take are `INVALID_ARG` naming the allowed keys. Names and `@self`/`@agent:<handle>` go to the Server, which resolves them to stable ids. `update` reads the Trigger's kind first, then replaces its whole GitHub or Linear configuration. `preview --id --payload-file` without `--event` sends a raw Linear body. `list`/`show` print `[kind · status]`, adding `· degraded: <problem>` and, for `github`, scope, events, and the suppressed count, or, for `linear`, groups by display name and both suppressed counts (`show` also names the human fix); message anchors only and never a schedule; a webhook `create` and `rotate` print the bearer secret once with a ready `curl` line and the rule never to post it in any chat; `rotate` on `github` is the Server's `INVALID_ARG`; `delete` removes active use while retaining recent fire history for 30 days; mutations are not idempotent ([GitHub Triggers](github-triggers.md#agent-cli-and-manual), [Linear Triggers](linear-triggers.md#agent-cli)) |
+| trigger | `create update preview list show enable disable rotate delete log` | ADR 0027, ADR 0045 (landed) | Outside-event wakes: `create --title --message-id [--instruction] [--kind webhook\|github]`; `--kind` defaults to `webhook` and any other value is `INVALID_ARG` naming the supported kinds. `--kind github` takes `(--repo <owner/name>... \| --org <login>) --event <name>...` plus filters `--action --conclusion --branch --label --state --environment --workflow --check-name --authors`; repeatable flags also split on commas, each filter applies to every listed event that takes it and each value lands on the events that accept it, and a flag or value no listed event takes is `INVALID_ARG`. The CLI sends the repository owner or `--org` login as `account` without a lookup; the Server resolves the installation and its refusal names the reachable accounts and who installs the App. `create --help` carries the GitHub events, filters, and `--events-json` keys; an unknown `--events-json` key is `INVALID_ARG` listing that event's allowed keys. Flags only another kind takes are `INVALID_ARG` naming the kind. `update` reads the Trigger's kind first, then replaces its whole GitHub configuration. `list`/`show` print `[kind · status]`, adding `· degraded: <problem>` and, for `github`, scope, events, and the suppressed count (`show` also names the human fix); message anchors only and never a schedule; a webhook `create` and `rotate` require `--output <new-private-path>`, checked and created exclusively with mode 0600 before any request, write the bearer secret only to that file, and print the URL, the file, a test command that reads the file, and the rule never to post it in any chat, never the secret or the Server's `curl` line ([Triggers](triggers.md#surfaces-and-lifecycle)); `--output` on a `github` create is `INVALID_ARG`; `rotate` on `github` is the Server's `INVALID_ARG`; `delete` removes active use while retaining recent fire history for 30 days; mutations are not idempotent ([GitHub Triggers](github-triggers.md#agent-cli-and-manual)) |
 | cloud-agent | `start send inspect stop cancel` | Cloud Agents (landed) | `start --target <target> [--reply-to <messageId>] --repo <owner/name> --ref <ref> --title <text> --say <text> [--provider cursor\|claude]` with the provider instructions on stdin; `send --work <workId> [--interrupt]` continues the same work with stdin instructions, queued while it is busy; `inspect [--work <workId>]` lists the Agent's work or shows one with its recorded results; `stop --work <workId>` asks the provider to stop, and `cancel` is its compatibility alias; the Computer checks provider readiness before Server records anything and the instructions never leave it ([Cloud Agents](cloud-agents.md)) |
 | image | `models generate wait` | ADR 0047 (landed) | `models` lists the curated image models with sizing rules, prices, and availability; `generate --model <id> [--size <WxH> \| --aspect <A:B> --resolution <1K\|2K\|4K>] [--quality] [--background opaque\|transparent] [--reference <attachment id \| path>]...` takes the prompt on stdin and returns at once; `wait <generation id> [--out <dir>] [--timeout <seconds>]` saves the finished image ([Image Generation](image-generation.md)) |
-| agent | `create update avatar` | ADR 0028 (landed) | `create --target <current-chat> --name <name> --description <text> [--brief <text>] [--channel "#name"] [--avatar-concept <text>] [--emoji <emoji>]` creates the Agent without a Message and returns its confirmed `@handle`, channels, and a hint to introduce it through ordinary `message send` in `#all`, inheriting the caller's runtime, model, reasoning effort, and Computer; `--brief` is the standing instruction seeded into its memory, `--channel` repeats and always comes on top of `#all`; `--emoji` sets its signature emoji; `--emoji` sets its signature pickup reaction (default 👀); `update --agent @handle --description <text>` and `avatar --agent @handle --concept <text>` edit an existing Agent and refuse Cove. Flags only, no stdin ([Agents](../docs/features/agents.md)) |
+| agent | `create update avatar` | ADR 0028 (landed) | `create --target <current-chat> --name <name> --description <text> [--brief <text>] [--channel "#name"] [--avatar-concept <text>] [--emoji <emoji>]` creates the Agent without a Message and returns its confirmed `@handle`, channels, and a line saying the new Agent introduces itself in `#all` on its first turn while the creator answers the human in the requesting conversation, inheriting the caller's runtime, model, reasoning effort, and Computer; `--brief` is the standing instruction seeded into its memory, `--channel` repeats and always comes on top of `#all`; `--emoji` sets its signature emoji; `--emoji` sets its signature pickup reaction (default 👀); `update --agent @handle --description <text>` and `avatar --agent @handle --concept <text>` edit an existing Agent and refuse Cove. Flags only, no stdin ([Agents](../docs/features/agents.md)) |
 | skill | `list view create patch write-file` | WS5 (landed) | Replaces `skills_*` tools; hash-guarded patch/write-file, stdin bodies |
 | manual | `get <topic>`, `search <keywords>` | PRD-187 (landed) | Authenticated, read-only Server-hosted topics; `--intent`/`--reason`; optional `--scope recipes` |
 
@@ -433,6 +440,8 @@ GET  /api/agent/messages/{id}      (short or full id; 409 AMBIGUOUS_ID)
 GET  /api/agent/server             ?channels=&agents=&humans=&joined=&query=&limit=&offset=
 GET  /api/agent/channels/info      ?target=
 GET  /api/agent/channels/members   ?target=
+POST /api/agent/channels/create    { name, humans, description? }
+                                   → { target, humans, description }
 GET  /api/agent/events             (message check drain — WS4)
 GET  /api/agent/inbox              (pending peek: not-yet-delivered rows)
 GET  /api/agent/inbox/conversations ?view=unread|mentions&before=  (inbox check;

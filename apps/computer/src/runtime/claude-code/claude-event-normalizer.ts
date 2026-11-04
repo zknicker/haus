@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { claudeSubagentEvents } from '../claude-subagent-events.ts';
-import type { TurnEvent } from '../turn-event.ts';
+import { compactionToolName, type TurnEvent } from '../turn-event.ts';
 import { ClaudeTurnError } from './claude-errors.ts';
 import type {
     ClaudeConversationMessage,
@@ -257,7 +257,7 @@ export class ClaudeEventNormalizer {
             dynamic: true,
             providerExecuted: true,
             toolCallId: `claude-compaction-${randomUUID()}`,
-            toolName: 'compaction',
+            toolName: compactionToolName,
         } as const;
         return [
             { ...facts, input: {}, type: 'tool-call' },

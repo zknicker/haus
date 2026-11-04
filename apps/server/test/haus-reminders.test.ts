@@ -724,8 +724,8 @@ describe('reminders', () => {
         ).toHaveLength(1);
     });
 
-    test('cancels before firing when the author loses anchor access', async () => {
-        const removedAgentId = 'agt_removed_from_channel';
+    test('scheduler cancels a due reminder when the author lost anchor access', async () => {
+        const removedAgentId = 'agt_removed_due_fire';
         await addAgent(removedAgentId);
         const scheduled = await scheduleReminder(
             connection.db,
@@ -733,60 +733,20 @@ describe('reminders', () => {
             {
                 anchorChatId: chatId,
                 anchorMessageId,
-                commandId: 'removed-agent-schedule',
-                fireAt: new Date('2026-07-31T13:00:00.000Z'),
+                commandId: 'removed-agent-due-schedule',
+                fireAt: new Date('2026-07-31T15:00:00.000Z'),
                 serverId,
-                title: 'No longer authorized',
+                title: 'Due without access',
             },
-            { now: () => new Date('2026-07-31T12:00:00.000Z') }
+            { now: () => new Date('2026-07-31T14:00:00.000Z') }
         );
         await harness.sql`
             delete from channel_agent_participants
             where server_id = ${serverId} and agent_id = ${removedAgentId}
         `;
 
-        await expect(
-            snoozeReminder(
-                connection.db,
-                removedAgentId,
-                {
-                    commandId: 'removed-agent-snooze',
-                    duration: '1h',
-                    expectedVersion: 1,
-                    reminderId: scheduled.reminder.id,
-                    serverId,
-                },
-                { now: () => new Date('2026-07-31T12:30:00.000Z') }
-            )
-        ).rejects.toThrow(/access the anchor Chat/i);
-        await expect(
-            listReminders(connection.db, {
-                actor: { agentId: removedAgentId, kind: 'agent' },
-                serverId,
-            })
-        ).rejects.toThrow(/access the anchor Chat/i);
-        await expect(
-            listReminderFires(connection.db, {
-                actor: { agentId: removedAgentId, kind: 'agent' },
-                reminderId: scheduled.reminder.id,
-                serverId,
-            })
-        ).rejects.toThrow(/access the anchor Chat/i);
-        await expect(
-            cancelReminder(
-                connection.db,
-                removedAgentId,
-                {
-                    commandId: 'removed-agent-cancel',
-                    expectedVersion: 1,
-                    reminderId: scheduled.reminder.id,
-                    serverId,
-                },
-                { now: () => new Date('2026-07-31T12:30:00.000Z') }
-            )
-        ).rejects.toThrow(/access the anchor Chat/i);
         await tickReminders(connection.db, {
-            now: () => new Date('2026-07-31T13:00:00.000Z'),
+            now: () => new Date('2026-07-31T15:00:00.000Z'),
         });
 
         expect(

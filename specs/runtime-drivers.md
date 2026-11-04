@@ -53,6 +53,30 @@ turn that never settled would store a continuation the next prompt cannot start 
 Startup is bounded by the machine-wide start gate and startup deadline (`start-gate.ts`); a
 session opened after its window was abandoned is destroyed.
 
+### Instructions on resume
+
+A driver hands the composed instructions to its runtime on every launch, but only a fresh session
+runs on them. A resumed native session keeps the instructions it started with, on every runtime
+(measured live): Claude Code reuses its transcript's system prompt on `--resume` and ignores
+`--append-system-prompt-file`, Codex ignores `developerInstructions` on `thread/resume`, and Grok
+Build's `session/load` ignores the rewritten `$GROK_HOME/AGENTS.md`. Drivers therefore make no
+promise about instructions on resume. The executor keeps resumed sessions current itself, the
+same way for every runtime (`harness/instructions-update.ts`, specs/sessions.md "Instruction
+updates").
+
+Each driver reports its runtime's context compaction as the reserved `compaction` tool pair
+(`compactionToolName` in `runtime/turn-event.ts`), which the executor reads to re-deliver an update
+the compaction may have dropped: Claude Code's `compact_boundary`, Codex's `contextCompaction`
+item, and Grok Build's `auto_compact_completed` session update. Grok publishes no schema for that
+update; the name and its `tokens_before`/`tokens_after` fields come from the Grok Build binary's
+`SessionUpdate` variants and are not yet proven against a live compaction.
+
+Claude Code also has `--system-prompt-snapshot off` (documented in `claude --help` and the Agent
+SDK's `systemPrompt.snapshot`), which renders the system prompt fresh on every request instead of
+recording it, so a resumed launch would carry new `--append-system-prompt-file` text natively.
+Haus does not use it: an unrecorded prompt changes with every CLI upgrade, invalidating the
+prompt cache and, with extended thinking, earlier reasoning.
+
 ## Session lifecycle
 
 | Runtime | Native process | Turn | Busy delivery |
@@ -268,7 +292,8 @@ SDK harness setup and its patches:
   from reasoning effort; adaptive thinking with summarized display, except Haiku 4.5, which runs
   extended thinking with no display override (Haiku 5.5 supports adaptive thinking and effort,
   so it takes the default); `--permission-mode bypassPermissions`.
-- Instructions through `--append-system-prompt-file` (owner-only file), never argv.
+- Instructions through `--append-system-prompt-file` (owner-only file), never argv; a fresh
+  session only (Instructions on resume).
 - Never persist live credentials in any Haus-written launch record.
 - Plan usage read after a turn when `HAUS_CLAUDE_USAGE_REFRESH=1` (`turn-finish.claudePlanUsage`).
 - A sub-agent's failure or error never ends the parent turn.

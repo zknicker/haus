@@ -5,10 +5,8 @@ import {
     githubTriggerEventsSchema,
     githubTriggerRepositoriesSchema,
 } from './github-trigger-events.ts';
-import { agentLinearTriggerConfigInputSchema } from './linear-trigger-events.ts';
 import {
     githubTriggerSchema,
-    linearTriggerSchema,
     triggerFireDetailSchema,
     triggerFireSchema,
     triggerInstructionSchema,
@@ -22,13 +20,11 @@ const anchorTarget = { anchorTarget: z.string().min(1) };
 
 export const agentWebhookTriggerSchema = webhookTriggerSchema.extend(anchorTarget).strict();
 export const agentGithubTriggerSchema = githubTriggerSchema.extend(anchorTarget).strict();
-export const agentLinearTriggerSchema = linearTriggerSchema.extend(anchorTarget).strict();
 
 /** The agent-facing view: the operator shape plus where the trigger is anchored. */
 export const agentTriggerSchema = z.discriminatedUnion('kind', [
     agentWebhookTriggerSchema,
     agentGithubTriggerSchema,
-    agentLinearTriggerSchema,
 ]);
 
 export type AgentTrigger = z.infer<typeof agentTriggerSchema>;
@@ -66,15 +62,6 @@ export const agentTriggerCreateInputSchema = z.union([
             title: triggerTitleInputSchema,
         })
         .strict(),
-    z
-        .object({
-            instruction: triggerInstructionSchema.min(1).optional(),
-            kind: z.literal('linear'),
-            linear: agentLinearTriggerConfigInputSchema,
-            messageId: idSchema,
-            title: triggerTitleInputSchema,
-        })
-        .strict(),
 ]);
 export type AgentTriggerCreateInput = z.infer<typeof agentTriggerCreateInputSchema>;
 
@@ -82,13 +69,12 @@ export const agentTriggerUpdateInputSchema = z
     .object({
         github: agentGithubTriggerConfigInputSchema.optional(),
         instruction: triggerInstructionSchema.nullable().optional(),
-        linear: agentLinearTriggerConfigInputSchema.optional(),
         title: triggerTitleInputSchema.optional(),
     })
     .strict()
     .refine(
         (input) => Object.values(input).some((value) => value !== undefined),
-        'Provide a title, instruction, or GitHub or Linear configuration.'
+        'Provide a title, instruction, or GitHub configuration.'
     );
 export type AgentTriggerUpdateInput = z.infer<typeof agentTriggerUpdateInputSchema>;
 
@@ -111,27 +97,6 @@ export const githubTriggerPreviewResultSchema = z
         ),
         matches: z.boolean(),
         repositoryInScope: z.boolean(),
-    })
-    .strict();
-
-/** A raw Linear webhook body; the Server projects and matches it, firing nothing. */
-export const linearTriggerPreviewInputSchema = z
-    .object({
-        payload: z
-            .record(z.string(), z.unknown())
-            .refine(
-                (payload) => new TextEncoder().encode(JSON.stringify(payload)).byteLength < 60_000,
-                'Webhook payload must be under 60,000 bytes.'
-            ),
-    })
-    .strict();
-export type LinearTriggerPreviewInput = z.infer<typeof linearTriggerPreviewInputSchema>;
-export const linearTriggerPreviewResultSchema = z
-    .object({
-        /** Indexes of the groups that matched. */
-        groups: z.array(z.number().int().nonnegative()),
-        matched: z.boolean(),
-        reason: z.string().min(1).optional(),
     })
     .strict();
 

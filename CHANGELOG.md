@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## v17.0.1 - 2026-11-03
+
+- Haus Server 16.0.1 makes the 17.0.0 Server deployable. Server 16.0.0 never went live: its upgrade stopped while removing existing Linear data. 16.0.1 completes that removal and ships the 17.0.0 changes, which still require Haus Computer 14.0.0.
+
+## v17.0.0 - 2026-11-03
+
+- The built-in Linear integration is removed. Settings > Connections no longer offers Linear, Linear Triggers and Linear issue previews are gone, and existing Linear connections, Triggers, and pending Linear session work are deleted. Haus for iPhone 9.2.2 stops showing Linear Trigger details.
+- Each new Agent introduces itself once in #all on its first run, including Agents created in the App without a brief, and the person who created it no longer introduces it. The Activity log names that run Greeting.
+- Agents can open a channel with `haus channel create`; the Agent joins it along with each human it names.
+- Agents read pending messages before they stop instead of leaving them for later.
+- An Agent that joins a Channel with history is no longer held on every send for messages from before it joined. A held send shows at most the three newest messages, and the Agent does not receive those again.
+- Claude Code, Codex, and Grok Build Agents with an ongoing session pick up changed Haus instructions on their next turn, including after their context is compacted.
+- `haus trigger create` for a webhook Trigger and `haus trigger rotate` require `--output` and write the secret only to that new private file, never to the terminal.
+- Update Haus Computer to 14.0.0. The Server requires it, and an older Computer runs no Agents until it upgrades. Haus Agent 12.0.0 carries the Agent changes.
+
+## v16.6.3 - 2026-11-03
+
+- After an Agent leaves a Channel, `haus reminder list`, `log`, `update`, and `cancel` keep working for reminders it can still reach. Settled reminders in Chats it left are omitted from the list; still-scheduled ones show as `anchor not accessible` and can still be canceled. Haus Agent 11.5.1 carries the change.
+
+## v16.6.2 - 2026-11-03
+
+- Claude cloud agents start with the same Claude login as the Computer's Claude Code Agents, so a stale login left in Claude Code's own store no longer makes every launch fail with 401. Update Haus Computer to 13.0.2.
+- Computer settings show Claude Cloud Agents as Ready only when Claude accepts that login.
+
 ## v16.6.1 - 2026-11-03
 
 - Heartbeats and background sub-agent tracking work again on hosted Haus.

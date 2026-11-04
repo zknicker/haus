@@ -80,7 +80,7 @@ function deps(overrides: Partial<AgentAgentDeps> = {}): AgentAgentDeps {
     };
 }
 
-test('create returns an introduction hint without sending a message', async () => {
+test('create says the new Agent introduces itself, without sending a message', async () => {
     const seen: AgentApiRequest[] = [];
     const routes: string[] = [];
     const output: string[] = [];
@@ -119,10 +119,13 @@ test('create returns an introduction hint without sending a message', async () =
     expect(printed).toContain(
         'Runtime codex · model gpt-5.6-sol · reasoning medium · Computer cmp_studio — inherited from you.'
     );
-    expect(printed).toContain('Next: introduce @orbit in #all with haus message send');
+    // One introduction per new Agent: its own first-turn greeting, never a second from the creator.
+    expect(printed).toContain(
+        '@orbit introduces itself in #all on its first turn; do not post an introduction for it. Answer the human in #product.'
+    );
+    expect(printed).not.toMatch(/Next: introduce|haus message send --target "#all"/u);
     expect(printed).not.toContain('Message ID:');
     expect(printed).toContain('In #all, #product.');
-    expect(printed).toContain('unless the human asked for a private introduction');
 });
 
 test('the brief and repeated channels ride the create, and the receipt says so', async () => {
@@ -178,7 +181,7 @@ test('a create without an avatar concept sends null and keeps the ordinary timeo
     expect(seen[0]?.timeoutMs).toBeUndefined();
 });
 
-test('creation in a thread still hints an ordinary introduction in #all', async () => {
+test('creation in a thread points the creator back to that thread', async () => {
     const output: string[] = [];
     await runAgentCreate(
         args({ '--target': '#product:1a2b3c4d' }),
@@ -190,7 +193,8 @@ test('creation in a thread still hints an ordinary introduction in #all', async 
         })
     );
 
-    expect(output.join('')).toContain('Next: introduce @orbit in #all');
+    expect(output.join('')).toContain('@orbit introduces itself in #all on its first turn');
+    expect(output.join('')).toContain('Answer the human in #product:1a2b3c4d.');
     expect(output.join('')).not.toContain('discussion continues');
 });
 
@@ -239,7 +243,7 @@ test('create refuses locally before spending a request on a bad flag', async () 
     expect(seen).toHaveLength(0);
 });
 
-test('the introduction hint uses the confirmed handle rather than predicting it from the name', async () => {
+test('the introduction line uses the confirmed handle rather than predicting it from the name', async () => {
     const output: string[] = [];
     await runAgentCreate(
         args(),
@@ -253,5 +257,5 @@ test('the introduction hint uses the confirmed handle rather than predicting it 
             write: (text) => output.push(text),
         })
     );
-    expect(output.join('')).toContain('Next: introduce @orbit-2 in #all');
+    expect(output.join('')).toContain('@orbit-2 introduces itself in #all');
 });

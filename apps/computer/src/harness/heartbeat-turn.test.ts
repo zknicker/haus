@@ -14,6 +14,7 @@ import {
     setRuntimeDriverFactoryForTesting,
 } from './executor.ts';
 import { readQuietRunNote, recordHeartbeatSettled } from './heartbeat-note.ts';
+import { composeAgentInstructions } from './instructions.ts';
 import { harnessSessionOwner } from './session-lifecycle.ts';
 import { writeAgentSessionState } from './session-store.ts';
 
@@ -72,12 +73,18 @@ beforeEach(async () => {
     restore = setRuntimeDriverFactoryForTesting(factory);
     await writeAgentSessionState(agentRoot, {
         bootstrapFingerprint: 'fake-bootstrap',
+        // The main session already runs on the current instructions.
+        deliveredInstructionFingerprint: composeAgentInstructions({
+            ...turnInput(),
+            workspacePath: join(agentRoot, 'workspace'),
+        }).stableFingerprint,
         effectiveModel: { modelId: 'gpt-5.6-sol', runtimeId: 'codex' },
         generation: 1,
         hausAgentAppliedAt: null,
         hausAgentStatus: 'current',
         hausAgentVersion: null,
         instructionFingerprint: null,
+        launchedInstructionFingerprint: null,
         resumeState: mainResume,
         runtimeSessionId: 'main_session',
     });

@@ -1,6 +1,5 @@
 import type { DeleteAgentInput } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
-import { builtInConnections } from '../built-in-connections/built-in-connections.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentDeliveryTable,
@@ -110,9 +109,6 @@ export async function deleteAgent(
                     eq(agentMcpConnectionGrantsTable.agentId, agent.id)
                 )
             );
-        for (const connection of builtInConnections) {
-            await connection.agentRetired?.(tx, { agentId: agent.id, serverId: input.serverId });
-        }
         await tx.delete(agentDeliveryTable).where(owner);
         const taskEvents = await clearTaskAssignments(tx, input.serverId, agent.id);
         await tx

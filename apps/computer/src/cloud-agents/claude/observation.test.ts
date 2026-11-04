@@ -11,7 +11,7 @@ const prompt = event({
 });
 
 function event(payload: Record<string, unknown>): ClaudeSessionEvent {
-    return { payload, sequence: '1' };
+    return { createdAt: null, payload, sequence: '1' };
 }
 
 function session(overrides: Partial<ClaudeSession> = {}): ClaudeSession {
@@ -56,6 +56,16 @@ function toolUse(id: string, name: string, input: unknown) {
 
 test('a prompt Claude has not taken yet is queued', () => {
     expect(observe([])).toMatchObject({ status: 'queued' });
+});
+
+test('a taken prompt dates the Run from when Claude logged it, not from the reading', () => {
+    const logged = { ...prompt, createdAt: '2026-10-14T11:02:16.640042Z' };
+    expect(observe([logged])).toMatchObject({
+        observedAt,
+        startedAt: '2026-10-14T11:02:16.640Z',
+        status: 'running',
+    });
+    expect(observe([prompt])).not.toHaveProperty('startedAt');
 });
 
 test('a running worker reports its latest step', () => {

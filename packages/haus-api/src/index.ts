@@ -61,6 +61,7 @@ export type HausUpsertResponseRequest = HausApiSchema<'UpsertResponseRequest'>;
 
 export * from './agent.ts';
 export * from './agent-activity.ts';
+export * from './agent-channel-create.ts';
 export * from './agent-creation.ts';
 export * from './agent-deliveries.ts';
 export * from './agent-dreams.ts';
@@ -131,9 +132,6 @@ export * from './host-skill-file.ts';
 export * from './image-generation.ts';
 export * from './image-generation-models.ts';
 export * from './image-generation-settings.ts';
-export * from './linear.ts';
-export * from './linear-issues.ts';
-export * from './linear-trigger-events.ts';
 export * from './manual.ts';
 export * from './mcp.ts';
 export * from './mcp-preset-icon-catalog.ts';

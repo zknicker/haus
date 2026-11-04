@@ -153,7 +153,7 @@ export async function runAgentCreate(args: ParsedArgs, deps: AgentAgentDeps): Pr
         `Runtime ${receipt.runtimeId} · model ${receipt.modelId} · reasoning ${receipt.reasoningEffort} · Computer ${receipt.computerId} — inherited from you.`,
         `In ${receipt.channels.join(', ')}.`,
         'Its brief is in its memory; it reads it on every startup.',
-        `Next: introduce @${agent.handle} in #all with haus message send --target "#all", unless the human asked for a private introduction. Write it in your own voice.`,
+        `@${agent.handle} introduces itself in #all on its first turn; do not post an introduction for it. Answer the human in ${receipt.target}.`,
     ];
     if (receipt.avatar.status === 'unavailable') {
         lines.push(`No avatar: ${receipt.avatar.note}`);

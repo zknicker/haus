@@ -23,8 +23,8 @@ export interface TurnDelivery {
     dataRoot: string;
     /** Inbox identities drainable on any start; the warm set needs a live session. */
     drainItemIds: string[];
-    /** An Agent another Agent created with a standing brief introduces itself once. */
-    greetsOnFirstTurn?: boolean;
+    /** The Server attached the new Agent's one-time greeting to this run. */
+    greets?: boolean;
     /** A heartbeat run: composed by `composeHeartbeatInput` in its own throwaway session. */
     heartbeat?: AgentStartCommand['heartbeat'];
     /** A report run: the Agent's own heartbeat report, handed to its main session. */
@@ -60,10 +60,15 @@ const resetContextLine =
 
 /**
  * Raft's new-Agent greeting is a private one-time instruction, so it rides the
- * first turn's input instead of becoming permanent memory.
+ * input of the run that carries it instead of becoming permanent memory. It is the new Agent's
+ * only introduction: its creator does not post one (ADR 0028, amended 2026-11-03).
+ * The lines are Raft db5e399's `buildAllChannelAgenticGreetingInstruction`.
  */
-const firstTurnGreetingLine =
-    'On your first turn, say hello in #all in your own voice: who you are, what you own, and what your first output will be and when.';
+const firstTurnGreetingLine = [
+    'Post one short, natural self-introduction to #all so the team knows who you are and what you can help with.',
+    'Write it in your own voice, one or two sentences. Do NOT paste a fixed template. If a conversation is already going there, read the room and keep it brief.',
+    'This is a one-time greeting; after you post it, go back to normal work.',
+].join('\n');
 
 /**
  * The input of a sub-agent wake run when no turn of the runtime's own is there to adopt: the
@@ -81,6 +86,7 @@ export function turnDeliveryOf(command: AgentStartCommand) {
         ...(command.heartbeatReport ? { heartbeatReport: command.heartbeatReport } : {}),
         ...(command.subagentWake ? { subagentWake: command.subagentWake } : {}),
         drainItemIds: command.drainItemIds ?? [],
+        greets: command.greets === true,
         inbox: command.inbox ?? [],
         inboxDelivery: command.inboxDelivery,
         totalPending: command.totalPending,
@@ -142,7 +148,7 @@ export function composeTurnPrompt(input: TurnDelivery, session: TurnSession): Tu
         notice,
         turnContent: [
             session.resumesInterruptedTurn ? interruptedTurnLine : null,
-            openingPrompt(session, body, input.greetsOnFirstTurn === true),
+            openingPrompt(session, body, input.greets === true),
             formatUnreadElsewhere(input.unreadElsewhere),
         ]
             .filter(Boolean)
@@ -151,17 +157,18 @@ export function composeTurnPrompt(input: TurnDelivery, session: TurnSession): Tu
 }
 
 /**
- * `Start.` is reserved for a cold session with nothing pending. The first
- * generation's cold start is the Agent's first turn ever: a later generation
- * gets the reset line instead, and a cold start that failed never persisted its
- * session, so the retry is still the first turn.
+ * `Start.` is reserved for a cold session with nothing pending; a later
+ * generation's cold start also gets the reset line. The greeting shows on every
+ * run the Server attached it to, warm or cold, because the Server consumes it
+ * with that run: a greeting requeued after a Stop rides a resumed session.
  */
 function openingPrompt(session: TurnSession, body: string | null, greets: boolean): string {
+    const greeting = greets ? firstTurnGreetingLine : null;
     if (!session.isColdStart) {
-        return body ?? 'Resume the interrupted turn.';
+        return [greeting, body].filter(Boolean).join('\n\n') || 'Resume the interrupted turn.';
     }
-    const firstGeneration = session.sessionGeneration === 1;
-    const coldNote = firstGeneration ? (greets ? firstTurnGreetingLine : null) : resetContextLine;
+    const resetNote = session.sessionGeneration === 1 ? null : resetContextLine;
+    const coldNote = [resetNote, greeting].filter(Boolean).join('\n\n');
     if (body) {
         return [coldNote, body].filter(Boolean).join('\n\n');
     }

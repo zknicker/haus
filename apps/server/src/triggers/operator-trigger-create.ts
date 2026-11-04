@@ -7,7 +7,6 @@ import { publishRealtime } from '../realtime/topic.ts';
 import { requireActiveAgent } from '../reminders/reminder-model.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { createGithubTriggerRow } from './github-trigger-writes.ts';
-import { createLinearTriggerRow } from './linear-trigger-writes.ts';
 import { requireTriggerOperator, type TriggerAuthoringServices } from './operator-triggers.ts';
 import type { TriggerClock } from './trigger-model.ts';
 import { triggerCurlCommand } from './trigger-url.ts';
@@ -21,8 +20,7 @@ export type CreateOperatorTriggerInput = TriggerCreateInput & { origin: string }
  * creator and the owning Agent and carries no anchor message at all: nothing is
  * written to the transcript. Every later fire lands in that DM, which is
  * exactly where the person who wired it will look. A webhook answers with its
- * one readable secret; a `github` or `linear` Trigger has none and answers
- * with itself.
+ * one readable secret; a `github` Trigger has none and answers with itself.
  */
 export async function createOperatorTrigger(
     db: HausDatabase,
@@ -46,18 +44,6 @@ export async function createOperatorTrigger(
         const created = await createGithubTriggerRow(
             { db, transport: services.githubTransport },
             { ...row, github: input.github },
-            resolveAnchor,
-            clock
-        );
-        if (created.event) {
-            publishRealtime(created.event);
-        }
-        return { trigger: created.trigger };
-    }
-    if (input.kind === 'linear') {
-        const created = await createLinearTriggerRow(
-            services.linear,
-            { ...row, linear: input.linear },
             resolveAnchor,
             clock
         );

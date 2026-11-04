@@ -2,7 +2,6 @@ import {
     agentTriggerCreateInputSchema,
     agentTriggerUpdateInputSchema,
     githubTriggerPreviewInputSchema,
-    linearTriggerPreviewInputSchema,
     triggerLogLimitDefault,
     triggerLogLimitMax,
 } from '@haus/api';
@@ -31,11 +30,6 @@ import {
 } from './triggers.ts';
 
 const idParamsSchema = z.object({ id: z.string().min(1).max(200) });
-/** A GitHub body with its event name, or a raw Linear body. */
-const previewInputSchema = z.union([
-    githubTriggerPreviewInputSchema,
-    linearTriggerPreviewInputSchema,
-]);
 const logQuerySchema = z.object({
     fire: z.string().min(1).max(200).optional(),
     limit: z.coerce.number().int().min(1).max(triggerLogLimitMax).default(triggerLogLimitDefault),
@@ -112,12 +106,12 @@ export function registerAgentTriggerRoutes(
             return unauthorized(reply);
         }
         const params = idParamsSchema.safeParse(request.params);
-        const body = previewInputSchema.safeParse(request.body);
+        const body = githubTriggerPreviewInputSchema.safeParse(request.body);
         if (!(params.success && body.success)) {
             return invalid(reply);
         }
         return await runAction(reply, () =>
-            previewAgentTrigger(db, services, runner, request, {
+            previewAgentTrigger(db, runner, request, {
                 ...body.data,
                 triggerId: params.data.id,
             })

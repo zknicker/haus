@@ -47,14 +47,14 @@ import { traceAgentDispatch } from './dispatch-telemetry.ts';
 import {
     boundedCompatibleRows,
     chatIdsOf,
-    humanDrainSets,
+    claimRunItems,
     maxDrainRows,
     noticeWindow,
-    preferredDrainLead,
+    readDrainCandidates,
     startFrame,
 } from './drain-selection.ts';
 import * as failureHold from './failure-hold.ts';
-import { heartbeatLeadGate, planHeartbeatRun } from './heartbeat-run.ts';
+import { planHeartbeatRun } from './heartbeat-run.ts';
 import { type YieldedHeartbeat, yieldHeartbeatToAddressed } from './heartbeat-yield.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import {
@@ -820,7 +820,8 @@ export class AgentDelivery {
                 if (
                     frame.type === 'start' &&
                     frame.inboxDelivery === 'notice' &&
-                    frame.inbox.length === 0
+                    frame.inbox.length === 0 &&
+                    !frame.greets
                 ) {
                     const activity = await appendServerAgentActivity(tx, {
                         agentId,
@@ -896,15 +897,7 @@ export class AgentDelivery {
         if (isBackedOff(state)) {
             return null;
         }
-        const mayLead = await heartbeatLeadGate(tx, agentId);
-        // Sequential: planning runs inside the transaction holding the Server
-        // row, and overlapping reads on its one connection wedge it.
-        const unnoticed = await store.listUnnoticedQueuedItems(tx, agentId, maxDrainRows);
-        const concreteRows = await store.listQueuedConcreteItems(tx, agentId, maxDrainRows);
-        const candidates = [
-            ...new Map([...unnoticed, ...concreteRows].map((row) => [row.id, row])).values(),
-        ].filter(mayLead);
-        const preferred = preferredDrainLead(candidates);
+        const { candidates, lead: preferred, mayLead } = await readDrainCandidates(tx, agentId);
         if (!preferred) {
             return null;
         }
@@ -914,7 +907,7 @@ export class AgentDelivery {
         if (!(admitted && mayLead(admitted.lead))) {
             return null;
         }
-        const { lead: first, selected } = admitted;
+        const first = admitted.lead;
         // A dream, heartbeat, report, or sub-agent wake is concrete work with no Chat: a
         // chatless run. A heartbeat-family run resets the chain, so admission may also pick
         // it as the lead at the ceiling.
@@ -923,35 +916,14 @@ export class AgentDelivery {
         }
         const runId = createOpaqueId('run');
         const concrete = isConcreteSource(first.source);
-        let noticeRows: store.InboxItemRow[] = [];
         // The Server decides what may be drained; the Computer decides the lane,
         // because only it knows whether the harness session is still alive.
-        let drainRows = selected;
-        let warmDrainRows: store.InboxItemRow[] = [];
-        if (concrete) {
-            await store.attachQueuedItemsToRun(tx, {
-                agentId,
-                itemIds: selected.map((row) => row.id),
-                runId,
-            });
-        } else {
-            noticeRows = noticeWindow(
-                (await store.listQueuedItems(tx, agentId, 1000)).filter(
-                    (row) => !isConcreteSource(row.source)
-                ),
-                selected
-            );
-            await store.markInboxItemsNoticed(tx, {
-                agentId,
-                initial: true,
-                itemIds: noticeRows.map((row) => row.id),
-                runId,
-            });
-            // Derived from the rows this frame carries, not from the candidate
-            // slice, so a resend rebuilding from those same persisted rows
-            // reproduces exactly these two sets.
-            ({ drainRows, warmDrainRows } = await humanDrainSets(tx, noticeRows));
-        }
+        const { drainRows, greets, noticeRows, selected, warmDrainRows } = await claimRunItems(tx, {
+            agentId,
+            concrete,
+            runId,
+            selected: admitted.selected,
+        });
         // Freeze execution configuration onto the run so every resend uses these values.
         await store.beginActiveRun(tx, {
             agentId,
@@ -984,6 +956,7 @@ export class AgentDelivery {
                 agentName: config.agentName,
                 chatId: first.chatId,
                 drainItemIds: drainRows.map((row) => row.dedupeKey),
+                ...(greets ? { greets: true as const } : {}),
                 homeTimezone: config.homeTimezone,
                 inbox: await buildInboxItems(tx, concrete ? selected : noticeRows, agentId),
                 inboxDelivery: concrete ? 'concrete' : 'notice',

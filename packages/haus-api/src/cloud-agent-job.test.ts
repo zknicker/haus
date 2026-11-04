@@ -108,15 +108,24 @@ describe('deriveCloudAgentJob', () => {
         });
     });
 
-    test('a running follow-up is working and dated from its own start', () => {
+    test('a running follow-up dates itself from its own start and the job from the first', () => {
         const followUpStart = '2026-09-04T13:01:00.000Z';
         expect(
             job(run('running', { createdAt: queuedAt, startedAt: followUpStart }), run('completed'))
         ).toEqual({
             followUp: { since: followUpStart, state: 'running' },
-            startedAt: followUpStart,
+            startedAt,
             state: 'working',
         });
+    });
+
+    test('a settled follow-up keeps the job dated from its first Run', () => {
+        expect(
+            job(
+                run('completed', { createdAt: queuedAt, startedAt: '2026-09-04T13:01:00.000Z' }),
+                run('completed')
+            )
+        ).toMatchObject({ startedAt, state: 'done' });
     });
 
     test('a settled follow-up is the job, with no follow-up left', () => {
@@ -167,7 +176,7 @@ describe('deriveCloudAgentJob', () => {
             job(run('queued', { createdAt: queuedAt, providerRunId: 'run-2' }), run('completed'))
         ).toEqual({
             followUp: { since: queuedAt, state: 'waiting' },
-            startedAt: null,
+            startedAt,
             state: 'working',
         });
     });

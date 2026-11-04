@@ -1,4 +1,4 @@
-import { isMcpBearerTokenPreset, isMcpBuiltInPreset, type McpBearerTokenPreset } from '@haus/api';
+import { isMcpBearerTokenPreset, type McpBearerTokenPreset } from '@haus/api';
 import { useState } from 'react';
 import { useConnectionHeadersUpdate } from '../../../hooks/servers/use-connection-headers-update.ts';
 import { useConnectionPresetAdd } from '../../../hooks/servers/use-connection-preset-add.ts';
@@ -68,8 +68,7 @@ export function useConnectionCredentials({
     return {
         /** Adds another account of this connection's preset. */
         addAccount: () => {
-            // A built-in connection adds a workspace through its own install flow.
-            if (!(connection && preset) || isMcpBuiltInPreset(preset)) {
+            if (!(connection && preset)) {
                 return;
             }
             const name = `${connection.name} account`;

@@ -67,12 +67,17 @@ export function parseStartCommand(frame: unknown): AgentStartCommand | null {
     if (frame.traceContext !== undefined && !traceContext) {
         return null;
     }
+    const greeting = parseGreeting(frame.greets);
+    if (!greeting) {
+        return null;
+    }
     return {
         ...facts,
         agentId: frame.agentId as string,
         ...runChat,
         connectionChips,
         drainItemIds,
+        ...greeting,
         inbox,
         inboxDelivery: frame.inboxDelivery as 'concrete' | 'notice',
         modelId: frame.modelId as string,
@@ -217,6 +222,14 @@ function parseRunChat(
     }
     const wake = agentSubagentWakeAttentionSchema.safeParse(frame.subagentWake);
     return wake.success ? { chatId: null, subagentWake: wake.data } : null;
+}
+
+/** The Server's one-time greeting flag: absent, or exactly `true`. */
+function parseGreeting(value: unknown): Pick<AgentStartCommand, 'greets'> | null {
+    if (value === undefined) {
+        return {};
+    }
+    return value === true ? { greets: true } : null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

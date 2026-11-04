@@ -4,7 +4,6 @@ import { RequireOperator } from '../../servers/require-operator.tsx';
 import { useServerContext } from '../../servers/server-context.ts';
 import { serverRoute, settingsConnectionRoute } from '../../servers/server-routes.ts';
 import { PageColumn } from '../../shell/page-column.tsx';
-import { BuiltInSetupNotices } from '../connections/built-in/built-in-connection-sections.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { ConnectionAddDrawer } from './connection-add-drawer.tsx';
 import { ConnectionListSection } from './connection-list-section.tsx';
@@ -34,7 +33,6 @@ export function ConnectionsPage({ embedded = false }: { embedded?: boolean }) {
                     description="Connect the services your Agents work in, then choose which Agents can use each one."
                     title="Connections"
                 />
-                <BuiltInSetupNotices />
                 <ConnectionPresetSection serverId={server.id} />
                 <ConnectionListSection
                     onAdd={() => setIsAddOpen(true)}

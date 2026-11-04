@@ -24,9 +24,9 @@ test('a start frame carries the Server connection chips into the turn', () => {
 
 test('a chip kind from a newer Server is dropped, and a malformed list rejects the frame', () => {
     expect(
-        parseStartCommand({ ...frame, connectionChips: ['etsy-listing', 'linear-issue'] })
+        parseStartCommand({ ...frame, connectionChips: ['etsy-listing', 'amazon-product'] })
             ?.connectionChips
-    ).toEqual(['linear-issue']);
+    ).toEqual(['amazon-product']);
     expect(parseStartCommand({ ...frame, connectionChips: 'amazon-product' })).toBeNull();
     expect(parseStartCommand({ ...frame, connectionChips: [7] })).toBeNull();
 });
