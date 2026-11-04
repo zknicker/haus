@@ -25,6 +25,7 @@ const connect: Extract<ComputerSecretsOperation, { kind: 'connect' }> = {
     account: 'my.1password.com',
     items: [apiKey],
     kind: 'connect',
+    secondaryFields: [],
     serviceAccountName: 'Haus Computer Mac mini 2026-10-13',
     token,
     vault,
@@ -134,11 +135,32 @@ describe('Computer Secrets store', () => {
         expect(await readSecretsStatus(host())).toMatchObject({ connected: true, issue: null });
     });
 
+    test('secondary fields report an extra env name and schema entry', async () => {
+        const status = await connectSecrets(host(), {
+            ...connect,
+            secondaryFields: [{ fieldId: 'username', itemId: apiKey.id, label: 'username' }],
+        });
+        expect(status).toMatchObject({
+            items: [
+                { envName: 'DUMMY_API_KEY', title: 'Dummy API Key' },
+                { envName: 'DUMMY_API_KEY_USERNAME', title: 'Dummy API Key' },
+            ],
+        });
+        const schema = await readFile(
+            join(secretsPaths(dataRoot, 'srv_1').schemaDir, '.env.schema'),
+            'utf8'
+        );
+        expect(schema).toContain(
+            `DUMMY_API_KEY_USERNAME=op("op://${vault.id}/${apiKey.id}/username")`
+        );
+    });
+
     test('refresh replaces the items, keeps the token, and reinstalls a missing runtime', async () => {
         await connectSecrets(host(), connect);
         const status = await refreshSecretItems(host(), {
             items: [apiKey, { field: 'password', id: 'item0000000000000000000002', title: 'npm' }],
             kind: 'refresh-items',
+            secondaryFields: [],
             vaultId: vault.id,
         });
         expect(status).toMatchObject({
@@ -162,6 +184,7 @@ describe('Computer Secrets store', () => {
         const refresh: Extract<ComputerSecretsOperation, { kind: 'refresh-items' }> = {
             items: [],
             kind: 'refresh-items',
+            secondaryFields: [],
             vaultId: vault.id,
         };
         await expect(refreshSecretItems(host(), refresh)).rejects.toThrow('not connected');

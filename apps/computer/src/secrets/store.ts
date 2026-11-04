@@ -86,7 +86,7 @@ export async function connectSecrets(
     await host.keychain.write(host.serverId, operation.token);
     const now = new Date().toISOString();
     try {
-        await writeConnection(host, operation.items, {
+        await writeConnection(host, operation.items, operation.secondaryFields, {
             account: operation.account,
             connectedAt: now,
             items: [],
@@ -121,7 +121,7 @@ export async function refreshSecretItems(
         throw new Error('That vault is not the one connected on this Computer.');
     }
     await host.installRuntime(paths.root);
-    await writeConnection(host, operation.items, {
+    await writeConnection(host, operation.items, operation.secondaryFields, {
         ...state,
         itemsRefreshedAt: new Date().toISOString(),
     });
@@ -141,10 +141,11 @@ export async function disconnectSecrets(host: SecretsHost): Promise<ComputerSecr
 async function writeConnection(
     host: SecretsHost,
     items: ConnectOperation['items'],
+    secondaryFields: ConnectOperation['secondaryFields'],
     state: SecretsState
 ) {
     const paths = secretsPaths(host.dataRoot, host.serverId);
-    const bindings = secretBindings(state.vault.id, items);
+    const bindings = secretBindings(state.vault.id, items, secondaryFields);
     await mkdir(paths.schemaDir, { mode: 0o700, recursive: true });
     await mkdir(paths.binDir, { mode: 0o700, recursive: true });
     await writeFile(join(paths.schemaDir, '.env.schema'), renderSecretsSchema(bindings), {

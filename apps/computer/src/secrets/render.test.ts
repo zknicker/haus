@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { OnePasswordItem } from '@haus/api';
+import type { OnePasswordItem, OnePasswordSecondaryField } from '@haus/api';
 import {
     envNameForTitle,
     renderSecretsSchema,
@@ -60,6 +60,84 @@ describe('secretBindings', () => {
             { field: 'password', id: 'item0000000000000000000003', title: 'db-password' },
         ]).map((binding) => binding.envName);
         expect(names.sort()).toEqual(['DB_PASSWORD', 'DB_PASSWORD_2', 'DB_PASSWORD_3']);
+    });
+
+    test('binds a secondary field under <TITLE>_<FIELD>, alongside the unchanged primary', () => {
+        const plaidKey: OnePasswordItem = {
+            field: 'credential',
+            id: 'item0000000000000000000009',
+            title: 'Plaid API Key',
+        };
+        const username: OnePasswordSecondaryField = {
+            fieldId: 'username',
+            itemId: plaidKey.id,
+            label: 'username',
+        };
+        expect(secretBindings(vaultId, [plaidKey], [username])).toEqual([
+            {
+                envName: 'PLAID_API_KEY',
+                reference: `op://${vaultId}/${plaidKey.id}/credential`,
+                title: 'Plaid API Key',
+            },
+            {
+                envName: 'PLAID_API_KEY_USERNAME',
+                reference: `op://${vaultId}/${plaidKey.id}/username`,
+                title: 'Plaid API Key',
+            },
+        ]);
+    });
+
+    test('sanitizes a field label the same way it sanitizes a title', () => {
+        const plaidKey: OnePasswordItem = {
+            field: 'credential',
+            id: 'item0000000000000000000009',
+            title: 'Plaid API Key',
+        };
+        const clientId: OnePasswordSecondaryField = {
+            fieldId: 'client_id',
+            itemId: plaidKey.id,
+            label: 'Client ID',
+        };
+        const names = secretBindings(vaultId, [plaidKey], [clientId]).map(
+            (binding) => binding.envName
+        );
+        expect(names).toContain('PLAID_API_KEY_CLIENT_ID');
+    });
+
+    test('a primary item wins a name collision against a secondary field, deterministically', () => {
+        const plaidKey: OnePasswordItem = {
+            field: 'credential',
+            id: 'item0000000000000000000009',
+            title: 'Plaid API Key',
+        };
+        const collidingPrimary: OnePasswordItem = {
+            field: 'password',
+            id: 'item0000000000000000000010',
+            title: 'Plaid API Key Username',
+        };
+        const username: OnePasswordSecondaryField = {
+            fieldId: 'username',
+            itemId: plaidKey.id,
+            label: 'username',
+        };
+        for (const items of [
+            [plaidKey, collidingPrimary],
+            [collidingPrimary, plaidKey],
+        ]) {
+            const bindings = secretBindings(vaultId, items, [username]);
+            expect(bindings).toContainEqual(
+                expect.objectContaining({
+                    envName: 'PLAID_API_KEY_USERNAME',
+                    reference: `op://${vaultId}/${collidingPrimary.id}/password`,
+                })
+            );
+            expect(bindings).toContainEqual(
+                expect.objectContaining({
+                    envName: 'PLAID_API_KEY_USERNAME_2',
+                    reference: `op://${vaultId}/${plaidKey.id}/username`,
+                })
+            );
+        }
     });
 });
 
