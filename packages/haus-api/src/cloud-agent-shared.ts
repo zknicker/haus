@@ -4,13 +4,21 @@ import { cloudAgentRunModelSchema } from './cloud-agent-model.ts';
 import { cloudAgentProviderSchema } from './cloud-agent-provider.ts';
 
 const cloudAgentIdSchema = z.string().trim().min(1);
-const cloudAgentTimestampSchema = z.iso.datetime({ offset: true });
+export const cloudAgentTimestampSchema = z.iso.datetime({ offset: true });
 
 export const cloudAgentTitleMaxLength = 120;
 export const cloudAgentActivityMaxLength = 120;
 export const cloudAgentSummaryMaxLength = 2000;
 export const cloudAgentRunsRetained = 20;
 
+export {
+    type CloudAgentCapabilityState,
+    cloudAgentCapabilityStateSchema,
+} from './cloud-agent-capability.ts';
+export {
+    type CloudAgentEnvironment,
+    cloudAgentEnvironmentSchema,
+} from './cloud-agent-environment.ts';
 export {
     type CloudAgentProvider,
     cloudAgentProviderSchema,
@@ -151,21 +159,6 @@ export const cloudAgentUsageSchema = z
     })
     .strict();
 
-/**
- * One Anthropic-hosted cloud environment Claude Cloud can run a session on
- * (`GET /v1/environment_providers`, `kind: "anthropic_cloud"`). Haus pins a
- * Computer's Claude launches to one of these by id so a launch never lands on
- * whichever environment Claude Code picks on its own.
- */
-export const cloudAgentEnvironmentSchema = z
-    .object({
-        id: z.string().trim().min(1).max(200),
-        name: z.string().trim().min(1).max(200),
-    })
-    .strict();
-
-export type CloudAgentEnvironment = z.infer<typeof cloudAgentEnvironmentSchema>;
-
 /** Who asked for cancellation. Humans and the delegating Agent may both ask. */
 export const cloudAgentCancelRequestedBySchema = z.discriminatedUnion('kind', [
     z.object({ id: cloudAgentIdSchema, kind: z.literal('agent') }).strict(),
@@ -227,64 +220,6 @@ export const cloudAgentWorkSchema = z
         updatedAt: cloudAgentTimestampSchema,
     })
     .strict();
-
-/**
- * One Cloud Agent provider capability on one Computer: whether its credential
- * store currently resolves, and the account it resolves to. It carries no
- * credential — Haus never copies a provider key into Server.
- */
-export const cloudAgentCapabilityStateSchema = z
-    .object({
-        /** The provider account the resolved credential belongs to, when it names one. */
-        accountEmail: z.string().trim().min(1).max(320).nullable(),
-        /** The Computer's pinned Claude cloud environment id; null is "not pinned". Claude only. */
-        environmentId: z.string().trim().min(1).max(200).nullable().optional(),
-        /** This Computer's Claude cloud environments to pin to; null off Claude. */
-        environments: z.array(cloudAgentEnvironmentSchema).max(200).nullable().optional(),
-        /** When the resolved credential expires, when the provider dates it. */
-        expiresAt: cloudAgentTimestampSchema.nullable(),
-        /** Whether a launch that names no provider uses this one on this Computer. */
-        isDefault: z.boolean().default(false),
-        provider: cloudAgentProviderSchema,
-        ready: z.boolean(),
-        reason: cloudAgentUnreadyReasonSchema.nullable(),
-        signIn: z
-            .discriminatedUnion('status', [
-                z
-                    .object({
-                        status: z.literal('waiting'),
-                        url: z
-                            .url()
-                            .max(4096)
-                            .refine((value) => {
-                                if (!URL.canParse(value)) {
-                                    return false;
-                                }
-                                const url = new URL(value);
-                                return (
-                                    url.protocol === 'https:' &&
-                                    url.hostname === 'cursor.com' &&
-                                    !url.username &&
-                                    !url.password &&
-                                    !url.port
-                                );
-                            }),
-                        expiresAt: cloudAgentTimestampSchema,
-                    })
-                    .strict(),
-                z
-                    .object({ status: z.literal('failed'), message: z.string().min(1).max(500) })
-                    .strict(),
-            ])
-            .optional(),
-    })
-    .strict()
-    .refine((value) => value.ready !== Boolean(value.reason), {
-        message: 'A ready capability carries no reason, and an unready one must name its reason.',
-        path: ['reason'],
-    });
-
-export type CloudAgentCapabilityState = z.infer<typeof cloudAgentCapabilityStateSchema>;
 
 export type CloudAgentBranch = z.infer<typeof cloudAgentBranchSchema>;
 export type CloudAgentPullRequest = z.infer<typeof cloudAgentPullRequestSchema>;
