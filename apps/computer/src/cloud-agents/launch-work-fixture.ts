@@ -60,6 +60,8 @@ export function registerLaunchWorkFixture() {
     const restores: Array<() => void> = [];
     const state = {
         dataRoot: '',
+        /** Launches the receipt returned before; `launched()` waits for them. */
+        launches: [] as Promise<unknown>[],
         observations: [] as CloudAgentObservation[],
         reconciled: [] as CloudAgentReconcileEntry[],
         restores,
@@ -71,10 +73,18 @@ export function registerLaunchWorkFixture() {
                 state.observations.push({ ...observation, runId: ref.runId, workId: ref.workId });
             },
             watch() {},
+            runLaunch<Value>(operation: () => Promise<Value>) {
+                const launch = operation();
+                state.launches.push(launch);
+                return launch;
+            },
             reconcile(entries: CloudAgentReconcileEntry[]) {
                 state.reconciled.push(...entries);
                 return Promise.resolve();
             },
+        },
+        async launched() {
+            await Promise.allSettled(state.launches);
         },
         install(provider: ReturnType<typeof createFakeCloudAgentProvider>) {
             restores.push(setCloudAgentProvider(provider));
@@ -106,6 +116,7 @@ export function registerLaunchWorkFixture() {
     };
     beforeEach(async () => {
         state.dataRoot = await mkdtemp(join(tmpdir(), 'haus-cloud-launch-'));
+        state.launches = [];
         state.observations = [];
         state.reconciled = [];
     });

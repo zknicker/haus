@@ -479,6 +479,15 @@ path, as the Message's last link. Authored content stays capped at 32,000 charac
 content may exceed that by the generated link. Thread previews leave out any Message that is some
 work's `launch_message_id`.
 
+**Start returns once recorded.** `haus cloud-agent start` returns its receipt as soon as Server has
+recorded the work and the Computer has claimed its first Run. The provider launch, including any
+repository checkout, finishes afterwards in the Computer's launch scope, which shutdown waits for.
+Its outcome lands on the work: the provider's address once it confirms, or a failed or cancelled
+Run whose inbox notice reaches the delegating Agent like any settled Run. A launch that never
+confirms settles at its five-minute launch deadline. Waiting on the provider inside the command let
+a slow launch outlive the command's timeout, and the Agent read that as a failure and launched the
+same work again. The receipt says the work is launching, never that it started.
+
 **Visibility.** A viewer may see Cloud Agent work when they can read a live Message that links it:
 the linking Chat, and a Thread's parent, are not tombstoned, and the viewer can read that Chat by
 the canonical rule (a human also needs an active Server membership). The delegating Agent always
@@ -590,7 +599,8 @@ The Claude adapter (`apps/computer/src/cloud-agents/claude/`) drives Claude Code
   was dropped.
 - **Launch.** `claude --cloud <prompt>` runs in a throwaway checkout of the repository at the
   starting ref; the folder-trust prompt is accepted automatically and the checkout is deleted
-  afterwards. Follow-ups run `claude -p --cloud <session> --output-format json <prompt>`.
+  afterwards. The clone is blobless, so only the starting ref's files download, and the checkout
+  uses the GitHub CLI's sign-in as its only GitHub credential when the CLI is installed. Follow-ups run `claude -p --cloud <session> --output-format json <prompt>`.
 - **Run tag.** Each prompt's first line is `HAUS_CLOUD_RUN=<workId>/<runId>`. Launch returns no Run
   id, so the tagged prompt's event id becomes the Run's `providerRunId` once Computer observes it.
 - **Monitoring.** Computer polls Claude's session controller API about every 10 seconds: session

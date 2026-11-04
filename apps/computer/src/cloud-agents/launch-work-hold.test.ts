@@ -44,6 +44,7 @@ test('a Server freshness hold returns as-is and never asks the provider to launc
         supervisor: {
             reconcile: () => Promise.resolve(),
             report: (...args) => reported.push(args),
+            runLaunch: (operation) => operation(),
             watch: () => undefined,
         },
     });

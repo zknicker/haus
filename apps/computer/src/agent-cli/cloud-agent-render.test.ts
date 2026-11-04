@@ -47,10 +47,10 @@ const request = { repository: 'haus/haus', startingRef: 'main', target: '#produc
 test('the start receipt keeps its work thread and adds the link to paste elsewhere', () => {
     expect(renderCloudAgentStart(receipt('#product'), request)).toBe(
         [
-            'Cloud agent started for haus/haus@main. Work ID: caw_1234567890abcdef',
+            'Cloud agent launching for haus/haus@main. Work ID: caw_1234567890abcdef',
             'Posted to #product. Message ID: msg_1a2b3c4d5e6f7890',
             'Work thread: "#product:1a2b3c4d".',
-            'The result reaches your inbox when the run settles; post what you learn yourself.',
+            'The result reaches your inbox when the run settles, a failed launch included; post what you learn yourself.',
             'Link: [Fix the flaky delivery test](cloud-agent://caw_1234567890abcdef)',
             'To show this work in another conversation, paste its Link line into haus message send.',
             '',
