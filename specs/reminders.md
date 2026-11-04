@@ -108,12 +108,42 @@ attention and fire ids. When it is offline, the attention stays durable and is
 resent on reconnect.
 
 The Computer executes the script once in the owning Agent's workspace with that
-Agent's isolated `HOME`, a 60-second timeout, and bounded stdout/stderr. A
-restart-durable result marker makes redelivery idempotent. An empty successful
-result is recorded without waking the model. Output, timeout, or non-zero exit
-wakes the owning Agent with that output bounded into the wake envelope; no Chat
-message is written. The fire log stores the bounded output, exit code, and
-timeout state.
+Agent's isolated `HOME`, the same PATH and environment the Agent's own shell
+commands get (minus anything secret — the proxy-backed `haus` wrapper and a
+live turn's runtime directory have no equivalent for a standalone script, but
+the Owner's `haus-secrets` install is on it), a 60-second timeout, and bounded
+stdout/stderr. A restart-durable result marker makes redelivery idempotent. An
+empty successful result is recorded without waking the model. Output, timeout,
+or non-zero exit wakes the owning Agent with that output bounded into the wake
+envelope, subject to the wake rules below; no Chat message is written. The
+fire log stores the bounded output, exit code, timeout state, duration, and
+the run's outcome.
+
+### Wake rules
+
+Two opt-in reminder fields, set on schedule or update, change when a script
+fire wakes its Agent; neither changes behavior while unset:
+
+- `wake_on_change` (boolean): a run that would otherwise wake with output
+  wakes only when that output's hash (normalized: each line's trailing
+  whitespace stripped, then the whole trimmed) differs from the hash of the
+  last output that woke the Agent. An equal hash is a quiet `unchanged` run,
+  and the remembered hash is unchanged.
+- `fail_after` (integer, 1-20, nullable): a failing run (non-zero exit or
+  timeout) wakes only on its Nth consecutive failure (`consecutive_failures`
+  tracks the streak on the reminder); further consecutive failures stay
+  quiet. The first success after a streak that reached the threshold wakes
+  once more with a short "recovered" notice naming the streak length, and
+  resets the streak — even when that success has no output of its own.
+  Without `fail_after` set, every failure wakes, unconditionally.
+
+Every fire records one outcome: `quiet` (success, nothing to report), `woke`,
+`failed` (a failure held quiet by `fail_after`), `unchanged` (held quiet by
+`wake_on_change`), or `recovered`. A reminder with no script is always `woke`.
+When the woken turn settles and the runtime reports token usage, the Server
+links it back to the fire that triggered the run (`agent_run_triggers`,
+`source: 'reminder'`) and records the total on the fire; a run merged into a
+batch with other queued work is not attributed.
 
 ## Provenance
 
@@ -144,11 +174,12 @@ reminder-specific facts are:
 - History is the log of executions, read by `reminder.history` under the same
   authorization: one entry per fire, newest first, so a recurring reminder
   appears once per wake. Each entry carries the reminder's current title and
-  cadence, the fire's scheduled slot and fired time, the script outcome when
-  that fire ran a script, and the Agent's answering message with its Chat when
-  one exists. A fire records for itself whether it ran a script, so a later
-  script edit never relabels it, and a fire answered more than once stays one
-  entry naming its earliest answer.
+  cadence, the fire's scheduled slot and fired time, the script outcome (exit
+  code, timeout, duration, and the wake-rule outcome above) when that fire ran
+  a script, and the Agent's answering message with its Chat when one exists.
+  A fire records for itself whether it ran a script, so a later script edit
+  never relabels it, and a fire answered more than once stays one entry
+  naming its earliest answer.
 - Reminder history expires after `REMINDER_HISTORY_RETENTION_DAYS`. A fire is
   deleted that long after `fired_at` whatever its reminder is doing, and a
   `fired` one-shot or a `canceled` reminder is deleted that long after it

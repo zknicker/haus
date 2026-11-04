@@ -13,6 +13,12 @@ export interface ReminderEnvelopeInput {
     fireId: string;
     /** The next scheduled fire for a repeating Reminder, else null. */
     nextFireAt: Date | null;
+    /**
+     * Set only for a "recovered" wake: the failure streak this run broke, under
+     * `--fail-after`. A short notice replaces the usual script lines, since the
+     * Agent already heard about the failure that mattered (the one that woke it).
+     */
+    recoveredAfterFailures?: number;
     /** The label, and what to do in full; a null description means the title says it all. */
     reminder: { description: string | null; title: string };
     script?: ReminderScriptOutcome | null;
@@ -36,9 +42,19 @@ export function reminderEnvelope(input: ReminderEnvelopeInput): string {
         ...descriptionLines(input),
         `fire=${input.fireId}`,
         ...(input.nextFireAt ? [`(next: ${input.nextFireAt.toISOString()})`] : []),
-        ...(input.script ? scriptLines(input.script) : []),
+        ...(input.recoveredAfterFailures !== undefined
+            ? recoveredLines(input.recoveredAfterFailures)
+            : input.script
+              ? scriptLines(input.script)
+              : []),
         automationReplyLine(input.fireId),
     ].join('\n');
+}
+
+/** `--fail-after` recovery: short, since the failure that mattered already woke the Agent. */
+function recoveredLines(failureStreak: number): string[] {
+    const run = failureStreak === 1 ? 'run' : 'runs';
+    return [`🔔 Reminder script recovered, after ${failureStreak} failed ${run}.`];
 }
 
 /** The envelope's first line. Nothing writes this into a Chat any more. */

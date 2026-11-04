@@ -78,6 +78,12 @@ Schedule a Haus reminder anchored to the relevant message or thread. A reminder 
 Use \`--script\` for a local workspace check: empty output records a quiet tick; non-empty output wakes you with the output. See \`haus reminder schedule --help\` for syntax.
 A fire arrives through your inbox, including on a later turn if you are busy, and writes nothing to chat itself. Answer top-level in the anchor chat with \`--cause <fireId>\` unless the reporting agreement requires silence for unchanged or healthy state; never answer in a thread. Inspect runs with \`haus reminder log\`.
 
+### Wake rules for a noisy script
+A script that reports the same thing every tick, or fails intermittently, wastes your runs on repeat wakes. Two opt-in flags cut that noise without you hand-rolling dedupe logic in the script itself:
+- \`--wake-on-change\` wakes you only when the output differs from the output that last woke you; the same output again is a quiet "unchanged" tick. Keep volatile values — timestamps, uptimes, request ids — out of the output, or every run looks "changed."
+- \`--fail-after <n>\` holds a failing script quiet until its Nth consecutive failure, then wakes you once with the error. Further consecutive failures stay quiet; the first success after that wakes you once more with a short "recovered" notice.
+Example: \`haus reminder schedule --title "Disk Watchdog" --repeat every:15m --message-id <id> --script check-disk.sh --wake-on-change --fail-after 3\`. Without either flag, every tick with output (or any failure) wakes you, same as before. \`haus reminder log\` shows each run's outcome (quiet, unchanged, woke, failed, recovered) plus a summary over the last 24h, 7d, and 30d.
+
 ### Title and description
 The title labels your answer in chat, so keep it a short calendar-invite subject (60 characters at most); the action-language instruction from step 2 goes in \`--description\` and comes back in the fire. For example: \`--title "Monday Advertising Review" --description "check advertising and flag campaigns that need bid adjustments"\`.
 

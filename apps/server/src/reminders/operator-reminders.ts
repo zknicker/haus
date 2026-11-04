@@ -110,10 +110,14 @@ export async function listOperatorReminderRuns(
         )
         .orderBy(asc(reminderFiresTable.scheduledFor), asc(reminderFiresTable.id));
     return rows.map((row) => ({
+        durationMs: row.durationMs,
         firedAt: row.firedAt.toISOString(),
         id: row.id,
+        outcome: row.outcome,
         reminderId: row.reminderId,
         scheduledFor: row.scheduledFor.toISOString(),
+        scriptExitCode: row.scriptExitCode,
+        wakeTotalTokens: row.wakeTotalTokens,
     }));
 }
 

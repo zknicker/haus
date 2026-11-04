@@ -58,9 +58,11 @@ export async function listOperatorReminderHistory(
         .select({
             answerChatId: earliestAnswer.chatId,
             answerMessageId: earliestAnswer.messageId,
+            durationMs: reminderFiresTable.durationMs,
             fireId: reminderFiresTable.id,
             firedAt: reminderFiresTable.firedAt,
             hasScript: reminderFiresTable.hasScript,
+            outcome: reminderFiresTable.outcome,
             reminderId: reminderFiresTable.reminderId,
             repeat: remindersTable.repeat,
             scheduledFor: reminderFiresTable.scheduledFor,
@@ -96,7 +98,12 @@ export async function listOperatorReminderHistory(
         repeat: row.repeat,
         scheduledFor: row.scheduledFor.toISOString(),
         script: row.hasScript
-            ? { exitCode: row.scriptExitCode, timedOut: row.scriptTimedOut }
+            ? {
+                  durationMs: row.durationMs,
+                  exitCode: row.scriptExitCode,
+                  outcome: row.outcome,
+                  timedOut: row.scriptTimedOut,
+              }
             : null,
         title: row.title,
     }));

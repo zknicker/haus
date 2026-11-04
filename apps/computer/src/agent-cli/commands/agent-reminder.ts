@@ -2,17 +2,14 @@ import { randomUUID } from 'node:crypto';
 import type * as z from 'zod';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
-import { formatUtcTime } from '../agent-format.ts';
 import type { ParsedArgs } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
 import {
-    clip,
     describeReminder,
     normalizeClearable,
     type ReminderDeps,
     readReminderForMutation,
     reminderListSchema,
-    reminderLogSchema,
     reminderSingleSchema,
     requireFlag,
 } from './agent-reminder-view.ts';
@@ -33,16 +30,26 @@ import {
     titleHelp,
     verifyScheduledTimezone,
 } from './reminder-timezone.ts';
+import {
+    failAfterFlag,
+    normalizeFailAfter,
+    parseFailAfter,
+    requireScriptForWakeRules,
+    runReminderLog,
+    wakeOnChangeFlag,
+} from './reminder-wake-rules.ts';
 
 // Family 8 — Reminders (D4). Author-owned wake signals anchored to a
 // message; the only scheduling primitive. `--script` payloads run locally at
-// fire time: empty output is a quiet tick, output rides the fire.
+// fire time: empty output is a quiet tick, output rides the fire. The opt-in
+// wake rules and `reminder log` live in reminder-wake-rules.ts.
 export const REMINDER_SUBCOMMANDS: SubCommand[] = [
     {
         examples: [
             'haus reminder schedule --title "CI Check" --description "check if CI finished and update the task" --delay-seconds 1800 --message-id 1a2b3c4d',
             'haus reminder schedule --title "Monday Advertising Review" --description "check advertising and flag campaigns that need bid adjustments" --repeat weekly:mon@09:00 --timezone America/New_York --message-id 1a2b3c4d',
             "haus reminder schedule --title 'Nightly Export Watch' --delay-seconds 3600 --repeat every:1h --message-id 1a2b3c4d --script 'check-export --quiet-when-ok'",
+            "haus reminder schedule --title 'Disk Watchdog' --repeat every:15m --message-id 1a2b3c4d --script 'check-disk.sh' --wake-on-change --fail-after 3",
         ],
         flags: [
             reminderCommandIdFlag,
@@ -61,12 +68,14 @@ export const REMINDER_SUBCOMMANDS: SubCommand[] = [
                 name: '--script',
                 valueName: '<command>',
             },
+            wakeOnChangeFlag,
+            failAfterFlag,
         ],
         name: 'schedule',
         positionals: [],
         run: (args) => runReminderSchedule(args, defaultDeps()),
         summary: 'Schedule an author-owned wake signal anchored to a message',
-        usage: 'haus reminder schedule --title <label> [--description <text>] (--delay-seconds <n> | --fire-at <iso>) [--repeat <cadence>] [--timezone <iana>] --message-id <id> [--script <command>]',
+        usage: 'haus reminder schedule --title <label> [--description <text>] (--delay-seconds <n> | --fire-at <iso>) [--repeat <cadence>] [--timezone <iana>] --message-id <id> [--script <command>] [--wake-on-change] [--fail-after <n>]',
     },
     {
         examples: ['haus reminder list', 'haus reminder list --status scheduled'],
@@ -98,6 +107,8 @@ export const REMINDER_SUBCOMMANDS: SubCommand[] = [
     {
         examples: [
             'haus reminder update --id rem_1a2b3c4d5e6f --title "CI Check" --description "check CI and update task #3"',
+            'haus reminder update --id rem_1a2b3c4d5e6f --fail-after 3',
+            'haus reminder update --id rem_1a2b3c4d5e6f --fail-after none',
         ],
         flags: [
             idFlag,
@@ -114,12 +125,18 @@ export const REMINDER_SUBCOMMANDS: SubCommand[] = [
                 name: '--script',
                 valueName: '<command>',
             },
+            wakeOnChangeFlag,
+            {
+                ...failAfterFlag,
+                description: `${failAfterFlag.description}, or "none" to disable it`,
+            },
         ],
         name: 'update',
         positionals: [],
         run: (args) => runReminderUpdate(args, defaultDeps()),
-        summary: 'Change one thing about a reminder: its label, time, cadence, or script',
-        usage: 'haus reminder update --id <id> (--title <label> [--description <text>] | --description <text> | --fire-at <iso> | --repeat <cadence> [--timezone <iana>] | --script <command>)',
+        summary:
+            'Change one thing about a reminder: its label, time, cadence, script, or wake rules',
+        usage: 'haus reminder update --id <id> (--title <label> [--description <text>] | --description <text> | --fire-at <iso> | --repeat <cadence> [--timezone <iana>] | --script <command> | --wake-on-change | --fail-after <n|none>)',
     },
     {
         examples: ['haus reminder cancel --id rem_1a2b3c4d5e6f'],
@@ -159,6 +176,9 @@ export async function runReminderSchedule(args: ParsedArgs, deps: ReminderDeps):
             nextAction: 'Use the msg= id from the message this follow-up is about.',
         });
     }
+    requireScriptForWakeRules(args);
+    const wakeOnChange = args.flags['--wake-on-change'] === true;
+    const failAfter = parseFailAfter(args.values['--fail-after']);
     const commandId = scheduleCommandId(args);
     const fireAt = reminderScheduleTime(args);
     const timezone = await scheduleTimezone(args, deps.client);
@@ -169,12 +189,14 @@ export async function runReminderSchedule(args: ParsedArgs, deps: ReminderDeps):
             body: {
                 commandId: commandId ?? `cli-${randomUUID()}`,
                 description: args.values['--description'],
+                ...(failAfter !== undefined ? { failAfter } : {}),
                 ...(fireAt ? { fireAt } : {}),
                 messageId,
                 repeat: args.values['--repeat'],
                 script: args.values['--script'],
                 title,
                 ...(timezone ? { timezone } : {}),
+                ...(wakeOnChange ? { wakeOnChange } : {}),
             },
             method: 'POST',
         },
@@ -227,14 +249,17 @@ export async function runReminderSnooze(args: ParsedArgs, deps: ReminderDeps): P
 
 export async function runReminderUpdate(args: ParsedArgs, deps: ReminderDeps): Promise<number> {
     const id = requireFlag(args, '--id');
+    const wakeOnChange = args.flags['--wake-on-change'] === true ? true : undefined;
     const fields = {
         description: normalizeClearable(args.values['--description']),
+        failAfter: normalizeFailAfter(args.values['--fail-after']),
         fireAt: args.values['--fire-at']
             ? absoluteReminderFireAt(args.values['--fire-at'])
             : undefined,
         repeat: normalizeClearable(args.values['--repeat']),
         script: normalizeClearable(args.values['--script']),
         title: args.values['--title'],
+        wakeOnChange,
     };
     // The title and description are one label, so they may change together.
     const provided = [
@@ -242,11 +267,13 @@ export async function runReminderUpdate(args: ParsedArgs, deps: ReminderDeps): P
         fields.fireAt,
         fields.repeat,
         fields.script,
+        fields.failAfter,
+        fields.wakeOnChange,
     ];
     if (provided.filter((value) => value !== undefined).length !== 1) {
         throw new AgentCliError(
             'INVALID_ARG',
-            'Update one thing: --title and/or --description, --fire-at, --repeat, or --script.'
+            'Update one thing: --title and/or --description, --fire-at, --repeat, --script, --wake-on-change, or --fail-after.'
         );
     }
     const current = await readReminderForMutation(deps, id);
@@ -292,35 +319,6 @@ export async function runReminderCancel(args: ParsedArgs, deps: ReminderDeps): P
     deps.write(
         `${response.replayed ? `Already applied; current state: ${describeReminder(response.reminder)}` : `Canceled reminder ${response.reminder.id} ("${response.reminder.title}").`}\n`
     );
-    return 0;
-}
-
-export async function runReminderLog(args: ParsedArgs, deps: ReminderDeps): Promise<number> {
-    const params = new URLSearchParams();
-    const id = args.values['--id'];
-    const limit = args.values['--limit'];
-    if (id) {
-        params.set('id', id);
-    }
-    if (limit) {
-        params.set('limit', limit);
-    }
-    const query = params.size > 0 ? `?${params.toString()}` : '';
-    const response = await deps.client.request(
-        `/api/agent/reminders/log${query}`,
-        reminderLogSchema,
-        { method: 'GET' }
-    );
-    if (response.runs.length === 0) {
-        deps.write('No reminder fires recorded yet.\n');
-        return 0;
-    }
-    const lines = response.runs.map((run) => {
-        const exit = run.scriptExitCode === null ? '' : ` exit=${run.scriptExitCode}`;
-        const output = run.output ? ` — ${clip(run.output)}` : '';
-        return `${formatUtcTime(run.firedAt)} ${run.reminderId} [${run.outcome}]${exit}${output}`;
-    });
-    deps.write(`${lines.join('\n')}\n`);
     return 0;
 }
 

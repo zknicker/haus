@@ -14,13 +14,16 @@ import {
 } from './reminder-model.ts';
 
 export interface ReminderFire {
+    durationMs: number | null;
     firedAt: string;
     id: string;
+    outcome: 'failed' | 'quiet' | 'recovered' | 'unchanged' | 'woke' | null;
     reminderId: string;
     scheduledFor: string;
     scriptExitCode?: number | null;
     scriptOutput?: string | null;
     scriptTimedOut?: boolean;
+    wakeTotalTokens: number | null;
 }
 
 export interface ReminderAgentAttention {
@@ -54,13 +57,16 @@ export async function listReminderFires(
         )
         .orderBy(asc(reminderFiresTable.scheduledFor), asc(reminderFiresTable.id));
     return rows.map((row) => ({
+        durationMs: row.durationMs,
         firedAt: row.firedAt.toISOString(),
         id: row.id,
+        outcome: row.outcome,
         reminderId: row.reminderId,
         scheduledFor: row.scheduledFor.toISOString(),
         scriptExitCode: row.scriptExitCode,
         scriptOutput: row.scriptOutput,
         scriptTimedOut: row.scriptTimedOut,
+        wakeTotalTokens: row.wakeTotalTokens,
     }));
 }
 

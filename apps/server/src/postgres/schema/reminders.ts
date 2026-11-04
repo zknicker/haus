@@ -22,11 +22,17 @@ export const remindersTable = pgTable(
     {
         anchorChatId: text('anchor_chat_id').notNull(),
         anchorMessageId: text('anchor_message_id').notNull(),
+        /** Consecutive failed (non-zero exit or timeout) script runs, reset on success. */
+        consecutiveFailures: integer('consecutive_failures').notNull().default(0),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
         /** What to do when it fires, in full; the title is only its short label. */
         description: text('description'),
+        /** `--fail-after`: consecutive failures required before waking once. Null disables it. */
+        failAfter: integer('fail_after'),
         fireAt: timestamp('fire_at', { withTimezone: true }).notNull(),
         id: text('id').primaryKey(),
+        /** Hash of the last script output that woke the Agent, for `--wake-on-change`. */
+        lastWakeOutputHash: text('last_wake_output_hash'),
         ownerAgentId: text('owner_agent_id').notNull(),
         repeat: text('repeat'),
         script: text('script'),
@@ -38,6 +44,8 @@ export const remindersTable = pgTable(
         title: text('title').notNull(),
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
         version: integer('version').notNull().default(1),
+        /** `--wake-on-change`: a repeated waking output counts as a quiet "unchanged" run. */
+        wakeOnChange: boolean('wake_on_change').notNull().default(false),
     },
     (table) => [
         unique('reminders_server_id_key').on(table.serverId, table.id),
@@ -82,6 +90,11 @@ export const remindersTable = pgTable(
                 octet_length(${table.script}) between 1 and 16384
             )`
         ),
+        check(
+            'reminders_fail_after_range',
+            sql`${table.failAfter} is null or (${table.failAfter} between 1 and 20)`
+        ),
+        check('reminders_consecutive_failures_range', sql`${table.consecutiveFailures} >= 0`),
     ]
 );
 
@@ -122,6 +135,8 @@ export const reminderCommandsTable = pgTable(
 export const reminderFiresTable = pgTable(
     'reminder_fires',
     {
+        /** How long the script ran, in milliseconds. Null for a reminder with no script. */
+        durationMs: integer('duration_ms'),
         firedAt: timestamp('fired_at', { withTimezone: true }).notNull(),
         /**
          * Whether the reminder ran a script when it woke. A reminder gains or
@@ -130,6 +145,14 @@ export const reminderFiresTable = pgTable(
          */
         hasScript: boolean('has_script').notNull().default(false),
         id: text('id').primaryKey(),
+        /**
+         * What this run did: `quiet` (nothing to report), `unchanged` (would have
+         * woken, but its output matched the last waking run), `woke`, `failed`
+         * (a failure that stayed quiet under `--fail-after`), or `recovered`
+         * (first success after a failure streak that woke). Null until a script
+         * fire settles; a plain reminder is always `woke`.
+         */
+        outcome: text('outcome').$type<ReminderFireOutcome | null>(),
         scriptExitCode: integer('script_exit_code'),
         scriptOutput: text('script_output'),
         scriptTimedOut: boolean('script_timed_out').notNull().default(false),
@@ -138,6 +161,8 @@ export const reminderFiresTable = pgTable(
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),
+        /** Tokens the woken turn reported, when the runtime reports usage. */
+        wakeTotalTokens: integer('wake_total_tokens'),
     },
     (table) => [
         unique('reminder_fires_server_id_key').on(table.serverId, table.id),
@@ -155,8 +180,23 @@ export const reminderFiresTable = pgTable(
             'reminder_fires_script_output_size',
             sql`${table.scriptOutput} is null or octet_length(${table.scriptOutput}) <= 65536`
         ),
+        check(
+            'reminder_fires_outcome',
+            sql`${table.outcome} is null or ${table.outcome} in
+                ('quiet', 'unchanged', 'woke', 'failed', 'recovered')`
+        ),
+        check(
+            'reminder_fires_duration_ms_range',
+            sql`${table.durationMs} is null or ${table.durationMs} >= 0`
+        ),
+        check(
+            'reminder_fires_wake_total_tokens_range',
+            sql`${table.wakeTotalTokens} is null or ${table.wakeTotalTokens} >= 0`
+        ),
     ]
 );
+
+export type ReminderFireOutcome = 'failed' | 'quiet' | 'recovered' | 'unchanged' | 'woke';
 
 export const reminderAgentAttentionTable = pgTable(
     'reminder_agent_attention',

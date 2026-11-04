@@ -29,6 +29,8 @@ export interface Reminder {
     anchorMessageId: string;
     createdAt: string;
     description: string | null;
+    /** `--fail-after`: consecutive failures required before waking once. Null disables it. */
+    failAfter: number | null;
     fireAt: string;
     hasScript: boolean;
     id: string;
@@ -41,6 +43,8 @@ export interface Reminder {
     title: string;
     updatedAt: string;
     version: number;
+    /** `--wake-on-change`: a repeated waking output counts as a quiet "unchanged" run. */
+    wakeOnChange: boolean;
 }
 
 export interface ScheduleReminderInput {
@@ -48,6 +52,7 @@ export interface ScheduleReminderInput {
     anchorMessageId: string;
     commandId: string;
     description?: string | null;
+    failAfter?: number | null;
     /** Optional only for calendar repeats, whose first fire the Server derives. */
     fireAt?: Date;
     repeat?: string | null;
@@ -55,6 +60,7 @@ export interface ScheduleReminderInput {
     serverId: string;
     timezone?: string;
     title: string;
+    wakeOnChange?: boolean;
 }
 
 export class ReminderScheduleExpiredError extends Error {
@@ -136,6 +142,40 @@ export function validateScheduleInput(
     if (input.script != null && (bytes < 1 || bytes > 16_384)) {
         throw new Error('Reminder script must be between 1 and 16384 UTF-8 bytes.');
     }
+    validateFailAfter(input.failAfter);
+}
+
+export function validateFailAfter(failAfter: number | null | undefined) {
+    if (failAfter != null && (!Number.isInteger(failAfter) || failAfter < 1 || failAfter > 20)) {
+        throw new Error('Reminder --fail-after must be an integer between 1 and 20.');
+    }
+}
+
+/**
+ * A replayed `schedule` command matches its earlier fingerprint directly, or
+ * one of the two retained fingerprints from before a write field this request
+ * carries existed: the legacy one (no description, no explicit timezone) and
+ * the pre-wake-rules one (no `failAfter`/`wakeOnChange`). Either still counts
+ * as the same request when this one does not actually use the newer field.
+ */
+export function matchesEarlierScheduleFingerprint(
+    existingFingerprint: string,
+    input: ScheduleReminderInput,
+    context: {
+        description: string | null;
+        legacyFingerprint: string;
+        preWakeRulesFingerprint: string;
+    }
+): boolean {
+    const matchesLegacy =
+        input.timezone === undefined &&
+        context.description === null &&
+        existingFingerprint === context.legacyFingerprint;
+    const matchesPreWakeRules =
+        (input.failAfter ?? null) === null &&
+        (input.wakeOnChange ?? false) === false &&
+        existingFingerprint === context.preWakeRulesFingerprint;
+    return matchesLegacy || matchesPreWakeRules;
 }
 
 /**
@@ -175,6 +215,7 @@ export function toReminder(
         anchorMessageId: reminder.anchorMessageId,
         createdAt: reminder.createdAt.toISOString(),
         description: reminder.description,
+        failAfter: reminder.failAfter,
         fireAt: reminder.fireAt.toISOString(),
         hasScript: reminder.script !== null,
         id: reminder.id,
@@ -187,5 +228,6 @@ export function toReminder(
         title: reminder.title,
         updatedAt: reminder.updatedAt.toISOString(),
         version: reminder.version,
+        wakeOnChange: reminder.wakeOnChange,
     };
 }

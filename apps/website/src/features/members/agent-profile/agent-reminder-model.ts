@@ -1,4 +1,4 @@
-import type { Reminder, ReminderHistoryEntry } from '@haus/api';
+import type { Reminder, ReminderHistoryEntry, ReminderRunOutcome } from '@haus/api';
 
 /**
  * The section is a schedule, so it renders only the wakes still coming. The
@@ -61,7 +61,7 @@ export function formatReminderRunDelay(run: { firedAt: string; scheduledFor: str
 
 /** What one execution produced, as the History drawer's outcome cell renders it. */
 export type ReminderExecutionOutcome =
-    | { color: 'danger' | 'default' | 'success'; kind: 'script'; label: string }
+    | { color: 'danger' | 'default' | 'success' | 'warning'; kind: 'script'; label: string }
     | { kind: 'note'; label: string }
     | null;
 
@@ -80,7 +80,8 @@ export function reminderExecutionOutcome(
     entry: Pick<ReminderHistoryEntry, 'answer' | 'script'>
 ): ReminderExecutionOutcome {
     if (entry.script) {
-        return { ...scriptOutcome(entry.script), kind: 'script' };
+        const badge = reminderOutcomeBadge(entry.script.outcome) ?? scriptOutcome(entry.script);
+        return { ...badge, kind: 'script' };
     }
     return entry.answer ? null : { kind: 'note', label: 'No answer' };
 }
@@ -89,7 +90,8 @@ export function reminderExecutionOutcome(
  * A script's exit is a genuine success or failure, unlike a reminder's own
  * settled status, so it takes the semantic colors. A missing exit code is
  * neither: the Computer recorded the wake but never reported how the script
- * ended.
+ * ended. Only a fire from before the wake-rule outcome column existed falls
+ * back to this; a settled fire otherwise carries its outcome directly.
  */
 function scriptOutcome(script: NonNullable<ReminderHistoryEntry['script']>) {
     if (script.timedOut) {
@@ -101,4 +103,88 @@ function scriptOutcome(script: NonNullable<ReminderHistoryEntry['script']>) {
     return script.exitCode === 0
         ? { color: 'success' as const, label: 'Exit 0' }
         : { color: 'danger' as const, label: `Exit ${script.exitCode}` };
+}
+
+/**
+ * One run's wake-rule outcome, as every run-history surface (the History
+ * drawer and a reminder's own Run history) renders its chip. Null when a
+ * script fire has not settled yet, or carries no outcome at all (a reminder
+ * with no script).
+ */
+export function reminderOutcomeBadge(
+    outcome: ReminderRunOutcome | null
+): { color: 'danger' | 'default' | 'success' | 'warning'; label: string } | null {
+    switch (outcome) {
+        case 'failed':
+            return { color: 'warning', label: 'Failing (quiet)' };
+        case 'quiet':
+            return { color: 'default', label: 'Quiet' };
+        case 'recovered':
+            return { color: 'success', label: 'Recovered' };
+        case 'unchanged':
+            return { color: 'default', label: 'Unchanged' };
+        case 'woke':
+            return { color: 'success', label: 'Woke' };
+        default:
+            return null;
+    }
+}
+
+/** The wake rules in effect for a script reminder, or null while neither is set. */
+export function reminderWakeRulesLabel(reminder: Pick<Reminder, 'failAfter' | 'wakeOnChange'>) {
+    const rules = [
+        reminder.wakeOnChange ? 'Wakes on change' : null,
+        reminder.failAfter ? `Wakes after ${reminder.failAfter} failures` : null,
+    ].filter((rule): rule is string => rule !== null);
+    return rules.length > 0 ? rules.join(' · ') : null;
+}
+
+export interface ReminderRunLike {
+    durationMs?: number | null;
+    outcome: ReminderRunOutcome | null;
+    scriptExitCode?: number | null;
+    wakeTotalTokens?: number | null;
+}
+
+/** How long a run took and how it exited, as the compact run-history row's second line. */
+export function formatReminderRunDetail(run: ReminderRunLike): string | null {
+    const parts = [
+        run.durationMs != null ? `${run.durationMs}ms` : null,
+        run.scriptExitCode != null ? `exit ${run.scriptExitCode}` : null,
+    ].filter((part): part is string => part !== null);
+    return parts.length > 0 ? parts.join(' · ') : null;
+}
+
+/** Counts by outcome, and tokens spent on wakes, over whatever runs the caller fetched. */
+export function summarizeReminderRuns(runs: readonly ReminderRunLike[]) {
+    const counts: Record<ReminderRunOutcome, number> = {
+        failed: 0,
+        quiet: 0,
+        recovered: 0,
+        unchanged: 0,
+        woke: 0,
+    };
+    let tokens = 0;
+    for (const run of runs) {
+        if (run.outcome) {
+            counts[run.outcome] += 1;
+        }
+        tokens += run.wakeTotalTokens ?? 0;
+    }
+    return { counts, tokens };
+}
+
+/**
+ * The Run history group's one summary line: the most recent run's outcome,
+ * then totals across every run the caller fetched. `runs` is newest first.
+ */
+export function formatReminderRunSummaryLine(runs: readonly ReminderRunLike[]): string | null {
+    if (runs.length === 0) {
+        return null;
+    }
+    const latest = reminderOutcomeBadge(runs[0].outcome);
+    const { counts, tokens } = summarizeReminderRuns(runs);
+    const totals = `${counts.woke} woke, ${counts.failed} failed, ${counts.recovered} recovered, ${counts.unchanged} unchanged, ${counts.quiet} quiet`;
+    const tokenNote = tokens > 0 ? ` · ${tokens} tokens on wakes` : '';
+    return `${latest ? `Last run: ${latest.label} · ` : ''}${totals}${tokenNote}`;
 }

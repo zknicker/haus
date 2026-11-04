@@ -15,6 +15,7 @@ import { lockReminderCommand, parseReminderCommandResult } from './mutations.ts'
 import { prepareReminderEvent } from './reminder-events.ts';
 import {
     agentCanAccessAnchor,
+    matchesEarlierScheduleFingerprint,
     type Reminder,
     type ReminderClock,
     ReminderCommandConflictError,
@@ -71,12 +72,14 @@ export async function scheduleReminder(
         anchorChatId: input.anchorChatId,
         anchorMessageId: input.anchorMessageId,
         description,
+        failAfter: input.failAfter ?? null,
         // A derived calendar first fire is not part of the request, so a replay
         // after that slot passes still matches.
         fireAt: input.fireAt?.toISOString() ?? null,
         repeat: repeat?.spec ?? input.repeat ?? null,
         script: input.script ?? null,
         title,
+        wakeOnChange: input.wakeOnChange ?? false,
         ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
     });
 
@@ -90,6 +93,19 @@ export async function scheduleReminder(
         repeat: repeat?.spec ?? input.repeat ?? null,
         script: input.script ?? null,
         title,
+    });
+
+    // Pre-wake-rules commands did not include failAfter/wakeOnChange. Retain
+    // this decoder for the same reason as the legacy decoder above.
+    const preWakeRulesFingerprint = JSON.stringify({
+        anchorChatId: input.anchorChatId,
+        anchorMessageId: input.anchorMessageId,
+        description,
+        fireAt: input.fireAt?.toISOString() ?? null,
+        repeat: repeat?.spec ?? input.repeat ?? null,
+        script: input.script ?? null,
+        title,
+        ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
     });
 
     const result = await db.transaction(async (tx) => {
@@ -118,14 +134,12 @@ export async function scheduleReminder(
             )
             .limit(1);
         if (existingCommand) {
-            if (
-                existingCommand.fingerprint !== fingerprint &&
-                !(
-                    input.timezone === undefined &&
-                    description === null &&
-                    existingCommand.fingerprint === legacyFingerprint
-                )
-            ) {
+            const replaysAnEarlierContract = matchesEarlierScheduleFingerprint(
+                existingCommand.fingerprint,
+                input,
+                { description, legacyFingerprint, preWakeRulesFingerprint }
+            );
+            if (existingCommand.fingerprint !== fingerprint && !replaysAnEarlierContract) {
                 throw new ReminderCommandConflictError();
             }
             return {
@@ -168,6 +182,7 @@ export async function scheduleReminder(
                 anchorMessageId: input.anchorMessageId,
                 createdAt: now,
                 description,
+                failAfter: input.failAfter ?? null,
                 fireAt,
                 id: reminderId,
                 ownerAgentId: agentId,
@@ -178,6 +193,7 @@ export async function scheduleReminder(
                 timezone,
                 title,
                 updatedAt: now,
+                wakeOnChange: input.wakeOnChange ?? false,
             })
             .returning();
         // Scheduling posts nothing to the transcript. The Automations tab and the
