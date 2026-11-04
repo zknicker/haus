@@ -3,7 +3,10 @@ import type { AgentCommand, ServerRuntimeSettingsCommand } from '@haus/api';
 import { RuntimeSettingsSends } from './runtime-settings-sends.ts';
 
 const on: ServerRuntimeSettingsCommand = { idleCompaction: true, type: 'server-runtime-settings' };
-const off: ServerRuntimeSettingsCommand = { idleCompaction: false, type: 'server-runtime-settings' };
+const off: ServerRuntimeSettingsCommand = {
+    idleCompaction: false,
+    type: 'server-runtime-settings',
+};
 
 function transport() {
     const sent: string[] = [];
