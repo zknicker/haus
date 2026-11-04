@@ -232,6 +232,25 @@ test('a turn that arrives mid-compaction waits for it, then gets the compacted p
     expect(process.closes).toBe(0);
 });
 
+test('a reconnect mid-compaction never fires a second one; it re-arms once the first settles', async () => {
+    const { pool, reports } = harness();
+    pool.setIdleCompaction(true);
+    const process = new CompactableProcess();
+    await pool.park('agent-a', identity, process);
+    await Bun.sleep(20);
+    expect(process.compactions).toBe(1);
+    const first = process.finish;
+    // The Server resends the setting on attach while the compaction still runs.
+    pool.setIdleCompaction(true);
+    await Bun.sleep(20);
+    expect(process.compactions).toBe(1);
+    first?.(result);
+    await Bun.sleep(20);
+    expect(reports).toEqual([result]);
+    // Still parked and eligible under the test seam, so it was armed again and ran.
+    expect(process.compactions).toBe(2);
+});
+
 test('the idle close waits for a running compaction instead of cutting it', async () => {
     const { pool, reports } = harness({ dueInMs: 5, idleMs: 30 });
     pool.setIdleCompaction(true);

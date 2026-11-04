@@ -82,10 +82,20 @@ export class IdleCompactionScheduler {
     /**
      * Arms the compaction for a session just parked. Nothing is armed while the setting is off,
      * for a runtime that cannot compact, before its first request, when its last request did not
-     * write the one-hour cache, or when the pool would close the process first.
+     * write the one-hour cache, or when the pool would close the process first. A session that is
+     * compacting now is re-armed once that compaction settles, if it is still parked.
      */
     arm(key: string, process: WarmProcess, closesAt: number): void {
         this.disarm(key);
+        const compacting = this.running.get(key);
+        if (compacting) {
+            void compacting.then(() => {
+                if (!this.running.has(key) && this.parked.identity(key, process)) {
+                    this.arm(key, process, closesAt);
+                }
+            });
+            return;
+        }
         if (!(this.enabled && isCompactable(process) && this.options.hooks.compactable(key))) {
             return;
         }
@@ -126,7 +136,8 @@ export class IdleCompactionScheduler {
             this.armed.delete(key);
         }
         const identity = this.parked.identity(key, process);
-        if (!(this.enabled && identity && process.alive)) {
+        // One compaction at a time: a second `/compact` would take over the first one's stream.
+        if (!(this.enabled && identity && process.alive) || this.running.has(key)) {
             return;
         }
         const { hooks } = this.options;
