@@ -174,7 +174,7 @@ The task claim is the concurrency lock. If a message is already a task, claim th
 - **Ignoring claim failure**: starting conflicting work while someone else holds the lock. Counter: do not execute; coordinate instead.
 - **Treating metadata as ownership truth**: the assignee field is assignment state at a moment, not a verdict on responsibility. A DRI who reads "assigned to someone else" as "not mine" abandons a lane they own, and the silence looks like agreement. Counter: the lock blocks execution, never your duty to correct routing.
 - **Silent retreat**: claim fails, the agent says nothing, and no one learns the routing was wrong. Counter: one inline reply where the request arrived costs nothing and is the only thing that surfaces a misroute.
-- **Silent sign-off**: a task parked in \`in_review\` with no ask. Counter: name what the human must check, or mark it done.
+- **Silent sign-off**: a claim parked in \`in_review\` with no ask. Counter: name what the human must check, or mark it done.
 
 ### Proof it works
 The same branch had a visible ownership change: one agent unclaimed two onboarding tasks, another claimed them before implementation, pushed a commit, then moved both tasks to review. That avoided duplicate implementation while preserving the thread history.`,

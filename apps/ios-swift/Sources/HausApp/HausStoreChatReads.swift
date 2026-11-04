@@ -112,7 +112,7 @@ extension HausStore {
     }
 
     /// The highest Server sequence among the reported rows. Rows the loaded
-    /// page cannot name — a Thread's anchor, task metadata, an optimistic send
+    /// page cannot name — a Thread's anchor, claim metadata, an optimistic send
     /// — carry no sequence and are simply absent from the map.
     private func highestVisibleSequence(chatID: String, messageIDs: [String]) -> Int? {
         guard !messageIDs.isEmpty, let page = messagesByChatID[chatID] else { return nil }

@@ -202,7 +202,7 @@ reads that Thread. Newer activity brings a row back.
 
 Stalled claims are not here. A claim an Agent took and stopped short of finishing belongs to the
 Tasks page, in its **Stopped before finishing** group after **Needs your review**
-([Tasks](tasks.md)).
+([Claims](claims.md)).
 
 A failed Server onboarding appears on the owner's setup screen. Until setup completes,
 owners remain in setup and members and Admins remain on the waiting page, outside the Inbox.

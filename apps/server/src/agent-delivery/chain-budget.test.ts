@@ -15,8 +15,8 @@ test('allows exactly sixteen consecutive automation-authored drain turns', () =>
     }
 });
 
-test('human, reminder, and task work resets the chain at the ceiling', () => {
-    for (const source of ['human', 'reminder', 'task']) {
+test('human, reminder, and claim work resets the chain at the ceiling', () => {
+    for (const source of ['human', 'reminder', 'claim']) {
         const rows = [{ source: 'trigger' }, { source }];
         expect(canBeginAgentDrain(rows, maxAgentChainTurns)).toBe(true);
         expect(nextAgentChain(rows, maxAgentChainTurns, now)).toEqual({

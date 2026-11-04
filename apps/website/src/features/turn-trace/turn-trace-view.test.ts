@@ -140,10 +140,10 @@ test('P1-1: bookkeeping folds into one Haus step where it began', () => {
     assert.deepEqual(
         haus.members.map((member) => member.label),
         [
-            'Claimed a task',
+            'Claimed a message',
             'Read MEMORY.md',
             'Replied in DM',
-            'Updated a task',
+            'Updated a claim',
             'Modified MEMORY.md',
         ]
     );

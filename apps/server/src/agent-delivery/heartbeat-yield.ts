@@ -1,12 +1,12 @@
 import type { AgentActivityEvent } from '@haus/api';
 import { and, eq, isNotNull, or } from 'drizzle-orm';
+import { settleAgentBackgroundClaims } from '../claims/background-claims.ts';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
 import { recordHeartbeatCheck } from '../heartbeat/heartbeat-checks.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable, agentRunTriggersTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
-import { settleAgentBackgroundClaims } from '../tasks/background-claims.ts';
 import {
     type DeferredConfiguration,
     rotateDeferredConfiguration,
@@ -17,10 +17,10 @@ import * as store from './store.ts';
 export interface YieldedHeartbeat {
     activity: AgentActivityEvent | null;
     agentId: string;
+    claimEvents: PreparedRealtimeEvent[];
     computerId: string;
     configuration: DeferredConfiguration | null;
     runId: string;
-    taskEvents: PreparedRealtimeEvent[];
 }
 
 /**
@@ -72,7 +72,7 @@ export async function yieldHeartbeatToAddressed(
         agentId,
         serverId,
     });
-    const taskEvents = await settleAgentBackgroundClaims(tx, { agentId, runId, serverId });
+    const claimEvents = await settleAgentBackgroundClaims(tx, { agentId, runId, serverId });
     await store.clearActiveRun(tx, agentId);
     return {
         activity,
@@ -80,7 +80,7 @@ export async function yieldHeartbeatToAddressed(
         computerId: state.activeRunComputerId,
         configuration,
         runId,
-        taskEvents,
+        claimEvents,
     };
 }
 

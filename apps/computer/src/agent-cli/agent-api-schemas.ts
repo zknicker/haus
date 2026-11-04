@@ -3,23 +3,23 @@ import {
     agentCloudAgentHeldSchema,
     agentCloudAgentReceiptSchema,
     chatMessageReplySchema,
+    claimOrigins,
     type HausAgentMessage,
     type HausAgentSendResponse,
     humanTimezoneSchema,
-    taskOrigins,
 } from '@haus/api';
 import * as z from 'zod';
 import { messageCloudAgentWorkSchema } from './message-cloud-agent-work-schema.ts';
 
 const jsonObjectSchema = z.record(z.string(), z.unknown());
 
-export const taskActorSchema = z.object({
+export const claimActorSchema = z.object({
     handle: z.string().nullable(),
     id: z.string(),
 });
 
-const messageTaskSchema = z.object({
-    assignee: taskActorSchema.nullable(),
+const messageClaimSchema = z.object({
+    assignee: claimActorSchema.nullable(),
     claimed_at: z.string().nullable(),
     created_at: z.string(),
     labels: z.array(
@@ -40,7 +40,7 @@ const messageTaskSchema = z.object({
         })
     ),
     number: z.number().int().positive(),
-    origin: z.enum(taskOrigins),
+    origin: z.enum(claimOrigins),
     priority: z.enum(['none', 'urgent', 'high', 'medium', 'low']),
     status: z.enum(['todo', 'in_progress', 'in_review', 'done', 'closed']),
     updated_at: z.string(),
@@ -69,6 +69,7 @@ export const agentMessageSchema = z.object({
     }),
     body_kind: z.enum(['text', 'agent-created']),
     chat_id: z.string().min(1),
+    claim: messageClaimSchema.nullable().optional(),
     content: z.string(),
     created_at: z.string().min(1),
     deleted_at: z.string().nullable(),
@@ -77,7 +78,7 @@ export const agentMessageSchema = z.object({
     metadata: jsonObjectSchema,
     nonce: z.string().nullable(),
     reactions: z
-        .array(z.object({ actors: z.array(taskActorSchema), emoji: z.string() }))
+        .array(z.object({ actors: z.array(claimActorSchema), emoji: z.string() }))
         .optional(),
     replyCount: z.number().int().nonnegative().optional(),
     reply: chatMessageReplySchema.nullable().optional(),
@@ -90,7 +91,6 @@ export const agentMessageSchema = z.object({
         type: z.enum(['human', 'agent', 'system']),
     }),
     sequence: z.number().int().positive(),
-    task: messageTaskSchema.nullable().optional(),
     threadId: z.string().min(1).optional(),
 }) satisfies z.ZodType<HausAgentMessage>;
 
@@ -137,7 +137,7 @@ export const agentCloudAgentStartResponseSchema = z.discriminatedUnion('state', 
 export const agentMessageCheckResponseSchema = z.object({
     /**
      * Bodiless inbox items served on the same pull: Trigger and Reminder fires,
-     * and task assignments. None writes a Chat message, so they ride their own
+     * and claim assignments. None writes a Chat message, so they ride their own
      * array and carry their own envelope bodies.
      */
     automations: z.array(agentAutomationEventSchema).default([]),

@@ -114,7 +114,7 @@ describe('action thought descriptions', () => {
         expect(
             describeToolAction({
                 classification: { outcome: 'skip' },
-                input: { command: 'haus task claim --message-id x' },
+                input: { command: 'haus claim --message-id x' },
                 toolName: 'bash',
             })
         ).toBeNull();
@@ -150,7 +150,7 @@ describe('action thought descriptions', () => {
                 toolName: 'bash',
                 type: 'tool-call',
             });
-        await call('c1', 'haus task claim --target "#all" --message-id ClWDtd8V');
+        await call('c1', 'haus claim --target "#all" --message-id ClWDtd8V');
         await call('c2', "haus message send --target '#all' <<'HAUSMSG'\nOn it\nHAUSMSG");
         await call('c3', "curl -fsS 'https://api.open-meteo.com/v1/forecast?latitude=40.7'");
         await call('c4', 'haus message check && curl https://wttr.in/NYC');

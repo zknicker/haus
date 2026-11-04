@@ -1,38 +1,38 @@
 import HausModels
 import SwiftUI
 
-/// The narrow App-layer seam for the Server task lens.
+/// The narrow App-layer seam for the Server claim lens.
 ///
 /// The default lens is the Server-wide read the Store already owns, so the
 /// screen reads that snapshot rather than keeping a second copy of the same
-/// query: a `task.onChanged` notification refreshes it and this
+/// query: a `claim.onChanged` notification refreshes it and this
 /// screen repaints without anyone pulling to refresh. Only the widened lens —
 /// a reader deliberately looking at the background tier — comes back through
 /// `load`, because it is a different question and a temporary one.
 public struct TaskListPersistence: Sendable {
-    /// The task's assignee Agent as the App layer resolved it, or `nil` when
-    /// the task is unassigned or the Agent is missing from the directory.
+    /// The claim's assignee Agent as the App layer resolved it, or `nil` when
+    /// the claim is unassigned or the Agent is missing from the directory.
     /// Rows derive both the avatar and the assignee label from this, so there
-    /// is no second name to disagree with the Thread task drawer.
-    public let assignee: @Sendable (TaskListItem) -> MessageAuthorPresentation?
+    /// is no second name to disagree with the Thread claim drawer.
+    public let assignee: @Sendable (ClaimListItem) -> MessageAuthorPresentation?
     /// The Store's Server-wide default lens, `nil` before its first load.
-    public let tasks: @MainActor @Sendable () -> [TaskListItem]?
+    public let claims: @MainActor @Sendable () -> [ClaimListItem]?
     /// How many background-tier rows that lens hid.
     public let backgroundCount: @MainActor @Sendable () -> Int
     /// Reloads a lens. The default lens lands on the Store snapshot above; the
     /// widened rows are returned to the caller.
-    public let load: @Sendable (_ includeBackground: Bool) async throws -> [TaskListItem]
-    public let updateStatus: @Sendable (TaskListItem, TaskStatus) async throws -> Void
+    public let load: @Sendable (_ includeBackground: Bool) async throws -> [ClaimListItem]
+    public let updateStatus: @Sendable (ClaimListItem, ClaimStatus) async throws -> Void
 
     public init(
-        assignee: @escaping @Sendable (TaskListItem) -> MessageAuthorPresentation? = { _ in nil },
-        tasks: @escaping @MainActor @Sendable () -> [TaskListItem]?,
+        assignee: @escaping @Sendable (ClaimListItem) -> MessageAuthorPresentation? = { _ in nil },
+        claims: @escaping @MainActor @Sendable () -> [ClaimListItem]?,
         backgroundCount: @escaping @MainActor @Sendable () -> Int = { 0 },
-        load: @escaping @Sendable (Bool) async throws -> [TaskListItem],
-        updateStatus: @escaping @Sendable (TaskListItem, TaskStatus) async throws -> Void
+        load: @escaping @Sendable (Bool) async throws -> [ClaimListItem],
+        updateStatus: @escaping @Sendable (ClaimListItem, ClaimStatus) async throws -> Void
     ) {
         self.assignee = assignee
-        self.tasks = tasks
+        self.claims = claims
         self.backgroundCount = backgroundCount
         self.load = load
         self.updateStatus = updateStatus
@@ -42,11 +42,11 @@ public struct TaskListPersistence: Sendable {
 extension TaskListPersistence {
     static let preview = TaskListPersistence(
         assignee: { item in
-            item.task.assigneeAgentID.map {
+            item.claim.assigneeAgentID.map {
                 MessageAuthorPresentation(id: $0, name: "Cove", avatarURL: nil)
             }
         },
-        tasks: { TaskPreviewFixtures.items },
+        claims: { TaskPreviewFixtures.items },
         backgroundCount: { TaskPreviewFixtures.backgroundItems.count },
         load: { includeBackground in
             includeBackground ? TaskPreviewFixtures.widenedItems : TaskPreviewFixtures.items
@@ -62,12 +62,12 @@ extension TaskListPersistence {
 /// delegates to the existing canonical Thread route.
 public struct TaskListDestinationView: View {
     private let persistence: TaskListPersistence
-    private let onOpenTask: (TaskListItem) -> Void
+    private let onOpenClaim: (ClaimListItem) -> Void
 
     /// The reader's own widening, and the rows it asked for. View-local: the
     /// background tier is a lens someone opens for a moment, not Server state.
     @State private var includeBackground = false
-    @State private var widenedItems: [TaskListItem]?
+    @State private var widenedItems: [ClaimListItem]?
     @State private var failure: String?
     @State private var errorMessage: String?
     @State private var mutatingIDs: Set<String> = []
@@ -76,10 +76,10 @@ public struct TaskListDestinationView: View {
 
     public init(
         persistence: TaskListPersistence,
-        onOpenTask: @escaping (TaskListItem) -> Void
+        onOpenClaim: @escaping (ClaimListItem) -> Void
     ) {
         self.persistence = persistence
-        self.onOpenTask = onOpenTask
+        self.onOpenClaim = onOpenClaim
     }
 
     public var body: some View {
@@ -88,18 +88,18 @@ public struct TaskListDestinationView: View {
             .hausInlineNavigationTitle()
             .toolbar { backgroundToggle }
             .task(id: "\(includeBackground):\(reloadToken)") {
-                await loadTasks()
+                await loadClaims()
             }
             .refreshable {
-                await loadTasks()
+                await loadClaims()
             }
             .sensoryFeedback(.success, trigger: mutationSuccessFeedback)
     }
 
     /// The rows on screen: the Store's own lens, or the widened one the reader
     /// asked for. `nil` means nothing has landed yet.
-    private var items: [TaskListItem]? {
-        includeBackground ? widenedItems : persistence.tasks()
+    private var items: [ClaimListItem]? {
+        includeBackground ? widenedItems : persistence.claims()
     }
 
     @ViewBuilder
@@ -119,7 +119,7 @@ public struct TaskListDestinationView: View {
                     items: items,
                     assignee: persistence.assignee,
                     mutatingIDs: mutatingIDs,
-                    onOpenTask: onOpenTask,
+                    onOpenClaim: onOpenClaim,
                     onUpdateStatus: { item, status in
                         Task { await mutate(item) { try await persistence.updateStatus(item, status) } }
                     }
@@ -177,7 +177,7 @@ public struct TaskListDestinationView: View {
         }
     }
 
-    private func loadTasks() async {
+    private func loadClaims() async {
         errorMessage = nil
         do {
             let rows = try await persistence.load(includeBackground)
@@ -199,7 +199,7 @@ public struct TaskListDestinationView: View {
     }
 
     private func mutate(
-        _ item: TaskListItem,
+        _ item: ClaimListItem,
         operation: @escaping @Sendable () async throws -> Void
     ) async {
         guard mutatingIDs.isEmpty else { return }
@@ -217,7 +217,7 @@ public struct TaskListDestinationView: View {
             errorMessage = error.localizedDescription
             return
         }
-        await loadTasks()
+        await loadClaims()
     }
 }
 
@@ -225,7 +225,7 @@ public struct TaskListDestinationView: View {
     NavigationStack {
         TaskListDestinationView(
             persistence: .preview,
-            onOpenTask: { _ in }
+            onOpenClaim: { _ in }
         )
     }
 }

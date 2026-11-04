@@ -59,9 +59,9 @@ extension HausStore {
             streamTask(stream, serverID: serverID) { (store, event: CloudAgentWorkUpdatedEvent) in
                 await store.receive(.cloudAgentWorkUpdated(event), serverID: serverID)
             }
-        case .taskChanged:
-            streamTask(stream, serverID: serverID) { (store, event: TaskChangedEvent) in
-                await store.receive(.taskChanged(event), serverID: serverID)
+        case .claimChanged:
+            streamTask(stream, serverID: serverID) { (store, event: ClaimChangedEvent) in
+                await store.receive(.claimChanged(event), serverID: serverID)
             }
         case .taskLabelUpdated:
             streamTask(stream, serverID: serverID) { (store, event: TaskLabelUpdatedEvent) in

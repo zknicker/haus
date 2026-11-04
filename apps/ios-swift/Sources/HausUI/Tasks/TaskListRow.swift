@@ -7,7 +7,7 @@ enum TaskListMetrics {
     static let trailingSlotSize: CGFloat = 28
 }
 
-func defaultTaskChatLabel(_ item: TaskListItem) -> String {
+func defaultTaskChatLabel(_ item: ClaimListItem) -> String {
     switch item.chatKind {
     case .channel:
         "#\(item.chatName ?? "channel")"
@@ -16,17 +16,17 @@ func defaultTaskChatLabel(_ item: TaskListItem) -> String {
     }
 }
 
-/// The one place a task's assignee becomes words.
+/// The one place a claim's assignee becomes words.
 ///
 /// The resolved presentation is authoritative, so the row label, the avatar,
-/// and the Thread task drawer always agree. The id-suffix forms only cover an
+/// and the Thread claim drawer always agree. The id-suffix forms only cover an
 /// actor the App layer could not find in its directories.
 enum TaskAssigneeLabel {
-    static func text(for item: TaskListItem, assignee: MessageAuthorPresentation?) -> String {
+    static func text(for item: ClaimListItem, assignee: MessageAuthorPresentation?) -> String {
         if let assignee {
             return assignee.name
         }
-        if let agentID = item.task.assigneeAgentID {
+        if let agentID = item.claim.assigneeAgentID {
             return "Agent \(String(agentID.suffix(6)))"
         }
         return "Unassigned"
@@ -71,21 +71,21 @@ struct TaskSectionHeader: View {
 }
 
 struct TaskListRow: View {
-    let item: TaskListItem
+    let item: ClaimListItem
     let chatLabel: String
     let assignee: MessageAuthorPresentation?
     let isMutating: Bool
     let onOpen: () -> Void
-    let onUpdateStatus: (TaskStatus) -> Void
+    let onUpdateStatus: (ClaimStatus) -> Void
 
     var body: some View {
         Button(action: onOpen) {
             HStack(spacing: 9) {
-                TaskPriorityIcon(priority: item.task.priority)
+                TaskPriorityIcon(priority: item.claim.priority)
 
                 // No issue id on the row: Linear mobile leads with the two
                 // glyphs and the title. The number stays in the a11y label.
-                TaskStatusDisc(status: TaskStatusShape(item.task.status))
+                TaskStatusDisc(status: TaskStatusShape(item.claim.status))
 
                 Text(title)
                     .font(.body)
@@ -95,7 +95,7 @@ struct TaskListRow: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.trailing, 4)
 
-                if item.task.tier == .background {
+                if item.claim.tier == .background {
                     // A lens the reader opened, not a status of its own, so
                     // it reads as a muted word rather than a chip. It keeps
                     // its width: the title is the part that truncates.
@@ -158,9 +158,9 @@ struct TaskListRow: View {
     @ViewBuilder
     private var actionMenu: some View {
         Section("Status") {
-            ForEach(TaskStatus.ordered, id: \.self) { status in
+            ForEach(ClaimStatus.ordered, id: \.self) { status in
                 Button { onUpdateStatus(status) } label: {
-                    if status == item.task.status {
+                    if status == item.claim.status {
                         Label(status.displayName, systemImage: "checkmark")
                     } else {
                         Text(status.displayName)
@@ -175,22 +175,22 @@ struct TaskListRow: View {
     }
 
     private var isAssigned: Bool {
-        item.task.assigneeAgentID != nil
+        item.claim.assigneeAgentID != nil
     }
 
     // The row sheds metadata visually, so the a11y label still carries it.
     private var accessibilityLabel: String {
         var parts = [
-            "Task #\(item.task.number)",
+            "Claim #\(item.claim.number)",
             title,
-            item.task.status.displayName,
+            item.claim.status.displayName,
         ]
-        if item.task.priority != .none {
-            parts.append("\(item.task.priority.displayName) priority")
+        if item.claim.priority != .none {
+            parts.append("\(item.claim.priority.displayName) priority")
         }
         parts.append(assigneeLabel)
         parts.append(chatLabel)
-        if item.task.tier == .background {
+        if item.claim.tier == .background {
             parts.append("background")
         }
         if isMutating {

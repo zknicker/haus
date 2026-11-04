@@ -27,13 +27,13 @@ export function ThreadPageRoute() {
     const shown = useTabPresence().shown;
     const openers = useDesktopPageOpeners();
     const thread = useThreadAnchor(server.id, chatId, anchorMessageId);
-    // A Thread opened on a task inside it (`?task=`) states that task, as the
+    // A Thread opened on a claim inside it (`?claim=`) states that claim, as the
     // Tasks page's Thread dialog does.
     const [searchParams] = useSearchParams();
-    const taskMessageId = searchParams.get('task');
+    const claimMessageId = searchParams.get('claim');
     const threadChatId = thread.summary?.threadChatId ?? '';
-    const taskEntity = useChatMessage(server.id, threadChatId, taskMessageId ?? '', {
-        enabled: taskMessageId !== null && threadChatId !== '',
+    const claimEntity = useChatMessage(server.id, threadChatId, claimMessageId ?? '', {
+        enabled: claimMessageId !== null && threadChatId !== '',
     });
     const openChat = (id: string) => navigate(serverChatRoute(server.slug, id));
     const activateReference = useChatReferenceActivation(openChat);
@@ -56,7 +56,8 @@ export function ThreadPageRoute() {
                 active={shown}
                 anchor={anchor}
                 chat={chat}
-                initialThreadChatId={anchor.task?.threadChatId}
+                claimMessage={claimEntity?.message ?? null}
+                initialThreadChatId={anchor.claim?.threadChatId}
                 key={anchor.id}
                 onOpenArtifact={openArtifact}
                 onReferenceActivate={activateReference}
@@ -64,7 +65,6 @@ export function ThreadPageRoute() {
                 readOnly={(chat.kind === 'dm' && chat.peerAgentRetired) || chat.archivedAt !== null}
                 summary={thread.summary}
                 takeover={false}
-                taskMessage={taskEntity?.message ?? null}
                 turnDetailsAccess={getTurnDetailAccess(server.role)}
                 width={null}
             />

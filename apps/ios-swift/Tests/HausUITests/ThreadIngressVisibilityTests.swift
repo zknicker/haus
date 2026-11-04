@@ -4,55 +4,55 @@ import Testing
 
 /// What the anchor's Thread ingress states, under the reader's Chat preference.
 struct ThreadIngressVisibilityTests {
-    @Test func hidesAnEmptyClaimedTaskUntilTheReaderAsksForIt() {
-        #expect(ingress(.claimed, hasReplies: false, showTasksInChat: false) == nil)
-        #expect(ingress(.claimed, hasReplies: false, showTasksInChat: true) != nil)
+    @Test func hidesAnEmptyAgentClaimUntilTheReaderAsksForIt() {
+        #expect(ingress(.claimed, hasReplies: false, showClaimsInChat: false) == nil)
+        #expect(ingress(.claimed, hasReplies: false, showClaimsInChat: true) != nil)
     }
 
-    @Test func keepsATaskAHumanMadeWhateverThePreferenceSays() {
-        for origin in [TaskOrigin.composed, .converted] {
-            #expect(ingress(origin, hasReplies: false, showTasksInChat: false) != nil)
+    @Test func keepsAClaimAHumanMadeWhateverThePreferenceSays() {
+        for origin in [ClaimOrigin.composed, .converted] {
+            #expect(ingress(origin, hasReplies: false, showClaimsInChat: false) != nil)
         }
     }
 
-    /// A populated Thread always states its task: once people are talking in
+    /// A populated Thread always states its claim: once people are talking in
     /// it, which work they are talking about is part of reading the ingress.
     @Test func statesAHiddenClaimOnceItsThreadHasReplies() {
-        #expect(ingress(.claimed, hasReplies: true, showTasksInChat: false) != nil)
+        #expect(ingress(.claimed, hasReplies: true, showClaimsInChat: false) != nil)
     }
 
     @Test func drawsNoIngressForAHiddenClaimWithNoReplies() {
-        let hidden = ingress(.claimed, hasReplies: false, showTasksInChat: false)
+        let hidden = ingress(.claimed, hasReplies: false, showClaimsInChat: false)
 
-        #expect(ThreadPreviewProjection.showsIngress(replyCount: 0, task: hidden) == false)
+        #expect(ThreadPreviewProjection.showsIngress(replyCount: 0, claim: hidden) == false)
     }
 
     @Test func keepsTheIngressWhenAHiddenClaimsThreadFilledUp() {
-        let stated = ingress(.claimed, hasReplies: true, showTasksInChat: false)
+        let stated = ingress(.claimed, hasReplies: true, showClaimsInChat: false)
 
-        #expect(ThreadPreviewProjection.showsIngress(replyCount: 2, task: stated))
+        #expect(ThreadPreviewProjection.showsIngress(replyCount: 2, claim: stated))
     }
 
-    @Test func drawsTheIngressForAComposedTaskBeforeItsFirstReply() {
-        let visible = ingress(.composed, hasReplies: false, showTasksInChat: false)
+    @Test func drawsTheIngressForAComposedClaimBeforeItsFirstReply() {
+        let visible = ingress(.composed, hasReplies: false, showClaimsInChat: false)
 
-        #expect(ThreadPreviewProjection.showsIngress(replyCount: 0, task: visible))
+        #expect(ThreadPreviewProjection.showsIngress(replyCount: 0, claim: visible))
     }
 
-    @Test func dropsTheReplyCountLabelWhenOnlyATaskStatesItself() {
-        #expect(ThreadPreviewProjection.replyLabel(replyCount: 0, hasTask: true) == nil)
-        #expect(ThreadPreviewProjection.replyLabel(replyCount: 0, hasTask: false) == "Reply in thread")
+    @Test func dropsTheReplyCountLabelWhenOnlyAClaimStatesItself() {
+        #expect(ThreadPreviewProjection.replyLabel(replyCount: 0, hasClaim: true) == nil)
+        #expect(ThreadPreviewProjection.replyLabel(replyCount: 0, hasClaim: false) == "Reply in thread")
     }
 
     private func ingress(
-        _ origin: TaskOrigin,
+        _ origin: ClaimOrigin,
         hasReplies: Bool,
-        showTasksInChat: Bool
-    ) -> TaskPresentation? {
-        ThreadPreviewProjection.ingressTask(
-            TaskPresentation(number: 7, origin: origin, status: .inProgress, assignee: nil),
+        showClaimsInChat: Bool
+    ) -> ClaimPresentation? {
+        ThreadPreviewProjection.ingressClaim(
+            ClaimPresentation(number: 7, origin: origin, status: .inProgress, assignee: nil),
             hasReplies: hasReplies,
-            showTasksInChat: showTasksInChat
+            showClaimsInChat: showClaimsInChat
         )
     }
 }

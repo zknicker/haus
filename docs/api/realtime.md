@@ -30,12 +30,12 @@ ids and small facts, never rows.
 | Procedure | App hook | App response |
 | --- | --- | --- |
 | `chat.onMessageCreated` | `useMessageCreatedStream` | Tail read every cached transcript list of the Chat (a Thread reply also refreshes its parent anchor's entity); invalidate `chat.list`, `chat.search`, `chat.unreadPreviews`; a Thread reply also invalidates `thread.listUnread` |
-| `chat.onMessageReactionUpdated` | `useMessageReactionStream` | Invalidate the `chat.message` entity, `chat.search`, `cloudAgentWork.listActive`, `task.list` |
+| `chat.onMessageReactionUpdated` | `useMessageReactionStream` | Invalidate the `chat.message` entity, `chat.search`, `cloudAgentWork.listActive`, `claim.list` |
 | `chat.onRead` (reader only) | `useChatReadStream` | Invalidate `chat.list` unless the settled list already shows zero; a Thread read refreshes its anchor entity and invalidates `thread.listUnread`; any read that moves a list invalidates `chat.unreadPreviews` |
 | `thread.onFollowUpdated` (follower only) | `useThreadFollowStream` | Invalidate the anchor entity, `thread.listUnread`, and `chat.unreadPreviews` |
 | `chat.onLifecycle` | `useChatLifecycleStream` | Invalidate `chat.list`, `chat.listArchived`, `chat.get`, `agent.chats`, `thread.listUnread`, `chat.unreadPreviews`; `deleted` runs the Chat-loss purge and invalidates `cloudAgentWork.listActive` and every `cloudAgentWork.listForChat`, since linked work outlives the Chat |
-| `task.onChanged` | `useTaskChangeStream` | Invalidate the task Message's entity and `task.list` |
-| `taskLabel.onUpdated` | `useTaskLabelStream` | Abort the Server's in-flight tail reads, then refetch its transcript lists and entities carrying the label; invalidate `taskLabel.list`, `task.list` |
+| `claim.onChanged` | `useClaimChangeStream` | Invalidate the claim Message's entity and `claim.list` |
+| `taskLabel.onUpdated` | `useTaskLabelStream` | Abort the Server's in-flight tail reads, then refetch its transcript lists and entities carrying the label; invalidate `taskLabel.list`, `claim.list` |
 | `cloudAgentWork.onUpdated` | `useCloudAgentWorkStream` | One event per linking Message in a live Chat. Invalidate that Message's entity, `cloudAgentWork.listForChat` (Chat and parent), `cloudAgentWork.listActive` |
 | `reminder.onUpdated` (Owner/Admin) | `useReminderStream` | Invalidate the owner Agent's `reminder.list`, `reminder.history`, and the reminder's `reminder.runs` |
 | `agent.onUpdated` | `useAgentUpdateStream` | The Server detail, the named Agent's reads (or every Agent read), `agent.list`, `chat.list` |
@@ -100,7 +100,7 @@ hears the lifecycle event; Chat queries keep a plain `NOT_FOUND`.
 
 | Trigger | Action |
 | --- | --- |
-| Stream start (first start, resubscribe after a socket reconnect, restart after a failure) | That stream reconciles its owned reads through the coalescer (`lib/start-reconciliation.ts`): the message, reaction, read, follow, task, label, and work streams bulk-refetch the Server's cached transcript lists plus their own non-entity reads; the others invalidate their table row. Only reads fetched before the start refetch; `chat.message` never joins. The volatile streams (`agent.onActivity`, `agent.onLifecycle`, `chat.onEngagement`) re-read their projections on every start |
+| Stream start (first start, resubscribe after a socket reconnect, restart after a failure) | That stream reconciles its owned reads through the coalescer (`lib/start-reconciliation.ts`): the message, reaction, read, follow, claim, label, and work streams bulk-refetch the Server's cached transcript lists plus their own non-entity reads; the others invalidate their table row. Only reads fetched before the start refetch; `chat.message` never joins. The volatile streams (`agent.onActivity`, `agent.onLifecycle`, `chat.onEngagement`) re-read their projections on every start |
 | Stream error or normal completion | That stream alone restarts with capped backoff, 1 s → 30 s (`hooks/realtime/subscription-restart.ts`), and recovers on its next start. An unsubscribe the App made (unmount, a disabled or changed input) is never a completion. A view still showing a deleted Chat stops its per-Chat streams for good (`hooks/realtime/use-chat-lost.ts`) |
 | Socket reconnect | No pass of its own: every stream resubscribes on the new socket, and each start reconciles its reads. A read no stream owns hears no event, so a gap cannot stale it beyond its normal staleness |
 | Window focus | Browser `visibilitychange`/`focus` and the desktop window's native focus feed `focusManager` (`lib/query-focus.ts`); 500 ms after a return, an active read older than 3 minutes refetches (`refetchesOnFocus`, `lib/query-policy.ts`). The delay lets a wake that also drops the socket reconcile first, so the focus pass finds those reads fresh or joins their fetch. A quick alt-tab is silent |

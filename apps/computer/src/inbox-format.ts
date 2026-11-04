@@ -43,20 +43,20 @@ export function composeInboxDrain(items: AgentInboxItem[]): string {
             return context ? `${formatThreadContext(context)}\n\n${envelope}` : envelope;
         }),
         '',
-        ...openTaskClaimLines(items),
+        ...openClaimLines(items),
         deliveryTrailer,
     ].join('\n');
 }
 
 /**
- * Haus-only: names the claim for each open task the drain carries, so claim-before-reply rides
- * the event that needs it instead of the standing prompt's general claim rule.
+ * Haus-only: names the claim command for each open claim the drain carries, so claim-before-reply
+ * rides the event that needs it instead of the standing prompt's general claim rule.
  */
-function openTaskClaimLines(items: AgentInboxItem[]): string[] {
+function openClaimLines(items: AgentInboxItem[]): string[] {
     return items.flatMap((item) =>
-        item.task?.status === 'todo'
+        item.claim?.status === 'todo'
             ? [
-                  `Task #${item.task.number} is open: if it is yours to take, claim it with \`haus task claim --target "${item.target}" --number ${item.task.number}\` before you reply or start work.`,
+                  `Claim #${item.claim.number} is open: if it is yours to take, claim it with \`haus claim --target "${item.target}" --number ${item.claim.number}\` before you reply or start work.`,
               ]
             : []
     );
@@ -104,6 +104,7 @@ export function composeInboxNotice(
             throw new Error('Inbox notice target cannot be empty.');
         }
         return formatInboxTargetRow({
+            claimNumber: latest.claim?.number ?? null,
             cloudAgentResult: ordered.some(isAttention),
             firstShortId: shortInboxId(first.id),
             latestSender: latest.senderHandle,
@@ -111,7 +112,6 @@ export function composeInboxNotice(
             mentioned: ordered.some((item) => item.mentioned),
             pendingCount: ordered.length,
             target,
-            taskNumber: latest.task?.number ?? null,
         });
     });
     return [
@@ -134,12 +134,12 @@ function formatEnvelope(item: AgentInboxItem): string {
         return formatCloudAgentWorkAttention(item.cloudAgentWork, item.target);
     }
     const sender = formatSenderLabel(item.senderHandle, item.senderDescription);
-    const task = item.task
-        ? ` task=#${item.task.number}:${item.task.status}:${taskAssignee(item)}`
+    const claim = item.claim
+        ? ` claim=#${item.claim.number}:${item.claim.status}:${claimAssignee(item)}`
         : '';
     const mention = item.mentioned ? ' mentioned=true' : '';
     const envelope =
-        `[target=${item.target} msg=${shortInboxId(item.id)} ${formatInboxTimeFields(item.createdAt, item.senderType === 'human' ? item.senderTimezone : null)} type=${item.senderType}${task}${mention}] ` +
+        `[target=${item.target} msg=${shortInboxId(item.id)} ${formatInboxTimeFields(item.createdAt, item.senderType === 'human' ? item.senderTimezone : null)} type=${item.senderType}${claim}${mention}] ` +
         `${sender}: ${inboxBodyText(item.id, item.content)}${formatAttachmentSuffix(messageAttachments(item))}${formatInlineReplyContext(item.reply)}`;
     return item.threadFollowReactivated
         ? `${formatThreadFollowRestoration(item.target)}\n${envelope}`
@@ -219,11 +219,11 @@ export function formatThreadFollowRestoration(target: string): string {
     ].join('\n');
 }
 
-function taskAssignee(item: AgentInboxItem): string {
-    if (!item.task) {
+function claimAssignee(item: AgentInboxItem): string {
+    if (!item.claim) {
         return 'unassigned';
     }
-    return item.task.assigneeAgentId ?? 'unassigned';
+    return item.claim.assigneeAgentId ?? 'unassigned';
 }
 
 /** A bodiless typed attention: work to act on, not a message to read. */

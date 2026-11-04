@@ -108,7 +108,7 @@ export function useChannelActions({
             {deleting ? (
                 <DeleteDialog
                     confirmation={deleting.name ?? ''}
-                    description="This permanently deletes the channel, its messages, threads, tasks, reminders, reactions, and attachments. This cannot be undone."
+                    description="This permanently deletes the channel, its messages, threads, claims, reminders, reactions, and attachments. This cannot be undone."
                     error={deleteChannel.error?.message}
                     onConfirm={() => {
                         deleteChannel

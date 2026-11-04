@@ -2,6 +2,7 @@ import { AgentCliError, renderAgentCliError } from './agent-cli/agent-error.ts';
 import { AGENT_SUBCOMMANDS } from './agent-cli/commands/agent-agent.ts';
 import { ARTIFACT_SUBCOMMANDS } from './agent-cli/commands/agent-artifact.ts';
 import { ATTACHMENT_SUBCOMMANDS } from './agent-cli/commands/agent-attachment.ts';
+import { CLAIM_SUBCOMMANDS } from './agent-cli/commands/agent-claim.ts';
 import { CLOUD_AGENT_SUBCOMMANDS } from './agent-cli/commands/agent-cloud-agent.ts';
 import { CHANNEL_SUBCOMMANDS, SERVER_SUBCOMMANDS } from './agent-cli/commands/agent-directory.ts';
 import { HEARTBEAT_SUBCOMMANDS } from './agent-cli/commands/agent-heartbeat.ts';
@@ -13,7 +14,6 @@ import { MESSAGE_SUBCOMMANDS } from './agent-cli/commands/agent-message.ts';
 import { PROFILE_SUBCOMMANDS } from './agent-cli/commands/agent-profile.ts';
 import { REMINDER_SUBCOMMANDS } from './agent-cli/commands/agent-reminder.ts';
 import { SKILL_SUBCOMMANDS } from './agent-cli/commands/agent-skill.ts';
-import { TASK_SUBCOMMANDS } from './agent-cli/commands/agent-task.ts';
 import { THREAD_SUBCOMMANDS } from './agent-cli/commands/agent-thread.ts';
 import { TRIGGER_SUBCOMMANDS } from './agent-cli/commands/agent-trigger.ts';
 import { UsageError } from './agent-cli/parse.ts';
@@ -24,6 +24,7 @@ export const commandGroups = {
     agent: AGENT_SUBCOMMANDS,
     attachment: ATTACHMENT_SUBCOMMANDS,
     channel: CHANNEL_SUBCOMMANDS,
+    claim: CLAIM_SUBCOMMANDS,
     'cloud-agent': CLOUD_AGENT_SUBCOMMANDS,
     files: ARTIFACT_SUBCOMMANDS,
     heartbeat: HEARTBEAT_SUBCOMMANDS,
@@ -36,7 +37,6 @@ export const commandGroups = {
     reminder: REMINDER_SUBCOMMANDS,
     server: SERVER_SUBCOMMANDS,
     skill: SKILL_SUBCOMMANDS,
-    task: TASK_SUBCOMMANDS,
     thread: THREAD_SUBCOMMANDS,
     trigger: TRIGGER_SUBCOMMANDS,
 } satisfies Record<string, SubCommand[]>;
@@ -98,7 +98,7 @@ function printHelp() {
             'Commands:',
             ...Object.entries(commandGroups).map(
                 ([name, commands]) =>
-                    `  ${name.padEnd(12)} ${commands.map((command) => command.name).join(', ')}`
+                    `  ${name.padEnd(12)} ${commands.map((command) => subcommandLabel(command)).join(', ')}`
             ),
             '',
             "Run 'haus <command> --help' for command help.",
@@ -114,9 +114,10 @@ function printGroupHelp(group: string, subcommands: SubCommand[]) {
             `haus ${group}`,
             '',
             ...subcommands.map(
-                (subcommand) => `  ${subcommand.name.padEnd(12)} ${subcommand.summary}`
+                (subcommand) => `  ${subcommandLabel(subcommand).padEnd(12)} ${subcommand.summary}`
             ),
             '',
+            ...bareUsage(subcommands),
             ...flows,
             manualDetails(group),
             '',
@@ -124,9 +125,19 @@ function printGroupHelp(group: string, subcommands: SubCommand[]) {
     );
 }
 
+/** A group's bare action is listed by its flags, since it has no verb. */
+function subcommandLabel(subcommand: SubCommand): string {
+    return subcommand.bare ? '[flags]' : subcommand.name;
+}
+
+function bareUsage(subcommands: SubCommand[]): string[] {
+    const bare = subcommands.find((subcommand) => subcommand.bare);
+    return bare ? [`Usage: ${bare.usage}`, ''] : [];
+}
+
 /**
  * Every family has a Manual topic named after its noun (the Manual resolves
- * `cloud-agent` and `task` to their plural ids); the Manual itself starts at
+ * `cloud-agent` and `claim` to their plural ids); the Manual itself starts at
  * its index.
  */
 function manualDetails(group: string): string {

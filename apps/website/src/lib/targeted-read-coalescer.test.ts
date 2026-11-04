@@ -117,7 +117,7 @@ test('a label rename cancels the list read in flight; no entity keeps the old la
     const label = (name: string): TaskLabel =>
         ({ color: 'blue', id: 'lbl_one', name }) as TaskLabel;
     const withLabel = (name: string): ChatMessage =>
-        message(chatId, 1, { task: { labels: [label(name)] } as unknown as ChatMessage['task'] });
+        message(chatId, 1, { claim: { labels: [label(name)] } as unknown as ChatMessage['claim'] });
     let renamed = false;
     const inFlight = Promise.withResolvers<unknown>();
     let listReads = 0;
@@ -152,7 +152,7 @@ test('a tail read held across a label rename never seeds the old label', async (
     const label = (name: string): TaskLabel =>
         ({ color: 'blue', id: 'lbl_one', name }) as TaskLabel;
     const second = (name: string): ChatMessage =>
-        message(chatId, 2, { task: { labels: [label(name)] } as unknown as ChatMessage['task'] });
+        message(chatId, 2, { claim: { labels: [label(name)] } as unknown as ChatMessage['claim'] });
     let renamed = false;
     const tail = Promise.withResolvers<unknown>();
     const cache = createTranscriptCache((request) => {
@@ -260,9 +260,9 @@ test('invalidations of one key coalesce into one refetch per frame', async () =>
 });
 
 function secondLabel(cache: ReturnType<typeof createTranscriptCache>) {
-    return cache.entity(chatId, `msg_${chatId}_2`)?.data?.message.task?.labels[0]?.name;
+    return cache.entity(chatId, `msg_${chatId}_2`)?.data?.message.claim?.labels[0]?.name;
 }
 
 function labelName(cache: ReturnType<typeof createTranscriptCache>) {
-    return cache.entity(chatId, target.messageId)?.data?.message.task?.labels[0]?.name;
+    return cache.entity(chatId, target.messageId)?.data?.message.claim?.labels[0]?.name;
 }

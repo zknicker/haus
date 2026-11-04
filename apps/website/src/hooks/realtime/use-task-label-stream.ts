@@ -8,9 +8,9 @@ import {
 import { useSubscriptionRestart } from './use-subscription-restart.ts';
 
 /**
- * `taskLabel.onUpdated`: the label catalog and the task list (task rows embed
+ * `taskLabel.onUpdated`: the label catalog and the claim list (claim rows embed
  * their labels), plus every cached transcript and entity carrying the label.
- * A start reconciles the catalog, the task list, and the transcript lists.
+ * A start reconciles the catalog, the claim list, and the transcript lists.
  */
 export function useTaskLabelStream(serverId: string | undefined) {
     const coalescer = useTargetedReadCoalescer();
@@ -44,5 +44,5 @@ export function applyTaskLabelUpdate(
 
 function invalidateLabelReads(coalescer: TargetedReadCoalescer, serverId: string) {
     coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.taskLabel.list, { serverId }) });
-    coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.task.list, { serverId }) });
+    coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.claim.list, { serverId }) });
 }

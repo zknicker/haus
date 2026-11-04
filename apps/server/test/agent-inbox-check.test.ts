@@ -6,7 +6,7 @@ import type { ResolvedRunner } from '../src/computers/runner-credentials.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
-import { agentInboxTable, chatMessagesTable, messageTasksTable } from '../src/postgres/schema.ts';
+import { agentInboxTable, chatMessagesTable, messageClaimsTable } from '../src/postgres/schema.ts';
 import { deliverHuman, FakeTransport, type Seed, seedAgent } from './agent-inbox-harness.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
@@ -29,10 +29,10 @@ test('inbox check rows carry the facts the notice tags a target with', async () 
     // Offline Computer: every enqueue plans nothing, so the rows stay queued.
     const delivery = new AgentDelivery(connection.db, new FakeTransport());
     await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
-    const taskMessageId = await deliverMention(delivery, seed);
-    await connection.db.insert(messageTasksTable).values({
+    const claimMessageId = await deliverMention(delivery, seed);
+    await connection.db.insert(messageClaimsTable).values({
         chatId: seed.channelId,
-        messageId: taskMessageId,
+        messageId: claimMessageId,
         number: 7,
         createdByUserId: seed.userId,
         origin: 'composed',
@@ -57,14 +57,14 @@ test('inbox check rows carry the facts the notice tags a target with', async () 
         cloudAgentResult: false,
         dm: false,
         // The fire after it has no Chat message; the first pending message does.
-        firstSequence: await sequenceOf(taskMessageId),
-        firstShortId: taskMessageId.slice(4, 12),
+        firstSequence: await sequenceOf(claimMessageId),
+        firstShortId: claimMessageId.slice(4, 12),
         latestSender: 'reminder',
         latestShortId: '-',
         mentioned: true,
         pendingCount: 2,
         target: '#product',
-        taskNumber: null,
+        claimNumber: null,
         thread: false,
     });
     expect(inbox.rows.find((row) => row.target.startsWith('dm:'))).toMatchObject({
@@ -72,15 +72,15 @@ test('inbox check rows carry the facts the notice tags a target with', async () 
         latestSender: seed.humanHandle,
         mentioned: false,
         pendingCount: 1,
-        taskNumber: null,
+        claimNumber: null,
     });
 });
 
-test('the task number is the latest item task, as in the notice', async () => {
+test('the claim number is the latest item claim, as in the notice', async () => {
     const seed = await seedAgent(connection.db);
     const delivery = new AgentDelivery(connection.db, new FakeTransport());
     const messageId = await deliverMention(delivery, seed);
-    await connection.db.insert(messageTasksTable).values({
+    await connection.db.insert(messageClaimsTable).values({
         chatId: seed.channelId,
         messageId,
         number: 12,
@@ -92,7 +92,7 @@ test('the task number is the latest item task, as in the notice', async () => {
     const inbox = await inspectAgentInbox(connection.db, runner(seed));
 
     expect(inbox.rows).toEqual([
-        expect.objectContaining({ mentioned: true, target: '#product', taskNumber: 12 }),
+        expect.objectContaining({ mentioned: true, target: '#product', claimNumber: 12 }),
     ]);
 });
 

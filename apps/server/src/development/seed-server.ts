@@ -11,7 +11,7 @@ import {
     chatsTable,
     computersTable,
     mcpConnectionsTable,
-    messageTasksTable,
+    messageClaimsTable,
     serverMembershipsTable,
     serverOnboardingTable,
     serversTable,
@@ -66,8 +66,8 @@ export async function seedDevelopmentServer(
         const now = new Date();
         // Messages that later rows point at need stable ids, so mint them up front.
         const planMessageId = createOpaqueId('msg');
-        const shipTaskMessageId = createOpaqueId('msg');
-        const auditTaskMessageId = createOpaqueId('msg');
+        const shipClaimMessageId = createOpaqueId('msg');
+        const auditClaimMessageId = createOpaqueId('msg');
         const threadChatId = demoThreadId(planMessageId);
         const avatarIds = await insertSeedAvatars(tx);
 
@@ -86,14 +86,14 @@ export async function seedDevelopmentServer(
             .update(usersTable)
             .set({ avatarId: avatarIds.owner })
             .where(eq(usersTable.id, userId));
-        // Two Agent tasks in different states. The channel's task counter starts
-        // past them, or the first real `task.promote` collides with a seeded number.
-        const demoTasks = [
+        // Two Agent claims in different states. The channel's claim counter starts
+        // past them, or the first real `claim.promote` collides with a seeded number.
+        const demoClaims = [
             {
                 assigneeAgentId: blippyId,
                 chatId: channelId,
                 createdByUserId: userId,
-                messageId: shipTaskMessageId,
+                messageId: shipClaimMessageId,
                 number: 1,
                 origin: 'composed' as const,
                 priority: 'high' as const,
@@ -104,7 +104,7 @@ export async function seedDevelopmentServer(
                 assigneeAgentId: tinyId,
                 chatId: channelId,
                 createdByAgentId: tinyId,
-                messageId: auditTaskMessageId,
+                messageId: auditClaimMessageId,
                 number: 2,
                 origin: 'converted' as const,
                 priority: 'medium' as const,
@@ -119,7 +119,7 @@ export async function seedDevelopmentServer(
             kind: 'channel',
             lastActivityAt: now,
             lastMessageSequence: 6,
-            lastTaskNumber: Math.max(...demoTasks.map((task) => task.number)),
+            lastClaimNumber: Math.max(...demoClaims.map((claim) => claim.number)),
             name: 'all',
             serverId,
         });
@@ -231,7 +231,7 @@ export async function seedDevelopmentServer(
                     authorUserId: userId,
                     content: 'Ship the avatar upload flow end to end.',
                 },
-                shipTaskMessageId
+                shipClaimMessageId
             ),
             demoMessage(
                 serverId,
@@ -241,7 +241,7 @@ export async function seedDevelopmentServer(
                     authorAgentId: tinyId,
                     content: 'Audit the member directory for stale copy.',
                 },
-                auditTaskMessageId
+                auditClaimMessageId
             ),
             demoMessage(serverId, demoChannelId, 1, {
                 authorUserId: userId,
@@ -261,14 +261,14 @@ export async function seedDevelopmentServer(
             }),
         ]);
 
-        // Every task carries its deterministic Thread, and the plan message has
+        // Every claim carries its deterministic Thread, and the plan message has
         // a discussion thread the author follows.
         await tx
             .insert(chatsTable)
             .values([
                 demoThread(serverId, channelId, planMessageId, now, 3),
-                demoThread(serverId, channelId, shipTaskMessageId, now, 0),
-                demoThread(serverId, channelId, auditTaskMessageId, now, 0),
+                demoThread(serverId, channelId, shipClaimMessageId, now, 0),
+                demoThread(serverId, channelId, auditClaimMessageId, now, 0),
             ]);
         await tx.insert(threadFollowsTable).values({
             followed: true,
@@ -292,8 +292,8 @@ export async function seedDevelopmentServer(
             }),
         ]);
 
-        // Two Agent tasks in different states.
-        await tx.insert(messageTasksTable).values(demoTasks);
+        // Two Agent claims in different states.
+        await tx.insert(messageClaimsTable).values(demoClaims);
 
         // One Server-managed MCP connection for the Agent Connections surface to grant.
         await tx.insert(mcpConnectionsTable).values({

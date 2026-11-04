@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { createAgentClaims } from '../src/agent-api/claim-create.ts';
+import { AgentClaimNonceReusedError } from '../src/agent-api/claim-error.ts';
 import { scheduleAgentReminder } from '../src/agent-api/reminders.ts';
-import { createAgentTasks } from '../src/agent-api/task-create.ts';
-import { AgentTaskNonceReusedError } from '../src/agent-api/task-error.ts';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import type { ResolvedRunner } from '../src/computers/runner-credentials.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
@@ -29,62 +29,62 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('concurrent task creates on one nonce write one batch and replay it without side effects', async () => {
-    const server = await createServer('task-idem-race');
+test('concurrent claim creates on one nonce write one batch and replay it without side effects', async () => {
+    const server = await createServer('claim-idem-race');
     const [ada] = await Promise.all([
         seedAgentRunner(server, 'ada'),
         seedAgentRunner(server, 'rook'),
     ]);
     const input = {
         assignee: '@rook',
-        nonce: 'task-race',
+        nonce: 'claim-race',
         target: `#${server.chatName}`,
         titles: ['Draft the migration', 'Review the rollout'],
     };
 
     const results = await Promise.all([
-        createAgentTasks(connection.db, ada, input, delivery),
-        createAgentTasks(connection.db, ada, input, delivery),
+        createAgentClaims(connection.db, ada, input, delivery),
+        createAgentClaims(connection.db, ada, input, delivery),
     ]);
     const after = await sideEffects(server.id);
-    const replay = await createAgentTasks(connection.db, ada, input, delivery);
+    const replay = await createAgentClaims(connection.db, ada, input, delivery);
 
-    const ids = (tasks: (typeof replay)['tasks']) =>
-        tasks.map(({ message, number }) => ({ id: message.id, number }));
-    expect(ids(results[0].tasks)).toEqual(ids(results[1].tasks));
-    expect(ids(replay.tasks)).toEqual(ids(results[0].tasks));
+    const ids = (claims: (typeof replay)['claims']) =>
+        claims.map(({ message, number }) => ({ id: message.id, number }));
+    expect(ids(results[0].claims)).toEqual(ids(results[1].claims));
+    expect(ids(replay.claims)).toEqual(ids(results[0].claims));
     // Exactly one of the racing requests did the writing; the other replayed.
     expect(results.map((result) => result.events.length).sort()).toEqual([0, 4]);
     expect(replay).toMatchObject({ activities: [], events: [], wakes: [] });
-    expect(after).toEqual({ inbox: 4, messages: 2, tasks: 2 });
+    expect(after).toEqual({ inbox: 4, messages: 2, claims: 2 });
     expect(await sideEffects(server.id)).toEqual(after);
 });
 
-test('a task nonce reused for a different batch is refused, never partially replayed', async () => {
-    const server = await createServer('task-idem-reuse');
+test('a claim nonce reused for a different batch is refused, never partially replayed', async () => {
+    const server = await createServer('claim-idem-reuse');
     const ada = await seedAgentRunner(server, 'ada');
     const input = {
-        nonce: 'task-reuse',
+        nonce: 'claim-reuse',
         target: `#${server.chatName}`,
         titles: ['Tag the release', 'Write the notes'],
     };
-    await createAgentTasks(connection.db, ada, input, delivery);
+    await createAgentClaims(connection.db, ada, input, delivery);
 
     for (const titles of [['Tag the release'], ['Tag the release', 'Write other notes']]) {
         await expect(
-            createAgentTasks(connection.db, ada, { ...input, titles }, delivery)
-        ).rejects.toBeInstanceOf(AgentTaskNonceReusedError);
+            createAgentClaims(connection.db, ada, { ...input, titles }, delivery)
+        ).rejects.toBeInstanceOf(AgentClaimNonceReusedError);
     }
     await expect(
-        createAgentTasks(connection.db, ada, { ...input, assignee: '@ada' }, delivery)
-    ).rejects.toBeInstanceOf(AgentTaskNonceReusedError);
-    expect((await sideEffects(server.id)).tasks).toBe(2);
+        createAgentClaims(connection.db, ada, { ...input, assignee: '@ada' }, delivery)
+    ).rejects.toBeInstanceOf(AgentClaimNonceReusedError);
+    expect((await sideEffects(server.id)).claims).toBe(2);
 });
 
 test('concurrent reminder schedules on one command id write one reminder and one event', async () => {
     const server = await createServer('reminder-idem-race');
     const ada = await seedAgentRunner(server, 'ada');
-    const anchor = await owner.trpc.task.create.mutate({
+    const anchor = await owner.trpc.claim.create.mutate({
         chatId: server.chatId,
         content: 'Anchor for the reminder',
         nonce: `${server.id}:anchor`,
@@ -93,7 +93,7 @@ test('concurrent reminder schedules on one command id write one reminder and one
     const input = {
         commandId: 'reminder-race',
         fireAt: new Date(Date.now() + 3_600_000).toISOString(),
-        messageId: anchor.task.messageId,
+        messageId: anchor.claim.messageId,
         title: 'Check the rollout',
     };
 
@@ -125,9 +125,9 @@ async function sideEffects(serverId: string) {
         select
             (select count(*)::int from chat_messages
                 where server_id = ${serverId} and author_agent_id is not null) as messages,
-            (select count(*)::int from message_tasks where server_id = ${serverId}) as tasks,
+            (select count(*)::int from message_claims where server_id = ${serverId}) as claims,
             (select count(*)::int from agent_inbox where server_id = ${serverId}) as inbox
-    `) as Array<{ inbox: number; messages: number; tasks: number }>;
+    `) as Array<{ inbox: number; messages: number; claims: number }>;
     return row;
 }
 

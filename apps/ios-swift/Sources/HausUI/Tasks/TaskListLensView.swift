@@ -1,33 +1,33 @@
 import HausModels
 import SwiftUI
 
-/// A native, grouped Tasks lens over the canonical `task.list` projection.
+/// A native, grouped Tasks lens over the canonical `claim.list` projection.
 ///
 /// The list is deliberately display-first: opening a row delegates to the
 /// existing Thread route, while lifecycle controls call explicit callbacks so
 /// the App layer can perform Server mutations and replace the row with the
 /// returned authoritative version.
 public struct TaskListLensView: View {
-    private let items: [TaskListItem]
-    private let chatLabel: (TaskListItem) -> String
-    private let assignee: (TaskListItem) -> MessageAuthorPresentation?
+    private let items: [ClaimListItem]
+    private let chatLabel: (ClaimListItem) -> String
+    private let assignee: (ClaimListItem) -> MessageAuthorPresentation?
     private let mutatingIDs: Set<String>
-    private let onOpenTask: (TaskListItem) -> Void
-    private let onUpdateStatus: (TaskListItem, TaskStatus) -> Void
+    private let onOpenClaim: (ClaimListItem) -> Void
+    private let onUpdateStatus: (ClaimListItem, ClaimStatus) -> Void
 
     public init(
-        items: [TaskListItem],
-        chatLabel: ((TaskListItem) -> String)? = nil,
-        assignee: ((TaskListItem) -> MessageAuthorPresentation?)? = nil,
+        items: [ClaimListItem],
+        chatLabel: ((ClaimListItem) -> String)? = nil,
+        assignee: ((ClaimListItem) -> MessageAuthorPresentation?)? = nil,
         mutatingIDs: Set<String> = [],
-        onOpenTask: @escaping (TaskListItem) -> Void,
-        onUpdateStatus: @escaping (TaskListItem, TaskStatus) -> Void = { _, _ in }
+        onOpenClaim: @escaping (ClaimListItem) -> Void,
+        onUpdateStatus: @escaping (ClaimListItem, ClaimStatus) -> Void = { _, _ in }
     ) {
         self.items = items
         self.chatLabel = chatLabel ?? defaultTaskChatLabel
         self.assignee = assignee ?? { _ in nil }
         self.mutatingIDs = mutatingIDs
-        self.onOpenTask = onOpenTask
+        self.onOpenClaim = onOpenClaim
         self.onUpdateStatus = onUpdateStatus
     }
 
@@ -57,7 +57,7 @@ public struct TaskListLensView: View {
                             chatLabel: chatLabel(item),
                             assignee: assignee(item),
                             isMutating: mutatingIDs.contains(item.id),
-                            onOpen: { onOpenTask(item) },
+                            onOpen: { onOpenClaim(item) },
                             onUpdateStatus: { onUpdateStatus(item, $0) }
                         )
                         .listRowInsets(
@@ -95,8 +95,8 @@ public struct TaskListLensView: View {
     ///
     /// Materializing them lets the first section skip the boundary rule that
     /// every later header carries.
-    private var groups: [(group: TaskListGroup, items: [TaskListItem])] {
-        TaskListGroup.grouped(items)
+    private var groups: [(group: ClaimListGroup, items: [ClaimListItem])] {
+        ClaimListGroup.grouped(items)
     }
 }
 
@@ -104,7 +104,7 @@ public struct TaskListLensView: View {
     NavigationStack {
         TaskListLensView(
             items: TaskPreviewFixtures.items,
-            onOpenTask: { _ in }
+            onOpenClaim: { _ in }
         )
     }
 }

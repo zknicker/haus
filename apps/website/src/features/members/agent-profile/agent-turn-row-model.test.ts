@@ -79,14 +79,14 @@ test('private and unrecorded triggers show nothing; typed work names itself', ()
     });
 });
 
-test('a task turn reads its task message, and an attachment-only message says so', () => {
-    const task = {
+test('a claim turn reads its claim message, and an attachment-only message says so', () => {
+    const claim = {
         chatId: 'cht_dm',
-        kind: 'task',
-        messageId: 'msg_task',
+        kind: 'claim',
+        messageId: 'msg_claim',
         preview: { attachmentCount: 1, content: '' },
     } as const;
-    expect(resolveTurnRowTitle(task, chats)).toMatchObject({ text: 'Attachment' });
+    expect(resolveTurnRowTitle(claim, chats)).toMatchObject({ text: 'Attachment' });
 });
 
 test('the outcome says what the turn did in words, most telling first', () => {

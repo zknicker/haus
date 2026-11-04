@@ -12,7 +12,7 @@ struct TaskAssigneeLabelTests {
     @Test func fallsBackToTheAgentIdSuffixWhenUnresolvable() {
         let item = TaskPreviewFixtures.items[0]
 
-        #expect(item.task.assigneeAgentID == "agent_preview")
+        #expect(item.claim.assigneeAgentID == "agent_preview")
         #expect(TaskAssigneeLabel.text(for: item, assignee: nil) == "Agent review")
     }
 

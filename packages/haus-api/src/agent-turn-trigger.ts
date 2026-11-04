@@ -35,12 +35,12 @@ export type AgentTurnHeartbeatReport = z.infer<typeof agentTurnHeartbeatReportSc
 
 /**
  * What woke an Agent turn: the inbox item the Server chose when it dispatched the
- * run. A message or task trigger quotes its message (`preview`), so a turn row is
+ * run. A message or claim trigger quotes its message (`preview`), so a turn row is
  * titled in the same read that lists it. The Server reads that quote only for a
  * Chat the reader can see; any other trigger is `private` and carries nothing.
  *
  * - `message`: a Chat message from a human or another Agent.
- * - `task`: a task assignment; `messageId` is the task's message.
+ * - `claim`: a claim assignment; `messageId` is the claim's message.
  * - `reminder`, `trigger`, `cloud_agent`, `onboarding`: typed work anchored to a Chat
  *   with no message of its own.
  * - `dream`: the Agent's private nightly memory pass; no Chat. `learned` is the first line
@@ -65,7 +65,7 @@ export const agentTurnTriggerSchema = z.discriminatedUnion('kind', [
     z
         .object({
             chatId: idSchema,
-            kind: z.literal('task'),
+            kind: z.literal('claim'),
             messageId: idSchema,
             preview: agentTurnTriggerPreviewSchema.nullable(),
         })

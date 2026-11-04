@@ -4,7 +4,7 @@ import { createChannelAgent } from '../support/channel-agent.ts';
 import { createTestServer, openChannel, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
-test('hosted task board survives reconnect and loses tasks with parent Chat access', async ({
+test('hosted claim board survives reconnect and loses claims with parent Chat access', async ({
     page,
 }) => {
     const { client, server, session } = await createTestServer(page, {
@@ -23,12 +23,12 @@ test('hosted task board survives reconnect and loses tasks with parent Chat acce
     await page.getByRole('button', { name: 'Create task' }).click();
 
     // The default lens is the Linear-style list, and opening a row shows the
-    // task Thread in a dialog over the tasks page rather than navigating.
-    await page.getByRole('button', { name: /Open task #1 Prove the hosted task flow/u }).click();
-    const dialog = page.getByRole('dialog', { name: 'Task #1 thread' });
-    await expect(dialog.getByRole('region', { name: 'Task #1 details' })).toBeVisible();
+    // claim Thread in a dialog over the Tasks page rather than navigating.
+    await page.getByRole('button', { name: /Open claim #1 Prove the hosted task flow/u }).click();
+    const dialog = page.getByRole('dialog', { name: 'Claim #1 thread' });
+    await expect(dialog.getByRole('region', { name: 'Claim #1 details' })).toBeVisible();
     await expect(dialog.getByText('Prove the hosted task flow', { exact: true })).toBeVisible();
-    // The dialog holds two scroll containers (task details above the anchor,
+    // The dialog holds two scroll containers (claim details above the anchor,
     // and the Thread itself); the horizontal-overflow claim is about the Thread.
     const threadViewport = dialog.getByTestId('thread-conversation');
     await expect
@@ -41,16 +41,16 @@ test('hosted task board survives reconnect and loses tasks with parent Chat acce
     // the control flow below. The lens lives in the topbar's display menu.
     await selectTaskLens(page, 'Board');
 
-    let card = taskCard(page);
+    let card = claimCard(page);
     await expect(card).toBeVisible();
-    // Tasks are Agent work: a person hands a task to an Agent, never claims it.
-    await expect(card.getByRole('button', { name: 'Claim' })).toHaveCount(0);
+    // Claims are Agent work: a person hands a claim to an Agent, never takes it.
+    await expect(card.getByRole('button', { exact: true, name: 'Claim' })).toHaveCount(0);
 
-    const status = taskControl(card, 'Status');
+    const status = claimControl(card, 'Status');
     await status.click();
     await page.getByRole('option', { name: 'In progress' }).click();
-    card = taskCard(page);
-    await expect(taskControl(card, 'Status')).toContainText('In progress');
+    card = claimCard(page);
+    await expect(claimControl(card, 'Status')).toContainText('In progress');
 
     await page.getByRole('button', { name: 'Manage Labels' }).click();
     await page.getByLabel('New task label').fill('backend');
@@ -64,16 +64,16 @@ test('hosted task board survives reconnect and loses tasks with parent Chat acce
     await page.getByRole('button', { name: 'Purple' }).click();
     await page.getByRole('button', { name: 'Done' }).click();
 
-    card = taskCard(page);
-    const priority = taskControl(card, 'Priority');
+    card = claimCard(page);
+    const priority = claimControl(card, 'Priority');
     await priority.click();
     await page.getByRole('option', { name: 'Urgent' }).click();
-    await expect(taskControl(taskCard(page), 'Priority')).toContainText('Urgent');
-    await taskCard(page).getByRole('button', { name: 'Labels for task #1' }).click();
+    await expect(claimControl(claimCard(page), 'Priority')).toContainText('Urgent');
+    await claimCard(page).getByRole('button', { name: 'Labels for claim #1' }).click();
     await page.getByRole('menuitemcheckbox', { name: 'review' }).click();
-    await expect(taskCard(page).getByText('review', { exact: true })).toBeVisible();
+    await expect(claimCard(page).getByText('review', { exact: true })).toBeVisible();
 
-    // Any member of the Chat may hand the task to one of its Agents; the
+    // Any member of the Chat may hand the claim to one of its Agents; the
     // picker lists Agents only.
     await createChannelAgent({
         channelName: 'all',
@@ -83,27 +83,27 @@ test('hosted task board survives reconnect and loses tasks with parent Chat acce
         token: session.accessToken,
     });
     await page.reload();
-    card = taskCard(page);
-    await taskControl(card, 'Assignee').click();
+    card = claimCard(page);
+    await claimControl(card, 'Assignee').click();
     await expect(page.getByRole('option', { name: /member$/u })).toHaveCount(0);
     await page.getByRole('option', { name: /Orbit\s*@orbit$/u }).click();
-    await expect(taskControl(taskCard(page), 'Assignee')).toContainText('Orbit');
+    await expect(claimControl(claimCard(page), 'Assignee')).toContainText('Orbit');
 
-    const snapshot = await client.task.list.query({ serverId: server.id });
-    const task = snapshot.tasks[0]?.task;
-    if (!task) {
-        throw new Error('The hosted task flow did not resolve its task.');
+    const snapshot = await client.claim.list.query({ serverId: server.id });
+    const claim = snapshot.claims[0]?.claim;
+    if (!claim) {
+        throw new Error('The hosted claim flow did not resolve its claim.');
     }
 
     await page.context().setOffline(true);
-    await client.task.assign.mutate({
+    await client.claim.assign.mutate({
         assignee: null,
-        expectedVersion: task.version,
-        messageId: task.messageId,
+        expectedVersion: claim.version,
+        messageId: claim.messageId,
         serverId: server.id,
     });
     await page.context().setOffline(false);
-    await expect(taskControl(taskCard(page), 'Assignee')).toContainText('Unassigned');
+    await expect(claimControl(claimCard(page), 'Assignee')).toContainText('Unassigned');
 
     const userId = runPsql(
         session.databaseUrl,
@@ -119,22 +119,22 @@ test('hosted task board survives reconnect and loses tasks with parent Chat acce
     await expect(page.getByText('Prove the hosted task flow', { exact: true })).toHaveCount(0);
 });
 
-test('a hosted task message projects its status in the Chat and opens its Thread', async ({
+test('a hosted claim message projects its status in the Chat and opens its Thread', async ({
     page,
 }) => {
     const { client, server } = await createTestServer(page, {
-        displayName: 'Task Projection',
-        slug: 'task-projection',
+        displayName: 'Claim Projection',
+        slug: 'claim-projection',
     });
     await openChannel(page, 'all');
 
-    await page.getByRole('textbox', { name: 'Message all' }).fill('Projected task message');
+    await page.getByRole('textbox', { name: 'Message all' }).fill('Projected claim message');
     await page.getByRole('button', { name: 'Send' }).click();
-    await expect(page.getByText('Projected task message', { exact: true })).toBeVisible();
+    await expect(page.getByText('Projected claim message', { exact: true })).toBeVisible();
 
     const allChatId = server.channels.find((chat) => chat.name === 'all')?.id;
     if (!allChatId) {
-        throw new Error('The task projection flow did not resolve #all.');
+        throw new Error('The claim projection flow did not resolve #all.');
     }
     // The visible row above may still be the optimistic one, so wait for the
     // Server to own the message before promoting it.
@@ -145,37 +145,37 @@ test('a hosted task message projects its status in the Chat and opens its Thread
                 serverId: server.id,
             });
             return snapshot.messages.some(
-                (message) => message.content === 'Projected task message'
+                (message) => message.content === 'Projected claim message'
             );
         })
         .toBe(true);
     const snapshot = await client.chat.messages.query({ chatId: allChatId, serverId: server.id });
     const anchor = snapshot.messages.find(
-        (message) => message.content === 'Projected task message'
+        (message) => message.content === 'Projected claim message'
     );
     if (!anchor) {
-        throw new Error('The task projection flow did not resolve its anchor message.');
+        throw new Error('The claim projection flow did not resolve its anchor message.');
     }
 
-    const promotion = await client.task.promote.mutate({
+    const promotion = await client.claim.promote.mutate({
         messageId: anchor.id,
         serverId: server.id,
     });
 
-    await expect(page.getByText('Projected task message', { exact: true })).toBeVisible();
-    // Task identity is the header of the recessed Thread surface beneath the
+    await expect(page.getByText('Projected claim message', { exact: true })).toBeVisible();
+    // Claim identity is the header of the recessed Thread surface beneath the
     // message — the same slot Cloud Agent work uses — and that whole
     // surface is the way into the work. The author line carries provenance only.
-    const chip = page.getByTestId('message-task-chip');
-    const openThread = page.getByRole('button', { name: /^Open thread, Task #1/u });
+    const chip = page.getByTestId('message-claim-chip');
+    const openThread = page.getByRole('button', { name: /^Open thread, Claim #1/u });
     await expect(chip).toBeVisible();
-    await expect(chip).toContainText('Task #1');
-    await expect(page.getByTestId('message-task-mark')).toHaveCount(0);
+    await expect(chip).toContainText('Claim #1');
+    await expect(page.getByTestId('message-claim-mark')).toHaveCount(0);
     await expect(openThread).toBeVisible();
 
-    // A status change rides the same task realtime invalidation; no reload.
-    await client.task.update.mutate({
-        expectedVersion: promotion.task.version,
+    // A status change rides the same claim realtime invalidation; no reload.
+    await client.claim.update.mutate({
+        expectedVersion: promotion.claim.version,
         messageId: anchor.id,
         patch: { status: 'in_progress' },
         serverId: server.id,
@@ -185,21 +185,24 @@ test('a hosted task message projects its status in the Chat and opens its Thread
     await openThread.click();
     const thread = page.getByRole('complementary', { name: 'Thread' });
     await expect(thread).toBeVisible();
-    await expect(thread.getByRole('region', { name: 'Task #1 details' })).toBeVisible();
-    // The panel above the anchor states the task in full, so the anchor's own
+    await expect(thread.getByRole('region', { name: 'Claim #1 details' })).toBeVisible();
+    // The panel above the anchor states the claim in full, so the anchor's own
     // chip would say every word of it twice.
-    await expect(thread.getByTestId('message-task-chip')).toHaveCount(0);
-    await expect(thread.getByRole('button', { name: 'Status for task #1' })).toContainText(
+    await expect(thread.getByTestId('message-claim-chip')).toHaveCount(0);
+    await expect(thread.getByRole('button', { name: 'Status for claim #1' })).toContainText(
         'In progress'
     );
 });
 
-function taskCard(page: Page) {
+function claimCard(page: Page) {
     return page.getByRole('row', { exact: true, name: 'Prove the hosted task flow' });
 }
 
-function taskControl(card: ReturnType<typeof taskCard>, name: 'Assignee' | 'Priority' | 'Status') {
-    return card.getByRole('button', { name: new RegExp(`${name} for task #1$`, 'u') });
+function claimControl(
+    card: ReturnType<typeof claimCard>,
+    name: 'Assignee' | 'Priority' | 'Status'
+) {
+    return card.getByRole('button', { name: new RegExp(`${name} for claim #1$`, 'u') });
 }
 
 /** The list/board lens lives behind the topbar's display-options menu. */

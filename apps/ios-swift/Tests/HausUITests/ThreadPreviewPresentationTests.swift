@@ -52,11 +52,11 @@ struct ThreadPreviewPresentationTests {
     }
 
     @Test func labelsTheReplyCount() {
-        #expect(ThreadPreviewProjection.replyLabel(replyCount: 0, hasTask: false) == "Reply in thread")
-        #expect(ThreadPreviewProjection.replyLabel(replyCount: 0, hasTask: true) == nil)
-        #expect(ThreadPreviewProjection.replyLabel(replyCount: 1, hasTask: false) == "1 reply")
-        #expect(ThreadPreviewProjection.replyLabel(replyCount: 2, hasTask: false) == "2 replies")
-        #expect(ThreadPreviewProjection.replyLabel(replyCount: 2, hasTask: true) == "2 replies")
+        #expect(ThreadPreviewProjection.replyLabel(replyCount: 0, hasClaim: false) == "Reply in thread")
+        #expect(ThreadPreviewProjection.replyLabel(replyCount: 0, hasClaim: true) == nil)
+        #expect(ThreadPreviewProjection.replyLabel(replyCount: 1, hasClaim: false) == "1 reply")
+        #expect(ThreadPreviewProjection.replyLabel(replyCount: 2, hasClaim: false) == "2 replies")
+        #expect(ThreadPreviewProjection.replyLabel(replyCount: 2, hasClaim: true) == "2 replies")
     }
 
     /// The Server sends recent replies oldest first, so the fixture is written

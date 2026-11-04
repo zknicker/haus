@@ -30,7 +30,7 @@ public struct ChatRealtimeEffects: Sendable, Equatable {
     /// a reply, a follow, a parent's lifecycle — already reads the Chat list,
     /// which reads the unread Threads beside it.
     public private(set) var reloadsUnreadThreads = false
-    public private(set) var reloadsServerTasks = false
+    public private(set) var reloadsServerClaims = false
     public private(set) var reloadsActiveCloudAgentWork = false
     public private(set) var cloudAgentWorkChatIDs: Set<String> = []
     /// Work that changed. Every loaded Message and work list carrying one
@@ -58,7 +58,7 @@ public struct ChatRealtimeEffects: Sendable, Equatable {
         case let .read(event): absorb(read: event)
         case let .threadFollowUpdated(event): absorb(threadFollow: event)
         case let .lifecycle(event): absorb(lifecycle: event)
-        case let .taskChanged(event): absorb(taskChanged: event)
+        case let .claimChanged(event): absorb(claimChanged: event)
         case let .taskLabelUpdated(event): absorb(taskLabel: event)
         case let .cloudAgentWorkUpdated(event): absorb(cloudAgentWork: event)
         }
@@ -109,14 +109,14 @@ public struct ChatRealtimeEffects: Sendable, Equatable {
         reloadsChatList = true
     }
 
-    mutating func absorb(taskChanged event: TaskChangedEvent) {
+    mutating func absorb(claimChanged event: ClaimChangedEvent) {
         entityRefreshes.insert(EntityRefresh(chatID: event.chatID, messageID: event.messageID))
-        reloadsServerTasks = true
+        reloadsServerClaims = true
     }
 
     mutating func absorb(taskLabel event: TaskLabelUpdatedEvent) {
         changedLabelIDs.insert(event.labelID)
-        reloadsServerTasks = true
+        reloadsServerClaims = true
     }
 
     /// One event per linking Message: refresh that Message and its Chat's work

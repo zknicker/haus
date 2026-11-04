@@ -1,14 +1,14 @@
 import { createTestServer } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
-test('cold Tasks navigation paints its shell before the task body module arrives', async ({
+test('cold Tasks navigation paints its shell before the claim body module arrives', async ({
     page,
 }, testInfo) => {
     let release = () => {};
     const held = new Promise<void>((resolve) => {
         release = resolve;
     });
-    await page.route('**/src/features/servers/tasks/task-content.tsx*', async (route) => {
+    await page.route('**/src/features/servers/claims/claim-content.tsx*', async (route) => {
         await held;
         await route.continue();
     });

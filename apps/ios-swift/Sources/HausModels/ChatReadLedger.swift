@@ -121,7 +121,7 @@ public struct ChatReadRequest: Hashable, Sendable {
 ///
 /// It mirrors the web App's `getHighestVisibleSequence`, including its
 /// tolerance for ids it cannot resolve — a transcript reports every row it is
-/// showing, and a Thread's anchor, its task metadata, and an optimistic row
+/// showing, and a Thread's anchor, its claim metadata, and an optimistic row
 /// carry no Server sequence at all.
 public enum ChatReadVisibility {
     public static func highestVisibleSequence(

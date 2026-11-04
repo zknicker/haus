@@ -623,15 +623,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/agent/tasks": {
+    "/api/agent/claims": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List task-messages visible to the calling agent. */
-        get: operations["listAgentTasks"];
+        /** List claim-messages visible to the calling agent. */
+        get: operations["listAgentClaims"];
         put?: never;
         post?: never;
         delete?: never;
@@ -640,7 +640,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/agent/tasks/create": {
+    "/api/agent/claims/create": {
         parameters: {
             query?: never;
             header?: never;
@@ -649,15 +649,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create one or more task-messages. */
-        post: operations["createAgentTasks"];
+        /** Create one or more claim-messages. */
+        post: operations["createAgentClaims"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/agent/tasks/claim": {
+    "/api/agent/claims/claim": {
         parameters: {
             query?: never;
             header?: never;
@@ -666,15 +666,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Claim task-messages for the calling agent. */
-        post: operations["claimAgentTasks"];
+        /** Claim messages for the calling agent. */
+        post: operations["claimAgentClaims"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/agent/tasks/unclaim": {
+    "/api/agent/claims/release": {
         parameters: {
             query?: never;
             header?: never;
@@ -683,15 +683,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Release one task claimed by the calling agent. */
-        post: operations["unclaimAgentTask"];
+        /** Release one claim held by the calling agent. */
+        post: operations["releaseAgentClaim"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/agent/tasks/assign": {
+    "/api/agent/claims/assign": {
         parameters: {
             query?: never;
             header?: never;
@@ -700,15 +700,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Assign one task to an Agent member of its Chat without changing its status. */
-        post: operations["assignAgentTask"];
+        /** Assign one claim to an Agent member of its Chat without changing its status. */
+        post: operations["assignAgentClaim"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/agent/tasks/unassign": {
+    "/api/agent/claims/unassign": {
         parameters: {
             query?: never;
             header?: never;
@@ -717,15 +717,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Clear one task's assignee without changing its status. */
-        post: operations["unassignAgentTask"];
+        /** Clear one claim's assignee without changing its status. */
+        post: operations["unassignAgentClaim"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/agent/tasks/update": {
+    "/api/agent/claims/update": {
         parameters: {
             query?: never;
             header?: never;
@@ -734,8 +734,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Update one task status. */
-        post: operations["updateAgentTask"];
+        /** Update one claim status. */
+        post: operations["updateAgentClaim"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1537,40 +1537,40 @@ export interface components {
             members: components["schemas"]["AgentChannelMember"][];
         };
         /** @enum {string} */
-        AgentTaskStatus: "todo" | "in_progress" | "in_review" | "done" | "closed";
-        AgentTaskRow: {
+        AgentClaimStatus: "todo" | "in_progress" | "in_review" | "done" | "closed";
+        AgentClaimRow: {
             assignee: string | null;
             message: components["schemas"]["AgentMessage"];
             number: number;
-            status: components["schemas"]["AgentTaskStatus"];
+            status: components["schemas"]["AgentClaimStatus"];
             target: string | null;
-            /** @description The task revision; pass it as expectedRevision to act only on this state. */
+            /** @description The claim revision; pass it as expectedRevision to act only on this state. */
             version: number;
         };
-        AgentTaskListResponse: {
+        AgentClaimListResponse: {
+            claims: components["schemas"]["AgentClaimRow"][];
             /** @description Matching rows left out by the 50-row limit. */
             omitted: number;
-            tasks: components["schemas"]["AgentTaskRow"][];
         };
-        AgentTaskCreateResponse: {
-            tasks: components["schemas"]["AgentTaskRow"][];
+        AgentClaimCreateResponse: {
+            claims: components["schemas"]["AgentClaimRow"][];
         };
-        AgentTaskClaimResponse: {
-            results: components["schemas"]["AgentTaskClaimResult"][];
+        AgentClaimClaimResponse: {
+            results: components["schemas"]["AgentClaimClaimResult"][];
         };
-        AgentTaskClaimResult: {
-            /** @description The structured holder conflict on a row refused because someone else holds the task. */
+        AgentClaimClaimResult: {
+            claim: components["schemas"]["AgentClaimRow"] | null;
+            /** @description The structured holder conflict on a row refused because someone else holds the claim. */
             claimConflict: Record<string, never> | null;
             number: number;
             /** @enum {string} */
             outcome: "claimed" | "already_yours" | "refused";
             reason: string | null;
-            task: components["schemas"]["AgentTaskRow"] | null;
         };
-        AgentTaskSingleResponse: {
-            task: components["schemas"]["AgentTaskRow"];
+        AgentClaimSingleResponse: {
+            claim: components["schemas"]["AgentClaimRow"];
         };
-        AgentTaskCreateRequest: {
+        AgentClaimCreateRequest: {
             /** @description @handle of an Agent member of the target Chat. */
             assignee?: string;
             content?: string;
@@ -1578,32 +1578,32 @@ export interface components {
             target: string;
             titles?: string[];
         };
-        AgentTaskClaimRequest: {
+        AgentClaimClaimRequest: {
             messageId?: string;
             numbers?: number[];
             target: string;
         } & (unknown | unknown);
-        AgentTaskUnclaimRequest: {
+        AgentClaimReleaseRequest: {
             number: number;
             target: string;
         };
-        AgentTaskAssignRequest: {
-            /** @description @handle of an Agent member of the task's Chat. Humans are never assignees; human, missing, retired, and out-of-Chat handles share one not-assignable refusal. */
+        AgentClaimAssignRequest: {
+            /** @description @handle of an Agent member of the claim's Chat. Humans are never assignees; human, missing, retired, and out-of-Chat handles share one not-assignable refusal. */
             assignee: string;
-            /** @description Apply only if the task is still at this revision. */
+            /** @description Apply only if the claim is still at this revision. */
             expectedRevision?: number;
             number: number;
             target: string;
         };
-        AgentTaskUnassignRequest: {
-            /** @description Apply only if the task is still at this revision. */
+        AgentClaimUnassignRequest: {
+            /** @description Apply only if the claim is still at this revision. */
             expectedRevision?: number;
             number: number;
             target: string;
         };
-        AgentTaskUpdateRequest: {
+        AgentClaimUpdateRequest: {
             number: number;
-            status: components["schemas"]["AgentTaskStatus"];
+            status: components["schemas"]["AgentClaimStatus"];
             target: string;
         };
         /** @enum {string} */
@@ -2128,7 +2128,7 @@ export interface components {
             created_at: components["schemas"]["Timestamp"];
             deleted_at: components["schemas"]["Timestamp"] | null;
             metadata: components["schemas"]["JsonObject"];
-            task?: components["schemas"]["MessageTask"] | null;
+            claim?: components["schemas"]["MessageClaim"] | null;
             /** @description The first linked Cloud Agent work, kept for released CLIs; read `cloud_agent_works`. */
             cloud_agent_work?: components["schemas"]["MessageCloudAgentWork"] | null;
             /** @description Every Cloud Agent work this Message links, in link order. */
@@ -2169,11 +2169,11 @@ export interface components {
                 pull_request_url: string | null;
             }[];
         };
-        MessageTask: {
+        MessageClaim: {
             number: number;
             /** @enum {string} */
             status: "todo" | "in_progress" | "in_review" | "done" | "closed";
-            assignee: components["schemas"]["TaskActor"] | null;
+            assignee: components["schemas"]["ClaimActor"] | null;
             claimed_at: components["schemas"]["Timestamp"] | null;
             /** @enum {string} */
             priority: "none" | "urgent" | "high" | "medium" | "low";
@@ -2183,8 +2183,8 @@ export interface components {
             created_at: components["schemas"]["Timestamp"];
             updated_at: components["schemas"]["Timestamp"];
         };
-        /** @description The Agent holding a task. Humans are never task assignees. */
-        TaskActor: {
+        /** @description The Agent holding a claim. Humans are never claim assignees. */
+        ClaimActor: {
             id: string;
             handle: string | null;
         };
@@ -2196,7 +2196,7 @@ export interface components {
         };
         MessageReaction: {
             emoji: string;
-            actors: components["schemas"]["TaskActor"][];
+            actors: components["schemas"]["ClaimActor"][];
         };
         CreateMessageRequest: {
             id: components["schemas"]["MessageId"];
@@ -3550,13 +3550,13 @@ export interface operations {
             default: components["responses"]["AgentError"];
         };
     };
-    listAgentTasks: {
+    listAgentClaims: {
         parameters: {
             query?: {
                 target?: string;
                 /** @description One status or `all`; defaults to todo, in_progress, and in_review. */
                 status?: "all" | "todo" | "in_progress" | "in_review" | "done" | "closed";
-                /** @description `true` keeps tasks claimed by or assigned to the calling agent. */
+                /** @description `true` keeps claims held by or assigned to the calling agent. */
                 mine?: "true" | "false";
             };
             header?: never;
@@ -3565,19 +3565,19 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Visible task-messages. */
+            /** @description Visible claim-messages. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AgentTaskListResponse"];
+                    "application/json": components["schemas"]["AgentClaimListResponse"];
                 };
             };
             default: components["responses"]["AgentError"];
         };
     };
-    createAgentTasks: {
+    createAgentClaims: {
         parameters: {
             query?: never;
             header?: never;
@@ -3586,23 +3586,23 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AgentTaskCreateRequest"];
+                "application/json": components["schemas"]["AgentClaimCreateRequest"];
             };
         };
         responses: {
-            /** @description Created task-messages. */
+            /** @description Created claim-messages. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AgentTaskCreateResponse"];
+                    "application/json": components["schemas"]["AgentClaimCreateResponse"];
                 };
             };
             default: components["responses"]["AgentError"];
         };
     };
-    claimAgentTasks: {
+    claimAgentClaims: {
         parameters: {
             query?: never;
             header?: never;
@@ -3611,23 +3611,23 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AgentTaskClaimRequest"];
+                "application/json": components["schemas"]["AgentClaimClaimRequest"];
             };
         };
         responses: {
-            /** @description One result row per requested task. */
+            /** @description One result row per requested claim. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AgentTaskClaimResponse"];
+                    "application/json": components["schemas"]["AgentClaimClaimResponse"];
                 };
             };
             default: components["responses"]["AgentError"];
         };
     };
-    unclaimAgentTask: {
+    releaseAgentClaim: {
         parameters: {
             query?: never;
             header?: never;
@@ -3636,23 +3636,23 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AgentTaskUnclaimRequest"];
+                "application/json": components["schemas"]["AgentClaimReleaseRequest"];
             };
         };
         responses: {
-            /** @description Updated task-message. */
+            /** @description Updated claim-message. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AgentTaskSingleResponse"];
+                    "application/json": components["schemas"]["AgentClaimSingleResponse"];
                 };
             };
             default: components["responses"]["AgentError"];
         };
     };
-    assignAgentTask: {
+    assignAgentClaim: {
         parameters: {
             query?: never;
             header?: never;
@@ -3661,23 +3661,23 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AgentTaskAssignRequest"];
+                "application/json": components["schemas"]["AgentClaimAssignRequest"];
             };
         };
         responses: {
-            /** @description Updated task-message. */
+            /** @description Updated claim-message. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AgentTaskSingleResponse"];
+                    "application/json": components["schemas"]["AgentClaimSingleResponse"];
                 };
             };
             default: components["responses"]["AgentError"];
         };
     };
-    unassignAgentTask: {
+    unassignAgentClaim: {
         parameters: {
             query?: never;
             header?: never;
@@ -3686,23 +3686,23 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AgentTaskUnassignRequest"];
+                "application/json": components["schemas"]["AgentClaimUnassignRequest"];
             };
         };
         responses: {
-            /** @description Updated task-message. */
+            /** @description Updated claim-message. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AgentTaskSingleResponse"];
+                    "application/json": components["schemas"]["AgentClaimSingleResponse"];
                 };
             };
             default: components["responses"]["AgentError"];
         };
     };
-    updateAgentTask: {
+    updateAgentClaim: {
         parameters: {
             query?: never;
             header?: never;
@@ -3711,17 +3711,17 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AgentTaskUpdateRequest"];
+                "application/json": components["schemas"]["AgentClaimUpdateRequest"];
             };
         };
         responses: {
-            /** @description Updated task-message. */
+            /** @description Updated claim-message. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AgentTaskSingleResponse"];
+                    "application/json": components["schemas"]["AgentClaimSingleResponse"];
                 };
             };
             default: components["responses"]["AgentError"];

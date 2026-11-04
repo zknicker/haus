@@ -12,16 +12,16 @@ export type ArtifactPageTarget = HausResourceTarget & { agentId: string };
  * Agent's artifact are ordinary pages a tab can show. The web keeps them in the
  * chat side pane and has no such routes. Each second segment names the page,
  * so `tabPageKey` tells two Threads or two artifacts apart. A Thread opened on
- * a task inside it carries that message in `?task=`, so its page states the task.
+ * a claim inside it carries that message in `?claim=`, so its page states the claim.
  */
 export function threadPagePath(
     slug: string,
     chatId: string,
     anchorMessageId: string,
-    taskMessageId?: string
+    claimMessageId?: string
 ) {
     const path = `${serverRoute(slug)}/threads/${encodeURIComponent(chatId)}/${encodeURIComponent(anchorMessageId)}`;
-    return taskMessageId ? `${path}?task=${encodeURIComponent(taskMessageId)}` : path;
+    return claimMessageId ? `${path}?claim=${encodeURIComponent(claimMessageId)}` : path;
 }
 
 export function filesPagePath(slug: string, chatId: string) {

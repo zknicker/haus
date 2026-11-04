@@ -6,6 +6,7 @@ import { automationRouter } from './automation/router.ts';
 import { avatarRouter } from './avatar/router.ts';
 import { browserRouter } from './browser/router.ts';
 import { chatRouter } from './chat/router.ts';
+import { claimRouter } from './claim/router.ts';
 import { cloudAgentProviderRouter } from './cloud-agent-provider/router.ts';
 import { cloudAgentSettingsRouter } from './cloud-agent-settings/router.ts';
 import { cloudAgentWorkRouter } from './cloud-agent-work/router.ts';
@@ -23,7 +24,6 @@ import { reminderRouter } from './reminder/router.ts';
 import { serverRouter } from './server/router.ts';
 import { sessionRouter } from './session/router.ts';
 import { statsRouter } from './stats/router.ts';
-import { taskRouter } from './task/router.ts';
 import { taskLabelRouter } from './task-label/router.ts';
 import { threadRouter } from './thread/router.ts';
 import { triggerRouter } from './trigger/router.ts';
@@ -58,7 +58,7 @@ export const hausRouter = createRouter({
     server: serverRouter,
     session: sessionRouter,
     stats: statsRouter,
-    task: taskRouter,
+    claim: claimRouter,
     taskLabel: taskLabelRouter,
     thread: threadRouter,
     trigger: triggerRouter,

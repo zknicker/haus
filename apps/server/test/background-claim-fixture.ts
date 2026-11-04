@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import type { AgentCommand, AgentTurnSummary } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
+import { findMessageClaim } from '../src/claims/claim-shape.ts';
 import type { HausDatabase } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
@@ -10,18 +11,17 @@ import {
     chatMessagesTable,
     chatsTable,
     computersTable,
-    messageTasksTable,
+    messageClaimsTable,
     serverMembershipsTable,
     serversTable,
     usersTable,
 } from '../src/postgres/schema.ts';
 import { appendServerAgentActivity } from '../src/server-agents/agent-activity.ts';
-import { findMessageTask } from '../src/tasks/task-shape.ts';
 import { ensureThreadRecord } from '../src/threads/ensure-thread.ts';
 
 /**
  * One Agent, one Computer, one Channel message that Agent claimed: the exact
- * row `haus task claim --message-id` leaves behind, with the delivery seams
+ * row `haus claim --message-id` leaves behind, with the delivery seams
  * the background-claim tests drive around it.
  */
 export class FakeTransport implements DeliveryTransport {
@@ -92,7 +92,7 @@ export async function seedBackgroundClaim(db: HausDatabase): Promise<BackgroundC
     await db.insert(chatsTable).values({ id: chatId, kind: 'channel', name: 'dispatch', serverId });
     const claim = { agentId, chatId, computerId, messageId: '', serverId, userId };
     const messageId = await sendHumanMessage(db, claim, 'Audit the delivery boundary');
-    await db.insert(messageTasksTable).values({
+    await db.insert(messageClaimsTable).values({
         assigneeAgentId: agentId,
         chatId,
         claimedAt: new Date(),
@@ -242,8 +242,8 @@ export async function beginRun(db: HausDatabase, claim: BackgroundClaim) {
     return { delivery, runId: transport.startedRunId(), transport };
 }
 
-export async function readTask(db: HausDatabase, claim: BackgroundClaim) {
-    return await findMessageTask(db, claim.serverId, claim.messageId);
+export async function readClaim(db: HausDatabase, claim: BackgroundClaim) {
+    return await findMessageClaim(db, claim.serverId, claim.messageId);
 }
 
 export function turnSummary(

@@ -1,8 +1,8 @@
 import * as React from 'react';
+import { ClaimControls } from '../../features/servers/claims/claim-controls.tsx';
+import { ClaimFilterRow } from '../../features/servers/claims/claim-filter-row.tsx';
+import { useClaimFilterFields } from '../../features/servers/claims/claim-filters.tsx';
 import { useServerContext } from '../../features/servers/server-context.ts';
-import { TaskControls } from '../../features/servers/tasks/task-controls.tsx';
-import { TaskFilterRow } from '../../features/servers/tasks/task-filter-row.tsx';
-import { useTaskFilterFields } from '../../features/servers/tasks/task-filters.tsx';
 import { PageBand } from '../../features/shell/page-band.tsx';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
 
@@ -15,7 +15,7 @@ const TasksPageContent = React.lazy(async () => ({
 export function TasksPage() {
     useWindowTitle('Tasks');
     const { server } = useServerContext();
-    const fields = useTaskFilterFields();
+    const fields = useClaimFilterFields();
     const canManage = server.role === 'owner' || server.role === 'admin';
     const hasFilters = fields.some((field) => field.applied !== null);
 
@@ -24,9 +24,9 @@ export function TasksPage() {
             <PageBand>
                 <PageBand.Trail current="Tasks" />
                 {/* Applied filters follow the trail, beside the controls that set them. */}
-                {hasFilters ? <TaskFilterRow fields={fields} /> : null}
+                {hasFilters ? <ClaimFilterRow fields={fields} /> : null}
                 <PageBand.Controls>
-                    <TaskControls canManage={canManage} fields={fields} />
+                    <ClaimControls canManage={canManage} fields={fields} />
                 </PageBand.Controls>
             </PageBand>
             <React.Suspense fallback={<div aria-busy="true" className="min-h-0 flex-1" />}>

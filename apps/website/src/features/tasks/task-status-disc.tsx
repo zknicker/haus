@@ -4,12 +4,12 @@ import { cn } from '../../lib/utils.ts';
 // a status glyph should not shrink just because the row around it did.
 const glyphSize = 'size-[15px]';
 
-import { type TaskStatus, taskStatusDiscClasses } from './task-presentation.ts';
+import { type ClaimStatus, claimStatusDiscClasses } from '../claims/claim-presentation.ts';
 
-// How much of the disc's inner pie is filled while a task is live. Terminal
+// How much of the disc's inner pie is filled while a claim is live. Terminal
 // states (done/closed) render as a solid disc with a glyph instead.
 const discFillFraction: Record<
-    Extract<TaskStatus, 'in_progress' | 'in_review' | 'todo'>,
+    Extract<ClaimStatus, 'in_progress' | 'in_review' | 'todo'>,
     number
 > = {
     in_progress: 0.5,
@@ -23,16 +23,16 @@ const pieRadius = 2;
 const pieCircumference = 2 * Math.PI * pieRadius;
 
 /**
- * Linear-style task status disc: an outline ring that fills clockwise as the
- * task progresses, landing on a solid check (done) or cross (closed).
- * Status hue rides the shared label tokens via `taskStatusDiscClasses`.
+ * Linear-style status disc: an outline ring that fills clockwise as the
+ * claim progresses, landing on a solid check (done) or cross (closed).
+ * Status hue rides the shared label tokens via `claimStatusDiscClasses`.
  */
-export function TaskStatusDisc({ className, status }: { className?: string; status: TaskStatus }) {
+export function TaskStatusDisc({ className, status }: { className?: string; status: ClaimStatus }) {
     if (status === 'done' || status === 'closed') {
         return (
             <svg
                 aria-hidden="true"
-                className={cn(glyphSize, 'shrink-0', taskStatusDiscClasses[status], className)}
+                className={cn(glyphSize, 'shrink-0', claimStatusDiscClasses[status], className)}
                 viewBox="0 0 16 16"
             >
                 <circle cx="8" cy="8" fill="currentColor" r="6.75" />
@@ -65,7 +65,7 @@ export function TaskStatusDisc({ className, status }: { className?: string; stat
     return (
         <svg
             aria-hidden="true"
-            className={cn(glyphSize, 'shrink-0', taskStatusDiscClasses[status], className)}
+            className={cn(glyphSize, 'shrink-0', claimStatusDiscClasses[status], className)}
             viewBox="0 0 16 16"
         >
             <circle cx="8" cy="8" fill="none" r="6" stroke="currentColor" strokeWidth="1.5" />

@@ -949,24 +949,24 @@ identity mark. Reply and Task rows enter, exit, and swap with a 220ms slide/fade
 a 150ms crossfade. The count stays in place. The anchor
 message remains the task title and is never duplicated inside the ingress.
 
-Chat honors the App's own task visibility rule (`TaskVisibility.visibleInChat` in `HausModels`,
-applied through `ThreadPreviewProjection.ingressTask`). An **empty** claim an Agent made for itself
+Chat honors the App's own claim visibility rule (`ClaimVisibility.visibleInChat` in `HausModels`,
+applied through `ThreadPreviewProjection.ingressClaim`). An **empty** claim an Agent made for itself
 states nothing in Chat unless the reader asked for it: no note, no ingress, no reserved space. A
-task a human composed or converted always states itself, and so does any task whose Thread has
-replies — the App's own `hasReplies || taskVisibleInChat(…)` rule. Once people are talking in a
+claim a human composed or converted always states itself, and so does any claim whose Thread has
+replies — the App's own `hasReplies || claimVisibleInChat(…)` rule. Once people are talking in a
 Thread its card is on screen anyway, and which work they are talking about is part of reading it,
-so the ingress states `Task #N · status` even under a hidden claim. The preference is per device,
-like appearance — `@AppStorage` under the App's own `haus.chat.showTasks` key — and Settings →
-Preferences → **Show tasks in chat** is the switch.
+so the ingress states `Claim #N · status` even under a hidden claim. The preference is per device,
+like appearance — `@AppStorage` under the App's own `haus.chat.showClaims` key — and Settings →
+Preferences → **Show claims in chat** is the switch.
 
-A task an Agent claimed on a Thread reply (`message.chatID != task.chatID`) has no Thread of its
-own, so it builds no preview; the reply itself carries `ThreadTaskMark` (`Task #N · status`) under
-the same visibility rule. Opening such a task goes through `TaskOpening`: it resolves the Thread's
-real anchor with `thread.get` and lands on the task message, where a top-level task opens the
+A claim an Agent made on a Thread reply (`message.chatID != claim.chatID`) has no Thread of its
+own, so it builds no preview; the reply itself carries `ThreadClaimMark` (`Claim #N · status`) under
+the same visibility rule. Opening such a claim goes through `ClaimOpening`: it resolves the Thread's
+real anchor with `thread.get` and lands on the claim message, where a top-level claim opens the
 Thread anchored on itself.
 
 The Task list reads the Store's own Server-wide lens rather than a second copy of the same query,
-so a durable `task.created` or `task.updated` repaints it without a pull to refresh; only the
+so a durable `claim.created` or `claim.updated` repaints it without a pull to refresh; only the
 widened background lens is the screen's, because it is a different question the reader asked for a
 moment (`@State`, not a route). Its one control states what the default lens hid — `N background` —
 and stays away on a Server with no background claims; widened, it states what it is showing and
@@ -1051,8 +1051,8 @@ drives the sidebar's Inbox dot. The app icon badge is not that count: it is the 
 `iconBadgeCount` wherever the Chat list reloads (Server load, snapshot refresh on foreground or
 reconnect, every `reloadChats`) and on becoming active without a background trip. Durable events refresh only what this
 client already holds, the way the App's invalidation only refetches a live query:
-`message.created` and `chat.read` reload the Chat list, `task.created` and `task.updated` reload the
-Server Task lens beside the affected Chat page, `cloudAgentWork.updated` reloads the active
+`message.created` and `chat.read` reload the Chat list, `claim.created` and `claim.updated` reload the
+Server claim lens beside the affected Chat page, `cloudAgentWork.updated` reloads the active
 work list beside its own, and a settled Agent turn or a Computer update reloads the usage snapshot.
 A failed Inbox read keeps the previous snapshot and is logged — a stale row is honest, while a
 Chat-level send alert raised by a background read is not.
@@ -1077,8 +1077,8 @@ alike, matching the icon badge (`chat.unreadChatCount`).
 There is no question screen, card, or marker — the mention chip in the transcript is the whole
 presentation of a question ([Inbox](../features/inbox.md#notifications)).
 
-A Task lens widens through `loadTasks(includeBackground:)`, and
-a Server-wide read keeps `task.list`'s `backgroundCount` on the Store so a surface can say "N
+A claim lens widens through `loadClaims(includeBackground:)`, and
+a Server-wide read keeps `claim.list`'s `backgroundCount` on the Store so a surface can say "N
 background" without a second round trip. An "Active this week" card keeps its figure and sparkline
 on one row at standard text sizes; at accessibility sizes it widens, stacks the header, figure, and
 sparkline, and lets the caption wrap rather than truncate. The week behind "Active this week" is sliced per Agent out
@@ -1165,7 +1165,7 @@ contract and `specs/realtime-events.md` the normative spec; this is the iPhone's
 
 `HausStoreEventStreams.swift` runs one focused subscription per `RealtimeStream`:
 `chat.onMessageCreated`, `chat.onMessageReactionUpdated`, `chat.onRead`, `thread.onFollowUpdated`,
-`chat.onLifecycle`, `cloudAgentWork.onUpdated`, `task.onChanged`, `taskLabel.onUpdated`,
+`chat.onLifecycle`, `cloudAgentWork.onUpdated`, `claim.onChanged`, `taskLabel.onUpdated`,
 `agent.onLifecycle`, `agent.onActivity`, `computer.onUpdated`, and `server.onUpdated`, the
 membership sentinel. `computer.onUpdated` owns Agent presence beside the lifecycle stream: after a
 Server restart the streams resubscribe before the Computer reattaches, so their start reads an

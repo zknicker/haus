@@ -153,19 +153,19 @@ public struct ChatLifecycleEvent: Decodable, Sendable, Equatable {
     }
 }
 
-public enum TaskChangeKind: String, Decodable, Sendable, Equatable {
+public enum ClaimChangeKind: String, Decodable, Sendable, Equatable {
     case created
     case updated
 }
 
-/// `task.onChanged`: a task on one message was created or changed.
-public struct TaskChangedEvent: Decodable, Sendable, Equatable {
+/// `claim.onChanged`: a claim on one message was created or changed.
+public struct ClaimChangedEvent: Decodable, Sendable, Equatable {
     public let serverID: String
     public let chatID: String
     public let messageID: String
-    public let kind: TaskChangeKind
+    public let kind: ClaimChangeKind
 
-    public init(serverID: String, chatID: String, messageID: String, kind: TaskChangeKind) {
+    public init(serverID: String, chatID: String, messageID: String, kind: ClaimChangeKind) {
         self.serverID = serverID
         self.chatID = chatID
         self.messageID = messageID
@@ -267,7 +267,7 @@ public enum ChatRealtimeEvent: Sendable, Equatable {
     case read(ChatReadEvent)
     case threadFollowUpdated(ThreadFollowUpdatedEvent)
     case lifecycle(ChatLifecycleEvent)
-    case taskChanged(TaskChangedEvent)
+    case claimChanged(ClaimChangedEvent)
     case taskLabelUpdated(TaskLabelUpdatedEvent)
     case cloudAgentWorkUpdated(CloudAgentWorkUpdatedEvent)
 
@@ -278,7 +278,7 @@ public enum ChatRealtimeEvent: Sendable, Equatable {
         case let .read(event): event.serverID
         case let .threadFollowUpdated(event): event.serverID
         case let .lifecycle(event): event.serverID
-        case let .taskChanged(event): event.serverID
+        case let .claimChanged(event): event.serverID
         case let .taskLabelUpdated(event): event.serverID
         case let .cloudAgentWorkUpdated(event): event.serverID
         }

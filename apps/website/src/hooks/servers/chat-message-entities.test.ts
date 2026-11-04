@@ -52,7 +52,7 @@ test('a label scan finds exactly the entities carrying the label', () => {
     const cache = createTranscriptCache(() => new Promise(() => undefined));
     const labelled = (sequence: number, labelId: string) =>
         message(chatId, sequence, {
-            task: { labels: [{ id: labelId }] } as never,
+            claim: { labels: [{ id: labelId }] } as never,
         });
     seedChatMessageEntities(
         cache.queryClient,

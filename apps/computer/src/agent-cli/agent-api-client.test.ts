@@ -29,7 +29,7 @@ test('allows Server writes to queue longer than the local proxy fast path', asyn
     const client = new AgentApiClient(context, fetcher);
 
     await expect(
-        client.request('/api/agent/tasks/claim', z.object({ ok: z.boolean() }), {
+        client.request('/api/agent/claims/claim', z.object({ ok: z.boolean() }), {
             body: { numbers: [1], target: '#coordination' },
             method: 'POST',
         })

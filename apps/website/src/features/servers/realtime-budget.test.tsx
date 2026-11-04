@@ -98,7 +98,7 @@ function expectedStreams(role: 'admin' | 'member') {
         'computer.onUpdated',
         'imageGeneration.onUpdated',
         'mcp.onUpdated',
-        'task.onChanged',
+        'claim.onChanged',
         'taskLabel.onUpdated',
         'thread.onFollowUpdated',
     ];

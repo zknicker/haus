@@ -10,6 +10,7 @@ import { registerAgentAttachmentRoutes } from './attachment-routes.ts';
 import { unfollowAgentThread } from './attention.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
 import { registerAgentChannelRoutes } from './channel-routes.ts';
+import { registerAgentClaimRoutes } from './claim-routes.ts';
 import { registerAgentCloudAgentRoutes } from './cloud-agent-routes.ts';
 import { readAgentServerDirectory } from './directory.ts';
 import { registerAgentHeartbeatRoutes } from './heartbeat-routes.ts';
@@ -23,7 +24,6 @@ import { registerAgentMessageSendRoute } from './message-send-route.ts';
 import { registerAgentProfileRoutes } from './profile-routes.ts';
 import { registerAgentReactionRoutes } from './reaction-routes.ts';
 import { registerAgentReminderRoutes } from './reminder-routes.ts';
-import { registerAgentTaskRoutes } from './task-routes.ts';
 import { registerAgentTriggerRoutes } from './trigger-routes.ts';
 
 const historyQuerySchema = z.object({
@@ -108,7 +108,7 @@ export function registerAgentApiRoutes(
     registerAgentMcpRoutes(app, { db: options.db, runtime: options.mcpRuntime });
     registerAgentReactionRoutes(app, options.db);
     registerAgentReminderRoutes(app, options.db);
-    registerAgentTaskRoutes(app, {
+    registerAgentClaimRoutes(app, {
         agentDelivery: options.agentDelivery,
         db: options.db,
         postCommitWork: options.postCommitWork,

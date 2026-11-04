@@ -63,7 +63,7 @@ test('a human links only work they can already see; unknown ids become plain tex
     ]);
 });
 
-test('an Agent send and both Task creators run the same link check', async () => {
+test('an Agent send and both Claim creators run the same link check', async () => {
     const runner = await fixture.mintRunner('run_link_agent');
     const agentSent = await links.sendAsAgent(
         runner,
@@ -76,36 +76,36 @@ test('an Agent send and both Task creators run the same link check', async () =>
     );
     expect(await linkedIds(agentSent.message.id)).toEqual([work.id]);
 
-    const humanTask = await fixture.owner.trpc.task.create.mutate({
+    const humanClaim = await fixture.owner.trpc.claim.create.mutate({
         chatId: techOpsId,
         content: `Review [A](cloud-agent://${work.id}) and [Gone](cloud-agent://${ghost})`,
-        nonce: 'human-task-link',
+        nonce: 'human-claim-link',
         serverId: fixture.serverId,
     });
-    expect(await linkedIds(humanTask.task.messageId)).toEqual([work.id]);
-    const replayedTask = await fixture.owner.trpc.task.create.mutate({
+    expect(await linkedIds(humanClaim.claim.messageId)).toEqual([work.id]);
+    const replayedClaim = await fixture.owner.trpc.claim.create.mutate({
         chatId: techOpsId,
         content: `Review [A](cloud-agent://${work.id}) and [Gone](cloud-agent://${ghost})`,
-        nonce: 'human-task-link',
+        nonce: 'human-claim-link',
         serverId: fixture.serverId,
     });
-    expect(replayedTask.idempotent).toBe(true);
+    expect(replayedClaim.idempotent).toBe(true);
 
     await fixture.readTarget(runner, '#tech-ops');
-    const taskBody = {
-        nonce: 'agent-task-link',
+    const claimBody = {
+        nonce: 'agent-claim-link',
         target: '#tech-ops',
         titles: [`Ship [B](cloud-agent://${second.id}) not [Gone](cloud-agent://${ghost})`],
     };
-    const agentTask = await links.agentPost(runner, '/api/agent/tasks/create', taskBody);
-    expect(agentTask.status).toBe(200);
-    const [taskRow] = (await fixture.harness.sql`
+    const agentClaim = await links.agentPost(runner, '/api/agent/claims/create', claimBody);
+    expect(agentClaim.status).toBe(200);
+    const [claimRow] = (await fixture.harness.sql`
         select id, content from chat_messages
-        where server_id = ${fixture.serverId} and nonce = 'agent-task-link:0'
+        where server_id = ${fixture.serverId} and nonce = 'agent-claim-link:0'
     `) as { content: string; id: string }[];
-    expect(taskRow?.content).toBe(`Ship [B](cloud-agent://${second.id}) not Gone`);
-    expect(await linkedIds(taskRow?.id ?? '')).toEqual([second.id]);
-    expect((await links.agentPost(runner, '/api/agent/tasks/create', taskBody)).status).toBe(200);
+    expect(claimRow?.content).toBe(`Ship [B](cloud-agent://${second.id}) not Gone`);
+    expect(await linkedIds(claimRow?.id ?? '')).toEqual([second.id]);
+    expect((await links.agentPost(runner, '/api/agent/claims/create', claimBody)).status).toBe(200);
 });
 
 test('a launch keeps authored links and appends its own trusted link last', async () => {

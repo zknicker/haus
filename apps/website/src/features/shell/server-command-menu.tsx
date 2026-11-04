@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { buildClaimCommandGroup } from '../../commands/claim-commands.ts';
 import { buildCommandGroups } from '../../commands/server-commands.ts';
-import { buildTaskCommandGroup } from '../../commands/task-commands.ts';
 import { buildThemeCommandGroup } from '../../commands/theme-commands.ts';
 import { useDevMode } from '../../components/dev-mode-provider.tsx';
 import { useTheme } from '../../components/theme-provider.tsx';
@@ -10,8 +10,8 @@ import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useColorThemeDefinition } from '../../hooks/shell/use-color-theme.ts';
 import type { ServerSummary } from '../../lib/haus-server.tsx';
+import { setShowClaimsInChat, useShowClaimsInChat } from '../claims/show-claims-in-chat.ts';
 import { serverChatRoute, serverSearchRoute } from '../servers/server-routes.ts';
-import { setShowTasksInChat, useShowTasksInChat } from '../tasks/show-tasks-in-chat.ts';
 import { type AgentAvatarLookup, CommandMenuShell } from './command-menu.tsx';
 import { CommandMenuMessageResults } from './command-menu-messages.tsx';
 
@@ -22,7 +22,7 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
     const { forcedTheme, setTheme } = useTheme();
     const modeLocked = forcedTheme !== null;
     const { scene } = useColorThemeDefinition();
-    const showTasksInChat = useShowTasksInChat();
+    const showClaimsInChat = useShowClaimsInChat();
     const openAgentProfile = useOpenAgentProfile();
     const agents = useAgents(server.id);
     const chats = useChats(server.id);
@@ -47,7 +47,7 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
                 serverSlug: server.slug,
                 setDevMode,
             }),
-            buildTaskCommandGroup({ setShowTasksInChat, showTasksInChat }),
+            buildClaimCommandGroup({ setShowClaimsInChat, showClaimsInChat }),
             buildThemeCommandGroup({ modeLocked, scene, setTheme }),
         ],
         [
@@ -62,7 +62,7 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
             server,
             setDevMode,
             setTheme,
-            showTasksInChat,
+            showClaimsInChat,
         ]
     );
     const lookupAgentAvatarUrl = React.useMemo<AgentAvatarLookup>(() => {

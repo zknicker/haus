@@ -1,6 +1,6 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentInboxTable, chatMessagesTable, messageTasksTable } from '../postgres/schema.ts';
+import { agentInboxTable, chatMessagesTable, messageClaimsTable } from '../postgres/schema.ts';
 
 /** Remove only ambient queued delivery for one inline reply chain. */
 export async function deleteQueuedInlineReplyItems(
@@ -22,10 +22,10 @@ export async function deleteQueuedInlineReplyItems(
                       and coalesce(message.reply_root_message_id, message.id) = ${input.rootMessageId}
                 )`,
             sql`not exists (
-                    select 1 from ${messageTasksTable} task
-                    where task.server_id = ${agentInboxTable.serverId}
-                      and task.message_id = ${agentInboxTable.dedupeKey}
-                      and task.assignee_agent_id = ${agentInboxTable.agentId}
+                    select 1 from ${messageClaimsTable} claim
+                    where claim.server_id = ${agentInboxTable.serverId}
+                      and claim.message_id = ${agentInboxTable.dedupeKey}
+                      and claim.assignee_agent_id = ${agentInboxTable.agentId}
                 )`
         )
     );

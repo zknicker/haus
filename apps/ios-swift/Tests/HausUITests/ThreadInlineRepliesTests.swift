@@ -2,7 +2,7 @@
 import Testing
 
 struct ThreadInlineRepliesTests {
-    @Test func taskInspectionSeparatesTheParentChainFromTheDedicatedThread() {
+    @Test func claimInspectionSeparatesTheParentChainFromTheDedicatedThread() {
         let inlineReplies = [
             MessagePresentation(
                 id: "parent-inline-1",
@@ -31,7 +31,7 @@ struct ThreadInlineRepliesTests {
 
         #expect(items.map(\.id) == [
             "thread-anchor-message-3",
-            "thread-task-metadata",
+            "thread-claim-metadata",
             "thread-inline-replies",
             "thread-inline-reply-parent-inline-1",
             "thread-inline-reply-parent-inline-2",

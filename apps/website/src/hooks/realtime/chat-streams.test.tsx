@@ -7,10 +7,10 @@ import {
 } from '../../test-support/realtime-stream-harness.tsx';
 import { useChatLifecycleStream } from './use-chat-lifecycle-stream.ts';
 import { useChatReadStream } from './use-chat-read-stream.ts';
+import { useClaimChangeStream } from './use-claim-change-stream.ts';
 import { useCloudAgentWorkStream } from './use-cloud-agent-work-stream.ts';
 import { useMessageCreatedStream } from './use-message-created-stream.ts';
 import { useMessageReactionStream } from './use-message-reaction-stream.ts';
-import { useTaskChangeStream } from './use-task-change-stream.ts';
 import { useTaskLabelStream } from './use-task-label-stream.ts';
 import { useThreadFollowStream } from './use-thread-follow-stream.ts';
 
@@ -116,7 +116,7 @@ describe('Chat stream hooks', () => {
         ]);
     });
 
-    test('chat.onMessageReactionUpdated invalidates the entity, search, active work, and tasks', async () => {
+    test('chat.onMessageReactionUpdated invalidates the entity, search, active work, and claims', async () => {
         const event = { chatId: 'cht_a', messageId: 'msg_1', parentChatId: null, serverId };
         const { onEvent, onRecovery } = await drive(
             'chat.onMessageReactionUpdated',
@@ -127,7 +127,7 @@ describe('Chat stream hooks', () => {
         const reads = [
             listKey('chat.search', { serverId }),
             listKey('cloudAgentWork.listActive', { serverId }),
-            listKey('task.list', { serverId }),
+            listKey('claim.list', { serverId }),
         ];
         expect(invalidated(onEvent)).toEqual(reads);
         expect<unknown>(onRecovery[0]).toEqual(bulkLists);
@@ -218,16 +218,16 @@ describe('Chat stream hooks', () => {
         expect(invalidated(onRecovery)).toContainEqual(listKey('chat.get', { serverId }));
     });
 
-    test('task.onChanged invalidates the task message entity and the task list', async () => {
-        const event = { chatId: 'cht_a', kind: 'updated', messageId: 'msg_task', serverId };
-        const { onEvent, onRecovery } = await drive('task.onChanged', useTaskChangeStream, event);
+    test('claim.onChanged invalidates the claim message entity and the claim list', async () => {
+        const event = { chatId: 'cht_a', kind: 'updated', messageId: 'msg_claim', serverId };
+        const { onEvent, onRecovery } = await drive('claim.onChanged', useClaimChangeStream, event);
         expect<unknown>(onEvent[0]).toEqual({ op: 'noteMessageAnnotated', target: event });
-        expect(invalidated(onEvent)).toEqual([listKey('task.list', { serverId })]);
+        expect(invalidated(onEvent)).toEqual([listKey('claim.list', { serverId })]);
         expect<unknown>(onRecovery[0]).toEqual(bulkLists);
-        expect(invalidated(onRecovery)).toEqual([listKey('task.list', { serverId })]);
+        expect(invalidated(onRecovery)).toEqual([listKey('claim.list', { serverId })]);
     });
 
-    test('taskLabel.onUpdated refreshes label carriers, the catalog, and tasks', async () => {
+    test('taskLabel.onUpdated refreshes label carriers, the catalog, and claims', async () => {
         const event = { labelId: 'lbl_1', serverId };
         const { onEvent, onRecovery } = await drive(
             'taskLabel.onUpdated',
@@ -235,7 +235,10 @@ describe('Chat stream hooks', () => {
             event
         );
         expect<unknown>(onEvent[0]).toEqual({ event, op: 'noteTaskLabelUpdated' });
-        const reads = [listKey('taskLabel.list', { serverId }), listKey('task.list', { serverId })];
+        const reads = [
+            listKey('taskLabel.list', { serverId }),
+            listKey('claim.list', { serverId }),
+        ];
         expect(invalidated(onEvent)).toEqual(reads);
         // A missed rename may sit on any loaded message: lists recover too.
         expect<unknown>(onRecovery[0]).toEqual(bulkLists);

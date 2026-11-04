@@ -3,12 +3,12 @@ import SwiftUI
 /// A native NavigationStack destination for one message thread.
 ///
 /// The parent chat owns fetching and mutation. This view only presents the
-/// anchor, task metadata, and current reply state.
+/// anchor, claim metadata, and current reply state.
 public struct ThreadDetailView: View {
     let anchor: MessagePresentation
-    /// The reply whose task the Thread was opened for, when a Thread task
-    /// opened it (`TaskOpening.containingThread`). Its mark always shows.
-    let taskMessageID: String?
+    /// The reply whose claim the Thread was opened for, when a Thread claim
+    /// opened it (`ClaimOpening.containingThread`). Its mark always shows.
+    let claimMessageID: String?
     private let replyProvider: () -> [MessagePresentation]
     private let isConnected: Bool
     /// Whether this conversation refuses new Messages — an archived Chat, or a
@@ -28,7 +28,7 @@ public struct ThreadDetailView: View {
     /// How that row reads: the channel roster, or a DM Thread's thought subtitle.
     private let engagementStyle: HeaderEngagementStyle
     /// The reply ids the transcript is showing. Read acknowledgement is built
-    /// on this; the anchor and task rows carry no Server sequence, so the App
+    /// on this; the anchor and claim rows carry no Server sequence, so the App
     /// simply cannot resolve them.
     private let onVisibleMessagesChange: ([String]) -> Void
     /// Where the Thread lives — "#design", or "DM" — shown under the title.
@@ -87,11 +87,11 @@ public struct ThreadDetailView: View {
         engagementChatID: String? = nil,
         engagementStyle: HeaderEngagementStyle = .roster,
         landingMessageID: String? = nil,
-        taskMessageID: String? = nil,
+        claimMessageID: String? = nil,
         onVisibleMessagesChange: @escaping ([String]) -> Void = { _ in }
     ) {
         self.anchor = anchor
-        self.taskMessageID = taskMessageID
+        self.claimMessageID = claimMessageID
         self.replyProvider = replies
         self.contextLabel = contextLabel
         _awaitsFirstReplies = State(initialValue: ThreadOpening.awaitsFirstReplies(anchor: anchor))
@@ -185,7 +185,7 @@ public struct ThreadDetailView: View {
             }
         }
         .threadNavigationTitle(
-            ThreadOpening.title(anchor: anchor, taskMessageID: taskMessageID),
+            ThreadOpening.title(anchor: anchor, claimMessageID: claimMessageID),
             subtitle: showsOutage ? ConnectionOutage.title : contextLabel
         )
         .connectionOutage(isConnected: isConnected, showsOutage: $showsOutage)
@@ -210,7 +210,7 @@ public struct ThreadDetailView: View {
 
     /// The replies sit on the same flipped-table substrate as the Chat
     /// timeline, so the bottom anchor, keyboard rides, and history prepends
-    /// are structural here too. The anchor and its task metadata are simply
+    /// are structural here too. The anchor and its claim metadata are simply
     /// the transcript's oldest items.
     private func transcript(items: [ThreadTranscriptItem], rowRevision: Int) -> some View {
         GeometryReader { proxy in
@@ -221,7 +221,7 @@ public struct ThreadDetailView: View {
                 showsAccessory: history.hasOlder
                     || inlineReplies?.hasOlder() == true || inlineReplies?.hasNewer() == true,
                 onAppend: { previousItems, items, isNearNewest in
-                    // Anchor and task rows can precede the first fetched reply page.
+                    // Anchor and claim rows can precede the first fetched reply page.
                     switch ThreadReplyReveal.onLatestReplyChange(
                         previousLatestID: previousItems.last(where: { $0.replyID != nil })?.replyID,
                         isNearBottom: isNearNewest && history.followsLatest,

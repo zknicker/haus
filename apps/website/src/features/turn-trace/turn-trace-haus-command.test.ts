@@ -50,5 +50,5 @@ test('a here-string, a draft, and setup before the send', () => {
         read("cd /tmp && haus message send --target '#ops' <<'EOF'\nUp.\nEOF")?.place,
         '#ops'
     );
-    assert.equal(read('haus task claim --number 3'), null);
+    assert.equal(read('haus claim --number 3'), null);
 });

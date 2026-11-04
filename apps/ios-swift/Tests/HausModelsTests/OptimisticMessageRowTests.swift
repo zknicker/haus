@@ -62,7 +62,7 @@ final class OptimisticMessageRowTests: XCTestCase {
             sequence: 1,
             serverID: "server-1",
             sessionGeneration: nil,
-            task: nil
+            claim: nil
         )
     }
 }

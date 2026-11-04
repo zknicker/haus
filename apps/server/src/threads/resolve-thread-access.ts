@@ -15,8 +15,8 @@ export interface ThreadAccess {
 /**
  * A Thread's id is derived from its anchor, so it is addressable before anyone
  * replies. Reads resolve that name against the anchor's parent Chat and answer
- * with an empty Thread rather than a missing one — which is what keeps a task
- * deep link working when the task's Thread was never needed.
+ * with an empty Thread rather than a missing one — which is what keeps a claim
+ * deep link working when the claim's Thread was never needed.
  */
 export async function requireThreadAccess(
     db: HausDatabase,

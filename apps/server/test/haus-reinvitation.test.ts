@@ -185,25 +185,25 @@ test('a returning human cannot reopen DM history from their former membership st
     expect(preserved).toHaveLength(2);
 });
 
-test('reinvitation restores no task authority from a former stint', async () => {
-    const returner = await signIn('user_return_tasks', ['return-tasks@haus.test']);
-    await join(returner, 'return-tasks@haus.test');
+test('reinvitation restores no claim authority from a former stint', async () => {
+    const returner = await signIn('user_return_claims', ['return-claims@haus.test']);
+    await join(returner, 'return-claims@haus.test');
     const ownerUserId = await readUserId('user_return_owner');
-    const returnerUserId = await readUserId('user_return_tasks');
-    const shared = await owner.trpc.task.create.mutate({
+    const returnerUserId = await readUserId('user_return_claims');
+    const shared = await owner.trpc.claim.create.mutate({
         chatId: allChatId,
-        content: 'Shared task from the former stint',
-        nonce: 'return-task-shared',
+        content: 'Shared claim from the former stint',
+        nonce: 'return-claim-shared',
         serverId,
     });
     const formerDm = await returner.trpc.chat.ensureDm.mutate({
         peerUserId: ownerUserId,
         serverId,
     });
-    const privateTask = await owner.trpc.task.create.mutate({
+    const privateClaim = await owner.trpc.claim.create.mutate({
         chatId: formerDm.id,
-        content: 'Private task from the former stint',
-        nonce: 'return-task-private',
+        content: 'Private claim from the former stint',
+        nonce: 'return-claim-private',
         serverId,
     });
 
@@ -213,40 +213,40 @@ test('reinvitation restores no task authority from a former stint', async () => 
         userId: returnerUserId,
     });
 
-    await expect(returner.trpc.task.list.query({ serverId })).rejects.toThrow(/not a member/i);
+    await expect(returner.trpc.claim.list.query({ serverId })).rejects.toThrow(/not a member/i);
     await expect(
-        returner.trpc.task.create.mutate({
+        returner.trpc.claim.create.mutate({
             chatId: allChatId,
             content: 'Forbidden after removal',
-            nonce: 'return-task-forbidden-create',
+            nonce: 'return-claim-forbidden-create',
             serverId,
         })
     ).rejects.toThrow(/not a member/i);
     await expect(
-        returner.trpc.task.promote.mutate({
-            messageId: shared.task.messageId,
+        returner.trpc.claim.promote.mutate({
+            messageId: shared.claim.messageId,
             serverId,
         })
     ).rejects.toThrow(/not a member/i);
     await expect(
-        returner.trpc.task.update.mutate({
-            expectedVersion: shared.task.version,
-            messageId: shared.task.messageId,
+        returner.trpc.claim.update.mutate({
+            expectedVersion: shared.claim.version,
+            messageId: shared.claim.messageId,
             patch: { priority: 'urgent' },
             serverId,
         })
     ).rejects.toThrow(/not a member/i);
 
-    await join(returner, 'return-tasks@haus.test');
+    await join(returner, 'return-claims@haus.test');
 
-    const { tasks: returnedTasks } = await returner.trpc.task.list.query({ serverId });
-    expect(returnedTasks.map((item) => item.task.messageId)).toContain(shared.task.messageId);
-    expect(returnedTasks.map((item) => item.task.messageId)).not.toContain(
-        privateTask.task.messageId
+    const { claims: returnedClaims } = await returner.trpc.claim.list.query({ serverId });
+    expect(returnedClaims.map((item) => item.claim.messageId)).toContain(shared.claim.messageId);
+    expect(returnedClaims.map((item) => item.claim.messageId)).not.toContain(
+        privateClaim.claim.messageId
     );
     await expect(
         returner.trpc.chat.messages.query({
-            chatId: privateTask.task.threadChatId,
+            chatId: privateClaim.claim.threadChatId,
             serverId,
         })
     ).rejects.toThrow(/participant/i);

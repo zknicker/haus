@@ -1,9 +1,9 @@
 import { taskLabelDeleteInputSchema, taskLabelMutationSchema } from '@haus/api';
 import { publishRealtime } from '../../realtime/topic.ts';
-import { deleteTaskLabel } from '../../tasks/task-labels.ts';
-import { taskProcedure } from '../task/procedure.ts';
+import { deleteTaskLabel } from '../../task-labels/task-labels.ts';
+import { claimProcedure } from '../claim/procedure.ts';
 
-export const deleteTaskLabelProcedure = taskProcedure
+export const deleteTaskLabelProcedure = claimProcedure
     .input(taskLabelDeleteInputSchema)
     .output(taskLabelMutationSchema)
     .mutation(async ({ ctx, input }) => {

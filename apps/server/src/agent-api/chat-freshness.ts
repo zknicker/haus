@@ -11,8 +11,8 @@ import { AgentChatViewStaleError } from './chat-freshness-errors.ts';
 
 /**
  * Refuses when the Agent has an unread Message from someone else in the target
- * Chat, and otherwise advances its seen cursor. Sits beside `task-freshness`,
- * the same query shape for the Task lane.
+ * Chat, and otherwise advances its seen cursor. Sits beside `claim-freshness`,
+ * the same query shape for the Claim lane.
  */
 export async function assertFreshAgentView(
     db: HausDatabase,

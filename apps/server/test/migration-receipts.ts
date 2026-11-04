@@ -49,4 +49,5 @@ export const migrationsSince0060 = [
     '0106_background-subagents',
     '0107_background-tasks',
     '0108_remove-linear',
+    '0109_rename-tasks-to-claims',
 ];

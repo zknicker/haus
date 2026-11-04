@@ -7,7 +7,7 @@ import { type InboxItemRow, inboxItemColumns, inboxOrder, queuedFor } from './st
 // The automation chain budget (specs/github-triggers.md#automation-chain-budget).
 // A drain made only of automation-authored work (Agent messages, Trigger fires,
 // Trigger problem notices) spends one turn; any other work (a human message, a
-// Reminder, a task assignment) resets the chain. At the ceiling the drain
+// Reminder, a claim assignment) resets the chain. At the ceiling the drain
 // holds until a human speaks. A chain that has sat idle for half an hour below
 // the ceiling restarts, so spaced, legitimate fires never accumulate.
 
@@ -51,7 +51,7 @@ export function canBeginAgentDrain(rows: AuthoredWork[], currentTurns: number): 
 /**
  * Chooses the drain before admitting it: admission judges the rows that will
  * actually run, never the whole queue. At the ceiling an automation-only drain
- * holds, and the oldest work that resets the chain (a Reminder, a task
+ * holds, and the oldest work that resets the chain (a Reminder, a claim
  * assignment, a human message) leads instead, so the held automation drains
  * after it from zero. Null holds the Agent.
  */

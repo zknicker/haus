@@ -98,10 +98,10 @@ public struct TranscriptStore: Equatable, Sendable {
         lists.keys.filter { $0.chatID == chatID }
     }
 
-    /// Cached entities whose task carries the label (labels are embedded rows).
+    /// Cached entities whose claim carries the label (labels are embedded rows).
     public func refreshes(carryingLabel labelID: String) -> [EntityRefresh] {
         entities.values.compactMap { entity in
-            guard entity.message.task?.labels.contains(where: { $0.id == labelID }) == true else { return nil }
+            guard entity.message.claim?.labels.contains(where: { $0.id == labelID }) == true else { return nil }
             return EntityRefresh(chatID: entity.message.chatID, messageID: entity.message.id)
         }
     }

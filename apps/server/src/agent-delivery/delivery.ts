@@ -10,6 +10,10 @@ import {
 } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
 import { and, eq, sql } from 'drizzle-orm';
+import {
+    runLivenessClaimEvents,
+    settleAgentBackgroundClaims,
+} from '../claims/background-claims.ts';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -25,7 +29,6 @@ import { readActiveAgentActivity } from '../server-agents/agent-activity-history
 import type { AgentConfigurationRotation } from '../server-agents/configure-agent.ts';
 import { recordAgentTurnSummary, recordRunTrigger } from '../server-agents/record-agent-turn.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { runLivenessTaskEvents, settleAgentBackgroundClaims } from '../tasks/background-claims.ts';
 import { publishCommittedAgentActivity } from './activity-events.ts';
 import { admitQueuedAgentDrain, restartIdleAgentChain, settleAgentChain } from './chain-budget.ts';
 import { advanceSeenForRun, markCursorSubsumedSeen } from './cursors.ts';
@@ -79,13 +82,13 @@ export interface DeliveryTransport {
 
 export interface DispatchPlan {
     activities?: AgentActivityEvent[];
+    /** `claim.updated` for the claims this run just made live. */
+    claimEvents?: PreparedRealtimeEvent[];
     computerId: string;
     configuration?: DeferredConfiguration;
     frame: AgentCommand;
     serverId: string;
     suppressSend?: boolean;
-    /** `task.updated` for the tasks this run just made live. */
-    taskEvents?: PreparedRealtimeEvent[];
     /** A daytime heartbeat this plan stopped to make room for addressed work. */
     yielded?: YieldedHeartbeat;
 }
@@ -236,7 +239,7 @@ export class AgentDelivery {
             await lockServerRow(tx, input.serverId);
             const state = await store.readDeliveryState(tx, input.agentId);
             let activity: AgentActivityEvent | null = null;
-            let taskEvents: PreparedRealtimeEvent[] = [];
+            let claimEvents: PreparedRealtimeEvent[] = [];
             if (state?.activeRunId) {
                 await revokeRunnerCredentialsForRun(tx, {
                     agentId: input.agentId,
@@ -254,7 +257,7 @@ export class AgentDelivery {
                     runId: state.activeRunId,
                     serverId: input.serverId,
                 });
-                taskEvents = await settleAgentBackgroundClaims(tx, killedRun(input, state));
+                claimEvents = await settleAgentBackgroundClaims(tx, killedRun(input, state));
                 await store.clearActiveRun(tx, input.agentId);
             }
             await store.clearInboxNotices(tx, { agentId: input.agentId });
@@ -299,10 +302,10 @@ export class AgentDelivery {
                 configuration,
                 runId: state?.activeRunId ?? null,
                 sessionGeneration: rotated.sessionGeneration,
-                taskEvents,
+                claimEvents,
             };
         });
-        publishRealtime(result.taskEvents);
+        publishRealtime(result.claimEvents);
         if (result.activity) {
             publishCommittedAgentActivity(result.activity);
         }
@@ -418,7 +421,7 @@ export class AgentDelivery {
                     runId: summary.runId,
                     serverId,
                 });
-                const taskEvents = await runLivenessTaskEvents(tx, {
+                const claimEvents = await runLivenessClaimEvents(tx, {
                     agentId: summary.agentId,
                     runId: summary.runId,
                     serverId,
@@ -453,13 +456,13 @@ export class AgentDelivery {
                     chatId: state.activeRunChatId,
                     config,
                     plan: await this.planDispatch(tx, summary.agentId),
-                    taskEvents,
+                    claimEvents,
                 };
             });
             if (!recovery) {
                 return;
             }
-            publishRealtime(recovery.taskEvents);
+            publishRealtime(recovery.claimEvents);
             if (recovery.activity) {
                 publishCommittedAgentActivity(recovery.activity);
             }
@@ -542,14 +545,14 @@ export class AgentDelivery {
                     agentId: summary.agentId,
                     serverId,
                 });
-                const taskEvents = await settleAgentBackgroundClaims(tx, runScope);
+                const claimEvents = await settleAgentBackgroundClaims(tx, runScope);
                 await store.clearActiveRun(tx, summary.agentId);
                 return {
                     activity,
                     chatId,
                     configuration,
                     plan: await this.planDispatch(tx, summary.agentId),
-                    taskEvents,
+                    claimEvents,
                 };
             }
             // A failed turn that produced model-visible output must not requeue
@@ -597,19 +600,19 @@ export class AgentDelivery {
                 agentId: summary.agentId,
                 serverId,
             });
-            const taskEvents = await settleAgentBackgroundClaims(tx, runScope);
+            const claimEvents = await settleAgentBackgroundClaims(tx, runScope);
             await store.clearActiveRun(tx, summary.agentId);
             await failureHold.recordTurnFailure(tx, runScope, state, {
                 failureCode: summary.failureCode,
                 failureFingerprint: summary.failureFingerprint,
                 failureKind: summary.failureKind,
             });
-            return { activity, chatId, configuration, plan: null, taskEvents };
+            return { activity, chatId, configuration, plan: null, claimEvents };
         });
         if (!settlement) {
             return;
         }
-        publishRealtime(settlement.taskEvents);
+        publishRealtime(settlement.claimEvents);
         if (settlement.activity) {
             publishCommittedAgentActivity(settlement.activity);
         }
@@ -806,7 +809,7 @@ export class AgentDelivery {
                 }),
                 activities,
                 configuration: yielded.configuration ?? next?.configuration,
-                taskEvents: [...yielded.taskEvents, ...(next?.taskEvents ?? [])],
+                claimEvents: [...yielded.claimEvents, ...(next?.claimEvents ?? [])],
                 yielded,
             };
         }
@@ -973,7 +976,7 @@ export class AgentDelivery {
         return {
             ...(activity ? { activities: [activity] } : {}),
             computerId: config.computerId,
-            taskEvents: await runLivenessTaskEvents(tx, {
+            claimEvents: await runLivenessClaimEvents(tx, {
                 agentId,
                 runId,
                 serverId: state.serverId,
@@ -1009,7 +1012,7 @@ export class AgentDelivery {
         if (!plan) {
             return;
         }
-        publishRealtime(plan.taskEvents ?? []);
+        publishRealtime(plan.claimEvents ?? []);
         if (plan.yielded) {
             publishAgentLifecycle({
                 agentId: plan.yielded.agentId,
@@ -1060,7 +1063,7 @@ export class AgentDelivery {
         input: { agentId: string; serverId: string },
         kill: NonNullable<Awaited<ReturnType<typeof interruptActiveRun>>>
     ) {
-        publishRealtime(kill.taskEvents);
+        publishRealtime(kill.claimEvents);
         if (kill.activity) {
             publishCommittedAgentActivity(kill.activity);
         }

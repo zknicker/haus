@@ -78,14 +78,14 @@ extension HausStore {
         let readsChatList = effects.needsChatListRead { unreadByChatID[$0] }
         // Inbox snapshots refresh only when this client already holds them:
         // an event must not start a Server-wide read nobody has opened.
-        let readsTasks = effects.reloadsServerTasks && serverTasks != nil
+        let readsClaims = effects.reloadsServerClaims && serverClaims != nil
         let readsWork = effects.reloadsActiveCloudAgentWork && activeCloudAgentWork != nil
         // A Chat list read already reads the unread Threads and the badge.
         let readsThreads = effects.reloadsUnreadThreads && !readsChatList
         await withTaskGroup(of: Void.self) { group in
             if readsChatList { group.addTask { await self.refreshChatList(serverID: serverID) } }
             if readsThreads { group.addTask { await self.refreshUnreadThreadsAndBadge() } }
-            if readsTasks { group.addTask { await self.loadServerTasks() } }
+            if readsClaims { group.addTask { await self.loadServerClaims() } }
             if readsWork { group.addTask { await self.loadActiveCloudAgentWork() } }
         }
         // Mounted search reruns on new messages, after the Chat list it maps
@@ -159,8 +159,8 @@ extension HausStore {
             if projections.contains(.serverList) {
                 group.addTask { await self.reloadServerList(serverID: serverID) }
             }
-            if projections.contains(.taskLenses), serverTasks != nil {
-                group.addTask { await self.loadServerTasks() }
+            if projections.contains(.claimLenses), serverClaims != nil {
+                group.addTask { await self.loadServerClaims() }
             }
             if projections.contains(.activeCloudAgentWork) {
                 if activeCloudAgentWork != nil {

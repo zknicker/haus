@@ -3,6 +3,7 @@ import { Scope } from 'effect';
 import { startArtifactRetentionSweep } from './artifacts/retention.ts';
 import type { ArtifactStorage } from './artifacts/storage.ts';
 import type { BootSweep, SweepTimers } from './boot-sweep.ts';
+import { startStaleClaimSweep } from './claims/close-stale-claims.ts';
 import type { GithubDelivery, GithubIngestOutcome } from './github/delivery-ingest.ts';
 import { startGithubDeliveryRecovery } from './github/delivery-recovery.ts';
 import type { GithubApp } from './github/github-app.ts';
@@ -14,7 +15,6 @@ import type { PushSender } from './push/push-sender.ts';
 import type { ReminderClock } from './reminders/reminder-model.ts';
 import { startReminderRetentionSweep } from './reminders/retention-sweep.ts';
 import { startExecutionJournalRetentionSweep } from './server-agents/execution-journal-retention.ts';
-import { startStaleTaskSweep } from './tasks/close-stale-tasks.ts';
 import { startTriggerRetentionSweep } from './triggers/retention-sweep.ts';
 
 /** Production recovery cadence; the dev stack and tests pass their own. */
@@ -82,7 +82,7 @@ export async function startServerSweeps(
             'execution-journal-retention',
             () => startExecutionJournalRetentionSweep(input.db, input.clock, input.timers),
         ],
-        ['stale-tasks', () => startStaleTaskSweep(input.db, input.clock, input.timers)],
+        ['stale-claims', () => startStaleClaimSweep(input.db, input.clock, input.timers)],
         ...(pushSender
             ? [
                   [

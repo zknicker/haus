@@ -33,7 +33,7 @@ export const manualBehaviorAdaptations = new Map<string, ReadonlyArray<readonly 
         ],
     ],
     // A request inside a thread is claimed there by message id; Raft keeps claims top-level
-    // because its tasks once owned their Thread (specs/tasks.md, 2026-11-02).
+    // because its tasks once owned their Thread (specs/claims.md, 2026-11-02).
     [
         'recipes/technique/task-claim-lock',
         [

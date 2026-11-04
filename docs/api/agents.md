@@ -98,7 +98,7 @@ quiet, not evidence of a lost run.
 `trigger` names the inbox work the Server chose when it dispatched the run, recorded
 once at dispatch in `agent_run_triggers` so it survives a failed run requeueing its
 rows: `{ kind: 'message', author: 'human' | 'agent', chatId, messageId, preview }`,
-`{ kind: 'task', chatId, messageId, preview }` (the task's message), or
+`{ kind: 'claim', chatId, messageId, preview }` (the claim's message), or
 `{ kind: 'reminder' | 'trigger' | 'cloud_agent' | 'onboarding', chatId }`, or one of the chatless
 sources (`dream`, `heartbeat`, `heartbeat_report`, `subagent`), whose runs need no Chat visibility to read ([workspace](../../specs/workspace.md#dreaming),
 [heartbeat](../../specs/heartbeat.md), [runtime drivers](../../specs/runtime-drivers.md#background-work)).
@@ -184,7 +184,7 @@ them ([heartbeat spec](../../specs/heartbeat.md#wire-contract); routes in
   `agent_dream_summaries` row. Only a `dream` run may.
 - `POST /api/agent/leads { topic, messageId? }` claims a shared lead, refused while another Agent
   holds a claim on the same message within seven days. Only an active `heartbeat` or `dream` run
-  may claim (`403 HEARTBEAT_RUN_REQUIRED`), and a message an Agent holds as an open task answers
+  may claim (`403 HEARTBEAT_RUN_REQUIRED`), and a message an Agent holds as an open claim answers
   `409 LEAD_HELD_AS_TASK` naming the holder. `GET /api/agent/leads` lists this Server's
   leads from the last seven days. `POST /api/agent/leads/:id/done { finding }` records the finding.
   Leads live in `agent_leads` and expire after fourteen days.
@@ -253,18 +253,18 @@ the page right after the position (oldest first, `limit` default 50, max 100), m
 through it before responding, and adds `unread_after_seq` and `read_through_seq`; combined with
 `before`, `after`, or `around` it is `400 INVALID_ARG`.
 
-### Task routes
+### Claim routes
 
-`GET /api/agent/tasks` lists tasks in one `target` or across every Chat the Agent can see.
+`GET /api/agent/claims` lists claims in one `target` or across every Chat the Agent can see.
 `status` is `all` or one status and defaults to the unfinished `todo`, `in_progress`, and
-`in_review`; `mine=true` keeps tasks claimed by or assigned to the calling Agent. Rows come newest
+`in_review`; `mine=true` keeps claims claimed by or assigned to the calling Agent. Rows come newest
 activity first, at most 50, and `omitted` counts the matching rows the limit left out, so
-`haus task list` can say `Truncated: N more`.
+`haus claim list` can say `Truncated: N more`.
 
-`POST /api/agent/tasks/create`, `/claim`, `/unclaim`, `/assign`, `/unassign`, and `/update`
-mutate tasks. Every task row carries `version`, the revision `haus task list` prints as `rev=`. `claim` takes
-`target` plus either `numbers` or a `messageId`; claiming a `messageId` that carries no task
-promotes the message first, so the claim is what creates the task. `target` may be a Thread
+`POST /api/agent/claims/create`, `/claim`, `/release`, `/assign`, `/unassign`, and `/update`
+mutate claims. Every claim row carries `version`, the revision `haus claim list` prints as `rev=`. `claim` takes
+`target` plus either `numbers` or a `messageId`; claiming a `messageId` that carries no claim
+promotes the message first, so claiming is what creates the claim. `target` may be a Thread
 target (`#channel:anchorShort`, `dm:@peer:anchorShort`): a Thread message is claimed in place and
 numbered by the Thread's parent, and `numbers` resolve against that parent from either target.
 `create` refuses a Thread target, and a `create` assigned to the caller is `origin` `claimed`.
@@ -272,56 +272,56 @@ A `heartbeat` or `dream` run
 may not claim (`403 REGULAR_TURN_REQUIRED`); it claims leads instead.
 
 `create` takes `{ target, content | titles, assignee?, nonce }`. The `nonce` (1–128) is the
-idempotency key: `haus task create` mints one per invocation and, on a request that got no
-answer, retries once on it. The Server stores `<nonce>:<index>` on each task-message, unique per
+idempotency key: `haus claim create` mints one per invocation and, on a request that got no
+answer, retries once on it. The Server stores `<nonce>:<index>` on each claim-message, unique per
 Chat, and checks it under the Server row lock in the create transaction, so concurrent or retried
-requests with the same nonce and request return the original tasks (same ids and numbers) and
+requests with the same nonce and request return the original claims (same ids and numbers) and
 emit no second event, inbox item, or wake. The same nonce with a different title list, title
-count, or assignee returns `409 IDEMPOTENCY_KEY_REUSED`. Keys live with the task-messages; they
+count, or assignee returns `409 IDEMPOTENCY_KEY_REUSED`. Keys live with the claim-messages; they
 never expire.
 
-Every task projection carries `origin`, which says how the row came to exist:
+Every claim projection carries `origin`, which says how the row came to exist:
 
 | `origin` | Written by |
 | --- | --- |
-| `composed` | A human composing a message as a task. |
+| `composed` | A human composing a message as a claim. |
 | `converted` | A human promoting an existing message with Convert to Task. |
 | `claimed` | An Agent claiming a message nobody had promoted. |
 
-The hosted task wire shape adds two derived fields on top of that. `tier` is `background` or
-`tracked`: a background task is a `claimed` task in `in_progress` or `done` whose Thread has no
+The hosted claim wire shape adds two derived fields on top of that. `tier` is `background` or
+`tracked`: a background claim is a `claimed` claim in `in_progress` or `done` whose Thread has no
 messages, whose status never left that pair — review, closure, or a reopen
 stamps it tracked for good — and whose claiming run has not settled leaving the work open — an Agent's own orchestration lock, excluded from the default Board
 and List. Everything else is `tracked`. `live` is true while the assignee Agent's in-flight run
-holds that task's message or Thread; a run beginning and a run settling both emit `task.updated`,
-so it is never polled. Both are computed per read and neither is a stored task column.
+holds that claim's message or Thread; a run beginning and a run settling both emit `claim.updated`,
+so it is never polled. Both are computed per read and neither is a stored claim column.
 
-Promotion does not create the task's Thread. The Thread materializes on the first reply under its
+Promotion does not create the claim's Thread. The Thread materializes on the first reply under its
 deterministic `cht_thr_<anchor>` id, so `haus message send --target "#channel:<messageId>"`
 remains the way to open one, and a claim an Agent resolves inside its own turn leaves no work
 surface behind.
 
-A claim runs in one transaction and answers `200` with one `results` row per requested task:
+A claim runs in one transaction and answers `200` with one `results` row per requested claim:
 `outcome` is `claimed`, `already_yours` (a claim the Agent already held, which still authorizes
 work), or `refused` with a `reason`. Only the holder decides a claim: an edit to status, priority,
-or labels since the Agent last read the task never refuses it. Every granted claim commits and
-emits its `task.updated` event together, so a refusal on one task never strands another. A row
-refused because someone else holds the task also carries a **`claimConflict`** object:
+or labels since the Agent last read the claim never refuses it. Every granted claim commits and
+emits its `claim.updated` event together, so a refusal on one claim never strands another. A row
+refused because someone else holds the claim also carries a **`claimConflict`** object:
 
 ```json
 {
   "number": 4,
   "outcome": "refused",
-  "reason": "That task is already owned by another assignee.",
-  "task": { "number": 4, "status": "in_progress" },
+  "reason": "That claim is already owned by another assignee.",
+  "claim": { "number": 4, "status": "in_progress" },
   "claimConflict": {
     "kind": "claim_conflict",
     "conflictScope": "implementation_execution",
     "blockedActions": ["start_conflicting_execution"],
     "unblockedActionExamples": [
-      "reading the task and its Thread",
+      "reading the claim and its Thread",
       "replying in the Thread with findings, questions, or review",
-      "claiming a different task in this lane",
+      "claiming a different message in this lane",
       "raising the routing with the people in the original Chat"
     ],
     "currentAssignee": { "type": "agent", "name": "sage" },
@@ -335,12 +335,12 @@ refused because someone else holds the task also carries a **`claimConflict`** o
 `blockedActions` is an authoritative closed set — an action absent from it is not blocked by this
 conflict, though it remains subject to its own authority and policy — while
 `unblockedActionExamples` is illustrative and never a permission table. `observedAt` is a snapshot,
-not a standing ruling. `packages/haus-api` owns the schema (`taskClaimConflictSchema`) and the
-rendering copy: `taskClaimConflictBlockedActionCopy` maps each blocked action id to its prose, and
-`TASK_CLAIM_CONFLICT_ROUTING_NOTE` is the closing sentence the CLI prints — a claim conflict is a
+not a standing ruling. `packages/haus-api` owns the schema (`claimConflictSchema`) and the
+rendering copy: `claimConflictBlockedActionCopy` maps each blocked action id to its prose, and
+`CLAIM_CONFLICT_ROUTING_NOTE` is the closing sentence the CLI prints — a claim conflict is a
 concurrency lock, not a ruling on who owns or leads the lane, and a misroute is corrected in the
 original Thread. Haus has no reassignment-request command, so no clause names one.
-`haus task claim` prints every row, with each granted task's inline-reply command and each
+`haus claim` prints every row, with each granted claim's inline-reply command and each
 refusal's holder or reason:
 
 ```
@@ -352,21 +352,21 @@ Claim results (1 claimed, 1 refused):
 It exits non-zero only when no row was granted. A lone refused claim with a `claimConflict`
 renders the structured block in place of the generic error line —
 `apps/computer/src/agent-cli/agent-claim-conflict.ts` is the only place that prose is composed —
-and a batch refusal repeats one line per refused task. A granted row names the inline reply to
-the task's message, never its task thread, as a fact of the task; the receipt carries no
+and a batch refusal repeats one line per refused claim. A granted row names the inline reply to
+the claim's message, never its claim thread, as a fact of the claim; the receipt carries no
 routing advice. Where posts are seen, and why a thread on the request is the author's unread,
-is taught once by the Manual `replies` topic (ADR 0029). `haus task create` names each created
-task's thread address as a reference.
+is taught once by the Manual `replies` topic (ADR 0029). `haus claim create` names each created
+claim's thread address as a reference.
 
-`/update` is member-level: any Agent in the task's Chat may move status along the transition
-table in [specs/tasks.md](../../specs/tasks.md#authority-and-concurrency), holder or not; an
+`/update` is member-level: any Agent in the claim's Chat may move status along the transition
+table in [specs/claims.md](../../specs/claims.md#authority-and-concurrency), holder or not; an
 invalid edge, a start without an assignee, or a concurrent start answers `409 TASK_CONFLICT`.
 `/assign` takes `target`, `number`, `assignee` (`@handle` of an Agent member of that Chat),
 and optional `expectedRevision`; `/unassign` takes the same without `assignee`. Both answer
-`{ task }`, never change status, and clear the claim stamp. Tasks are Agent work, so a human
+`{ claim }`, never change status, and clear the claim stamp. Claims are Agent work, so a human
 handle, like a missing, retired, or out-of-Chat one, answers one uniform `409 TASK_CONFLICT` "not assignable in this chat", and a stale
 `expectedRevision` answers `409` naming both revisions. Assigning another Agent delivers the same
-`task_assignment` inbox item an App assignment does.
+`claim_assignment` inbox item an App assignment does.
 
 The managed CLI ships inside Computer, so these claim, list, and Agent-only assignee shapes require
 Computer protocol 25: an older Computer reports `update-required` and runs no Agent turns instead of failing to parse

@@ -45,14 +45,14 @@ test('a skeleton row carries layout facts and nothing mutable', () => {
     assert.equal(row?.kind, 'message');
     assert.deepEqual(row?.entity, { attachedWork: false, chatId: 'cht_1', serverId: 'srv_1' });
     assert.equal(row?.message.content, '');
-    assert.equal(row?.message.task, undefined);
+    assert.equal(row?.message.claim, undefined);
     assert.equal(row?.message.reactions, undefined);
     assert.equal(row?.message.cloudAgentWork, undefined);
     assert.equal(row?.thread, null);
     assert.equal(row?.message.sendNonce, 'nonce_msg_1');
 });
 
-test('only a message gaining a task or Thread gets a new row', () => {
+test('only a message gaining a claim or Thread gets a new row', () => {
     const entries = [layout('msg_1'), layout('msg_2')];
     const first = projectTranscriptSkeleton(input(entries), emptyTranscriptSkeleton);
     const second = projectTranscriptSkeleton(input(entries, ['msg_2']), first);
@@ -87,7 +87,7 @@ function layout(id: string): ChatMessageLayout {
         sequence: Number(id.slice(-1)),
         serverId: 'srv_1',
         sessionGeneration: null,
-        task: null,
+        claim: null,
     };
     return toChatMessageLayout(message);
 }

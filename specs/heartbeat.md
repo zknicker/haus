@@ -255,12 +255,12 @@ Once per night, also:
   holder's one-line finding; `haus lead done --id <id> --finding "<text>"` records it. Rows expire
   after 14 days. A retired Agent holds nothing: its unfinished leads are left out of the list and
   the turn input, and never block a claim.
-- **Leads and tasks do not cross.** The Server enforces three rules. A lead claim outside an
-  active heartbeat run is refused (`HEARTBEAT_RUN_REQUIRED`, pointing to `haus task claim`). A lead
-  claim on a message an Agent holds as an open task is refused under the same Server lock as task
-  claims (`LEAD_HELD_AS_TASK`, "@blippy has this as a task"). A task claim from a heartbeat run is
-  refused (`REGULAR_TURN_REQUIRED`, pointing to `haus lead claim`): the throwaway session would
-  follow replies it never reads and leave a tracked task behind.
+- **Leads and claims do not cross.** The Server enforces three rules. A lead claim outside an
+  active heartbeat run is refused (`HEARTBEAT_RUN_REQUIRED`, pointing to `haus claim`). A lead
+  claim on a message an Agent holds as an open claim is refused under the same Server lock as
+  message claims (`LEAD_HELD_AS_TASK`, "@blippy has this as a task"). A message claim from a
+  heartbeat run is refused (`REGULAR_TURN_REQUIRED`, pointing to `haus lead claim`): the throwaway
+  session would follow replies it never reads and leave a tracked claim behind.
 - **Summary.** `haus heartbeat learned` (text on stdin; nightly run only) is stored on the run's
   `agent_dreams` row as `summary`, with the follow-up reminder ids scheduled during the run.
 - **Memory diffs.** Unchanged: the nightly run's snapshot and diff record exactly as dreams do
@@ -352,7 +352,7 @@ Shared by every implementation slice; `packages/haus-api` owns the schemas.
   - `POST /api/agent/heartbeat/learned { text }`: only from a `dream` run; stored by run id.
   - `POST /api/agent/leads { topic, messageId? }` claim, only from an active heartbeat run;
     `GET /api/agent/leads` list (last 7 days); `POST /api/agent/leads/:id/done { finding }`.
-  - `POST /api/agent/tasks/claim` from a heartbeat run answers `403 REGULAR_TURN_REQUIRED`.
+  - `POST /api/agent/claims/claim` from a heartbeat run answers `403 REGULAR_TURN_REQUIRED`.
 - **CLI.** `haus heartbeat report` and `haus heartbeat learned` (text from stdin only; `--text` and
   positional text are refused like `--content` on `haus message send`),
   `haus lead claim --topic [--message-id]`, `haus lead list`, `haus lead done --id --finding`.

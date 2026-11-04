@@ -3,6 +3,7 @@ import {
     artifactUpdatedEventSchema,
     chatLifecycleEventSchema,
     chatReadEventSchema,
+    claimChangedEventSchema,
     cloudAgentSettingsUpdatedEventSchema,
     cloudAgentWorkUpdatedEventSchema,
     computerUpdatedEventSchema,
@@ -14,7 +15,6 @@ import {
     messageReactionUpdatedEventSchema,
     reminderUpdatedEventSchema,
     serverUpdatedEventSchema,
-    taskChangedEventSchema,
     taskLabelUpdatedEventSchema,
     threadFollowUpdatedEventSchema,
 } from '@haus/api';
@@ -40,7 +40,7 @@ export const threadFollowUpdatedTopic = createTopic(
     threadFollowUpdatedEventSchema
 );
 export const chatLifecycleTopic = createTopic('chat.lifecycle', chatLifecycleEventSchema);
-export const taskChangedTopic = createTopic('task.changed', taskChangedEventSchema);
+export const claimChangedTopic = createTopic('claim.changed', claimChangedEventSchema);
 export const taskLabelUpdatedTopic = createTopic('taskLabel.updated', taskLabelUpdatedEventSchema);
 export const cloudAgentWorkUpdatedTopic = createTopic(
     'cloudAgentWork.updated',

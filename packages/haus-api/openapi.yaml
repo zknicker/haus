@@ -922,11 +922,11 @@ paths:
                 $ref: '#/components/schemas/AgentAddChannelAgentResponse'
         default:
           $ref: '#/components/responses/AgentError'
-  /api/agent/tasks:
+  /api/agent/claims:
     get:
-      operationId: listAgentTasks
+      operationId: listAgentClaims
       tags: [Agent CLI]
-      summary: List task-messages visible to the calling agent.
+      summary: List claim-messages visible to the calling agent.
       parameters:
         - name: target
           in: query
@@ -939,137 +939,137 @@ paths:
             enum: [all, todo, in_progress, in_review, done, closed]
         - name: mine
           in: query
-          description: '`true` keeps tasks claimed by or assigned to the calling agent.'
+          description: '`true` keeps claims held by or assigned to the calling agent.'
           schema:
             type: string
             enum: ['true', 'false']
       responses:
         '200':
-          description: Visible task-messages.
+          description: Visible claim-messages.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AgentTaskListResponse'
+                $ref: '#/components/schemas/AgentClaimListResponse'
         default:
           $ref: '#/components/responses/AgentError'
-  /api/agent/tasks/create:
+  /api/agent/claims/create:
     post:
-      operationId: createAgentTasks
+      operationId: createAgentClaims
       tags: [Agent CLI]
-      summary: Create one or more task-messages.
+      summary: Create one or more claim-messages.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AgentTaskCreateRequest'
+              $ref: '#/components/schemas/AgentClaimCreateRequest'
       responses:
         '200':
-          description: Created task-messages.
+          description: Created claim-messages.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AgentTaskCreateResponse'
+                $ref: '#/components/schemas/AgentClaimCreateResponse'
         default:
           $ref: '#/components/responses/AgentError'
-  /api/agent/tasks/claim:
+  /api/agent/claims/claim:
     post:
-      operationId: claimAgentTasks
+      operationId: claimAgentClaims
       tags: [Agent CLI]
-      summary: Claim task-messages for the calling agent.
+      summary: Claim messages for the calling agent.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AgentTaskClaimRequest'
+              $ref: '#/components/schemas/AgentClaimClaimRequest'
       responses:
         '200':
-          description: One result row per requested task.
+          description: One result row per requested claim.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AgentTaskClaimResponse'
+                $ref: '#/components/schemas/AgentClaimClaimResponse'
         default:
           $ref: '#/components/responses/AgentError'
-  /api/agent/tasks/unclaim:
+  /api/agent/claims/release:
     post:
-      operationId: unclaimAgentTask
+      operationId: releaseAgentClaim
       tags: [Agent CLI]
-      summary: Release one task claimed by the calling agent.
+      summary: Release one claim held by the calling agent.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AgentTaskUnclaimRequest'
+              $ref: '#/components/schemas/AgentClaimReleaseRequest'
       responses:
         '200':
-          description: Updated task-message.
+          description: Updated claim-message.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AgentTaskSingleResponse'
+                $ref: '#/components/schemas/AgentClaimSingleResponse'
         default:
           $ref: '#/components/responses/AgentError'
-  /api/agent/tasks/assign:
+  /api/agent/claims/assign:
     post:
-      operationId: assignAgentTask
+      operationId: assignAgentClaim
       tags: [Agent CLI]
-      summary: Assign one task to an Agent member of its Chat without changing its status.
+      summary: Assign one claim to an Agent member of its Chat without changing its status.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AgentTaskAssignRequest'
+              $ref: '#/components/schemas/AgentClaimAssignRequest'
       responses:
         '200':
-          description: Updated task-message.
+          description: Updated claim-message.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AgentTaskSingleResponse'
+                $ref: '#/components/schemas/AgentClaimSingleResponse'
         default:
           $ref: '#/components/responses/AgentError'
-  /api/agent/tasks/unassign:
+  /api/agent/claims/unassign:
     post:
-      operationId: unassignAgentTask
+      operationId: unassignAgentClaim
       tags: [Agent CLI]
-      summary: Clear one task's assignee without changing its status.
+      summary: Clear one claim's assignee without changing its status.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AgentTaskUnassignRequest'
+              $ref: '#/components/schemas/AgentClaimUnassignRequest'
       responses:
         '200':
-          description: Updated task-message.
+          description: Updated claim-message.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AgentTaskSingleResponse'
+                $ref: '#/components/schemas/AgentClaimSingleResponse'
         default:
           $ref: '#/components/responses/AgentError'
-  /api/agent/tasks/update:
+  /api/agent/claims/update:
     post:
-      operationId: updateAgentTask
+      operationId: updateAgentClaim
       tags: [Agent CLI]
-      summary: Update one task status.
+      summary: Update one claim status.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AgentTaskUpdateRequest'
+              $ref: '#/components/schemas/AgentClaimUpdateRequest'
       responses:
         '200':
-          description: Updated task-message.
+          description: Updated claim-message.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AgentTaskSingleResponse'
+                $ref: '#/components/schemas/AgentClaimSingleResponse'
         default:
           $ref: '#/components/responses/AgentError'
   /api/agent/reminders:
@@ -2274,10 +2274,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AgentChannelMember'
-    AgentTaskStatus:
+    AgentClaimStatus:
       type: string
       enum: [todo, in_progress, in_review, done, closed]
-    AgentTaskRow:
+    AgentClaimRow:
       type: object
       additionalProperties: false
       required: [assignee, message, number, status, target, version]
@@ -2287,35 +2287,35 @@ components:
           $ref: '#/components/schemas/AgentMessage'
         number: { type: integer, minimum: 1 }
         status:
-          $ref: '#/components/schemas/AgentTaskStatus'
+          $ref: '#/components/schemas/AgentClaimStatus'
         target: { type: [string, 'null'] }
         version:
           type: integer
           minimum: 0
-          description: The task revision; pass it as expectedRevision to act only on this state.
-    AgentTaskListResponse:
+          description: The claim revision; pass it as expectedRevision to act only on this state.
+    AgentClaimListResponse:
       type: object
       additionalProperties: false
-      required: [omitted, tasks]
+      required: [claims, omitted]
       properties:
+        claims:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentClaimRow'
         omitted:
           type: integer
           minimum: 0
           description: Matching rows left out by the 50-row limit.
-        tasks:
-          type: array
-          items:
-            $ref: '#/components/schemas/AgentTaskRow'
-    AgentTaskCreateResponse:
+    AgentClaimCreateResponse:
       type: object
       additionalProperties: false
-      required: [tasks]
+      required: [claims]
       properties:
-        tasks:
+        claims:
           type: array
           items:
-            $ref: '#/components/schemas/AgentTaskRow'
-    AgentTaskClaimResponse:
+            $ref: '#/components/schemas/AgentClaimRow'
+    AgentClaimClaimResponse:
       type: object
       additionalProperties: false
       required: [results]
@@ -2324,32 +2324,32 @@ components:
           type: array
           minItems: 1
           items:
-            $ref: '#/components/schemas/AgentTaskClaimResult'
-    AgentTaskClaimResult:
+            $ref: '#/components/schemas/AgentClaimClaimResult'
+    AgentClaimClaimResult:
       type: object
       additionalProperties: false
-      required: [claimConflict, number, outcome, reason, task]
+      required: [claim, claimConflict, number, outcome, reason]
       properties:
+        claim:
+          oneOf:
+            - $ref: '#/components/schemas/AgentClaimRow'
+            - type: 'null'
         claimConflict:
-          description: The structured holder conflict on a row refused because someone else holds the task.
+          description: The structured holder conflict on a row refused because someone else holds the claim.
           type: [object, 'null']
         number: { type: integer, minimum: 1 }
         outcome:
           type: string
           enum: [claimed, already_yours, refused]
         reason: { type: [string, 'null'] }
-        task:
-          oneOf:
-            - $ref: '#/components/schemas/AgentTaskRow'
-            - type: 'null'
-    AgentTaskSingleResponse:
+    AgentClaimSingleResponse:
       type: object
       additionalProperties: false
-      required: [task]
+      required: [claim]
       properties:
-        task:
-          $ref: '#/components/schemas/AgentTaskRow'
-    AgentTaskCreateRequest:
+        claim:
+          $ref: '#/components/schemas/AgentClaimRow'
+    AgentClaimCreateRequest:
       type: object
       additionalProperties: false
       required: [nonce, target]
@@ -2360,7 +2360,7 @@ components:
           description: '@handle of an Agent member of the target Chat.'
         content: { type: string }
         # Idempotency key, minted once per CLI invocation. The same nonce and
-        # request replay the original tasks; a different request under it is
+        # request replay the original claims; a different request under it is
         # refused with IDEMPOTENCY_KEY_REUSED.
         nonce: { type: string, minLength: 1, maxLength: 128 }
         target: { type: string, minLength: 1 }
@@ -2368,7 +2368,7 @@ components:
           type: array
           maxItems: 20
           items: { type: string, minLength: 1 }
-    AgentTaskClaimRequest:
+    AgentClaimClaimRequest:
       type: object
       additionalProperties: false
       required: [target]
@@ -2387,14 +2387,14 @@ components:
         - required: [numbers]
           not:
             required: [messageId]
-    AgentTaskUnclaimRequest:
+    AgentClaimReleaseRequest:
       type: object
       additionalProperties: false
       required: [number, target]
       properties:
         number: { type: integer, minimum: 1 }
         target: { type: string, minLength: 1 }
-    AgentTaskAssignRequest:
+    AgentClaimAssignRequest:
       type: object
       additionalProperties: false
       required: [assignee, number, target]
@@ -2402,14 +2402,14 @@ components:
         assignee:
           type: string
           minLength: 1
-          description: '@handle of an Agent member of the task''s Chat. Humans are never assignees; human, missing, retired, and out-of-Chat handles share one not-assignable refusal.'
+          description: '@handle of an Agent member of the claim''s Chat. Humans are never assignees; human, missing, retired, and out-of-Chat handles share one not-assignable refusal.'
         expectedRevision:
           type: integer
           minimum: 0
-          description: Apply only if the task is still at this revision.
+          description: Apply only if the claim is still at this revision.
         number: { type: integer, minimum: 1 }
         target: { type: string, minLength: 1 }
-    AgentTaskUnassignRequest:
+    AgentClaimUnassignRequest:
       type: object
       additionalProperties: false
       required: [number, target]
@@ -2417,17 +2417,17 @@ components:
         expectedRevision:
           type: integer
           minimum: 0
-          description: Apply only if the task is still at this revision.
+          description: Apply only if the claim is still at this revision.
         number: { type: integer, minimum: 1 }
         target: { type: string, minLength: 1 }
-    AgentTaskUpdateRequest:
+    AgentClaimUpdateRequest:
       type: object
       additionalProperties: false
       required: [number, status, target]
       properties:
         number: { type: integer, minimum: 1 }
         status:
-          $ref: '#/components/schemas/AgentTaskStatus'
+          $ref: '#/components/schemas/AgentClaimStatus'
         target: { type: string, minLength: 1 }
     TriggerKind:
       type: string
@@ -3469,9 +3469,9 @@ components:
             - type: 'null'
         metadata:
           $ref: '#/components/schemas/JsonObject'
-        task:
+        claim:
           oneOf:
-            - $ref: '#/components/schemas/MessageTask'
+            - $ref: '#/components/schemas/MessageClaim'
             - type: 'null'
         cloud_agent_work:
           description: The first linked Cloud Agent work, kept for released CLIs; read `cloud_agent_works`.
@@ -3595,7 +3595,7 @@ components:
                 minLength: 1
               pull_request_url:
                 type: [string, 'null']
-    MessageTask:
+    MessageClaim:
       type: object
       additionalProperties: false
       required:
@@ -3617,7 +3617,7 @@ components:
           enum: [todo, in_progress, in_review, done, closed]
         assignee:
           oneOf:
-            - $ref: '#/components/schemas/TaskActor'
+            - $ref: '#/components/schemas/ClaimActor'
             - type: 'null'
         claimed_at:
           oneOf:
@@ -3637,8 +3637,8 @@ components:
           $ref: '#/components/schemas/Timestamp'
         updated_at:
           $ref: '#/components/schemas/Timestamp'
-    TaskActor:
-      description: The Agent holding a task. Humans are never task assignees.
+    ClaimActor:
+      description: The Agent holding a claim. Humans are never claim assignees.
       type: object
       additionalProperties: false
       required:
@@ -3676,7 +3676,7 @@ components:
         actors:
           type: array
           items:
-            $ref: '#/components/schemas/TaskActor'
+            $ref: '#/components/schemas/ClaimActor'
     CreateMessageRequest:
       type: object
       additionalProperties: false

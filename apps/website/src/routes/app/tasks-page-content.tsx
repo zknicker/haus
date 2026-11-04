@@ -1,13 +1,13 @@
-import { TaskContent } from '../../features/servers/tasks/task-content.tsx';
-import { TaskThreadDialog } from '../../features/servers/tasks/task-thread-dialog.tsx';
-import { useTaskView } from '../../features/servers/tasks/task-view.ts';
+import { ClaimContent } from '../../features/servers/claims/claim-content.tsx';
+import { ClaimThreadDialog } from '../../features/servers/claims/claim-thread-dialog.tsx';
+import { useClaimView } from '../../features/servers/claims/claim-view.ts';
 
 export function TasksPageContent() {
-    const { openTask } = useTaskView();
+    const { openClaim } = useClaimView();
     return (
         <>
-            <TaskContent onOpenTask={(task) => openTask(task.id)} />
-            <TaskThreadDialog />
+            <ClaimContent onOpenClaim={(claim) => openClaim(claim.id)} />
+            <ClaimThreadDialog />
         </>
     );
 }

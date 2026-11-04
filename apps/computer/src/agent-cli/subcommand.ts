@@ -16,6 +16,11 @@ import { errorBlock, heading, rows } from './ui.ts';
 export interface SubCommand {
     /** Let the command produce its own stable error for otherwise unsupported positional input. */
     allowExtraPositionals?: boolean;
+    /**
+     * The group's own action: it runs when the group's first argument is a flag
+     * (`haus claim --target …`) and is never addressed by `name`.
+     */
+    bare?: boolean;
     examples: string[];
     flags: CliFlag[];
     name: string;
@@ -42,11 +47,13 @@ export async function dispatchSubcommand(
     /** Closing help line shared by the group, e.g. its Manual pointer. */
     helpFooter?: string
 ): Promise<number> {
-    const [name, ...rest] = raw;
-    const sub = subs.find((entry) => entry.name === name);
+    const bareSub = raw[0]?.startsWith('-') ? subs.find((entry) => entry.bare) : undefined;
+    const [name, ...named] = raw;
+    const sub = bareSub ?? subs.find((entry) => !entry.bare && entry.name === name);
     if (!sub) {
         return reportUnknownSub(groupName, name, subs);
     }
+    const rest = bareSub ? raw : named;
 
     try {
         const spec = toCliCommand(groupName, sub);
@@ -87,7 +94,7 @@ function validateArity(spec: CliCommand, sub: SubCommand, parsed: ParsedArgs): v
 /** Adapt a SubCommand to the CliCommand shape `parseArgs` validates against. */
 function toCliCommand(groupName: string, sub: SubCommand): CliCommand {
     return {
-        name: groupName ? `${groupName} ${sub.name}` : sub.name,
+        name: commandName(groupName, sub),
         section: groupName === 'engine' ? 'Engine' : 'Status',
         summary: sub.summary,
         usage: sub.usage,
@@ -97,8 +104,15 @@ function toCliCommand(groupName: string, sub: SubCommand): CliCommand {
     };
 }
 
+function commandName(groupName: string, sub: SubCommand): string {
+    if (sub.bare && groupName) {
+        return groupName;
+    }
+    return groupName ? `${groupName} ${sub.name}` : sub.name;
+}
+
 function reportUnknownSub(groupName: string, name: string | undefined, subs: SubCommand[]): number {
-    const names = subs.map((entry) => entry.name);
+    const names = subs.filter((entry) => !entry.bare).map((entry) => entry.name);
     const hint = name ? suggest(name, names) : null;
     process.stderr.write(
         `${errorBlock(

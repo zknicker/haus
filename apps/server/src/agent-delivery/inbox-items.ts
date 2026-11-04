@@ -10,10 +10,10 @@ import {
     targetForChat as targetForAgentChat,
     toAgentMessages,
 } from '../agent-api/message-view.ts';
+import { listMessageClaimMap } from '../claims/claim-shape.ts';
 import { readCloudAgentWorkAttentions } from '../cloud-agents/read-cloud-agent-work-attentions.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
-import { listMessageTaskMap } from '../tasks/task-shape.ts';
 import { chatOf } from './inbox-lanes.ts';
 import { inboxSender } from './inbox-sender.ts';
 import type * as store from './store.ts';
@@ -60,8 +60,8 @@ export async function buildInboxItems(
     const sequenceByMessageId = new Map(
         messageRows.map((message) => [message.id, message.sequence])
     );
-    const taskByMessage = serverId
-        ? await listMessageTaskMap(
+    const claimByMessage = serverId
+        ? await listMessageClaimMap(
               db,
               serverId,
               rows.map((row) => row.dedupeKey)
@@ -90,7 +90,7 @@ export async function buildInboxItems(
                     : undefined,
             sequence: sequenceByMessageId.get(row.dedupeKey) ?? 1,
             target: targetByChatId.get(chatOf(row)) ?? '#unknown',
-            task: taskByMessage.get(row.dedupeKey),
+            claim: claimByMessage.get(row.dedupeKey),
             threadContext: threadContexts.get(row.id),
         })
     );
@@ -98,10 +98,10 @@ export async function buildInboxItems(
 
 interface InboxItemFacets {
     apiMessage: HausAgentMessage | undefined;
+    claim: AgentInboxItem['claim'];
     cloudAgentWork: CloudAgentWorkAttention | undefined;
     sequence: number;
     target: string;
-    task: AgentInboxItem['task'];
     threadContext: AgentThreadContext | undefined;
 }
 
@@ -109,7 +109,7 @@ function toInboxItem(row: store.InboxItemRow, facets: InboxItemFacets): AgentInb
     const { apiMessage, cloudAgentWork, target } = facets;
     const attention = Boolean(cloudAgentWork);
     const sender = inboxSender({ attention, message: apiMessage, source: row.source, target });
-    // Only a human-authored envelope carries the human's saved zone; a task
+    // Only a human-authored envelope carries the human's saved zone; a claim
     // assignment wrapping a human's message is a system envelope.
     const senderTimezone = sender.senderType === 'human' ? apiMessage?.sender.timezone : undefined;
     return {
@@ -118,7 +118,7 @@ function toInboxItem(row: store.InboxItemRow, facets: InboxItemFacets): AgentInb
         ...(cloudAgentWork ? { cloudAgentWork } : {}),
         ...(row.mentioned ? { mentioned: true } : {}),
         ...(row.threadFollowReactivated ? { threadFollowReactivated: true } : {}),
-        ...(facets.task ? { task: facets.task } : {}),
+        ...(facets.claim ? { claim: facets.claim } : {}),
         ...(facets.threadContext ? { threadContext: facets.threadContext } : {}),
         ...sender,
         ...(senderTimezone ? { senderTimezone } : {}),

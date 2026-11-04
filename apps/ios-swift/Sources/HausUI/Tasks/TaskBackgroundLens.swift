@@ -12,7 +12,7 @@ import HausModels
 /// zero, unlike the App: a URL is the App reader's way back out of the widened
 /// lens, and on iPhone this control is the only one.
 public enum TaskBackgroundLens {
-    /// Whether a `task.list` read is the one that records how many tasks the
+    /// Whether a `claim.list` read is the one that records how many claims the
     /// default lens hid.
     ///
     /// Only the Server-wide default lens answers that question. A widened read
@@ -24,10 +24,10 @@ public enum TaskBackgroundLens {
         chatID == nil && !includeBackground
     }
 
-    static func label(items: [TaskListItem], hiddenCount: Int, includeBackground: Bool) -> String? {
+    static func label(items: [ClaimListItem], hiddenCount: Int, includeBackground: Bool) -> String? {
         guard includeBackground else {
             return hiddenCount == 0 ? nil : "\(hiddenCount) background"
         }
-        return "\(items.filter { $0.task.tier == .background }.count) background shown"
+        return "\(items.filter { $0.claim.tier == .background }.count) background shown"
     }
 }

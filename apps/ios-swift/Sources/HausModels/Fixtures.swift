@@ -31,7 +31,7 @@ public enum HausPreviewFixtures {
 
     public static let messages: [ChatMessage] = decode(
         """
-        [{"attachments":[],"author":{"agentId":"agent_cove","kind":"agent","profile":{"avatarUrl":null,"deleted":false,"description":"Onboarding Assistant","displayName":"Cove"}},"chatId":"chat_cove","content":"Welcome to Haus.","createdAt":"2026-01-01T00:01:00Z","id":"message_preview","nonce":"nonce_preview","runId":null,"sequence":1,"serverId":"srv_preview","task":null}]
+        [{"attachments":[],"author":{"agentId":"agent_cove","kind":"agent","profile":{"avatarUrl":null,"deleted":false,"description":"Onboarding Assistant","displayName":"Cove"}},"chatId":"chat_cove","content":"Welcome to Haus.","createdAt":"2026-01-01T00:01:00Z","id":"message_preview","nonce":"nonce_preview","runId":null,"sequence":1,"serverId":"srv_preview","claim":null}]
         """
     )
 

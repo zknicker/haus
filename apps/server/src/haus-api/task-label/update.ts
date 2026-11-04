@@ -1,9 +1,9 @@
 import { taskLabelMutationSchema, taskLabelUpdateInputSchema } from '@haus/api';
 import { publishRealtime } from '../../realtime/topic.ts';
-import { updateTaskLabel } from '../../tasks/task-labels.ts';
-import { taskProcedure } from '../task/procedure.ts';
+import { updateTaskLabel } from '../../task-labels/task-labels.ts';
+import { claimProcedure } from '../claim/procedure.ts';
 
-export const updateTaskLabelProcedure = taskProcedure
+export const updateTaskLabelProcedure = claimProcedure
     .input(taskLabelUpdateInputSchema)
     .output(taskLabelMutationSchema)
     .mutation(async ({ ctx, input }) => {

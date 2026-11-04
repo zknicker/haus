@@ -118,7 +118,7 @@ public struct ChatMessage: Codable, Identifiable, Sendable, Equatable {
     /// messages, and absent from Servers that predate the field, so it decodes
     /// tolerantly and no reader may require it.
     public let sessionGeneration: Int?
-    public let task: MessageTask?
+    public let claim: MessageClaim?
 
     enum CodingKeys: String, CodingKey {
         case attachments
@@ -137,7 +137,7 @@ public struct ChatMessage: Codable, Identifiable, Sendable, Equatable {
         case sequence
         case serverID = "serverId"
         case sessionGeneration
-        case task
+        case claim
     }
 }
 

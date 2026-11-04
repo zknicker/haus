@@ -11,7 +11,7 @@ import {
 } from './chat-message-model.ts';
 
 export interface TranscriptSkeletonInput {
-    /** Ids whose entity carries a task or a Thread (`useAttachedWorkIds`). */
+    /** Ids whose entity carries a claim or a Thread (`useAttachedWorkIds`). */
     attachedWork: ReadonlySet<string>;
     entries: readonly ChatMessageLayout[];
 }
@@ -41,7 +41,7 @@ export const emptyTranscriptSkeleton: TranscriptSkeleton = {
  * The transcript's row skeleton from ids and layout facts. Nothing on a
  * skeleton row changes once its message commits except `attachedWork`, so a
  * row keeps its object across list refetches, tail appends, and entity
- * changes alike; only a new id (or a task or Thread appearing) makes a new
+ * changes alike; only a new id (or a claim or Thread appearing) makes a new
  * row. Rows compare their layout structurally: a refetch may hand back new
  * layout objects for unchanged messages. The previous array comes back when
  * nothing moved, so the downstream entry and render-row memos hold too.
@@ -89,7 +89,7 @@ export function useTranscriptSkeletonRows({ attachedWork, entries }: TranscriptS
 /**
  * Projects a `chat.message` entity into its rendered row, once per entity
  * object: an unchanged entity (React Query structural sharing keeps it) maps
- * to the same row, so its memoized views skip. A new Agent directory (task
+ * to the same row, so its memoized views skip. A new Agent directory (claim
  * assignee handles) starts a fresh cache.
  */
 export function useChatMessageEntityProjector(agents: readonly Agent[]) {

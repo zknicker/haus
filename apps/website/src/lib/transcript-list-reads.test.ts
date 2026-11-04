@@ -46,7 +46,7 @@ test('a list read seeds every entity in one batch and issues no entity request',
 
 test('a search result never seeds an entity', async () => {
     const anchored = message(chatId, 1, {
-        task: undefined,
+        claim: undefined,
     });
     const cache = createTranscriptCache(async (request) =>
         request.path === 'chat.search'

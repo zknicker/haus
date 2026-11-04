@@ -56,13 +56,13 @@ describe('Haus OpenAPI contract', () => {
             '/api/agent/channels/info',
             '/api/agent/channels/members',
             '/api/agent/channels/add',
-            '/api/agent/tasks',
-            '/api/agent/tasks/create',
-            '/api/agent/tasks/claim',
-            '/api/agent/tasks/unclaim',
-            '/api/agent/tasks/assign',
-            '/api/agent/tasks/unassign',
-            '/api/agent/tasks/update',
+            '/api/agent/claims',
+            '/api/agent/claims/create',
+            '/api/agent/claims/claim',
+            '/api/agent/claims/release',
+            '/api/agent/claims/assign',
+            '/api/agent/claims/unassign',
+            '/api/agent/claims/update',
             '/api/agent/reminders',
             '/api/agent/reminders/log',
             '/api/agent/reminders/schedule',
@@ -112,17 +112,17 @@ describe('Haus OpenAPI contract', () => {
             title: 'Haus Manual',
         };
         const recipe = {
-            body: '# Claim the task\n',
+            body: '# Claim before work\n',
             class: 'technique',
             evidence: 'verified',
-            id: 'recipes/technique/task-claim-lock',
+            id: 'recipes/technique/claim-lock',
             industries: ['universal'],
             kind: 'recipe',
-            prereqs: ['task board or message id'],
+            prereqs: ['message number or id'],
             related: ['recipes/index'],
             summary: 'Claim canonical work before acting.',
             tier: 'seeded',
-            title: 'Claim the task before work',
+            title: 'Claim before work',
             triggers: ['should I claim this before starting'],
         };
         const {
@@ -160,7 +160,7 @@ describe('Haus OpenAPI contract', () => {
         expect(document.components?.schemas).toHaveProperty('AgentHistoryResponse');
         expect(document.components?.schemas).toHaveProperty('AgentManualTopic');
         expect(document.components?.schemas).toHaveProperty('AgentManualSearchResponse');
-        expect(document.components?.schemas).toHaveProperty('AgentTaskRow');
+        expect(document.components?.schemas).toHaveProperty('AgentClaimRow');
         expect(document.components?.schemas).toHaveProperty('AgentReminder');
         expect(document.components?.schemas).toHaveProperty('AgentAttachment');
         expect(document.components?.schemas).toHaveProperty('AgentProfile');
@@ -218,7 +218,7 @@ describe('Haus OpenAPI contract', () => {
         });
     });
 
-    it('validates extended agent success payloads and rejects empty task claims', () => {
+    it('validates extended agent success payloads and rejects empty claims', () => {
         const ajv = new Ajv2020({
             allowUnionTypes: true,
             formats: { byte: true },
@@ -253,6 +253,6 @@ describe('Haus OpenAPI contract', () => {
                 supportFiles: [{ hash: 'def456', path: 'references/checklist.md' }],
             })
         ).toBe(true);
-        expect(validate('AgentTaskClaimRequest', { numbers: [], target: '#general' })).toBe(false);
+        expect(validate('AgentClaimClaimRequest', { numbers: [], target: '#general' })).toBe(false);
     });
 });

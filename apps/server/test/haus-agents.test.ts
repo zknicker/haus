@@ -426,7 +426,7 @@ test('retires an Agent immediately, preserves authored history, and then permits
         values ('msg_agent_tombstone', ${serverId}, ${chat.id}, ${agent.id}, 'Keep this history.', 'tombstone', 1000)
     `;
     await harness.sql`
-        insert into message_tasks (
+        insert into message_claims (
             server_id, message_id, chat_id, number, status, origin,
             created_by_agent_id, assignee_agent_id, claimed_at
         )
@@ -488,7 +488,7 @@ test('retires an Agent immediately, preserves authored history, and then permits
     });
     const released = (await harness.sql`
         select assignee_agent_id, claimed_at, version
-        from message_tasks
+        from message_claims
         where server_id = ${serverId} and message_id = 'msg_agent_tombstone'
     `) as Array<{
         assignee_agent_id: string | null;
@@ -580,9 +580,9 @@ test('hides a retired Agent DM, preserves its transcript, and rejects new sends'
         })
     ).rejects.toThrow(/retired/u);
     await expect(
-        owner.trpc.task.create.mutate({
+        owner.trpc.claim.create.mutate({
             chatId: dmChatId,
-            content: 'Task the retired Agent',
+            content: 'Claim the retired Agent',
             nonce: crypto.randomUUID(),
             serverId,
         })
@@ -598,7 +598,7 @@ test('hides a retired Agent DM, preserves its transcript, and rejects new sends'
     const stored = (await harness.sql`
         select content from chat_messages
         where chat_id = ${dmChatId} and author_user_id = ${ownerUserId}
-          and content in ('Still there?', 'Task the retired Agent')
+          and content in ('Still there?', 'Claim the retired Agent')
     `) as { content: string }[];
     expect(stored).toEqual([]);
 });

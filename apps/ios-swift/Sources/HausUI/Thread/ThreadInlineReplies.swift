@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The parent Chat's inline reply chain shown while inspecting a Task. Closures
+/// The parent Chat's inline reply chain shown while inspecting a claim. Closures
 /// keep the Store out of HausUI and let the route invalidate this region when a
 /// filtered page or its pagination state changes.
 public struct ThreadInlineReplies {

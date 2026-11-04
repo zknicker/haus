@@ -1,14 +1,14 @@
 import { expect, test } from 'bun:test';
 import type { ChatMessage } from '@haus/api';
 import { buildTranscriptEntries, getItemRunId } from '../../chats/chat-transcript-model.ts';
-import { mergeTaskAnchor, projectChatMessages } from './chat-message-model.ts';
+import { mergeClaimAnchor, projectChatMessages } from './chat-message-model.ts';
 
-test('keeps an older task anchor available when the latest transcript page omits it', () => {
+test('keeps an older claim anchor available when the latest transcript page omits it', () => {
     const anchor = message('message_anchor', 1);
     const latest = message('message_latest', 51);
 
-    expect(mergeTaskAnchor([latest], anchor)).toEqual([anchor, latest]);
-    expect(mergeTaskAnchor([anchor, latest], anchor)).toEqual([anchor, latest]);
+    expect(mergeClaimAnchor([latest], anchor)).toEqual([anchor, latest]);
+    expect(mergeClaimAnchor([anchor, latest], anchor)).toEqual([anchor, latest]);
 });
 
 test('projects Server messages into the preserved transcript contract', () => {

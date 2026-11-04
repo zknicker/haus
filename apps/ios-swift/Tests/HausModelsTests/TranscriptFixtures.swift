@@ -15,13 +15,13 @@ enum TranscriptFixture {
         let reactions = reaction.map {
             #","reactions":[{"emoji":"\#($0)","actors":[{"handle":null,"id":"user_1","kind":"human"}]}]"#
         } ?? ""
-        let task = labelID.map {
-            #","task":{"assigneeAgentId":null,"chatId":"\#(chatID)","claimedAt":null,"createdAt":"2026-01-01T00:00:00Z","createdByAgentId":null,"createdByUserId":"user_1","labels":[{"color":"blue","id":"\#($0)","name":"\#(labelName)"}],"live":false,"messageId":"\#(id)","number":1,"origin":"converted","priority":"none","status":"todo","threadChatId":"thread_\#(id)","tier":"tracked","updatedAt":"2026-01-01T00:00:00Z","version":1}"#
+        let claim = labelID.map {
+            #","claim":{"assigneeAgentId":null,"chatId":"\#(chatID)","claimedAt":null,"createdAt":"2026-01-01T00:00:00Z","createdByAgentId":null,"createdByUserId":"user_1","labels":[{"color":"blue","id":"\#($0)","name":"\#(labelName)"}],"live":false,"messageId":"\#(id)","number":1,"origin":"converted","priority":"none","status":"todo","threadChatId":"thread_\#(id)","tier":"tracked","updatedAt":"2026-01-01T00:00:00Z","version":1}"#
         } ?? ""
         let json = """
         {"attachments":[],"author":{"agentId":"agent_1","kind":"agent"},"chatId":"\(chatID)",
          "content":"\(content)","createdAt":"2026-01-01T00:00:00Z","id":"\(id)","nonce":"nonce_\(id)",
-         "runId":null,"sequence":\(sequence),"serverId":"server_1"\(reactions)\(task)}
+         "runId":null,"sequence":\(sequence),"serverId":"server_1"\(reactions)\(claim)}
         """
         // Fixtures are static strings; a decoding failure is a test bug.
         // swiftlint:disable:next force_try

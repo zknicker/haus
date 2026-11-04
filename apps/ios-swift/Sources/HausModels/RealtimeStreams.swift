@@ -9,7 +9,7 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
     case threadFollowUpdated = "thread.onFollowUpdated"
     case chatLifecycle = "chat.onLifecycle"
     case cloudAgentWorkUpdated = "cloudAgentWork.onUpdated"
-    case taskChanged = "task.onChanged"
+    case claimChanged = "claim.onChanged"
     case taskLabelUpdated = "taskLabel.onUpdated"
     case agentLifecycle = "agent.onLifecycle"
     case agentActivity = "agent.onActivity"
@@ -37,15 +37,15 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
         switch self {
         case .messageCreated, .messageReactionUpdated, .chatRead, .threadFollowUpdated:
             [.openTranscripts, .chatList]
-        case .taskChanged:
-            [.openTranscripts, .chatList, .taskLenses]
+        case .claimChanged:
+            [.openTranscripts, .chatList, .claimLenses]
         case .cloudAgentWorkUpdated:
             [.openTranscripts, .chatList, .activeCloudAgentWork]
         case .chatLifecycle:
             [.chatList]
         case .taskLabelUpdated:
             // Labels are embedded in transcript entities as well as lenses.
-            [.openTranscripts, .taskLenses]
+            [.openTranscripts, .claimLenses]
         case .agentLifecycle:
             // A settled turn moves the usage the Inbox strip ranks.
             [.agentAvailability, .serverUsage]
@@ -82,8 +82,8 @@ public enum RealtimeProjection: Hashable, Sendable, CaseIterable {
     case chatList
     /// `server.list`: the active Server's name and the viewer's Servers.
     case serverList
-    /// Every loaded task lens.
-    case taskLenses
+    /// Every loaded claim lens.
+    case claimLenses
     case activeCloudAgentWork
     case agentAvailability
     case agentActivity

@@ -2,7 +2,7 @@ import SwiftUI
 
 enum ThreadTranscriptItem: Identifiable, Equatable {
     case anchor(MessagePresentation, hasReplies: Bool)
-    case taskMetadata(TaskPresentation, hasReplies: Bool)
+    case claimMetadata(ClaimPresentation, hasReplies: Bool)
     case inlineReplies(isEmpty: Bool)
     case inlineReply(MessagePresentation)
     case threadHeader
@@ -14,7 +14,7 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
     var id: String {
         switch self {
         case .anchor(let message, _): "thread-anchor-\(message.id)"
-        case .taskMetadata: "thread-task-metadata"
+        case .claimMetadata: "thread-claim-metadata"
         case .inlineReplies: "thread-inline-replies"
         case .inlineReply(let message): "thread-inline-reply-\(message.id)"
         case .threadHeader: "thread-header"
@@ -28,7 +28,7 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
         switch self {
         case .reply(let message): message.isPending
         case .inlineReply(let message): message.isPending
-        case .anchor, .taskMetadata, .inlineReplies, .threadHeader, .dayDivider: false
+        case .anchor, .claimMetadata, .inlineReplies, .threadHeader, .dayDivider: false
         }
     }
 
@@ -37,8 +37,8 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
         return nil
     }
 
-    /// The Thread transcript in order: the anchor, its task metadata when it
-    /// has any, the parent chain when inspecting a Task, and the replies, the
+    /// The Thread transcript in order: the anchor, its claim metadata when it
+    /// has any, the parent chain when inspecting a claim, and the replies, the
     /// viewer's own optimistic replies among them. A day divider opens each
     /// calendar day after the anchor's.
     static func items(
@@ -50,8 +50,8 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
     ) -> [ThreadTranscriptItem] {
         let hasReplies = !replies.isEmpty
         var items: [ThreadTranscriptItem] = [.anchor(anchor, hasReplies: hasReplies)]
-        if let task = anchor.task {
-            items.append(.taskMetadata(task, hasReplies: hasReplies))
+        if let claim = anchor.claim {
+            items.append(.claimMetadata(claim, hasReplies: hasReplies))
         }
         if includesInlineReplies {
             items.append(.inlineReplies(isEmpty: inlineReplies.isEmpty))
@@ -143,13 +143,13 @@ enum ThreadReplyReveal: Equatable {
     }
 }
 
-#Preview("Task Thread") {
+#Preview("Claim Thread") {
     NavigationStack {
         ThreadDetailView(
             anchor: ChatFixtures.messages[2],
             replies: [
                 MessagePresentation(
-                    id: "task-thread-reply-1",
+                    id: "claim-thread-reply-1",
                     author: ChatFixtures.messages[1].author,
                     content: "I’ll keep the work visible in this Thread.",
                     createdAt: .now.addingTimeInterval(-45)

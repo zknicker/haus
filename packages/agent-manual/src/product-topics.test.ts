@@ -16,8 +16,8 @@ test('Amazon product guidance is discoverable without granting MCP access', () =
 test('inline reply guidance is discoverable and separates attention from ownership', () => {
     const topic = getManualTopic('replies');
     expect(topic?.body).toContain('--reply-to <messageId>');
-    expect(topic?.body).toContain('A task still has one assignee');
-    expect(topic?.body).toContain('Task completion preserves that participation');
+    expect(topic?.body).toContain('A claim still has one assignee');
+    expect(topic?.body).toContain('Claim completion preserves that participation');
     expect(topic?.body).toContain('haus message unfollow');
     expect(topic?.body).toContain(
         'Add `--done` to the message that answers the request where it arrived: an inline reply in a channel or DM, or the thread post when it arrived in a thread.'
@@ -186,65 +186,66 @@ test('retires the Ask topic and teaches asking a human by @mention', () => {
     ).toContain('recipes/decision/when-to-ask-human');
 });
 
-test('publishes the tasks topic the prompt points to for task mechanics', () => {
-    const tasks = getManualTopic('tasks');
+test('publishes the claims topic the prompt points to for claim mechanics', () => {
+    const claims = getManualTopic('claims');
 
-    expect(tasks?.kind).toBe('overview');
-    expect(tasks?.body).toContain(
+    expect(claims?.kind).toBe('overview');
+    expect(claims?.body).toContain(
         '`todo` → `in_progress` → `done`, with `in_review` before `done` only when a human must sign off.'
     );
-    expect(tasks?.body).toContain('set it `done` yourself with `haus task update`');
-    expect(tasks?.body).toContain(
+    expect(claims?.body).toContain('set it `done` yourself with `haus claim update`');
+    expect(claims?.body).toContain(
         'Use `in_review` only when the requester asked to sign off on the result, or the work needs a human decision before it counts as finished'
     );
-    expect(tasks?.body).not.toContain('then `done` after approval');
-    expect(tasks?.body).toContain('Haus adds `closed` (reversible)');
-    expect(tasks?.body).toContain(
-        'Claiming is the concurrency lock and moves the task to `in_progress`'
+    expect(claims?.body).not.toContain('then `done` after approval');
+    expect(claims?.body).toContain('Haus adds `closed` (reversible)');
+    expect(claims?.body).toContain(
+        'Claiming is the concurrency lock and moves the claim to `in_progress`'
     );
-    expect(tasks?.body).toContain(
-        'A task is a message with task metadata, not a separate source of truth.'
+    expect(claims?.body).toContain(
+        'A claim is a message with claim metadata, not a separate source of truth.'
     );
-    expect(tasks?.body).toContain(
-        '`--assignee @peer` reserves a `todo` task for another Agent in that Channel'
+    expect(claims?.body).toContain(
+        '`--assignee @peer` reserves a `todo` claim for another Agent in that Channel'
     );
-    expect(tasks?.body).toContain('People do the same from the App.');
-    expect(tasks?.body).toContain('**Status is member-level.**');
-    expect(tasks?.body).toContain('`assign` is not `claim`');
-    expect(tasks?.body).toContain('"not assignable in this chat"');
-    expect(tasks?.body).toContain('only an Agent ever holds one');
-    expect(tasks?.body).toContain('hands a task to any Agent member of that chat');
-    expect(tasks?.body).not.toContain('any human or Agent member');
-    expect(tasks?.body).toContain('**Handing work to a human.**');
-    expect(tasks?.body).toContain('@mention them in an inline reply where the request arrived');
-    expect(tasks?.body).toContain(
-        'The assignee receives an assignment receipt pointing to the canonical task; inspect and claim that task before working.'
+    expect(claims?.body).toContain('People do the same from the App.');
+    expect(claims?.body).toContain('**Status is member-level.**');
+    expect(claims?.body).toContain('`assign` is not `claim`');
+    expect(claims?.body).toContain('"not assignable in this chat"');
+    expect(claims?.body).toContain('only an Agent ever holds one');
+    expect(claims?.body).toContain('hands a claim to any Agent member of that chat');
+    expect(claims?.body).not.toContain('any human or Agent member');
+    expect(claims?.body).toContain('**Handing work to a human.**');
+    expect(claims?.body).toContain('@mention them in an inline reply where the request arrived');
+    expect(claims?.body).toContain(
+        'The assignee receives an assignment receipt pointing to the canonical claim; inspect and claim it before working.'
     );
-    expect(tasks?.body).toContain('The receipt is not a second task.');
-    expect(tasks?.body).toContain('claim that message instead of creating a new one');
+    expect(claims?.body).toContain('The receipt is not a second claim.');
+    expect(claims?.body).toContain('claim that message instead of creating a new one');
     // A thread request is claimed in its thread, never re-created top-level.
-    expect(tasks?.body).not.toContain('Messages inside threads are discussion context');
-    expect(tasks?.body).toContain(
-        'A request that arrived in a thread is claimed at that thread\'s target by its message ID, `haus task claim --target "#channel:abc12345" --message-id def67890`, never re-created as a top-level task'
+    expect(claims?.body).not.toContain('Messages inside threads are discussion context');
+    expect(claims?.body).toContain(
+        'A request that arrived in a thread is claimed at that thread\'s target by its message ID, `haus claim --target "#channel:abc12345" --message-id def67890`, never re-created as a top-level claim'
     );
-    expect(tasks?.body).toContain(
-        "A thread task takes its number from the thread's channel or DM."
+    expect(claims?.body).toContain(
+        "A thread claim takes its number from the thread's channel or DM."
     );
-    expect(tasks?.body).toContain(
-        'A task title is the work in plain words: people read the task message, so it never carries targets, message IDs, or source references.'
+    expect(claims?.body).toContain(
+        'A claim title is the work in plain words: people read the claim message, so it never carries targets, message IDs, or source references.'
     );
     expect(getManualTopic('recipes/technique/task-claim-lock')?.body).toContain(
         'If it is a regular work request, top-level or in a thread, claim by message id'
     );
     expect(
-        searchManualTopics('task create assignee', { limit: 5, scope: 'all' }).map(({ id }) => id)
-    ).toContain('tasks');
+        searchManualTopics('claim create assignee', { limit: 5, scope: 'all' }).map(({ id }) => id)
+    ).toContain('claims');
 });
 
 // ADR 0029: the requester follows the thread on their request, so the Manual
 // never routes Agent progress, receipts, questions, or handoffs into it.
-test('no Manual text sends Agent posts into the task thread', () => {
-    const taskThreadPost = /\b(in|into|to) the task'?s? thread\b|— the task thread\b/i;
+test('no Manual text sends Agent posts into the claim thread', () => {
+    const taskThreadPost =
+        /\b(in|into|to) the (task|claim)'?s? thread\b|— the (task|claim) thread\b/i;
     const offenders = manualTopics
         .filter(({ body, summary }) => taskThreadPost.test(`${summary}\n${body}`))
         .map(({ id }) => id);

@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { chatMessageReplySchema, idSchema } from './chat.ts';
+import { messageClaimSchema } from './claim-shared.ts';
 import {
     cloudAgentBranchSchema,
     cloudAgentProviderSchema,
@@ -8,7 +9,6 @@ import {
     cloudAgentTitleSchema,
 } from './cloud-agent-shared.ts';
 import { humanTimezoneSchema } from './membership.ts';
-import { messageTaskSchema } from './task-shared.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
 
@@ -95,6 +95,7 @@ export type AgentThreadContext = z.infer<typeof agentThreadContextSchema>;
 export const agentInboxItemSchema = z
     .object({
         chatId: idSchema,
+        claim: messageClaimSchema.optional(),
         content: z.string().max(32_000),
         createdAt: timestampSchema,
         id: idSchema,
@@ -115,7 +116,6 @@ export const agentInboxItemSchema = z
         senderType: z.enum(['agent', 'human', 'system', 'trigger']),
         /** Chat sequence, or zero for a typed attention with no Chat cursor. */
         sequence: z.number().int().nonnegative(),
-        task: messageTaskSchema.optional(),
         target: z.string().trim().min(1).max(200),
         /** Present on the first drainable mention in a Thread the Agent cannot see yet. */
         threadContext: agentThreadContextSchema.optional(),

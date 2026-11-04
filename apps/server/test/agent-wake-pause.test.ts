@@ -83,7 +83,7 @@ test('the same failure three times pauses; the sweep skips it until a human lift
 
 test('agent and automation work never lift a wake pause', async () => {
     const { delivery, seed, transport } = await pausedAgent();
-    for (const source of ['agent:wren', 'reminder', 'trigger', 'task_assignment'] as const) {
+    for (const source of ['agent:wren', 'reminder', 'trigger', 'claim_assignment'] as const) {
         await delivery.deliver(work(seed, `from ${source}`, source));
     }
     expect(transport.framesOfType('start')).toHaveLength(0);

@@ -73,9 +73,9 @@ extension AuthenticatedHausView {
             contextLabel: threadContextLabel(for: thread),
             engagementChatID: resolvedThreadChatID(for: thread),
             engagementStyle: threadEngagementStyle(for: thread),
-            landingMessageID: thread.taskMessageID
+            landingMessageID: thread.claimMessageID
                 ?? store.unreadThreadLanding(threadChatID: resolvedThreadChatID(for: thread)),
-            taskMessageID: thread.taskMessageID,
+            claimMessageID: thread.claimMessageID,
             onVisibleMessagesChange: { reportVisibleReplies($0, in: thread) }
         )
         .task {
@@ -102,10 +102,10 @@ extension AuthenticatedHausView {
         thread.resolvedChatID(selectedThread: selectedThread, store: store)
     }
 
-    /// Task inspection keeps the task's canonical parent anchor and exposes
+    /// Claim inspection keeps the claim's canonical parent anchor and exposes
     /// its parent Chat's inline chain beside the separate child Thread.
     private func inlineReplies(for thread: ThreadSelection) -> ThreadInlineReplies? {
-        guard thread.anchor.task != nil else { return nil }
+        guard thread.anchor.claim != nil else { return nil }
         let rootMessageID = thread.anchor.id
         let parentChatID = thread.parentChatID
         return ThreadInlineReplies(

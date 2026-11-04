@@ -52,7 +52,7 @@ final class TranscriptLabelRecoveryTests: XCTestCase {
 
         XCTAssertEqual(store.lists[chat]?.messageIDs, ["m1", "m2"])
         for id in ["m1", "m2"] {
-            XCTAssertEqual(store.entities[id]?.message.task?.labels.first?.name, "New", id)
+            XCTAssertEqual(store.entities[id]?.message.claim?.labels.first?.name, "New", id)
         }
     }
 

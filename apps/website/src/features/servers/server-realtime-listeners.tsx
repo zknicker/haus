@@ -3,6 +3,7 @@ import type { RealtimeServer } from '../../hooks/realtime/realtime-server.ts';
 import { useAgentUpdateStream } from '../../hooks/realtime/use-agent-update-stream.ts';
 import { useArtifactUpdateStream } from '../../hooks/realtime/use-artifact-update-stream.ts';
 import { useChatLifecycleStream } from '../../hooks/realtime/use-chat-lifecycle-stream.ts';
+import { useClaimChangeStream } from '../../hooks/realtime/use-claim-change-stream.ts';
 import { useCloudAgentSettingsStream } from '../../hooks/realtime/use-cloud-agent-settings-stream.ts';
 import { useCloudAgentWorkStream } from '../../hooks/realtime/use-cloud-agent-work-stream.ts';
 import { useComputerUpdateStream } from '../../hooks/realtime/use-computer-update-stream.ts';
@@ -11,7 +12,6 @@ import { useInvitationUpdateStream } from '../../hooks/realtime/use-invitation-u
 import { useMcpUpdateStream } from '../../hooks/realtime/use-mcp-update-stream.ts';
 import { useMessageReactionStream } from '../../hooks/realtime/use-message-reaction-stream.ts';
 import { useReminderStream } from '../../hooks/realtime/use-reminder-stream.ts';
-import { useTaskChangeStream } from '../../hooks/realtime/use-task-change-stream.ts';
 import { useTaskLabelStream } from '../../hooks/realtime/use-task-label-stream.ts';
 import { useThreadFollowStream } from '../../hooks/realtime/use-thread-follow-stream.ts';
 import { MessageNotifications } from '../notifications/message-notifications.tsx';
@@ -38,7 +38,7 @@ export const ServerRealtimeListeners = React.memo(function ServerRealtimeListene
             <MessageReactionStream serverId={serverId} />
             <ThreadFollowStream serverId={serverId} />
             <ChatLifecycleStream serverId={serverId} />
-            <TaskChangeStream serverId={serverId} />
+            <ClaimChangeStream serverId={serverId} />
             <TaskLabelStream serverId={serverId} />
             <CloudAgentWorkStream serverId={serverId} />
             <ImageGenerationStream serverId={serverId} />
@@ -72,8 +72,8 @@ function ChatLifecycleStream({ serverId }: StreamProps) {
     return null;
 }
 
-function TaskChangeStream({ serverId }: StreamProps) {
-    useTaskChangeStream(serverId);
+function ClaimChangeStream({ serverId }: StreamProps) {
+    useClaimChangeStream(serverId);
     return null;
 }
 

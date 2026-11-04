@@ -1,6 +1,6 @@
-// Tool-using work asked inside a DM Thread is claimed there as a Thread task
-// and answered in that Thread: no top-level task or post in the DM, no raw
-// `dm:@user:<ids>` task title, and a `--done` Thread send with no --reply-to.
+// Tool-using work asked inside a DM Thread is claimed there as a Thread claim
+// and answered in that Thread: no top-level claim or post in the DM, no raw
+// `dm:@user:<ids>` claim title, and a `--done` Thread send with no --reply-to.
 
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
@@ -11,7 +11,7 @@ const puzzle = sealedPuzzle({ divisor: 11, limit: 600, modulus: 101 });
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'Tool-using work asked in a DM Thread is claimed as a task on that Thread message, answered in the Thread with the marker and result through a --done send with no --reply-to, and leaves no new top-level task or post in the DM.',
+        'Tool-using work asked in a DM Thread is claimed on that Thread message, answered in the Thread with the marker and result through a --done send with no --reply-to, and leaves no new top-level claim or post in the DM.',
     name: 'thread-claim-dm',
     run: withRoutingEvidence(async (context) => {
         const { agents, kit, log, settleTurn } = context;

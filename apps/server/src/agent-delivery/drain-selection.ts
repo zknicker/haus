@@ -95,7 +95,7 @@ export function preferredDrainLead(rows: store.InboxItemRow[]): store.InboxItemR
 
 /**
  * One drain never mixes the lanes, and a concrete drain never mixes kinds: a
- * fire, a task assignment, a Cloud Agent result, and Cove's bootstrap each earn
+ * fire, a claim assignment, a Cloud Agent result, and Cove's bootstrap each earn
  * their own dedicated wake, which is also what keeps the sole-fire cause
  * inference readable (specs/inbox.md).
  */

@@ -9,6 +9,8 @@ export interface ChatTranscriptInput {
     /** Hides the automation context line when a context card already states it. */
     causeLineHidden?: boolean;
     chatId: string;
+    /** Hides one Message's claim chip when a metadata panel already states it. */
+    claimChipHiddenMessageId?: string;
     /** The Channel or DM this transcript belongs to; a Thread names its parent. */
     conversationChatId?: string;
     /**
@@ -25,8 +27,6 @@ export interface ChatTranscriptInput {
     pendingMessages?: readonly PendingChatMessage[];
     replyTargetMessageId?: string;
     serverId: string;
-    /** Hides one Message's task chip when a metadata panel already states it. */
-    taskChipHiddenMessageId?: string;
     turnDetailsAccess?: 'journal' | 'summary';
     viewerUserId?: string;
 }

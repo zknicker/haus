@@ -25,12 +25,12 @@ test('runtimes without sub-agents get no delegation section', () => {
     expect(grok).toBe(codex);
 });
 
-// Raft v1.21 renders its conditional sub-agent section between task splitting and @Mentions.
-test('Claude Code learns sub-agent delegation between task splitting and @Mentions', () => {
+// Raft v1.21 renders its conditional sub-agent section between claim splitting and @Mentions.
+test('Claude Code learns sub-agent delegation between claim splitting and @Mentions', () => {
     const codex = composeAgentInstructions({ ...facts, runtimeId: 'codex' });
     const claude = composeAgentInstructions({ ...facts, runtimeId: 'claude-code' });
     const prompt = claude.instructions;
-    const splitting = prompt.indexOf('### Splitting tasks for parallel execution');
+    const splitting = prompt.indexOf('### Splitting work into claims for parallel execution');
     const subagents = prompt.indexOf('## Working through sub-agents');
     const mentions = prompt.indexOf('## @Mentions');
 

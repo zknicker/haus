@@ -11,7 +11,7 @@ final class RealtimeStreamRestartsTests: XCTestCase {
         XCTAssertEqual(Set(RealtimeStream.allCases.map(\.path)), [
             "chat.onMessageCreated", "chat.onMessageReactionUpdated", "chat.onRead",
             "thread.onFollowUpdated", "chat.onLifecycle", "cloudAgentWork.onUpdated",
-            "task.onChanged", "taskLabel.onUpdated", "agent.onLifecycle", "agent.onActivity",
+            "claim.onChanged", "taskLabel.onUpdated", "agent.onLifecycle", "agent.onActivity",
             "computer.onUpdated", "server.onUpdated",
         ])
     }
@@ -119,7 +119,7 @@ final class RealtimeStreamRestartsTests: XCTestCase {
 
     func testARoleRefusalStopsOnlyThatStream() {
         var restarts = RealtimeStreamRestarts()
-        XCTAssertEqual(restarts.ended(.taskChanged, by: .refused(.roleRequired), at: start), .stop)
+        XCTAssertEqual(restarts.ended(.claimChanged, by: .refused(.roleRequired), at: start), .stop)
         XCTAssertEqual(
             restarts.ended(.chatRead, by: .failed, at: start),
             .restart(after: .seconds(1), reauthenticate: false)
@@ -146,10 +146,10 @@ final class RealtimeStreamRestartsTests: XCTestCase {
         for stream in transcriptStreams {
             XCTAssertEqual(stream.ownedProjections, [.openTranscripts, .chatList], stream.path)
         }
-        XCTAssertEqual(RealtimeStream.taskChanged.ownedProjections, [.openTranscripts, .chatList, .taskLenses])
+        XCTAssertEqual(RealtimeStream.claimChanged.ownedProjections, [.openTranscripts, .chatList, .claimLenses])
         // Labels are embedded in transcript entities, so label recovery
         // includes open transcript lists.
-        XCTAssertEqual(RealtimeStream.taskLabelUpdated.ownedProjections, [.openTranscripts, .taskLenses])
+        XCTAssertEqual(RealtimeStream.taskLabelUpdated.ownedProjections, [.openTranscripts, .claimLenses])
         XCTAssertEqual(
             RealtimeStream.cloudAgentWorkUpdated.ownedProjections,
             [.openTranscripts, .chatList, .activeCloudAgentWork]

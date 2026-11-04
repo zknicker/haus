@@ -7,7 +7,7 @@ import {
     agentInboxTable,
     agentsTable,
     chatMessagesTable,
-    messageTasksTable,
+    messageClaimsTable,
 } from '../postgres/schema.ts';
 import {
     bodilessInboxSources,
@@ -200,7 +200,7 @@ async function markInboxItemsAccepted(
 
 /**
  * Concrete work is served when the Computer accepts its model-visible run
- * inbox: an action attention, an automation fire, or a task assignment rides
+ * inbox: an action attention, an automation fire, or a claim assignment rides
  * in the run's own prompt, so acceptance already put its body in front of the
  * model and no pull can add anything.
  */
@@ -403,7 +403,7 @@ export async function markInboxItemsNoticed(
  * Returns still-queued typed work to the drain after the run it was offered to
  * settles. A deferred Chat message stays deferred: the model was told about it
  * and can still read it from Chat history, so re-driving would spin. A typed
- * delivery — an automation fire, a task assignment — exists nowhere but this
+ * delivery — an automation fire, a claim assignment — exists nowhere but this
  * row, so a run that ended without pulling it must not bury it. The run that
  * was *started* for the row keeps its notice, which bounds the redelivery at
  * one dedicated wake per identity.
@@ -496,7 +496,7 @@ export async function deleteQueuedOrdinaryItems(
             inArray(agentInboxTable.chatId, input.chatIds),
             eq(agentInboxTable.mentioned, false),
             // Only Chat chatter is ordinary. Typed work — an automation fire, a
-            // task assignment, an action attention — is keyed by its own
+            // claim assignment, an action attention — is keyed by its own
             // identity, reaches the Agent nowhere else, and survives a mute.
             sql`exists (
                     select 1 from ${chatMessagesTable} message
@@ -504,10 +504,10 @@ export async function deleteQueuedOrdinaryItems(
                       and message.id = ${agentInboxTable.dedupeKey}
                 )`,
             sql`not exists (
-                    select 1 from ${messageTasksTable} task
-                    where task.server_id = ${agentInboxTable.serverId}
-                      and task.message_id = ${agentInboxTable.dedupeKey}
-                      and task.assignee_agent_id = ${agentInboxTable.agentId}
+                    select 1 from ${messageClaimsTable} claim
+                    where claim.server_id = ${agentInboxTable.serverId}
+                      and claim.message_id = ${agentInboxTable.dedupeKey}
+                      and claim.assignee_agent_id = ${agentInboxTable.agentId}
                 )`
         )
     );
@@ -707,7 +707,7 @@ export async function listDispatchCandidates(
 /**
  * Inbox items normally share a database timestamp when one Chat operation
  * enqueues several messages. Use the canonical Chat sequence as the stable
- * tie-breaker so a task arrives before its assignment handoff in the Agent
+ * tie-breaker so a claim arrives before its assignment handoff in the Agent
  * prompt and message-check drain; typed work with no Chat message sorts last.
  */
 export function inboxOrder() {

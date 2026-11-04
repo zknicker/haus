@@ -31,7 +31,7 @@ ordinary Chat work, the rendered envelope as its content, and the recipient Agen
 | --- | --- | --- | --- |
 | `human` | An ordinary Chat delivery of a durable message | The message id | Notice; concrete when addressed on a cold start, or on any wake of a live session |
 | `cloud_agent_work` | One settled Cloud Agent Run's terminal attention for the Agent that delegated it | The Run id | Concrete |
-| `task_assignment` | A direct task assignment to this Agent | The assignment identity | Concrete |
+| `claim_assignment` | A direct claim assignment to this Agent | The assignment identity | Concrete |
 | `reminder` | One reminder fire | The fire id | Concrete |
 | `trigger` | One Trigger fire | The fire id | Concrete |
 | `onboarding` | Cove's one-shot bootstrap instruction | Its own bootstrap identity | Concrete |
@@ -41,7 +41,7 @@ ordinary Chat work, the rendered envelope as its content, and the recipient Agen
 Only ordinary Chat work is backed by a `chat_messages` row; the rest exist solely
 here, because a fact only an Agent needs is never written to a transcript humans read
 (ADR 0026). A human learns each of those facts from a representation on the content it
-explains — the task chip, or the cause line on an automation's answer — described in
+explains — the claim chip, or the cause line on an automation's answer — described in
 [automation-provenance.md](automation-provenance.md).
 
 One lifecycle covers every kind: `queued` when planned, `accepted` when the Computer
@@ -96,10 +96,10 @@ A durable `message.created` is planned once by Server delivery
 - Mention identity is resolved once when delivery is planned and persists independently from
   suppression. An ordinarily delivered mention still tells only the named Agent `you were mentioned`;
   other eligible Channel participants retain ambient visibility without that attention flag.
-- A direct task assignment to another Agent keeps the canonical task message as ordinary work and
-  adds one `task_assignment` item to only the assignee's inbox. It is `mentioned=true` so it stays
+- A direct claim assignment to another Agent keeps the canonical claim message as ordinary work and
+  adds one `claim_assignment` item to only the assignee's inbox. It is `mentioned=true` so it stays
   actionable through a mute, and renders in Agent inbox envelopes the way a reminder fire does. The
-  human's representation of that fact is the task chip on the message.
+  human's representation of that fact is the claim chip on the message.
 - A settled Cloud Agent Run creates one terminal attention for only the Agent that delegated it,
   keyed by the Run id and carrying the work's title, repository, provider URL, and the Run's status,
   summary, error code, and reported branches ([Cloud Agents](cloud-agents.md)). A Run that stopped to
@@ -109,7 +109,7 @@ A durable `message.created` is planned once by Server delivery
   decides to post.
 - After planning, ordinary Chat work gives an idle Agent a notice turn and a busy Agent receives the
   same notice in its live turn. Concrete work — a settled Cloud Agent Run, an automation fire, a
-  task assignment — is the typed exception: an idle recipient receives the item's own envelope as
+  claim assignment — is the typed exception: an idle recipient receives the item's own envelope as
   the prompt of a distinct turn; a busy recipient receives only the content-free notice at a safe
   boundary, then the still-queued item in the next turn. A concrete drain never mixes kinds, so each
   concrete item earns its own dedicated wake, and a human drain never shares a run with a fire, which
@@ -148,7 +148,7 @@ A durable `message.created` is planned once by Server delivery
 
 Channel and DM messages may reference a parent in the same chat. Server derives and persists
 the root; the reply stays in the chat's sequence. `agent_message_follows` records Agent attention
-by chat, root, and Agent, independently from the task's single assignee.
+by chat, root, and Agent, independently from the claim's single assignee.
 
 Root authors and mentions, reply authors and mentions, and successful claimants join that
 chain. Send and claim update follows in their existing transaction. Losing a claim adds no
@@ -158,7 +158,7 @@ inline replies use ordinary channel delivery. An empty chain after unfollow does
 
 Followed chains deliver independently of channel mute. Unfollow suppresses ordinary chain
 delivery; an explicit follow, new post, successful claim, or direct mention restores it.
-Unfollowing a chain never joined is a no-op. Task completion preserves follows. Parent access,
+Unfollowing a chain never joined is a no-op. Claim completion preserves follows. Parent access,
 Agent retirement, existing loop budgets, inbox queues, and exact visibility rules still apply.
 Queued channel messages are not withdrawn when an Agent claims their request.
 
@@ -196,7 +196,7 @@ budget follows rows made model-visible, not notice-only turns.
 
 Non-Chat system attention is a separate typed concrete lane. Cove's one-shot
 bootstrap instruction, a settled Cloud Agent Run's terminal attention, reminder and Trigger fires,
-and task assignments use that lane, settle against their own stable identities, and never enter Chat message
+and claim assignments use that lane, settle against their own stable identities, and never enter Chat message
 resolution or Chat cursor accounting. Each of those exists nowhere but its inbox row, so its
 envelope rides the wake instead of waiting behind a pull the Agent may never make. The
 Computer suppresses an already-consumed identity on accepted-run replay; a failed unsettled
@@ -206,7 +206,7 @@ new run explicitly reoffers it so a terminal result is model-visible at most onc
 
 Idle and busy agents receive only the content-free inbox notice (turn-shapes §4):
 batched target rows with counts, first/latest short ids, latest sender, and
-`· thread / · dm / · task #N / · you were mentioned` tags — never bodies, from
+`· thread / · dm / · claim #N / · you were mentioned` tags — never bodies, from
 one formatting owner. Rows are
 deduped by exact offered identities and repeat only when the pending set
 changes. Busy injection is acknowledged only after Computer durably caches the

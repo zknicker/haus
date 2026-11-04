@@ -135,7 +135,7 @@ export async function consumeVisibleMessages(
 
 /**
  * A bodiless inbox item mirrored into the local inbox: a Trigger or Reminder
- * fire, or a task assignment, which speaks as `@haus`. None has a backing
+ * fire, or a claim assignment, which speaks as `@haus`. None has a backing
  * Chat message, so the Server alone can serve it and mark it served, and its
  * key must never enter message-visibility attestation.
  */

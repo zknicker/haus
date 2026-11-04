@@ -20,7 +20,7 @@ import { ChatDetailFrame } from '../../chats/chat-detail-frame.tsx';
 import type { TranscriptRenderWindowHandle } from '../../chats/use-transcript-render-window.ts';
 import { PageTopbar } from '../../shell/shell-topbar.tsx';
 import { ThreadPanel } from '../thread/thread-panel.tsx';
-import { mergeTaskAnchor } from './chat-message-model.ts';
+import { mergeClaimAnchor } from './chat-message-model.ts';
 import { ChatReadState } from './chat-read-state.tsx';
 import { ChatTopbar } from './chat-topbar.tsx';
 import { ChatTranscript } from './chat-transcript.tsx';
@@ -32,18 +32,18 @@ import { useChatFilesPane } from './use-chat-files-pane.ts';
 import { useChatInlineReply } from './use-chat-inline-reply.ts';
 import { useChatReferenceActivation } from './use-chat-reference-activation.ts';
 import { useChatThreadPane } from './use-chat-thread-pane.ts';
-import type { ChatInitialTask } from './use-chat-thread-selection.ts';
+import type { ChatInitialClaim } from './use-chat-thread-selection.ts';
 import { usePendingChatMessages } from './use-pending-messages.ts';
 import { useVisibleChatSequenceSource } from './use-visible-chat-sequence.ts';
 
 export function ChatView({
     chat,
-    initialTask,
+    initialClaim,
     onOpenChat,
     server,
 }: {
     chat: Chat;
-    initialTask?: ChatInitialTask;
+    initialClaim?: ChatInitialClaim;
     onOpenChat: (chatId: string) => void;
     server: ServerDetail;
 }) {
@@ -73,21 +73,21 @@ export function ChatView({
     });
     const pendingMessages = usePendingChatMessages(chat.id, messages.data?.entries);
     const sourceMessages = messages.data?.entries;
-    const anchorMessage = initialTask?.anchor;
-    // An older task anchor joins the listed ids; its row reads (or fetches) its entity.
+    const anchorMessage = initialClaim?.anchor;
+    // An older claim anchor joins the listed ids; its row reads (or fetches) its entity.
     const anchorLayout = React.useMemo(
         () => (anchorMessage ? toChatMessageLayout(anchorMessage) : undefined),
         [anchorMessage]
     );
     // Memoized so the transcript keeps projecting against one array identity.
     const transcriptMessages = React.useMemo(
-        () => mergeTaskAnchor(sourceMessages, anchorLayout),
+        () => mergeClaimAnchor(sourceMessages, anchorLayout),
         [anchorLayout, sourceMessages]
     );
     const thread = useChatThreadPane({
         chatId: chat.id,
         serverId: chat.serverId,
-        initialTask,
+        initialClaim,
         ready: transcriptMessages !== undefined,
         revealMessage,
     });
@@ -120,6 +120,7 @@ export function ChatView({
             active={activeSidePane === 'thread'}
             anchor={thread.anchor ?? threadSelection.anchor}
             chat={chat}
+            claimMessage={threadSelection.claimMessage}
             initialThreadChatId={threadSelection.initialThreadChatId}
             onClose={thread.close}
             onExitComplete={thread.onExitComplete}
@@ -129,7 +130,6 @@ export function ChatView({
             readOnly={readOnly}
             summary={threadSummary}
             takeover={threadTakeover}
-            taskMessage={threadSelection.taskMessage}
             turnDetailsAccess={server.role === 'member' ? 'summary' : 'journal'}
         />
     ) : null;

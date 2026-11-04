@@ -41,7 +41,7 @@ export const evals = {
             'reminder-schedule-and-fire',
         ],
         summary:
-            'Agents wake for what is addressed to them, stay quiet on FYIs, ask before irreversible acts, claim tasks (in the Thread a request arrived in), and follow up on schedule.',
+            'Agents wake for what is addressed to them, stay quiet on FYIs, ask before irreversible acts, claim work (in the Thread a request arrived in), and follow up on schedule.',
     },
     // Both overwrite MEMORY.md on the stack's own Computer. Rule quality is
     // scored out of band by scripts/agent-tests/memory-feedback-grade.mjs.

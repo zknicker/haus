@@ -2,6 +2,7 @@ import type { HausAgentMessage, MessageBodyKind } from '@haus/api';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import { readInlineReplyContexts } from '../chats/reply-context.ts';
+import { listMessageClaimMap } from '../claims/claim-shape.ts';
 import { readLinkedCloudAgentWork } from '../cloud-agents/linked-cloud-agent-work.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -13,7 +14,6 @@ import {
     usersTable,
 } from '../postgres/schema.ts';
 import { readCreatedAgentsForMessages } from '../server-agents/agent-created-shape.ts';
-import { listMessageTaskMap } from '../tasks/task-shape.ts';
 import { readMessageReactions } from './message-reactions.ts';
 import { agentMessageBodies } from './message-view-bodies.ts';
 
@@ -54,14 +54,16 @@ export async function toAgentMessages(
     // Sequential, not Promise.all: `db` is often the caller's transaction, and
     // overlapping reads on that one connection deadlocked Agent delivery
     // against the Server row lock its own transaction already held.
-    const tasksByMessage = await listMessageTaskMap(db, serverId, messageIds);
+    const claimsByMessage = await listMessageClaimMap(db, serverId, messageIds);
     const cloudAgentWorkByMessage = await readLinkedCloudAgentWork(db, serverId, messageIds);
     const createdAgentByMessage = await readCreatedAgentsForMessages(db, serverId, messageIds);
     const agentIds = [
         ...new Set(
             rows
                 .flatMap((row) => row.authorAgentId ?? [])
-                .concat([...tasksByMessage.values()].flatMap((task) => task.assigneeAgentId ?? []))
+                .concat(
+                    [...claimsByMessage.values()].flatMap((claim) => claim.assigneeAgentId ?? [])
+                )
         ),
     ];
     const agents =
@@ -108,11 +110,11 @@ export async function toAgentMessages(
         const human = row.authorUserId ? humanById.get(row.authorUserId) : undefined;
         const handle = agent?.handle ?? human?.handle ?? null;
         const label = agent?.displayName ?? human?.displayName ?? 'Human';
-        const task = tasksByMessage.get(row.id);
+        const claim = claimsByMessage.get(row.id);
         const cloudAgentWork = cloudAgentWorkByMessage.get(row.id) ?? [];
         const createdAgent = createdAgentByMessage.get(row.id);
-        const taskAssigneeAgent = task?.assigneeAgentId
-            ? agentById.get(task.assigneeAgentId)
+        const claimAssigneeAgent = claim?.assigneeAgentId
+            ? agentById.get(claim.assigneeAgentId)
             : undefined;
         return {
             attachments: attachmentsByMessage.get(row.id) ?? [],
@@ -143,23 +145,23 @@ export async function toAgentMessages(
             },
             sequence: row.sequence,
             ...agentMessageBodies({ cloudAgentWork, createdAgent }),
-            ...(task
+            ...(claim
                 ? {
-                      task: {
-                          assignee: task.assigneeAgentId
+                      claim: {
+                          assignee: claim.assigneeAgentId
                               ? {
-                                    handle: taskAssigneeAgent?.handle ?? null,
-                                    id: task.assigneeAgentId,
+                                    handle: claimAssigneeAgent?.handle ?? null,
+                                    id: claim.assigneeAgentId,
                                 }
                               : null,
-                          claimed_at: task.claimedAt,
-                          created_at: task.createdAt,
-                          labels: task.labels,
-                          number: task.number,
-                          origin: task.origin,
-                          priority: task.priority,
-                          status: task.status,
-                          updated_at: task.updatedAt,
+                          claimed_at: claim.claimedAt,
+                          created_at: claim.createdAt,
+                          labels: claim.labels,
+                          number: claim.number,
+                          origin: claim.origin,
+                          priority: claim.priority,
+                          status: claim.status,
+                          updated_at: claim.updatedAt,
                       },
                   }
                 : {}),

@@ -15,7 +15,7 @@ import { serversTable } from '../postgres/schema.ts';
  * event cursor) would otherwise form a deadlock cycle.
  *
  * Transactions that take it: Server rename, message send, read marking, Thread
- * following, DM creation, task writes, invitation creation/acceptance/revocation,
+ * following, DM creation, claim writes, invitation creation/acceptance/revocation,
  * role change, removal, leaving, Computer attachment, message reactions, reminder
  * scheduling/mutation/firing, and operator reminder cancellation.
  */

@@ -24,7 +24,7 @@ in the channel: "On it. I'm pulling last year's Halloween ad numbers for the sam
 shortly 🎃". Juniper, also in the channel, stayed quiet. Earlier that day Beacon's ads digest was a
 table for the numbers, a few short sections, and plain prose around them.
 
-What makes it right: the acknowledgment lands where the question was asked, not in a task thread;
+What makes it right: the acknowledgment lands where the question was asked, not in a claim thread;
 it names exactly what is being fetched without narrating a plan; it sounds like a teammate, with a
 seasonal emoji that fits the moment; only the addressed Agent speaks; and structure appears only
 where the content is data. Every section below is one of those properties.
@@ -42,7 +42,7 @@ signature-emoji reaction on the request and, when it takes several steps, a one-
 with no plan. A question answerable from what the Agent has or one quick look-up is simply
 answered, with no reaction first. The Agent's working notes and progress, even when someone asked
 to be kept posted, go in a thread on its own pickup note in a channel, never in a thread on the
-request (that notifies its author for every post) and never in a task thread; in a DM they stay
+request (that notifies its author for every post) and never in a claim thread; in a DM they stay
 private. A result or question left only there
 has not reached the requester. When done, the Agent answers what was asked and stops: no
 obligatory summary or closing offer. CLI receipts carry no placement advice: the send receipt
@@ -62,7 +62,7 @@ description alone lost `--done` and `--reply-to`.
   `task-thread-routing` in the `attention` eval (`scripts/agent-tests/scenarios/`);
   `thread-instructions.test.ts` (visibility paragraphs, "When done, answer what was asked, then
   stop."), `managed-instructions.test.ts` ("the inline reply that answers the request carries
-  --done", "task updates follow the requesting conversation"),
+  --done", "claim updates follow the requesting conversation"),
   `personality-instructions.test.ts` ("the pickup bullet replaces the Raft acknowledge-and-outline
   and progress bullets"); `packages/agent-manual/src/product-topics.test.ts`; register rows
   "Sending messages" and "Communication style".
@@ -201,7 +201,7 @@ can steer as an inbox notice, so the settled reply reflects it.
 
 ## 8. Working beside other Agents
 
-In a channel shared with other Agents and a human, an Agent leaves a peer's claimed task to that
+In a channel shared with other Agents and a human, an Agent leaves a peer's claim to that
 peer, acts on a peer's handoff from the evidence it carries instead of re-asking the human, never
 takes a peer's guess as the human's answer to a pending question, answers a reminder fire at its
 anchor even while a Thread exchange is live, and draws a requested chart the way the visuals skill
@@ -239,7 +239,7 @@ several turns or outside systems.
 - Service-desk voice ("Great question!") and closing offers ("Let me know if...").
 - Em dashes and bold-label walls in ordinary chat replies.
 - Acknowledge-and-outline-the-plan messages before starting work.
-- Progress spam in the request's thread or the task thread.
+- Progress spam in the request's thread or the claim thread.
 - A deliverable posted only in the thread on the Agent's own pickup note, where the requester
   sees a one-line preview and gets no notification.
 - An obligatory recap after finishing.

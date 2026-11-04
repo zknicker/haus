@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import type { CloudAgentStatus, MessageTask } from '@haus/api';
+import type { CloudAgentStatus, MessageClaim } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -9,9 +9,9 @@ import { seedDevelopmentCloudFanoutThread } from './seed-cloud-fanout-thread.ts'
 import { findInboxSeedContext } from './seed-inbox-context.ts';
 import {
     type GalleryContext,
+    galleryClaim,
     galleryMention,
     galleryMessage,
-    galleryTask,
     galleryThread,
     galleryWork,
 } from './seed-ui-gallery-records.ts';
@@ -63,10 +63,10 @@ export async function seedDevelopmentUiGallery(
         await galleryMessage(
             tx,
             gallery,
-            'UI gallery: compact attachments and populated threads. Toggle “Show tasks in chat” to reveal background claims. Open threads to compare inline @mentions and full cloud-work cards. All cloud runs here are static samples on an unattached Computer; no provider links or jobs are created.'
+            'UI gallery: compact attachments and populated threads. Toggle “Show claims in chat” to reveal background claims. Open threads to compare inline @mentions and full cloud-work cards. All cloud runs here are static samples on an unattached Computer; no provider links or jobs are created.'
         );
         await seedMentionExamples(tx, gallery);
-        await seedTaskExamples(tx, gallery);
+        await seedClaimExamples(tx, gallery);
         await seedCloudExamples(tx, gallery);
         await seedCombinedExamples(tx, gallery);
     });
@@ -90,7 +90,7 @@ async function seedMentionExamples(db: HausDatabase, context: GalleryContext) {
     const plain = await galleryMessage(
         db,
         context,
-        'Ordinary thread · A discussion with no task, @mention, or cloud work.'
+        'Ordinary thread · A discussion with no claim, @mention, or cloud work.'
     );
     await galleryMessage(
         db,
@@ -99,30 +99,30 @@ async function seedMentionExamples(db: HausDatabase, context: GalleryContext) {
     );
 }
 
-async function seedTaskExamples(db: HausDatabase, context: GalleryContext) {
-    const states: MessageTask['status'][] = ['todo', 'in_progress', 'in_review', 'done', 'closed'];
+async function seedClaimExamples(db: HausDatabase, context: GalleryContext) {
+    const states: MessageClaim['status'][] = ['todo', 'in_progress', 'in_review', 'done', 'closed'];
     for (const status of states) {
         const message = await galleryMessage(
             db,
             context,
-            `Visible task · ${status} · No replies yet.`
+            `Visible claim · ${status} · No replies yet.`
         );
-        await galleryTask(db, context, message, 'composed', status);
+        await galleryClaim(db, context, message, 'composed', status);
     }
-    for (const status of ['in_progress', 'done'] satisfies MessageTask['status'][]) {
+    for (const status of ['in_progress', 'done'] satisfies MessageClaim['status'][]) {
         const message = await galleryMessage(
             db,
             context,
-            `Background claim · ${status} · Hidden until “Show tasks in chat” is enabled.`
+            `Background claim · ${status} · Hidden until “Show claims in chat” is enabled.`
         );
-        await galleryTask(db, context, message, 'claimed', status);
+        await galleryClaim(db, context, message, 'claimed', status);
     }
     const claimed = await galleryMessage(
         db,
         context,
-        'Claim with replies · Its task metadata shows even when the preference is off.'
+        'Claim with replies · Its claim metadata shows even when the preference is off.'
     );
-    await galleryTask(db, context, claimed, 'claimed', 'in_progress');
+    await galleryClaim(db, context, claimed, 'claimed', 'in_progress');
     await galleryMessage(
         db,
         await galleryThread(db, context, claimed),
@@ -216,9 +216,9 @@ async function seedCombinedExamples(db: HausDatabase, context: GalleryContext) {
     const anchor = await galleryMessage(
         db,
         context,
-        'Task + multiple cloud runs + inline @mentions · Open this thread to see the full combination.'
+        'Claim + multiple cloud runs + inline @mentions · Open this thread to see the full combination.'
     );
-    await galleryTask(db, context, anchor, 'converted', 'in_review');
+    await galleryClaim(db, context, anchor, 'converted', 'in_review');
     const thread = await galleryThread(db, context, anchor);
     await galleryWork(db, thread, {
         title: 'Keyboard navigation · Completed branch',
@@ -236,9 +236,9 @@ async function seedCombinedExamples(db: HausDatabase, context: GalleryContext) {
         answered: false,
         inThread: true,
     });
-    const taskMention = await galleryMention(db, context, {
-        content: 'Task + @mention · Should I ship the new sidebar?',
+    const claimMention = await galleryMention(db, context, {
+        content: 'Claim + @mention · Should I ship the new sidebar?',
         answered: false,
     });
-    await galleryTask(db, context, taskMention, 'converted', 'in_review');
+    await galleryClaim(db, context, claimMention, 'converted', 'in_review');
 }

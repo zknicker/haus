@@ -31,14 +31,14 @@ import { ChatSendScroll } from '../chat/chat-send-scroll.tsx';
 import { useChatTranscript } from '../chat/chat-transcript.tsx';
 import { composerDropSurfaceProps } from '../chat/composer-file-drop.ts';
 import { pendingThreadReplyKey, usePendingChatMessages } from '../chat/use-pending-messages.ts';
-import { TaskThreadMetadata } from '../tasks/task-thread-metadata.tsx';
+import { ClaimThreadMetadata } from '../claims/claim-thread-metadata.tsx';
 import { ThreadContentComposer } from './thread-content-composer.tsx';
 import { threadConversationEntries } from './thread-conversation.ts';
 import { ThreadConversationHistory } from './thread-conversation-history.tsx';
 import { ThreadEntryView } from './thread-entry-view.tsx';
 import { ThreadReadTracker } from './thread-read-tracker.tsx';
 import { threadTitles } from './thread-target.ts';
-import { threadWorkTask } from './thread-work-task.ts';
+import { threadWorkClaim } from './thread-work-claim.ts';
 
 const noReplies: readonly ChatMessageLayout[] = [];
 
@@ -58,18 +58,18 @@ export function ThreadContent({
     readOnly,
     summary,
     takeover,
-    taskMessage,
+    claimMessage,
     turnDetailsAccess,
     width,
 }: {
     active: boolean;
     anchor: ChatMessage;
     chat: Chat;
-    /** `secondary` when the host is a surface (the task dialog). */
+    /** `secondary` when the host is a surface (the claim dialog). */
     composerVariant?: 'primary' | 'secondary';
     /**
-     * Overrides the derived "Thread — <chat>" title. The task dialog names the
-     * task it opened, since that is the identity the reader came for.
+     * Overrides the derived "Thread — <chat>" title. The claim dialog names the
+     * claim it opened, since that is the identity the reader came for.
      */
     headerTitle?: string;
     initialThreadChatId?: string;
@@ -86,8 +86,8 @@ export function ThreadContent({
     readOnly: boolean;
     summary: ThreadSummary | null;
     takeover: boolean;
-    /** The Task this Thread was opened on when its message sits inside the Thread. */
-    taskMessage?: ChatMessage | null;
+    /** The Claim this Thread was opened on when its message sits inside the Thread. */
+    claimMessage?: ChatMessage | null;
     turnDetailsAccess: 'journal' | 'summary';
     width: number | null;
 }) {
@@ -107,10 +107,10 @@ export function ThreadContent({
     const humans = useHumanDirectory(chat.serverId);
     const viewerUserId = useMembers(chat.serverId).data?.viewerUserId;
     const titles = threadTitles(chat, anchor.id, humans);
-    // A task Thread is the task's work surface, so its header names the task
+    // A claim Thread is the claim's work surface, so its header names the claim
     // rather than the chat it hangs in — the metadata panel names the chat.
-    const workTask = threadWorkTask(anchor, taskMessage);
-    const taskThreadTitle = workTask ? `Task #${workTask.task.number}` : null;
+    const workClaim = threadWorkClaim(anchor, claimMessage);
+    const claimThreadTitle = workClaim ? `Claim #${workClaim.claim.number}` : null;
     // Replies show as pending rows the instant they are sent, under a key the
     // anchor owns, so the very first reply — which has no Thread chat id until
     // its receipt lands — is carried the same way every later one is.
@@ -131,8 +131,8 @@ export function ThreadContent({
         onReferenceActivate,
         pendingMessages: pendingReplies,
         serverId: chat.serverId,
-        // The header names the Task and the metadata panel below states it.
-        taskChipHiddenMessageId: workTask?.messageId,
+        // The header names the Claim and the metadata panel below states it.
+        claimChipHiddenMessageId: workClaim?.messageId,
         turnDetailsAccess,
         viewerUserId,
     });
@@ -170,7 +170,7 @@ export function ThreadContent({
             <ThreadPanelHeader
                 followed={summary?.followed ?? true}
                 followPending={follow.isPending}
-                header={headerTitle ?? taskThreadTitle ?? titles.header}
+                header={headerTitle ?? claimThreadTitle ?? titles.header}
                 onBack={onClose}
                 onClose={onClose}
                 onFollowChange={(next) => {
@@ -189,12 +189,12 @@ export function ThreadContent({
             />
             <TranscriptRenderProvider value={renderContext}>
                 <div className="max-h-[50%] shrink-0 overflow-y-auto px-5">
-                    {workTask ? (
-                        <TaskThreadMetadata
+                    {workClaim ? (
+                        <ClaimThreadMetadata
                             chat={chat}
                             chatId={chat.id}
-                            fallbackTask={workTask.task}
-                            messageId={workTask.messageId}
+                            fallbackClaim={workClaim.claim}
+                            messageId={workClaim.messageId}
                             serverId={chat.serverId}
                         />
                     ) : null}
@@ -206,13 +206,13 @@ export function ThreadContent({
                         anchorMessageId={anchor.id}
                         chatId={chat.id}
                         chatName={titles.header}
+                        claim={workClaim !== null}
                         composerVariant={composerVariant}
                         onReplySent={onReplySent}
                         onThreadCreated={setCreatedThreadChatId}
                         pendingChatId={pendingThreadReplyKey(anchor.id)}
                         readOnly={readOnly}
                         serverId={chat.serverId}
-                        task={workTask !== null}
                         threadChatId={threadChatId}
                     />
                 }

@@ -4,7 +4,7 @@ import { resolveAgentMessage } from '../agent-api/message-read.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { agentLeadsTable, agentsTable, messageTasksTable } from '../postgres/schema.ts';
+import { agentLeadsTable, agentsTable, messageClaimsTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { HeartbeatRefusedError, LeadNotFoundError } from './heartbeat-errors.ts';
 import { isActiveRun, isHeartbeatRun } from './run-source.ts';
@@ -61,7 +61,7 @@ export async function claimLead(
         }
         await sweepExpiredLeads(tx, runner.serverId);
         if (anchor) {
-            await refuseTaskHeldMessage(tx, runner.serverId, anchor.id);
+            await refuseClaimHeldMessage(tx, runner.serverId, anchor.id);
             const rows = await readHolders(tx, runner.serverId, anchor.id);
             const other = rows.find((row) => row.agentId !== runner.agentId);
             if (other) {
@@ -164,22 +164,22 @@ export async function finishLead(
 }
 
 /** A message an Agent holds as an open task is that Agent's work, not a lead. */
-async function refuseTaskHeldMessage(tx: HausDatabase, serverId: string, messageId: string) {
+async function refuseClaimHeldMessage(tx: HausDatabase, serverId: string, messageId: string) {
     const [task] = await tx
         .select({ agentHandle: agentsTable.handle })
-        .from(messageTasksTable)
+        .from(messageClaimsTable)
         .innerJoin(
             agentsTable,
             and(
-                eq(agentsTable.serverId, messageTasksTable.serverId),
-                eq(agentsTable.id, messageTasksTable.assigneeAgentId)
+                eq(agentsTable.serverId, messageClaimsTable.serverId),
+                eq(agentsTable.id, messageClaimsTable.assigneeAgentId)
             )
         )
         .where(
             and(
-                eq(messageTasksTable.serverId, serverId),
-                eq(messageTasksTable.messageId, messageId),
-                notInArray(messageTasksTable.status, ['done', 'closed'])
+                eq(messageClaimsTable.serverId, serverId),
+                eq(messageClaimsTable.messageId, messageId),
+                notInArray(messageClaimsTable.status, ['done', 'closed'])
             )
         )
         .limit(1);
@@ -195,7 +195,7 @@ async function refuseTaskHeldMessage(tx: HausDatabase, serverId: string, message
 function heartbeatRunRequired() {
     return new HeartbeatRefusedError(
         'HEARTBEAT_RUN_REQUIRED',
-        'haus lead claim works only in a heartbeat run. In a regular turn, use haus task claim.'
+        'haus lead claim works only in a heartbeat run. In a regular turn, use haus claim.'
     );
 }
 

@@ -223,7 +223,7 @@ struct AuthenticatedHausView: View {
                     case .tasks:
                         TaskListDestinationView(
                             persistence: store.settingsTasksPersistence,
-                            onOpenTask: openTask
+                            onOpenClaim: openClaim
                         )
                     case .thread(let thread):
                         threadDestination(thread)

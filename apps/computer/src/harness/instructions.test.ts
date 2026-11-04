@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-import { TASK_IN_REVIEW_STALE_DAYS } from '@haus/api';
 import { composeAgentInstructions } from './instructions.ts';
 
 // The smallest guard on the ported system prompt: every real Computer Agent must
@@ -34,9 +33,9 @@ test('composes the CLI-only Haus collaboration contract', () => {
     );
     expect(instructions).toContain('## Startup sequence');
     expect(instructions).not.toContain('## Message Notifications');
-    // Assignment mechanics live in the `tasks` Manual topic (product-topics.test.ts); the prompt
+    // Assignment mechanics live in the `claims` Manual topic (product-topics.test.ts); the prompt
     // keeps the receipt rule and the pointer.
-    expect(instructions).toContain('live in the `tasks` Manual topic');
+    expect(instructions).toContain('live in the `claims` Manual topic');
     expect(instructions).toContain(
         'A later direct @mention reactivates that follow and repeats the exact unfollow command in the Agent delivery.'
     );
@@ -48,9 +47,12 @@ test('composes the CLI-only Haus collaboration contract', () => {
     expect(instructions).toContain('correct the routing in the original thread');
     // Haus-only: a thread request is claimed in its thread, never re-created top-level.
     expect(instructions).toContain(
-        'A request that arrives in a thread is claimed in that thread by its message ID: `haus task claim --target <thread target> --message-id <shortid>`. Never give it a separate top-level task.'
+        'A request that arrives in a thread is claimed in that thread by its message ID: `haus claim --target <thread target> --message-id <shortid>`. Never give it a separate top-level claim.'
     );
     expect(instructions).not.toContain('Only top-level channel / DM messages can become tasks');
+    // ADR 0051: the message lock is a claim; no prompt text names the old `haus task` group.
+    expect(instructions).toContain('### Claims');
+    expect(instructions).not.toContain('haus task');
     expect(instructions).toContain('Default every message to the shortest useful form');
     expect(instructions).toContain('Do not paste execution logs into chat');
     expect(instructions).toContain('A completion message should lead with the outcome');
@@ -222,46 +224,6 @@ test('fingerprint is stable per composed text', () => {
     expect(a.fingerprint).toBe(b.fingerprint);
 });
 
-// Raft 1.0.25 `### Tasks`: the claim rule gates anything that needs action beyond a reply, so a
-// second Agent cannot start work another Agent already holds. Haus keeps `closed`, the
-// stale-close window, and conversation routing, and diverges on finishing: Agents set their own
-// work `done`; mechanics live in the Manual.
-test('claims before acting and finishes its own work without parking it', () => {
-    const { instructions } = composeAgentInstructions(facts);
-
-    // Raft's claim rule, verbatim apart from the product noun.
-    expect(instructions).toContain(
-        '**Claim rule:** if fulfilling a message requires you to take action beyond just replying (running tools, making changes, investigating), use `haus task claim` before starting.'
-    );
-    expect(instructions).toContain(
-        "If you're only answering a question or having a conversation, no claim is needed."
-    );
-
-    // The retired "never claim a same-turn request" carve-out must stay gone:
-    // it let an unaddressed Agent execute work another Agent was asked to do.
-    expect(instructions).not.toContain('never claim, never promote');
-    expect(instructions).not.toContain('**Promotion rule:**');
-    expect(instructions).not.toContain('a same-turn request is never claimed or promoted');
-
-    // Haus's own status set and stale window survive as additive text.
-    expect(instructions).toContain('Haus adds `closed` (reversible)');
-    // Done by default; `in_review` only for requested sign-off or a pending human decision,
-    // and then the Agent names what the human must check (operator decision, 2026-10-05).
-    expect(instructions).toContain('When your work is done, set the task to `done` yourself.');
-    expect(instructions).toContain(
-        'Use `in_review` only when the requester asked to sign off on the result or the work needs a human decision before it counts as finished'
-    );
-    expect(instructions).toContain('say in the conversation what they need to check.');
-    expect(instructions).not.toContain('so a human can validate it, then to `done` after approval');
-    expect(instructions).toContain(
-        "**Keep the conversation together.** Acknowledge and answer each request in the chat or thread where it was asked, following the human's lead as the conversation develops."
-    );
-    expect(instructions).toContain(
-        `An \`in_review\` task whose conversation stays silent for ${TASK_IN_REVIEW_STALE_DAYS} days is closed as stale by the Server, so keep pending reviews current in their conversation.`
-    );
-    expect(instructions).toContain('live in the `tasks` Manual topic');
-});
-
 test('a conversation style or signature emoji change changes the instruction fingerprint, so it reaches the next turn', () => {
     const plain = composeAgentInstructions(facts);
     const voiced = composeAgentInstructions({ ...facts, conversationStyle: 'Terse. Dry humor.' });
@@ -291,7 +253,7 @@ test('teaches MEMORY.md as hot memory plus a notes index, with history left in c
         "`notes/` holds deeper knowledge not needed every wake: topic files, each the current truth on one subject. Update or delete a topic's note before adding one; no dated logs. Manual topic `recipes/technique/memory-hygiene` has the rest."
     );
     expect(prompt).toContain(
-        "The history itself lives in Haus chats and tasks: don't copy it; record handles (chat/message, task, file, commit) and find it with `haus message search`."
+        "The history itself lives in Haus chats and claims: don't copy it; record handles (chat/message, claim, file, commit) and find it with `haus message search`."
     );
     // Standing preferences are hot memory, not a note; history is chat, not a work log.
     expect(prompt).not.toContain('notes/user-preferences.md');

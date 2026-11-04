@@ -1,6 +1,6 @@
 // Shared run for the thread-claim scenarios: a human asks for tool-using work
 // inside a Thread of a Channel or DM, and the Agent claims that Thread message
-// as a task where it sits, answering in the Thread (ADR 0015, 2026-11-02
+// as a claim where it sits, answering in the Thread (ADR 0015, 2026-11-02
 // amendment). The request's instructions are sealed so the Agent must run a
 // shell command before it can answer, which makes the claim rule apply.
 
@@ -48,40 +48,40 @@ export async function runThreadClaim(
 
     log('checking the claim');
     // An Agent's claim is background tier, which the default list hides.
-    const { tasks } = await kit.trpc('task.list', {
+    const { claims } = await kit.trpc('claim.list', {
         chatId: parentChatId,
         includeBackground: true,
         serverId: kit.serverId,
     });
-    const parentTasks = tasks
-        .map((entry) => entry.task)
-        .filter((task) => task.chatId === parentChatId);
+    const parentClaims = claims
+        .map((entry) => entry.claim)
+        .filter((claim) => claim.chatId === parentChatId);
     log(
-        `parent tasks: ${parentTasks.map((task) => `#${task.number} ${task.messageId} thread=${task.threadChatId}`).join('; ') || 'none'}`
+        `parent claims: ${parentClaims.map((claim) => `#${claim.number} ${claim.messageId} thread=${claim.threadChatId}`).join('; ') || 'none'}`
     );
-    const claimed = parentTasks.find((task) => task.messageId === request.message.id);
-    expect(Boolean(claimed), 'the Thread request became a task').toBe(true);
-    expect(claimed.threadChatId, 'task thread_chat_id is the request Thread').toBe(threadChatId);
-    expect(claimed.assigneeAgentId, 'task assignee').toBe(worker.id);
+    const claimed = parentClaims.find((claim) => claim.messageId === request.message.id);
+    expect(Boolean(claimed), 'the Thread request became a claim').toBe(true);
+    expect(claimed.threadChatId, 'claim thread_chat_id is the request Thread').toBe(threadChatId);
+    expect(claimed.assigneeAgentId, 'claim assignee').toBe(worker.id);
     expect(
         workStatuses.includes(claimed.status),
-        `task status left todo (got ${claimed.status})`
+        `claim status left todo (got ${claimed.status})`
     ).toBe(true);
 
-    const others = parentTasks.filter((task) => task.messageId !== request.message.id);
-    // A task's title is its message. Checked before the extra-task gate so a failure
+    const others = parentClaims.filter((claim) => claim.messageId !== request.message.id);
+    // A claim's title is its message. Checked before the extra-claim gate so a failure
     // names the regression the 2026-11-02 change fixed (`dm:@user:<ids>` titles).
-    const otherIds = new Set(others.map((task) => task.messageId));
+    const otherIds = new Set(others.map((claim) => claim.messageId));
     const titles = (await kit.readMessages(parentChatId))
         .filter((message) => otherIds.has(message.id))
         .map((message) => message.content);
     expect(
         titles.filter((title) => routingIdPattern.test(title)),
-        'task titles carrying a target or message id'
+        'claim titles carrying a target or message id'
     ).toHaveLength(0);
     expect(
-        others.map((task) => `#${task.number} ${task.messageId}`),
-        'other tasks in the parent'
+        others.map((claim) => `#${claim.number} ${claim.messageId}`),
+        'other claims in the parent'
     ).toHaveLength(0);
     const parentPosts = (await turn.authoredMessagesIn(parentChatId)).filter(
         (message) => message.chatId === parentChatId

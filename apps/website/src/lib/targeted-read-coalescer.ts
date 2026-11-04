@@ -12,7 +12,7 @@ import { type ChatScope, type HausClient, TranscriptListReads } from './transcri
 
 export type { ChatScope } from './transcript-list-reads.ts';
 
-/** One message whose annotations (reactions, Thread summary, task, Cloud Agent work) changed. */
+/** One message whose annotations (reactions, Thread summary, claim, Cloud Agent work) changed. */
 export interface MessageTarget extends ChatScope {
     messageId: string;
 }
@@ -36,7 +36,7 @@ export interface TargetedReadCoalescer {
     /** The list-read owner `chatMessagesQueryOptions` reads pages through. */
     readonly lists: TranscriptListReads;
     /**
-     * Reaction, Thread summary (reply, read, follow), task, or Cloud Agent
+     * Reaction, Thread summary (reply, read, follow), claim, or Cloud Agent
      * work changed one message: mark it dirty, cancel its in-flight fetch,
      * then invalidate its entity.
      */

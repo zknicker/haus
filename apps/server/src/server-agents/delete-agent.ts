@@ -1,5 +1,6 @@
 import type { DeleteAgentInput } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
+import { clearClaimAssignments } from '../claims/clear-claim-assignments.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentDeliveryTable,
@@ -14,7 +15,6 @@ import {
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { clearTaskAssignments } from '../tasks/clear-task-assignments.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { AgentDeleteDeniedError } from './agent-config-errors.ts';
 
@@ -23,7 +23,7 @@ export async function deleteAgent(
     db: HausDatabase,
     member: HausUser | null,
     input: DeleteAgentInput
-): Promise<{ agentId: string; computerId: string; taskEvents: PreparedRealtimeEvent[] }> {
+): Promise<{ agentId: string; computerId: string; claimEvents: PreparedRealtimeEvent[] }> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const server = await requireServerMembership(tx, member, input.serverId);
@@ -110,7 +110,7 @@ export async function deleteAgent(
                 )
             );
         await tx.delete(agentDeliveryTable).where(owner);
-        const taskEvents = await clearTaskAssignments(tx, input.serverId, agent.id);
+        const claimEvents = await clearClaimAssignments(tx, input.serverId, agent.id);
         await tx
             .update(agentsTable)
             .set({
@@ -125,6 +125,6 @@ export async function deleteAgent(
                 retiredAt: new Date(),
             })
             .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, agent.id)));
-        return { agentId: agent.id, computerId: agent.computerId, taskEvents };
+        return { agentId: agent.id, computerId: agent.computerId, claimEvents };
     });
 }

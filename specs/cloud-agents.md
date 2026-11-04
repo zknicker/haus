@@ -151,7 +151,7 @@ type Message = {
     content: string;
     body: MessageBody;
     attachments: Attachment[];
-    task?: MessageTask;
+    claim?: MessageClaim;
     /** Every Cloud Agent work this Message links and the viewer can see, in link order. */
     cloudAgentWork: CloudAgentWork[];
 };

@@ -21,7 +21,7 @@
         --background-hover: var(--background-tertiary);
 
         /*
-         * Filled boxes nested inside a washable row (thread/task preview in
+         * Filled boxes nested inside a washable row (thread/claim preview in
          * a chat turn and Cloud Agent cards). The dark tint is calibrated as
          * (surface - 0.9 * background) / 0.1 in sRGB, matching surface at rest
          * while letting the row wash show through. Recalibrate if either changes.

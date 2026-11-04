@@ -39,8 +39,8 @@ export function recordPosts(page: Page) {
 /**
  * The idle-silence burst case (specs/realtime-events.md, "Perf gates"): a
  * message + read + follow burst refetches `chat.list` once per frame; entity
- * invalidations in one tick share one batched POST; and task or label events
- * with no mounted task view request nothing. The App runs on Playwright's fake
+ * invalidations in one tick share one batched POST; and claim or label events
+ * with no mounted claim view request nothing. The App runs on Playwright's fake
  * clock, so every event of the burst lands before the one frame that flushes it.
  */
 export async function expectBurstCoalesced(
@@ -96,8 +96,8 @@ export async function expectBurstCoalesced(
     const report = describeTraffic(entries);
     const reads = (procedure: string) =>
         entries.filter((entry) => entry.kind === 'trpc' && entry.procedure === procedure).length;
-    // No mounted task view: task and label events request nothing.
-    expect(reads('task.list'), report).toBe(0);
+    // No mounted claim view: claim and label events request nothing.
+    expect(reads('claim.list'), report).toBe(0);
     expect(reads('taskLabel.list'), report).toBe(0);
     // Both entity invalidations of the frame share one batched POST (beside the
     // label edit's list refetch, which carries no entity read).

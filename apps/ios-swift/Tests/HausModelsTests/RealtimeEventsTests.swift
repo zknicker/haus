@@ -3,7 +3,7 @@ import XCTest
 @testable import HausModels
 
 /// Each focused stream's payload decodes from the Server's wire shape
-/// (`packages/haus-api/src/{chat-events,task,cloud-agent}.ts`).
+/// (`packages/haus-api/src/{chat-events,claim,cloud-agent}.ts`).
 final class RealtimeEventsTests: XCTestCase {
     func testDecodesMessageCreatedIncludingAThreadReply() throws {
         let event = try decode(MessageCreatedEvent.self, """
@@ -64,11 +64,11 @@ final class RealtimeEventsTests: XCTestCase {
         }
     }
 
-    func testDecodesTaskChangedAndLabelUpdated() throws {
-        let task = try decode(TaskChangedEvent.self, """
+    func testDecodesClaimChangedAndLabelUpdated() throws {
+        let claim = try decode(ClaimChangedEvent.self, """
         {"chatId":"chat_1","kind":"updated","messageId":"m1","serverId":"server_1"}
         """)
-        XCTAssertEqual(task, TaskChangedEvent(serverID: "server_1", chatID: "chat_1", messageID: "m1", kind: .updated))
+        XCTAssertEqual(claim, ClaimChangedEvent(serverID: "server_1", chatID: "chat_1", messageID: "m1", kind: .updated))
 
         let label = try decode(TaskLabelUpdatedEvent.self, #"{"labelId":"label_1","serverId":"server_1"}"#)
         XCTAssertEqual(label, TaskLabelUpdatedEvent(serverID: "server_1", labelID: "label_1"))
@@ -140,7 +140,7 @@ final class ChatRealtimeEffectsTests: XCTestCase {
         let effects = ChatRealtimeEffects([
             .reactionUpdated(.init(serverID: "s", chatID: "chat_1", messageID: "m1")),
             .reactionUpdated(.init(serverID: "s", chatID: "chat_1", messageID: "m1")),
-            .taskChanged(.init(serverID: "s", chatID: "chat_1", messageID: "m2", kind: .created)),
+            .claimChanged(.init(serverID: "s", chatID: "chat_1", messageID: "m2", kind: .created)),
             .cloudAgentWorkUpdated(.init(
                 serverID: "s", chatID: "thread_1", parentChatID: "chat_1", messageID: "w1", workID: "work_1"
             )),
@@ -158,7 +158,7 @@ final class ChatRealtimeEffectsTests: XCTestCase {
         XCTAssertTrue(effects.tailSequenceByChatID.isEmpty)
         XCTAssertEqual(effects.liveReactionMessageIDs, ["m1"])
         XCTAssertEqual(effects.cloudAgentWorkChatIDs, ["thread_1", "chat_1"])
-        XCTAssertTrue(effects.reloadsServerTasks)
+        XCTAssertTrue(effects.reloadsServerClaims)
         XCTAssertTrue(effects.reloadsActiveCloudAgentWork)
     }
 

@@ -39,7 +39,7 @@ struct TaskBackgroundLensTests {
         #expect(label == "0 background shown")
     }
 
-    /// Only the Server-wide default lens knows how many tasks were hidden.
+    /// Only the Server-wide default lens knows how many claims were hidden.
     @Test func onlyTheDefaultServerWideReadRecordsTheHiddenCount() {
         #expect(TaskBackgroundLens.recordsHiddenCount(chatID: nil, includeBackground: false))
     }
@@ -57,8 +57,8 @@ struct TaskBackgroundLensTests {
     }
 
     @Test func widenedFixturesCarryBothTiers() {
-        #expect(TaskPreviewFixtures.items.allSatisfy { $0.task.tier == .tracked })
-        #expect(TaskPreviewFixtures.backgroundItems.allSatisfy { $0.task.tier == .background })
+        #expect(TaskPreviewFixtures.items.allSatisfy { $0.claim.tier == .tracked })
+        #expect(TaskPreviewFixtures.backgroundItems.allSatisfy { $0.claim.tier == .background })
         #expect(TaskPreviewFixtures.widenedItems.count == TaskPreviewFixtures.items.count + 1)
     }
 }
