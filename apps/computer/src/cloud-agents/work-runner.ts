@@ -62,7 +62,7 @@ export class CloudAgentWorkSupervisor {
         }
     ) {
         const journal = new CloudLaunchJournal(options.dataRoot);
-        this.provider = options.provider ?? cloudAgentProvider;
+        this.provider = options.provider ?? ((id) => cloudAgentProvider(id, options.dataRoot));
         const sends = new CloudAgentSendQueue(runtime, journal, options.serverId, this.provider);
         this.localRuns = new CloudAgentLocalRuns(journal, options.serverId, sends);
         this.launches = new CloudAgentLaunchScope(runtime);

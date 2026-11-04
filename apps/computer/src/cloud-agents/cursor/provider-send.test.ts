@@ -31,6 +31,8 @@ test('follow-up preserves the hosted Agent and returns the new Run', async () =>
     const transport = createRecordedCursorTransport();
     const launch = await createCursorCloudAgentProvider(transport).send(input);
     expect(launch).toEqual({
+        environmentId: null,
+        environmentName: null,
         providerAgentId: input.providerAgentId,
         providerRunId: 'run_follow-up-1',
         providerUrl: 'https://cursor.com/agents?id=existing-agent',

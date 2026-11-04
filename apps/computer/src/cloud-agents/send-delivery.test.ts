@@ -43,6 +43,8 @@ async function fixture(options: { predecessor?: CloudAgentRunRef; interrupt?: bo
             throw failure;
         }
         return {
+            environmentId: null,
+            environmentName: null,
             providerAgentId: input.providerAgentId,
             providerRunId: `r_${input.idempotencyKey}`,
             providerUrl: null,

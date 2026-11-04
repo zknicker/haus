@@ -161,6 +161,8 @@ test('reconnect recovers a lost launch address from disk before cancelling', asy
     const journal = new CloudLaunchJournal(f.dataRoot);
     await journal.claim('srv_cloud', entry);
     await journal.record('srv_cloud', entry, {
+        environmentId: null,
+        environmentName: null,
         providerAgentId: 'bc_recovered',
         providerRunId: 'run_recovered',
         providerUrl: 'https://cursor.com/agents?id=bc_recovered',

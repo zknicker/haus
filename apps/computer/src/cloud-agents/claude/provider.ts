@@ -10,8 +10,15 @@ import {
     type CloudAgentRunRef,
     cloudAgentUnreadyMessage,
 } from '../provider.ts';
+import { readClaudeEnvironmentId } from '../settings.ts';
 import { withClaudeCheckout } from './checkout.ts';
 import { type ClaudeController, createClaudeController } from './controller.ts';
+import {
+    ClaudeCloudEnvironmentUnavailableError,
+    cloudAgentEnvironmentsOf,
+    listClaudeCloudEnvironments,
+    requireLiveClaudeCloudEnvironment,
+} from './environments.ts';
 import { readClaudeNativeAccount } from './native-auth.ts';
 import { launchNativeClaudeCloud, sendNativeClaudeCloud } from './native-commands.ts';
 import { claudeRunObservation } from './observation.ts';
@@ -34,6 +41,7 @@ const answerSettleTimeout = 30_000;
  * on `requires_action`, and the delegating Agent answers with a follow-up.
  */
 export function createClaudeCloudAgentProvider(
+    dataRoot: string,
     controller: ClaudeController = createClaudeController()
 ): CloudAgentProvider {
     const read = async (
@@ -91,6 +99,7 @@ export function createClaudeCloudAgentProvider(
         // Claude Cloud uses the Computer's own Claude Code sign-in; Haus starts none of its own.
         connect: readiness,
         disconnect: readiness,
+        listEnvironments: () => listClaudeCloudEnvironments().then(cloudAgentEnvironmentsOf),
         listModels: () => Promise.resolve(claudeModels),
         provider: 'claude',
         read,
@@ -110,6 +119,9 @@ export function createClaudeCloudAgentProvider(
                 });
             }
             return {
+                // A follow-up targets a session Claude already placed; it resolves no environment anew.
+                environmentId: null,
+                environmentName: null,
                 providerAgentId: sessionId,
                 providerRunId: null,
                 providerUrl: sessionUrl(sessionId),
@@ -118,11 +130,20 @@ export function createClaudeCloudAgentProvider(
         },
         async start(input, signal): Promise<CloudAgentLaunch> {
             await requireReady(readiness);
+            const environment = await resolveClaudeEnvironment(dataRoot, signal);
             const prompt = `${claudeRunTag({ runId: input.idempotencyKey, workId: input.workId })}\n\n${input.instructions}`;
             const receipt = await withClaudeCheckout({ ...input, signal }, (cwd) =>
-                launchNativeClaudeCloud({ cwd, modelId: input.model?.id ?? null, prompt, signal })
+                launchNativeClaudeCloud({
+                    cwd,
+                    environmentId: environment?.id ?? null,
+                    modelId: input.model?.id ?? null,
+                    prompt,
+                    signal,
+                })
             );
             return {
+                environmentId: environment?.id ?? null,
+                environmentName: environment?.name ?? null,
                 providerAgentId: receipt.sessionId,
                 providerRunId: null,
                 providerUrl: receipt.url,
@@ -179,6 +200,31 @@ function openTaskIds(entries: ReturnType<typeof logEntriesOf>): string[] {
         }
     }
     return [...tasks].flatMap(([id, terminal]) => (terminal ? [] : [id]));
+}
+
+/**
+ * The environment this launch pins to, checked fresh on every launch so a
+ * Computer never falls back to Claude Code's own default silently. `null`
+ * means this Computer pins nothing, so `--cloud` picks its own environment as
+ * it always has.
+ */
+export async function resolveClaudeEnvironment(
+    dataRoot: string,
+    signal?: AbortSignal
+): Promise<{ id: string; name: string } | null> {
+    const environmentId = await readClaudeEnvironmentId(dataRoot);
+    if (!environmentId) {
+        return null;
+    }
+    try {
+        const match = await requireLiveClaudeCloudEnvironment(environmentId, signal);
+        return { id: match.id, name: match.name };
+    } catch (error) {
+        if (error instanceof ClaudeCloudEnvironmentUnavailableError) {
+            throw new CloudAgentLaunchRejectedError(error.message);
+        }
+        throw error;
+    }
 }
 
 async function requireReady(readiness: () => Promise<CloudAgentReadiness>): Promise<void> {

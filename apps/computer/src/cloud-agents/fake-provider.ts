@@ -71,6 +71,9 @@ export function createFakeCloudAgentProvider(
             startFailure = message;
         },
         launches,
+        listEnvironments() {
+            return Promise.resolve([]);
+        },
         listModels() {
             return Promise.resolve(options.models ?? []);
         },
@@ -90,6 +93,8 @@ export function createFakeCloudAgentProvider(
                 providerRunId: `run_${input.idempotencyKey}`,
             };
             return Promise.resolve({
+                environmentId: null,
+                environmentName: null,
                 providerAgentId: input.providerAgentId,
                 providerRunId: `run_${input.idempotencyKey}`,
                 providerUrl: `https://cursor.com/agents/${input.providerAgentId}`,
@@ -108,6 +113,8 @@ export function createFakeCloudAgentProvider(
                 providerRunId: `run_${input.idempotencyKey}`,
             };
             return Promise.resolve({
+                environmentId: null,
+                environmentName: null,
                 providerAgentId: `bc_${input.idempotencyKey}`,
                 providerRunId: `run_${input.idempotencyKey}`,
                 providerUrl: `https://cursor.com/agents/bc_${input.idempotencyKey}`,

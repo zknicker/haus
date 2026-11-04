@@ -1,5 +1,6 @@
 import type {
     CloudAgentBranch,
+    CloudAgentEnvironment,
     CloudAgentProvider as CloudAgentProviderId,
     CloudAgentRunModel,
     CloudAgentStatus,
@@ -69,6 +70,10 @@ export interface CloudAgentStartInput {
 }
 
 export interface CloudAgentLaunch {
+    /** The Claude cloud environment this launch landed on; null off Claude or when unpinned. */
+    environmentId: string | null;
+    /** The environment's name, when the provider could name it, for display. */
+    environmentName: string | null;
     providerAgentId: string;
     /** Null when the provider acknowledges delivery before naming the execution. */
     providerRunId: string | null;
@@ -127,6 +132,8 @@ export interface CloudAgentProvider {
     }): Promise<CloudAgentReadiness>;
     /** Forgets the stored credential. The provider-side key stays revocable. */
     disconnect(): Promise<CloudAgentReadiness>;
+    /** This Computer's cloud environments to pin this provider's launches to; Claude only. */
+    listEnvironments(): Promise<CloudAgentEnvironment[]>;
     /** The provider's raw model catalog for the connected account. */
     listModels(): Promise<CloudAgentModelListing[]>;
     readonly provider: CloudAgentProviderId;
@@ -208,6 +215,8 @@ export function unavailableCloudAgentProvider(
             Promise.reject(new CloudAgentProviderUnavailableError('provider-unavailable')),
         disconnect: () =>
             Promise.resolve({ ready: false, reason: 'provider-unavailable' as const }),
+        listEnvironments: () =>
+            Promise.reject(new CloudAgentProviderUnavailableError('provider-unavailable')),
         listModels: () =>
             Promise.reject(new CloudAgentProviderUnavailableError('provider-unavailable')),
         provider,

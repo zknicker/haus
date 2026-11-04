@@ -64,7 +64,8 @@ export async function startCloudAgentWork(input: {
     serverOrigin: string;
 }): Promise<AgentCloudAgentStartResponse> {
     const provider = cloudAgentProvider(
-        input.request.provider ?? (await readDefaultCloudAgentProvider(input.dataRoot))
+        input.request.provider ?? (await readDefaultCloudAgentProvider(input.dataRoot)),
+        input.dataRoot
     );
     const readiness = await provider.readiness();
     if (!readiness.ready) {

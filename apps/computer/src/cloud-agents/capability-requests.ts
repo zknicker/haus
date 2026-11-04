@@ -1,9 +1,19 @@
 import type { CloudAgentCapabilityRequest, CloudAgentCapabilityResult } from '@haus/api';
 import { cloudAgentCapabilityRequestSchema, cloudAgentCapabilityResultSchema } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
+import { requireLiveClaudeCloudEnvironment } from './claude/environments.ts';
 import { providerSignIn } from './provider-sign-in.ts';
-import { cloudAgentCapabilityState, cloudAgentProvider } from './registry.ts';
-import { readDefaultCloudAgentProvider, writeDefaultCloudAgentProvider } from './settings.ts';
+import {
+    type CloudAgentProviderAccess,
+    cloudAgentCapabilityState,
+    cloudAgentProvider,
+} from './registry.ts';
+import {
+    readClaudeEnvironmentId,
+    readDefaultCloudAgentProvider,
+    writeClaudeEnvironmentId,
+    writeDefaultCloudAgentProvider,
+} from './settings.ts';
 
 export function parseCloudAgentCapabilityRequest(
     value: unknown
@@ -16,17 +26,19 @@ export function parseCloudAgentCapabilityRequest(
  * The Computer side of the Cloud Agent capability row in Computer settings.
  * `connect` returns a sign-in link while Computer waits for approval and owns
  * the credential store. No credential travels back. `make-default` names the
- * provider an Agent's `start` uses when it names none. Only a human action in
- * settings reaches this path, never an Agent turn.
+ * provider an Agent's `start` uses when it names none. `set-environment` pins
+ * this Computer's Claude launches to one Anthropic-hosted environment, or
+ * clears the pin with `null`. Only a human action in settings reaches this
+ * path, never an Agent turn.
  */
 export async function runCloudAgentCapabilityRequest(
     request: CloudAgentCapabilityRequest,
     runtime: EffectRuntime<never>,
     dataRoot: string
 ): Promise<CloudAgentCapabilityResult> {
-    const provider = cloudAgentProvider(request.provider);
+    const provider = cloudAgentProvider(request.provider, dataRoot);
     try {
-        const state = await resolve(request.operation.kind);
+        const state = await resolve(request.operation);
         const defaultProvider = await readDefaultCloudAgentProvider(dataRoot);
         return cloudAgentCapabilityResultSchema.parse({
             requestId: request.requestId,
@@ -41,21 +53,52 @@ export async function runCloudAgentCapabilityRequest(
         });
     }
 
-    async function resolve(kind: CloudAgentCapabilityRequest['operation']['kind']) {
+    async function resolve(
+        operation: CloudAgentCapabilityRequest['operation']
+    ): Promise<CloudAgentProviderAccess> {
         const signIn = providerSignIn(runtime, provider);
-        switch (kind) {
+        switch (operation.kind) {
             case 'get':
-                return signIn.get();
+                return withEnvironments(await signIn.get());
             case 'connect':
-                return signIn.connect();
+                return withEnvironments(await signIn.connect());
             case 'cancel-sign-in':
-                return signIn.cancel();
+                return withEnvironments(await signIn.cancel());
             case 'disconnect':
                 await signIn.cancel();
-                return cloudAgentCapabilityState(provider, await provider.disconnect());
+                return withEnvironments(
+                    cloudAgentCapabilityState(provider, await provider.disconnect())
+                );
             case 'make-default':
                 await writeDefaultCloudAgentProvider(dataRoot, request.provider);
-                return signIn.get();
+                return withEnvironments(await signIn.get());
+            case 'set-environment':
+                if (provider.provider !== 'claude') {
+                    throw new Error(`${provider.provider} has no cloud environment to pin.`);
+                }
+                if (operation.environmentId !== null) {
+                    await requireLiveClaudeCloudEnvironment(operation.environmentId);
+                }
+                await writeClaudeEnvironmentId(dataRoot, operation.environmentId);
+                return withEnvironments(await signIn.get());
+        }
+    }
+
+    /** Claude only: the current pin and the live picker list ride every result. */
+    async function withEnvironments(
+        state: CloudAgentProviderAccess
+    ): Promise<CloudAgentProviderAccess> {
+        if (provider.provider !== 'claude') {
+            return { ...state, environmentId: null, environments: null };
+        }
+        const environmentId = await readClaudeEnvironmentId(dataRoot);
+        if (!state.ready) {
+            return { ...state, environmentId, environments: null };
+        }
+        try {
+            return { ...state, environmentId, environments: await provider.listEnvironments() };
+        } catch {
+            return { ...state, environmentId, environments: null };
         }
     }
 }

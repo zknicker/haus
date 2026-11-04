@@ -74,6 +74,8 @@ test('a launch creates the provider Agent and returns its Run and page', async (
     });
 
     expect(launch).toEqual({
+        environmentId: null,
+        environmentName: null,
         providerAgentId: recordedAgentId,
         providerRunId: recordedRunId,
         providerUrl: `https://cursor.com/agents?id=${recordedAgentId}`,

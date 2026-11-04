@@ -1,3 +1,5 @@
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { stripVTControlCharacters } from 'node:util';
 import * as z from 'zod';
 import { resolveRuntimeExecutable } from '../../runtime-discovery.ts';
@@ -24,11 +26,16 @@ export interface ClaudeCloudReceipt {
  */
 export async function launchNativeClaudeCloud(input: {
     cwd: string;
+    /** Pins the new hosted session to this Anthropic-hosted environment; `null` leaves Claude's own default. */
+    environmentId: string | null;
     modelId: string | null;
     prompt: string;
     signal?: AbortSignal;
 }): Promise<ClaudeCloudReceipt> {
     const executable = requireClaude();
+    if (input.environmentId) {
+        await writeClaudeEnvironmentPin(input.cwd, input.environmentId);
+    }
     let output = '';
     let trusted = false;
     const timers: ReturnType<typeof setTimeout>[] = [];
@@ -141,6 +148,21 @@ function asksForFolderTrust(output: string): boolean {
         text.includes('Yes,Itrustthisfolder') &&
         text.includes('No,exit') &&
         text.includes('Entertoconfirm')
+    );
+}
+
+/**
+ * Claude Code reads its cloud environment default from `remote.defaultEnvironmentId` in
+ * settings, and project-local settings win over the user's own. Writing it into this
+ * throwaway checkout scopes the pin to this one launch, so concurrent launches pinned to
+ * different environments never race on a shared file.
+ */
+export async function writeClaudeEnvironmentPin(cwd: string, environmentId: string): Promise<void> {
+    const directory = join(cwd, '.claude');
+    await mkdir(directory, { recursive: true });
+    await writeFile(
+        join(directory, 'settings.local.json'),
+        `${JSON.stringify({ remote: { defaultEnvironmentId: environmentId } })}\n`
     );
 }
 

@@ -29,6 +29,8 @@ test('stopping an in-flight launch aborts provisioning and cancels a late provid
     abortCloudAgentLaunch('car_abort');
     expect(signal?.aborted).toBe(true);
     pending.resolve({
+        environmentId: null,
+        environmentName: null,
         providerAgentId: 'late_agent',
         providerRunId: 'late_run',
         providerUrl: null,
