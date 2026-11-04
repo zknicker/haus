@@ -16,6 +16,7 @@ import { createAgentThoughts } from '../server-agents/agent-thought.ts';
 import type { ThoughtSummarizer } from '../server-agents/agent-thought-summarizer.ts';
 import { clearHausAgentState } from '../server-agents/record-haus-agent-state.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
+import { readServerRuntimeSettingsCommand } from '../servers/server-settings.ts';
 import { sendCloudAgentReconcile } from './cloud-agent-reports.ts';
 import type { ComputerConnections } from './connections.ts';
 import { ingestReport } from './ingest-report.ts';
@@ -182,6 +183,12 @@ export function startComputerAttachmentSocket(
             if (!ordinary) {
                 return;
             }
+            // A Computer holds every runtime setting off until an attach turns one on.
+            void connections.runtimeSettings
+                .attached(computer.serverId, computer.id, () =>
+                    readServerRuntimeSettingsCommand(db, computer.serverId)
+                )
+                .catch(() => undefined);
             void sendPendingCoveApplication(db, connections, computer.id).catch(() => undefined);
             // Idempotent reconnect: resend unacknowledged deliveries and drain
             // any pending inbox for this Computer's Agents.

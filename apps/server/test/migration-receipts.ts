@@ -50,5 +50,6 @@ export const migrationsSince0060 = [
     '0107_background-tasks',
     '0108_remove-linear',
     '0109_freshness-hold-boundary',
-    '0110_reminder-wake-rules',
+    '0110_idle-compaction',
+    '0111_reminder-wake-rules',
 ];

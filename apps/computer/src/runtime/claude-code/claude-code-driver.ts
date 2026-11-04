@@ -7,6 +7,7 @@ import type { HostToolServer } from '../../host-tools/mcp-server.ts';
 import { unlinkHostClaudeState } from '../auth-profiles.ts';
 import type { BackgroundWorkReports } from '../background-work.ts';
 import type { RuntimeDriver } from '../driver.ts';
+import { idleCompactionMinTokens } from '../idle-compaction.ts';
 import type { RuntimeProcessRegistry } from '../process-registry.ts';
 import type { WarmProcess, WarmSlot } from '../warm-pool.ts';
 import { ClaudeConnection } from './claude-connection.ts';
@@ -14,6 +15,7 @@ import { resolveClaudeCredentials } from './claude-credentials.ts';
 import { claudeInitializeFailure } from './claude-errors.ts';
 import { ClaudeEventNormalizer } from './claude-event-normalizer.ts';
 import {
+    CLAUDE_CODE_VERSION,
     type ClaudeInstallTarget,
     claudeInstallFingerprint,
     claudeInstallTarget,
@@ -143,13 +145,27 @@ export function createClaudeCodeDriver(options: ClaudeCodeDriverOptions): Runtim
                     changed: (work) => background.changed(warmKey, work),
                     lost: () => background.lost(warmKey),
                     wake: () => background.wake(warmKey),
+                },
+                {
+                    idleCompactionMinTokens: idleCompactionMinTokens({
+                        ...baseEnv,
+                        ...launchEnv,
+                    }),
+                    modelId: options.modelId,
                 }
             );
+            let version: string | undefined;
             try {
-                await connection.initialize();
+                version = await connection.initialize();
             } catch (error) {
                 await connection.stop();
                 throw claudeInitializeFailure(error, child.stderrTail());
+            }
+            if (target && version && version !== CLAUDE_CODE_VERSION) {
+                // The pinned install answered as another release: a stale or replaced binary.
+                console.error(
+                    `[claude-code] pinned ${CLAUDE_CODE_VERSION} reports version ${version}`
+                );
             }
             return connection;
         } catch (error) {

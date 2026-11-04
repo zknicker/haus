@@ -133,6 +133,6 @@ test('the bootstrap fingerprint names the pinned install; a stand-in binary inst
     const pinned = harness.driver({ binaryPath: undefined, installTarget: target });
     expect(await pinned.bootstrapFingerprint()).toBe(claudeInstallFingerprint(target));
     expect(target.binaryPath).toBe(
-        '/host-home/.haus/cache/claude-code/2.1.284-darwin-arm64/claude'
+        '/host-home/.haus/cache/claude-code/2.1.317-darwin-arm64/claude'
     );
 });

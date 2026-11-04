@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, spyOn, test } from 'bun:test';
 import { type WarmProcess, WarmProcessPool } from './warm-pool.ts';
 
 class FakeProcess implements WarmProcess {
@@ -83,6 +83,18 @@ test('an idle process closes after the idle window', async () => {
     await Bun.sleep(20);
     expect(process.closes).toBe(1);
     expect(warm.size).toBe(0);
+});
+
+test('the default idle window is an hour, the length of Claude Code’s prompt cache', async () => {
+    const timers = spyOn(globalThis, 'setTimeout');
+    try {
+        const warm = pool();
+        await warm.park('agent-a', identity, new FakeProcess());
+        expect(timers.mock.calls.map((call) => call[1])).toContain(60 * 60_000);
+        await warm.close();
+    } finally {
+        timers.mockRestore();
+    }
 });
 
 test('a process holding background work outlives the idle window, then closes once it is done', async () => {

@@ -573,10 +573,10 @@
     },
     "apps/server/src/computers/socket.ts": {
       "disposition": "external-adapter",
-      "reason": "ServerPostCommitWork owns reconnect work; the remaining Promise only adapts WebSocketServer close callbacks.",
+      "reason": "ServerPostCommitWork owns reconnect work; the remaining Promise only adapts WebSocketServer close callbacks. Best-effort attach sends (pending Cove application, Server runtime settings) ignore a failure because the next attach resends them.",
       "risks": {
         "abortController": 0,
-        "catchAndIgnore": 2,
+        "catchAndIgnore": 3,
         "finallyBlock": 0,
         "manualPromise": 0,
         "timer": 2
@@ -1050,6 +1050,39 @@
       "risks": {
         "abortController": 0,
         "catchAndIgnore": 1,
+        "finallyBlock": 0,
+        "manualPromise": 1,
+        "timer": 0
+      }
+    },
+    "apps/computer/src/runtime/claude-code/claude-compaction.ts": {
+      "disposition": "external-adapter",
+      "reason": "One /compact on a parked foreign claude process: a sink promise settled by its own result or the process exit, raced against one hung-compaction timer cleared in finally, where the sink also detaches. The sink's rejection is pre-observed so a failed write cannot surface it unhandled; the awaited race still reports it.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 1,
+        "finallyBlock": 1,
+        "manualPromise": 2,
+        "timer": 2
+      }
+    },
+    "apps/computer/src/runtime/idle-compaction-scheduler.ts": {
+      "disposition": "external-adapter",
+      "reason": "One unref'd timer per parked Agent session while the Server setting is on, cleared when the entry leaves the warm pool or the setting turns off. A fired compaction is tracked until it settles so the pool can wait for it; its outcome goes to the daemon's report or failed hook, never dropped.",
+      "risks": {
+        "abortController": 0,
+        "catchAndIgnore": 0,
+        "finallyBlock": 0,
+        "manualPromise": 0,
+        "timer": 2
+      }
+    },
+    "apps/computer/src/runtime/claude-code/fixtures/idle-compaction-live.ts": {
+      "disposition": "finite-cleanup",
+      "reason": "Live-test harness: one manual promise resolved by the warm pool's idle compaction report or failure hook; the caller's close() ends the pool and host-tool server in its own finally. Each live turn takes a fresh AbortController it never aborts.",
+      "risks": {
+        "abortController": 1,
+        "catchAndIgnore": 0,
         "finallyBlock": 0,
         "manualPromise": 1,
         "timer": 0

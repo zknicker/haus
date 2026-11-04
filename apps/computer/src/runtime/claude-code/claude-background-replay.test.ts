@@ -1,12 +1,13 @@
 import { expect, test } from 'bun:test';
 import type { BackgroundWork } from '../background-work.ts';
 import type { TurnEvent } from '../turn-event.ts';
+import { CLAUDE_CODE_VERSION } from './claude-install.ts';
 import type { ParsedClaudeLine } from './claude-messages.ts';
 import { ClaudeTurn } from './claude-turn.ts';
 import { collect, readFixture, replayConnection } from './fixtures/fixture-replay.ts';
 
 /**
- * Background sub-agents against streams recorded from Claude Code 2.1.284 (fixtures
+ * Background sub-agents against streams recorded from Claude Code 2.1.317 (fixtures
  * `background-*.jsonl`, specs/runtime-drivers.md "Background work"). The turn that starts a
  * sub-agent ends at its own result; Claude Code later reports the task and, when no Haus turn
  * holds the connection, starts a turn of its own that a Haus wake run adopts.
@@ -49,7 +50,8 @@ const textOf = (events: TurnEvent[]) =>
 // stays protocol-idle for delivery", adapted: the Haus turn settles and the session stays usable.
 test('the turn that starts a background sub-agent ends at its own result while the task runs', async () => {
     const replay = open('background-subagent');
-    await replay.connection.initialize();
+    // The handshake reports the release, which is the pin the fixtures were recorded with.
+    expect(await replay.connection.initialize()).toBe(CLAUDE_CODE_VERSION);
     const first = turnOn(replay.connection);
     await first.start('start a background sub-agent');
     const events = await collect(first.events);
@@ -63,7 +65,10 @@ test('the turn that starts a background sub-agent ends at its own result while t
     // A new message is answered while the sub-agent still runs.
     let adopted: ClaudeTurn | null = null;
     const wake = Promise.withResolvers<void>();
+    let workAtWake: BackgroundWork | undefined;
     replay.setWake(() => {
+        // Since 2.1.317 the live set drops the finished sub-agent before its turn starts.
+        workAtWake = replay.connection.backgroundWork;
         // The run adopts the turn Claude Code started on its own; here at once, in production
         // whenever the Server's wake run reaches the session.
         adopted = turnOn(replay.connection, {
@@ -78,6 +83,7 @@ test('the turn that starts a background sub-agent ends at its own result while t
     expect(textOf(await collect(second.events))).toBe('pong');
 
     await wake.promise;
+    expect(workAtWake).toEqual({ subagents: 0, tasks: 1 });
     const reported = adopted as unknown as ClaudeTurn;
     const reportEvents = await collect(reported.events);
     expect(reportEvents.at(-1)?.type).toBe('turn-finish');

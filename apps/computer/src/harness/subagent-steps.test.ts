@@ -218,7 +218,7 @@ test('an interrupted turn settles a running sub-agent and its delegating operati
 
 test('a background sub-agent outlives its launch call and turn: marked backgrounded, never settled', async () => {
     const { journal, projector } = await setup('run_background');
-    // As Claude Code 2.1.284 streams it (fixtures/background-subagent.jsonl): the call, the
+    // As Claude Code 2.1.317 streams it (fixtures/background-subagent.jsonl): the call, the
     // task's start marked `is_backgrounded`, then the launch acknowledgement as its result.
     await observeAll(projector, [
         completedRun[0] ?? [],

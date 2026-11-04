@@ -1,0 +1,1 @@
+ALTER TABLE "servers" ADD COLUMN "idle_compaction" boolean DEFAULT false NOT NULL;

@@ -7,7 +7,13 @@ import { ClaudeProcessExitError, ClaudeTurnError, claudeResumeRejection } from '
 import type { ClaudeCommandLifecycle, ClaudeResult, ParsedClaudeLine } from './claude-messages.ts';
 import { readClaudePlanUsage } from './claude-plan-usage.ts';
 import type { ClaudeExit } from './claude-process.ts';
-import { addUsage, classifyResult, claudeTokenUsage, isFatalTurnEvent } from './claude-result.ts';
+import {
+    addUsage,
+    classifyResult,
+    claudeResultOwner,
+    claudeTokenUsage,
+    isFatalTurnEvent,
+} from './claude-result.ts';
 import {
     awaitSteerReceipt,
     SteerReceiptTimeoutError,
@@ -198,19 +204,13 @@ export class ClaudeTurn implements TurnSink {
     }
 
     private onResult(result: ClaudeResult) {
-        if (result.origin?.kind === 'task-notification' && !this.ownsNotificationTurn) {
-            // A turn Claude Code ran on its own (a background task's report, or the orphan notice
-            // it records on resume) shares the connection; it never settles this turn.
-            this.events.push({ nativeType: 'result:task-notification', type: 'progress' });
-            return;
-        }
-        const answered = [result.user_message_uuid, ...(result.user_message_uuids ?? [])].filter(
-            (uuid): uuid is string => Boolean(uuid)
-        );
-        if (answered.length > 0 && !answered.some((uuid) => this.ownMessages.has(uuid))) {
-            // Another turn's message (a late steer) answered on this warm connection: liveness
-            // only, never this turn's outcome.
-            this.events.push({ nativeType: 'result:foreign', type: 'progress' });
+        const owner = claudeResultOwner(result, {
+            ownMessages: this.ownMessages,
+            ownsNotificationTurn: this.ownsNotificationTurn,
+        });
+        if (owner !== 'turn') {
+            // Another run's result on the shared connection: liveness only, never this outcome.
+            this.events.push({ nativeType: `result:${owner}`, type: 'progress' });
             return;
         }
         this.resultSeen = true;

@@ -8,6 +8,7 @@ read_when:
   - changing Cloudflare Access identity mapping or Haus sessions
   - changing hosted attachment storage, recovery, or inventory
   - changing Server shutdown order, bounds, or signal handling
+  - adding or changing a Server setting, or how Server settings reach Computers
 ---
 
 # Haus Server
@@ -130,7 +131,7 @@ PostgreSQL owns the hosted collaboration tables
 | `browser_auth_intents` / `native_auth_intents` | One-use browser state and native PKCE callback bindings |
 | `haus_auth_rollback_recovery` | Small old-subject mapping retained to restore the pre-cutover auth columns if rollback is needed |
 | `avatars` | Uploaded square avatar bytes, media type, size, and digest, served publicly at `/api/avatars/:avatarId` |
-| `servers` / `server_onboarding` | Opaque id, address/display fields, and durable fresh-Server setup progress |
+| `servers` / `server_onboarding` | Opaque id, address/display fields, Server settings (`idle_compaction`), and durable fresh-Server setup progress |
 | `server_memberships` | One human's standing access, Server role, numbered stint, stint start, and internal revocation marker |
 | `push_devices` | One human's iPhone APNs registrations keyed by device token: environment, bundle id, and the last APNs refusal ([iPhone Push](../operations/ios-push.md)) |
 | `computer_login_grants` / `computer_login_sessions` | Hashed one-use device codes, short-code approval state, origin-bound hashed management credentials, expiry, polling state, canonical Haus User owner, and the CLI's post-persistence acknowledgement |
@@ -216,6 +217,22 @@ after attaching and once per minute. The Server stores the latest snapshot and
 its receipt time on that Computer row. All Server members can read these usage snapshots,
 including when the Computer is offline; Computer inventory and lifecycle
 management remain Owner/Admin-only.
+
+## Server settings
+
+Server settings apply to every Agent on the Server. Every member reads them with
+`server.settings`; only an Owner changes them, and they render in the App under
+Settings → Server → Agents. Today there is one: **Idle compaction**
+(`servers.idle_compaction`, `server.setIdleCompaction`, default off), the launch gate
+for compacting parked Claude Code sessions before their prompt cache expires
+(specs/runtime-drivers.md "Idle compaction"). The settings a Computer's runtimes
+follow ride one `server-runtime-settings` frame (replace semantics): sent to every
+attached Computer of the Server on a change, and on an ordinary attach while a setting
+is on. A Computer holds every setting off until a frame turns one on, and again whenever
+its attachment socket closes. A
+change also publishes `server.onUpdated`, which refreshes `server.settings` in
+every App. A Computer's idle compaction reports arrive as `agent-idle-compaction`
+and are recorded as the Agent's completed turn, so Usage counts them.
 
 ## Agent configuration
 

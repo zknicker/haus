@@ -19,7 +19,7 @@ test('backfills outcome for settled fires and defaults the new wake-rule columns
             journalPath,
             JSON.stringify({
                 ...journal,
-                entries: upToWakeRules.filter((entry: { idx: number }) => entry.idx <= 109),
+                entries: upToWakeRules.filter((entry: { idx: number }) => entry.idx <= 110),
             })
         );
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
@@ -80,7 +80,7 @@ test('backfills outcome for settled fires and defaults the new wake-rule columns
 
         await writeFile(journalPath, JSON.stringify(journal));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
-            '0110_reminder-wake-rules',
+            '0111_reminder-wake-rules',
         ]);
 
         expect(await database`SELECT id, outcome FROM reminder_fires ORDER BY id`).toEqual([

@@ -9,7 +9,8 @@ import { useSubscriptionRestart } from './use-subscription-restart.ts';
 
 /**
  * `server.onUpdated`, mounted for every accessible Server: a rename moves the
- * Server detail and the Server list. It is also the membership sentinel:
+ * Server detail and the Server list, and a settings change moves the Server's
+ * settings. It is also the membership sentinel:
  * deleting the Server or removing the viewer ends this stream with
  * `membership_lost`, whose restart policy runs the Server-loss path and closes
  * every sibling stream of the Server.
@@ -35,4 +36,7 @@ export function useServerUpdateStream(server: RealtimeServer) {
 export function applyServerUpdate(coalescer: TargetedReadCoalescer, server: RealtimeServer) {
     coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.server.bySlug, { slug: server.slug }) });
     coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.server.list) });
+    coalescer.invalidate({
+        queryKey: getQueryKey(hausTrpc.server.settings, { serverId: server.id }),
+    });
 }

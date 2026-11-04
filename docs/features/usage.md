@@ -163,6 +163,9 @@ Grok Build reports full turn totals in the prompt response's `_meta.usage` objec
 (`runtime/grok/grok-usage.ts`) maps those counts into the turn's usage, including cache counts,
 without adding reasoning tokens a second time. Sibling token fields describe only the last model
 call and are not a fallback for missing turn usage. Turns without reported usage remain unknown.
+An idle compaction (specs/runtime-drivers.md "Idle compaction") is recorded as the Agent's own
+completed turn: its tokens are the difference in Claude Code's cumulative `modelUsage` across the
+compaction, the only place its spend appears.
 
 Server maintains a daily UTC rollup keyed by Server, date, Agent, runtime, and model. PostgreSQL
 updates that cube transactionally when a compact turn summary is inserted, corrected, or deleted.

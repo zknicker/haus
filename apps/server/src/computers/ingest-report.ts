@@ -28,6 +28,7 @@ import { agentUpdatedTopic, computerUpdatedTopic } from '../realtime/topics.ts';
 import type { AgentThoughts } from '../server-agents/agent-thought.ts';
 import { recordAgentDream } from '../server-agents/record-agent-dream.ts';
 import { recordAgentEffectiveState } from '../server-agents/record-agent-effective-state.ts';
+import { ingestAgentIdleCompaction } from '../server-agents/record-agent-idle-compaction.ts';
 import { recordHausAgentState } from '../server-agents/record-haus-agent-state.ts';
 import { recordComputerUsage } from '../server-operations/computer-usage.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
@@ -90,7 +91,13 @@ export async function ingestReport(
             postCommitWork,
         })) ||
         (await ingestExecutionJournalUpload(db, connections, { computerId, frame, serverId })) ||
-        (await ingestAgentRunFrame(db, { computerId, frame, serverId }, thoughts, postCommitWork))
+        (await ingestAgentRunFrame(
+            db,
+            { computerId, frame, serverId },
+            thoughts,
+            postCommitWork
+        )) ||
+        (await ingestAgentIdleCompaction(db, computerId, frame))
     ) {
         return;
     }

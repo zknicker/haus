@@ -23,7 +23,7 @@ const fixtureNames = [
     'two-turns',
 ];
 
-// Real Claude Code 2.1.284 streams (fixtures/*.jsonl, recorded by fixtures/capture.ts) replayed
+// Real Claude Code 2.1.317 streams (fixtures/*.jsonl, recorded by fixtures/capture.ts) replayed
 // through the connection, normalizer, and turn exactly as the driver runs them.
 
 function replaySession(name: string, options: { collectPlanUsage?: boolean } = {}) {
@@ -49,19 +49,19 @@ const ofType = <Type extends TurnEvent['type']>(events: TurnEvent[], type: Type)
 describe('Claude Code fixture replay', () => {
     test('a plain reply streams text, thinking, step usage, and settles on the result', async () => {
         const events = await runTurn(replaySession('text-reply').session);
-        expect(ofType(events, 'text-delta').map((event) => event.text)).toEqual(['pong']);
+        expect(ofType(events, 'text-delta').map((event) => event.text)).toEqual(['p', 'ong']);
         expect(ofType(events, 'reasoning-start')).toHaveLength(1);
         expect(ofType(events, 'reasoning-end')).toHaveLength(1);
         expect(ofType(events, 'step-finish')).toEqual([
             {
-                contextTokens: 20_079,
+                contextTokens: 21_597,
                 type: 'step-finish',
                 usage: {
-                    cacheReadTokens: 12_919,
-                    cacheWriteTokens: 7150,
-                    inputTokens: 20_079,
-                    outputTokens: 42,
-                    totalTokens: 20_121,
+                    cacheReadTokens: 0,
+                    cacheWriteTokens: 21_587,
+                    inputTokens: 21_597,
+                    outputTokens: 45,
+                    totalTokens: 21_642,
                 },
             },
         ]);
@@ -69,11 +69,11 @@ describe('Claude Code fixture replay', () => {
             claudePlanUsage: null,
             type: 'turn-finish',
             usage: {
-                cacheReadTokens: 12_919,
-                cacheWriteTokens: 7150,
-                inputTokens: 20_079,
-                outputTokens: 42,
-                totalTokens: 20_121,
+                cacheReadTokens: 0,
+                cacheWriteTokens: 21_587,
+                inputTokens: 21_597,
+                outputTokens: 45,
+                totalTokens: 21_642,
             },
         });
     });
@@ -99,13 +99,13 @@ describe('Claude Code fixture replay', () => {
         const calls = ofType(events, 'tool-call');
         expect(calls.map((call) => [call.toolName, call.nativeName])).toEqual([
             ['read', 'Read'],
-            ['bash', 'Bash'],
-            ['bash', 'Bash'],
             ['edit', 'Edit'],
+            ['bash', 'Bash'],
+            ['bash', 'Bash'],
         ]);
         expect(calls.every((call) => call.providerExecuted === true)).toBe(true);
         expect(calls[0]?.input).toEqual({ file_path: 'notes.txt' });
-        expect(calls[1]?.input).toEqual({ command: 'wc -l notes.txt' });
+        expect(calls[2]?.input).toEqual({ command: 'wc -l notes.txt' });
         const results = ofType(events, 'tool-result');
         // As the AI SDK bridge projected it: a non-zero exit is a failed call carrying Claude
         // Code's own `tool_use_result`.
@@ -114,7 +114,7 @@ describe('Claude Code fixture replay', () => {
                 error: 'Error: Exit code 3',
                 nativeName: 'Bash',
                 providerExecuted: true,
-                toolCallId: calls[2]?.toolCallId ?? '',
+                toolCallId: calls[3]?.toolCallId ?? '',
                 toolName: 'bash',
                 type: 'tool-error',
             },
@@ -213,9 +213,9 @@ describe('Claude Code fixture replay', () => {
         const delegate = ofType(events, 'tool-call').find((call) => call.toolName === 'Agent');
         expect(ofType(events, 'subagent-started')).toEqual([
             {
-                description: 'Run echo sub-ok command',
+                description: 'Run echo command',
                 subagentType: 'general-purpose',
-                taskId: 'af1c1ef5f028570db',
+                taskId: 'a61cd9aeff33d30fe',
                 toolCallId: delegate?.toolCallId ?? '',
                 type: 'subagent-started',
             },
@@ -230,7 +230,7 @@ describe('Claude Code fixture replay', () => {
             ofType(events, 'tool-result').find(
                 (result) => result.toolCallId === delegate?.toolCallId
             )?.output
-        ).toMatchObject({ totalTokens: 12_893, totalToolUseCount: 1 });
+        ).toMatchObject({ totalTokens: 14_305, totalToolUseCount: 1 });
         // A sub-agent's own calls are never the Agent's.
         expect(ofType(events, 'tool-call').map((call) => call.toolName)).toEqual(['Agent']);
     });
@@ -247,8 +247,8 @@ describe('Claude Code fixture replay', () => {
         });
         expect(ofType(events, 'tool-result')[0]?.output).toMatchObject({
             summary: expect.stringContaining('This session is being continued'),
-            tokensAfter: 1298,
-            tokensBefore: 20_119,
+            tokensAfter: 3160,
+            tokensBefore: 21_635,
             trigger: 'manual',
         });
         expect(events.at(-1)?.type).toBe('turn-finish');

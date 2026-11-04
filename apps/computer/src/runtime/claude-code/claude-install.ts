@@ -12,21 +12,21 @@ const execFileAsync = promisify(execFile);
  * The Claude Code release every Agent runs; the integrities are the npm registry's for each
  * platform package of that release.
  */
-export const CLAUDE_CODE_VERSION = '2.1.284';
+export const CLAUDE_CODE_VERSION = '2.1.317';
 
 const platformIntegrity: Readonly<Record<string, string>> = {
     'darwin-arm64':
-        'sha512-WczsKY4Bg4dlh5M2UILMHM/9xpBdDcXLulzCSE+TFIb6itI7q3kfYTIwvKOzxB557krwHEuKLgWkUiXGdojjVQ==',
+        'sha512-Xnf9K4aGBuoYaODmEZ0o/lRvuYUCv2ZIDP+AXv15WVITryGgrsSA7CFL7KH+43kC6WhK8i6oysF6EbGdgBW4Aw==',
     'darwin-x64':
-        'sha512-C/ccPWroFmQxT2ao6l4Fb8xbBrrQA/sGQNJSFqwfhpFUmwqmdvfPDqL4II60rkZ9KBaYHSOeowUJkdknOWPGiQ==',
+        'sha512-CyElNeIVipIXwn7oRY3a5PpeOm0RuwekKLNCZq/gFnrkmSMBnqSWlAKKc8Q1W2UBFlkejwbzI+uPfgD51aiJGw==',
     'linux-arm64':
-        'sha512-S2bS/X/WNr4oe5c2qOdWGIfL9O/oTVLG7mlCI8FNLPWTQ2tNoeaLFPUzpyEkB4aIv4CL8+dw6YocT0JUDoI/1A==',
+        'sha512-awlwqIvbePCG9zVrlBm5L/3eELJmGJThom+1QgHeBK5N9F1dFpyBQP9M5A8s0PAaWBbLwDIm9SHVmZ6j/TftbA==',
     'linux-arm64-musl':
-        'sha512-+d0msskdpE9fCwOaqBrxTpGmLA8v2Kby/OPZu7XmAaukjvGryWCotPwDC0m9WVNUzCV0G+DZRmDWr1GCce5yEA==',
+        'sha512-pLoJ/spITubBkyP30LzejrAKskx18by23l/aVoFuIjs7dMFiI7jLLs7dpwO+g2ZUbBpxxxexJuANKUYJiT8GbA==',
     'linux-x64':
-        'sha512-hjjPgN4u8DvnzZqWDYnU5xxQkykuUrkUoVeeutVLXjrhx4qeRPmwgZ69BFAHmV42FBRdiRwbLbiDE9nkQdAE8g==',
+        'sha512-u19fYJ4llqi+dAGAj6P1BNu/CRSe0rv4O8Mv/5SQPU5oXCYmUssbJgrBI6rWbIFRAE3YcLCzKlwdHbzlSXBlSA==',
     'linux-x64-musl':
-        'sha512-6oPajQ/DRftfQOJ330vrnXsQQ9CkwSz6DkjjurfWZClpNNZbOv186EYk9llMR3PiKOA9W05DiPW86nddsgtP7w==',
+        'sha512-Zwp/FvlSVo/Nqmw8uxKEzv4hZhdEIXOb9+bkkrf/QgH/yjXWTWIjFCxYt5Gay6jqeX9/5fLrXv//XSUatdXReA==',
 };
 
 export interface ClaudeInstallTarget {

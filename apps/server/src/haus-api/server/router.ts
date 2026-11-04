@@ -7,6 +7,7 @@ import { developmentBootstrapProcedure } from './development-bootstrap.ts';
 import { listServersProcedure } from './list.ts';
 import { onServerUpdatedProcedure } from './on-updated.ts';
 import { renameServerProcedure } from './rename.ts';
+import { serverSettingsProcedure, setServerIdleCompactionProcedure } from './settings.ts';
 
 export const serverRouter = createRouter({
     bySlug: serverBySlugProcedure,
@@ -18,4 +19,6 @@ export const serverRouter = createRouter({
     list: listServersProcedure,
     onUpdated: onServerUpdatedProcedure,
     rename: renameServerProcedure,
+    setIdleCompaction: setServerIdleCompactionProcedure,
+    settings: serverSettingsProcedure,
 });
