@@ -184,8 +184,10 @@ export function startComputerAttachmentSocket(
                 return;
             }
             // A Computer holds every runtime setting off until an attach turns one on.
-            void readServerRuntimeSettingsCommand(db, computer.serverId)
-                .then((command) => command.idleCompaction && connections.send(computer.id, command))
+            void connections.runtimeSettings
+                .attached(computer.serverId, computer.id, () =>
+                    readServerRuntimeSettingsCommand(db, computer.serverId)
+                )
                 .catch(() => undefined);
             void sendPendingCoveApplication(db, connections, computer.id).catch(() => undefined);
             // Idempotent reconnect: resend unacknowledged deliveries and drain

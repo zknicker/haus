@@ -20,6 +20,7 @@ import { BrowserReplyOffice } from './browser-reply-office.ts';
 import { CloudAgentCapabilityReplyOffice } from './cloud-agent-capability-reply-office.ts';
 import { HostSkillFileReplies } from './host-skill-file-replies.ts';
 import { InventoryRefreshReplies } from './inventory-refresh-replies.ts';
+import { RuntimeSettingsSends } from './runtime-settings-sends.ts';
 import { SecretsReplyOffice } from './secrets-reply-office.ts';
 
 interface AttachedComputer {
@@ -45,6 +46,8 @@ interface AttachedComputer {
 export class ComputerConnections implements DeliveryTransport {
     readonly hostSkillFiles: HostSkillFileReplies;
     readonly inventoryRefresh: InventoryRefreshReplies;
+    /** Every `server-runtime-settings` send, ordered per Server. */
+    readonly runtimeSettings = new RuntimeSettingsSends(this);
     readonly secrets: SecretsReplyOffice;
     private readonly attached = new Map<string, AttachedComputer>();
     private readonly agentReplies: AgentReplyOffice;

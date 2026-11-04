@@ -29,9 +29,8 @@ export const setServerIdleCompactionProcedure = memberProcedure
     .mutation(async ({ ctx, input }) => {
         try {
             const settings = await setServerIdleCompaction(ctx.hausDb, ctx.member, input);
-            ctx.computerConnections.sendToServer(
-                input.serverId,
-                await readServerRuntimeSettingsCommand(ctx.hausDb, input.serverId)
+            await ctx.computerConnections.runtimeSettings.changed(input.serverId, () =>
+                readServerRuntimeSettingsCommand(ctx.hausDb, input.serverId)
             );
             serverUpdatedTopic.announce({ serverId: input.serverId });
             return settings;
