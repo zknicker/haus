@@ -68,7 +68,11 @@ export function HumanIdentity({
                 </>
             }
         >
-            {error ? <p className="mb-3 text-danger text-sm">{error}</p> : null}
+            {error ? (
+                <p className="mb-3 text-danger text-sm" role="alert">
+                    {error}
+                </p>
+            ) : null}
             <ProfileFacts>
                 <ProfileFact
                     label="Role"

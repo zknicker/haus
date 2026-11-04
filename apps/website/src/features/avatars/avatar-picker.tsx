@@ -58,6 +58,11 @@ export function AvatarPicker({
     const hint = avatarUploadHint();
     const busy = isDisabled || isPending || isReading;
     const displaySrc = previewSrc ?? src;
+    const statusMessage = isReading
+        ? `Reading ${label}…`
+        : isPending
+          ? `Saving ${label}…`
+          : null;
 
     React.useEffect(() => {
         if (previewSrc && src && src !== previewSrc) {
@@ -137,6 +142,9 @@ export function AvatarPicker({
                 ref={inputRef}
                 type="file"
             />
+            <span aria-live="polite" className="sr-only">
+                {statusMessage}
+            </span>
             {onGenerate ? (
                 <Dropdown>
                     {trigger}
