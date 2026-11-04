@@ -6,6 +6,13 @@ import * as z from 'zod';
  * normalizer reads only what is named here.
  */
 const usageSchema = z.looseObject({
+    /** Which prompt-cache lifetime the request wrote (idle compaction arms for one hour). */
+    cache_creation: z
+        .looseObject({
+            ephemeral_1h_input_tokens: z.number().nullish(),
+            ephemeral_5m_input_tokens: z.number().nullish(),
+        })
+        .nullish(),
     cache_creation_input_tokens: z.number().nullish(),
     cache_read_input_tokens: z.number().nullish(),
     input_tokens: z.number().nullish(),
@@ -66,10 +73,21 @@ const streamEventSchema = z.looseObject({
 });
 export type ClaudeStreamEvent = z.infer<typeof streamEventSchema>;
 
+/** One model's running totals for the whole process (`modelUsage`), cumulative across results. */
+const modelUsageSchema = z.looseObject({
+    cacheCreationInputTokens: z.number().nullish(),
+    cacheReadInputTokens: z.number().nullish(),
+    inputTokens: z.number().nullish(),
+    outputTokens: z.number().nullish(),
+});
+export type ClaudeModelUsage = z.infer<typeof modelUsageSchema>;
+
 const resultSchema = z.looseObject({
     api_error_status: z.number().nullish(),
     errors: z.array(z.unknown()).nullish(),
     is_error: z.boolean().optional(),
+    /** Per model, every request the process made so far (a compaction's only usage record). */
+    modelUsage: z.record(z.string(), modelUsageSchema).nullish(),
     /** Model turns the result spans; 0 for a local command or a notice recorded without one. */
     num_turns: z.number().nullish(),
     /** `task-notification`: Claude Code started this turn itself to report background work. */
@@ -78,6 +96,8 @@ const resultSchema = z.looseObject({
     stop_reason: z.string().nullish(),
     subtype: z.string(),
     terminal_reason: z.string().nullish(),
+    /** The process's cumulative API-equivalent cost so far, not this result's own. */
+    total_cost_usd: z.number().nullish(),
     type: z.literal('result'),
     usage: usageSchema.nullish(),
     user_message_uuid: z.string().nullish(),

@@ -2,9 +2,17 @@ import { randomUUID } from 'node:crypto';
 import * as z from 'zod';
 import type { HostToolSession } from '../../host-tools/mcp-server.ts';
 import type { BackgroundWork } from '../background-work.ts';
+import {
+    IDLE_COMPACTION_DEFAULT_MIN_TOKENS,
+    type IdleCompactable,
+    type IdleCompactionResult,
+    type IdleCompactionSnapshot,
+} from '../idle-compaction.ts';
 import type { WarmProcess } from '../warm-pool.ts';
 import { ClaudeBackgroundTasks, SelfStartedTurns } from './claude-background.ts';
+import { runClaudeCompaction } from './claude-compaction.ts';
 import type { ClaudeEventNormalizer } from './claude-event-normalizer.ts';
+import { ClaudeIdleActivity } from './claude-idle-activity.ts';
 import {
     type ClaudeCommandLifecycle,
     type ParsedClaudeLine,
@@ -53,8 +61,12 @@ interface PendingControl {
  * stream: background tasks keep reporting, and Claude Code may start a turn of its own to report
  * one that finished (specs/runtime-drivers.md "Background work").
  */
-export class ClaudeConnection implements WarmProcess {
+export class ClaudeConnection implements WarmProcess, IdleCompactable {
     private readonly controls = new Map<string, PendingControl>();
+    /** The last main request and cumulative spend, for idle compaction. */
+    readonly idleActivity: ClaudeIdleActivity;
+    /** The model the process runs; an idle compaction is recorded against it. */
+    readonly modelId: string;
     private readonly selfStarted = new SelfStartedTurns();
     private sink: TurnSink | null = null;
     private readonly tasks = new ClaudeBackgroundTasks();
@@ -67,8 +79,13 @@ export class ClaudeConnection implements WarmProcess {
         readonly hostTools: HostToolSession,
         readonly launchKey: string,
         public sessionId: string,
-        private readonly background?: ClaudeBackgroundHooks
+        private readonly background?: ClaudeBackgroundHooks,
+        options: { idleCompactionMinTokens?: number; modelId?: string } = {}
     ) {
+        this.idleActivity = new ClaudeIdleActivity(
+            options.idleCompactionMinTokens ?? IDLE_COMPACTION_DEFAULT_MIN_TOKENS
+        );
+        this.modelId = options.modelId ?? '';
         process.onLine((line) => this.dispatch(line));
         void process.exited.then((exit) => {
             // The host-tool scope lives exactly as long as the process that calls it.
@@ -147,6 +164,15 @@ export class ClaudeConnection implements WarmProcess {
         return this.process.exited;
     }
 
+    /** Claude Code's own `/compact`, run on the parked process (`claude-compaction.ts`). */
+    compact(): Promise<IdleCompactionResult> {
+        return runClaudeCompaction(this);
+    }
+
+    idleCompactionSnapshot(): IdleCompactionSnapshot | null {
+        return this.idleActivity.snapshot();
+    }
+
     /** Ends the process (as a parked `WarmProcess`). */
     close(): Promise<void> {
         return this.stop();
@@ -217,6 +243,7 @@ export class ClaudeConnection implements WarmProcess {
         if (parsed.sessionId) {
             this.sessionId = parsed.sessionId;
         }
+        this.idleActivity.observe(parsed);
         const { message } = parsed;
         if (message.kind === 'system' && message.message.subtype === 'init') {
             this.supportsLifecycle =

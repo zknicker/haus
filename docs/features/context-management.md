@@ -5,6 +5,7 @@ read_when:
   - changing session resume, reset, model switching, or recovery
   - changing runtime launch config, Agent HOME setup, or what a runtime loads from disk (AGENTS.md, CLAUDE.md, settings)
   - changing nightly dreaming, its quiet window, the dream request, or the dream turn's input
+  - changing compaction, idle compaction, or the Idle compaction Server setting
 ---
 
 # Context Management
@@ -140,13 +141,22 @@ and `features.multi_agent = false` in its thread config (`codexThreadConfig`), a
 `GROK_SUBAGENTS=0`, so neither offers a spawn tool.
 
 Compaction is the runtime's own. Claude Code compacts a session that nears its context window
-during a turn, and the turn reports it as the synthetic `compaction` tool pair. Its idle
-compaction (2.1.299+, a session over 100K tokens idle for about 54 minutes) does not run for a
-Haus Agent: Claude Code arms it only for an attended session, and the `sdk-ts` entrypoint Haus
-launches with is not one. The driver still tolerates one between turns: it wakes nobody and never
-settles the next turn (specs/runtime-drivers.md "Background work"). A parked `claude` process
-closes after an hour idle, matching its one-hour prompt cache; the next turn resumes the same
-conversation in a new process.
+during a turn, and the turn reports it as the synthetic `compaction` tool pair. A parked `claude`
+process closes after an hour idle, matching its one-hour prompt cache; the next turn resumes the
+same conversation in a new process.
+
+Claude Code's idle compaction (2.1.299+, a session over 200K tokens idle for about 54 minutes)
+never arms for the `sdk-ts` entrypoint Haus launches, so Haus runs it: with the Owner's Server
+setting **Idle compaction** on (Settings → Server → Agents; off by default), the Computer
+compacts a parked Claude Code session at Claude Code's own time and thresholds, with Claude Code's
+own `/compact`, so the next turn resumes a short summary instead of re-writing a cold 200K-950K
+token prefix. Because Claude Code records its system prompt once (`--system-prompt-snapshot on`)
+and refreshes it only at a compaction, it is also how updated Haus instructions reach a
+long-running session. A turn that arrives mid-compaction waits for it; the compaction is
+journaled and counted in Usage as the Agent's own turn (specs/runtime-drivers.md "Idle
+compaction"). A compaction keeps what the summary keeps: facts stated plainly and the current task
+survive; details buried in bulk tool output or pasted filler may not, and the summary points the
+Agent to the full transcript on disk to recover them.
 
 The Server stores desired configuration and canonical history. Computer stores
 effective runtime session state and resume evidence. The App reports that distinction
