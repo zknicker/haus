@@ -55,6 +55,25 @@ export function useCloudAgentMakeDefault(target: CloudAgentCapabilityTarget) {
     });
 }
 
+/**
+ * Claude only: pins (or, with `null`, unpins) the Anthropic-hosted cloud
+ * environment this Computer's Claude launches run on.
+ */
+export function useSetClaudeEnvironment(target: CloudAgentCapabilityTarget) {
+    const utils = hausTrpc.useUtils();
+    const options = useCapabilityMutationOptions(target);
+    return hausTrpc.cloudAgentProvider.setEnvironment.useMutation({
+        ...options,
+        onSuccess: async (state: CloudAgentCapabilityState) => {
+            await options.onSuccess(state);
+            await utils.cloudAgentProvider.get.invalidate({
+                computerId: target.computerId,
+                serverId: target.serverId,
+            });
+        },
+    });
+}
+
 function useCapabilityMutationOptions(target: CloudAgentCapabilityTarget) {
     const utils = hausTrpc.useUtils();
     return {

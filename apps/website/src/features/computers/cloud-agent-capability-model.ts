@@ -1,4 +1,9 @@
-import type { CloudAgentCapabilityState, CloudAgentProvider, ComputerInventory } from '@haus/api';
+import type {
+    CloudAgentCapabilityState,
+    CloudAgentEnvironment,
+    CloudAgentProvider,
+    ComputerInventory,
+} from '@haus/api';
 import { cloudAgentProviderName } from '../cloud-agents/cloud-agent-provider-presentation.ts';
 
 export interface CloudAgentCapabilityView {
@@ -9,6 +14,10 @@ export interface CloudAgentCapabilityView {
     /** Cursor signs in from Haus; Claude reuses the Computer's own Claude Code login. */
     connectLabel: string;
     description: string;
+    /** The Computer's pinned Claude cloud environment id; null is "not pinned". */
+    environmentId: string | null;
+    /** This Computer's Claude cloud environments to pin to; null off Claude. */
+    environments: CloudAgentEnvironment[] | null;
     isDefault: boolean;
     provider: CloudAgentProvider;
     providerName: string;
@@ -52,6 +61,8 @@ export function cloudAgentCapabilityView(input: {
     const identity = {
         canMakeDefault: false,
         connectLabel: access.connectLabel,
+        environmentId: input.state?.environmentId ?? null,
+        environments: input.state?.environments ?? null,
         isDefault: input.state?.isDefault ?? false,
         provider: input.provider,
         providerName: cloudAgentProviderName(input.provider),
@@ -143,6 +154,14 @@ export function reportedCloudAgentCapability(
         ready: reported.ready,
         reason: reported.ready ? null : (reported.reason ?? 'provider-unavailable'),
     };
+}
+
+/** The environment Select's sentinel key for "Claude's default (not pinned)". */
+export const cloudAgentNotPinnedEnvironmentKey = 'not-pinned';
+
+/** Translates the Select's chosen key into the `environmentId` `setEnvironment` takes. */
+export function cloudAgentEnvironmentSelection(value: unknown): string | null {
+    return value === cloudAgentNotPinnedEnvironmentKey ? null : String(value);
 }
 
 function connectedDescription(state: CloudAgentCapabilityState, plan: string): string {

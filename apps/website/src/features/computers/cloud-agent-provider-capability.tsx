@@ -7,6 +7,7 @@ import {
     useCloudAgentConnect,
     useCloudAgentDisconnect,
     useCloudAgentMakeDefault,
+    useSetClaudeEnvironment,
 } from '../../hooks/servers/use-cloud-agent-capability.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import {
@@ -39,6 +40,7 @@ export function CloudAgentProviderCapability({
     const connect = useCloudAgentConnect(target);
     const disconnect = useCloudAgentDisconnect(target);
     const makeDefault = useCloudAgentMakeDefault(target);
+    const setEnvironment = useSetClaudeEnvironment(target);
     const cancel = useCloudAgentCancelSignIn(target);
     const [signInOpen, setSignInOpen] = useState(false);
     const state =
@@ -118,6 +120,19 @@ export function CloudAgentProviderCapability({
         }
     };
 
+    const handleSetEnvironment = async (environmentId: string | null) => {
+        try {
+            await setEnvironment.mutateAsync({ ...target, environmentId });
+            toast.success(
+                environmentId ? 'Claude environment pinned' : 'Claude environment unpinned'
+            );
+        } catch (error) {
+            toast.danger('Couldn’t set the Claude environment', {
+                description: errorMessage(error),
+            });
+        }
+    };
+
     return (
         <>
             <CloudAgentCapabilityRow
@@ -125,6 +140,7 @@ export function CloudAgentProviderCapability({
                 onConnect={handleConnect}
                 onDisconnect={handleDisconnect}
                 onMakeDefault={handleMakeDefault}
+                onSetEnvironment={handleSetEnvironment}
                 view={view}
             />
             {signInOpen ? (
