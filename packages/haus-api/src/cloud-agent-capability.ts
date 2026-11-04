@@ -1,7 +1,8 @@
 import * as z from 'zod';
 import { cloudAgentEnvironmentSchema } from './cloud-agent-environment.ts';
 import { cloudAgentProviderSchema } from './cloud-agent-provider.ts';
-import { cloudAgentTimestampSchema, cloudAgentUnreadyReasonSchema } from './cloud-agent-shared.ts';
+import { cloudAgentTimestampSchema } from './cloud-agent-time.ts';
+import { cloudAgentUnreadyReasonSchema } from './cloud-agent-unready-reason.ts';
 
 /**
  * One Cloud Agent provider capability on one Computer: whether its credential
