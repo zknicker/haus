@@ -96,6 +96,8 @@ export interface CloudAgentSendInput {
 export interface CloudAgentProviderObservation {
     activity?: { at: string; summary: string };
     branches?: CloudAgentBranch[];
+    environmentId?: string;
+    environmentName?: string;
     errorCode?: string;
     observedAt: string;
     providerAgentId?: string;

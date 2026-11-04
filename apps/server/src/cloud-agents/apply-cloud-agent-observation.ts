@@ -199,6 +199,8 @@ function workObservationUpdate(observation: CloudAgentObservation, previousStart
                   activitySummary: observation.activity.summary,
               }
             : {}),
+        ...(observation.environmentId ? { environmentId: observation.environmentId } : {}),
+        ...(observation.environmentName ? { environmentName: observation.environmentName } : {}),
         ...(observation.providerAgentId ? { providerAgentId: observation.providerAgentId } : {}),
         ...(observation.providerUrl ? { providerUrl: observation.providerUrl } : {}),
         updatedAt: new Date(observation.observedAt),

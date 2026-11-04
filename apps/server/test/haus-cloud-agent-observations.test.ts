@@ -14,6 +14,8 @@ test('observations apply idempotently and a settled Run creates one inbox attent
     socket.send(
         JSON.stringify({
             observation: {
+                environmentId: 'env_abc',
+                environmentName: 'Fast',
                 observedAt: '2026-09-04T12:00:00.000Z',
                 providerAgentId: 'bc_one',
                 providerUrl: 'https://cursor.com/agents/bc_one',
@@ -26,6 +28,8 @@ test('observations apply idempotently and a settled Run creates one inbox attent
     );
     await fixture.waitForWorkStatus(work.id, 'running');
     expect(await fixture.readWork(work.id)).toMatchObject({
+        environment_id: 'env_abc',
+        environment_name: 'Fast',
         provider_agent_id: 'bc_one',
         provider_url: 'https://cursor.com/agents/bc_one',
         terminal_at: null,

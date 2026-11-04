@@ -56,6 +56,8 @@ export async function launchClaimedWork(claimed: ClaimedLaunch): Promise<void> {
     supervisor.report(ref, {
         observedAt: new Date().toISOString(),
         providerAgentId: launch.providerAgentId,
+        ...(launch.environmentId ? { environmentId: launch.environmentId } : {}),
+        ...(launch.environmentName ? { environmentName: launch.environmentName } : {}),
         ...(launch.providerRunId ? { providerRunId: launch.providerRunId } : {}),
         ...(launch.providerUrl ? { providerUrl: launch.providerUrl } : {}),
         status: launch.status,

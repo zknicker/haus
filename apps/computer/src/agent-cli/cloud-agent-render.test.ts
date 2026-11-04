@@ -87,3 +87,15 @@ test('inspect prints each work with its link, escaping titles the link grammar c
     );
     expect(renderCloudAgentWorkDetail([])).toBe('[]\n');
 });
+
+test('a pinned Claude environment shows as a short marker on its list line, never on an unpinned one', () => {
+    const pinned = { ...work, environmentName: 'Fast', provider: 'claude' as const };
+    const listed = renderCloudAgentWorkList([work, pinned]);
+
+    expect(listed).toContain(
+        'caw_1234567890abcdef [queued] Fix the flaky delivery test (haus/haus)'
+    );
+    expect(listed).toContain(
+        'caw_1234567890abcdef [queued] [Fast] Fix the flaky delivery test (haus/haus)'
+    );
+});

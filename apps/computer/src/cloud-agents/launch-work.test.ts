@@ -65,6 +65,34 @@ test('a launch records the work, keeps instructions local, and reports the provi
     ]);
 });
 
+test('a launch pinned to a Claude cloud environment reports it on the observation', async () => {
+    const provider = fixture.install(createFakeCloudAgentProvider());
+    const start = provider.start.bind(provider);
+    provider.start = async (input, signal) => ({
+        ...(await start(input, signal)),
+        environmentId: 'env_fast',
+        environmentName: 'Fast',
+    });
+    fixture.stubServer();
+
+    await startCloudAgentWork(fixture.input());
+    await fixture.launched();
+
+    expect(fixture.observations).toEqual([
+        {
+            observedAt: expect.any(String),
+            environmentId: 'env_fast',
+            environmentName: 'Fast',
+            providerAgentId: `bc_${runId}`,
+            providerRunId: `run_${runId}`,
+            providerUrl: `https://cursor.com/agents/bc_${runId}`,
+            runId,
+            status: 'running',
+            workId,
+        },
+    ]);
+});
+
 test('the receipt returns before a slow provider launch confirms', async () => {
     const provider = fixture.install(createFakeCloudAgentProvider());
     const confirm = Promise.withResolvers<void>();

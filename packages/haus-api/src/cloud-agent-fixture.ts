@@ -6,6 +6,8 @@ export const work = {
     chatId: 'cht_product',
     computerId: 'cmp_studio',
     createdAt: '2026-09-04T12:00:00.000Z',
+    environmentId: null,
+    environmentName: null,
     id: 'caw_1234567890abcdef',
     job: { followUp: null, startedAt: '2026-09-04T12:00:30.000Z', state: 'working' },
     messageId: 'msg_1234567890abcdef',

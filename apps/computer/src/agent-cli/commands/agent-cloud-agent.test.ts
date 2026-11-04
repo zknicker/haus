@@ -18,6 +18,8 @@ const work = {
     chatId: 'cht_product',
     computerId: 'cmp_studio',
     createdAt: '2026-09-04T12:00:00.000Z',
+    environmentId: null,
+    environmentName: null,
     id: 'caw_1234567890abcdef',
     job: { followUp: null, startedAt: null, state: 'working' },
     messageId: 'msg_1a2b3c4d5e6f7890',
