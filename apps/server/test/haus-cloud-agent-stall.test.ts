@@ -82,3 +82,60 @@ test('a follow-up an auto-interrupt still could not deliver notifies once per wi
     expect(await readStallAttentions()).toHaveLength(2);
     socket.close();
 });
+
+test('a Run already running never regresses to queued when its prompt briefly goes missing', async () => {
+    const runner = await fixture.mintRunner('run_cloud_prompt_missing');
+    const created = await fixture.postStart(
+        runner,
+        fixture.startBody({ nonce: 'cloud-prompt-missing' })
+    );
+    const work = created.body.work as CloudAgentWork;
+    const runId = created.body.runId as string;
+    const socket = await fixture.attachComputer();
+    const readNotFoundAttentions = () =>
+        fixture.harness.sql`
+            select id from agent_inbox
+            where source = 'cloud_agent_work' and dedupe_key like ${`${runId}:stall:%`}
+        ` as Promise<{ id: string }[]>;
+
+    socket.send(
+        JSON.stringify({
+            observation: {
+                observedAt: '2026-09-04T13:00:00.000Z',
+                providerAgentId: 'bc_prompt_missing',
+                providerRunId: 'prompt-1',
+                runId,
+                status: 'running',
+                workId: work.id,
+            },
+            type: 'cloud-agent-observation',
+        })
+    );
+    await fixture.waitForWorkStatus(work.id, 'running');
+
+    // A session log too large to scan back through reads as `queued` on the
+    // provider side, but the Run already confirmed Claude took its prompt:
+    // that progress must not be erased (TECH-7).
+    socket.send(
+        JSON.stringify({
+            observation: {
+                errorCode: 'claude-prompt-not-found',
+                observedAt: '2026-09-04T13:05:00.000Z',
+                runId,
+                status: 'queued',
+                summary: 'Claude’s session log is too large to find this Run’s own prompt in it.',
+                workId: work.id,
+            },
+            type: 'cloud-agent-observation',
+        })
+    );
+    await fixture.waitFor(async () => (await readNotFoundAttentions()).length > 0 || null);
+    expect(await fixture.readRun(runId)).toMatchObject({ status: 'running', terminal_at: null });
+    const [runRow] = (await fixture.harness.sql`
+        select error_code from cloud_agent_runs where id = ${runId}
+    `) as { error_code: string | null }[];
+    expect(runRow?.error_code).toBe('claude-prompt-not-found');
+    expect(await fixture.readWork(work.id)).toMatchObject({ status: 'running' });
+    expect(await readNotFoundAttentions()).toHaveLength(1);
+    socket.close();
+});

@@ -676,15 +676,22 @@ The Claude adapter (`apps/computer/src/cloud-agents/claude/`) drives Claude Code
 - **Monitoring.** Computer polls Claude's session controller API about every 10 seconds: session
   `worker_status` (`running`, `idle`, `requires_action`), `status` (`active`, `archived`), and the
   session event log. The event log is read newest-first, paginating backward until this Run's own
-  tagged prompt turns up; a session with enough background activity can log thousands of events
-  after it, so the page cap is a generous safety ceiling against a runaway cursor, not a bound
-  meant to bite in normal operation. A reading that stops short of the prompt reads `queued`
-  forever, even once the Run has long finished, because nothing else tells it otherwise (TECH-7).
+  tagged prompt turns up, bounded so one undiscovered Run never pays for an unbounded scan. Once
+  found, Computer keeps that window in memory and later ticks resume from its newest event instead
+  of rescanning the whole history again, so a long, busy session costs no more per poll than a
+  short one (TECH-7). A session with enough background activity before Computer ever discovers the
+  prompt — after a restart, say — can still log more than the bounded scan reads back through; that
+  reading reports `running` with `errorCode` `claude-prompt-not-found` and one inbox attention
+  rather than `queued`, since reading `queued` forever would leave the Run looking unaddressed even
+  once it has long finished with no sign anything was cut off. The Server side also never lets a
+  non-terminal Run or its work record regress to `queued` once it has read anything else, so a
+  Run already known to be addressed keeps that status even while this gap persists.
 - **Mapping.**
 
   | Claude session state | Haus status |
   | --- | --- |
   | Tagged prompt not yet in the log | `queued` (`expired` if the session is archived) |
+  | Tagged prompt lost behind the scan's bound | `running` with `errorCode` `claude-prompt-not-found` |
   | `requires_action` | `pending_input`; the open AskUserQuestion, or the tool Claude asks to use, is the summary |
   | `idle` with no open background tasks after a result | `completed`, or `failed` with `errorCode` `claude-<subtype>` |
   | Haus's own interrupt acknowledged and the worker not running | `cancelled` |

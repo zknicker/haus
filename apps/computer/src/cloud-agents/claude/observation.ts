@@ -27,12 +27,17 @@ type Entry<Kind extends ClaudeLogEntry['kind']> = Extract<ClaudeLogEntry, { kind
  * - Haus's own interrupt, acknowledged and no longer running, is `cancelled`.
  * - An archived session that never finished the Run is `expired`.
  */
+/** A non-terminal Run reporting this never settles it, but still wakes the delegating Agent. */
+export const claudePromptNotFoundErrorCode = 'claude-prompt-not-found';
+
 export function claudeRunObservation(input: {
     cancelRequestId: string;
     events: ClaudeSessionEvent[];
     observedAt: string;
     ref: { runId: string; workId: string };
     session: ClaudeSession;
+    /** The backward scan for this Run's own prompt gave up before reaching it or the log's end. */
+    truncated?: boolean;
 }): CloudAgentProviderObservation {
     const { observedAt, session } = input;
     const tag = claudeRunTag(input.ref);
@@ -44,11 +49,24 @@ export function claudeRunObservation(input: {
     );
     const prompt = chronological[start] as Entry<'prompt'> | undefined;
     if (!prompt) {
-        return session.status === 'archived'
+        if (session.status === 'archived') {
+            return {
+                observedAt,
+                status: 'expired',
+                summary: 'The Claude session was archived before it took this prompt.',
+            };
+        }
+        // A session with enough activity can hide this Run's own prompt past
+        // the scan's reach. Reading `queued` forever with no sign of that
+        // would leave the Run silently unaddressed even once it has long
+        // finished, so this reads as still in progress with a visible cause
+        // instead (TECH-7).
+        return input.truncated
             ? {
+                  errorCode: claudePromptNotFoundErrorCode,
                   observedAt,
-                  status: 'expired',
-                  summary: 'The Claude session was archived before it took this prompt.',
+                  status: 'running',
+                  summary: 'Claude’s session log is too large to find this Run’s own prompt in it.',
               }
             : activity(
                   observedAt,

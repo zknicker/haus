@@ -40,13 +40,20 @@ export interface ClaudeSessionEvent {
     sequence: string;
 }
 
+/** A bounded backward read of the event log. */
+export interface ClaudeEventPage {
+    events: ClaudeSessionEvent[];
+    /** `stop` never matched and history did not run out: there may be more before this. */
+    truncated: boolean;
+}
+
 export interface ClaudeController {
     /** Newest-first history, read back until `stop` matches an event or history ends. */
     events(
         sessionId: string,
         stop: (event: ClaudeSessionEvent) => boolean,
         signal?: AbortSignal
-    ): Promise<ClaudeSessionEvent[]>;
+    ): Promise<ClaudeEventPage>;
     interrupt(sessionId: string, requestId: string, signal?: AbortSignal): Promise<void>;
     session(sessionId: string, signal?: AbortSignal): Promise<ClaudeSession>;
     stopTask(
@@ -57,12 +64,10 @@ export interface ClaudeController {
 }
 
 const pageLimit = 100;
-// A safety ceiling against a runaway cursor, not a normal-operation bound: a
-// session with enough background activity can log far more than a few
-// thousand events before this Run's own prompt, and a tighter cap silently
-// never finds it, leaving the Run reading `queued` forever even once it has
-// long finished (TECH-7).
-const pagesRead = 500;
+// A bound on one backward scan for a prompt not already known, not a cost a
+// steady-state poll should ever pay: once found, the caller resumes from
+// that point instead of rescanning from here on every tick (TECH-7).
+const pagesRead = 20;
 
 /**
  * Claude's session controller: the API claude.ai/code itself uses to read a
@@ -106,15 +111,15 @@ export function createClaudeController(): ClaudeController {
                     };
                     collected.push(entry);
                     if (stop(entry)) {
-                        return collected;
+                        return { events: collected, truncated: false };
                     }
                 }
                 if (!body.next_cursor) {
-                    return collected;
+                    return { events: collected, truncated: false };
                 }
                 cursor = body.next_cursor;
             }
-            return collected;
+            return { events: collected, truncated: true };
         },
         async interrupt(sessionId, requestId, signal) {
             await control(

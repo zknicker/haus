@@ -51,17 +51,31 @@ function stubEventPages(pageCount: number, promptPage: number) {
     }) as typeof fetch;
 }
 
-test('a tagged prompt many pages back is still found, not silently missed', async () => {
-    // A session with enough background activity logs far more than a few
-    // thousand events before this Run's own prompt (TECH-7). A cap tight
-    // enough to miss it would leave `events()` reporting an incomplete
-    // history, with no sign anything was cut off.
+test('a tagged prompt a few pages back is found within the scan bound', async () => {
+    stubEventPages(30, 15);
+    const controller = createClaudeController();
+
+    const page = await controller.events(sessionId, (event) => logEntriesOfPrompt(event));
+
+    expect(page.truncated).toBe(false);
+    expect(page.events.at(-1)?.payload).toMatchObject({ type: 'user' });
+});
+
+test('a prompt beyond the scan bound is reported as truncated, not silently missed', async () => {
+    // A session with enough background activity can log far more than this
+    // one bounded discovery scan reads back through. The caller must learn
+    // the scan gave up rather than treat this the same as a session that
+    // never took the prompt at all — the resulting `queued` forever even
+    // once the Run has long finished is the production bug (TECH-7). The
+    // caller only pays this cost once per Run: a later reading resumes from
+    // where it left off instead of rescanning from here on every tick.
     stubEventPages(30, 25);
     const controller = createClaudeController();
 
-    const events = await controller.events(sessionId, (event) => logEntriesOfPrompt(event));
+    const page = await controller.events(sessionId, (event) => logEntriesOfPrompt(event));
 
-    expect(events.at(-1)?.payload).toMatchObject({ type: 'user' });
+    expect(page.truncated).toBe(true);
+    expect(page.events).toHaveLength(20 * 100);
 });
 
 function logEntriesOfPrompt(event: { payload: Record<string, unknown> }): boolean {
