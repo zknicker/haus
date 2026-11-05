@@ -675,7 +675,11 @@ The Claude adapter (`apps/computer/src/cloud-agents/claude/`) drives Claude Code
   id, so the tagged prompt's event id becomes the Run's `providerRunId` once Computer observes it.
 - **Monitoring.** Computer polls Claude's session controller API about every 10 seconds: session
   `worker_status` (`running`, `idle`, `requires_action`), `status` (`active`, `archived`), and the
-  session event log.
+  session event log. The event log is read newest-first, paginating backward until this Run's own
+  tagged prompt turns up; a session with enough background activity can log thousands of events
+  after it, so the page cap is a generous safety ceiling against a runaway cursor, not a bound
+  meant to bite in normal operation. A reading that stops short of the prompt reads `queued`
+  forever, even once the Run has long finished, because nothing else tells it otherwise (TECH-7).
 - **Mapping.**
 
   | Claude session state | Haus status |

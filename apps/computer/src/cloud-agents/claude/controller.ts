@@ -57,7 +57,12 @@ export interface ClaudeController {
 }
 
 const pageLimit = 100;
-const pagesRead = 20;
+// A safety ceiling against a runaway cursor, not a normal-operation bound: a
+// session with enough background activity can log far more than a few
+// thousand events before this Run's own prompt, and a tighter cap silently
+// never finds it, leaving the Run reading `queued` forever even once it has
+// long finished (TECH-7).
+const pagesRead = 500;
 
 /**
  * Claude's session controller: the API claude.ai/code itself uses to read a
