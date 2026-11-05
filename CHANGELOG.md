@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## v17.4.0 - 2026-11-05
+
+- An Owner or Admin can pin which Anthropic-hosted Claude cloud environment a Computer's launches run on, in Settings > Computers > (Computer) > Cloud Agents. A Computer with exactly one environment on the account pins it automatically; one with none or several refuses Claude launches until a choice is made, instead of landing on whichever environment Claude Code picks. `haus cloud-agent inspect` and the work card's provider mark show the pinned environment.
+- A Claude cloud follow-up stuck behind a busy session now auto-interrupts and delivers instead of stalling indefinitely. The work card reads a failed auto-interrupt distinctly from a generic stall, and the inbox raises one attention per stall window instead of repeating.
+- Haus Computer resumes a long Claude cloud session's event scan from where it left off instead of rescanning the whole history each time, so polling a busy session stays fast.
+- Agents place long off-topic write-ups in a thread on the message that started them instead of inline in busy channels.
+- Haus for iPhone 9.3.0 opens Cloud Agent work the same way the App does, with a Retry alert on a failed open.
+- Thread peeks keep their transcript edge fades.
+- Update Haus Computer to 15.3.0. Haus Agent 12.4.0 carries the Agent prompt and cloud-agent guidance changes.
+
 ## v17.3.0 - 2026-11-04
 
 - From Haus for Mac 7.2.0, a connected 1Password item's other useful fields are available too, not just its main one. An API Credential item with both a username and a credential now gives Agents `<TITLE>` and `<TITLE>_<FIELD>` (for example `PLAID_API_KEY` and `PLAID_API_KEY_USERNAME`), masked the same way as before. `haus-secrets --list` shows every name. Update Haus Computer to 15.2.0. Haus Agent 12.3.0 carries the updated secrets guidance.
