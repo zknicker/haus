@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v17.4.1 - 2026-11-05
+
+- A Computer with no pinned Claude cloud environment now always auto-pins one on first use: the account's environment named "Default" if it has one, otherwise its oldest, never its newest. Supersedes 17.4.0's environment-pin behavior, which refused the launch instead when the pin was ambiguous; that build never reached Server or Computer.
+- Update Haus Computer to 15.3.1. Haus Agent 12.4.1 carries the updated guidance.
+
 ## v17.4.0 - 2026-11-05
 
 - An Owner or Admin can pin which Anthropic-hosted Claude cloud environment a Computer's launches run on, in Settings > Computers > (Computer) > Cloud Agents. A Computer with exactly one environment on the account pins it automatically; one with none or several refuses Claude launches until a choice is made, instead of landing on whichever environment Claude Code picks. `haus cloud-agent inspect` and the work card's provider mark show the pinned environment.
