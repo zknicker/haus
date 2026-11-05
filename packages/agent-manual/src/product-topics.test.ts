@@ -87,6 +87,9 @@ test('cloud work keeps implementation details and requester outcomes in their co
     // auto-interrupt is the fallback, not the normal path.
     expect(body).toContain('one automatic interrupt to clear whatever holds the session busy');
     expect(body).toContain('keeps retrying underneath that notice');
+    // Round 4: Claude never waits behind a predecessor's turn; Cursor still does.
+    expect(body).toContain('takes the follow-up right away, even mid-turn');
+    expect(body).toContain('a Cursor agent queues it until its active run finishes');
 });
 
 test('a cloud agent launch card is an inline reply and never opens a new thread', () => {

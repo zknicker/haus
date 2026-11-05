@@ -529,24 +529,41 @@ the work Thread rather than surface-local conversation controls.
 
 ### Follow-up delivery
 
-Computer delivers a queued follow-up only after every preceding Run is terminal, or the provider
-reports it is otherwise free to take the follow-up now. Waiting behind a Run the provider still
-reports running is unbounded: hosted Runs can be long, and a provider that owns Run lifecycle
-(Cursor) expires them itself. A predecessor that is terminal in any way — completed, failed,
-cancelled, expired, refused, or settled locally before reaching the provider — unblocks the queue.
+Computer delivers a queued Cursor follow-up only after every preceding Run is terminal. Waiting
+behind a Run Cursor still reports running is unbounded: hosted Runs can be long, and Cursor, which
+owns Run lifecycle, expires them itself. A predecessor that is terminal in any way — completed,
+failed, cancelled, expired, refused, or settled locally before reaching Cursor — unblocks the
+queue.
 
-Claude has no Run-level expiry of its own: one hosted session keeps running for as long as its
-account allows, so a Run can read `running` indefinitely. A Claude Run's own `status` reads
-`running` for as long as it has an open background task, even once its foreground turn ends and
-the session is `idle` and free to take a follow-up — "staying subscribed to CI" is exactly this
-(TECH-7). Readiness for a Claude predecessor also unblocks on `rawStatus: 'idle'` alone, independent
-of `status`, so an open background task that outlives the turn never silently holds the queue the
-way an untracked Run does. Cursor never reports `rawStatus: 'idle'`, so its own unbounded wait is
-unchanged.
+**Claude never waits on a predecessor at all (TECH-7, round 4).** A hosted Claude session takes a
+new prompt the moment the one ahead of it was dispatched — exactly like a message sent mid-turn in
+local Claude Code, which is injected at the agent's next step rather than held until the running
+turn ends. Computer still only sends a follow-up *after* dispatching whatever precedes it (a
+still-`pending` predecessor still blocks, preserving delivery order), and an explicit `send
+--interrupt` still clears the predecessor's own work first; short of that, Haus never middle-mans a
+follow-up behind a predecessor's turn. This replaces the round-3 `rawStatus: 'idle'` readiness
+check, which only unblocked a predecessor that had gone idle — Claude has no Run-level expiry of
+its own, so a Run whose foreground turn was genuinely still running (not just idle with an open
+background task) would have kept blocking under that check. Cursor has no equivalent capability —
+it cannot take a second prompt while a Run is active — so it keeps the original wait, unchanged.
 
-Once predecessors are terminal, each send uses the Run id as the provider idempotency key, so a
-retry after a lost response never starts a second provider Run. The Cursor adapter classifies a
-failed send:
+**Attribution: each follow-up stays its own Run, read from a bounded window.** Delivering
+immediately raises a bookkeeping question a waited-for predecessor never had to answer: once two
+Haus prompts can sit in the same hosted session with neither one's turn necessarily finished, which
+Run does a given piece of activity, result, or branch evidence belong to? Haus keeps every
+follow-up a fully separate Run (its own id, inbox attention, and summary — never absorbed into the
+Run it followed), and bounds each Run's own reading at the *next* Haus-tagged prompt in the session
+log (`isHausPrompt` in `session-events.ts`), not just at its own. Before this, a Run's window ran
+from its own prompt to the end of the log, which was safe only because no later Haus prompt could
+exist yet. A Run whose own turn is still open when the next follow-up is sent reads as still
+`running` (not quiet, not failed) until its own result lands inside its own window; if that result
+is ever logged after the next prompt instead of before it, that Run keeps reading `running` rather
+than attributing the wrong Run's result to it — the safer of the two failure modes, and the one the
+window bound is designed to prevent.
+
+Once a predecessor is ready to send behind — terminal for Cursor, dispatched for Claude — each send
+uses the Run id as the provider idempotency key, so a retry after a lost response never starts a
+second provider Run. The Cursor adapter classifies a failed send:
 
 - **Definite refusal** — authentication, unknown Agent, invalid input, or any other 4xx except
   request timeout (408), busy (409), too early (425), and rate limiting (429). The Run settles `failed` at once with
@@ -556,10 +573,10 @@ failed send:
 - **Retryable** — those four statuses, 5xx, network, or SDK unavailable. Computer retries with
   backoff (5 seconds, doubling, capped at one minute) and journals the attempt count, first
   attempt, and last error with the pending prompt, forever: a busy provider never fails the Run.
-  The clock starts at the first attempt, not at queueing. With predecessors terminal or
-  Claude-idle-ready, a hosted session normally accepts a send right away even while otherwise busy
-  (TECH-7's design refinement — see the live-sessions note below); a send that still keeps failing
-  two minutes in is worth clearing the session's current work for. Computer then asks the provider
+  The clock starts at the first attempt, not at queueing. Once ready to send behind its predecessor,
+  a hosted session normally accepts a send right away even while otherwise busy (TECH-7's design
+  refinement — see the live-sessions note below); a send that still keeps failing two minutes in is
+  worth clearing the session's current work for. Computer then asks the provider
   to interrupt whatever holds the session busy (`send --interrupt`'s own mechanism) and retries the
   send once, right away. If that delivers, the launched observation carries a one-time note saying
   so, and the Run proceeds normally — no deadline, no notice. If the interrupt itself fails, or the
@@ -575,8 +592,8 @@ the session is replying as an ordinary queued turn, not a refusal: the changelog
 repeatedly (`claude.ai/code` sessions, `-p`/headless sessions, and `claude agents`'s own busy
 background sessions all accept new input mid-turn), and Haus's own adapter has no Claude-specific
 "busy" handling outside `requires_action` (`settleQuestion`). This is why the auto-interrupt above
-is a fallback, not the normal path: most sends to a session with no tracked predecessor blocking it
-just work, whatever else that session's worker is doing underneath.
+is a fallback, not the normal path: once a send is attempted at all, most of them just work,
+whatever else that session's worker is doing underneath.
 
 While a follow-up sits in Haus's local queue — waiting on a predecessor or between retries — Computer
 reports it `queued` with an `activity` line naming why (waiting on an earlier Run, or the attempt
