@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v17.4.2 - 2026-11-05
+
+- Haus Computer 15.3.2 makes the 17.4.1 environment-pin behavior deployable. 15.3.0 and 15.3.1 never went live: their own test suite depended on a Claude CLI binary that isn't present on the release runner, so publication failed before any build ran. 15.3.2 fixes the tests and ships unchanged behavior.
+
 ## v17.4.1 - 2026-11-05
 
 - A Computer with no pinned Claude cloud environment now always auto-pins one on first use: the account's environment named "Default" if it has one, otherwise its oldest, never its newest. Supersedes 17.4.0's environment-pin behavior, which refused the launch instead when the pin was ambiguous; that build never reached Server or Computer.
