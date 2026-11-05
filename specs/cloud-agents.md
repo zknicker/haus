@@ -675,14 +675,18 @@ The Claude adapter (`apps/computer/src/cloud-agents/claude/`) drives Claude Code
 - **Environment pin.** Claude Code's own `--cloud` launcher used to pick whichever
   Anthropic-hosted environment it wanted on each launch, and once picked a stray one that broke
   1Password secret resolution scoped to the environment that launch actually needed. Every Claude
-  launch on a Computer now runs against one explicitly chosen environment, picked at
+  launch on a Computer now runs against one chosen environment, shown at
   **Settings → Computers → (Computer) → Cloud Agents → the Claude row's environment picker**. A
-  Computer with no pin auto-pins the account's one environment the first time it is read or
-  launched; a Computer with no pin and zero or several environments on the account refuses the
-  Claude launch outright, naming **Settings → Computers → (Computer) → Cloud Agents** as where to
-  fix it, and the settings row shows a warning state until an Owner or Admin chooses one. The pin
-  is Computer-local, stored beside the default provider choice in `cloud-agents.json`
-  (`claudeEnvironmentId`, `apps/computer/src/cloud-agents/settings.ts`). Before `claude --cloud`
+  Computer with no pin auto-pins one the first time it is read or launched: the account's
+  environment named **Default** (case-insensitively) if it has one, otherwise its oldest by
+  creation time — never its newest, which is exactly the unstable pick that caused the original
+  incident (`chooseDefaultClaudeEnvironment`,
+  `apps/computer/src/cloud-agents/claude/environments.ts`). That auto-pin is permanent: once
+  written, no later read or launch re-evaluates it, so the picker always shows a real chosen
+  environment and never an empty or warning state. An Owner or Admin can still repoint the pin to
+  any other environment from the picker at any time. The pin is Computer-local, stored beside the
+  default provider choice in `cloud-agents.json` (`claudeEnvironmentId`,
+  `apps/computer/src/cloud-agents/settings.ts`). Before `claude --cloud`
   runs, Haus writes the pin into Claude Code's own `remote.defaultEnvironmentId` setting as
   `.claude/settings.local.json` in the throwaway checkout (`writeClaudeEnvironmentPin`,
   `apps/computer/src/cloud-agents/claude/native-commands.ts`) — the same key a human sets

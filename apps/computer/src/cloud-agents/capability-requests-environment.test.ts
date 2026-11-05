@@ -182,11 +182,21 @@ test('get on an unpinned Computer with exactly one environment auto-pins it, ide
     expect(second.error).toBeUndefined();
 });
 
-test('get on an unpinned Computer with several environments reports no pin, not an error', async () => {
+function environmentFixture(id: string, name: string, createdAt?: string): Record<string, unknown> {
+    return {
+        created_at: createdAt,
+        environment_id: id,
+        kind: 'anthropic_cloud',
+        name,
+        state: 'active',
+    };
+}
+
+test('get on an unpinned Computer with several environments and no Default auto-pins the oldest', async () => {
     installFakeClaude();
     await hostClaudeEnvironments([
-        { environment_id: 'env_a', kind: 'anthropic_cloud', name: 'Alpha', state: 'active' },
-        { environment_id: 'env_b', kind: 'anthropic_cloud', name: 'Beta', state: 'active' },
+        environmentFixture('env_newer', 'Newer', '2026-06-01T00:00:00Z'),
+        environmentFixture('env_older', 'Older', '2026-01-01T00:00:00Z'),
     ]);
 
     const claude = await runCloudAgentCapabilityRequest(
@@ -195,14 +205,25 @@ test('get on an unpinned Computer with several environments reports no pin, not 
         dataRoot
     );
     expect(claude.error).toBeUndefined();
-    expect(claude.result).toMatchObject({
-        environmentId: null,
-        environments: [
-            { id: 'env_a', name: 'Alpha' },
-            { id: 'env_b', name: 'Beta' },
-        ],
-    });
-    expect(await readClaudeEnvironmentId(dataRoot)).toBeNull();
+    expect(claude.result).toMatchObject({ environmentId: 'env_older' });
+    expect(await readClaudeEnvironmentId(dataRoot)).toBe('env_older');
+});
+
+test('get on an unpinned Computer with several environments pins the one named Default', async () => {
+    installFakeClaude();
+    await hostClaudeEnvironments([
+        environmentFixture('env_a', 'Alpha'),
+        environmentFixture('env_default', 'Default'),
+    ]);
+
+    const claude = await runCloudAgentCapabilityRequest(
+        request('get', 'claude'),
+        runtime,
+        dataRoot
+    );
+    expect(claude.error).toBeUndefined();
+    expect(claude.result).toMatchObject({ environmentId: 'env_default' });
+    expect(await readClaudeEnvironmentId(dataRoot)).toBe('env_default');
 });
 
 test('set-environment pins a live environment and persists it', async () => {

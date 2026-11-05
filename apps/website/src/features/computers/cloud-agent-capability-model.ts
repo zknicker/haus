@@ -14,14 +14,14 @@ export interface CloudAgentCapabilityView {
     /** Cursor signs in from Haus; Claude reuses the Computer's own Claude Code login. */
     connectLabel: string;
     description: string;
-    /** The Computer's pinned Claude cloud environment id; null means it needs one chosen. */
+    /** The Computer's pinned Claude cloud environment id; null only when the account has none to pin to. */
     environmentId: string | null;
     /** This Computer's Claude cloud environments to pin to; null off Claude. */
     environments: CloudAgentEnvironment[] | null;
     isDefault: boolean;
     provider: CloudAgentProvider;
     providerName: string;
-    status: 'connecting' | 'needs-environment' | 'not-connected' | 'ready' | 'unavailable';
+    status: 'connecting' | 'not-connected' | 'ready' | 'unavailable';
     statusLabel: string;
 }
 
@@ -96,7 +96,9 @@ export function cloudAgentCapabilityView(input: {
             // Haus never signs Claude Code out; that login belongs to the Computer.
             canDisconnect: input.provider === 'cursor',
             canMakeDefault: !identity.isDefault,
-            ...readyStatus(input.provider, input.state, access.plan),
+            description: connectedDescription(input.state, access.plan),
+            status: 'ready',
+            statusLabel: 'Ready',
         };
     }
     if (input.state.reason === 'provider-unavailable') {
@@ -154,38 +156,10 @@ export function reportedCloudAgentCapability(
     };
 }
 
-/**
- * A ready provider reads as `'ready'`, except Claude with no environment
- * pinned, which reads as `'needs-environment'` and points at the picker.
- */
-function readyStatus(
-    provider: CloudAgentProvider,
-    state: CloudAgentCapabilityState,
-    plan: string
-): Pick<CloudAgentCapabilityView, 'description' | 'status' | 'statusLabel'> {
-    if (provider === 'claude' && state.environmentId === null) {
-        return {
-            description: `${connectedAccountLine(state)} Choose a Claude environment below to enable launches.`,
-            status: 'needs-environment',
-            statusLabel: 'Needs environment',
-        };
-    }
-    return {
-        description: connectedDescription(state, plan),
-        status: 'ready',
-        statusLabel: 'Ready',
-    };
-}
-
-/** The "Connected as …" / assignment prefix shared by every ready description. */
-function connectedAccountLine(state: CloudAgentCapabilityState): string {
+function connectedDescription(state: CloudAgentCapabilityState, plan: string): string {
     const account = state.accountEmail ? `Connected as ${state.accountEmail}.` : 'Connected.';
     const assignment = 'Agents assigned to this Computer use this connection.';
-    return `${account} ${assignment}`;
-}
-
-function connectedDescription(state: CloudAgentCapabilityState, plan: string): string {
-    const prefix = connectedAccountLine(state);
+    const prefix = `${account} ${assignment}`;
     if (!state.expiresAt) {
         return `${prefix} ${plan}`;
     }
