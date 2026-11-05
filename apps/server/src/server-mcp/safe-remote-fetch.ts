@@ -83,11 +83,14 @@ export async function safeFetch(
         const target = await buildPinnedRequestTarget(url, label, options);
         const headers = new Headers(requestInit.headers);
         headers.set('Host', target.hostHeader);
+        const callerTls = (requestInit as { tls?: { serverName: string } }).tls;
         const response = await globalThis.fetch(target.url, {
             ...requestInit,
             headers,
             redirect: 'manual',
-            ...(target.tls ? { tls: target.tls } : {}),
+            // serverName wins over any caller-supplied tls options: it is what
+            // makes the connection pin safe, not optional caller input.
+            ...(target.tls || callerTls ? { tls: { ...callerTls, ...target.tls } } : {}),
         });
         if (!redirectStatuses.has(response.status)) {
             return response;
