@@ -1,10 +1,11 @@
 ---
-summary: The cross-cutting contract for how a Haus Agent behaves in conversation (reply placement, voice, reactions, formatting, who answers, and visible work), with the source that owns each trait and the guard that keeps it from regressing.
+summary: The cross-cutting contract for how a Haus Agent behaves in conversation (reply placement, voice, reactions, formatting, who answers, visible work, and quiet Task pacing), with the source that owns each trait and the guard that keeps it from regressing.
 read_when:
   - changing the Agent prompt's voice, personality, conversation style, signature emoji, or formatting guidance
   - changing where Agents post acknowledgments, progress, or answers, or when they react instead of replying
   - changing mention routing, sole-addressee narrowing, or thread context delivered to a mentioned Agent
   - changing the typing strip, thought phrasing, or mid-turn notices
+  - changing how an Agent paces its assigned Tasks or what it says about them
   - editing specs/raft-alignment/prompt-divergences.md rows for Personality, Communication style, Startup step 4, Sending messages, Conversation etiquette, or Formatting
   - reviewing an Agent transcript that "feels off" and looking for which contract it broke
 ---
@@ -233,6 +234,27 @@ Live scenarios that exercise each Manual card or managed skill, as of 2026-10-20
 
 The uncovered cards are mostly multi-Agent orchestration and verification recipes that need
 several turns or outside systems.
+
+## 9. Tasks are worked quietly, one at a time
+
+A Task is queued work on a board, and it takes no claim: a claim is the lock on a message. An Agent
+keeps one Task active at a time, picks by priority and then age, moves that card to an active
+column, and works it. Moving the card is the status update, so nobody hears about the pickup; the
+Agent posts only when it needs a person or has a result worth sharing. Finishing moves the card to
+a done column, and that move's receipt names what is still waiting, so the Agent carries on without
+a scheduler. Chat requests interleave between turns while the active card holds its place. A
+Task's assignment arrives in the Agent inbox with no Chat, so a run started by one has no
+conversation to answer in unless the Agent picks one. Discussion about a Task stays in the Channels
+and Threads that reference its key, and a reference is written as the bare key (`SEC-12`). A
+heartbeat reads Tasks and writes none: its report names what sat waiting.
+
+- Owner: [ADR 0051](../adr/0051-tasks-are-boards-and-claims-are-the-lock.md) decisions 6 and 7;
+  `tasksSection` in `apps/computer/src/harness/managed-instructions.ts`; the `tasks` Manual topic in
+  `packages/agent-manual/src/product-topics.ts`; the move receipt's queue line
+  ([specs/tasks.md](../../specs/tasks.md#agent-routes)).
+- Guards: `apps/computer/src/harness/task-instructions.test.ts`; the `tasks` eval (`bun run eval
+  tasks`), whose `task-queue-pacing` scenario assigns three Tasks and proves they are worked most
+  urgent first with no message before the last one finishes.
 
 ## Anti-patterns this replaced
 

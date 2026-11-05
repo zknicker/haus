@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { claimAssigneeRefSchema, claimCreateInputSchema } from './claim.ts';
+import { claimAssigneeRefSchema, claimCreateInputSchema, claimUpdateInputSchema } from './claim.ts';
 import { messageClaimSchema } from './claim-shared.ts';
 
 test('claims are held by Agents only', () => {
@@ -17,4 +17,20 @@ test('claims are held by Agents only', () => {
             serverId: 'srv_1',
         }).success
     ).toBe(false);
+});
+
+test('priority and labels belong to Tasks, not claims', () => {
+    const update = (patch: Record<string, unknown>) =>
+        claimUpdateInputSchema.safeParse({
+            expectedVersion: 1,
+            messageId: 'msg_1',
+            patch,
+            serverId: 'srv_1',
+        }).success;
+
+    expect(messageClaimSchema.shape).not.toHaveProperty('priority');
+    expect(messageClaimSchema.shape).not.toHaveProperty('labels');
+    expect(update({ status: 'done' })).toBe(true);
+    expect(update({ priority: 'high', status: 'done' })).toBe(false);
+    expect(update({ labelIds: ['lbl_1'], status: 'done' })).toBe(false);
 });

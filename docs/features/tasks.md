@@ -62,9 +62,9 @@ such as a stale version, shows in a toast.
 
 **Mentioned in** lists the messages that reference the Task, newest first, and **Reminders** the
 Reminders that name it. A section with nothing to list is absent. A mention opens the Thread on its
-message; one that is a Thread reply opens that Thread. Its row says Thread and not the Channel,
-because `task.get` names the Thread's Chat and reading each parent would fan out; the parent is read
-when the row is pressed.
+message; one that is a Thread reply opens that Thread. Its row names the place, `#security` or
+`#security · Thread`, and `task.get` carries the parent and anchor, so the press reads nothing. A
+Reminder anchored in a Thread reads its parent when the row is pressed.
 
 Opening a Task clears its Inbox item; a Task in a hidden desktop tab has not been opened yet. An
 address that no longer resolves (a re-keyed board, a mistyped number) says **Task not found**.

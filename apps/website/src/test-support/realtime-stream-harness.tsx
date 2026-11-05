@@ -24,7 +24,6 @@ export type CacheOp =
     | { op: 'invalidate'; exact: boolean; queryKey: QueryKey }
     | { op: 'noteMessageAnnotated'; target: unknown }
     | { op: 'noteMessageCreated'; event: unknown }
-    | { op: 'noteTaskLabelUpdated'; event: unknown }
     | { op: 'purgeChat'; scope: unknown }
     | { op: 'purgeServer'; scope: unknown }
     | { op: 'recoverTranscriptLists'; scope: unknown };
@@ -137,9 +136,6 @@ export function createRealtimeHarness(answer: (path: string) => unknown = () => 
             ops.push({ exact, op: 'invalidate', queryKey }),
         noteMessageAnnotated: (target: unknown) => ops.push({ op: 'noteMessageAnnotated', target }),
         noteMessageCreated: (event: unknown) => ops.push({ event, op: 'noteMessageCreated' }),
-        noteTaskLabelUpdated: async (event: unknown) => {
-            ops.push({ event, op: 'noteTaskLabelUpdated' });
-        },
         purgeChat: async (scope: unknown) => {
             ops.push({ op: 'purgeChat', scope });
         },

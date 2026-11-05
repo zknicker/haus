@@ -1,6 +1,7 @@
 import type {
     PushEnvironment,
     PushNotificationPayload,
+    PushTaskAssignmentBurstPayload,
     PushTaskAssignmentPayload,
 } from '@haus/api';
 
@@ -15,7 +16,7 @@ export interface PushRequest {
     /** Replaces an undelivered push with the same id on the device. */
     collapseId: string;
     device: PushDevice;
-    payload: PushNotificationPayload | PushTaskAssignmentPayload;
+    payload: PushNotificationPayload | PushTaskAssignmentBurstPayload | PushTaskAssignmentPayload;
 }
 
 /**

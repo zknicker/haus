@@ -3,7 +3,6 @@ import type {
     CloudAgentWork,
     ImageGeneration,
     MessageCause,
-    TaskLabel,
     TaskLink,
 } from '@haus/api';
 import type { ClaimOrigin, MessageClaim } from '../claims/claim-presentation.ts';
@@ -82,9 +81,7 @@ export interface TranscriptMessage {
         | (MessageClaim & {
               claimed_at: string | null;
               created_at: string;
-              labels: TaskLabel[];
               origin: ClaimOrigin;
-              priority: 'none' | 'urgent' | 'high' | 'medium' | 'low';
               updated_at: string;
           })
         | null;

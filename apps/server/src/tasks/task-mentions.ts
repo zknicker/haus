@@ -13,6 +13,7 @@ import {
 } from '../postgres/schema.ts';
 import { actorVisibleChats } from './actor-visible-chats.ts';
 import type { TaskActor } from './task-actor.ts';
+import { messagePlaceColumns, messagePlaceOf, threadParentChatJoin } from './task-message-place.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 
@@ -45,13 +46,11 @@ export async function listTaskMentions(
         .as('linked');
     const rows = await db
         .select({
-            anchorMessageId: chatsTable.anchorMessageId,
+            ...messagePlaceColumns,
             authorAgentDisplayName: agentsTable.displayName,
             authorAgentId: chatMessagesTable.authorAgentId,
             authorUserDisplayName: usersTable.displayName,
             authorUserId: chatMessagesTable.authorUserId,
-            chatId: chatMessagesTable.chatId,
-            chatKind: chatsTable.kind,
             content: chatMessagesTable.content,
             createdAt: chatMessagesTable.createdAt,
             messageId: chatMessagesTable.id,
@@ -71,6 +70,7 @@ export async function listTaskMentions(
                 eq(chatsTable.id, chatMessagesTable.chatId)
             )
         )
+        .leftJoin(...threadParentChatJoin)
         .leftJoin(
             agentsTable,
             and(
@@ -88,7 +88,7 @@ export async function listTaskMentions(
         createdAt: row.createdAt.toISOString(),
         excerpt: excerptOf(row.content),
         messageId: row.messageId,
-        threadAnchorMessageId: row.chatKind === 'thread' ? row.anchorMessageId : null,
+        place: messagePlaceOf(row),
     }));
 }
 

@@ -155,7 +155,7 @@ test('Thread claim changes reach a member who can see the parent, keyed to the T
     await owner.trpc.claim.update.mutate({
         expectedVersion: claim?.version ?? 0,
         messageId: scene.replyId,
-        patch: { priority: 'high' },
+        patch: { status: 'in_progress' },
         serverId: scene.serverId,
     });
     const updated = await stream.next((event) => event.kind === 'updated');

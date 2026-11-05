@@ -52,16 +52,40 @@ export const taskSchema = z.object(taskFields).strict().superRefine(checkTaskRec
 
 export type Task = z.infer<typeof taskSchema>;
 
+/**
+ * Where a message that references a Task lives, named without a second read:
+ * the Channel or DM it sits in or under, and the Thread when it is a Thread
+ * reply. A Thread reply's own Chat is outside `chat.list`, so this is what
+ * labels it `#security · Thread` and opens or answers it.
+ */
+export const taskMessagePlaceSchema = z
+    .object({
+        /** The Channel or DM: the message's own Chat, or the one its Thread hangs off. */
+        chatId: idSchema,
+        chatKind: z.enum(['channel', 'dm']),
+        /** The Channel's name. Null for a DM, which a context label never names by its peer. */
+        chatName: z.string().min(1).nullable(),
+        /** The message the Thread hangs off when this is a Thread reply; null otherwise. */
+        threadAnchorMessageId: idSchema.nullable(),
+    })
+    .strict()
+    .refine((place) => (place.chatKind === 'dm') === (place.chatName === null), {
+        message: 'A Channel has a name and a DM has none.',
+        path: ['chatName'],
+    });
+
+export type TaskMessagePlace = z.infer<typeof taskMessagePlaceSchema>;
+
 /** A message that references the Task: its **Mentioned in**, newest first. */
 export const taskMentionSchema = z
     .object({
         authorLabel: z.string().min(1),
+        /** The message's own Chat: a Thread's Chat for a Thread reply. */
         chatId: idSchema,
         createdAt: timestampSchema,
         excerpt: z.string().max(500),
         messageId: idSchema,
-        /** The Thread's anchor when the message is a Thread reply; null otherwise. */
-        threadAnchorMessageId: idSchema.nullable(),
+        place: taskMessagePlaceSchema,
     })
     .strict();
 

@@ -42,13 +42,21 @@ extension AuthenticatedHausView {
     }
 
     /// A message in a Thread opens that Thread; any other opens its Chat, at
-    /// the message.
+    /// the message. The mention names the Thread's parent and anchor, so only
+    /// an anchor the parent page does not hold costs a read.
     private func openTaskMention(_ mention: TaskMention) {
-        guard mention.threadAnchorMessageID != nil else {
+        guard let anchorMessageID = mention.place.threadAnchorMessageID else {
             openCanvasChat(.chat(mention.chatID), revealing: mention.messageID)
             return
         }
-        pushThread(threadChatID: mention.chatID)
+        Task {
+            guard let selection = await store.threadSelection(
+                conversationChatID: mention.place.chatID,
+                threadChatID: mention.chatID,
+                anchorMessageID: anchorMessageID
+            ) else { return }
+            pushThread(selection, selectingParent: nil)
+        }
     }
 
     /// A Reminder answers where it is anchored: a Channel, a DM, or a Thread.

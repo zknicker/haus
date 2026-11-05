@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { eq, inArray } from 'drizzle-orm';
 import { openAttachmentRoot } from '../src/attachments/attachment-root.ts';
 import { readMessageCauses } from '../src/automations/message-cause-read.ts';
 import { developmentArtifactFiles } from '../src/development/seed-artifact-files.ts';
@@ -22,6 +23,7 @@ import {
     messageClaimsTable,
     serverOnboardingTable,
     serversTable,
+    taskInboxItemsTable,
     taskMessageLinksTable,
     tasksTable,
     threadFollowsTable,
@@ -200,20 +202,36 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     expect(threads.every((thread) => thread.anchorMessageId && thread.parentChatId)).toBe(true);
     expect(await connection.db.select().from(threadFollowsTable)).toHaveLength(3);
 
-    // The General board's demo Tasks, each mentioned by the Thread-bearing message
-    // it came from. The board's counter is past them, so the first real Task
-    // does not collide with a seeded number.
-    const threadIds = new Set(threads.map((thread) => thread.id));
+    // The General board's demo Tasks, each mentioned by the message it came from.
+    // The two handed to the owner are Inbox items; one's context is a Thread
+    // reply, and each message names its Task, so the chip shows. The board's
+    // counter is past them, so the first real Task does not collide with a
+    // seeded number.
     const tasks = await connection.db.select().from(tasksTable);
     const links = await connection.db.select().from(taskMessageLinksTable);
-    expect(tasks.map((task) => task.number).sort()).toEqual([1, 2]);
-    expect(tasks.every((task) => task.assigneeAgentId !== null)).toBe(true);
-    expect(links.map((link) => link.text).sort()).toEqual(['GEN-1', 'GEN-2']);
-    expect(
-        links.every((link) => threadIds.has(`cht_thr_${link.messageId.replace(/^msg_/u, '')}`))
-    ).toBe(true);
+    expect(tasks.map((task) => task.number).sort()).toEqual([1, 2, 3, 4]);
+    expect(links.map((link) => link.text).sort()).toEqual(['GEN-1', 'GEN-2', 'GEN-3', 'GEN-4']);
     const [general] = await connection.db.select().from(boardsTable);
-    expect(general).toMatchObject({ key: 'GEN', nextNumber: 3 });
+    expect(general).toMatchObject({ key: 'GEN', nextNumber: 5 });
+    const inboxItems = await connection.db.select().from(taskInboxItemsTable);
+    const ownerTasks = tasks.filter((task) => task.assigneeUserId !== null);
+    expect(ownerTasks.map((task) => task.number).sort()).toEqual([3, 4]);
+    expect(inboxItems.map((item) => item.taskId).sort()).toEqual(
+        ownerTasks.map((task) => task.id).sort()
+    );
+    expect(inboxItems.every((item) => item.assignedByAgentId !== null)).toBe(true);
+    const linkedMessages = await connection.db
+        .select({ chatKind: chatsTable.kind, content: chatMessagesTable.content })
+        .from(chatMessagesTable)
+        .innerJoin(chatsTable, eq(chatsTable.id, chatMessagesTable.chatId))
+        .where(
+            inArray(
+                chatMessagesTable.id,
+                links.filter((link) => /GEN-[34]/u.test(link.text)).map((link) => link.messageId)
+            )
+        );
+    expect(linkedMessages.map((message) => message.chatKind).sort()).toEqual(['channel', 'thread']);
+    expect(linkedMessages.every((message) => /GEN-[34]/u.test(message.content))).toBe(true);
 
     // The Inbox seed's stalled claim is the only one in `#all`. The channel's
     // counter is past it, so promoting a message there does not collide with a

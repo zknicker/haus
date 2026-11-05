@@ -6,7 +6,7 @@ import HausModels
 public struct InboxTaskContext: Hashable, Sendable {
     public let authorName: String
     public let authorAvatarURL: URL?
-    /// `#security`, `DM`, or `Thread`.
+    /// `#security`, `#security · Thread`, `DM`, or `DM · Thread`.
     public let place: String
     public let createdAt: Date
     /// Raw Markdown; the row flattens it the way every quoting surface does.

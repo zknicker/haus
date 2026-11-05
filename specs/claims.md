@@ -7,8 +7,8 @@ message plus Server-owned lifecycle metadata. Conversation continues inline in i
 or in a deliberately chosen child Thread. All claim views project the canonical message and metadata.
 
 Claims are Agent work ([ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)). Only an
-Agent holds a claim; humans create, promote, assign to Agents, and change status, but never claim or
-hold one. An Agent that needs a person @mentions them in an inline reply where
+Agent holds a claim; humans assign to Agents and change status, but never claim or hold one, and the
+App no longer creates or promotes one (ADR 0051 decision 9). An Agent that needs a person @mentions them in an inline reply where
 the request arrived (or in the Thread if it arrived inside one), never in a Thread on the claim
 message itself.
 
@@ -16,7 +16,7 @@ message itself.
 
 `message_claims` keys metadata by `(server_id, message_id)` and also binds the canonical
 `chat_id`, always the top-level Channel or DM: monotonic per-Chat claim number (`chats.last_claim_number`), status, optional Agent assignee (`assignee_agent_id`) and claim time,
-priority, origin, creator, monotonic version, and a nullable `tracked_at`. The work-surface Thread
+origin, creator, monotonic version, and a nullable `tracked_at`. The work-surface Thread
 id is derived deterministically from the message id; it is not stored on the claim row, and the
 Thread itself does not exist until someone replies in it. A claim on a Thread message also records
 that Thread in `thread_chat_id`; the message's own Chat is the generated
@@ -25,9 +25,9 @@ foreign key to `chats (id, parent_chat_id)` keeps the Thread a child of `chat_id
 sits in is its work surface (`threadChatId` on the wire), since Threads never nest. Only an Agent's
 claim creates one; the number comes from the parent's counter.
 
-`origin` is `composed` (a human composed the message as a claim), `converted` (a human promoted an
-existing message), or `claimed` (an Agent claimed a message nobody had promoted, or created one
-already assigned to itself). Reads derive two
+`origin` is `composed` (created as a claim for someone else: unassigned, or reserved for a peer),
+`converted` (`claim.promote` on an existing message), or `claimed` (an Agent claimed a message
+nobody had promoted, or created one already assigned to itself). Reads derive two
 more fields. `tier` is `background` for a `claimed` claim in `in_progress` or `done` that carries
 has no `tracked_at`. Inline and Thread messages leave the tier alone; everything else is `tracked`,
 and only the default Board and List lenses distinguish them. `live` is true while the assignee
@@ -41,9 +41,8 @@ their own finished work `done`, using `in_review` only for a requested sign-off 
 decision; claims left open when a run settles remain
 `in_progress` and become tracked, including completed, failed, interrupted, and stopped runs.
 
-`task_labels` is the small Server task-label catalog (it keeps its name: the board Tasks product
-owns it); `message_claim_labels` links catalog entries to claims. Composite foreign keys keep
-claim, message, Chat, assignee, and labels in one Server tenant. `chat_messages.claim` and
+A claim has no priority or labels; those belong to board Tasks ([tasks.md](tasks.md)). Composite
+foreign keys keep claim, message, Chat, and assignee in one Server tenant. `chat_messages.claim` and
 claim-list reads project the same row.
 
 Channel or DM messages, including inline replies, can be promoted; an Agent can also claim a
@@ -63,9 +62,9 @@ message (ADR 0026).
 
 ## Authority and concurrency
 
-- Status is member-level. Humans with write access to the claim's Chat can create/promote a
-  claim and update status, priority, or task labels using `expectedVersion`. Any Agent in the
-  Chat may change status too, holder or not, along the transition table: `todo` → `in_progress`
+- Status is member-level. Humans with write access to the claim's Chat can update status using
+  `expectedVersion`. Any Agent in the Chat may change status too, holder or not, along the
+  transition table: `todo` → `in_progress`
   / `closed`; `in_progress` → `in_review` / `done` / `closed`; `in_review` → `done` /
   `in_progress` / `closed`; `done` → `todo` / `in_progress` / `in_review` / `closed`; `closed`
   → `todo` / `in_progress`. Humans in the App are not limited by the table. Moving `todo` or
@@ -74,9 +73,9 @@ message (ADR 0026).
   stamp. Haus has no claim deletion.
 - Claiming is self-only and Agent-only; a human has no claim or release. Claim writes lock the Server before membership, Chat, and claim rows. The
   first valid claimant wins; a second claimant cannot acquire ownership at the same version.
-- An Agent claim conflicts only with the current holder, never with an unrelated status, priority,
-  or label edit. A batch claim is one transaction answering per claim — claimed, already yours, or
-  refused with a reason — so every granted claim commits and emits `claim.updated` together.
+- An Agent claim conflicts only with the current holder, never with an unrelated status edit. A
+  batch claim is one transaction answering per claim — claimed, already yours, or refused with a
+  reason — so every granted claim commits and emits `claim.updated` together.
 - A successful Agent claim follows the request's inline reply chain in the same transaction.
   A reply to a human's original request therefore reaches its claimant. Completion preserves
   attention; subsequent work can be claimed on a later reply without reopening the old claim.
@@ -90,8 +89,6 @@ message (ADR 0026).
   a no-op that keeps the version. An optional expected revision makes a stale assign lose.
   Assigning another Agent enqueues its typed assignment pending work and wakes it. In every case
   the recipient must claim before working, and a finished claim cannot be assigned.
-- Members can create task-label catalog entries. Owners and Admins can rename, recolor, or delete
-  catalog entries.
 - Revoked Server membership, lost parent-Chat access, cross-Server ids, and stale versions fail
   closed.
 - Agent retirement releases that Agent's claims and assignments with versioned `claim.updated`
@@ -107,21 +104,18 @@ Claim transactions emit small concrete durable events:
 - `message.created`: the canonical message's Chat sequence and cursor when composing a new claim
 - `claim.created`: Server, parent Chat, canonical message, sequence, and cursor
 - `claim.updated`: the same ids for lifecycle changes
-- `taskLabel.updated`: Server, label, and cursor
 
 Both claim events ride the `claim.changed` topic (`claim.onChanged`). Events notify; PostgreSQL
-claim/message/label reads remain authoritative. The App uses the same event targeting for live
+claim and message reads remain authoritative. The App uses the same event targeting for live
 delivery and cursor catch-up after reconnect.
 
 ## Surfaces
 
-- Hosted App: the Tasks page's Board and List lenses (the page keeps its name until the board
-  Tasks product replaces it), which exclude background-tier claims by default and
-  report how many they hid (`includeBackground` widens them), with create, Agent assignment, status,
-  priority, and task-label controls, and a **Stopped before finishing** group after **Needs your
-  review** for `claimed` claims whose run settled with the work open. Opening a claim opens the canonical message's hosted Thread,
-  where a claim metadata header projects the number, status, assignee, and creator. Status and
-  assignment edits use the same versioned claim mutations as the other lenses.
+- Hosted App: claims have no page. `claim.list` excludes background-tier claims by default and
+  reports how many it hid (`includeBackground` widens it). The Agent profile lists `claimed` claims
+  whose run settled with the work open under **Stopped before finishing**. Opening a claim opens the
+  canonical message's hosted Thread, where a claim metadata header projects the number, status,
+  assignee, and creator. Status and assignment edits use the versioned claim mutations.
 - Managed CLI: `haus claim` (claim) and `haus claim list|create|release|assign|unassign|update` use
   the Computer's scoped runner authority and hosted Server claim API (`/api/agent/claims/*`). Agent
   identity comes from that runner credential. An Agent
@@ -136,7 +130,7 @@ to PRD-141. Production activation of the managed CLI belongs to PRD-145.
 
 ## Non-goals
 
-No due dates, claim-owned reminders, attachments, claim deletion, claim-specific queue, per-claim
-conversation store, generic workflow engine, or generic label/taxonomy framework. Reminders may
+No priority, labels, due dates, claim-owned reminders, attachments, claim deletion, claim-specific
+queue, per-claim conversation store, or generic workflow engine. Reminders may
 separately anchor to claim messages. Claim delivery and peer assignment use the ordinary Agent inbox
 path.

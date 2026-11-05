@@ -1,5 +1,5 @@
 ---
-summary: Decision to split today's message tasks in two — the claim (a hidden, Agent-only concurrency lock on a message) and the Task (a standalone, assignable work item on a shared board with custom columns mapped to fixed categories) — with no comments or attachments, discussion by reference, Agents working their queue one task at a time, a person's assignments arriving as Inbox items, one sidebar Tasks row that expands to its boards, and Reminders tied to Tasks by reference rather than anchor. Supersedes ADR 0015's "no separate work tracker" stance; not yet implemented.
+summary: Decision to split today's message tasks in two — the claim (a hidden, Agent-only concurrency lock on a message) and the Task (a standalone, assignable work item on a shared board with custom columns mapped to fixed categories) — with no comments or attachments, discussion by reference, Agents working their queue one task at a time, a person's assignments arriving as Inbox items, one sidebar Tasks row that expands to its boards, and Reminders tied to Tasks by reference rather than anchor. Supersedes ADR 0015's "no separate work tracker" stance; implemented.
 read_when:
   - changing task storage, boards, columns, numbering, assignment, or the task CLI
   - changing claims, claim-before-work, or the `message_tasks` table
@@ -13,7 +13,9 @@ read_when:
 
 ## Status
 
-Accepted 2026-11-03. Not yet implemented. Supersedes [ADR 0015](0015-tasks-are-promoted-messages.md)
+Accepted 2026-11-03. Implemented 2026-11-04, with the deviations listed below; the rules the Server
+enforces live in [specs/tasks.md](../../specs/tasks.md). Supersedes
+[ADR 0015](0015-tasks-are-promoted-messages.md)
 in two respects: a separate work tracker now exists, and its "a dated follow-up is a reminder
 anchored on the task message" line is replaced by decision 8 below. ADR 0015's claim mechanics —
 claim before work, origin, tiers, `tracked_at`, auto-resolve, `live` — stand, now under the name
@@ -79,7 +81,10 @@ Agent can see it.
    `active`, `done`, or `canceled` column, a status picker reaches any column, and each clears the
    item with an Undo. Mark read clears it without moving the Task, and opening the Task clears it
    too; being seen never does. Reassigning before it clears withdraws it. There is no separate
-   Assigned to me page. An assignment from someone else also pushes to the person's iPhone.
+   Assigned to me page. An assignment from someone else also pushes to the person's iPhone and,
+   while Haus is in the background, raises a desktop notification. A burst does not raise one alert
+   per Task: assignments landing together collapse to one ("Zero assigned you 6 tasks") that opens
+   the Inbox, which still holds a card per Task.
 
 6. **One active Task at a time.** An Agent already runs one turn at a time
    ([sessions](../../specs/sessions.md)). The prompt adds the pacing: list your assigned Tasks, pick
@@ -143,10 +148,29 @@ the plain word *task* on the thing nobody looks at. The product name wins.
   a person sees an assignment in their Inbox, and an Agent in its agent inbox.
 - The Inbox read (`chat.unreadPreviews` today) gains Task assignment items, still one read for
   the whole feed.
-- `CONTEXT.md` gains **Claim**, **Task**, **Board**, and **Column category** when this ships.
+- `CONTEXT.md` carries **Claim**, **Task**, **Board**, and **Column category**.
 
-## Open questions
+## Deviations
 
-- Can a Task move between boards, keeping its old key as an alias?
+What shipped differs from the decisions above in four places:
+
+- **The General board is fixed.** Every Server has a General board, key `GEN`, that cannot be
+  re-keyed or archived, so a Task always has a board to land on. It can be renamed. Any other board
+  keeps decision 3's rules.
+- **Heartbeats read Tasks and never write them.** Decision 7's backstop stays a report: a heartbeat
+  run lists and shows Tasks and boards, and a write answers `403 REGULAR_TURN_REQUIRED`. Its
+  throwaway session changes nothing other people see.
+- **Assignments by Agents spend the automation chain.** An Agent assigning another Agent counts as
+  Agent-to-Agent automation, like any Agent wake; a person's assignment resets the chain. Decision
+  5 did not say.
+- **Closed Tasks lose a departing assignee.** Deleting an Agent or removing a member unassigns every
+  Task they hold, closed ones included, so no Task names an assignee who is gone.
+
+## Resolved questions
+
+- Does a person's assignment push? Yes, as decision 5 says, with bursts collapsed. The push window
+  is the read grace, per person; the desktop window is one `taskInbox.list` read.
+- Can a Task move between boards, keeping its old key as an alias? Not in v1. A Task stays on its
+  board.
 - Should claims trim their status set (drop `todo` and `in_review`) once humans no longer create
-  them?
+  them? No: claim statuses are unchanged.

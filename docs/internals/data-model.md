@@ -93,7 +93,9 @@ last_message_sequence = last_message_sequence + 1` inside the sending transactio
 lock serializes allocation through commit and no reader can see N+1 before N.
 
 `message_claims.assignee_agent_id` is the only claim assignee; claims are Agent work and carry no
-human assignee.
+human assignee. A claim is only the lock on its message, so it has no priority or labels: those
+live on `tasks`. `task_labels` is the Server's label catalog and `task_label_assignments` links it
+to Tasks. Members create catalog entries; Owners and Admins rename, recolor, or delete them.
 
 `cloud_agent_work` is the standalone Cloud Agent work record (ADR 0044). Its `chat_id`,
 `launch_message_id`, and `computer_id` name the requesting Chat, launch Message, and launching

@@ -93,7 +93,6 @@ public struct TaskDetailView: View {
             facts(detail.task)
             TaskMentionsSection(
                 mentions: detail.mentions,
-                conversationLabel: source.conversationLabel,
                 onOpen: onOpenMention
             )
             TaskRemindersSection(

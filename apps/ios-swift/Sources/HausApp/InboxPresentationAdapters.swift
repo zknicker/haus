@@ -69,19 +69,22 @@ extension HausStore {
             columnID: item.task.columnID,
             category: item.task.category,
             columns: taskSnapshots.boards?.first { $0.id == item.task.boardID }?.columns ?? [],
-            context: item.contextMessage.flatMap(inboxTaskContext)
+            context: inboxTaskContext(item)
         )
     }
 
-    private func inboxTaskContext(_ message: ChatMessage) -> InboxTaskContext? {
-        guard let author = authorPresentation(message.author) else { return nil }
+    private func inboxTaskContext(_ item: TaskInboxItem) -> InboxTaskContext? {
+        guard let message = item.contextMessage,
+              let place = item.contextPlace,
+              let author = authorPresentation(message.author)
+        else { return nil }
         return InboxTaskContext(
             authorName: author.name,
             authorAvatarURL: author.avatarURL,
-            place: conversationLabel(chatID: message.chatID),
+            place: place.label,
             createdAt: message.createdAt,
             content: message.displayContent,
-            acceptsReplies: chatsByID[message.chatID]?.isReadOnly != true
+            acceptsReplies: chatsByID[place.chatID]?.isReadOnly != true
         )
     }
 

@@ -23,7 +23,7 @@ import { serverChatRoute, taskRoute } from '../server-routes.ts';
 import { InboxSectionPending } from './inbox-section.tsx';
 import { InboxRowList } from './inbox-section-rows.tsx';
 import { UnreadChatRow, UnreadThreadRow } from './inbox-unread-row.tsx';
-import { type TaskContextPlace, withResolvedRow } from './task-inbox-model.ts';
+import { withResolvedRow } from './task-inbox-model.ts';
 import { TaskResolvedRow } from './task-resolved-row.tsx';
 import { type UnreadRowRead, unreadRowReadInput } from './unread-row-model.ts';
 import { selectUnreadRows, type UnreadRow } from './unread-rows.ts';
@@ -124,19 +124,18 @@ export function InboxUnread() {
             });
         }
     };
-    const openTaskContext = (item: TaskInboxItem, place: null | TaskContextPlace) => {
-        const message = item.contextMessage;
+    const openTaskContext = ({ contextMessage: message, contextPlace: place }: TaskInboxItem) => {
         if (!(message && place)) {
             return;
         }
-        if (place.threadChatId) {
-            navigate(threadRoute(place.parent.id, place.anchorMessageId), {
+        if (place.threadAnchorMessageId) {
+            navigate(threadRoute(place.chatId, place.threadAnchorMessageId), {
                 state: tabStayState(),
             });
             return;
         }
-        requestMessageReveal(place.parent.id, { id: message.id, sequence: message.sequence });
-        navigate(serverChatRoute(server.slug, place.parent.id), { state: tabStayState() });
+        requestMessageReveal(place.chatId, { id: message.id, sequence: message.sequence });
+        navigate(serverChatRoute(server.slug, place.chatId), { state: tabStayState() });
     };
     const read = (row: UnreadRow, reason: UnreadRowRead, byKey = false) => {
         // A reply answers the conversation; the Task stays the reader's to resolve.
@@ -225,20 +224,18 @@ export function InboxUnread() {
                                     viewerDisplayName={viewerDisplayName}
                                 />
                             );
-                        case 'task': {
-                            const place = taskFeed.placeOf(row.item);
+                        case 'task':
                             return (
                                 <UnreadTaskRow
                                     board={taskFeed.boardOf(row.item)}
                                     item={row.item}
-                                    onOpenContext={() => openTaskContext(row.item, place)}
+                                    onOpenContext={() => openTaskContext(row.item)}
                                     onResolve={(column) => resolveTask(row, column)}
-                                    place={place}
+                                    replyPlace={taskFeed.replyPlaceOf(row.item)}
                                     serverId={server.id}
                                     triage={triageOf(row)}
                                 />
                             );
-                        }
                         default:
                             return (
                                 <TaskResolvedRow

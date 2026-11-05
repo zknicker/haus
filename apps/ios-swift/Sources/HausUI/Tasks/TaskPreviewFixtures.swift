@@ -62,10 +62,12 @@ enum TaskPreviewFixtures {
          "mentions":[
            {"authorLabel":"Forge","chatId":"chat_thread","createdAt":"2026-11-03T14:00:00Z",
             "excerpt":"Should the limit apply to GitHub Triggers too?","messageId":"message_1",
-            "threadAnchorMessageId":"message_anchor"},
+            "place":{"chatId":"chat_security","chatKind":"channel","chatName":"security",
+                     "threadAnchorMessageId":"message_anchor"}},
            {"authorLabel":"Zero","chatId":"chat_security","createdAt":"2026-10-30T16:12:00Z",
             "excerpt":"Security sweep is done: 33 tasks on the Security board.","messageId":"message_2",
-            "threadAnchorMessageId":null}],
+            "place":{"chatId":"chat_security","chatKind":"channel","chatName":"security",
+                     "threadAnchorMessageId":null}}],
          "reminders":[
            {"anchorChatId":"chat_security","kind":"once","nextFireAt":"2026-11-07T14:00:00Z",
             "reminderId":"reminder_1","title":"Re-check SEC-12 after the Server deploy"}]}

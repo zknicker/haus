@@ -48,8 +48,7 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
         case .chatLifecycle:
             [.chatList]
         case .taskLabelUpdated:
-            // Labels are embedded in transcript entities as well as boards.
-            [.openTranscripts, .taskLabels]
+            [.taskLabels]
         case .boardUpdated:
             // A re-key re-keys every Task on the board.
             [.boards, .boardTasks]

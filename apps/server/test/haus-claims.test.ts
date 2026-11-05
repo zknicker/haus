@@ -382,7 +382,7 @@ test('serializes competing Agent assignments at one expected claim version', asy
     expect(reserved.claim.version).toBe(2);
 });
 
-test('updates status, priority, and claim-specific Server labels with expected versions', async () => {
+test('updates status with expected versions', async () => {
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Claim Metadata',
         slug: 'claim-metadata',
@@ -395,27 +395,14 @@ test('updates status, priority, and claim-specific Server labels with expected v
         nonce: 'claim-metadata-message',
         serverId: server.id,
     });
-    const label = await peer.client.trpc.taskLabel.create.mutate({
-        name: 'backend',
-        serverId: server.id,
-    });
 
     const updated = await peer.client.trpc.claim.update.mutate({
         expectedVersion: created.claim.version,
         messageId: created.claim.messageId,
-        patch: {
-            labelIds: [label.label?.id as string],
-            priority: 'high',
-            status: 'in_review',
-        },
+        patch: { status: 'in_review' },
         serverId: server.id,
     });
-    expect(updated.claim).toMatchObject({
-        labels: [{ id: label.label?.id, name: 'backend' }],
-        priority: 'high',
-        status: 'in_review',
-        version: 2,
-    });
+    expect(updated.claim).toMatchObject({ status: 'in_review', version: 2 });
     await expect(
         owner.trpc.claim.update.mutate({
             expectedVersion: created.claim.version,
@@ -520,7 +507,7 @@ test('denies claim reads and writes after Server membership is revoked', async (
         peer.client.trpc.claim.update.mutate({
             expectedVersion: created.claim.version,
             messageId: created.claim.messageId,
-            patch: { priority: 'high' },
+            patch: { status: 'closed' },
             serverId: server.id,
         })
     ).rejects.toThrow(/not a member/i);
@@ -553,7 +540,7 @@ test('does not resolve a claim message through a different Server tenant', async
         owner.trpc.claim.update.mutate({
             expectedVersion: created.claim.version,
             messageId: created.claim.messageId,
-            patch: { priority: 'high' },
+            patch: { status: 'closed' },
             serverId: secondServer.id,
         })
     ).rejects.toThrow(/no claim exists/i);
@@ -575,7 +562,7 @@ test('recovers claim state after a Server restart', async () => {
     const claimed = await owner.trpc.claim.update.mutate({
         expectedVersion: created.claim.version,
         messageId: created.claim.messageId,
-        patch: { priority: 'high' },
+        patch: { status: 'closed' },
         serverId: server.id,
     });
 
@@ -588,7 +575,7 @@ test('recovers claim state after a Server restart', async () => {
         {
             claim: {
                 messageId: created.claim.messageId,
-                priority: 'high',
+                status: 'closed',
                 version: claimed.claim.version,
             },
         },

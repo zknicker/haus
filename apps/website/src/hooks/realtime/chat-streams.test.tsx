@@ -227,21 +227,15 @@ describe('Chat stream hooks', () => {
         expect(invalidated(onRecovery)).toEqual([listKey('claim.list', { serverId })]);
     });
 
-    test('taskLabel.onUpdated refreshes label carriers, the catalog, and claims', async () => {
-        const event = { labelId: 'lbl_1', serverId };
-        const { onEvent, onRecovery } = await drive(
-            'taskLabel.onUpdated',
-            useTaskLabelStream,
-            event
-        );
-        expect<unknown>(onEvent[0]).toEqual({ event, op: 'noteTaskLabelUpdated' });
-        const reads = [
-            listKey('taskLabel.list', { serverId }),
-            listKey('claim.list', { serverId }),
-        ];
+    test('taskLabel.onUpdated refreshes only the label catalog', async () => {
+        const { onEvent, onRecovery } = await drive('taskLabel.onUpdated', useTaskLabelStream, {
+            labelId: 'lbl_1',
+            serverId,
+        });
+        const reads = [listKey('taskLabel.list', { serverId })];
         expect(invalidated(onEvent)).toEqual(reads);
-        // A missed rename may sit on any loaded message: lists recover too.
-        expect<unknown>(onRecovery[0]).toEqual(bulkLists);
+        // No message carries a label, so a missed rename leaves transcripts alone.
+        expect(onRecovery.some((entry) => entry.op === 'recoverTranscriptLists')).toBe(false);
         expect(invalidated(onRecovery)).toEqual(reads);
     });
 

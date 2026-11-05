@@ -161,7 +161,6 @@ test('projects claim and mention intent into both drain and busy-notice metadata
             assigneeAgentId: null,
             messageId: 'msg_first',
             number: 7,
-            priority: 'high',
             status: 'todo',
         },
     });
@@ -178,7 +177,6 @@ test('names the claim command for an open claim before the delivery trailer, and
             assigneeAgentId: null,
             messageId: 'msg_first',
             number: 7,
-            priority: 'none',
             status: 'todo',
         },
     });
@@ -195,7 +193,6 @@ test('names the claim command for an open claim before the delivery trailer, and
             assigneeAgentId: 'agent_1',
             messageId: 'msg_first',
             number: 7,
-            priority: 'none',
             status: 'in_progress',
         },
     });

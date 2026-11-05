@@ -87,7 +87,12 @@ describe('message references', () => {
                 authorLabel: expect.any(String),
                 chatId,
                 messageId: sent.message.id,
-                threadAnchorMessageId: null,
+                place: {
+                    chatId,
+                    chatKind: 'channel',
+                    chatName: expect.any(String),
+                    threadAnchorMessageId: null,
+                },
             }),
         ]);
     });

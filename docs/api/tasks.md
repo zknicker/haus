@@ -30,7 +30,7 @@ and Task. Inputs and results are the schemas in `packages/haus-api/src/board.ts`
 | Procedure | Input | Result |
 | --- | --- | --- |
 | `task.list` (query) | `taskListInputSchema`: `serverId`, `boardId?`, `assignee?` (`{ userId }`, `{ agentId }`, `'none'`), `categories?` | `Task[]`, oldest first; without `boardId`, archived boards are left out |
-| `task.get` (query) | `taskGetInputSchema`: `{ serverId, taskId }` or `{ serverId, key }` | `TaskDetail`: the Task plus `mentions` (newest first, readable Chats only) and `reminders` |
+| `task.get` (query) | `taskGetInputSchema`: `{ serverId, taskId }` or `{ serverId, key }` | `TaskDetail`: the Task plus `mentions` (newest first, readable Chats only, each with its `place`: the Channel or DM id, kind, and name, and the Thread anchor for a Thread reply) and `reminders` |
 | `task.create` | `taskCreateInputSchema`: `serverId`, `boardId`, `title`, `description?`, `columnId?` (default: first `todo`), `assignee?`, `priority?`, `labelIds?`, `dueOn?`, `sourceMessageId?` | `{ task }` |
 | `task.update` | `taskUpdateInputSchema`: `serverId`, `taskId`, `expectedVersion`, `patch { title?, description?, priority?, labelIds?, dueOn? }` | `{ task }` |
 | `task.move` | `taskMoveInputSchema`: `serverId`, `taskId`, `expectedVersion`, `columnId` (same board) | `{ task }` |
@@ -42,7 +42,7 @@ The reader's own Task items, the `Inbox` feed's assignment rows.
 
 | Procedure | Input | Result |
 | --- | --- | --- |
-| `taskInbox.list` (query) | `taskInboxListInputSchema`: `serverId` | `{ items }`, newest assignment first: `task`, `boardName`, `assignedBy { id, kind, label }`, `assignedAt`, `contextMessage` (the newest referencing message the reader can read, or null) |
+| `taskInbox.list` (query) | `taskInboxListInputSchema`: `serverId` | `{ items }`, newest assignment first: `task`, `boardName`, `assignedBy { id, kind, label }`, `assignedAt`, `contextMessage` (the newest referencing message the reader can read, or null), `contextPlace` (where it lives, null exactly when it is) |
 | `taskInbox.clear` | `taskInboxClearInputSchema`: `serverId`, `taskId` | `{ changed }`, false when it was already clear or is gone |
 | `taskInbox.restore` | `taskInboxRestoreInputSchema`: `serverId`, `taskId` | `{ changed }`, the App's Undo |
 

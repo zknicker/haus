@@ -14,7 +14,6 @@ import { agentsTable } from './agents.ts';
 import { chatMessagesTable } from './chat-messages.ts';
 import { chatsTable } from './chats.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
-import { taskLabelsTable } from './task-labels.ts';
 
 export const messageClaimsTable = pgTable(
     'message_claims',
@@ -38,10 +37,6 @@ export const messageClaimsTable = pgTable(
         messageId: text('message_id').notNull(),
         number: integer('number').notNull(),
         origin: text('origin').notNull().$type<'claimed' | 'composed' | 'converted'>(),
-        priority: text('priority')
-            .notNull()
-            .default('none')
-            .$type<'none' | 'urgent' | 'high' | 'medium' | 'low'>(),
         serverId: text('server_id').notNull(),
         status: text('status')
             .notNull()
@@ -116,10 +111,6 @@ export const messageClaimsTable = pgTable(
             sql`${table.status} in ('todo', 'in_progress', 'in_review', 'done', 'closed')`
         ),
         check(
-            'message_claims_priority',
-            sql`${table.priority} in ('none', 'urgent', 'high', 'medium', 'low')`
-        ),
-        check(
             'message_claims_origin',
             sql`${table.origin} in ('claimed', 'composed', 'converted')`
         ),
@@ -134,27 +125,5 @@ export const messageClaimsTable = pgTable(
         index('message_claims_open_claim_idx')
             .on(table.serverId, table.assigneeAgentId)
             .where(sql`${table.origin} = 'claimed' and ${table.trackedAt} is null`),
-    ]
-);
-
-export const messageClaimLabelsTable = pgTable(
-    'message_claim_labels',
-    {
-        labelId: text('label_id').notNull(),
-        messageId: text('message_id').notNull(),
-        serverId: text('server_id').notNull(),
-    },
-    (table) => [
-        primaryKey({ columns: [table.serverId, table.messageId, table.labelId] }),
-        foreignKey({
-            columns: [table.serverId, table.messageId],
-            foreignColumns: [messageClaimsTable.serverId, messageClaimsTable.messageId],
-            name: 'message_claim_labels_claim_fk',
-        }).onDelete('cascade'),
-        foreignKey({
-            columns: [table.serverId, table.labelId],
-            foreignColumns: [taskLabelsTable.serverId, taskLabelsTable.id],
-            name: 'message_claim_labels_label_fk',
-        }).onDelete('cascade'),
     ]
 );

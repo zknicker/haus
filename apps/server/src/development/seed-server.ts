@@ -1,4 +1,4 @@
-import { computerProtocolVersion, hausAgentVersion } from '@haus/api';
+import { computerProtocolVersion } from '@haus/api';
 import { eq } from 'drizzle-orm';
 import { insertGeneralBoard } from '../boards/board-create.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -22,6 +22,7 @@ import { listAccessibleServers } from '../servers/accessible-servers.ts';
 import { allChannelDescription, type ServerSummary } from '../servers/contracts.ts';
 import { demoTokenUsage } from './demo-token-usage.ts';
 import { developmentComputerCredentialHash } from './seed-computer-attachment.ts';
+import { demoAgent } from './seed-demo-agent.ts';
 import { insertSeedAvatars } from './seed-demo-avatars.ts';
 import { seedDemoTasks } from './seed-demo-tasks.ts';
 import { ensureDevelopmentSeedSteps, type SeedDevelopmentServerOptions } from './seed-steps.ts';
@@ -69,6 +70,8 @@ export async function seedDevelopmentServer(
         const planMessageId = createOpaqueId('msg');
         const shipTaskMessageId = createOpaqueId('msg');
         const auditTaskMessageId = createOpaqueId('msg');
+        const sizeCapMessageId = createOpaqueId('msg');
+        const polishMessageId = createOpaqueId('msg');
         const threadChatId = demoThreadId(planMessageId);
         const avatarIds = await insertSeedAvatars(tx);
 
@@ -220,10 +223,16 @@ export async function seedDevelopmentServer(
                 authorUserId: userId,
                 content: 'What should we polish next?',
             }),
-            demoMessage(serverId, demoChannelId, 2, {
-                authorAgentId: blippyId,
-                content: 'The core flow first. Everything else earns its way in.',
-            }),
+            demoMessage(
+                serverId,
+                demoChannelId,
+                2,
+                {
+                    authorAgentId: blippyId,
+                    content: 'The core flow first. GEN-4 tracks it, so everything else can wait.',
+                },
+                polishMessageId
+            ),
             demoMessage(serverId, blippyDmId, 1, {
                 authorAgentId: blippyId,
                 content: 'Blippy online. What are we building?',
@@ -255,36 +264,62 @@ export async function seedDevelopmentServer(
                 authorAgentId: blippyId,
                 content: 'Reading it now — the sequencing looks right to me.',
             }),
-            demoMessage(serverId, threadChatId, 2, {
-                authorAgentId: tinyId,
-                content: 'One risk: the upload path needs a size cap before we ship it.',
-            }),
+            demoMessage(
+                serverId,
+                threadChatId,
+                2,
+                {
+                    authorAgentId: tinyId,
+                    content: 'One risk: the upload path needs a size cap. Filed it as GEN-3.',
+                },
+                sizeCapMessageId
+            ),
             demoMessage(serverId, threadChatId, 3, {
                 authorUserId: userId,
                 content: 'Good catch — folding that in.',
             }),
         ]);
 
-        // Two Tasks on the General board, one in flight and one waiting.
+        // Four Tasks on the General board: one in flight and one waiting with the
+        // Agents, and two handed to the owner, one discussed in a Thread.
+        const blippy = { agentId: blippyId, kind: 'agent' } as const;
+        const tiny = { agentId: tinyId, kind: 'agent' } as const;
+        const owner = { kind: 'user', userId } as const;
         await seedDemoTasks(tx, {
             boardId: generalBoardId,
             serverId,
             tasks: [
                 {
-                    assigneeAgentId: blippyId,
+                    assignee: blippy,
                     category: 'active',
-                    createdByUserId: userId,
+                    createdBy: owner,
                     messageId: shipTaskMessageId,
                     priority: 'high',
                     title: 'Ship the avatar upload flow end to end',
                 },
                 {
-                    assigneeAgentId: tinyId,
+                    assignee: tiny,
                     category: 'todo',
-                    createdByAgentId: tinyId,
+                    createdBy: tiny,
                     messageId: auditTaskMessageId,
                     priority: 'medium',
                     title: 'Audit the member directory for stale copy',
+                },
+                {
+                    assignee: owner,
+                    category: 'todo',
+                    createdBy: tiny,
+                    messageId: sizeCapMessageId,
+                    priority: 'high',
+                    title: 'Pick the upload size cap',
+                },
+                {
+                    assignee: owner,
+                    category: 'todo',
+                    createdBy: blippy,
+                    messageId: polishMessageId,
+                    priority: 'medium',
+                    title: 'Sign off on the core flow polish list',
                 },
             ],
         });
@@ -356,41 +391,6 @@ function demoAgentDm(
         lastActivityAt,
         lastMessageSequence,
         serverId,
-    };
-}
-
-function demoAgent(agent: {
-    avatarId: string;
-    computerId: string;
-    createdByUserId: string;
-    description: string;
-    displayName: string;
-    handle: string;
-    id: string;
-    modelId: string;
-    reportedAt: Date;
-    serverId: string;
-}) {
-    return {
-        avatarId: agent.avatarId,
-        computerId: agent.computerId,
-        createdByUserId: agent.createdByUserId,
-        desiredModelId: agent.modelId,
-        desiredRuntimeId: 'codex',
-        description: agent.description,
-        displayName: agent.displayName,
-        effectiveHausAgentAppliedAt: agent.reportedAt,
-        effectiveHausAgentStatus: 'current' as const,
-        effectiveHausAgentVersion: hausAgentVersion,
-        effectiveMissing: [],
-        effectiveModelId: agent.modelId,
-        effectiveReasoningEffort: 'medium' as const,
-        effectiveReportedAt: agent.reportedAt,
-        effectiveRuntimeId: 'codex',
-        handle: agent.handle,
-        homeTimezone: 'America/New_York',
-        id: agent.id,
-        serverId: agent.serverId,
     };
 }
 

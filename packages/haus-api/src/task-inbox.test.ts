@@ -12,6 +12,7 @@ const item: TaskInboxItem = {
     assignedBy: { id: 'agt_zero', kind: 'agent', label: 'Zero' },
     boardName: 'Security',
     contextMessage: null,
+    contextPlace: null,
     task: {
         assignee: { kind: 'user', userId: 'usr_zach' },
         boardId: 'brd_sec',
@@ -36,9 +37,21 @@ const item: TaskInboxItem = {
 
 test('a Task Inbox item names its assigner and an optional context message', () => {
     expect(taskInboxItemSchema.parse(item)).toEqual(item);
+    const contextPlace = {
+        chatId: 'cht_security',
+        chatKind: 'channel' as const,
+        chatName: 'security',
+        threadAnchorMessageId: 'msg_anchor',
+    };
     expect(
-        taskInboxItemSchema.parse({ ...item, contextMessage: linkedMessage }).contextMessage?.id
-    ).toBe(linkedMessage.id);
+        taskInboxItemSchema.parse({ ...item, contextMessage: linkedMessage, contextPlace })
+            .contextPlace
+    ).toEqual(contextPlace);
+    // A context message and its place come together.
+    expect(taskInboxItemSchema.safeParse({ ...item, contextMessage: linkedMessage }).success).toBe(
+        false
+    );
+    expect(taskInboxItemSchema.safeParse({ ...item, contextPlace }).success).toBe(false);
     expect(
         taskInboxItemSchema.safeParse({ ...item, assignedBy: { ...item.assignedBy, kind: 'bot' } })
             .success

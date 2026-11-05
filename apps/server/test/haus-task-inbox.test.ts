@@ -47,6 +47,7 @@ test('an assignment lists newest first with its assigner and board, one item per
         assignedBy: { id: ownerUserId, kind: 'user', label: 'Ada' },
         boardName: 'General',
         contextMessage: null,
+        contextPlace: null,
         task: { key: newer.task.key, title: 'Newer' },
     });
     await Promise.all(
@@ -95,6 +96,64 @@ test('the context message is the newest reference the reader can read', async ()
         content: `${task.key} is next.`,
         id: second.message.id,
         taskLinks: [{ key: task.key, taskId: task.id, text: task.key }],
+    });
+    expect(item?.contextPlace).toEqual({
+        chatId: channelId,
+        chatKind: 'channel',
+        chatName: 'task-inbox-context',
+        threadAnchorMessageId: null,
+    });
+    await peer.trpc.taskInbox.clear.mutate({ serverId, taskId: task.id });
+});
+
+test('a context message in a Thread names the Channel and anchor, and a DM names no peer', async () => {
+    const { createChannel, owner, peer, peerUserId, serverId } = fixture;
+    const { task } = await assignToPeer('Threaded');
+    const channelId = await createChannel('task-inbox-thread');
+    const anchor = await owner.trpc.chat.send.mutate({
+        chatId: channelId,
+        content: 'Rotation plan',
+        nonce: 'inbox-thread-anchor',
+        serverId,
+    });
+    const reply = await owner.trpc.chat.send.mutate({
+        chatId: channelId,
+        content: `${task.key} is the first step.`,
+        nonce: 'inbox-thread-reply',
+        serverId,
+        thread: { anchorMessageId: anchor.message.id },
+    });
+
+    const [threaded] = await items();
+    expect(threaded?.contextMessage?.chatId).toBe(reply.message.chatId);
+    expect(threaded?.contextPlace).toEqual({
+        chatId: channelId,
+        chatKind: 'channel',
+        chatName: 'task-inbox-thread',
+        threadAnchorMessageId: anchor.message.id,
+    });
+    const detail = await peer.trpc.task.get.query({ serverId, taskId: task.id });
+    expect(detail.mentions).toEqual([
+        expect.objectContaining({
+            chatId: reply.message.chatId,
+            messageId: reply.message.id,
+            place: threaded?.contextPlace,
+        }),
+    ]);
+
+    const dmId = (await owner.trpc.chat.ensureDm.mutate({ peerUserId, serverId })).id;
+    await owner.trpc.chat.send.mutate({
+        chatId: dmId,
+        content: `Ping on ${task.key}.`,
+        nonce: 'inbox-thread-dm',
+        serverId,
+    });
+    const [direct] = await items();
+    expect(direct?.contextPlace).toEqual({
+        chatId: dmId,
+        chatKind: 'dm',
+        chatName: null,
+        threadAnchorMessageId: null,
     });
     await peer.trpc.taskInbox.clear.mutate({ serverId, taskId: task.id });
 });

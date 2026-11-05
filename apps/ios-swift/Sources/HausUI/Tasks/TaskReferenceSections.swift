@@ -5,7 +5,6 @@ import SwiftUI
 /// the Task's activity, computed, never a second conversation.
 struct TaskMentionsSection: View {
     let mentions: [TaskMention]
-    let conversationLabel: @MainActor @Sendable (String) -> String
     let onOpen: (TaskMention) -> Void
 
     var body: some View {
@@ -38,7 +37,7 @@ struct TaskMentionsSection: View {
 
     private func metaLine(_ mention: TaskMention) -> String {
         let age = HausCompactRelativeTime.label(for: mention.createdAt, now: .now)
-        return "\(mention.authorLabel) · \(conversationLabel(mention.chatID)) · \(age)"
+        return "\(mention.authorLabel) · \(mention.place.label) · \(age)"
     }
 }
 

@@ -56,6 +56,7 @@ function item(
             assignee: { kind: 'user', userId: viewer },
             id: `tsk_${number}`,
             key: `SEC-${number}`,
+            serverId: 'srv_one',
             title: `Task ${number}`,
         },
     } as TaskInboxItem;
@@ -63,6 +64,7 @@ function item(
 
 function notifier(viewerUserId: string | undefined = viewer) {
     return createTaskAssignmentNotifier({
+        inboxPath: () => '/inbox',
         isBackground: () => background,
         isEnabled: () => enabled,
         notificationApi: FakeNotification as unknown as NotificationApi,
@@ -162,6 +164,37 @@ test('a person assigning you notifies', () => {
     expect(shown).toHaveLength(1);
 });
 
+test('several assignments in one read are one notification that opens the Inbox', () => {
+    const instance = settled([item(1)]);
+
+    delivers(instance, [item(4), item(3), item(2), item(1)]);
+
+    expect(shown.map((entry) => entry.title)).toEqual(['Forge assigned you 3 tasks']);
+    expect(shown[0]?.options).toEqual({
+        body: 'Task 4 and 2 more',
+        tag: 'task-assignments:srv_one',
+    });
+
+    shown[0]?.onclick?.(new Event('click'));
+    expect(opened).toEqual(['/inbox']);
+});
+
+test('a burst from several assigners names none of them', () => {
+    const instance = settled([]);
+
+    delivers(instance, [item(2, { assignerId: 'usr_ada', kind: 'user' }), item(1)]);
+
+    expect(shown.map((entry) => entry.title)).toEqual(['2 tasks assigned to you']);
+});
+
+test('a burst counts only what notifies the viewer, and one left is its own notification', () => {
+    const instance = settled([]);
+
+    delivers(instance, [item(2, { assignerId: viewer, kind: 'user' }), item(1)]);
+
+    expect(shown.map((entry) => entry.title)).toEqual(['Forge assigned you SEC-1']);
+});
+
 test('nothing raises while Haus is in front, off, not granted, or the viewer is unknown', () => {
     const cases: (() => void)[] = [
         () => {
@@ -186,6 +219,7 @@ test('nothing raises while Haus is in front, off, not granted, or the viewer is 
     enabled = true;
     permission = 'granted';
     const unknownViewer = createTaskAssignmentNotifier({
+        inboxPath: () => '/inbox',
         isBackground: () => true,
         isEnabled: () => true,
         notificationApi: FakeNotification as unknown as NotificationApi,

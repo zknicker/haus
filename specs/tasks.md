@@ -63,6 +63,10 @@ message ([claims.md](claims.md)). This file pins the rules the Server enforces. 
   defaults the description to its content, and records it with the key as link text.
 - Mentioned in lists only messages in Chats the reader can read (`actorVisibleChats`), and the
   Task's Reminders list only those anchored in such a Chat, so a DM never leaks through a Task.
+- A mention and an Inbox context message name their **place** (`taskMessagePlaceSchema`): the
+  Channel or DM id, kind, and name (null for a DM), and the Thread anchor for a Thread reply. It is
+  read in the same batched query as the message (`tasks/task-message-place.ts`), so a client labels
+  `#security · Thread`, opens, and replies with no read of its own.
 - Reminder create and description update re-record `task_reminder_links`, the Task's
   **Reminders**; a snooze keeps them. Every Reminder change that moves that list (schedule, edit,
   snooze, cancel, fire, a deleted anchor Channel or owner Agent, the retention sweep) publishes
@@ -83,6 +87,11 @@ transaction through `tasks/clear-task-assignments.ts`). It is the one seam for a
   sends the assignee `<assigner> assigned you SEC-12` after the read grace, unless the item was
   cleared or withdrawn by then. `taskAssignmentNotifiedUserId` in `@haus/api` is the one rule for
   both: a person, assigned by someone else.
+- **Bursts:** the first assignment opens a per-person window of one read grace; it never extends.
+  What is still news when it closes is one push: a single assignment stays as above, and several
+  are one `task_assignment_burst` push (`Zero assigned you 6 tasks`, or `6 tasks assigned to you`
+  from several assigners) that opens the Inbox. The desktop notifier collapses the same way over
+  the assignments one `taskInbox.list` read brings. The Inbox stays one item per Task.
 - **Agent:** assigning another Agent queues a chatless `task_assignment` item and a wake;
   reassigning away retires one still queued ([inbox.md](inbox.md#item-kinds-and-lifecycle)). An
   Agent assigning itself queues nothing. An assignment from another Agent spends the automation
@@ -90,7 +99,8 @@ transaction through `tasks/clear-task-assignments.ts`). It is the one seam for a
 
 The Task Inbox list (`tasks/task-inbox.ts`) returns each uncleared item with its Task, board name,
 assigner, and context message: the newest `task_message_links` message the reader can read,
-through `actorVisibleChats`, projected like a transcript message. `chat.unreadChatCount` adds
+through `actorVisibleChats`, projected like a transcript message, beside its `contextPlace`.
+`chat.unreadChatCount` adds
 uncleared items, so the badge counts them and the App refreshes it on `taskInbox.onChanged`.
 
 ## Agent routes

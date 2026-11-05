@@ -1,5 +1,5 @@
 import {
-    type ClaimOrigin,
+    type ClaimTier,
     type CloudAgentProvider,
     type CloudAgentStatus,
     formatCloudAgentWorkLink,
@@ -60,7 +60,7 @@ export async function galleryClaim(
     db: HausDatabase,
     context: GalleryContext,
     messageId: string,
-    origin: ClaimOrigin,
+    tier: ClaimTier,
     status: MessageClaim['status']
 ) {
     const [chat] = await db
@@ -76,15 +76,12 @@ export async function galleryClaim(
         chatId: context.chatId,
         messageId,
         number: chat.number,
-        origin,
+        origin: 'claimed',
         status,
         assigneeAgentId: context.agentId,
         createdByAgentId: context.agentId,
-        claimedAt: origin === 'claimed' ? context.now : null,
-        trackedAt:
-            origin === 'claimed' && (status === 'in_progress' || status === 'done')
-                ? null
-                : context.now,
+        claimedAt: context.now,
+        trackedAt: tier === 'tracked' ? context.now : null,
     });
 }
 

@@ -38,7 +38,7 @@ test('a batch claim answers per claim and keeps every granted claim and its even
     await owner.trpc.claim.update.mutate({
         expectedVersion: first.version,
         messageId: first.messageId,
-        patch: { priority: 'high' },
+        patch: { status: 'todo' },
         serverId: server.id,
     });
 

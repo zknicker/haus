@@ -59,7 +59,7 @@
     "apps/server/test/haus-agent-run.test.ts": 2775,
     "apps/server/test/haus-agents.test.ts": 707,
     "apps/server/test/haus-automation-provenance.test.ts": 775,
-    "apps/server/test/haus-claims.test.ts": 772,
+    "apps/server/test/haus-claims.test.ts": 759,
     "apps/server/test/haus-computer-bootstrap.test.ts": 417,
     "apps/server/test/haus-computer-login.test.ts": 425,
     "apps/server/test/haus-reinvitation.test.ts": 301,

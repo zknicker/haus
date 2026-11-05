@@ -207,7 +207,7 @@ test('claim update queued behind removal reauthorizes before it writes', async (
         claim = member.client.trpc.claim.update.mutate({
             expectedVersion: created.claim.version,
             messageId: created.claim.messageId,
-            patch: { priority: 'high' },
+            patch: { status: 'closed' },
             serverId,
         });
         await Bun.sleep(120);
@@ -226,7 +226,7 @@ test('claim update queued behind removal reauthorizes before it writes', async (
         (candidate) => candidate.claim.messageId === created.claim.messageId
     );
     expect(listed?.claim).toMatchObject({
-        priority: 'none',
+        status: 'todo',
         version: created.claim.version,
     });
     member.client.close();

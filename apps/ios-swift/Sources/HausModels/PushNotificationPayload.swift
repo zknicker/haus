@@ -95,15 +95,42 @@ public struct PushTaskAssignmentPayload: Sendable, Equatable {
     }
 }
 
+/// Several assignments landing inside one read grace, as one push (ADR 0051).
+/// It names no Task; a tap opens the Inbox, which holds a row per Task. Like
+/// the single push it is a plain alert the extension never rewrites.
+public struct PushTaskAssignmentBurstPayload: Sendable, Equatable {
+    public static let kind = "task_assignment_burst"
+
+    public let serverID: String
+    public let count: Int
+
+    public init(serverID: String, count: Int) {
+        self.serverID = serverID
+        self.count = count
+    }
+
+    /// Nil for any other push, or when a required key is missing.
+    public init?(userInfo: [AnyHashable: Any]) {
+        guard userInfo["kind"] as? String == Self.kind,
+              let serverID = userInfo["serverId"] as? String, !serverID.isEmpty,
+              let count = userInfo["count"] as? Int
+        else { return nil }
+        self.init(serverID: serverID, count: count)
+    }
+}
+
 /// What a tapped notification names.
 public enum PushOpenRequest: Sendable, Equatable {
     case message(PushNotificationPayload)
     case task(PushTaskAssignmentPayload)
+    case taskBurst(PushTaskAssignmentBurstPayload)
 
-    /// Nil when `userInfo` is neither, so a malformed push opens nothing.
+    /// Nil when `userInfo` is none of them, so a malformed push opens nothing.
     public init?(userInfo: [AnyHashable: Any]) {
         if let task = PushTaskAssignmentPayload(userInfo: userInfo) {
             self = .task(task)
+        } else if let burst = PushTaskAssignmentBurstPayload(userInfo: userInfo) {
+            self = .taskBurst(burst)
         } else if let message = PushNotificationPayload(userInfo: userInfo) {
             self = .message(message)
         } else {

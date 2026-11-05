@@ -36,6 +36,10 @@ ids and small facts, never rows.
 | `chat.onLifecycle` | `useChatLifecycleStream` | Invalidate `chat.list`, `chat.listArchived`, `chat.get`, `agent.chats`, `thread.listUnread`, `chat.unreadPreviews`; `deleted` runs the Chat-loss purge and invalidates `cloudAgentWork.listActive` and every `cloudAgentWork.listForChat`, since linked work outlives the Chat |
 | `claim.onChanged` | `useClaimChangeStream` | Invalidate the claim Message's entity and `claim.list` |
 | `taskLabel.onUpdated` | `useTaskLabelStream` | Abort the Server's in-flight tail reads, then refetch its transcript lists and entities carrying the label; invalidate `taskLabel.list`, `claim.list` |
+| `board.onUpdated` | `useBoardUpdateStream` | That board's `task.list` and its Tasks' `task.get` (a re-key changes every key); `board.list`, `taskInbox.list` |
+| `task.onCreated` | `useTaskCreatedStream` | That board's `task.list` and `board.list`'s open count |
+| `task.onUpdated` | `useTaskUpdatedStream` | That Task's `task.get`, its board's `task.list`, `board.list`, `taskInbox.list` |
+| `taskInbox.onChanged` (reader only) | `useTaskInboxStream` | Invalidate `taskInbox.list`, and hand each live event to the desktop assignment notifier |
 | `cloudAgentWork.onUpdated` | `useCloudAgentWorkStream` | One event per linking Message in a live Chat. Invalidate that Message's entity, `cloudAgentWork.listForChat` (Chat and parent), `cloudAgentWork.listActive` |
 | `reminder.onUpdated` (Owner/Admin) | `useReminderStream` | Invalidate the owner Agent's `reminder.list`, `reminder.history`, and the reminder's `reminder.runs` |
 | `agent.onUpdated` | `useAgentUpdateStream` | The Server detail, the named Agent's reads (or every Agent read), `agent.list`, `chat.list` |
@@ -67,7 +71,7 @@ for the active Server (`features/servers/server-realtime-listeners.tsx`, one tin
 hook); `reminder.onUpdated` and `invitation.onUpdated` mount only for Owners and Admins. The
 Server shell hoists the one `agent.onLifecycle` and `agent.onActivity`. Each mounted Chat view
 adds `chat.onEngagement`, `chat.onThought`, and `chat.onComposition`. With three Servers and two
-mounted Chat views that is 28 streams for a member and 30 for an Admin, pinned by
+mounted Chat views that is 32 streams for a member and 34 for an Admin, pinned by
 `features/servers/realtime-budget.test.tsx`.
 
 ### Transcript cache

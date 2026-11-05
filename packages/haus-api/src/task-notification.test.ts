@@ -5,8 +5,14 @@ import {
     agentTaskMoveInputSchema,
     agentTaskUpdateInputSchema,
 } from './agent-task.ts';
-import { pushNotificationPayloadSchema, pushTaskAssignmentPayloadSchema } from './push.ts';
 import {
+    pushNotificationPayloadSchema,
+    pushTaskAssignmentBurstPayloadSchema,
+    pushTaskAssignmentPayloadSchema,
+} from './push.ts';
+import {
+    taskAssignmentBurstNotificationBody,
+    taskAssignmentBurstNotificationTitle,
     taskAssignmentNotificationTitle,
     taskAssignmentNotifiedUserId,
 } from './task-notification.ts';
@@ -43,6 +49,36 @@ test('a Task assignment push routes by Task and is not a message push', () => {
     expect(
         pushTaskAssignmentPayloadSchema.safeParse({ ...payload, key: 'not-a-key' }).success
     ).toBe(false);
+});
+
+test('several assignments read as one alert, naming the assigner only when there is one', () => {
+    expect(taskAssignmentBurstNotificationTitle({ assignerName: 'Zero', count: 6 })).toBe(
+        'Zero assigned you 6 tasks'
+    );
+    expect(taskAssignmentBurstNotificationTitle({ assignerName: null, count: 6 })).toBe(
+        '6 tasks assigned to you'
+    );
+    expect(taskAssignmentBurstNotificationBody({ count: 6, newestTitle: 'Rotate the key' })).toBe(
+        'Rotate the key and 5 more'
+    );
+});
+
+test('a burst push names no Task and carries at least two', () => {
+    const payload = {
+        aps: {
+            alert: { body: 'Rotate the key and 5 more', title: 'Zero assigned you 6 tasks' },
+            sound: 'default',
+            'thread-id': 'task-assignments:srv_one',
+        },
+        count: 6,
+        kind: 'task_assignment_burst',
+        serverId: 'srv_one',
+    };
+    expect(pushTaskAssignmentBurstPayloadSchema.safeParse(payload).success).toBe(true);
+    expect(pushTaskAssignmentBurstPayloadSchema.safeParse({ ...payload, count: 1 }).success).toBe(
+        false
+    );
+    expect(pushTaskAssignmentPayloadSchema.safeParse(payload).success).toBe(false);
 });
 
 const assignment = {

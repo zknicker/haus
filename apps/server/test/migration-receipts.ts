@@ -51,4 +51,5 @@ export const migrationsSince0060 = [
     '0108_remove-linear',
     '0109_rename-tasks-to-claims',
     '0110_task-boards',
+    '0111_drop-claim-priority-labels',
 ];

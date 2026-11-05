@@ -1,5 +1,5 @@
 import type { TaskLabel } from '@haus/api';
-import { and, asc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -181,24 +181,6 @@ export async function deleteTaskLabel(
             event: prepareTaskLabelEvent(input.serverId, input.labelId),
         };
     });
-}
-
-export async function requireTaskLabelIds(
-    db: Pick<HausDatabase, 'select'>,
-    serverId: string,
-    labelIds: string[]
-): Promise<void> {
-    const uniqueIds = [...new Set(labelIds)];
-    if (uniqueIds.length === 0) {
-        return;
-    }
-    const labels = await db
-        .select({ id: taskLabelsTable.id })
-        .from(taskLabelsTable)
-        .where(and(eq(taskLabelsTable.serverId, serverId), inArray(taskLabelsTable.id, uniqueIds)));
-    if (labels.length !== uniqueIds.length) {
-        throw new TaskLabelConflictError('Every task label must belong to this Server.');
-    }
 }
 
 function prepareTaskLabelEvent(serverId: string, labelId: string) {

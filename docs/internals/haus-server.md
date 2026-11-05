@@ -150,7 +150,7 @@ PostgreSQL owns the hosted collaboration tables
 | `agent_chat_reads` | One monotonic Agent read position per Chat, behind `haus inbox check` and `message read --unread`; it outlives session rotation ([Data model](data-model.md)) |
 | `attachments` | Server/Chat-scoped metadata, upload state, content digest, and optional message association |
 | `message_claims` | Lifecycle metadata keyed directly to one canonical hosted message |
-| `task_labels` / `message_claim_labels` | Small Server task-label catalog and claim links |
+| `task_labels` / `task_label_assignments` | Small Server task-label catalog and its Task links |
 | `reminders` / `reminder_commands` | Author-owned schedules and idempotent optimistic commands with original result snapshots |
 | `reminder_fires` | One durable row per logical scheduled fire, recording in `has_script` whether that wake ran a script; a fire writes no Chat message and the table has no receipt column |
 | `triggers` | Agent-owned inbound webhook wakes with hashed secrets, anchored to a Chat and, for an Agent-created one, to the asking message |

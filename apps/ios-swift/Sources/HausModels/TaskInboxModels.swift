@@ -20,6 +20,8 @@ public struct TaskInboxItem: Decodable, Identifiable, Equatable, Sendable {
     /// The newest message referencing the Task that the reader can read. The
     /// item's composer replies in a Thread on it; nil when there is none.
     public let contextMessage: ChatMessage?
+    /// Where that message lives. Nil exactly when the message is.
+    public let contextPlace: TaskMessagePlace?
     public var task: BoardTask
 
     public var id: String { task.id }

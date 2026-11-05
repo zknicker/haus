@@ -104,7 +104,7 @@ test('events during a held initial read drain into exactly one tail read', async
 
 test('a message created while an aborted tail read is still held gets its own tail', async () => {
     const tail = Promise.withResolvers<unknown>();
-    let renamed = false;
+    let recovered = false;
     const cache = createTranscriptCache((request) => {
         if (request.input.afterSequence === 1) {
             return tail.promise;
@@ -113,16 +113,17 @@ test('a message created while an aborted tail read is still held gets its own ta
             return Promise.resolve(page([message(chatId, 3)]));
         }
         return Promise.resolve(
-            page(renamed ? [message(chatId, 1), message(chatId, 2)] : [message(chatId, 1)])
+            page(recovered ? [message(chatId, 1), message(chatId, 2)] : [message(chatId, 1)])
         );
     });
     const list = cache.observeList(chatId);
     await settle(() => cache.listIds(chatId)?.length === 1);
     cache.coalescer.noteMessageCreated(created(2));
     await settle(() => cache.reads('chat.messages').length === 2);
-    // A label rename aborts the held tail; its drain stays open until the read settles.
-    renamed = true;
-    await cache.coalescer.noteTaskLabelUpdated({ labelId: 'lbl_one', serverId });
+    // Aborting the held tail leaves its drain open until the read settles.
+    recovered = true;
+    cache.coalescer.lists.abort({ serverId });
+    cache.coalescer.recoverTranscriptLists({ serverId });
     cache.coalescer.flushInvalidations();
     await settle(() => cache.listIds(chatId)?.length === 2);
     cache.coalescer.noteMessageCreated(created(3));

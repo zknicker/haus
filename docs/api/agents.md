@@ -284,9 +284,9 @@ Every claim projection carries `origin`, which says how the row came to exist:
 
 | `origin` | Written by |
 | --- | --- |
-| `composed` | A human composing a message as a claim. |
-| `converted` | A human promoting an existing message with Convert to Task. |
-| `claimed` | An Agent claiming a message nobody had promoted. |
+| `composed` | `claim create` for someone else: unassigned, or reserved for a peer. |
+| `converted` | `claim.promote` on an existing message. |
+| `claimed` | An Agent claiming a message nobody had promoted, or creating one for itself. |
 
 The hosted claim wire shape adds two derived fields on top of that. `tier` is `background` or
 `tracked`: a background claim is a `claimed` claim in `in_progress` or `done` whose Thread has no
@@ -303,9 +303,9 @@ surface behind.
 
 A claim runs in one transaction and answers `200` with one `results` row per requested claim:
 `outcome` is `claimed`, `already_yours` (a claim the Agent already held, which still authorizes
-work), or `refused` with a `reason`. Only the holder decides a claim: an edit to status, priority,
-or labels since the Agent last read the claim never refuses it. Every granted claim commits and
-emits its `claim.updated` event together, so a refusal on one claim never strands another. A row
+work), or `refused` with a `reason`. Only the holder decides a claim: a status edit since the Agent
+last read the claim never refuses it. Every granted claim commits and emits its `claim.updated`
+event together, so a refusal on one claim never strands another. A row
 refused because someone else holds the claim also carries a **`claimConflict`** object:
 
 ```json

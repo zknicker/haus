@@ -120,8 +120,8 @@ async function takeClaimRow(tx: HausDatabase, runner: ResolvedRunner, messageId:
         return { event: null, outcome: grant(current, 'already_yours') };
     }
     // Only the holder decides a claim. The row is locked under the Server
-    // lock, so edits to status or labels since the caller last read the claim
-    // cannot make the claim stale.
+    // lock, so status edits since the caller last read the claim cannot make
+    // the claim stale.
     if (claimHasOtherOwnerForAgent(current, runner.agentId)) {
         const conflict = await buildClaimConflict(tx, runner.serverId, current, new Date());
         return {

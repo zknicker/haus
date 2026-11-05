@@ -115,19 +115,3 @@ export function isChatMessageEntityOf(
         (scope.chatId === undefined || input.chatId === scope.chatId)
     );
 }
-
-/**
- * Derived dependency: task labels are embedded rows, so a renamed, recolored,
- * or deleted label invalidates every cached entity of the Server that carries it.
- */
-export function entityCarriesTaskLabel(
-    query: Pick<Query, 'queryKey' | 'state'>,
-    serverId: string,
-    labelId: string
-) {
-    if (!isChatMessageEntityOf(query, { serverId })) {
-        return false;
-    }
-    const entry = query.state.data as ChatMessageEntry | undefined;
-    return Boolean(entry?.message.claim?.labels.some((label) => label.id === labelId));
-}

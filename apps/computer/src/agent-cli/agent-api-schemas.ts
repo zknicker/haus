@@ -22,26 +22,8 @@ const messageClaimSchema = z.object({
     assignee: claimActorSchema.nullable(),
     claimed_at: z.string().nullable(),
     created_at: z.string(),
-    labels: z.array(
-        z.object({
-            color: z.enum([
-                'red',
-                'orange',
-                'amber',
-                'green',
-                'teal',
-                'blue',
-                'purple',
-                'pink',
-                'gray',
-            ]),
-            id: z.string(),
-            name: z.string(),
-        })
-    ),
     number: z.number().int().positive(),
     origin: z.enum(claimOrigins),
-    priority: z.enum(['none', 'urgent', 'high', 'medium', 'low']),
     status: z.enum(['todo', 'in_progress', 'in_review', 'done', 'closed']),
     updated_at: z.string(),
 });

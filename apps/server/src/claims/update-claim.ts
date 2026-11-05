@@ -1,9 +1,8 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { messageClaimLabelsTable, messageClaimsTable } from '../postgres/schema.ts';
+import { messageClaimsTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { requireTaskLabelIds } from '../task-labels/task-labels.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import {
     ClaimConflictError,
@@ -20,11 +19,7 @@ export async function updateClaim(
     input: {
         expectedVersion: number;
         messageId: string;
-        patch: {
-            labelIds?: string[];
-            priority?: 'none' | 'urgent' | 'high' | 'medium' | 'low';
-            status?: 'todo' | 'in_progress' | 'in_review' | 'done' | 'closed';
-        };
+        patch: { status?: ClaimStatus };
         serverId: string;
     }
 ): Promise<ClaimMutationResult> {
@@ -61,27 +56,6 @@ export async function updateClaim(
         if (current.version !== input.expectedVersion) {
             throw new ClaimConflictError('That claim changed; refresh it before updating.');
         }
-        if (input.patch.labelIds) {
-            await requireTaskLabelIds(tx, input.serverId, input.patch.labelIds);
-            await tx
-                .delete(messageClaimLabelsTable)
-                .where(
-                    and(
-                        eq(messageClaimLabelsTable.serverId, input.serverId),
-                        eq(messageClaimLabelsTable.messageId, input.messageId)
-                    )
-                );
-            const labelIds = [...new Set(input.patch.labelIds)];
-            if (labelIds.length > 0) {
-                await tx.insert(messageClaimLabelsTable).values(
-                    labelIds.map((labelId) => ({
-                        labelId,
-                        messageId: input.messageId,
-                        serverId: input.serverId,
-                    }))
-                );
-            }
-        }
         await tx
             .update(messageClaimsTable)
             .set(claimPatchColumns(current, input.patch))
@@ -111,13 +85,9 @@ export async function updateClaim(
  */
 function claimPatchColumns(
     current: Parameters<typeof claimStatusColumns>[0],
-    patch: {
-        priority?: 'none' | 'urgent' | 'high' | 'medium' | 'low';
-        status?: ClaimStatus;
-    }
+    patch: { status?: ClaimStatus }
 ) {
     return {
-        ...(patch.priority ? { priority: patch.priority } : {}),
         ...(patch.status && patch.status !== current.status
             ? claimStatusColumns(current, patch.status)
             : {}),

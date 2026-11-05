@@ -64,20 +64,20 @@ test('an assignment is a card with its context message; Done resolves in place, 
     await expect(card).toContainText('needs an admin login.');
     await expect(card.getByRole('button', { name: `Status of ${key}` })).toContainText('Todo');
     // The badge counts the Task item, the only thing waiting.
-    await expect(page.getByLabel('1 unread chats')).toBeVisible();
+    await expect(page.getByLabel('1 waiting in Inbox')).toBeVisible();
 
     await card.getByRole('button', { exact: true, name: 'Done' }).click();
     const resolved = page.getByRole('status').filter({ hasText: `${key} moved to Done.` });
     await expect(resolved).toBeVisible();
     await expect(card).toHaveCount(0);
-    await expect(page.getByLabel('1 unread chats')).toHaveCount(0);
+    await expect(page.getByLabel('1 waiting in Inbox')).toHaveCount(0);
     await expect.poll(category).toBe('done');
     await expect.poll(itemCount).toBe(0);
 
     await resolved.getByRole('button', { exact: true, name: 'Undo' }).click();
     await expect(card).toBeVisible();
     await expect(resolved).toHaveCount(0);
-    await expect(page.getByLabel('1 unread chats')).toBeVisible();
+    await expect(page.getByLabel('1 waiting in Inbox')).toBeVisible();
     await expect.poll(category).toBe('todo');
     await expect.poll(itemCount).toBe(1);
 
@@ -122,6 +122,56 @@ test("a reply from the card posts in the context message's Thread and leaves the
             .getByRole('region', { name: 'Thread messages' })
             .getByText('On it after standup.', { exact: true })
     ).toBeVisible();
+});
+
+test('a context message in a Thread names its Channel, and the card answers and opens there', async ({
+    page,
+}) => {
+    const { agent, card, client, contextMessageId, key, serverId } = await assignedTask(
+        page,
+        'task-inbox-thread'
+    );
+    const excerpt = `${key} waits on the vendor.`;
+    const reply = await client.chat.send.mutate({
+        chatId: agent.chatId,
+        content: excerpt,
+        nonce: 'task-inbox-thread-reply',
+        serverId,
+        thread: { anchorMessageId: contextMessageId },
+    });
+    const threadUrl = new RegExp(`/chats/${agent.chatId}\\?thread=${contextMessageId}$`, 'u');
+
+    await page.goto('/s/task-inbox-thread/inbox');
+    const place = card.getByRole('button', { exact: true, name: '#all · Thread' });
+    await expect(place).toBeVisible();
+    await expect(card).toContainText('waits on the vendor.');
+
+    await page.keyboard.press('r');
+    const composer = card.getByRole('textbox', { name: 'Message Thread — #all' });
+    await expect(composer).toBeFocused();
+    await page.keyboard.type('Pinged them.');
+    await page.keyboard.press('Enter');
+    await expect(composer).toHaveText('');
+    await expect
+        .poll(async () => {
+            const thread = await client.chat.messages.query({
+                chatId: reply.message.chatId,
+                serverId,
+            });
+            return thread.messages.map((message) => message.content);
+        })
+        .toContain('Pinged them.');
+
+    await place.click();
+    await expect(page).toHaveURL(threadUrl);
+
+    // Mentioned in names the same place and opens the same Thread.
+    const [board, number] = key.split('-');
+    await page.goto(`/s/task-inbox-thread/tasks/${board}/${number}`);
+    const mention = page.getByRole('button', { exact: true, name: excerpt });
+    await expect(mention).toContainText('#all · Thread');
+    await mention.click();
+    await expect(page).toHaveURL(threadUrl);
 });
 
 test('E clears the card without moving the Task', async ({ page }) => {

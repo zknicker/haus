@@ -20,7 +20,7 @@ public struct TranscriptReads: Equatable, Sendable {
     private var tailNeeded: [TranscriptKey: Int] = [:]
     private var dirtyByChatID: [String: Set<String>] = [:]
     private var listReadsByChatID: [String: Int] = [:]
-    /// Advances when a label update makes every tail read in flight suspect.
+    /// Advances when a Server change retires every tail read in flight.
     public private(set) var tailEpoch = 0
 
     public init() {}
@@ -45,13 +45,6 @@ public struct TranscriptReads: Equatable, Sendable {
     /// Clears and returns the list's tail bit.
     public mutating func takeTail(_ key: TranscriptKey) -> Int? {
         tailNeeded.removeValue(forKey: key)
-    }
-
-    /// A label update: a tail read in flight may carry messages under the
-    /// former label, and no carrier refresh names a message the cache has not
-    /// seen yet. Every tail begun before now lands nothing.
-    public mutating func invalidateTails() {
-        tailEpoch += 1
     }
 
     /// Whether a tail read begun in `epoch` may write. One that may not sets

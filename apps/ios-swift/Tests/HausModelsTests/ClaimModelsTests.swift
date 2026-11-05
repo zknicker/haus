@@ -4,11 +4,10 @@ import XCTest
 
 final class ClaimModelsTests: XCTestCase {
     func testDecodesClaimListProjectionWithCanonicalMessageAndThread() throws {
-        let item = try decodeItem(number: 4, status: "in_review", priority: "urgent")
+        let item = try decodeItem(number: 4, status: "in_review")
 
         XCTAssertEqual(item.id, "message_4")
         XCTAssertEqual(item.claim.status, .inReview)
-        XCTAssertEqual(item.claim.priority, .urgent)
         XCTAssertEqual(item.threadSummary.replyCount, 2)
         XCTAssertEqual(item.chatKind, .channel)
         XCTAssertEqual(item.chatName, "product")
@@ -52,7 +51,6 @@ final class ClaimModelsTests: XCTestCase {
     private func decodeItem(
         number: Int = 4,
         status: String = "in_progress",
-        priority: String = "none",
         origin: String = "claimed",
         tier: String = "tracked",
         live: Bool = false,
@@ -62,7 +60,6 @@ final class ClaimModelsTests: XCTestCase {
         try HausJSON.decoder().decode(ClaimListItem.self, from: Data(itemJSON(
             number: number,
             status: status,
-            priority: priority,
             origin: origin,
             tier: tier,
             live: live,
@@ -74,7 +71,6 @@ final class ClaimModelsTests: XCTestCase {
     private func itemJSON(
         number: Int = 4,
         status: String = "in_progress",
-        priority: String = "none",
         origin: String = "claimed",
         tier: String = "tracked",
         live: Bool = false,
@@ -84,7 +80,7 @@ final class ClaimModelsTests: XCTestCase {
         """
         {"chatKind":"channel","chatName":"product","chatPeerUserId":null,
          "message":{"attachments":[],"author":{"kind":"human","userId":"user_1","profile":null},"chatId":"chat_1","content":"Review the mobile release","createdAt":"2026-09-10T17:00:00Z","id":"message_\(number)","nonce":"nonce_1","runId":null,"sequence":8,"serverId":"server_1","claim":null},
-         "claim":{"assigneeAgentId":"\(assignee)","chatId":"chat_1","claimedAt":"2026-09-10T18:00:00.000Z","createdAt":"2026-09-10T17:59:00.000Z","createdByAgentId":"agent_1","createdByUserId":null,"labels":[],"live":\(live),"messageId":"message_\(number)","number":\(number),"origin":"\(origin)","priority":"\(priority)","status":"\(status)","threadChatId":"thread_1","tier":"\(tier)","updatedAt":"\(updatedAt)","version":2},
+         "claim":{"assigneeAgentId":"\(assignee)","chatId":"chat_1","claimedAt":"2026-09-10T18:00:00.000Z","createdAt":"2026-09-10T17:59:00.000Z","createdByAgentId":"agent_1","createdByUserId":null,"live":\(live),"messageId":"message_\(number)","number":\(number),"origin":"\(origin)","status":"\(status)","threadChatId":"thread_1","tier":"\(tier)","updatedAt":"\(updatedAt)","version":2},
          "threadSummary":{"anchorMessageId":"message_\(number)","followed":true,"latestReplyAt":"2026-09-10T18:02:00Z","recentReplies":[],"replyCount":2,"threadChatId":"thread_1","unreadCount":1}}
         """
     }

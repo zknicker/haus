@@ -1,14 +1,15 @@
 import { parseTaskKey, type TaskInboxItem } from '@haus/api';
 import * as React from 'react';
 import { createTaskAssignmentNotifier } from '../../features/notifications/task-assignment-notifier.ts';
-import { taskRoute } from '../../features/servers/server-routes.ts';
+import { inboxRoute, taskRoute } from '../../features/servers/server-routes.ts';
 import { useMembers } from '../servers/use-members.ts';
 import { useTaskInboxItems } from '../task-inbox/use-task-inbox-items.ts';
 import type { NotificationSurface } from './use-notification-surface.ts';
 
 /**
  * Raises a platform notification for a Task someone else assigned this human
- * (ADR 0051), while Haus is hidden or unfocused; clicking one opens the Task.
+ * (ADR 0051), while Haus is hidden or unfocused; clicking one opens the Task,
+ * or the Inbox for several at once.
  * It adds no read of its own: it rides the `taskInbox.list` the badge already
  * keeps current, and the caller hands `changed` to the Server's single
  * `taskInbox.onChanged` stream.
@@ -26,6 +27,7 @@ export function useTaskAssignmentNotifications(
     const [notifier] = React.useState(() =>
         createTaskAssignmentNotifier({
             ...surface,
+            inboxPath: () => inboxRoute(latest.current.slug),
             pathOf: (item) => taskPath(item, latest.current.slug),
             viewerUserId: () => latest.current.viewerUserId,
         })

@@ -1,10 +1,11 @@
-import { formatTaskKey, GENERAL_BOARD_KEY } from '@haus/api';
+import { formatTaskKey, GENERAL_BOARD_KEY, type TaskActor } from '@haus/api';
 import { eq, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     boardColumnsTable,
     boardsTable,
+    taskInboxItemsTable,
     taskMessageLinksTable,
     tasksTable,
 } from '../postgres/schema.ts';
@@ -12,10 +13,9 @@ import {
 type Tx = Pick<HausDatabase, 'insert' | 'select' | 'update'>;
 
 interface DemoTask {
-    assigneeAgentId: string;
+    assignee: TaskActor;
     category: 'active' | 'todo';
-    createdByAgentId?: string;
-    createdByUserId?: string;
+    createdBy: TaskActor;
     /** The Message the work came from, shown in the Task's Mentioned in. */
     messageId: string;
     priority: 'high' | 'medium';
@@ -24,8 +24,10 @@ interface DemoTask {
 
 /**
  * Seeds the General board with demo Tasks, numbered from 1, each mentioned by the
- * Message it came from. The board's counter starts past them, or the first real
- * `task.create` collides with a seeded number.
+ * Message it came from. A Task assigned to a person is that person's Inbox item,
+ * so a fresh dev stack shows the Inbox card, the chip, and Mentioned in. The
+ * board's counter starts past them, or the first real `task.create` collides
+ * with a seeded number.
  */
 export async function seedDemoTasks(
     tx: Tx,
@@ -45,11 +47,12 @@ export async function seedDemoTasks(
     });
     await tx.insert(tasksTable).values(
         rows.map(({ column, id, number, task }) => ({
-            assigneeAgentId: task.assigneeAgentId,
+            assigneeAgentId: agentIdOf(task.assignee),
+            assigneeUserId: userIdOf(task.assignee),
             boardId,
             columnId: column.id,
-            createdByAgentId: task.createdByAgentId,
-            createdByUserId: task.createdByUserId,
+            createdByAgentId: agentIdOf(task.createdBy),
+            createdByUserId: userIdOf(task.createdBy),
             id,
             number,
             priority: task.priority,
@@ -66,8 +69,34 @@ export async function seedDemoTasks(
             text: formatTaskKey(GENERAL_BOARD_KEY, number),
         }))
     );
+    const inboxItems = rows.flatMap(({ id, task }) => {
+        const userId = userIdOf(task.assignee);
+        return userId
+            ? [
+                  {
+                      assignedByAgentId: agentIdOf(task.createdBy),
+                      assignedByUserId: userIdOf(task.createdBy),
+                      assignmentVersion: 1,
+                      serverId,
+                      taskId: id,
+                      userId,
+                  },
+              ]
+            : [];
+    });
+    if (inboxItems.length > 0) {
+        await tx.insert(taskInboxItemsTable).values(inboxItems);
+    }
     await tx
         .update(boardsTable)
         .set({ nextNumber: sql`${boardsTable.nextNumber} + ${rows.length}` })
         .where(eq(boardsTable.id, boardId));
+}
+
+function agentIdOf(actor: TaskActor) {
+    return actor.kind === 'agent' ? actor.agentId : null;
+}
+
+function userIdOf(actor: TaskActor) {
+    return actor.kind === 'user' ? actor.userId : null;
 }

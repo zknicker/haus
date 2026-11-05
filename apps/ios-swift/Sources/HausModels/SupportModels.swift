@@ -68,13 +68,11 @@ public struct MessageClaim: Codable, Identifiable, Sendable, Equatable {
     public let createdAt: Date
     public let createdByAgentID: String?
     public let createdByUserID: String?
-    public let labels: [TaskLabel]
     /// The assignee Agent is running a turn on this claim right now.
     public let live: Bool
     public let messageID: String
     public let number: Int
     public let origin: ClaimOrigin
-    public let priority: TaskPriority
     public let status: ClaimStatus
     public let threadChatID: String
     public let tier: ClaimTier
@@ -90,12 +88,10 @@ public struct MessageClaim: Codable, Identifiable, Sendable, Equatable {
         case createdAt
         case createdByAgentID = "createdByAgentId"
         case createdByUserID = "createdByUserId"
-        case labels
         case live
         case messageID = "messageId"
         case number
         case origin
-        case priority
         case status
         case threadChatID = "threadChatId"
         case tier

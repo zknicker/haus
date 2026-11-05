@@ -52,7 +52,6 @@ export type HausMarkReadRequest = HausApiSchema<'MarkReadRequest'>;
 export type HausMessageReaction = HausApiSchema<'MessageReaction'>;
 export type HausMessageClaim = HausApiSchema<'MessageClaim'>;
 export type HausClaimActor = HausApiSchema<'ClaimActor'>;
-export type HausTaskLabel = HausApiSchema<'TaskLabel'>;
 export type HausResponseActivity = HausApiSchema<'ResponseActivity'>;
 export type HausResponseEvidence = HausApiSchema<'ResponseEvidence'>;
 export type HausSetThreadFollowRequest = HausApiSchema<'SetThreadFollowRequest'>;

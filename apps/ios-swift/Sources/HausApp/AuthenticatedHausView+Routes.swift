@@ -107,8 +107,8 @@ extension AuthenticatedHausView {
         }
     }
 
-    /// A tapped notification opens what it names: a conversation, or an
-    /// assigned Task pushed over whatever is showing.
+    /// A tapped notification opens what it names: a conversation, an assigned
+    /// Task pushed over whatever is showing, or the Inbox for several at once.
     func openPushNotification(_ request: PushOpenRequest) async {
         switch request {
         case .message(let payload):
@@ -120,6 +120,12 @@ extension AuthenticatedHausView {
             }
             path.removeAll()
             openTask(payload.taskID)
+        case .taskBurst(let payload):
+            guard payload.serverID == store.activeServer?.id else {
+                PushNotifications.logger.notice("Ignoring a notification for another Server.")
+                return
+            }
+            openInbox()
         }
     }
 

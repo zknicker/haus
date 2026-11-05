@@ -4,9 +4,8 @@ import { ItemCard, ItemCardGroup, PressableFeedback } from '@heroui-pro/react';
 import * as React from 'react';
 import { RelativeTime } from '../../components/time/relative-time.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
-import { useChatAppearances } from '../../hooks/servers/use-chats.ts';
-import { useServerContext } from '../servers/server-context.ts';
-import { useOpenTaskChat } from './use-open-task-chat.ts';
+import { taskMessagePlaceLabel } from './task-presentation.ts';
+import { useOpenTaskChat, useOpenTaskMention } from './use-open-task-chat.ts';
 
 /**
  * What points at a Task, computed by the Server from references (ADR 0051):
@@ -15,24 +14,18 @@ import { useOpenTaskChat } from './use-open-task-chat.ts';
  */
 
 export function TaskMentions({ mentions }: { mentions: readonly TaskMention[] }) {
-    const { server } = useServerContext();
-    const chats = useChatAppearances(server.id);
-    const openChat = useOpenTaskChat();
+    const openMention = useOpenTaskMention();
 
     return (
         <TaskLinkSection count={mentions.length} title="Mentioned in">
             {mentions.map((mention, index) => (
                 <React.Fragment key={mention.messageId}>
                     {index > 0 ? <Separator /> : null}
-                    <TaskLinkRow
-                        onOpen={() => openChat(mention.chatId, mention.messageId)}
-                        title={mention.excerpt}
-                    >
+                    <TaskLinkRow onOpen={() => openMention(mention)} title={mention.excerpt}>
                         <EntityAvatar name={mention.authorLabel} size="sm" />
                         <ItemCard.Content>
                             <ItemCard.Title>
-                                {mentionPlace(mention, chats.get(mention.chatId)?.name)}
-                                {' · '}
+                                {`${mention.authorLabel} · ${taskMessagePlaceLabel(mention.place)} · `}
                                 <RelativeTime value={mention.createdAt} />
                             </ItemCard.Title>
                             <ItemCard.Description>{mention.excerpt}</ItemCard.Description>
@@ -113,17 +106,6 @@ function TaskLinkRow({
             {children}
         </ItemCard>
     );
-}
-
-/**
- * Who said it and where. A Thread reply's Chat is the Thread, which `chat.list`
- * does not carry, so the row says Thread rather than read each one's parent.
- */
-function mentionPlace(mention: TaskMention, chatName: null | string | undefined) {
-    if (mention.threadAnchorMessageId) {
-        return `${mention.authorLabel} · Thread`;
-    }
-    return `${mention.authorLabel} · ${chatName ? `#${chatName}` : 'DM'}`;
 }
 
 function reminderFact(reminder: TaskReminderRef) {

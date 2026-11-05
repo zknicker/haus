@@ -232,7 +232,7 @@ test('reinvitation restores no claim authority from a former stint', async () =>
         returner.trpc.claim.update.mutate({
             expectedVersion: shared.claim.version,
             messageId: shared.claim.messageId,
-            patch: { priority: 'urgent' },
+            patch: { status: 'closed' },
             serverId,
         })
     ).rejects.toThrow(/not a member/i);

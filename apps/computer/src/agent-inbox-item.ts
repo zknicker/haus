@@ -16,7 +16,6 @@ export interface AgentInboxItem {
         assigneeAgentId: string | null;
         messageId: string;
         number: number;
-        priority: 'high' | 'low' | 'medium' | 'none' | 'urgent';
         status: 'closed' | 'done' | 'in_progress' | 'in_review' | 'todo';
     };
     cloudAgentWork?: AgentCloudAgentWorkAttention;

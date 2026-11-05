@@ -1,12 +1,16 @@
 import {
     type TaskActor,
     type TaskInboxItem,
+    taskAssignmentBurstNotificationBody,
+    taskAssignmentBurstNotificationTitle,
     taskAssignmentNotificationTitle,
     taskAssignmentNotifiedUserId,
 } from '@haus/api';
 import type { NotificationApi } from './message-notifier.ts';
 
 export interface TaskAssignmentNotifierOptions {
+    /** The App route of the Inbox, which a burst of assignments opens. */
+    inboxPath: () => string;
     /** True while the reader cannot see Haus: the window is hidden or unfocused. */
     isBackground: () => boolean;
     /** True while the Settings toggle is on and this tab leads for the Server. */
@@ -36,6 +40,10 @@ const rememberedAssignments = 500;
  * An assignment is one item stamped when it was made, so restoring a cleared
  * item (Undo, on any device) is never news, while handing the Task over again
  * is. The tag is the Task, so a repeat replaces the older notification.
+ *
+ * Several assignments in one read are an Agent filing a queue: they raise one
+ * notification that opens the Inbox, never one each. Its tag is the Server's,
+ * so a later burst replaces it.
  */
 export function createTaskAssignmentNotifier(options: TaskAssignmentNotifierOptions) {
     const seen = new Set<string>();
@@ -55,12 +63,41 @@ export function createTaskAssignmentNotifier(options: TaskAssignmentNotifierOpti
             hasBaseline = true;
             eventPending = false;
             if (isLive && canNotify(options)) {
-                for (const item of arrived.filter((entry) => notifiesViewer(entry, options))) {
-                    notify(options, item);
-                }
+                raise(
+                    options,
+                    arrived.filter((entry) => notifiesViewer(entry, options))
+                );
             }
         },
     };
+}
+
+/** `items` is a list read's order, newest assignment first. */
+function raise(options: TaskAssignmentNotifierOptions, items: readonly TaskInboxItem[]) {
+    const [newest] = items;
+    if (!newest) {
+        return;
+    }
+    if (items.length === 1) {
+        notifyOne(options, newest);
+        return;
+    }
+    show(options, options.inboxPath(), {
+        body: taskAssignmentBurstNotificationBody({
+            count: items.length,
+            newestTitle: newest.task.title,
+        }),
+        tag: `task-assignments:${newest.task.serverId}`,
+        title: taskAssignmentBurstNotificationTitle({
+            assignerName: soleAssignerName(items),
+            count: items.length,
+        }),
+    });
+}
+
+function soleAssignerName(items: readonly TaskInboxItem[]) {
+    const assigners = new Set(items.map((item) => item.assignedBy.id));
+    return assigners.size === 1 ? (items[0]?.assignedBy.label ?? null) : null;
 }
 
 function assignmentKey({ assignedAt, task }: TaskInboxItem) {
@@ -99,19 +136,30 @@ function canNotify(options: TaskAssignmentNotifierOptions) {
     );
 }
 
-function notify(options: TaskAssignmentNotifierOptions, item: TaskInboxItem) {
-    const Api = options.notificationApi;
+function notifyOne(options: TaskAssignmentNotifierOptions, item: TaskInboxItem) {
     const path = options.pathOf(item);
-    if (!(Api && path)) {
+    if (path) {
+        show(options, path, {
+            body: item.task.title,
+            tag: `task:${item.task.id}`,
+            title: taskAssignmentNotificationTitle({
+                assignerName: item.assignedBy.label,
+                key: item.task.key,
+            }),
+        });
+    }
+}
+
+function show(
+    options: TaskAssignmentNotifierOptions,
+    path: string,
+    alert: { body: string; tag: string; title: string }
+) {
+    const Api = options.notificationApi;
+    if (!Api) {
         return;
     }
-    const notification = new Api(
-        taskAssignmentNotificationTitle({
-            assignerName: item.assignedBy.label,
-            key: item.task.key,
-        }),
-        { body: item.task.title, tag: `task:${item.task.id}` }
-    );
+    const notification = new Api(alert.title, { body: alert.body, tag: alert.tag });
     notification.onclick = (clicked) => {
         clicked.preventDefault();
         notification.close();

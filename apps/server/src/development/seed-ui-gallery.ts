@@ -63,7 +63,7 @@ export async function seedDevelopmentUiGallery(
         await galleryMessage(
             tx,
             gallery,
-            'UI gallery: compact attachments and populated threads. Toggle “Show claims in chat” to reveal background claims. Open threads to compare inline @mentions and full cloud-work cards. All cloud runs here are static samples on an unattached Computer; no provider links or jobs are created.'
+            'UI gallery: compact attachments and populated threads. Toggle “Show claims in chat” to reveal claims. Open threads to compare inline @mentions and full cloud-work cards. All cloud runs here are static samples on an unattached Computer; no provider links or jobs are created.'
         );
         await seedMentionExamples(tx, gallery);
         await seedClaimExamples(tx, gallery);
@@ -105,9 +105,9 @@ async function seedClaimExamples(db: HausDatabase, context: GalleryContext) {
         const message = await galleryMessage(
             db,
             context,
-            `Visible claim · ${status} · No replies yet.`
+            `Tracked claim · ${status} · Hidden until “Show claims in chat” is enabled.`
         );
-        await galleryClaim(db, context, message, 'composed', status);
+        await galleryClaim(db, context, message, 'tracked', status);
     }
     for (const status of ['in_progress', 'done'] satisfies MessageClaim['status'][]) {
         const message = await galleryMessage(
@@ -115,14 +115,14 @@ async function seedClaimExamples(db: HausDatabase, context: GalleryContext) {
             context,
             `Background claim · ${status} · Hidden until “Show claims in chat” is enabled.`
         );
-        await galleryClaim(db, context, message, 'claimed', status);
+        await galleryClaim(db, context, message, 'background', status);
     }
     const claimed = await galleryMessage(
         db,
         context,
         'Claim with replies · Its claim metadata shows even when the preference is off.'
     );
-    await galleryClaim(db, context, claimed, 'claimed', 'in_progress');
+    await galleryClaim(db, context, claimed, 'background', 'in_progress');
     await galleryMessage(
         db,
         await galleryThread(db, context, claimed),
@@ -218,7 +218,7 @@ async function seedCombinedExamples(db: HausDatabase, context: GalleryContext) {
         context,
         'Claim + multiple cloud runs + inline @mentions · Open this thread to see the full combination.'
     );
-    await galleryClaim(db, context, anchor, 'converted', 'in_review');
+    await galleryClaim(db, context, anchor, 'tracked', 'in_review');
     const thread = await galleryThread(db, context, anchor);
     await galleryWork(db, thread, {
         title: 'Keyboard navigation · Completed branch',
@@ -240,5 +240,5 @@ async function seedCombinedExamples(db: HausDatabase, context: GalleryContext) {
         content: 'Claim + @mention · Should I ship the new sidebar?',
         answered: false,
     });
-    await galleryClaim(db, context, claimMention, 'converted', 'in_review');
+    await galleryClaim(db, context, claimMention, 'tracked', 'in_review');
 }

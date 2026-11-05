@@ -2499,9 +2499,6 @@ export interface components {
             assignee: components["schemas"]["ClaimActor"] | null;
             claimed_at: components["schemas"]["Timestamp"] | null;
             /** @enum {string} */
-            priority: "none" | "urgent" | "high" | "medium" | "low";
-            labels: components["schemas"]["TaskLabel"][];
-            /** @enum {string} */
             origin: "composed" | "converted" | "claimed";
             created_at: components["schemas"]["Timestamp"];
             updated_at: components["schemas"]["Timestamp"];
@@ -2510,12 +2507,6 @@ export interface components {
         ClaimActor: {
             id: string;
             handle: string | null;
-        };
-        TaskLabel: {
-            id: string;
-            name: string;
-            /** @enum {string} */
-            color: "red" | "orange" | "amber" | "green" | "teal" | "blue" | "purple" | "pink" | "gray";
         };
         MessageReaction: {
             emoji: string;

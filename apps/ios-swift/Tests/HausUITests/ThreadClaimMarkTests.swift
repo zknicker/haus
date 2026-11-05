@@ -86,7 +86,7 @@ struct ThreadClaimMarkTests {
             MessageClaim.self,
             from: Data(
                 """
-                {"assigneeAgentId":"agent_1","chatId":"\(chatID)","claimedAt":"2026-01-01T00:00:10Z","createdAt":"2026-01-01T00:00:10Z","createdByAgentId":"agent_1","createdByUserId":null,"labels":[],"live":true,"messageId":"message_reply","number":12,"origin":"claimed","priority":"none","status":"in_progress","threadChatId":"\(threadChatID)","tier":"tracked","updatedAt":"2026-01-01T00:00:10Z","version":1}
+                {"assigneeAgentId":"agent_1","chatId":"\(chatID)","claimedAt":"2026-01-01T00:00:10Z","createdAt":"2026-01-01T00:00:10Z","createdByAgentId":"agent_1","createdByUserId":null,"live":true,"messageId":"message_reply","number":12,"origin":"claimed","status":"in_progress","threadChatId":"\(threadChatID)","tier":"tracked","updatedAt":"2026-01-01T00:00:10Z","version":1}
                 """.utf8
             )
         )

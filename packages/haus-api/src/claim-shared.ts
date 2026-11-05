@@ -1,5 +1,4 @@
 import * as z from 'zod';
-import { taskLabelSchema, taskPriorities } from './task-labels.ts';
 
 const claimIdSchema = z.string().trim().min(1);
 
@@ -32,13 +31,11 @@ export const messageClaimSchema = z
         createdAt: z.iso.datetime({ offset: true }),
         createdByAgentId: claimIdSchema.nullable(),
         createdByUserId: claimIdSchema.nullable(),
-        labels: z.array(taskLabelSchema),
         /** The assignee Agent is running a turn on this claim right now. */
         live: z.boolean(),
         messageId: claimIdSchema,
         number: z.number().int().positive(),
         origin: z.enum(claimOrigins),
-        priority: z.enum(taskPriorities),
         status: z.enum(claimStatuses),
         /**
          * Where the claim's work happens: the Thread its message sits in, or for

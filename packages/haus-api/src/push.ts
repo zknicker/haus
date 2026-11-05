@@ -111,6 +111,21 @@ export const pushNotificationPayloadSchema = z
     })
     .strict();
 
+const pushTaskAlertApsSchema = z
+    .object({
+        alert: z
+            .object({
+                body: z.string().max(pushAlertBodyMaxLength),
+                title: z.string().min(1),
+            })
+            .strict(),
+        /** As on a message push: the human's unread Inbox rows, these items included. */
+        badge: z.number().int().nonnegative().optional(),
+        sound: z.literal('default'),
+        'thread-id': idSchema,
+    })
+    .strict();
+
 /**
  * The JSON body of one Task assignment push (ADR 0051): the assigner and key as
  * the title, the Task's title as the body, and the ids a tap routes by. It has
@@ -119,24 +134,24 @@ export const pushNotificationPayloadSchema = z
  */
 export const pushTaskAssignmentPayloadSchema = z
     .object({
-        aps: z
-            .object({
-                alert: z
-                    .object({
-                        body: z.string().max(pushAlertBodyMaxLength),
-                        title: z.string().min(1),
-                    })
-                    .strict(),
-                /** As on a message push: the human's unread Inbox rows, this item included. */
-                badge: z.number().int().nonnegative().optional(),
-                sound: z.literal('default'),
-                'thread-id': idSchema,
-            })
-            .strict(),
+        aps: pushTaskAlertApsSchema,
         key: taskKeySchema,
         kind: z.literal('task_assignment'),
         serverId: idSchema,
         taskId: idSchema,
+    })
+    .strict();
+
+/**
+ * Several assignments for one person inside the read grace, as one push: it
+ * names no Task, and a tap opens the Inbox, which holds a card per Task.
+ */
+export const pushTaskAssignmentBurstPayloadSchema = z
+    .object({
+        aps: pushTaskAlertApsSchema,
+        count: z.number().int().min(2),
+        kind: z.literal('task_assignment_burst'),
+        serverId: idSchema,
     })
     .strict();
 
@@ -147,3 +162,4 @@ export type PushNotificationSender = z.infer<typeof pushNotificationSenderSchema
 export type PushNotificationConversation = z.infer<typeof pushNotificationConversationSchema>;
 export type PushNotificationPayload = z.infer<typeof pushNotificationPayloadSchema>;
 export type PushTaskAssignmentPayload = z.infer<typeof pushTaskAssignmentPayloadSchema>;
+export type PushTaskAssignmentBurstPayload = z.infer<typeof pushTaskAssignmentBurstPayloadSchema>;

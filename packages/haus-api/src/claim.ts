@@ -1,7 +1,6 @@
 import * as z from 'zod';
 import { chatMessageSchema, idSchema, threadSummarySchema } from './chat.ts';
 import { claimStatuses, messageClaimSchema } from './claim-shared.ts';
-import { taskPriorities } from './task-labels.ts';
 
 export const claimListInputSchema = z
     .object({
@@ -99,10 +98,9 @@ export const claimAssignInputSchema = claimMutationInputSchema.extend({
 export const claimUpdateInputSchema = claimMutationInputSchema.extend({
     patch: z
         .object({
-            labelIds: z.array(idSchema).optional(),
-            priority: z.enum(taskPriorities).optional(),
             status: z.enum(claimStatuses).optional(),
         })
+        .strict()
         .refine((patch) => Object.keys(patch).length > 0, 'Provide at least one claim field.'),
 });
 

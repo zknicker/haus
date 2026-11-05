@@ -1,4 +1,11 @@
-import type { Board, BoardColumn, ChatMessage, Task, TaskInboxItem } from '@haus/api';
+import type {
+    Board,
+    BoardColumn,
+    ChatMessage,
+    Task,
+    TaskInboxItem,
+    TaskMessagePlace,
+} from '@haus/api';
 import { Button } from '@heroui/react';
 import { KanbanIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
@@ -6,12 +13,12 @@ import { Icon } from '../../../components/ui/icon.tsx';
 import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { TaskDueDate } from '../../tasks/task-facts.tsx';
-import { taskPriorityLabels } from '../../tasks/task-presentation.ts';
+import { taskMessagePlaceLabel, taskPriorityLabels } from '../../tasks/task-presentation.ts';
 import { TaskPriorityIcon } from '../../tasks/task-priority-icon.tsx';
 import { threadTitles } from '../thread/thread-target.ts';
 import { replyInto } from './inbox-unread-row.tsx';
 import { TaskColumnPicker } from './task-column-picker.tsx';
-import { type TaskContextPlace, taskResolveActions } from './task-inbox-model.ts';
+import { type TaskReplyPlace, taskResolveActions } from './task-inbox-model.ts';
 import { UnreadRowComposer, type UnreadRowReply } from './unread-row-composer.tsx';
 import { ClampedMessages } from './unread-row-content.tsx';
 import { UnreadRowHeader } from './unread-row-header.tsx';
@@ -33,7 +40,7 @@ export function UnreadTaskRow({
     item,
     onOpenContext,
     onResolve,
-    place,
+    replyPlace,
     serverId,
     triage,
 }: {
@@ -43,17 +50,17 @@ export function UnreadTaskRow({
     /** Opens the context message's conversation. */
     onOpenContext: () => void;
     onResolve: (column: BoardColumn) => void;
-    place: null | TaskContextPlace;
+    replyPlace: null | TaskReplyPlace;
     serverId: string;
     triage: UnreadRowTriage;
 }) {
-    const { assignedAt, assignedBy, boardName, contextMessage, task } = item;
+    const { assignedAt, assignedBy, boardName, contextMessage, contextPlace, task } = item;
     const humans = useHumanDirectory(serverId);
-    const reply: UnreadRowReply = place
+    const reply: UnreadRowReply = replyPlace
         ? replyInto(
-              place.parent,
-              threadTitles(place.parent, place.anchorMessageId, humans).header,
-              { anchorMessageId: place.anchorMessageId, kind: 'thread' }
+              replyPlace.parent,
+              threadTitles(replyPlace.parent, replyPlace.anchorMessageId, humans).header,
+              { anchorMessageId: replyPlace.anchorMessageId, kind: 'thread' }
           )
         : { kind: 'closed' };
 
@@ -71,11 +78,11 @@ export function UnreadTaskRow({
                 title={boardName}
             />
             <TaskFacts board={board} onResolve={onResolve} task={task} />
-            {contextMessage ? (
+            {contextMessage && contextPlace ? (
                 <ContextMessage
                     message={contextMessage}
                     onOpen={onOpenContext}
-                    place={place}
+                    place={contextPlace}
                     serverId={serverId}
                 />
             ) : null}
@@ -154,38 +161,30 @@ function ContextMessage({
 }: {
     message: ChatMessage;
     onOpen: () => void;
-    place: null | TaskContextPlace;
+    place: TaskMessagePlace;
     serverId: string;
 }) {
     const messages = React.useMemo(() => [message], [message]);
 
     return (
         <div className="flex min-w-0 flex-col pb-1">
-            {place ? (
-                <button
-                    className="mb-1 self-start rounded-sm px-4 text-muted text-xs outline-none hover:underline focus-visible:ring-2 focus-visible:ring-focus"
-                    onClick={onOpen}
-                    type="button"
-                    {...opensPlace}
-                >
-                    {contextPlaceLabel(place)}
-                </button>
-            ) : null}
+            <button
+                className="mb-1 self-start rounded-sm px-4 text-muted text-xs outline-none hover:underline focus-visible:ring-2 focus-visible:ring-focus"
+                onClick={onOpen}
+                type="button"
+                {...opensPlace}
+            >
+                {taskMessagePlaceLabel(place)}
+            </button>
             <ClampedMessages
                 chatId={message.chatId}
-                conversationChatId={place?.parent.id ?? message.chatId}
+                conversationChatId={place.chatId}
                 messages={messages}
                 onOpen={onOpen}
                 serverId={serverId}
             />
         </div>
     );
-}
-
-/** `#security`, `Thread in #security`, `DM`, or `Thread in DM`: a DM never names its peer here. */
-function contextPlaceLabel({ parent, threadChatId }: TaskContextPlace) {
-    const name = parent.kind === 'channel' ? `#${parent.name}` : 'DM';
-    return threadChatId ? `Thread in ${name}` : name;
 }
 
 /** A board's mark at the sidebar's 24px, the size every Unread card's place wears. */

@@ -16,6 +16,8 @@ final class TaskInboxModelsTests: XCTestCase {
                     "chatId":"chat_1","content":"On SEC-27: scope me down","createdAt":"2026-11-03T00:00:00Z",
                     "id":"message_1","nonce":"n","runId":null,"sequence":1,"serverId":"server_1","claim":null,
                     "taskLinks":[{"key":"SEC-27","taskId":"task_27","text":"SEC-27"}]},
+                  "contextPlace":{"chatId":"chat_security","chatKind":"channel","chatName":"security",
+                    "threadAnchorMessageId":"anchor_1"},
                   "task":{"assignee":{"kind":"user","userId":"u"},"boardId":"board_1","category":"todo",
                     "columnId":"col_1","completedAt":null,"createdAt":"2026-11-03T00:00:00Z",
                     "createdBy":{"agentId":"agent_1","kind":"agent"},"description":"","dueOn":null,
@@ -32,6 +34,24 @@ final class TaskInboxModelsTests: XCTestCase {
         XCTAssertEqual(item.assignedBy.label, "Zero")
         XCTAssertEqual(item.boardName, "Security")
         XCTAssertEqual(item.contextMessage?.taskLinks.first?.taskID, "task_27")
+        XCTAssertEqual(item.contextPlace?.chatID, "chat_security")
+        XCTAssertEqual(item.contextPlace?.threadAnchorMessageID, "anchor_1")
+        XCTAssertEqual(item.contextPlace?.label, "#security · Thread")
+    }
+
+    func testAPlaceNamesItsChannelSaysDMForADMAndMarksAThread() {
+        let channel = TaskMessagePlace(
+            chatID: "c",
+            chatKind: .channel,
+            chatName: "security",
+            threadAnchorMessageID: nil
+        )
+        let dm = TaskMessagePlace(chatID: "d", chatKind: .dm, chatName: nil, threadAnchorMessageID: nil)
+        let dmThread = TaskMessagePlace(chatID: "d", chatKind: .dm, chatName: nil, threadAnchorMessageID: "a")
+
+        XCTAssertEqual(channel.label, "#security")
+        XCTAssertEqual(dm.label, "DM")
+        XCTAssertEqual(dmThread.label, "DM · Thread")
     }
 
     func testAnItemCanHaveNoContextMessage() throws {
@@ -41,7 +61,7 @@ final class TaskInboxModelsTests: XCTestCase {
                 """
                 {"assignedAt":"2026-11-03T00:00:00Z",
                  "assignedBy":{"id":"u","kind":"user","label":"Ada"},"boardName":"General",
-                 "contextMessage":null,
+                 "contextMessage":null,"contextPlace":null,
                  "task":{"assignee":null,"boardId":"b","category":"todo","columnId":"c","completedAt":null,
                    "createdAt":"2026-11-03T00:00:00Z","createdBy":{"kind":"user","userId":"u"},
                    "description":"","dueOn":null,"id":"t","key":"GEN-1","labelIds":[],"number":1,
@@ -52,6 +72,7 @@ final class TaskInboxModelsTests: XCTestCase {
         )
 
         XCTAssertNil(item.contextMessage)
+        XCTAssertNil(item.contextPlace)
     }
 
     func testClearAndRestoreShareOneInput() throws {
@@ -83,6 +104,20 @@ final class TaskInboxModelsTests: XCTestCase {
             PushOpenRequest(userInfo: assignment),
             .task(PushTaskAssignmentPayload(serverID: "server_1", taskID: "task_1", key: "SEC-12"))
         )
+    }
+
+    func testABurstPushOpensTheInbox() {
+        let burst: [AnyHashable: Any] = [
+            "aps": ["alert": ["title": "Zero assigned you 6 tasks", "body": "Rate-limit and 5 more"]],
+            "count": 6,
+            "kind": "task_assignment_burst",
+            "serverId": "server_1",
+        ]
+        XCTAssertEqual(
+            PushOpenRequest(userInfo: burst),
+            .taskBurst(PushTaskAssignmentBurstPayload(serverID: "server_1", count: 6))
+        )
+        XCTAssertNil(PushTaskAssignmentPayload(userInfo: burst))
     }
 
     func testAMessagePushStaysAMessage() {

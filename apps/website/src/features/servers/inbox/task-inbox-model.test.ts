@@ -1,10 +1,8 @@
 import { describe, expect, test } from 'bun:test';
-import type { BoardColumn, Chat, ChatMessage, TaskInboxItem } from '@haus/api';
-import type { TaskContextThread } from '../../../hooks/task-inbox/use-task-context-threads.ts';
+import type { BoardColumn, Chat, ChatMessage, TaskMessagePlace } from '@haus/api';
 import {
     type ResolvedTask,
-    taskContextPlace,
-    taskContextThreadChatIds,
+    taskReplyPlace,
     taskResolveActions,
     withResolvedRow,
 } from './task-inbox-model.ts';
@@ -54,48 +52,33 @@ describe('taskResolveActions', () => {
     });
 });
 
-describe('the context message place', () => {
+describe('where a card replies', () => {
     const channel = { id: 'cht_all', kind: 'channel', name: 'all' } as Chat;
     const chats = new Map([[channel.id, channel]]);
-    const message = (chatId: string) => ({ chatId, id: 'msg_context' }) as ChatMessage;
-    const thread: TaskContextThread = {
-        anchorMessageId: 'msg_anchor',
-        parentChatId: 'cht_all',
-        serverId: 'srv_one',
-        threadChatId: 'cht_thread',
-    };
-    const threads = new Map([[thread.threadChatId, thread]]);
+    const contextMessage = { chatId: 'cht_all', id: 'msg_context' } as ChatMessage;
+    const place = (threadAnchorMessageId: null | string): TaskMessagePlace => ({
+        chatId: 'cht_all',
+        chatKind: 'channel',
+        chatName: 'all',
+        threadAnchorMessageId,
+    });
 
     test('a top-level message anchors its own Thread', () => {
-        expect(taskContextPlace(message('cht_all'), chats, new Map())).toEqual({
+        expect(taskReplyPlace({ contextMessage, contextPlace: place(null) }, chats)).toEqual({
             anchorMessageId: 'msg_context',
             parent: channel,
-            threadChatId: null,
         });
     });
 
     test('a Thread reply answers in the Thread it sits in', () => {
-        expect(taskContextPlace(message('cht_thread'), chats, threads)).toEqual({
-            anchorMessageId: 'msg_anchor',
-            parent: channel,
-            threadChatId: 'cht_thread',
-        });
+        expect(
+            taskReplyPlace({ contextMessage, contextPlace: place('msg_anchor') }, chats)
+        ).toEqual({ anchorMessageId: 'msg_anchor', parent: channel });
     });
 
-    test('no message, or a Thread not resolved yet, has no place to reply', () => {
-        expect(taskContextPlace(null, chats, threads)).toBeNull();
-        expect(taskContextPlace(message('cht_thread'), chats, new Map())).toBeNull();
-    });
-
-    test('only context messages outside the Chat list need their Thread read, once each', () => {
-        const items = [
-            { contextMessage: message('cht_z') },
-            { contextMessage: message('cht_all') },
-            { contextMessage: message('cht_b') },
-            { contextMessage: message('cht_z') },
-            { contextMessage: null },
-        ] as TaskInboxItem[];
-        expect(taskContextThreadChatIds(items, chats)).toEqual(['cht_b', 'cht_z']);
+    test('no message, or a Chat the reader does not hold, has no place to reply', () => {
+        expect(taskReplyPlace({ contextMessage: null, contextPlace: null }, chats)).toBeNull();
+        expect(taskReplyPlace({ contextMessage, contextPlace: place(null) }, new Map())).toBeNull();
     });
 });
 

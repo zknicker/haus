@@ -173,37 +173,23 @@ extension HausStore {
     /// The item's composer: a reply in a Thread on its context message, so
     /// discussion lands where the Task already lives and in its Mentioned in.
     /// A context message that is itself a Thread reply answers in that Thread.
+    /// The item names the parent and anchor, so a reply reads nothing first.
     func replyToTaskInboxItem(taskID: String, content: String) async -> Bool {
-        guard let message = taskSnapshots.inboxItems?.first(where: { $0.id == taskID })?.contextMessage else {
-            return false
-        }
-        if chatsByID[message.chatID] != nil {
-            let outcome = await sendThreadReply(
-                content,
-                to: message.chatID,
-                anchorMessageID: message.id,
-                pendingChatID: threadChatID(parentChatID: message.chatID, anchorMessageID: message.id)
+        guard let item = taskSnapshots.inboxItems?.first(where: { $0.id == taskID }),
+              let message = item.contextMessage,
+              let place = item.contextPlace
+        else { return false }
+        let isThreadReply = place.threadAnchorMessageID != nil
+        let outcome = await sendThreadReply(
+            content,
+            to: place.chatID,
+            anchorMessageID: place.threadAnchorMessageID ?? message.id,
+            pendingChatID: isThreadReply
+                ? message.chatID
+                : threadChatID(parentChatID: place.chatID, anchorMessageID: message.id)
                     ?? pendingThreadChatID(anchorMessageID: message.id)
-            )
-            return outcome != .rejected
-        }
-        guard let serverID = activeServer?.id else { return false }
-        do {
-            let thread: ThreadContext = try await client.query(
-                "thread.get",
-                input: ThreadContextInput(serverID: serverID, threadChatID: message.chatID)
-            )
-            let outcome = await sendThreadReply(
-                content,
-                to: thread.parentChatID,
-                anchorMessageID: thread.anchorMessageID,
-                pendingChatID: thread.threadChatID
-            )
-            return outcome != .rejected
-        } catch {
-            Self.logger.error("Replying from the Inbox failed: \(error.localizedDescription, privacy: .public)")
-            return false
-        }
+        )
+        return outcome != .rejected
     }
 
     /// Every queued or running Cloud Agent work the viewer can see on this

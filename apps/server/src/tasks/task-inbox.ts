@@ -1,4 +1,9 @@
-import type { ChatMessage, TaskInboxItem, TaskInboxMutationResult } from '@haus/api';
+import type {
+    ChatMessage,
+    TaskInboxItem,
+    TaskInboxMutationResult,
+    TaskMessagePlace,
+} from '@haus/api';
 import { and, asc, desc, eq, inArray, isNull } from 'drizzle-orm';
 import { readMessagesById } from '../chats/read-messages-by-id.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -22,6 +27,7 @@ import {
     prepareTaskInboxChangedEvent,
     restoreTaskInboxItem,
 } from './task-inbox-items.ts';
+import { messagePlaceColumns, messagePlaceOf, threadParentChatJoin } from './task-message-place.ts';
 import { readTasks } from './task-read.ts';
 
 interface InboxTaskKey {
@@ -33,7 +39,8 @@ interface InboxTaskKey {
  * `taskInbox.list`: the reader's uncleared Task items on one Server, newest
  * assignment first (ADR 0051). Each carries its context message, the newest
  * message referencing the Task that the reader can read, projected the way the
- * transcript projects it. Every part is one batched read.
+ * transcript projects it, and where that message lives. Every part is one
+ * batched read.
  */
 export async function listTaskInbox(
     db: HausDatabase,
@@ -76,6 +83,7 @@ export async function listTaskInbox(
         if (!id) {
             throw new Error(`Task Inbox item for ${item.taskId} names no assigner.`);
         }
+        const context = contexts.get(item.taskId);
         return {
             assignedAt: item.createdAt.toISOString(),
             assignedBy: {
@@ -84,7 +92,8 @@ export async function listTaskInbox(
                 label: labels.get(id) ?? 'Unknown',
             },
             boardName: name,
-            contextMessage: contexts.get(item.taskId) ?? null,
+            contextMessage: context?.message ?? null,
+            contextPlace: context?.place ?? null,
             task,
         };
     });
@@ -163,14 +172,18 @@ async function readAssignerLabels(
     );
 }
 
-/** Each Task's newest readable referencing message, in one read of the links and one projection. */
+/**
+ * Each Task's newest readable referencing message and its place, in one read
+ * of the links and one projection.
+ */
 async function readContextMessages(
     db: HausDatabase,
     reader: TaskActor,
     input: { serverId: string; taskIds: string[] }
-): Promise<Map<string, ChatMessage>> {
+): Promise<Map<string, { message: ChatMessage; place: TaskMessagePlace }>> {
     const links = await db
         .selectDistinctOn([taskMessageLinksTable.taskId], {
+            ...messagePlaceColumns,
             messageId: taskMessageLinksTable.messageId,
             taskId: taskMessageLinksTable.taskId,
         })
@@ -189,6 +202,7 @@ async function readContextMessages(
                 eq(chatsTable.id, chatMessagesTable.chatId)
             )
         )
+        .leftJoin(...threadParentChatJoin)
         .where(
             and(
                 eq(taskMessageLinksTable.serverId, input.serverId),
@@ -210,7 +224,9 @@ async function readContextMessages(
     return new Map(
         links.flatMap((link) => {
             const message = messages.get(link.messageId);
-            return message ? [[link.taskId, message] as const] : [];
+            return message
+                ? [[link.taskId, { message, place: messagePlaceOf(link) }] as const]
+                : [];
         })
     );
 }

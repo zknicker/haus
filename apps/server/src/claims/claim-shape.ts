@@ -1,11 +1,7 @@
-import type { MessageClaim, TaskLabel } from '@haus/api';
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import type { MessageClaim } from '@haus/api';
+import { and, eq, inArray } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    messageClaimLabelsTable,
-    messageClaimsTable,
-    taskLabelsTable,
-} from '../postgres/schema.ts';
+import { messageClaimsTable } from '../postgres/schema.ts';
 import { loadLiveClaimMessageIds } from './claim-liveness.ts';
 import { resolveClaimTier } from './claim-tier.ts';
 import { claimWorkThreadChatId } from './claim-work-thread.ts';
@@ -14,7 +10,6 @@ export type MessageClaimRow = typeof messageClaimsTable.$inferSelect;
 
 /** What a claim row cannot answer alone: its lens and whether a run holds it. */
 export interface ClaimDerivation {
-    labels: TaskLabel[];
     live: boolean;
     tier: MessageClaim['tier'];
 }
@@ -69,7 +64,7 @@ export async function toMessageClaim(
 }
 
 /**
- * Reads labels, tier evidence, and liveness once for a whole batch of rows.
+ * Reads tier evidence and liveness once for a whole batch of rows.
  *
  * Sequential, never `Promise.all`: every claim write projects its result before
  * committing, so `db` is usually the caller's transaction, and overlapping
@@ -80,18 +75,14 @@ export async function toMessageClaim(
 export async function projectMessageClaims(
     db: Pick<HausDatabase, 'select'>,
     serverId: string,
-    rows: MessageClaimRow[],
-    knownLabels?: Map<string, TaskLabel[]>
+    rows: MessageClaimRow[]
 ): Promise<MessageClaim[]> {
     if (rows.length === 0) {
         return [];
     }
-    const messageIds = rows.map((row) => row.messageId);
-    const labels = knownLabels ?? (await listTaskLabelMap(db, serverId, messageIds));
     const live = await loadLiveClaimMessageIds(db, serverId, rows);
     return rows.map((row) =>
         toMessageClaimWithDerivation(row, {
-            labels: labels.get(row.messageId) ?? [],
             live: live.has(row.messageId),
             tier: resolveClaimTier(row),
         })
@@ -109,55 +100,14 @@ export function toMessageClaimWithDerivation(
         createdAt: row.createdAt.toISOString(),
         createdByAgentId: row.createdByAgentId,
         createdByUserId: row.createdByUserId,
-        labels: derivation.labels,
         live: derivation.live,
         messageId: row.messageId,
         number: row.number,
         origin: row.origin,
-        priority: row.priority,
         status: row.status,
         threadChatId: claimWorkThreadChatId(row),
         tier: derivation.tier,
         updatedAt: row.updatedAt.toISOString(),
         version: row.version,
     };
-}
-
-export async function listTaskLabelMap(
-    db: Pick<HausDatabase, 'select'>,
-    serverId: string,
-    messageIds: string[]
-): Promise<Map<string, TaskLabel[]>> {
-    if (messageIds.length === 0) {
-        return new Map();
-    }
-    const rows = await db
-        .select({
-            color: taskLabelsTable.color,
-            id: taskLabelsTable.id,
-            messageId: messageClaimLabelsTable.messageId,
-            name: taskLabelsTable.name,
-        })
-        .from(messageClaimLabelsTable)
-        .innerJoin(
-            taskLabelsTable,
-            and(
-                eq(taskLabelsTable.serverId, messageClaimLabelsTable.serverId),
-                eq(taskLabelsTable.id, messageClaimLabelsTable.labelId)
-            )
-        )
-        .where(
-            and(
-                eq(messageClaimLabelsTable.serverId, serverId),
-                inArray(messageClaimLabelsTable.messageId, messageIds)
-            )
-        )
-        .orderBy(asc(messageClaimLabelsTable.messageId), asc(taskLabelsTable.name));
-    const labels = new Map<string, TaskLabel[]>();
-    for (const row of rows) {
-        const current = labels.get(row.messageId) ?? [];
-        current.push({ color: row.color, id: row.id, name: row.name });
-        labels.set(row.messageId, current);
-    }
-    return labels;
 }

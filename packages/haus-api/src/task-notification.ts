@@ -30,6 +30,29 @@ export function taskAssignmentNotificationTitle(input: {
 }
 
 /**
+ * The one alert for several assignments landing together: an Agent filing a
+ * queue for one person raises this once, never one per Task, and it opens the
+ * Inbox, which still holds one card per Task. `assignerName` is null when the
+ * assignments came from more than one assigner, or the assigner has no name.
+ */
+export function taskAssignmentBurstNotificationTitle(input: {
+    assignerName: null | string;
+    count: number;
+}): string {
+    return input.assignerName
+        ? `${input.assignerName} assigned you ${input.count} tasks`
+        : `${input.count} tasks assigned to you`;
+}
+
+/** The burst alert's second line: "Rotate the key and 5 more", the newest Task leading. */
+export function taskAssignmentBurstNotificationBody(input: {
+    count: number;
+    newestTitle: string;
+}): string {
+    return `${input.newestTitle} and ${input.count - 1} more`;
+}
+
+/**
  * `task.assigned`: a Task was handed to someone other than the assigner. A
  * Server-internal notification fact, published after the assignment commits for
  * iPhone push to act on; no client subscribes to it. `version` is the

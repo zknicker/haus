@@ -2,13 +2,14 @@ import * as z from 'zod';
 import { boardNameSchema } from './board.ts';
 import { chatMessageSchema } from './chat.ts';
 import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
-import { taskSchema } from './task.ts';
+import { taskMessagePlaceSchema, taskSchema } from './task.ts';
 
 /**
  * One Task assigned to the reader, as a person's Inbox item (ADR 0051): one
  * per Task, never bundled. `contextMessage` is the newest message referencing
  * the Task that the reader can read, and the item's composer replies in a
- * Thread on it; null when there is none.
+ * Thread on it; null when there is none. `contextPlace` says where that
+ * message lives, and is null exactly when it is.
  */
 export const taskInboxItemSchema = z
     .object({
@@ -22,9 +23,19 @@ export const taskInboxItemSchema = z
             .strict(),
         boardName: boardNameSchema,
         contextMessage: chatMessageSchema.nullable(),
+        contextPlace: taskMessagePlaceSchema.nullable(),
         task: taskSchema,
     })
-    .strict();
+    .strict()
+    .superRefine((item, context) => {
+        if ((item.contextMessage === null) !== (item.contextPlace === null)) {
+            context.addIssue({
+                code: 'custom',
+                message: 'A context message and its place come together.',
+                path: ['contextPlace'],
+            });
+        }
+    });
 
 export type TaskInboxItem = z.infer<typeof taskInboxItemSchema>;
 

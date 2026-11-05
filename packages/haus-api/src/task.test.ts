@@ -2,7 +2,13 @@ import { expect, test } from 'bun:test';
 import { agentDeliveryRecordSchema, isChatlessInboxSource } from './agent-deliveries.ts';
 import { type AgentTurnTrigger, agentTurnTriggerSchema } from './agent-turn-trigger.ts';
 import { chatMessageSchema } from './chat.ts';
-import { type Task, taskAssigneeSchema, taskDetailSchema, taskSchema } from './task.ts';
+import {
+    type Task,
+    taskAssigneeSchema,
+    taskDetailSchema,
+    taskMessagePlaceSchema,
+    taskSchema,
+} from './task.ts';
 import {
     taskAssignInputSchema,
     taskCreateInputSchema,
@@ -102,7 +108,12 @@ test('a Task record keeps its derived key consistent and its fields bounded', ()
                     createdAt: '2026-11-04T12:01:00.000Z',
                     excerpt: 'Filed SEC-12 for the leaked key.',
                     messageId: 'msg_1',
-                    threadAnchorMessageId: null,
+                    place: {
+                        chatId: 'cht_security',
+                        chatKind: 'channel',
+                        chatName: 'security',
+                        threadAnchorMessageId: null,
+                    },
                 },
             ],
             reminders: [
@@ -116,6 +127,20 @@ test('a Task record keeps its derived key consistent and its fields bounded', ()
             ],
         }).mentions
     ).toHaveLength(1);
+});
+
+test("a message's place names a Channel and never a DM's peer", () => {
+    const channel = {
+        chatId: 'cht_security',
+        chatKind: 'channel',
+        chatName: 'security',
+        threadAnchorMessageId: 'msg_anchor',
+    };
+    const dm = { ...channel, chatKind: 'dm', chatName: null };
+    expect(taskMessagePlaceSchema.safeParse(channel).success).toBe(true);
+    expect(taskMessagePlaceSchema.safeParse(dm).success).toBe(true);
+    expect(taskMessagePlaceSchema.safeParse({ ...channel, chatName: null }).success).toBe(false);
+    expect(taskMessagePlaceSchema.safeParse({ ...dm, chatName: 'Ada' }).success).toBe(false);
 });
 
 test('task inputs reject illegal assignments and empty patches', () => {

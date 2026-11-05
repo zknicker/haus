@@ -65,7 +65,7 @@ final class ClaimOpeningTests: XCTestCase {
                 """
                 {"chatKind":"channel","chatName":"product","chatPeerUserId":null,
                  "message":{"attachments":[],"author":{"kind":"agent","agentId":"agent_1","profile":null},"chatId":"\(messageChatID)","content":"Pull the numbers","createdAt":"2026-01-01T00:00:00Z","id":"\(messageID)","nonce":"nonce_1","runId":null,"sequence":3,"serverId":"server_1","claim":null},
-                 "claim":{"assigneeAgentId":"agent_1","chatId":"chat_product","claimedAt":"2026-01-01T00:00:10Z","createdAt":"2026-01-01T00:00:10Z","createdByAgentId":"agent_1","createdByUserId":null,"labels":[],"live":true,"messageId":"\(messageID)","number":12,"origin":"claimed","priority":"none","status":"in_progress","threadChatId":"\(threadChatID)","tier":"tracked","updatedAt":"2026-01-01T00:00:10Z","version":1},
+                 "claim":{"assigneeAgentId":"agent_1","chatId":"chat_product","claimedAt":"2026-01-01T00:00:10Z","createdAt":"2026-01-01T00:00:10Z","createdByAgentId":"agent_1","createdByUserId":null,"live":true,"messageId":"\(messageID)","number":12,"origin":"claimed","status":"in_progress","threadChatId":"\(threadChatID)","tier":"tracked","updatedAt":"2026-01-01T00:00:10Z","version":1},
                  "threadSummary":{"anchorMessageId":"message_anchor","followed":true,"latestReplyAt":null,"recentReplies":[],"replyCount":1,"threadChatId":"\(threadChatID)","unreadCount":0}}
                 """.utf8
             )

@@ -63,9 +63,6 @@ extension HausStore {
         for messageID in effects.liveReactionMessageIDs {
             reactionStickers.noteLive(messageID: messageID, eventAt: .now)
         }
-        if !effects.changedLabelIDs.isEmpty {
-            reloadForLabelChanges(effects.changedLabelIDs)
-        }
         let workListChatIDs = effects.cloudAgentWorkChatIDs.union(ThreadCloudAgentWork.chatIDs(
             listing: effects.cloudAgentWorkIDs.union(workLinkedInDeletedChats),
             in: cloudAgentWorkByChatID
@@ -92,19 +89,6 @@ extension HausStore {
         if !effects.tailSequenceByChatID.isEmpty, activeServer?.id == serverID {
             messageSearchRevision += 1
         }
-    }
-
-    /// A label carries no message ids: retire every tail read in flight (one
-    /// begun before the update could seed a message under the former label
-    /// that no carrier refresh names), refresh every cached entity carrying
-    /// it (marked dirty, so a list read in flight re-reads it as it settles),
-    /// then reload the Server's open lists in bulk.
-    private func reloadForLabelChanges(_ labelIDs: Set<String>) {
-        transcriptReads.invalidateTails()
-        for refresh in Set(labelIDs.flatMap(transcripts.refreshes(carryingLabel:))) {
-            refreshEntity(refresh)
-        }
-        Task { await self.recoverOpenTranscripts() }
     }
 
     private func scheduleLiveChatEventFlush(serverID: String) {

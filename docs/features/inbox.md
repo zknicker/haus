@@ -267,10 +267,9 @@ offered. The card then gives way to a slim row where it sat, with an Undo that m
 and restores the item. Only the newest resolve keeps its row: the next card worked takes it away.
 Mark read and opening the Task clear the card without moving the Task, and leave no row.
 
-The list paints once the Task items, and the boards and Threads they need, have settled, so no
-card grows under the reader. `taskInbox.list` does not say which Thread a context message that is
-a Thread reply sits in, so those Threads are read one at a time in a single query
-(`use-task-context-threads.ts`), never one request per card.
+The list paints once the Task items and the boards they need have settled, so no card grows under
+the reader. `taskInbox.list` names each context message's place (`#security · Thread`, its parent
+Channel or DM, and the Thread anchor), so a card opens and replies with no read of its own.
 
 ## Current stub
 
@@ -339,6 +338,9 @@ stops the next notification; only a message already read is not notified.
   archived Chats never push. The Server sends only when an APNs key is configured; see
   [iPhone Push](../operations/ios-push.md). A Task someone else assigned the human pushes too,
   titled `<assigner> assigned you SEC-12`, unless its Inbox item clears within the same wait.
+  Several assignments landing inside that wait are one push, `Zero assigned you 6 tasks`, and a tap
+  opens the Inbox, which still holds a card per Task. The desktop notification does the same for
+  assignments that arrive in one list read.
 - **iPhone Focus**: a push tells iOS why it addresses the human. A DM breaks through a Focus when
   its sender is an allowed person; in a Channel or Thread, only a mention of the human or a reply
   to their message does (for an allowed sender). Haus never marks pushes Time Sensitive.

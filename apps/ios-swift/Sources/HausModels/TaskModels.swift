@@ -171,8 +171,7 @@ public struct TaskMention: Codable, Identifiable, Hashable, Sendable {
     public let createdAt: Date
     public let excerpt: String
     public let messageID: String
-    /// The Thread's anchor when the message is a Thread reply; nil otherwise.
-    public let threadAnchorMessageID: String?
+    public let place: TaskMessagePlace
 
     public var id: String { messageID }
 
@@ -182,7 +181,7 @@ public struct TaskMention: Codable, Identifiable, Hashable, Sendable {
         case createdAt
         case excerpt
         case messageID = "messageId"
-        case threadAnchorMessageID = "threadAnchorMessageId"
+        case place
     }
 }
 

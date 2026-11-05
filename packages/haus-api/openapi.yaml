@@ -4123,8 +4123,6 @@ components:
         - status
         - assignee
         - claimed_at
-        - priority
-        - labels
         - origin
         - created_at
         - updated_at
@@ -4143,13 +4141,6 @@ components:
           oneOf:
             - $ref: '#/components/schemas/Timestamp'
             - type: 'null'
-        priority:
-          type: string
-          enum: [none, urgent, high, medium, low]
-        labels:
-          type: array
-          items:
-            $ref: '#/components/schemas/TaskLabel'
         origin:
           type: string
           enum: [composed, converted, claimed]
@@ -4169,21 +4160,6 @@ components:
           type: string
         handle:
           type: [string, 'null']
-    TaskLabel:
-      type: object
-      additionalProperties: false
-      required:
-        - id
-        - name
-        - color
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        color:
-          type: string
-          enum: [red, orange, amber, green, teal, blue, purple, pink, gray]
     MessageReaction:
       type: object
       additionalProperties: false

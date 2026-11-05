@@ -22,8 +22,8 @@ import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.t
 import { serializedTransactions } from './serialized-db-fixture.ts';
 
 /**
- * A claim write projects its result — labels, tier evidence, liveness — before
- * it commits, and every one of those reads has to run on the transaction's own
+ * A claim write projects its result — tier evidence, liveness — before it
+ * commits, and every one of those reads has to run on the transaction's own
  * connection, one at a time. A read that overlaps another leaves the
  * transaction idle holding the Server row lock it took first, and every later
  * durable write queues behind it until the process dies. These tests drive the

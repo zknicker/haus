@@ -25,7 +25,8 @@ final class TaskModelsTests: XCTestCase {
                 {\(Self.taskFields),
                  "mentions":[{"authorLabel":"Forge","chatId":"thread_1","createdAt":"2026-11-03T00:00:00Z",
                    "excerpt":"Should the limit apply?","messageId":"message_1",
-                   "threadAnchorMessageId":"anchor_1"}],
+                   "place":{"chatId":"chat_1","chatKind":"channel","chatName":"security",
+                     "threadAnchorMessageId":"anchor_1"}}],
                  "reminders":[{"anchorChatId":"chat_1","kind":"once","nextFireAt":null,
                    "reminderId":"reminder_1","title":"Re-check SEC-12"}]}
                 """.utf8
@@ -33,7 +34,10 @@ final class TaskModelsTests: XCTestCase {
         )
 
         XCTAssertEqual(detail.task.key, "SEC-12")
-        XCTAssertEqual(detail.mentions[0].threadAnchorMessageID, "anchor_1")
+        XCTAssertEqual(detail.mentions[0].chatID, "thread_1")
+        XCTAssertEqual(detail.mentions[0].place.chatID, "chat_1")
+        XCTAssertEqual(detail.mentions[0].place.threadAnchorMessageID, "anchor_1")
+        XCTAssertEqual(detail.mentions[0].place.label, "#security · Thread")
         XCTAssertEqual(detail.reminders[0].kind, .once)
         XCTAssertNil(detail.reminders[0].nextFireAt)
     }

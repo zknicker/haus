@@ -148,9 +148,7 @@ final class RealtimeStreamRestartsTests: XCTestCase {
             XCTAssertEqual(stream.ownedProjections, [.openTranscripts, .chatList], stream.path)
         }
         XCTAssertEqual(RealtimeStream.claimChanged.ownedProjections, [.openTranscripts, .chatList])
-        // Labels are embedded in transcript entities, so label recovery
-        // includes open transcript lists.
-        XCTAssertEqual(RealtimeStream.taskLabelUpdated.ownedProjections, [.openTranscripts, .taskLabels])
+        XCTAssertEqual(RealtimeStream.taskLabelUpdated.ownedProjections, [.taskLabels])
         XCTAssertEqual(RealtimeStream.boardUpdated.ownedProjections, [.boards, .boardTasks])
         XCTAssertEqual(RealtimeStream.taskCreated.ownedProjections, [.boards, .boardTasks, .taskInbox])
         XCTAssertEqual(RealtimeStream.taskUpdated.ownedProjections, [.boards, .boardTasks, .taskInbox])

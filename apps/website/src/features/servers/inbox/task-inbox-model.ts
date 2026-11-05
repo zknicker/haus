@@ -2,13 +2,11 @@ import type {
     Board,
     BoardColumn,
     Chat,
-    ChatMessage,
     ColumnCategory,
     Task,
     TaskInboxItem,
     TaskMutationResult,
 } from '@haus/api';
-import type { TaskContextThread } from '../../../hooks/task-inbox/use-task-context-threads.ts';
 import type { UnreadRow } from './unread-rows.ts';
 
 /** A resolve button on a Task card: the column it moves the Task to. */
@@ -39,55 +37,28 @@ export function taskResolveActions(
     });
 }
 
-/** Where a Task card's context message lives, and so where its composer replies. */
-export interface TaskContextPlace {
+/** Where a Task card's composer replies. */
+export interface TaskReplyPlace {
     /** The message the reply's Thread hangs off: the context message, or its Thread's anchor. */
     anchorMessageId: string;
     /** The Channel or DM. */
     parent: Chat;
-    /** Set when the context message is itself a Thread reply. */
-    threadChatId: null | string;
 }
 
 /**
- * Context messages that sit in a Chat the list does not name: Thread replies,
- * whose parent and anchor `taskInbox.list` leaves out. Sorted, so the read they
- * key is stable while the feed reorders.
+ * Where a card's reply goes, from the place `taskInbox.list` names. Null with
+ * no context message, or when the Chat is not one the reader holds, and then
+ * the card has no composer.
  */
-export function taskContextThreadChatIds(
-    items: readonly TaskInboxItem[],
+export function taskReplyPlace(
+    { contextMessage, contextPlace }: Pick<TaskInboxItem, 'contextMessage' | 'contextPlace'>,
     chats: ReadonlyMap<string, Chat>
-): string[] {
-    const ids = items.flatMap(({ contextMessage }) =>
-        contextMessage && !chats.has(contextMessage.chatId) ? [contextMessage.chatId] : []
-    );
-    return [...new Set(ids)].sort();
-}
-
-/**
- * The place of a context message: its own Chat, or the Chat its Thread hangs
- * off. Null with no message, or until its Thread resolves, or when the Chat is
- * not one the reader holds, and then the card has no composer.
- */
-export function taskContextPlace(
-    message: ChatMessage | null,
-    chats: ReadonlyMap<string, Chat>,
-    threads: ReadonlyMap<string, TaskContextThread>
-): null | TaskContextPlace {
-    if (!message) {
-        return null;
-    }
-    const chat = chats.get(message.chatId);
-    if (chat) {
-        return { anchorMessageId: message.id, parent: chat, threadChatId: null };
-    }
-    const thread = threads.get(message.chatId);
-    const parent = thread ? chats.get(thread.parentChatId) : undefined;
-    return thread && parent
+): null | TaskReplyPlace {
+    const parent = contextPlace ? chats.get(contextPlace.chatId) : undefined;
+    return contextMessage && contextPlace && parent
         ? {
-              anchorMessageId: thread.anchorMessageId,
+              anchorMessageId: contextPlace.threadAnchorMessageId ?? contextMessage.id,
               parent,
-              threadChatId: thread.threadChatId,
           }
         : null;
 }

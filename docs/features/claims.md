@@ -1,7 +1,7 @@
 ---
 summary: Hosted chat-first claims (renamed from tasks by ADR 0051) — Agent work as canonical messages with Server-owned lifecycle metadata, Agent-only assignees, inline conversation, optional Threads, and the Agent profile's Stopped before finishing section.
 read_when:
-  - changing claim promotion, claiming, assignment, statuses, priorities, or labels
+  - changing claim promotion, claiming, assignment, or statuses
   - changing hosted claim authorization, events, or Thread work surfaces
   - changing the claim Thread, the Agent profile's stalled claims, or the managed `haus claim` CLI contract
 ---
@@ -26,18 +26,18 @@ because they share the anchor message ([ADR 0015](../adr/0015-tasks-are-promoted
 
 ## Lifecycle
 
-- A human can atomically create a message as a claim or idempotently promote an existing top-level
-  Channel or DM message.
+- The App has no way to create or promote a claim ([ADR 0051](../adr/0051-tasks-are-boards-and-claims-are-the-lock.md)
+  decision 9): Convert to Task makes a Task. The Server keeps `claim.create` and `claim.promote` for
+  test and evaluation fixtures.
 - An Agent claims a message before doing any tool-using work on it. Claiming a message nobody had
-  promoted promotes it, with `origin` `claimed` — distinct from a human's `converted` (Convert to
-  Task) and `composed` (created as a claim). A claim is a concurrency lock, so it fails closed
+  promoted promotes it, with `origin` `claimed` — distinct from `converted` (`claim.promote`) and
+  `composed` (created as a claim for someone else). A claim is a concurrency lock, so it fails closed
   against a claim someone else holds. An Agent's `haus claim create --assignee @itself` is a claim
-  on a fresh message and is `claimed` too; `composed` and `converted` always mean a person made it.
+  on a fresh message and is `claimed` too; the same command unassigned or for a peer is `composed`.
 - A request that arrives inside a Thread is claimed there: the Thread message becomes the claim, its
   work surface is the Thread it already sits in, and its number comes from the Thread's parent
   Channel or DM, so `Claim #N` stays unique in that conversation. Only Agents claim Thread
-  messages; people create and convert claims on top-level messages, and `haus claim create` makes
-  top-level messages only.
+  messages; `haus claim create` makes top-level messages only.
 - Heartbeat runs cannot claim messages; they claim leads ([heartbeat spec](../../specs/heartbeat.md)).
 - The Agent sets its own finished work `done`. It uses `in_review` only when the requester asked to
   sign off or a human decision is still pending, and says in the conversation what to check. The
@@ -60,9 +60,7 @@ because they share the anchor message ([ADR 0015](../adr/0015-tasks-are-promoted
 - A claim also reports `live`: true while its assignee Agent's in-flight run holds that claim's
   message or Thread. Liveness is derived from the delivery ledger at read time; a run beginning
   and a run settling both emit `claim.updated`, so nothing polls for it.
-- Priority is `none`, `urgent`, `high`, `medium`, or `low`.
-- Labels come from one small Server task-label catalog. Members can create labels; Owners and
-  Admins can rename, recolor, or delete them.
+- A claim has no priority or labels. Those belong to board Tasks ([Tasks](tasks.md)).
 - Claiming is one concurrency lock among Agents. The first valid claim owns the message and
   advances its version; competing claims at the same version fail without double ownership.
   Humans do not claim.
@@ -136,16 +134,12 @@ claims still `in_progress`, stamped tracked because their run settled without an
 
 `claim.list` excludes background-tier claims by default and reports how many it hid, so an Agent's
 own bookkeeping never crowds a surface a person reads.
-`includeBackground` widens it to everything. The Tasks topbar spends that count on one quiet
-control — `N background` — which carries the widening as `?background=on`; it disappears entirely
-on a Server that has no background claims. In the widened lens those rows and cards wear a muted
-`background` word rather than a chip, because a background claim is an ordinary claim seen from a
-lens the reader opened, not a claim with a special status. Finished background claims still sit
-outside the resting `active` view, so widening the tier does not also widen the lifecycle.
+`includeBackground` widens it to everything, which is how `?claim=<messageId>` finds a background
+claim.
 
-Concrete durable events (`message.created` for a newly composed claim, `claim.created`, `claim.updated`, and
-`taskLabel.updated`) notify the Haus App. The hosted realtime hook owns exact claim-list, label-catalog,
-and affected-message invalidation; cursor catch-up applies the same invalidations after reconnect.
+Concrete durable events (`message.created` for a newly composed claim, `claim.created`, and
+`claim.updated`) notify the Haus App. The hosted realtime hook owns exact claim-list and
+affected-message invalidation; cursor catch-up applies the same invalidations after reconnect.
 
 In Chat, a claim's identity is a **claim chip** in the header of the recessed Thread surface beneath
 the message: the claim number owns the left edge, only the status disc carries lifecycle color, and
@@ -164,9 +158,9 @@ same card as compact informational rows.
 label unless the reader enables Show claims in chat, even when its Thread has replies. With the
 setting on, a Thread claim's chip sits on its message inside that Thread; it has no Thread of its
 own, so it carries no reply count, and opening it opens the Thread it is in. The Thread
-card still shows its reply count and previews and opens normally. Human-created claims (`composed`
-or `converted`) remain visible because a person made them deliberately. Tier remains a Board and
-List concern. The opened Thread still shows the full claim metadata above its anchor.
+card still shows its reply count and previews and opens normally. `composed` and `converted` claims
+remain visible because someone made them for others to see. The opened Thread still shows the full
+claim metadata above its anchor.
 
 The **Show claims in chat** preference (Settings → Preferences → Chat) turns the claims back on, and
 with it every claim reads the way a human-made one does. It is off by default and per device, stored
@@ -174,10 +168,9 @@ in `localStorage` under `haus.chat.showClaims`. The command palette carries the 
 entry that reads as what pressing it does — `Show claims in chat` while they are hidden, `Hide claims
 in chat` while they are showing.
 
-The native iPhone app carries both lenses and reads the same way on the Chat lens: the per-device
-**Show claims in chat** preference decides whether an empty `claimed` claim states itself, and a
-populated Thread always states its claim, so a hidden claim whose Thread has replies shows
-`Claim #N · status` on its ingress card. The Tasks list carries the same `N background` widening
+The native iPhone app reads the same way: the per-device **Show claims in chat** preference decides
+whether an empty `claimed` claim states itself, and a populated Thread always states its claim, so a
+hidden claim whose Thread has replies shows `Claim #N · status` on its ingress card
 ([iOS internals](../internals/ios.md)).
 
 A claim nobody finished is the one case a person needs told, and it is told on the Agent profile
@@ -228,8 +221,8 @@ unknown. A missing reply is not approval, negative evidence, or completed work.
 
 ## Deliberate exclusions
 
-Also excluded: claim scheduling, attachments, deletion, dependencies, epics, generic
-workflow machinery, and generic taxonomy infrastructure.
+Also excluded: claim priority, labels, scheduling, attachments, deletion, dependencies, epics,
+generic workflow machinery, and generic taxonomy infrastructure.
 
 The focused conversation preserves each message’s original location. Channel replies stay in the
 channel; the composer posts in the Thread. Opening the view does not create a Thread, subscribe

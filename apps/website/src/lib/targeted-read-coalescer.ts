@@ -2,7 +2,6 @@ import type { MessageCreatedEvent } from '@haus/api';
 import { type Query, type QueryClient, type QueryKey, useQueryClient } from '@tanstack/react-query';
 import {
     chatMessageQueryKey,
-    entityCarriesTaskLabel,
     isChatMessageEntityOf,
 } from '../hooks/servers/chat-message-entities.ts';
 import { hausTrpc } from './haus-server.tsx';
@@ -52,11 +51,6 @@ export interface TargetedReadCoalescer {
             'chatId' | 'parentChatId' | 'sequence' | 'serverId' | 'threadAnchorMessageId'
         >
     ): void;
-    /**
-     * A label has no message ids: abort the Server's tail reads, cancel and
-     * refetch its lists, then its carriers.
-     */
-    noteTaskLabelUpdated(event: { labelId: string; serverId: string }): Promise<void>;
     /** Runs `listener(scope)` after each Chat purge (kept views and pending rows drop theirs). */
     onChatPurged(listener: (scope: ChatScope) => void): () => void;
     /** `chat.onLifecycle` `deleted`: abort tails, cancel and remove the Chat's lists and entities. */
@@ -172,25 +166,6 @@ export function createTargetedReadCoalescer({
                     serverId: event.serverId,
                 });
             }
-        },
-        noteTaskLabelUpdated: async ({ labelId, serverId }) => {
-            const serverLists = lists.lists({ serverId });
-            // No list or tail read in flight may land and seed the old label:
-            // abort the Server's tails (React Query cannot cancel them), then
-            // cancel its list fetches. The bulk refetch below re-reads any tail.
-            lists.abort({ serverId });
-            await queryClient.cancelQueries({ predicate: (query) => serverLists.includes(query) });
-            invalidateEach(serverLists);
-            const fetching = (query: Query) =>
-                isChatMessageEntityOf(query, { serverId }) &&
-                query.state.fetchStatus === 'fetching';
-            await queryClient.cancelQueries({ predicate: fetching });
-            invalidateEach(
-                queryClient.getQueryCache().findAll({
-                    predicate: (query) =>
-                        fetching(query) || entityCarriesTaskLabel(query, serverId, labelId),
-                })
-            );
         },
         onChatPurged: (listener) => subscribeChatPurges(queryClient, listener),
         purgeChat: async (scope) => {
