@@ -4,7 +4,7 @@ import { cloudAgentFixture } from './cloud-agent-fixture.ts';
 
 const fixture = cloudAgentFixture();
 
-test('a follow-up stalled past the delivery window notifies once per window without settling', async () => {
+test('a follow-up an auto-interrupt still could not deliver notifies once per window without settling', async () => {
     const runner = await fixture.mintRunner('run_cloud_stalled');
     const created = await fixture.postStart(runner, fixture.startBody({ nonce: 'cloud-stalled' }));
     const work = created.body.work as CloudAgentWork;
@@ -16,10 +16,13 @@ test('a follow-up stalled past the delivery window notifies once per window with
             where source = 'cloud_agent_work' and dedupe_key like ${`${runId}:stall:%`}
         ` as Promise<{ id: string }[]>;
     const stallSummary =
-        'The provider has stayed busy for over 30 minutes. Last error: busy. Haus keeps retrying.';
+        "Haus automatically interrupted the session to deliver this follow-up, but it still didn't go through. Last error: busy.";
     const stalled = (observedAt: string) => ({
-        activity: { at: observedAt, summary: 'Session busy for over 30 minutes; still retrying.' },
-        errorCode: 'followup-delivery-timeout',
+        activity: {
+            at: observedAt,
+            summary: 'Auto-interrupt did not clear the session; still retrying.',
+        },
+        errorCode: 'followup-auto-interrupt-failed',
         observedAt,
         runId,
         status: 'queued',

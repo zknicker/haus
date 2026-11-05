@@ -23,20 +23,22 @@ export interface AppliedCloudAgentObservation {
 }
 
 /**
- * A follow-up Computer keeps queued and retrying past the documented 30-minute
- * delivery window (TECH-7's design refinement) carries this errorCode on an
- * otherwise non-terminal `queued` observation, never on its own a reason to
- * settle. One inbox attention still wakes the delegating Agent, so a stuck
- * follow-up is never silent, but sparse reminders replace a terminal failure:
- * Computer reports the same errorCode on every retry tick, and this dedupes
- * every report inside one window to the same attention, then opens a fresh one
- * each time a new window starts. There is no shared enum for the string: the
- * Computer side and the website status line each compare this literal, the
- * same way `cloud-agent-presentation.ts` already compares raw `launch-` and
+ * Computer tries this once a follow-up's send keeps failing past its own
+ * grace period: ask the provider to clear whatever holds the session busy
+ * (`send --interrupt`'s own mechanism), then retry the send right away. A
+ * follow-up still queued and retrying carries this errorCode when even that
+ * didn't deliver it — never on its own a reason to settle. One inbox
+ * attention still wakes the delegating Agent, so it is never silent, but
+ * sparse reminders replace a terminal failure: Computer reports the same
+ * errorCode on every retry tick, and this dedupes every report inside one
+ * window to the same attention, then opens a fresh one each time a new
+ * window starts. There is no shared enum for the string: the Computer side
+ * and the website status line each compare this literal, the same way
+ * `cloud-agent-presentation.ts` already compares raw `launch-` and
  * `provider-launch-` prefixes without one.
  */
-const followUpStallErrorCode = 'followup-delivery-timeout';
-/** How often a follow-up stuck past the delivery window gets another reminder. */
+const followUpAutoInterruptFailedErrorCode = 'followup-auto-interrupt-failed';
+/** How often a follow-up still stuck after that gets another reminder. */
 const followUpStallReminderMs = 2 * 60 * 60_000;
 
 /**
@@ -45,9 +47,9 @@ const followUpStallReminderMs = 2 * 60 * 60_000;
  * result a Run reports is the one that stands. Only the newest Run projects
  * work lifecycle. Every settling Run creates one durable inbox attention for
  * the delegating Agent in the requesting Chat, in the same transaction, unless
- * that Chat has since been deleted; a follow-up stalled past the delivery
- * window (see `followUpStallErrorCode`) creates the same kind of attention
- * without settling, at most once per reminder window.
+ * that Chat has since been deleted; a follow-up an auto-interrupt still
+ * couldn't deliver (see `followUpAutoInterruptFailedErrorCode`) creates the
+ * same kind of attention without settling, at most once per reminder window.
  */
 export async function applyCloudAgentObservation(
     db: HausDatabase,
@@ -132,7 +134,7 @@ export async function applyCloudAgentObservation(
                 )
             );
 
-        const stalled = !settling && observation.errorCode === followUpStallErrorCode;
+        const stalled = !settling && observation.errorCode === followUpAutoInterruptFailedErrorCode;
         // The notice goes to the Chat that asked for the work, never to a later
         // link (ADR 0044). If that Chat is gone, the work settles (or keeps
         // retrying) silently.
