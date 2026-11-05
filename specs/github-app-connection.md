@@ -176,10 +176,30 @@ deletion leaves Triggers `agent_access_revoked` at their next match.
 | --- | --- | --- | --- |
 | User access (`ghu_`) | 8 hours | `mcp_secrets`, as today | hosted MCP, owner checks, repository access, pickers |
 | User refresh (`ghr_`) | 6 months | `mcp_secrets` | refresh; expiry means **Sign in required** |
-| App JWT (RS256) | ≤ 10 minutes | memory | installation reads, delivery API |
+| App JWT (RS256) | ≤ 10 minutes | memory | installation reads, delivery API, minting |
+| Installation (`ghs_`) | 1 hour | memory | Agent tool calls on a bound installation |
 
-`apps/server/src/github/app-auth.ts` signs the JWT (`iat` 60 s back, `exp` 9 minutes). v1 mints no
-installation tokens; the first feature that needs one adds minting.
+`apps/server/src/github/app-auth.ts` signs the JWT (`iat` 60 s back, `exp` 9 minutes).
+
+## Agent identity
+
+Agents share one GitHub identity, the Haus App bot. `apps/server/src/github/github-bot.ts` wraps the
+GitHub connection's MCP fetch: a `tools/call` whose `owner` argument matches a live installation on
+that connection (by account login, case-insensitive) is sent with that installation's token, so
+GitHub attributes it to the bot. Discovery, and any call with no `owner` or no matching
+installation, keep the user token and write as the signed-in person.
+
+A call with a matching installation never falls back to the user token: a failed mint, including
+for a suspended installation, fails the call. A 401 mints once more and retries. An installation
+token reaches only the repositories the installation selected, so a repository outside that
+selection answers not found even when the signed-in person can reach it. Tokens are cached in
+memory per installation and replaced five minutes before expiry.
+
+The bot is shared, so `apps/server/src/github/agent-signature.ts` adds a `Posted by <Agent> via Haus`
+line to the `body` of every GitHub tool that writes text people read: comments, reviews, inline
+review comments, issues, and pull requests. It applies whichever token the call uses, and an edit
+that sends the line back is not signed twice. Actions with no text, such as a bare approval, carry
+no signature.
 
 ## No Haus-owned tools in v1
 

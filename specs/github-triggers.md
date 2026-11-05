@@ -89,8 +89,8 @@ expects a response within 10 seconds and does not retry failures
    Wakes dispatch after commit. A failure rolls back everything and leaves the delivery for
    recovery.
 
-There is no actor-based self-event filter. The hosted MCP writes as the human user, so no payload
-field reliably marks an Agent's own action; the [chain budget](#automation-chain-budget) bounds
+There is no actor-based self-event filter. Agents write as the shared App bot or, without an
+installation, as the human user, so no payload field reliably marks one Agent's own action; the [chain budget](#automation-chain-budget) bounds
 loops instead.
 
 ## Recovery and the development pull

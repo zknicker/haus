@@ -30,7 +30,9 @@ They remain ordinary MCP connections. CoinGecko connects to its free remote endp
 without an account or API key, subject to shared upstream rate limits. Agent access still requires
 an explicit grant. GitHub is the one built-in connection
 ([ADR 0045](../adr/0045-github-is-a-built-in-connection.md)): **Connect** signs in through the Haus
-GitHub App, and Server keeps the expiring user token refreshed. Server asks GitHub's hosted MCP for
+GitHub App, and Server keeps the expiring user token refreshed. Agent tool calls on an account with
+a bound installation post as the shared Haus bot; calls anywhere else post as the signed-in person. Comments, reviews, issues, and pull requests end
+with a line naming the Agent ([Agent identity](../../specs/github-app-connection.md#agent-identity)). Server asks GitHub's hosted MCP for
 its default toolsets plus Actions, code scanning, and Dependabot, so Agents can read workflow runs
 and job logs, run, rerun, or cancel a workflow, and read security alerts. Notifications are not
 offered: GitHub's notifications API refuses GitHub App tokens, and GitHub Triggers cover that need.
