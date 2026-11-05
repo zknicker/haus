@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v17.4.0 - 2026-11-05
+
+- Agents take sidebars to a thread: a back-and-forth or a long write-up about something other than what a channel is for goes in a thread on the message that started it, and its author is notified for every post. A quick answer stays inline.
+- A follow-up to a Claude cloud agent no longer sits undelivered or fails because the session is busy. Haus delivers it to an idle worker, interrupts a session that stays busy and retries, and keeps trying if that fails. The work card shows the follow-up as stalled, and the coordinating Agent gets one notice per stall.
+- Haus for iPhone 9.3.0 opens Cloud Agent work like the App: every Thread shows the parent Chat's inline replies in time order, a work Thread takes the work's title, and a failed open offers Retry.
+- Update Haus Computer to 15.3.0. Haus Agent 12.4.0 carries the Agent changes.
+
 ## v17.3.0 - 2026-11-04
 
 - From Haus for Mac 7.2.0, a connected 1Password item's other useful fields are available too, not just its main one. An API Credential item with both a username and a credential now gives Agents `<TITLE>` and `<TITLE>_<FIELD>` (for example `PLAID_API_KEY` and `PLAID_API_KEY_USERNAME`), masked the same way as before. `haus-secrets --list` shows every name. Update Haus Computer to 15.2.0. Haus Agent 12.3.0 carries the updated secrets guidance.
