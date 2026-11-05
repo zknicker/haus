@@ -34,7 +34,9 @@ test('a board is created, shaped, and worked, and its Tasks survive a reload', a
         await expect(page.getByRole('region', { name, exact: true })).toBeVisible();
     }
 
-    // A column's add button starts the dialog on that column.
+    // A column's add button starts the dialog on that column. The force click
+    // skips actionability, so the New board dialog must finish closing first.
+    await expect(page.getByRole('dialog')).toHaveCount(0);
     await page
         .getByRole('button', { name: 'Add task to Todo', exact: true })
         .click({ force: true });
