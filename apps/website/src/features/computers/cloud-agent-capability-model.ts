@@ -14,14 +14,14 @@ export interface CloudAgentCapabilityView {
     /** Cursor signs in from Haus; Claude reuses the Computer's own Claude Code login. */
     connectLabel: string;
     description: string;
-    /** The Computer's pinned Claude cloud environment id; null is "not pinned". */
+    /** The Computer's pinned Claude cloud environment id; null means it needs one chosen. */
     environmentId: string | null;
     /** This Computer's Claude cloud environments to pin to; null off Claude. */
     environments: CloudAgentEnvironment[] | null;
     isDefault: boolean;
     provider: CloudAgentProvider;
     providerName: string;
-    status: 'connecting' | 'not-connected' | 'ready' | 'unavailable';
+    status: 'connecting' | 'needs-environment' | 'not-connected' | 'ready' | 'unavailable';
     statusLabel: string;
 }
 
@@ -96,9 +96,7 @@ export function cloudAgentCapabilityView(input: {
             // Haus never signs Claude Code out; that login belongs to the Computer.
             canDisconnect: input.provider === 'cursor',
             canMakeDefault: !identity.isDefault,
-            description: connectedDescription(input.state, access.plan),
-            status: 'ready',
-            statusLabel: 'Ready',
+            ...readyStatus(input.provider, input.state, access.plan),
         };
     }
     if (input.state.reason === 'provider-unavailable') {
@@ -156,21 +154,42 @@ export function reportedCloudAgentCapability(
     };
 }
 
-/** The environment Select's sentinel key for "Claude's default (not pinned)". */
-export const cloudAgentNotPinnedEnvironmentKey = 'not-pinned';
+/**
+ * A ready provider reads as `'ready'`, except Claude with no environment
+ * pinned, which reads as `'needs-environment'` and points at the picker.
+ */
+function readyStatus(
+    provider: CloudAgentProvider,
+    state: CloudAgentCapabilityState,
+    plan: string
+): Pick<CloudAgentCapabilityView, 'description' | 'status' | 'statusLabel'> {
+    if (provider === 'claude' && state.environmentId === null) {
+        return {
+            description: `${connectedAccountLine(state)} Choose a Claude environment below to enable launches.`,
+            status: 'needs-environment',
+            statusLabel: 'Needs environment',
+        };
+    }
+    return {
+        description: connectedDescription(state, plan),
+        status: 'ready',
+        statusLabel: 'Ready',
+    };
+}
 
-/** Translates the Select's chosen key into the `environmentId` `setEnvironment` takes. */
-export function cloudAgentEnvironmentSelection(value: unknown): string | null {
-    return value === cloudAgentNotPinnedEnvironmentKey ? null : String(value);
+/** The "Connected as …" / assignment prefix shared by every ready description. */
+function connectedAccountLine(state: CloudAgentCapabilityState): string {
+    const account = state.accountEmail ? `Connected as ${state.accountEmail}.` : 'Connected.';
+    const assignment = 'Agents assigned to this Computer use this connection.';
+    return `${account} ${assignment}`;
 }
 
 function connectedDescription(state: CloudAgentCapabilityState, plan: string): string {
-    const account = state.accountEmail ? `Connected as ${state.accountEmail}.` : 'Connected.';
-    const assignment = 'Agents assigned to this Computer use this connection.';
+    const prefix = connectedAccountLine(state);
     if (!state.expiresAt) {
-        return `${account} ${assignment} ${plan}`;
+        return `${prefix} ${plan}`;
     }
-    return `${account} ${assignment} Reconnect by ${new Intl.DateTimeFormat(undefined, {
+    return `${prefix} Reconnect by ${new Intl.DateTimeFormat(undefined, {
         dateStyle: 'medium',
     }).format(new Date(state.expiresAt))}.`;
 }

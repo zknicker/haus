@@ -120,12 +120,10 @@ export function CloudAgentProviderCapability({
         }
     };
 
-    const handleSetEnvironment = async (environmentId: string | null) => {
+    const handleSetEnvironment = async (environmentId: string) => {
         try {
             await setEnvironment.mutateAsync({ ...target, environmentId });
-            toast.success(
-                environmentId ? 'Claude environment pinned' : 'Claude environment unpinned'
-            );
+            toast.success('Claude environment pinned');
         } catch (error) {
             toast.danger('Couldn’t set the Claude environment', {
                 description: errorMessage(error),

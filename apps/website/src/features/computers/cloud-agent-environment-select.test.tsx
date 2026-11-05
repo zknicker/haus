@@ -1,10 +1,6 @@
 import { expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
-import {
-    cloudAgentCapabilityView,
-    cloudAgentEnvironmentSelection,
-    cloudAgentNotPinnedEnvironmentKey,
-} from './cloud-agent-capability-model.ts';
+import { cloudAgentCapabilityView } from './cloud-agent-capability-model.ts';
 import { CloudAgentCapabilityRow } from './cloud-agent-capability-row.tsx';
 
 const connected = {
@@ -51,7 +47,7 @@ test('the environment Select renders only for Claude, and not for Cursor', () =>
         provider: 'claude',
         state: {
             ...connected,
-            environmentId: null,
+            environmentId: 'env_a',
             environments: [{ id: 'env_a', name: 'Primary' }],
         },
     });
@@ -59,7 +55,7 @@ test('the environment Select renders only for Claude, and not for Cursor', () =>
     expect(render(claudeReady)).toContain('aria-label="Claude Cloud Agents environment"');
 });
 
-test('with no pin, the Select shows Claude’s default and lists the Computer’s own environments', () => {
+test('two or more environments with no pin reads as needs-environment and lists every environment', () => {
     const view = cloudAgentCapabilityView({
         isConnecting: false,
         isOffline: false,
@@ -73,12 +69,31 @@ test('with no pin, the Select shows Claude’s default and lists the Computer’
             ],
         },
     });
-    expect(view.environmentId).toBeNull();
+    expect(view.status).toBe('needs-environment');
+
     const html = render(view);
-    expect(html).toContain('Claude’s default (not pinned)');
+    expect(html).toContain('Needs environment');
     expect(html).toContain('Primary');
     expect(html).toContain('Secondary');
-    expect(shownEnvironment(html)).toBe('Claude’s default (not pinned)');
+    expect(html).not.toContain('not pinned');
+});
+
+test('zero environments with no pin reads as needs-environment and renders no picker', () => {
+    const view = cloudAgentCapabilityView({
+        isConnecting: false,
+        isOffline: false,
+        provider: 'claude',
+        state: {
+            ...connected,
+            environmentId: null,
+            environments: [],
+        },
+    });
+    expect(view.status).toBe('needs-environment');
+
+    const html = render(view);
+    expect(html).toContain('Needs environment');
+    expect(html).not.toContain('aria-label="Claude Cloud Agents environment"');
 });
 
 test('a pinned environment shows as the Select’s value', () => {
@@ -97,12 +112,4 @@ test('a pinned environment shows as the Select’s value', () => {
     });
     expect(view.environmentId).toBe('env_b');
     expect(shownEnvironment(render(view))).toBe('Secondary');
-});
-
-test('the row wires the Select straight through the resolver: a real id passes untouched, the sentinel becomes null', () => {
-    // CloudAgentCapabilityRow's onChange is `onSetEnvironment(cloudAgentEnvironmentSelection(value))`
-    // with no translation of its own, so the resolver's own behavior is the row's whole contract
-    // here. `renderToStaticMarkup` cannot fire a real onChange to prove that wiring from the DOM side.
-    expect(cloudAgentEnvironmentSelection('env_a')).toBe('env_a');
-    expect(cloudAgentEnvironmentSelection(cloudAgentNotPinnedEnvironmentKey)).toBeNull();
 });

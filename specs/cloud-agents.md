@@ -604,25 +604,27 @@ The Claude adapter (`apps/computer/src/cloud-agents/claude/`) drives Claude Code
   uses the GitHub CLI's sign-in as its only GitHub credential when the CLI is installed. Follow-ups run `claude -p --cloud <session> --output-format json <prompt>`.
 - **Environment pin.** Claude Code's own `--cloud` launcher used to pick whichever
   Anthropic-hosted environment it wanted on each launch, and once picked a stray one that broke
-  1Password secret resolution scoped to the environment that launch actually needed. An Owner or
-  Admin now pins, per Computer, which environment every Claude launch on that Computer uses, at
-  **Settings → Computers → (Computer) → Cloud Agents → the Claude row's environment picker**,
-  defaulting to **Claude's default (not pinned)**. The pin is Computer-local, stored beside the
-  default provider choice in `cloud-agents.json` (`claudeEnvironmentId`,
-  `apps/computer/src/cloud-agents/settings.ts`). Before `claude --cloud` runs, Haus writes the pin
-  into Claude Code's own `remote.defaultEnvironmentId` setting as `.claude/settings.local.json` in
-  the throwaway checkout (`writeClaudeEnvironmentPin`,
+  1Password secret resolution scoped to the environment that launch actually needed. Every Claude
+  launch on a Computer now runs against one explicitly chosen environment, picked at
+  **Settings → Computers → (Computer) → Cloud Agents → the Claude row's environment picker**. A
+  Computer with no pin auto-pins the account's one environment the first time it is read or
+  launched; a Computer with no pin and zero or several environments on the account refuses the
+  Claude launch outright, naming **Settings → Computers → (Computer) → Cloud Agents** as where to
+  fix it, and the settings row shows a warning state until an Owner or Admin chooses one. The pin
+  is Computer-local, stored beside the default provider choice in `cloud-agents.json`
+  (`claudeEnvironmentId`, `apps/computer/src/cloud-agents/settings.ts`). Before `claude --cloud`
+  runs, Haus writes the pin into Claude Code's own `remote.defaultEnvironmentId` setting as
+  `.claude/settings.local.json` in the throwaway checkout (`writeClaudeEnvironmentPin`,
   `apps/computer/src/cloud-agents/claude/native-commands.ts`) — the same key a human sets
   interactively with `/remote-env`. Every launch checks the pin fresh against Anthropic's live
   environment list (`GET /v1/environment_providers`,
   `apps/computer/src/cloud-agents/claude/environments.ts`) before doing anything else; a pin
   missing from that list, or reported archived, refuses the launch outright with
   `CloudAgentLaunchRejectedError` naming the environment, with no silent fallback to Claude Code's
-  own default. An unpinned Computer sends no environment and keeps `--cloud`'s own choice; a
-  follow-up resolves no environment either, because it targets a session Claude already placed.
-  The chosen environment's id and name ride the `CloudAgentLaunch` the adapter returns
-  (`environmentId`/`environmentName`, both `null` for Cursor and for an unpinned Claude launch),
-  flow through the Computer's observation to Server the same way `providerAgentId`/`providerUrl`
+  own default. A follow-up resolves no environment, because it targets a session Claude already
+  placed. The chosen environment's id and name ride the `CloudAgentLaunch` the adapter returns
+  (`environmentId`/`environmentName`, both `null` for Cursor and for a follow-up), flow through
+  the Computer's observation to Server the same way `providerAgentId`/`providerUrl`
   do, and land on the `CloudAgentWork` record. `haus cloud-agent inspect` shows it: a `[name]`
   marker on the one-line list, and the field in the JSON work detail. The work card's provider
   mark tooltips **Pinned to `<name>`** when set.

@@ -2,11 +2,7 @@ import { Button, Chip, Dropdown, Label, ListBox, Select } from '@heroui/react';
 import { ItemCard } from '@heroui-pro/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
-import {
-    type CloudAgentCapabilityView,
-    cloudAgentEnvironmentSelection,
-    cloudAgentNotPinnedEnvironmentKey,
-} from './cloud-agent-capability-model.ts';
+import type { CloudAgentCapabilityView } from './cloud-agent-capability-model.ts';
 
 export function CloudAgentCapabilityRow({
     isBusy,
@@ -21,7 +17,7 @@ export function CloudAgentCapabilityRow({
     onConnect: () => void;
     onDisconnect: () => void;
     onMakeDefault: () => void;
-    onSetEnvironment: (environmentId: string | null) => void;
+    onSetEnvironment: (environmentId: string) => void;
     view: CloudAgentCapabilityView;
 }) {
     const title = `${view.providerName} Cloud Agents`;
@@ -48,44 +44,38 @@ export function CloudAgentCapabilityRow({
             </ItemCard.Content>
             <ItemCard.Action>
                 <div className="flex items-center gap-2">
-                    {view.environments === null ? null : (
-                        <Select
-                            aria-label={`${title} environment`}
-                            className="w-48"
-                            onChange={(value) =>
-                                onSetEnvironment(cloudAgentEnvironmentSelection(value))
-                            }
-                            value={view.environmentId ?? cloudAgentNotPinnedEnvironmentKey}
-                            variant="secondary"
-                        >
-                            <Select.Trigger>
-                                <Select.Value />
-                                <Select.Indicator />
-                            </Select.Trigger>
-                            <Select.Popover>
-                                <ListBox>
-                                    <ListBox.Item
-                                        id={cloudAgentNotPinnedEnvironmentKey}
-                                        textValue="Claude's default (not pinned)"
-                                    >
-                                        <Label>Claude&rsquo;s default (not pinned)</Label>
-                                        <ListBox.ItemIndicator />
-                                    </ListBox.Item>
-                                    {view.environments.map((environment) => (
-                                        <ListBox.Item
-                                            id={environment.id}
-                                            key={environment.id}
-                                            textValue={environment.name}
-                                        >
-                                            <Label>{environment.name}</Label>
-                                            <ListBox.ItemIndicator />
-                                        </ListBox.Item>
-                                    ))}
-                                </ListBox>
-                            </Select.Popover>
-                        </Select>
+                    {view.environments === null || view.environments.length === 0 ? null : (
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-muted text-sm">Environment</span>
+                            <Select
+                                aria-label={`${title} environment`}
+                                className="w-48"
+                                onChange={(value) => onSetEnvironment(String(value))}
+                                value={view.environmentId ?? undefined}
+                                variant="secondary"
+                            >
+                                <Select.Trigger>
+                                    <Select.Value className="min-w-0 truncate" />
+                                    <Select.Indicator />
+                                </Select.Trigger>
+                                <Select.Popover>
+                                    <ListBox>
+                                        {view.environments.map((environment) => (
+                                            <ListBox.Item
+                                                id={environment.id}
+                                                key={environment.id}
+                                                textValue={environment.name}
+                                            >
+                                                <Label>{environment.name}</Label>
+                                                <ListBox.ItemIndicator />
+                                            </ListBox.Item>
+                                        ))}
+                                    </ListBox>
+                                </Select.Popover>
+                            </Select>
+                        </div>
                     )}
-                    {view.status === 'ready' ? null : (
+                    {view.status === 'ready' || view.status === 'needs-environment' ? null : (
                         <Button
                             isDisabled={!view.canConnect}
                             isPending={view.status === 'connecting' && !view.canConnect}
@@ -147,6 +137,7 @@ function statusColor(status: CloudAgentCapabilityView['status']) {
             return 'success' as const;
         case 'connecting':
             return 'accent' as const;
+        case 'needs-environment':
         case 'not-connected':
             return 'warning' as const;
         case 'unavailable':
