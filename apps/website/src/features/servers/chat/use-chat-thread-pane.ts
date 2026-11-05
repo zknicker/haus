@@ -104,6 +104,7 @@ export function useChatThreadPane({
             (current) => {
                 const next = new URLSearchParams(current);
                 next.delete('thread');
+                next.delete('at');
                 return next;
             },
             { replace: true }
@@ -124,6 +125,7 @@ export function useChatThreadPane({
                 (current) => {
                     const params = new URLSearchParams(current);
                     params.set('thread', next.id);
+                    params.delete('at');
                     return params;
                 },
                 { replace: true }

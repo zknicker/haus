@@ -1,5 +1,6 @@
 import type { ChatSearchResult } from '@haus/api';
-import { and, eq, gte, isNull, ne, sql } from 'drizzle-orm';
+import { and, eq, gte, isNull, or, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import { readMessageCauses } from '../automations/message-cause-read.ts';
 import { readLinkedCloudAgentWork } from '../cloud-agents/linked-cloud-agent-work.ts';
@@ -20,6 +21,8 @@ import { readMessageBodies } from './message-bodies.ts';
 import { readChatMessageReactions } from './message-reactions.ts';
 import { readStoredAuthorProfile, toChatMessage } from './message-shape.ts';
 import { readInlineReplyContexts } from './reply-context.ts';
+
+const parentChatsTable = alias(chatsTable, 'search_parent_chats');
 
 export async function searchChatMessages(
     db: HausDatabase,
@@ -53,7 +56,11 @@ export async function searchChatMessages(
             authorUserId: chatMessagesTable.authorUserId,
             bodyKind: chatMessagesTable.bodyKind,
             chatId: chatMessagesTable.chatId,
+            chatAnchorMessageId: chatsTable.anchorMessageId,
             chatArchivedAt: chatsTable.archivedAt,
+            chatKind: chatsTable.kind,
+            chatParentChatId: chatsTable.parentChatId,
+            parentChatArchivedAt: parentChatsTable.archivedAt,
             content: chatMessagesTable.content,
             createdAt: chatMessagesTable.createdAt,
             id: chatMessagesTable.id,
@@ -82,6 +89,13 @@ export async function searchChatMessages(
             )
         )
         .leftJoin(
+            parentChatsTable,
+            and(
+                eq(parentChatsTable.serverId, chatsTable.serverId),
+                eq(parentChatsTable.id, chatsTable.parentChatId)
+            )
+        )
+        .leftJoin(
             agentsTable,
             and(
                 eq(agentsTable.serverId, chatMessagesTable.serverId),
@@ -99,9 +113,14 @@ export async function searchChatMessages(
         .where(
             and(
                 eq(chatMessagesTable.serverId, input.serverId),
-                ne(chatsTable.kind, 'thread'),
                 isNull(chatsTable.deletedAt),
-                input.chatId ? eq(chatMessagesTable.chatId, input.chatId) : undefined,
+                // A Chat's Threads are part of it, so a Chat filter keeps them.
+                input.chatId
+                    ? or(
+                          eq(chatMessagesTable.chatId, input.chatId),
+                          eq(chatsTable.parentChatId, input.chatId)
+                      )
+                    : undefined,
                 input.authorAgentId
                     ? eq(chatMessagesTable.authorAgentId, input.authorAgentId)
                     : undefined,
@@ -139,6 +158,26 @@ export async function searchChatMessages(
             reactions: reactions.get(message.id),
             reply: replies.get(message.id) ?? null,
         }),
-        chatArchivedAt: message.chatArchivedAt?.toISOString() ?? null,
+        chatArchivedAt:
+            (message.parentChatArchivedAt ?? message.chatArchivedAt)?.toISOString() ?? null,
+        thread: searchResultThread(message),
     }));
+}
+
+function searchResultThread(message: {
+    chatAnchorMessageId: string | null;
+    chatKind: string;
+    chatParentChatId: string | null;
+    id: string;
+}): ChatSearchResult['thread'] {
+    if (message.chatKind !== 'thread') {
+        return null;
+    }
+    if (!(message.chatAnchorMessageId && message.chatParentChatId)) {
+        throw new Error(`Thread Message ${message.id} has no parent Chat or anchor.`);
+    }
+    return {
+        anchorMessageId: message.chatAnchorMessageId,
+        parentChatId: message.chatParentChatId,
+    };
 }

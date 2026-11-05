@@ -109,6 +109,13 @@ Mark read on a Thread row is `chat.markRead` on the Thread's id. `chat.markRead`
 - At narrow widths the pane collapses to a full-pane takeover with a back-chevron (Raft's
   responsive model). DMs thread identically to channels.
 
+## Search
+
+`chat.search` returns Thread messages under the parent Chat's access. Each result's `thread` names
+its parent Chat and anchor, and a Chat filter includes that Chat's Threads. Opening a result opens
+its Thread landed on that reply (`?at=<sequence>`). iPhone search still lists only Channel and DM
+messages.
+
 ## Flow
 
 - Human thread reply: `chat.send` carries the parent Chat id plus

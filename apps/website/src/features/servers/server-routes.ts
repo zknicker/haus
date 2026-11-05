@@ -15,8 +15,14 @@ export function serverChatRoute(slug: string, chatId: string) {
 }
 
 /** A Chat with one of its Threads open beside it, by the Thread's anchor message. */
-export function serverChatThreadRoute(slug: string, chatId: string, anchorMessageId: string) {
-    return `${serverChatRoute(slug, chatId)}?thread=${encodeURIComponent(anchorMessageId)}`;
+export function serverChatThreadRoute(
+    slug: string,
+    chatId: string,
+    anchorMessageId: string,
+    landingSequence?: number
+) {
+    const route = `${serverChatRoute(slug, chatId)}?thread=${encodeURIComponent(anchorMessageId)}`;
+    return landingSequence === undefined ? route : `${route}&at=${landingSequence}`;
 }
 
 export function serverAgentDmRoute(slug: string, agentId: string) {
