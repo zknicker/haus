@@ -22,9 +22,23 @@ export const evals = {
             'thread-reply-stays-in-thread',
             'solo-progress-threads-on-ack',
             'placement-recommendation',
+            'placement-off-topic-quick-question',
         ],
         summary:
             'Answers land where the asker looks (inline reply, or the Thread they chose), say only what was asked, and stop.',
+    },
+    // Side work in a purpose channel, with the one-off control that must stay
+    // inline. The multi-round scenario asserts its own structure; its rate is
+    // the measurement.
+    'side-work': {
+        judge: null,
+        profiles: {
+            'placement-off-topic-quick-question':
+                placementProfiles['placement-off-topic-quick-question'],
+        },
+        scenarios: ['side-work-stays-beside-channel', 'placement-off-topic-quick-question'],
+        summary:
+            'Substantial off-topic work asked in a purpose channel does not take over the channel, while a one-off answer stays a single inline reply.',
     },
     attention: {
         judge: null,

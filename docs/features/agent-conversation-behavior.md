@@ -52,12 +52,20 @@ thread target), and every non-thread send receipt states the message's own threa
 (`Thread on this message: <target>:<shortId>`), because the 2026-10-15 live gate showed the
 description alone lost `--done` and `--reply-to`.
 
+Sidebars are the one place the prompt instructs rather than describes: a back-and-forth or a long
+write-up about something other than what the channel is for goes in a thread on the message that
+started it, whose author is notified for every post. A quick answer is not a sidebar and stays
+inline. Threads opens on Raft's "discuss a topic without cluttering the main channel". A
+descriptive sentence alone did not move placement in the `side-work` eval (0/3, the same as
+baseline); the instruction did (3/3) with `placement` unchanged, on `codex/gpt-5.6-sol`
+(2026-11-05).
+
 - Owner: [ADR 0029](../adr/0029-inline-replies-preserve-conversation.md) and its 2026-10-02,
   2026-10-06, and 2026-10-14 amendments; `sendingMessagesSection` (the visibility paragraphs) and
   the pickup and "When done" bullets of `communicationStyleSection` in
   `apps/computer/src/harness/managed-instructions.ts`; Manual topic `replies` in
   `packages/agent-manual/src/product-topics.ts`.
-- Guards: the `placement` eval (`placement-quick-fact`, `placement-recommendation`,
+- Guards: the `side-work` eval (`side-work-stays-beside-channel` and its one-off control), the `placement` eval (`placement-quick-fact`, `placement-recommendation`, `placement-off-topic-quick-question`,
   `thread-reply-stays-in-thread`, `solo-progress-threads-on-ack`, and the kit scenarios) and
   `task-thread-routing` in the `attention` eval (`scripts/agent-tests/scenarios/`);
   `thread-instructions.test.ts` (visibility paragraphs, "When done, answer what was asked, then
