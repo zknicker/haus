@@ -2356,6 +2356,15 @@
     }
 
     /*
+     * Stock cards paint `--overlay`, and in dark that lands on the exact tone
+     * of the column's 40% `--default` wash, so a card had no edge at all. The
+     * full `--default` is the step up a card needs.
+     */
+    :is([data-theme="dark"], .dark) .kanban__card-content {
+        background-color: var(--default);
+    }
+
+    /*
      * The turn trace is evidence: commands, diffs, and file contents. A stock
      * right drawer is sized for a settings form, and at that width every code
      * line wraps, which is exactly what the full-width Activity tab shows it

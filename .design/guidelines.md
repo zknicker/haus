@@ -1091,7 +1091,7 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   sits on its label text in muted `sm` at the prose measure, with the transcript's Markdown
   block spacing; like every other step it is one line (its first line as muted detail) until
   opened, never a fade or a Show more button.
-- **Tasks board:** A stock `Kanban` under the band, with assignee and label `InlineSelect`s and the board's one line of state above it. Column headers carry the category disc (`ColumnCategoryDisc`), name, and count; a card carries its key and assignee mark, its title, then priority, labels, and due date, and nothing else. The Task page is a column beside a `dl` rail of inline controls; every interactive fact is an `InlineSelect`, so values share one left edge. Board settings is one Modal of `ItemCardGroup` rows and a `ListView` column editor.
+- **Tasks board:** A stock `Kanban` under the band, with assignee and label `InlineSelect`s and the board's one line of state above it. Column headers carry the category disc (`ColumnCategoryDisc`), name, and count; a card carries its key and assignee mark, its title, then priority, labels, and due date, and nothing else. In dark a card fills with `--default`, because stock `--overlay` lands on the column wash's exact tone. The Task page is a column beside a `dl` rail of inline controls; every interactive fact is an `InlineSelect`, so values share one left edge. Board settings is one Modal of `ItemCardGroup` rows and a `ListView` column editor.
 - **Tasks in Chat:** A task states itself in the header of the recessed Thread surface beneath its
   message and nowhere else; a task an Agent claimed for itself states nothing there at all unless
   the reader has turned **Show tasks in chat** on.

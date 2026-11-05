@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { getQueryKey } from '@trpc/react-query';
 import { hausTrpc } from '../../lib/haus-server.tsx';
+import { targetedReadCoalescer } from '../../lib/targeted-read-coalescer.ts';
 import {
     createRealtimeHarness,
     installRealtimeTestDom,
@@ -9,7 +10,7 @@ import {
 } from '../../test-support/realtime-stream-harness.tsx';
 import { useBoardUpdateStream } from './use-board-update-stream.ts';
 import { useTaskCreatedStream } from './use-task-created-stream.ts';
-import { useTaskInboxStream } from './use-task-inbox-stream.ts';
+import { hiddenWindowFlushMs, useTaskInboxStream } from './use-task-inbox-stream.ts';
 import { useTaskUpdatedStream } from './use-task-updated-stream.ts';
 
 installRealtimeTestDom();
@@ -128,4 +129,32 @@ describe('board and Task stream hooks', () => {
         expect(onEvent).toEqual([read('taskInbox.list', { serverId })]);
         expect(onRecovery).toEqual(onEvent);
     });
+
+    test('taskInbox.onChanged flushes itself only in a hidden window, which paints no frame', async () => {
+        expect(await flushesOnInboxEvent(false)).toBe(0);
+        expect(await flushesOnInboxEvent(true)).toBe(1);
+    });
 });
+
+async function flushesOnInboxEvent(hidden: boolean) {
+    const harness = createRealtimeHarness();
+    let flushes = 0;
+    Object.assign(targetedReadCoalescer(harness.queryClient, harness.client), {
+        flushInvalidations: () => {
+            flushes += 1;
+        },
+    });
+    Object.assign(document, { hidden });
+    function Stream() {
+        useTaskInboxStream(serverId);
+        return null;
+    }
+    const mounted = await harness.mount(<Stream />);
+    harness.start('taskInbox.onChanged');
+    harness.emit('taskInbox.onChanged', { serverId, userId: 'usr_1' });
+    expect(flushes).toBe(0);
+    await Bun.sleep(hiddenWindowFlushMs + 20);
+    await mounted.unmount();
+    Object.assign(document, { hidden: false });
+    return flushes;
+}
