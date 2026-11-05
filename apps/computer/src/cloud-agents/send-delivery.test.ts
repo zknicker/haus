@@ -121,7 +121,7 @@ test('a busy agent retries with backoff under the same Run, then delivers', asyn
     expect(f.sends()).toBe(3);
 });
 
-test('busy past the delivery deadline fails the follow-up with the last provider error', async () => {
+test('busy past the delivery deadline keeps retrying instead of failing the follow-up', async () => {
     const f = await fixture();
     f.failures.push(...Array.from({ length: 100 }, () => recordedAgentBusyError()));
     let record = await f.advance();
@@ -129,13 +129,15 @@ test('busy past the delivery deadline fails the follow-up with the last provider
         await f.wait('1 minute');
         record = await f.advance();
     }
-    expect(record).toMatchObject({ phase: 'rejected', errorCode: 'followup-delivery-timeout' });
-    expect(record?.phase === 'rejected' ? record.summary : '').toContain(
-        'within 30 minutes (31 attempts). Last error: Agent already has an active run in progress'
-    );
+    // Never settles: the follow-up stays pending and keeps retrying past the deadline.
+    expect(record).toMatchObject({ phase: 'pending', delivery: { attempts: 41 } });
+    const sendsAtDeadline = f.sends();
+    await f.wait('5 minutes');
+    await f.advance();
+    expect(f.sends()).toBeGreaterThan(sendsAtDeadline);
 });
 
-test('the delivery deadline survives a Computer restart instead of resetting on a fresh queue', async () => {
+test('the delivery deadline survives a Computer restart but still never rejects the follow-up', async () => {
     const f = await fixture();
     f.failures.push(...Array.from({ length: 100 }, () => recordedAgentBusyError()));
     await f.advance();
@@ -148,12 +150,17 @@ test('the delivery deadline survives a Computer restart instead of resetting on 
         () => f.provider
     );
     let record = await f.advanceRestored(restored);
-    for (let minute = 0; minute < 15 && record?.phase === 'pending'; minute += 1) {
+    for (let minute = 0; minute < 20 && record?.phase === 'pending'; minute += 1) {
         await f.wait('1 minute');
         record = await f.advanceRestored(restored);
     }
-    // Settles at ~30 minutes total, not 30 minutes after the restart (~50 minutes total).
-    expect(record).toMatchObject({ phase: 'rejected', errorCode: 'followup-delivery-timeout' });
+    // ~40 minutes total, well past the 30-minute window (counted from the first attempt,
+    // not from the restart): still pending, still retrying, never rejected.
+    expect(record).toMatchObject({ phase: 'pending' });
+    const sendsSoFar = f.sends();
+    await f.wait('5 minutes');
+    await f.advanceRestored(restored);
+    expect(f.sends()).toBeGreaterThan(sendsSoFar);
 });
 
 test('waiting behind a running predecessor never counts against the deadline', async () => {
@@ -161,6 +168,17 @@ test('waiting behind a running predecessor never counts against the deadline', a
     f.setPriorStatus('running');
     await f.advance();
     await f.wait('3 hours');
+    expect(await f.advance()).toMatchObject({ phase: 'pending', delivery: null });
+    expect(f.sends()).toBe(0);
+    f.setPriorStatus('completed');
+    expect(await f.advance()).toMatchObject({ phase: 'launched' });
+});
+
+test('waiting behind a predecessor that runs for hours never counts against the deadline', async () => {
+    const f = await fixture();
+    f.setPriorStatus('running');
+    await f.advance();
+    await f.wait('6 hours');
     expect(await f.advance()).toMatchObject({ phase: 'pending', delivery: null });
     expect(f.sends()).toBe(0);
     f.setPriorStatus('completed');

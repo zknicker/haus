@@ -8,6 +8,7 @@ import { TestClock } from 'effect';
 import { createCursorCloudAgentProvider } from './cursor/provider.ts';
 import {
     createRecordedCursorTransport,
+    recordedAgentBusyError,
     recordedAuthenticationError,
 } from './cursor/recorded-transport.ts';
 import { createFakeCloudAgentProvider } from './fake-provider.ts';
@@ -138,11 +139,7 @@ test('a follow-up stuck behind a Claude predecessor that is idle with open backg
         runId: 'car_predecessor123456',
         workId: 'caw_stuck1234567890',
     };
-    const followUp = {
-        ...stuckPredecessor,
-        providerRunId: null,
-        runId: 'car_followup1234567',
-    };
+    const followUp = { ...stuckPredecessor, providerRunId: null, runId: 'car_followup1234567' };
     const f = await fixture(stuckClaudeTracked(createFakeCloudAgentProvider()));
     await f.journal.claim('srv_cloud', followUp, {
         phase: 'pending',
@@ -250,6 +247,30 @@ test('several follow-ups queued behind the same stuck predecessor each settle in
     );
     expect(await f.journal.read('srv_cloud', followUp1)).toMatchObject({ phase: 'launched' });
     expect(await f.journal.read('srv_cloud', followUp2)).toMatchObject({ phase: 'launched' });
+});
+
+test('a follow-up stuck behind a provider that stays busy reports the stall without failing the Run', async () => {
+    const followUp = { ...orphan, providerAgentId: 'bc_stalled', runId: 'car_stalledfollowup1' };
+    const alwaysBusy: CloudAgentProvider = {
+        ...createFakeCloudAgentProvider(),
+        send: () => Promise.reject(recordedAgentBusyError()),
+    };
+    const f = await fixture(alwaysBusy);
+    await f.journal.claim('srv_cloud', followUp, {
+        phase: 'pending',
+        workId: followUp.workId,
+        providerAgentId: 'bc_stalled',
+        instructions: 'Address the review.',
+        interrupt: false,
+        predecessors: [],
+    });
+    await f.work.reconcile([followUp]);
+    const stalled = (observation: CloudAgentObservation) =>
+        observation.runId === followUp.runId &&
+        observation.errorCode === 'followup-delivery-timeout';
+    await f.tickUntil(() => f.observations.some(stalled), 450); // past the 30-minute deadline
+    expect(f.observations.find(stalled)).toMatchObject({ status: 'queued' });
+    expect(await f.journal.read('srv_cloud', followUp)).toMatchObject({ phase: 'pending' });
 });
 
 test('a follow-up Cursor refuses settles failed with its reason and no provider Run', async () => {

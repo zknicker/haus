@@ -23,7 +23,12 @@ export const cloudAgentDeliveryFailure = {
     launchRejected: 'provider-launch-rejected',
     /** The provider definitely refused the follow-up. */
     followUpRejected: 'followup-delivery-rejected',
-    /** Busy or transient failures outlasted `followUpDeliveryDeadlineMs`. */
+    /**
+     * The follow-up has been retrying for over `followUpDeliveryDeadlineMs`.
+     * It rides a still-queued, still-retrying observation's `errorCode` so
+     * Server can raise one inbox attention and the card can show it, without
+     * failing the Run.
+     */
     followUpTimeout: 'followup-delivery-timeout',
     /** Server recorded the Run but this Computer never stored its prompt. */
     launchRecordMissing: 'launch-record-missing',
@@ -54,17 +59,6 @@ export function sendFailureOutcome(
     const attempts = (pending.delivery?.attempts ?? 0) + 1;
     const firstAttemptAt = pending.delivery?.firstAttemptAt ?? new Date(now).toISOString();
     const lastError = bounded(errorMessage(cause), 500);
-    if (now - Date.parse(firstAttemptAt) >= followUpDeliveryDeadlineMs) {
-        return {
-            kind: 'reject',
-            rejection: {
-                errorCode: cloudAgentDeliveryFailure.followUpTimeout,
-                summary: bounded(
-                    `The provider did not accept the follow-up within ${followUpDeliveryDeadlineMs / 60_000} minutes (${attempts} attempts). Last error: ${lastError}`
-                ),
-            },
-        };
-    }
     const backoff = Math.min(firstBackoffMs * 2 ** (attempts - 1), maxBackoffMs);
     return {
         kind: 'retry',

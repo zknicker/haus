@@ -7,7 +7,12 @@ import type {
     CloudAgentProviderObservation,
     CloudAgentRunRef,
 } from './provider.ts';
-import { launchRecordGraceMs, launchRecordMissing } from './send-delivery.ts';
+import {
+    cloudAgentDeliveryFailure,
+    followUpDeliveryDeadlineMs,
+    launchRecordGraceMs,
+    launchRecordMissing,
+} from './send-delivery.ts';
 import type { CloudAgentSendQueue } from './send-queue.ts';
 
 /** A monitored Run the provider has not addressed yet. */
@@ -42,8 +47,17 @@ export class CloudAgentLocalRuns {
             const nowMs = yield* Clock.currentTimeMillis;
             const observedAt = new Date(nowMs).toISOString();
             switch (recorded?.phase) {
-                case 'pending':
-                    return unsent(queued(observedAt, pendingActivity(recorded)));
+                case 'pending': {
+                    const { delivery } = recorded;
+                    const stalled =
+                        delivery &&
+                        nowMs - Date.parse(delivery.firstAttemptAt) >= followUpDeliveryDeadlineMs;
+                    return unsent(
+                        delivery && stalled
+                            ? stalledQueued(observedAt, delivery)
+                            : queued(observedAt, pendingActivity(recorded))
+                    );
+                }
                 case 'launched':
                     return { kind: 'launched', launch: recorded.launch, observedAt } as const;
                 case 'cancelled':
@@ -137,4 +151,23 @@ function pendingActivity(pending: CloudPendingSend): string {
 
 function queued(observedAt: string, summary: string): CloudAgentProviderObservation {
     return { activity: { at: observedAt, summary }, observedAt, status: 'queued' };
+}
+
+/**
+ * Reported every tick once a follow-up has stayed busy for the full delivery
+ * window: still queued, still retrying, but now carrying the errorCode Server
+ * uses to raise exactly one inbox attention (then sparse reminders) without
+ * failing the Run. See TECH-7's design refinement: never fail this terminally.
+ */
+function stalledQueued(
+    observedAt: string,
+    delivery: NonNullable<CloudPendingSend['delivery']>
+): CloudAgentProviderObservation {
+    return {
+        activity: { at: observedAt, summary: 'Session busy for over 30 minutes; still retrying.' },
+        errorCode: cloudAgentDeliveryFailure.followUpTimeout,
+        observedAt,
+        status: 'queued',
+        summary: `The provider has stayed busy for over 30 minutes. Last error: ${delivery.lastError}. Haus keeps retrying; stop, interrupt, or relaunch if you want to act now.`,
+    };
 }
