@@ -1,4 +1,5 @@
 import type { CloudAgentProvider } from '@haus/api';
+import { Tooltip } from '@heroui/react';
 import { CommandLineIcon } from '@hugeicons-pro/core-solid-rounded';
 import { CloudIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { ModelProviderLogo } from '../../components/badges/model-provider-logo.tsx';
@@ -11,15 +12,21 @@ import { cloudAgentProviderPresentation } from './cloud-agent-provider-presentat
  * Triggers use, at the exact box a surface gives it — 40px on the work card,
  * 32px in the Inbox, 20px on a Thread's job rows. Exact box, so it derives
  * its radius the way every other fixed identity mark in the app does.
+ *
+ * `environmentName` is set only for a Claude launch pinned to a cloud
+ * environment; when present it rides as a tooltip, since the mark otherwise
+ * carries only the provider.
  */
 export function CloudAgentKeycap({
+    environmentName,
     provider,
     size,
 }: {
+    environmentName?: string | null;
     provider: CloudAgentProvider;
     size: number;
 }) {
-    return (
+    const key = (
         <span
             aria-hidden="true"
             className="bg-(image:--automation-keycap-face) relative flex shrink-0 flex-col overflow-hidden shadow-(--automation-keycap-shadow)"
@@ -28,6 +35,15 @@ export function CloudAgentKeycap({
         >
             <CloudAgentKeycapFace provider={provider} size={size} />
         </span>
+    );
+    if (!environmentName) {
+        return key;
+    }
+    return (
+        <Tooltip>
+            <Tooltip.Trigger>{key}</Tooltip.Trigger>
+            <Tooltip.Content>{`Pinned to ${environmentName}`}</Tooltip.Content>
+        </Tooltip>
     );
 }
 

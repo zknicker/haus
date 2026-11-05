@@ -21,6 +21,8 @@ export function cloudAgentWorkFixture(overrides: Partial<CloudAgentWork> = {}): 
         chatId: 'cht_one',
         computerId: 'cmp_one',
         createdAt: at,
+        environmentId: null,
+        environmentName: null,
         id: 'caw_one',
         messageId: 'msg_one',
         provider: 'cursor' as const,

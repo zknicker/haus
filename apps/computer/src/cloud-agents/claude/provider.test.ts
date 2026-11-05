@@ -1,7 +1,14 @@
-import { expect, test } from 'bun:test';
+import { afterEach, expect, test } from 'bun:test';
 import type { CloudAgentRunRef } from '../provider.ts';
 import type { ClaudeController, ClaudeSession, ClaudeSessionEvent } from './controller.ts';
 import { createClaudeCloudAgentProvider } from './provider.ts';
+
+const restores: Array<() => Promise<void> | void> = [];
+afterEach(async () => {
+    for (const restore of restores.splice(0).reverse()) {
+        await restore();
+    }
+});
 
 const ref: CloudAgentRunRef = {
     provider: 'claude',
@@ -67,11 +74,16 @@ const prompt = {
     uuid: 'prompt-1',
 };
 
+/** Not read by these tests: every one either never pins an environment or fails before reading it. */
+const unusedDataRoot = '/dev/null/unused-cloud-agent-data-root';
+
 test('a reading names the Run by the prompt Haus tagged', async () => {
     const { controller } = recordedController({
         events: [{ message: { content: 'an earlier prompt' }, type: 'user', uuid: 'old' }, prompt],
     });
-    expect(await createClaudeCloudAgentProvider(controller).read(ref)).toMatchObject({
+    expect(
+        await createClaudeCloudAgentProvider(unusedDataRoot, controller).read(ref)
+    ).toMatchObject({
         providerRunId: 'prompt-1',
         status: 'running',
     });
@@ -85,7 +97,7 @@ test('a resumed reading picks up only new events, not the whole history again', 
             { message: { content: [{ text: 'Still working.', type: 'text' }] }, type: 'assistant' },
         ],
     });
-    const provider = createClaudeCloudAgentProvider(controller);
+    const provider = createClaudeCloudAgentProvider(unusedDataRoot, controller);
 
     await provider.read(ref);
     await provider.read(ref);
@@ -103,7 +115,9 @@ test('a prompt the scan cap lost surfaces instead of reading queued forever', as
         truncateAt: 1,
     });
 
-    expect(await createClaudeCloudAgentProvider(controller).read(ref)).toMatchObject({
+    expect(
+        await createClaudeCloudAgentProvider(unusedDataRoot, controller).read(ref)
+    ).toMatchObject({
         errorCode: 'claude-prompt-not-found',
         status: 'running',
     });
@@ -113,7 +127,7 @@ test('cancel stops open background tasks, then interrupts once', async () => {
     const { calls, controller } = recordedController({
         events: [prompt, { subtype: 'task_started', task_id: 'bg1', type: 'system' }],
     });
-    await createClaudeCloudAgentProvider(controller).cancel(ref);
+    await createClaudeCloudAgentProvider(unusedDataRoot, controller).cancel(ref);
     expect(calls).toEqual(['stop bg1', 'interrupt haus-cancel-car_run']);
 });
 
@@ -127,14 +141,14 @@ test('cancel sends nothing once Claude answered Haus’s interrupt', async () =>
             },
         ],
     });
-    await createClaudeCloudAgentProvider(controller).cancel(ref);
+    await createClaudeCloudAgentProvider(unusedDataRoot, controller).cancel(ref);
     expect(calls).toEqual([]);
 });
 
-test('a follow-up Claude already took is not delivered twice', async () => {
+test('a follow-up Claude already took is not delivered twice, and resolves no fresh environment', async () => {
     const { calls, controller } = recordedController({ events: [prompt] });
     expect(
-        await createClaudeCloudAgentProvider(controller).send({
+        await createClaudeCloudAgentProvider(unusedDataRoot, controller).send({
             idempotencyKey: 'car_run',
             instructions: 'Trim the copy.',
             model: null,
@@ -142,6 +156,8 @@ test('a follow-up Claude already took is not delivered twice', async () => {
             workId: 'caw_work',
         })
     ).toEqual({
+        environmentId: null,
+        environmentName: null,
         providerAgentId: 'session_01Work',
         providerRunId: null,
         providerUrl: 'https://claude.ai/code/session_01Work',
@@ -152,6 +168,7 @@ test('a follow-up Claude already took is not delivered twice', async () => {
 
 test('Claude lists its three model tiers under the Claude family', async () => {
     const models = await createClaudeCloudAgentProvider(
+        unusedDataRoot,
         recordedController({ events: [] }).controller
     ).listModels();
     expect(models.map((model) => model.id)).toEqual(['sonnet', 'opus', 'haiku']);

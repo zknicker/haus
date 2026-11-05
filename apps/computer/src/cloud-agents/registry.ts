@@ -14,24 +14,31 @@ import type { CloudAgentProvider, CloudAgentReadiness } from './provider.ts';
  * Cursor and Claude are the Cloud Agent providers every Computer ships with.
  * Each reports its own readiness truthfully — `not-connected` until a
  * credential resolves — so an unconnected Computer needs no placeholder
- * provider and a launch still fails before any Message exists.
+ * provider and a launch still fails before any Message exists. Cursor holds
+ * live SDK state, so it is a true singleton; Claude holds none, so it is
+ * rebuilt per call with this Computer's data root, which only becomes known
+ * once an attachment starts.
  */
-const installed: Record<CloudAgentProviderId, CloudAgentProvider> = {
-    claude: createClaudeCloudAgentProvider(),
-    cursor: createCursorCloudAgentProvider(createCursorSdkTransport()),
-};
+const cursorSingleton = createCursorCloudAgentProvider(createCursorSdkTransport());
+const overrides: Partial<Record<CloudAgentProviderId, CloudAgentProvider>> = {};
 
 /** The adapter for one Cloud Agent provider on this Computer. */
-export function cloudAgentProvider(provider: CloudAgentProviderId): CloudAgentProvider {
-    return installed[provider];
+export function cloudAgentProvider(
+    provider: CloudAgentProviderId,
+    dataRoot: string
+): CloudAgentProvider {
+    return (
+        overrides[provider] ??
+        (provider === 'claude' ? createClaudeCloudAgentProvider(dataRoot) : cursorSingleton)
+    );
 }
 
 /** Installs a provider adapter; returns the restore for tests and teardown. */
 export function setCloudAgentProvider(provider: CloudAgentProvider): () => void {
-    const previous = installed[provider.provider];
-    installed[provider.provider] = provider;
+    const previous = overrides[provider.provider];
+    overrides[provider.provider] = provider;
     return () => {
-        installed[provider.provider] = previous;
+        overrides[provider.provider] = previous;
     };
 }
 
@@ -44,11 +51,12 @@ export function setCloudAgentProvider(provider: CloudAgentProvider): () => void 
  * cached per account and read from the provider at most daily.
  */
 export function detectCloudAgentProviders(
-    defaultProvider: CloudAgentProviderId
+    defaultProvider: CloudAgentProviderId,
+    dataRoot: string
 ): Promise<CloudAgentProviderReadiness[]> {
     return Promise.all(
         cloudAgentProviders.map(async (id) => {
-            const provider = cloudAgentProvider(id);
+            const provider = cloudAgentProvider(id, dataRoot);
             const readiness = await readCloudAgentReadiness(provider);
             return {
                 isDefault: id === defaultProvider,

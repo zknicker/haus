@@ -2,9 +2,9 @@ import * as z from 'zod';
 import { cloudAgentJobSchema } from './cloud-agent-job.ts';
 import { cloudAgentRunModelSchema } from './cloud-agent-model.ts';
 import { cloudAgentProviderSchema } from './cloud-agent-provider.ts';
+import { cloudAgentTimestampSchema } from './cloud-agent-time.ts';
 
 const cloudAgentIdSchema = z.string().trim().min(1);
-const cloudAgentTimestampSchema = z.iso.datetime({ offset: true });
 
 export const cloudAgentTitleMaxLength = 120;
 export const cloudAgentActivityMaxLength = 120;
@@ -12,26 +12,23 @@ export const cloudAgentSummaryMaxLength = 2000;
 export const cloudAgentRunsRetained = 20;
 
 export {
+    type CloudAgentCapabilityState,
+    cloudAgentCapabilityStateSchema,
+} from './cloud-agent-capability.ts';
+export {
+    type CloudAgentEnvironment,
+    cloudAgentEnvironmentSchema,
+} from './cloud-agent-environment.ts';
+export {
     type CloudAgentProvider,
     cloudAgentProviderSchema,
     cloudAgentProviders,
 } from './cloud-agent-provider.ts';
-
-/**
- * Why a Cloud Agent provider is not ready on a Computer. `not-connected` — no
- * credential resolves from explicit configuration, the environment, or the
- * provider's own credential store. `expired` — a stored credential resolved
- * but its own expiry has passed, so reconnecting is the fix rather than
- * installing anything. `provider-unavailable` — the provider SDK itself cannot
- * be reached on this Computer.
- */
-export const cloudAgentUnreadyReasons = [
-    'not-connected',
-    'expired',
-    'provider-unavailable',
-] as const;
-
-export const cloudAgentUnreadyReasonSchema = z.enum(cloudAgentUnreadyReasons);
+export {
+    type CloudAgentUnreadyReason,
+    cloudAgentUnreadyReasonSchema,
+    cloudAgentUnreadyReasons,
+} from './cloud-agent-unready-reason.ts';
 
 export const cloudAgentStatuses = [
     'queued',
@@ -191,6 +188,10 @@ export const cloudAgentWorkSchema = z
         chatId: cloudAgentIdSchema,
         computerId: cloudAgentIdSchema,
         createdAt: cloudAgentTimestampSchema,
+        /** The Claude cloud environment this work's session launched on; null off Claude. */
+        environmentId: z.string().trim().min(1).max(200).nullable(),
+        /** The environment's name, when the Computer could read it, for display. */
+        environmentName: z.string().trim().min(1).max(200).nullable(),
         id: cloudAgentIdSchema,
         /** The Server's reading of the whole job across its Runs (`deriveCloudAgentJob`). */
         job: cloudAgentJobSchema,
@@ -209,64 +210,9 @@ export const cloudAgentWorkSchema = z
     })
     .strict();
 
-/**
- * One Cloud Agent provider capability on one Computer: whether its credential
- * store currently resolves, and the account it resolves to. It carries no
- * credential — Haus never copies a provider key into Server.
- */
-export const cloudAgentCapabilityStateSchema = z
-    .object({
-        /** The provider account the resolved credential belongs to, when it names one. */
-        accountEmail: z.string().trim().min(1).max(320).nullable(),
-        /** When the resolved credential expires, when the provider dates it. */
-        expiresAt: cloudAgentTimestampSchema.nullable(),
-        /** Whether a launch that names no provider uses this one on this Computer. */
-        isDefault: z.boolean().default(false),
-        provider: cloudAgentProviderSchema,
-        ready: z.boolean(),
-        reason: cloudAgentUnreadyReasonSchema.nullable(),
-        signIn: z
-            .discriminatedUnion('status', [
-                z
-                    .object({
-                        status: z.literal('waiting'),
-                        url: z
-                            .url()
-                            .max(4096)
-                            .refine((value) => {
-                                if (!URL.canParse(value)) {
-                                    return false;
-                                }
-                                const url = new URL(value);
-                                return (
-                                    url.protocol === 'https:' &&
-                                    url.hostname === 'cursor.com' &&
-                                    !url.username &&
-                                    !url.password &&
-                                    !url.port
-                                );
-                            }),
-                        expiresAt: cloudAgentTimestampSchema,
-                    })
-                    .strict(),
-                z
-                    .object({ status: z.literal('failed'), message: z.string().min(1).max(500) })
-                    .strict(),
-            ])
-            .optional(),
-    })
-    .strict()
-    .refine((value) => value.ready !== Boolean(value.reason), {
-        message: 'A ready capability carries no reason, and an unready one must name its reason.',
-        path: ['reason'],
-    });
-
-export type CloudAgentCapabilityState = z.infer<typeof cloudAgentCapabilityStateSchema>;
-
 export type CloudAgentBranch = z.infer<typeof cloudAgentBranchSchema>;
 export type CloudAgentPullRequest = z.infer<typeof cloudAgentPullRequestSchema>;
 export type CloudAgentPullRequestState = z.infer<typeof cloudAgentPullRequestStateSchema>;
-export type CloudAgentUnreadyReason = z.infer<typeof cloudAgentUnreadyReasonSchema>;
 export type CloudAgentCancelRequestedBy = z.infer<typeof cloudAgentCancelRequestedBySchema>;
 export type CloudAgentRun = z.infer<typeof cloudAgentRunSchema>;
 export type CloudAgentStatus = z.infer<typeof cloudAgentStatusSchema>;

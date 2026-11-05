@@ -42,6 +42,7 @@ export async function sendEffectiveComputerReport({
         agents: agents.map(toReportedAgentState),
         inventory: {
             ...(await detectFullInventory({
+                dataRoot,
                 defaultCloudAgentProvider: await readDefaultCloudAgentProvider(dataRoot),
             })),
             runtimeIssues: await readRuntimeIssues(dataRoot),

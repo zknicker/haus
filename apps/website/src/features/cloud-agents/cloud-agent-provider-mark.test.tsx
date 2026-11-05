@@ -13,3 +13,13 @@ test('a cloud agent key badges its provider once the key is large enough to read
     expect(row).toContain('text-cloud-agent-mark');
     expect(row).not.toContain('cursor_dark.svg');
 });
+
+test('a pinned Claude environment wraps the key in a tooltip trigger; an unpinned one does not', () => {
+    const pinned = renderToStaticMarkup(
+        <CloudAgentKeycap environmentName="Fast" provider="claude" size={40} />
+    );
+    const unpinned = renderToStaticMarkup(<CloudAgentKeycap provider="claude" size={40} />);
+
+    expect(pinned).toContain('data-slot="tooltip-trigger"');
+    expect(unpinned).not.toContain('data-slot="tooltip-trigger"');
+});

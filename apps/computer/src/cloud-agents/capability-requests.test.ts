@@ -70,6 +70,8 @@ test('connecting stores the credential with Cursor and reports the account back'
         (await runCloudAgentCapabilityRequest(request('get'), runtime, dataRoot)).result
     ).toEqual({
         accountEmail: null,
+        environmentId: null,
+        environments: null,
         expiresAt: null,
         isDefault: true,
         provider: 'cursor',
@@ -80,6 +82,8 @@ test('connecting stores the credential with Cursor and reports the account back'
     const connected = await runCloudAgentCapabilityRequest(request('connect'), runtime, dataRoot);
     expect(connected.result).toEqual({
         accountEmail: 'delegate@example.com',
+        environmentId: null,
+        environments: null,
         expiresAt: '2026-12-03T21:03:33.000Z',
         isDefault: true,
         provider: 'cursor',
@@ -115,7 +119,7 @@ test('a refused login answers with a retryable state, never raw authentication d
 
 test('the Computer inventory reports Cursor readiness truthfully', async () => {
     installDisconnectedCursor();
-    expect((await detectFullInventory()).cloudAgentProviders).toEqual([
+    expect((await detectFullInventory({ dataRoot })).cloudAgentProviders).toEqual([
         {
             isDefault: true,
             models: null,
@@ -127,7 +131,7 @@ test('the Computer inventory reports Cursor readiness truthfully', async () => {
     ]);
 
     await runCloudAgentCapabilityRequest(request('connect'), runtime, dataRoot);
-    expect((await detectFullInventory()).cloudAgentProviders).toEqual([
+    expect((await detectFullInventory({ dataRoot })).cloudAgentProviders).toEqual([
         {
             models: {
                 ...mapCloudAgentModelCatalog(recordedModels),
@@ -153,7 +157,7 @@ test('making a provider the default moves the inventory flag to it', async () =>
     expect(await readDefaultCloudAgentProvider(dataRoot)).toBe('claude');
     expect(
         (
-            await detectFullInventory({ defaultCloudAgentProvider: 'claude' })
+            await detectFullInventory({ dataRoot, defaultCloudAgentProvider: 'claude' })
         ).cloudAgentProviders?.map((entry) => [entry.provider, entry.isDefault])
     ).toEqual([
         ['cursor', false],

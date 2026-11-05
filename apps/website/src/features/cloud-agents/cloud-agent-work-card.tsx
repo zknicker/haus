@@ -49,7 +49,11 @@ export function CloudAgentWorkCard({ work }: { work: CloudAgentWork }) {
         >
             <ActionCard.Header>
                 <ActionCard.Mark>
-                    <CloudAgentKeycap provider={work.provider} size={40} />
+                    <CloudAgentKeycap
+                        environmentName={work.environmentName}
+                        provider={work.provider}
+                        size={40}
+                    />
                 </ActionCard.Mark>
                 <ActionCard.Content>
                     <ActionCard.Title>

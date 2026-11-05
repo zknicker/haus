@@ -16,6 +16,12 @@ import {
     type ClaudeSessionEvent,
     createClaudeController,
 } from './controller.ts';
+import {
+    ClaudeCloudEnvironmentUnavailableError,
+    cloudAgentEnvironmentsOf,
+    listClaudeCloudEnvironments,
+    listClaudeCloudEnvironmentsAutoPinning,
+} from './environments.ts';
 import { readClaudeNativeAccount } from './native-auth.ts';
 import { launchNativeClaudeCloud, sendNativeClaudeCloud } from './native-commands.ts';
 import { claudeRunObservation } from './observation.ts';
@@ -38,6 +44,7 @@ const answerSettleTimeout = 30_000;
  * on `requires_action`, and the delegating Agent answers with a follow-up.
  */
 export function createClaudeCloudAgentProvider(
+    dataRoot: string,
     controller: ClaudeController = createClaudeController()
 ): CloudAgentProvider {
     // The chronological window since this Run's own tagged prompt, once found.
@@ -113,6 +120,7 @@ export function createClaudeCloudAgentProvider(
         // Claude Cloud uses the Computer's own Claude Code sign-in; Haus starts none of its own.
         connect: readiness,
         disconnect: readiness,
+        listEnvironments: () => listClaudeCloudEnvironments().then(cloudAgentEnvironmentsOf),
         listModels: () => Promise.resolve(claudeModels),
         provider: 'claude',
         read,
@@ -132,6 +140,9 @@ export function createClaudeCloudAgentProvider(
                 });
             }
             return {
+                // A follow-up targets a session Claude already placed; it resolves no environment anew.
+                environmentId: null,
+                environmentName: null,
                 providerAgentId: sessionId,
                 providerRunId: null,
                 providerUrl: sessionUrl(sessionId),
@@ -140,11 +151,20 @@ export function createClaudeCloudAgentProvider(
         },
         async start(input, signal): Promise<CloudAgentLaunch> {
             await requireReady(readiness);
+            const environment = await resolveClaudeEnvironment(dataRoot, signal);
             const prompt = `${claudeRunTag({ runId: input.idempotencyKey, workId: input.workId })}\n\n${input.instructions}`;
             const receipt = await withClaudeCheckout({ ...input, signal }, (cwd) =>
-                launchNativeClaudeCloud({ cwd, modelId: input.model?.id ?? null, prompt, signal })
+                launchNativeClaudeCloud({
+                    cwd,
+                    environmentId: environment.id,
+                    modelId: input.model?.id ?? null,
+                    prompt,
+                    signal,
+                })
             );
             return {
+                environmentId: environment.id,
+                environmentName: environment.name,
                 providerAgentId: receipt.sessionId,
                 providerRunId: null,
                 providerUrl: receipt.url,
@@ -216,6 +236,35 @@ function openTaskIds(entries: ReturnType<typeof logEntriesOf>): string[] {
         }
     }
     return [...tasks].flatMap(([id, terminal]) => (terminal ? [] : [id]));
+}
+
+/**
+ * The environment this launch pins to. Auto-pins the Computer's sole
+ * environment on first use; refuses the launch when nothing is pinned and
+ * the account has none or several, and when a pinned environment no longer
+ * exists or is archived. Checked fresh on every launch so a Computer never
+ * falls back to Claude Code's own default silently.
+ */
+export async function resolveClaudeEnvironment(
+    dataRoot: string,
+    signal?: AbortSignal
+): Promise<{ id: string; name: string }> {
+    const { environmentId, environments } = await listClaudeCloudEnvironmentsAutoPinning(
+        dataRoot,
+        signal
+    );
+    if (!environmentId) {
+        throw new CloudAgentLaunchRejectedError(
+            'Choose a Claude environment in Settings → Computers → Cloud Agents.'
+        );
+    }
+    const match = environments.find((environment) => environment.id === environmentId);
+    if (!match || match.state.toLowerCase() === 'archived') {
+        throw new CloudAgentLaunchRejectedError(
+            new ClaudeCloudEnvironmentUnavailableError(environmentId).message
+        );
+    }
+    return { id: match.id, name: match.name };
 }
 
 async function requireReady(readiness: () => Promise<CloudAgentReadiness>): Promise<void> {

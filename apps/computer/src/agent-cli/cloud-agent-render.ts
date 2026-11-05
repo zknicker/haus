@@ -20,10 +20,11 @@ export function renderCloudAgentWorkList(works: readonly CloudAgentWorkLinkSourc
     if (works.length === 0) {
         return 'No cloud agent work found.\n';
     }
-    const rows = works.map(
-        (work) =>
-            `${work.id} [${work.status}] ${work.title} (${work.repository})\n  Link: ${formatCloudAgentWorkLink(work.title, work.id)}`
-    );
+    const rows = works.map((work) => {
+        // Only a pinned Claude launch carries a name; every other provider is null.
+        const environment = work.environmentName ? ` [${work.environmentName}]` : '';
+        return `${work.id} [${work.status}]${environment} ${work.title} (${work.repository})\n  Link: ${formatCloudAgentWorkLink(work.title, work.id)}`;
+    });
     return `${rows.join('\n')}\n${linkSentence}\n`;
 }
 
@@ -34,6 +35,7 @@ export function renderCloudAgentWorkDetail(works: readonly CloudAgentWorkLinkSou
 }
 
 interface CloudAgentWorkLinkSource {
+    environmentName?: string | null;
     id: string;
     repository: string;
     status: string;

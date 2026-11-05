@@ -13,6 +13,8 @@ const work = {
     chatId: 'cht_product',
     computerId: 'cmp_studio',
     createdAt: '2026-09-04T12:00:00.000Z',
+    environmentId: null,
+    environmentName: null,
     id: 'caw_1234567890abcdef',
     job: { followUp: null, startedAt: null, state: 'working' as const },
     messageId: 'msg_1a2b3c4d5e6f7890',
@@ -84,4 +86,16 @@ test('inspect prints each work with its link, escaping titles the link grammar c
         '\nLink: [Fix the flaky delivery test](cloud-agent://caw_1234567890abcdef)\n'
     );
     expect(renderCloudAgentWorkDetail([])).toBe('[]\n');
+});
+
+test('a pinned Claude environment shows as a short marker on its list line, never on an unpinned one', () => {
+    const pinned = { ...work, environmentName: 'Fast', provider: 'claude' as const };
+    const listed = renderCloudAgentWorkList([work, pinned]);
+
+    expect(listed).toContain(
+        'caw_1234567890abcdef [queued] Fix the flaky delivery test (haus/haus)'
+    );
+    expect(listed).toContain(
+        'caw_1234567890abcdef [queued] [Fast] Fix the flaky delivery test (haus/haus)'
+    );
 });

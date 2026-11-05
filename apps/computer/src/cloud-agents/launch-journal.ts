@@ -7,6 +7,9 @@ import { cloudAgentLaunchTimeoutMs } from './launch-attempt.ts';
 import type { CloudAgentLaunch, CloudAgentRunRef } from './provider.ts';
 
 const launchSchema = z.object({
+    /** Absent in records written before the environment pin existed. */
+    environmentId: z.string().min(1).nullable().default(null),
+    environmentName: z.string().min(1).nullable().default(null),
     providerAgentId: z.string().min(1),
     /** Null for a provider that names the execution only once a reading finds it. */
     providerRunId: z.string().min(1).nullable(),

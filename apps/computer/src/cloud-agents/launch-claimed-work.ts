@@ -6,6 +6,7 @@ import {
     CloudAgentLaunchRejectedError,
     type CloudAgentProvider,
     type CloudAgentRunRef,
+    cloudAgentLaunchObservation,
     cloudAgentModelSelectionOf,
 } from './provider.ts';
 import { launchRejection } from './send-delivery.ts';
@@ -53,14 +54,7 @@ export async function launchClaimedWork(claimed: ClaimedLaunch): Promise<void> {
         await provider.cancel({ ...ref, ...launch }, AbortSignal.timeout(15_000));
         return;
     }
-    supervisor.report(ref, {
-        observedAt: new Date().toISOString(),
-        providerAgentId: launch.providerAgentId,
-        ...(launch.providerRunId ? { providerRunId: launch.providerRunId } : {}),
-        ...(launch.providerUrl ? { providerUrl: launch.providerUrl } : {}),
-        status: launch.status,
-        startedAt: launch.startedAt,
-    });
+    supervisor.report(ref, cloudAgentLaunchObservation(launch, new Date().toISOString()));
     supervisor.watch({
         ...ref,
         providerAgentId: launch.providerAgentId,

@@ -52,6 +52,8 @@ export function toCloudAgentWork(row: WorkRow, runs: RunRow[]): CloudAgentWork {
         chatId: row.chatId,
         computerId: row.computerId,
         createdAt: row.createdAt.toISOString(),
+        environmentId: row.environmentId,
+        environmentName: row.environmentName,
         id: row.id,
         job: deriveCloudAgentJob({ runs: recent, startedAt, status: row.status, terminalAt }),
         messageId: row.launchMessageId,

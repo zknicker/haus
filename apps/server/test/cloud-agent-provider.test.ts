@@ -164,6 +164,54 @@ test('sign-in links and cancellation relay through the authorized Computer capab
     );
 });
 
+test('setting an environment relays the pin, and null relays the unpin', async () => {
+    const target = { computerId, provider: 'claude' as const, serverId };
+    const pinned = answerNextCapabilityRequest(socket, 'set-environment', {
+        accountEmail: 'delegate@example.com',
+        environmentId: 'env_123',
+        environments: [{ id: 'env_123', name: 'Primary' }],
+        expiresAt: null,
+        isDefault: true,
+        provider: 'claude',
+        ready: true,
+        reason: null,
+    });
+    const result = await owner.trpc.cloudAgentProvider.setEnvironment.mutate({
+        ...target,
+        environmentId: 'env_123',
+    });
+    await pinned;
+    expect(result.environmentId).toBe('env_123');
+
+    const unpinned = answerNextCapabilityRequest(socket, 'set-environment', {
+        accountEmail: 'delegate@example.com',
+        environmentId: null,
+        environments: [{ id: 'env_123', name: 'Primary' }],
+        expiresAt: null,
+        isDefault: true,
+        provider: 'claude',
+        ready: true,
+        reason: null,
+    });
+    const cleared = await owner.trpc.cloudAgentProvider.setEnvironment.mutate({
+        ...target,
+        environmentId: null,
+    });
+    await unpinned;
+    expect(cleared.environmentId).toBeNull();
+});
+
+test('only an Owner or Admin can set a Computer’s Claude environment pin', async () => {
+    await expect(
+        member.trpc.cloudAgentProvider.setEnvironment.mutate({
+            computerId,
+            environmentId: 'env_123',
+            provider: 'claude',
+            serverId,
+        })
+    ).rejects.toThrow(/Owner or Admin/i);
+});
+
 test('only an Owner or Admin can connect a Computer to a Cloud Agent provider', async () => {
     await expect(
         member.trpc.cloudAgentProvider.get.query({ computerId, provider: 'cursor', serverId })

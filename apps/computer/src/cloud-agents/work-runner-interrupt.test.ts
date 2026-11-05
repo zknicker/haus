@@ -99,6 +99,8 @@ test('a follow-up whose send fails but then goes through once auto-interrupted r
                 return Promise.reject(recordedAgentBusyError());
             }
             return Promise.resolve({
+                environmentId: null,
+                environmentName: null,
                 providerAgentId: input.providerAgentId,
                 providerRunId: `run_${input.idempotencyKey}`,
                 providerUrl: null,

@@ -34,6 +34,7 @@ function render(view: ReturnType<typeof cloudAgentCapabilityView>) {
             onConnect={() => undefined}
             onDisconnect={() => undefined}
             onMakeDefault={() => undefined}
+            onSetEnvironment={() => undefined}
             view={view}
         />
     );

@@ -50,13 +50,16 @@ const knownRuntimes: ComputerRuntime[] = [
  * readiness. Cloud Agent access is its own Computer capability, separate from
  * the runtime harnesses even when a provider shares a vendor with one.
  */
-export async function detectFullInventory(
-    options: { defaultCloudAgentProvider?: CloudAgentProvider; searchPath?: string } = {}
-): Promise<ComputerInventory> {
+export async function detectFullInventory(options: {
+    dataRoot: string;
+    defaultCloudAgentProvider?: CloudAgentProvider;
+    searchPath?: string;
+}): Promise<ComputerInventory> {
     return {
         ...detectInventory(options),
         cloudAgentProviders: await detectCloudAgentProviders(
-            options.defaultCloudAgentProvider ?? 'cursor'
+            options.defaultCloudAgentProvider ?? 'cursor',
+            options.dataRoot
         ),
     };
 }

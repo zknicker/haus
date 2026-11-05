@@ -15,10 +15,11 @@ import { CloudLaunchJournal } from './launch-journal.ts';
 import { CloudAgentLaunchScope } from './launch-scope.ts';
 import { autoInterruptNote, CloudAgentLocalRuns } from './local-runs.ts';
 import { type EnrichObservation, ObservationReports } from './observation-reports.ts';
-import type {
-    CloudAgentProvider,
-    CloudAgentProviderObservation,
-    CloudAgentRunRef,
+import {
+    type CloudAgentProvider,
+    type CloudAgentProviderObservation,
+    type CloudAgentRunRef,
+    cloudAgentLaunchObservation,
 } from './provider.ts';
 import { cloudAgentProvider } from './registry.ts';
 import { CloudAgentSendQueue } from './send-queue.ts';
@@ -62,7 +63,7 @@ export class CloudAgentWorkSupervisor {
         }
     ) {
         const journal = new CloudLaunchJournal(options.dataRoot);
-        this.provider = options.provider ?? cloudAgentProvider;
+        this.provider = options.provider ?? ((id) => cloudAgentProvider(id, options.dataRoot));
         const sends = new CloudAgentSendQueue(runtime, journal, options.serverId, this.provider);
         this.localRuns = new CloudAgentLocalRuns(journal, options.serverId, sends);
         this.launches = new CloudAgentLaunchScope(runtime);
@@ -265,14 +266,12 @@ export class CloudAgentWorkSupervisor {
                 providerAgentId: state.launch.providerAgentId,
                 providerRunId: run.ref.providerRunId ?? state.launch.providerRunId,
             };
-            const { providerRunId, providerUrl, ...launch } = state.launch;
-            self.observe(connection, run, {
-                ...launch,
-                ...(providerRunId ? { providerRunId } : {}),
-                ...(providerUrl ? { providerUrl } : {}),
-                ...autoInterruptNote(state.autoInterrupted),
-                observedAt: state.observedAt,
-            });
+            const extra = autoInterruptNote(state.autoInterrupted);
+            self.observe(
+                connection,
+                run,
+                cloudAgentLaunchObservation(state.launch, state.observedAt, extra)
+            );
             return !run.terminal;
         });
     }
