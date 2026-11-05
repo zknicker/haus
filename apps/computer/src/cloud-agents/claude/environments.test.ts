@@ -80,8 +80,8 @@ test('only Anthropic-hosted environments are listed, sorted by name', async () =
     const environments = await listClaudeCloudEnvironments();
 
     expect(environments).toEqual([
-        { id: 'env_a', name: 'Alpha', state: 'active' },
-        { id: 'env_z', name: 'zeta', state: 'active' },
+        { createdAt: null, id: 'env_a', name: 'Alpha', state: 'active' },
+        { createdAt: null, id: 'env_z', name: 'zeta', state: 'active' },
     ]);
     expect(cloudAgentEnvironmentsOf(environments)).toEqual([
         { id: 'env_a', name: 'Alpha' },
@@ -124,6 +124,7 @@ test('a live pin resolves to its current name', async () => {
     );
 
     expect(await requireLiveClaudeCloudEnvironment('env_a')).toEqual({
+        createdAt: null,
         id: 'env_a',
         name: 'Alpha',
         state: 'active',
@@ -147,27 +148,100 @@ test('an unpinned Computer with exactly one live environment auto-pins it', asyn
 
     expect(await listClaudeCloudEnvironmentsAutoPinning(dataRoot)).toEqual({
         environmentId: 'env_only',
-        environments: [{ id: 'env_only', name: 'Only', state: 'active' }],
+        environments: [{ createdAt: null, id: 'env_only', name: 'Only', state: 'active' }],
     });
     expect(await readClaudeEnvironmentId(dataRoot)).toBe('env_only');
 });
 
-test('an unpinned Computer with several live environments pins none', async () => {
+test('an unpinned Computer with several environments and no Default pins the oldest by created_at', async () => {
     await hostHome();
     stubFetch(
         environmentsResponse([
-            { environment_id: 'env_a', kind: 'anthropic_cloud', name: 'Alpha', state: 'active' },
-            { environment_id: 'env_b', kind: 'anthropic_cloud', name: 'Beta', state: 'active' },
+            {
+                environment_id: 'env_newer',
+                kind: 'anthropic_cloud',
+                name: 'Newer',
+                state: 'active',
+                created_at: '2026-06-01T00:00:00Z',
+            },
+            {
+                environment_id: 'env_older',
+                kind: 'anthropic_cloud',
+                name: 'Older',
+                state: 'active',
+                created_at: '2026-01-01T00:00:00Z',
+            },
         ])
     );
     const dataRoot = await claudeDataRoot();
 
+    const result = await listClaudeCloudEnvironmentsAutoPinning(dataRoot);
+    expect(result.environmentId).toBe('env_older');
+    expect(await readClaudeEnvironmentId(dataRoot)).toBe('env_older');
+});
+
+test('an unpinned Computer with several environments pins the one named Default over any other, even an older one', async () => {
+    await hostHome();
+    stubFetch(
+        environmentsResponse([
+            {
+                environment_id: 'env_oldest',
+                kind: 'anthropic_cloud',
+                name: 'Oldest',
+                state: 'active',
+                created_at: '2026-01-01T00:00:00Z',
+            },
+            {
+                environment_id: 'env_default',
+                kind: 'anthropic_cloud',
+                name: 'default',
+                state: 'active',
+                created_at: '2026-09-01T00:00:00Z',
+            },
+        ])
+    );
+    const dataRoot = await claudeDataRoot();
+
+    const result = await listClaudeCloudEnvironmentsAutoPinning(dataRoot);
+    expect(result.environmentId).toBe('env_default');
+    expect(await readClaudeEnvironmentId(dataRoot)).toBe('env_default');
+});
+
+test('an unpinned Computer with no environments at all pins nothing', async () => {
+    await hostHome();
+    stubFetch(environmentsResponse([]));
+    const dataRoot = await claudeDataRoot();
+
     expect(await listClaudeCloudEnvironmentsAutoPinning(dataRoot)).toEqual({
         environmentId: null,
-        environments: [
-            { id: 'env_a', name: 'Alpha', state: 'active' },
-            { id: 'env_b', name: 'Beta', state: 'active' },
-        ],
+        environments: [],
     });
     expect(await readClaudeEnvironmentId(dataRoot)).toBeNull();
+});
+
+test('a repeat call keeps the first auto-pin even once a Default environment later appears', async () => {
+    await hostHome();
+    stubFetch(
+        environmentsResponse([
+            { environment_id: 'env_a', kind: 'anthropic_cloud', name: 'Alpha', state: 'active' },
+        ])
+    );
+    const dataRoot = await claudeDataRoot();
+    await listClaudeCloudEnvironmentsAutoPinning(dataRoot);
+    expect(await readClaudeEnvironmentId(dataRoot)).toBe('env_a');
+
+    stubFetch(
+        environmentsResponse([
+            { environment_id: 'env_a', kind: 'anthropic_cloud', name: 'Alpha', state: 'active' },
+            {
+                environment_id: 'env_default',
+                kind: 'anthropic_cloud',
+                name: 'Default',
+                state: 'active',
+            },
+        ])
+    );
+    const result = await listClaudeCloudEnvironmentsAutoPinning(dataRoot);
+    expect(result.environmentId).toBe('env_a');
+    expect(await readClaudeEnvironmentId(dataRoot)).toBe('env_a');
 });
