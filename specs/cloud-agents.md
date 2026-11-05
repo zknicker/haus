@@ -555,16 +555,25 @@ failed send:
   with `provider-launch-rejected`.
 - **Retryable** — those four statuses, 5xx, network, or SDK unavailable. Computer retries with
   backoff (5 seconds, doubling, capped at one minute) and journals the attempt count, first
-  attempt, and last error with the pending prompt. Thirty minutes after the first failed attempt,
-  the Run settles `failed` with `followup-delivery-timeout` and a summary carrying the last error.
+  attempt, and last error with the pending prompt, forever: a busy provider never fails the Run.
   The clock starts at the first attempt, not at queueing: with predecessors terminal, a busy agent
-  frees within seconds, so busy for half an hour means a Run Haus does not track holds the agent,
-  and an outage that long deserves the delegating Agent's judgment rather than silence.
+  frees within seconds, so busy for half an hour means a Run Haus does not track holds the agent.
+  Once that half hour passes, the still-`queued` observation also carries `errorCode:
+  followup-delivery-timeout` and a summary naming the last error, on every retry tick, until the
+  provider accepts the prompt or a human or the delegating Agent stops, interrupts (`send
+  --interrupt`), or relaunches it. This is a notice, never a failure: the Run stays `queued` and
+  Computer keeps retrying underneath it.
 
 While a follow-up sits in Haus's local queue — waiting on a predecessor or between retries — Computer
 reports it `queued` with an `activity` line naming why (waiting on an earlier Run, or the attempt
 count and last error), so the work card's liveness reading and `haus cloud-agent inspect` both carry
-it instead of staying silent until it settles.
+it instead of staying silent until it settles. Once it crosses the thirty-minute mark, the card's
+follow-up note reads `follow-up waiting: session busy` instead of the ordinary `waiting <d>` note
+(`job.followUp.state: 'stalled'`, `deriveCloudAgentJob` in `packages/haus-api`), and Server raises
+one inbox attention for it. A stuck follow-up keeps reporting the same `errorCode` on every tick, so
+Server dedupes repeats inside one two-hour window to that same attention and opens a fresh one each
+time a new window starts — one notice per stall, a sparse reminder if it is still stuck much later,
+never a flood from the 5-to-60-second retry cadence underneath it.
 
 A Run Server recorded but this Computer never journaled — the sender timed out or crashed between
 the two — never reached Cursor. Its monitor settles it `failed` with `launch-record-missing` after a
@@ -577,8 +586,12 @@ replace that terminal journal record; Computer asks the provider to cancel the l
 
 The delegating Agent, not the card, surfaces delivery failures. Every settled Run creates one inbox
 attention carrying its `errorCode` and `summary`; the Agent explains the failure in the work's
-conversation and decides whether to send again or `start` fresh work. The card keeps reading from
-the newest Run Cursor received, so an undelivered follow-up leaves it as the earlier Run reads.
+conversation and decides whether to send again or `start` fresh work. A follow-up stalled past the
+delivery window creates the same kind of attention without settling anything: the Agent reads the
+same `errorCode` and summary, and decides whether to wait, stop it, interrupt it, or relaunch —
+nothing it does is forced, because the Run is still live underneath. The card keeps reading from the
+newest Run the provider received, so an undelivered follow-up leaves it as the earlier Run reads
+except for the stalled note described above.
 
 ## Results are ordinary Messages
 
