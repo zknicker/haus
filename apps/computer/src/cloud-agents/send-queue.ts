@@ -6,28 +6,8 @@ import { Clock, Effect } from 'effect';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import { foreign } from './foreign-operation.ts';
 import type { CloudLaunchJournal, CloudPendingSend as Pending } from './launch-journal.ts';
-import type {
-    CloudAgentProvider,
-    CloudAgentProviderObservation,
-    CloudAgentRunRef,
-} from './provider.ts';
+import type { CloudAgentProvider, CloudAgentRunRef } from './provider.ts';
 import { deliveryDue, followUpInterruptGraceMs, sendFailureOutcome } from './send-delivery.ts';
-
-/**
- * Whether the provider will take a new prompt right now, when that differs
- * from whether the Run itself settled. A Claude Run reads `status: running`
- * for as long as it has an open background task, even once its foreground
- * turn ends and the session is `idle` and free for a follow-up — an open task
- * that outlives the turn can hold `running` forever, with no Cursor-style
- * Run expiry to unstick it (TECH-7). Cursor never reports `rawStatus: 'idle'`,
- * so its own unbounded wait is unchanged.
- */
-function acceptsFollowUp(
-    ref: CloudAgentRunRef,
-    observation: CloudAgentProviderObservation
-): boolean {
-    return ref.provider === 'claude' && observation.rawStatus === 'idle';
-}
 
 function errorMessageOf(error: { cause: unknown }): string {
     const message = error.cause instanceof Error ? error.cause.message : String(error.cause);
@@ -217,12 +197,30 @@ export class CloudAgentSendQueue {
             if (!(ref.providerAgentId && (launched || ref.providerRunId))) {
                 return yield* self.unaddressedReady(previous, record === null && stop);
             }
+            // A hosted Claude session takes a new prompt the moment the one ahead of
+            // it was dispatched, exactly like a message sent mid-turn in local Claude
+            // Code: Haus never middle-mans it waiting for that turn to finish (TECH-7,
+            // round 4). Sending still only follows dispatch order — a still-`pending`
+            // predecessor above this still blocks — and an explicit interrupt still
+            // clears the predecessor's own work first. Cursor has no such capability,
+            // so it keeps the original wait for its own Run to go terminal.
+            if (ref.provider === 'claude') {
+                if (stop) {
+                    yield* foreign((signal) => self.provider(ref.provider).cancel(ref, signal));
+                }
+                return true;
+            }
+            return yield* self.cursorPredecessorReady(ref, stop);
+        });
+    }
+
+    /** Cursor has no mid-turn input: wait for its own Run to go terminal. */
+    private cursorPredecessorReady(ref: CloudAgentRunRef, stop: boolean) {
+        const self = this;
+        return Effect.gen(function* () {
             const provider = self.provider(ref.provider);
             const observation = yield* foreign((signal) => provider.read(ref, signal));
-            if (
-                isTerminalCloudAgentStatus(observation.status) ||
-                acceptsFollowUp(ref, observation)
-            ) {
+            if (isTerminalCloudAgentStatus(observation.status)) {
                 return true;
             }
             if (stop) {

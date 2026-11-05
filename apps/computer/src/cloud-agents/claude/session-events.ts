@@ -21,14 +21,29 @@ export type ClaudeLogEntry =
     | { kind: 'task'; id: string; terminal: boolean }
     | { kind: 'control-response'; requestId: string; success: boolean };
 
+const hausPromptPrefix = 'HAUS_CLOUD_RUN=';
+
 /** One Run's tag, the first line of every prompt Haus sends. */
 export function claudeRunTag(ref: { runId: string; workId: string }): string {
-    return `HAUS_CLOUD_RUN=${ref.workId}/${ref.runId}`;
+    return `${hausPromptPrefix}${ref.workId}/${ref.runId}`;
 }
 
 /** Whether this event is the prompt Haus sent for the Run. */
 export function isRunPrompt(event: ClaudeSessionEvent, tag: string): boolean {
     return logEntriesOf(event).some((entry) => entry.kind === 'prompt' && hasTag(entry.text, tag));
+}
+
+/**
+ * Whether this log entry is any Haus-sent prompt, not just one Run's own.
+ * Haus never waits for a Claude Run to go idle before sending the next one
+ * (TECH-7, round 4), so one Run's own reading must stop at the next Haus
+ * prompt rather than read into a later Run's turn.
+ */
+export function isHausPrompt(entry: ClaudeLogEntry): boolean {
+    return (
+        entry.kind === 'prompt' &&
+        entry.text.split(/\r?\n/u).some((line) => line.trim().startsWith(hausPromptPrefix))
+    );
 }
 
 export function logEntriesOf(event: ClaudeSessionEvent): ClaudeLogEntry[] {

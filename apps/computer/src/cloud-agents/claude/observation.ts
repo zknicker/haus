@@ -2,7 +2,13 @@ import { cloudAgentActivityMaxLength, cloudAgentSummaryMaxLength } from '@haus/a
 import type { CloudAgentProviderObservation } from '../provider.ts';
 import type { ClaudeSession, ClaudeSessionEvent } from './controller.ts';
 import { evidence } from './evidence.ts';
-import { type ClaudeLogEntry, claudeRunTag, isRunPrompt, logEntriesOf } from './session-events.ts';
+import {
+    type ClaudeLogEntry,
+    claudeRunTag,
+    isHausPrompt,
+    isRunPrompt,
+    logEntriesOf,
+} from './session-events.ts';
 
 type Entry<Kind extends ClaudeLogEntry['kind']> = Extract<ClaudeLogEntry, { kind: Kind }>;
 
@@ -50,7 +56,15 @@ export function claudeRunObservation(input: {
                   'Waiting for Claude to take the prompt.'
               );
     }
-    const after = chronological.slice(start + 1);
+    // Bounded at the next Haus prompt: Haus may already have sent a follow-up
+    // into this same session before this Run's own turn finished, so reading
+    // past that point would attribute a later Run's activity and result to
+    // this one.
+    const nextPrompt = chronological.slice(start + 1).findIndex(isHausPrompt);
+    const after = chronological.slice(
+        start + 1,
+        nextPrompt === -1 ? undefined : start + 1 + nextPrompt
+    );
     // Claude took the prompt when it logged it; the reading's own time is only when Haus looked.
     const startedAt = input.events.find((event) => isRunPrompt(event, tag))?.createdAt;
     return afterPrompt(

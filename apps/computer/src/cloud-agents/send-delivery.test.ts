@@ -241,6 +241,18 @@ test('waiting behind a predecessor that runs for hours never counts against the 
     expect(await f.advance()).toMatchObject({ phase: 'launched' });
 });
 
+test('a follow-up is delivered immediately behind a Claude predecessor that is still genuinely running', async () => {
+    // A Cursor predecessor this busy would block forever (see the two tests above);
+    // Haus never even reads a Claude predecessor's status before sending (TECH-7,
+    // round 4) — hosted sessions take the next prompt the moment the one ahead of
+    // it was dispatched, exactly like a message sent mid-turn in local Claude Code.
+    const claudePrior = { ...prior, provider: 'claude' as const };
+    const f = await fixture({ predecessor: claudePrior });
+    f.setPriorStatus('running');
+    expect(await f.advance()).toMatchObject({ phase: 'launched' });
+    expect(f.sends()).toBe(1);
+});
+
 test('a predecessor that settled in any terminal state unblocks the follow-up', async () => {
     for (const status of ['completed', 'failed', 'cancelled', 'expired'] as const) {
         const f = await fixture();

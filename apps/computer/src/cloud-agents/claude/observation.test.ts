@@ -141,6 +141,24 @@ test('an archived session that never took the prompt expires', () => {
     });
 });
 
+test("a later follow-up's own prompt bounds this Run's reading, so its result never leaks in", () => {
+    // Haus no longer waits for a Claude Run to finish before sending the next one
+    // (TECH-7, round 4), so this Run's own window must stop at the next Haus
+    // prompt rather than read into a later Run's turn.
+    const followUpPrompt = event({
+        message: { content: 'HAUS_CLOUD_RUN=caw_work/car_followup\n\nOne more thing.' },
+        type: 'user',
+        uuid: 'prompt-2',
+    });
+    const followUpResult = result({ result: 'Finished the follow-up.' });
+    const observation = observe(
+        [prompt, followUpPrompt, followUpResult],
+        session({ workerStatus: 'idle' })
+    );
+    expect(observation.status).toBe('running');
+    expect(observation.summary).not.toBe('Finished the follow-up.');
+});
+
 test('the pushed branch and its pull request are reported together', () => {
     expect(
         observe(
