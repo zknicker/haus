@@ -34,6 +34,27 @@ test('the pacing rule is standing; its command shapes ride the assignment input'
     expect(prompt).not.toContain('haus task move <key>');
 });
 
+test('a Task blocked on a person goes back to todo, and the queue moves past it', () => {
+    expect(prompt).toContain(
+        'When a Task is blocked on a person, @mention them with its key where the work lives, move its card back to todo, and take the next Task; leave it until they answer.'
+    );
+    // The receipt still counts a blocked card, so "until nothing is" would never end.
+    expect(prompt).toContain('so keep going until only blocked Tasks remain.');
+});
+
+test('splitting for other agents makes Tasks, and claims stay in the conversation', () => {
+    expect(prompt).toContain(
+        'Subtasks for other agents are Tasks: create them on a board and assign them. Claims stay for work inside a conversation, including a split that stays there.'
+    );
+    expect(prompt).toContain(
+        'When you receive a notification about new claims in a conversation, check the claim list and claim those relevant to your skills; Tasks assigned to you are already yours.'
+    );
+    // The bullets stay Raft-verbatim.
+    expect(prompt).toContain('**Group by phase** if tasks have dependencies.');
+    expect(prompt).toContain('**Prefer independent subtasks**');
+    expect(prompt).toContain('**Avoid creating sequential chains**');
+});
+
 test('the Tasks and Boards families name every verb and point at the Manual', () => {
     expect(prompt).toContain(
         '15. **Tasks**: `haus task list`, `haus task show`, `haus task create`, `haus task move`, `haus task update`, `haus task assign`. Read the `tasks` Manual topic before the first one.'
@@ -45,7 +66,7 @@ test('the Tasks and Boards families name every verb and point at the Manual', ()
 
 test('the section sits with the other work primitives, after the claim sections', () => {
     expect(prompt.indexOf('### Tasks')).toBeGreaterThan(
-        prompt.indexOf('### Splitting work into claims')
+        prompt.indexOf('### Splitting work for parallel execution')
     );
     expect(prompt.indexOf('### Tasks')).toBeLessThan(prompt.indexOf('## @Mentions'));
 });

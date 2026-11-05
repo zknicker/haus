@@ -21,7 +21,7 @@ Use it for the heartbeat turn only. The main session decides what anyone hears; 
 Post nothing in any chat. One report or silence.
 
 ### Daytime run: your assigned Tasks
-A daytime run starts only while you are idle, so a Task still sitting in todo means your queue stalled. Run \`haus task list --category todo\`. Your heartbeat can read Tasks but not move them, so put each key in your report, even one a past report named, and your main session resumes the queue. With nothing in todo, this adds nothing to report.
+A daytime run starts only while you are idle, so a Task still sitting in todo means your queue stalled, unless you asked a person about it and they have not answered. Run \`haus task list --category todo\`; \`haus task show <key>\` lists your @mention under Mentioned in. That Task is blocked, not stalled, so leave it out. Your heartbeat can read Tasks but not move them, so put each stalled key in your report, even one a past report named, and your main session resumes the queue. With nothing stalled, this adds nothing to report.
 
 ### Once per night (nightly run only)
 The nightly run also writes \`heartbeat/daily/<YYYY-MM-DD>.md\` as its checkpoint, covers everything since the last nightly run, and adds:

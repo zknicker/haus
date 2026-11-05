@@ -5,7 +5,7 @@
 
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
-import { journalTools, paceOf, queueSteps } from '../task-queue.mjs';
+import { archiveBoard, journalTools, paceOf, queueSteps } from '../task-queue.mjs';
 
 /** Oldest first, so age alone would pick the wrong one: priority has to decide. */
 const queue = [
@@ -91,22 +91,3 @@ export default defineScenario({
         }
     }),
 });
-
-/** Boards have no deletion; archiving keeps this one out of later lists and queue counts. */
-async function archiveBoard(kit, boardId) {
-    const { serverId } = kit;
-    await kit
-        .trpc('board.list', { serverId })
-        .then(async (boards) => {
-            const current = boards.find((candidate) => candidate.id === boardId);
-            if (current) {
-                await kit.trpc('board.update', {
-                    boardId,
-                    expectedVersion: current.version,
-                    patch: { archived: true },
-                    serverId,
-                });
-            }
-        })
-        .catch(() => undefined);
-}

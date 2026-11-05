@@ -47,11 +47,13 @@ export async function composeHeartbeatInput(
 
 /**
  * The queue's backstop (ADR 0051 decision 7). A daytime run starts only while the Agent is idle,
- * so a Task still in todo has stalled. The run cannot write Tasks (specs/tasks.md), so its report
- * is what restarts the queue, which is why a key repeats even though findings do not.
+ * so a Task still in todo has stalled, unless the Agent is waiting on a person for it. No field
+ * says so, and this run's session is fresh, so the Agent's own @mention under Mentioned in is the
+ * evidence. The run cannot write Tasks (specs/tasks.md), so its report is what restarts the queue,
+ * which is why a key repeats even though findings do not.
  */
 const stalledQueueStep =
-    'Daytime, also: run `haus task list --category todo`. You are idle, so a Task still in todo means your queue stalled. You can read Tasks here but not move them, so put each key in your report, even one a past report named, and your main session resumes the queue.';
+    'Daytime, also: run `haus task list --category todo`. You are idle, so a Task still in todo means your queue stalled, unless you asked a person about it and they have not answered: `haus task show <key>` lists your @mention under Mentioned in. That Task is blocked, not stalled, so leave it out. You can read Tasks here but not move them, so put each stalled key in your report, even one a past report named, and your main session resumes the queue.';
 
 const everyRunSteps = [
     'Every run, even a quiet one:',
@@ -82,7 +84,7 @@ export function composeHeartbeatReportInput(
 
 /** Moving cards reaches nobody, so a queue resumes without the heads-up a post would need. */
 const STALLED_QUEUE_RESUME =
-    'If it names Tasks assigned to you waiting in todo, your queue stalled: start the next one now.';
+    'If it names Tasks assigned to you waiting in todo, your queue stalled: start the next one now, skipping any blocked on a person.';
 
 /**
  * The morning turn sees the reminder, not this report, so its description carries the

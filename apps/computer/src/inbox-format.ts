@@ -37,7 +37,7 @@ const taskAssignmentNoticeGuidance =
  * rather than the lines above, because these are only what just arrived, not the whole queue.
  */
 const taskAssignmentGuidance =
-    'Take the next Task from `haus task list`. `haus task show <key>` prints its details and columns; move it to an active column with `haus task move <key> --column <name>`, then work it.';
+    'Take the next Task from `haus task list`, skipping any blocked on a person. `haus task show <key>` prints its details and columns; move it to an active column with `haus task move <key> --column <name>`, then work it.';
 
 /** Exact model-visible drain shape from specs/inbox.md. */
 export function composeInboxDrain(items: AgentInboxItem[]): string {

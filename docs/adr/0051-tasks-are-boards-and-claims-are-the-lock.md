@@ -4,7 +4,7 @@ read_when:
   - changing task storage, boards, columns, numbering, assignment, or the task CLI
   - changing claims, claim-before-work, or the `message_tasks` table
   - changing the Tasks page, task chips, task references, or Convert to Task
-  - deciding how an Agent picks up and paces assigned work
+  - deciding how an Agent picks up, paces, or splits work, or what it does with a blocked Task
   - deciding whether a Reminder can anchor on something other than a message
   - changing what the Inbox shows besides unread Chats and Threads, or the sidebar's Tasks row
 ---
@@ -92,13 +92,18 @@ Agent can see it.
    the status update; the Agent posts in a conversation only when it needs a person or has a
    result worth sharing. The Server does not lock a second active Task; the board flags an Agent
    holding more than one. Parallelism is deliberate: an Agent may hand a Task to a Cloud Agent run,
-   which already reports back as a typed continuation.
+   which already reports back as a typed continuation. A Task **blocked on a person** gives up its
+   turn: the Agent @mentions them with its key where the work lives, moves the card back to `todo`,
+   takes the next Task, and leaves it until they answer.
 
 7. **Finishing pulls the next.** Moving a Task into `done` returns a CLI receipt that names what is
    still waiting ("3 more assigned to you in todo"), so an Agent works through its queue without a
    scheduler. The daytime heartbeat is the backstop: its report names assigned Tasks that have sat
    in `todo` with the Agent idle. Chat requests interleave freely between turns; the active card
-   holds the Agent's place.
+   holds the Agent's place. A blocked card sits in `todo` with no status or field to mark it, and
+   the receipt still counts it. That is behavior guidance, not Server state: the Agent stops when
+   only blocked Tasks remain, and a heartbeat reads its @mention under Mentioned in and leaves that
+   Task out, since waiting on a person is not a stalled queue.
 
 8. **Reminders stay message-anchored and tie to Tasks by reference.** A Reminder's anchor is where
    the Agent answers when it fires ([ADR 0016](0016-reminders-are-the-scheduling-primitive.md)), and
@@ -134,6 +139,12 @@ and the prompt cap moves with the new `haus task` and `haus board` text. The alt
 `task` as the claim and name the board product something else (Issues) — keeps Raft parity but puts
 the plain word *task* on the thing nobody looks at. The product name wins.
 
+Splitting work follows the same line. Raft's section tells an Agent to split big work into tasks
+for others to claim; shared queued work now belongs on boards, so in Haus a subtask for another
+Agent is a Task, created on a board and assigned. Claims stay for work inside a conversation: the
+lock on a message, including a split that stays there. This is a deliberate divergence from Raft,
+with its own register row.
+
 ## Consequences
 
 - ADR 0015's `read_when` warning about "a separate work tracker" no longer applies; this ADR is
@@ -152,7 +163,7 @@ the plain word *task* on the thing nobody looks at. The product name wins.
 
 ## Deviations
 
-What shipped differs from the decisions above in four places:
+What shipped differs from the decisions above in five places:
 
 - **The General board is fixed.** Every Server has a General board, key `GEN`, that cannot be
   re-keyed or archived, so a Task always has a board to land on. It can be renamed. Any other board
@@ -165,6 +176,8 @@ What shipped differs from the decisions above in four places:
   5 did not say.
 - **Closed Tasks lose a departing assignee.** Deleting an Agent or removing a member unassigns every
   Task they hold, closed ones included, so no Task names an assignee who is gone.
+- **Chat menus do not link to Tasks.** Boards are not chat-scoped, so a Channel or DM menu carries
+  no View tasks item. The sidebar's Tasks row (decision 10) is the way in.
 
 ## Resolved questions
 

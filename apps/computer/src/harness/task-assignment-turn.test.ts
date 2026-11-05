@@ -91,7 +91,7 @@ test('a count, one line per Task, then one instruction, as the whole turn input'
             '[Haus task assignment SEC-12 board=Security column=Todo priority=high assignedBy=@zero] Rotate the signing key',
             '[Haus task assignment GEN-4 board=Security column=Todo priority=none] Second',
             '',
-            'Take the next Task from `haus task list`. `haus task show <key>` prints its details and columns; move it to an active column with `haus task move <key> --column <name>`, then work it.',
+            'Take the next Task from `haus task list`, skipping any blocked on a person. `haus task show <key>` prints its details and columns; move it to an active column with `haus task move <key> --column <name>`, then work it.',
         ].join('\n'),
     });
 });

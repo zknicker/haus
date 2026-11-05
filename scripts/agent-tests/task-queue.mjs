@@ -84,6 +84,9 @@ export function paceOf(steps) {
             finished.push(step.key);
             receipts.push(step.output);
             sendsSinceFinish = 0;
+        } else {
+            // A card moved back out of active is no longer held, whatever became of it.
+            active.delete(step.key);
         }
     }
     return {
@@ -95,6 +98,25 @@ export function paceOf(steps) {
         skippedActive,
         started,
     };
+}
+
+/** Boards have no deletion; archiving keeps this one out of later lists and queue counts. */
+export async function archiveBoard(kit, boardId) {
+    const { serverId } = kit;
+    await kit
+        .trpc('board.list', { serverId })
+        .then(async (boards) => {
+            const current = boards.find((candidate) => candidate.id === boardId);
+            if (current) {
+                await kit.trpc('board.update', {
+                    boardId,
+                    expectedVersion: current.version,
+                    patch: { archived: true },
+                    serverId,
+                });
+            }
+        })
+        .catch(() => undefined);
 }
 
 function toolOutput(tool) {

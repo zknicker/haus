@@ -47,9 +47,9 @@ export const evals = {
     tasks: {
         judge: null,
         profiles: {},
-        scenarios: ['task-queue-pacing'],
+        scenarios: ['task-queue-pacing', 'task-blocked-takes-next'],
         summary:
-            'Tasks assigned to an Agent are worked one card at a time by priority, carried to the next by the move receipt, with no pickup posts.',
+            'Tasks assigned to an Agent are worked one card at a time by priority, carried to the next by the move receipt, with no pickup posts; a Task blocked on a person goes back to todo with an @mention and the queue moves on.',
     },
     // Both overwrite MEMORY.md on the stack's own Computer. Rule quality is
     // scored out of band by scripts/agent-tests/memory-feedback-grade.mjs.

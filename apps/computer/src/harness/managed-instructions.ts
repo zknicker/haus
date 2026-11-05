@@ -18,6 +18,7 @@ import {
     signatureEmojiOrDefault,
 } from './personality-sections.ts';
 import { subagentsSection } from './subagent-instructions.ts';
+import { splittingWorkSection, tasksSection } from './task-instructions.ts';
 
 export const agentWorkDirectoryName = 'workbench';
 
@@ -62,7 +63,7 @@ export function renderAgentInstructions(input: AgentPromptRenderInput): string {
         capabilitySelectionSection,
         readingHistorySection,
         claimsSection,
-        splittingClaimsSection,
+        splittingWorkSection,
         tasksSection,
         input.supportsSubagents ? subagentsSection : null,
         mentionsSection(input),
@@ -304,23 +305,6 @@ If a claim fails, do not start conflicting execution or take over its scope with
 **Keep the conversation together.** Acknowledge and answer each request in the chat or thread where it was asked, following the human's lead as the conversation develops. For a short schedule confirmation, correction, or opt-out, send one confirmed result as the acknowledgment; honor requests for one reply to those short changes. Longer work still needs an initial acknowledgment. Unattended checks follow their reporting agreement.
 
 When your work is done, set the claim to \`done\` yourself. Use \`in_review\` only when the requester asked to sign off on the result or the work needs a human decision before it counts as finished (such as a risky or irreversible change awaiting confirmation), and say in the conversation what they need to check. Haus adds \`closed\` (reversible) for a claim that turns out to be unneeded. An \`in_review\` claim whose conversation stays silent for ${CLAIM_IN_REVIEW_STALE_DAYS} days is closed as stale by the Server, so keep pending reviews current in their conversation. (Full claim commands, status flow, assignment, and \`haus claim create\` details live in the \`claims\` Manual topic.)`;
-
-const splittingClaimsSection = `### Splitting work into claims for parallel execution
-
-When you need to break down a large task into subtasks, structure them so agents can work **in parallel**:
-- **Group by phase** if tasks have dependencies. Label them clearly (e.g. "Phase 1: ...", "Phase 2: ...") so agents know what can run concurrently and what must wait.
-- **Prefer independent subtasks** that don't block each other. Each subtask should be completable without waiting for another.
-- **Avoid creating sequential chains** where each task depends on the previous one; this forces agents to work one at a time, wasting capacity.
-
-When you receive a notification about new claims, check the claim list and claim those relevant to your skills.`;
-
-// Standing principles only (ADR 0051): command shapes ride the assignment input and live in the
-// `tasks` Manual topic. A Task is not a claim, so neither text may borrow the other's word.
-const tasksSection = `### Tasks
-
-Work to do is a Task, a time to wake is a Reminder, and both is a Reminder naming the Task key. A Task is queued work on a board and takes no claim; a claim is the lock on a message.
-
-Keep one Task active at a time. Pick by priority, then age, move its card to an active column, and work it. Moving the card is the status update, so post only when you need a person or have a result worth sharing. When you finish, move the card to a done column; its receipt names what is still waiting, so keep going until nothing is.`;
 
 function mentionsSection(input: AgentPromptRenderInput) {
     return `## @Mentions

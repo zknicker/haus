@@ -98,6 +98,23 @@ describe('paceOf', () => {
         expect(pace.skippedActive).toEqual(['QABC-3']);
     });
 
+    test('a card moved back to todo is no longer active', () => {
+        const pace = paceOf(
+            queueSteps(
+                [
+                    move('QABC-2', '"In progress"'),
+                    move('QABC-2', 'Todo'),
+                    move('QABC-1', '"In progress"'),
+                    move('QABC-1', 'Done', '1 more assigned to you in todo'),
+                ],
+                columns
+            )
+        );
+        expect(pace.mostActive).toBe(1);
+        expect(pace.started).toEqual(['QABC-2', 'QABC-1']);
+        expect(pace.finished).toEqual(['QABC-1']);
+    });
+
     test('a pickup note counts as a send before the last finish', () => {
         const pace = paceOf(
             queueSteps(

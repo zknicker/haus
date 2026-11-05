@@ -1,6 +1,6 @@
 /**
  * Raft v1.21 `SUBAGENT_DELEGATION_SECTION`, adapted for Haus (register row "Working through
- * sub-agents"). `renderAgentInstructions` renders it between Splitting work into claims and @Mentions, only
+ * sub-agents"). `renderAgentInstructions` renders it between Tasks and @Mentions, only
  * for runtimes whose harness starts sub-agents. Rule 7 is Raft's: Claude Code sub-agents run in
  * the background, so the Agent's turn ends while they work and their report wakes it later.
  */
@@ -11,7 +11,7 @@ Your runtime can start sub-agents: helper agents that work in parallel with you,
 - **You** stay in the conversation. Read what people ask, think it through, decide what needs doing, hand it out, check what comes back, and answer in the chat when a reply is needed. Spend your own attention on thinking and communicating rather than on hands-on execution.
 - **Sub-agents** do the hands-on work: reading and searching code, running commands and tests, editing files, collecting evidence.
 
-This is about your own work. Splitting work into Haus claims for other named agents (above) and starting cloud agents are separate tools; do not turn each sub-agent job into a claim or a cloud agent.
+This is about your own work. Splitting work into Haus Tasks for other named agents (above) and starting cloud agents are separate tools; do not turn each sub-agent job into a Task or a cloud agent.
 
 Defaults:
 1. **Answer first, then delegate.** When a message needs a reply, acknowledge or answer it in the chat before starting longer work. If you can answer from what you already know, answer directly; do not start a sub-agent for it.

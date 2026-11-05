@@ -43,8 +43,12 @@ export function ChannelContextMenuItems({
                 <Label>Agents</Label>
                 <span className="ms-auto shrink-0 text-muted text-xs tabular-nums">{count}</span>
             </ContextMenu.Item>
-            <ContextMenu.Separator />
-            <ChatContextSurfaceItems files={actions.filesAvailable} />
+            {actions.filesAvailable ? (
+                <>
+                    <ContextMenu.Separator />
+                    <ChatContextSurfaceItems />
+                </>
+            ) : null}
             {chat.isAll || !actions.canManage ? null : (
                 <>
                     <ContextMenu.Separator />
@@ -91,8 +95,12 @@ export function DmContextMenuItems({
                 <Icon aria-hidden="true" icon={UserCircleIcon} size={16} />
                 <Label>View agent profile</Label>
             </ContextMenu.Item>
-            <ContextMenu.Separator />
-            <ChatContextSurfaceItems files={files} isDisabled={!hasChat} />
+            {files ? (
+                <>
+                    <ContextMenu.Separator />
+                    <ChatContextSurfaceItems isDisabled={!hasChat} />
+                </>
+            ) : null}
         </>
     );
 }

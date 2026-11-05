@@ -242,19 +242,25 @@ keeps one Task active at a time, picks by priority and then age, moves that card
 column, and works it. Moving the card is the status update, so nobody hears about the pickup; the
 Agent posts only when it needs a person or has a result worth sharing. Finishing moves the card to
 a done column, and that move's receipt names what is still waiting, so the Agent carries on without
-a scheduler. Chat requests interleave between turns while the active card holds its place. A
+a scheduler. A Task blocked on a person does not hold up the queue: the Agent @mentions them with
+its key where the work lives, moves the card back to todo, takes the next Task, and leaves it until
+they answer. Work split for other Agents is Tasks on a board, assigned; claims stay for work inside
+a conversation. Chat requests interleave between turns while the active card holds its place. A
 Task's assignment arrives in the Agent inbox with no Chat, so a run started by one has no
 conversation to answer in unless the Agent picks one. Discussion about a Task stays in the Channels
 and Threads that reference its key, and a reference is written as the bare key (`SEC-12`). A
-heartbeat reads Tasks and writes none: its report names what sat waiting.
+heartbeat reads Tasks and writes none: its report names what sat waiting, leaving out a Task the
+Agent is waiting on a person for.
 
 - Owner: [ADR 0051](../adr/0051-tasks-are-boards-and-claims-are-the-lock.md) decisions 6 and 7;
-  `tasksSection` in `apps/computer/src/harness/managed-instructions.ts`; the `tasks` Manual topic in
+  `tasksSection` in `apps/computer/src/harness/task-instructions.ts`; the `tasks` Manual topic in
   `packages/agent-manual/src/product-topics.ts`; the move receipt's queue line
   ([specs/tasks.md](../../specs/tasks.md#agent-routes)).
 - Guards: `apps/computer/src/harness/task-instructions.test.ts`; the `tasks` eval (`bun run eval
   tasks`), whose `task-queue-pacing` scenario assigns three Tasks and proves they are worked most
-  urgent first with no message before the last one finishes.
+  urgent first with no message before the last one finishes, and whose `task-blocked-takes-next`
+  scenario proves a Task only a person can decide gets an @mention and goes back to todo while the
+  other is worked to done.
 
 ## Anti-patterns this replaced
 

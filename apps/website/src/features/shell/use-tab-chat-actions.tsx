@@ -47,7 +47,6 @@ export function useTabChatActions() {
             }
         },
         openFiles,
-        openPath,
         slug: server.slug,
     });
     const dm = useDmActions({ openFiles, openPath, slug: server.slug });

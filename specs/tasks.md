@@ -113,5 +113,9 @@ it the last write wins, so a write that lost the race to the version it read rea
 retries, a bounded number of times (`withImplicitVersion`). A named version fails closed.
 `POST /api/agent/tasks/move` answers with `queue: { todo, active }`, the caller's open Tasks.
 
+The Server has no blocked state. A Task an Agent is waiting on a person for sits in `todo` with no
+field to mark it, and the receipt's `queue` still counts it. Agent behavior reads past it: the
+Agent's @mention, listed under Mentioned in, is the only record (ADR 0051 decisions 6 and 7).
+
 A heartbeat run reads Tasks and boards and writes neither (`403 REGULAR_TURN_REQUIRED`): its
 throwaway session changes nothing other people see, and it reports what it found instead.

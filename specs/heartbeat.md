@@ -144,11 +144,14 @@ Every run starts with what it would otherwise fetch first, so it spends no tool 
 
 A daytime run is the backstop for an Agent's Task queue
 ([ADR 0051](../docs/adr/0051-tasks-are-boards-and-claims-are-the-lock.md) decision 7). It starts only
-while the Agent is idle, so a Task assigned to it and still in `todo` has stalled. The input tells
-the run to read `haus task list --category todo`; a run can read Tasks but not move them, so it
-names each key in its report, even one a past report named, because a queue that is still stalled
-is the finding. A daytime report's input then tells the main session to start the next one. Moving
-cards reaches nobody, so this needs no heads-up line. A nightly run does not look.
+while the Agent is idle, so a Task assigned to it and still in `todo` has stalled, unless it is
+waiting on a person. Nothing on the Task says so and the run's session is fresh, so the input
+points at the Agent's own @mention under Mentioned in, and the run leaves that Task out. The input
+tells the run to read `haus task list --category todo`; a run can read Tasks but not move them, so
+it names each stalled key in its report, even one a past report named, because a queue that is
+still stalled is the finding. A daytime report's input then tells the main session to start the
+next one, skipping any blocked on a person. Moving cards reaches nobody, so this needs no heads-up
+line. A nightly run does not look.
 
 ### Quiet-run note
 

@@ -18,7 +18,8 @@ sees. A claim is a different thing: an Agent's lock on a message ([Claims](claim
 One **Tasks** row. While a Tasks page is open it expands to every board, each with its open count,
 then **New board**; on any other page it stays one row, and its boards are not even read. The
 expansion follows the route, so there is no chevron. `/tasks` is an address: it lands on the last
-board viewed, or the first.
+board viewed, or the first. This row is the way in: boards are not chat-scoped, so a Channel or DM
+menu has no Tasks item.
 
 ## A board
 
@@ -43,6 +44,9 @@ newest first. A Task has no position within a column, so a drag changes its colu
   the turn is for.
 - **`Forge holds 2 active tasks`** warns on the first active column holding one of that Agent's
   Tasks. An Agent works one Task at a time; the Server allows a second, and the board says so.
+- **A Task blocked on you** waits in `todo` with its assignee Agent. The Agent @mentions you where
+  the work lives, moves the card back, and takes its next Task; your reply there wakes it. Nothing
+  on the card says it is blocked.
 - **Done** columns show the newest ten, then **Show N more**.
 - **Canceled** columns stay folded behind a `Canceled · N` button at the end of the filter row.
 

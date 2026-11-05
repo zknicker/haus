@@ -32,8 +32,12 @@ test('a daytime run checks for a stalled queue and reports it, since it cannot m
         expect(text).toContain('Daytime, also: run `haus task list --category todo`.');
         expect(text).toContain('a Task still in todo means your queue stalled');
         expect(text).toContain('You can read Tasks here but not move them');
+        // No field marks a blocked Task, and this session is fresh: the @mention is the evidence.
+        expect(text).toContain('unless you asked a person about it and they have not answered');
+        expect(text).toContain('`haus task show <key>` lists your @mention under Mentioned in');
+        expect(text).toContain('That Task is blocked, not stalled, so leave it out.');
         // "Never resend a finding" would otherwise silence a queue that stays stalled.
-        expect(text).toContain('put each key in your report, even one a past report named');
+        expect(text).toContain('put each stalled key in your report, even one a past report named');
 
         const nightly = await composeHeartbeatInput({ ...heartbeat, kind: 'nightly' }, root);
         expect(nightly).not.toContain('haus task list');
@@ -43,7 +47,8 @@ test('a daytime run checks for a stalled queue and reports it, since it cannot m
 });
 
 test('a daytime report resumes a stalled queue in or out of quiet hours; a nightly one does not', () => {
-    const resume = 'waiting in todo, your queue stalled: start the next one now.';
+    const resume =
+        'waiting in todo, your queue stalled: start the next one now, skipping any blocked on a person.';
     expect(composeHeartbeatReportInput(report, { now: local(14, 5), quietHours: 'on' })).toContain(
         resume
     );
