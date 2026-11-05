@@ -1,5 +1,12 @@
+import { extensionMediaType, sniffMediaType } from '@haus/api';
 import type { AvatarMediaType } from '@haus/api/avatar';
-import { avatarMaxBytes, avatarMediaTypes, avatarPixelSize } from '@haus/api/avatar';
+import {
+    avatarMaxBytes,
+    avatarPixelSize,
+    avatarTooLargeMessage,
+    avatarUnsupportedMediaTypeMessage,
+    isAvatarMediaType,
+} from '@haus/api/avatar';
 
 /**
  * One chosen file, center-cropped to a square and re-encoded at the avatar
@@ -14,7 +21,7 @@ export interface AvatarImage {
 }
 
 export async function readAvatarImage(file: File): Promise<AvatarImage> {
-    const mediaType = resolveMediaType(file.type);
+    const mediaType = await resolveAvatarMediaType(file);
     const source = await loadImage(file);
     const edge = Math.min(source.naturalWidth, source.naturalHeight);
 
@@ -46,24 +53,49 @@ export async function readAvatarImage(file: File): Promise<AvatarImage> {
     );
 
     const blob = await encodeCanvas(canvas, mediaType);
-
-    if (blob.size > avatarMaxBytes) {
-        throw new Error('That image is too large. Choose a simpler photo.');
-    }
+    assertAvatarFits(blob.size);
 
     const dataUrl = await readDataUrl(blob);
 
     return { base64: dataUrl.slice(dataUrl.indexOf(',') + 1), blob, dataUrl, mediaType };
 }
 
-function resolveMediaType(type: string): AvatarMediaType {
-    const match = avatarMediaTypes.find((candidate) => candidate === type);
-
-    if (!match) {
-        throw new Error('Choose a PNG, JPEG, or WebP image.');
+/**
+ * Resolves the upload media type from the file's declared type, content
+ * signature, then extension — and refuses anything outside the shared
+ * avatar allowlist. Exported for boundary tests.
+ */
+export async function resolveAvatarMediaType(file: File): Promise<AvatarMediaType> {
+    if (isAvatarMediaType(file.type)) {
+        return file.type;
     }
 
-    return match;
+    if (file.type.length > 0 && file.type !== 'application/octet-stream') {
+        throw new Error(avatarUnsupportedMediaTypeMessage());
+    }
+
+    const head = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+    const sniffed = sniffMediaType(head);
+    if (sniffed && isAvatarMediaType(sniffed)) {
+        return sniffed;
+    }
+
+    const byName = extensionMediaType(file.name);
+    if (byName && isAvatarMediaType(byName)) {
+        return byName;
+    }
+
+    throw new Error(avatarUnsupportedMediaTypeMessage());
+}
+
+/** Enforces the shared post-resize ceiling. Exported for boundary tests. */
+export function assertAvatarFits(byteLength: number): void {
+    if (byteLength <= 0) {
+        throw new Error('That image could not be processed.');
+    }
+    if (byteLength > avatarMaxBytes) {
+        throw new Error(`${avatarTooLargeMessage()} Choose a simpler photo.`);
+    }
 }
 
 function loadImage(file: File): Promise<HTMLImageElement> {

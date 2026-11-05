@@ -111,19 +111,12 @@ export function AgentHeader({
                                     ? undefined
                                     : 'Not configured on this Server.'
                             }
-                            isDisabled={setAvatar.isPending}
+                            isPending={setAvatar.isPending}
                             label="Agent photo"
                             name={agent.displayName}
                             onError={setAvatarError}
                             onGenerate={canGenerate ? () => setGenerateOpen(true) : undefined}
-                            onSelect={async (image) => {
-                                await setAvatar.mutateAsync({
-                                    bytesBase64: image.base64,
-                                    mediaType: image.mediaType,
-                                    serverId: server.id,
-                                    target: { agentId: agent.id, kind: 'agent' },
-                                });
-                            }}
+                            onSelect={(image) => setAvatar.upload(image)}
                             size={headerAvatarSize}
                             src={agent.avatarUrl}
                         />
