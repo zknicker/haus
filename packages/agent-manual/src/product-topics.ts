@@ -129,7 +129,7 @@ The instructions for the cloud agent arrive on stdin. Write them as a complete b
 
 **Launch approval.** A launch spends provider time on someone's repository. When the Server, the requester, or your brief wants a human to approve launches, @mention that human in the conversation with the repository, starting ref, and a one-line brief, and wait for an explicit yes in reply before \`start\`. Silence, a reaction, or "sounds interesting" is not a yes. There is no approval card; their reply wakes you.
 
-Launch fails before anything is created when the input is wrong, the Computer has no Cloud Agent provider, the target is unreachable, or the target would open a new thread. Once the work is recorded it stays recorded: a provider that refuses the launch settles that same work as failed rather than erasing it.
+Launch fails before anything is created when the input is wrong, the Computer has no Cloud Agent provider, the target is unreachable, the target would open a new thread, or — for Claude — the Computer's pinned cloud environment no longer exists or is archived. That last one is a fix for whoever administers the Computer, in Computer settings; there is nothing to retry or reconfigure from the CLI. Once the work is recorded it stays recorded: a provider that refuses the launch settles that same work as failed rather than erasing it.
 
 **Freshness hold.** Like \`haus message send\`, a launch is held when newer messages arrived in the target since you last read it. Nothing is posted or launched, and the newer messages are shown. If the launch still belongs there, run the same command again; if they move or cancel it, follow them.
 
