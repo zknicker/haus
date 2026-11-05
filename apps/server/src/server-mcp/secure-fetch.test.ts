@@ -56,7 +56,7 @@ describe('secureMcpFetch token responses', () => {
             return new Response();
         }) as unknown as typeof fetch;
         await expect(secureMcpFetch('http://example.com/token', tokenRequest())).rejects.toThrow(
-            'must use HTTPS or loopback HTTP'
+            'must use HTTPS'
         );
         expect(called).toBe(false);
     });

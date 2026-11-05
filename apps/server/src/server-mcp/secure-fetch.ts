@@ -1,18 +1,36 @@
+import { isIP } from 'node:net';
+import { env } from '../config/env.ts';
+import { isBlockedNetworkAddress } from './network-guard.ts';
+import { BLOCKED_MESSAGE, SCHEME_MESSAGE, safeFetch } from './safe-remote-fetch.ts';
+
+const fetchOptions = { allowPrivateNetworks: env.HAUS_MCP_ALLOW_PRIVATE_NETWORKS };
+
 export const secureMcpFetch = (async (
     input: Parameters<typeof globalThis.fetch>[0],
     init?: Parameters<typeof globalThis.fetch>[1]
 ) => {
-    const value = input instanceof Request ? input.url : input.toString();
-    assertSecureOrLoopbackUrl(value, 'MCP and OAuth request');
-    const response = await globalThis.fetch(input, init);
+    const response = await safeFetch(input, init, 'MCP and OAuth request', fetchOptions);
     return isTokenRequest(init) ? await withOAuthErrorStatus(response) : response;
 }) as typeof globalThis.fetch;
 
-export function assertSecureOrLoopbackUrl(value: string, label: string) {
+export function assertSecureOrLoopbackUrl(
+    value: string,
+    label: string,
+    options: { allowPrivateNetworks: boolean }
+) {
     const url = new URL(value);
-    const loopback = ['127.0.0.1', '[::1]', 'localhost'].includes(url.hostname);
-    if (url.username || url.password || (url.protocol !== 'https:' && !loopback)) {
-        throw new Error(`${label} must use HTTPS or loopback HTTP without user information.`);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        throw new Error(`${label}: ${SCHEME_MESSAGE}`);
+    }
+    if (url.protocol === 'http:' && !options.allowPrivateNetworks) {
+        throw new Error(`${label}: ${SCHEME_MESSAGE}`);
+    }
+    if (url.username || url.password) {
+        throw new Error(`${label}: ${BLOCKED_MESSAGE}`);
+    }
+    const hostname = url.hostname.replace(/^\[|\]$/g, '');
+    if (!options.allowPrivateNetworks && isIP(hostname) && isBlockedNetworkAddress(hostname)) {
+        throw new Error(`${label}: ${BLOCKED_MESSAGE}`);
     }
 }
 

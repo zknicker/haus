@@ -7,6 +7,7 @@ import type {
     OAuthTokens,
 } from '@modelcontextprotocol/client';
 import { auth } from '@modelcontextprotocol/client';
+import { env } from '../config/env.ts';
 import type { McpSecret } from './connection-secret.ts';
 import { configuredOAuthClient, configuredOAuthClientInformation } from './oauth-clients.ts';
 import type { McpRuntime } from './runtime.ts';
@@ -32,7 +33,9 @@ export async function startMcpAuthorization(
     }
 ): Promise<McpOAuthStartResult> {
     const connection = await requireOAuthConnection(runtime, input.connectionId);
-    assertSecureOrLoopbackUrl(input.redirectUrl, 'OAuth redirect');
+    assertSecureOrLoopbackUrl(input.redirectUrl, 'OAuth redirect', {
+        allowPrivateNetworks: env.HAUS_MCP_ALLOW_PRIVATE_NETWORKS,
+    });
     const existing = await runtime.readSecret(input.connectionId);
     await runtime.writeSecret(input.connectionId, {
         ...existing,
@@ -122,7 +125,9 @@ export async function createMcpOAuthProvider(
         await runtime.writeSecret(connectionId, secret);
     };
     const trustOrigin = async (url: URL) => {
-        assertSecureOrLoopbackUrl(url.toString(), 'OAuth authorization server');
+        assertSecureOrLoopbackUrl(url.toString(), 'OAuth authorization server', {
+            allowPrivateNetworks: env.HAUS_MCP_ALLOW_PRIVATE_NETWORKS,
+        });
         if (trustedOrigins.has(url.origin)) {
             return;
         }
@@ -212,7 +217,9 @@ export async function createMcpOAuthProvider(
         async saveDiscoveryState(value) {
             await trustOrigin(new URL(value.authorizationServerUrl));
             for (const endpoint of oauthCredentialEndpoints(value)) {
-                assertSecureOrLoopbackUrl(endpoint, 'OAuth credential endpoint');
+                assertSecureOrLoopbackUrl(endpoint, 'OAuth credential endpoint', {
+                    allowPrivateNetworks: env.HAUS_MCP_ALLOW_PRIVATE_NETWORKS,
+                });
             }
             await update({ discoveryState: value as unknown as Record<string, unknown> });
         },

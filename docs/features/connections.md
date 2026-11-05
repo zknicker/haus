@@ -20,6 +20,8 @@ only where the custom form asks for an MCP server's address.
 **Add connection** saves a custom MCP entry in Haus. For OAuth MCPs, **Sign in** then opens the remote
 account's authorization flow; until that completes, the entry says **Sign in required**. Header
 authentication uses **Add credentials** instead. Adding a connection does not grant Agents access.
+A server address that resolves to a private or local network is refused with "This address isn't
+allowed: it points to a private or local network."
 
 The page follows Raft's flow: list MCP servers, add a remote endpoint, choose no auth, headers, or
 OAuth, complete authentication in a browser window, and inspect the connected identity and
