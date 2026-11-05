@@ -23,12 +23,31 @@ export interface AppliedCloudAgentObservation {
 }
 
 /**
+ * A follow-up Computer keeps queued and retrying past the documented 30-minute
+ * delivery window (TECH-7's design refinement) carries this errorCode on an
+ * otherwise non-terminal `queued` observation, never on its own a reason to
+ * settle. One inbox attention still wakes the delegating Agent, so a stuck
+ * follow-up is never silent, but sparse reminders replace a terminal failure:
+ * Computer reports the same errorCode on every retry tick, and this dedupes
+ * every report inside one window to the same attention, then opens a fresh one
+ * each time a new window starts. There is no shared enum for the string: the
+ * Computer side and the website status line each compare this literal, the
+ * same way `cloud-agent-presentation.ts` already compares raw `launch-` and
+ * `provider-launch-` prefixes without one.
+ */
+const followUpStallErrorCode = 'followup-delivery-timeout';
+/** How often a follow-up stuck past the delivery window gets another reminder. */
+const followUpStallReminderMs = 2 * 60 * 60_000;
+
+/**
  * Applies one bounded Computer observation to its Run and work. A duplicate,
  * out-of-order, or post-terminal observation is a no-op: the first terminal
  * result a Run reports is the one that stands. Only the newest Run projects
- * work lifecycle. Every settling Run creates one durable inbox attention for the
- * delegating Agent in the requesting Chat, in the same transaction, unless
- * that Chat has since been deleted.
+ * work lifecycle. Every settling Run creates one durable inbox attention for
+ * the delegating Agent in the requesting Chat, in the same transaction, unless
+ * that Chat has since been deleted; a follow-up stalled past the delivery
+ * window (see `followUpStallErrorCode`) creates the same kind of attention
+ * without settling, at most once per reminder window.
  */
 export async function applyCloudAgentObservation(
     db: HausDatabase,
@@ -113,16 +132,19 @@ export async function applyCloudAgentObservation(
                 )
             );
 
+        const stalled = !settling && observation.errorCode === followUpStallErrorCode;
         // The notice goes to the Chat that asked for the work, never to a later
-        // link (ADR 0044). If that Chat is gone, the work settles silently.
+        // link (ADR 0044). If that Chat is gone, the work settles (or keeps
+        // retrying) silently.
         const notifying =
-            settling && (await isLiveChat(tx, { chatId: row.chatId, serverId: input.serverId }));
+            (settling || stalled) &&
+            (await isLiveChat(tx, { chatId: row.chatId, serverId: input.serverId }));
         if (notifying) {
             await agentDelivery.enqueue(tx, {
                 agentId: row.agentId,
                 chatId: row.chatId,
                 content: '',
-                dedupeKey: observation.runId,
+                dedupeKey: attentionDedupeKey(observation, stalled, observedAt),
                 serverId: input.serverId,
                 source: 'cloud_agent_work',
             });
@@ -141,6 +163,24 @@ export async function applyCloudAgentObservation(
             work,
         };
     });
+}
+
+/**
+ * A settling Run gets exactly one attention, keyed by its own id. A stall
+ * repeats on every retry tick, so its key buckets by wall-clock window
+ * instead: the same bucket collapses to the same attention, and the next
+ * bucket opens a fresh one.
+ */
+function attentionDedupeKey(
+    observation: CloudAgentObservation,
+    stalled: boolean,
+    observedAt: Date
+): string {
+    if (!stalled) {
+        return observation.runId;
+    }
+    const window = Math.floor(observedAt.getTime() / followUpStallReminderMs);
+    return `${observation.runId}:stall:${window}`;
 }
 
 /** A Chat that still exists and is not tombstoned, nor is its parent. */
@@ -181,11 +221,14 @@ function runObservationUpdate(
         ...(observation.branches
             ? { branches: mergeBranchEvidence(previousBranches, observation.branches) }
             : {}),
-        ...(observation.errorCode ? { errorCode: observation.errorCode } : {}),
+        // Always written, never merely spread: a Run only ever receives further
+        // observations before it settles, and a stall's errorCode/summary must
+        // clear once the follow-up resolves, not linger from an earlier tick.
+        errorCode: observation.errorCode ?? null,
         observedAt,
         ...(observation.providerRunId ? { providerRunId: observation.providerRunId } : {}),
         ...(observation.rawStatus ? { rawStatus: observation.rawStatus } : {}),
-        ...(observation.summary ? { summary: observation.summary } : {}),
+        summary: observation.summary ?? null,
         ...(observation.usage ? { usage: observation.usage } : {}),
     };
 }
