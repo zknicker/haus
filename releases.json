@@ -2026,5 +2026,19 @@
       "computer": "15.3.1",
       "agent": "12.4.1"
     }
+  },
+  {
+    "version": "17.4.2",
+    "date": "2026-11-05",
+    "targets": {
+      "server": "16.4.2",
+      "app": null,
+      "ios": {
+        "version": "9.3.0",
+        "buildNumber": 66
+      },
+      "computer": "15.3.2",
+      "agent": "12.4.2"
+    }
   }
 ]
