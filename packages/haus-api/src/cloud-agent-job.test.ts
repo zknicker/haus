@@ -93,10 +93,10 @@ describe('deriveCloudAgentJob', () => {
         });
     });
 
-    test('a follow-up stalled on a busy provider reads stalled, not waiting', () => {
+    test('a follow-up an auto-interrupt still could not deliver reads stalled, not waiting', () => {
         expect(
             job(
-                run('queued', { createdAt: queuedAt, errorCode: 'followup-delivery-timeout' }),
+                run('queued', { createdAt: queuedAt, errorCode: 'followup-auto-interrupt-failed' }),
                 run('completed')
             )
         ).toMatchObject({

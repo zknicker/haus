@@ -54,7 +54,7 @@ test('a stalled follow-up reads distinctly from an ordinary wait', () => {
         runs: [
             run({
                 createdAt: minutesAgo(35),
-                errorCode: 'followup-delivery-timeout',
+                errorCode: 'followup-auto-interrupt-failed',
                 runId: 'car_two',
                 status: 'queued',
             }),
@@ -66,7 +66,10 @@ test('a stalled follow-up reads distinctly from an ordinary wait', () => {
     });
 
     expect(value.job.state).toBe('done');
-    expect(line(value)).toEqual({ text: 'follow-up waiting: session busy · 35m', tone: 'warning' });
+    expect(line(value)).toEqual({
+        text: 'follow-up waiting: auto-interrupt failed · 35m',
+        tone: 'warning',
+    });
 });
 
 test('a follow-up queued while the earlier Run still goes reads working', () => {
