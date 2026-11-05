@@ -165,6 +165,50 @@ test('a follow-up stuck behind a Claude predecessor that is idle with open backg
     expect(await f.journal.read('srv_cloud', followUp)).toMatchObject({ phase: 'launched' });
 });
 
+test('a follow-up waiting on a genuinely busy predecessor reports why, instead of staying silent', async () => {
+    const busyPredecessor = {
+        provider: 'cursor' as const,
+        providerAgentId: 'bc_busy',
+        providerRunId: 'r_busy',
+        runId: 'car_busypredecessor12',
+        workId: 'caw_busy1234567890',
+    };
+    const followUp = { ...busyPredecessor, providerRunId: null, runId: 'car_busyfollowup1234' };
+    const busyTracked: CloudAgentProvider = {
+        ...createFakeCloudAgentProvider(),
+        read: () =>
+            Promise.resolve<CloudAgentProviderObservation>({
+                observedAt: new Date().toISOString(),
+                rawStatus: 'RUNNING',
+                status: 'running',
+            }),
+    };
+    const f = await fixture(busyTracked);
+    await f.journal.claim('srv_cloud', followUp, {
+        phase: 'pending',
+        workId: followUp.workId,
+        providerAgentId: 'bc_busy',
+        instructions: 'Address the review.',
+        interrupt: false,
+        predecessors: [busyPredecessor],
+    });
+    await f.work.reconcile([{ ...followUp, cancelRequested: false, status: 'queued' as const }]);
+    await f.tickUntil(() =>
+        f.observations.some((observation) => observation.runId === followUp.runId)
+    );
+    expect(
+        f.observations.find((observation) => observation.runId === followUp.runId)
+    ).toMatchObject({
+        activity: {
+            summary: 'Waiting for an earlier Run to finish before sending this follow-up.',
+        },
+        status: 'queued',
+    });
+    // Still genuinely unbounded while the predecessor keeps reporting running: unchanged contract.
+    await f.tickUntil(() => false, 20);
+    expect(await f.journal.read('srv_cloud', followUp)).toMatchObject({ phase: 'pending' });
+});
+
 test('several follow-ups queued behind the same stuck predecessor each settle in order', async () => {
     const stuckPredecessor = {
         provider: 'claude' as const,

@@ -64,9 +64,14 @@ async function fixture(options: { predecessor?: CloudAgentRunRef; interrupt?: bo
     });
     return {
         advance: () => runtime.runPromise(queue.advance(next, () => false)),
+        advanceRestored: (restored: CloudAgentSendQueue) =>
+            runtime.runPromise(restored.advance(next, () => false)),
         failures,
         journal,
+        provider,
         read: () => journal.read('server', next),
+        root,
+        runtime,
         sends: () => sends,
         setPriorStatus: (status: CloudAgentStatus) => {
             priorStatus = status;
@@ -128,6 +133,27 @@ test('busy past the delivery deadline fails the follow-up with the last provider
     expect(record?.phase === 'rejected' ? record.summary : '').toContain(
         'within 30 minutes (31 attempts). Last error: Agent already has an active run in progress'
     );
+});
+
+test('the delivery deadline survives a Computer restart instead of resetting on a fresh queue', async () => {
+    const f = await fixture();
+    f.failures.push(...Array.from({ length: 100 }, () => recordedAgentBusyError()));
+    await f.advance();
+    await f.wait('20 minutes');
+    // A Computer restart loses every in-memory timer: fresh objects, same journal file on disk.
+    const restored = new CloudAgentSendQueue(
+        f.runtime,
+        new CloudLaunchJournal(f.root),
+        'server',
+        () => f.provider
+    );
+    let record = await f.advanceRestored(restored);
+    for (let minute = 0; minute < 15 && record?.phase === 'pending'; minute += 1) {
+        await f.wait('1 minute');
+        record = await f.advanceRestored(restored);
+    }
+    // Settles at ~30 minutes total, not 30 minutes after the restart (~50 minutes total).
+    expect(record).toMatchObject({ phase: 'rejected', errorCode: 'followup-delivery-timeout' });
 });
 
 test('waiting behind a running predecessor never counts against the deadline', async () => {

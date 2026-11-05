@@ -1,7 +1,7 @@
 import { Clock, Effect } from 'effect';
 import { type CloudAgentOperationError, foreign } from './foreign-operation.ts';
 import { abortCloudAgentLaunch } from './launch-attempt.ts';
-import type { CloudLaunchJournal, CloudLaunchRecord } from './launch-journal.ts';
+import type { CloudLaunchJournal, CloudLaunchRecord, CloudPendingSend } from './launch-journal.ts';
 import type {
     CloudAgentLaunch,
     CloudAgentProviderObservation,
@@ -43,7 +43,7 @@ export class CloudAgentLocalRuns {
             const observedAt = new Date(nowMs).toISOString();
             switch (recorded?.phase) {
                 case 'pending':
-                    return unsent(null);
+                    return unsent(queued(observedAt, pendingActivity(recorded)));
                 case 'launched':
                     return { kind: 'launched', launch: recorded.launch, observedAt } as const;
                 case 'cancelled':
@@ -118,6 +118,21 @@ export class CloudAgentLocalRuns {
 
 function unsent(observation: CloudAgentProviderObservation | null): LocalRunState {
     return { kind: 'unsent', observation };
+}
+
+/**
+ * Why a pending follow-up has not reached the provider yet, for the work card
+ * and `haus cloud-agent inspect`. Before this, a blocked follow-up reported
+ * nothing at all while waiting on a predecessor (TECH-7): the stall was
+ * invisible everywhere except this Computer's own private journal file.
+ */
+function pendingActivity(pending: CloudPendingSend): string {
+    if (pending.delivery) {
+        return `The provider has not accepted this follow-up yet (attempt ${pending.delivery.attempts}; last error: ${pending.delivery.lastError}).`;
+    }
+    return pending.predecessors.length > 0
+        ? 'Waiting for an earlier Run to finish before sending this follow-up.'
+        : 'Waiting for the provider to accept this follow-up.';
 }
 
 function queued(observedAt: string, summary: string): CloudAgentProviderObservation {

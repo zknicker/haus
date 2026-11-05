@@ -6,8 +6,28 @@ import { Clock, Effect } from 'effect';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import { foreign } from './foreign-operation.ts';
 import type { CloudLaunchJournal, CloudPendingSend as Pending } from './launch-journal.ts';
-import type { CloudAgentProvider, CloudAgentRunRef } from './provider.ts';
+import type {
+    CloudAgentProvider,
+    CloudAgentProviderObservation,
+    CloudAgentRunRef,
+} from './provider.ts';
 import { deliveryDue, sendFailureOutcome } from './send-delivery.ts';
+
+/**
+ * Whether the provider will take a new prompt right now, when that differs
+ * from whether the Run itself settled. A Claude Run reads `status: running`
+ * for as long as it has an open background task, even once its foreground
+ * turn ends and the session is `idle` and free for a follow-up — an open task
+ * that outlives the turn can hold `running` forever, with no Cursor-style
+ * Run expiry to unstick it (TECH-7). Cursor never reports `rawStatus: 'idle'`,
+ * so its own unbounded wait is unchanged.
+ */
+function acceptsFollowUp(
+    ref: CloudAgentRunRef,
+    observation: CloudAgentProviderObservation
+): boolean {
+    return ref.provider === 'claude' && observation.rawStatus === 'idle';
+}
 
 /** Serializes short queue transitions; waiting for a remote turn never holds the permit. */
 export class CloudAgentSendQueue {
@@ -124,7 +144,10 @@ export class CloudAgentSendQueue {
             }
             const provider = self.provider(ref.provider);
             const observation = yield* foreign((signal) => provider.read(ref, signal));
-            if (isTerminalCloudAgentStatus(observation.status)) {
+            if (
+                isTerminalCloudAgentStatus(observation.status) ||
+                acceptsFollowUp(ref, observation)
+            ) {
                 return true;
             }
             if (stop) {

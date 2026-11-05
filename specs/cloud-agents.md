@@ -529,10 +529,20 @@ the work Thread rather than surface-local conversation controls.
 
 ### Follow-up delivery
 
-Computer delivers a queued follow-up only after every preceding Run is terminal. Waiting behind a
-Run Cursor still reports running is unbounded: hosted Runs can be long, and Cursor expires them
-itself. A predecessor that is terminal in any way — completed, failed, cancelled, expired, refused,
-or settled locally before reaching Cursor — unblocks the queue.
+Computer delivers a queued follow-up only after every preceding Run is terminal, or the provider
+reports it is otherwise free to take the follow-up now. Waiting behind a Run the provider still
+reports running is unbounded: hosted Runs can be long, and a provider that owns Run lifecycle
+(Cursor) expires them itself. A predecessor that is terminal in any way — completed, failed,
+cancelled, expired, refused, or settled locally before reaching the provider — unblocks the queue.
+
+Claude has no Run-level expiry of its own: one hosted session keeps running for as long as its
+account allows, so a Run can read `running` indefinitely. A Claude Run's own `status` reads
+`running` for as long as it has an open background task, even once its foreground turn ends and
+the session is `idle` and free to take a follow-up — "staying subscribed to CI" is exactly this
+(TECH-7). Readiness for a Claude predecessor also unblocks on `rawStatus: 'idle'` alone, independent
+of `status`, so an open background task that outlives the turn never silently holds the queue the
+way an untracked Run does. Cursor never reports `rawStatus: 'idle'`, so its own unbounded wait is
+unchanged.
 
 Once predecessors are terminal, each send uses the Run id as the provider idempotency key, so a
 retry after a lost response never starts a second provider Run. The Cursor adapter classifies a
@@ -550,6 +560,11 @@ failed send:
   The clock starts at the first attempt, not at queueing: with predecessors terminal, a busy agent
   frees within seconds, so busy for half an hour means a Run Haus does not track holds the agent,
   and an outage that long deserves the delegating Agent's judgment rather than silence.
+
+While a follow-up sits in Haus's local queue — waiting on a predecessor or between retries — Computer
+reports it `queued` with an `activity` line naming why (waiting on an earlier Run, or the attempt
+count and last error), so the work card's liveness reading and `haus cloud-agent inspect` both carry
+it instead of staying silent until it settles.
 
 A Run Server recorded but this Computer never journaled — the sender timed out or crashed between
 the two — never reached Cursor. Its monitor settles it `failed` with `launch-record-missing` after a
