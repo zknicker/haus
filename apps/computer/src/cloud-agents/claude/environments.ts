@@ -1,5 +1,6 @@
 import { type CloudAgentEnvironment, cloudAgentEnvironmentSchema } from '@haus/api';
 import * as z from 'zod';
+import { readClaudeEnvironmentId, writeClaudeEnvironmentId } from '../settings.ts';
 import { claudeControllerHeaders } from './native-auth.ts';
 
 const environmentProvidersUrl = 'https://api.anthropic.com/v1/environment_providers';
@@ -85,4 +86,23 @@ export async function requireLiveClaudeCloudEnvironment(
         throw new ClaudeCloudEnvironmentUnavailableError(environmentId);
     }
     return match;
+}
+
+/**
+ * This Computer's live Claude cloud environments, auto-pinning the sole one
+ * when nothing is pinned yet. Never touches an existing pin — a stale or
+ * archived pin is left as-is here; only a caller that needs to launch
+ * validates liveness (`requireLiveClaudeCloudEnvironment`).
+ */
+export async function listClaudeCloudEnvironmentsAutoPinning(
+    dataRoot: string,
+    signal?: AbortSignal
+): Promise<{ environmentId: string | null; environments: ClaudeCloudEnvironment[] }> {
+    const environments = await listClaudeCloudEnvironments(signal);
+    let environmentId = await readClaudeEnvironmentId(dataRoot);
+    if (!environmentId && environments.length === 1) {
+        environmentId = environments[0].id;
+        await writeClaudeEnvironmentId(dataRoot, environmentId);
+    }
+    return { environmentId, environments };
 }

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { CloudAgentRunRef } from '../provider.ts';
 import { CloudAgentLaunchRejectedError } from '../provider.ts';
-import { writeClaudeEnvironmentId } from '../settings.ts';
+import { readClaudeEnvironmentId, writeClaudeEnvironmentId } from '../settings.ts';
 import type { ClaudeController, ClaudeSession, ClaudeSessionEvent } from './controller.ts';
 import { createClaudeCloudAgentProvider, resolveClaudeEnvironment } from './provider.ts';
 
@@ -227,8 +227,32 @@ test('a valid pin resolves to the environment start() reports', async () => {
     expect(await resolveClaudeEnvironment(dataRoot)).toEqual({ id: 'env_live', name: 'BidBeacon' });
 });
 
-test('an unpinned Computer resolves no environment, and never calls the environment list', async () => {
+test('an unpinned Computer with exactly one environment auto-pins it and resolves to it', async () => {
+    await hostHome();
+    stubFetch([
+        { environment_id: 'env_only', kind: 'anthropic_cloud', name: 'Only', state: 'active' },
+    ]);
     const dataRoot = await claudeDataRoot();
 
-    expect(await resolveClaudeEnvironment(dataRoot)).toBeNull();
+    expect(await resolveClaudeEnvironment(dataRoot)).toEqual({ id: 'env_only', name: 'Only' });
+    expect(await readClaudeEnvironmentId(dataRoot)).toBe('env_only');
+});
+
+test('an unpinned Computer with zero or several environments refuses the launch', async () => {
+    await hostHome();
+
+    stubFetch([]);
+    const emptyDataRoot = await claudeDataRoot();
+    const emptyRejection = resolveClaudeEnvironment(emptyDataRoot);
+    await expect(emptyRejection).rejects.toBeInstanceOf(CloudAgentLaunchRejectedError);
+    await expect(emptyRejection).rejects.toThrow('Choose a Claude environment');
+
+    stubFetch([
+        { environment_id: 'env_a', kind: 'anthropic_cloud', name: 'Alpha', state: 'active' },
+        { environment_id: 'env_b', kind: 'anthropic_cloud', name: 'Beta', state: 'active' },
+    ]);
+    const severalDataRoot = await claudeDataRoot();
+    const severalRejection = resolveClaudeEnvironment(severalDataRoot);
+    await expect(severalRejection).rejects.toBeInstanceOf(CloudAgentLaunchRejectedError);
+    await expect(severalRejection).rejects.toThrow('Choose a Claude environment');
 });

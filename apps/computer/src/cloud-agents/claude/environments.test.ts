@@ -2,10 +2,12 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { readClaudeEnvironmentId } from '../settings.ts';
 import {
     ClaudeCloudEnvironmentUnavailableError,
     cloudAgentEnvironmentsOf,
     listClaudeCloudEnvironments,
+    listClaudeCloudEnvironmentsAutoPinning,
     requireLiveClaudeCloudEnvironment,
 } from './environments.ts';
 
@@ -126,4 +128,46 @@ test('a live pin resolves to its current name', async () => {
         name: 'Alpha',
         state: 'active',
     });
+});
+
+async function claudeDataRoot(): Promise<string> {
+    const root = await mkdtemp(join(tmpdir(), 'haus-claude-cloud-env-dataroot-'));
+    restores.push(() => rm(root, { force: true, recursive: true }));
+    return root;
+}
+
+test('an unpinned Computer with exactly one live environment auto-pins it', async () => {
+    await hostHome();
+    stubFetch(
+        environmentsResponse([
+            { environment_id: 'env_only', kind: 'anthropic_cloud', name: 'Only', state: 'active' },
+        ])
+    );
+    const dataRoot = await claudeDataRoot();
+
+    expect(await listClaudeCloudEnvironmentsAutoPinning(dataRoot)).toEqual({
+        environmentId: 'env_only',
+        environments: [{ id: 'env_only', name: 'Only', state: 'active' }],
+    });
+    expect(await readClaudeEnvironmentId(dataRoot)).toBe('env_only');
+});
+
+test('an unpinned Computer with several live environments pins none', async () => {
+    await hostHome();
+    stubFetch(
+        environmentsResponse([
+            { environment_id: 'env_a', kind: 'anthropic_cloud', name: 'Alpha', state: 'active' },
+            { environment_id: 'env_b', kind: 'anthropic_cloud', name: 'Beta', state: 'active' },
+        ])
+    );
+    const dataRoot = await claudeDataRoot();
+
+    expect(await listClaudeCloudEnvironmentsAutoPinning(dataRoot)).toEqual({
+        environmentId: null,
+        environments: [
+            { id: 'env_a', name: 'Alpha', state: 'active' },
+            { id: 'env_b', name: 'Beta', state: 'active' },
+        ],
+    });
+    expect(await readClaudeEnvironmentId(dataRoot)).toBeNull();
 });

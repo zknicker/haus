@@ -1,7 +1,11 @@
 import type { CloudAgentCapabilityRequest, CloudAgentCapabilityResult } from '@haus/api';
 import { cloudAgentCapabilityRequestSchema, cloudAgentCapabilityResultSchema } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
-import { requireLiveClaudeCloudEnvironment } from './claude/environments.ts';
+import {
+    cloudAgentEnvironmentsOf,
+    listClaudeCloudEnvironmentsAutoPinning,
+    requireLiveClaudeCloudEnvironment,
+} from './claude/environments.ts';
 import { providerSignIn } from './provider-sign-in.ts';
 import {
     type CloudAgentProviderAccess,
@@ -91,14 +95,26 @@ export async function runCloudAgentCapabilityRequest(
         if (provider.provider !== 'claude') {
             return { ...state, environmentId: null, environments: null };
         }
-        const environmentId = await readClaudeEnvironmentId(dataRoot);
         if (!state.ready) {
-            return { ...state, environmentId, environments: null };
+            return {
+                ...state,
+                environmentId: await readClaudeEnvironmentId(dataRoot),
+                environments: null,
+            };
         }
         try {
-            return { ...state, environmentId, environments: await provider.listEnvironments() };
+            const resolved = await listClaudeCloudEnvironmentsAutoPinning(dataRoot);
+            return {
+                ...state,
+                environmentId: resolved.environmentId,
+                environments: cloudAgentEnvironmentsOf(resolved.environments),
+            };
         } catch {
-            return { ...state, environmentId, environments: null };
+            return {
+                ...state,
+                environmentId: await readClaudeEnvironmentId(dataRoot),
+                environments: null,
+            };
         }
     }
 }

@@ -10,14 +10,13 @@ import {
     type CloudAgentRunRef,
     cloudAgentUnreadyMessage,
 } from '../provider.ts';
-import { readClaudeEnvironmentId } from '../settings.ts';
 import { withClaudeCheckout } from './checkout.ts';
 import { type ClaudeController, createClaudeController } from './controller.ts';
 import {
     ClaudeCloudEnvironmentUnavailableError,
     cloudAgentEnvironmentsOf,
     listClaudeCloudEnvironments,
-    requireLiveClaudeCloudEnvironment,
+    listClaudeCloudEnvironmentsAutoPinning,
 } from './environments.ts';
 import { readClaudeNativeAccount } from './native-auth.ts';
 import { launchNativeClaudeCloud, sendNativeClaudeCloud } from './native-commands.ts';
@@ -135,15 +134,15 @@ export function createClaudeCloudAgentProvider(
             const receipt = await withClaudeCheckout({ ...input, signal }, (cwd) =>
                 launchNativeClaudeCloud({
                     cwd,
-                    environmentId: environment?.id ?? null,
+                    environmentId: environment.id,
                     modelId: input.model?.id ?? null,
                     prompt,
                     signal,
                 })
             );
             return {
-                environmentId: environment?.id ?? null,
-                environmentName: environment?.name ?? null,
+                environmentId: environment.id,
+                environmentName: environment.name,
                 providerAgentId: receipt.sessionId,
                 providerRunId: null,
                 providerUrl: receipt.url,
@@ -203,28 +202,32 @@ function openTaskIds(entries: ReturnType<typeof logEntriesOf>): string[] {
 }
 
 /**
- * The environment this launch pins to, checked fresh on every launch so a
- * Computer never falls back to Claude Code's own default silently. `null`
- * means this Computer pins nothing, so `--cloud` picks its own environment as
- * it always has.
+ * The environment this launch pins to. Auto-pins the Computer's sole
+ * environment on first use; refuses the launch when nothing is pinned and
+ * the account has none or several, and when a pinned environment no longer
+ * exists or is archived. Checked fresh on every launch so a Computer never
+ * falls back to Claude Code's own default silently.
  */
 export async function resolveClaudeEnvironment(
     dataRoot: string,
     signal?: AbortSignal
-): Promise<{ id: string; name: string } | null> {
-    const environmentId = await readClaudeEnvironmentId(dataRoot);
+): Promise<{ id: string; name: string }> {
+    const { environmentId, environments } = await listClaudeCloudEnvironmentsAutoPinning(
+        dataRoot,
+        signal
+    );
     if (!environmentId) {
-        return null;
+        throw new CloudAgentLaunchRejectedError(
+            'Choose a Claude environment in Settings → Computers → Cloud Agents.'
+        );
     }
-    try {
-        const match = await requireLiveClaudeCloudEnvironment(environmentId, signal);
-        return { id: match.id, name: match.name };
-    } catch (error) {
-        if (error instanceof ClaudeCloudEnvironmentUnavailableError) {
-            throw new CloudAgentLaunchRejectedError(error.message);
-        }
-        throw error;
+    const match = environments.find((environment) => environment.id === environmentId);
+    if (!match || match.state.toLowerCase() === 'archived') {
+        throw new CloudAgentLaunchRejectedError(
+            new ClaudeCloudEnvironmentUnavailableError(environmentId).message
+        );
     }
+    return { id: match.id, name: match.name };
 }
 
 async function requireReady(readiness: () => Promise<CloudAgentReadiness>): Promise<void> {

@@ -109,9 +109,10 @@ async function hostClaudeEnvironments(environments: Record<string, unknown>[]) {
 }
 
 test('get reports Claude’s environments and current pin; other providers report neither', async () => {
-    installFakeClaude([
-        { id: 'env_a', name: 'Alpha' },
-        { id: 'env_b', name: 'Beta' },
+    installFakeClaude();
+    await hostClaudeEnvironments([
+        { environment_id: 'env_a', kind: 'anthropic_cloud', name: 'Alpha', state: 'active' },
+        { environment_id: 'env_b', kind: 'anthropic_cloud', name: 'Beta', state: 'active' },
     ]);
     await writeClaudeEnvironmentId(dataRoot, 'env_a');
 
@@ -157,6 +158,51 @@ test('an unready Claude reports its pin but no live environment list', async () 
         environments: null,
         ready: false,
     });
+});
+
+test('get on an unpinned Computer with exactly one environment auto-pins it, idempotently', async () => {
+    installFakeClaude();
+    await hostClaudeEnvironments([
+        { environment_id: 'env_only', kind: 'anthropic_cloud', name: 'Only', state: 'active' },
+    ]);
+
+    const first = await runCloudAgentCapabilityRequest(request('get', 'claude'), runtime, dataRoot);
+    expect(first.result).toMatchObject({
+        environmentId: 'env_only',
+        environments: [{ id: 'env_only', name: 'Only' }],
+    });
+    expect(await readClaudeEnvironmentId(dataRoot)).toBe('env_only');
+
+    const second = await runCloudAgentCapabilityRequest(
+        request('get', 'claude'),
+        runtime,
+        dataRoot
+    );
+    expect(second.result).toMatchObject({ environmentId: 'env_only' });
+    expect(second.error).toBeUndefined();
+});
+
+test('get on an unpinned Computer with several environments reports no pin, not an error', async () => {
+    installFakeClaude();
+    await hostClaudeEnvironments([
+        { environment_id: 'env_a', kind: 'anthropic_cloud', name: 'Alpha', state: 'active' },
+        { environment_id: 'env_b', kind: 'anthropic_cloud', name: 'Beta', state: 'active' },
+    ]);
+
+    const claude = await runCloudAgentCapabilityRequest(
+        request('get', 'claude'),
+        runtime,
+        dataRoot
+    );
+    expect(claude.error).toBeUndefined();
+    expect(claude.result).toMatchObject({
+        environmentId: null,
+        environments: [
+            { id: 'env_a', name: 'Alpha' },
+            { id: 'env_b', name: 'Beta' },
+        ],
+    });
+    expect(await readClaudeEnvironmentId(dataRoot)).toBeNull();
 });
 
 test('set-environment pins a live environment and persists it', async () => {
