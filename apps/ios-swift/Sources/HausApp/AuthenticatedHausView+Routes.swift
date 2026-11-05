@@ -126,6 +126,7 @@ extension AuthenticatedHausView {
                 return
             }
             openInbox()
+            canvasRouteRevision += 1
         }
     }
 
@@ -185,6 +186,7 @@ extension AuthenticatedHausView {
             nil
         }
         selectedDestinationID = id
+        canvasRouteRevision += 1
     }
 
     /// A Thread opened from the canvas pops back to the canvas, so the canvas

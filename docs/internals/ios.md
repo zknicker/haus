@@ -748,10 +748,12 @@ finger, so a drag ends inside the row it started on, and a still-live row tap wo
 on release (`DrawerPanDelegateTests`). There is no edge-only hit zone and
 no all-or-nothing open. Because the drawer owns every right-drag on the canvas, no canvas row carries
 a leading swipe action: a row's swipe actions sit on the trailing edge (swipe-left), as the Inbox's
-Mark read and Archived's Restore do, so one drag never both reveals a row action and moves the drawer. Selecting a Chat is the only action that closes the drawer; every sidebar
-entry point that presents another surface — Search, Tasks, Settings, Archived, New channel — leaves
-the drawer open behind it, so dismissing returns to the open drawer and no presentation ever runs
-against the closing spring.
+Mark read and Archived's Restore do, so one drag never both reveals a row action and moves the drawer. Putting something on the canvas is the only action that closes the drawer:
+selecting a Chat, or a route from outside the sidebar such as a Task's mention or a tapped
+notification (`closeForCanvasRoute`), which would otherwise land behind a drawer left open under a
+pushed Task. Every sidebar entry point that presents another surface — Search, Tasks, Settings,
+Archived, New channel — leaves the drawer open behind it, so dismissing returns to the open drawer
+and no presentation ever runs against the closing spring.
 
 A drag of the drawer is GPU-composited translation and nothing else: a pan frame evaluates no
 SwiftUI body and lays out neither the sidebar nor the canvas. `HausDrawerContainer` hosts each side

@@ -68,6 +68,35 @@ struct HausDrawerStateTests {
         #expect(!drawer.isPresented)
     }
 
+    /// Tasks opens over the open drawer, so a mention that puts a Chat on the canvas has to
+    /// close it, or the drawer covers the Chat the tap just opened.
+    @Test func aCanvasRouteClosesAnOpenDrawerAsASelectionDoes() async {
+        let drawer = HausDrawerState()
+        let motion = RecordingMotion(drawer: drawer)
+        drawer.motion = motion
+        drawer.set(open: true)
+
+        drawer.closeForCanvasRoute()
+        #expect(drawer.close == .chatSelection)
+        #expect(motion.settles == [true])
+
+        while motion.settles.count < 2 { await Task.yield() }
+        #expect(motion.settles == [true, false])
+        #expect(!drawer.isPresented)
+    }
+
+    @Test func aCanvasRouteLeavesAShutDrawerAlone() async {
+        let drawer = HausDrawerState()
+        let motion = RecordingMotion(drawer: drawer)
+        drawer.motion = motion
+
+        drawer.closeForCanvasRoute()
+        await Task.yield()
+
+        #expect(drawer.close == .interactive)
+        #expect(motion.settles.isEmpty)
+    }
+
     @Test func sidebarVisibilityFlipsOnlyOnChange() {
         let drawer = HausDrawerState()
         #expect(drawer.isSidebarHidden)

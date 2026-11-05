@@ -18,6 +18,7 @@ struct InboxTaskRow: View {
     @State private var reply = ""
     @State private var isSending = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .subheadline) private var actionLineHeight: CGFloat = 20
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -32,6 +33,9 @@ struct InboxTaskRow: View {
         .padding(.horizontal, InboxMetrics.rowInset)
         .padding(.vertical, InboxMetrics.rowVerticalPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
+        // The separator spans the card, instead of the List guessing from the
+        // last text it finds, which is the status menu's.
+        .alignmentGuide(.listRowSeparatorLeading) { _ in InboxMetrics.rowInset }
     }
 
     /// `Security · SEC-27 · Zero assigned you`, and how long ago.
@@ -57,9 +61,12 @@ struct InboxTaskRow: View {
                 TaskPriorityIcon(priority: item.priority, size: 14, surface: HausPlatformColor.groupedSurface)
                     .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 2 }
                 VStack(alignment: .leading, spacing: 2) {
+                    // `Color.primary`, because the `.primary` style inherits a
+                    // borderless Button's tint, and a Button centers its wrap.
                     Text(item.title)
                         .font(.headline)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(Color.primary)
+                        .multilineTextAlignment(.leading)
                         .lineLimit(3)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     if let dueLabel {
@@ -120,22 +127,23 @@ struct InboxTaskRow: View {
         }
     }
 
-    /// At accessibility sizes the row of buttons would truncate its own words,
-    /// so it stacks instead.
+    /// One line when the words fit. A long column name drops the menus to a
+    /// line of their own, and at accessibility sizes every button stacks, so a
+    /// button never truncates its own words.
     private var actions: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 8) {
-                resolutionButtons
-                Spacer(minLength: 0)
-                statusMenu
-                moreMenu
+            HStack(spacing: 0) {
+                HStack(spacing: 8) { resolutionButtons }
+                Spacer(minLength: 8)
+                menus
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) { resolutionButtons }
+                menus
             }
             VStack(alignment: .leading, spacing: 8) {
                 resolutionButtons
-                HStack(spacing: 8) {
-                    statusMenu
-                    moreMenu
-                }
+                menus
             }
         }
         .controlSize(.small)
@@ -145,6 +153,13 @@ struct InboxTaskRow: View {
     private var resolutionButtons: some View {
         ForEach(item.resolutions, id: \.resolution) { resolution, column in
             Button(resolution.title) { onMove(column) }
+        }
+    }
+
+    private var menus: some View {
+        HStack(spacing: 8) {
+            statusMenu
+            moreMenu
         }
     }
 
@@ -161,8 +176,15 @@ struct InboxTaskRow: View {
                 .disabled(column.id == item.columnID)
             }
         } label: {
-            Label(item.columnName, systemImage: item.category.symbolName)
-                .lineLimit(1)
+            // Not a `Label`: a bordered Menu measures one short and truncates
+            // its title to an ellipsis, so the row of buttons "fits" without
+            // the column name. Fixed, a long name stacks the row instead.
+            HStack(spacing: 4) {
+                Image(systemName: item.category.symbolName)
+                Text(item.columnName)
+            }
+            .lineLimit(1)
+            .fixedSize()
         }
         .disabled(item.columns.isEmpty)
     }
@@ -176,7 +198,10 @@ struct InboxTaskRow: View {
                 Label("Mark Read", systemImage: "envelope.open")
             }
         } label: {
+            // A bare glyph is shorter than a text button's line, which drew
+            // this capsule at half the height of the buttons beside it.
             Image(systemName: "ellipsis")
+                .frame(minHeight: actionLineHeight)
                 .accessibilityLabel("More")
         }
     }
@@ -210,30 +235,6 @@ struct InboxTaskRow: View {
         isSending = true
         defer { isSending = false }
         if await onReply(content) { reply = "" }
-    }
-}
-
-/// The line under the feed after acting on an item, with its Undo. It floats
-/// over the page rather than joining it, so the rows never move to make room.
-struct InboxTaskNoticeBar: View {
-    let notice: InboxTaskNotice
-    let onUndo: (InboxTaskUndo) -> Void
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Text(notice.message)
-                .font(.subheadline)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            if let undo = notice.undo {
-                Button("Undo") { onUndo(undo) }
-                    .font(.subheadline.weight(.semibold))
-                    .buttonStyle(.borderless)
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: HausRadius.medium, style: .continuous))
-        .accessibilityElement(children: .contain)
     }
 }
 

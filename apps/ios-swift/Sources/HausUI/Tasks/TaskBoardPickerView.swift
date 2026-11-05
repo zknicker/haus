@@ -93,7 +93,7 @@ public struct TaskBoardPickerView: View {
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressableRow)
         .accessibilityLabel(board.name)
         .accessibilityValue("\(board.key), \(board.openTaskCount) open")
     }

@@ -76,6 +76,8 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
     @Binding var scrollTarget: MessageScrollTarget?
     /// Ticks once per Chat switch that no drawer snap already announced.
     @State var chatSwitchFeedback = 0
+    /// Ticks when a route outside the shell puts something on the canvas.
+    private let canvasRouteRevision: Int
 
     public init(
         server: ServerPresentation,
@@ -83,6 +85,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         selectedDestinationID: Binding<ChatDestination.ID?> = .constant(nil),
         showsInbox: Binding<Bool> = .constant(false),
         scrollTarget: Binding<MessageScrollTarget?> = .constant(nil),
+        canvasRouteRevision: Int = 0,
         messagesForDestination: @escaping (ChatDestination) -> [MessagePresentation],
         isMessageHistoryLoaded: @escaping (ChatDestination) -> Bool = { _ in true },
         isConnected: Bool,
@@ -123,6 +126,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         _selectedDestinationID = selectedDestinationID
         _showsInbox = showsInbox
         _scrollTarget = scrollTarget
+        self.canvasRouteRevision = canvasRouteRevision
         self.server = server
         self.destinations = destinations
         self.messagesForDestination = messagesForDestination
@@ -226,6 +230,7 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         .onChange(of: destinations.map(\.id), initial: true) { _, destinationIDs in
             syncSelection(destinationIDs: destinationIDs)
         }
+        .onChange(of: canvasRouteRevision) { drawer.closeForCanvasRoute() }
     }
 
     /// The sidebar marks what is on screen: Tasks over everything, then the

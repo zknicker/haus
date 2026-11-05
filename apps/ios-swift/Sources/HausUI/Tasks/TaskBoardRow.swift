@@ -15,6 +15,7 @@ struct TaskBoardRow: View {
     let onMove: (BoardColumn) -> Void
 
     @ScaledMetric(relativeTo: .body) private var avatarSize: CGFloat = 26
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         Button(action: onOpen) {
@@ -24,7 +25,9 @@ struct TaskBoardRow: View {
                     Text(task.title)
                         .font(.body)
                         .foregroundStyle(.primary)
-                        .lineLimit(2)
+                        // Two lines hold a title until accessibility sizes,
+                        // where they cut it to a few words.
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     if !labels.isEmpty {
                         TaskLabelTags(labels: labels)
@@ -35,7 +38,7 @@ struct TaskBoardRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressableRow)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityAddTraits(.isButton)
@@ -139,7 +142,7 @@ struct TaskColumnHeader: View {
                 }
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("\(column.name), \(count) tasks")
             .accessibilityValue(isCollapsed ? "Collapsed" : "Expanded")
@@ -155,7 +158,7 @@ struct TaskColumnHeader: View {
                         .frame(minWidth: 32, minHeight: 32)
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 .accessibilityLabel("Add task to \(column.name)")
             }
         }

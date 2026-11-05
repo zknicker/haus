@@ -13,6 +13,9 @@ struct AuthenticatedHausView: View {
     /// the Store's read acknowledgements always name the same Chat.
     @State var selectedDestinationID: ChatDestination.ID?
     @State var canvasScrollTarget: MessageScrollTarget?
+    /// Ticks when a route puts something on the canvas, so a drawer left open
+    /// behind a pushed Task closes rather than covering it.
+    @State var canvasRouteRevision = 0
     @State var path: [HausRootRoute] = []
     @State var agentCall: AgentCallRequest?
     /// The message a drawer's Convert to Task is converting.
@@ -126,6 +129,7 @@ struct AuthenticatedHausView: View {
                     selectedDestinationID: $selectedDestinationID,
                     showsInbox: $showsInboxCanvas,
                     scrollTarget: $canvasScrollTarget,
+                    canvasRouteRevision: canvasRouteRevision,
                     messagesForDestination: { store.messagePresentations(chatID: $0.pendingKey) },
                     isMessageHistoryLoaded: { destination in
                         guard let chat = destination.durableChat else { return true }

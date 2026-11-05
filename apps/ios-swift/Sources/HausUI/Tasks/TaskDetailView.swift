@@ -134,7 +134,14 @@ public struct TaskDetailView: View {
             if let board {
                 LabeledContent("Board", value: board.name)
             }
-            LabeledContent("Created", value: createdLabel(task))
+            // Two rows, because one `Blippy · Nov 5, 2026` value wraps mid-date
+            // at accessibility sizes.
+            if let creator = source.actor(task.createdBy)?.name {
+                LabeledContent("Created by", value: creator)
+            }
+            LabeledContent("Created") {
+                Text(task.createdAt, format: .dateTime.month(.abbreviated).day().year())
+            }
             LabeledContent("Updated") {
                 Text(task.updatedAt, format: .relative(presentation: .named))
             }
@@ -155,12 +162,6 @@ public struct TaskDetailView: View {
                 Label("Task options", systemImage: "ellipsis")
             }
         }
-    }
-
-    private func createdLabel(_ task: BoardTask) -> String {
-        let name = source.actor(task.createdBy)?.name
-        let date = task.createdAt.formatted(date: .abbreviated, time: .omitted)
-        return name.map { "\($0) · \(date)" } ?? date
     }
 
     /// The key is the reference: pasted into any message, it becomes a chip.

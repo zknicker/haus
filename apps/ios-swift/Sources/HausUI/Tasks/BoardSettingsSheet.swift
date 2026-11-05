@@ -13,6 +13,7 @@ struct BoardSettingsSheet: View {
     let source: TaskBoardSource
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var name: String
     @State private var key: String
     @State private var drafts: [BoardColumnDraft]
@@ -62,11 +63,17 @@ struct BoardSettingsSheet: View {
         BoardColumnPlan(original: board.columns, drafts: drafts, taskCounts: taskCounts, targets: targets)
     }
 
+    /// A row stacks its value under its title at accessibility sizes, where a
+    /// field that hugs the trailing edge would stray from the title it belongs to.
+    private var fieldAlignment: TextAlignment {
+        dynamicTypeSize.isAccessibilitySize ? .leading : .trailing
+    }
+
     private var nameSection: some View {
         Section {
             LabeledContent("Name") {
                 TextField("Name", text: $name)
-                    .multilineTextAlignment(.trailing)
+                    .multilineTextAlignment(fieldAlignment)
             }
             // The General board keeps its key.
             LabeledContent("Key") {
@@ -74,7 +81,7 @@ struct BoardSettingsSheet: View {
                     Text(board.key)
                 } else {
                     TextField("Key", text: keyBinding)
-                        .multilineTextAlignment(.trailing)
+                        .multilineTextAlignment(fieldAlignment)
                         .hausHandleInput()
                 }
             }
@@ -234,17 +241,22 @@ private struct BoardColumnRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        if dynamicTypeSize.isAccessibilitySize {
-            VStack(alignment: .leading, spacing: 6) {
-                nameField
-                categoryControl
-            }
-        } else {
-            HStack(spacing: 8) {
-                nameField
-                categoryControl
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 6) {
+                    nameField
+                    categoryControl
+                }
+            } else {
+                HStack(spacing: 8) {
+                    nameField
+                    categoryControl
+                }
             }
         }
+        // The separator starts with the name. Left to itself the List starts
+        // it at the first text it finds, which is a locked row's category.
+        .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] }
     }
 
     private var nameField: some View {

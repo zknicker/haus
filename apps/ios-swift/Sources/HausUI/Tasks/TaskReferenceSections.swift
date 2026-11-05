@@ -27,7 +27,7 @@ struct TaskMentionsSection: View {
                         }
                         .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressableRow)
                 }
             } header: {
                 TaskSectionTitle(title: "Mentioned in", count: mentions.count)
@@ -68,7 +68,7 @@ struct TaskRemindersSection: View {
                         }
                         .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.pressableRow)
                 }
             } header: {
                 TaskSectionTitle(title: "Reminders", count: reminders.count)
