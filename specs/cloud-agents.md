@@ -555,11 +555,22 @@ follow-up a fully separate Run (its own id, inbox attention, and summary — nev
 Run it followed), and bounds each Run's own reading at the *next* Haus-tagged prompt in the session
 log (`isHausPrompt` in `session-events.ts`), not just at its own. Before this, a Run's window ran
 from its own prompt to the end of the log, which was safe only because no later Haus prompt could
-exist yet. A Run whose own turn is still open when the next follow-up is sent reads as still
-`running` (not quiet, not failed) until its own result lands inside its own window; if that result
-is ever logged after the next prompt instead of before it, that Run keeps reading `running` rather
-than attributing the wrong Run's result to it — the safer of the two failure modes, and the one the
-window bound is designed to prevent.
+exist yet.
+
+A follow-up injected mid-turn commonly merges into one continuous turn: the session answers both
+prompts together and logs a single result after the follow-up's own prompt, not before it (TECH-7,
+round 5). The predecessor's own window never contains that result, so reading it alone would leave
+the predecessor `running` forever and its inbox attention would never fire — not a rare edge case,
+but the normal shape of a merged turn. When a Run's own window carries no result, Claude's adapter
+(`sharedTurnResult` in `observation.ts`) looks past the next Haus prompt for the turn's eventual
+result and settles the predecessor with it too, `completed` or `failed`, with a summary noting it
+continued in that follow-up and naming its Run id. Both Runs settle independently from the same
+provider result and each raises its own ordinary inbox attention; Haus does not deduplicate the two
+attentions, since they carry evidence for different Runs a human or Agent may be tracking
+separately. A Run only keeps reading `running` when nothing — its own window or any later one — has
+produced a result yet, which is exactly the state of work that is still genuinely in progress; the
+existing card-level "No update in `<d>`" liveness warning (from the work's own `updatedAt`, not from
+this reading) already covers a session that goes truly silent, so no new timer is added here.
 
 Once a predecessor is ready to send behind — terminal for Cursor, dispatched for Claude — each send
 uses the Run id as the provider idempotency key, so a retry after a lost response never starts a
