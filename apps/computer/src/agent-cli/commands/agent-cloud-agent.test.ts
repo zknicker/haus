@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { AgentApiRequest } from '../agent-api-client.ts';
+import type { AgentApiRequest, AgentApiRequester } from '../agent-api-client.ts';
 import {
     CLOUD_AGENT_SUBCOMMANDS,
     runCloudAgentCancel,
@@ -89,4 +89,47 @@ test('inspect lists owned work or requests recorded details for one work', async
         'stop',
         'cancel',
     ]);
+});
+
+/** A newer Server's `work`, carrying a field this Computer build predates. */
+function requesterFromNewerServer(): AgentApiRequester {
+    const workFromNewerServer = { ...work, aFieldThisBuildPredates: 'added by a later release' };
+    return {
+        request(path, schema, input) {
+            const response =
+                input?.method !== 'POST'
+                    ? { works: [workFromNewerServer] }
+                    : path.endsWith('/send')
+                      ? {
+                            work: workFromNewerServer,
+                            runId: 'car_follow_up',
+                            idempotent: false,
+                            predecessors: [],
+                        }
+                      : { work: workFromNewerServer };
+            return Promise.resolve(schema.parse(response));
+        },
+    };
+}
+
+test('inspect and send read a newer Server response carrying a field this Computer build predates', async () => {
+    const inspectOutput: string[] = [];
+    await runCloudAgentInspect(args({ '--work': work.id }), {
+        client: requesterFromNewerServer(),
+        mintNonce: () => 'unused',
+        readStdin: () => Promise.resolve(''),
+        stdinIsTty: true,
+        write: (text) => inspectOutput.push(text),
+    });
+    expect(inspectOutput.join('')).toContain(work.id);
+
+    const sendOutput: string[] = [];
+    await runCloudAgentSend(args({ '--work': work.id }), {
+        client: requesterFromNewerServer(),
+        mintNonce: () => 'unused',
+        readStdin: () => Promise.resolve('Address the review comments.\n'),
+        stdinIsTty: false,
+        write: (text) => sendOutput.push(text),
+    });
+    expect(sendOutput.join('')).toContain(`Work ID: ${work.id}`);
 });
