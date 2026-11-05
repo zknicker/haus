@@ -45,6 +45,7 @@ test('a saved provider address survives restart and contains no instructions or 
     await journal.claim('server', ref);
     await journal.record('server', ref, launch);
     expect(await new CloudLaunchJournal(root).read('server', ref)).toEqual({
+        autoInterrupted: false,
         phase: 'launched',
         workId: ref.workId,
         launch,
@@ -55,6 +56,7 @@ test('a saved provider address survives restart and contains no instructions or 
         'phase',
         'workId',
         'launch',
+        'autoInterrupted',
     ]);
 });
 

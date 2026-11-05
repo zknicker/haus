@@ -9,7 +9,6 @@ import type {
 } from './provider.ts';
 import {
     cloudAgentDeliveryFailure,
-    followUpDeliveryDeadlineMs,
     launchRecordGraceMs,
     launchRecordMissing,
 } from './send-delivery.ts';
@@ -24,7 +23,13 @@ export interface LocalRun {
 }
 
 export type LocalRunState =
-    | { kind: 'launched'; launch: CloudAgentLaunch; observedAt: string }
+    | {
+          kind: 'launched';
+          launch: CloudAgentLaunch;
+          observedAt: string;
+          /** This follow-up only delivered after Haus auto-interrupted the session. */
+          autoInterrupted: boolean;
+      }
     /** Not at the provider; report the observation when one is given. */
     | { kind: 'unsent'; observation: CloudAgentProviderObservation | null };
 
@@ -49,17 +54,19 @@ export class CloudAgentLocalRuns {
             switch (recorded?.phase) {
                 case 'pending': {
                     const { delivery } = recorded;
-                    const stalled =
-                        delivery &&
-                        nowMs - Date.parse(delivery.firstAttemptAt) >= followUpDeliveryDeadlineMs;
                     return unsent(
-                        delivery && stalled
-                            ? stalledQueued(observedAt, delivery)
+                        delivery?.interruptedAt
+                            ? autoInterruptFailedQueued(observedAt, delivery)
                             : queued(observedAt, pendingActivity(recorded))
                     );
                 }
                 case 'launched':
-                    return { kind: 'launched', launch: recorded.launch, observedAt } as const;
+                    return {
+                        autoInterrupted: recorded.autoInterrupted,
+                        kind: 'launched',
+                        launch: recorded.launch,
+                        observedAt,
+                    } as const;
                 case 'cancelled':
                     return unsent({ observedAt, status: 'cancelled' });
                 case 'rejected':
@@ -154,20 +161,33 @@ function queued(observedAt: string, summary: string): CloudAgentProviderObservat
 }
 
 /**
- * Reported every tick once a follow-up has stayed busy for the full delivery
- * window: still queued, still retrying, but now carrying the errorCode Server
- * uses to raise exactly one inbox attention (then sparse reminders) without
- * failing the Run. See TECH-7's design refinement: never fail this terminally.
+ * Reported every tick once `send-queue.ts`'s auto-interrupt fallback has been
+ * tried and still didn't deliver: still queued, still retrying, but now
+ * carrying the errorCode Server uses to raise exactly one inbox attention
+ * (then sparse reminders) without failing the Run. TECH-7's design
+ * refinement: a busy provider never fails the follow-up on its own, and
+ * clearing the session's current work gets one automatic try before anyone
+ * is asked to decide.
  */
-function stalledQueued(
+function autoInterruptFailedQueued(
     observedAt: string,
     delivery: NonNullable<CloudPendingSend['delivery']>
 ): CloudAgentProviderObservation {
     return {
-        activity: { at: observedAt, summary: 'Session busy for over 30 minutes; still retrying.' },
-        errorCode: cloudAgentDeliveryFailure.followUpTimeout,
+        activity: {
+            at: observedAt,
+            summary: 'Auto-interrupt did not clear the session; still retrying.',
+        },
+        errorCode: cloudAgentDeliveryFailure.followUpAutoInterruptFailed,
         observedAt,
         status: 'queued',
-        summary: `The provider has stayed busy for over 30 minutes. Last error: ${delivery.lastError}. Haus keeps retrying; stop, interrupt, or relaunch if you want to act now.`,
+        summary: `Haus automatically interrupted the session to deliver this follow-up, but it still didn't go through. Last error: ${delivery.lastError}. Haus keeps retrying; stop, interrupt, or relaunch if you want to act now.`,
     };
+}
+
+/** One-time: this Run's own monitor reports fresh activity from here on, so a later observation naturally supersedes it. */
+export function autoInterruptNote(autoInterrupted: boolean): { summary?: string } {
+    return autoInterrupted
+        ? { summary: 'Haus automatically interrupted the session to deliver this follow-up.' }
+        : {};
 }

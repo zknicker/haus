@@ -2,21 +2,25 @@ import type { CloudLaunchRejection, CloudPendingSend } from './launch-journal.ts
 import { CloudAgentLaunchRejectedError } from './provider.ts';
 
 /**
- * How long a follow-up keeps retrying after its first send attempt fails
- * retryably. The clock starts at the first attempt, not at queueing: waiting
- * behind a predecessor that is still running is legitimate for hours. Once
- * predecessors have settled, a busy agent frees within seconds, so busy for
- * this long means a Run Haus does not track holds the agent; a provider outage
- * this long is worth the delegating Agent's judgment rather than silence.
+ * How long a follow-up keeps retrying, after its first send attempt fails
+ * retryably, before `send-queue.ts` tries the auto-interrupt fallback. The
+ * clock starts at the first attempt, not at queueing: waiting behind a
+ * predecessor Haus is actively tracking is legitimate for hours and is never
+ * governed by this constant (see `previousReady`). Once no tracked predecessor
+ * is blocking, a hosted session normally accepts a send right away even while
+ * it is otherwise busy (TECH-7's design refinement); a send that still keeps
+ * failing this long is worth clearing the session's current work for, rather
+ * than waiting longer in silence.
  */
-export const followUpDeliveryDeadlineMs = 30 * 60_000;
+export const followUpInterruptGraceMs = 2 * 60_000;
 const firstBackoffMs = 5000;
 const maxBackoffMs = 60_000;
 
 /**
- * Codes a Run settles with when its prompt never reached the provider. They
- * ride the Run's `errorCode`, and the delegating Agent reads them in its inbox
- * attention with the summary.
+ * Codes a Run settles with when its prompt never reached the provider, or
+ * rides a still-queued, still-retrying Run's `errorCode` when it hasn't
+ * settled at all. They reach the delegating Agent's inbox attention with the
+ * summary either way.
  */
 export const cloudAgentDeliveryFailure = {
     /** The provider definitely refused the launch. */
@@ -24,12 +28,12 @@ export const cloudAgentDeliveryFailure = {
     /** The provider definitely refused the follow-up. */
     followUpRejected: 'followup-delivery-rejected',
     /**
-     * The follow-up has been retrying for over `followUpDeliveryDeadlineMs`.
-     * It rides a still-queued, still-retrying observation's `errorCode` so
-     * Server can raise one inbox attention and the card can show it, without
-     * failing the Run.
+     * Haus auto-interrupted the session to clear whatever held it busy, and
+     * the follow-up still didn't deliver (the interrupt itself failed, or a
+     * send attempt right after it failed too). Rides a still-`queued`,
+     * still-retrying observation's `errorCode`; it never fails the Run.
      */
-    followUpTimeout: 'followup-delivery-timeout',
+    followUpAutoInterruptFailed: 'followup-auto-interrupt-failed',
     /** Server recorded the Run but this Computer never stored its prompt. */
     launchRecordMissing: 'launch-record-missing',
 } as const;
@@ -65,6 +69,7 @@ export function sendFailureOutcome(
         delivery: {
             attempts,
             firstAttemptAt,
+            interruptedAt: pending.delivery?.interruptedAt ?? null,
             lastError,
             nextAttemptAt: new Date(now + backoff).toISOString(),
         },

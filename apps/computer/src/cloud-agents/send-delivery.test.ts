@@ -36,6 +36,7 @@ async function fixture(options: { predecessor?: CloudAgentRunRef; interrupt?: bo
     provider.read = async () => ({ observedAt: new Date().toISOString(), status: priorStatus });
     const failures: Error[] = [];
     let sends = 0;
+    let cancels = 0;
     provider.send = async (input) => {
         sends += 1;
         const failure = failures.shift();
@@ -48,6 +49,11 @@ async function fixture(options: { predecessor?: CloudAgentRunRef; interrupt?: bo
             providerUrl: null,
             status: 'running',
         };
+    };
+    const baseCancel = provider.cancel.bind(provider);
+    provider.cancel = async (ref, signal) => {
+        cancels += 1;
+        await baseCancel(ref, signal);
     };
     await journal.claim('server', next, {
         phase: 'pending',
@@ -66,6 +72,7 @@ async function fixture(options: { predecessor?: CloudAgentRunRef; interrupt?: bo
         advance: () => runtime.runPromise(queue.advance(next, () => false)),
         advanceRestored: (restored: CloudAgentSendQueue) =>
             runtime.runPromise(restored.advance(next, () => false)),
+        cancels: () => cancels,
         failures,
         journal,
         provider,
@@ -121,27 +128,73 @@ test('a busy agent retries with backoff under the same Run, then delivers', asyn
     expect(f.sends()).toBe(3);
 });
 
-test('busy past the delivery deadline keeps retrying instead of failing the follow-up', async () => {
+test('busy past the interrupt grace period is auto-interrupted, then keeps retrying instead of failing', async () => {
     const f = await fixture();
     f.failures.push(...Array.from({ length: 100 }, () => recordedAgentBusyError()));
     let record = await f.advance();
-    for (let minute = 0; minute < 40 && record?.phase === 'pending'; minute += 1) {
+    for (let minute = 0; minute < 10 && record?.phase === 'pending'; minute += 1) {
         await f.wait('1 minute');
         record = await f.advance();
     }
-    // Never settles: the follow-up stays pending and keeps retrying past the deadline.
-    expect(record).toMatchObject({ phase: 'pending', delivery: { attempts: 41 } });
-    const sendsAtDeadline = f.sends();
+    // Never settles: cancel() was tried (the fake always succeeds), the retry right
+    // after it still failed (all 100 queued failures), and it keeps retrying past that.
+    expect(record).toMatchObject({
+        delivery: { interruptedAt: expect.any(String) },
+        phase: 'pending',
+    });
+    expect(f.cancels()).toBe(1);
+    const sendsAtInterrupt = f.sends();
     await f.wait('5 minutes');
     await f.advance();
-    expect(f.sends()).toBeGreaterThan(sendsAtDeadline);
+    expect(f.sends()).toBeGreaterThan(sendsAtInterrupt);
+    // The one auto-interrupt already happened; later ticks never try a second one.
+    expect(f.cancels()).toBe(1);
 });
 
-test('the delivery deadline survives a Computer restart but still never rejects the follow-up', async () => {
+test('once interrupted, a send that then succeeds delivers and is flagged auto-interrupted', async () => {
+    const f = await fixture();
+    f.failures.push(...Array.from({ length: 100 }, () => recordedAgentBusyError()));
+    let record = await f.advance();
+    for (
+        let minute = 0;
+        minute < 10 && record?.phase === 'pending' && !record.delivery?.interruptedAt;
+        minute += 1
+    ) {
+        await f.wait('1 minute');
+        record = await f.advance();
+    }
+    expect(record).toMatchObject({
+        phase: 'pending',
+        delivery: { interruptedAt: expect.any(String) },
+    });
+    expect(f.cancels()).toBe(1);
+    // The provider is free again: the very next attempt (plain backoff, no second interrupt) delivers.
+    f.failures.length = 0;
+    await f.wait('1 minute');
+    expect(await f.advance()).toMatchObject({ autoInterrupted: true, phase: 'launched' });
+    expect(f.cancels()).toBe(1);
+});
+
+test('when the auto-interrupt call itself fails, the follow-up still stays pending and keeps retrying', async () => {
+    const f = await fixture();
+    f.failures.push(...Array.from({ length: 100 }, () => recordedAgentBusyError()));
+    f.provider.cancel = () => Promise.reject(new Error('The provider refused to interrupt.'));
+    let record = await f.advance();
+    for (let minute = 0; minute < 10 && record?.phase === 'pending'; minute += 1) {
+        await f.wait('1 minute');
+        record = await f.advance();
+    }
+    expect(record).toMatchObject({
+        delivery: { interruptedAt: expect.any(String) },
+        phase: 'pending',
+    });
+});
+
+test('the interrupt grace period and its outcome survive a Computer restart, still never rejecting', async () => {
     const f = await fixture();
     f.failures.push(...Array.from({ length: 100 }, () => recordedAgentBusyError()));
     await f.advance();
-    await f.wait('20 minutes');
+    await f.wait('90 seconds');
     // A Computer restart loses every in-memory timer: fresh objects, same journal file on disk.
     const restored = new CloudAgentSendQueue(
         f.runtime,
@@ -150,13 +203,16 @@ test('the delivery deadline survives a Computer restart but still never rejects 
         () => f.provider
     );
     let record = await f.advanceRestored(restored);
-    for (let minute = 0; minute < 20 && record?.phase === 'pending'; minute += 1) {
+    for (let minute = 0; minute < 10 && record?.phase === 'pending'; minute += 1) {
         await f.wait('1 minute');
         record = await f.advanceRestored(restored);
     }
-    // ~40 minutes total, well past the 30-minute window (counted from the first attempt,
-    // not from the restart): still pending, still retrying, never rejected.
-    expect(record).toMatchObject({ phase: 'pending' });
+    // ~10 minutes total, well past the 2-minute grace counted from the first attempt
+    // (not from the restart): auto-interrupted, still pending, never rejected.
+    expect(record).toMatchObject({
+        delivery: { interruptedAt: expect.any(String) },
+        phase: 'pending',
+    });
     const sendsSoFar = f.sends();
     await f.wait('5 minutes');
     await f.advanceRestored(restored);

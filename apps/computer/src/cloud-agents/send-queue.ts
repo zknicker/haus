@@ -11,7 +11,7 @@ import type {
     CloudAgentProviderObservation,
     CloudAgentRunRef,
 } from './provider.ts';
-import { deliveryDue, sendFailureOutcome } from './send-delivery.ts';
+import { deliveryDue, followUpInterruptGraceMs, sendFailureOutcome } from './send-delivery.ts';
 
 /**
  * Whether the provider will take a new prompt right now, when that differs
@@ -27,6 +27,11 @@ function acceptsFollowUp(
     observation: CloudAgentProviderObservation
 ): boolean {
     return ref.provider === 'claude' && observation.rawStatus === 'idle';
+}
+
+function errorMessageOf(error: { cause: unknown }): string {
+    const message = error.cause instanceof Error ? error.cause.message : String(error.cause);
+    return message.trim() || 'unknown error';
 }
 
 /** Serializes short queue transitions; waiting for a remote turn never holds the permit. */
@@ -70,24 +75,24 @@ export class CloudAgentSendQueue {
     /**
      * One send attempt under the Run's own id as idempotency key, so a retry
      * after a lost response never starts a second provider Run. A definite
-     * refusal or an exhausted deadline settles the prompt as rejected.
+     * refusal settles the prompt as rejected; a retryable failure keeps
+     * retrying, falling back to an auto-interrupt once `followUpInterruptGraceMs`
+     * has passed without one already attempted (TECH-7's design refinement:
+     * a busy provider never fails the follow-up on its own).
      */
     private deliver(ref: CloudAgentRunRef, pending: Pending) {
         const self = this;
         return Effect.gen(function* () {
-            const sent = yield* Effect.either(
-                foreign(() =>
-                    self.provider(ref.provider).send({
-                        idempotencyKey: ref.runId,
-                        instructions: pending.instructions,
-                        model: pending.model,
-                        providerAgentId: pending.providerAgentId,
-                        workId: ref.workId,
-                    })
-                )
-            );
+            const sent = yield* self.attemptSend(ref, pending);
             if (sent._tag === 'Right') {
-                yield* foreign(() => self.journal.record(self.serverId, ref, sent.right));
+                // A prior tick may already have interrupted the session for this
+                // follow-up without yet delivering it; this delivery is still
+                // owed to that interrupt, however many plain retries sit between.
+                yield* foreign(() =>
+                    self.journal.record(self.serverId, ref, sent.right, {
+                        autoInterrupted: Boolean(pending.delivery?.interruptedAt),
+                    })
+                );
                 return;
             }
             const outcome = sendFailureOutcome(
@@ -99,6 +104,14 @@ export class CloudAgentSendQueue {
                 yield* foreign(() => self.journal.reject(self.serverId, ref, outcome.rejection));
                 return;
             }
+            const now = yield* Clock.currentTimeMillis;
+            const dueForInterrupt =
+                !pending.delivery?.interruptedAt &&
+                now - Date.parse(outcome.delivery.firstAttemptAt) >= followUpInterruptGraceMs;
+            if (dueForInterrupt) {
+                yield* self.interruptAndRetry(ref, pending, outcome.delivery);
+                return;
+            }
             yield* Effect.logWarning('Cloud Agent follow-up send will retry').pipe(
                 Effect.annotateLogs({
                     attempts: outcome.delivery.attempts,
@@ -108,6 +121,68 @@ export class CloudAgentSendQueue {
                 })
             );
             yield* foreign(() => self.journal.defer(self.serverId, ref, pending, outcome.delivery));
+        });
+    }
+
+    private attemptSend(ref: CloudAgentRunRef, pending: Pending) {
+        return Effect.either(
+            foreign(() =>
+                this.provider(ref.provider).send({
+                    idempotencyKey: ref.runId,
+                    instructions: pending.instructions,
+                    model: pending.model,
+                    providerAgentId: pending.providerAgentId,
+                    workId: ref.workId,
+                })
+            )
+        );
+    }
+
+    /**
+     * The fallback the delivery grace period earns: ask the provider to clear
+     * whatever holds the session busy (`send --interrupt`'s own mechanism),
+     * then retry the send once, right away. Delivery after this is flagged so
+     * the card and `inspect` show it happened; failure at either step is one
+     * flagged retryable failure, never a terminal one — the coordinator still
+     * decides whether to stop, interrupt deliberately, or relaunch.
+     */
+    private interruptAndRetry(
+        ref: CloudAgentRunRef,
+        pending: Pending,
+        delivery: NonNullable<Pending['delivery']>
+    ) {
+        const self = this;
+        return Effect.gen(function* () {
+            const interrupted = yield* Effect.either(
+                foreign((signal) => self.provider(ref.provider).cancel(ref, signal))
+            );
+            const retried =
+                interrupted._tag === 'Right' ? yield* self.attemptSend(ref, pending) : interrupted;
+            if (retried._tag === 'Right') {
+                yield* foreign(() =>
+                    self.journal.record(self.serverId, ref, retried.right, {
+                        autoInterrupted: true,
+                    })
+                );
+                return;
+            }
+            const now = yield* Clock.currentTimeMillis;
+            yield* Effect.logWarning(
+                'Cloud Agent auto-interrupt did not deliver the follow-up; still retrying'
+            ).pipe(
+                Effect.annotateLogs({
+                    attempts: delivery.attempts,
+                    error: errorMessageOf(retried.left),
+                    operation: 'cloud-agent.send',
+                    runId: ref.runId,
+                })
+            );
+            yield* foreign(() =>
+                self.journal.defer(self.serverId, ref, pending, {
+                    ...delivery,
+                    interruptedAt: new Date(now).toISOString(),
+                })
+            );
         });
     }
 
