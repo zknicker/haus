@@ -300,7 +300,6 @@ async function runRealRuntime(
             dataRoot: input.dataRoot,
             env: input.agentEnv,
             factoryKind: seed?.factoryKind ?? 'ordinary',
-            greetsOnFirstTurn: Boolean(seed?.brief && seed.briefAuthorHandle),
             homeDir: input.dirs.home,
             homeTimezone: command.homeTimezone ?? 'UTC',
             runtimeDriverFactory: input.runtimeDriverFactory,

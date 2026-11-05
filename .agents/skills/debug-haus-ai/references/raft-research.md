@@ -15,8 +15,8 @@ primary diagnosis.
 Prefer:
 
 1. Raft's public source at https://github.com/botiverse/raft-source, pinned at commit
-   `05f7d8fd77d2535f993d5d90b85118438bc18216` (release `v1.13.0-source.1`, daemon `1.0.25`) — clone
-   or browse it for exact behavior, rather than reconstructing it from the installed binary/CLI;
+   `26f77ef97c40d3d91aa2c5e42b0fd66b8bf39fe6` (release `v1.21.2-source.1`, daemon `1.0.43`, the
+   pin in `specs/raft-alignment/prompt-divergences.md`) — clone or browse it for exact behavior, rather than reconstructing it from the installed binary/CLI;
 2. the installed local implementation and exact runtime symbols, when a question is about what is
    actually deployed rather than what the pinned source says;
 3. current public Raft documentation;
@@ -85,7 +85,7 @@ Adapt this without inserting a favored diagnosis:
 > Act as the Raft research partner for a Haus Agent bug investigation. Work read-only and do not
 > edit the Haus repository or the Raft source checkout. Here is the raw symptom and topology:
 > [SYMPTOM]. Read Raft's source at https://github.com/botiverse/raft-source, pinned commit
-> `05f7d8fd77d2535f993d5d90b85118438bc18216` (release `v1.13.0-source.1`, daemon `1.0.25`) —
+> `26f77ef97c40d3d91aa2c5e42b0fd66b8bf39fe6` (release `v1.21.2-source.1`, daemon `1.0.43`) —
 > `packages/daemon/src` for the agent loop/drivers/system prompt, `packages/server/src/services`
 > for delivery/tasks/reminders, `packages/cli/src/commands` for the CLI, `manual/agent-knowledge`
 > and `manual/recipes` for the Manual. Research current primary sources on raft.build,

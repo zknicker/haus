@@ -80,6 +80,35 @@ export function classifyResult(
     }
 }
 
+/**
+ * Whose result this is on a connection several runs share. `task-notification`: a turn Claude
+ * Code ran on its own to report background work (or the orphan notice it records on resume).
+ * `foreign`: another turn's message (a late steer). `self`: work Claude Code ran with no model
+ * turn and no message behind it (a compaction while idle, adopted mid-flight); a result for a
+ * message the driver wrote names its uuid, a local command's included, and an error always
+ * counts. `turn`: this turn's own outcome.
+ */
+export function claudeResultOwner(
+    result: ClaudeResult,
+    turn: { ownMessages: ReadonlySet<string>; ownsNotificationTurn: boolean }
+): 'foreign' | 'self' | 'task-notification' | 'turn' {
+    if (result.origin?.kind === 'task-notification' && !turn.ownsNotificationTurn) {
+        return 'task-notification';
+    }
+    const answered = [result.user_message_uuid, ...(result.user_message_uuids ?? [])].filter(
+        (uuid): uuid is string => Boolean(uuid)
+    );
+    if (answered.length > 0) {
+        return answered.some((uuid) => turn.ownMessages.has(uuid)) ? 'turn' : 'foreign';
+    }
+    const selfRun =
+        !turn.ownsNotificationTurn &&
+        turn.ownMessages.size > 0 &&
+        result.num_turns === 0 &&
+        result.is_error !== true;
+    return selfRun ? 'self' : 'turn';
+}
+
 function resultErrorDetail(result: ClaudeResult, fallback: string): string {
     const parts: string[] = [];
     for (const error of result.errors ?? []) {

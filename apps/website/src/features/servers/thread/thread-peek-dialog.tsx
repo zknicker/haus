@@ -65,7 +65,7 @@ export function ThreadPeekDialog({
                     // A fixed height: the transcript scrolls inside it, so the
                     // dialog does not resize as replies load or arrive. Capped
                     // in rem so it stays proportionate on tall displays.
-                    className="flex h-[min(85vh,44rem)] max-w-3xl flex-col overflow-hidden p-0"
+                    className="modal__dialog--thread-peek flex h-[min(85vh,44rem)] max-w-3xl flex-col p-0"
                 >
                     <ThreadContent
                         active

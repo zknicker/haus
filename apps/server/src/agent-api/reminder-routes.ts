@@ -2,6 +2,8 @@ import {
     AGENT_IDEMPOTENCY_KEY_REUSED,
     agentReminderCommandSchema,
     agentReminderScheduleInputSchema,
+    REMINDER_FAIL_AFTER_MAX,
+    REMINDER_FAIL_AFTER_MIN,
 } from '@haus/api';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import * as z from 'zod';
@@ -24,16 +26,29 @@ import {
 const updateSchema = agentReminderCommandSchema
     .extend({
         description: z.string().min(1).nullable().optional(),
+        failAfter: z
+            .number()
+            .int()
+            .min(REMINDER_FAIL_AFTER_MIN)
+            .max(REMINDER_FAIL_AFTER_MAX)
+            .nullable()
+            .optional(),
         fireAt: z.string().datetime().optional(),
         repeat: z.string().min(1).nullable().optional(),
         script: z.string().min(1).nullable().optional(),
         title: z.string().min(1).optional(),
+        wakeOnChange: z.boolean().optional(),
     })
     .refine(
         (input) =>
-            [input.fireAt, input.repeat, input.script, input.title ?? input.description].filter(
-                (value) => value !== undefined
-            ).length === 1
+            [
+                input.fireAt,
+                input.repeat,
+                input.script,
+                input.failAfter,
+                input.wakeOnChange,
+                input.title ?? input.description,
+            ].filter((value) => value !== undefined).length === 1
     );
 
 export function registerAgentReminderRoutes(app: FastifyInstance, db: HausDatabase) {

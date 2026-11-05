@@ -3,13 +3,12 @@ import SwiftUI
 enum ThreadTranscriptItem: Identifiable, Equatable {
     case anchor(MessagePresentation, hasReplies: Bool)
     case claimMetadata(ClaimPresentation, hasReplies: Bool)
-    case inlineReplies(isEmpty: Bool)
+    /// Owns the parent chain's load; draws only its failure.
+    case inlineReplies
     case inlineReply(MessagePresentation)
-    case threadHeader
     case reply(MessagePresentation)
-    /// Opens a calendar day. `region` keeps the parent chain's dividers apart
-    /// from the Thread's own.
-    case dayDivider(Date, region: String)
+    /// Opens a calendar day.
+    case dayDivider(Date)
 
     var id: String {
         switch self {
@@ -17,10 +16,8 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
         case .claimMetadata: "thread-claim-metadata"
         case .inlineReplies: "thread-inline-replies"
         case .inlineReply(let message): "thread-inline-reply-\(message.id)"
-        case .threadHeader: "thread-header"
         case .reply(let message): message.id
-        case .dayDivider(let date, let region):
-            "thread-day-\(region)-\(Int(date.timeIntervalSinceReferenceDate))"
+        case .dayDivider(let date): "thread-day-\(Int(date.timeIntervalSinceReferenceDate))"
         }
     }
 
@@ -28,7 +25,7 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
         switch self {
         case .reply(let message): message.isPending
         case .inlineReply(let message): message.isPending
-        case .anchor, .claimMetadata, .inlineReplies, .threadHeader, .dayDivider: false
+        case .anchor, .claimMetadata, .inlineReplies, .dayDivider: false
         }
     }
 
@@ -37,10 +34,21 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
         return nil
     }
 
+    /// The message this row draws, if it draws one.
+    var message: MessagePresentation? {
+        switch self {
+        case .anchor(let message, _), .inlineReply(let message), .reply(let message): message
+        case .claimMetadata, .inlineReplies, .dayDivider: nil
+        }
+    }
+
     /// The Thread transcript in order: the anchor, its claim metadata when it
-    /// has any, the parent chain when inspecting a claim, and the replies, the
-    /// viewer's own optimistic replies among them. A day divider opens each
-    /// calendar day after the anchor's.
+    /// has any, then one conversation by time — the parent Chat's inline
+    /// replies to the anchor among the Thread's replies, the viewer's own
+    /// optimistic replies with them. Chat sequences are local to each source,
+    /// so creation time orders them, as in the App's
+    /// `threadConversationEntries`. A day divider opens each calendar day
+    /// after the anchor's.
     static func items(
         anchor: MessagePresentation,
         replies: [MessagePresentation],
@@ -54,37 +62,20 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
             items.append(.claimMetadata(claim, hasReplies: hasReplies))
         }
         if includesInlineReplies {
-            items.append(.inlineReplies(isEmpty: inlineReplies.isEmpty))
-            items.append(contentsOf: dated(
-                inlineReplies, after: anchor, region: "inline", calendar: calendar,
-                row: ThreadTranscriptItem.inlineReply
-            ))
-            // The Thread's own label only separates it from a parent chain
-            // that is actually there.
-            if !inlineReplies.isEmpty { items.append(.threadHeader) }
+            items.append(.inlineReplies)
         }
-        items.append(contentsOf: dated(
-            replies, after: anchor, region: "replies", calendar: calendar,
-            row: ThreadTranscriptItem.reply
-        ))
-        return items
-    }
-
-    private static func dated(
-        _ messages: [MessagePresentation],
-        after anchor: MessagePresentation,
-        region: String,
-        calendar: Calendar,
-        row: (MessagePresentation) -> ThreadTranscriptItem
-    ) -> [ThreadTranscriptItem] {
+        let conversation = inlineReplies.map { (message: $0, row: ThreadTranscriptItem.inlineReply($0)) }
+            + replies.map { (message: $0, row: ThreadTranscriptItem.reply($0)) }
+        let ordered = conversation.enumerated().sorted {
+            ($0.element.message.createdAt, $0.offset) < ($1.element.message.createdAt, $1.offset)
+        }
         var previous = anchor.createdAt
-        var items: [ThreadTranscriptItem] = []
-        for message in messages {
-            if !calendar.isDate(previous, inSameDayAs: message.createdAt) {
-                items.append(.dayDivider(calendar.startOfDay(for: message.createdAt), region: region))
+        for (_, entry) in ordered {
+            if !calendar.isDate(previous, inSameDayAs: entry.message.createdAt) {
+                items.append(.dayDivider(calendar.startOfDay(for: entry.message.createdAt)))
             }
-            items.append(row(message))
-            previous = message.createdAt
+            items.append(entry.row)
+            previous = entry.message.createdAt
         }
         return items
     }

@@ -157,13 +157,17 @@ describe('Server-level stream hooks', () => {
         await mounted.unmount();
     });
 
-    test('server.onUpdated refreshes this Server detail and the Server list', async () => {
+    test('server.onUpdated refreshes this Server detail, the Server list, and its settings', async () => {
         const { onEvent, onRecovery } = await drive(
             'server.onUpdated',
             () => useServerUpdateStream(server),
             { serverId }
         );
-        const reads = [read('server.bySlug', { slug: 'team-room' }), read('server.list')];
+        const reads = [
+            read('server.bySlug', { slug: 'team-room' }),
+            read('server.list'),
+            read('server.settings', { serverId }),
+        ];
         expect(onEvent).toEqual(reads);
         expect(onRecovery).toEqual(reads);
     });

@@ -4,6 +4,8 @@ import type { Client as MCPClient } from '@modelcontextprotocol/client';
 import { eq } from 'drizzle-orm';
 import { Effect, type Scope } from 'effect';
 import { clearAmazonProductCache } from '../amazon-products/read-products.ts';
+import { readAgentDisplayName, signGithubToolCall } from '../github/agent-signature.ts';
+import type { GithubBot } from '../github/github-bot.ts';
 import type { HostedMcpAccess } from '../hosted-mcp/supervisor.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { mcpConnectionsTable } from '../postgres/schema.ts';
@@ -44,11 +46,13 @@ interface McpRuntimeOptions {
     clientFactory?: ClientFactory;
     closeTimeoutMs?: number;
     discoveryTimeoutMs?: number;
+    githubBot?: GithubBot;
     hostedMcps?: HostedMcpAccess;
     inventoryIntervalMs?: number;
     invocationTimeoutMs?: number;
 }
 export class McpRuntime {
+    readonly githubBot: GithubBot | undefined;
     readonly inventory: McpInventory;
     readonly hostedMcps: HostedMcpAccess | undefined;
     private readonly clients: McpClientCache;
@@ -60,6 +64,7 @@ export class McpRuntime {
         private readonly runtime: EffectRuntime<never>,
         options: McpRuntimeOptions = {}
     ) {
+        this.githubBot = options.githubBot;
         this.hostedMcps = options.hostedMcps;
         this.closeTimeoutMs = options.closeTimeoutMs ?? DEFAULT_CLOSE_TIMEOUT_MS;
         this.discoveryTimeoutMs = options.discoveryTimeoutMs ?? DEFAULT_DISCOVERY_TIMEOUT_MS;
@@ -151,7 +156,13 @@ export class McpRuntime {
                 return {
                     kind: 'called',
                     result: await callMcpTool(client, {
-                        arguments: args,
+                        arguments: await signGithubToolCall({
+                            args,
+                            readAgentName: () => readAgentDisplayName(this.db, scope),
+                            readPreset: async () =>
+                                (await this.readConnection(connection.id)).preset,
+                            toolName: tool.name,
+                        }),
                         definition: tool,
                         name: tool.name,
                         options,

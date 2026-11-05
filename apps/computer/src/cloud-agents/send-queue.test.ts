@@ -44,6 +44,8 @@ async function fixture(interrupt = false) {
         // The fixture's own pending send carries the model Server resolved for its Run.
         expect(input.model).toEqual(input.instructions === 'Revise the same code' ? nanoLow : null);
         return {
+            environmentId: null,
+            environmentName: null,
             providerAgentId: 'bc_same',
             providerRunId: `r_${input.idempotencyKey}`,
             providerUrl: null,

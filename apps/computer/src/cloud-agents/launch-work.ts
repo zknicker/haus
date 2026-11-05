@@ -4,18 +4,14 @@ import type {
     CloudAgentProvider,
 } from '@haus/api';
 import { agentCloudAgentStartResponseSchema, isTerminalCloudAgentStatus } from '@haus/api';
-import { launchCloudAgent } from './launch-attempt.ts';
+import { launchClaimedWork } from './launch-claimed-work.ts';
 import { CloudLaunchJournal } from './launch-journal.ts';
 import {
     type CloudAgentProvider as CloudAgentExecutor,
-    type CloudAgentLaunch,
-    CloudAgentLaunchRejectedError,
     CloudAgentProviderUnavailableError,
     type CloudAgentRunRef,
-    cloudAgentModelSelectionOf,
 } from './provider.ts';
 import { cloudAgentProvider } from './registry.ts';
-import { launchRejection } from './send-delivery.ts';
 import { readDefaultCloudAgentProvider } from './settings.ts';
 import type { CloudAgentWorkSupervisor } from './work-runner.ts';
 
@@ -52,20 +48,24 @@ export class CloudAgentLaunchFailedError extends Error {
  * Computer's default. An unready provider never falls back to the other one.
  * Readiness is checked before Server is
  * asked for anything, so an unavailable capability creates no Message. Once
- * Server has accepted the launch the work exists: a provider refusal is
- * reported as a failed observation against that same work rather than erased.
- * A Server freshness hold returns as-is: nothing was recorded or launched.
+ * Server has accepted the launch the work exists, and the receipt returns as
+ * soon as this Computer claims its Run: the provider launch (for Claude, a
+ * repository clone first) can outlast any command timeout, and a caller that
+ * timed out would launch the same work again. A provider refusal is reported
+ * as a failed observation against that same work rather than erased. A Server
+ * freshness hold returns as-is: nothing was recorded or launched.
  */
 export async function startCloudAgentWork(input: {
     request: CloudAgentStartRequest;
-    supervisor: Pick<CloudAgentWorkSupervisor, 'report' | 'watch' | 'reconcile'>;
+    supervisor: Pick<CloudAgentWorkSupervisor, 'report' | 'watch' | 'reconcile' | 'runLaunch'>;
     dataRoot: string;
     runnerToken: string;
     serverId: string;
     serverOrigin: string;
 }): Promise<AgentCloudAgentStartResponse> {
     const provider = cloudAgentProvider(
-        input.request.provider ?? (await readDefaultCloudAgentProvider(input.dataRoot))
+        input.request.provider ?? (await readDefaultCloudAgentProvider(input.dataRoot)),
+        input.dataRoot
     );
     const readiness = await provider.readiness();
     if (!readiness.ready) {
@@ -150,39 +150,29 @@ async function launchRecordedWork(
         return receipt;
     }
     input.supervisor.watch(ref);
-    let launch: CloudAgentLaunch;
-    try {
-        launch = await launchCloudAgent(provider, {
-            idempotencyKey: receipt.runId,
-            instructions: input.request.instructions,
-            // Server resolved the Server's chosen model, or its Auto fallback, onto the Run.
-            model: cloudAgentModelSelectionOf(run?.model),
-            ref: receipt.work.startingRef,
-            repository: receipt.work.repository,
-            title: receipt.work.title,
-            workId: receipt.work.id,
+    // The work is recorded and claimed, so the command returns while the launch scope finishes it.
+    input.supervisor
+        .runLaunch(() =>
+            launchClaimedWork({
+                instructions: input.request.instructions,
+                journal,
+                provider,
+                receipt,
+                ref,
+                serverId: input.serverId,
+                supervisor: input.supervisor,
+            })
+        )
+        .catch((cause: unknown) => {
+            // The claimed Run stays `launching`; its watch settles it at the launch deadline.
+            console.error('Cloud Agent launch did not finish.', {
+                cause: cause instanceof Error ? cause.message : String(cause),
+                operation: 'cloud-agent.launch',
+                provider: ref.provider,
+                runId: ref.runId,
+                workId: ref.workId,
+            });
         });
-    } catch (cause) {
-        return await failLaunch({ input, receipt, journal, ref, cause });
-    }
-    // Store the address before reporting it. Reconnect can recover a lost socket report.
-    if (!(await journal.record(input.serverId, ref, launch))) {
-        await provider.cancel({ ...ref, ...launch }, AbortSignal.timeout(15_000));
-        throw new CloudAgentLaunchFailedError(receipt, new Error('The launch was stopped.'));
-    }
-    input.supervisor.report(ref, {
-        observedAt: new Date().toISOString(),
-        providerAgentId: launch.providerAgentId,
-        ...(launch.providerRunId ? { providerRunId: launch.providerRunId } : {}),
-        ...(launch.providerUrl ? { providerUrl: launch.providerUrl } : {}),
-        status: launch.status,
-        startedAt: launch.startedAt,
-    });
-    input.supervisor.watch({
-        ...ref,
-        providerAgentId: launch.providerAgentId,
-        providerRunId: launch.providerRunId,
-    });
     return receipt;
 }
 
@@ -199,58 +189,4 @@ export class CloudAgentServerError extends Error {
         this.code = 'code' in body && typeof body.code === 'string' ? body.code : 'SERVER_5XX';
         this.name = 'CloudAgentServerError';
     }
-}
-
-async function failLaunch({
-    input,
-    receipt,
-    journal,
-    ref,
-    cause,
-}: {
-    input: Parameters<typeof startCloudAgentWork>[0];
-    receipt: AgentCloudAgentReceipt;
-    journal: CloudLaunchJournal;
-    ref: CloudAgentRunRef;
-    cause: unknown;
-}): Promise<never> {
-    const rejection =
-        cause instanceof CloudAgentLaunchRejectedError
-            ? launchRejection(cause)
-            : {
-                  errorCode:
-                      cause instanceof DOMException && cause.name === 'TimeoutError'
-                          ? 'launch-timeout'
-                          : 'provider-launch-failed',
-                  summary:
-                      cause instanceof DOMException && cause.name === 'TimeoutError'
-                          ? 'The cloud agent did not start within five minutes.'
-                          : 'The cloud agent launch failed before the provider confirmed it started.',
-              };
-    // The summary Server sees stays generic; the provider's own words stay in this Computer's log.
-    console.error('Cloud Agent launch failed.', {
-        cause: cause instanceof Error ? cause.message : String(cause),
-        errorCode: rejection.errorCode,
-        operation: 'cloud-agent.launch',
-        provider: ref.provider,
-        runId: ref.runId,
-        workId: ref.workId,
-    });
-    await journal.reject(input.serverId, ref, rejection);
-    const stopped = await journal.read(input.serverId, ref);
-    const failure =
-        stopped?.phase === 'rejected'
-            ? { errorCode: stopped.errorCode, summary: stopped.summary ?? rejection.summary }
-            : rejection;
-    input.supervisor.report(ref, {
-        ...(stopped?.phase === 'cancelled'
-            ? { summary: 'The cloud agent launch was stopped.' }
-            : failure),
-        observedAt: new Date().toISOString(),
-        status: stopped?.phase === 'cancelled' ? 'cancelled' : 'failed',
-    });
-    throw new CloudAgentLaunchFailedError(
-        receipt,
-        new Error(stopped?.phase === 'cancelled' ? 'The launch was stopped.' : failure.summary)
-    );
 }

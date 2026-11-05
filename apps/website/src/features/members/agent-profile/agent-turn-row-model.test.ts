@@ -71,6 +71,11 @@ test('private and unrecorded triggers show nothing; typed work names itself', ()
         place: '#product',
         text: 'Reminder',
     });
+    expect(resolveTurnRowTitle({ chatId: 'cht_product', kind: 'greeting' }, chats)).toEqual({
+        kind: 'text',
+        place: '#product',
+        text: 'Greeting',
+    });
     // A Chat outside the reader's list (a Thread) loses its place, not its title.
     expect(resolveTurnRowTitle({ chatId: 'cht_thread', kind: 'trigger' }, chats)).toEqual({
         kind: 'text',

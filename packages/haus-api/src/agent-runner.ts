@@ -36,6 +36,10 @@ import { idSchema } from './chat.ts';
 import { computerInventoryRefreshRequestSchema } from './computer-inventory-refresh.ts';
 import { computerSecretsRequestSchema } from './computer-secrets.ts';
 import { hostSkillFileRequestSchema } from './host-skill-file.ts';
+import {
+    serverDeleteCommandSchema,
+    serverRuntimeSettingsCommandSchema,
+} from './server-commands.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
 
@@ -136,11 +140,6 @@ export const reminderScriptCommandSchema = z
 
 export type ReminderScriptCommand = z.infer<typeof reminderScriptCommandSchema>;
 
-/** Best-effort instruction to erase this Server attachment's Computer-local state. */
-export const serverDeleteCommandSchema = z.object({ type: z.literal('server-delete') }).strict();
-
-export type ServerDeleteCommand = z.infer<typeof serverDeleteCommandSchema>;
-
 /** Every typed frame the Server sends down a Computer attachment socket. */
 export const agentCommandSchema = z.discriminatedUnion('type', [
     computerInventoryRefreshRequestSchema,
@@ -166,6 +165,7 @@ export const agentCommandSchema = z.discriminatedUnion('type', [
     cloudAgentCapabilityRequestSchema,
     cloudAgentReconcileCommandSchema,
     serverDeleteCommandSchema,
+    serverRuntimeSettingsCommandSchema,
 ]);
 
 export type AgentCommand = z.infer<typeof agentCommandSchema>;
@@ -227,6 +227,8 @@ export const reminderScriptResultSchema = z
     .object({
         agentId: idSchema,
         attentionId: idSchema,
+        /** Optional so an older Computer's result is still accepted without it. */
+        durationMs: z.number().int().nonnegative().optional(),
         exitCode: z.number().int(),
         fireId: idSchema,
         output: z.string().max(65_536),

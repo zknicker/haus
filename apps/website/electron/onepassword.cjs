@@ -21,6 +21,14 @@ const categoryFields = { API_CREDENTIAL: 'credential', LOGIN: 'password', PASSWO
 const isOpId = (value) => typeof value === 'string' && /^[a-z0-9]{8,64}$/.test(value);
 const maxItems = 200;
 
+/** Secret-bearing (CONCEALED) and plain text (STRING) are the only 1Password field
+ *  types meant to hold a stable, copyable value. Everything else is either
+ *  structural (DATE, MENU, ADDRESS, …), binary (FILE), or time-varying (OTP). */
+const secondaryFieldTypes = new Set(['CONCEALED', 'STRING']);
+const maxSecondaryFieldsPerItem = 20;
+const maxSecondaryFields = 800;
+const secondaryFieldConcurrency = 8;
+
 function registerOnePassword({ appUrl, BrowserWindow, ipcMain, run = runOp }) {
     const assertAppWindow = (event) =>
         appWindowOf(event, {
@@ -68,7 +76,8 @@ async function listItems(run, request) {
         return unavailable('invalid-request', 'Choose a vault again.');
     }
     try {
-        return { items: await readItems(run, account, vaultId), status: 'ok' };
+        const { items, secondaryFields } = await readItems(run, account, vaultId);
+        return { items, secondaryFields, status: 'ok' };
     } catch (error) {
         return describeOpFailure(error);
     }
@@ -88,7 +97,7 @@ async function createServiceAccount(run, request) {
     }
     const name = serviceAccountName(request?.computerName);
     try {
-        const items = await readItems(run, account, vault.id);
+        const { items, secondaryFields } = await readItems(run, account, vault.id);
         const token = (
             await run([
                 'service-account',
@@ -107,14 +116,15 @@ async function createServiceAccount(run, request) {
                 '1Password did not return a service account token.'
             );
         }
-        return { items, serviceAccountName: name, status: 'ok', token };
+        return { items, secondaryFields, serviceAccountName: name, status: 'ok', token };
     } catch (error) {
         return describeOpFailure(error);
     }
 }
 
+/** Resolves to `{ items, secondaryFields }` for one vault, as its owner sees it. */
 async function readItems(run, account, vaultId) {
-    return toSecretItems(
+    const items = toSecretItems(
         parseJsonArray(
             await run([
                 'item',
@@ -128,6 +138,69 @@ async function readItems(run, account, vaultId) {
             ])
         )
     );
+    const secondaryFields = await readSecondaryFields(run, account, vaultId, items);
+    return { items, secondaryFields };
+}
+
+/**
+ * Fetches each item's full field list to find secondary fields beyond the
+ * primary one already in `items`. One item's failed `op item get` contributes
+ * no secondary fields rather than failing the whole listing.
+ */
+async function readSecondaryFields(run, account, vaultId, items) {
+    const perItem = await mapWithConcurrency(items, secondaryFieldConcurrency, async (item) => {
+        try {
+            const entry = JSON.parse(
+                await run([
+                    'item',
+                    'get',
+                    item.id,
+                    '--vault',
+                    vaultId,
+                    '--account',
+                    account,
+                    '--format',
+                    'json',
+                ])
+            );
+            return toSecondaryFields(item.id, item.field, entry?.fields);
+        } catch {
+            return [];
+        }
+    });
+    return perItem.flat().slice(0, maxSecondaryFields);
+}
+
+function toSecondaryFields(itemId, primaryFieldId, fields) {
+    return (Array.isArray(fields) ? fields : [])
+        .filter(
+            (f) =>
+                secondaryFieldTypes.has(f?.type) &&
+                f?.purpose !== 'NOTES' &&
+                f?.id !== primaryFieldId &&
+                typeof f?.id === 'string' &&
+                f.id.length > 0 &&
+                typeof f?.value === 'string' &&
+                f.value.length > 0 &&
+                typeof f?.label === 'string' &&
+                f.label.trim().length > 0
+        )
+        .slice(0, maxSecondaryFieldsPerItem)
+        .map((f) => ({ fieldId: f.id, itemId, label: f.label.trim().slice(0, 100) }));
+}
+
+async function mapWithConcurrency(items, limit, fn) {
+    const results = new Array(items.length);
+    let next = 0;
+    async function worker() {
+        while (next < items.length) {
+            const index = next;
+            next += 1;
+            results[index] = await fn(items[index]);
+        }
+    }
+    await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+    return results;
 }
 
 /** Keeps supported categories as `{ id, title, field }`; drops everything else, values included. */
@@ -182,5 +255,6 @@ module.exports = {
     listVaults,
     registerOnePassword,
     serviceAccountName,
+    toSecondaryFields,
     toSecretItems,
 };

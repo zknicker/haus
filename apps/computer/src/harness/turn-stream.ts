@@ -2,7 +2,7 @@ import type { ClaudeUsageSnapshot } from '@haus/claude-usage';
 import { settle } from '@haus/effect';
 import { Clock, Data, Duration, Effect, Stream } from 'effect';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
-import { type TurnEvent, turnEventLabel } from '../runtime/turn-event.ts';
+import { compactionToolName, type TurnEvent, turnEventLabel } from '../runtime/turn-event.ts';
 import type { createComputerActivityProjector } from './activity-projector.ts';
 import type { HarnessTurnResult } from './executor.ts';
 import {
@@ -33,6 +33,11 @@ export class HarnessStreamForeignError extends Data.TaggedError('HarnessStreamFo
 /** A turn silent this long with no tool call in flight is interrupted, keeping resume state. */
 export const turnNoProgressDeadlineMs = 15 * 60_000;
 
+export interface TurnStreamObservation extends HarnessTurnResult {
+    /** The runtime compacted the session's context during the turn (`compactionToolName`). */
+    compacted: boolean;
+}
+
 /** Observes execution evidence and terminal state; durable replies leave through the CLI. */
 export async function observeTurnStream(
     stream: AsyncIterable<TurnEvent>,
@@ -58,7 +63,8 @@ export async function observeTurnStream(
         stallAfterMs?: number;
         stallLabel?: string;
     }
-): Promise<HarnessTurnResult> {
+): Promise<TurnStreamObservation> {
+    let compacted = false;
     let contextTokens: number | null = null;
     let finalTokenUsage: HarnessTokenUsage | null = null;
     let claudePlanUsage: ClaudeUsageSnapshot | null = null;
@@ -94,6 +100,7 @@ export async function observeTurnStream(
                                 fatalFailure ??= fatalRuntimeSessionFailure(part);
                                 return;
                             case 'tool-call':
+                                compacted ||= part.toolName === compactionToolName;
                                 openToolCalls.add(part.toolCallId);
                                 onToolCall?.();
                                 toolCalls?.toolCallStarted(part);
@@ -175,7 +182,7 @@ export async function observeTurnStream(
             const failure = fatalFailure ?? streamError;
             if (aborted && !fatalFailure) {
                 yield* finishProjector(projector, 'interrupted', streamError);
-                return { aborted: true, claudePlanUsage, contextTokens, tokenUsage };
+                return { aborted: true, claudePlanUsage, compacted, contextTokens, tokenUsage };
             }
             if (failure) {
                 yield* finishProjector(projector, 'failed', failure);
@@ -184,7 +191,7 @@ export async function observeTurnStream(
                 );
             }
             yield* finishProjector(projector, 'completed');
-            return { aborted: false, claudePlanUsage, contextTokens, tokenUsage };
+            return { aborted: false, claudePlanUsage, compacted, contextTokens, tokenUsage };
         })
     ).pipe(
         Effect.onInterrupt(() =>
@@ -197,6 +204,7 @@ export async function observeTurnStream(
         onInterrupted: () => ({
             aborted: true,
             claudePlanUsage,
+            compacted,
             contextTokens,
             tokenUsage: finalTokenUsage ?? stepTokenUsage,
         }),

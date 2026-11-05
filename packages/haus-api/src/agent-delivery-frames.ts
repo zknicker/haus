@@ -191,6 +191,8 @@ export const agentStartCommandSchema = z
         connectionChips: z.array(connectionChipKindSchema).max(16).default([]),
         /** Drainable on any start: concrete work, and human work addressed to this Agent. */
         drainItemIds: drainItemIdsSchema,
+        /** This run carries the new Agent's one-time `#all` greeting (ADR 0028). */
+        greets: z.literal(true).optional(),
         /** Present only on a heartbeat run, which carries no inbox items. */
         heartbeat: agentHeartbeatAttentionSchema.optional(),
         /** Present only on a report run, which resumes the main session. */

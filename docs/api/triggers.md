@@ -157,7 +157,10 @@ Every response carries the Agent view of the Trigger: the operator fields plus
 `anchorTarget`, the Chat target the Trigger is anchored to.
 
 `create` and `rotate` return the bearer secret exactly once; the Server keeps
-only its SHA-256 hash, and `list` and `show` never include a secret. `log`
+only its SHA-256 hash, and `list` and `show` never include a secret. The Agent
+CLI writes that secret only to a newly created mode-0600 `--output` file, which
+it creates before sending the request, and never prints it or the response's
+`curl` field. `log`
 answers one of two tagged shapes and never an empty object:
 `{ kind: 'fires', fires }` with payload-free history, newest first, 50 by
 default and at most 100, or `{ kind: 'fire', fire }` with one fire and its full

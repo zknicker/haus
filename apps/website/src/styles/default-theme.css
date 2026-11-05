@@ -2967,6 +2967,26 @@
         visibility: visible;
     }
 
+    /*
+     * A Thread over a page (Cloud Agent peeks). The transcript's edge
+     * bands sit on the dialog's surface, not the page: a rounded clip drops
+     * their mask, so the dialog stays unclipped, and they wash with its own
+     * colour. The bottom band reaches the dialog's corners, so it carries the
+     * rounding the clip would have given it.
+     */
+    .modal__dialog--thread-peek {
+        overflow: visible;
+    }
+
+    .modal__dialog--thread-peek .transcript-edge-blur {
+        background-color: var(--overlay);
+    }
+
+    .modal__dialog--thread-peek .transcript-edge-blur[data-side="bottom"] {
+        border-end-start-radius: min(32px, var(--radius-3xl));
+        border-end-end-radius: min(32px, var(--radius-3xl));
+    }
+
     /* Without translucency the blur goes and the wash alone fades the rows. */
     @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
         .transcript-edge-blur {

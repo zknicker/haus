@@ -5,7 +5,7 @@ import { captureTopic, settleRealtime } from './realtime-capture.ts';
 
 const fixture = agentCreationFixture();
 
-test('creation records the Agent and memberships without messages, threads, or inbox work', async () => {
+test('creation records the Agent and memberships without messages, threads, or inbox work for anyone else', async () => {
     const runner = await fixture.mintRunner('run_create_happy');
     const before = await conversationCounts();
     const lifecycle = captureTopic(chatLifecycleTopic);
@@ -190,12 +190,13 @@ async function countAgentsNamed(displayName: string) {
     return row.total;
 }
 
+/** Creation's one inbox write is the new Agent's own greeting wake (haus-agent-creation-greeting). */
 async function conversationCounts() {
     const [row] = await fixture.harness.sql`
         select
             (select count(*)::int from chat_messages where server_id = ${fixture.serverId}) as messages,
             (select count(*)::int from chats where server_id = ${fixture.serverId} and kind = 'thread') as threads,
-            (select count(*)::int from agent_inbox where server_id = ${fixture.serverId}) as inbox
+            (select count(*)::int from agent_inbox where server_id = ${fixture.serverId} and source <> 'greeting') as inbox
     `;
     return row;
 }

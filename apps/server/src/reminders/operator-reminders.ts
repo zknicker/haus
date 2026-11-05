@@ -110,10 +110,16 @@ export async function listOperatorReminderRuns(
         )
         .orderBy(asc(reminderFiresTable.scheduledFor), asc(reminderFiresTable.id));
     return rows.map((row) => ({
+        durationMs: row.durationMs,
         firedAt: row.firedAt.toISOString(),
         id: row.id,
+        // Null means the Computer has not settled this script fire yet, not
+        // that it already woke the Agent: never guess `woke` for it.
+        outcome: row.outcome ?? 'not_reported',
         reminderId: row.reminderId,
         scheduledFor: row.scheduledFor.toISOString(),
+        scriptExitCode: row.scriptExitCode,
+        wakeTotalTokens: row.wakeTotalTokens,
     }));
 }
 

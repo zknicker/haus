@@ -152,6 +152,9 @@ async function fireNextDueReminder(
                 // reminder later changes the next wake, never this one.
                 hasScript: reminder.script !== null,
                 id: fireId,
+                // A plain reminder always wakes its Agent; a script fire's
+                // outcome is unknown until the Computer reports its result.
+                outcome: reminder.script === null ? 'woke' : null,
                 reminderId: reminder.id,
                 scheduledFor: reminder.fireAt,
                 serverId: reminder.serverId,

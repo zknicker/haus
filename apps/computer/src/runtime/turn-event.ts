@@ -25,6 +25,13 @@ export interface TextDeltaTurnEvent {
     readonly type: 'text-delta';
 }
 
+/**
+ * The reserved tool name a driver reports its runtime's context compaction under, as a
+ * provider-executed `tool-call`/`tool-result` pair: Activity skips it, the journal keeps it, and
+ * the executor reads it as a compacted turn.
+ */
+export const compactionToolName = 'compaction';
+
 export type ToolTurnEvent =
     | ToolCallTurnEvent
     | ToolErrorTurnEvent

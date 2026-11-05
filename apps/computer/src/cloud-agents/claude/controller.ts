@@ -11,7 +11,11 @@ const sessionSchema = z.object({
 });
 const pageSchema = z.object({
     data: z.array(
-        z.object({ payload: z.record(z.string(), z.unknown()), sequence_num: z.coerce.string() })
+        z.object({
+            created_at: z.iso.datetime({ offset: true }).nullish(),
+            payload: z.record(z.string(), z.unknown()),
+            sequence_num: z.coerce.string(),
+        })
     ),
     next_cursor: z.string().nullish(),
 });
@@ -30,8 +34,17 @@ export interface ClaudeSession {
 
 /** One entry of the session's event log, in Claude Code's stream-json vocabulary. */
 export interface ClaudeSessionEvent {
+    /** When Claude recorded the event, when it says. */
+    createdAt: string | null;
     payload: Record<string, unknown>;
     sequence: string;
+}
+
+/** A bounded backward read of the event log. */
+export interface ClaudeEventPage {
+    events: ClaudeSessionEvent[];
+    /** `stop` never matched and history did not run out: there may be more before this. */
+    truncated: boolean;
 }
 
 export interface ClaudeController {
@@ -40,7 +53,7 @@ export interface ClaudeController {
         sessionId: string,
         stop: (event: ClaudeSessionEvent) => boolean,
         signal?: AbortSignal
-    ): Promise<ClaudeSessionEvent[]>;
+    ): Promise<ClaudeEventPage>;
     interrupt(sessionId: string, requestId: string, signal?: AbortSignal): Promise<void>;
     session(sessionId: string, signal?: AbortSignal): Promise<ClaudeSession>;
     stopTask(
@@ -51,6 +64,9 @@ export interface ClaudeController {
 }
 
 const pageLimit = 100;
+// A bound on one backward scan for a prompt not already known, not a cost a
+// steady-state poll should ever pay: once found, the caller resumes from
+// that point instead of rescanning from here on every tick (TECH-7).
 const pagesRead = 20;
 
 /**
@@ -88,18 +104,22 @@ export function createClaudeController(): ClaudeController {
                     await request(sessionId, `/events?${params}`, signal)
                 );
                 for (const event of body.data) {
-                    const entry = { payload: event.payload, sequence: event.sequence_num };
+                    const entry = {
+                        createdAt: event.created_at ?? null,
+                        payload: event.payload,
+                        sequence: event.sequence_num,
+                    };
                     collected.push(entry);
                     if (stop(entry)) {
-                        return collected;
+                        return { events: collected, truncated: false };
                     }
                 }
                 if (!body.next_cursor) {
-                    return collected;
+                    return { events: collected, truncated: false };
                 }
                 cursor = body.next_cursor;
             }
-            return collected;
+            return { events: collected, truncated: true };
         },
         async interrupt(sessionId, requestId, signal) {
             await control(

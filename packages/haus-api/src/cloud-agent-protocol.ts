@@ -51,6 +51,13 @@ export const cloudAgentCapabilityRequestSchema = z
             z.object({ kind: z.literal('cancel-sign-in') }).strict(),
             z.object({ kind: z.literal('disconnect') }).strict(),
             z.object({ kind: z.literal('make-default') }).strict(),
+            /** Pins this Computer's Claude launches to one cloud environment; `null` unpins. */
+            z
+                .object({
+                    environmentId: z.string().trim().min(1).max(200).nullable(),
+                    kind: z.literal('set-environment'),
+                })
+                .strict(),
         ]),
         provider: cloudAgentProviderSchema,
         requestId: idSchema,

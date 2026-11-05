@@ -16,9 +16,9 @@ extension ThreadDetailView {
             )
                 .padding(.top, 12)
                 .padding(.bottom, hasReplies ? 2 : 0)
-        case .inlineReplies(let isEmpty):
+        case .inlineReplies:
             if let inlineReplies {
-                ThreadInlineRepliesRegion(config: inlineReplies, isEmpty: isEmpty)
+                ThreadInlineRepliesLoader(config: inlineReplies)
             }
         case .inlineReply(let message):
             ThreadMessageRow(
@@ -32,13 +32,11 @@ extension ThreadDetailView {
                 isPressed: isPressed(message),
                 accessibilityActions: accessibilityActions(for: message)
             )
-            .padding(.top, 4)
-        case .threadHeader:
-            ThreadRegionHeader(title: "Thread")
+            .padding(.top, 10)
         case .reply(let message):
             messageRow(message, marksClaim: true, isOpenedClaim: message.id == claimMessageID)
                 .padding(.top, 10)
-        case .dayDivider(let date, _):
+        case .dayDivider(let date):
             TranscriptDayDivider(date: date)
                 .padding(.top, 14)
         }
@@ -83,19 +81,14 @@ extension ThreadDetailView {
     /// The message a row's long press opens the drawer for: a durable anchor
     /// or reply, never the claim facts or a send still in flight.
     static func drawerMessage(for item: ThreadTranscriptItem) -> MessagePresentation? {
-        switch item {
-        case .anchor(let message, _), .inlineReply(let message), .reply(let message):
-            message.isPending ? nil : message
-        case .claimMetadata, .inlineReplies, .threadHeader, .dayDivider:
-            nil
-        }
+        item.message.flatMap { $0.isPending ? nil : $0 }
     }
 
     /// Everything a row draws from beyond its item, read in the screen's own
     /// body so a change re-hosts the visible rows: a visual's height report,
     /// an image tile's settled box, a pending own reaction, the press tint,
-    /// and the parent chain's and
-    /// history's load state that the region and accessory rows show.
+    /// and the parent chain's and history's load state that the accessory
+    /// rows show.
     var rowRevision: Int {
         var hasher = Hasher()
         hasher.combine(visualHeights.revision)

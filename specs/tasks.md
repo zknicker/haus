@@ -22,7 +22,7 @@ message ([claims.md](claims.md)). This file pins the rules the Server enforces. 
   `name` (1–60), an optional `archivedAt`, and a `version`. Archived boards leave default lists and
   refuse new Tasks.
 - Every Server has the **General** board, key `GEN`, created in the transaction that creates the
-  Server (`insertGeneralBoard`, also the dev seed); migration 0110 backfilled existing Servers. It
+  Server (`insertGeneralBoard`, also the dev seed); migration 0114 backfilled existing Servers. It
   keeps its key and is never archived; it can be renamed.
 - Each column has a `name` (1–40, unique per board case-insensitively), a `position`, and a fixed
   `category`: `backlog | todo | active | done | canceled`. A board keeps at least one `todo`,

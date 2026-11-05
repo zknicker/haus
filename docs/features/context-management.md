@@ -5,6 +5,7 @@ read_when:
   - changing session resume, reset, model switching, or recovery
   - changing runtime launch config, Agent HOME setup, or what a runtime loads from disk (AGENTS.md, CLAUDE.md, settings)
   - changing nightly dreaming, its quiet window, the dream request, or the dream turn's input
+  - changing compaction, idle compaction, or the Idle compaction Server setting
 ---
 
 # Context Management
@@ -18,7 +19,7 @@ model session. Per-turn message delivery is an inbox concern; see
 - Computer composes managed product instructions, the Agent description, the house
   `## Personality` (every Agent, right after `## Who you are`), the Agent's private
   `## Conversation style` directly after it when set, its signature emoji in the pickup rule, assigned skills, and tool guidance for every accepted turn. It persists the
-  applied instruction and Harness bootstrap fingerprints with the resumed session.
+  delivered instruction and Harness bootstrap fingerprints with the resumed session.
 - Computer does not append Haus-specific model-family steering. Every model receives the same
   managed product contract; executor-native instructions remain owned by that executor.
 - Instructions include current time, home timezone, and the rule that old
@@ -51,23 +52,29 @@ model session. Per-turn message delivery is an inbox concern; see
   details and revisions; the coordinating Agent brings a concise outcome and link back to the
   requester conversation. Questions to a person are @mentions where the work lives, and automation placement follows its own contract.
 - Sessions never rotate because of age or idle time.
-- The runtime driver mounts the current composed instructions on every accepted turn. When the
-  persisted instruction fingerprint differs, the same native conversation therefore adopts them
-  without session rotation. Bootstrap drift (a changed runtime CLI pin) or Restart parks the
-  session at the turn boundary, refreshes the driver's install, and resumes that conversation. Activity History records the
+- A session launches on the current composed instructions, but no runtime re-reads them on resume.
+  When a resumed session's delivered-instruction fingerprint differs or is missing, its next
+  ordinary turn starts with a `<haus-instructions-update>` block carrying the full current
+  instructions, without session rotation; a release that changes only host facts sends none
+  ([sessions spec](../../specs/sessions.md#instruction-updates)). Bootstrap drift (a changed
+  runtime CLI pin) or Restart parks the session at the turn boundary, refreshes the driver's
+  install, and resumes that conversation. Activity History records the
   update as started, completed, or failed without prompt text, local paths, commands, or hashes.
 - Before Cove turns, Computer also reconciles recognized prior factory revisions of the playbook
   and FAQ. It never replaces Cove's memory, objectives, missing files, or edited guidance. A
   successful reconciliation gives the current session a one-turn private re-read notice; conflicts
   remain visible as failed instruction-update activity while the turn continues.
-- Fingerprints advance only after the refreshed turn successfully detaches with new resume state.
+- Fingerprints advance only after the refreshed turn successfully detaches with new resume state,
+  and the instruction receipt only on a turn that launched on or carried the current instructions
+  (a sub-agent wake defers the update to the next ordinary turn). A turn the runtime compacted sets
+  the receipt back to the launch instructions, since compaction can summarize the update away.
   A bootstrap or turn failure keeps the previous receipt and session generation so a later delivery
   can retry. Only rejection of the stored native resume state enters Server-authorized session
   recovery; Computer never silently discards conversation context.
 - The independently released Haus Agent version is the public receipt for this managed behavior,
   including instructions, actions, recipes and Manual content, runtime bootstrap, and factory
   guidance. Version drift uses the same next-turn refresh path. Computer marks the version current
-  only after a successful turn, preserves the previous applied version on failure, and reports the
+  only after a successful turn that delivered any due instruction update, preserves the previous applied version on failure, and reports the
   pending/current/failed state to Server for the Agent profile. Exact fingerprints remain
   Computer-local implementation evidence.
 - A fresh session starts only for initial creation, a runtime, model, or reasoning-effort switch,
@@ -80,12 +87,14 @@ model session. Per-turn message delivery is an inbox concern; see
 - A fresh session with pending work uses its notice or typed attention as the
   first prompt. `Start.` is used only when no delivery is pending. Later
   deliveries resume the same session without replaying that marker.
-- Creating an Agent schedules no continuation for its creator and no bootstrap
-  turn for the new Agent. The create receipt is returned in the same command, and
-  the new Agent's first turn is its next ordinary delivery — by then its standing
-  brief is already in the workspace memory the Computer seeded. When that Agent
-  has a brief, its first-generation cold start opens with a one-time line asking
-  it to say hello in `#all`; resumed turns and later generations never repeat it.
+- Creating an Agent schedules no continuation for its creator. The create receipt
+  is returned in the same command, and the new Agent is woken once for its
+  greeting — by then its standing brief, if any, is already in the workspace
+  memory the Computer seeded. The run that carries the greeting opens with Raft's
+  one-time instruction to post one short self-introduction in `#all`, its only
+  introduction; a delivery already waiting, such as the creator's @mention, rides
+  the same turn. The instruction shows on whichever run carries the greeting,
+  warm or cold, and once that run settles no later turn repeats it.
 - Restart recreates the Agent runner and resumes the same native conversation.
   Its next delivery uses the same refresh path without rotating the session generation or
   replaying `Start.`.
@@ -130,11 +139,32 @@ background sub-agent or shell outlives the turn that starts it: that turn ends, 
 reachable for new messages, and when the work finishes Claude Code starts a turn of its own to
 report it, which Haus runs as a sub-agent wake (specs/runtime-drivers.md "Background work"). The
 one long-lived `claude` process per Agent session carries the work between turns, so the warm
-pool never closes it for idleness while work runs. At most four sub-agents run at once
+pool never closes it for idleness while work runs. Since Claude Code 2.1.317 an Agent call that
+does not set `run_in_background` runs in the background. Every sub-agent starts blank-slate: fork
+sub-agents, which would inherit the whole global session, are off
+(`CLAUDE_CODE_FORK_SUBAGENT=0`). At most four sub-agents run at once
 (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`). `Monitor` stays in the disallowed tools
 (`CLAUDE_DISALLOWED_TOOLS` in `claude-launch.ts`). Codex launches with `agents.enabled = false`
 and `features.multi_agent = false` in its thread config (`codexThreadConfig`), and Grok Build with
 `GROK_SUBAGENTS=0`, so neither offers a spawn tool.
+
+Compaction is the runtime's own. Claude Code compacts a session that nears its context window
+during a turn, and the turn reports it as the synthetic `compaction` tool pair. A parked `claude`
+process closes after an hour idle, matching its one-hour prompt cache; the next turn resumes the
+same conversation in a new process.
+
+Claude Code's idle compaction (2.1.299+, a session over 200K tokens idle for about 54 minutes)
+never arms for the `sdk-ts` entrypoint Haus launches, so Haus runs it: with the Owner's Server
+setting **Idle compaction** on (Settings → Server → Agents; off by default), the Computer
+compacts a parked Claude Code session at Claude Code's own time and thresholds, with Claude Code's
+own `/compact`, so the next turn resumes a short summary instead of re-writing a cold 200K-950K
+token prefix. Because Claude Code records its system prompt once (`--system-prompt-snapshot on`)
+and refreshes it only at a compaction, it is also how updated Haus instructions reach a
+long-running session. A turn that arrives mid-compaction waits for it; the compaction is
+journaled and counted in Usage as the Agent's own turn (specs/runtime-drivers.md "Idle
+compaction"). A compaction keeps what the summary keeps: facts stated plainly and the current task
+survive; details buried in bulk tool output or pasted filler may not, and the summary points the
+Agent to the full transcript on disk to recover them.
 
 The Server stores desired configuration and canonical history. Computer stores
 effective runtime session state and resume evidence. The App reports that distinction

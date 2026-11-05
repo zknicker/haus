@@ -161,6 +161,8 @@ test('reconnect recovers a lost launch address from disk before cancelling', asy
     const journal = new CloudLaunchJournal(f.dataRoot);
     await journal.claim('srv_cloud', entry);
     await journal.record('srv_cloud', entry, {
+        environmentId: 'env_fast',
+        environmentName: 'Fast',
         providerAgentId: 'bc_recovered',
         providerRunId: 'run_recovered',
         providerUrl: 'https://cursor.com/agents?id=bc_recovered',
@@ -176,6 +178,8 @@ test('reconnect recovers a lost launch address from disk before cancelling', asy
     ]);
     expect(cancelled).toEqual(['bc_recovered']);
     expect(f.observations[0]?.providerUrl).toBe('https://cursor.com/agents?id=bc_recovered');
+    expect(f.observations[0]?.environmentId).toBe('env_fast');
+    expect(f.observations[0]?.environmentName).toBe('Fast');
     expect(f.observations.at(-1)?.status).toBe('cancelled');
 });
 

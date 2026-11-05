@@ -6,6 +6,12 @@ import SwiftUI
 /// from the Store, and the two things it can ask for beyond a reply — opening
 /// an Agent, and following the Thread.
 extension AuthenticatedHausView {
+    /// Owners and Admins may cancel a live Cloud Agent run from its card.
+    var cloudAgentCancel: CloudAgentCancelAction? {
+        guard store.canManageServer else { return nil }
+        return CloudAgentCancelAction { [store] workID in try await store.cancelCloudAgent(workID: workID) }
+    }
+
     /// A Thread is a pushed screen above the canvas, so opening an Agent from a
     /// reply pops back to the canvas the shell's own Agent route lands on.
     @MainActor
@@ -71,6 +77,7 @@ extension AuthenticatedHausView {
             onOpenAgent: openAgentFromThread,
             follow: threadFollow(for: thread),
             contextLabel: threadContextLabel(for: thread),
+            title: thread.title,
             engagementChatID: resolvedThreadChatID(for: thread),
             engagementStyle: threadEngagementStyle(for: thread),
             landingMessageID: thread.claimMessageID
@@ -102,10 +109,9 @@ extension AuthenticatedHausView {
         thread.resolvedChatID(selectedThread: selectedThread, store: store)
     }
 
-    /// Claim inspection keeps the claim's canonical parent anchor and exposes
-    /// its parent Chat's inline chain beside the separate child Thread.
-    private func inlineReplies(for thread: ThreadSelection) -> ThreadInlineReplies? {
-        guard thread.anchor.claim != nil else { return nil }
+    /// Every Thread reads as one conversation with its parent Chat's inline
+    /// replies to the anchor, where a Cloud Agent's launch Message sits.
+    private func inlineReplies(for thread: ThreadSelection) -> ThreadInlineReplies {
         let rootMessageID = thread.anchor.id
         let parentChatID = thread.parentChatID
         return ThreadInlineReplies(

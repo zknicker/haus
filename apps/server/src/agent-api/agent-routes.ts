@@ -75,8 +75,16 @@ export function registerAgentAgentRoutes(
             }
             const configure = created.configure;
             if (configure) {
-                void dependencies.postCommitWork.run('agent.configure-after-agent-create', () =>
-                    dependencies.agentDelivery.configureAgent(configure)
+                // Configure first, so the Computer knows the Agent its greeting wakes.
+                void dependencies.postCommitWork.run(
+                    'agent.configure-after-agent-create',
+                    async () => {
+                        await dependencies.agentDelivery.configureAgent(configure);
+                        await dependencies.agentDelivery.dispatchAgent(
+                            configure.agentId,
+                            runner.serverId
+                        );
+                    }
                 );
             }
             agentUpdatedTopic.announce({

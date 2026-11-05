@@ -57,6 +57,9 @@ struct ThreadSelection: Hashable, Identifiable {
     /// (`ClaimOpening.containingThread`). The Thread lands on it instead of the
     /// unread landing and always marks its claim.
     var claimMessageID: String?
+    /// The Cloud Agent work this Thread was opened for. It names the screen,
+    /// the identity the reader came for, as the App's work peek does.
+    var title: String?
 
     var id: String { anchor.id }
 }

@@ -81,8 +81,15 @@ test('cloud work keeps implementation details and requester outcomes in their co
     expect(body).toContain('only real state changes, one line each');
     expect(body).toContain('newest first');
     expect(body).toContain('providerRunId');
-    expect(body).toContain('followup-delivery-timeout');
-    expect(body).toContain('Background work the provider agent left running');
+    expect(body).toContain('followup-auto-interrupt-failed');
+    expect(body).toContain('background work the provider agent left running');
+    // The design refinement past TECH-7: a busy provider never fails a follow-up, and
+    // auto-interrupt is the fallback, not the normal path.
+    expect(body).toContain('one automatic interrupt to clear whatever holds the session busy');
+    expect(body).toContain('keeps retrying underneath that notice');
+    // Round 4: Claude never waits behind a predecessor's turn; Cursor still does.
+    expect(body).toContain('takes the follow-up right away, even mid-turn');
+    expect(body).toContain('a Cursor agent queues it until its active run finishes');
 });
 
 test('a cloud agent launch card is an inline reply and never opens a new thread', () => {
@@ -125,7 +132,9 @@ test('publishes the Agent reference topic as the Agent-creation contract', () =>
     );
     expect(agent?.body).toContain('never create one to split work you could do yourself');
     expect(agent?.body).toContain('creation posts no message and starts no greeting turn');
-    expect(agent?.body).toContain('haus message send --target "#all"');
+    // One introduction per new Agent: its own first-turn greeting (ADR 0028, amended 2026-11-03).
+    expect(agent?.body).not.toContain('haus message send --target "#all"');
+    expect(agent?.body).toContain('Do not post an introduction for it');
     expect(agent?.body).not.toContain('--say');
     expect(agent?.body).toContain('inherits your runtime, model, reasoning effort, and Computer');
     expect(agent?.body).toContain(
@@ -138,9 +147,10 @@ test('publishes the Agent reference topic as the Agent-creation contract', () =>
     expect(agent?.body).toContain('including a suffix if the name was already taken');
     expect(agent?.body).not.toMatch(/Created @handle|Open control/u);
     expect(agent?.body).toContain('the Agent is created without one and the receipt says so');
-    // Where the announcement goes, where the Agent lives, and the standing brief
-    // that replaced the follow-up DM.
-    expect(agent?.body).toContain('**Introduce it in #all after creation.**');
+    // Who introduces the Agent, where it lives, and the standing brief that replaced the
+    // follow-up DM.
+    expect(agent?.body).toContain('**It introduces itself.**');
+    expect(agent?.body).not.toContain('**Introduce it in #all after creation.**');
     expect(agent?.body).toContain('**Put it where the work is.**');
     expect(agent?.body).toContain('**Give it a brief.**');
     expect(agent?.body).toContain('copy their ID-backed Markdown reference');

@@ -283,8 +283,8 @@ describe('Agent reminder CLI', () => {
     });
 });
 
-function args(values: Record<string, string>): ParsedArgs {
-    return { flags: {}, help: false, positionals: [], values };
+function args(values: Record<string, string>, flags: Record<string, boolean> = {}): ParsedArgs {
+    return { flags, help: false, positionals: [], values };
 }
 
 function requester(respond: (route: string, input: AgentApiRequest) => unknown): AgentApiRequester {

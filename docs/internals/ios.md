@@ -721,7 +721,7 @@ The Server connection is the Store's `isConnected`, which follows the live strea
 retries transport failures inside a subscription, so an outage never ends the stream, and
 `subscribe` reports each failed attempt or dropped stream (`onDisconnected`) and each reconnect
 (`onConnected`) instead (`TRPCSubscriptionOutageTests`).
-A file the composer could not stage is a native "Couldn’t Add Attachment" alert. The jump-to-message alert and the Inline replies region's Retry keep their own failure
+A file the composer could not stage is a native "Couldn’t Add Attachment" alert. The jump-to-message alert and the Thread's inline replies Retry keep their own failure
 states.
 
 Search focuses its field as the sheet opens, so the keyboard is already up. Each result marks the
@@ -996,8 +996,10 @@ screen, and the shell's Chat selection resumes ownership when it pops; the cover
 named so its page keeps refreshing underneath, but read acknowledgements belong to the deepest
 surface alone.
 
-A Thread is titled "Thread", or "Claim #N" for a claim's Thread, with its conversation ("#design", or
-"DM") as the subtitle (`ThreadOpening`). One the anchor says has replies opens blank until its first
+A Thread is titled "Thread", "Claim #N" for a claim's Thread, or the work's title when Cloud Agent
+work opened it, with its conversation ("#design", or "DM") as the subtitle (`ThreadOpening`). Every
+Thread reads as one conversation by time: the anchor, then the parent Chat's inline replies to it
+among the Thread's replies, as in the App (`ThreadTranscriptItem.items`). One the anchor says has replies opens blank until its first
 reply page lands — at most `ThreadOpening.holdLimit` — so the push never draws the anchor first and
 then snaps to the newest reply.
 

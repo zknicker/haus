@@ -35,7 +35,7 @@ for (const legacy of [false, true]) {
                     }
                     const result = await driver.ask(
                         `hiring-${legacy}`,
-                        'Create one teammate named Watchkeeper for a read-only #product delivery-evidence watch. I approve this hire and joining #product. Use a patrol-style standing brief: verify recent task/message evidence, post the first baseline once, then only changed actionable findings or coverage gaps. Keep implementation with its lane owner. No recurring schedule is approved yet. Introduce the confirmed handle once in #all. This is urgent setup; do not offer weekly reviews now.'
+                        'Create one teammate named Watchkeeper for a read-only #product delivery-evidence watch. I approve this hire and joining #product. Use a patrol-style standing brief: verify recent task/message evidence, post the first baseline once, then only changed actionable findings or coverage gaps. Keep implementation with its lane owner. No recurring schedule is approved yet. This is urgent setup; do not offer weekly reviews now.'
                     );
                     const created = result.actions.filter(
                         (action) => action.path === '/api/agent/agents' && action.status === 200
@@ -59,14 +59,15 @@ for (const legacy of [false, true]) {
                             )
                         ).toBe(true);
                     }
+                    // The new Agent's first-turn greeting is its only introduction, so
+                    // Cove posts none in #all (ADR 0028, amended 2026-11-03).
                     const announcements = result.actions.filter(
                         (action) =>
                             action.path === '/api/agent/messages/send' &&
                             action.body.target === '#all' &&
                             action.result?.state === 'sent'
                     );
-                    expect(announcements).toHaveLength(1);
-                    expect(announcements[0].body.content).toContain(created[0].result.agent.handle);
+                    expect(announcements).toHaveLength(0);
                     expect(
                         result.actions.filter(
                             (action) => action.path === '/api/agent/reminders/schedule'

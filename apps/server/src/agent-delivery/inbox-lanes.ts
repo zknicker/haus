@@ -38,6 +38,7 @@ export function isConcreteInboxSource(source: string): boolean {
  */
 export const bodilessInboxSources = [
     'onboarding',
+    'greeting',
     'cloud_agent_work',
     'trigger_problem',
     'image_generation_failed',
@@ -45,12 +46,13 @@ export const bodilessInboxSources = [
 ] as const;
 
 /**
- * Concrete attentions no notice row, unread digest, or `haus inbox check` lists,
- * because each leads its own run: Cove's bootstrap, and the chatless attentions,
- * which have no Chat to list them under. Only Task assignments reach a busy Agent
- * at all, as a bare count beside those rows (`planBusyNotice`).
+ * Attentions no notice row, unread digest, or `haus inbox check` lists: Cove's
+ * bootstrap and the chatless attentions, which lead their own runs and have no
+ * Chat to list them under, and a new Agent's greeting, which rides a run rather
+ * than being read (greeting.ts). Only Task assignments reach a busy Agent at all,
+ * as a bare count beside those rows (`planBusyNotice`).
  */
-export const noticelessInboxSources = ['onboarding', ...chatlessInboxSources] as const;
+export const noticelessInboxSources = ['onboarding', 'greeting', ...chatlessInboxSources] as const;
 
 export function isNoticelessInboxSource(source: string): boolean {
     return (noticelessInboxSources as readonly string[]).includes(source);

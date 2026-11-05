@@ -1,0 +1,247 @@
+import { afterEach, expect, test } from 'bun:test';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { readClaudeEnvironmentId } from '../settings.ts';
+import {
+    ClaudeCloudEnvironmentUnavailableError,
+    cloudAgentEnvironmentsOf,
+    listClaudeCloudEnvironments,
+    listClaudeCloudEnvironmentsAutoPinning,
+    requireLiveClaudeCloudEnvironment,
+} from './environments.ts';
+
+const restores: Array<() => Promise<void> | void> = [];
+afterEach(async () => {
+    for (const restore of restores.splice(0).reverse()) {
+        await restore();
+    }
+});
+
+/** A host HOME whose Claude login is the file Haus's Claude Code Agents read. */
+async function hostHome(): Promise<string> {
+    const home = await mkdtemp(join(tmpdir(), 'haus-claude-cloud-env-'));
+    restores.push(() => rm(home, { force: true, recursive: true }));
+    await mkdir(join(home, '.claude'), { recursive: true });
+    await writeFile(
+        join(home, '.claude', '.credentials.json'),
+        JSON.stringify({
+            claudeAiOauth: {
+                accessToken: 'sk-ant-oat01-agents',
+                expiresAt: Date.now() + 60 * 60_000,
+                refreshToken: 'refresh',
+            },
+        })
+    );
+    const previousHome = process.env.HOME;
+    process.env.HOME = home;
+    restores.push(() => {
+        process.env.HOME = previousHome;
+    });
+    return home;
+}
+
+function stubFetch(responses: Record<string, { body: unknown; status?: number }>) {
+    const original = globalThis.fetch;
+    globalThis.fetch = ((url: URL | string) => {
+        const match = responses[String(url)];
+        if (!match) {
+            throw new Error(`Unstubbed fetch: ${url}`);
+        }
+        return Promise.resolve(Response.json(match.body, { status: match.status ?? 200 }));
+    }) as typeof fetch;
+    restores.push(() => {
+        globalThis.fetch = original;
+    });
+}
+
+const profileResponse = {
+    account: { email: 'zach@example.com' },
+    organization: { uuid: 'org-uuid' },
+};
+
+function environmentsResponse(environments: Record<string, unknown>[]) {
+    return {
+        'https://api.anthropic.com/api/oauth/profile': { body: profileResponse },
+        'https://api.anthropic.com/v1/environment_providers': { body: { environments } },
+    };
+}
+
+test('only Anthropic-hosted environments are listed, sorted by name', async () => {
+    await hostHome();
+    stubFetch(
+        environmentsResponse([
+            { environment_id: 'env_z', kind: 'anthropic_cloud', name: 'zeta', state: 'active' },
+            { environment_id: 'ccpool_x', kind: 'self_hosted', name: 'alpha', state: 'active' },
+            { environment_id: 'env_a', kind: 'anthropic_cloud', name: 'Alpha', state: 'active' },
+        ])
+    );
+
+    const environments = await listClaudeCloudEnvironments();
+
+    expect(environments).toEqual([
+        { createdAt: null, id: 'env_a', name: 'Alpha', state: 'active' },
+        { createdAt: null, id: 'env_z', name: 'zeta', state: 'active' },
+    ]);
+    expect(cloudAgentEnvironmentsOf(environments)).toEqual([
+        { id: 'env_a', name: 'Alpha' },
+        { id: 'env_z', name: 'zeta' },
+    ]);
+});
+
+test('a pin missing from the live list is refused by name', async () => {
+    await hostHome();
+    stubFetch(
+        environmentsResponse([
+            { environment_id: 'env_a', kind: 'anthropic_cloud', name: 'Alpha', state: 'active' },
+        ])
+    );
+
+    const rejection = requireLiveClaudeCloudEnvironment('env_gone');
+    await expect(rejection).rejects.toBeInstanceOf(ClaudeCloudEnvironmentUnavailableError);
+    await expect(rejection).rejects.toThrow('env_gone');
+});
+
+test('an archived pin is refused even though it is still listed', async () => {
+    await hostHome();
+    stubFetch(
+        environmentsResponse([
+            { environment_id: 'env_a', kind: 'anthropic_cloud', name: 'Alpha', state: 'ARCHIVED' },
+        ])
+    );
+
+    await expect(requireLiveClaudeCloudEnvironment('env_a')).rejects.toBeInstanceOf(
+        ClaudeCloudEnvironmentUnavailableError
+    );
+});
+
+test('a live pin resolves to its current name', async () => {
+    await hostHome();
+    stubFetch(
+        environmentsResponse([
+            { environment_id: 'env_a', kind: 'anthropic_cloud', name: 'Alpha', state: 'active' },
+        ])
+    );
+
+    expect(await requireLiveClaudeCloudEnvironment('env_a')).toEqual({
+        createdAt: null,
+        id: 'env_a',
+        name: 'Alpha',
+        state: 'active',
+    });
+});
+
+async function claudeDataRoot(): Promise<string> {
+    const root = await mkdtemp(join(tmpdir(), 'haus-claude-cloud-env-dataroot-'));
+    restores.push(() => rm(root, { force: true, recursive: true }));
+    return root;
+}
+
+test('an unpinned Computer with exactly one live environment auto-pins it', async () => {
+    await hostHome();
+    stubFetch(
+        environmentsResponse([
+            { environment_id: 'env_only', kind: 'anthropic_cloud', name: 'Only', state: 'active' },
+        ])
+    );
+    const dataRoot = await claudeDataRoot();
+
+    expect(await listClaudeCloudEnvironmentsAutoPinning(dataRoot)).toEqual({
+        environmentId: 'env_only',
+        environments: [{ createdAt: null, id: 'env_only', name: 'Only', state: 'active' }],
+    });
+    expect(await readClaudeEnvironmentId(dataRoot)).toBe('env_only');
+});
+
+test('an unpinned Computer with several environments and no Default pins the oldest by created_at', async () => {
+    await hostHome();
+    stubFetch(
+        environmentsResponse([
+            {
+                environment_id: 'env_newer',
+                kind: 'anthropic_cloud',
+                name: 'Newer',
+                state: 'active',
+                created_at: '2026-06-01T00:00:00Z',
+            },
+            {
+                environment_id: 'env_older',
+                kind: 'anthropic_cloud',
+                name: 'Older',
+                state: 'active',
+                created_at: '2026-01-01T00:00:00Z',
+            },
+        ])
+    );
+    const dataRoot = await claudeDataRoot();
+
+    const result = await listClaudeCloudEnvironmentsAutoPinning(dataRoot);
+    expect(result.environmentId).toBe('env_older');
+    expect(await readClaudeEnvironmentId(dataRoot)).toBe('env_older');
+});
+
+test('an unpinned Computer with several environments pins the one named Default over any other, even an older one', async () => {
+    await hostHome();
+    stubFetch(
+        environmentsResponse([
+            {
+                environment_id: 'env_oldest',
+                kind: 'anthropic_cloud',
+                name: 'Oldest',
+                state: 'active',
+                created_at: '2026-01-01T00:00:00Z',
+            },
+            {
+                environment_id: 'env_default',
+                kind: 'anthropic_cloud',
+                name: 'default',
+                state: 'active',
+                created_at: '2026-09-01T00:00:00Z',
+            },
+        ])
+    );
+    const dataRoot = await claudeDataRoot();
+
+    const result = await listClaudeCloudEnvironmentsAutoPinning(dataRoot);
+    expect(result.environmentId).toBe('env_default');
+    expect(await readClaudeEnvironmentId(dataRoot)).toBe('env_default');
+});
+
+test('an unpinned Computer with no environments at all pins nothing', async () => {
+    await hostHome();
+    stubFetch(environmentsResponse([]));
+    const dataRoot = await claudeDataRoot();
+
+    expect(await listClaudeCloudEnvironmentsAutoPinning(dataRoot)).toEqual({
+        environmentId: null,
+        environments: [],
+    });
+    expect(await readClaudeEnvironmentId(dataRoot)).toBeNull();
+});
+
+test('a repeat call keeps the first auto-pin even once a Default environment later appears', async () => {
+    await hostHome();
+    stubFetch(
+        environmentsResponse([
+            { environment_id: 'env_a', kind: 'anthropic_cloud', name: 'Alpha', state: 'active' },
+        ])
+    );
+    const dataRoot = await claudeDataRoot();
+    await listClaudeCloudEnvironmentsAutoPinning(dataRoot);
+    expect(await readClaudeEnvironmentId(dataRoot)).toBe('env_a');
+
+    stubFetch(
+        environmentsResponse([
+            { environment_id: 'env_a', kind: 'anthropic_cloud', name: 'Alpha', state: 'active' },
+            {
+                environment_id: 'env_default',
+                kind: 'anthropic_cloud',
+                name: 'Default',
+                state: 'active',
+            },
+        ])
+    );
+    const result = await listClaudeCloudEnvironmentsAutoPinning(dataRoot);
+    expect(result.environmentId).toBe('env_a');
+    expect(await readClaudeEnvironmentId(dataRoot)).toBe('env_a');
+});

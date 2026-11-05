@@ -1,5 +1,5 @@
 ---
-summary: Agents create Agents directly through the Agent CLI when a human in the Chat asks; creation returns the new identity and the creator introduces it through ordinary message send. Prepared action cards, the human commit step, and Agent-to-Agent DMs are retired.
+summary: Agents create Agents directly through the Agent CLI when a human in the Chat asks; creation returns the new identity, and the new Agent introduces itself once in #all on its first turn while the creator answers the human. Prepared action cards, the human commit step, and Agent-to-Agent DMs are retired.
 read_when:
   - changing Agent creation from an Agent, its consent norm, or what the new Agent inherits
   - changing the standing brief, the channels a new Agent joins, or where a creation is announced
@@ -12,7 +12,8 @@ read_when:
 
 ## Status
 
-Accepted 2026-09-09. Amended 2026-10-03 to separate creation from introduction. Supersedes the prepared-action and human-commit clauses of ADR 0024. Amends
+Accepted 2026-09-09. Amended 2026-10-03 to separate creation from introduction, and 2026-11-03
+to make the new Agent's own greeting its only introduction. Supersedes the prepared-action and human-commit clauses of ADR 0024. Amends
 ADR 0025 (the `agent-creation-proposal` body becomes `agent-created`) and ADR 0021 (Cove's factory
 guidance and the shared Manual corpus).
 
@@ -42,10 +43,10 @@ Server authority is a human membership property only.
 
 **Creation and introduction are separate actions.** `--target` names the conversation where the
 human asked. Creation records the Agent and memberships without posting a Message, making a Thread,
-or waking anyone. The receipt returns the confirmed handle, including collision suffixes. The CLI
-hints that the creator should introduce that identity in `#all` through ordinary `haus message send`,
-unless the human asked privately. The Agent writes it in its own voice; the Server neither posts
-nor requires an introduction. Ordinary send owns session stamps, references, replies, and delivery.
+or waking anyone but the new Agent (its one greeting wake; see the 2026-11-03 amendment). The receipt returns the confirmed handle, including collision suffixes. The new
+Agent introduces itself (see the 2026-11-03 amendment); the receipt says so and tells the creator to
+answer the human in the requesting conversation. The Server neither posts nor requires an
+introduction. Ordinary send owns session stamps, references, replies, and delivery.
 
 **Creation retries belong to the Agent record.** `creation_nonce` and `creation_request_hash` are
 stored with the Agent. The nonce is unique per Server and creator; replay under the Server lock
@@ -64,9 +65,10 @@ single retry is the recovery.
 
 **A new Agent arrives with a standing brief, not a DM.** `--brief` (≤ 4000 characters) is stored on
 the Agent row and rides every `agent-configure` command to the Computer, which renders it into the
-`MEMORY.md` it seeds under `## Standing brief from @<creator-handle>`. The one line that turns it
-into a first move (say hello in `#all` in your own voice) is a private one-time instruction in the
-Agent's first turn input, as in Raft, never permanent memory (amended 2026-10-09). It is seeded once — an owned
+`MEMORY.md` it seeds under `## Standing brief from @<creator-handle>`. The greeting that turns it
+into a first move (one short self-introduction in `#all`, in its own voice) is a private one-time
+instruction in the Agent's first turn input, as in Raft, never permanent memory (amended 2026-10-09;
+text replaced by Raft's 2026-11-03). It is seeded once — an owned
 workspace is never overwritten — so the durable copy is the Server row, and a reprovision recovers
 it. A brief is a memory fact, not a product noun; "standing brief" appears in that heading and
 nowhere else in product prose.
@@ -102,8 +104,8 @@ identity is protected: both refuse on Cove.
 - Creation is conversation-conditional: the Server refuses a stale-view create, the same freshness
   gate the prepared-action commit used. `agent update` and `agent avatar` are edits to an existing
   record and carry no freshness gate.
-- Creation spends no model turn on an empty greeting: the new Agent's brief is already in the memory
-  it reads on its first startup, and its first message is the hello that brief asks for.
+- The new Agent's brief is already in the memory it reads on its first startup, and its first
+  message is its one self-introduction in `#all`, sent on the turn its creation wake starts.
 - The standing brief remains Server state and rides `agent-configure`; full reset re-renders it.
   Migration `0059_agent_creation_request` adds independent retry identity without changing old history.
 - The managed prompt's reviewed size budget rose from 37,500 to 38,000 characters to hold the
@@ -111,3 +113,45 @@ identity is protected: both refuse on Cove.
   no Manual topic to live in.
 - Creation policy lives in the `agent` Manual topic, not in the managed system prompt. The prompt
   names the verbs and routes to that topic.
+
+## Amendment 2026-11-03: one introduction per new Agent
+
+Creation and introduction stay separate, but the introduction is now the new Agent's single
+greeting, matching Raft. Before, the creator was told to introduce the new Agent in `#all`, and the
+new Agent's first-turn line told it to say hello there too. When Forge created Sentry, Forge posted
+an introduction, then Sentry posted a second, longer one. Every `#all` post wakes every Agent in it:
+19 extra turns in 3 minutes and 4 welcome replies carrying side requests.
+
+- The run that carries the greeting (see the last bullet) opens with Raft's private greeting instruction
+  (`buildAllChannelAgenticGreetingInstruction`, Raft `db5e399`): one short, natural
+  self-introduction to `#all` in its own voice, one or two sentences, no fixed template, brief if a
+  conversation is already going, then back to normal work. Haus drops Raft's preamble line ("You
+  have just joined #all, …"), since a Haus Agent joins at creation and the greeting may ride a
+  later delivery.
+- The `haus agent create` receipt states that the new Agent introduces itself in `#all` on its
+  first turn, that the creator posts no introduction, and that the creator answers the human in the
+  requesting conversation. The `agent` Manual topic and Cove's factory notes say the same; the
+  creator names the confirmed `@handle` in that answer, which is the human's way to the profile.
+- The "unless the human asked for a private introduction" exception is gone, as in Raft: every
+  newly created Agent greets `#all` once, whoever created it and whether or not it has a brief.
+- Creation wakes the new Agent once, as Raft's `triggerNewAgentAllChannelGreeting` does. Both
+  creation paths queue one `greeting` inbox attention in `#all` (identity `greeting:<agentId>`, so
+  the inbox's dedupe uniqueness is the once-per-Agent claim and a creation replay queues nothing)
+  and dispatch after configuring the Computer. The attention is bodiless and noticeless and leads no
+  lane: it rides the next ordinary run whatever leads it, which sets the start frame's `greets`,
+  and leads a run of its own only when nothing else waits. So the creator's reply that @mentions the
+  new Agent and the wake become one first turn; a mention that lands mid-turn reaches it as a busy
+  notice. Cove never takes this seam and keeps its own onboarding attention. Haus has no
+  `agentAllChannelGreetingEnabled` setting and no hidden-`#all` phase, so neither gate is ported.
+- The greeting is consumed only by a run that showed it. The Computer shows it on every run whose
+  start frame sets `greets`, warm or cold, in any session generation; settlement consumes it with
+  that run's rows. While it waits, no dream, heartbeat, or heartbeat report leads, because a report
+  would open the main session without it. A sub-agent wake still leads: it is never held
+  (specs/heartbeat.md), it exists only once the main session has run, and the greeting rides the
+  next ordinary run instead. A Stop or reset returns it to the queue with the run's other rows, and a
+  reconnect replays an accepted run into its saved session, so a greeting whose `#all` already
+  holds a message from the new Agent is retired, queued or attached, and never shown twice.
+- `greets` raised the Computer protocol to 33. An older Computer would drop the unknown flag and
+  consume the greeting without showing it, so it connects in `update-required` mode and runs
+  nothing until it upgrades, while the greeting waits queued. The Computer artifact ships before the
+  Server, per the protocol prerequisite in [Releases](../operations/releases.md#prerequisites).

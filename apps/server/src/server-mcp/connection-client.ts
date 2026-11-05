@@ -70,15 +70,19 @@ export async function createConnectionClient(
         }
     );
     const hostedConnector = hostedConnectorId(connection);
+    const connectionFetch = hostedConnector
+        ? hostedMcpFetch(runtime.hostedMcps, hostedConnector)
+        : (provider?.fetch ?? secureMcpFetch);
     const options = {
         authProvider: provider,
         requestInit: {
             headers: mcpRequestHeaders(connection.preset, secret.headers),
             redirect: 'error' as const,
         },
-        fetch: hostedConnector
-            ? hostedMcpFetch(runtime.hostedMcps, hostedConnector)
-            : (provider?.fetch ?? secureMcpFetch),
+        fetch:
+            connection.preset === 'github' && runtime.githubBot
+                ? runtime.githubBot.fetch(connectionId, connectionFetch)
+                : connectionFetch,
     };
     const url = new URL(connection.url);
     const transport =

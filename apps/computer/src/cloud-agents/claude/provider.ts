@@ -11,7 +11,17 @@ import {
     cloudAgentUnreadyMessage,
 } from '../provider.ts';
 import { withClaudeCheckout } from './checkout.ts';
-import { type ClaudeController, createClaudeController } from './controller.ts';
+import {
+    type ClaudeController,
+    type ClaudeSessionEvent,
+    createClaudeController,
+} from './controller.ts';
+import {
+    ClaudeCloudEnvironmentUnavailableError,
+    cloudAgentEnvironmentsOf,
+    listClaudeCloudEnvironments,
+    listClaudeCloudEnvironmentsAutoPinning,
+} from './environments.ts';
 import { readClaudeNativeAccount } from './native-auth.ts';
 import { launchNativeClaudeCloud, sendNativeClaudeCloud } from './native-commands.ts';
 import { claudeRunObservation } from './observation.ts';
@@ -34,28 +44,48 @@ const answerSettleTimeout = 30_000;
  * on `requires_action`, and the delegating Agent answers with a follow-up.
  */
 export function createClaudeCloudAgentProvider(
-    controller: ClaudeController = createClaudeController()
+    dataRoot: string,
+    controller: ClaudeController = createClaudeController(),
+    resolveExecutable: typeof resolveRuntimeExecutable = resolveRuntimeExecutable
 ): CloudAgentProvider {
+    // The chronological window since this Run's own tagged prompt, once found.
+    // A later tick resumes from its newest event instead of rescanning the
+    // whole backward history again, so a long, busy session never has to pay
+    // for the very scan that first found it (TECH-7).
+    const windows = new Map<string, ClaudeSessionEvent[]>();
     const read = async (
         ref: CloudAgentRunRef,
         signal?: AbortSignal
     ): Promise<CloudAgentProviderObservation> => {
         const sessionId = requireSession(ref);
         const tag = claudeRunTag(ref);
-        const [session, events] = await Promise.all([
+        const cached = windows.get(ref.runId) ?? null;
+        const newest = cached?.[0]?.sequence;
+        const stop = newest
+            ? (event: ClaudeSessionEvent) => compareSequence(event.sequence, newest) <= 0
+            : (event: ClaudeSessionEvent) => isRunPrompt(event, tag);
+        const [session, page] = await Promise.all([
             controller.session(sessionId, signal),
-            controller.events(sessionId, (event) => isRunPrompt(event, tag), signal),
+            controller.events(sessionId, stop, signal),
         ]);
-        return claudeRunObservation({
+        const events = cached ? resumedWindow(page.events, cached, newest as string) : page.events;
+        const observation = claudeRunObservation({
             cancelRequestId: cancelRequestId(ref),
             events,
             observedAt: new Date().toISOString(),
             ref,
             session,
+            truncated: !cached && page.truncated,
         });
+        if (isTerminalCloudAgentStatus(observation.status)) {
+            windows.delete(ref.runId);
+        } else if (cached || !page.truncated) {
+            windows.set(ref.runId, events);
+        }
+        return observation;
     };
     const readiness = async (): Promise<CloudAgentReadiness> => {
-        if (!resolveRuntimeExecutable('claude')) {
+        if (!resolveExecutable('claude')) {
             return { ready: false, reason: 'provider-unavailable' };
         }
         const account = await readClaudeNativeAccount();
@@ -69,7 +99,7 @@ export function createClaudeCloudAgentProvider(
             const tag = claudeRunTag(ref);
             const entries = (
                 await controller.events(sessionId, (event) => isRunPrompt(event, tag), signal)
-            ).flatMap(logEntriesOf);
+            ).events.flatMap(logEntriesOf);
             const requestId = cancelRequestId(ref);
             if (
                 entries.some(
@@ -91,6 +121,7 @@ export function createClaudeCloudAgentProvider(
         // Claude Cloud uses the Computer's own Claude Code sign-in; Haus starts none of its own.
         connect: readiness,
         disconnect: readiness,
+        listEnvironments: () => listClaudeCloudEnvironments().then(cloudAgentEnvironmentsOf),
         listModels: () => Promise.resolve(claudeModels),
         provider: 'claude',
         read,
@@ -100,7 +131,7 @@ export function createClaudeCloudAgentProvider(
             const tag = claudeRunTag({ runId: input.idempotencyKey, workId: input.workId });
             const delivered = (
                 await controller.events(sessionId, (event) => isRunPrompt(event, tag))
-            ).find((event) => isRunPrompt(event, tag));
+            ).events.find((event) => isRunPrompt(event, tag));
             if (!delivered) {
                 await settleQuestion(controller, sessionId, input.idempotencyKey);
                 await sendNativeClaudeCloud({
@@ -110,6 +141,9 @@ export function createClaudeCloudAgentProvider(
                 });
             }
             return {
+                // A follow-up targets a session Claude already placed; it resolves no environment anew.
+                environmentId: null,
+                environmentName: null,
                 providerAgentId: sessionId,
                 providerRunId: null,
                 providerUrl: sessionUrl(sessionId),
@@ -118,11 +152,20 @@ export function createClaudeCloudAgentProvider(
         },
         async start(input, signal): Promise<CloudAgentLaunch> {
             await requireReady(readiness);
+            const environment = await resolveClaudeEnvironment(dataRoot, signal);
             const prompt = `${claudeRunTag({ runId: input.idempotencyKey, workId: input.workId })}\n\n${input.instructions}`;
             const receipt = await withClaudeCheckout({ ...input, signal }, (cwd) =>
-                launchNativeClaudeCloud({ cwd, modelId: input.model?.id ?? null, prompt, signal })
+                launchNativeClaudeCloud({
+                    cwd,
+                    environmentId: environment.id,
+                    modelId: input.model?.id ?? null,
+                    prompt,
+                    signal,
+                })
             );
             return {
+                environmentId: environment.id,
+                environmentName: environment.name,
                 providerAgentId: receipt.sessionId,
                 providerRunId: null,
                 providerUrl: receipt.url,
@@ -171,6 +214,21 @@ async function settleQuestion(
     throw new Error('Claude did not set its question aside in time; the answer will retry.');
 }
 
+/** This tick's events newer than the cached window, placed ahead of it. */
+function resumedWindow(
+    freshPage: ClaudeSessionEvent[],
+    cached: ClaudeSessionEvent[],
+    newest: string
+): ClaudeSessionEvent[] {
+    return [...freshPage.filter((event) => compareSequence(event.sequence, newest) > 0), ...cached];
+}
+
+/** Claude's event sequence numbers are decimal strings, so compare them numerically. */
+function compareSequence(a: string, b: string): number {
+    const diff = BigInt(a) - BigInt(b);
+    return diff > 0n ? 1 : diff < 0n ? -1 : 0;
+}
+
 function openTaskIds(entries: ReturnType<typeof logEntriesOf>): string[] {
     const tasks = new Map<string, boolean>();
     for (const entry of [...entries].reverse()) {
@@ -179,6 +237,35 @@ function openTaskIds(entries: ReturnType<typeof logEntriesOf>): string[] {
         }
     }
     return [...tasks].flatMap(([id, terminal]) => (terminal ? [] : [id]));
+}
+
+/**
+ * The environment this launch pins to. Auto-pins once, permanently, on first
+ * use, so no later launch re-evaluates the choice; refuses only when the
+ * account has no environment to pin to at all, or a pinned environment no
+ * longer exists or is archived. Checked fresh on every launch so a Computer
+ * never falls back to Claude Code's own default silently.
+ */
+export async function resolveClaudeEnvironment(
+    dataRoot: string,
+    signal?: AbortSignal
+): Promise<{ id: string; name: string }> {
+    const { environmentId, environments } = await listClaudeCloudEnvironmentsAutoPinning(
+        dataRoot,
+        signal
+    );
+    if (!environmentId) {
+        throw new CloudAgentLaunchRejectedError(
+            'This Computer’s Claude account has no cloud environment to launch on.'
+        );
+    }
+    const match = environments.find((environment) => environment.id === environmentId);
+    if (!match || match.state.toLowerCase() === 'archived') {
+        throw new CloudAgentLaunchRejectedError(
+            new ClaudeCloudEnvironmentUnavailableError(environmentId).message
+        );
+    }
+    return { id: match.id, name: match.name };
 }
 
 async function requireReady(readiness: () => Promise<CloudAgentReadiness>): Promise<void> {

@@ -2,6 +2,59 @@
 
 All notable changes to this project will be documented in this file.
 
+## v17.4.2 - 2026-11-05
+
+- Haus Computer 15.3.2 makes the 17.4.1 environment-pin behavior deployable. 15.3.0 and 15.3.1 never went live: their own test suite depended on a Claude CLI binary that isn't present on the release runner, so publication failed before any build ran. 15.3.2 fixes the tests and ships unchanged behavior.
+
+## v17.4.1 - 2026-11-05
+
+- A Computer with no pinned Claude cloud environment now always auto-pins one on first use: the account's environment named "Default" if it has one, otherwise its oldest, never its newest. Supersedes 17.4.0's environment-pin behavior, which refused the launch instead when the pin was ambiguous; that build never reached Server or Computer.
+- Update Haus Computer to 15.3.1. Haus Agent 12.4.1 carries the updated guidance.
+
+## v17.4.0 - 2026-11-05
+
+- An Owner or Admin can pin which Anthropic-hosted Claude cloud environment a Computer's launches run on, in Settings > Computers > (Computer) > Cloud Agents. A Computer with exactly one environment on the account pins it automatically; one with none or several refuses Claude launches until a choice is made, instead of landing on whichever environment Claude Code picks. `haus cloud-agent inspect` and the work card's provider mark show the pinned environment.
+- A Claude cloud follow-up stuck behind a busy session now auto-interrupts and delivers instead of stalling indefinitely. The work card reads a failed auto-interrupt distinctly from a generic stall, and the inbox raises one attention per stall window instead of repeating.
+- Haus Computer resumes a long Claude cloud session's event scan from where it left off instead of rescanning the whole history each time, so polling a busy session stays fast.
+- Agents place long off-topic write-ups in a thread on the message that started them instead of inline in busy channels.
+- Haus for iPhone 9.3.0 opens Cloud Agent work the same way the App does, with a Retry alert on a failed open.
+- Thread peeks keep their transcript edge fades.
+- Update Haus Computer to 15.3.0. Haus Agent 12.4.0 carries the Agent prompt and cloud-agent guidance changes.
+
+## v17.3.0 - 2026-11-04
+
+- From Haus for Mac 7.2.0, a connected 1Password item's other useful fields are available too, not just its main one. An API Credential item with both a username and a credential now gives Agents `<TITLE>` and `<TITLE>_<FIELD>` (for example `PLAID_API_KEY` and `PLAID_API_KEY_USERNAME`), masked the same way as before. `haus-secrets --list` shows every name. Update Haus Computer to 15.2.0. Haus Agent 12.3.0 carries the updated secrets guidance.
+
+## v17.2.0 - 2026-11-04
+
+- A script reminder can wake only when its output changes (`--wake-on-change`, on `haus reminder schedule`/`update`) or only after a run of consecutive failures (`--fail-after <n>`), so a noisy or flaky check stops repeating the same wake. `haus reminder log` and the Automations page now show each run's outcome, duration, and the tokens a wake cost, plus a 24h/7d/30d summary.
+- A script reminder now runs with the same PATH an Agent's own shell commands get, so a script calling `haus-secrets` no longer fails with "command not found".
+- The Agent's typing indicator now draws as one seamless shape with a spring entrance instead of a rotating wobble.
+- Update Haus Computer to 15.1.0. Haus Agent 12.2.0 carries the Agent changes.
+
+## v17.1.0 - 2026-11-04
+
+- A new Idle compaction setting in Settings > Server > Agents compacts a large idle Claude Code session shortly before its prompt cache expires, so the next message does not pay to reload the whole session and long-running Agents pick up current Haus instructions. It is off by default, and only an Owner can turn it on.
+- Claude Code Agents stay warm for 60 minutes between turns instead of 30.
+- Haus Computer runs Claude Code 2.1.317, with its stream, resume, and memory fixes and Haiku 5.5 support. Claude Code sub-agents always start fresh instead of inheriting the Agent's whole session.
+- `haus cloud-agent start` returns once the work is recorded, so a slow repository checkout no longer launches the same Claude cloud agent several times. A Cloud Agent job's elapsed time counts from its first run instead of restarting with each follow-up.
+- Update Haus Computer to 15.0.0. The Server requires it, and an older Computer runs no Agents until it upgrades. Haus Agent 12.1.0 carries the Agent changes.
+
+## v17.0.1 - 2026-11-03
+
+- Haus Server 16.0.1 makes the 17.0.0 Server deployable. Server 16.0.0 never went live: its upgrade stopped while removing existing Linear data. 16.0.1 completes that removal and ships the 17.0.0 changes, which still require Haus Computer 14.0.0.
+
+## v17.0.0 - 2026-11-03
+
+- The built-in Linear integration is removed. Settings > Connections no longer offers Linear, Linear Triggers and Linear issue previews are gone, and existing Linear connections, Triggers, and pending Linear session work are deleted. Haus for iPhone 9.2.2 stops showing Linear Trigger details.
+- Each new Agent introduces itself once in #all on its first run, including Agents created in the App without a brief, and the person who created it no longer introduces it. The Activity log names that run Greeting.
+- Agents can open a channel with `haus channel create`; the Agent joins it along with each human it names.
+- Agents read pending messages before they stop instead of leaving them for later.
+- An Agent that joins a Channel with history is no longer held on every send for messages from before it joined. A held send shows at most the three newest messages, and the Agent does not receive those again.
+- Claude Code, Codex, and Grok Build Agents with an ongoing session pick up changed Haus instructions on their next turn, including after their context is compacted.
+- `haus trigger create` for a webhook Trigger and `haus trigger rotate` require `--output` and write the secret only to that new private file, never to the terminal.
+- Update Haus Computer to 14.0.0. The Server requires it, and an older Computer runs no Agents until it upgrades. Haus Agent 12.0.0 carries the Agent changes.
+
 ## v16.6.3 - 2026-11-03
 
 - After an Agent leaves a Channel, `haus reminder list`, `log`, `update`, and `cancel` keep working for reminders it can still reach. Settled reminders in Chats it left are omitted from the list; still-scheduled ones show as `anchor not accessible` and can still be canceled. Haus Agent 11.5.1 carries the change.

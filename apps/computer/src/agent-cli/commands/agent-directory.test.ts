@@ -71,10 +71,11 @@ test('channel add refuses a bad channel or handle before spending a request', as
     expect(seen).toHaveLength(0);
 });
 
-test('the channel family advertises add alongside join and leave', () => {
+test('the channel family advertises create and add alongside join and leave', () => {
     expect(CHANNEL_SUBCOMMANDS.map((command) => command.name)).toEqual([
         'info',
         'members',
+        'create',
         'add',
         'join',
         'leave',

@@ -207,7 +207,8 @@ export function cloudAgentFixture() {
     async function readWork(workId: string) {
         const [row] = (await harness.sql`
         select activity_summary, cancel_requested_by_agent_id, cancel_requested_by_user_id,
-               provider_agent_id, provider_url, started_at, status, terminal_at
+               environment_id, environment_name, provider_agent_id, provider_url, started_at,
+               status, terminal_at
         from cloud_agent_work where id = ${workId}
     `) as Record<string, unknown>[];
         return row;

@@ -5,11 +5,15 @@ const timestampSchema = z.iso.datetime({ offset: true });
 
 /**
  * A follow-up Run the delegating Agent sent after the first one. `waiting`
- * dates from when it was queued; `running` from when the provider started it.
+ * dates from when it was queued; `running` from when the provider started it;
+ * `stalled` dates from when it was queued, but means Haus already tried
+ * auto-interrupting the session to deliver it and that still didn't work —
+ * it is still queued and still retrying, not failed.
  */
 export const cloudAgentFollowUpSchema = z.discriminatedUnion('state', [
     z.object({ since: timestampSchema, state: z.literal('waiting') }).strict(),
     z.object({ since: timestampSchema, state: z.literal('running') }).strict(),
+    z.object({ since: timestampSchema, state: z.literal('stalled') }).strict(),
 ]);
 
 /**
@@ -20,8 +24,9 @@ export const cloudAgentFollowUpSchema = z.discriminatedUnion('state', [
  * asked. A follow-up still in Haus's local
  * queue is not a Cursor Run yet, so it never moves the job, and `queued` is
  * never a job state: a job whose first Run has not started yet is `working`.
- * `startedAt` and `settledAt` belong to the Run the state comes from. A
- * `failed` job carries that Run's own report.
+ * `startedAt` is when the whole job began, so a follow-up never resets it;
+ * `settledAt` belongs to the Run the state comes from. A `failed` job carries
+ * that Run's own report.
  */
 export const cloudAgentJobSchema = z.discriminatedUnion('state', [
     z
@@ -95,6 +100,8 @@ interface JobRun {
  * that earlier Run reads. Until the provider has received any Run, the job reads from
  * its first. A waiting or live newest Run that is not the job's first is the
  * follow-up. A work with no Run recorded reads from its own lifecycle fields.
+ * The job dates from its oldest retained Run that started: the work's own
+ * `startedAt` resets with each follow-up, so it cannot.
  */
 export function deriveCloudAgentJob(work: {
     runs: readonly JobRun[];
@@ -118,12 +125,20 @@ export function deriveCloudAgentJob(work: {
     const followUp = work.runs.length > 1 ? followUpOf(newest) : null;
     const first = work.runs.at(-1) ?? newest;
     const anchor = work.runs.find((run) => run.providerRunId !== null) ?? first;
-    return jobFrom(anchor, followUp);
+    const jobStart =
+        [...work.runs].reverse().find((run) => run.startedAt !== null)?.startedAt ?? null;
+    return jobFrom({ ...anchor, startedAt: jobStart }, followUp);
 }
 
 function followUpOf(run: JobRun): CloudAgentFollowUp | null {
     if (run.status === 'queued') {
-        return { since: run.createdAt, state: 'waiting' };
+        // Computer reports this errorCode on a queued Run whose auto-interrupt
+        // fallback still didn't deliver it; there is no shared enum for it, so
+        // this literal is compared the same way on both the Computer side and
+        // here.
+        return run.errorCode === 'followup-auto-interrupt-failed'
+            ? { since: run.createdAt, state: 'stalled' }
+            : { since: run.createdAt, state: 'waiting' };
     }
     if (run.status === 'running') {
         return { since: run.startedAt ?? run.createdAt, state: 'running' };

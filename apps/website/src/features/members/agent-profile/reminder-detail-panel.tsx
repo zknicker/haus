@@ -57,7 +57,11 @@ export function ReminderDetailPanel({
                         serverSlug={serverSlug}
                     />
                     {kind === 'recurring' ? (
-                        <ReminderRunHistory reminderId={reminder.id} serverId={serverId} />
+                        <ReminderRunHistory
+                            hasScript={reminder.hasScript}
+                            reminderId={reminder.id}
+                            serverId={serverId}
+                        />
                     ) : null}
                     <SettingsRowError>{cancel.error?.message ?? null}</SettingsRowError>
                 </div>

@@ -1,9 +1,18 @@
 import { randomUUID } from 'node:crypto';
+import * as z from 'zod';
 import type { HostToolSession } from '../../host-tools/mcp-server.ts';
 import type { BackgroundWork } from '../background-work.ts';
+import {
+    IDLE_COMPACTION_DEFAULT_MIN_TOKENS,
+    type IdleCompactable,
+    type IdleCompactionResult,
+    type IdleCompactionSnapshot,
+} from '../idle-compaction.ts';
 import type { WarmProcess } from '../warm-pool.ts';
 import { ClaudeBackgroundTasks, SelfStartedTurns } from './claude-background.ts';
+import { runClaudeCompaction } from './claude-compaction.ts';
 import type { ClaudeEventNormalizer } from './claude-event-normalizer.ts';
+import { ClaudeIdleActivity } from './claude-idle-activity.ts';
 import {
     type ClaudeCommandLifecycle,
     type ParsedClaudeLine,
@@ -16,6 +25,8 @@ const initializeTimeoutMs = 30_000;
 
 /** How long a fenced self-started turn may take to stop before the process is ended. */
 const fenceGraceMs = 5000;
+
+const initializeResponseSchema = z.looseObject({ claude_code_version: z.string().optional() });
 
 /** Where the connection reports work that outlives a turn (the daemon's listener, bound). */
 export interface ClaudeBackgroundHooks {
@@ -50,8 +61,12 @@ interface PendingControl {
  * stream: background tasks keep reporting, and Claude Code may start a turn of its own to report
  * one that finished (specs/runtime-drivers.md "Background work").
  */
-export class ClaudeConnection implements WarmProcess {
+export class ClaudeConnection implements WarmProcess, IdleCompactable {
     private readonly controls = new Map<string, PendingControl>();
+    /** The last main request and cumulative spend, for idle compaction. */
+    readonly idleActivity: ClaudeIdleActivity;
+    /** The model the process runs; an idle compaction is recorded against it. */
+    readonly modelId: string;
     private readonly selfStarted = new SelfStartedTurns();
     private sink: TurnSink | null = null;
     private readonly tasks = new ClaudeBackgroundTasks();
@@ -64,8 +79,13 @@ export class ClaudeConnection implements WarmProcess {
         readonly hostTools: HostToolSession,
         readonly launchKey: string,
         public sessionId: string,
-        private readonly background?: ClaudeBackgroundHooks
+        private readonly background?: ClaudeBackgroundHooks,
+        options: { idleCompactionMinTokens?: number; modelId?: string } = {}
     ) {
+        this.idleActivity = new ClaudeIdleActivity(
+            options.idleCompactionMinTokens ?? IDLE_COMPACTION_DEFAULT_MIN_TOKENS
+        );
+        this.modelId = options.modelId ?? '';
         process.onLine((line) => this.dispatch(line));
         void process.exited.then((exit) => {
             // The host-tool scope lives exactly as long as the process that calls it.
@@ -103,12 +123,14 @@ export class ClaudeConnection implements WarmProcess {
      * The SDK handshake. `perTaskStopAffordance` makes an interrupt stop only the turn: Claude
      * Code otherwise kills every background task on interrupt (it assumes a host with no other
      * way to stop one). Haus ends background work by ending the process (Stop, reset, shutdown).
+     * Resolves with the version the CLI reports (2.1.317+), when it reports one.
      */
-    async initialize(): Promise<void> {
-        await this.control(
+    async initialize(): Promise<string | undefined> {
+        const response = await this.control(
             { perTaskStopAffordance: true, subtype: 'initialize' },
             initializeTimeoutMs
         );
+        return initializeResponseSchema.safeParse(response).data?.claude_code_version;
     }
 
     /**
@@ -140,6 +162,15 @@ export class ClaudeConnection implements WarmProcess {
 
     get exited(): Promise<unknown> {
         return this.process.exited;
+    }
+
+    /** Claude Code's own `/compact`, run on the parked process (`claude-compaction.ts`). */
+    compact(): Promise<IdleCompactionResult> {
+        return runClaudeCompaction(this);
+    }
+
+    idleCompactionSnapshot(): IdleCompactionSnapshot | null {
+        return this.idleActivity.snapshot();
     }
 
     /** Ends the process (as a parked `WarmProcess`). */
@@ -212,6 +243,7 @@ export class ClaudeConnection implements WarmProcess {
         if (parsed.sessionId) {
             this.sessionId = parsed.sessionId;
         }
+        this.idleActivity.observe(parsed);
         const { message } = parsed;
         if (message.kind === 'system' && message.message.subtype === 'init') {
             this.supportsLifecycle =

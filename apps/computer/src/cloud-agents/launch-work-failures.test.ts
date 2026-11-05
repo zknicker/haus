@@ -10,7 +10,8 @@ test('a provider that refuses the launch settles the recorded work as failed', a
     provider.failNextStart('Repository access is missing.');
     fixture.stubServer();
 
-    await expect(startCloudAgentWork(fixture.input())).rejects.toThrow(CloudAgentLaunchFailedError);
+    await expect(startCloudAgentWork(fixture.input())).resolves.toMatchObject({ runId });
+    await fixture.launched();
     expect(fixture.observations[0]).toMatchObject({
         errorCode: 'provider-launch-rejected',
         runId,
@@ -28,7 +29,8 @@ test('a lost launch response stops the work and replay never launches twice', as
         return Promise.reject(new Error('network response lost'));
     };
     fixture.stubServer();
-    await expect(startCloudAgentWork(fixture.input())).rejects.toThrow(CloudAgentLaunchFailedError);
+    await startCloudAgentWork(fixture.input());
+    await fixture.launched();
     fixture.stubServer({ ...receipt, idempotent: true });
     await expect(startCloudAgentWork(fixture.input())).rejects.toThrow(CloudAgentLaunchFailedError);
     expect(attempts).toBe(1);
@@ -42,7 +44,8 @@ test('a failed launch logs the provider cause but reports only the generic summa
     const logged = spyOn(console, 'error').mockImplementation(() => undefined);
     fixture.restores.push(() => logged.mockRestore());
     fixture.stubServer();
-    await expect(startCloudAgentWork(fixture.input())).rejects.toThrow(CloudAgentLaunchFailedError);
+    await startCloudAgentWork(fixture.input());
+    await fixture.launched();
     expect(logged).toHaveBeenCalledWith('Cloud Agent launch failed.', {
         cause: 'Error: no cloud environment is available',
         errorCode: 'provider-launch-failed',
@@ -60,7 +63,8 @@ test('a replayed rejection settles the same work without another provider launch
     const provider = fixture.install(createFakeCloudAgentProvider());
     provider.failNextStart('Denied');
     fixture.stubServer();
-    await expect(startCloudAgentWork(fixture.input())).rejects.toThrow(CloudAgentLaunchFailedError);
+    await startCloudAgentWork(fixture.input());
+    await fixture.launched();
     fixture.stubServer({ ...receipt, idempotent: true });
     await expect(startCloudAgentWork(fixture.input())).rejects.toThrow(CloudAgentLaunchFailedError);
     expect(provider.launches).toHaveLength(0);

@@ -45,6 +45,8 @@ export type AgentTurnHeartbeatReport = z.infer<typeof agentTurnHeartbeatReportSc
  * - `claim`: a claim assignment; `messageId` is the claim's message.
  * - `reminder`, `trigger`, `cloud_agent`, `onboarding`: typed work anchored to a Chat
  *   with no message of its own.
+ * - `greeting`: a new Agent's one-time wake to introduce itself in `#all`, when it led
+ *   the run alone.
  * - `dream`: the Agent's private nightly memory pass; no Chat. `learned` is the first line
  *   of what it wrote down, and `added` / `removed` the memory lines it changed.
  * - `heartbeat`: a daytime look around; no Chat. `report` is what the run sent to the main
@@ -79,6 +81,7 @@ export const agentTurnTriggerSchema = z.discriminatedUnion('kind', [
     z.object({ chatId: idSchema, kind: z.literal('trigger') }).strict(),
     z.object({ chatId: idSchema, kind: z.literal('cloud_agent') }).strict(),
     z.object({ chatId: idSchema, kind: z.literal('onboarding') }).strict(),
+    z.object({ chatId: idSchema, kind: z.literal('greeting') }).strict(),
     z
         .object({
             added: z.number().int().nonnegative(),

@@ -10,8 +10,14 @@ import {
 import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
 import { harnessSessionOwner } from './harness/session-lifecycle.ts';
+import { createIdleCompactionReporter } from './idle-compaction-reporter.ts';
+import type { IdleCompactionHooks } from './runtime/idle-compaction-scheduler.ts';
 import { stopRuntimeProcesses } from './runtime/process-registry.ts';
-import { closeRuntimeContext, fenceWarmRuntime } from './runtime/runtime-context.ts';
+import {
+    closeRuntimeContext,
+    fenceWarmRuntime,
+    setIdleCompaction,
+} from './runtime/runtime-context.ts';
 
 export interface AttachmentFrameSender {
     send(frame: unknown): boolean;
@@ -30,6 +36,9 @@ export class AttachmentDaemonWork {
     /** Background work Agents' runtimes run between turns; absent without a partition (tests). */
     readonly backgroundWork?: BackgroundWorkReporter;
 
+    /** Records the idle compactions parked sessions run; absent without a partition (tests). */
+    readonly idleCompaction?: IdleCompactionHooks;
+
     private closePromise: Promise<void> | null = null;
     private closing = false;
     private sender: AttachmentFrameSender | null = null;
@@ -42,8 +51,19 @@ export class AttachmentDaemonWork {
     ) {
         this.agentWork = new AgentWorkCoordinator(runtime);
         if (partition) {
+            const agentsDir = join(partition.dataRoot, 'servers', partition.serverId, 'agents');
+            this.idleCompaction = createIdleCompactionReporter({
+                agentBusy: (agentId) =>
+                    this.agentWork.activeRunId(agentId) !== undefined ||
+                    this.resettingAgents.has(agentId) ||
+                    this.retiredAgents.has(agentId),
+                agentsDir,
+                runtime,
+                send: (frame) => this.send(frame),
+                serverId: partition.serverId,
+            });
             this.backgroundWork = createBackgroundWorkReporter({
-                agentsDir: join(partition.dataRoot, 'servers', partition.serverId, 'agents'),
+                agentsDir,
                 closing: () => this.closing,
                 fence: (agentRoot) => fenceWarmRuntime(runtime, agentRoot),
                 holdForWake: (agentId, ms) =>
@@ -88,6 +108,9 @@ export class AttachmentDaemonWork {
             if (this.sender === sender) {
                 this.sender = null;
             }
+            // Server runtime settings last only as long as the socket that carried them: off
+            // until the next attach resends them, so a change missed offline never lingers.
+            setIdleCompaction(this.runtime, false);
         };
     }
 

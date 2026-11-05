@@ -53,6 +53,30 @@ turn that never settled would store a continuation the next prompt cannot start 
 Startup is bounded by the machine-wide start gate and startup deadline (`start-gate.ts`); a
 session opened after its window was abandoned is destroyed.
 
+### Instructions on resume
+
+A driver hands the composed instructions to its runtime on every launch, but only a fresh session
+runs on them. A resumed native session keeps the instructions it started with, on every runtime
+(measured live): Claude Code reuses its transcript's system prompt on `--resume` and ignores
+`--append-system-prompt-file`, Codex ignores `developerInstructions` on `thread/resume`, and Grok
+Build's `session/load` ignores the rewritten `$GROK_HOME/AGENTS.md`. Drivers therefore make no
+promise about instructions on resume. The executor keeps resumed sessions current itself, the
+same way for every runtime (`harness/instructions-update.ts`, specs/sessions.md "Instruction
+updates").
+
+Each driver reports its runtime's context compaction as the reserved `compaction` tool pair
+(`compactionToolName` in `runtime/turn-event.ts`), which the executor reads to re-deliver an update
+the compaction may have dropped: Claude Code's `compact_boundary`, Codex's `contextCompaction`
+item, and Grok Build's `auto_compact_completed` session update. Grok publishes no schema for that
+update; the name and its `tokens_before`/`tokens_after` fields come from the Grok Build binary's
+`SessionUpdate` variants and are not yet proven against a live compaction.
+
+Claude Code also has `--system-prompt-snapshot off` (documented in `claude --help` and the Agent
+SDK's `systemPrompt.snapshot`), which renders the system prompt fresh on every request instead of
+recording it, so a resumed launch would carry new `--append-system-prompt-file` text natively.
+Haus does not use it: an unrecorded prompt changes with every CLI upgrade, invalidating the
+prompt cache and, with extended thinking, earlier reasoning.
+
 ## Session lifecycle
 
 | Runtime | Native process | Turn | Busy delivery |
@@ -66,7 +90,9 @@ production factory (`runtime/driver-factory.ts`) hands every driver: the Compute
 server, the process registry every runtime process joins (`runtime/process-registry.ts`), and the
 shared warm pool (`runtime/warm-pool.ts`). The pool parks one process per Agent session, keyed by
 the Agent root, reused only when runtime, native conversation, and launch fingerprint all match;
-an idle process closes after 30 minutes. Agent reset or removal evicts its process; shutdown
+an idle process closes after 60 minutes (`idleMs`, the daemon's `warmIdleMs`), the length of
+Claude Code's one-hour prompt cache, so a turn inside the window reuses both the process and the
+cached prefix. Agent reset or removal evicts its process; shutdown
 closes the pool, then the host-tool server, then reaps any process still registered. Every
 runtime process runs in its own process group (`runtime/process-group.ts`): terminating it ends
 the whole group, even after the CLI leader exited, and the group stays registered until no member
@@ -90,11 +116,13 @@ Codex and Grok Build start no sub-agents.
 
 | Concern | Contract |
 | --- | --- |
-| Launch | `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS` is never set (dropped from inherited env), so `run_in_background` and auto-backgrounding of long commands stay on, Raft's default. `Monitor` stays disallowed: it streams output into the conversation, a wake source Haus does not surface. Known gap: Claude Code 2.1.284 blocks a foreground `sleep` behind a remote feature flag (`tengu_amber_sentinel`), and both that block's tool error and the Bash tool description then tell the model to use `Monitor`. No CLI flag or env var turns the steer off short of disabling all remote flags, so the model can try `Monitor`, get the disallowed-tool error, and fall back to the error's other advice (`run_in_background`). |
+| Launch | `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS` is never set (dropped from inherited env), so `run_in_background` and auto-backgrounding of long commands stay on, Raft's default. `Monitor` stays disallowed: it streams output into the conversation, a wake source Haus does not surface. Known gap: Claude Code (seen in 2.1.284) blocks a foreground `sleep` behind a remote feature flag (`tengu_amber_sentinel`), and both that block's tool error and the Bash tool description then tell the model to use `Monitor`. No CLI flag or env var turns the steer off short of disabling all remote flags, so the model can try `Monitor`, get the disallowed-tool error, and fall back to the error's other advice (`run_in_background`). |
+| Default | Since 2.1.317 an Agent call without `run_in_background` runs in the background (only `false` keeps it in the foreground). Fork sub-agents are off (`CLAUDE_CODE_FORK_SUBAGENT=0`, forced over any inherited value): a fork inherits the whole global session, every chat it spans, so each sub-agent starts blank-slate. |
 | Cap | `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS=4` (`claude-launch.ts`), enforced by Claude Code itself: an Agent call past it is a tool error telling the model not to retry. It counts foreground and background sub-agents together; shells are not capped. |
-| Handshake | Every process sends the SDK `initialize` control request with `perTaskStopAffordance: true` before its first turn. Without it Claude Code kills every background task on interrupt; with it an interrupt (Stop, a fatal event, the no-progress deadline) ends only the turn. A resumed conversation Claude Code no longer has exits before answering, which is the typed `missing` rejection at open. |
-| Tracking | `system/background_tasks_changed` carries the whole live set (replace semantics); ambient tasks never count. `ClaudeConnection.backgroundWork` is `{ subagents, tasks }` (`local_agent` tasks, all tasks). |
-| Between turns | The connection keeps reading stdout with no turn attached. When a task finishes and no turn holds the connection, Claude Code starts a turn of its own (`system/init`, then a `result` with `origin.kind = 'task-notification'` and no `user_message_uuid`). The connection buffers it from `init` and reports a wake once it reaches the model. A notification-origin result never settles a Haus turn that did not adopt it. |
+| Handshake | Every process sends the SDK `initialize` control request with `perTaskStopAffordance: true` before its first turn. Its response names `claude_code_version`; a pinned install that reports another release is logged (`[claude-code] pinned ...`). Without it Claude Code kills every background task on interrupt; with it an interrupt (Stop, a fatal event, the no-progress deadline) ends only the turn. A resumed conversation Claude Code no longer has exits before answering, which is the typed `missing` rejection at open. |
+| Tracking | `system/background_tasks_changed` carries the whole live set (replace semantics); ambient tasks never count. `ClaudeConnection.backgroundWork` is `{ subagents, tasks }` (`local_agent` tasks, all tasks). A task's lifetime runs from the first report of its `run_id`: a continued sub-agent keeps its task id under a new run. A sub-agent's own background shell is a task with `parent_task_id`, and can outlive it. Since 2.1.317 a finish arrives as `task_updated`, `task_notification`, then `background_tasks_changed`, all before the self-started turn's `init`, so a wake sees the live set without the finished task. |
+| Between turns | The connection keeps reading stdout with no turn attached. When a task finishes and no turn holds the connection, Claude Code starts a turn of its own (`system/init`, then a `result` with `origin.kind = 'task-notification'` and no `user_message_uuid`). The connection buffers it from `init` and reports a wake once it reaches the model. A notification-origin result never settles a Haus turn that did not adopt it. Only a line that asks the model (a `requesting` status, or the Agent's own stream or message) asks for a wake: a self-started run that never reaches the model (an orphan notice, a compaction) is kept for adoption and wakes nobody. |
+| Claude Code's own idle compaction | Claude Code 2.1.299+ compacts an attended session (interactive, or an IDE/desktop entrypoint) at 90% of its one-hour prompt-cache TTL, but never arms it for the `sdk-ts` entrypoint Haus launches (2.1.317: a parked 240K-token session wrote nothing in 57 idle minutes). Haus runs the same compaction itself (Idle compaction below). Should the CLI ever start one between turns it prints `status`, `init`, `compact_boundary`, the summary, and a zero-turn result naming no message: it wakes nobody, a turn that starts after it never sees it, and a turn that adopts it mid-flight journals the compaction and settles only on its own result (`claudeResultOwner` `self`; `claude-idle-compaction.test.ts`). |
 | Fold | A task that finishes while a Haus turn runs is folded into that turn by Claude Code: one result, no wake. |
 | Adoption | `startTurn` takes any running self-started turn into the new turn (its buffered lines replay first): one run holds the Agent at a time, so the run that starts next is the only one that can own it. With `wake: true` (the sub-agent wake run) the adopted turn replaces the prompt. Any other run (a human message's run that reached the session before the wake) folds it in as Claude Code folds a completion into a running turn: its prompt is written and queues behind the adopted turn, the run owns that turn's output and `haus` calls (its runner releases the proxy hold), and the Computer retires the wake asked for it (`agent-subagent-wake-retire` with that wake id), so no wake re-prompts afterwards. A self-started turn that reached its result before any run adopted it is dropped, and the wake run writes its prompt. |
 | Fence | `ClaudeConnection.fenceSelfStartedTurn` interrupts a self-started turn whose wake the Server refused, sparing background tasks (`perTaskStopAffordance`); a process that does not answer within five seconds is ended. Tool calls the turn made before the refusal arrived (one Server round trip) are the unavoidable unadmitted window; its `haus` calls wait at the proxy hold and never run unadmitted. |
@@ -135,6 +163,33 @@ The Computer side (`background-work-reporter.ts`, wired through `RuntimeContext.
 - **Activity.** The live sub-agent count reaches the Server as `agent-background-work`
   (specs/agent-activity.md "Background sub-agents"), with the live task count beside it. Any live
   task holds the Agent's heartbeats and dreams (specs/heartbeat.md "Who runs, and who skips").
+
+## Idle compaction
+
+Haus compacts a parked Claude Code session shortly before its one-hour prompt cache expires,
+mirroring Claude Code's own idle compaction exactly, which the CLI ships on but never arms for a
+headless `sdk-ts` session. A session idle past the cache would otherwise resume cold and re-write
+its whole prefix (production: 200K-950K-token Agent sessions, about 58% of Claude Code Agent
+spend). Compacting first also refreshes the system prompt: with Claude Code's default
+`--system-prompt-snapshot on` the recorded prompt updates only after a compaction.
+
+| Concern | Contract |
+| --- | --- |
+| Gate | The Owner's Server setting **Idle compaction** (`servers.idle_compaction`, default off, `server.settings` / `server.setIdleCompaction`). The Server sends `server-runtime-settings` (`packages/haus-api/src/server-commands.ts`) to every attached Computer on change, and on attach only while a setting is on; the daemon applies it to the warm pool (`setIdleCompaction`). A daemon holds every setting off until a frame turns one on, and turns them off again when its attachment socket closes, so a change made while it was offline never lingers. Each send reads the stored settings inside one per-Server queue (`apps/server/src/computers/runtime-settings-sends.ts`), so an attach read that started before a change never lands after that change's frame. The frame requires Computer protocol 34: an older Computer would ignore it, so it connects update-required instead. Turning it off cancels every armed timer; a compaction already running finishes. |
+| Arming | After every turn the process parks; the pool (`runtime/idle-compaction-scheduler.ts`) arms one timer when the last main-conversation request wrote the one-hour cache (`cache_creation.ephemeral_1h_input_tokens`; a full cache hit keeps the lifetime last written). It fires at `lastActivityAt + 0.9 × (cacheExpiresAt − lastActivityAt)`, about 54 minutes after that request answered (`runtime/idle-compaction.ts`). Nothing is armed for a throwaway (heartbeat) session, before a process's first request, or when the 60-minute idle close would come first. A session runs one compaction at a time: arming it mid-compaction (the setting resent on reconnect) waits for that compaction to settle, then re-arms if the session is still parked. |
+| Skips | At fire time, Claude Code's rules: fired more than 60s late (a sleeping machine), a newer main request since arming, context under `max(100000, CLAUDE_CODE_IDLE_COMPACT_MIN_TOKENS ?? 200000)` (the whole prompt: fresh, cache-read, and cache-written input), or the last `rate_limit_event` status anything but `allowed`. Plus Haus's own: background work or a self-started turn is live, a run holds or waits for the Agent, or the Agent is being reset or retired. Each skip is logged (`runtime-idle-compaction-skipped`). |
+| Compaction | `ClaudeConnection.compact()` (`claude-compaction.ts`) writes `/compact` with no instructions, exactly what Claude Code's idle compaction calls, as a user message on the parked process. A dedicated sink takes the stream until the zero-turn result naming that message: `compacting` status, `compact_boundary` (trigger `manual`, pre and post tokens), the summary, the result. PreCompact and PostCompact hooks fire as for `/compact`. A refusal, a result with no boundary, or an exit rejects it; past ten minutes the process is ended as hung and the next turn resumes cold. |
+| Races | A turn that claims the process mid-compaction waits for it (`WarmProcessPool.claim`) and then runs on the compacted conversation; nothing interleaves. The turn's 120-second startup deadline (`harnessStartupDeadlineMs`) still bounds that wait: a compaction slower than it fails that start (a 501K-token Haiku session took 8 seconds). The idle close never cuts a running compaction: it runs once the compaction finished. Evict (reset, retirement, Restart, Stop) and pool close still end it. |
+| Spend | The compaction's own result reports zero usage; its spend appears only in the CLI's cumulative `total_cost_usd` and `modelUsage`. `ClaudeIdleActivity` keeps the last cumulative reading, and the result carries the difference: token usage (fresh, cache read, cache written, output; every model) and API-equivalent cost. |
+| Record | The daemon (`idle-compaction-reporter.ts`) writes one execution journal under a Computer-minted id `compaction-<uuid>` holding the same `compaction` tool pair a compaction inside a turn writes (trigger `idle`, tokens before and after, summary; Activity skips it), uploads it like any run's journal, and sends `agent-idle-compaction`. The Server records that as the Agent's completed turn under the compaction id (summary `Compacted idle context: 812K → 41K tokens.`, no messages), so the daily usage rollup counts it; a resend is the same row. It settles no delivery. A report sent while the socket is down is lost (logged, not queued). |
+| Verify | Unit: `idle-compaction.test.ts`, `idle-compaction-scheduler.test.ts`, `claude-compaction.test.ts` (the recorded `/compact`), `idle-compaction-reporter.test.ts`, `server-runtime-settings-frame.test.ts`, Server `haus-server-idle-compaction.test.ts`. Live, timer shortened to 5s (Claude live lane): `HAUS_RUN_LIVE_CLAUDE_CODE_TEST=1 bun test apps/computer/src/runtime/claude-code/claude-idle-compaction-live.test.ts`. Live, the real 54-minute timer under the default 60-minute close (about an hour): `HAUS_RUN_LIVE_CLAUDE_IDLE_COMPACT_TEST=1 bun test apps/computer/src/runtime/claude-code/claude-idle-compaction-live.test.ts`. Recall on a ~500K-token session (under a dollar of Haiku): `HAUS_RUN_LIVE_CLAUDE_IDLE_RECALL_TEST=1 bun test apps/computer/src/runtime/claude-code/claude-idle-compaction-recall-live.test.ts`. |
+
+Recall (2.1.317, Haiku 5.5, 2026-11-04): a 501K-token session compacted to 3.4K tokens in 8s for
+$0.09. The Agent kept the facts stated in prose early and last, and its in-progress task in full
+(step, table, next step). It lost facts buried mid-session inside filler (an auditor's name, a
+serial number, a single ledger line) and said "unknown" for them and for a fact never stated; it
+invented nothing. The summary points the Agent at the full transcript, so a lost detail stays
+recoverable with a file read.
 
 ## TurnEvent
 
@@ -229,10 +284,16 @@ SDK harness setup and its patches:
 - `--strict-mcp-config` with only the Haus host-tool MCP server; no operator MCP servers.
 - `--disallowedTools` = `CLAUDE_DISALLOWED_TOOLS`; `--allowedTools` names `Glob` and `Grep`
   (the native build otherwise drops both from the Agent and sub-agents).
-- Background work on, `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS=4`, and the `initialize` handshake
-  with `perTaskStopAffordance` (see Background work); `--effort` from reasoning effort; extended
-  thinking enabled for `claude-haiku-4-5`; `--permission-mode bypassPermissions`.
-- Instructions through `--append-system-prompt-file` (owner-only file), never argv.
+- The pinned CLI is `CLAUDE_CODE_VERSION` (2.1.317) in `claude-install.ts`, one npm registry
+  integrity per platform package; a bump changes the bootstrap fingerprint, which restarts parked
+  sessions, and re-records the fixtures.
+- Background work on, `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS=4`, `CLAUDE_CODE_FORK_SUBAGENT=0`,
+  and the `initialize` handshake with `perTaskStopAffordance` (see Background work); `--effort`
+  from reasoning effort; adaptive thinking with summarized display, except Haiku 4.5, which runs
+  extended thinking with no display override (Haiku 5.5 supports adaptive thinking and effort,
+  so it takes the default); `--permission-mode bypassPermissions`.
+- Instructions through `--append-system-prompt-file` (owner-only file), never argv; a fresh
+  session only (Instructions on resume).
 - Never persist live credentials in any Haus-written launch record.
 - Plan usage read after a turn when `HAUS_CLAUDE_USAGE_REFRESH=1` (`turn-finish.claudePlanUsage`).
 - A sub-agent's failure or error never ends the parent turn.
@@ -290,9 +351,12 @@ token-usage tests, and the opt-in live tests.
 Each driver gets replay fixtures captured from the real CLI, so normalizers are tested against
 real streams rather than hand-written frames:
 
-1. A capture script (`scripts/runtime-fixtures/capture.ts`) launches the CLI exactly as the
-   driver does in a throwaway HOME and records every stdin write and stdout/stderr line with
-   relative timing to `apps/computer/src/runtime/fixtures/<runtime>/<scenario>.jsonl`.
+1. A capture script (`apps/computer/src/runtime/<runtime>/fixtures/capture.ts`; Codex
+   `capture-fixtures.ts`) launches the CLI exactly as the driver does in a throwaway HOME and
+   records every stdin write and stdout/stderr line with relative timing to
+   `<scenario>.jsonl` beside it. Claude:
+   `bun apps/computer/src/runtime/claude-code/fixtures/capture.ts <scenario> <claude-binary>`,
+   one scenario per run, against the pinned install under `~/.haus/cache/claude-code/`.
 2. Scenarios per runtime: plain reply; reasoning; shell tool; file edit; host MCP tool call;
    steer mid-turn; Stop mid-tool; resume after restart; provider auth failure; Claude sub-agent;
    Codex image generation. Claude background work has its own

@@ -247,7 +247,10 @@ uses the same fingerprinted instruction/bootstrap refresh path as automatic drif
 
 Before every accepted turn, Computer composes current instructions and fingerprints both them and
 the driver's bootstrap (its pinned CLI). The driver mounts those instructions on the runtime's
-native instruction layer, so instruction-only drift keeps the session. Bootstrap drift or Restart
+native instruction layer, which only a fresh session reads, so a resumed session whose delivered
+instruction fingerprint differs or is missing gets them re-delivered at the front of its next
+ordinary turn and keeps the session ([sessions spec](../../specs/sessions.md#instruction-updates)).
+Bootstrap drift or Restart
 parks the session, refreshes the driver's install, and resumes the same native conversation. Before a
 Cove turn, Computer also replaces exact recognized prior playbook and FAQ revisions and privately
 asks the same session to re-read them; edited or missing files are preserved and reported as a
@@ -257,9 +260,12 @@ as resume rejection, so only Server-authorized recovery may advance the session 
 
 The release-owned Haus Agent version groups those managed behavior inputs into one public SemVer.
 When it differs from the session receipt, the next accepted turn enters the same
-`updating_instructions` lifecycle even when the lower-level fingerprints are unchanged. Success
-stores the new version and application time; failure or a Cove factory-guidance conflict preserves
-the old version and reports failed. Computer includes that receipt in effective state so Server and
+`updating_instructions` lifecycle even when the lower-level fingerprints are unchanged, unless it
+is a sub-agent wake deferring a due instruction update: that turn neither shows the activity nor
+applies the version, which stays pending for the next ordinary turn
+([sessions spec](../../specs/sessions.md#instruction-updates)). Success stores the new version and
+application time; failure or a Cove factory-guidance conflict preserves the old version and reports
+failed. Computer includes that receipt in effective state so Server and
 the App can distinguish pending, current, and failed application.
 
 Reminders are canonical Server schedules anchored to an Agent and Chat
@@ -354,8 +360,8 @@ commits. Start, Restart, a session reset, and a configure that changes runtime
 or model also lift it, without rotating the session beyond what that action
 already does. Outside a pause, a human message releases a counted hold only
 after its window passes and never cuts a short or rate-limit backoff short.
-Agent-authored, reminder, trigger, claim-assignment, Cloud Agent, and onboarding
-work never lifts a pause or releases a hold; it waits behind it. `agent.get`
+Agent-authored, reminder, trigger, claim-assignment, Cloud Agent, onboarding, and
+greeting work never lifts a pause or releases a hold; it waits behind it. `agent.get`
 and `agent.list` project the pause as `wakePause` (failure count, last failure
 kind, code, and time, `pausedAt`, and `nextProbeAt`, null while the probe runs);
 availability stays `error`. Raw failure evidence remains Computer-local; only the
@@ -399,8 +405,8 @@ activity journal: Computer maps known runtime and product boundaries into safe c
 persists them, and the Inbox projects the latest category for each unsettled Agent. Unknown
 and MCP tools remain generic. Neither lifecycle nor semantic activity carries arguments, command
 contents, model reasoning, draft messages, tool outputs, or private file contents.
-Instruction, Cove factory-guidance, or bootstrap drift adds an explicit `updating_instructions`
-activity lifecycle. Its rows contain no prompt text, paths, commands, hashes, file contents, or raw
+A re-delivered instruction update, Cove factory-guidance drift, bootstrap drift, or Restart adds an
+explicit `updating_instructions` activity lifecycle. Its rows contain no prompt text, paths, commands, hashes, file contents, or raw
 bootstrap errors.
 
 Computer separately records a detailed execution journal keyed by run, including tool outputs,
@@ -418,7 +424,8 @@ composition bubble remains tied only to an explicit in-flight message and its co
 | --- | --- |
 | One persistent session; pending delivery or cold `Start.`, then resume | `apps/computer/src/harness/executor.test.ts` |
 | Restart preserves generation and refreshes instructions exactly once | `apps/server/test/agent-delivery.test.ts`, `apps/computer/src/harness/executor.test.ts`, `apps/computer/src/harness/session-restart.test.ts` |
-| Instruction, runtime bootstrap, or Haus Agent version drift refreshes once in place and exposes the outcome safely | `apps/computer/src/harness/executor.test.ts`, `packages/haus-api/src/agent-activity.test.ts` |
+| Instruction, runtime bootstrap, or Haus Agent version drift refreshes once in place and exposes the outcome safely | `apps/computer/src/harness/executor.test.ts`, `apps/computer/src/harness/executor-instructions-update.test.ts`, `packages/haus-api/src/agent-activity.test.ts` |
+| A resumed session receives changed instructions exactly once, never on a host-facts-only release | `apps/computer/src/harness/instructions-update.test.ts`, `apps/computer/src/harness/executor-instructions-update.test.ts`; live: `instructions-update-live.test.ts` |
 | Known tools map through the semantic registry; unknown and MCP tools remain generic | `apps/computer/src/harness/executor.test.ts` |
 | Runtime/model switch and rejected resume start exactly one fresh generation | `apps/computer/src/harness/executor.test.ts` |
 | Session reset preserves workspace and skills; full reset restores the Agent-kind workspace and only factory-managed skills | `apps/computer/src/launch.test.ts` |

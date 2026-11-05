@@ -1,7 +1,11 @@
 import { afterEach, expect, test } from 'bun:test';
 import { makeTestRuntime } from '@haus/effect';
 import { TestClock } from 'effect';
-import type { RuntimeTokenUsage, TurnEvent } from '../runtime/turn-event.ts';
+import {
+    compactionToolName,
+    type RuntimeTokenUsage,
+    type TurnEvent,
+} from '../runtime/turn-event.ts';
 import { observeTurnStream } from './turn-stream.ts';
 
 let runtime = makeTestRuntime();
@@ -24,6 +28,21 @@ test('context tokens are the last step input, not usage summed across the turn',
 
     expect(result.contextTokens).toBe(250);
     expect(result.tokenUsage).toMatchObject({ inputTokens: 350, outputTokens: 50 });
+});
+
+test('a turn reports whether its runtime compacted the context', async () => {
+    const finish: TurnEvent = { claudePlanUsage: null, type: 'turn-finish', usage: null };
+    const tool = (toolName: string): TurnEvent[] => [
+        { input: {}, providerExecuted: true, toolCallId: toolName, toolName, type: 'tool-call' },
+        { output: {}, providerExecuted: true, toolCallId: toolName, toolName, type: 'tool-result' },
+    ];
+    const observe = (events: TurnEvent[]) =>
+        observeTurnStream(parts(events), undefined, undefined, { runtime });
+
+    expect(await observe([...tool('bash'), finish])).toMatchObject({ compacted: false });
+    expect(await observe([...tool(compactionToolName), finish])).toMatchObject({
+        compacted: true,
+    });
 });
 
 test('a silent turn is interrupted after the no-progress deadline', async () => {

@@ -78,7 +78,10 @@ new ADR.
   from the App's delivery log since a persisted watermark, and raises an operator-visible gap when
   the watermark falls outside GitHub's three-day retention. Development stacks pull the same log
   and need no tunnel or public relay.
-- The hosted MCP writes as the human, so Haus cannot tell an Agent's own GitHub actions apart.
+- Amended 2026-11-05: an Agent tool call naming an `owner` with a bound installation runs as the
+  shared App bot, not the human; see
+  [Agent identity](../../specs/github-app-connection.md#agent-identity). Calls with no installation
+  still write as the human, so Haus cannot reliably tell an Agent's own GitHub actions apart.
   Trigger wakes count toward the Agent chain budget, and comment events are not offered in v1.
 - A Trigger can now be degraded (installation removed or suspended, repositories unavailable,
   permissions missing, Agent access revoked, sign-in required). Degraded is visible on the Trigger

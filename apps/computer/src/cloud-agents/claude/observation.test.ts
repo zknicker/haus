@@ -11,7 +11,7 @@ const prompt = event({
 });
 
 function event(payload: Record<string, unknown>): ClaudeSessionEvent {
-    return { payload, sequence: '1' };
+    return { createdAt: null, payload, sequence: '1' };
 }
 
 function session(overrides: Partial<ClaudeSession> = {}): ClaudeSession {
@@ -56,6 +56,16 @@ function toolUse(id: string, name: string, input: unknown) {
 
 test('a prompt Claude has not taken yet is queued', () => {
     expect(observe([])).toMatchObject({ status: 'queued' });
+});
+
+test('a taken prompt dates the Run from when Claude logged it, not from the reading', () => {
+    const logged = { ...prompt, createdAt: '2026-10-14T11:02:16.640042Z' };
+    expect(observe([logged])).toMatchObject({
+        observedAt,
+        startedAt: '2026-10-14T11:02:16.640Z',
+        status: 'running',
+    });
+    expect(observe([prompt])).not.toHaveProperty('startedAt');
 });
 
 test('a running worker reports its latest step', () => {
@@ -129,6 +139,55 @@ test('an archived session that never took the prompt expires', () => {
     expect(observe([], session({ status: 'archived', workerStatus: 'idle' }))).toMatchObject({
         status: 'expired',
     });
+});
+
+test("a predecessor that already finished is unaffected by a later follow-up's own result", () => {
+    // Haus never waits behind a Claude predecessor's turn (TECH-7, round 4), so
+    // this Run's own window stops at the next Haus prompt: the ordinary case,
+    // where the predecessor's own result already landed before the follow-up
+    // was even sent.
+    const followUpPrompt = event({
+        message: { content: 'HAUS_CLOUD_RUN=caw_work/car_followup\n\nOne more thing.' },
+        type: 'user',
+        uuid: 'prompt-2',
+    });
+    const followUpResult = result({ result: 'Finished the follow-up.' });
+    const observation = observe(
+        [prompt, result({}), followUpPrompt, followUpResult],
+        session({ workerStatus: 'idle' })
+    );
+    expect(observation).toMatchObject({
+        status: 'completed',
+        summary: 'Trimmed the settings copy.',
+    });
+});
+
+test('a result landing after a mid-turn follow-up still settles the predecessor, not just the follow-up', () => {
+    // A follow-up injected while the predecessor was still generating can merge
+    // into one continuous turn whose only result logs after the follow-up's own
+    // prompt (TECH-7, round 5). Without this fallback, the predecessor's own
+    // window never sees a result and reads `running` forever: it never settles
+    // and its inbox attention never fires.
+    const followUpPrompt = event({
+        message: { content: 'HAUS_CLOUD_RUN=caw_work/car_followup\n\nOne more thing.' },
+        type: 'user',
+        uuid: 'prompt-2',
+    });
+    const chronological = [prompt, followUpPrompt, result({ result: 'Finished the follow-up.' })];
+
+    const predecessor = observe(chronological, session({ workerStatus: 'idle' }));
+    expect(predecessor.status).toBe('completed');
+    expect(predecessor.summary).toContain('Continued in follow-up car_followup');
+    expect(predecessor.summary).toContain('Finished the follow-up.');
+
+    const followUp = claudeRunObservation({
+        cancelRequestId: 'haus-cancel-car_followup',
+        events: [...chronological].reverse(),
+        observedAt,
+        ref: { runId: 'car_followup', workId: 'caw_work' },
+        session: session({ workerStatus: 'idle' }),
+    });
+    expect(followUp).toMatchObject({ status: 'completed', summary: 'Finished the follow-up.' });
 });
 
 test('the pushed branch and its pull request are reported together', () => {

@@ -386,5 +386,8 @@ key pair and a service worker). A closed browser tab learns about new messages o
   ([Haus for iPhone](../internals/ios.md)). **Happening now** is where Cloud Agent work gets its
   first iPhone presentation. One row differs, because the phone has nowhere else to send it: an
   Agent row in **Happening now** opens that Agent's DM rather than a profile page, which the phone
-  reaches from a Chat instead. The iPhone Inbox is also the cold-start
+  reaches from a Chat instead. A Cloud Agent work row opens the same `location` as the App, pushed
+  rather than peeked: its work Thread takes the work's title, and the parent Chat's inline replies
+  read among the Thread's own, the launch Message and its card with them. A Thread that cannot be
+  read raises a Retry alert, where the App shows a toast. The iPhone Inbox is also the cold-start
   landing screen there, which the App has no counterpart for.

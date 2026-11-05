@@ -9,14 +9,14 @@ export interface ChatTypingThought {
     text: string;
 }
 
-/** Wobble in, hold, then wobble out; a newer thought replaces the current one at once. */
-export const chatTypingThoughtTiming = { enterMs: 620, exitMs: 260 } as const;
+/** Spring in from the tail, hold, then fade out; a newer thought replaces the current one at once. */
+export const chatTypingThoughtTiming = { enterMs: 480, exitMs: 180 } as const;
 
 /** The shortest and longest hold, whatever the line's length. */
 export const chatTypingThoughtHoldRangeMs = { max: 7500, min: 5000 } as const;
 
 /**
- * How long a bubble holds after it wobbles in. The Server shows few bubbles —
+ * How long a bubble holds after it springs in. The Server shows few bubbles —
  * one per workstream or finding, or a "still" line after a quiet stretch — so
  * each can stay until someone glancing up has read it: about 3.5 seconds to
  * notice the bubble and move the eyes there, plus 350ms a word (a relaxed
@@ -49,7 +49,7 @@ export interface ChatTypingThoughtOnScreen {
 /**
  * What an arriving thought does. The same line from the same run while its
  * bubble is still up extends that bubble's hold, reset from now and capped at
- * the maximum visible time, without a new bubble or its wobble; once the cap
+ * the maximum visible time, without a new bubble or its entrance; once the cap
  * leaves nothing to add, the repeat is absorbed. Anything else, including the
  * same line after its bubble has left, is a new bubble.
  */

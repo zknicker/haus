@@ -5,6 +5,7 @@ read_when:
   - changing Cloud Agent work links, who may see Cloud Agent work, or what survives Chat deletion
   - changing Cursor runtime discovery, Cursor Cloud Agent authentication, or Cursor usage reporting
   - changing the Claude Cloud Agent adapter, its Claude Code sign-in, polling, or status mapping
+  - changing the Claude cloud environment pin, its fail-fast validation, or where it surfaces
   - changing the default Cloud Agent provider, the `--provider` flag, or the `pending_input` Run status
   - changing the Cloud Agent model setting, the per-provider model, the Cursor model catalog, or the model a Run requests
   - changing typed Message bodies, the `agent-created` body, or record-backed Message rendering
@@ -173,7 +174,9 @@ which the Server projects from the Message's recorded links.
 Elapsed time uses the provider's Run creation timestamp when available, including after Computer
 reconnects. Observation timestamps track reporting freshness, not when hosted work began. A later
 provider reading can correct an earlier first-observed start; providers without a Run timestamp
-retain the first non-queued observation as the fallback.
+retain the first non-queued observation as the fallback. Claude's Run timestamp is when the session
+logged Haus's prompt. The job-state chip times the whole job from its first Run's start, so a
+follow-up never resets it; the follow-up note times the follow-up on its own.
 
 **One card everywhere.** Haus App renders Cloud Agent work as one full work card under each
 linking Message, the same card in the parent Chat — a Channel or a DM — inside the Thread, and in
@@ -477,6 +480,15 @@ path, as the Message's last link. Authored content stays capped at 32,000 charac
 content may exceed that by the generated link. Thread previews leave out any Message that is some
 work's `launch_message_id`.
 
+**Start returns once recorded.** `haus cloud-agent start` returns its receipt as soon as Server has
+recorded the work and the Computer has claimed its first Run. The provider launch, including any
+repository checkout, finishes afterwards in the Computer's launch scope, which shutdown waits for.
+Its outcome lands on the work: the provider's address once it confirms, or a failed or cancelled
+Run whose inbox notice reaches the delegating Agent like any settled Run. A launch that never
+confirms settles at its five-minute launch deadline. Waiting on the provider inside the command let
+a slow launch outlive the command's timeout, and the Agent read that as a failure and launched the
+same work again. The receipt says the work is launching, never that it started.
+
 **Visibility.** A viewer may see Cloud Agent work when they can read a live Message that links it:
 the linking Chat, and a Thread's parent, are not tombstoned, and the viewer can read that Chat by
 the canonical rule (a human also needs an active Server membership). The delegating Agent always
@@ -518,14 +530,52 @@ the work Thread rather than surface-local conversation controls.
 
 ### Follow-up delivery
 
-Computer delivers a queued follow-up only after every preceding Run is terminal. Waiting behind a
-Run Cursor still reports running is unbounded: hosted Runs can be long, and Cursor expires them
-itself. A predecessor that is terminal in any way — completed, failed, cancelled, expired, refused,
-or settled locally before reaching Cursor — unblocks the queue.
+Computer delivers a queued Cursor follow-up only after every preceding Run is terminal. Waiting
+behind a Run Cursor still reports running is unbounded: hosted Runs can be long, and Cursor, which
+owns Run lifecycle, expires them itself. A predecessor that is terminal in any way — completed,
+failed, cancelled, expired, refused, or settled locally before reaching Cursor — unblocks the
+queue.
 
-Once predecessors are terminal, each send uses the Run id as the provider idempotency key, so a
-retry after a lost response never starts a second provider Run. The Cursor adapter classifies a
-failed send:
+**Claude never waits on a predecessor at all (TECH-7, round 4).** A hosted Claude session takes a
+new prompt the moment the one ahead of it was dispatched — exactly like a message sent mid-turn in
+local Claude Code, which is injected at the agent's next step rather than held until the running
+turn ends. Computer still only sends a follow-up *after* dispatching whatever precedes it (a
+still-`pending` predecessor still blocks, preserving delivery order), and an explicit `send
+--interrupt` still clears the predecessor's own work first; short of that, Haus never middle-mans a
+follow-up behind a predecessor's turn. This replaces the round-3 `rawStatus: 'idle'` readiness
+check, which only unblocked a predecessor that had gone idle — Claude has no Run-level expiry of
+its own, so a Run whose foreground turn was genuinely still running (not just idle with an open
+background task) would have kept blocking under that check. Cursor has no equivalent capability —
+it cannot take a second prompt while a Run is active — so it keeps the original wait, unchanged.
+
+**Attribution: each follow-up stays its own Run, read from a bounded window.** Delivering
+immediately raises a bookkeeping question a waited-for predecessor never had to answer: once two
+Haus prompts can sit in the same hosted session with neither one's turn necessarily finished, which
+Run does a given piece of activity, result, or branch evidence belong to? Haus keeps every
+follow-up a fully separate Run (its own id, inbox attention, and summary — never absorbed into the
+Run it followed), and bounds each Run's own reading at the *next* Haus-tagged prompt in the session
+log (`isHausPrompt` in `session-events.ts`), not just at its own. Before this, a Run's window ran
+from its own prompt to the end of the log, which was safe only because no later Haus prompt could
+exist yet.
+
+A follow-up injected mid-turn commonly merges into one continuous turn: the session answers both
+prompts together and logs a single result after the follow-up's own prompt, not before it (TECH-7,
+round 5). The predecessor's own window never contains that result, so reading it alone would leave
+the predecessor `running` forever and its inbox attention would never fire — not a rare edge case,
+but the normal shape of a merged turn. When a Run's own window carries no result, Claude's adapter
+(`sharedTurnResult` in `observation.ts`) looks past the next Haus prompt for the turn's eventual
+result and settles the predecessor with it too, `completed` or `failed`, with a summary noting it
+continued in that follow-up and naming its Run id. Both Runs settle independently from the same
+provider result and each raises its own ordinary inbox attention; Haus does not deduplicate the two
+attentions, since they carry evidence for different Runs a human or Agent may be tracking
+separately. A Run only keeps reading `running` when nothing — its own window or any later one — has
+produced a result yet, which is exactly the state of work that is still genuinely in progress; the
+existing card-level "No update in `<d>`" liveness warning (from the work's own `updatedAt`, not from
+this reading) already covers a session that goes truly silent, so no new timer is added here.
+
+Once a predecessor is ready to send behind — terminal for Cursor, dispatched for Claude — each send
+uses the Run id as the provider idempotency key, so a retry after a lost response never starts a
+second provider Run. The Cursor adapter classifies a failed send:
 
 - **Definite refusal** — authentication, unknown Agent, invalid input, or any other 4xx except
   request timeout (408), busy (409), too early (425), and rate limiting (429). The Run settles `failed` at once with
@@ -534,11 +584,39 @@ failed send:
   with `provider-launch-rejected`.
 - **Retryable** — those four statuses, 5xx, network, or SDK unavailable. Computer retries with
   backoff (5 seconds, doubling, capped at one minute) and journals the attempt count, first
-  attempt, and last error with the pending prompt. Thirty minutes after the first failed attempt,
-  the Run settles `failed` with `followup-delivery-timeout` and a summary carrying the last error.
-  The clock starts at the first attempt, not at queueing: with predecessors terminal, a busy agent
-  frees within seconds, so busy for half an hour means a Run Haus does not track holds the agent,
-  and an outage that long deserves the delegating Agent's judgment rather than silence.
+  attempt, and last error with the pending prompt, forever: a busy provider never fails the Run.
+  The clock starts at the first attempt, not at queueing. Once ready to send behind its predecessor,
+  a hosted session normally accepts a send right away even while otherwise busy (TECH-7's design
+  refinement — see the live-sessions note below); a send that still keeps failing two minutes in is
+  worth clearing the session's current work for. Computer then asks the provider
+  to interrupt whatever holds the session busy (`send --interrupt`'s own mechanism) and retries the
+  send once, right away. If that delivers, the launched observation carries a one-time note saying
+  so, and the Run proceeds normally — no deadline, no notice. If the interrupt itself fails, or the
+  retry right after it still fails, the still-`queued` observation carries `errorCode:
+  followup-auto-interrupt-failed` and a summary naming the last error, on every retry tick
+  thereafter, until the provider accepts the prompt or a human or the delegating Agent stops,
+  interrupts (`send --interrupt`), or relaunches it. This is a notice, never a failure: the Run
+  stays `queued`, the auto-interrupt is tried at most once, and Computer keeps retrying underneath
+  it.
+
+**Live sessions accept input while busy.** Claude Code's cloud sessions treat a message sent while
+the session is replying as an ordinary queued turn, not a refusal: the changelog documents this
+repeatedly (`claude.ai/code` sessions, `-p`/headless sessions, and `claude agents`'s own busy
+background sessions all accept new input mid-turn), and Haus's own adapter has no Claude-specific
+"busy" handling outside `requires_action` (`settleQuestion`). This is why the auto-interrupt above
+is a fallback, not the normal path: once a send is attempted at all, most of them just work,
+whatever else that session's worker is doing underneath.
+
+While a follow-up sits in Haus's local queue — waiting on a predecessor or between retries — Computer
+reports it `queued` with an `activity` line naming why (waiting on an earlier Run, or the attempt
+count and last error), so the work card's liveness reading and `haus cloud-agent inspect` both carry
+it instead of staying silent until it settles. Once an auto-interrupt still hasn't delivered it, the
+card's follow-up note reads `follow-up waiting: auto-interrupt failed` instead of the ordinary
+`waiting <d>` note (`job.followUp.state: 'stalled'`, `deriveCloudAgentJob` in `packages/haus-api`),
+and Server raises one inbox attention for it. A stuck follow-up keeps reporting the same `errorCode`
+on every tick, so Server dedupes repeats inside one two-hour window to that same attention and opens
+a fresh one each time a new window starts — one notice per stall, a sparse reminder if it is still
+stuck much later, never a flood from the 5-to-60-second retry cadence underneath it.
 
 A Run Server recorded but this Computer never journaled — the sender timed out or crashed between
 the two — never reached Cursor. Its monitor settles it `failed` with `launch-record-missing` after a
@@ -551,8 +629,12 @@ replace that terminal journal record; Computer asks the provider to cancel the l
 
 The delegating Agent, not the card, surfaces delivery failures. Every settled Run creates one inbox
 attention carrying its `errorCode` and `summary`; the Agent explains the failure in the work's
-conversation and decides whether to send again or `start` fresh work. The card keeps reading from
-the newest Run Cursor received, so an undelivered follow-up leaves it as the earlier Run reads.
+conversation and decides whether to send again or `start` fresh work. A follow-up stalled past the
+delivery window creates the same kind of attention without settling anything: the Agent reads the
+same `errorCode` and summary, and decides whether to wait, stop it, interrupt it, or relaunch —
+nothing it does is forced, because the Run is still live underneath. The card keeps reading from the
+newest Run the provider received, so an undelivered follow-up leaves it as the earlier Run reads
+except for the stalled note described above.
 
 ## Results are ordinary Messages
 
@@ -588,17 +670,59 @@ The Claude adapter (`apps/computer/src/cloud-agents/claude/`) drives Claude Code
   was dropped.
 - **Launch.** `claude --cloud <prompt>` runs in a throwaway checkout of the repository at the
   starting ref; the folder-trust prompt is accepted automatically and the checkout is deleted
-  afterwards. Follow-ups run `claude -p --cloud <session> --output-format json <prompt>`.
+  afterwards. The clone is blobless, so only the starting ref's files download, and the checkout
+  uses the GitHub CLI's sign-in as its only GitHub credential when the CLI is installed. Follow-ups run `claude -p --cloud <session> --output-format json <prompt>`.
+- **Environment pin.** Claude Code's own `--cloud` launcher used to pick whichever
+  Anthropic-hosted environment it wanted on each launch, and once picked a stray one that broke
+  1Password secret resolution scoped to the environment that launch actually needed. Every Claude
+  launch on a Computer now runs against one chosen environment, shown at
+  **Settings → Computers → (Computer) → Cloud Agents → the Claude row's environment picker**. A
+  Computer with no pin auto-pins one the first time it is read or launched: the account's
+  environment named **Default** (case-insensitively) if it has one, otherwise its oldest by
+  creation time — never its newest, which is exactly the unstable pick that caused the original
+  incident (`chooseDefaultClaudeEnvironment`,
+  `apps/computer/src/cloud-agents/claude/environments.ts`). That auto-pin is permanent: once
+  written, no later read or launch re-evaluates it, so the picker always shows a real chosen
+  environment and never an empty or warning state. An Owner or Admin can still repoint the pin to
+  any other environment from the picker at any time. The pin is Computer-local, stored beside the
+  default provider choice in `cloud-agents.json` (`claudeEnvironmentId`,
+  `apps/computer/src/cloud-agents/settings.ts`). Before `claude --cloud`
+  runs, Haus writes the pin into Claude Code's own `remote.defaultEnvironmentId` setting as
+  `.claude/settings.local.json` in the throwaway checkout (`writeClaudeEnvironmentPin`,
+  `apps/computer/src/cloud-agents/claude/native-commands.ts`) — the same key a human sets
+  interactively with `/remote-env`. Every launch checks the pin fresh against Anthropic's live
+  environment list (`GET /v1/environment_providers`,
+  `apps/computer/src/cloud-agents/claude/environments.ts`) before doing anything else; a pin
+  missing from that list, or reported archived, refuses the launch outright with
+  `CloudAgentLaunchRejectedError` naming the environment, with no silent fallback to Claude Code's
+  own default. A follow-up resolves no environment, because it targets a session Claude already
+  placed. The chosen environment's id and name ride the `CloudAgentLaunch` the adapter returns
+  (`environmentId`/`environmentName`, both `null` for Cursor and for a follow-up), flow through
+  the Computer's observation to Server the same way `providerAgentId`/`providerUrl`
+  do, and land on the `CloudAgentWork` record. `haus cloud-agent inspect` shows it: a `[name]`
+  marker on the one-line list, and the field in the JSON work detail. The work card's provider
+  mark tooltips **Pinned to `<name>`** when set.
 - **Run tag.** Each prompt's first line is `HAUS_CLOUD_RUN=<workId>/<runId>`. Launch returns no Run
   id, so the tagged prompt's event id becomes the Run's `providerRunId` once Computer observes it.
 - **Monitoring.** Computer polls Claude's session controller API about every 10 seconds: session
   `worker_status` (`running`, `idle`, `requires_action`), `status` (`active`, `archived`), and the
-  session event log.
+  session event log. The event log is read newest-first, paginating backward until this Run's own
+  tagged prompt turns up, bounded so one undiscovered Run never pays for an unbounded scan. Once
+  found, Computer keeps that window in memory and later ticks resume from its newest event instead
+  of rescanning the whole history again, so a long, busy session costs no more per poll than a
+  short one (TECH-7). A session with enough background activity before Computer ever discovers the
+  prompt — after a restart, say — can still log more than the bounded scan reads back through; that
+  reading reports `running` with `errorCode` `claude-prompt-not-found` and one inbox attention
+  rather than `queued`, since reading `queued` forever would leave the Run looking unaddressed even
+  once it has long finished with no sign anything was cut off. The Server side also never lets a
+  non-terminal Run or its work record regress to `queued` once it has read anything else, so a
+  Run already known to be addressed keeps that status even while this gap persists.
 - **Mapping.**
 
   | Claude session state | Haus status |
   | --- | --- |
   | Tagged prompt not yet in the log | `queued` (`expired` if the session is archived) |
+  | Tagged prompt lost behind the scan's bound | `running` with `errorCode` `claude-prompt-not-found` |
   | `requires_action` | `pending_input`; the open AskUserQuestion, or the tool Claude asks to use, is the summary |
   | `idle` with no open background tasks after a result | `completed`, or `failed` with `errorCode` `claude-<subtype>` |
   | Haus's own interrupt acknowledged and the worker not running | `cancelled` |

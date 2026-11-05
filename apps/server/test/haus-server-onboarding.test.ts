@@ -361,7 +361,7 @@ test('creates and applies one immutable Cove through a replayable Computer opera
         ],
         type: 'start',
     });
-    expect(replayFrames.filter((frame) => frame.type === 'start')).toHaveLength(1);
+    expect(replayFrames.filter((frame) => frame.type === 'start' && !frame.greets)).toHaveLength(1);
     const [beforeGreeting] = await harness.sql`
         select count(*)::int as count from chat_messages
         where server_id = ${created.id} and chat_id = ${created.onboarding.channelId}

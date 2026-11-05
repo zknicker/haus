@@ -35,6 +35,7 @@ test('maps each inbox source to its narrow trigger kind', () => {
     expect(at('trigger')).toEqual({ chatId: 'cht_one', kind: 'trigger' });
     expect(at('cloud_agent_work')).toEqual({ chatId: 'cht_one', kind: 'cloud_agent' });
     expect(at('onboarding')).toEqual({ chatId: 'cht_one', kind: 'onboarding' });
+    expect(at('greeting', 'greeting:agt_one')).toEqual({ chatId: 'cht_one', kind: 'greeting' });
     expect(at('something_new')).toBeNull();
     expect(agentTurnTrigger(null)).toBeNull();
 });

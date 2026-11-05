@@ -1,10 +1,10 @@
-import type {
-    CloudAgentCancelCommand,
-    CloudAgentObservation,
-    CloudAgentProvider as CloudAgentProviderId,
-    CloudAgentReconcileEntry,
+import {
+    type CloudAgentCancelCommand,
+    type CloudAgentObservation,
+    type CloudAgentProvider as CloudAgentProviderId,
+    type CloudAgentReconcileEntry,
+    isTerminalCloudAgentStatus,
 } from '@haus/api';
-import { isTerminalCloudAgentStatus } from '@haus/api';
 import { settle } from '@haus/effect';
 import { Deferred, type Duration, Effect, Exit, Scope } from 'effect';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
@@ -13,12 +13,13 @@ import { withPullRequestEvidence } from './github/observation-evidence.ts';
 import { createPullRequestReader } from './github/pull-request-reader.ts';
 import { CloudLaunchJournal } from './launch-journal.ts';
 import { CloudAgentLaunchScope } from './launch-scope.ts';
-import { CloudAgentLocalRuns } from './local-runs.ts';
+import { autoInterruptNote, CloudAgentLocalRuns } from './local-runs.ts';
 import { type EnrichObservation, ObservationReports } from './observation-reports.ts';
-import type {
-    CloudAgentProvider,
-    CloudAgentProviderObservation,
-    CloudAgentRunRef,
+import {
+    type CloudAgentProvider,
+    type CloudAgentProviderObservation,
+    type CloudAgentRunRef,
+    cloudAgentLaunchObservation,
 } from './provider.ts';
 import { cloudAgentProvider } from './registry.ts';
 import { CloudAgentSendQueue } from './send-queue.ts';
@@ -62,7 +63,7 @@ export class CloudAgentWorkSupervisor {
         }
     ) {
         const journal = new CloudLaunchJournal(options.dataRoot);
-        this.provider = options.provider ?? cloudAgentProvider;
+        this.provider = options.provider ?? ((id) => cloudAgentProvider(id, options.dataRoot));
         const sends = new CloudAgentSendQueue(runtime, journal, options.serverId, this.provider);
         this.localRuns = new CloudAgentLocalRuns(journal, options.serverId, sends);
         this.launches = new CloudAgentLaunchScope(runtime);
@@ -106,7 +107,6 @@ export class CloudAgentWorkSupervisor {
     report(ref: CloudAgentRunRef, observation: CloudAgentProviderObservation): void {
         this.connection?.sink({ ...observation, runId: ref.runId, workId: ref.workId });
     }
-
     watch(ref: CloudAgentRunRef): void {
         this.admit(ref, false);
     }
@@ -266,13 +266,12 @@ export class CloudAgentWorkSupervisor {
                 providerAgentId: state.launch.providerAgentId,
                 providerRunId: run.ref.providerRunId ?? state.launch.providerRunId,
             };
-            const { providerRunId, providerUrl, ...launch } = state.launch;
-            self.observe(connection, run, {
-                ...launch,
-                ...(providerRunId ? { providerRunId } : {}),
-                ...(providerUrl ? { providerUrl } : {}),
-                observedAt: state.observedAt,
-            });
+            const extra = autoInterruptNote(state.autoInterrupted);
+            self.observe(
+                connection,
+                run,
+                cloudAgentLaunchObservation(state.launch, state.observedAt, extra)
+            );
             return !run.terminal;
         });
     }

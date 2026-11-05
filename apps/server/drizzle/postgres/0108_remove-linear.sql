@@ -1,3 +1,6 @@
+-- Deferred foreign-key checks would otherwise leave trigger events pending
+-- on tables this migration then alters.
+SET CONSTRAINTS ALL IMMEDIATE;--> statement-breakpoint
 DROP TABLE "linear_identities" CASCADE;--> statement-breakpoint
 DROP TABLE "linear_oauth_attempts" CASCADE;--> statement-breakpoint
 DROP TABLE "linear_workspaces" CASCADE;--> statement-breakpoint

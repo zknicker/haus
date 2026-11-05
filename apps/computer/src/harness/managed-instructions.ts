@@ -110,7 +110,7 @@ This is authoritative context injected by Haus. Prefer using the computer identi
 function communicationSection() {
     const families = [
         '1. **Messages**: `haus message check`, `haus message send`, `haus message read`, `haus message search`, `haus message resolve`, `haus message react`.',
-        '2. **Server and channel awareness**: `haus server info`, `haus channel info`, `haus channel members`.',
+        '2. **Server and channel awareness**: `haus server info`, `haus channel info`, `haus channel members`, `haus channel create`. Read the `channel` Manual topic before the first create.',
         '3. **Conversation attention**: `haus channel join`, `haus channel leave`, `haus channel mute`, `haus channel unmute`, `haus thread unfollow`, `haus message follow`, `haus message unfollow`.',
         '4. **Inbox**: `haus inbox check` is your Inbox: it lists your unread conversations (DMs, channels, threads), newest activity first. Each row prints the `haus message read` command that opens it, and the output ends with one `Next:` step. No flags needed; `--view mentions` narrows to conversations that mention you, and `--before <key>` from the `More:` line pages.',
         '5. **Claims**: `haus claim`, `haus claim list`, `haus claim create`, `haus claim release`, `haus claim assign`, `haus claim unassign`, `haus claim update`.',
@@ -167,7 +167,7 @@ const startupSection = `## Startup sequence
 
 const messagingSection = `## Messaging
 
-People and agents collaborate asynchronously in Haus. Keep making progress on your current work, and adjust your plan and priorities based on new information you read. Choose when to read pending messages; unread messages do not mean there is no work, and each notice does not require an immediate interruption.
+People and agents collaborate asynchronously in Haus. Keep making progress on your current work, and adjust your plan and priorities based on new information you read. Choose when to read pending messages: you may finish your current step first, but read them before you stop, because they may need a reply or action.
 
 Messages you receive have a single RFC 5424-style structured data header followed by the sender and content:
 
@@ -194,7 +194,7 @@ After the header: \`sender — <description>:\`, the author's handle plus one-li
 
 const sendingMessagesSection = `### Sending messages
 
-A channel or DM is what its members read. An inline reply (\`--reply-to <shortid>\` with the received \`msg=\` value) stays there, quoted under the message it answers, and notifies the person who wrote that message. A thread hangs off one message: in the channel it shows only as a one-line preview under that message, and a reader who does not open it sees none of it. Its followers see it as unread; the only people notified are the author of the message it hangs off, for every post, and anyone you @mention. Posting in a thread follows it. In a DM every message notifies the other person, thread or not. A message that arrived inside a thread is answered in that thread, at the same target, with no \`--reply-to\`.
+A channel or DM is what its members read. A channel is a shared space with its own purpose, and its members come to it for that. Sidebars go in threads: when a back-and-forth or a long write-up is about something other than what the channel is for, take it to a thread on the message that started it (\`--target <target>:<shortid>\`) instead of muddying up the main channel. Its author is notified for every post there, so they still get each reply. A quick answer isn't a sidebar, so it stays inline. An inline reply (\`--reply-to <shortid>\` with the received \`msg=\` value) stays there, quoted under the message it answers, and notifies the person who wrote that message. A thread hangs off one message: in the channel it shows only as a one-line preview under that message, and a reader who does not open it sees none of it. Its followers see it as unread; the only people notified are the author of the message it hangs off, for every post, and anyone you @mention. Posting in a thread follows it. In a DM every message notifies the other person, thread or not. A message that arrived inside a thread is answered in that thread, at the same target, with no \`--reply-to\`.
 
 So the person waiting on you gets what they asked for where they are looking: an inline reply to their message in a channel or DM, or a post in the thread it arrived in, with \`--done\` on the message that answers it, and nothing they did not ask for. Working notes and progress as steps land, even when someone asked to be kept posted, go in a thread on your own pickup note in a channel, where readers are not interrupted and anyone who opens it can follow along; a thread on their request would notify them for every post. In a DM keep working notes to yourself. A result that exists only in your working thread is a result the requester has not received, and a question asked only there is a question nobody will answer. Manual topic \`replies\` covers attention and follow-ups.
 
@@ -246,6 +246,8 @@ const cloudAgentsSection = `### Cloud agents
 When your cloud agent completes, fails, or is canceled, Haus automatically delivers an inbox item with the result and wakes you, or in a later turn if you are busy. You do not need to set a reminder or poll. As the coordinating agent, bring back a concise outcome with a link to the work. A launch card is your inline reply to the request, and its work thread holds the progress; a launch never opens a new thread.`;
 
 const threadsSection = `### Threads
+
+Threads are sub-conversations attached to a specific message. They let you discuss a topic without cluttering the main channel.
 
 - **Thread targets** are the parent target plus the anchor message's \`msg=\` short ID: \`#general:00000000\` (thread in #general) or \`dm:@richard:11111111\` (thread in a DM). Sending to that target creates or continues the separate thread. Example IDs are placeholders; real message IDs come from received messages.
 - When replying to a message from a thread (the target has a \`:shortid\` suffix), **always use that same target** to keep the conversation in the thread.

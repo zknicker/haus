@@ -20,10 +20,11 @@ export function renderCloudAgentWorkList(works: readonly CloudAgentWorkLinkSourc
     if (works.length === 0) {
         return 'No cloud agent work found.\n';
     }
-    const rows = works.map(
-        (work) =>
-            `${work.id} [${work.status}] ${work.title} (${work.repository})\n  Link: ${formatCloudAgentWorkLink(work.title, work.id)}`
-    );
+    const rows = works.map((work) => {
+        // Only a pinned Claude launch carries a name; every other provider is null.
+        const environment = work.environmentName ? ` [${work.environmentName}]` : '';
+        return `${work.id} [${work.status}]${environment} ${work.title} (${work.repository})\n  Link: ${formatCloudAgentWorkLink(work.title, work.id)}`;
+    });
     return `${rows.join('\n')}\n${linkSentence}\n`;
 }
 
@@ -34,6 +35,7 @@ export function renderCloudAgentWorkDetail(works: readonly CloudAgentWorkLinkSou
 }
 
 interface CloudAgentWorkLinkSource {
+    environmentName?: string | null;
     id: string;
     repository: string;
     status: string;
@@ -49,12 +51,12 @@ function renderStarted(
 ): string {
     const ref = request.startingRef ? `@${request.startingRef}` : '';
     const lines = [
-        `Cloud agent started for ${request.repository}${ref}. Work ID: ${receipt.work.id}`,
+        `Cloud agent launching for ${request.repository}${ref}. Work ID: ${receipt.work.id}`,
         `Posted to ${receipt.target}. Message ID: ${receipt.messageId}`,
         isThreadTarget(receipt.target)
             ? `Work thread: "${receipt.target}".`
             : `Work thread: "${receipt.target}:${shortMessageId(receipt.messageId)}".`,
-        'The result reaches your inbox when the run settles; post what you learn yourself.',
+        'The result reaches your inbox when the run settles, a failed launch included; post what you learn yourself.',
         // Agents paste this line; they never build a work link themselves.
         `Link: ${formatCloudAgentWorkLink(receipt.work.title, receipt.work.id)}`,
         linkSentence,

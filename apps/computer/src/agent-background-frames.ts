@@ -5,13 +5,15 @@ import type { AgentWorkCoordinator } from './agent-work-coordinator.ts';
 import type { BackgroundWorkReporter } from './background-work-reporter.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
 import { evictWarmRuntime } from './runtime/runtime-context.ts';
+import { handleServerRuntimeSettingsFrame } from './server-runtime-settings-frame.ts';
 
 /**
- * Server frames about an Agent's run and the work it leaves running. A human Stop: `stop` kills
- * the named run's turn; `agent-stop-background` then ends the Agent's runtime process, and with
- * it the background sub-agents and shells it left running between turns, once any live turn
- * has settled and parked it. `agent-subagent-wake-result` answers a wake request. Returns
- * whether `frame` was one.
+ * Server frames about an Agent's run and what its runtime does between turns. A human Stop:
+ * `stop` kills the named run's turn; `agent-stop-background` then ends the Agent's runtime
+ * process, and with it the background sub-agents and shells it left running between turns, once
+ * any live turn has settled and parked it. `agent-subagent-wake-result` answers a wake request.
+ * `server-runtime-settings` sets whether parked sessions compact while idle. Returns whether
+ * `frame` was one.
  */
 export function handleBackgroundFrame(
     frame: unknown,
@@ -24,6 +26,9 @@ export function handleBackgroundFrame(
         track<Result>(operation: Promise<Result>): Promise<Result>;
     }
 ): boolean {
+    if (handleServerRuntimeSettingsFrame(frame, deps.runtime)) {
+        return true;
+    }
     const stop = parseStopCommand(frame);
     if (stop) {
         deps.agentWork.abortRun(stop.runId);

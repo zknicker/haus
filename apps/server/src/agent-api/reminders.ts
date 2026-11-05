@@ -4,7 +4,6 @@ import { agentCanAccessAnchor } from '../reminders/reminder-model.ts';
 import type { AuthorReminder } from '../reminders/reminders.ts';
 import {
     cancelReminder,
-    listReminderFires,
     listReminders,
     readOwnedReminder,
     scheduleReminder,
@@ -13,6 +12,8 @@ import {
 } from '../reminders/reminders.ts';
 import { resolveAgentMessage } from './message-read.ts';
 import { targetForChat } from './message-view.ts';
+
+export { readAgentReminderLog } from './reminder-log.ts';
 
 const clock = { now: () => new Date() };
 
@@ -24,12 +25,14 @@ export async function scheduleAgentReminder(
     input: {
         commandId: string;
         description?: string;
+        failAfter?: number;
         fireAt?: string;
         messageId: string;
         repeat?: string;
         script?: string;
         title: string;
         timezone?: string;
+        wakeOnChange?: boolean;
     }
 ) {
     const anchor = await resolveAgentMessage(db, runner, input.messageId);
@@ -42,12 +45,14 @@ export async function scheduleAgentReminder(
             anchorMessageId: anchor.id,
             commandId: input.commandId,
             description: input.description,
+            failAfter: input.failAfter,
             fireAt,
             repeat: input.repeat,
             script: input.script,
             serverId: runner.serverId,
             title: input.title,
             timezone: input.timezone,
+            wakeOnChange: input.wakeOnChange,
         },
         clock
     );
@@ -109,6 +114,7 @@ export async function updateAgentReminder(
     runner: ResolvedRunner,
     input: {
         description?: string | null;
+        failAfter?: number | null;
         fireAt?: string;
         commandId: string;
         expectedVersion: number;
@@ -116,6 +122,7 @@ export async function updateAgentReminder(
         repeat?: string | null;
         script?: string | null;
         title?: string;
+        wakeOnChange?: boolean;
     }
 ) {
     await readOwnedReminder(db, {
@@ -132,6 +139,8 @@ export async function updateAgentReminder(
             ...('repeat' in input ? { repeat: input.repeat } : {}),
             ...('script' in input ? { script: input.script } : {}),
             ...(input.title ? { title: input.title } : {}),
+            ...('failAfter' in input ? { failAfter: input.failAfter } : {}),
+            ...('wakeOnChange' in input ? { wakeOnChange: input.wakeOnChange } : {}),
         }),
         clock
     );
@@ -170,63 +179,6 @@ export async function cancelAgentReminder(
     };
 }
 
-export async function readAgentReminderLog(
-    db: HausDatabase,
-    runner: ResolvedRunner,
-    input: { id?: string; limit: number }
-) {
-    const reminders = input.id
-        ? [await visibleOwnedReminder(db, runner, input.id)]
-        : await listReminders(db, {
-              actor: { agentId: runner.agentId, kind: 'agent' },
-              serverId: runner.serverId,
-          });
-    const fires = (
-        await Promise.all(
-            reminders.map((reminder) =>
-                listReminderFires(db, {
-                    actor: { agentId: runner.agentId, kind: 'agent' },
-                    reminderId: reminder.id,
-                    serverId: runner.serverId,
-                })
-            )
-        )
-    )
-        .flat()
-        .sort((left, right) => right.firedAt.localeCompare(left.firedAt))
-        .slice(0, input.limit);
-    return {
-        runs: fires.map((fire) => ({
-            firedAt: fire.firedAt,
-            id: fire.id,
-            outcome: fire.scriptTimedOut
-                ? 'timed_out'
-                : fire.scriptExitCode && fire.scriptExitCode !== 0
-                  ? 'failed'
-                  : 'fired',
-            output: fire.scriptOutput ?? null,
-            reminderId: fire.reminderId,
-            scriptExitCode: fire.scriptExitCode ?? null,
-        })),
-    };
-}
-
-async function visibleOwnedReminder(
-    db: HausDatabase,
-    runner: ResolvedRunner,
-    id: string
-): Promise<AuthorReminder> {
-    const reminders = await listReminders(db, {
-        actor: { agentId: runner.agentId, kind: 'agent' },
-        serverId: runner.serverId,
-    });
-    const reminder = reminders.find((candidate) => candidate.id === id);
-    if (!reminder) {
-        throw new Error('The reminder is not owned by this Agent.');
-    }
-    return reminder;
-}
-
 function commandInput<Extra extends object>(
     runner: ResolvedRunner,
     input: { commandId: string; expectedVersion: number; id: string },
@@ -247,6 +199,7 @@ async function toCliReminder(db: HausDatabase, serverId: string, reminder: Autho
             ? await targetForChat(db, serverId, reminder.anchorChatId)
             : ANCHOR_NOT_ACCESSIBLE,
         description: reminder.description,
+        failAfter: reminder.failAfter,
         fireAt: reminder.fireAt,
         id: reminder.id,
         repeat: reminder.repeat,
@@ -255,5 +208,6 @@ async function toCliReminder(db: HausDatabase, serverId: string, reminder: Autho
         title: reminder.title,
         timezone: reminder.timezone,
         version: reminder.version,
+        wakeOnChange: reminder.wakeOnChange,
     };
 }

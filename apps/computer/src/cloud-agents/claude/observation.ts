@@ -2,7 +2,13 @@ import { cloudAgentActivityMaxLength, cloudAgentSummaryMaxLength } from '@haus/a
 import type { CloudAgentProviderObservation } from '../provider.ts';
 import type { ClaudeSession, ClaudeSessionEvent } from './controller.ts';
 import { evidence } from './evidence.ts';
-import { type ClaudeLogEntry, claudeRunTag, logEntriesOf } from './session-events.ts';
+import {
+    type ClaudeLogEntry,
+    claudeRunTag,
+    isHausPrompt,
+    isRunPrompt,
+    logEntriesOf,
+} from './session-events.ts';
 
 type Entry<Kind extends ClaudeLogEntry['kind']> = Extract<ClaudeLogEntry, { kind: Kind }>;
 
@@ -21,12 +27,17 @@ type Entry<Kind extends ClaudeLogEntry['kind']> = Extract<ClaudeLogEntry, { kind
  * - Haus's own interrupt, acknowledged and no longer running, is `cancelled`.
  * - An archived session that never finished the Run is `expired`.
  */
+/** A non-terminal Run reporting this never settles it, but still wakes the delegating Agent. */
+export const claudePromptNotFoundErrorCode = 'claude-prompt-not-found';
+
 export function claudeRunObservation(input: {
     cancelRequestId: string;
     events: ClaudeSessionEvent[];
     observedAt: string;
     ref: { runId: string; workId: string };
     session: ClaudeSession;
+    /** The backward scan for this Run's own prompt gave up before reaching it or the log's end. */
+    truncated?: boolean;
 }): CloudAgentProviderObservation {
     const { observedAt, session } = input;
     const tag = claudeRunTag(input.ref);
@@ -38,11 +49,24 @@ export function claudeRunObservation(input: {
     );
     const prompt = chronological[start] as Entry<'prompt'> | undefined;
     if (!prompt) {
-        return session.status === 'archived'
+        if (session.status === 'archived') {
+            return {
+                observedAt,
+                status: 'expired',
+                summary: 'The Claude session was archived before it took this prompt.',
+            };
+        }
+        // A session with enough activity can hide this Run's own prompt past
+        // the scan's reach. Reading `queued` forever with no sign of that
+        // would leave the Run silently unaddressed even once it has long
+        // finished, so this reads as still in progress with a visible cause
+        // instead (TECH-7).
+        return input.truncated
             ? {
+                  errorCode: claudePromptNotFoundErrorCode,
                   observedAt,
-                  status: 'expired',
-                  summary: 'The Claude session was archived before it took this prompt.',
+                  status: 'running',
+                  summary: 'Claude’s session log is too large to find this Run’s own prompt in it.',
               }
             : activity(
                   observedAt,
@@ -50,17 +74,28 @@ export function claudeRunObservation(input: {
                   'Waiting for Claude to take the prompt.'
               );
     }
-    const after = chronological.slice(start + 1);
-    return afterPrompt(
-        {
-            ...evidence(after),
-            observedAt,
-            providerRunId: prompt.id,
-            rawStatus: session.workerStatus,
-        },
-        after,
-        input
-    );
+    // Bounded at the next Haus prompt: Haus may already have sent a follow-up
+    // into this same session before this Run's own turn finished, so reading
+    // past that point would attribute a later Run's activity and result to
+    // this one.
+    const rest = chronological.slice(start + 1);
+    const nextPromptOffset = rest.findIndex(isHausPrompt);
+    const after = nextPromptOffset === -1 ? rest : rest.slice(0, nextPromptOffset);
+    // Claude took the prompt when it logged it; the reading's own time is only when Haus looked.
+    const startedAt = input.events.find((event) => isRunPrompt(event, tag))?.createdAt;
+    const base: Base = {
+        ...evidence(after),
+        observedAt,
+        providerRunId: prompt.id,
+        rawStatus: session.workerStatus,
+        ...(startedAt ? { startedAt: new Date(startedAt).toISOString() } : {}),
+    };
+    const observation = afterPrompt(base, after, input);
+    if (observation.status !== 'running' || nextPromptOffset === -1) {
+        return observation;
+    }
+    const shared = sharedTurnResult(rest, nextPromptOffset);
+    return shared ? sharedResultObservation(base, shared) : observation;
 }
 
 type Base = Omit<CloudAgentProviderObservation, 'status'>;
@@ -124,6 +159,47 @@ function resultObservation(base: Base, result: Entry<'result'>): CloudAgentProvi
         status: 'failed',
         summary: bounded(
             result.text ?? `Claude stopped: ${result.subtype}.`,
+            cloudAgentSummaryMaxLength
+        ),
+    };
+}
+
+/**
+ * A follow-up injected mid-turn can merge into one continuous turn whose
+ * result logs after that follow-up's own prompt, not before it. This Run's
+ * own window carried no result, so look past the next Haus prompt for the
+ * turn's eventual, shared one rather than leaving this Run reading `running`
+ * forever (TECH-7, round 5).
+ */
+function sharedTurnResult(
+    rest: ClaudeLogEntry[],
+    nextPromptOffset: number
+): { followUpRunId: string; result: Entry<'result'> } | null {
+    const result = rest
+        .slice(nextPromptOffset)
+        .find((entry): entry is Entry<'result'> => entry.kind === 'result');
+    if (!result) {
+        return null;
+    }
+    const followUpPrompt = rest[nextPromptOffset] as Entry<'prompt'>;
+    return { followUpRunId: runIdOf(followUpPrompt.text), result };
+}
+
+function runIdOf(text: string): string {
+    const tag = text.split(/\r?\n/u).find((line) => line.trim().startsWith('HAUS_CLOUD_RUN='));
+    return tag?.trim().split('/').at(-1) ?? 'a later follow-up';
+}
+
+function sharedResultObservation(
+    base: Base,
+    shared: { followUpRunId: string; result: Entry<'result'> }
+): CloudAgentProviderObservation {
+    const settled = resultObservation(base, shared.result);
+    const note = `Continued in follow-up ${shared.followUpRunId}, which finished it.`;
+    return {
+        ...settled,
+        summary: bounded(
+            settled.summary ? `${note} ${settled.summary}` : note,
             cloudAgentSummaryMaxLength
         ),
     };

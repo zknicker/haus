@@ -13,6 +13,7 @@ import { markAllComputersOffline } from './computers/service.ts';
 import { startComputerAttachmentSocket } from './computers/socket.ts';
 import { productionComputerManifestUrl } from './computers/update.ts';
 import { githubDeliveryIngest } from './github/deliveries.ts';
+import { createGithubBot, githubInstallationLookup } from './github/github-bot.ts';
 import { githubSignedInHook } from './github/installation-sweep.ts';
 import { createHausContextFactory, type HausContextDependencies } from './haus-api/context.ts';
 import { startHausWebSocketServer } from './haus-api/ws.ts';
@@ -102,7 +103,12 @@ export async function createHausServerApplication(
         // One inbound budget per trigger, shared by the public route, GitHub fires,
         // and the operator's test fire: a test costs exactly what a real delivery does.
         const triggerRateLimiter = new TriggerRateLimiter();
-        const startedMcpRuntime = new McpRuntime(connectedHaus.db, runtime, { hostedMcps });
+        const startedMcpRuntime = new McpRuntime(connectedHaus.db, runtime, {
+            githubBot: options.githubApp
+                ? createGithubBot(options.githubApp, githubInstallationLookup(connectedHaus.db))
+                : undefined,
+            hostedMcps,
+        });
         handles.mcpRuntime = startedMcpRuntime;
         void startedMcpRuntime.start();
         const mcpIconResolver = makeMcpIconResolver(runtime);

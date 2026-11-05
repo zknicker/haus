@@ -37,6 +37,10 @@ export function createCursorCloudAgentProvider(transport: CursorTransport): Clou
             await run(() => transport.logout());
             return { ready: false as const, reason: 'not-connected' as const };
         },
+        // Cursor has no cloud environment concept to pin.
+        listEnvironments() {
+            return Promise.resolve([]);
+        },
         listModels() {
             return run(() => transport.listModels());
         },
@@ -77,6 +81,8 @@ export function createCursorCloudAgentProvider(transport: CursorTransport): Clou
                 throw new Error('Cursor follow-up returned a different provider Agent');
             }
             return {
+                environmentId: null,
+                environmentName: null,
                 providerAgentId: launch.agentId,
                 providerRunId: launch.reading.runId,
                 providerUrl: cursorAgentUrl(launch.agentId),
@@ -96,6 +102,8 @@ export function createCursorCloudAgentProvider(transport: CursorTransport): Clou
                 })
             );
             return {
+                environmentId: null,
+                environmentName: null,
                 providerAgentId: launch.agentId,
                 providerRunId: launch.reading.runId,
                 providerUrl: cursorAgentUrl(launch.agentId),

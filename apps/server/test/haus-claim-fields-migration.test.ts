@@ -7,13 +7,13 @@ import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { startPostgresCluster } from './postgres-cluster.ts';
 
 /**
- * ADR 0051 decision 2 over rows 0110 left: an Agent's claim keeps its lock
+ * ADR 0051 decision 2 over rows 0114 left: an Agent's claim keeps its lock
  * fields, its priority and labels go, and the label catalog stays for Tasks.
  */
-test('0111 drops claim priority and labels and keeps the label catalog', async () => {
+test('0115 drops claim priority and labels and keeps the label catalog', async () => {
     const scene = await migrationScene('haus-claim-fields-');
     try {
-        await scene.migrateThrough(110);
+        await scene.migrateThrough(114);
         await scene.database.begin(async (tx) => {
             await tx`SET LOCAL session_replication_role = replica`;
             await tx`INSERT INTO task_labels (server_id, id, name, color)
@@ -27,7 +27,7 @@ test('0111 drops claim priority and labels and keeps the label catalog', async (
                 VALUES ('srv_one', 'msg_claim', 'lbl_one')`;
         });
 
-        expect(await scene.migrateThrough(111)).toEqual(['0111_drop-claim-priority-labels']);
+        expect(await scene.migrateThrough(115)).toEqual(['0115_drop-claim-priority-labels']);
 
         expect(
             await scene.database`SELECT message_id, number, origin, status FROM message_claims`
@@ -49,17 +49,17 @@ test('0111 drops claim priority and labels and keeps the label catalog', async (
             await scene.database`SELECT conname FROM pg_constraint
                 WHERE conname = 'message_claims_priority'`
         ).toEqual([]);
-        expect(await scene.migrateThrough(111)).toEqual([]);
+        expect(await scene.migrateThrough(115)).toEqual([]);
     } finally {
         await scene.close();
     }
 }, 60_000);
 
-/** A real upgrade applies both at once: 0110 deletes the rows 0111's tables held. */
-test('0111 runs in the same batch as the 0110 claim move', async () => {
+/** A real upgrade applies both at once: 0114 deletes the rows 0115's tables held. */
+test('0115 runs in the same batch as the 0114 claim move', async () => {
     const scene = await migrationScene('haus-claim-fields-batch-');
     try {
-        await scene.migrateThrough(109);
+        await scene.migrateThrough(113);
         await scene.database.begin(async (tx) => {
             await tx`SET LOCAL session_replication_role = replica`;
             await tx`INSERT INTO servers (id, slug, display_name) VALUES ('srv_one', 'one', 'One')`;
@@ -80,9 +80,9 @@ test('0111 runs in the same batch as the 0110 claim move', async () => {
                 VALUES ('srv_one', 'msg_composed', 'lbl_one')`;
         });
 
-        expect(await scene.migrateThrough(111)).toEqual([
-            '0110_task-boards',
-            '0111_drop-claim-priority-labels',
+        expect(await scene.migrateThrough(115)).toEqual([
+            '0114_task-boards',
+            '0115_drop-claim-priority-labels',
         ]);
 
         expect(

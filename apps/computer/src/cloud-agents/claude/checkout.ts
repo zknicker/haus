@@ -7,7 +7,9 @@ import { CloudAgentLaunchRejectedError } from '../provider.ts';
  * Runs `launch` inside a throwaway checkout of the requested repository at the
  * requested ref. Claude's `--cloud` launcher reads the repository and branch
  * from its working directory; a private checkout keeps every launch away from
- * the person's own clones. The checkout is removed afterwards either way.
+ * the person's own clones. The clone is blobless, so only the starting ref's
+ * files download: a full history made large repositories outlast the launch.
+ * The checkout is removed afterwards either way.
  */
 export async function withClaudeCheckout<T>(
     input: { ref: string | null; repository: string; signal?: AbortSignal },
@@ -33,7 +35,8 @@ export async function withClaudeCheckout<T>(
         }
         await git(
             directory,
-            ['checkout', '--detach', commit],
+            // A blobless checkout fetches the ref's files, so it needs the clone's GitHub access.
+            [...githubCredentialArgs(), 'checkout', '--detach', commit],
             'check out the starting ref',
             input.signal
         );
@@ -47,8 +50,8 @@ export async function withClaudeCheckout<T>(
 async function clone(repository: string, directory: string, signal?: AbortSignal): Promise<void> {
     const url = `https://github.com/${repository}.git`;
     const command = Bun.which('gh')
-        ? ['gh', 'repo', 'clone', url, directory, '--', '--no-checkout']
-        : ['git', 'clone', '--no-checkout', url, directory];
+        ? ['gh', 'repo', 'clone', url, directory, '--', '--no-checkout', '--filter=blob:none']
+        : ['git', 'clone', '--no-checkout', '--filter=blob:none', url, directory];
     const child = Bun.spawn(command, {
         stderr: 'ignore',
         stdout: 'ignore',
@@ -63,6 +66,19 @@ async function clone(repository: string, directory: string, signal?: AbortSignal
     }
 }
 
+/** GitHub CLI's sign-in as GitHub's only credential helper, the way `gh repo clone` sets it. */
+function githubCredentialArgs(): string[] {
+    const gh = Bun.which('gh');
+    return gh
+        ? [
+              '-c',
+              'credential.https://github.com.helper=',
+              '-c',
+              `credential.https://github.com.helper=!"${gh}" auth git-credential`,
+          ]
+        : [];
+}
+
 async function git(
     directory: string,
     args: string[],
@@ -73,7 +89,7 @@ async function git(
         cwd: directory,
         stderr: 'ignore',
         stdout: 'ignore',
-        timeout: 30_000,
+        timeout: 120_000,
         signal,
         killSignal: 'SIGKILL',
     });

@@ -13,6 +13,8 @@ const ref = {
     providerRunId: null,
 };
 const launch = {
+    environmentId: 'env_bidbeacon',
+    environmentName: 'BidBeacon',
     providerAgentId: 'provider-agent',
     providerRunId: 'provider-run',
     providerUrl: null,
@@ -45,6 +47,7 @@ test('a saved provider address survives restart and contains no instructions or 
     await journal.claim('server', ref);
     await journal.record('server', ref, launch);
     expect(await new CloudLaunchJournal(root).read('server', ref)).toEqual({
+        autoInterrupted: false,
         phase: 'launched',
         workId: ref.workId,
         launch,
@@ -55,6 +58,7 @@ test('a saved provider address survives restart and contains no instructions or 
         'phase',
         'workId',
         'launch',
+        'autoInterrupted',
     ]);
 });
 
@@ -84,6 +88,28 @@ test('a rejection recorded before rejections carried a reason reads as a launch 
         workId: ref.workId,
         errorCode: 'provider-launch-rejected',
         summary: null,
+    });
+});
+
+test('a launch recorded before the environment pin existed reads as unpinned', async () => {
+    const root = await directory();
+    const journal = new CloudLaunchJournal(root);
+    await journal.claim('server', ref);
+    await writeFile(
+        await recordPath(root),
+        JSON.stringify({
+            phase: 'launched',
+            workId: ref.workId,
+            launch: {
+                providerAgentId: launch.providerAgentId,
+                providerRunId: launch.providerRunId,
+                providerUrl: launch.providerUrl,
+                status: launch.status,
+            },
+        })
+    );
+    expect(await journal.read('server', ref)).toMatchObject({
+        launch: { environmentId: null, environmentName: null },
     });
 });
 

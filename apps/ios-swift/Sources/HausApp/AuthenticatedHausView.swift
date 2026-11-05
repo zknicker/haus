@@ -20,6 +20,7 @@ struct AuthenticatedHausView: View {
     @State var agentCall: AgentCallRequest?
     /// The message a drawer's Convert to Task is converting.
     @State var convertingMessage: MessagePresentation?
+    @State var failedWorkOpenID: String?
     /// A cold start lands on the Inbox, which is the canvas itself rather than
     /// a screen over it; see `AuthenticatedHausView+Routes`.
     @State var showsInboxCanvas = true
@@ -279,12 +280,6 @@ struct AuthenticatedHausView: View {
                 )
             }
         }
-    }
-
-    /// Owners and Admins may cancel a live Cloud Agent run from its card.
-    private var cloudAgentCancel: CloudAgentCancelAction? {
-        guard store.canManageServer else { return nil }
-        return CloudAgentCancelAction { [store] workID in try await store.cancelCloudAgent(workID: workID) }
     }
 
     private var appearanceBinding: Binding<AppearancePreference> {

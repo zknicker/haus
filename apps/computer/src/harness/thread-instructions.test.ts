@@ -12,6 +12,12 @@ test('Sending teaches placement as what a reader sees, and Threads describe targ
     });
     const sending = instructions.split('### Sending messages')[1]?.split('### ')[0] ?? '';
     expect(sending).toContain('A channel or DM is what its members read.');
+    // What a channel is for, and sidebars move to a thread; a quick answer stays inline.
+    expect(sending).toContain(
+        'A channel is a shared space with its own purpose, and its members come to it for that.'
+    );
+    expect(sending).toContain('Sidebars go in threads:');
+    expect(sending).toContain("A quick answer isn't a sidebar, so it stays inline.");
     // Notification facts mirror packages/haus-api/src/message-notification.ts.
     expect(sending).toContain(
         'in the channel it shows only as a one-line preview under that message, and a reader who does not open it sees none of it.'
@@ -46,7 +52,14 @@ test('Sending teaches placement as what a reader sees, and Threads describe targ
     expect(sending.indexOf('--reply-to')).toBeLessThan(sending.indexOf('**Reply to a channel**'));
 
     const threads = instructions.split('### Threads')[1]?.split('### ')[0] ?? '';
-    expect(threads.trimStart().startsWith('- **Thread targets**')).toBe(true);
+    // Raft-verbatim intro.
+    expect(
+        threads
+            .trimStart()
+            .startsWith(
+                'Threads are sub-conversations attached to a specific message. They let you discuss a topic without cluttering the main channel.'
+            )
+    ).toBe(true);
     expect(threads).not.toContain('start a thread on your own message');
     expect(threads).toContain('#general:00000000');
     expect(threads).toContain('dm:@richard:11111111');

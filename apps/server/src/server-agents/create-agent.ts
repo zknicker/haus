@@ -1,4 +1,5 @@
 import type { AgentCreated, AvatarMediaType, CreateAgentInput } from '@haus/api';
+import { enqueueAgentGreeting } from '../agent-delivery/greeting.ts';
 import { type AvatarBytes, createAvatarId, readAvatarBytes } from '../avatars/avatar-bytes.ts';
 import { findAllChannel, joinChannelAgents } from '../chats/channel-agent-membership.ts';
 import { prepareLifecycleEvent } from '../chats/lifecycle-events.ts';
@@ -129,6 +130,13 @@ export async function createAgentInTransaction(
         await joinChannelAgents(db, {
             agentIds: [agentId],
             chatId: allChannel.id,
+            serverId: input.serverId,
+        });
+        // The new Agent introduces itself once, as soon as it can run, rather
+        // than waiting for its first delivery. The caller dispatches after commit.
+        await enqueueAgentGreeting(db, {
+            agentId,
+            allChannelId: allChannel.id,
             serverId: input.serverId,
         });
     }

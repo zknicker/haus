@@ -1,5 +1,5 @@
 ---
-summary: Agent reasoning surfaces as one short first-person phrase in a glass thought bubble on the typing strip — the Server's Gemini 3.5 Flash-Lite rephrasing of a Codex title, a scrubbed reasoning excerpt, or a scrubbed description of a tool action (with a scrubbed excerpt of what a finished one returned, so it can state a finding), in terms of the human request the run is answering, skipped when it is only Agent housekeeping, else a filtered local heuristic; paced by workstream with "still" lines after a quiet stretch; always on, never persisted.
+summary: Agent reasoning surfaces as one short first-person phrase in a thought bubble on the typing strip — the Server's Gemini 3.5 Flash-Lite rephrasing of a Codex title, a scrubbed reasoning excerpt, or a scrubbed description of a tool action (with a scrubbed excerpt of what a finished one returned, so it can state a finding), in terms of the human request the run is answering, skipped when it is only Agent housekeeping, else a filtered local heuristic; paced by workstream with "still" lines after a quiet stretch; always on, never persisted.
 read_when:
   - changing the typing strip's thought bubble, chat.onThought, or the agent-thought Computer frame
   - changing how reasoning is captured, excerpted, summarized, or kept on the Computer
@@ -368,7 +368,7 @@ is no read, replay, or reconnect recovery: a missed thought is gone.
 Server like every other Server-validated value, and optional in both
 ([environment](../operations/environment.md)).
 
-**Presentation.** A glass bubble rises over the thinking Agent's avatar in the strip, holds, and
+**Presentation.** A speech bubble springs up from the thinking Agent's avatar in the strip, holds, and
 leaves; a newer thought replaces it, and the engagement ending clears it. Bubbles are rare now,
 so each holds until someone glancing up has read it: about 3.5 seconds to notice it and move the
 eyes there plus 350ms a word, between five and seven and a half seconds (an eight-word line holds

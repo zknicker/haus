@@ -1,46 +1,33 @@
+import Foundation
 @testable import HausUI
 import Testing
 
 struct ThreadInlineRepliesTests {
-    @Test func claimInspectionSeparatesTheParentChainFromTheDedicatedThread() {
-        let inlineReplies = [
-            MessagePresentation(
-                id: "parent-inline-1",
-                author: ChatFixtures.messages[0].author,
-                content: "An inline parent reply",
-                createdAt: .now.addingTimeInterval(-30)
-            ),
-            MessagePresentation(
-                id: "parent-inline-2",
-                author: ChatFixtures.messages[1].author,
-                content: "Another inline parent reply",
-                createdAt: .now.addingTimeInterval(-15)
-            ),
-        ]
+    /// The App's `threadConversationEntries`: a Cloud Agent's launch Message
+    /// is an inline reply, so it reads in time among the Thread's replies.
+    @Test func inlineRepliesInterleaveWithTheThreadByTime() {
+        let author = ChatFixtures.messages[0].author
+        func message(_ id: String, _ offset: TimeInterval) -> MessagePresentation {
+            MessagePresentation(id: id, author: author, content: id, createdAt: .now.addingTimeInterval(offset))
+        }
         let items = ThreadTranscriptItem.items(
             anchor: ChatFixtures.messages[2],
-            replies: [.init(
-                id: "dedicated-reply",
-                author: ChatFixtures.messages[0].author,
-                content: "A thread reply",
-                createdAt: .now
-            )],
+            replies: [message("thread-1", -20), message("thread-2", 0)],
             includesInlineReplies: true,
-            inlineReplies: inlineReplies
+            inlineReplies: [message("parent-1", -30), message("parent-2", -10)]
         )
 
         #expect(items.map(\.id) == [
             "thread-anchor-message-3",
             "thread-claim-metadata",
             "thread-inline-replies",
-            "thread-inline-reply-parent-inline-1",
-            "thread-inline-reply-parent-inline-2",
-            "thread-header",
-            "dedicated-reply",
+            "thread-inline-reply-parent-1",
+            "thread-1",
+            "thread-inline-reply-parent-2",
+            "thread-2",
         ])
         #expect(Set(items.map(\.id)).count == items.count)
-        #expect(items.compactMap(\.replyID) == ["dedicated-reply"])
-        #expect(items[3].replyID == nil)
+        #expect(items.compactMap(\.replyID) == ["thread-1", "thread-2"])
     }
 
     @Test func ordinaryThreadsKeepTheirExistingTranscriptShape() {

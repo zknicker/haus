@@ -89,7 +89,11 @@ the owning Agent.
   owning Agent is the one woken, and both can manage the same Trigger.
 - **Secret shown once.** Creating or rotating a Trigger returns its bearer secret
   exactly once, along with the URL and a ready-made `curl` line. Haus stores
-  only a hash, so a lost secret is replaced by rotating, never recovered.
+  only a hash, so a lost secret is replaced by rotating, never recovered. An
+  Agent never sees it in command output: `haus trigger create` and `rotate`
+  require `--output <new-private-path>` and write the secret only to that newly
+  created mode-0600 file, which the Agent installs at the destination and then
+  trashes.
 - **The answer is the row.** A fire posts nothing. It wakes the owning Agent
   with the payload as a `type=trigger` message, marked and indented as untrusted
   data — a Trigger can inform an Agent, it cannot command one. If the Agent has

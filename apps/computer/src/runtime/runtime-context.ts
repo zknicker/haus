@@ -2,6 +2,7 @@ import { Effect } from 'effect';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import { type HostToolServer, startHostToolServer } from '../host-tools/mcp-server.ts';
 import type { BackgroundWorkListener, BackgroundWorkReports } from './background-work.ts';
+import type { IdleCompactionHooks } from './idle-compaction-scheduler.ts';
 import { type RuntimeProcessRegistry, runtimeProcessOwner } from './process-registry.ts';
 import { WarmProcessPool } from './warm-pool.ts';
 
@@ -34,6 +35,8 @@ export function openRuntimeContext(
         background?: BackgroundWorkListener;
         /** How long background work may hold a parked process (WarmPoolOptions). */
         backgroundLimitMs?: number;
+        /** Records idle compactions; without it a parked session is never compacted. */
+        idleCompaction?: IdleCompactionHooks;
         warmIdleMs?: number;
     } = {}
 ): RuntimeContext {
@@ -61,6 +64,9 @@ export function openRuntimeContext(
         server,
         warm: new WarmProcessPool({
             backgroundLimitMs: options.backgroundLimitMs,
+            ...(options.idleCompaction
+                ? { idleCompaction: { hooks: options.idleCompaction } }
+                : {}),
             idleMs: options.warmIdleMs,
             onCloseError: (error) =>
                 void runtime.runPromise(
@@ -112,6 +118,14 @@ export async function evictWarmRuntime(runtime: DaemonRuntime, agentRoot: string
  */
 export async function fenceWarmRuntime(runtime: DaemonRuntime, agentRoot: string): Promise<void> {
     await contexts.get(runtime)?.warm.fence(agentRoot);
+}
+
+/**
+ * Applies the Server's idle compaction setting to every parked session: on arms them, off
+ * cancels every armed compaction (one already running finishes).
+ */
+export function setIdleCompaction(runtime: DaemonRuntime, enabled: boolean): void {
+    contexts.get(runtime)?.warm.setIdleCompaction(enabled);
 }
 
 /** Ends every warm runtime process, then stops the host-tool server (Computer shutdown). */

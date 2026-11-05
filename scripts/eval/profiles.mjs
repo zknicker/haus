@@ -38,6 +38,13 @@ export const placementProfiles = {
         result: (post) => post.content.includes('43447'),
         spec: 'S2',
     },
+    'placement-off-topic-quick-question': {
+        cap: 25,
+        channel: [1, 1],
+        noReactions: true,
+        result: (post) => post.content.includes('429'),
+        spec: 'S7',
+    },
     'ack-reaction-thanks': { channel: [0, 0], reaction: true, spec: 'S3' },
     'thread-reply-stays-in-thread': { cap: 40, channel: [0, 0], inThread: true, spec: 'S4' },
     'solo-progress-threads-on-ack': {

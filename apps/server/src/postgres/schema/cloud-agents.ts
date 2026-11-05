@@ -38,6 +38,8 @@ export const cloudAgentWorkTable = pgTable(
         chatId: text('chat_id').notNull(),
         computerId: text('computer_id').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        environmentId: text('environment_id'),
+        environmentName: text('environment_name'),
         id: text('id').primaryKey(),
         /** The Message `haus cloud-agent start` wrote; wire name stays `messageId`. */
         launchMessageId: text('launch_message_id').notNull(),

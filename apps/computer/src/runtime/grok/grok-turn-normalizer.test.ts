@@ -228,6 +228,31 @@ test('ignores replayed history and reports retry_state as a typed session failur
     expect(turn.notification('_x.ai/sessions/changed', { upserted: [] })).toEqual([]);
 });
 
+test('a completed auto-compaction is the reserved compaction pair', () => {
+    const turn = normalizer();
+    const facts = { dynamic: true, providerExecuted: true, toolName: 'compaction' };
+
+    expect(turn.xai({ sessionUpdate: 'auto_compact_started', tokens_used: 900 })).toEqual([
+        { nativeType: 'auto_compact_started', type: 'progress' },
+    ]);
+    expect(
+        turn.xai({
+            sessionUpdate: 'auto_compact_completed',
+            summary_preview: 'We were drafting the launch note.',
+            tokens_after: 120,
+            tokens_before: 900,
+        })
+    ).toEqual([
+        { ...facts, input: {}, toolCallId: 'grok-compaction-1', type: 'tool-call' },
+        {
+            ...facts,
+            output: { tokensAfter: 120, tokensBefore: 900 },
+            toolCallId: 'grok-compaction-1',
+            type: 'tool-result',
+        },
+    ]);
+});
+
 test('closes an open reasoning block when the turn settles', () => {
     const turn = normalizer();
     turn.update({

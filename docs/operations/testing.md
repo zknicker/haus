@@ -268,6 +268,7 @@ HAUS_RUN_LIVE_CLAUDE_CODE_TEST=1 bun test apps/computer/src/runtime/claude-code
 HAUS_RUN_LIVE_CODEX_DRIVER_TEST=1 bun test apps/computer/src/runtime/codex
 HAUS_RUN_LIVE_GROK_DRIVER_TEST=1 bun test apps/computer/src/runtime/grok
 HAUS_RUN_LIVE_RUNTIME_E2E_TEST=1 bun test apps/computer/src/harness/runtime-driver-e2e-live.test.ts
+HAUS_RUN_LIVE_INSTRUCTIONS_UPDATE_TEST=1 bun test apps/computer/src/harness/instructions-update-live.test.ts
 ```
 
 The driver tests run a session through its lifecycle: turns, a steer mid-tool, a host-tool call,
@@ -278,7 +279,10 @@ drives every installed runtime through the real executor, driver factory, and ru
 two turns on one session with a busy notice steered into the first, printing the
 `AgentTurnTimings` per turn. `HAUS_LIVE_RUNTIMES` narrows it (comma-separated runtime ids), and
 `HAUS_LIVE_CLAUDE_MODEL`, `HAUS_LIVE_CODEX_MODEL`, and `HAUS_LIVE_GROK_MODEL` pick models (for
-example `grok-4.7` or `grok-4.7-build-fast`; Grok defaults to `grok-4.6`).
+example `grok-4.7` or `grok-4.7-build-fast`; Grok defaults to `grok-4.6`). The instructions-update
+canary uses the same runtime and model variables: it starts a session on instructions carrying
+`CANARY-ALPHA`, resumes it with `CANARY-BRAVO`, and expects the Agent to report `BRAVO`, which only
+the re-delivered `<haus-instructions-update>` block can make it do (specs/sessions.md).
 
 ## Manual Smoke Hygiene
 
@@ -477,12 +481,13 @@ rendered as the report's "What was changed" section). The registry is
 
 | Eval | Measures |
 | --- | --- |
-| `placement` | An answer lands where the asker looks (inline reply, or the Thread they chose), says only what was asked, and stops. |
+| `placement` | An answer lands where the asker looks (inline reply, or the Thread they chose), says only what was asked, and stops; a one-off off-topic question in a purpose channel is still one inline reply. |
 | `attention` | A mention wakes only the addressed Agent and its unmentioned inline follow-up stays with it; an FYI DM gets a seen, silent turn; an irreversible publish waits for the human's pick; an explicit task is claimed and answered inline; tool-using work asked in a DM or Channel Thread is claimed on that Thread message and answered in the Thread with a `--done` send and no `--reply-to`; a reminder fires once. Serial. |
 | `tasks` | Three Tasks assigned to one Agent are worked one card at a time, most urgent first, each moved to an active column and then done; the done receipt's queue line carries it to the next, and no message goes out before the last one finishes. |
 | `memory` | Passing feedback becomes a Standing Preference that survives a session reset; with no feedback, nothing changes. Score rule quality with `memory-feedback-grade.mjs`. |
 | `triggers` | GitHub Triggers on an `acme` GitHub installation seeded on the eval stack (no GitHub account): a plain "wake me when CI fails on main" ask becomes one failure-filtered CI `github` Trigger with a short confirmation; a signed `workflow_run` failure gets one top-level `--cause` answer naming the workflow and branch. Serial. |
 | `room` | Two Agents and a human share a channel, and each scenario carries a decoy the Manual warns against: a multi-step pickup gets the signature reaction and at most one inline "on it" note while the bystander stays silent; a task a peer claimed is left to that peer; a peer handoff carrying its evidence is delivered without re-asking the human; a peer's guess at a pending question to the human is not taken as the human's answer; a reminder fire during a live Thread exchange is answered at its anchor with `--cause`, not in the Thread; a chart request gets one SVG visual fence, no table inside it, with text beyond a caption. Serial. |
+| `side-work` | Two peers carry a live finance discussion while a human pulls the Agent into a code-review sidebar and replies inline through three substantial write-ups: each reaches the human, and the Agent authors at most two posts in the channel itself. A control keeps a one-off off-topic answer to a single inline reply with no Thread (`placement-off-topic-quick-question`). Placement is the Agent's judgment, so read the multi-round rate, not a single run. |
 | `tools` | Work that leaves the chat: a Cloud Agent launch and cross-channel link (Cursor), granted-only MCP use with a hot grant, a webhook Trigger whose secret stays out of chat, and a file shared with the team without naming Files (one `haus files push` of a `.md` file whose stable URL is linked, not attached). |
 
 The Files-backed scenarios (`placement-found-the-kit-files` in `placement`,

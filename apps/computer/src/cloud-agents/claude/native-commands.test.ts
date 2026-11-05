@@ -1,5 +1,25 @@
-import { expect, test } from 'bun:test';
-import { terminalTail } from './native-commands.ts';
+import { afterEach, expect, test } from 'bun:test';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import {
+    launchNativeClaudeCloud,
+    terminalTail,
+    writeClaudeEnvironmentPin,
+} from './native-commands.ts';
+
+const roots: string[] = [];
+afterEach(async () => {
+    for (const root of roots.splice(0)) {
+        await rm(root, { recursive: true, force: true });
+    }
+});
+
+async function checkout(): Promise<string> {
+    const root = await mkdtemp(join(tmpdir(), 'haus-claude-cloud-launch-'));
+    roots.push(root);
+    return root;
+}
 
 test("a failed launch keeps Claude's last words readable", () => {
     const output = [
@@ -24,4 +44,51 @@ test('a long transcript keeps only its last lines', () => {
 
 test('a silent launcher says so', () => {
     expect(terminalTail('\u001b[?25h\r\n')).toBe('(no output)');
+});
+
+test('the environment pin writes the setting Claude Code reads', async () => {
+    const cwd = await checkout();
+
+    await writeClaudeEnvironmentPin(cwd, 'env_bidbeacon');
+
+    expect(JSON.parse(await readFile(join(cwd, '.claude', 'settings.local.json'), 'utf8'))).toEqual(
+        { remote: { defaultEnvironmentId: 'env_bidbeacon' } }
+    );
+});
+
+/** This test only needs Claude Code to resolve, not to actually run; the spawn itself fails fast. */
+function fakeClaudeFound() {
+    return { path: '/nonexistent/claude', searchPath: '', version: '1.0.0' };
+}
+
+test('a launch with a pinned environment writes the settings file before the launcher starts', async () => {
+    const cwd = await checkout();
+
+    await launchNativeClaudeCloud({
+        cwd,
+        environmentId: 'env_bidbeacon',
+        modelId: null,
+        prompt: 'test',
+        resolveExecutable: fakeClaudeFound,
+        signal: AbortSignal.timeout(10),
+    }).catch(() => undefined);
+
+    expect(JSON.parse(await readFile(join(cwd, '.claude', 'settings.local.json'), 'utf8'))).toEqual(
+        { remote: { defaultEnvironmentId: 'env_bidbeacon' } }
+    );
+});
+
+test('an unpinned launch writes no settings file', async () => {
+    const cwd = await checkout();
+
+    await launchNativeClaudeCloud({
+        cwd,
+        environmentId: null,
+        modelId: null,
+        prompt: 'test',
+        resolveExecutable: fakeClaudeFound,
+        signal: AbortSignal.timeout(10),
+    }).catch(() => undefined);
+
+    await expect(readFile(join(cwd, '.claude', 'settings.local.json'), 'utf8')).rejects.toThrow();
 });

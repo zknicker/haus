@@ -49,6 +49,29 @@ test('a follow-up behind a finished Run keeps the job done and notes the wait', 
     expect(line(value)).toEqual({ text: 'Blippy asked for changes · waiting 3m', tone: 'muted' });
 });
 
+test('a stalled follow-up reads distinctly from an ordinary wait', () => {
+    const value = work({
+        runs: [
+            run({
+                createdAt: minutesAgo(35),
+                errorCode: 'followup-auto-interrupt-failed',
+                runId: 'car_two',
+                status: 'queued',
+            }),
+            run({ status: 'completed', terminalAt: minutesAgo(40) }),
+        ],
+        startedAt: null,
+        status: 'queued',
+        updatedAt: minutesAgo(1),
+    });
+
+    expect(value.job.state).toBe('done');
+    expect(line(value)).toEqual({
+        text: 'follow-up waiting: auto-interrupt failed · 35m',
+        tone: 'warning',
+    });
+});
+
 test('a follow-up queued while the earlier Run still goes reads working', () => {
     const value = followedUp({ status: 'running', terminalAt: null });
 

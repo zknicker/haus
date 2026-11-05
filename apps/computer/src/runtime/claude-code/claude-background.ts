@@ -7,8 +7,8 @@ import type { ClaudeSystemMessage, ParsedClaudeLine } from './claude-messages.ts
  * not activity, as Claude Code documents, so they never count.
  */
 export class ClaudeBackgroundTasks {
-    /** task id → its type and when this connection first saw it live (epoch ms). */
-    private live = new Map<string, { since: number; type: string }>();
+    /** task id → its type, run, and when this connection first saw that run live (epoch ms). */
+    private live = new Map<string, { run?: string; since: number; type: string }>();
 
     get work(): BackgroundWork {
         const types = [...this.live.values()].map((task) => task.type);
@@ -34,13 +34,19 @@ export class ClaudeBackgroundTasks {
                 .filter((task) => task.ambient !== true)
                 .map((task) => {
                     const known = this.live.get(task.task_id);
-                    const since = known?.type === task.task_type ? known.since : now;
-                    return [task.task_id, { since, type: task.task_type }] as const;
+                    // A continued sub-agent keeps its task id under a new run: its lifetime
+                    // (the hung-work bound) starts over with that run.
+                    const same = known?.type === task.task_type && known.run === task.run_id;
+                    const since = same && known ? known.since : now;
+                    return [
+                        task.task_id,
+                        { run: task.run_id, since, type: task.task_type },
+                    ] as const;
                 })
         );
         const changed =
             next.size !== this.live.size ||
-            [...next].some(([id, task]) => this.live.get(id)?.type !== task.type);
+            [...next].some(([id, task]) => this.live.get(id)?.since !== task.since);
         this.live = next;
         return changed;
     }
@@ -69,7 +75,8 @@ export class SelfStartedTurns {
     /**
      * Observes one line no Haus turn took. Returns `true` exactly once per self-started turn:
      * when it reaches the model. A turn that ends before (an orphan notice Claude Code records
-     * on resume without calling the model) never wakes anyone.
+     * on resume without calling the model) never wakes anyone, nor does work Claude Code runs on
+     * its own without asking the model (a compaction while idle): it is kept for adoption only.
      */
     observe(line: ParsedClaudeLine): boolean {
         const { message } = line;
@@ -85,7 +92,7 @@ export class SelfStartedTurns {
             return false;
         }
         this.current.lines.push(line);
-        if (this.current.announced) {
+        if (this.current.announced || !reachesModel(line)) {
             return false;
         }
         this.current.announced = true;
@@ -100,5 +107,19 @@ export class SelfStartedTurns {
         const taken = this.current;
         this.current = null;
         return taken;
+    }
+}
+
+/** The model is being asked: a request status, or the Agent's own streamed or whole message. */
+function reachesModel({ message }: ParsedClaudeLine): boolean {
+    switch (message.kind) {
+        case 'system':
+            return message.message.subtype === 'status' && message.message.status === 'requesting';
+        case 'stream':
+            return !message.message.parent_tool_use_id;
+        case 'conversation':
+            return message.message.type === 'assistant' && !message.message.parent_tool_use_id;
+        default:
+            return false;
     }
 }

@@ -13,6 +13,8 @@ const work = {
     chatId: 'cht_product',
     computerId: 'cmp_studio',
     createdAt: '2026-09-04T12:00:00.000Z',
+    environmentId: null,
+    environmentName: null,
     id: 'caw_1234567890abcdef',
     job: { followUp: null, startedAt: null, state: 'working' as const },
     messageId: 'msg_1a2b3c4d5e6f7890',
@@ -47,10 +49,10 @@ const request = { repository: 'haus/haus', startingRef: 'main', target: '#produc
 test('the start receipt keeps its work thread and adds the link to paste elsewhere', () => {
     expect(renderCloudAgentStart(receipt('#product'), request)).toBe(
         [
-            'Cloud agent started for haus/haus@main. Work ID: caw_1234567890abcdef',
+            'Cloud agent launching for haus/haus@main. Work ID: caw_1234567890abcdef',
             'Posted to #product. Message ID: msg_1a2b3c4d5e6f7890',
             'Work thread: "#product:1a2b3c4d".',
-            'The result reaches your inbox when the run settles; post what you learn yourself.',
+            'The result reaches your inbox when the run settles, a failed launch included; post what you learn yourself.',
             'Link: [Fix the flaky delivery test](cloud-agent://caw_1234567890abcdef)',
             'To show this work in another conversation, paste its Link line into haus message send.',
             '',
@@ -84,4 +86,16 @@ test('inspect prints each work with its link, escaping titles the link grammar c
         '\nLink: [Fix the flaky delivery test](cloud-agent://caw_1234567890abcdef)\n'
     );
     expect(renderCloudAgentWorkDetail([])).toBe('[]\n');
+});
+
+test('a pinned Claude environment shows as a short marker on its list line, never on an unpinned one', () => {
+    const pinned = { ...work, environmentName: 'Fast', provider: 'claude' as const };
+    const listed = renderCloudAgentWorkList([work, pinned]);
+
+    expect(listed).toContain(
+        'caw_1234567890abcdef [queued] Fix the flaky delivery test (haus/haus)'
+    );
+    expect(listed).toContain(
+        'caw_1234567890abcdef [queued] [Fast] Fix the flaky delivery test (haus/haus)'
+    );
 });

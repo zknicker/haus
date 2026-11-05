@@ -25,6 +25,11 @@ const footerSurfaceTsx = readFileSync(
     'utf8'
 );
 
+const peekDialogTsx = readFileSync(
+    join(stylesDir, '../features/servers/thread/thread-peek-dialog.tsx'),
+    'utf8'
+);
+
 function ruleBody(css: string, selector: string) {
     // Whitespace-normalised, so a selector list wrapped across lines still matches.
     const flat = css.replace(/\s+/gu, ' ');
@@ -38,6 +43,17 @@ const side = (name: 'top' | 'bottom') =>
     ruleBody(themeCss, `.transcript-edge-blur[data-side="${name}"]`);
 
 describe('transcript edge blur contract', () => {
+    test('a Thread peek keeps its bands masked and on the dialog surface', () => {
+        // A rounded clip above a band makes Chromium drop the mask, leaving a hard
+        // strip, and the page colour reads as a dark slab on the dialog surface.
+        expect(peekDialogTsx).toContain('modal__dialog--thread-peek');
+        expect(peekDialogTsx).not.toContain('overflow-hidden');
+        expect(ruleBody(themeCss, '.modal__dialog--thread-peek')).toContain('overflow: visible;');
+        expect(ruleBody(themeCss, '.modal__dialog--thread-peek .transcript-edge-blur')).toContain(
+            'background-color: var(--overlay);'
+        );
+    });
+
     test('the bands are inert and shown by visibility, never by animating opacity', () => {
         const band = base();
         expect(band).toContain('pointer-events: none;');

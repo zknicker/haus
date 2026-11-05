@@ -769,21 +769,49 @@
       "idx": 109,
       "version": "7",
       "when": 1794200000005,
-      "tag": "0109_rename-tasks-to-claims",
+      "tag": "0109_freshness-hold-boundary",
       "breakpoints": true
     },
     {
       "idx": 110,
       "version": "7",
       "when": 1794200000006,
-      "tag": "0110_task-boards",
+      "tag": "0110_idle-compaction",
       "breakpoints": true
     },
     {
       "idx": 111,
       "version": "7",
       "when": 1794200000007,
-      "tag": "0111_drop-claim-priority-labels",
+      "tag": "0111_reminder-wake-rules",
+      "breakpoints": true
+    },
+    {
+      "idx": 112,
+      "version": "7",
+      "when": 1794200000008,
+      "tag": "0112_cloud-agent-environment",
+      "breakpoints": true
+    },
+    {
+      "idx": 113,
+      "version": "7",
+      "when": 1794200000009,
+      "tag": "0113_rename-tasks-to-claims",
+      "breakpoints": true
+    },
+    {
+      "idx": 114,
+      "version": "7",
+      "when": 1794200000010,
+      "tag": "0114_task-boards",
+      "breakpoints": true
+    },
+    {
+      "idx": 115,
+      "version": "7",
+      "when": 1794200000011,
+      "tag": "0115_drop-claim-priority-labels",
       "breakpoints": true
     }
   ]

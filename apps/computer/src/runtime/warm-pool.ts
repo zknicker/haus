@@ -1,5 +1,14 @@
-/** A parked native runtime process (`claude`, `codex app-server`, `grok`) between turns. */
-export interface WarmProcess {
+import type { IdleCompactable } from './idle-compaction.ts';
+import {
+    type IdleCompactionOptions,
+    IdleCompactionScheduler,
+} from './idle-compaction-scheduler.ts';
+
+/**
+ * A parked native runtime process (`claude`, `codex app-server`, `grok`) between turns. One whose
+ * runtime can compact itself (Claude Code) also implements `IdleCompactable`.
+ */
+export interface WarmProcess extends Partial<IdleCompactable> {
     readonly alive: boolean;
     /** When its oldest live background task started (epoch ms); null when none runs. */
     readonly backgroundWorkSince?: number | null;
@@ -36,6 +45,11 @@ export interface WarmPoolOptions {
      * to say the work stopped. Checked at each idle window, so it is honored within `idleMs`.
      */
     backgroundLimitMs?: number;
+    /**
+     * Compacts parked sessions shortly before their prompt cache expires, while
+     * `setIdleCompaction(true)` holds (specs/runtime-drivers.md "Idle compaction"). Absent: never.
+     */
+    idleCompaction?: IdleCompactionOptions;
     /** A process parked this long without a turn is closed; the next open resumes it cold. */
     idleMs?: number;
     /** Reports a close that failed off any turn's path (idle eviction). */
@@ -49,12 +63,18 @@ export interface WarmSlot {
     readonly pool: WarmProcessPool;
 }
 
-export const DEFAULT_WARM_IDLE_MS = 30 * 60_000;
+/**
+ * An hour, matching Claude Code's one-hour prompt cache: a turn inside it reuses both the warm
+ * process and the cached prefix, and a cold resume after it pays the cache write anyway.
+ */
+export const DEFAULT_WARM_IDLE_MS = 60 * 60_000;
 
 /** Long enough for a real research or build sub-agent; short enough that a hung one ends. */
 export const DEFAULT_BACKGROUND_LIMIT_MS = 4 * 60 * 60_000;
 
 interface Parked {
+    /** When the idle timer closes the process (epoch ms). */
+    readonly closesAt: number;
     readonly identity: WarmIdentity;
     readonly process: WarmProcess;
     readonly timer: ReturnType<typeof setTimeout>;
@@ -73,14 +93,31 @@ export class WarmProcessPool {
     private readonly idleMs: number;
     private readonly backgroundLimitMs: number;
     private closed = false;
+    private readonly compaction: IdleCompactionScheduler | null;
 
     constructor(private readonly options: WarmPoolOptions) {
         this.idleMs = options.idleMs ?? DEFAULT_WARM_IDLE_MS;
         this.backgroundLimitMs = options.backgroundLimitMs ?? DEFAULT_BACKGROUND_LIMIT_MS;
+        this.compaction = options.idleCompaction
+            ? new IdleCompactionScheduler(options.idleCompaction, {
+                  identity: (key, process) => {
+                      const entry = this.parked.get(key);
+                      return entry?.process === process ? entry.identity : undefined;
+                  },
+              })
+            : null;
     }
 
     get size(): number {
         return this.parked.size;
+    }
+
+    /** The Server's idle compaction setting: arms every parked session, or cancels them all. */
+    setIdleCompaction(enabled: boolean): void {
+        this.compaction?.setEnabled(
+            enabled,
+            [...this.parked].map(([key, entry]) => [key, entry.process, entry.closesAt] as const)
+        );
     }
 
     /** Parks `process` for the Agent session `key`; a previous process under it is closed. */
@@ -90,7 +127,9 @@ export class WarmProcessPool {
             return;
         }
         const previous = this.parked.get(key);
-        this.parked.set(key, { identity, process, timer: this.idleTimer(key, process) });
+        const closesAt = Date.now() + this.idleMs;
+        this.parked.set(key, { closesAt, identity, process, timer: this.idleTimer(key, process) });
+        this.compaction?.arm(key, process, closesAt);
         void process.exited.then(() => this.forget(key, process));
         if (previous && previous.process !== process) {
             // Two live processes must never write one Agent's conversation.
@@ -101,13 +140,15 @@ export class WarmProcessPool {
 
     /**
      * Takes the process parked for `key` when it still runs with `want`'s identity and is the
-     * kind `is` accepts. Anything else parked there is closed, so the open starts clean.
+     * kind `is` accepts. Anything else parked there is closed, so the open starts clean. A turn
+     * that arrives while the process compacts waits for the compaction, never interleaving.
      */
     async claim<Process extends WarmProcess>(
         key: string,
         want: WarmIdentity,
         is: (process: WarmProcess) => process is Process
     ): Promise<Process | undefined> {
+        await this.compaction?.runningFor(key);
         const entry = this.take(key);
         if (!entry) {
             return;
@@ -152,6 +193,7 @@ export class WarmProcessPool {
         if (entry) {
             this.parked.delete(key);
             clearTimeout(entry.timer);
+            this.compaction?.disarm(key);
         }
         return entry;
     }
@@ -184,9 +226,19 @@ export class WarmProcessPool {
         if (entry?.process !== process) {
             return;
         }
+        const compacting = this.compaction?.runningFor(key);
+        if (compacting) {
+            // Never cut a compaction: the idle close runs once it finished.
+            void compacting.then(() => this.expire(key, process));
+            return;
+        }
         if (process.holdsBackgroundWork && !this.outlived(process)) {
             // Background work still runs: the idle window starts over once it ends.
-            this.parked.set(key, { ...entry, timer: this.idleTimer(key, process) });
+            this.parked.set(key, {
+                ...entry,
+                closesAt: Date.now() + this.idleMs,
+                timer: this.idleTimer(key, process),
+            });
             return;
         }
         this.take(key);

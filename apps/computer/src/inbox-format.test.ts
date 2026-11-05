@@ -261,24 +261,24 @@ test('busy notices retain an earlier mention when newer target traffic is ambien
 
 // The notice carries its own handling guidance (Raft's `formatInboxUpdateRuntimeInput` shape),
 // so the standing prompt no longer restates it. These are the specs/inbox.md guarantees.
-test('a notice closes with its pull, non-request, and honest-deferral guidance', () => {
+test('a notice closes with its pull, non-request, and read-before-you-stop guidance', () => {
     const notice = composeInboxNotice([item()]) ?? '';
     const lines = notice.split('\n');
     const guidance = lines.slice(lines.indexOf(']') + 1).join('\n');
 
     expect(lines[0]).toBe('[Haus inbox notice:');
-    // Raft 26f77ef's closing line, noun-substituted, comes first and verbatim.
+    // Raft db5e399's closing line, noun-substituted, verbatim: no "Deferring them" sentence.
     expect(lines[lines.indexOf(']') + 1]).toBe(
-        "These messages have not been read. Choose when to read them: `haus message read --target <target> --unread` reads one conversation's unread messages; `haus message check` reads all of them. Deferring them does not establish that there is no work."
+        "These messages have not been read. Choose when to read them: `haus message read --target <target> --unread` reads one conversation's unread messages; `haus message check` reads all of them."
     );
     expect(guidance).toContain('Their bodies are withheld to avoid flooding you, not absent.');
     expect(guidance).toContain('The notice is not itself a request, so do not acknowledge it.');
     expect(guidance).not.toContain('locally cached bodies');
     expect(guidance).not.toContain('haus inbox check');
-    expect(guidance).toContain('Deferral needs no visible reply and the messages remain queryable');
     expect(guidance).toContain(
-        'if you choose not to read, that is a deferral to report honestly, not a conclusion that nothing is pending'
+        'Deferral needs no visible reply and the messages remain queryable; read them before you stop.'
     );
+    expect(guidance).not.toContain('if you choose not to read');
     expect(guidance).not.toContain('Ship it');
 });
 

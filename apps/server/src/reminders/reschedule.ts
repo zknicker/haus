@@ -19,6 +19,7 @@ import {
     requireActiveAgent,
     requireAgentAnchor,
     toReminder,
+    validateFailAfter,
     validReminderDescription,
     validReminderTitle,
 } from './reminder-model.ts';
@@ -26,10 +27,12 @@ import { alignUpdateToCadence } from './schedule-timing.ts';
 
 interface UpdateReminderInput extends ReminderCommandInput {
     description?: string | null;
+    failAfter?: number | null;
     fireAt?: Date;
     repeat?: string | null;
     script?: string | null;
     title?: string;
+    wakeOnChange?: boolean;
 }
 
 interface SnoozeReminderInput extends ReminderCommandInput {
@@ -38,10 +41,12 @@ interface SnoozeReminderInput extends ReminderCommandInput {
 
 interface ReminderRescheduleValues {
     description?: string | null;
+    failAfter?: number | null;
     fireAt?: Date;
     repeat?: string | null;
     script?: string | null;
     title?: string;
+    wakeOnChange?: boolean;
 }
 
 export async function updateReminder(
@@ -58,11 +63,13 @@ export async function updateReminder(
             action: 'update',
             description: input.description,
             expectedVersion: input.expectedVersion,
+            failAfter: input.failAfter,
             fireAt: input.fireAt?.toISOString(),
             reminderId: input.reminderId,
             repeat: values.repeat,
             script: input.script,
             title: input.title,
+            wakeOnChange: input.wakeOnChange,
         }),
         now,
         requestedFireAt: input.fireAt,
@@ -255,6 +262,13 @@ function validatedUpdate(input: UpdateReminderInput) {
             throw new Error('Reminder script must be between 1 and 16384 UTF-8 bytes.');
         }
         values.script = input.script;
+    }
+    if (input.wakeOnChange !== undefined) {
+        values.wakeOnChange = input.wakeOnChange;
+    }
+    if (input.failAfter !== undefined) {
+        validateFailAfter(input.failAfter);
+        values.failAfter = input.failAfter;
     }
     if (Object.keys(values).length === 0) {
         throw new Error('A reminder update must change at least one field.');
