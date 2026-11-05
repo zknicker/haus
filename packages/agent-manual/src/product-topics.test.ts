@@ -81,10 +81,11 @@ test('cloud work keeps implementation details and requester outcomes in their co
     expect(body).toContain('only real state changes, one line each');
     expect(body).toContain('newest first');
     expect(body).toContain('providerRunId');
-    expect(body).toContain('followup-delivery-timeout');
+    expect(body).toContain('followup-auto-interrupt-failed');
     expect(body).toContain('background work the provider agent left running');
-    // The design refinement past TECH-7: a busy provider never fails a follow-up.
-    expect(body).toContain('never fails a follow-up just because the provider stayed busy');
+    // The design refinement past TECH-7: a busy provider never fails a follow-up, and
+    // auto-interrupt is the fallback, not the normal path.
+    expect(body).toContain('one automatic interrupt to clear whatever holds the session busy');
     expect(body).toContain('keeps retrying underneath that notice');
 });
 

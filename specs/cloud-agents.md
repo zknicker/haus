@@ -556,24 +556,38 @@ failed send:
 - **Retryable** — those four statuses, 5xx, network, or SDK unavailable. Computer retries with
   backoff (5 seconds, doubling, capped at one minute) and journals the attempt count, first
   attempt, and last error with the pending prompt, forever: a busy provider never fails the Run.
-  The clock starts at the first attempt, not at queueing: with predecessors terminal, a busy agent
-  frees within seconds, so busy for half an hour means a Run Haus does not track holds the agent.
-  Once that half hour passes, the still-`queued` observation also carries `errorCode:
-  followup-delivery-timeout` and a summary naming the last error, on every retry tick, until the
-  provider accepts the prompt or a human or the delegating Agent stops, interrupts (`send
-  --interrupt`), or relaunches it. This is a notice, never a failure: the Run stays `queued` and
-  Computer keeps retrying underneath it.
+  The clock starts at the first attempt, not at queueing. With predecessors terminal or
+  Claude-idle-ready, a hosted session normally accepts a send right away even while otherwise busy
+  (TECH-7's design refinement — see the live-sessions note below); a send that still keeps failing
+  two minutes in is worth clearing the session's current work for. Computer then asks the provider
+  to interrupt whatever holds the session busy (`send --interrupt`'s own mechanism) and retries the
+  send once, right away. If that delivers, the launched observation carries a one-time note saying
+  so, and the Run proceeds normally — no deadline, no notice. If the interrupt itself fails, or the
+  retry right after it still fails, the still-`queued` observation carries `errorCode:
+  followup-auto-interrupt-failed` and a summary naming the last error, on every retry tick
+  thereafter, until the provider accepts the prompt or a human or the delegating Agent stops,
+  interrupts (`send --interrupt`), or relaunches it. This is a notice, never a failure: the Run
+  stays `queued`, the auto-interrupt is tried at most once, and Computer keeps retrying underneath
+  it.
+
+**Live sessions accept input while busy.** Claude Code's cloud sessions treat a message sent while
+the session is replying as an ordinary queued turn, not a refusal: the changelog documents this
+repeatedly (`claude.ai/code` sessions, `-p`/headless sessions, and `claude agents`'s own busy
+background sessions all accept new input mid-turn), and Haus's own adapter has no Claude-specific
+"busy" handling outside `requires_action` (`settleQuestion`). This is why the auto-interrupt above
+is a fallback, not the normal path: most sends to a session with no tracked predecessor blocking it
+just work, whatever else that session's worker is doing underneath.
 
 While a follow-up sits in Haus's local queue — waiting on a predecessor or between retries — Computer
 reports it `queued` with an `activity` line naming why (waiting on an earlier Run, or the attempt
 count and last error), so the work card's liveness reading and `haus cloud-agent inspect` both carry
-it instead of staying silent until it settles. Once it crosses the thirty-minute mark, the card's
-follow-up note reads `follow-up waiting: session busy` instead of the ordinary `waiting <d>` note
-(`job.followUp.state: 'stalled'`, `deriveCloudAgentJob` in `packages/haus-api`), and Server raises
-one inbox attention for it. A stuck follow-up keeps reporting the same `errorCode` on every tick, so
-Server dedupes repeats inside one two-hour window to that same attention and opens a fresh one each
-time a new window starts — one notice per stall, a sparse reminder if it is still stuck much later,
-never a flood from the 5-to-60-second retry cadence underneath it.
+it instead of staying silent until it settles. Once an auto-interrupt still hasn't delivered it, the
+card's follow-up note reads `follow-up waiting: auto-interrupt failed` instead of the ordinary
+`waiting <d>` note (`job.followUp.state: 'stalled'`, `deriveCloudAgentJob` in `packages/haus-api`),
+and Server raises one inbox attention for it. A stuck follow-up keeps reporting the same `errorCode`
+on every tick, so Server dedupes repeats inside one two-hour window to that same attention and opens
+a fresh one each time a new window starts — one notice per stall, a sparse reminder if it is still
+stuck much later, never a flood from the 5-to-60-second retry cadence underneath it.
 
 A Run Server recorded but this Computer never journaled — the sender timed out or crashed between
 the two — never reached Cursor. Its monitor settles it `failed` with `launch-record-missing` after a
