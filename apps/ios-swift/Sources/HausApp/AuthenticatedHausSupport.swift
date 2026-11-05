@@ -47,6 +47,9 @@ struct ThreadSelection: Hashable, Identifiable {
     /// (`TaskOpening.containingThread`). The Thread lands on it instead of the
     /// unread landing and always marks its task.
     var taskMessageID: String?
+    /// The Cloud Agent work this Thread was opened for. It names the screen,
+    /// the identity the reader came for, as the App's work peek does.
+    var title: String?
 
     var id: String { anchor.id }
 }

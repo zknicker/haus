@@ -16,7 +16,7 @@ extension HausStore {
     /// Projects a filtered `chat.messages` list without touching the ordinary
     /// Chat list. The Server includes the canonical root in that response; the
     /// Thread screen already renders that root as its anchor, so only its chain
-    /// belongs in the Inline replies region.
+    /// belongs among its replies.
     func inlineReplyPresentations(chatID: String, rootMessageID: String) -> [MessagePresentation] {
         trackProjectionDirectory()
         guard let page = inlineReplyPagesByRootID[rootMessageID] else { return [] }
@@ -93,7 +93,7 @@ extension HausStore {
         } catch is CancellationError {
             return false
         } catch {
-            // The Inline replies region draws its own Retry state for this load.
+            // The Thread's inline loader draws its own Retry state for this load.
             Self.logger.error("Loading inline replies failed: \(error.localizedDescription, privacy: .public)")
             return false
         }

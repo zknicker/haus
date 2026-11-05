@@ -22,7 +22,9 @@ export interface CloudAgentStatusLine {
  * 1. why the job failed,
  * 2. that a live Run has gone quiet,
  * 3. that a stop was requested,
- * 4. that the delegating Agent sent a follow-up (including its answer),
+ * 4. that the delegating Agent sent a follow-up (including its answer); a
+ *    follow-up whose auto-interrupt fallback still didn't deliver it reads
+ *    distinctly so it is never mistaken for an ordinary brief wait,
  * 5. otherwise the latest activity, or when the job last updated or settled.
  *
  * A job that needs input never shows its question: that is for the delegating
@@ -49,6 +51,12 @@ export function cloudAgentStatusLine(
     }
     if (job.followUp) {
         const elapsed = elapsedSince(job.followUp.since, input.now) ?? '0s';
+        if (job.followUp.state === 'stalled') {
+            return {
+                text: `follow-up waiting: auto-interrupt failed · ${elapsed}`,
+                tone: 'warning',
+            };
+        }
         const verb = job.followUp.state === 'waiting' ? 'waiting' : 'running';
         return { text: `${input.agentName} asked for changes · ${verb} ${elapsed}`, tone: 'muted' };
     }

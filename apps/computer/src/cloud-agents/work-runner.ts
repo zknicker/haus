@@ -1,10 +1,10 @@
-import type {
-    CloudAgentCancelCommand,
-    CloudAgentObservation,
-    CloudAgentProvider as CloudAgentProviderId,
-    CloudAgentReconcileEntry,
+import {
+    type CloudAgentCancelCommand,
+    type CloudAgentObservation,
+    type CloudAgentProvider as CloudAgentProviderId,
+    type CloudAgentReconcileEntry,
+    isTerminalCloudAgentStatus,
 } from '@haus/api';
-import { isTerminalCloudAgentStatus } from '@haus/api';
 import { settle } from '@haus/effect';
 import { Deferred, type Duration, Effect, Exit, Scope } from 'effect';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
@@ -13,13 +13,12 @@ import { withPullRequestEvidence } from './github/observation-evidence.ts';
 import { createPullRequestReader } from './github/pull-request-reader.ts';
 import { CloudLaunchJournal } from './launch-journal.ts';
 import { CloudAgentLaunchScope } from './launch-scope.ts';
-import { CloudAgentLocalRuns } from './local-runs.ts';
+import { autoInterruptNote, CloudAgentLocalRuns } from './local-runs.ts';
 import { type EnrichObservation, ObservationReports } from './observation-reports.ts';
 import {
     type CloudAgentProvider,
     type CloudAgentProviderObservation,
     type CloudAgentRunRef,
-    cloudAgentLaunchObservation,
 } from './provider.ts';
 import { cloudAgentProvider } from './registry.ts';
 import { CloudAgentSendQueue } from './send-queue.ts';
@@ -107,7 +106,6 @@ export class CloudAgentWorkSupervisor {
     report(ref: CloudAgentRunRef, observation: CloudAgentProviderObservation): void {
         this.connection?.sink({ ...observation, runId: ref.runId, workId: ref.workId });
     }
-
     watch(ref: CloudAgentRunRef): void {
         this.admit(ref, false);
     }
@@ -267,11 +265,17 @@ export class CloudAgentWorkSupervisor {
                 providerAgentId: state.launch.providerAgentId,
                 providerRunId: run.ref.providerRunId ?? state.launch.providerRunId,
             };
-            self.observe(
-                connection,
-                run,
-                cloudAgentLaunchObservation(state.launch, state.observedAt)
-            );
+            const { environmentId, environmentName, providerRunId, providerUrl, ...launch } =
+                state.launch;
+            self.observe(connection, run, {
+                ...launch,
+                ...(environmentId ? { environmentId } : {}),
+                ...(environmentName ? { environmentName } : {}),
+                ...(providerRunId ? { providerRunId } : {}),
+                ...(providerUrl ? { providerUrl } : {}),
+                ...autoInterruptNote(state.autoInterrupted),
+                observedAt: state.observedAt,
+            });
             return !run.terminal;
         });
     }

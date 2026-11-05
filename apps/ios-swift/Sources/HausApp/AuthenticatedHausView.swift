@@ -15,6 +15,7 @@ struct AuthenticatedHausView: View {
     @State var canvasScrollTarget: MessageScrollTarget?
     @State var path: [HausRootRoute] = []
     @State var agentCall: AgentCallRequest?
+    @State var failedWorkOpenID: String?
     /// A cold start lands on the Inbox, which is the canvas itself rather than
     /// a screen over it; see `AuthenticatedHausView+Routes`.
     @State var showsInboxCanvas = true

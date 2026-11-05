@@ -33,6 +33,8 @@ public struct ThreadDetailView: View {
     private let onVisibleMessagesChange: ([String]) -> Void
     /// Where the Thread lives — "#design", or "DM" — shown under the title.
     private let contextLabel: String?
+    /// Names what the Thread was opened for, in place of its own title.
+    private let title: String?
 
     @State private var draft = ""
     @State private var projection = ThreadTranscriptProjection()
@@ -84,6 +86,7 @@ public struct ThreadDetailView: View {
         onOpenAgent: @escaping (String) -> Void = { _ in },
         follow: ThreadFollow? = nil,
         contextLabel: String? = nil,
+        title: String? = nil,
         engagementChatID: String? = nil,
         engagementStyle: HeaderEngagementStyle = .roster,
         landingMessageID: String? = nil,
@@ -94,6 +97,7 @@ public struct ThreadDetailView: View {
         self.taskMessageID = taskMessageID
         self.replyProvider = replies
         self.contextLabel = contextLabel
+        self.title = title
         _awaitsFirstReplies = State(initialValue: ThreadOpening.awaitsFirstReplies(anchor: anchor))
         // Decided once, on the first init: reading moves the unread row, and
         // the view must not chase it.
@@ -185,7 +189,7 @@ public struct ThreadDetailView: View {
             }
         }
         .threadNavigationTitle(
-            ThreadOpening.title(anchor: anchor, taskMessageID: taskMessageID),
+            title ?? ThreadOpening.title(anchor: anchor, taskMessageID: taskMessageID),
             subtitle: showsOutage ? ConnectionOutage.title : contextLabel
         )
         .connectionOutage(isConnected: isConnected, showsOutage: $showsOutage)

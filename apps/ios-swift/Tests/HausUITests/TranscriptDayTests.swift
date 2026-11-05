@@ -71,14 +71,32 @@ struct TranscriptDayTests {
         #expect(items.map(\.id) == [
             "thread-anchor-root",
             "r1",
-            "thread-day-replies-\(Int(day(1, hour: 0, minute: 0).timeIntervalSinceReferenceDate))",
+            "thread-day-\(Int(day(1, hour: 0, minute: 0).timeIntervalSinceReferenceDate))",
             "r2",
             "r3",
         ])
         #expect(items.compactMap(\.replyID) == ["r1", "r2", "r3"])
     }
 
-    @Test func anEmptyParentChainDropsTheThreadLabel() {
+    @Test func aDayDividerFollowsTheMergedConversation() {
+        let anchor = message("root", at: day(0, hour: 9, minute: 0))
+        let items = ThreadTranscriptItem.items(
+            anchor: anchor,
+            replies: [message("r1", at: day(1, hour: 9, minute: 0))],
+            includesInlineReplies: true,
+            inlineReplies: [message("i1", at: day(1, hour: 8, minute: 0))],
+            calendar: utc
+        )
+        #expect(items.map(\.id) == [
+            "thread-anchor-root",
+            "thread-inline-replies",
+            "thread-day-\(Int(day(1, hour: 0, minute: 0).timeIntervalSinceReferenceDate))",
+            "thread-inline-reply-i1",
+            "r1",
+        ])
+    }
+
+    @Test func anEmptyParentChainAddsNoRows() {
         let anchor = message("root", at: day(0, hour: 9, minute: 0))
         let items = ThreadTranscriptItem.items(
             anchor: anchor,

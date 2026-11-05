@@ -5,11 +5,15 @@ const timestampSchema = z.iso.datetime({ offset: true });
 
 /**
  * A follow-up Run the delegating Agent sent after the first one. `waiting`
- * dates from when it was queued; `running` from when the provider started it.
+ * dates from when it was queued; `running` from when the provider started it;
+ * `stalled` dates from when it was queued, but means Haus already tried
+ * auto-interrupting the session to deliver it and that still didn't work —
+ * it is still queued and still retrying, not failed.
  */
 export const cloudAgentFollowUpSchema = z.discriminatedUnion('state', [
     z.object({ since: timestampSchema, state: z.literal('waiting') }).strict(),
     z.object({ since: timestampSchema, state: z.literal('running') }).strict(),
+    z.object({ since: timestampSchema, state: z.literal('stalled') }).strict(),
 ]);
 
 /**
@@ -128,7 +132,13 @@ export function deriveCloudAgentJob(work: {
 
 function followUpOf(run: JobRun): CloudAgentFollowUp | null {
     if (run.status === 'queued') {
-        return { since: run.createdAt, state: 'waiting' };
+        // Computer reports this errorCode on a queued Run whose auto-interrupt
+        // fallback still didn't deliver it; there is no shared enum for it, so
+        // this literal is compared the same way on both the Computer side and
+        // here.
+        return run.errorCode === 'followup-auto-interrupt-failed'
+            ? { since: run.createdAt, state: 'stalled' }
+            : { since: run.createdAt, state: 'waiting' };
     }
     if (run.status === 'running') {
         return { since: run.startedAt ?? run.createdAt, state: 'running' };
