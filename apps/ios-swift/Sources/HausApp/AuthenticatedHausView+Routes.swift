@@ -36,6 +36,19 @@ extension AuthenticatedHausView {
             onOpenSidebar: onOpenSidebar,
             contentInsets: contentInsets
         )
+        .alert(
+            "Couldn’t open that thread",
+            isPresented: Binding(
+                get: { failedWorkOpenID != nil },
+                set: { if !$0 { failedWorkOpenID = nil } }
+            ),
+            presenting: failedWorkOpenID
+        ) { workID in
+            Button("Retry") { openInboxRequest(.cloudAgentWork(workID: workID)) }
+            Button("Cancel", role: .cancel) {}
+        } message: { _ in
+            Text("Check your connection and try again.")
+        }
     }
 
     /// The sidebar's Inbox row: the canvas goes back to the Inbox, and anything
@@ -78,7 +91,7 @@ extension AuthenticatedHausView {
     private func openCloudAgentWork(_ work: ActiveCloudAgentWork) {
         switch work.location {
         case .workThread(let threadChatID, let anchorMessageID):
-            openWorkThread(conversationChatID: work.conversationChatID, threadChatID: threadChatID, anchorMessageID: anchorMessageID)
+            openWorkThread(work, threadChatID: threadChatID, anchorMessageID: anchorMessageID)
         case .message(let chatID, let messageID, let threadChatID):
             // `chatID` is always the Channel or DM. A Message in or anchoring
             // a Thread opens that Thread, whose anchor `thread.get` names.
@@ -86,20 +99,37 @@ extension AuthenticatedHausView {
                 openCanvasChat(.chat(chatID), revealing: messageID)
                 return
             }
+            let serverID = store.activeServer?.id
             Task {
-                guard let selection = await store.threadSelection(threadChatID: threadChatID) else { return }
+                guard let selection = await store.threadSelection(threadChatID: threadChatID) else {
+                    reportWorkOpenFailure(work, on: serverID)
+                    return
+                }
                 pushConversationThread(selection)
             }
         }
     }
 
-    private func openWorkThread(conversationChatID: String, threadChatID: String, anchorMessageID: String) {
+    /// A Thread that could not be read says so, as the App's toast does. One
+    /// the viewer left by switching Servers is no longer theirs to retry.
+    private func reportWorkOpenFailure(_ work: ActiveCloudAgentWork, on serverID: String?) {
+        guard store.activeServer?.id == serverID else { return }
+        failedWorkOpenID = work.id
+    }
+
+    private func openWorkThread(_ work: ActiveCloudAgentWork, threadChatID: String, anchorMessageID: String) {
+        let serverID = store.activeServer?.id
         Task {
-            guard let selection = await store.threadSelection(
-                conversationChatID: conversationChatID,
+            guard var selection = await store.threadSelection(
+                conversationChatID: work.conversationChatID,
                 threadChatID: threadChatID,
                 anchorMessageID: anchorMessageID
-            ) else { return }
+            ) else {
+                reportWorkOpenFailure(work, on: serverID)
+                return
+            }
+            let title = work.work.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            selection.title = title.isEmpty ? nil : title
             pushConversationThread(selection)
         }
     }

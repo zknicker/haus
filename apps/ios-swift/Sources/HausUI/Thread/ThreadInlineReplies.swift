@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// The parent Chat's inline reply chain shown while inspecting a Task. Closures
-/// keep the Store out of HausUI and let the route invalidate this region when a
-/// filtered page or its pagination state changes.
+/// The parent Chat's inline replies to a Thread's anchor, which read as part of
+/// its conversation. Closures keep the Store out of HausUI and let the route
+/// invalidate the rows when a filtered page or its pagination state changes.
 public struct ThreadInlineReplies {
     public let id: String
     public let messages: () -> [MessagePresentation]
@@ -37,17 +37,15 @@ public struct ThreadInlineReplies {
     }
 }
 
-/// A labeled region inside the Thread transcript. Its rows deliberately omit
-/// cloud-agent actions: the parent chain is an inspection surface, and
-/// sending remains the separate dedicated Thread composer below.
-struct ThreadInlineRepliesRegion: View {
+/// Loads the parent chain, whose rows sit among the Thread's own. It takes no
+/// room until a load fails, when it offers the retry.
+struct ThreadInlineRepliesLoader: View {
     let config: ThreadInlineReplies
-    let isEmpty: Bool
     @State private var loadError: String?
     @State private var loadAttempt = 0
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        Group {
             if let loadError {
                 HStack(spacing: 8) {
                     Text(loadError)
@@ -60,19 +58,13 @@ struct ThreadInlineRepliesRegion: View {
                     }
                     .font(.caption.weight(.semibold))
                 }
-            } else if !isEmpty {
-                ThreadRegionHeader(title: "Inline replies", detail: "Read only")
-            } else if config.isLoaded() {
-                // One quiet line rather than a header over an empty region;
-                // blank until the chain has loaded.
-                Text("No inline replies in the channel yet.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                .padding(.top, 12)
+                .padding(.bottom, 8)
+            } else {
+                Color.clear.frame(height: 0)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 12)
-        .padding(.bottom, 8)
         .task(id: "\(config.id):\(loadAttempt)") {
             guard !config.isLoaded() else { return }
             let loaded = await config.load()
@@ -81,26 +73,6 @@ struct ThreadInlineRepliesRegion: View {
                 loadError = "Inline replies could not be loaded."
             }
         }
-    }
-}
-
-struct ThreadRegionHeader: View {
-    let title: String
-    var detail: String?
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-            if let detail {
-                Text(detail)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 0)
-        }
-        .foregroundStyle(.secondary)
-        .padding(.top, 4)
     }
 }
 
