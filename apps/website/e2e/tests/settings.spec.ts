@@ -227,10 +227,10 @@ test('hides added presets and allows deleting every preset account', async ({ pa
     await page.reload();
     await expect(connection).toBeVisible();
     await expect(merchbase).toHaveCount(0);
-    // Drain the remaining one-press presets; X (token) and Skool (sign-in) are not.
+    // Drain the remaining one-press presets; Factory and X (token) and Skool (sign-in) are not.
     const addPreset = page
         .locator('.item-card')
-        .getByRole('button', { name: /^Add (?!(?:X|Skool)$)/u });
+        .getByRole('button', { name: /^Add (?!(?:Factory|X|Skool)$)/u });
     for (let remaining = await addPreset.count(); remaining > 0; remaining -= 1) {
         await addPreset.first().click();
         await expect(addPreset).toHaveCount(remaining - 1);

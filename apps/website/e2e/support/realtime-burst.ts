@@ -7,7 +7,8 @@ import { expect } from './test.ts';
 /** Freezes App time (frames and timers) so a whole burst lands before one frame. */
 async function freezeAppTime(page: Page) {
     const now = await page.evaluate(() => Date.now());
-    await page.clock.pauseAt(new Date(now + 1));
+    // Far enough ahead that the page's own clock has not passed it by the time this lands.
+    await page.clock.pauseAt(new Date(now + 1000));
 }
 
 /**

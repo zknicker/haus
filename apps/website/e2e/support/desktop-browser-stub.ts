@@ -57,7 +57,7 @@ export async function installDesktopBrowserStub(page: Page) {
         // A web link without a view name asks the App for a tab, as Electron does.
         const requestOpen = (url: string) => {
             for (const listener of openRequests) {
-                listener({ url, openerId: null, background: false });
+                listener({ url, openerId: null, background: false, viewId: null });
             }
         };
         // Mirrors electron/external-link-handlers.cjs: Electron denies every App-window popup,

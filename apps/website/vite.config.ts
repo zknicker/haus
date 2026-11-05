@@ -30,6 +30,14 @@ export default defineConfig(({ command }) => ({
         ),
         'import.meta.env.VITE_HAUS_RELEASE_SNAPSHOT': JSON.stringify(releaseSnapshot),
     },
+    optimizeDeps: {
+        esbuildOptions: {
+            // Playwright runs Vite with NODE_ENV=test, which leaves React Aria's Virtualizer
+            // reading `process.env.VIRT_ON` in the browser, where `process` does not exist.
+            // Remove once `process.env.VIRT_ON` is gone from the bundled Virtualizer.
+            define: { 'process.env.VIRT_ON': 'true' },
+        },
+    },
     plugins: [appBuildPlugin(), rejectNodeBuiltins(), tailwindcss(), react()],
     resolve: {
         alias: {

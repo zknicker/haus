@@ -76,6 +76,13 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({
     await page.keyboard.press('Escape');
     await expect(sheet).toHaveCount(0);
 
+    // Times read in the viewer's saved zone, which a new device never overwrites.
+    const { members, viewerUserId } = await client.member.list.query({ serverId: server.id });
+    const savedZone = members.find((member) => member.userId === viewerUserId)?.timezone;
+    if (!savedZone) {
+        throw new Error('The reminder fixture has no saved viewer timezone.');
+    }
+    await client.member.setTimezone.mutate({ serverId: server.id, timezone: 'Asia/Tokyo' });
     const context = await browser.newContext({
         timezoneId: 'Asia/Tokyo',
         locale: 'en-US',
@@ -102,6 +109,8 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({
         });
     } finally {
         await context.close();
+        // The e2e human is shared, so the next spec reads times where this one found them.
+        await client.member.setTimezone.mutate({ serverId: server.id, timezone: savedZone });
     }
     // Reminders and Triggers share the Automations page, each as its own section.
     await expect(page.getByText(/No triggers yet\./u)).toBeVisible();
@@ -171,7 +180,10 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({
     await expect(page.getByRole('link', { name: 'Automations', exact: true })).toBeVisible();
     await expect(page.getByText(/Nothing scheduled\./u)).toBeVisible();
     await expect(page.getByText('Local watchdog', { exact: true })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: /view .* history/iu })).toHaveCount(0);
+    // Cloud agent history stays: it lists only the work a member can already see.
+    await expect(
+        page.getByRole('button', { name: /view (reminder|trigger) history/iu })
+    ).toHaveCount(0);
 });
 
 function seedReminderState(input: {
