@@ -20,6 +20,8 @@ const deliverySchema = z.object({
     firstAttemptAt: z.string().min(1),
     lastError: z.string(),
     nextAttemptAt: z.string().min(1),
+    /** When the auto-interrupt fallback was tried; null until it is. */
+    interruptedAt: z.string().min(1).nullable().default(null),
 });
 const recordSchema = z.discriminatedUnion('phase', [
     z.object({
@@ -54,7 +56,13 @@ const recordSchema = z.discriminatedUnion('phase', [
         workId: z.string(),
         deadlineAt: z.iso.datetime().optional(),
     }),
-    z.object({ phase: z.literal('launched'), workId: z.string(), launch: launchSchema }),
+    z.object({
+        phase: z.literal('launched'),
+        workId: z.string(),
+        launch: launchSchema,
+        /** This follow-up only delivered after Haus auto-interrupted the session. */
+        autoInterrupted: z.boolean().default(false),
+    }),
     z.object({
         phase: z.literal('rejected'),
         workId: z.string(),
@@ -131,9 +139,15 @@ export class CloudLaunchJournal {
     async record(
         serverId: string,
         ref: CloudAgentRunRef,
-        launch: CloudAgentLaunch
+        launch: CloudAgentLaunch,
+        options?: { autoInterrupted?: boolean }
     ): Promise<boolean> {
-        const record = recordSchema.parse({ phase: 'launched', workId: ref.workId, launch });
+        const record = recordSchema.parse({
+            phase: 'launched',
+            workId: ref.workId,
+            launch,
+            autoInterrupted: options?.autoInterrupted ?? false,
+        });
         return await this.write(serverId, ref, record);
     }
 

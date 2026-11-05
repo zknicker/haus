@@ -11,7 +11,11 @@ import {
     cloudAgentUnreadyMessage,
 } from '../provider.ts';
 import { withClaudeCheckout } from './checkout.ts';
-import { type ClaudeController, createClaudeController } from './controller.ts';
+import {
+    type ClaudeController,
+    type ClaudeSessionEvent,
+    createClaudeController,
+} from './controller.ts';
 import { readClaudeNativeAccount } from './native-auth.ts';
 import { launchNativeClaudeCloud, sendNativeClaudeCloud } from './native-commands.ts';
 import { claudeRunObservation } from './observation.ts';
@@ -36,23 +40,41 @@ const answerSettleTimeout = 30_000;
 export function createClaudeCloudAgentProvider(
     controller: ClaudeController = createClaudeController()
 ): CloudAgentProvider {
+    // The chronological window since this Run's own tagged prompt, once found.
+    // A later tick resumes from its newest event instead of rescanning the
+    // whole backward history again, so a long, busy session never has to pay
+    // for the very scan that first found it (TECH-7).
+    const windows = new Map<string, ClaudeSessionEvent[]>();
     const read = async (
         ref: CloudAgentRunRef,
         signal?: AbortSignal
     ): Promise<CloudAgentProviderObservation> => {
         const sessionId = requireSession(ref);
         const tag = claudeRunTag(ref);
-        const [session, events] = await Promise.all([
+        const cached = windows.get(ref.runId) ?? null;
+        const newest = cached?.[0]?.sequence;
+        const stop = newest
+            ? (event: ClaudeSessionEvent) => compareSequence(event.sequence, newest) <= 0
+            : (event: ClaudeSessionEvent) => isRunPrompt(event, tag);
+        const [session, page] = await Promise.all([
             controller.session(sessionId, signal),
-            controller.events(sessionId, (event) => isRunPrompt(event, tag), signal),
+            controller.events(sessionId, stop, signal),
         ]);
-        return claudeRunObservation({
+        const events = cached ? resumedWindow(page.events, cached, newest as string) : page.events;
+        const observation = claudeRunObservation({
             cancelRequestId: cancelRequestId(ref),
             events,
             observedAt: new Date().toISOString(),
             ref,
             session,
+            truncated: !cached && page.truncated,
         });
+        if (isTerminalCloudAgentStatus(observation.status)) {
+            windows.delete(ref.runId);
+        } else if (cached || !page.truncated) {
+            windows.set(ref.runId, events);
+        }
+        return observation;
     };
     const readiness = async (): Promise<CloudAgentReadiness> => {
         if (!resolveRuntimeExecutable('claude')) {
@@ -69,7 +91,7 @@ export function createClaudeCloudAgentProvider(
             const tag = claudeRunTag(ref);
             const entries = (
                 await controller.events(sessionId, (event) => isRunPrompt(event, tag), signal)
-            ).flatMap(logEntriesOf);
+            ).events.flatMap(logEntriesOf);
             const requestId = cancelRequestId(ref);
             if (
                 entries.some(
@@ -100,7 +122,7 @@ export function createClaudeCloudAgentProvider(
             const tag = claudeRunTag({ runId: input.idempotencyKey, workId: input.workId });
             const delivered = (
                 await controller.events(sessionId, (event) => isRunPrompt(event, tag))
-            ).find((event) => isRunPrompt(event, tag));
+            ).events.find((event) => isRunPrompt(event, tag));
             if (!delivered) {
                 await settleQuestion(controller, sessionId, input.idempotencyKey);
                 await sendNativeClaudeCloud({
@@ -169,6 +191,21 @@ async function settleQuestion(
         }
     }
     throw new Error('Claude did not set its question aside in time; the answer will retry.');
+}
+
+/** This tick's events newer than the cached window, placed ahead of it. */
+function resumedWindow(
+    freshPage: ClaudeSessionEvent[],
+    cached: ClaudeSessionEvent[],
+    newest: string
+): ClaudeSessionEvent[] {
+    return [...freshPage.filter((event) => compareSequence(event.sequence, newest) > 0), ...cached];
+}
+
+/** Claude's event sequence numbers are decimal strings, so compare them numerically. */
+function compareSequence(a: string, b: string): number {
+    const diff = BigInt(a) - BigInt(b);
+    return diff > 0n ? 1 : diff < 0n ? -1 : 0;
 }
 
 function openTaskIds(entries: ReturnType<typeof logEntriesOf>): string[] {

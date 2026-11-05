@@ -1,13 +1,17 @@
 import { Clock, Effect } from 'effect';
 import { type CloudAgentOperationError, foreign } from './foreign-operation.ts';
 import { abortCloudAgentLaunch } from './launch-attempt.ts';
-import type { CloudLaunchJournal, CloudLaunchRecord } from './launch-journal.ts';
+import type { CloudLaunchJournal, CloudLaunchRecord, CloudPendingSend } from './launch-journal.ts';
 import type {
     CloudAgentLaunch,
     CloudAgentProviderObservation,
     CloudAgentRunRef,
 } from './provider.ts';
-import { launchRecordGraceMs, launchRecordMissing } from './send-delivery.ts';
+import {
+    cloudAgentDeliveryFailure,
+    launchRecordGraceMs,
+    launchRecordMissing,
+} from './send-delivery.ts';
 import type { CloudAgentSendQueue } from './send-queue.ts';
 
 /** A monitored Run the provider has not addressed yet. */
@@ -19,7 +23,13 @@ export interface LocalRun {
 }
 
 export type LocalRunState =
-    | { kind: 'launched'; launch: CloudAgentLaunch; observedAt: string }
+    | {
+          kind: 'launched';
+          launch: CloudAgentLaunch;
+          observedAt: string;
+          /** This follow-up only delivered after Haus auto-interrupted the session. */
+          autoInterrupted: boolean;
+      }
     /** Not at the provider; report the observation when one is given. */
     | { kind: 'unsent'; observation: CloudAgentProviderObservation | null };
 
@@ -42,10 +52,21 @@ export class CloudAgentLocalRuns {
             const nowMs = yield* Clock.currentTimeMillis;
             const observedAt = new Date(nowMs).toISOString();
             switch (recorded?.phase) {
-                case 'pending':
-                    return unsent(null);
+                case 'pending': {
+                    const { delivery } = recorded;
+                    return unsent(
+                        delivery?.interruptedAt
+                            ? autoInterruptFailedQueued(observedAt, delivery)
+                            : queued(observedAt, pendingActivity(recorded))
+                    );
+                }
                 case 'launched':
-                    return { kind: 'launched', launch: recorded.launch, observedAt } as const;
+                    return {
+                        autoInterrupted: recorded.autoInterrupted,
+                        kind: 'launched',
+                        launch: recorded.launch,
+                        observedAt,
+                    } as const;
                 case 'cancelled':
                     return unsent({ observedAt, status: 'cancelled' });
                 case 'rejected':
@@ -120,6 +141,53 @@ function unsent(observation: CloudAgentProviderObservation | null): LocalRunStat
     return { kind: 'unsent', observation };
 }
 
+/**
+ * Why a pending follow-up has not reached the provider yet, for the work card
+ * and `haus cloud-agent inspect`. Before this, a blocked follow-up reported
+ * nothing at all while waiting on a predecessor (TECH-7): the stall was
+ * invisible everywhere except this Computer's own private journal file.
+ */
+function pendingActivity(pending: CloudPendingSend): string {
+    if (pending.delivery) {
+        return `The provider has not accepted this follow-up yet (attempt ${pending.delivery.attempts}; last error: ${pending.delivery.lastError}).`;
+    }
+    return pending.predecessors.length > 0
+        ? 'Waiting for an earlier Run to finish before sending this follow-up.'
+        : 'Waiting for the provider to accept this follow-up.';
+}
+
 function queued(observedAt: string, summary: string): CloudAgentProviderObservation {
     return { activity: { at: observedAt, summary }, observedAt, status: 'queued' };
+}
+
+/**
+ * Reported every tick once `send-queue.ts`'s auto-interrupt fallback has been
+ * tried and still didn't deliver: still queued, still retrying, but now
+ * carrying the errorCode Server uses to raise exactly one inbox attention
+ * (then sparse reminders) without failing the Run. TECH-7's design
+ * refinement: a busy provider never fails the follow-up on its own, and
+ * clearing the session's current work gets one automatic try before anyone
+ * is asked to decide.
+ */
+function autoInterruptFailedQueued(
+    observedAt: string,
+    delivery: NonNullable<CloudPendingSend['delivery']>
+): CloudAgentProviderObservation {
+    return {
+        activity: {
+            at: observedAt,
+            summary: 'Auto-interrupt did not clear the session; still retrying.',
+        },
+        errorCode: cloudAgentDeliveryFailure.followUpAutoInterruptFailed,
+        observedAt,
+        status: 'queued',
+        summary: `Haus automatically interrupted the session to deliver this follow-up, but it still didn't go through. Last error: ${delivery.lastError}. Haus keeps retrying; stop, interrupt, or relaunch if you want to act now.`,
+    };
+}
+
+/** One-time: this Run's own monitor reports fresh activity from here on, so a later observation naturally supersedes it. */
+export function autoInterruptNote(autoInterrupted: boolean): { summary?: string } {
+    return autoInterrupted
+        ? { summary: 'Haus automatically interrupted the session to deliver this follow-up.' }
+        : {};
 }

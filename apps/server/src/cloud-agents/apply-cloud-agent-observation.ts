@@ -1,17 +1,18 @@
 import {
     type CloudAgentObservation,
+    type CloudAgentStatus,
     type CloudAgentWork,
     isTerminalCloudAgentStatus,
 } from '@haus/api';
-import { and, desc, eq, isNotNull, isNull, or, sql } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { chatsTable, cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
+import { cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { attentionDedupeKey, isLiveChat, isStalledErrorCode } from './cloud-agent-attention.ts';
 import { prepareCloudAgentWorkEvents } from './cloud-agent-events.ts';
 import { findCloudAgentWork } from './cloud-agent-shape.ts';
-import { linkParentChatsTable } from './cloud-agent-work-visibility.ts';
 import { mergeBranchEvidence } from './merge-branch-evidence.ts';
 
 export interface AppliedCloudAgentObservation {
@@ -26,9 +27,11 @@ export interface AppliedCloudAgentObservation {
  * Applies one bounded Computer observation to its Run and work. A duplicate,
  * out-of-order, or post-terminal observation is a no-op: the first terminal
  * result a Run reports is the one that stands. Only the newest Run projects
- * work lifecycle. Every settling Run creates one durable inbox attention for the
- * delegating Agent in the requesting Chat, in the same transaction, unless
- * that Chat has since been deleted.
+ * work lifecycle. Every settling Run creates one durable inbox attention for
+ * the delegating Agent in the requesting Chat, in the same transaction, unless
+ * that Chat has since been deleted; a non-terminal Run whose errorCode still
+ * needs one (see `isStalledErrorCode`) creates the same kind of attention
+ * without settling, at most once per reminder window.
  */
 export async function applyCloudAgentObservation(
     db: HausDatabase,
@@ -46,8 +49,10 @@ export async function applyCloudAgentObservation(
                 computerId: cloudAgentWorkTable.computerId,
                 observedAt: cloudAgentRunsTable.observedAt,
                 runStartedAt: cloudAgentRunsTable.startedAt,
+                runStatus: cloudAgentRunsTable.status,
                 terminalAt: cloudAgentRunsTable.terminalAt,
                 workStartedAt: cloudAgentWorkTable.startedAt,
+                workStatus: cloudAgentWorkTable.status,
             })
             .from(cloudAgentRunsTable)
             .innerJoin(
@@ -76,7 +81,14 @@ export async function applyCloudAgentObservation(
         const settling = isTerminalCloudAgentStatus(observation.status);
         await tx
             .update(cloudAgentRunsTable)
-            .set(runObservationUpdate(observation, row.runStartedAt, row.branches))
+            .set(
+                runObservationUpdate(
+                    observation,
+                    effectiveStatus(observation.status, row.runStatus),
+                    row.runStartedAt,
+                    row.branches
+                )
+            )
             .where(
                 and(
                     eq(cloudAgentRunsTable.serverId, input.serverId),
@@ -101,7 +113,11 @@ export async function applyCloudAgentObservation(
             .update(cloudAgentWorkTable)
             .set(
                 latestRun?.id === observation.runId
-                    ? workObservationUpdate(observation, row.workStartedAt)
+                    ? workObservationUpdate(
+                          observation,
+                          effectiveStatus(observation.status, row.workStatus),
+                          row.workStartedAt
+                      )
                     : {
                           updatedAt: sql`greatest(${cloudAgentWorkTable.updatedAt}, ${observation.observedAt}::timestamptz)`,
                       }
@@ -113,16 +129,19 @@ export async function applyCloudAgentObservation(
                 )
             );
 
+        const stalled = !settling && isStalledErrorCode(observation.errorCode);
         // The notice goes to the Chat that asked for the work, never to a later
-        // link (ADR 0044). If that Chat is gone, the work settles silently.
+        // link (ADR 0044). If that Chat is gone, the work settles (or keeps
+        // retrying) silently.
         const notifying =
-            settling && (await isLiveChat(tx, { chatId: row.chatId, serverId: input.serverId }));
+            (settling || stalled) &&
+            (await isLiveChat(tx, { chatId: row.chatId, serverId: input.serverId }));
         if (notifying) {
             await agentDelivery.enqueue(tx, {
                 agentId: row.agentId,
                 chatId: row.chatId,
                 content: '',
-                dedupeKey: observation.runId,
+                dedupeKey: attentionDedupeKey(observation, stalled, observedAt),
                 serverId: input.serverId,
                 source: 'cloud_agent_work',
             });
@@ -143,56 +162,48 @@ export async function applyCloudAgentObservation(
     });
 }
 
-/** A Chat that still exists and is not tombstoned, nor is its parent. */
-async function isLiveChat(db: HausDatabase, input: { chatId: string; serverId: string }) {
-    const [chat] = await db
-        .select({ id: chatsTable.id })
-        .from(chatsTable)
-        .leftJoin(
-            linkParentChatsTable,
-            and(
-                eq(linkParentChatsTable.serverId, chatsTable.serverId),
-                eq(linkParentChatsTable.id, chatsTable.parentChatId)
-            )
-        )
-        .where(
-            and(
-                eq(chatsTable.serverId, input.serverId),
-                eq(chatsTable.id, input.chatId),
-                isNull(chatsTable.deletedAt),
-                or(
-                    isNull(chatsTable.parentChatId),
-                    and(isNotNull(linkParentChatsTable.id), isNull(linkParentChatsTable.deletedAt))
-                )
-            )
-        )
-        .limit(1);
-    return chat !== undefined;
+/**
+ * Once addressed, a Run or work record never reads `queued` again. A reading
+ * that cannot reconfirm the prompt it already found once (a session log too
+ * large to scan back through, say) must not erase that progress and leave
+ * the job looking unaddressed, even though every later observation keeps
+ * reporting the same stale `queued` until the gap clears (TECH-7).
+ */
+function effectiveStatus(status: CloudAgentStatus, previous: CloudAgentStatus): CloudAgentStatus {
+    return status === 'queued' && previous !== 'queued' ? previous : status;
 }
 
 function runObservationUpdate(
     observation: CloudAgentObservation,
+    status: CloudAgentStatus,
     previousStart: Date | null,
     previousBranches: Parameters<typeof mergeBranchEvidence>[0]
 ) {
     const observedAt = new Date(observation.observedAt);
     return {
-        ...observationTimes(observation, previousStart),
+        ...observationTimes(status, observation, previousStart),
         ...(observation.branches
             ? { branches: mergeBranchEvidence(previousBranches, observation.branches) }
             : {}),
-        ...(observation.errorCode ? { errorCode: observation.errorCode } : {}),
+        // Always written, never merely spread: a Run only ever receives further
+        // observations before it settles, and a stall's errorCode/summary must
+        // clear once the follow-up resolves, not linger from an earlier tick.
+        errorCode: observation.errorCode ?? null,
         observedAt,
         ...(observation.providerRunId ? { providerRunId: observation.providerRunId } : {}),
         ...(observation.rawStatus ? { rawStatus: observation.rawStatus } : {}),
-        ...(observation.summary ? { summary: observation.summary } : {}),
+        summary: observation.summary ?? null,
         ...(observation.usage ? { usage: observation.usage } : {}),
     };
 }
 
-function workObservationUpdate(observation: CloudAgentObservation, previousStart: Date | null) {
+function workObservationUpdate(
+    observation: CloudAgentObservation,
+    status: CloudAgentStatus,
+    previousStart: Date | null
+) {
     return {
-        ...observationTimes(observation, previousStart),
+        ...observationTimes(status, observation, previousStart),
         ...(observation.activity
             ? {
                   activityAt: new Date(observation.activity.at),
@@ -205,14 +216,18 @@ function workObservationUpdate(observation: CloudAgentObservation, previousStart
     };
 }
 
-function observationTimes(observation: CloudAgentObservation, previousStart: Date | null) {
+function observationTimes(
+    status: CloudAgentStatus,
+    observation: CloudAgentObservation,
+    previousStart: Date | null
+) {
     const observedAt = new Date(observation.observedAt);
     const startedAt = observation.startedAt ? new Date(observation.startedAt) : observedAt;
     return {
-        ...(observation.status !== 'queued' && (!previousStart || startedAt < previousStart)
+        ...(status !== 'queued' && (!previousStart || startedAt < previousStart)
             ? { startedAt }
             : {}),
-        status: observation.status,
-        terminalAt: isTerminalCloudAgentStatus(observation.status) ? observedAt : null,
+        status,
+        terminalAt: isTerminalCloudAgentStatus(status) ? observedAt : null,
     };
 }

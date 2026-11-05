@@ -14,19 +14,32 @@ const ref: CloudAgentRunRef = {
 function recordedController(input: {
     events: Record<string, unknown>[];
     session?: Partial<ClaudeSession>;
+    /** Simulates the page cap biting before `stop` matches. */
+    truncateAt?: number;
 }) {
     const calls: string[] = [];
+    const scans: number[] = [];
     const controller: ClaudeController = {
         events(_id, stop) {
+            const chronological = input.events.map((payload, index) => ({
+                createdAt: null,
+                payload,
+                sequence: String(index + 1),
+            }));
             const collected: ClaudeSessionEvent[] = [];
-            for (const payload of [...input.events].reverse()) {
-                const event = { createdAt: null, payload, sequence: '1' };
+            for (const event of [...chronological].reverse()) {
                 collected.push(event);
+                if (input.truncateAt !== undefined && collected.length >= input.truncateAt) {
+                    scans.push(collected.length);
+                    return Promise.resolve({ events: collected, truncated: true });
+                }
                 if (stop(event)) {
-                    break;
+                    scans.push(collected.length);
+                    return Promise.resolve({ events: collected, truncated: false });
                 }
             }
-            return Promise.resolve(collected);
+            scans.push(collected.length);
+            return Promise.resolve({ events: collected, truncated: false });
         },
         interrupt(_id, requestId) {
             calls.push(`interrupt ${requestId}`);
@@ -45,7 +58,7 @@ function recordedController(input: {
             return Promise.resolve();
         },
     };
-    return { calls, controller };
+    return { calls, controller, scans };
 }
 
 const prompt = {
@@ -60,6 +73,38 @@ test('a reading names the Run by the prompt Haus tagged', async () => {
     });
     expect(await createClaudeCloudAgentProvider(controller).read(ref)).toMatchObject({
         providerRunId: 'prompt-1',
+        status: 'running',
+    });
+});
+
+test('a resumed reading picks up only new events, not the whole history again', async () => {
+    const { controller, scans } = recordedController({
+        events: [
+            prompt,
+            { message: { content: [{ text: 'Looking.', type: 'text' }] }, type: 'assistant' },
+            { message: { content: [{ text: 'Still working.', type: 'text' }] }, type: 'assistant' },
+        ],
+    });
+    const provider = createClaudeCloudAgentProvider(controller);
+
+    await provider.read(ref);
+    await provider.read(ref);
+
+    expect(scans[0]).toBeGreaterThan(1);
+    expect(scans[1]).toBe(1);
+});
+
+test('a prompt the scan cap lost surfaces instead of reading queued forever', async () => {
+    const { controller } = recordedController({
+        events: [
+            prompt,
+            { message: { content: [{ text: 'noise', type: 'text' }] }, type: 'assistant' },
+        ],
+        truncateAt: 1,
+    });
+
+    expect(await createClaudeCloudAgentProvider(controller).read(ref)).toMatchObject({
+        errorCode: 'claude-prompt-not-found',
         status: 'running',
     });
 });
