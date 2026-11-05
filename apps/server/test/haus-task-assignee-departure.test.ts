@@ -60,7 +60,10 @@ async function addMember(serverId: string) {
         .insert(usersTable)
         .values({ authSubject: createOpaqueId('clk'), id: userId });
     await connection.db.insert(serverMembershipsTable).values({
-        handle: `bo-${userId.slice(-6).toLowerCase()}`,
+        handle: `bo-${userId
+            .slice(-6)
+            .toLowerCase()
+            .replace(/[^a-z0-9]/gu, 'x')}`,
         id: createOpaqueId('mem'),
         role: 'member',
         serverId,
