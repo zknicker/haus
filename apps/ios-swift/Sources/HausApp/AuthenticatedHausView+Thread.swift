@@ -71,6 +71,7 @@ extension AuthenticatedHausView {
             onOpenAgent: openAgentFromThread,
             follow: threadFollow(for: thread),
             contextLabel: threadContextLabel(for: thread),
+            title: thread.title,
             engagementChatID: resolvedThreadChatID(for: thread),
             engagementStyle: threadEngagementStyle(for: thread),
             landingMessageID: thread.taskMessageID
@@ -102,10 +103,9 @@ extension AuthenticatedHausView {
         thread.resolvedChatID(selectedThread: selectedThread, store: store)
     }
 
-    /// Task inspection keeps the task's canonical parent anchor and exposes
-    /// its parent Chat's inline chain beside the separate child Thread.
-    private func inlineReplies(for thread: ThreadSelection) -> ThreadInlineReplies? {
-        guard thread.anchor.task != nil else { return nil }
+    /// Every Thread reads as one conversation with its parent Chat's inline
+    /// replies to the anchor, where a Cloud Agent's launch Message sits.
+    private func inlineReplies(for thread: ThreadSelection) -> ThreadInlineReplies {
         let rootMessageID = thread.anchor.id
         let parentChatID = thread.parentChatID
         return ThreadInlineReplies(

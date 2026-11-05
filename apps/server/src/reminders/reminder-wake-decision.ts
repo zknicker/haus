@@ -1,0 +1,150 @@
+import { createHash } from 'node:crypto';
+import type { ReminderFireOutcome } from '../postgres/schema/reminders.ts';
+
+export interface ReminderWakeState {
+    consecutiveFailures: number;
+    failAfter: number | null;
+    /** Whether the current failure streak already woke the Agent once. */
+    failureStreakWoken: boolean;
+    lastWakeOutputHash: string | null;
+    wakeOnChange: boolean;
+}
+
+export interface ReminderWakeDecision {
+    /** The failure streak this run ends on, when it recovers; for the "recovered" notice. */
+    failureStreak: number | null;
+    nextState: Pick<
+        ReminderWakeState,
+        'consecutiveFailures' | 'failureStreakWoken' | 'lastWakeOutputHash'
+    >;
+    outcome: ReminderFireOutcome;
+    wake: boolean;
+}
+
+/** `--wake-on-change` compares on this, so a volatile trailing timestamp line still dedupes. */
+export function normalizeReminderScriptOutput(output: string): string {
+    return output
+        .split(/\r\n|\r|\n/u)
+        .map((line) => line.replace(/[ \t]+$/u, ''))
+        .join('\n')
+        .trim();
+}
+
+export function hashReminderScriptOutput(output: string): string {
+    return createHash('sha256').update(normalizeReminderScriptOutput(output)).digest('hex');
+}
+
+/**
+ * Decides whether one script run wakes its Agent, given the reminder's wake
+ * rules and its state across prior runs. Pure and stateless beyond its inputs,
+ * so the caller owns persisting `nextState` back onto the reminder.
+ *
+ * Without `--fail-after`, every failure wakes (today's behavior). With it, a
+ * failure stays quiet until the Nth consecutive one, which wakes once; further
+ * consecutive failures stay quiet until a success wakes once more with a
+ * "recovered" notice. The streak uses `>=`, not `===`, against `failAfter`,
+ * and `failureStreakWoken` gates the wake to exactly once per streak: if
+ * `--fail-after` is lowered mid-streak past the current count, the next
+ * failure still wakes (the streak was never woken under any threshold);
+ * raising or disabling it after the wake never wakes the streak a second
+ * time. `--wake-on-change` applies only to a successful run with output: it
+ * wakes only when that output's hash differs from the last run that woke the
+ * Agent.
+ */
+export function decideReminderWake(
+    state: ReminderWakeState,
+    script: { exitCode: number; output: string; timedOut: boolean }
+): ReminderWakeDecision {
+    const isFailure = script.timedOut || script.exitCode !== 0;
+
+    if (isFailure) {
+        const consecutiveFailures = state.consecutiveFailures + 1;
+        if (state.failAfter === null) {
+            return {
+                failureStreak: null,
+                nextState: {
+                    consecutiveFailures,
+                    failureStreakWoken: false,
+                    lastWakeOutputHash: state.lastWakeOutputHash,
+                },
+                outcome: 'woke',
+                wake: true,
+            };
+        }
+        const wake = !state.failureStreakWoken && consecutiveFailures >= state.failAfter;
+        return {
+            failureStreak: null,
+            nextState: {
+                consecutiveFailures,
+                failureStreakWoken: wake || state.failureStreakWoken,
+                lastWakeOutputHash: state.lastWakeOutputHash,
+            },
+            outcome: wake ? 'woke' : 'failed',
+            wake,
+        };
+    }
+
+    if (state.failureStreakWoken) {
+        return {
+            failureStreak: state.consecutiveFailures,
+            nextState: {
+                consecutiveFailures: 0,
+                failureStreakWoken: false,
+                lastWakeOutputHash: state.lastWakeOutputHash,
+            },
+            outcome: 'recovered',
+            wake: true,
+        };
+    }
+
+    const hadOutput = normalizeReminderScriptOutput(script.output).length > 0;
+    if (!hadOutput) {
+        return {
+            failureStreak: null,
+            nextState: {
+                consecutiveFailures: 0,
+                failureStreakWoken: false,
+                lastWakeOutputHash: state.lastWakeOutputHash,
+            },
+            outcome: 'quiet',
+            wake: false,
+        };
+    }
+
+    if (state.wakeOnChange) {
+        const hash = hashReminderScriptOutput(script.output);
+        if (hash === state.lastWakeOutputHash) {
+            return {
+                failureStreak: null,
+                nextState: {
+                    consecutiveFailures: 0,
+                    failureStreakWoken: false,
+                    lastWakeOutputHash: state.lastWakeOutputHash,
+                },
+                outcome: 'unchanged',
+                wake: false,
+            };
+        }
+        return {
+            failureStreak: null,
+            nextState: {
+                consecutiveFailures: 0,
+                failureStreakWoken: false,
+                lastWakeOutputHash: hash,
+            },
+            outcome: 'woke',
+            wake: true,
+        };
+    }
+
+    return {
+        failureStreak: null,
+        nextState: {
+            consecutiveFailures: 0,
+            failureStreakWoken: false,
+            lastWakeOutputHash: state.lastWakeOutputHash,
+        },
+        outcome: 'woke',
+        wake: true,
+    };
+}

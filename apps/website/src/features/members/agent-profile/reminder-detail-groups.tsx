@@ -8,7 +8,7 @@ import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { formatByteSize } from '../../../lib/format.ts';
 import { serverChatRoute } from '../../servers/server-routes.ts';
 import { chatPlace } from '../../shell/tab-identity.ts';
-import { formatReminderTime } from './agent-reminder-model.ts';
+import { formatReminderTime, reminderWakeRulesLabel } from './agent-reminder-model.ts';
 import { AutomationFactRow } from './automation-fact-row.tsx';
 import { formatReminderScheduleDetail, reminderKind } from './reminder-schedule-presentation.ts';
 
@@ -111,6 +111,10 @@ export function ReminderContextGroup({
                         <Separator />
                         <AutomationFactRow title="Script">
                             {`Attached · ${formatByteSize(reminder.scriptBytes)}`}
+                        </AutomationFactRow>
+                        <Separator />
+                        <AutomationFactRow title="Wake rules">
+                            {reminderWakeRulesLabel(reminder) ?? 'Any output wakes'}
                         </AutomationFactRow>
                     </>
                 ) : null}

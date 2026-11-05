@@ -51,8 +51,8 @@ test('a shown thought hides as soon as its engagement ends', () => {
     expect(visibleChatTypingThought(engaged, null)).toBeNull();
 });
 
-test('the bubble wobbles in, holds long enough to read, and wobbles out', () => {
-    expect(chatTypingThoughtTiming).toEqual({ enterMs: 620, exitMs: 260 });
+test('the bubble springs in, holds long enough to read, and fades out', () => {
+    expect(chatTypingThoughtTiming).toEqual({ enterMs: 480, exitMs: 180 });
     // About six seconds for a typical eight-word line, scaled by length within bounds.
     expect(chatTypingThoughtHoldMs('Still digging through the Bun changelog for breakage')).toBe(
         6300
@@ -104,7 +104,7 @@ const building = {
     runId: 'run_here',
     text: 'Checking the build status',
 };
-// Shown at 10s; its first hold ends after the wobble-in and hold.
+// Shown at 10s; its first hold ends after the spring-in and hold.
 const onScreen = {
     hideAt: 10_000 + chatTypingThoughtTiming.enterMs + chatTypingThoughtHoldMs(building.text),
     shownAt: 10_000,
@@ -176,7 +176,7 @@ test('hovering recalls the latest thought after its bubble has left', () => {
 });
 
 test('hovering a live bubble holds that same bubble; a newer thought replaces it', () => {
-    // Same thought, same key: the hover keeps it up without a second wobble.
+    // Same thought, same key: the hover keeps it up without a second entrance.
     expect(shownChatTypingThought({ latest: earlier, live: earlier }, true)).toBe(earlier);
     expect(shownChatTypingThought({ latest: newer, live: newer }, true)).toBe(newer);
     // Once the newer bubble's hold ends, the hover keeps showing the newer text.

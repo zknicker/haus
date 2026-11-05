@@ -27,6 +27,13 @@ approved in 1Password (Touch ID):
 Item listing keeps API Credential (field `credential`), Password, and Login (field `password`)
 items as `{ id, title, field }`, at most 200. Values never leave 1Password on this path.
 
+For each listed item, main also runs `op item get` to collect its other useful fields: every
+`CONCEALED` or `STRING` field with a value, except a field whose `purpose` is `NOTES` and the field
+already used as the item's primary one. These report as
+`secondaryFields: { itemId, fieldId, label }[]`, at most 20 per item and 800 overall. A single
+item's `op item get` failure drops only that item's secondary fields; the item's primary field,
+and every other item, are unaffected.
+
 The renderer passes the token, item list, account, vault, and service account name straight to
 `computerSecrets.connect` through the vanilla tRPC client, never a cached mutation. Server checks
 that the caller is the Owner and the Computer belongs to the Server, then relays one
@@ -78,7 +85,10 @@ runtime if it went missing. The token and service account are unchanged.
 ## Agent use
 
 `haus-secrets` is on every Agent's PATH. Agents learn it from the `secrets` Manual topic.
-`haus-secrets --list` prints the env names; `haus-secrets -- <command>` reads the token from the
+`haus-secrets --list` prints one name per useful field: an item's main field named from its title
+(`Stripe API Key` → `STRIPE_API_KEY`), and any secondary field named `<TITLE>_<FIELD>`
+(`Plaid API Key` plus a `username` field → `PLAID_API_KEY_USERNAME`). `haus-secrets -- <command>`
+reads the token from the
 Keychain, exports it only into the `varlock run --inject vars` process it execs (with Varlock
 telemetry off), and Varlock injects each item into the command while stripping the `@internal`
 token. Piped output is redacted by Varlock. When the token cannot be read, `haus-secrets` exits 78
@@ -98,4 +108,6 @@ Developer → Service Accounts.
 
 Computer protocol 30 adds the `computer-secrets-request` and `-result` frames and the inventory
 `secrets` field. Connect and refresh wait up to 120 seconds for the Computer (its install gives up
-at 110), disconnect 30.
+at 110), disconnect 30. The `connect` and `refresh-items` operations later gained a required
+`secondaryFields` field on that same frame; adding a field to an existing frame needs no protocol
+bump.

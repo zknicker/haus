@@ -72,6 +72,7 @@ export function useOnePasswordConnect(target: ComputerSecretsTarget, computerNam
                     ...target,
                     account,
                     items: reply.items,
+                    secondaryFields: reply.secondaryFields,
                     serviceAccountName: reply.serviceAccountName,
                     token: reply.token,
                     vault,

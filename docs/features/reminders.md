@@ -112,9 +112,26 @@ new command id.
   deleted reminder's run history reads as not found rather than empty.
 - **Computer-local scripts.** A script payload is at most 16 KiB. The Server
   stores it but never runs or interprets it. The assigned Computer executes it
-  once in the Agent workspace. Empty success stays quiet; output or failure
+  once in the Agent workspace, with the same PATH and environment (minus
+  secrets) the Agent's own shell commands get, so a script that calls
+  `haus-secrets` works. Empty success stays quiet; output or failure
   reaches the Agent on the wake itself, not as a message in the conversation, and
   the Agent decides whether it is worth saying.
+- **Smarter wake rules for a noisy script.** Two opt-in flags, set on
+  `schedule` or `update`, cut repeat wakes from a script that reports the same
+  thing or fails intermittently. `--wake-on-change` compares a waking run's
+  (trailing-whitespace-normalized) output against the output that last woke
+  the Agent; an equal run is a quiet `unchanged` tick, and scripts should keep
+  volatile values like timestamps out of their output. `--fail-after N` holds
+  a failing run (non-zero exit or timeout) quiet until its Nth consecutive
+  failure, which wakes once with the error excerpt; further consecutive
+  failures stay quiet, and the first success after that streak wakes once
+  more with a short "recovered" notice. Neither flag changes behavior while
+  unset. Every run records its outcome — `quiet`, `unchanged`, `woke`,
+  `failed`, or `recovered` — plus its duration and exit code, and a wake's
+  tokens are recorded against its fire when the woken turn reports usage.
+  `haus reminder log` shows per-run rows and a summary of counts and tokens
+  over the last 24h, 7d, and 30d.
 - **Agent profiles.** Server Owners and Admins can see an Agent's reminders on
   that Agent's profile. Each row is one line: a kind icon (a calendar for
   one-time, a repeat mark for recurring), the title, and a short schedule —

@@ -150,7 +150,7 @@ function OutcomeCell({ entry }: { entry: ReminderHistoryEntry }) {
         return <span className="text-muted">{outcome.label}</span>;
     }
     return (
-        <Chip color={outcome.color} size="sm" variant="soft">
+        <Chip className="whitespace-nowrap" color={outcome.color} size="sm" variant="soft">
             {outcome.label}
         </Chip>
     );

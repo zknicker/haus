@@ -93,6 +93,27 @@ describe('deriveCloudAgentJob', () => {
         });
     });
 
+    test('a follow-up an auto-interrupt still could not deliver reads stalled, not waiting', () => {
+        expect(
+            job(
+                run('queued', { createdAt: queuedAt, errorCode: 'followup-auto-interrupt-failed' }),
+                run('completed')
+            )
+        ).toMatchObject({
+            followUp: { since: queuedAt, state: 'stalled' },
+            state: 'done',
+        });
+    });
+
+    test('a follow-up queued with no error code reads waiting, not stalled', () => {
+        expect(
+            job(run('queued', { createdAt: queuedAt, errorCode: null }), run('completed'))
+        ).toMatchObject({
+            followUp: { since: queuedAt, state: 'waiting' },
+            state: 'done',
+        });
+    });
+
     test('a follow-up queued behind a failed Run keeps the failure', () => {
         expect(
             job(

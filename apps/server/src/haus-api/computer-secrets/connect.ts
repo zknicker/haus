@@ -2,6 +2,7 @@ import {
     computerSecretsStatusSchema,
     onePasswordAccountSchema,
     onePasswordItemListSchema,
+    onePasswordSecondaryFieldListSchema,
     onePasswordServiceAccountNameSchema,
     onePasswordServiceAccountTokenSchema,
     onePasswordVaultSchema,
@@ -20,6 +21,7 @@ export const connectComputerSecretsProcedure = memberProcedure
             .extend({
                 account: onePasswordAccountSchema,
                 items: onePasswordItemListSchema,
+                secondaryFields: onePasswordSecondaryFieldListSchema,
                 serviceAccountName: onePasswordServiceAccountNameSchema,
                 token: onePasswordServiceAccountTokenSchema,
                 vault: onePasswordVaultSchema,

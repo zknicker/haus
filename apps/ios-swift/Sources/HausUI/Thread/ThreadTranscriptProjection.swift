@@ -40,7 +40,7 @@ final class ThreadTranscriptProjection {
             includesInlineReplies: includesInlineReplies,
             inlineReplies: inlineReplies
         )
-        let messages = [anchor] + inlineReplies + replies
+        let messages = items.compactMap(\.message)
         messageIDs = messages.map(\.id)
         imagePages = AttachmentImagePages.pages(in: messages)
     }

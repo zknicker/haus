@@ -1,32 +1,96 @@
-import { Separator } from '@heroui/react';
+import { Button, Chip, Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import * as React from 'react';
 import { Fragment } from 'react';
 import { useReminderRuns } from '../../../hooks/members/use-reminder-runs.ts';
 import { useViewerTimeZone } from '../../../hooks/members/use-viewer-time-zone.ts';
 import { SettingsFact } from '../../settings/layout/settings-text.tsx';
-import { formatReminderRunDelay, formatReminderTime } from './agent-reminder-model.ts';
+import {
+    formatReminderRunDelay,
+    formatReminderRunDetail,
+    formatReminderRunSummaryLine,
+    formatReminderTime,
+    type ReminderRunLike,
+    reminderOutcomeBadge,
+} from './agent-reminder-model.ts';
+
+type ReminderRun = ReminderRunLike & { firedAt: string; id: string; scheduledFor: string };
+
+/** Rows shown before "Show more" — enough to judge the pattern without opening every one. */
+const collapsedRunCount = 5;
+
+/** One run: when it fired, and — for a script reminder — its outcome, duration, and exit code. */
+function ReminderRunRow({
+    hasScript,
+    run,
+    viewerZone,
+}: {
+    hasScript: boolean;
+    run: ReminderRun;
+    viewerZone: string;
+}) {
+    const delay = formatReminderRunDelay(run);
+    const detail = hasScript ? formatReminderRunDetail(run) : null;
+    const badge = hasScript
+        ? reminderOutcomeBadge(run.outcome, { scriptExitCode: run.scriptExitCode })
+        : null;
+
+    return (
+        <ItemCard>
+            <ItemCard.Content>
+                <ItemCard.Title className="tabular-nums">
+                    {formatReminderTime(run.firedAt, viewerZone)}
+                </ItemCard.Title>
+                {detail ? (
+                    <ItemCard.Description className="tabular-nums">{detail}</ItemCard.Description>
+                ) : null}
+            </ItemCard.Content>
+            <ItemCard.Action className="flex items-center gap-2">
+                {delay ? <SettingsFact className="tabular-nums">{delay}</SettingsFact> : null}
+                {badge ? (
+                    <Chip color={badge.color} size="sm" variant="soft">
+                        {badge.label}
+                    </Chip>
+                ) : null}
+            </ItemCard.Action>
+        </ItemCard>
+    );
+}
 
 /**
  * A recurring Reminder's retained runs, newest first — the Trigger sheet's
  * Fire history in Reminder words. Blank under its title until the Server
  * answers, because "hasn't run yet" is only true once it has.
+ *
+ * `hasScript` gates the wake-rule facts (outcome chip, duration, exit code,
+ * and the summary line): a script-less reminder always wakes, so none of
+ * that says anything its schedule doesn't already.
  */
 export function ReminderRunHistory({
+    hasScript,
     reminderId,
     serverId,
 }: {
+    hasScript: boolean;
     reminderId: string;
     serverId: string;
 }) {
     const runs = useReminderRuns(serverId, reminderId, true);
     const viewerZone = useViewerTimeZone(serverId);
+    const [expanded, setExpanded] = React.useState(false);
     // The Server returns oldest first.
     const settled = runs.data ? [...runs.data].reverse() : undefined;
+    const summaryLine = hasScript && settled ? formatReminderRunSummaryLine(settled) : null;
+    const visible = settled && !expanded ? settled.slice(0, collapsedRunCount) : settled;
+    const hiddenCount = settled ? settled.length - collapsedRunCount : 0;
 
     return (
         <ItemCardGroup variant="transparent">
             <ItemCardGroup.Header>
                 <ItemCardGroup.Title>Run history</ItemCardGroup.Title>
+                {summaryLine ? (
+                    <ItemCardGroup.Description>{summaryLine}</ItemCardGroup.Description>
+                ) : null}
             </ItemCardGroup.Header>
             {runs.error && !runs.data ? (
                 <ItemCardGroup>
@@ -36,9 +100,9 @@ export function ReminderRunHistory({
                         </ItemCard.Content>
                     </ItemCard>
                 </ItemCardGroup>
-            ) : settled ? (
-                <ItemCardGroup className="max-h-64 overflow-y-auto">
-                    {settled.length === 0 ? (
+            ) : visible ? (
+                <ItemCardGroup>
+                    {visible.length === 0 ? (
                         <ItemCard>
                             <ItemCard.Content>
                                 <ItemCard.Description>
@@ -47,30 +111,29 @@ export function ReminderRunHistory({
                             </ItemCard.Content>
                         </ItemCard>
                     ) : (
-                        settled.map((run, index) => {
-                            const delay = formatReminderRunDelay(run);
-                            return (
-                                <Fragment key={run.id}>
-                                    {index > 0 ? <Separator /> : null}
-                                    <ItemCard>
-                                        <ItemCard.Content>
-                                            <ItemCard.Title className="tabular-nums">
-                                                {formatReminderTime(run.firedAt, viewerZone)}
-                                            </ItemCard.Title>
-                                        </ItemCard.Content>
-                                        {delay ? (
-                                            <ItemCard.Action>
-                                                <SettingsFact className="tabular-nums">
-                                                    {delay}
-                                                </SettingsFact>
-                                            </ItemCard.Action>
-                                        ) : null}
-                                    </ItemCard>
-                                </Fragment>
-                            );
-                        })
+                        visible.map((run, index) => (
+                            <Fragment key={run.id}>
+                                {index > 0 ? <Separator /> : null}
+                                <ReminderRunRow
+                                    hasScript={hasScript}
+                                    run={run}
+                                    viewerZone={viewerZone}
+                                />
+                            </Fragment>
+                        ))
                     )}
                 </ItemCardGroup>
+            ) : null}
+            {hiddenCount > 0 ? (
+                <Button
+                    aria-expanded={expanded}
+                    className="self-center"
+                    onPress={() => setExpanded((value) => !value)}
+                    size="sm"
+                    variant="ghost"
+                >
+                    {expanded ? 'Show less' : `Show ${hiddenCount} more`}
+                </Button>
             ) : null}
         </ItemCardGroup>
     );

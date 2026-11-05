@@ -15,7 +15,7 @@ import {
 } from './chat-typing-thought.ts';
 
 /**
- * The engaged Agent's latest thought for this Chat, held for one wobble-in
+ * The engaged Agent's latest thought for this Chat, held for one spring-in
  * and hold; the same line again while it is up extends that hold instead.
  * The last shown thought stays recallable until its run stops engaging the
  * Chat. Transient state only: never cached, gone on unmount.
@@ -43,7 +43,7 @@ export function useChatTypingThought(
         }, hideAt - performance.now());
     }, []);
 
-    // An extension is not a new bubble: it keeps the bubble's key, so no wobble,
+    // An extension is not a new bubble: it keeps the bubble's key, so no re-entry,
     // and leaves the spacing mark where the bubble first showed.
     const present = React.useCallback(
         (next: ChatTypingThought) => {
@@ -113,9 +113,19 @@ export function useChatTypingThought(
 }
 
 const tailInset = 14;
+const tailWidth = 16;
+
+/** The rim is traced around body and tail together, so the two read as one shape. */
+const silhouette = [
+    'drop-shadow(0 0.5px 0 var(--thought-bubble-rim))',
+    'drop-shadow(0 -0.5px 0 var(--thought-bubble-rim))',
+    'drop-shadow(0.5px 0 0 var(--thought-bubble-rim))',
+    'drop-shadow(-0.5px 0 0 var(--thought-bubble-rim))',
+    'drop-shadow(0 8px 14px var(--thought-bubble-lift))',
+].join(' ');
 
 /**
- * A small glass speech bubble whose tail points down at the thinking Agent's
+ * A small speech bubble whose tail points down at the thinking Agent's
  * avatar in the strip. It overlays the transcript, never takes layout, never
  * takes the pointer, and sits beneath the launched faces.
  */
@@ -152,55 +162,68 @@ function ThoughtBubble({
     const enter = chatTypingThoughtTiming.enterMs / 1000;
     const exit = chatTypingThoughtTiming.exitMs / 1000;
 
+    // Grows out of the tail with one small spring while a slight blur settles;
+    // the words trail the shape in so the bubble lands before it is read.
     return (
         <motion.span
             animate={
-                reduceMotion
-                    ? { opacity: 1 }
-                    : {
-                          opacity: [0, 1, 1],
-                          rotate: [-3, 1.5, -0.6, 0],
-                          scale: [0.9, 1.03, 1],
-                          y: [6, -1, 0],
-                      }
+                reduceMotion ? { opacity: 1 } : { filter: 'blur(0px)', opacity: 1, scale: 1, y: 0 }
             }
-            className="absolute block w-max max-w-[280px] rounded-[14px] border border-thought-glass-border bg-thought-glass px-2.5 py-1.5 text-[13px] text-foreground leading-[18px] shadow-(--thought-glass-shadow) backdrop-blur-[14px] backdrop-saturate-[1.6]"
+            className="absolute block w-max max-w-[280px]"
             data-slot="chat-typing-thought"
             exit={
                 reduceMotion
-                    ? { opacity: 0, transition: { duration: exit } }
+                    ? { opacity: 0, transition: { duration: 0.2 } }
                     : {
+                          filter: 'blur(2px)',
                           opacity: 0,
-                          rotate: -1.5,
-                          scale: 0.94,
-                          transition: { duration: exit, ease: 'easeIn' },
-                          y: 4,
+                          scale: 0.95,
+                          transition: { duration: exit, ease: [0.4, 0, 1, 1] },
+                          y: 3,
                       }
             }
-            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, rotate: -3, scale: 0.9, y: 6 }}
+            initial={
+                reduceMotion
+                    ? { opacity: 0 }
+                    : { filter: 'blur(3px)', opacity: 0, scale: 0.86, y: 5 }
+            }
             style={{
-                bottom: anchor ? `calc(100% - ${anchor.y - 7}px)` : '100%',
+                bottom: anchor ? `calc(100% - ${anchor.y - 9}px)` : '100%',
                 left: (anchor?.x ?? tailInset) - tailInset,
-                transformOrigin: `${tailInset}px 100%`,
+                transformOrigin: `${tailInset}px calc(100% + 6px)`,
                 visibility: anchor ? 'visible' : 'hidden',
             }}
             transition={
                 reduceMotion
                     ? { duration: 0.2 }
                     : {
-                          duration: enter,
-                          opacity: { duration: enter * 0.4, times: [0, 0.6, 1] },
-                          rotate: { duration: enter, times: [0, 0.4, 0.7, 1] },
-                          scale: { duration: enter, times: [0, 0.55, 1] },
-                          y: { duration: enter, times: [0, 0.55, 1] },
+                          filter: { duration: 0.22, ease: 'easeOut' },
+                          opacity: { duration: 0.14, ease: 'easeOut' },
+                          scale: { bounce: 0.3, type: 'spring', visualDuration: enter * 0.75 },
+                          y: { bounce: 0.3, type: 'spring', visualDuration: enter * 0.75 },
                       }
             }
         >
-            <span className="line-clamp-2">{thought.text}</span>
-            <span
-                className="absolute -bottom-[5px] size-2.5 rotate-45 border-thought-glass-border border-r border-b bg-thought-glass backdrop-blur-[14px] [clip-path:polygon(100%_0,100%_100%,0_100%)]"
-                style={{ left: tailInset - 5 }}
-            />
+            <span className="relative block" style={{ filter: silhouette }}>
+                <span className="block rounded-[12px] bg-thought-bubble px-[11px] py-[7px] text-[13px] text-foreground leading-[18px]">
+                    <motion.span
+                        animate={{ opacity: 1, y: 0 }}
+                        className="line-clamp-2"
+                        initial={reduceMotion ? false : { opacity: 0, y: 3 }}
+                        transition={{ delay: 0.07, duration: 0.26, ease: [0.2, 0.8, 0.2, 1] }}
+                    >
+                        {thought.text}
+                    </motion.span>
+                </span>
+                <svg
+                    aria-hidden="true"
+                    className="absolute top-[calc(100%-1px)] block h-[7px] fill-thought-bubble"
+                    style={{ left: tailInset - tailWidth / 2, width: tailWidth }}
+                    viewBox="0 0 16 7"
+                >
+                    <path d="M0 0C4.5 0 6 7 8 7S11.5 0 16 0Z" />
+                </svg>
+            </span>
         </motion.span>
     );
 }

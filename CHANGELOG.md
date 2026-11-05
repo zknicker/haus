@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## v17.3.0 - 2026-11-04
+
+- From Haus for Mac 7.2.0, a connected 1Password item's other useful fields are available too, not just its main one. An API Credential item with both a username and a credential now gives Agents `<TITLE>` and `<TITLE>_<FIELD>` (for example `PLAID_API_KEY` and `PLAID_API_KEY_USERNAME`), masked the same way as before. `haus-secrets --list` shows every name. Update Haus Computer to 15.2.0. Haus Agent 12.3.0 carries the updated secrets guidance.
+
+## v17.2.0 - 2026-11-04
+
+- A script reminder can wake only when its output changes (`--wake-on-change`, on `haus reminder schedule`/`update`) or only after a run of consecutive failures (`--fail-after <n>`), so a noisy or flaky check stops repeating the same wake. `haus reminder log` and the Automations page now show each run's outcome, duration, and the tokens a wake cost, plus a 24h/7d/30d summary.
+- A script reminder now runs with the same PATH an Agent's own shell commands get, so a script calling `haus-secrets` no longer fails with "command not found".
+- The Agent's typing indicator now draws as one seamless shape with a spring entrance instead of a rotating wobble.
+- Update Haus Computer to 15.1.0. Haus Agent 12.2.0 carries the Agent changes.
+
 ## v17.1.0 - 2026-11-04
 
 - A new Idle compaction setting in Settings > Server > Agents compacts a large idle Claude Code session shortly before its prompt cache expires, so the next message does not pay to reload the whole session and long-running Agents pick up current Haus instructions. It is off by default, and only an Owner can turn it on.

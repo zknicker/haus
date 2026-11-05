@@ -6,6 +6,7 @@ const {
     filterVaults,
     listItems,
     listVaults,
+    toSecondaryFields,
     toSecretItems,
 } = require('./onepassword.cjs');
 
@@ -21,6 +22,36 @@ const expectedItems = [
     { field: 'credential', id: 'item0000000000000000000001', title: 'Dummy API Key' },
     { field: 'password', id: 'item0000000000000000000002', title: 'GitHub' },
 ];
+
+/** `op item get` fields for `Dummy API Key`: a username worth keeping, and three to drop. */
+const dummyApiKeyFields = [
+    { id: 'credential', label: 'credential', type: 'CONCEALED', value: 'secret-value' },
+    { id: 'username', label: 'username', type: 'STRING', value: 'alice' },
+    { id: 'empty', label: 'Empty', type: 'STRING', value: '' },
+    { id: 'expiry', label: 'Expiry', type: 'MENU', value: 'monthly' },
+    {
+        id: 'notesPlain',
+        label: 'notesPlain',
+        purpose: 'NOTES',
+        type: 'STRING',
+        value: 'some notes',
+    },
+];
+
+function itemGetRun({ onGitHubGet } = {}) {
+    return (args) => {
+        if (args[1] === 'list') {
+            return Promise.resolve(JSON.stringify(itemList));
+        }
+        if (args[1] === 'get' && args[2] === 'item0000000000000000000001') {
+            return Promise.resolve(JSON.stringify({ fields: dummyApiKeyFields }));
+        }
+        if (args[1] === 'get' && args[2] === 'item0000000000000000000002') {
+            return onGitHubGet ? onGitHubGet() : Promise.resolve(JSON.stringify({ fields: [] }));
+        }
+        return Promise.resolve('{}');
+    };
+}
 
 describe('filterVaults', () => {
     test('drops vaults a service account cannot be granted and sorts by name', () => {
@@ -47,6 +78,32 @@ describe('toSecretItems', () => {
     test('drops entries without an id instead of matching the string "undefined"', () => {
         expect(toSecretItems([{ category: 'PASSWORD', title: 'No id' }])).toEqual([]);
         expect(filterVaults([{ name: 'Agents' }])).toEqual([]);
+    });
+});
+
+describe('toSecondaryFields', () => {
+    test('keeps CONCEALED and STRING fields with a value, dropping the primary field', () => {
+        expect(
+            toSecondaryFields('item0000000000000000000001', 'credential', dummyApiKeyFields)
+        ).toEqual([
+            { fieldId: 'username', itemId: 'item0000000000000000000001', label: 'username' },
+        ]);
+    });
+
+    test('drops an empty value, an excluded type, and a NOTES-purpose field even when it is STRING', () => {
+        expect(
+            toSecondaryFields('item0000000000000000000001', 'credential', [
+                { id: 'empty', label: 'Empty', type: 'STRING', value: '' },
+                { id: 'expiry', label: 'Expiry', type: 'MENU', value: 'monthly' },
+                {
+                    id: 'notesPlain',
+                    label: 'notesPlain',
+                    purpose: 'NOTES',
+                    type: 'STRING',
+                    value: 'some notes',
+                },
+            ])
+        ).toEqual([]);
     });
 });
 
@@ -96,16 +153,16 @@ describe('listVaults', () => {
 
 describe('listItems', () => {
     test('lists one vault by id in the chosen account', async () => {
-        let args = [];
+        const calls = [];
         const result = await listItems(
             (received) => {
-                args = received;
+                calls.push(received);
                 return Promise.resolve(JSON.stringify(itemList));
             },
             { account: 'example.1password.com', vaultId: agents.id }
         );
-        expect(result).toEqual({ items: expectedItems, status: 'ok' });
-        expect(args).toEqual([
+        expect(result).toEqual({ items: expectedItems, secondaryFields: [], status: 'ok' });
+        expect(calls[0]).toEqual([
             'item',
             'list',
             '--vault',
@@ -115,6 +172,34 @@ describe('listItems', () => {
             '--format',
             'json',
         ]);
+    });
+
+    test('enriches items with secondary fields from `op item get`, dropping unusable ones', async () => {
+        const result = await listItems(itemGetRun(), {
+            account: 'example.1password.com',
+            vaultId: agents.id,
+        });
+        expect(result).toEqual({
+            items: expectedItems,
+            secondaryFields: [
+                { fieldId: 'username', itemId: 'item0000000000000000000001', label: 'username' },
+            ],
+            status: 'ok',
+        });
+    });
+
+    test('a failed `op item get` for one item drops only that item’s secondary fields', async () => {
+        const result = await listItems(
+            itemGetRun({ onGitHubGet: () => Promise.reject(new Error('op item get failed')) }),
+            { account: 'example.1password.com', vaultId: agents.id }
+        );
+        expect(result).toEqual({
+            items: expectedItems,
+            secondaryFields: [
+                { fieldId: 'username', itemId: 'item0000000000000000000001', label: 'username' },
+            ],
+            status: 'ok',
+        });
     });
 
     test('refuses a malformed vault id without running op', async () => {
@@ -147,13 +232,20 @@ describe('createServiceAccount', () => {
                 received[0] === 'item' ? JSON.stringify(itemList) : `${token}\n`
             );
         }, request);
-        expect(result).toMatchObject({ items: expectedItems, status: 'ok', token });
+        expect(result).toMatchObject({
+            items: expectedItems,
+            secondaryFields: [],
+            status: 'ok',
+            token,
+        });
         expect(result.serviceAccountName).toMatch(
             /^Haus Computer Zachs MacBook Pro \d{4}-\d{2}-\d{2}$/
         );
-        expect(calls.map((args) => args[0])).toEqual(['item', 'service-account']);
-        expect(calls[1][2]).toBe(result.serviceAccountName);
-        expect(calls[1].slice(3)).toEqual([
+        // One `item list` plus one `item get` per listed item, then the service account.
+        expect(calls.map((args) => args[0])).toEqual(['item', 'item', 'item', 'service-account']);
+        const serviceAccountCall = calls.at(-1);
+        expect(serviceAccountCall[2]).toBe(result.serviceAccountName);
+        expect(serviceAccountCall.slice(3)).toEqual([
             '--account',
             'example.1password.com',
             '--vault',
