@@ -43,6 +43,14 @@ export const evals = {
         summary:
             'Agents wake for what is addressed to them, stay quiet on FYIs, ask before irreversible acts, claim work (in the Thread a request arrived in), and follow up on schedule.',
     },
+    // Board Tasks (ADR 0051). The scenario makes its own board, so lanes share no queue.
+    tasks: {
+        judge: null,
+        profiles: {},
+        scenarios: ['task-queue-pacing'],
+        summary:
+            'Tasks assigned to an Agent are worked one card at a time by priority, carried to the next by the move receipt, with no pickup posts.',
+    },
     // Both overwrite MEMORY.md on the stack's own Computer. Rule quality is
     // scored out of band by scripts/agent-tests/memory-feedback-grade.mjs.
     memory: {

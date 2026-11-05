@@ -71,8 +71,9 @@ message ([claims.md](claims.md)). This file pins the rules the Server enforces. 
 ## Assignment
 
 `applyTaskAssignmentChange` (`tasks/task-assignment.ts`) runs inside every transaction that
-changes an assignee (`task.create` with an assignee, `task.assign`). It is the one seam for
-assignment effects:
+changes an assignee (`task.create` with an assignee, `task.assign`, and a departure: deleting an
+Agent or removing a member unassigns every Task they hold, closed ones too, in that same
+transaction through `tasks/clear-task-assignments.ts`). It is the one seam for assignment effects:
 
 - **Person:** assigning someone other than yourself upserts their `task_inbox_items` row (fresh,
   uncleared, stamped with the new version and assigner); reassigning away deletes it. The assignee

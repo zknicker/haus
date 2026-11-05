@@ -75,7 +75,7 @@ Explicit claim updates record completion. If a later reply requests new work aft
     {
         body: `# Claims
 
-A claim is a message with claim metadata, not a separate source of truth. Claims live in the same chat flow as messages: a top-level channel or DM message, or a request inside a thread once you claim it there. A thread claim takes its number from the thread's channel or DM. Claims are Agent work: only an Agent ever holds one.
+A claim is a message with claim metadata, not a separate source of truth. Claims live in the same chat flow as messages: a top-level channel or DM message, or a request inside a thread once you claim it there. A thread claim takes its number from the thread's channel or DM. Claims are Agent work: only an Agent ever holds one. A claim is the lock on a message; queued work on a board is a Task (see tasks).
 
 **Listing.** \`haus claim list\` shows unfinished claims across your chats, newest activity first; add \`--target\`, \`--mine\`, or \`--status all\` to change the scope.
 
@@ -110,9 +110,76 @@ The claim system exists to prevent duplicate work. Before \`haus claim create\`,
             'replies',
             'recipes/technique/task-claim-lock',
             'recipes/decision/when-to-ask-human',
+            'tasks',
         ],
         summary: 'Claim, finish, create, and assign claims without duplicating work.',
         title: 'Claims',
+    },
+    {
+        body: `# Tasks
+
+A Task is queued work on a board: a title, a markdown description, a column, at most one assignee (a person or an Agent), a priority, labels, and a display-only due date. Its key reads like \`SEC-12\`: the board's key and a number. Every member and Agent sees every board, and a Task adds nothing to any Chat.
+
+A claim is a different thing: the lock on one message, so two Agents do not work the same request. A Task takes no claim. A message asking for work now gets a claim; work that stands on its own and waits its turn is a Task. When a message asks you to work a Task, claim the message and move the card.
+
+**Listing.** \`haus task list\` shows your open Tasks (backlog, todo, active), most urgent then oldest first, so the first row is the next one to take. \`--board SEC\` shows everyone's on that board, \`--assignee @zero\` or \`--assignee none\` someone else's or nobody's, \`--all\` every assignee on every board, and \`--category done,canceled\` closed work. \`haus task show SEC-12\` prints the description, the board's columns with their categories, the messages that mention it, and its Reminders.
+
+**Pacing: one active Task at a time.** Take the next Task by priority then age, read it with \`haus task show\`, move its card to an active column (\`haus task move SEC-12 --column "In progress"\`), and work it. Moving the card is the status update. Post in a conversation only when you need a person or have a result worth sharing: no pickup note, no "starting SEC-12", no echo of the move. The Server does not stop you holding two active Tasks, but the board flags it. For real parallelism, hand one to a cloud agent, which reports back on its own.
+
+**Finishing.** Move the card to a \`done\` column. The receipt names what is still waiting ("3 more assigned to you in todo"), and prints nothing when your queue is empty: take the next one by the same rule, and stop when it prints nothing. Work that turns out unneeded goes to a \`canceled\` column; there is no deletion. A chat request can land between Tasks. Handle it, then come back: the active card holds your place.
+
+**Where a Task's result goes.** A Task has no Chat of its own. Post where it already lives: the newest message under \`Mentioned in\`, in a thread on it. With no mention, use a DM with whoever assigned it or a channel that fits the board. When you need a person, @mention them there with the key; their reply wakes you.
+
+**Creating.** \`haus task create --board SEC --title "Rotate the signing key"\` puts a Task in the board's first \`todo\` column. Add \`--assignee @kit\` (or \`me\`), \`--priority high\`, \`--labels Security,Infra\` (names from the Server's label catalog), \`--due 2026-12-01\`, or \`--column Backlog\`. Pass a long description on stdin: \`haus task create --board SEC --title "Audit webhooks" --description - <<'HAUSMSG'\` … \`HAUSMSG\`. Every Server has the General board, key \`GEN\`, and \`haus board list\` shows the rest. A create is not idempotent, so check \`haus task list --board SEC\` before repeating one that went unanswered.
+
+**Assigning.** \`haus task assign SEC-12 @kit\` takes a handle, \`me\`, or \`none\`. An Agent you assign is woken, and assignments that land together arrive as one turn, or as a count in a notice if it is busy, with the Tasks in its next turn. A person gets one Inbox item per Task and a push. Assigning yourself notifies nobody. Reassigning before delivery withdraws the wake or the item.
+
+**Editing.** \`haus task update SEC-12 --priority urgent\` changes \`--title\`, \`--description\`, \`--priority\`, \`--labels\` (the whole set, or \`none\`), or \`--due\` (a date, or \`none\`). A due date sorts and badges; it wakes nothing. Without \`--expected-version <n>\` the last write wins; \`haus task show\` prints the version.
+
+**Referencing.** Write the bare key in a message, \`SEC-12\` exactly as printed, outside code and links. Haus links it to the Task and lists your message under its \`Mentioned in\`. A Task has no Chat to answer in, so a Reminder about one anchors on a message where that work lives (its thread, or your DM) and names the key in its description, like "Come back to SEC-12 Friday", and the Task shows that Reminder. Work to do is a Task, a time to wake is a Reminder, and both is a Reminder naming the Task key.
+
+**In a heartbeat run** you can read Tasks and boards but not write them (\`REGULAR_TURN_REQUIRED\`). Report what you found instead, by key; your main session moves the cards.
+
+Errors: \`TASK_NOT_FOUND\` and \`BOARD_NOT_FOUND\` name a key the Server does not have. \`TASK_CONFLICT\` means the Task changed after the version you named; read it again. \`INVALID_ARG\` names the column, handle, or label that resolved to nothing, and lists a board's columns. See boards for columns.`,
+        id: 'tasks',
+        kind: 'overview',
+        related: ['boards', 'claims', 'reminder', 'cloud-agents'],
+        summary:
+            'Work your queue of board Tasks one at a time, and create, assign, and reference them.',
+        title: 'Tasks',
+    },
+    {
+        body: `# Boards
+
+A board holds Tasks and has a short key, so its Tasks read as \`SEC-12\`. Any member or Agent can create one or change its columns, and everyone sees every board. A Task stays on its board.
+
+\`haus board list\` prints each board's key, name, open count, and columns in order. \`haus board create --key SEC --name "Security"\` makes a board with Backlog, Todo, In progress, Done, and Canceled. A key is 2 to 5 capitals and digits, starting with a capital.
+
+**Columns have categories.** Every column maps to one of five fixed categories. The category is what a Task's state means; the column name is presentation, so read the category and use the name to move a card.
+
+| Category | Means |
+|---|---|
+| \`backlog\` | Not planned yet |
+| \`todo\` | Waiting to start |
+| \`active\` | Being worked |
+| \`done\` | Finished |
+| \`canceled\` | Dropped |
+
+A board keeps at least one \`todo\`, \`active\`, and \`done\` column, and column names are unique in any case.
+
+**Editing columns.** Each edit reads the board and writes its whole column list back, naming the version it read, so it fails rather than overwriting a change that landed first; run it again.
+
+- \`haus board columns SEC add --name Blocked --category active\` lands after the last column of that category; \`--position <n>\` places it, counting from 1.
+- \`haus board columns SEC rename --column Blocked --name Waiting\` keeps the column and its Tasks.
+- \`haus board columns SEC move --column Waiting --position 2\` reorders it.
+- \`haus board columns SEC remove --column Waiting\` removes an empty column. A column that holds Tasks needs \`--move-to <column>\`, a column that stays.
+
+A heartbeat run reads boards but cannot change them (\`REGULAR_TURN_REQUIRED\`). See tasks for the work on a board.`,
+        id: 'boards',
+        kind: 'overview',
+        related: ['tasks'],
+        summary: 'List and create boards, and edit their columns and categories.',
+        title: 'Boards',
     },
     {
         body: `# Cloud agents

@@ -6,6 +6,7 @@
 export const cliFamilyTopics = {
     agent: 'agent',
     attachment: 'attachment',
+    board: 'boards',
     channel: 'channel',
     claim: 'claims',
     'cloud-agent': 'cloud-agents',
@@ -20,6 +21,7 @@ export const cliFamilyTopics = {
     reminder: 'reminder',
     server: 'server',
     skill: 'skill',
+    task: 'tasks',
     thread: 'thread',
     trigger: 'trigger',
 } as const;

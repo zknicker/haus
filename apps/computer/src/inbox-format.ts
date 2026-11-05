@@ -32,8 +32,12 @@ const noticeGuidance = [
 const taskAssignmentNoticeGuidance =
     'Their details arrive in your next turn. Keep working; the notice is not itself a request, so do not acknowledge it.';
 
+/**
+ * The command shapes ride the event; the pacing principle stays in the prompt. `haus task list`
+ * rather than the lines above, because these are only what just arrived, not the whole queue.
+ */
 const taskAssignmentGuidance =
-    'Pick one by priority, then age. Move that one card to an active column and work it.';
+    'Take the next Task from `haus task list`. `haus task show <key>` prints its details and columns; move it to an active column with `haus task move <key> --column <name>`, then work it.';
 
 /** Exact model-visible drain shape from specs/inbox.md. */
 export function composeInboxDrain(items: AgentInboxItem[]): string {
@@ -142,12 +146,17 @@ export function composeInboxNotice(
 }
 
 /**
- * The input of a Task assignment run: one line per Task, then how to take them. Each line is
- * the envelope the contract names, built here from the typed attention. A title or name can
- * hold anything a person typed, so none may open a new line or close the bracket.
+ * The input of a Task assignment run: how many, one line per Task, then how to take them. Each
+ * line is the envelope the contract names, built here from the typed attention. A title or name
+ * can hold anything a person typed, so none may open a new line or close the bracket.
  */
 export function composeTaskAssignmentInput(assignments: readonly AgentTaskAssignment[]): string {
-    return [...assignments.map(formatTaskAssignment), '', taskAssignmentGuidance].join('\n');
+    return [
+        `${assignments.length} ${plural(assignments.length, 'task')} assigned to you:`,
+        ...assignments.map(formatTaskAssignment),
+        '',
+        taskAssignmentGuidance,
+    ].join('\n');
 }
 
 function formatTaskAssignment(task: AgentTaskAssignment): string {

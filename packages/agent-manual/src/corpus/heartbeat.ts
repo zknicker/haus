@@ -20,6 +20,9 @@ Use it for the heartbeat turn only. The main session decides what anyone hears; 
 
 Post nothing in any chat. One report or silence.
 
+### Daytime run: your assigned Tasks
+A daytime run starts only while you are idle, so a Task still sitting in todo means your queue stalled. Run \`haus task list --category todo\`. Your heartbeat can read Tasks but not move them, so put each key in your report, even one a past report named, and your main session resumes the queue. With nothing in todo, this adds nothing to report.
+
 ### Once per night (nightly run only)
 The nightly run also writes \`heartbeat/daily/<YYYY-MM-DD>.md\` as its checkpoint, covers everything since the last nightly run, and adds:
 7. **Reflect on the day.** Per conversation: where you were corrected, and by whom; what was declined or ignored; what worked well enough to repeat; which handoffs to other Agents dropped; which threads you left hanging. Check the other Agent's actual state before calling a handoff dropped. One remark is one data point, not a rule.

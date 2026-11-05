@@ -6,6 +6,9 @@ import {
 import { and, eq, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { serverMembershipsTable } from '../postgres/schema.ts';
+import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
+import { clearTaskAssignments } from '../tasks/clear-task-assignments.ts';
+import type { TaskAgentDelivery } from '../tasks/task-assignment.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import {
     findCurrentMembership,
@@ -22,6 +25,8 @@ export interface RemovedServerMember {
     /** Chats the human just lost, so live surfaces can drop volatile state. */
     departedChatIds: string[];
     serverId: string;
+    /** What the Tasks they held published on being unassigned, for after the commit. */
+    taskEvents: PreparedRealtimeEvent[];
     userId: string;
 }
 
@@ -35,7 +40,7 @@ export interface RemoveServerMemberInput {
 /**
  * Ends one human's standing on one Server. Everything durable commits in a
  * single transaction under the Server lock: the revocation, the personal work
- * they held, and the last-Owner check that guards it.
+ * and Task assignments they held, and the last-Owner check that guards it.
  *
  * The membership row is revoked rather than deleted. Authored messages, DM
  * pairs, and read events point at it, so deleting the row would take
@@ -43,6 +48,7 @@ export interface RemoveServerMemberInput {
  */
 export async function removeServerMember(
     db: HausDatabase,
+    agentDelivery: TaskAgentDelivery,
     member: HausUser | null,
     input: RemoveServerMemberInput
 ): Promise<RemovedServerMember> {
@@ -92,7 +98,12 @@ export async function removeServerMember(
             );
 
         const departedChatIds = await clearPersonalWork(tx, server.id, target.userId);
+        const taskEvents = await clearTaskAssignments(tx, agentDelivery, {
+            actor: { kind: 'user', userId: member.id },
+            assignee: { kind: 'user', userId: target.userId },
+            serverId: server.id,
+        });
 
-        return { departedChatIds, serverId: server.id, userId: target.userId };
+        return { departedChatIds, serverId: server.id, taskEvents, userId: target.userId };
     });
 }

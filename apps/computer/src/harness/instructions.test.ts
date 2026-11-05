@@ -50,9 +50,10 @@ test('composes the CLI-only Haus collaboration contract', () => {
         'A request that arrives in a thread is claimed in that thread by its message ID: `haus claim --target <thread target> --message-id <shortid>`. Never give it a separate top-level claim.'
     );
     expect(instructions).not.toContain('Only top-level channel / DM messages can become tasks');
-    // ADR 0051: the message lock is a claim; no prompt text names the old `haus task` group.
+    // ADR 0051: the message lock is a claim; `haus task` is the board product, and no claim verb
+    // survives under it.
     expect(instructions).toContain('### Claims');
-    expect(instructions).not.toContain('haus task');
+    expect(instructions).not.toMatch(/haus task (claim|unclaim|unassign)/u);
     expect(instructions).toContain('Default every message to the shortest useful form');
     expect(instructions).toContain('Do not paste execution logs into chat');
     expect(instructions).toContain('A completion message should lead with the outcome');

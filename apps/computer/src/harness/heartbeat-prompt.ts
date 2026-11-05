@@ -39,13 +39,19 @@ export async function composeHeartbeatInput(
         remindersLine(heartbeat.reminders),
         connectionsLine(heartbeat.connections),
         everyRunSteps,
-        ...(heartbeat.kind === 'nightly'
-            ? [
-                  'Nightly, also: recipe steps 7–10 (reflect, consolidate memory, follow up dropped promises, write the learned summary only if there are real lessons).',
-              ]
-            : []),
+        heartbeat.kind === 'nightly'
+            ? 'Nightly, also: recipe steps 7–10 (reflect, consolidate memory, follow up dropped promises, write the learned summary only if there are real lessons).'
+            : stalledQueueStep,
     ].join('\n\n');
 }
+
+/**
+ * The queue's backstop (ADR 0051 decision 7). A daytime run starts only while the Agent is idle,
+ * so a Task still in todo has stalled. The run cannot write Tasks (specs/tasks.md), so its report
+ * is what restarts the queue, which is why a key repeats even though findings do not.
+ */
+const stalledQueueStep =
+    'Daytime, also: run `haus task list --category todo`. You are idle, so a Task still in todo means your queue stalled. You can read Tasks here but not move them, so put each key in your report, even one a past report named, and your main session resumes the queue.';
 
 const everyRunSteps = [
     'Every run, even a quiet one:',
@@ -67,12 +73,16 @@ export function composeHeartbeatReportInput(
         report.text,
         report.heartbeatKind === 'nightly'
             ? `This came from your nightly heartbeat, so post nothing now. For anything someone should hear, ${MORNING_REMINDER}. Otherwise do nothing.`
-            : daytimeDecision(
+            : `${daytimeDecision(
                   options.now ?? new Date(),
                   (options.quietHours ?? heartbeatQuietHoursSwitch()) === 'on'
-              ),
+              )} ${STALLED_QUEUE_RESUME}`,
     ].join('\n\n');
 }
+
+/** Moving cards reaches nobody, so a queue resumes without the heads-up a post would need. */
+const STALLED_QUEUE_RESUME =
+    'If it names Tasks assigned to you waiting in todo, your queue stalled: start the next one now.';
 
 /**
  * The morning turn sees the reminder, not this report, so its description carries the

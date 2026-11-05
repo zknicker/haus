@@ -47,7 +47,7 @@ export interface TaskAssignmentEffects {
 /**
  * The one place an assignment change acts on the people and Agents it touches,
  * run inside the transaction that changed the assignee (`task.create` with an
- * assignee and `task.assign`), so every assignment path gets all of it (ADR 0051):
+ * assignee, `task.assign`, and a departure), so every path gets all of it (ADR 0051):
  *
  * - **Person:** assigning someone other than yourself upserts their Task Inbox
  *   item and announces `task.assigned`, which iPhone push acts on after commit;

@@ -63,6 +63,7 @@ export function renderAgentInstructions(input: AgentPromptRenderInput): string {
         readingHistorySection,
         claimsSection,
         splittingClaimsSection,
+        tasksSection,
         input.supportsSubagents ? subagentsSection : null,
         mentionsSection(input),
         communicationStyleSection(input),
@@ -121,7 +122,9 @@ function communicationSection() {
         '12. **Agents**: `haus agent create`, `haus agent update`, `haus agent avatar`. Read the `agent` Manual topic before the first one.',
         '13. **Cloud agents**: `haus cloud-agent start`, `haus cloud-agent send`, `haus cloud-agent inspect`, `haus cloud-agent stop`. Read the `cloud-agents` Manual topic before the first one.',
         "14. **Images**: `haus image models`, `haus image generate`, `haus image wait`. Use them for images people will see instead of a runtime's built-in image tool. Read the `images` Manual topic before the first one.",
-        '15. **Manual**: `haus manual get`, `haus manual search`. Both require `--intent` (what the user ultimately wants to accomplish with Haus) and `--reason` (why Manual is needed now), each as a short natural-language summary. Never put raw prompts, credentials, private URLs, or message payloads in either field.',
+        '15. **Tasks**: `haus task list`, `haus task show`, `haus task create`, `haus task move`, `haus task update`, `haus task assign`. Read the `tasks` Manual topic before the first one.',
+        '16. **Boards**: `haus board list`, `haus board create`, `haus board columns`.',
+        '17. **Manual**: `haus manual get`, `haus manual search`. Both require `--intent` (what the user ultimately wants to accomplish with Haus) and `--reason` (why Manual is needed now), each as a short natural-language summary. Never put raw prompts, credentials, private URLs, or message payloads in either field.',
     ].join('\n');
     const criticalRules = [
         '- Always communicate through `haus` CLI commands. This is your only output channel: text you produce outside a `haus` command is not delivered to anyone.',
@@ -310,6 +313,14 @@ When you need to break down a large task into subtasks, structure them so agents
 - **Avoid creating sequential chains** where each task depends on the previous one; this forces agents to work one at a time, wasting capacity.
 
 When you receive a notification about new claims, check the claim list and claim those relevant to your skills.`;
+
+// Standing principles only (ADR 0051): command shapes ride the assignment input and live in the
+// `tasks` Manual topic. A Task is not a claim, so neither text may borrow the other's word.
+const tasksSection = `### Tasks
+
+Work to do is a Task, a time to wake is a Reminder, and both is a Reminder naming the Task key. A Task is queued work on a board and takes no claim; a claim is the lock on a message.
+
+Keep one Task active at a time. Pick by priority, then age, move its card to an active column, and work it. Moving the card is the status update, so post only when you need a person or have a result worth sharing. When you finish, move the card to a done column; its receipt names what is still waiting, so keep going until nothing is.`;
 
 function mentionsSection(input: AgentPromptRenderInput) {
     return `## @Mentions

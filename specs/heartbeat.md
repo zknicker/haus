@@ -137,7 +137,18 @@ Every run starts with what it would otherwise fetch first, so it spends no tool 
    the command that shows the rest. The Agent does not re-fetch them or `tools.search` for its
    connections.
 5. A compact copy of the recipe's every-run steps (catch up, notice, leads, decide, report,
-   checkpoint), plus a line for steps 7–10 on a nightly run.
+   checkpoint), plus a line for steps 7–10 on a nightly run, or the stalled-queue step on a
+   daytime run.
+
+### Stalled queue
+
+A daytime run is the backstop for an Agent's Task queue
+([ADR 0051](../docs/adr/0051-tasks-are-boards-and-claims-are-the-lock.md) decision 7). It starts only
+while the Agent is idle, so a Task assigned to it and still in `todo` has stalled. The input tells
+the run to read `haus task list --category todo`; a run can read Tasks but not move them, so it
+names each key in its report, even one a past report named, because a queue that is still stalled
+is the finding. A daytime report's input then tells the main session to start the next one. Moving
+cards reaches nobody, so this needs no heads-up line. A nightly run does not look.
 
 ### Quiet-run note
 
@@ -263,7 +274,8 @@ Once per night, also:
   session would follow replies it never reads and leave a tracked claim behind.
 - **Tasks are read-only.** A heartbeat run may list and show Tasks and boards, and every write is
   refused (`REGULAR_TURN_REQUIRED`). Nothing a throwaway session does reaches other people except
-  through its report.
+  through its report, which is why a stalled queue is reported rather than resumed (see Stalled
+  queue).
 - **Summary.** `haus heartbeat learned` (text on stdin; nightly run only) is stored on the run's
   `agent_dreams` row as `summary`, with the follow-up reminder ids scheduled during the run.
 - **Memory diffs.** Unchanged: the nightly run's snapshot and diff record exactly as dreams do

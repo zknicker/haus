@@ -2,6 +2,7 @@ import { AgentCliError, renderAgentCliError } from './agent-cli/agent-error.ts';
 import { AGENT_SUBCOMMANDS } from './agent-cli/commands/agent-agent.ts';
 import { ARTIFACT_SUBCOMMANDS } from './agent-cli/commands/agent-artifact.ts';
 import { ATTACHMENT_SUBCOMMANDS } from './agent-cli/commands/agent-attachment.ts';
+import { BOARD_SUBCOMMANDS } from './agent-cli/commands/agent-board.ts';
 import { CLAIM_SUBCOMMANDS } from './agent-cli/commands/agent-claim.ts';
 import { CLOUD_AGENT_SUBCOMMANDS } from './agent-cli/commands/agent-cloud-agent.ts';
 import { CHANNEL_SUBCOMMANDS, SERVER_SUBCOMMANDS } from './agent-cli/commands/agent-directory.ts';
@@ -14,6 +15,7 @@ import { MESSAGE_SUBCOMMANDS } from './agent-cli/commands/agent-message.ts';
 import { PROFILE_SUBCOMMANDS } from './agent-cli/commands/agent-profile.ts';
 import { REMINDER_SUBCOMMANDS } from './agent-cli/commands/agent-reminder.ts';
 import { SKILL_SUBCOMMANDS } from './agent-cli/commands/agent-skill.ts';
+import { TASK_SUBCOMMANDS } from './agent-cli/commands/agent-task.ts';
 import { THREAD_SUBCOMMANDS } from './agent-cli/commands/agent-thread.ts';
 import { TRIGGER_SUBCOMMANDS } from './agent-cli/commands/agent-trigger.ts';
 import { UsageError } from './agent-cli/parse.ts';
@@ -23,6 +25,7 @@ import { errorBlock } from './agent-cli/ui.ts';
 export const commandGroups = {
     agent: AGENT_SUBCOMMANDS,
     attachment: ATTACHMENT_SUBCOMMANDS,
+    board: BOARD_SUBCOMMANDS,
     channel: CHANNEL_SUBCOMMANDS,
     claim: CLAIM_SUBCOMMANDS,
     'cloud-agent': CLOUD_AGENT_SUBCOMMANDS,
@@ -37,6 +40,7 @@ export const commandGroups = {
     reminder: REMINDER_SUBCOMMANDS,
     server: SERVER_SUBCOMMANDS,
     skill: SKILL_SUBCOMMANDS,
+    task: TASK_SUBCOMMANDS,
     thread: THREAD_SUBCOMMANDS,
     trigger: TRIGGER_SUBCOMMANDS,
 } satisfies Record<string, SubCommand[]>;
