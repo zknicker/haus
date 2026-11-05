@@ -73,6 +73,15 @@ function environmentFixture(id: string, name: string, createdAt: string): Record
     };
 }
 
+/**
+ * `.start()` checks Claude Code is on PATH before anything else; these tests
+ * exercise what happens after that check, so they must not depend on a real
+ * `claude` binary being installed on whatever machine runs them.
+ */
+function fakeClaudeFound() {
+    return { path: '/usr/bin/claude', searchPath: '', version: '1.0.0' };
+}
+
 const startInput = {
     idempotencyKey: 'car_run',
     instructions: 'Trim the copy.',
@@ -89,7 +98,9 @@ test('a pin that no longer exists fails the launch before any checkout', async (
     const dataRoot = await claudeDataRoot();
     await writeClaudeEnvironmentId(dataRoot, 'env_gone');
 
-    const rejection = createClaudeCloudAgentProvider(dataRoot).start(startInput);
+    const rejection = createClaudeCloudAgentProvider(dataRoot, undefined, fakeClaudeFound).start(
+        startInput
+    );
     await expect(rejection).rejects.toBeInstanceOf(CloudAgentLaunchRejectedError);
     await expect(rejection).rejects.toThrow('env_gone');
 });
@@ -102,9 +113,9 @@ test('an archived pin fails the launch by name', async () => {
     const dataRoot = await claudeDataRoot();
     await writeClaudeEnvironmentId(dataRoot, 'env_archived');
 
-    await expect(createClaudeCloudAgentProvider(dataRoot).start(startInput)).rejects.toThrow(
-        'env_archived'
-    );
+    await expect(
+        createClaudeCloudAgentProvider(dataRoot, undefined, fakeClaudeFound).start(startInput)
+    ).rejects.toThrow('env_archived');
 });
 
 test('a valid pin resolves to the environment start() reports', async () => {

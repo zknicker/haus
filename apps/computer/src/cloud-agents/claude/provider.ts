@@ -45,7 +45,8 @@ const answerSettleTimeout = 30_000;
  */
 export function createClaudeCloudAgentProvider(
     dataRoot: string,
-    controller: ClaudeController = createClaudeController()
+    controller: ClaudeController = createClaudeController(),
+    resolveExecutable: typeof resolveRuntimeExecutable = resolveRuntimeExecutable
 ): CloudAgentProvider {
     // The chronological window since this Run's own tagged prompt, once found.
     // A later tick resumes from its newest event instead of rescanning the
@@ -84,7 +85,7 @@ export function createClaudeCloudAgentProvider(
         return observation;
     };
     const readiness = async (): Promise<CloudAgentReadiness> => {
-        if (!resolveRuntimeExecutable('claude')) {
+        if (!resolveExecutable('claude')) {
             return { ready: false, reason: 'provider-unavailable' };
         }
         const account = await readClaudeNativeAccount();
