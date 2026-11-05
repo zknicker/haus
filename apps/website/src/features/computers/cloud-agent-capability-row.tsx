@@ -75,7 +75,7 @@ export function CloudAgentCapabilityRow({
                             </Select>
                         </div>
                     )}
-                    {view.status === 'ready' || view.status === 'needs-environment' ? null : (
+                    {view.status === 'ready' ? null : (
                         <Button
                             isDisabled={!view.canConnect}
                             isPending={view.status === 'connecting' && !view.canConnect}
@@ -137,7 +137,6 @@ function statusColor(status: CloudAgentCapabilityView['status']) {
             return 'success' as const;
         case 'connecting':
             return 'accent' as const;
-        case 'needs-environment':
         case 'not-connected':
             return 'warning' as const;
         case 'unavailable':

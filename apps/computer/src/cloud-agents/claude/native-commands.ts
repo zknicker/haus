@@ -30,9 +30,11 @@ export async function launchNativeClaudeCloud(input: {
     environmentId: string | null;
     modelId: string | null;
     prompt: string;
+    /** Test seam; real callers never pass this. */
+    resolveExecutable?: typeof resolveRuntimeExecutable;
     signal?: AbortSignal;
 }): Promise<ClaudeCloudReceipt> {
-    const executable = requireClaude();
+    const executable = requireClaude(input.resolveExecutable);
     if (input.environmentId) {
         await writeClaudeEnvironmentPin(input.cwd, input.environmentId);
     }
@@ -166,8 +168,10 @@ export async function writeClaudeEnvironmentPin(cwd: string, environmentId: stri
     );
 }
 
-function requireClaude() {
-    const executable = resolveRuntimeExecutable('claude');
+function requireClaude(
+    resolveExecutable: typeof resolveRuntimeExecutable = resolveRuntimeExecutable
+) {
+    const executable = resolveExecutable('claude');
     if (!executable) {
         throw new ClaudeCodeMissingError();
     }

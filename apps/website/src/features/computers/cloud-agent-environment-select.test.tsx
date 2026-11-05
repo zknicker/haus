@@ -55,30 +55,30 @@ test('the environment Select renders only for Claude, and not for Cursor', () =>
     expect(render(claudeReady)).toContain('aria-label="Claude Cloud Agents environment"');
 });
 
-test('two or more environments with no pin reads as needs-environment and lists every environment', () => {
+test('a Computer always reports a pin once Computer auto-pins it, so the row reads ready, never a warning', () => {
     const view = cloudAgentCapabilityView({
         isConnecting: false,
         isOffline: false,
         provider: 'claude',
         state: {
             ...connected,
-            environmentId: null,
+            environmentId: 'env_a',
             environments: [
                 { id: 'env_a', name: 'Primary' },
                 { id: 'env_b', name: 'Secondary' },
             ],
         },
     });
-    expect(view.status).toBe('needs-environment');
+    expect(view.status).toBe('ready');
 
     const html = render(view);
-    expect(html).toContain('Needs environment');
+    expect(html).not.toContain('Needs environment');
+    expect(html).not.toContain('not pinned');
     expect(html).toContain('Primary');
     expect(html).toContain('Secondary');
-    expect(html).not.toContain('not pinned');
 });
 
-test('zero environments with no pin reads as needs-environment and renders no picker', () => {
+test('the rare Computer whose account has no environment at all still reads ready, with no picker', () => {
     const view = cloudAgentCapabilityView({
         isConnecting: false,
         isOffline: false,
@@ -89,10 +89,10 @@ test('zero environments with no pin reads as needs-environment and renders no pi
             environments: [],
         },
     });
-    expect(view.status).toBe('needs-environment');
+    expect(view.status).toBe('ready');
 
     const html = render(view);
-    expect(html).toContain('Needs environment');
+    expect(html).not.toContain('Needs environment');
     expect(html).not.toContain('aria-label="Claude Cloud Agents environment"');
 });
 

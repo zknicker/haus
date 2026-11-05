@@ -56,6 +56,11 @@ test('the environment pin writes the setting Claude Code reads', async () => {
     );
 });
 
+/** This test only needs Claude Code to resolve, not to actually run; the spawn itself fails fast. */
+function fakeClaudeFound() {
+    return { path: '/nonexistent/claude', searchPath: '', version: '1.0.0' };
+}
+
 test('a launch with a pinned environment writes the settings file before the launcher starts', async () => {
     const cwd = await checkout();
 
@@ -64,6 +69,7 @@ test('a launch with a pinned environment writes the settings file before the lau
         environmentId: 'env_bidbeacon',
         modelId: null,
         prompt: 'test',
+        resolveExecutable: fakeClaudeFound,
         signal: AbortSignal.timeout(10),
     }).catch(() => undefined);
 
@@ -80,6 +86,7 @@ test('an unpinned launch writes no settings file', async () => {
         environmentId: null,
         modelId: null,
         prompt: 'test',
+        resolveExecutable: fakeClaudeFound,
         signal: AbortSignal.timeout(10),
     }).catch(() => undefined);
 

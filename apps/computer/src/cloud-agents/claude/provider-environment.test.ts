@@ -63,6 +63,25 @@ async function claudeDataRoot(): Promise<string> {
     return root;
 }
 
+function environmentFixture(id: string, name: string, createdAt: string): Record<string, unknown> {
+    return {
+        created_at: createdAt,
+        environment_id: id,
+        kind: 'anthropic_cloud',
+        name,
+        state: 'active',
+    };
+}
+
+/**
+ * `.start()` checks Claude Code is on PATH before anything else; these tests
+ * exercise what happens after that check, so they must not depend on a real
+ * `claude` binary being installed on whatever machine runs them.
+ */
+function fakeClaudeFound() {
+    return { path: '/usr/bin/claude', searchPath: '', version: '1.0.0' };
+}
+
 const startInput = {
     idempotencyKey: 'car_run',
     instructions: 'Trim the copy.',
@@ -79,7 +98,9 @@ test('a pin that no longer exists fails the launch before any checkout', async (
     const dataRoot = await claudeDataRoot();
     await writeClaudeEnvironmentId(dataRoot, 'env_gone');
 
-    const rejection = createClaudeCloudAgentProvider(dataRoot).start(startInput);
+    const rejection = createClaudeCloudAgentProvider(dataRoot, undefined, fakeClaudeFound).start(
+        startInput
+    );
     await expect(rejection).rejects.toBeInstanceOf(CloudAgentLaunchRejectedError);
     await expect(rejection).rejects.toThrow('env_gone');
 });
@@ -92,9 +113,9 @@ test('an archived pin fails the launch by name', async () => {
     const dataRoot = await claudeDataRoot();
     await writeClaudeEnvironmentId(dataRoot, 'env_archived');
 
-    await expect(createClaudeCloudAgentProvider(dataRoot).start(startInput)).rejects.toThrow(
-        'env_archived'
-    );
+    await expect(
+        createClaudeCloudAgentProvider(dataRoot, undefined, fakeClaudeFound).start(startInput)
+    ).rejects.toThrow('env_archived');
 });
 
 test('a valid pin resolves to the environment start() reports', async () => {
@@ -119,21 +140,59 @@ test('an unpinned Computer with exactly one environment auto-pins it and resolve
     expect(await readClaudeEnvironmentId(dataRoot)).toBe('env_only');
 });
 
-test('an unpinned Computer with zero or several environments refuses the launch', async () => {
+test('an unpinned Computer with zero environments has nothing to launch on', async () => {
     await hostHome();
-
     stubFetch([]);
-    const emptyDataRoot = await claudeDataRoot();
-    const emptyRejection = resolveClaudeEnvironment(emptyDataRoot);
-    await expect(emptyRejection).rejects.toBeInstanceOf(CloudAgentLaunchRejectedError);
-    await expect(emptyRejection).rejects.toThrow('Choose a Claude environment');
+    const dataRoot = await claudeDataRoot();
 
+    const rejection = resolveClaudeEnvironment(dataRoot);
+    await expect(rejection).rejects.toBeInstanceOf(CloudAgentLaunchRejectedError);
+    await expect(rejection).rejects.toThrow('no cloud environment to launch on');
+});
+
+test('an unpinned Computer with several environments and no Default auto-pins the oldest, never the newest', async () => {
+    await hostHome();
     stubFetch([
-        { environment_id: 'env_a', kind: 'anthropic_cloud', name: 'Alpha', state: 'active' },
-        { environment_id: 'env_b', kind: 'anthropic_cloud', name: 'Beta', state: 'active' },
+        environmentFixture('env_mid', 'Mid', '2026-06-01T00:00:00Z'),
+        environmentFixture('env_newest', 'Newest', '2026-09-01T00:00:00Z'),
+        environmentFixture('env_oldest', 'Oldest', '2026-01-01T00:00:00Z'),
     ]);
-    const severalDataRoot = await claudeDataRoot();
-    const severalRejection = resolveClaudeEnvironment(severalDataRoot);
-    await expect(severalRejection).rejects.toBeInstanceOf(CloudAgentLaunchRejectedError);
-    await expect(severalRejection).rejects.toThrow('Choose a Claude environment');
+    const dataRoot = await claudeDataRoot();
+
+    expect(await resolveClaudeEnvironment(dataRoot)).toEqual({ id: 'env_oldest', name: 'Oldest' });
+    expect(await readClaudeEnvironmentId(dataRoot)).toBe('env_oldest');
+});
+
+test('an unpinned Computer with several environments including one named Default auto-pins Default regardless of age', async () => {
+    await hostHome();
+    stubFetch([
+        environmentFixture('env_oldest', 'Oldest', '2026-01-01T00:00:00Z'),
+        environmentFixture('env_default', 'Default', '2026-09-01T00:00:00Z'),
+    ]);
+    const dataRoot = await claudeDataRoot();
+
+    expect(await resolveClaudeEnvironment(dataRoot)).toEqual({
+        id: 'env_default',
+        name: 'Default',
+    });
+    expect(await readClaudeEnvironmentId(dataRoot)).toBe('env_default');
+});
+
+test('once auto-pinned, a later launch keeps the same environment without re-evaluating it', async () => {
+    await hostHome();
+    stubFetch([
+        environmentFixture('env_oldest', 'Oldest', '2026-01-01T00:00:00Z'),
+        environmentFixture('env_newest', 'Newest', '2026-09-01T00:00:00Z'),
+    ]);
+    const dataRoot = await claudeDataRoot();
+
+    expect(await resolveClaudeEnvironment(dataRoot)).toEqual({ id: 'env_oldest', name: 'Oldest' });
+
+    // A later Default addition must not move an already-settled pin.
+    stubFetch([
+        environmentFixture('env_oldest', 'Oldest', '2026-01-01T00:00:00Z'),
+        environmentFixture('env_newest', 'Newest', '2026-09-01T00:00:00Z'),
+        environmentFixture('env_default', 'Default', '2026-10-01T00:00:00Z'),
+    ]);
+    expect(await resolveClaudeEnvironment(dataRoot)).toEqual({ id: 'env_oldest', name: 'Oldest' });
 });

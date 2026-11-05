@@ -45,7 +45,8 @@ const answerSettleTimeout = 30_000;
  */
 export function createClaudeCloudAgentProvider(
     dataRoot: string,
-    controller: ClaudeController = createClaudeController()
+    controller: ClaudeController = createClaudeController(),
+    resolveExecutable: typeof resolveRuntimeExecutable = resolveRuntimeExecutable
 ): CloudAgentProvider {
     // The chronological window since this Run's own tagged prompt, once found.
     // A later tick resumes from its newest event instead of rescanning the
@@ -84,7 +85,7 @@ export function createClaudeCloudAgentProvider(
         return observation;
     };
     const readiness = async (): Promise<CloudAgentReadiness> => {
-        if (!resolveRuntimeExecutable('claude')) {
+        if (!resolveExecutable('claude')) {
             return { ready: false, reason: 'provider-unavailable' };
         }
         const account = await readClaudeNativeAccount();
@@ -239,11 +240,11 @@ function openTaskIds(entries: ReturnType<typeof logEntriesOf>): string[] {
 }
 
 /**
- * The environment this launch pins to. Auto-pins the Computer's sole
- * environment on first use; refuses the launch when nothing is pinned and
- * the account has none or several, and when a pinned environment no longer
- * exists or is archived. Checked fresh on every launch so a Computer never
- * falls back to Claude Code's own default silently.
+ * The environment this launch pins to. Auto-pins once, permanently, on first
+ * use, so no later launch re-evaluates the choice; refuses only when the
+ * account has no environment to pin to at all, or a pinned environment no
+ * longer exists or is archived. Checked fresh on every launch so a Computer
+ * never falls back to Claude Code's own default silently.
  */
 export async function resolveClaudeEnvironment(
     dataRoot: string,
@@ -255,7 +256,7 @@ export async function resolveClaudeEnvironment(
     );
     if (!environmentId) {
         throw new CloudAgentLaunchRejectedError(
-            'Choose a Claude environment in Settings → Computers → Cloud Agents.'
+            'This Computer’s Claude account has no cloud environment to launch on.'
         );
     }
     const match = environments.find((environment) => environment.id === environmentId);

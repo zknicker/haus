@@ -15,7 +15,7 @@ settings:
     # via explicit xcodebuild args from `bun run ios:release`; see
     # docs/operations/ios-testflight.md. Both values mirror the latest
     # published iOS target in releases.json via release:sync-versions.
-    CURRENT_PROJECT_VERSION: "64"
+    CURRENT_PROJECT_VERSION: "66"
     MARKETING_VERSION: 9.3.0
 
 packages:
