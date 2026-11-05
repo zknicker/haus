@@ -87,10 +87,13 @@ export interface CloudAgentLaunch {
  * A `CloudAgentLaunch`'s nullable fields become present only when set, the
  * same "presence means set it" convention `CloudAgentProviderObservation`
  * (and the Server observation it travels as) already use for these fields.
+ * `extra` merges in after, for fields the launch itself doesn't carry (an
+ * auto-interrupt note, for instance).
  */
 export function cloudAgentLaunchObservation(
     launch: CloudAgentLaunch,
-    observedAt: string
+    observedAt: string,
+    extra: Partial<CloudAgentProviderObservation> = {}
 ): CloudAgentProviderObservation {
     const { environmentId, environmentName, providerRunId, providerUrl, ...rest } = launch;
     return {
@@ -99,6 +102,7 @@ export function cloudAgentLaunchObservation(
         ...(environmentName ? { environmentName } : {}),
         ...(providerRunId ? { providerRunId } : {}),
         ...(providerUrl ? { providerUrl } : {}),
+        ...extra,
         observedAt,
     };
 }

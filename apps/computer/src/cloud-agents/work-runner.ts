@@ -19,6 +19,7 @@ import {
     type CloudAgentProvider,
     type CloudAgentProviderObservation,
     type CloudAgentRunRef,
+    cloudAgentLaunchObservation,
 } from './provider.ts';
 import { cloudAgentProvider } from './registry.ts';
 import { CloudAgentSendQueue } from './send-queue.ts';
@@ -265,17 +266,12 @@ export class CloudAgentWorkSupervisor {
                 providerAgentId: state.launch.providerAgentId,
                 providerRunId: run.ref.providerRunId ?? state.launch.providerRunId,
             };
-            const { environmentId, environmentName, providerRunId, providerUrl, ...launch } =
-                state.launch;
-            self.observe(connection, run, {
-                ...launch,
-                ...(environmentId ? { environmentId } : {}),
-                ...(environmentName ? { environmentName } : {}),
-                ...(providerRunId ? { providerRunId } : {}),
-                ...(providerUrl ? { providerUrl } : {}),
-                ...autoInterruptNote(state.autoInterrupted),
-                observedAt: state.observedAt,
-            });
+            const extra = autoInterruptNote(state.autoInterrupted);
+            self.observe(
+                connection,
+                run,
+                cloudAgentLaunchObservation(state.launch, state.observedAt, extra)
+            );
             return !run.terminal;
         });
     }
