@@ -82,6 +82,7 @@ test('linked Cloud Agent work reads as the same card wherever it is linked', asy
         serverId: server.id,
     });
     await page.goto(`/s/${slug}/inbox`);
+    await page.getByRole('button', { name: /running now/u }).click();
     const row = page.getByRole('button', { name: new RegExp(launchTitle, 'u') });
     await expect(row).toBeVisible();
     await row.click();

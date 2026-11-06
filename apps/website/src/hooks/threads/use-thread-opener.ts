@@ -42,3 +42,8 @@ export function useThreadRoute(slug: string) {
         [desktop, slug]
     );
 }
+
+/** A Thread's full page on both surfaces: where Go from a list lands (specs/open-threads.md). */
+export function threadPageRoute(slug: string, chatId: string, anchorMessageId: string) {
+    return threadPagePath(slug, chatId, anchorMessageId);
+}

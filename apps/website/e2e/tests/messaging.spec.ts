@@ -459,7 +459,7 @@ function seedReferenceFixture(input: { chatId: string; databaseUrl: string; serv
 test('a signed-out human cannot read hosted messages', async ({ page }) => {
     await page.goto('/s/hosted-messages');
 
-    await expect(page.getByText('Server unavailable')).toBeVisible();
+    await expect(page.getByText('Sign in to open your Haus.')).toBeVisible();
     await expect(page.getByText('First durable human message')).toHaveCount(0);
 });
 

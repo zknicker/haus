@@ -1,10 +1,12 @@
 import type { EarlierThreadsScope, OpenThread, OpenThreadGroup } from '@haus/api';
 import { Button } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { useNavigate } from 'react-router-dom';
 import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
+import { useOpenThread } from '../../hooks/threads/use-open-thread.ts';
 import { useEarlierThreads, useOpenThreads } from '../../hooks/threads/use-open-threads.ts';
-import { useThreadOpener } from '../../hooks/threads/use-thread-opener.ts';
+import { threadPageRoute } from '../../hooks/threads/use-thread-opener.ts';
 import { useServerContext } from '../servers/server-context.ts';
 import { PageColumn } from '../shell/page-column.tsx';
 import { OpenThreadGlyph } from './open-thread-glyph.tsx';
@@ -74,7 +76,15 @@ function ThreadSection({
     title: string;
 }) {
     const { server } = useServerContext();
-    const openThread = useThreadOpener(server.slug);
+    const desktopOpen = useOpenThread();
+    const navigate = useNavigate();
+    const openThread = (chatId: string, anchorMessageId: string) => {
+        if (desktopOpen) {
+            desktopOpen(chatId, anchorMessageId);
+        } else {
+            navigate(threadPageRoute(server.slug, chatId, anchorMessageId));
+        }
+    };
     return (
         <ItemCardGroup variant="transparent">
             <ItemCardGroup.Header>

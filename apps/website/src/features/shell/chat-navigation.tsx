@@ -123,7 +123,11 @@ export function ChatNavigation({
                         />
                     </Sidebar.Menu>
                 </Sidebar.Group>
-                <OpenThreadsSection serverId={serverId} slug={slug} />
+                <OpenThreadsSection
+                    currentPath={location.pathname}
+                    serverId={serverId}
+                    slug={slug}
+                />
                 <ChatGroup
                     action={
                         <Button

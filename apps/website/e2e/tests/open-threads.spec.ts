@@ -40,7 +40,7 @@ test('a replied Thread sits in the sidebar, opens, closes, and files under Earli
     await page.screenshot({ path: 'test-results/open-threads-sidebar.png' });
 
     await sidebarRow.click();
-    await expect(page).toHaveURL(new RegExp(`thread=${anchorMessageId}`));
+    await expect(page).toHaveURL(new RegExp(`/threads/.+/${anchorMessageId}$`));
 
     await page.getByRole('link', { name: 'All threads' }).click();
     await expect(page).toHaveURL(/\/threads$/);

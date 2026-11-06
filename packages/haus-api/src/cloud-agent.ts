@@ -28,6 +28,22 @@ export const threadCloudAgentWorkSchema = z
 export const threadCloudAgentWorkListSchema = z.array(threadCloudAgentWorkSchema);
 export type ThreadCloudAgentWork = z.infer<typeof threadCloudAgentWorkSchema>;
 
+export const cloudAgentWorkLinksInputSchema = z
+    .object({ serverId: idSchema, workIds: z.array(idSchema).max(50) })
+    .strict();
+
+/** A conversation linking some work: a Chat, or one of its Threads by its anchor. */
+export const cloudAgentWorkLinkSchema = z
+    .object({
+        anchorMessageId: idSchema.nullable(),
+        chatId: idSchema,
+        workId: idSchema,
+    })
+    .strict();
+
+export const cloudAgentWorkLinkListSchema = z.array(cloudAgentWorkLinkSchema);
+export type CloudAgentWorkLink = z.infer<typeof cloudAgentWorkLinkSchema>;
+
 /**
  * `cloudAgentWork.onUpdated`: work was created, observed, asked to cancel, or
  * newly linked. The Server publishes one event for each linking Message in a

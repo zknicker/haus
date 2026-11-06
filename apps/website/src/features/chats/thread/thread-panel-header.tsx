@@ -14,8 +14,11 @@ import { Icon } from '../../../components/ui/icon.tsx';
 import { useSetThreadClosed, useThreadClosure } from '../../../hooks/threads/use-open-threads.ts';
 import { writeClipboardText } from '../../../lib/clipboard.ts';
 import { bandHeightClassName, shellBandIconSize } from '../../shell/section-header.tsx';
+import { PageTopbar } from '../../shell/shell-topbar.tsx';
 
 export function ThreadPanelHeader({
+    actions,
+    bandHosted = false,
     followed,
     followPending,
     header,
@@ -28,6 +31,10 @@ export function ThreadPanelHeader({
     takeover,
     threadChatId,
 }: {
+    /** Page-level controls at the band's trailing end. */
+    actions?: React.ReactNode;
+    /** Fill the shell's band rather than drawing its own: the web's Thread page. */
+    bandHosted?: boolean;
     followed: boolean;
     followPending: boolean;
     header: string;
@@ -64,8 +71,8 @@ export function ThreadPanelHeader({
         }
     };
 
-    return (
-        <header className={`flex ${bandHeightClassName} shrink-0 items-center gap-3 px-5`}>
+    const row = (
+        <>
             {takeover && onBack ? (
                 <Tooltip>
                     <Button
@@ -150,6 +157,7 @@ export function ThreadPanelHeader({
                     </ContextMenu.Popover>
                 </ContextMenu>
             </div>
+            {actions}
             {onClose ? (
                 <Tooltip>
                     <Button
@@ -169,6 +177,15 @@ export function ThreadPanelHeader({
                     <Tooltip.Content>Close thread</Tooltip.Content>
                 </Tooltip>
             ) : null}
+        </>
+    );
+    return bandHosted ? (
+        <PageTopbar>
+            <div className="flex min-w-0 flex-1 items-center gap-3">{row}</div>
+        </PageTopbar>
+    ) : (
+        <header className={`flex ${bandHeightClassName} shrink-0 items-center gap-3 px-5`}>
+            {row}
         </header>
     );
 }

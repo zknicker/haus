@@ -38,7 +38,7 @@ test('desktop Cloud Agent work opens as a Thread page with working actions', asy
     ).toBeVisible();
     const card = page.getByTestId('thread-conversation').getByTestId('cloud-agent-work-card');
     await expect(card).toContainText(title);
-    await expect(card).toContainText('Working');
+    await expect(card).toContainText('Starting');
     await card.getByRole('button', { name: /more Cloud Agent actions/u }).click();
     await expect(page.getByRole('menuitem', { name: 'Copy link' })).toBeEnabled();
     await page.getByRole('menuitem', { name: 'Cancel run' }).click();

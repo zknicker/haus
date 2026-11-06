@@ -34,10 +34,13 @@ test('Cloud Agent work reads as one card in the Chat and in its Thread', async (
 
     // The Inbox is where background work that outlives a turn stays visible.
     await page.goto('/s/cloud-agent-work/inbox');
+    await page.getByRole('button', { name: /running now/u }).click();
     // Inbox rows are pressable cards named by their title, not grid rows.
-    const inboxRow = page.getByRole('button', { name: new RegExp(workTitle, 'u') });
+    const inboxRow = page
+        .getByRole('dialog', { name: 'Happening now' })
+        .getByRole('button', { name: new RegExp(workTitle, 'u') });
     await expect(inboxRow).toBeVisible();
-    await expect(inboxRow).toContainText('Working');
+    await expect(inboxRow).toContainText('Starting');
     await expect(inboxRow).toContainText('#all');
     await expect(inboxRow).toContainText('Orbit');
 
@@ -49,7 +52,7 @@ test('Cloud Agent work reads as one card in the Chat and in its Thread', async (
         .locator(`[data-message-id="${seeded.messageId}"]`)
         .getByTestId('cloud-agent-work-card');
     await expect(transcriptCard).toContainText(workTitle);
-    await expect(transcriptCard).toContainText('Working');
+    await expect(transcriptCard).toContainText('Starting');
     await expect(transcriptCard).not.toContainText('Queued');
     await expect(transcriptCard).toContainText('haus/haus');
     await expect(page.getByRole('button', { name: /— Cloud Agent actions$/u })).toHaveCount(0);
@@ -200,6 +203,9 @@ test('Cloud Agent work reads as one card in the Chat and in its Thread', async (
     await expect(cards.nth(1)).toContainText('Backfill the migration test');
     await expect(nestedCard).toContainText('Working');
     await page.setViewportSize({ width: 1280, height: 400 });
+    await conversation.evaluate((element) => {
+        element.scrollTop = 0;
+    });
     const initialTop = await card.evaluate((element) => element.getBoundingClientRect().top);
     await conversation.evaluate((element) => {
         element.scrollTop = element.scrollHeight;

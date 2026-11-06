@@ -140,6 +140,26 @@ test('a Thread task answers to its number through the Thread target and the pare
     }
 });
 
+test('a top-level task change names its Chat, not a Thread that may not exist', async () => {
+    const scene = await seedThreadTaskScene(harness, owner, 'top-level-events');
+    const promoted = await owner.trpc.task.promote.mutate({
+        messageId: scene.anchorId,
+        serverId: scene.serverId,
+    });
+    const stream = collectStream(owner.trpc.task.onChanged, { serverId: scene.serverId });
+    await stream.started;
+    await owner.trpc.task.update.mutate({
+        expectedVersion: promoted.task.version,
+        messageId: scene.anchorId,
+        patch: { priority: 'high' },
+        serverId: scene.serverId,
+    });
+    const updated = await stream.next((event) => event.kind === 'updated');
+    stream.stop();
+
+    expect(updated.chatId).toBe(promoted.task.chatId);
+});
+
 test('Thread task changes reach a member who can see the parent, keyed to the Thread', async () => {
     const scene = await seedThreadTaskScene(harness, owner, 'thread-events');
     const stream = collectStream(owner.trpc.task.onChanged, { serverId: scene.serverId });

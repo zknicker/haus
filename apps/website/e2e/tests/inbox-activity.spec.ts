@@ -61,6 +61,7 @@ test('Inbox elapsed time ticks through activity changes and reloads', async ({ p
         `
         );
         await page.goto('/s/activity-clock/inbox');
+        await page.getByRole('button', { name: /running now/u }).click();
         // The Happening now row, named for the step it is on: the Agents list
         // beside it has its own row for Scout, named for its week.
         const row = page.getByRole('button', { name: /^Scout: /u });
@@ -96,6 +97,7 @@ test('Inbox elapsed time ticks through activity changes and reloads', async ({ p
         await expect(row).toContainText('Working');
         await expect(row).toContainText(/1m \d+s elapsed/u);
         await page.reload();
+        await page.getByRole('button', { name: /running now/u }).click();
         await expect(row).toContainText('Working');
         await expect(row).toContainText(/1m \d+s elapsed/u);
     } finally {

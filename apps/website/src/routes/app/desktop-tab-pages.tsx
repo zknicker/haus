@@ -7,6 +7,7 @@ import { useChatReferenceActivation } from '../../features/servers/chat/use-chat
 import { useServerContext } from '../../features/servers/server-context.ts';
 import { serverChatRoute } from '../../features/servers/server-routes.ts';
 import { ThreadContent } from '../../features/servers/thread/thread-content.tsx';
+import { ThreadWorkPage } from '../../features/threads/thread-work-page.tsx';
 import { useTabPresence } from '../../hooks/desktop-tabs/tab-presence.ts';
 import { useDesktopPageOpeners } from '../../hooks/desktop-tabs/use-desktop-page-openers.ts';
 import { useChatMessage } from '../../hooks/servers/use-chat-message.ts';
@@ -15,10 +16,11 @@ import { requestMessageReveal } from '../../hooks/servers/use-pending-message-re
 import { useThreadAnchor } from '../../hooks/threads/use-thread-anchor.ts';
 
 /**
- * A Thread as a desktop page (`threads/:chatId/:anchorMessageId`, ADR 0039):
- * the same Thread surface the web's chat side pane hosts, spanning the tab
- * like a chat does. "View in chat" opens the chat scrolled to the anchor; an
- * Agent's artifact opens as its own page. Blank while the Thread loads.
+ * A Thread as a page (`threads/:chatId/:anchorMessageId`, ADR 0039): the same
+ * Thread surface the web's chat side pane hosts, spanning the tab like a chat
+ * does, with the Work panel beside it. "View in chat" opens the chat scrolled
+ * to the anchor; an Agent's artifact opens as its own page on desktop and in
+ * its Chat on the web. Blank while the Thread loads.
  */
 export function ThreadPageRoute() {
     const { anchorMessageId = '', chatId = '' } = useParams();
@@ -44,6 +46,8 @@ export function ThreadPageRoute() {
     const openArtifact = (target: HausResourceTarget) => {
         if (openers) {
             openDesktopArtifact(target, undefined, { openArtifactTab: openers.openArtifact });
+        } else {
+            openChat(chat.id);
         }
     };
     const viewInChat = () => {
@@ -51,24 +55,29 @@ export function ThreadPageRoute() {
         openChat(chat.id);
     };
     return (
-        <section aria-label="Thread" className="flex min-h-0 flex-1 flex-col bg-background">
-            <ThreadContent
-                active={shown}
-                anchor={anchor}
-                chat={chat}
-                initialThreadChatId={anchor.task?.threadChatId}
-                key={anchor.id}
-                onOpenArtifact={openArtifact}
-                onReferenceActivate={activateReference}
-                onViewInChannel={viewInChat}
-                readOnly={(chat.kind === 'dm' && chat.peerAgentRetired) || chat.archivedAt !== null}
-                summary={thread.summary}
-                takeover={false}
-                taskMessage={taskEntity?.message ?? null}
-                turnDetailsAccess={getTurnDetailAccess(server.role)}
-                width={null}
-            />
-        </section>
+        <ThreadWorkPage anchorMessageId={anchor.id} chatId={chat.id} serverId={server.id}>
+            {(headerActions) => (
+                <ThreadContent
+                    active={shown}
+                    anchor={anchor}
+                    chat={chat}
+                    initialThreadChatId={anchor.task?.threadChatId}
+                    key={anchor.id}
+                    onOpenArtifact={openArtifact}
+                    onReferenceActivate={activateReference}
+                    onViewInChannel={viewInChat}
+                    pageHeader={{ actions: headerActions, bandHosted: openers === null }}
+                    readOnly={
+                        (chat.kind === 'dm' && chat.peerAgentRetired) || chat.archivedAt !== null
+                    }
+                    summary={thread.summary}
+                    takeover={false}
+                    taskMessage={taskEntity?.message ?? null}
+                    turnDetailsAccess={getTurnDetailAccess(server.role)}
+                    width={null}
+                />
+            )}
+        </ThreadWorkPage>
     );
 }
 

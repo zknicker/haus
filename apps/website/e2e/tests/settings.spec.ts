@@ -227,10 +227,11 @@ test('hides added presets and allows deleting every preset account', async ({ pa
     await page.reload();
     await expect(connection).toBeVisible();
     await expect(merchbase).toHaveCount(0);
-    // Drain the remaining one-press presets; X (token) and Skool (sign-in) are not.
+    // Drain the remaining one-press presets. X and Factory (token) and Skool (sign-in) are not,
+    // and CoinGecko discovers its live service, so it needs the network.
     const addPreset = page
         .locator('.item-card')
-        .getByRole('button', { name: /^Add (?!(?:X|Skool)$)/u });
+        .getByRole('button', { name: /^Add (?!(?:X|Skool|Factory|CoinGecko)$)/u });
     for (let remaining = await addPreset.count(); remaining > 0; remaining -= 1) {
         await addPreset.first().click();
         await expect(addPreset).toHaveCount(remaining - 1);

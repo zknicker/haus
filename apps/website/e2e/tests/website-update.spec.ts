@@ -35,11 +35,12 @@ test('website update reloads the same route only after drafts are cleared', asyn
 test('a failed check stays quiet and a later deployed build becomes reloadable', async ({
     page,
 }) => {
+    // Installed first, so the poll's own timer is one the clock can move.
+    await page.clock.install();
     await page.route('**/haus-app-build.json', (route) => route.fulfill({ status: 503 }));
     await createTestServer(page, { displayName: 'Website Check', slug: 'website-check' });
     await openChannel(page, 'all');
     await expect(page.getByRole('textbox', { name: 'Message all' })).toBeVisible();
-    await page.clock.install();
     const reload = page.getByRole('button', {
         name: 'Update available. Reload Haus.',
         exact: true,

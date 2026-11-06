@@ -24,7 +24,7 @@ test('web links open browser tabs on the right, and the sidebar keeps to the lef
     const left = tabRow(page, 'Left pane tabs').locator('.workspace-tab');
     const right = tabRow(page, 'Right pane tabs').locator('.workspace-tab');
     const address = page.getByRole('combobox', { name: 'Page address', exact: true });
-    const link = page.getByRole('link', { name: 'Open B012345678 on Amazon' });
+    const link = page.getByRole('link', { name: 'Open Amazon listing' });
     await composer.fill('Keep this draft');
 
     // A web link is Open: a new selected browser tab in the right pane, creating it.

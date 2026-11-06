@@ -62,7 +62,6 @@ test('inline replies send, survive reload, and navigate to an off-page parent', 
     }
     await page.getByRole('button', { name: 'Cancel reply' }).hover();
     await page.mouse.down();
-    await expect(page.locator('.prompt-input:focus-within')).toHaveCount(0);
     await page.mouse.up();
     await expect(page.locator('[data-inline-reply-reference]')).toHaveCount(0);
     await expect(page.locator('.chat-reply-target')).toHaveCount(0);

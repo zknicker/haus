@@ -4,7 +4,7 @@ import { useChatNavigationEntry } from '../../hooks/servers/use-chats.ts';
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import { usePressNavigationWith } from '../../hooks/shell/use-press-navigation.ts';
 import { useOpenThreadEntry, useOpenThreadLayout } from '../../hooks/threads/use-open-threads.ts';
-import { useThreadRoute } from '../../hooks/threads/use-thread-opener.ts';
+import { threadPageRoute } from '../../hooks/threads/use-thread-opener.ts';
 import { threadsRoute } from '../servers/server-routes.ts';
 import { OpenThreadGlyph } from '../threads/open-thread-glyph.tsx';
 import { openThreadStatusLine } from '../threads/open-thread-status.ts';
@@ -15,7 +15,15 @@ import { ChatGroup } from './chat-navigation-group.tsx';
  * carries no badge. It reads only its structure; each row reads its own entry.
  * Nothing renders until the read settles.
  */
-export function OpenThreadsSection({ serverId, slug }: { serverId: string; slug: string }) {
+export function OpenThreadsSection({
+    currentPath,
+    serverId,
+    slug,
+}: {
+    currentPath: string;
+    serverId: string;
+    slug: string;
+}) {
     const layout = useOpenThreadLayout(serverId);
     if (!layout) {
         return null;
@@ -33,6 +41,7 @@ export function OpenThreadsSection({ serverId, slug }: { serverId: string; slug:
                 <Sidebar.Menu aria-label="Open threads">
                     {layout.threadChatIds.map((threadChatId) => (
                         <OpenThreadRow
+                            currentPath={currentPath}
                             key={threadChatId}
                             serverId={serverId}
                             slug={slug}
@@ -46,18 +55,19 @@ export function OpenThreadsSection({ serverId, slug }: { serverId: string; slug:
 }
 
 function OpenThreadRow({
+    currentPath,
     serverId,
     slug,
     threadChatId,
 }: {
+    currentPath: string;
     serverId: string;
     slug: string;
     threadChatId: string;
 }) {
     const thread = useOpenThreadEntry(serverId, threadChatId);
     const parent = useChatNavigationEntry(serverId, thread?.parentChatId ?? '');
-    const threadRoute = useThreadRoute(slug);
-    const href = thread ? threadRoute(thread.parentChatId, thread.anchorMessageId) : '';
+    const href = thread ? threadPageRoute(slug, thread.parentChatId, thread.anchorMessageId) : '';
     const pressRef = usePressNavigationWith(useSidebarNavigate(), href, noPreload);
     if (!thread) {
         return null;
@@ -65,7 +75,13 @@ function OpenThreadRow({
     const context = parent ? (parent.kind === 'channel' ? `#${parent.name}` : 'DM') : null;
 
     return (
-        <Sidebar.MenuItem href={href} id={threadChatId} ref={pressRef} textValue={thread.title}>
+        <Sidebar.MenuItem
+            href={href}
+            id={threadChatId}
+            isCurrent={href === currentPath}
+            ref={pressRef}
+            textValue={thread.title}
+        >
             <Sidebar.MenuIcon>
                 <OpenThreadGlyph state={thread.state} />
             </Sidebar.MenuIcon>
