@@ -1,8 +1,5 @@
 import { randomUUID } from 'node:crypto';
 import {
-    agentCloudAgentCancelReceiptSchema,
-    agentCloudAgentListReceiptSchema,
-    agentCloudAgentSendReceiptSchema,
     type CloudAgentProvider,
     cloudAgentProviderSchema,
     cloudAgentRepositorySchema,
@@ -16,6 +13,11 @@ import {
     renderCloudAgentWorkDetail,
     renderCloudAgentWorkList,
 } from '../cloud-agent-render.ts';
+import {
+    agentCloudAgentCancelReceiptResponseSchema,
+    agentCloudAgentListReceiptResponseSchema,
+    agentCloudAgentSendReceiptResponseSchema,
+} from '../cloud-agent-work-response-schema.ts';
 import type { ParsedArgs } from '../parse.ts';
 import { readAgentStdin } from '../stdin.ts';
 import type { SubCommand } from '../subcommand.ts';
@@ -142,7 +144,7 @@ export async function runCloudAgentSend(args: ParsedArgs, deps: CloudAgentDeps):
     }
     const receipt = await deps.client.request(
         '/api/agent/cloud-agents/send',
-        agentCloudAgentSendReceiptSchema,
+        agentCloudAgentSendReceiptResponseSchema,
         {
             body: {
                 workId,
@@ -167,7 +169,7 @@ export async function runCloudAgentInspect(
     const workId = args.values['--work']?.trim();
     const { works } = await deps.client.request(
         '/api/agent/cloud-agents',
-        agentCloudAgentListReceiptSchema,
+        agentCloudAgentListReceiptResponseSchema,
         { query: { workId } }
     );
     deps.write(workId ? renderCloudAgentWorkDetail(works) : renderCloudAgentWorkList(works));
@@ -224,7 +226,7 @@ export async function runCloudAgentCancel(args: ParsedArgs, deps: CloudAgentDeps
     const workId = requiredValue(args, '--work');
     const receipt = await deps.client.request(
         '/api/agent/cloud-agents/cancel',
-        agentCloudAgentCancelReceiptSchema,
+        agentCloudAgentCancelReceiptResponseSchema,
         { body: { workId }, method: 'POST' }
     );
     deps.write(
