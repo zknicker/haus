@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v17.5.0 - 2026-11-05
+
+- An Agent no longer goes silent when a stalled Cloud Agent notice reaches its inbox. The notice now delivers, and one undeliverable item or Agent no longer holds back others.
+- Haus Computer 15.3.3 settles a long Claude cloud Run after a restart instead of leaving it running, and a cancelled job raises no stall notices.
+- Search finds messages inside Threads and opens them at the match.
+- Agents post their GitHub work as the shared Haus bot.
+- Update Haus Computer to 15.3.3 with this release: older Computers reject stall notices. Haus Agent 12.4.3 ships with it.
+
 ## v17.4.2 - 2026-11-05
 
 - Haus Computer 15.3.2 makes the 17.4.1 environment-pin behavior deployable. 15.3.0 and 15.3.1 never went live: their own test suite depended on a Claude CLI binary that isn't present on the release runner, so publication failed before any build ran. 15.3.2 fixes the tests and ships unchanged behavior.
