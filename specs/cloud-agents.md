@@ -444,8 +444,9 @@ back with `pr=#<n>` wherever messages are shown. The work card's pull request ro
 and files changed, additions, and deletions when GitHub evidence is available. Missing evidence
 does not become a fabricated zero-line diff.
 
-A cancel request records `cancelRequestedAt` and `cancelRequestedBy`, and the presentation reads as
-cancelling until the Run settles. Inside Haus every hop is push: Computer reports
+A cancel request records `cancelRequestedAt` and `cancelRequestedBy` on every live Run and sends a
+cancel frame for each. A later follow-up keeps those requests, and the work reads them from its
+newest Run, so the presentation reads as cancelling until that Run settles. Inside Haus every hop is push: Computer reports
 observations over the attachment protocol, Server emits the durable event, and the App refetches
 the Message. Reconnect follows the same direction — Server pushes `cloud-agent-reconcile` frames
 of at most 200 entries naming every non-terminal Run that Computer still owns, including preceding

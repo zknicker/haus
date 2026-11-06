@@ -52,6 +52,7 @@ export function toCloudAgentRun(row: RunRow): CloudAgentRun {
 /** `runs` is newest first and bounded; the work keeps recent Runs, not history. */
 export function toCloudAgentWork(row: WorkRow, details: WorkDetails = noDetails): CloudAgentWork {
     const recent = details.runs.slice(0, cloudAgentRunsRetained).map(toCloudAgentRun);
+    const [newest] = details.runs;
     const startedAt = row.startedAt?.toISOString() ?? null;
     const terminalAt = row.terminalAt?.toISOString() ?? null;
     return cloudAgentWorkSchema.parse({
@@ -60,8 +61,8 @@ export function toCloudAgentWork(row: WorkRow, details: WorkDetails = noDetails)
                 ? { at: row.activityAt.toISOString(), summary: row.activitySummary }
                 : null,
         agentId: row.agentId,
-        cancelRequestedAt: row.cancelRequestedAt?.toISOString() ?? null,
-        cancelRequestedBy: readCancelRequestedBy(row),
+        cancelRequestedAt: newest?.cancelRequestedAt?.toISOString() ?? null,
+        cancelRequestedBy: newest ? readCancelRequestedBy(newest) : null,
         chatId: row.chatId,
         computerId: row.computerId,
         createdAt: row.createdAt.toISOString(),
@@ -169,7 +170,7 @@ async function readRuns(
     return byWork;
 }
 
-function readCancelRequestedBy(row: WorkRow): CloudAgentWork['cancelRequestedBy'] {
+function readCancelRequestedBy(row: RunRow): CloudAgentWork['cancelRequestedBy'] {
     if (row.cancelRequestedByUserId) {
         return { id: row.cancelRequestedByUserId, kind: 'user' };
     }

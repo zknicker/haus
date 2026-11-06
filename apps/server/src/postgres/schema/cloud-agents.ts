@@ -32,9 +32,6 @@ export const cloudAgentWorkTable = pgTable(
         activityAt: timestamp('activity_at', { withTimezone: true }),
         activitySummary: text('activity_summary'),
         agentId: text('agent_id').notNull(),
-        cancelRequestedAt: timestamp('cancel_requested_at', { withTimezone: true }),
-        cancelRequestedByAgentId: text('cancel_requested_by_agent_id'),
-        cancelRequestedByUserId: text('cancel_requested_by_user_id'),
         chatId: text('chat_id').notNull(),
         computerId: text('computer_id').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -63,16 +60,6 @@ export const cloudAgentWorkTable = pgTable(
             foreignColumns: [agentsTable.serverId, agentsTable.id],
             name: 'cloud_agent_work_agent_fk',
         }).onDelete('cascade'),
-        foreignKey({
-            columns: [table.serverId, table.cancelRequestedByAgentId],
-            foreignColumns: [agentsTable.serverId, agentsTable.id],
-            name: 'cloud_agent_work_cancel_agent_fk',
-        }),
-        foreignKey({
-            columns: [table.serverId, table.cancelRequestedByUserId],
-            foreignColumns: [serverMembershipsTable.serverId, serverMembershipsTable.userId],
-            name: 'cloud_agent_work_cancel_membership_fk',
-        }),
         index('cloud_agent_work_active_idx')
             .on(table.serverId, table.createdAt)
             .where(sql`${table.status} in ('queued', 'running', 'pending_input')`),
@@ -94,12 +81,6 @@ export const cloudAgentWorkTable = pgTable(
                     or char_length(${table.activitySummary}) between 1 and 120)`
         ),
         check(
-            'cloud_agent_work_cancel_shape',
-            sql`(${table.cancelRequestedAt} is not null) = (num_nonnulls(
-                ${table.cancelRequestedByUserId}, ${table.cancelRequestedByAgentId}
-            ) = 1)`
-        ),
-        check(
             'cloud_agent_work_terminal_shape',
             sql.raw(
                 `("cloud_agent_work"."status" in ${settled})
@@ -117,6 +98,10 @@ export const cloudAgentRunsTable = pgTable(
     'cloud_agent_runs',
     {
         branches: bunJsonb('branches').notNull().$type<CloudAgentBranch[]>().default([]),
+        /** A cancel reaches each live Run, so the intent survives a later follow-up. */
+        cancelRequestedAt: timestamp('cancel_requested_at', { withTimezone: true }),
+        cancelRequestedByAgentId: text('cancel_requested_by_agent_id'),
+        cancelRequestedByUserId: text('cancel_requested_by_user_id'),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         errorCode: text('error_code'),
         id: text('id').primaryKey(),
@@ -157,8 +142,24 @@ export const cloudAgentRunsTable = pgTable(
             foreignColumns: [cloudAgentWorkTable.serverId, cloudAgentWorkTable.id],
             name: 'cloud_agent_runs_work_fk',
         }).onDelete('cascade'),
+        foreignKey({
+            columns: [table.serverId, table.cancelRequestedByAgentId],
+            foreignColumns: [agentsTable.serverId, agentsTable.id],
+            name: 'cloud_agent_runs_cancel_agent_fk',
+        }),
+        foreignKey({
+            columns: [table.serverId, table.cancelRequestedByUserId],
+            foreignColumns: [serverMembershipsTable.serverId, serverMembershipsTable.userId],
+            name: 'cloud_agent_runs_cancel_membership_fk',
+        }),
         check('cloud_agent_runs_id_shape', sql`${table.id} ~ '^car_[A-Za-z0-9_-]{16}$'`),
         check('cloud_agent_runs_status', sql.raw(`"cloud_agent_runs"."status" in ${statuses}`)),
+        check(
+            'cloud_agent_runs_cancel_shape',
+            sql`(${table.cancelRequestedAt} is not null) = (num_nonnulls(
+                ${table.cancelRequestedByUserId}, ${table.cancelRequestedByAgentId}
+            ) = 1)`
+        ),
         check(
             'cloud_agent_runs_model_shape',
             sql`${table.modelFallbackFrom} is null or coalesce(${table.modelId}, 'default') = 'default'`

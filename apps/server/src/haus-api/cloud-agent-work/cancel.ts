@@ -39,7 +39,9 @@ export const cancelCloudAgentWorkProcedure = memberProcedure
             for (const event of requested.events) {
                 publishRealtime(event);
             }
-            ctx.computerConnections.send(requested.computerId, requested.command);
+            for (const command of requested.commands) {
+                ctx.computerConnections.send(requested.computerId, command);
+            }
             return { cancelRequested: true } as const;
         } catch (cause) {
             if (cause instanceof CloudAgentWorkNotFoundError) {

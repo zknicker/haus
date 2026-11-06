@@ -206,17 +206,25 @@ export function cloudAgentFixture() {
 
     async function readWork(workId: string) {
         const [row] = (await harness.sql`
-        select activity_summary, cancel_requested_by_agent_id, cancel_requested_by_user_id,
-               environment_id, environment_name, provider_agent_id, provider_url, started_at,
-               status, terminal_at
-        from cloud_agent_work where id = ${workId}
+        select work.activity_summary, newest.cancel_requested_by_agent_id,
+               newest.cancel_requested_by_user_id, work.environment_id, work.environment_name,
+               work.provider_agent_id, work.provider_url, work.started_at, work.status,
+               work.terminal_at
+        from cloud_agent_work as work
+        left join lateral (
+            select cancel_requested_by_agent_id, cancel_requested_by_user_id
+            from cloud_agent_runs as run
+            where run.server_id = work.server_id and run.work_id = work.id
+            order by run.created_at desc limit 1
+        ) as newest on true
+        where work.id = ${workId}
     `) as Record<string, unknown>[];
         return row;
     }
 
     async function readRun(runId: string) {
         const [row] = (await harness.sql`
-        select branches, raw_status, started_at, status, summary, terminal_at
+        select branches, cancel_requested_at, raw_status, started_at, status, summary, terminal_at
         from cloud_agent_runs where id = ${runId}
     `) as Record<string, unknown>[];
         return row;
