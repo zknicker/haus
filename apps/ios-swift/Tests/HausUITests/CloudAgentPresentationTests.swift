@@ -155,4 +155,17 @@ private typealias Job = CloudAgentWorkFixture.Job
             try Fixture.work(job: Job.working(startedAt: nil, followUp: Job.followUp("queued", since: Fixture.start)))
         }
     }
+
+    @Test
+    func liveReadingOutlivesTheRunSnapshot() throws {
+        let reading = #"""
+        {"additions":90,"changedFiles":7,"checks":"passing","deletions":5,"headSha":"abc123",
+         "number":482,"observedAt":"2026-11-05T12:00:00.000Z","repository":"haus/haus",
+         "review":"approved","settledAt":"2026-11-05T12:00:00.000Z","source":"github",
+         "state":"merged","title":"Fix it","url":"https://github.com/haus/haus/pull/482"}
+        """#
+        let agent = try CloudAgentWorkFixture.work(pullRequest: reading)
+        #expect(agent.pullRequest?.state == "merged")
+        #expect(agent.pullRequest?.changedFiles == 7)
+    }
 }

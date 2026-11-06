@@ -1,4 +1,4 @@
-import type { CloudAgentBranch, CloudAgentWork } from '@haus/api';
+import type { CloudAgentBranch, CloudAgentPullRequestReading, CloudAgentWork } from '@haus/api';
 import { Chip } from '@heroui/react';
 import { GitPullRequestIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { ActionCard } from '../../components/chats/action-card.tsx';
@@ -78,7 +78,9 @@ export function CloudAgentWorkCard({ work }: { work: CloudAgentWork }) {
                 </ActionCard.Content>
             </ActionCard.Header>
             <div className="flex min-w-0 flex-col gap-1">
-                {branch ? <CloudAgentPullRequestRow branch={branch} /> : null}
+                {branch ? (
+                    <CloudAgentPullRequestRow branch={branch} reading={work.pullRequest} />
+                ) : null}
                 <ActionCard.Meta data-testid="cloud-agent-work-status-line" tone={line.tone}>
                     {line.text}
                 </ActionCard.Meta>
@@ -98,9 +100,16 @@ export function CloudAgentWorkCard({ work }: { work: CloudAgentWork }) {
  * the Computer's GitHub reading has it, and the size of the change. Added and
  * removed are the one pair a reader scans without reading, so they keep color.
  */
-export function CloudAgentPullRequestRow({ branch }: { branch: CloudAgentBranch }) {
+export function CloudAgentPullRequestRow({
+    branch,
+    reading = null,
+}: {
+    branch: CloudAgentBranch;
+    /** The live reading, which outlives the Run's frozen snapshot. */
+    reading?: CloudAgentPullRequestReading | null;
+}) {
     const number = cloudAgentBranchPullRequestNumber(branch);
-    const pullRequest = branch.pullRequest ?? null;
+    const pullRequest = reading ?? branch.pullRequest ?? null;
     if (number === null) {
         return null;
     }
