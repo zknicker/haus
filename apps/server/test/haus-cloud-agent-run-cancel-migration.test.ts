@@ -40,9 +40,12 @@ test('migration 0115 copies a cancel onto live Runs and the newest Run', async (
         upgraded = new SQL({ max: 1, url: url.toString() });
         await seed(upgraded);
 
-        await throughMigration(115);
+        // Production applies this release's migrations in one transaction.
+        await throughMigration(117);
         expect(await migrateHausDatabase(url.toString(), 'haus', 'haus', folder)).toEqual([
             '0115_cloud-agent-run-cancel',
+            '0116_cloud-agent-typed-notices',
+            '0117_inbox-undelivered-reason',
         ]);
 
         const runs = (await upgraded`

@@ -27,6 +27,8 @@ WHERE work."server_id" = run."server_id"
 			LIMIT 1
 		)
 	);--> statement-breakpoint
+SET CONSTRAINTS "cloud_agent_runs_cancel_agent_fk", "cloud_agent_runs_cancel_membership_fk" IMMEDIATE;--> statement-breakpoint
+SET CONSTRAINTS "cloud_agent_runs_cancel_agent_fk", "cloud_agent_runs_cancel_membership_fk" DEFERRED;--> statement-breakpoint
 ALTER TABLE "cloud_agent_work" DROP COLUMN "cancel_requested_at";--> statement-breakpoint
 ALTER TABLE "cloud_agent_work" DROP COLUMN "cancel_requested_by_agent_id";--> statement-breakpoint
 ALTER TABLE "cloud_agent_work" DROP COLUMN "cancel_requested_by_user_id";--> statement-breakpoint
