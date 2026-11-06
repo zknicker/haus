@@ -321,7 +321,8 @@ recorded that link, and dropped the work's foreign keys to its Message and Chat.
 
 Server stores one lifecycle-rich `CloudAgentWork` record for each delegation. The work owns its
 delegating Agent, provider Runs, and mutable execution state. Messages own authorship and Chat
-placement and point at the work through links.
+placement and point at the work through links. The proposed
+[Run lifecycle](cloud-agent-run-lifecycle.md) replaces today's scattered Run transition rules.
 
 ```ts
 type CloudAgentWork = {
