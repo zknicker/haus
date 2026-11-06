@@ -34,6 +34,7 @@ const automationInboxSources = [
     'trigger',
     'trigger_problem',
     'image_generation_failed',
+    'delivery_problem',
     'subagent',
 ] as const;
 

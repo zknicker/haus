@@ -1,9 +1,17 @@
 import { expect, test } from 'bun:test';
 import { agentStartCommandSchema, agentTurnSummarySchema } from '@haus/api';
 import { parseStartCommand } from './agent-command-frames.ts';
-import { parseInbox } from './agent-inbox-input.ts';
+import { parseInbox, rejectedInboxItems } from './agent-inbox-input.ts';
 import { dispatchAgentStart } from './agent-start-dispatch.ts';
 import type { AgentStartCommand, AgentTurnFrame } from './launch.ts';
+
+test('names only the items a rejected frame could not read', async () => {
+    const [item] = attentionContinuation().inbox;
+    expect(rejectedInboxItems([item, { id: 'msg_bad' }, { content: 'no id' }])).toEqual([
+        { id: 'msg_bad', reason: 'The Computer could not read this inbox item.' },
+    ]);
+    expect(rejectedInboxItems('not a list')).toEqual([]);
+});
 
 test('treats a notice identity as opaque', async () => {
     const [item] = attentionContinuation().inbox;

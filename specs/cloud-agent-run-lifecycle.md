@@ -1,5 +1,5 @@
 ---
-summary: Proposed state machine for Cloud Agent Runs — one transition table in `@haus/api`, Work as a projection of its newest Run, cancel intent on the Run, stalls as a typed Run condition, typed inbox notices, and failure boundaries that stop a notice from blocking an Agent.
+summary: State machine for Cloud Agent Runs — one transition table in `@haus/api`, Work as a projection of its newest Run, cancel intent on the Run, stalls as a typed Run condition, typed inbox notices, and failure boundaries that stop a notice from blocking an Agent.
 read_when:
   - implementing any slice of the Cloud Agent Run state machine
   - changing how a Run or Work status is written, or adding a Run status or observation field
@@ -10,8 +10,8 @@ read_when:
 
 # Cloud Agent Run Lifecycle
 
-Status: proposed, 2026-11-05. Nothing here is implemented yet. [Cloud Agents](cloud-agents.md) stays
-the contract for current behavior until a slice lands and updates it.
+Status: implemented on `claude/run-lifecycle-slice-1`, 2026-11-06, not yet released. A human whose
+message is set aside hears about it from the Agent; there is no App surface for it yet.
 
 ## Why
 
@@ -143,24 +143,22 @@ becomes opaque, so no code parses it.
 An Agent's inbox holds human messages behind any notice, so each failure must stay as small as the
 item that caused it.
 
-- **Server:** an item that cannot render stays out of the frame, logs a named error, and becomes
-  `undeliverable`. `requireAttention` no longer fails the dispatch.
-- **Computer:** `parseInbox` validates per item, runs the turn with the valid ones, and reports the
-  rejected ids and reasons on the turn frame. Server marks those items `undeliverable`.
-- **Undeliverable items:** `undeliverable` is a new `agent_inbox` state with an
-  `undelivered_reason`. It never joins a later frame, so a bad item cannot fail twice. A notice
-  needs nothing further. A human message also shows a visible delivery failure in the App, so it is
-  never lost silently.
-- **The Agent is told:** the next frame carries an `undelivered` list, and `inbox-format.ts` renders
-  it as a short note, such as `1 item wasn't delivered: cloud agent notice for car_x, reason:
-  <error>`. A human message's entry names its sender and Chat. Server builds each entry from the
-  row's source, id, sender, Chat, and reason, never from the item's content, so a note cannot fail
-  the way the item did. Each item is noted once, tracked by `undelivered_noted_at`. A pending note
-  wakes the Agent by itself when nothing else is queued. This is inbox event text, not prompt text,
-  and it changes Agent behavior, so it goes through `tune-agent-behavior`.
+- **Server:** when a dispatch fails, Server tries each queued item alone, sets aside the ones that
+  cannot render, and dispatches again. A failure no single item explains
+  stays a failure.
+- **Computer:** a rejected start names the items it could not read in `rejectedItems` on its turn
+  frame. Server sets those aside, clears the failure, and resends the rest at once, so one bad item
+  never pauses the Agent.
+- **Set-aside items:** a row settles `seen` with an `undelivered_reason`. It is not a new state,
+  because a dozen readers treat anything unseen as live work. It never joins a later frame.
+- **The Agent is told:** each set-aside row with a Chat gets one `delivery_problem` inbox item, for
+  example `1 item wasn't delivered: cloud agent notice car_x, reason: <error>`. A human message's
+  note names the message. It is an ordinary concrete item, so it wakes the Agent by itself and is
+  delivered exactly once by its dedupe key. Server builds it from the row's source, id, and reason,
+  never the item's content, so a note cannot fail the way the item did.
 - **Version gaps:** a change to inbox item identity or frame shape bumps the Computer protocol, so
-  an old Computer idles instead of rejecting starts. When a Computer attaches with a new version,
-  Server clears any `configuration/start-rejected` pause on its Agents.
+  an old Computer idles instead of rejecting starts. When a Computer attaches, Server clears any
+  `start-rejected` pause on its Agents.
 - **Rollout:** after a release that changes these frames, upgrade Computers as soon as
   `Publish Computer` passes, before `Promote Server` finishes.
 
@@ -176,8 +174,8 @@ Each one has a test in the slice that introduces it.
    `stall` notice.
 6. Every `cloud_agent_work` inbox row names a Run that exists.
 7. A cancel request reaches every Run that was live when it was made.
-8. An undeliverable item does not stop any other item from reaching its Agent.
-9. An undeliverable item never joins another frame, and its Agent is told about it exactly once.
+8. A set-aside item does not stop any other item from reaching its Agent.
+9. A set-aside item never joins another frame, and its Agent is told about it exactly once.
 
 ## Slices
 
@@ -192,11 +190,10 @@ Each slice ships alone, and behavior changes only where it says so.
 3. **Stalls and notices.** Migrate the inbox and Run columns, backfill from `dedupe_key`, bump the
    protocol, and delete the parsers. Proof: a delivery test through the FakeTransport harness, not
    only a row assertion, and a backfill test using both id shapes.
-4. **Failure boundaries.** Add per-item isolation, the `undeliverable` state, the Agent note, and
-   version-gap pause clearing. Proof: a bad item beside a human message delivers the message and
-   notes the bad item once, a lone bad item wakes the Agent with the note, an undeliverable human
-   message shows its failure in the App, and a Computer upgrade lifts a `start-rejected` pause. The
-   note also needs its `tune-agent-behavior` baseline.
+4. **Failure boundaries.** Add per-item isolation, the Agent note, and version-gap pause clearing.
+   Proof: a bad item beside a human message delivers the message and notes the bad item once, a
+   lone bad item wakes the Agent with the note, and a Computer attaching lifts a `start-rejected`
+   pause. The note also needs its `tune-agent-behavior` baseline.
 
 ## Out of scope
 

@@ -3,11 +3,11 @@ import { chatMessageReplySchema, idSchema } from './chat.ts';
 import {
     cloudAgentBranchSchema,
     cloudAgentProviderSchema,
-    cloudAgentStallCodeSchema,
     cloudAgentStatusSchema,
     cloudAgentSummaryMaxLength,
     cloudAgentTitleSchema,
 } from './cloud-agent-shared.ts';
+import { cloudAgentStallCodeSchema } from './cloud-agent-stall.ts';
 import { humanTimezoneSchema } from './membership.ts';
 import { messageTaskSchema } from './task-shared.ts';
 

@@ -84,6 +84,9 @@ test('backfills outcome for settled fires and defaults the new wake-rule columns
             '0112_cloud-agent-environment',
             '0113_cloud-agent-pull-requests',
             '0114_thread-closures',
+            '0115_cloud-agent-run-cancel',
+            '0116_cloud-agent-typed-notices',
+            '0117_inbox-undelivered-reason',
         ]);
 
         expect(await database`SELECT id, outcome FROM reminder_fires ORDER BY id`).toEqual([

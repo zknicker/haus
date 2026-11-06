@@ -1,5 +1,6 @@
 import { agentStartCommandSchema } from '@haus/api';
 import { parseStartCommand } from './agent-command-frames.ts';
+import { rejectedInboxItems } from './agent-inbox-input.ts';
 import type { AgentWorkCoordinator } from './agent-work-coordinator.ts';
 import type { AgentStartCommand, AgentTurnFrame } from './launch.ts';
 
@@ -41,6 +42,7 @@ function rejectedAgentStart(frame: unknown): AgentTurnFrame | null {
         failureKind: 'configuration',
         messageCount: 0,
         outputProduced: false,
+        rejectedItems: rejectedInboxItems(isRecord(frame) ? frame.inbox : undefined),
         startedAt: now,
         status: 'failed',
         summary:
@@ -49,4 +51,8 @@ function rejectedAgentStart(frame: unknown): AgentTurnFrame | null {
         type: 'turn',
         visibleMessages: [],
     };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
 }

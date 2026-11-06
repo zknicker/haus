@@ -9,6 +9,7 @@ import {
     chatMessagesTable,
     messageTasksTable,
 } from '../postgres/schema.ts';
+import type { EnqueueInput } from './enqueue-input.ts';
 import {
     bodilessInboxSources,
     concreteInboxSources,
@@ -115,20 +116,7 @@ export async function setStopped(
  */
 export async function enqueueInboxItem(
     db: HausDatabase,
-    input: {
-        addressedReason?: AddressedReason | null;
-        agentId: string;
-        chatId: string | null;
-        cloudAgentNotice?: 'settled' | 'stall';
-        cloudAgentRunId?: string;
-        content: string;
-        createdAt?: Date;
-        dedupeKey: string;
-        mentioned?: boolean;
-        serverId: string;
-        source: string;
-        threadFollowReactivated?: boolean;
-    }
+    input: Omit<EnqueueInput, 'sequence' | 'source'> & { source: string }
 ): Promise<void> {
     // Omitted optional fields take their column defaults.
     await db

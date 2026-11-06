@@ -1,6 +1,6 @@
 import { and, desc, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentDeliveryTable, agentTurnsTable } from '../postgres/schema.ts';
+import { agentDeliveryTable, agentsTable, agentTurnsTable } from '../postgres/schema.ts';
 import { agentUpdatedTopic } from '../realtime/topics.ts';
 import { isBackedOff } from './retry-policy.ts';
 import { readDeliveryState, setAgentChainTurns } from './store.ts';
@@ -69,6 +69,26 @@ export async function releaseHoldsForHuman(
  */
 export async function clearDeliveryFailures(db: HausDatabase, agentId: string): Promise<void> {
     await writeWakeState(db, agentId, releasedWakeState);
+}
+
+/**
+ * A Computer that just attached may have upgraded past the contract it rejected,
+ * so its Agents get another try now instead of waiting out a pause.
+ */
+export async function clearStartRejectedHolds(db: HausDatabase, computerId: string): Promise<void> {
+    const held = await db
+        .select({ agentId: agentDeliveryTable.agentId })
+        .from(agentDeliveryTable)
+        .innerJoin(agentsTable, eq(agentsTable.id, agentDeliveryTable.agentId))
+        .where(
+            and(
+                eq(agentsTable.computerId, computerId),
+                eq(agentDeliveryTable.lastFailureCode, 'start-rejected')
+            )
+        );
+    for (const { agentId } of held) {
+        await clearDeliveryFailures(db, agentId);
+    }
 }
 
 /** Settles a failed turn's wake state; a rate limit's backoff grows with its trailing streak. */

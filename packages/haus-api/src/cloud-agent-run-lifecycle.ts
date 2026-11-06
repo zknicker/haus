@@ -1,8 +1,5 @@
-import {
-    type CloudAgentStallCode,
-    type CloudAgentStatus,
-    isTerminalCloudAgentStatus,
-} from './cloud-agent-shared.ts';
+import { type CloudAgentStatus, isTerminalCloudAgentStatus } from './cloud-agent-shared.ts';
+import type { CloudAgentStallCode } from './cloud-agent-stall.ts';
 
 /** How often a Run still stuck gets another notice. */
 const stallReminderMs = 2 * 60 * 60_000;

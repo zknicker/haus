@@ -1,7 +1,10 @@
 import {
     advanceCloudAgentRun,
     type CloudAgentObservation,
+    type CloudAgentRunNotice,
+    type CloudAgentRunStall,
     type CloudAgentRunStep,
+    type CloudAgentStallCode,
     type CloudAgentStatus,
     type CloudAgentWork,
     type CloudAgentWorkLifecycle,
@@ -19,6 +22,8 @@ import { prepareCloudAgentWorkEvents } from './cloud-agent-events.ts';
 import { findCloudAgentWork } from './cloud-agent-shape.ts';
 import { mergeBranchEvidence } from './merge-branch-evidence.ts';
 import { seedPullRequestReadings } from './pull-request-readings.ts';
+
+type RecordedRunStep = Extract<CloudAgentRunStep, { kind: 'recorded' }>;
 
 export interface AppliedCloudAgentObservation {
     /** One `cloudAgentWork.updated` per linking Message in a live Chat. */
@@ -84,10 +89,7 @@ export async function applyCloudAgentObservation(
             {
                 cancelRequested: row.cancelRequestedAt !== null,
                 observedAt: row.observedAt,
-                stall:
-                    row.stallCode && row.stallSince
-                        ? { code: row.stallCode, since: row.stallSince }
-                        : null,
+                stall: storedStall(row),
                 status: row.runStatus,
                 workStatus: row.workStatus,
             },
@@ -153,10 +155,10 @@ export async function applyCloudAgentObservation(
         // The notice goes to the Chat that asked for the work, never to a later
         // link (ADR 0044). If that Chat is gone, the work settles (or keeps
         // retrying) silently.
-        const notice =
-            step.notice && (await isLiveChat(tx, { chatId: row.chatId, serverId: input.serverId }))
-                ? step.notice
-                : null;
+        const notice = await deliverableNotice(tx, step, {
+            chatId: row.chatId,
+            serverId: input.serverId,
+        });
         if (notice) {
             await agentDelivery.enqueue(tx, {
                 agentId: row.agentId,
@@ -188,7 +190,7 @@ export async function applyCloudAgentObservation(
 function runObservationUpdate(
     observation: CloudAgentObservation,
     lifecycle: CloudAgentWorkLifecycle,
-    step: Extract<CloudAgentRunStep, { kind: 'recorded' }>,
+    step: RecordedRunStep,
     previousBranches: Parameters<typeof mergeBranchEvidence>[0]
 ) {
     const observedAt = new Date(observation.observedAt);
@@ -228,6 +230,22 @@ function workObservationUpdate(
         ...(observation.providerUrl ? { providerUrl: observation.providerUrl } : {}),
         updatedAt: new Date(observation.observedAt),
     };
+}
+
+function storedStall(row: {
+    stallCode: CloudAgentStallCode | null;
+    stallSince: Date | null;
+}): CloudAgentRunStall | null {
+    return row.stallCode && row.stallSince ? { code: row.stallCode, since: row.stallSince } : null;
+}
+
+/** A notice needs a live Chat to land in; without one the Run moves on silently. */
+async function deliverableNotice(
+    db: HausDatabase,
+    step: RecordedRunStep,
+    chat: { chatId: string; serverId: string }
+): Promise<CloudAgentRunNotice | null> {
+    return step.notice && (await isLiveChat(db, chat)) ? step.notice : null;
 }
 
 /** One outcome replaces every stall reminder the Agent has not read yet. */

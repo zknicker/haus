@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { unlinkSync, writeFileSync } from 'node:fs';
 
+const biomeTimeoutMs = 30_000;
 const diagnostic = 'Cloud Agent status written outside the Run lifecycle';
 
 /** Biome skips plugins for stdin input, so the probe is a real file it lints. */
@@ -31,11 +32,19 @@ describe('cloud-agent-status-writes lint rule', () => {
         "await db.update(tasksTable).set({ status: 'done' });",
     ];
 
-    test('rejects every literal status write', () => {
-        expect(lint(invalid.join('\n')).split(diagnostic).length - 1).toBe(invalid.length);
-    });
+    test(
+        'rejects every literal status write',
+        () => {
+            expect(lint(invalid.join('\n')).split(diagnostic).length - 1).toBe(invalid.length);
+        },
+        biomeTimeoutMs
+    );
 
-    test('allows spread lifecycle writes and other tables', () => {
-        expect(lint(valid.join('\n'))).not.toContain(diagnostic);
-    });
+    test(
+        'allows spread lifecycle writes and other tables',
+        () => {
+            expect(lint(valid.join('\n'))).not.toContain(diagnostic);
+        },
+        biomeTimeoutMs
+    );
 });

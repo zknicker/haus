@@ -22,6 +22,7 @@ import {
 } from '@haus/api';
 import { z } from 'zod';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import { settleTurn } from '../agent-delivery/settle-turn.ts';
 import { recordCoveApplyResult } from '../onboarding/create-cove.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentUpdatedTopic, computerUpdatedTopic } from '../realtime/topics.ts';
@@ -132,7 +133,7 @@ export async function ingestReport(
     if (turn.success) {
         // Delivery records the durable summary and drains the next turn; a
         // duplicate frame for an already-settled run is a no-op.
-        await delivery.onTurnSettled(computerId, turn.data);
+        await settleTurn(db, delivery, computerId, turn.data);
         return;
     }
 

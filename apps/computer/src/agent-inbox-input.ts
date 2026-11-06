@@ -67,6 +67,18 @@ export function parseInbox(value: unknown): AgentInboxItem[] | null {
     return inbox;
 }
 
+/** The items in a rejected frame that named themselves, so Server can leave them out. */
+export function rejectedInboxItems(value: unknown): { id: string; reason: string }[] {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+    return value.flatMap((item) =>
+        !parseInboxItem(item) && isRecord(item) && typeof item.id === 'string' && item.id.length > 0
+            ? [{ id: item.id, reason: 'The Computer could not read this inbox item.' }]
+            : []
+    );
+}
+
 function parseInboxItem(item: unknown): AgentInboxItem | null {
     if (
         !(

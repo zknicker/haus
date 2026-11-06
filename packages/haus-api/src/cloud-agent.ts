@@ -6,13 +6,13 @@ import {
     cloudAgentProviderSchema,
     cloudAgentRefSchema,
     cloudAgentRepositorySchema,
-    cloudAgentStallCodeSchema,
     cloudAgentStatusSchema,
     cloudAgentSummaryMaxLength,
     cloudAgentTitleSchema,
     cloudAgentUsageSchema,
     cloudAgentWorkSchema,
 } from './cloud-agent-shared.ts';
+import { cloudAgentStallCodeSchema } from './cloud-agent-stall.ts';
 import type { components } from './generated/openapi.d.ts';
 
 type HausAgentMessage = components['schemas']['AgentMessage'];

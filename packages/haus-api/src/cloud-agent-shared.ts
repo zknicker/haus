@@ -2,6 +2,7 @@ import * as z from 'zod';
 import { cloudAgentJobSchema } from './cloud-agent-job.ts';
 import { cloudAgentRunModelSchema } from './cloud-agent-model.ts';
 import { cloudAgentProviderSchema } from './cloud-agent-provider.ts';
+import { cloudAgentStallCodeSchema } from './cloud-agent-stall.ts';
 import { cloudAgentTimestampSchema } from './cloud-agent-time.ts';
 
 const cloudAgentIdSchema = z.string().trim().min(1);
@@ -41,18 +42,6 @@ export const cloudAgentStatuses = [
 ] as const;
 
 export const cloudAgentStatusSchema = z.enum(cloudAgentStatuses);
-
-/**
- * Why a live Run is stuck without settling. A stall is neither a status nor an
- * error: Computer keeps retrying underneath it, and the delegating Agent gets a
- * notice with sparse reminders.
- */
-export const cloudAgentStallCodes = [
-    'followup-auto-interrupt-failed',
-    'claude-prompt-not-found',
-] as const;
-
-export const cloudAgentStallCodeSchema = z.enum(cloudAgentStallCodes);
 
 /**
  * A Run is settled once its provider stops working on it. `pending_input` is
@@ -268,7 +257,6 @@ export type CloudAgentPullRequestState = z.infer<typeof cloudAgentPullRequestSta
 export type CloudAgentCancelRequestedBy = z.infer<typeof cloudAgentCancelRequestedBySchema>;
 export type CloudAgentRun = z.infer<typeof cloudAgentRunSchema>;
 export type CloudAgentStatus = z.infer<typeof cloudAgentStatusSchema>;
-export type CloudAgentStallCode = z.infer<typeof cloudAgentStallCodeSchema>;
 export type CloudAgentUsage = z.infer<typeof cloudAgentUsageSchema>;
 export type CloudAgentWork = z.infer<typeof cloudAgentWorkSchema>;
 

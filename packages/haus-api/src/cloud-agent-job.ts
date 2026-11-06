@@ -1,5 +1,6 @@
 import * as z from 'zod';
-import type { CloudAgentStallCode, CloudAgentStatus } from './cloud-agent-shared.ts';
+import type { CloudAgentStatus } from './cloud-agent-shared.ts';
+import type { CloudAgentStallCode } from './cloud-agent-stall.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
 

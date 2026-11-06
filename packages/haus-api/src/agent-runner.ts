@@ -2,6 +2,7 @@ import { agentNoticeCommandSchema, agentStartCommandSchema } from './agent-deliv
 import { agentExecutionJournalAckSchema } from './agent-execution-journal-upload.ts';
 import { agentStopBackgroundCommandSchema, agentStopCommandSchema } from './agent-stop-commands.ts';
 import { agentSubagentWakeResultSchema } from './agent-subagent-wake-frames.ts';
+import { agentTurnRejectedItemSchema } from './agent-turn-rejected-item.ts';
 import { browserRequestSchema } from './browser-frames.ts';
 import {
     cloudAgentCancelCommandSchema,
@@ -401,6 +402,8 @@ export const agentTurnSummarySchema = z
          * this flag; an accepted crash replays at least once.
          */
         outputProduced: z.boolean(),
+        /** Inbox items a rejected start could not accept, so the retry leaves them out. */
+        rejectedItems: z.array(agentTurnRejectedItemSchema).max(100).optional(),
         runId: idSchema,
         runtimeId: z.string().trim().min(1),
         startedAt: timestampSchema,

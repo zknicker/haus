@@ -205,6 +205,8 @@ export const agentInboxTable = pgTable(
             .$type<'queued' | 'accepted' | 'served' | 'seen'>(),
         /** A direct Thread mention changed this recipient's explicit unfollow back to followed. */
         threadFollowReactivated: boolean('thread_follow_reactivated').notNull().default(false),
+        /** Why this row settled `seen` without ever reaching the model. */
+        undeliveredReason: text('undelivered_reason'),
     },
     (table) => [
         foreignKey({
@@ -258,6 +260,11 @@ export const agentInboxTable = pgTable(
         check(
             'agent_inbox_chat',
             sql`(${table.chatId} is null) = (${table.source} in ('dream', 'heartbeat', 'heartbeat_report', 'subagent'))`
+        ),
+        check(
+            'agent_inbox_undelivered_shape',
+            sql`${table.undeliveredReason} is null or (${table.state} = 'seen'
+                and char_length(${table.undeliveredReason}) between 1 and 500)`
         ),
         check('agent_inbox_id_shape', sql`${table.id} ~ '^inb_[A-Za-z0-9_-]{16}$'`),
         check('agent_inbox_state', sql`${table.state} in ('queued', 'accepted', 'served', 'seen')`),

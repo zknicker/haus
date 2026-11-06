@@ -8,6 +8,7 @@ import {
 } from '@haus/api';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import { clearStartRejectedHolds } from '../agent-delivery/failure-hold.ts';
 import { onAgentLifecycle } from '../agent-delivery/lifecycle.ts';
 import { sendPendingCoveApplication } from '../onboarding/create-cove.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -192,7 +193,9 @@ export function startComputerAttachmentSocket(
             void sendPendingCoveApplication(db, connections, computer.id).catch(() => undefined);
             // Idempotent reconnect: resend unacknowledged deliveries and drain
             // any pending inbox for this Computer's Agents.
-            void delivery.onComputerReconnect(computer.id).catch(() => undefined);
+            void clearStartRejectedHolds(db, computer.id)
+                .then(() => delivery.onComputerReconnect(computer.id))
+                .catch(() => undefined);
             void postCommitWork.run('cloud-agent.reconcile-on-connect', () =>
                 sendCloudAgentReconcile(db, connections, computer)
             );
