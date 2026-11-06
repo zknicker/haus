@@ -13,6 +13,10 @@ const BLOCKED_IPV4_RANGES: Ipv4Range[] = [
     [requireIpv4('169.254.0.0'), 16],
     [requireIpv4('172.16.0.0'), 12],
     [requireIpv4('192.168.0.0'), 16],
+    [requireIpv4('198.18.0.0'), 15],
+    [requireIpv4('224.0.0.0'), 4],
+    // /4 numerically covers 255.255.255.255 (limited broadcast) too.
+    [requireIpv4('240.0.0.0'), 4],
 ];
 
 const BLOCKED_IPV6_RANGES: Ipv6Range[] = [
@@ -20,14 +24,17 @@ const BLOCKED_IPV6_RANGES: Ipv6Range[] = [
     [requireIpv6('::1'), 128],
     [requireIpv6('fc00::'), 7],
     [requireIpv6('fe80::'), 10],
+    [requireIpv6('ff00::'), 8],
 ];
 
-// `new URL` canonicalizes a bracketed `::ffff:a.b.c.d` literal to the hex-group
-// form (`::ffff:7f00:1`), but an unnormalized string from a raw DNS record can
-// still arrive dotted, and neither form is caught by the IPv6 range table above
-// (`::ffff:10.0.0.1` is not in fc00::/7), so the embedded IPv4 must be checked too.
-const ipv4MappedDotted = /^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i;
-const ipv4MappedHex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i;
+// The last two hex groups of ::ffff:, 64:ff9b::, and ::/96 all carry an
+// embedded IPv4 the same way; 6to4 (2002::/16) is the odd one out, packing it
+// into groups[1]/groups[2] instead of the trailing pair.
+const EMBEDDED_IPV4_PREFIXES = [
+    '0000:0000:0000:0000:0000:ffff',
+    '0064:ff9b:0000:0000:0000:0000',
+    '0000:0000:0000:0000:0000:0000',
+];
 
 export function isBlockedNetworkAddress(address: string): boolean {
     const family = isIP(address);
@@ -36,40 +43,44 @@ export function isBlockedNetworkAddress(address: string): boolean {
         return value === null || isIpv4Blocked(value);
     }
     if (family === 6) {
-        const mapped = extractIpv4MappedAddress(address);
-        if (mapped !== null) {
-            const value = parseIpv4(mapped);
+        const groups = expandIpv6Groups(address);
+        const embedded = extractEmbeddedIpv4(groups);
+        if (embedded !== null) {
+            const value = parseIpv4(embedded);
             return value === null || isIpv4Blocked(value);
         }
-        return isIpv6Blocked(address);
+        const value = groupsToValue(groups);
+        return value === null || isIpv6Blocked(value);
     }
     return true;
 }
 
-function extractIpv4MappedAddress(address: string): null | string {
-    const dotted = ipv4MappedDotted.exec(address);
-    if (dotted) {
-        return dotted[1];
-    }
-    const hex = ipv4MappedHex.exec(address);
-    if (!hex) {
+function extractEmbeddedIpv4(groups: string[]): null | string {
+    if (groups.length !== 8) {
         return null;
     }
-    const high = Number.parseInt(hex[1], 16);
-    const low = Number.parseInt(hex[2], 16);
-    return `${high >> 8}.${high & 0xff}.${low >> 8}.${low & 0xff}`;
+    const normalized = groups.map((group) => group.padStart(4, '0').toLowerCase());
+    if (normalized[0] === '2002') {
+        return decodeHexPairToIpv4(normalized[1], normalized[2]);
+    }
+    if (EMBEDDED_IPV4_PREFIXES.includes(normalized.slice(0, 6).join(':'))) {
+        return decodeHexPairToIpv4(normalized[6], normalized[7]);
+    }
+    return null;
+}
+
+function decodeHexPairToIpv4(high: string, low: string): string {
+    const h = Number.parseInt(high, 16);
+    const l = Number.parseInt(low, 16);
+    return `${h >> 8}.${h & 0xff}.${l >> 8}.${l & 0xff}`;
 }
 
 function isIpv4Blocked(address: number): boolean {
     return BLOCKED_IPV4_RANGES.some(([base, prefix]) => inIpv4Cidr(address, base, prefix));
 }
 
-function isIpv6Blocked(address: string): boolean {
-    const value = parseIpv6(address);
-    return (
-        value === null ||
-        BLOCKED_IPV6_RANGES.some(([base, prefix]) => inIpv6Cidr(value, base, prefix))
-    );
+function isIpv6Blocked(address: bigint): boolean {
+    return BLOCKED_IPV6_RANGES.some(([base, prefix]) => inIpv6Cidr(address, base, prefix));
 }
 
 function inIpv4Cidr(address: number, base: number, prefix: number): boolean {
@@ -103,7 +114,10 @@ function parseIpv4(address: string): null | number {
 }
 
 function parseIpv6(address: string): bigint | null {
-    const groups = expandIpv6Groups(address);
+    return groupsToValue(expandIpv6Groups(address));
+}
+
+function groupsToValue(groups: string[]): bigint | null {
     if (groups.length !== 8 || groups.some((group) => !/^[0-9a-fA-F]{1,4}$/.test(group))) {
         return null;
     }
@@ -115,7 +129,11 @@ function parseIpv6(address: string): bigint | null {
 }
 
 function expandIpv6Groups(address: string): string[] {
-    const parts = address.split('::');
+    const rewritten = rewriteDottedIpv4Tail(address);
+    if (rewritten === null) {
+        return [];
+    }
+    const parts = rewritten.split('::');
     const splitNonEmpty = (segment: string | undefined) =>
         segment === undefined || segment === '' ? [] : segment.split(':');
     if (parts.length === 1) {
@@ -128,6 +146,24 @@ function expandIpv6Groups(address: string): string[] {
     const tail = splitNonEmpty(parts[1]);
     const missing = 8 - head.length - tail.length;
     return missing < 0 ? [] : [...head, ...new Array(missing).fill('0'), ...tail];
+}
+
+// Rewrites a trailing dotted-decimal IPv4 (mixed notation, e.g.
+// `::ffff:127.0.0.1` or `64:ff9b::10.0.0.1`) into two hex groups up front, so
+// the rest of expansion always deals in pure hex groups.
+function rewriteDottedIpv4Tail(address: string): string | null {
+    const lastColon = address.lastIndexOf(':');
+    const tail = address.slice(lastColon + 1);
+    if (!tail.includes('.')) {
+        return address;
+    }
+    const value = parseIpv4(tail);
+    if (value === null) {
+        return null;
+    }
+    const high = (value >>> 16) & 0xff_ff;
+    const low = value & 0xff_ff;
+    return `${address.slice(0, lastColon + 1)}${high.toString(16)}:${low.toString(16)}`;
 }
 
 function requireIpv4(address: string): number {

@@ -19,6 +19,20 @@ export interface PinnedRequestTarget {
 const redirectStatuses = new Set([301, 302, 303, 307, 308]);
 const maxHops = 5;
 
+// Native fetch/XHR redirect handling strips Authorization on a cross-origin
+// hop; this module's manual redirect loop must too, but it is a generic
+// primitive shared by MCP, OAuth, and icon fetches with no way to know by
+// name which caller-supplied header carries a secret, so anything not on
+// this allowlist is presumed sensitive and dropped instead.
+const SAFE_CROSS_ORIGIN_HEADERS = new Set([
+    'accept',
+    'accept-encoding',
+    'accept-language',
+    'content-length',
+    'content-type',
+    'user-agent',
+]);
+
 export async function resolveConnectAddresses(hostname: string): Promise<string[]> {
     if (net.isIP(hostname)) {
         return [hostname];
@@ -100,8 +114,10 @@ export async function safeFetch(
             return response;
         }
         await response.body?.cancel();
-        requestInit = nextRequestInit(requestInit, response.status);
-        url = new URL(location, url);
+        const redirectUrl = new URL(location, url);
+        const crossOrigin = !isSameOrigin(url, redirectUrl);
+        requestInit = nextRequestInit(requestInit, response.status, crossOrigin);
+        url = redirectUrl;
     }
     throw new Error('Too many redirects');
 }
@@ -127,17 +143,39 @@ function normalizeInput(
 // Replicates the WHATWG fetch redirect-method rule: 303 always demotes to
 // GET, as does 301/302 when the current method is not already GET/HEAD;
 // 307/308 (and 301/302 already on GET/HEAD) keep method, body and headers.
-function nextRequestInit(requestInit: RequestInit, status: number): RequestInit {
+function nextRequestInit(
+    requestInit: RequestInit,
+    status: number,
+    crossOrigin: boolean
+): RequestInit {
     const method = (requestInit.method ?? 'GET').toUpperCase();
     const isGetOrHead = method === 'GET' || method === 'HEAD';
     const demoteToGet = status === 303 || (!isGetOrHead && (status === 301 || status === 302));
-    if (!demoteToGet) {
-        return requestInit;
+    let next = requestInit;
+    if (demoteToGet) {
+        const headers = new Headers(requestInit.headers);
+        headers.delete('content-length');
+        headers.delete('content-type');
+        next = { ...requestInit, body: undefined, headers, method: 'GET' };
     }
-    const headers = new Headers(requestInit.headers);
-    headers.delete('content-length');
-    headers.delete('content-type');
-    return { ...requestInit, body: undefined, headers, method: 'GET' };
+    if (!crossOrigin) {
+        return next;
+    }
+    return { ...next, headers: stripCrossOriginHeaders(new Headers(next.headers)) };
+}
+
+function isSameOrigin(a: URL, b: URL): boolean {
+    return a.protocol === b.protocol && a.hostname === b.hostname && a.port === b.port;
+}
+
+function stripCrossOriginHeaders(headers: Headers): Headers {
+    const safe = new Headers();
+    for (const [name, value] of headers) {
+        if (SAFE_CROSS_ORIGIN_HEADERS.has(name.toLowerCase())) {
+            safe.set(name, value);
+        }
+    }
+    return safe;
 }
 
 function stripBrackets(hostname: string): string {
