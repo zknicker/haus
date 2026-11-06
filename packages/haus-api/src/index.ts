@@ -140,6 +140,7 @@ export * from './membership.ts';
 export * from './mentions.ts';
 export * from './message-notification.ts';
 export * from './message-routing.ts';
+export * from './open-threads.ts';
 export * from './participant-handle.ts';
 export * from './push.ts';
 export * from './reaction-emoji.ts';
