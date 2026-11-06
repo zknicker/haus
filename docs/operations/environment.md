@@ -69,6 +69,11 @@ normal development startup resolves the Development item through its own identit
 deliberately suppress both runtime credentials. There is no App setting for this Server deployment
 capability. Test fixtures never need the key and never call the provider.
 
+`HAUS_MCP_ALLOW_PRIVATE_NETWORKS` lifts the SSRF guard on MCP connection, OAuth, and icon fetches
+so an operator can point a self-hosted or local-dev Server at a private or loopback address.
+Operator/deploy-time only; there is no App or Postgres setting for it, and it must never become
+one, since `mcp.add` is gated only by workspace admin, not a deployment operator.
+
 `CURSOR_API_KEY` is deliberately absent. It is Cursor's own variable, read by `@cursor/sdk` on a
 Haus Computer alongside that SDK's credential store at `~/.cursor/sdk/auth.json`. Haus never
 mints, delivers, or stores it: the Computer settings **Connect** action runs Cursor's browser
