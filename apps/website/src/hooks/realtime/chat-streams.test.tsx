@@ -276,6 +276,7 @@ describe('Chat stream hooks', () => {
             listKey('cloudAgentWork.listForChat', { chatId: 'cht_a', serverId }),
             listKey('thread.listOpen', { serverId }),
             listKey('thread.listEarlier', { serverId }),
+            listKey('cloudAgentWork.listLinks', { serverId }),
             listKey('cloudAgentWork.listAutomations', { serverId }),
             listKey('cloudAgentWork.listActive', { serverId }),
         ]);
@@ -284,6 +285,7 @@ describe('Chat stream hooks', () => {
             listKey('cloudAgentWork.listForChat', { serverId }),
             listKey('thread.listOpen', { serverId }),
             listKey('thread.listEarlier', { serverId }),
+            listKey('cloudAgentWork.listLinks', { serverId }),
             listKey('cloudAgentWork.listAutomations', { serverId }),
             listKey('cloudAgentWork.listActive', { serverId }),
         ]);

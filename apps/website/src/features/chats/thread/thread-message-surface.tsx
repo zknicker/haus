@@ -6,11 +6,11 @@ import type * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { cn } from '../../../lib/utils.ts';
-import { CloudAgentWorkCard } from '../../cloud-agents/cloud-agent-work-card.tsx';
 import { ThreadCloudAgentRows } from '../../cloud-agents/thread-cloud-agent-rows.tsx';
 import { useHoistedCloudAgentWork } from '../../cloud-agents/transcript-cloud-agent-work.tsx';
 import { taskVisibleInChat, useShowTasksInChat } from '../../tasks/show-tasks-in-chat.ts';
 import { TranscriptTaskChip } from '../../tasks/transcript-task-chip.tsx';
+import { LinkedCloudAgentWork } from '../../threads/thread-work-reference.tsx';
 import { ActionTooltip } from '../chat-action-tooltip.tsx';
 import {
     getTranscriptMessageThread,
@@ -70,7 +70,7 @@ export function ThreadMessageSurface({
                 linked (ADR 0044). The way into the Thread is the Message's
                 hover action, or the reply preview below once replies exist. */}
             {linked.map((work) => (
-                <CloudAgentWorkCard key={work.id} work={work} />
+                <LinkedCloudAgentWork key={work.id} work={work} />
             ))}
             {canOpenThread ? (
                 <ThreadSurfacePreview

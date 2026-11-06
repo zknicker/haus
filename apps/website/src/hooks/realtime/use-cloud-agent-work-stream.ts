@@ -58,6 +58,9 @@ export function applyCloudAgentWorkUpdate(
 function invalidateActiveWork(coalescer: TargetedReadCoalescer, serverId: string) {
     invalidateOpenThreads(coalescer, serverId);
     coalescer.invalidate({
+        queryKey: getQueryKey(hausTrpc.cloudAgentWork.listLinks, { serverId }),
+    });
+    coalescer.invalidate({
         queryKey: getQueryKey(hausTrpc.cloudAgentWork.listAutomations, { serverId }),
     });
     coalescer.invalidate({

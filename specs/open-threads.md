@@ -10,7 +10,7 @@ read_when:
 
 # Open Threads
 
-Status: proposed, 2026-11-05. Phases 1 to 3 are built. [ADR 0051](../docs/adr/0051-open-threads-are-a-lens.md) records the
+Status: proposed, 2026-11-05. Phases 1 to 4 are built. [ADR 0051](../docs/adr/0051-open-threads-are-a-lens.md) records the
 decision. The [design board](https://claude.ai/artifact/K3g2MVRZPdkReZbkykP4vB) shows the prototype.
 Where the board and this spec differ, this spec wins.
 
@@ -141,8 +141,8 @@ narrows the loaded rows by title, parent, Agent, or pull request number. Rows Op
 
 ### Full-page Thread
 
-The desktop page `threads/:chatId/:anchorMessageId` exists. The web gains the same route, sharing
-`ThreadContent`. Opening a Thread from a transcript still uses the web side pane, unchanged; Go
+The page `threads/:chatId/:anchorMessageId` serves desktop and the web, sharing `ThreadContent`. On
+the web the Thread header fills the shell's band, and an artifact opens in its Chat. Opening a Thread from a transcript still uses the web side pane, unchanged; Go
 from a sidebar row or the command menu uses the page.
 
 ### Work panel
@@ -154,14 +154,13 @@ The band's **Work** button toggles it, remembered per device.
 
 For each job, in start order:
 
-1. **Job:** provider mark, job-state chip, title, status line, repository, branch, **Open in
-   `<provider>`**, and **Stop** under today's authority.
-2. **Pull request**, when one exists: number, state, title, checks, review, diff, **View PR**, and
-   `Last read <d>` when the reading is Computer-only.
+1. **Job:** the Cloud Agent work card itself, with its status line, pull request row, and actions.
+2. **Pull request**, when one exists: title, checks, review, and `Last read <d>` when the reading is
+   Computer-only.
 3. **Runs**, when there is more than one: each Run's status, duration, and summary, newest first.
 
-One **Linked from** block closes the panel, listing every conversation that links the work and
-visible to the viewer. Each entry Opens.
+One **Linked from** block closes the panel, listing every other conversation that links the work and
+is visible to the viewer (`cloudAgentWork.listLinks`). Each entry Opens.
 
 While the panel is open, a linking Message inside that Thread shows a one-line reference (provider
 mark and title) instead of the full card, so the page states each fact once. Pressing it scrolls

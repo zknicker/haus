@@ -48,6 +48,7 @@ export function ThreadContent({
     anchor,
     chat,
     composerVariant = 'primary',
+    pageHeader,
     headerTitle,
     initialThreadChatId,
     onClose,
@@ -67,6 +68,7 @@ export function ThreadContent({
     chat: Chat;
     /** `secondary` when the host is a surface (the task dialog). */
     composerVariant?: 'primary' | 'secondary';
+    pageHeader?: { actions: React.ReactNode; bandHosted: boolean };
     /**
      * Overrides the derived "Thread — <chat>" title. The task dialog names the
      * task it opened, since that is the identity the reader came for.
@@ -168,6 +170,7 @@ export function ThreadContent({
             {...composerDropSurfaceProps}
         >
             <ThreadPanelHeader
+                {...pageHeader}
                 followed={summary?.followed ?? true}
                 followPending={follow.isPending}
                 header={headerTitle ?? taskThreadTitle ?? titles.header}
