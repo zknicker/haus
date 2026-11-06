@@ -11,6 +11,7 @@ read_when:
   - changing typed Message bodies, the `agent-created` body, or record-backed Message rendering
   - changing the freshness hold on `haus cloud-agent start` or the start response union
   - deciding whether delegated work belongs to a Haus Agent, Harness subagent, Task, or provider-hosted Cloud Agent
+  - adding a field to the cloud-agent work record and keeping an unupgraded Computer working against it
 ---
 
 # Cloud Agents
@@ -41,6 +42,10 @@ facts and compatibility risks, not unresolved product decisions.
   `inspect` lists the caller's work, or reads recorded details with `--work <workId>`.
   `stop --work <workId>` requests cancellation. The published `cancel` spelling remains a CLI
   compatibility alias for existing callers.
+- **The work record tolerates fields an older Computer predates.** Computers do not
+  auto-upgrade, so a field this spec's work record gains later must reach an unupgraded Computer
+  without breaking `start`, `send`, `inspect`, or `stop`. [Haus CLI §8](haus-cli.md#8-server-api-apiagent)
+  has the rule and names `cloud-agent-work-response-schema.ts`, the Computer-side tolerant parser.
 - **Provider-neutral capability.** `cursor` and `claude` are the providers
   (`packages/haus-api/src/cloud-agent-provider.ts`), and every Computer ships both adapters. Each
   Computer keeps a local default provider in `${dataRoot}/cloud-agents.json` (`{ defaultProvider }`),

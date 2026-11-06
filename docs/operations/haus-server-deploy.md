@@ -267,7 +267,7 @@ Haus 14.0.0 is an operator-approved exception (2026-10-13): migration `0087_arti
 `artifacts.name`, so Server 12.0.0 and earlier cannot run on the migrated schema and recovery is a
 forward fix; losing existing Artifacts is acceptable at this stage of the product.
 
-The board Tasks release (migrations 0114–0116, Computer protocol 36, ADR 0051) is an
+The board Tasks release (migrations 0114–0116, Computer protocol 35, ADR 0051) is an
 operator-approved forward-only release. Migration `0114_rename-tasks-to-claims` renames
 `message_tasks` to `message_claims` and `chats.last_task_number` to `last_claim_number`, and
 rewrites queued `task_assignment` inbox and trigger rows. Migration `0115_task-boards` adds boards
@@ -277,7 +277,7 @@ claim rows, and translates their queued wakes. Migration `0116_drop-claim-priori
 it cannot run on the migrated schema: automatic activation rollback restores only the binary, and
 recovery is a forward fix. Take a manual `pg_dump` right before merging the release PR, because no
 scheduled backup exists. Computer must publish and verify first, and any Computer below protocol
-36 stays idle until upgraded, so upgrade the Mac mini right after the deploy.
+35 stays idle until upgraded, so upgrade the Mac mini right after the deploy.
 
 Migration 0064 keeps the physical `agents.personality` column for rollback to Server 7.1.0.
 The current Server maps its conversation-style field onto that same column, so both versions

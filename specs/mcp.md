@@ -12,8 +12,11 @@ read_when:
 - A connection identifies one remote HTTP MCP server account on one Haus Server.
 - Haus Server owns its endpoint, credentials, OAuth state, discovered tools, client sessions,
   and invocation.
-- Connections support no auth, secret headers, or MCP OAuth. Remote endpoints require HTTPS;
-  loopback HTTP exists only for development.
+- Connections support no auth, secret headers, or MCP OAuth. Remote endpoints require HTTPS and
+  block private, loopback, link-local, CGNAT, and unspecified-range targets by default, checked
+  against both the literal host and every DNS-resolved address, with redirects re-checked on each
+  hop. `HAUS_MCP_ALLOW_PRIVATE_NETWORKS` is an operator-only env var that lifts this for
+  self-hosted or local-dev Servers.
 - Haus does not support local or stdio MCP connections.
 - GitHub, Google Calendar, MerchBase, MerchBase Atlas, MerchBase Fulfillment, Trademark Terminal, RankWrangler, Factory, Kittl, X, and CoinGecko presets populate immutable URL and auth
   defaults, then use the same storage, discovery, OAuth, grant, and invocation path as custom

@@ -1,7 +1,5 @@
 import {
     agentAutomationEventSchema,
-    agentCloudAgentHeldSchema,
-    agentCloudAgentReceiptSchema,
     chatMessageReplySchema,
     claimOrigins,
     type HausAgentMessage,
@@ -9,6 +7,7 @@ import {
     humanTimezoneSchema,
 } from '@haus/api';
 import * as z from 'zod';
+import { agentCloudAgentReceiptResponseSchema } from './cloud-agent-work-response-schema.ts';
 import { messageCloudAgentWorkSchema } from './message-cloud-agent-work-schema.ts';
 
 const jsonObjectSchema = z.record(z.string(), z.unknown());
@@ -112,8 +111,14 @@ export const agentSendResponseSchema: z.ZodType<HausAgentSendResponse> = z.discr
 
 /** `haus cloud-agent start`: the started receipt, or a freshness hold with checked messages. */
 export const agentCloudAgentStartResponseSchema = z.discriminatedUnion('state', [
-    agentCloudAgentReceiptSchema,
-    agentCloudAgentHeldSchema.extend({ shownMessages: z.array(agentMessageSchema).max(12) }),
+    agentCloudAgentReceiptResponseSchema,
+    z.looseObject({
+        formalMentionCount: z.number().int().nonnegative(),
+        newMessageCount: z.number().int().positive(),
+        omittedMessageCount: z.number().int().nonnegative(),
+        shownMessages: z.array(agentMessageSchema).max(12),
+        state: z.literal('held'),
+    }),
 ]);
 
 export const agentMessageCheckResponseSchema = z.object({

@@ -239,8 +239,8 @@ type CloudAgentPullRequestReading = {
 
 The App already has every permission this needs (Pull requests, Checks, Commit statuses). Its webhook
 does not subscribe to `status`, so a commit status from outside GitHub Checks reaches a reading on the
-next `pull_request` or `check_*` event. `CloudAgentWork.pullRequest` reaches strict Agent receipts, so
-it raised the Computer protocol to 35.
+next `pull_request` or `check_*` event. `CloudAgentWork.pullRequest` is an additive field, so it
+needs no [Computer protocol](haus-cli.md#8-server-api-apiagent) bump.
 
 ## API
 

@@ -497,6 +497,19 @@ POST /api/agent/boards/columns     { board, columns, moveTasks?, expectedVersion
 - Agent tokens never authorize `/api/*` (operator chat surface) or admin
   routes; the runtime token never gains `/api/agent/*` shortcuts — one
   principal per surface.
+- **Additive response fields never strand an older Computer.** A field a
+  release adds to a Server-to-Computer payload (`work`, a receipt, a run) is
+  additive, never a protocol bump: an older Computer must keep working
+  without it. The CLI parses a response schema it does not control the other
+  side of (`agent-api-client.ts`'s `request`) with a schema built to tolerate
+  an unknown key at every nesting level — `cloud-agent-work-response-schema.ts`
+  is the cloud-agent example — never the `.strict()` schema `@haus/api` uses
+  to construct and validate that same shape on the Server. A response that
+  fails this tolerant parse for a reason other than an unknown field is a real
+  shape mismatch and surfaces as `UNEXPECTED_RESPONSE_SHAPE`, distinct from
+  `INVALID_JSON_RESPONSE` (the body was not even parseable JSON), so the CLI
+  error names the actual cause instead of calling every parse failure
+  "invalid JSON."
 
 ## 9. Landing map
 

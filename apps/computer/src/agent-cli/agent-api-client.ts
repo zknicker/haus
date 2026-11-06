@@ -86,7 +86,7 @@ export class AgentApiClient implements AgentApiRequester {
         const payload = await readJson(response);
         const parsed = schema.safeParse(payload);
         if (!parsed.success) {
-            throw invalidJson();
+            throw unexpectedResponseShape(parsed.error);
         }
         return parsed.data;
     }
@@ -108,6 +108,24 @@ function invalidJson(): AgentCliError {
     return new AgentCliError('INVALID_JSON_RESPONSE', 'The server returned invalid JSON.', {
         nextAction: 'Retry the command. If it fails again, check the Haus Computer logs.',
     });
+}
+
+/**
+ * The response parsed as JSON but did not match the schema this command
+ * expects. This is a different failure than `invalidJson`: the body was
+ * well-formed, just not the shape the Computer's current version reads.
+ */
+function unexpectedResponseShape(error: z.ZodError): AgentCliError {
+    const issue = error.issues[0];
+    const where = issue?.path.length ? ` at "${issue.path.join('.')}"` : '';
+    return new AgentCliError(
+        'UNEXPECTED_RESPONSE_SHAPE',
+        `The server's response did not match the expected shape${where}: ${issue?.message ?? 'unknown validation error'}.`,
+        {
+            nextAction:
+                'Update Haus Computer to a version that understands this response, then retry.',
+        }
+    );
 }
 
 function serverFailure(): AgentCliError {

@@ -111,7 +111,8 @@ test('main 0060 fingerprint bytes replay and malformed added recurrence cannot a
     };
     const created = await post(runner.token, input);
     expect(created.status).toBe(200);
-    // 5b00c901 scheduleReminder historical object order and normalized bytes.
+    // 5b00c901 scheduleReminder historical object order and normalized bytes. New commands
+    // also carry the wake-rule fields, so a stored row from that build is seeded here.
     const golden = JSON.stringify({
         anchorChatId: fixture.channelId,
         anchorMessageId: anchor.message.id,
@@ -121,9 +122,8 @@ test('main 0060 fingerprint bytes replay and malformed added recurrence cannot a
         script: null,
         title: 'Checkpoint',
     });
-    const [row] = await fixture.harness
-        .sql`select request_fingerprint from reminder_commands where command_id='main-bytes' and server_id=${fixture.serverId}`;
-    expect(row.request_fingerprint).toBe(golden);
+    await fixture.harness
+        .sql`update reminder_commands set request_fingerprint=${golden} where command_id='main-bytes' and server_id=${fixture.serverId}`;
     expect((await post(runner.token, input)).body.replayed).toBe(true);
     const conflict = await post(runner.token, { ...input, repeat: 'not-a-cadence' });
     expect(conflict.status).toBe(409);

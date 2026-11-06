@@ -36,6 +36,18 @@ test('allows Server writes to queue longer than the local proxy fast path', asyn
     ).resolves.toEqual({ ok: true });
 }, 3000);
 
+test('names the real cause when a 200 response does not match the expected schema', async () => {
+    const fetcher = (async () => Response.json({ ok: 'not-a-boolean' })) as unknown as typeof fetch;
+    const client = new AgentApiClient(context, fetcher);
+
+    await expect(
+        client.request('/api/agent/tasks/claim', z.object({ ok: z.boolean() }))
+    ).rejects.toMatchObject({
+        code: 'UNEXPECTED_RESPONSE_SHAPE',
+        message: expect.stringContaining('"ok"'),
+    });
+});
+
 test('preserves retryable structured errors from a Server 5xx response', async () => {
     const fetcher = (async () =>
         Response.json(

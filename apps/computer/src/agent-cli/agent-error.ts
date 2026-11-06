@@ -48,6 +48,7 @@ export type AgentCliErrorCode =
     | 'TARGET_NOT_FOUND'
     | 'TOKEN_FILE_EMPTY'
     | 'TOKEN_FILE_UNREADABLE'
+    | 'UNEXPECTED_RESPONSE_SHAPE'
     | 'UNSUPPORTED_BY_SERVER';
 
 export class AgentCliError extends Error {
