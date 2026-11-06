@@ -49,6 +49,7 @@ export * from './schema/server-memberships.ts';
 export * from './schema/server-onboarding.ts';
 export * from './schema/servers.ts';
 export * from './schema/task-labels.ts';
+export * from './schema/thread-closures.ts';
 export * from './schema/thread-follows.ts';
 export * from './schema/triggers.ts';
 export * from './schema/users.ts';

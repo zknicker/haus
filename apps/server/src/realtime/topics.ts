@@ -16,6 +16,7 @@ import {
     serverUpdatedEventSchema,
     taskChangedEventSchema,
     taskLabelUpdatedEventSchema,
+    threadClosedUpdatedEventSchema,
     threadFollowUpdatedEventSchema,
 } from '@haus/api';
 import { createTopic } from './topic.ts';
@@ -38,6 +39,10 @@ export const chatReadTopic = createTopic('chat.read', chatReadEventSchema);
 export const threadFollowUpdatedTopic = createTopic(
     'thread.follow.updated',
     threadFollowUpdatedEventSchema
+);
+export const threadClosedUpdatedTopic = createTopic(
+    'thread.closed.updated',
+    threadClosedUpdatedEventSchema
 );
 export const chatLifecycleTopic = createTopic('chat.lifecycle', chatLifecycleEventSchema);
 export const taskChangedTopic = createTopic('task.changed', taskChangedEventSchema);
