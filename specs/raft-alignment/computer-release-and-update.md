@@ -221,6 +221,18 @@ update command, downloaded bytes, total bytes, phase, detail, and update result.
 ordinary protocol connects in `update-required` mode: ordinary controls, delivery, and Agent
 execution pause, but update control and progress remain available.
 
+`computerProtocolVersion` gates the bootstrap handshake itself, not every payload shape Server and
+Computer exchange over it or over the Agent API. A field a release additively adds to an existing
+payload — a new key on `work`, a run, or another record carried over the bootstrap connection or
+`/api/agent/*` — never bumps the protocol version and never waits for a Computer release: Computers
+do not auto-upgrade, so every such release would otherwise strand whichever Computer has not
+updated yet until a human does. The receiving side parses that payload tolerant of a field it
+predates (an unknown key passes through unparsed rather than failing validation) and only bumps
+`computerProtocolVersion` for a change the old shape cannot represent at all, such as a renamed or
+removed required field. See [Haus CLI §8](../haus-cli.md#8-server-api-apiagent) for the Agent
+API's version of this rule and `cloud-agent-work-response-schema.ts` for a worked Computer-side
+implementation.
+
 A Computer too old for the bootstrap protocol requires local recovery:
 
 ```sh
