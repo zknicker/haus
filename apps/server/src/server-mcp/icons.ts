@@ -1,6 +1,7 @@
 import { type McpIcon, mcpIconSchema } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
 import * as z from 'zod';
+import { env } from '../config/env.ts';
 import { cacheAnonymousMcpIcons } from './icon-cache.ts';
 import { encodeFetchedIcon, iconMediaTypes, readDataUrl } from './icon-encoding.ts';
 import { iconRequestInit } from './icon-fetch.ts';
@@ -12,6 +13,7 @@ import {
     parsePageIconLinks,
     siteHomeUrl,
 } from './icon-page-links.ts';
+import { safeFetch } from './safe-remote-fetch.ts';
 
 export { iconRequestInit } from './icon-fetch.ts';
 export type { McpIconFetch } from './icon-loader.ts';
@@ -287,5 +289,7 @@ function asIcon(candidate: { dark: null | string; light: null | string }): McpIc
 }
 
 async function defaultIconFetch(url: string, signal: AbortSignal): Promise<Response> {
-    return await globalThis.fetch(url, { ...iconRequestInit, signal });
+    return await safeFetch(url, { ...iconRequestInit, signal }, 'MCP connection icon request', {
+        allowPrivateNetworks: env.HAUS_MCP_ALLOW_PRIVATE_NETWORKS,
+    });
 }

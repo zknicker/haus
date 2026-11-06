@@ -90,6 +90,13 @@ const envSchema = z
         HAUS_GITHUB_APP_PRIVATE_KEY: z.string().min(1).optional(),
         HAUS_GITHUB_APP_SLUG: z.string().min(1).optional(),
         HAUS_GITHUB_APP_WEBHOOK_SECRET: z.string().min(32).optional(),
+        // Operator/deploy-time only, for self-hosted or local-dev Servers. Never expose this as a
+        // per-Server admin setting in the UI or Postgres: it lifts SSRF protection for every MCP
+        // and OAuth fetch an admin can trigger.
+        HAUS_MCP_ALLOW_PRIVATE_NETWORKS: z
+            .enum(['false', 'true'])
+            .default('false')
+            .transform((value) => value === 'true'),
         HAUS_RELEASE_MANIFEST: z.string().min(1).transform(resolveHomePath).optional(),
         HAUS_SERVER_PORT: z.coerce.number().int().positive().default(getDefaultHausServerPort()),
         HAUS_STATIC_APP_ROOT: z.string().min(1).transform(resolveHomePath).optional(),

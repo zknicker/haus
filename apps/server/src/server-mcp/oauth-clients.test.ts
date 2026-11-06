@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import dns from 'node:dns';
 import type { McpPreset } from '@haus/api';
 import { emptySecret, type McpSecret } from './connection-secret.ts';
 import { createMcpOAuthProvider, startMcpAuthorization } from './oauth.ts';
@@ -15,16 +16,23 @@ const clientVariables = [
 
 const savedEnvironment = new Map(clientVariables.map((name) => [name, process.env[name]]));
 const originalFetch = globalThis.fetch;
+const originalLookup = dns.promises.lookup;
+// These fixtures don't test SSRF blocking (safe-remote-fetch.test.ts does);
+// the fake `*.example.test` hosts just need to resolve now that safeFetch does real DNS.
+const fakeLookupAddresses = [{ address: '203.0.113.10', family: 4 }];
 
 beforeEach(() => {
     process.env.HAUS_GITHUB_APP_CLIENT_ID = 'github-client';
     process.env.HAUS_GITHUB_APP_CLIENT_SECRET = 'github-secret';
     process.env.HAUS_GOOGLE_OAUTH_CLIENT_ID = 'google-client';
     process.env.HAUS_GOOGLE_OAUTH_CLIENT_SECRET = 'google-secret';
+    dns.promises.lookup = (() =>
+        Promise.resolve(fakeLookupAddresses)) as unknown as typeof dns.promises.lookup;
 });
 
 afterEach(() => {
     globalThis.fetch = originalFetch;
+    dns.promises.lookup = originalLookup;
     for (const [name, value] of savedEnvironment) {
         if (value === undefined) {
             delete process.env[name];
@@ -275,9 +283,17 @@ function githubDiscoveryFetch(): typeof fetch {
             token_endpoint: 'https://github.com/login/oauth/access_token',
         },
     };
-    return (async (input: RequestInfo | URL) => {
-        const url = input instanceof Request ? input.url : String(input);
-        const document = documents[url];
+    return (async (input: RequestInfo | URL, init?: RequestInit) => {
+        const document = documents[requestedUrl(input, init)];
         return document ? Response.json(document) : new Response('Not Found', { status: 404 });
     }) as typeof fetch;
+}
+
+// safeFetch connects to a resolved IP, so the `Host` header it sets (not the
+// literal fetch URL) is what identifies the logical request here.
+function requestedUrl(input: RequestInfo | URL, init?: RequestInit): string {
+    const requested = input instanceof Request ? new URL(input.url) : new URL(String(input));
+    const headers = new Headers(input instanceof Request ? input.headers : init?.headers);
+    const host = headers.get('host') ?? requested.host;
+    return `${requested.protocol}//${host}${requested.pathname}`;
 }
