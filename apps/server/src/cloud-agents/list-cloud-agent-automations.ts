@@ -94,12 +94,11 @@ export async function listCloudAgentAutomations(
 }
 
 function notificationSql() {
-    // Inbox identities are per Run, including older Runs behind a queued follow-up.
+    // Notices are per Run, including older Runs behind a queued follow-up.
     return sql<string>`case
         when exists (
             select 1 from agent_inbox i
-            join cloud_agent_runs r on r.server_id = i.server_id
-                and r.id = split_part(i.dedupe_key, ':stall:', 1)
+            join cloud_agent_runs r on r.server_id = i.server_id and r.id = i.cloud_agent_run_id
             where r.server_id = ${cloudAgentWorkTable.serverId}
                 and r.work_id = ${cloudAgentWorkTable.id}
                 and i.agent_id = ${cloudAgentWorkTable.agentId}
@@ -108,11 +107,11 @@ function notificationSql() {
             then 'agent-retired' else 'pending' end
         when ${cloudAgentWorkTable.status} not in ('queued', 'running') and exists (
             select 1 from agent_inbox i
-            join cloud_agent_runs r on r.server_id = i.server_id and r.id = i.dedupe_key
+            join cloud_agent_runs r on r.server_id = i.server_id and r.id = i.cloud_agent_run_id
             where r.server_id = ${cloudAgentWorkTable.serverId}
                 and r.work_id = ${cloudAgentWorkTable.id}
                 and i.agent_id = ${cloudAgentWorkTable.agentId}
-                and i.source = 'cloud_agent_work' and i.state = 'seen'
+                and i.cloud_agent_notice = 'settled' and i.state = 'seen'
                 and r.id = (select latest.id from cloud_agent_runs latest
                     where latest.server_id = r.server_id and latest.work_id = r.work_id
                     order by latest.created_at desc limit 1)

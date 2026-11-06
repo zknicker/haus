@@ -6,6 +6,7 @@ import {
     cloudAgentProviderSchema,
     cloudAgentRefSchema,
     cloudAgentRepositorySchema,
+    cloudAgentStallCodeSchema,
     cloudAgentStatusSchema,
     cloudAgentSummaryMaxLength,
     cloudAgentTitleSchema,
@@ -141,6 +142,8 @@ export const cloudAgentObservationSchema = z
         providerUrl: z.url().max(2000).optional(),
         rawStatus: z.string().trim().min(1).max(120).optional(),
         runId: idSchema,
+        /** Set on every reading of a stuck live Run; absent means it is not stalled. */
+        stallCode: cloudAgentStallCodeSchema.optional(),
         status: cloudAgentStatusSchema,
         summary: z.string().trim().min(1).max(cloudAgentSummaryMaxLength).optional(),
         usage: cloudAgentUsageSchema.optional(),

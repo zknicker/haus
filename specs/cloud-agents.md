@@ -601,7 +601,7 @@ second provider Run. The Cursor adapter classifies a failed send:
   to interrupt whatever holds the session busy (`send --interrupt`'s own mechanism) and retries the
   send once, right away. If that delivers, the launched observation carries a one-time note saying
   so, and the Run proceeds normally — no deadline, no notice. If the interrupt itself fails, or the
-  retry right after it still fails, the still-`queued` observation carries `errorCode:
+  retry right after it still fails, the still-`queued` observation carries `stallCode:
   followup-auto-interrupt-failed` and a summary naming the last error, on every retry tick
   thereafter, until the provider accepts the prompt or a human or the delegating Agent stops,
   interrupts (`send --interrupt`), or relaunches it. This is a notice, never a failure: the Run
@@ -622,9 +622,9 @@ count and last error), so the work card's liveness reading and `haus cloud-agent
 it instead of staying silent until it settles. Once an auto-interrupt still hasn't delivered it, the
 card's follow-up note reads `follow-up waiting: auto-interrupt failed` instead of the ordinary
 `waiting <d>` note (`job.followUp.state: 'stalled'`, `deriveCloudAgentJob` in `packages/haus-api`),
-and Server raises one inbox attention for it. A stuck follow-up keeps reporting the same `errorCode`
-on every tick, so Server dedupes repeats inside one two-hour window to that same attention and opens
-a fresh one each time a new window starts — one notice per stall, a sparse reminder if it is still
+and Server raises one inbox attention for it. A stuck follow-up keeps reporting the same `stallCode`
+on every tick, so Server dedupes repeats inside each two-hour window from the stall's start to that
+same attention and opens a fresh one each time a new window starts — one notice per stall, a sparse reminder if it is still
 stuck much later, never a flood from the 5-to-60-second retry cadence underneath it.
 
 A Run Server recorded but this Computer never journaled — the sender timed out or crashed between
@@ -640,7 +640,7 @@ The delegating Agent, not the card, surfaces delivery failures. Every settled Ru
 attention carrying its `errorCode` and `summary`; the Agent explains the failure in the work's
 conversation and decides whether to send again or `start` fresh work. A follow-up stalled past the
 delivery window creates the same kind of attention without settling anything: the Agent reads the
-same `errorCode` and summary, and decides whether to wait, stop it, interrupt it, or relaunch —
+stall code and summary, and decides whether to wait, stop it, interrupt it, or relaunch —
 nothing it does is forced, because the Run is still live underneath. The card keeps reading from the
 newest Run the provider received, so an undelivered follow-up leaves it as the earlier Run reads
 except for the stalled note described above.
@@ -723,11 +723,11 @@ The Claude adapter (`apps/computer/src/cloud-agents/claude/`) drives Claude Code
   already known needs no second discovery, so Computer reads the newest events as this Run's own
   and settles it from them; Server merges branch evidence, so nothing earlier is lost. Only a Run
   never found, or an idle session whose result lies past the scan, reports `running` with
-  `errorCode` `claude-prompt-not-found` and one inbox attention rather than `queued`, since reading
+  `stallCode` `claude-prompt-not-found` and one inbox attention rather than `queued`, since reading
   `queued` forever would leave the Run looking unaddressed even once it has long finished with no
   sign anything was cut off. Work already settled raises no stall attention: nobody is left to act
-  on it. A stall attention's inbox id is `<runId>:stall:<window>`; `@haus/api` owns that shape and
-  every reader resolves it through `cloudAgentAttentionRunId`. The Server side also never lets a
+  on it. A notice's inbox row names its Run in `cloud_agent_run_id` and its reason in
+  `cloud_agent_notice`, and its `dedupe_key` stays opaque. The Server side also never lets a
   non-terminal Run or its work record regress to `queued` once it has read anything else, so a
   Run already known to be addressed keeps that status even while this gap persists.
 - **Mapping.**
@@ -735,8 +735,8 @@ The Claude adapter (`apps/computer/src/cloud-agents/claude/`) drives Claude Code
   | Claude session state | Haus status |
   | --- | --- |
   | Tagged prompt not yet in the log | `queued` (`expired` if the session is archived) |
-  | Tagged prompt never found behind the scan's bound | `running` with `errorCode` `claude-prompt-not-found` |
-  | Known Run, result past the scan's bound, session idle | `running` with `errorCode` `claude-prompt-not-found` |
+  | Tagged prompt never found behind the scan's bound | `running` with `stallCode` `claude-prompt-not-found` |
+  | Known Run, result past the scan's bound, session idle | `running` with `stallCode` `claude-prompt-not-found` |
   | `requires_action` | `pending_input`; the open AskUserQuestion, or the tool Claude asks to use, is the summary |
   | `idle` with no open background tasks after a result | `completed`, or `failed` with `errorCode` `claude-<subtype>` |
   | Haus's own interrupt acknowledged and the worker not running | `cancelled` |

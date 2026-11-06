@@ -1,18 +1,31 @@
-import { type CloudAgentStatus, isTerminalCloudAgentStatus } from './cloud-agent-shared.ts';
+import {
+    type CloudAgentStallCode,
+    type CloudAgentStatus,
+    isTerminalCloudAgentStatus,
+} from './cloud-agent-shared.ts';
+
+/** How often a Run still stuck gets another notice. */
+const stallReminderMs = 2 * 60 * 60_000;
 
 /** Why a recorded reading tells the delegating Agent about its Run. */
-export type CloudAgentNoticeKind = 'settled' | 'stall';
+export type CloudAgentRunNotice = { kind: 'settled' } | { kind: 'stall'; window: number };
+
+export interface CloudAgentRunStall {
+    code: CloudAgentStallCode;
+    since: Date;
+}
 
 export interface CloudAgentRunSnapshot {
+    cancelRequested: boolean;
     observedAt: Date | null;
+    stall: CloudAgentRunStall | null;
     status: CloudAgentStatus;
     workStatus: CloudAgentStatus;
 }
 
 export interface CloudAgentRunReading {
     observedAt: Date;
-    /** Whether this reading carries a non-terminal code that still earns a notice. */
-    stalled: boolean;
+    stallCode: CloudAgentStallCode | null;
     status: CloudAgentStatus;
 }
 
@@ -20,8 +33,9 @@ export type CloudAgentRunStep =
     | { kind: 'ignored' }
     | {
           kind: 'recorded';
-          notice: CloudAgentNoticeKind | null;
+          notice: CloudAgentRunNotice | null;
           settled: boolean;
+          stall: CloudAgentRunStall | null;
           status: CloudAgentStatus;
       };
 
@@ -37,8 +51,8 @@ export interface CloudAgentWorkLifecycle {
  * and anything after settling are ignored, because the first settled result
  * stands. A Run never returns to `queued`: a reading that cannot reconfirm the
  * prompt it already found once (a session log too large to scan back through,
- * say) must not leave the job looking unaddressed (TECH-7). Work settled by a
- * cancel has nobody left to act on a stall.
+ * say) must not leave the job looking unaddressed (TECH-7). Each reading states
+ * the stall, so one without a code clears it, and settling always does.
  */
 export function advanceCloudAgentRun(
     run: CloudAgentRunSnapshot,
@@ -52,7 +66,14 @@ export function advanceCloudAgentRun(
     }
     const status = reading.status === 'queued' ? run.status : reading.status;
     const settled = isTerminalCloudAgentStatus(status);
-    return { kind: 'recorded', notice: noticeFor(run, reading, settled), settled, status };
+    const stall = settled ? null : nextStall(run.stall, reading);
+    return {
+        kind: 'recorded',
+        notice: noticeFor(run, stall, reading, settled),
+        settled,
+        stall,
+        status,
+    };
 }
 
 /** Work reads its newest Run; an older Run never projects lifecycle. */
@@ -61,13 +82,31 @@ export function projectCloudAgentWork(newestRun: CloudAgentWorkLifecycle): Cloud
     return { startedAt, status, terminalAt };
 }
 
+function nextStall(
+    previous: CloudAgentRunStall | null,
+    reading: CloudAgentRunReading
+): CloudAgentRunStall | null {
+    if (!reading.stallCode) {
+        return null;
+    }
+    return previous?.code === reading.stallCode
+        ? previous
+        : { code: reading.stallCode, since: reading.observedAt };
+}
+
+/** Work already settled or a Run being cancelled has nobody left to act on a stall. */
 function noticeFor(
     run: CloudAgentRunSnapshot,
+    stall: CloudAgentRunStall | null,
     reading: CloudAgentRunReading,
     settled: boolean
-): CloudAgentNoticeKind | null {
+): CloudAgentRunNotice | null {
     if (settled) {
-        return 'settled';
+        return { kind: 'settled' };
     }
-    return reading.stalled && !isTerminalCloudAgentStatus(run.workStatus) ? 'stall' : null;
+    if (!stall || run.cancelRequested || isTerminalCloudAgentStatus(run.workStatus)) {
+        return null;
+    }
+    const elapsed = reading.observedAt.getTime() - stall.since.getTime();
+    return { kind: 'stall', window: Math.floor(elapsed / stallReminderMs) };
 }

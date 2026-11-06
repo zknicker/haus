@@ -35,6 +35,8 @@ export interface InboxItemRow {
     /** Why this item names the Agent personally; null is an ambient delivery. */
     addressedReason: AddressedReason | null;
     chatId: string | null;
+    cloudAgentNotice: 'settled' | 'stall' | null;
+    cloudAgentRunId: string | null;
     content: string;
     createdAt: Date;
     dedupeKey: string;
@@ -50,6 +52,8 @@ export interface InboxItemRow {
 export const inboxItemColumns = {
     addressedReason: agentInboxTable.addressedReason,
     chatId: agentInboxTable.chatId,
+    cloudAgentNotice: agentInboxTable.cloudAgentNotice,
+    cloudAgentRunId: agentInboxTable.cloudAgentRunId,
     content: agentInboxTable.content,
     createdAt: agentInboxTable.createdAt,
     dedupeKey: agentInboxTable.dedupeKey,
@@ -115,6 +119,8 @@ export async function enqueueInboxItem(
         addressedReason?: AddressedReason | null;
         agentId: string;
         chatId: string | null;
+        cloudAgentNotice?: 'settled' | 'stall';
+        cloudAgentRunId?: string;
         content: string;
         createdAt?: Date;
         dedupeKey: string;

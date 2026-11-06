@@ -147,7 +147,9 @@ test.each([
     const provider = fixture.install(createFakeCloudAgentProvider());
     const run = { branches: [], errorCode: null, model, providerRunId: null, rawStatus: null };
     const settled = { createdAt: receipt.work.createdAt, startedAt: null, terminalAt: null };
-    const runs = [{ ...run, ...settled, runId, status: 'queued', summary: null, usage: null }];
+    const runs = [
+        { ...run, ...settled, runId, stall: null, status: 'queued', summary: null, usage: null },
+    ];
     fixture.stubServer({ ...receipt, work: { ...receipt.work, runs } });
     await startCloudAgentWork(fixture.input());
     await fixture.launched();

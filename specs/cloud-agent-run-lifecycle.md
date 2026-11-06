@@ -54,7 +54,7 @@ Three facts from production on 2026-11-05 shape the design:
 type RunReading = {
     status: CloudAgentStatus;
     observedAt: Date;
-    stall: CloudAgentStall | null;
+    stallCode: CloudAgentStallCode | null;
 };
 
 type RunStep =
@@ -117,8 +117,8 @@ type CloudAgentStall = {
 };
 ```
 
-A stall is neither a status nor an error. Observations carry `stall`, and Runs store `stall_code`
-and `stall_since`. `error_code` becomes settled-only, enforced by a check constraint. This replaces
+A stall is neither a status nor an error. Observations carry `stallCode`, and Runs store
+`stall_code` and `stall_since`. `error_code` becomes settled-only, enforced by a check constraint. This replaces
 `isStalledErrorCode` and the literals that `@haus/api` and the Computer compare today. Each
 observation states the stall, so a Run with no stall in its latest reading has none, and settling
 always clears it. `since` is kept from the first reading of that code.

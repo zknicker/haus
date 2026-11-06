@@ -3,6 +3,7 @@ import type {
     CloudAgentEnvironment,
     CloudAgentProvider as CloudAgentProviderId,
     CloudAgentRunModel,
+    CloudAgentStallCode,
     CloudAgentStatus,
     CloudAgentUnreadyReason,
     CloudAgentUsage,
@@ -128,6 +129,8 @@ export interface CloudAgentProviderObservation {
     providerRunId?: string;
     providerUrl?: string;
     rawStatus?: string;
+    /** Set on every reading of a stuck live Run. */
+    stallCode?: CloudAgentStallCode;
     /** Provider-reported Run creation time, when available. */
     startedAt?: string;
     status: CloudAgentStatus;

@@ -41,6 +41,10 @@ export function toCloudAgentRun(row: RunRow): CloudAgentRun {
         providerRunId: row.providerRunId,
         rawStatus: row.rawStatus,
         runId: row.id,
+        stall:
+            row.stallCode && row.stallSince
+                ? { code: row.stallCode, since: row.stallSince.toISOString() }
+                : null,
         startedAt: row.startedAt?.toISOString() ?? null,
         status: row.status,
         summary: row.summary,

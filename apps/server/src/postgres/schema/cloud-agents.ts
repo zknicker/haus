@@ -3,6 +3,7 @@ import type {
     CloudAgentModelParamName,
     CloudAgentProvider,
     CloudAgentRunModelParam,
+    CloudAgentStallCode,
     CloudAgentStatus,
     CloudAgentUsage,
 } from '@haus/api';
@@ -127,6 +128,9 @@ export const cloudAgentRunsTable = pgTable(
         providerRunId: text('provider_run_id'),
         rawStatus: text('raw_status'),
         serverId: text('server_id').notNull(),
+        /** Why a live Run is stuck, and since when; a settled Run has neither. */
+        stallCode: text('stall_code').$type<CloudAgentStallCode>(),
+        stallSince: timestamp('stall_since', { withTimezone: true }),
         startedAt: timestamp('started_at', { withTimezone: true }),
         status: text('status').notNull().default('queued').$type<CloudAgentStatus>(),
         summary: text('summary'),
@@ -154,6 +158,22 @@ export const cloudAgentRunsTable = pgTable(
         }),
         check('cloud_agent_runs_id_shape', sql`${table.id} ~ '^car_[A-Za-z0-9_-]{16}$'`),
         check('cloud_agent_runs_status', sql.raw(`"cloud_agent_runs"."status" in ${statuses}`)),
+        check(
+            'cloud_agent_runs_error_shape',
+            sql.raw(
+                `"cloud_agent_runs"."error_code" is null
+                or "cloud_agent_runs"."status" in ${settled}`
+            )
+        ),
+        check(
+            'cloud_agent_runs_stall_shape',
+            sql.raw(
+                `("cloud_agent_runs"."stall_code" is null)
+                = ("cloud_agent_runs"."stall_since" is null)
+                and ("cloud_agent_runs"."stall_code" is null
+                    or "cloud_agent_runs"."status" not in ${settled})`
+            )
+        ),
         check(
             'cloud_agent_runs_cancel_shape',
             sql`(${table.cancelRequestedAt} is not null) = (num_nonnulls(

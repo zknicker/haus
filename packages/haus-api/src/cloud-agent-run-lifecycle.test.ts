@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
     advanceCloudAgentRun,
+    type CloudAgentRunSnapshot,
     type CloudAgentRunStep,
     projectCloudAgentWork,
 } from './cloud-agent-run-lifecycle.ts';
@@ -14,16 +15,35 @@ const earlier = new Date('2026-11-05T10:00:00.000Z');
 const later = new Date('2026-11-05T10:01:00.000Z');
 const settledStatuses: readonly CloudAgentStatus[] = cloudAgentTerminalStatuses;
 
+const code = 'followup-auto-interrupt-failed' as const;
+
+function snapshot(overrides: Partial<CloudAgentRunSnapshot> = {}): CloudAgentRunSnapshot {
+    return {
+        cancelRequested: false,
+        observedAt: earlier,
+        stall: null,
+        status: 'running',
+        workStatus: 'running',
+        ...overrides,
+    };
+}
+
 /** The spec's table, stated by hand so a change to either side fails here. */
 function expectedStep(from: CloudAgentStatus, reading: CloudAgentStatus): CloudAgentRunStep {
     if (settledStatuses.includes(from)) {
         return { kind: 'ignored' };
     }
     if (settledStatuses.includes(reading)) {
-        return { kind: 'recorded', notice: 'settled', settled: true, status: reading };
+        return {
+            kind: 'recorded',
+            notice: { kind: 'settled' },
+            settled: true,
+            stall: null,
+            status: reading,
+        };
     }
     const status = from === 'running' || reading === 'running' ? 'running' : 'queued';
-    return { kind: 'recorded', notice: null, settled: false, status };
+    return { kind: 'recorded', notice: null, settled: false, stall: null, status };
 }
 
 describe('advanceCloudAgentRun', () => {
@@ -31,10 +51,11 @@ describe('advanceCloudAgentRun', () => {
         for (const reading of cloudAgentStatuses) {
             test(`${from} reading ${reading}`, () => {
                 expect(
-                    advanceCloudAgentRun(
-                        { observedAt: earlier, status: from, workStatus: 'running' },
-                        { observedAt: later, stalled: false, status: reading }
-                    )
+                    advanceCloudAgentRun(snapshot({ status: from }), {
+                        observedAt: later,
+                        stallCode: null,
+                        status: reading,
+                    })
                 ).toEqual(expectedStep(from, reading));
             });
         }
@@ -43,48 +64,100 @@ describe('advanceCloudAgentRun', () => {
     test('ignores a reading that is not newer', () => {
         for (const observedAt of [earlier, later]) {
             expect(
-                advanceCloudAgentRun(
-                    { observedAt: later, status: 'running', workStatus: 'running' },
-                    { observedAt, stalled: false, status: 'completed' }
-                )
+                advanceCloudAgentRun(snapshot({ observedAt: later }), {
+                    observedAt,
+                    stallCode: null,
+                    status: 'completed',
+                })
             ).toEqual({ kind: 'ignored' });
         }
     });
 
     test('records the first reading of a Run', () => {
         expect(
-            advanceCloudAgentRun(
-                { observedAt: null, status: 'queued', workStatus: 'queued' },
-                { observedAt: earlier, stalled: false, status: 'running' }
-            )
-        ).toEqual({ kind: 'recorded', notice: null, settled: false, status: 'running' });
+            advanceCloudAgentRun(snapshot({ observedAt: null, status: 'queued' }), {
+                observedAt: earlier,
+                stallCode: null,
+                status: 'running',
+            })
+        ).toEqual({
+            kind: 'recorded',
+            notice: null,
+            settled: false,
+            stall: null,
+            status: 'running',
+        });
     });
 
-    test('a stalled reading on live work earns a stall notice without settling', () => {
+    test('a first stall dates itself and earns its first notice without settling', () => {
         expect(
-            advanceCloudAgentRun(
-                { observedAt: earlier, status: 'queued', workStatus: 'running' },
-                { observedAt: later, stalled: true, status: 'queued' }
-            )
-        ).toEqual({ kind: 'recorded', notice: 'stall', settled: false, status: 'queued' });
+            advanceCloudAgentRun(snapshot({ status: 'queued' }), {
+                observedAt: later,
+                stallCode: code,
+                status: 'queued',
+            })
+        ).toEqual({
+            kind: 'recorded',
+            notice: { kind: 'stall', window: 0 },
+            settled: false,
+            stall: { code, since: later },
+            status: 'queued',
+        });
     });
 
-    test('a stalled reading on settled work records quietly', () => {
-        expect(
-            advanceCloudAgentRun(
-                { observedAt: earlier, status: 'running', workStatus: 'cancelled' },
-                { observedAt: later, stalled: true, status: 'running' }
-            )
-        ).toEqual({ kind: 'recorded', notice: null, settled: false, status: 'running' });
+    test('a continuing stall keeps its date and counts reminder windows from it', () => {
+        const stall = { code, since: earlier };
+        const step = (observedAt: Date) =>
+            advanceCloudAgentRun(snapshot({ stall }), {
+                observedAt,
+                stallCode: code,
+                status: 'running',
+            });
+        expect(step(new Date(earlier.getTime() + 119 * 60_000))).toMatchObject({
+            notice: { kind: 'stall', window: 0 },
+            stall,
+        });
+        expect(step(new Date(earlier.getTime() + 121 * 60_000))).toMatchObject({
+            notice: { kind: 'stall', window: 1 },
+            stall,
+        });
     });
 
-    test('settling outranks a stall', () => {
+    test('a reading without a code clears the stall', () => {
         expect(
-            advanceCloudAgentRun(
-                { observedAt: earlier, status: 'running', workStatus: 'running' },
-                { observedAt: later, stalled: true, status: 'failed' }
-            )
-        ).toEqual({ kind: 'recorded', notice: 'settled', settled: true, status: 'failed' });
+            advanceCloudAgentRun(snapshot({ stall: { code, since: earlier } }), {
+                observedAt: later,
+                stallCode: null,
+                status: 'running',
+            })
+        ).toMatchObject({ notice: null, stall: null });
+    });
+
+    test('a stall on settled work or a cancelling Run stays quiet', () => {
+        for (const run of [
+            snapshot({ workStatus: 'cancelled' }),
+            snapshot({ cancelRequested: true }),
+        ]) {
+            expect(
+                advanceCloudAgentRun(run, { observedAt: later, stallCode: code, status: 'running' })
+            ).toMatchObject({ notice: null, stall: { code, since: later } });
+        }
+    });
+
+    test('settling outranks and clears a stall', () => {
+        expect(
+            advanceCloudAgentRun(snapshot({ stall: { code, since: earlier } }), {
+                observedAt: later,
+                stallCode: code,
+                status: 'failed',
+            })
+        ).toEqual({
+            kind: 'recorded',
+            notice: { kind: 'settled' },
+            settled: true,
+            stall: null,
+            status: 'failed',
+        });
     });
 });
 

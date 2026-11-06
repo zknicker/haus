@@ -2,7 +2,6 @@ import {
     addressedReasonSchema,
     agentThreadContextSchema,
     chatMessageReplySchema,
-    cloudAgentAttentionRunId,
     cloudAgentWorkAttentionSchema,
     humanTimezoneSchema,
 } from '@haus/api';
@@ -118,12 +117,7 @@ function invalidAttentionIdentity(
     work: AgentCloudAgentWorkAttention | null | undefined
 ): boolean {
     if (work) {
-        return (
-            item.sequence !== 0 ||
-            typeof item.id !== 'string' ||
-            cloudAgentAttentionRunId(item.id) !== work.runId ||
-            item.senderType !== 'system'
-        );
+        return item.sequence !== 0 || item.senderType !== 'system';
     }
     return item.sequence === 0;
 }

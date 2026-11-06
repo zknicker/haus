@@ -813,6 +813,13 @@
       "when": 1794200000011,
       "tag": "0115_cloud-agent-run-cancel",
       "breakpoints": true
+    },
+    {
+      "idx": 116,
+      "version": "7",
+      "when": 1794200000012,
+      "tag": "0116_cloud-agent-typed-notices",
+      "breakpoints": true
     }
   ]
 }

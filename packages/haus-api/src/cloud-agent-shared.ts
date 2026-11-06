@@ -43,6 +43,18 @@ export const cloudAgentStatuses = [
 export const cloudAgentStatusSchema = z.enum(cloudAgentStatuses);
 
 /**
+ * Why a live Run is stuck without settling. A stall is neither a status nor an
+ * error: Computer keeps retrying underneath it, and the delegating Agent gets a
+ * notice with sparse reminders.
+ */
+export const cloudAgentStallCodes = [
+    'followup-auto-interrupt-failed',
+    'claude-prompt-not-found',
+] as const;
+
+export const cloudAgentStallCodeSchema = z.enum(cloudAgentStallCodes);
+
+/**
  * A Run is settled once its provider stops working on it. `pending_input` is
  * settled too: the hosted agent stopped to ask a question, and the delegating
  * Agent answers with a follow-up Run, exactly as it would after `completed`.
@@ -199,6 +211,10 @@ export const cloudAgentRunSchema = z
         rawStatus: z.string().trim().min(1).max(120).nullable(),
         runId: cloudAgentIdSchema,
         startedAt: cloudAgentTimestampSchema.nullable(),
+        stall: z
+            .object({ code: cloudAgentStallCodeSchema, since: cloudAgentTimestampSchema })
+            .strict()
+            .nullable(),
         status: cloudAgentStatusSchema,
         summary: z.string().trim().min(1).max(cloudAgentSummaryMaxLength).nullable(),
         terminalAt: cloudAgentTimestampSchema.nullable(),
@@ -252,6 +268,7 @@ export type CloudAgentPullRequestState = z.infer<typeof cloudAgentPullRequestSta
 export type CloudAgentCancelRequestedBy = z.infer<typeof cloudAgentCancelRequestedBySchema>;
 export type CloudAgentRun = z.infer<typeof cloudAgentRunSchema>;
 export type CloudAgentStatus = z.infer<typeof cloudAgentStatusSchema>;
+export type CloudAgentStallCode = z.infer<typeof cloudAgentStallCodeSchema>;
 export type CloudAgentUsage = z.infer<typeof cloudAgentUsageSchema>;
 export type CloudAgentWork = z.infer<typeof cloudAgentWorkSchema>;
 

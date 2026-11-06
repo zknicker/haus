@@ -66,7 +66,6 @@ import {
 import { interruptActiveRun, killedRun } from './interrupt-active-run.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
 import { consumeNoticeAck } from './notice-ack.ts';
-import { retireOrphanedAttentions } from './retire-orphaned-attentions.ts';
 import { isBackedOff } from './retry-policy.ts';
 import { recordSessionRotation } from './session-rotation.ts';
 import * as store from './store.ts';
@@ -103,6 +102,9 @@ export interface EnqueueInput {
     addressedReason?: AddressedReason | null;
     agentId: string;
     chatId: string | null;
+    /** The Run and reason a `cloud_agent_work` notice describes. */
+    cloudAgentNotice?: 'settled' | 'stall';
+    cloudAgentRunId?: string;
     content: string;
     /** Queue time for work with no Chat message of its own, such as an automation fire. */
     createdAt?: Date;
@@ -795,7 +797,6 @@ export class AgentDelivery {
             return null;
         }
         await markCursorSubsumedSeen(tx, { agentId, serverId: state.serverId });
-        await retireOrphanedAttentions(tx, agentId);
         const yielded = await yieldHeartbeatToAddressed(tx, state);
         if (yielded) {
             const next = await this.planDispatch(tx, agentId);
