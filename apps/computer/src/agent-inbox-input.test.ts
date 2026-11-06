@@ -1,20 +1,23 @@
 import { expect, test } from 'bun:test';
-import {
-    agentStartCommandSchema,
-    agentTurnSummarySchema,
-    cloudAgentStallAttentionId,
-} from '@haus/api';
+import { agentStartCommandSchema, agentTurnSummarySchema } from '@haus/api';
 import { parseStartCommand } from './agent-command-frames.ts';
-import { parseInbox } from './agent-inbox-input.ts';
+import { parseInbox, rejectedInboxItems } from './agent-inbox-input.ts';
 import { dispatchAgentStart } from './agent-start-dispatch.ts';
 import type { AgentStartCommand, AgentTurnFrame } from './launch.ts';
 
-test('dispatches a stall attention under its reminder-window identity', async () => {
+test('names only the items a rejected frame could not read', async () => {
     const [item] = attentionContinuation().inbox;
-    const id = cloudAgentStallAttentionId('car_1234567890abcdef', 249_154);
+    expect(rejectedInboxItems([item, { id: 'msg_bad' }, { content: 'no id' }])).toEqual([
+        { id: 'msg_bad', reason: 'The Computer could not read this inbox item.' },
+    ]);
+    expect(rejectedInboxItems('not a list')).toEqual([]);
+});
+
+test('treats a notice identity as opaque', async () => {
+    const [item] = attentionContinuation().inbox;
+    const id = 'car_1234567890abcdef:stall:1793941134000:3';
 
     expect(parseInbox([{ ...item, id }])?.[0]?.id).toBe(id);
-    expect(parseInbox([{ ...item, id: 'msg_other' }])).toBeNull();
 });
 
 test('dispatches a typed attention continuation on its own identity', async () => {
@@ -67,10 +70,12 @@ function attentionContinuation() {
     const cloudAgentWork = {
         branches: [],
         errorCode: null,
+        notice: 'settled',
         provider: 'cursor',
         providerUrl: null,
         repository: 'haus/haus',
         runId: 'car_1234567890abcdef',
+        stallCode: null,
         status: 'completed',
         summary: 'Opened a pull request.',
         title: 'Fix the flaky delivery test',

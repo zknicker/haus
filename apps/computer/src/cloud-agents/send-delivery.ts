@@ -27,13 +27,6 @@ export const cloudAgentDeliveryFailure = {
     launchRejected: 'provider-launch-rejected',
     /** The provider definitely refused the follow-up. */
     followUpRejected: 'followup-delivery-rejected',
-    /**
-     * Haus auto-interrupted the session to clear whatever held it busy, and
-     * the follow-up still didn't deliver (the interrupt itself failed, or a
-     * send attempt right after it failed too). Rides a still-`queued`,
-     * still-retrying observation's `errorCode`; it never fails the Run.
-     */
-    followUpAutoInterruptFailed: 'followup-auto-interrupt-failed',
     /** Server recorded the Run but this Computer never stored its prompt. */
     launchRecordMissing: 'launch-record-missing',
 } as const;

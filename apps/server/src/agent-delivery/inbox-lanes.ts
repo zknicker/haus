@@ -18,6 +18,7 @@ export const concreteInboxSources = [
     'trigger',
     'trigger_problem',
     'image_generation_failed',
+    'delivery_problem',
     'reminder',
     'task_assignment',
     'dream',
@@ -41,6 +42,7 @@ export const bodilessInboxSources = [
     'cloud_agent_work',
     'trigger_problem',
     'image_generation_failed',
+    'delivery_problem',
     ...chatlessInboxSources,
 ] as const;
 

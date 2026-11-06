@@ -1,20 +1,29 @@
 import {
+    advanceCloudAgentRun,
     type CloudAgentObservation,
+    type CloudAgentRunNotice,
+    type CloudAgentRunStall,
+    type CloudAgentRunStep,
+    type CloudAgentStallCode,
     type CloudAgentStatus,
     type CloudAgentWork,
+    type CloudAgentWorkLifecycle,
     isTerminalCloudAgentStatus,
+    projectCloudAgentWork,
 } from '@haus/api';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
+import { agentInboxTable, cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { attentionDedupeKey, isLiveChat, isStalledErrorCode } from './cloud-agent-attention.ts';
+import { isLiveChat, noticeDedupeKey } from './cloud-agent-attention.ts';
 import { prepareCloudAgentWorkEvents } from './cloud-agent-events.ts';
 import { findCloudAgentWork } from './cloud-agent-shape.ts';
 import { mergeBranchEvidence } from './merge-branch-evidence.ts';
 import { seedPullRequestReadings } from './pull-request-readings.ts';
+
+type RecordedRunStep = Extract<CloudAgentRunStep, { kind: 'recorded' }>;
 
 export interface AppliedCloudAgentObservation {
     /** One `cloudAgentWork.updated` per linking Message in a live Chat. */
@@ -46,13 +55,14 @@ export async function applyCloudAgentObservation(
             .select({
                 agentId: cloudAgentWorkTable.agentId,
                 branches: cloudAgentRunsTable.branches,
+                cancelRequestedAt: cloudAgentRunsTable.cancelRequestedAt,
                 chatId: cloudAgentWorkTable.chatId,
                 computerId: cloudAgentWorkTable.computerId,
                 observedAt: cloudAgentRunsTable.observedAt,
                 runStartedAt: cloudAgentRunsTable.startedAt,
                 runStatus: cloudAgentRunsTable.status,
-                terminalAt: cloudAgentRunsTable.terminalAt,
-                workStartedAt: cloudAgentWorkTable.startedAt,
+                stallCode: cloudAgentRunsTable.stallCode,
+                stallSince: cloudAgentRunsTable.stallSince,
                 workStatus: cloudAgentWorkTable.status,
             })
             .from(cloudAgentRunsTable)
@@ -75,21 +85,28 @@ export async function applyCloudAgentObservation(
             return null;
         }
         const observedAt = new Date(observation.observedAt);
-        if (row.terminalAt || (row.observedAt && row.observedAt >= observedAt)) {
+        const step = advanceCloudAgentRun(
+            {
+                cancelRequested: row.cancelRequestedAt !== null,
+                observedAt: row.observedAt,
+                stall: storedStall(row),
+                status: row.runStatus,
+                workStatus: row.workStatus,
+            },
+            {
+                observedAt,
+                stallCode: observation.stallCode ?? null,
+                status: observation.status,
+            }
+        );
+        if (step.kind === 'ignored') {
             return null;
         }
 
-        const settling = isTerminalCloudAgentStatus(observation.status);
+        const lifecycle = runLifecycle(step.status, observation, row.runStartedAt);
         await tx
             .update(cloudAgentRunsTable)
-            .set(
-                runObservationUpdate(
-                    observation,
-                    effectiveStatus(observation.status, row.runStatus),
-                    row.runStartedAt,
-                    row.branches
-                )
-            )
+            .set(runObservationUpdate(observation, lifecycle, step, row.branches))
             .where(
                 and(
                     eq(cloudAgentRunsTable.serverId, input.serverId),
@@ -120,11 +137,7 @@ export async function applyCloudAgentObservation(
             .update(cloudAgentWorkTable)
             .set(
                 latestRun?.id === observation.runId
-                    ? workObservationUpdate(
-                          observation,
-                          effectiveStatus(observation.status, row.workStatus),
-                          row.workStartedAt
-                      )
+                    ? workObservationUpdate(observation, projectCloudAgentWork(lifecycle))
                     : {
                           updatedAt: sql`greatest(${cloudAgentWorkTable.updatedAt}, ${observation.observedAt}::timestamptz)`,
                       }
@@ -136,22 +149,24 @@ export async function applyCloudAgentObservation(
                 )
             );
 
-        // Work already settled, cancelled by a human say, has nobody left to act on a stall.
-        const stalled =
-            !(settling || isTerminalCloudAgentStatus(row.workStatus)) &&
-            isStalledErrorCode(observation.errorCode);
+        if (step.settled) {
+            await deleteQueuedStallNotices(tx, input.serverId, observation.runId);
+        }
         // The notice goes to the Chat that asked for the work, never to a later
         // link (ADR 0044). If that Chat is gone, the work settles (or keeps
         // retrying) silently.
-        const notifying =
-            (settling || stalled) &&
-            (await isLiveChat(tx, { chatId: row.chatId, serverId: input.serverId }));
-        if (notifying) {
+        const notice = await deliverableNotice(tx, step, {
+            chatId: row.chatId,
+            serverId: input.serverId,
+        });
+        if (notice) {
             await agentDelivery.enqueue(tx, {
                 agentId: row.agentId,
                 chatId: row.chatId,
+                cloudAgentNotice: notice.kind,
+                cloudAgentRunId: observation.runId,
                 content: '',
-                dedupeKey: attentionDedupeKey(observation, stalled, observedAt),
+                dedupeKey: noticeDedupeKey(observation.runId, notice, step.stall),
                 serverId: input.serverId,
                 source: 'cloud_agent_work',
             });
@@ -166,42 +181,32 @@ export async function applyCloudAgentObservation(
                 serverId: input.serverId,
                 workId: observation.workId,
             }),
-            wake: notifying ? { agentId: row.agentId, serverId: input.serverId } : null,
+            wake: notice ? { agentId: row.agentId, serverId: input.serverId } : null,
             work,
         };
     });
 }
 
-/**
- * Once addressed, a Run or work record never reads `queued` again. A reading
- * that cannot reconfirm the prompt it already found once (a session log too
- * large to scan back through, say) must not erase that progress and leave
- * the job looking unaddressed, even though every later observation keeps
- * reporting the same stale `queued` until the gap clears (TECH-7).
- */
-function effectiveStatus(status: CloudAgentStatus, previous: CloudAgentStatus): CloudAgentStatus {
-    return status === 'queued' && previous !== 'queued' ? previous : status;
-}
-
 function runObservationUpdate(
     observation: CloudAgentObservation,
-    status: CloudAgentStatus,
-    previousStart: Date | null,
+    lifecycle: CloudAgentWorkLifecycle,
+    step: RecordedRunStep,
     previousBranches: Parameters<typeof mergeBranchEvidence>[0]
 ) {
     const observedAt = new Date(observation.observedAt);
     return {
-        ...observationTimes(status, observation, previousStart),
+        ...lifecycle,
         ...(observation.branches
             ? { branches: mergeBranchEvidence(previousBranches, observation.branches) }
             : {}),
-        // Always written, never merely spread: a Run only ever receives further
-        // observations before it settles, and a stall's errorCode/summary must
-        // clear once the follow-up resolves, not linger from an earlier tick.
-        errorCode: observation.errorCode ?? null,
+        // Always written, never merely spread: a stall and its summary must clear
+        // once the follow-up resolves, not linger from an earlier tick.
+        errorCode: step.settled ? (observation.errorCode ?? null) : null,
         observedAt,
         ...(observation.providerRunId ? { providerRunId: observation.providerRunId } : {}),
         ...(observation.rawStatus ? { rawStatus: observation.rawStatus } : {}),
+        stallCode: step.stall?.code ?? null,
+        stallSince: step.stall?.since ?? null,
         summary: observation.summary ?? null,
         ...(observation.usage ? { usage: observation.usage } : {}),
     };
@@ -209,11 +214,10 @@ function runObservationUpdate(
 
 function workObservationUpdate(
     observation: CloudAgentObservation,
-    status: CloudAgentStatus,
-    previousStart: Date | null
+    lifecycle: CloudAgentWorkLifecycle
 ) {
     return {
-        ...observationTimes(status, observation, previousStart),
+        ...lifecycle,
         ...(observation.activity
             ? {
                   activityAt: new Date(observation.activity.at),
@@ -228,17 +232,50 @@ function workObservationUpdate(
     };
 }
 
-function observationTimes(
+function storedStall(row: {
+    stallCode: CloudAgentStallCode | null;
+    stallSince: Date | null;
+}): CloudAgentRunStall | null {
+    return row.stallCode && row.stallSince ? { code: row.stallCode, since: row.stallSince } : null;
+}
+
+/** A notice needs a live Chat to land in; without one the Run moves on silently. */
+async function deliverableNotice(
+    db: HausDatabase,
+    step: RecordedRunStep,
+    chat: { chatId: string; serverId: string }
+): Promise<CloudAgentRunNotice | null> {
+    return step.notice && (await isLiveChat(db, chat)) ? step.notice : null;
+}
+
+/** One outcome replaces every stall reminder the Agent has not read yet. */
+async function deleteQueuedStallNotices(db: HausDatabase, serverId: string, runId: string) {
+    await db
+        .delete(agentInboxTable)
+        .where(
+            and(
+                eq(agentInboxTable.serverId, serverId),
+                eq(agentInboxTable.cloudAgentRunId, runId),
+                eq(agentInboxTable.cloudAgentNotice, 'stall'),
+                eq(agentInboxTable.state, 'queued')
+            )
+        );
+}
+
+/** The Run's lifecycle fields once `status` is recorded; the earliest start stands. */
+function runLifecycle(
     status: CloudAgentStatus,
     observation: CloudAgentObservation,
     previousStart: Date | null
-) {
+): CloudAgentWorkLifecycle {
     const observedAt = new Date(observation.observedAt);
-    const startedAt = observation.startedAt ? new Date(observation.startedAt) : observedAt;
+    const reportedStart = observation.startedAt ? new Date(observation.startedAt) : observedAt;
+    const startedAt =
+        status !== 'queued' && (!previousStart || reportedStart < previousStart)
+            ? reportedStart
+            : previousStart;
     return {
-        ...(status !== 'queued' && (!previousStart || startedAt < previousStart)
-            ? { startedAt }
-            : {}),
+        startedAt,
         status,
         terminalAt: isTerminalCloudAgentStatus(status) ? observedAt : null,
     };

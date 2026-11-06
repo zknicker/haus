@@ -4,12 +4,10 @@ import {
     agentCloudAgentStartInputSchema,
     agentCommandSchema,
     agentInboxItemSchema,
-    cloudAgentAttentionRunId,
     cloudAgentCapabilityRequestSchema,
     cloudAgentCapabilityResultSchema,
     cloudAgentCapabilityStateSchema,
     cloudAgentObservationSchema,
-    cloudAgentStallAttentionId,
     cloudAgentWorkSchema,
     cloudAgentWorkUpdatedEventSchema,
     computerInventorySchema,
@@ -117,10 +115,12 @@ test('a Cloud Agent attention is a bodiless inbox item keyed by its Run', () => 
             },
         ],
         errorCode: null,
+        notice: 'settled',
         provider: 'cursor',
         providerUrl: 'https://cursor.com/agents/bc_abc',
         repository: 'haus/haus',
         runId: 'car_1234567890abcdef',
+        stallCode: null,
         status: 'completed',
         summary: 'Opened a pull request.',
         title: 'Fix the flaky delivery test',
@@ -138,16 +138,7 @@ test('a Cloud Agent attention is a bodiless inbox item keyed by its Run', () => 
         target: '#product',
     };
     expect(agentInboxItemSchema.parse(item).cloudAgentWork?.workId).toBe('caw_1234567890abcdef');
-    expect(agentInboxItemSchema.safeParse({ ...item, id: 'msg_other' }).success).toBe(false);
-    const stallId = cloudAgentStallAttentionId(item.cloudAgentWork.runId, 249_154);
-    expect(cloudAgentAttentionRunId(stallId)).toBe(item.cloudAgentWork.runId);
-    expect(agentInboxItemSchema.safeParse({ ...item, id: stallId }).success).toBe(true);
-    expect(
-        agentInboxItemSchema.safeParse({
-            ...item,
-            id: cloudAgentStallAttentionId('car_other', 249_154),
-        }).success
-    ).toBe(false);
+    expect(agentInboxItemSchema.safeParse({ ...item, id: 'opaque:key' }).success).toBe(true);
     expect(agentInboxItemSchema.safeParse({ ...item, sequence: 3 }).success).toBe(false);
 });
 
@@ -160,7 +151,7 @@ test('Computer inventory reports Cloud Agent provider readiness on the current p
             runtimes: [],
         }).cloudAgentProviders
     ).toHaveLength(1);
-    expect(computerProtocolVersion).toBe(34);
+    expect(computerProtocolVersion).toBe(35);
 });
 
 test('a Cloud Agent capability state names exactly one of ready or a reason', () => {

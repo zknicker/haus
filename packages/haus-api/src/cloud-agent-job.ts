@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import type { CloudAgentStatus } from './cloud-agent-shared.ts';
+import type { CloudAgentStallCode } from './cloud-agent-stall.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
 
@@ -87,6 +88,7 @@ interface JobRun {
     errorCode: null | string;
     /** Set once the provider has received the Run; null while it sits in Haus's local queue. */
     providerRunId: null | string;
+    stall?: null | { code: CloudAgentStallCode };
     startedAt: null | string;
     status: CloudAgentStatus;
     summary: null | string;
@@ -105,6 +107,7 @@ interface JobRun {
  */
 export function deriveCloudAgentJob(work: {
     runs: readonly JobRun[];
+    stall?: null | { code: CloudAgentStallCode };
     startedAt: null | string;
     status: CloudAgentStatus;
     terminalAt: null | string;
@@ -132,11 +135,7 @@ export function deriveCloudAgentJob(work: {
 
 function followUpOf(run: JobRun): CloudAgentFollowUp | null {
     if (run.status === 'queued') {
-        // Computer reports this errorCode on a queued Run whose auto-interrupt
-        // fallback still didn't deliver it; there is no shared enum for it, so
-        // this literal is compared the same way on both the Computer side and
-        // here.
-        return run.errorCode === 'followup-auto-interrupt-failed'
+        return run.stall?.code === 'followup-auto-interrupt-failed'
             ? { since: run.createdAt, state: 'stalled' }
             : { since: run.createdAt, state: 'waiting' };
     }

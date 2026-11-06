@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { agentInboxItemSchema, cloudAgentStallAttentionId } from '@haus/api';
+import { agentInboxItemSchema } from '@haus/api';
+import { eq } from 'drizzle-orm';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
@@ -21,39 +22,48 @@ afterAll(async () => {
     await cluster?.stop();
 });
 
-test('a stall attention reaches the Agent as a valid inbox item', async () => {
+test('a stall notice reaches the Agent as a valid inbox item', async () => {
     const seed = await seedAgent(connection.db);
     const { delivery, wake } = offlineDelivery(connection.db, seed);
     const runId = await seedRun(seed);
-    const stallId = cloudAgentStallAttentionId(runId, 249_154);
-    await queueAttention(delivery, seed, stallId);
+    const key = `${runId}:stall:1793941134000:0`;
+    await queueNotice(delivery, seed, runId, key);
 
     const frame = await wake();
 
     const items = (frame?.inbox ?? []).map((item) => agentInboxItemSchema.parse(item));
-    expect(items.map((item) => item.id)).toEqual([stallId]);
-    expect(items[0]?.cloudAgentWork).toMatchObject({ errorCode: 'claude-prompt-not-found', runId });
+    expect(items.map((item) => item.id)).toEqual([key]);
+    expect(items[0]?.cloudAgentWork).toMatchObject({
+        notice: 'stall',
+        runId,
+        stallCode: 'claude-prompt-not-found',
+    });
 });
 
-test('a queued attention whose Run is gone cannot block the message behind it', async () => {
+test('a deleted Run takes its queued notice with it, so the message behind it is delivered', async () => {
     const seed = await seedAgent(connection.db);
     const { delivery, wake } = offlineDelivery(connection.db, seed);
-    await queueAttention(delivery, seed, cloudAgentStallAttentionId('car_gone', 249_154));
+    const runId = await seedRun(seed);
+    await queueNotice(delivery, seed, runId, runId);
     const messageId = await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
+    await connection.db.delete(cloudAgentRunsTable).where(eq(cloudAgentRunsTable.id, runId));
 
     const frame = await wake();
 
     expect(frame?.inbox.map((item) => item.id)).toEqual([messageId]);
 });
 
-async function queueAttention(
+async function queueNotice(
     delivery: ReturnType<typeof offlineDelivery>['delivery'],
     seed: Seed,
+    runId: string,
     dedupeKey: string
 ) {
     await delivery.deliver({
         agentId: seed.agentId,
         chatId: seed.dmChatId,
+        cloudAgentNotice: dedupeKey === runId ? 'settled' : 'stall',
+        cloudAgentRunId: runId,
         content: '',
         dedupeKey,
         serverId: seed.serverId,
@@ -77,7 +87,8 @@ async function seedRun(seed: Seed): Promise<string> {
         title: 'Fix the flaky delivery test',
     });
     await connection.db.insert(cloudAgentRunsTable).values({
-        errorCode: 'claude-prompt-not-found',
+        stallCode: 'claude-prompt-not-found',
+        stallSince: new Date(),
         id: runId,
         serverId: seed.serverId,
         status: 'running',

@@ -12,6 +12,7 @@ import {
     cloudAgentUsageSchema,
     cloudAgentWorkSchema,
 } from './cloud-agent-shared.ts';
+import { cloudAgentStallCodeSchema } from './cloud-agent-stall.ts';
 import type { components } from './generated/openapi.d.ts';
 
 type HausAgentMessage = components['schemas']['AgentMessage'];
@@ -157,6 +158,8 @@ export const cloudAgentObservationSchema = z
         providerUrl: z.url().max(2000).optional(),
         rawStatus: z.string().trim().min(1).max(120).optional(),
         runId: idSchema,
+        /** Set on every reading of a stuck live Run; absent means it is not stalled. */
+        stallCode: cloudAgentStallCodeSchema.optional(),
         status: cloudAgentStatusSchema,
         summary: z.string().trim().min(1).max(cloudAgentSummaryMaxLength).optional(),
         usage: cloudAgentUsageSchema.optional(),
