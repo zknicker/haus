@@ -10,7 +10,7 @@ read_when:
 
 # Open Threads
 
-Status: proposed, 2026-11-05. [ADR 0051](../docs/adr/0051-open-threads-are-a-lens.md) records the
+Status: proposed, 2026-11-05. Phases 1 and 2 are built. [ADR 0051](../docs/adr/0051-open-threads-are-a-lens.md) records the
 decision. The [design board](https://claude.ai/artifact/K3g2MVRZPdkReZbkykP4vB) shows the prototype.
 Where the board and this spec differ, this spec wins.
 
@@ -191,7 +191,7 @@ type CloudAgentPullRequestReading = {
     repository: string; // owner/name, lower-cased
     number: number;
     url: string;
-    title: string;
+    title: string | null; // null until GitHub is read
     state: 'draft' | 'open' | 'merged' | 'closed';
     headSha: string | null;
     checks: 'none' | 'pending' | 'passing' | 'failing' | 'unknown';
@@ -208,9 +208,11 @@ type CloudAgentPullRequestReading = {
 `cloud_agent_pull_requests` holds one row per Server, repository, and number, plus
 `refresh_requested_at`.
 
-- **Seeding.** A Run observation that names a pull request upserts its row, source `computer`,
-  replacing it only if `observedAt` is newer. Computer readings fill `checks` and `review` as
-  `unknown`. The Run's own snapshot stays as evidence.
+- **Seeding.** A Run observation carrying a snapshot of a GitHub pull request upserts its row, source
+  `computer`, and marks it for a read. It replaces only an older Computer reading, never a `github`
+  one. Computer readings fill `checks` and `review` as `unknown`. The Run's own snapshot stays as
+  evidence. A pull request reported with no snapshot gets no row, because Haus cannot state its
+  state.
 - **Projection.** `CloudAgentWork` gains a Server-projected `pullRequest:
   CloudAgentPullRequestReading | null`: the row for the newest Run that reported one. The card's
   pull request row and iOS read it, so a merged pull request finally reads Merged there too.
@@ -227,14 +229,18 @@ type CloudAgentPullRequestReading = {
 - **Rollups.** `checks` is `failing` if any completed check or status failed, else `pending` if any
   is unfinished, else `passing`, else `none`. `review` takes each reviewer's latest non-comment
   review: `changes-requested` beats `approved`.
-- **Failures.** A failed read keeps the last reading and clears nothing. Nothing is fabricated. A
+- **Failures.** A retryable failure keeps the mark and ends the pass. Any other failure keeps the
+  last reading and clears the mark. Nothing is fabricated. A
   repository no active installation covers stays source `computer`, and the panel says `Last read
   <d>`. The Computer token stays local and is never sent to the Server.
 - **Recovery.** Existing [delivery recovery](github-triggers.md#recovery-and-the-development-pull)
   replays missed deliveries through the same step. The migration seeds rows from each work's newest
   Run snapshot and marks every non-settled row for one refresh.
 
-The App already has every permission this needs (Pull requests, Checks, Commit statuses).
+The App already has every permission this needs (Pull requests, Checks, Commit statuses). Its webhook
+does not subscribe to `status`, so a commit status from outside GitHub Checks reaches a reading on the
+next `pull_request` or `check_*` event. `CloudAgentWork.pullRequest` reaches strict Agent receipts, so
+it raised the Computer protocol to 35.
 
 ## API
 

@@ -409,9 +409,11 @@ reads `pending-input` with the `question`; while the answer has not been taken b
 events no more than every few seconds. It is the work's current state in a sentence, never a
 transcript, and it yields to the latest Run summary once the work settles.
 
-`branches` and `pullRequestUrl` are Cursor's own terminal Run report, retained as evidence for the
-work card's pull request row. They are not a Haus product relation: Haus stores no branch or pull-request
-entity, and a reported pull-request URL claims no ownership of GitHub lifecycle.
+`branches` and `pullRequestUrl` are Cursor's own terminal Run report, retained as evidence. Haus
+stores no branch entity, and a reported pull-request URL claims no ownership of GitHub lifecycle. The
+work's `pullRequest` is the Server's live reading of that pull request, kept current by GitHub webhooks
+([Open Threads](open-threads.md#pull-request-readings)), and the card's pull request row prefers it
+over the Run's frozen snapshot.
 
 `pullRequest` is the Computer's own reading of that URL, and it is evidence on the Run for exactly
 the same reason. Cursor's API carries no diff statistics, so the Computer reads

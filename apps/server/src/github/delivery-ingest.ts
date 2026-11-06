@@ -2,6 +2,7 @@ import type { GithubTriggerProblem } from '@haus/api';
 import { type EffectRuntime, tracePromise } from '@haus/effect';
 import { and, eq, inArray, lt, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import { markPullRequestReadings } from '../cloud-agents/pull-request-readings.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { githubTriggerConfigsTable, githubWebhookDeliveriesTable } from '../postgres/schema.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
@@ -131,6 +132,8 @@ async function ingest(
             return { routed: 0, wakes: [] };
         }
         const { installation } = route;
+        // Independent of Triggers: a pull request Haus reads stays live either way.
+        await markPullRequestReadings(tx, { event, now, payload: delivery.payload, serverId });
         const matched = await matchGithubTriggers(tx, {
             event,
             installation,

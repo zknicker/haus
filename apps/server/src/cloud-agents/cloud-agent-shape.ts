@@ -1,4 +1,5 @@
 import {
+    type CloudAgentPullRequestReading,
     type CloudAgentRun,
     type CloudAgentWork,
     cloudAgentRunSchema,
@@ -9,10 +10,22 @@ import {
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
+import {
+    pullRequestKey,
+    readPullRequestReadings,
+    reportedPullRequest,
+} from './pull-request-readings.ts';
 
 type WorkRow = typeof cloudAgentWorkTable.$inferSelect;
 type RunRow = typeof cloudAgentRunsTable.$inferSelect;
 type CloudAgentReader = Pick<HausDatabase, 'select'>;
+
+export interface WorkDetails {
+    pullRequest: CloudAgentPullRequestReading | null;
+    runs: RunRow[];
+}
+
+const noDetails: WorkDetails = { pullRequest: null, runs: [] };
 
 export function toCloudAgentRun(row: RunRow): CloudAgentRun {
     return cloudAgentRunSchema.parse({
@@ -37,8 +50,8 @@ export function toCloudAgentRun(row: RunRow): CloudAgentRun {
 }
 
 /** `runs` is newest first and bounded; the work keeps recent Runs, not history. */
-export function toCloudAgentWork(row: WorkRow, runs: RunRow[]): CloudAgentWork {
-    const recent = runs.slice(0, cloudAgentRunsRetained).map(toCloudAgentRun);
+export function toCloudAgentWork(row: WorkRow, details: WorkDetails = noDetails): CloudAgentWork {
+    const recent = details.runs.slice(0, cloudAgentRunsRetained).map(toCloudAgentRun);
     const startedAt = row.startedAt?.toISOString() ?? null;
     const terminalAt = row.terminalAt?.toISOString() ?? null;
     return cloudAgentWorkSchema.parse({
@@ -60,6 +73,7 @@ export function toCloudAgentWork(row: WorkRow, runs: RunRow[]): CloudAgentWork {
         provider: row.provider,
         providerAgentId: row.providerAgentId,
         providerUrl: row.providerUrl,
+        pullRequest: details.pullRequest,
         repository: row.repository,
         runs: recent,
         startedAt,
@@ -84,8 +98,8 @@ export async function findCloudAgentWork(
     if (!row) {
         return null;
     }
-    const runs = await readRuns(db, serverId, [workId]);
-    return toCloudAgentWork(row, runs.get(workId) ?? []);
+    const details = await readWorkDetails(db, serverId, [workId]);
+    return toCloudAgentWork(row, details.get(workId));
 }
 
 export async function findCloudAgentWorkByLaunchMessage(
@@ -106,11 +120,31 @@ export async function findCloudAgentWorkByLaunchMessage(
     if (!row) {
         return null;
     }
-    const runs = await readRuns(db, serverId, [row.id]);
-    return toCloudAgentWork(row, runs.get(row.id) ?? []);
+    const details = await readWorkDetails(db, serverId, [row.id]);
+    return toCloudAgentWork(row, details.get(row.id));
 }
 
-export async function readRuns(
+/** Everything a work projects beyond its own row, for each of `workIds`. */
+export async function readWorkDetails(
+    db: CloudAgentReader,
+    serverId: string,
+    workIds: string[]
+): Promise<Map<string, WorkDetails>> {
+    const runsByWork = await readRuns(db, serverId, workIds);
+    const keyByWork = new Map(
+        [...runsByWork].map(([workId, runs]) => [workId, reportedPullRequest(runs)])
+    );
+    const readings = await readPullRequestReadings(db, serverId, [...keyByWork.values()]);
+    return new Map(
+        [...runsByWork].map(([workId, runs]) => {
+            const key = keyByWork.get(workId);
+            const pullRequest = key ? (readings.get(pullRequestKey(key)) ?? null) : null;
+            return [workId, { pullRequest, runs }];
+        })
+    );
+}
+
+async function readRuns(
     db: CloudAgentReader,
     serverId: string,
     workIds: string[]

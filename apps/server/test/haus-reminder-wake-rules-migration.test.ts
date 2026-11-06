@@ -81,6 +81,8 @@ test('backfills outcome for settled fires and defaults the new wake-rule columns
         await writeFile(journalPath, JSON.stringify(journal));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
             '0111_reminder-wake-rules',
+            '0112_cloud-agent-environment',
+            '0113_cloud-agent-pull-requests',
         ]);
 
         expect(await database`SELECT id, outcome FROM reminder_fires ORDER BY id`).toEqual([

@@ -53,4 +53,5 @@ export const migrationsSince0060 = [
     '0110_idle-compaction',
     '0111_reminder-wake-rules',
     '0112_cloud-agent-environment',
+    '0113_cloud-agent-pull-requests',
 ];

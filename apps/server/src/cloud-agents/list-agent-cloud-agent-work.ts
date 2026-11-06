@@ -3,7 +3,7 @@ import { and, desc, eq } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { cloudAgentWorkTable } from '../postgres/schema.ts';
-import { readRuns, toCloudAgentWork } from './cloud-agent-shape.ts';
+import { readWorkDetails, toCloudAgentWork } from './cloud-agent-shape.ts';
 import { CloudAgentWorkNotFoundError } from './errors.ts';
 
 export async function listAgentCloudAgentWork(
@@ -26,10 +26,10 @@ export async function listAgentCloudAgentWork(
     if (workId && rows.length === 0) {
         throw new CloudAgentWorkNotFoundError();
     }
-    const runs = await readRuns(
+    const details = await readWorkDetails(
         db,
         runner.serverId,
         rows.map((row) => row.id)
     );
-    return rows.map((row) => toCloudAgentWork(row, runs.get(row.id) ?? []));
+    return rows.map((row) => toCloudAgentWork(row, details.get(row.id)));
 }

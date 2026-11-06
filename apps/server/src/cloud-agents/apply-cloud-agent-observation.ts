@@ -14,6 +14,7 @@ import { attentionDedupeKey, isLiveChat, isStalledErrorCode } from './cloud-agen
 import { prepareCloudAgentWorkEvents } from './cloud-agent-events.ts';
 import { findCloudAgentWork } from './cloud-agent-shape.ts';
 import { mergeBranchEvidence } from './merge-branch-evidence.ts';
+import { seedPullRequestReadings } from './pull-request-readings.ts';
 
 export interface AppliedCloudAgentObservation {
     /** One `cloudAgentWork.updated` per linking Message in a live Chat. */
@@ -95,6 +96,12 @@ export async function applyCloudAgentObservation(
                     eq(cloudAgentRunsTable.id, observation.runId)
                 )
             );
+
+        await seedPullRequestReadings(tx, {
+            branches: observation.branches ?? [],
+            now: observedAt,
+            serverId: input.serverId,
+        });
 
         const [latestRun] = await tx
             .select({ id: cloudAgentRunsTable.id })

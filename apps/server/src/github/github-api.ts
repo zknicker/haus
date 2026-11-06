@@ -5,8 +5,10 @@
 const githubApiBaseUrl = 'https://api.github.com';
 const githubApiVersion = '2022-11-28';
 
-/** Who a request acts as: the App itself (JWT) or the connection's GitHub user. */
-export type GithubCredential = { jwt: string; kind: 'app' } | { kind: 'user'; token: string };
+/** Who a request acts as: the App itself (JWT), one installation, or the connection's user. */
+export type GithubCredential =
+    | { jwt: string; kind: 'app' }
+    | { kind: 'installation' | 'user'; token: string };
 
 export interface GithubRequest {
     credential: GithubCredential;
