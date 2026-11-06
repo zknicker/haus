@@ -98,7 +98,8 @@ function notificationSql() {
     return sql<string>`case
         when exists (
             select 1 from agent_inbox i
-            join cloud_agent_runs r on r.server_id = i.server_id and r.id = i.dedupe_key
+            join cloud_agent_runs r on r.server_id = i.server_id
+                and r.id = split_part(i.dedupe_key, ':stall:', 1)
             where r.server_id = ${cloudAgentWorkTable.serverId}
                 and r.work_id = ${cloudAgentWorkTable.id}
                 and i.agent_id = ${cloudAgentWorkTable.agentId}

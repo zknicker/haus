@@ -4,6 +4,7 @@ import type {
     CloudAgentWorkAttention,
     HausAgentMessage,
 } from '@haus/api';
+import { cloudAgentAttentionRunId } from '@haus/api';
 import { and, eq, inArray } from 'drizzle-orm';
 import {
     messageSelection,
@@ -54,7 +55,7 @@ export async function buildInboxItems(
                   serverId,
                   rows
                       .filter((row) => row.source === 'cloud_agent_work')
-                      .map((row) => row.dedupeKey)
+                      .map((row) => cloudAgentAttentionRunId(row.dedupeKey))
               )
             : new Map<string, CloudAgentWorkAttention>();
     const sequenceByMessageId = new Map(
@@ -150,9 +151,18 @@ function requireAttention(
     row: store.InboxItemRow,
     attentions: Map<string, CloudAgentWorkAttention>
 ): CloudAgentWorkAttention {
-    const attention = attentions.get(row.dedupeKey);
+    const attention = attentions.get(cloudAgentAttentionRunId(row.dedupeKey));
     if (!attention) {
-        throw new Error(`Cloud Agent attention ${row.dedupeKey} is missing.`);
+        throw new CloudAgentAttentionMissingError(row.dedupeKey);
     }
     return attention;
+}
+
+/** Named so a failed dispatch's log says which item stopped it. */
+class CloudAgentAttentionMissingError extends Error {
+    override readonly name = 'CloudAgentAttentionMissingError';
+
+    constructor(dedupeKey: string) {
+        super(`Cloud Agent attention ${dedupeKey} is missing.`);
+    }
 }
