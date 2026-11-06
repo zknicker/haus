@@ -2,7 +2,7 @@ import type { CloudAgentWork } from '@haus/api';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { cloudAgentWorkLinksTable, cloudAgentWorkTable } from '../postgres/schema.ts';
-import { readRuns, toCloudAgentWork } from './cloud-agent-shape.ts';
+import { readWorkDetails, toCloudAgentWork } from './cloud-agent-shape.ts';
 
 /**
  * The `ChatMessage.cloudAgentWork` annotation for one page of Messages: each
@@ -36,11 +36,13 @@ export async function readLinkedCloudAgentWork(
             )
         )
         .orderBy(asc(cloudAgentWorkLinksTable.messageId), asc(cloudAgentWorkLinksTable.ordinal));
-    const runs = await readRuns(db, serverId, [...new Set(rows.map(({ work }) => work.id))]);
+    const details = await readWorkDetails(db, serverId, [
+        ...new Set(rows.map(({ work }) => work.id)),
+    ]);
     for (const { messageId, work } of rows) {
         byMessage.set(messageId, [
             ...(byMessage.get(messageId) ?? []),
-            toCloudAgentWork(work, runs.get(work.id) ?? []),
+            toCloudAgentWork(work, details.get(work.id)),
         ]);
     }
     return byMessage;

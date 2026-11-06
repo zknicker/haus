@@ -1,4 +1,4 @@
-import type { CloudAgentObservation } from '@haus/api';
+import { type CloudAgentObservation, cloudAgentStallAttentionId } from '@haus/api';
 import { and, eq, isNotNull, isNull, or } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable } from '../postgres/schema.ts';
@@ -54,8 +54,10 @@ export function attentionDedupeKey(
     if (!stalled) {
         return observation.runId;
     }
-    const window = Math.floor(observedAt.getTime() / stallReminderMs);
-    return `${observation.runId}:stall:${window}`;
+    return cloudAgentStallAttentionId(
+        observation.runId,
+        Math.floor(observedAt.getTime() / stallReminderMs)
+    );
 }
 
 /** A Chat that still exists and is not tombstoned, nor is its parent. */

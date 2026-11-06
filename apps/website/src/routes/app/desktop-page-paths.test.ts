@@ -38,7 +38,7 @@ test('two Threads in one chat are different pages; Attachments is its own page',
 
 test('a Thread opened on a claim inside it carries the claim and stays the same page', () => {
     const plain = threadPagePath('acme', 'c1', 'm1');
-    const onClaim = threadPagePath('acme', 'c1', 'm1', 'msg_reply');
+    const onClaim = threadPagePath('acme', 'c1', 'm1', { claimMessageId: 'msg_reply' });
     expect(onClaim).toBe('/s/acme/threads/c1/m1?claim=msg_reply');
     expect(tabPageKey({ kind: 'app', path: onClaim })).toBe(
         tabPageKey({ kind: 'app', path: plain })

@@ -111,6 +111,7 @@ export * from './chat-events.ts';
 export * from './chat-last-message.ts';
 export * from './chat-message-read.ts';
 export * from './chat-read.ts';
+export * from './chat-search.ts';
 export * from './chat-unread-preview.ts';
 export * from './claim.ts';
 export * from './claim-shared.ts';

@@ -27,6 +27,7 @@ export * from './schema/chat-messages.ts';
 export * from './schema/chat-reads.ts';
 export * from './schema/chats.ts';
 export * from './schema/cloud-agent-model-settings.ts';
+export * from './schema/cloud-agent-pull-requests.ts';
 export * from './schema/cloud-agent-work-links.ts';
 export * from './schema/cloud-agents.ts';
 export * from './schema/computer-login.ts';

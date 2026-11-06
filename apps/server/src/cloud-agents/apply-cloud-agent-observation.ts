@@ -14,6 +14,7 @@ import { attentionDedupeKey, isLiveChat, isStalledErrorCode } from './cloud-agen
 import { prepareCloudAgentWorkEvents } from './cloud-agent-events.ts';
 import { findCloudAgentWork } from './cloud-agent-shape.ts';
 import { mergeBranchEvidence } from './merge-branch-evidence.ts';
+import { seedPullRequestReadings } from './pull-request-readings.ts';
 
 export interface AppliedCloudAgentObservation {
     /** One `cloudAgentWork.updated` per linking Message in a live Chat. */
@@ -96,6 +97,12 @@ export async function applyCloudAgentObservation(
                 )
             );
 
+        await seedPullRequestReadings(tx, {
+            branches: observation.branches ?? [],
+            now: observedAt,
+            serverId: input.serverId,
+        });
+
         const [latestRun] = await tx
             .select({ id: cloudAgentRunsTable.id })
             .from(cloudAgentRunsTable)
@@ -129,7 +136,10 @@ export async function applyCloudAgentObservation(
                 )
             );
 
-        const stalled = !settling && isStalledErrorCode(observation.errorCode);
+        // Work already settled, cancelled by a human say, has nobody left to act on a stall.
+        const stalled =
+            !(settling || isTerminalCloudAgentStatus(row.workStatus)) &&
+            isStalledErrorCode(observation.errorCode);
         // The notice goes to the Chat that asked for the work, never to a later
         // link (ADR 0044). If that Chat is gone, the work settles (or keeps
         // retrying) silently.

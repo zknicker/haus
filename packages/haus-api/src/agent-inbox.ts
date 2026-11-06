@@ -34,6 +34,18 @@ export const cloudAgentWorkAttentionSchema = z
 
 export type CloudAgentWorkAttention = z.infer<typeof cloudAgentWorkAttentionSchema>;
 
+const stallAttentionMark = ':stall:';
+
+/** A stalled Run repeats on every tick, so its attention identity buckets by reminder window. */
+export function cloudAgentStallAttentionId(runId: string, window: number): string {
+    return `${runId}${stallAttentionMark}${window}`;
+}
+
+/** The Run an attention describes: its own id, or the Run a stall identity names. */
+export function cloudAgentAttentionRunId(attentionId: string): string {
+    return attentionId.split(stallAttentionMark, 1)[0] ?? attentionId;
+}
+
 /**
  * Why an item is addressed to this Agent personally rather than ambiently: a DM,
  * an @mention, a committed Jev routing, or `sole` — the Agent is the only
@@ -126,7 +138,7 @@ export const agentInboxItemSchema = z
         (item) =>
             item.cloudAgentWork
                 ? item.sequence === 0 &&
-                  item.id === item.cloudAgentWork.runId &&
+                  cloudAgentAttentionRunId(item.id) === item.cloudAgentWork.runId &&
                   item.senderType === 'system'
                 : item.sequence > 0,
         {

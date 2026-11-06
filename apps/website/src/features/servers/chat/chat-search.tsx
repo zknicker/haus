@@ -16,17 +16,19 @@ import { PageBand } from '../../shell/page-band.tsx';
 import {
     ChatSearchFilterRow,
     defaultSearchFilterSelection,
-    searchChatLabel,
+    searchResultChatId,
+    searchResultLabel,
     useSearchApiFilters,
 } from './chat-search-filters.tsx';
+import { renderSnippet } from './chat-search-snippet.tsx';
 
 export function ChatSearch({
     initialQuery = '',
-    onOpenChat,
+    onOpenResult,
     serverId,
 }: {
     initialQuery?: string;
-    onOpenChat(chatId: string): void;
+    onOpenResult(result: ChatSearchResult): void;
     serverId: string;
 }) {
     const [draft, setDraft] = React.useState(initialQuery);
@@ -103,13 +105,13 @@ export function ChatSearch({
                             }
                             matches={matches}
                             onClearFilters={() => setFilterSelection(defaultSearchFilterSelection)}
-                            onOpenChat={onOpenChat}
+                            onOpenResult={onOpenResult}
                             query={query}
                             searching={search.isFetching}
                         />
                     ) : (
                         <SearchEmptyState
-                            description="Type to find messages across channels and direct messages."
+                            description="Type to find messages in channels, threads, and DMs."
                             title="Search this Server"
                         />
                     )}
@@ -124,7 +126,7 @@ function SearchResults({
     filtersActive,
     matches,
     onClearFilters,
-    onOpenChat,
+    onOpenResult,
     query,
     searching,
 }: {
@@ -132,7 +134,7 @@ function SearchResults({
     filtersActive: boolean;
     matches: ChatSearchResult[];
     onClearFilters(): void;
-    onOpenChat(chatId: string): void;
+    onOpenResult(result: ChatSearchResult): void;
     query: string;
     searching: boolean;
 }) {
@@ -165,9 +167,9 @@ function SearchResults({
                 {matches.map((message) => (
                     <li key={message.id}>
                         <SearchResultRow
-                            chat={chatById.get(message.chatId)}
+                            chat={chatById.get(searchResultChatId(message))}
                             message={message}
-                            onOpen={() => onOpenChat(message.chatId)}
+                            onOpen={() => onOpenResult(message)}
                             query={query}
                         />
                     </li>
@@ -190,7 +192,7 @@ function SearchResultRow({
 }) {
     const author = messageAuthor(message);
     // A DM's agent is already the author; repeating it as the label stutters.
-    const rawLabel = chat ? searchChatLabel(chat) : null;
+    const rawLabel = searchResultLabel(message, chat);
     const label = rawLabel === author.name ? null : rawLabel;
 
     // Stock ItemCard rendered as a button per its Pressable pattern. Its
@@ -262,72 +264,4 @@ export function messageAuthor(message: ChatSearchResult): {
         avatarUrl: author.profile?.avatarUrl ?? null,
         name: author.profile?.displayName ?? (author.kind === 'agent' ? 'Agent' : 'Member'),
     };
-}
-
-// Snippets center on the first term hit so long messages still show why they
-// matched; every term occurrence inside the window is highlighted.
-const snippetWindowChars = 220;
-const snippetLeadInChars = 60;
-
-function renderSnippet(content: string, query: string): React.ReactNode {
-    const text = content.replaceAll(/\s+/gu, ' ').trim();
-    const terms = query.split(/\s+/u).filter(Boolean).map(escapeRegExp);
-    if (terms.length === 0) {
-        return clipSnippet(text, 0);
-    }
-
-    const pattern = new RegExp(`(?:${terms.join('|')})`, 'giu');
-    const firstMatch = text.search(pattern);
-    const start = firstMatch <= snippetLeadInChars ? 0 : firstMatch - snippetLeadInChars;
-    const window = text.slice(start, start + snippetWindowChars);
-
-    // Adjacent term hits separated only by whitespace merge into one run, so
-    // a phrase like "Send me" highlights as a single unbroken mark.
-    const runs: { end: number; start: number }[] = [];
-    for (const match of window.matchAll(pattern)) {
-        const previous = runs.at(-1);
-        if (previous && /^\s*$/u.test(window.slice(previous.end, match.index))) {
-            previous.end = match.index + match[0].length;
-        } else {
-            runs.push({ end: match.index + match[0].length, start: match.index });
-        }
-    }
-
-    const nodes: React.ReactNode[] = [];
-    if (start > 0) {
-        nodes.push('…');
-    }
-
-    let cursor = 0;
-    for (const run of runs) {
-        if (run.start > cursor) {
-            nodes.push(window.slice(cursor, run.start));
-        }
-        nodes.push(
-            <mark
-                className="rounded-sm bg-accent/15 px-0.5 font-medium text-accent"
-                key={start + run.start}
-            >
-                {window.slice(run.start, run.end)}
-            </mark>
-        );
-        cursor = run.end;
-    }
-    if (cursor < window.length) {
-        nodes.push(window.slice(cursor));
-    }
-    if (start + snippetWindowChars < text.length) {
-        nodes.push('…');
-    }
-
-    return nodes;
-}
-
-function clipSnippet(text: string, start: number): string {
-    const window = text.slice(start, start + snippetWindowChars);
-    return start + snippetWindowChars < text.length ? `${window}…` : window;
-}
-
-function escapeRegExp(value: string): string {
-    return value.replaceAll(/[$()*+.?[\\\]^{|}]/gu, String.raw`\$&`);
 }

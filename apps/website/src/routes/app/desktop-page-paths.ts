@@ -18,10 +18,18 @@ export function threadPagePath(
     slug: string,
     chatId: string,
     anchorMessageId: string,
-    claimMessageId?: string
+    { claimMessageId, landingSequence }: { claimMessageId?: string; landingSequence?: number } = {}
 ) {
     const path = `${serverRoute(slug)}/threads/${encodeURIComponent(chatId)}/${encodeURIComponent(anchorMessageId)}`;
-    return claimMessageId ? `${path}?claim=${encodeURIComponent(claimMessageId)}` : path;
+    const params = new URLSearchParams();
+    if (claimMessageId) {
+        params.set('claim', claimMessageId);
+    }
+    if (landingSequence !== undefined) {
+        params.set('at', String(landingSequence));
+    }
+    const query = params.toString();
+    return query ? `${path}?${query}` : path;
 }
 
 export function filesPagePath(slug: string, chatId: string) {

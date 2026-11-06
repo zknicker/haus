@@ -8,6 +8,7 @@ import type { GithubDelivery, GithubIngestOutcome } from './github/delivery-inge
 import { startGithubDeliveryRecovery } from './github/delivery-recovery.ts';
 import type { GithubApp } from './github/github-app.ts';
 import { startGithubInstallationSweep } from './github/installation-sweep.ts';
+import { startPullRequestRefresher } from './github/pull-request-refresh.ts';
 import type { HausServerShutdown } from './haus-server-shutdown.ts';
 import type { HausDatabase } from './postgres/connection.ts';
 import { startMessagePush } from './push/message-push.ts';
@@ -19,6 +20,8 @@ import { startTriggerRetentionSweep } from './triggers/retention-sweep.ts';
 
 /** Production recovery cadence; the dev stack and tests pass their own. */
 const githubRecoveryDefaultIntervalMs = 10 * 60_000;
+/** How soon a merged pull request or finished check reaches a card. */
+const pullRequestRefreshIntervalMs = 15_000;
 
 interface ServerSweepsInput {
     /** The App origin iPhone push builds absolute avatar URLs against. */
@@ -110,7 +113,7 @@ export async function startServerSweeps(
 
 type NamedSweep = readonly [name: string, start: () => BootSweep];
 
-/** The hourly installation sweep and the delivery recovery sweep. */
+/** The hourly installation sweep, delivery recovery, and the pull request refresher. */
 function githubSweeps(runtime: EffectRuntime<never>, input: ServerSweepsInput): NamedSweep[] {
     const { githubApp } = input;
     if (!githubApp) {
@@ -125,8 +128,16 @@ function githubSweeps(runtime: EffectRuntime<never>, input: ServerSweepsInput): 
             { app: githubApp, clock: input.clock, db: input.db, wake: input.wakeAgents },
             input.timers
         );
+    const pullRequests = () =>
+        startPullRequestRefresher(
+            { app: githubApp, db: input.db },
+            { intervalMs: pullRequestRefreshIntervalMs, timers: input.timers }
+        );
     if (recoveryIntervalMs === null) {
-        return [['github-installations', installations]];
+        return [
+            ['github-installations', installations],
+            ['github-pull-requests', pullRequests],
+        ];
     }
     const recovery = () =>
         startGithubDeliveryRecovery(
@@ -142,5 +153,6 @@ function githubSweeps(runtime: EffectRuntime<never>, input: ServerSweepsInput): 
     return [
         ['github-installations', installations],
         ['github-delivery-recovery', recovery],
+        ['github-pull-requests', pullRequests],
     ];
 }

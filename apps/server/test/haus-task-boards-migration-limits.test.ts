@@ -8,11 +8,11 @@ import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { startPostgresCluster } from './postgres-cluster.ts';
 
 /**
- * Task limits count UTF-16 units and Postgres counts code points, so 0114 must
+ * Task limits count UTF-16 units and Postgres counts code points, so 0115 must
  * trim astral text to what a read accepts, or one migrated claim breaks every
  * read of the General board.
  */
-test('0114 trims migrated claims to the limits a Task read enforces', async () => {
+test('0115 trims migrated claims to the limits a Task read enforces', async () => {
     const cluster = await startPostgresCluster();
     const folder = await mkdtemp(join(tmpdir(), 'haus-task-limits-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
@@ -25,7 +25,7 @@ test('0114 trims migrated claims to the limits a Task read enforces', async () =
                 ...journal,
                 entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= idx),
             });
-        await writeFile(journalPath, through(113));
+        await writeFile(journalPath, through(114));
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
 
         const astralContent = '🔑'.repeat(15_000);
@@ -44,7 +44,7 @@ test('0114 trims migrated claims to the limits a Task read enforces', async () =
                         'usr_one', now(), now())`;
         });
 
-        await writeFile(journalPath, through(114));
+        await writeFile(journalPath, through(115));
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
 
         const [task] = await database`SELECT title, description FROM tasks`;

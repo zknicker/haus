@@ -27,6 +27,8 @@ public struct CloudAgentWork: Codable, Identifiable, Hashable, Sendable {
     /// The Server's reading of the whole job across its Runs (`deriveCloudAgentJob`).
     public let job: CloudAgentJob
     public let runs: [CloudAgentRun]
+    /// The Server's live reading, which outlives a Run's frozen snapshot.
+    public var pullRequest: CloudAgentPullRequest? = nil
 }
 
 public struct CloudAgentActivity: Codable, Hashable, Sendable {

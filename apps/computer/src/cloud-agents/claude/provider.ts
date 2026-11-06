@@ -79,7 +79,7 @@ export function createClaudeCloudAgentProvider(
         });
         if (isTerminalCloudAgentStatus(observation.status)) {
             windows.delete(ref.runId);
-        } else if (cached || !page.truncated) {
+        } else if (cached || !page.truncated || ref.providerRunId) {
             windows.set(ref.runId, events);
         }
         return observation;

@@ -109,10 +109,10 @@ export const cloudAgentPullRequestStateSchema = z.enum(cloudAgentPullRequestStat
  * One GitHub reading of the pull request a Run opened, taken by the Computer
  * at observation time. Cursor's own API carries no diff statistics, so the
  * Computer reads them where they exist. This is provider-observation evidence
- * on the Run and not a Haus product relation: Haus still stores no
- * pull-request entity and claims no GitHub lifecycle. `observedAt` dates the
- * reading, so a newer snapshot replaces an older one and a Run that could not
- * be read keeps the snapshot it already had.
+ * on the Run, frozen once the Run settles; `cloudAgentPullRequestReadingSchema`
+ * is what stays live. `observedAt` dates the reading, so a newer snapshot
+ * replaces an older one and a Run that could not be read keeps the snapshot it
+ * already had.
  */
 export const cloudAgentPullRequestSchema = z
     .object({
@@ -125,11 +125,44 @@ export const cloudAgentPullRequestSchema = z
     })
     .strict();
 
+/** Rollups of a pull request's checks and reviews; `unknown` until GitHub is read. */
+export const cloudAgentPullRequestCheckStates = [
+    'none',
+    'pending',
+    'passing',
+    'failing',
+    'unknown',
+] as const;
+export const cloudAgentPullRequestReviewStates = [
+    'none',
+    'approved',
+    'changes-requested',
+    'unknown',
+] as const;
+
 /**
- * Cursor's own terminal Run report, retained as evidence. Haus stores no
- * branch or pull-request entity and claims no GitHub lifecycle. `pullRequest`
- * is the Computer's own GitHub reading of `pullRequestUrl`; absent and `null`
- * both mean no snapshot was ever recorded for this branch.
+ * The Server's live reading of a pull request some Cloud Agent work reported
+ * (specs/open-threads.md). It stays evidence: Haus never acts on the pull
+ * request. A `computer` reading is the Run's snapshot, frozen once the Run
+ * settled; a `github` one is kept current by webhooks.
+ */
+export const cloudAgentPullRequestReadingSchema = cloudAgentPullRequestSchema.extend({
+    checks: z.enum(cloudAgentPullRequestCheckStates),
+    headSha: z.string().min(1).max(100).nullable(),
+    repository: z.string().min(1).max(300),
+    review: z.enum(cloudAgentPullRequestReviewStates),
+    /** When GitHub merged or closed it; null while it is open or was never read. */
+    settledAt: cloudAgentTimestampSchema.nullable(),
+    source: z.enum(['computer', 'github']),
+    /** Null until GitHub is read: a Run's snapshot carries no title. */
+    title: z.string().min(1).max(1000).nullable(),
+    url: z.url().max(2000),
+});
+
+/**
+ * Cursor's own terminal Run report, retained as evidence. `pullRequest` is the
+ * Computer's own GitHub reading of `pullRequestUrl`; absent and `null` both
+ * mean no snapshot was ever recorded for this branch.
  */
 export const cloudAgentBranchSchema = z
     .object({
@@ -196,6 +229,8 @@ export const cloudAgentWorkSchema = z
         /** The Server's reading of the whole job across its Runs (`deriveCloudAgentJob`). */
         job: cloudAgentJobSchema,
         messageId: cloudAgentIdSchema,
+        /** The live reading of the pull request the newest reporting Run named. */
+        pullRequest: cloudAgentPullRequestReadingSchema.nullable(),
         provider: cloudAgentProviderSchema,
         providerAgentId: z.string().trim().min(1).max(200).nullable(),
         providerUrl: z.url().max(2000).nullable(),
@@ -212,6 +247,7 @@ export const cloudAgentWorkSchema = z
 
 export type CloudAgentBranch = z.infer<typeof cloudAgentBranchSchema>;
 export type CloudAgentPullRequest = z.infer<typeof cloudAgentPullRequestSchema>;
+export type CloudAgentPullRequestReading = z.infer<typeof cloudAgentPullRequestReadingSchema>;
 export type CloudAgentPullRequestState = z.infer<typeof cloudAgentPullRequestStateSchema>;
 export type CloudAgentCancelRequestedBy = z.infer<typeof cloudAgentCancelRequestedBySchema>;
 export type CloudAgentRun = z.infer<typeof cloudAgentRunSchema>;
@@ -231,6 +267,16 @@ export function formatCloudAgentWorkSuffix(work: {
 }): string {
     const pullRequest = work.pullRequestNumber ? ` pr=#${work.pullRequestNumber}` : '';
     return ` [cloud-agent-work status=${work.status} title=${work.title}${pullRequest}]`;
+}
+
+/** A GitHub pull request URL's lower-cased `owner/name` and number; null for any other URL. */
+export function parseGithubPullRequestUrl(
+    url: string
+): { number: number; repository: string } | null {
+    const matched = /^https:\/\/github\.com\/([^/]+\/[^/]+)\/pull\/(\d+)(?:[/?#]|$)/u.exec(url);
+    return matched?.[1] && matched[2]
+        ? { number: Number(matched[2]), repository: matched[1].toLowerCase() }
+        : null;
 }
 
 /**

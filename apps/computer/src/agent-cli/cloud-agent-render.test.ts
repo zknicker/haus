@@ -19,6 +19,7 @@ const work = {
     job: { followUp: null, startedAt: null, state: 'working' as const },
     messageId: 'msg_1a2b3c4d5e6f7890',
     provider: 'cursor' as const,
+    pullRequest: null,
     providerAgentId: null,
     providerUrl: null,
     repository: 'haus/haus',

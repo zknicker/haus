@@ -9,10 +9,10 @@ import { startPostgresCluster } from './postgres-cluster.ts';
 
 /**
  * The production upgrade: a Server already at 0112, with rows under the old task
- * names, takes 0113–0115 in one batch. Backlog claims become GEN Tasks, an Agent
+ * names, takes 0113–0116 in one batch. Backlog claims become GEN Tasks, an Agent
  * claim stays a claim, and the attentions main added ride through untouched.
  */
-test('0113–0115 upgrade a Server at 0112 in one batch', async () => {
+test('0113–0116 upgrade a Server at 0112 in one batch', async () => {
     const cluster = await startPostgresCluster();
     const folder = await mkdtemp(join(tmpdir(), 'haus-tasks-upgrade-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
@@ -29,11 +29,12 @@ test('0113–0115 upgrade a Server at 0112 in one batch', async () => {
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
         await seedRowsAt0112(database);
 
-        await writeFile(journalPath, through(115));
+        await writeFile(journalPath, through(116));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
-            '0113_rename-tasks-to-claims',
-            '0114_task-boards',
-            '0115_drop-claim-priority-labels',
+            '0113_cloud-agent-pull-requests',
+            '0114_rename-tasks-to-claims',
+            '0115_task-boards',
+            '0116_drop-claim-priority-labels',
         ]);
 
         expect(

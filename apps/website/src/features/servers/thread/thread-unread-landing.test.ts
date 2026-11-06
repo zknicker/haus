@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import {
     type LandingGeometry,
+    landingSequenceParam,
     threadLandingEntryId,
     threadLandingScrollTop,
 } from './thread-unread-landing.tsx';
@@ -49,4 +50,13 @@ test('a reply below the fold lands clear of the top fade with context above it',
 
 test('a landing near the end clamps rather than padding the Thread with empty space', () => {
     expect(threadLandingScrollTop({ ...geometry, maxScrollTop: 300, rowTop: 560 })).toBe(300);
+});
+
+test('a link names a landing reply only with a positive whole sequence', () => {
+    expect(landingSequenceParam('12')).toBe(12);
+    expect(landingSequenceParam(null)).toBeNull();
+    expect(landingSequenceParam('')).toBeNull();
+    expect(landingSequenceParam('0')).toBeNull();
+    expect(landingSequenceParam('1.5')).toBeNull();
+    expect(landingSequenceParam('reply')).toBeNull();
 });

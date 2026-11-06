@@ -53,7 +53,8 @@ export const migrationsSince0060 = [
     '0110_idle-compaction',
     '0111_reminder-wake-rules',
     '0112_cloud-agent-environment',
-    '0113_rename-tasks-to-claims',
-    '0114_task-boards',
-    '0115_drop-claim-priority-labels',
+    '0113_cloud-agent-pull-requests',
+    '0114_rename-tasks-to-claims',
+    '0115_task-boards',
+    '0116_drop-claim-priority-labels',
 ];

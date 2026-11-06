@@ -87,6 +87,9 @@ public struct CloudAgentPresentation: Identifiable, Hashable, Sendable {
 
     public var pullRequestURL: URL? { Self.externalURL(branch?.pullRequestUrl) }
 
+    /// The live reading, else the snapshot its Run reported.
+    public var pullRequest: CloudAgentPullRequest? { work.pullRequest ?? branch?.pullRequest }
+
     /// `PR #<n>` from the Computer's GitHub snapshot, else parsed from the
     /// provider's URL; an unrecognised URL keeps its link and loses the number.
     public var pullRequestNumber: Int? {

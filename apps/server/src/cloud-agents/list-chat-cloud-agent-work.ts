@@ -4,7 +4,7 @@ import { requireChatAccess } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable, cloudAgentWorkLinksTable, cloudAgentWorkTable } from '../postgres/schema.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { readRuns, toCloudAgentWork } from './cloud-agent-shape.ts';
+import { readWorkDetails, toCloudAgentWork } from './cloud-agent-shape.ts';
 import { linkChatVisibleSql, linkParentChatsTable } from './cloud-agent-work-visibility.ts';
 
 /**
@@ -62,7 +62,9 @@ export async function listChatCloudAgentWork(
             asc(cloudAgentWorkLinksTable.messageId),
             asc(cloudAgentWorkLinksTable.ordinal)
         );
-    const runs = await readRuns(db, input.serverId, [...new Set(rows.map(({ work }) => work.id))]);
+    const details = await readWorkDetails(db, input.serverId, [
+        ...new Set(rows.map(({ work }) => work.id)),
+    ]);
     const seen = new Set<string>();
     const listed: ThreadCloudAgentWork[] = [];
     for (const { anchor, kind, messageId, work } of rows) {
@@ -75,7 +77,7 @@ export async function listChatCloudAgentWork(
             continue;
         }
         seen.add(key);
-        listed.push({ anchorMessageId, work: toCloudAgentWork(work, runs.get(work.id) ?? []) });
+        listed.push({ anchorMessageId, work: toCloudAgentWork(work, details.get(work.id)) });
     }
     return listed;
 }

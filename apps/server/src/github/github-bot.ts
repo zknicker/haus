@@ -83,7 +83,8 @@ export function githubInstallationLookup(db: HausDatabase): GithubInstallationLo
     };
 }
 
-function createInstallationTokens(app: GithubApp, now: () => number) {
+/** Mints and caches each installation's token, replacing it well before it expires. */
+export function createInstallationTokens(app: GithubApp, now: () => number = Date.now) {
     const cached = new Map<number, { expiresAt: number; token: string }>();
     const minting = new Map<number, Promise<string>>();
 

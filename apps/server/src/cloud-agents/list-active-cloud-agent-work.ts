@@ -11,7 +11,7 @@ import {
     readVisibleWorkLinks,
     type VisibleWorkLink,
 } from './active-cloud-agent-work-location.ts';
-import { readRuns, toCloudAgentWork } from './cloud-agent-shape.ts';
+import { readWorkDetails, toCloudAgentWork } from './cloud-agent-shape.ts';
 import { cloudAgentWorkVisibleSql } from './cloud-agent-work-visibility.ts';
 
 /**
@@ -65,12 +65,12 @@ export async function listActiveCloudAgentWork(
         );
         return location ? [{ agentName, chosen: location, work }] : [];
     });
-    const runs = await readRuns(db, input.serverId, workIds);
+    const details = await readWorkDetails(db, input.serverId, workIds);
     return chosen.map(({ agentName, chosen: { link, location }, work: row }) => ({
         ...conversationFacts(link, member.id),
         agentName,
         location,
-        work: toCloudAgentWork(row, runs.get(row.id) ?? []),
+        work: toCloudAgentWork(row, details.get(row.id)),
     }));
 }
 

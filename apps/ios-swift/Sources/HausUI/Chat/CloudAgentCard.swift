@@ -66,7 +66,7 @@ struct CloudAgentCard: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 if let number = agent.pullRequestNumber {
-                    CloudAgentPullRequestRow(number: number, pullRequest: agent.branch?.pullRequest)
+                    CloudAgentPullRequestRow(number: number, pullRequest: agent.pullRequest)
                 }
                 Text(line.text)
                     .foregroundStyle(CloudAgentTone.color(for: line.tone))

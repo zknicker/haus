@@ -10,7 +10,7 @@ import {
     readChildThreads,
     readVisibleWorkLinks,
 } from './active-cloud-agent-work-location.ts';
-import { readRuns, toCloudAgentWork } from './cloud-agent-shape.ts';
+import { readWorkDetails, toCloudAgentWork } from './cloud-agent-shape.ts';
 import { cloudAgentWorkVisibleSql } from './cloud-agent-work-visibility.ts';
 
 /** A read-only projection: no Trigger record or cleanup job is created. */
@@ -72,7 +72,7 @@ export async function listCloudAgentAutomations(
         messageIds: links.map((link) => link.messageId),
         serverId: input.serverId,
     });
-    const runs = await readRuns(db, input.serverId, workIds);
+    const details = await readWorkDetails(db, input.serverId, workIds);
     return rows.flatMap((row) => {
         const chosen = chooseWorkLocation(
             row.work.launchMessageId,
@@ -86,7 +86,7 @@ export async function listCloudAgentAutomations(
                       computerHealth: row.computerHealth,
                       location: chosen.location,
                       notification: row.notification,
-                      work: toCloudAgentWork(row.work, runs.get(row.work.id) ?? []),
+                      work: toCloudAgentWork(row.work, details.get(row.work.id)),
                   }),
               ]
             : [];
@@ -98,7 +98,8 @@ function notificationSql() {
     return sql<string>`case
         when exists (
             select 1 from agent_inbox i
-            join cloud_agent_runs r on r.server_id = i.server_id and r.id = i.dedupe_key
+            join cloud_agent_runs r on r.server_id = i.server_id
+                and r.id = split_part(i.dedupe_key, ':stall:', 1)
             where r.server_id = ${cloudAgentWorkTable.serverId}
                 and r.work_id = ${cloudAgentWorkTable.id}
                 and i.agent_id = ${cloudAgentWorkTable.agentId}

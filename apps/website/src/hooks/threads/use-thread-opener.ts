@@ -29,15 +29,16 @@ export function useThreadOpener(slug: string) {
 /**
  * A Thread's address for a router push: its page on desktop, its Chat with
  * `?thread=` on the website. For a caller that navigates its own tab to the
- * Thread (`tabStayState`) instead of Opening it beside.
+ * Thread (`tabStayState`) instead of Opening it beside. A `landingSequence`
+ * opens the Thread at that reply rather than its first unread.
  */
 export function useThreadRoute(slug: string) {
     const desktop = useOpenThread() !== null;
     return useCallback(
-        (chatId: string, anchorMessageId: string) =>
+        (chatId: string, anchorMessageId: string, landingSequence?: number) =>
             desktop
-                ? threadPagePath(slug, chatId, anchorMessageId)
-                : serverChatThreadRoute(slug, chatId, anchorMessageId),
+                ? threadPagePath(slug, chatId, anchorMessageId, { landingSequence })
+                : serverChatThreadRoute(slug, chatId, anchorMessageId, landingSequence),
         [desktop, slug]
     );
 }

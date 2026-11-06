@@ -1,6 +1,6 @@
 {
-  "id": "6fb19e94-55e2-49b0-a6f2-827be07643ae",
-  "prevId": "9b514f7b-7ada-48a2-8632-ccb95b3dfe12",
+  "id": "9b514f7b-7ada-48a2-8632-ccb95b3dfe12",
+  "prevId": "f2b4603f-0ca9-470d-83d0-76e02b0abc0d",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -6062,6 +6062,201 @@
       },
       "isRLSEnabled": false
     },
+    "public.cloud_agent_pull_requests": {
+      "name": "cloud_agent_pull_requests",
+      "schema": "",
+      "columns": {
+        "additions": {
+          "name": "additions",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "changed_files": {
+          "name": "changed_files",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "checks": {
+          "name": "checks",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'unknown'"
+        },
+        "deletions": {
+          "name": "deletions",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "head_sha": {
+          "name": "head_sha",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "number": {
+          "name": "number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "observed_at": {
+          "name": "observed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "refresh_requested_at": {
+          "name": "refresh_requested_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "repository": {
+          "name": "repository",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "review": {
+          "name": "review",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'unknown'"
+        },
+        "server_id": {
+          "name": "server_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "settled_at": {
+          "name": "settled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "cloud_agent_pull_requests_head_idx": {
+          "name": "cloud_agent_pull_requests_head_idx",
+          "columns": [
+            {
+              "expression": "server_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "repository",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "head_sha",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "cloud_agent_pull_requests_refresh_idx": {
+          "name": "cloud_agent_pull_requests_refresh_idx",
+          "columns": [
+            {
+              "expression": "refresh_requested_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"cloud_agent_pull_requests\".\"refresh_requested_at\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "cloud_agent_pull_requests_server_fk": {
+          "name": "cloud_agent_pull_requests_server_fk",
+          "tableFrom": "cloud_agent_pull_requests",
+          "tableTo": "servers",
+          "columnsFrom": [
+            "server_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "cloud_agent_pull_requests_pkey": {
+          "name": "cloud_agent_pull_requests_pkey",
+          "columns": [
+            "server_id",
+            "repository",
+            "number"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "cloud_agent_pull_requests_checks_check": {
+          "name": "cloud_agent_pull_requests_checks_check",
+          "value": "\"cloud_agent_pull_requests\".\"checks\" in ('none', 'pending', 'passing', 'failing', 'unknown')"
+        },
+        "cloud_agent_pull_requests_review_check": {
+          "name": "cloud_agent_pull_requests_review_check",
+          "value": "\"cloud_agent_pull_requests\".\"review\" in ('none', 'approved', 'changes-requested', 'unknown')"
+        },
+        "cloud_agent_pull_requests_source_check": {
+          "name": "cloud_agent_pull_requests_source_check",
+          "value": "\"cloud_agent_pull_requests\".\"source\" in ('computer', 'github')"
+        },
+        "cloud_agent_pull_requests_state_check": {
+          "name": "cloud_agent_pull_requests_state_check",
+          "value": "\"cloud_agent_pull_requests\".\"state\" in ('draft', 'open', 'merged', 'closed')"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.cloud_agent_work_links": {
       "name": "cloud_agent_work_links",
       "schema": "",
@@ -12098,6 +12293,77 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.message_claim_labels": {
+      "name": "message_claim_labels",
+      "schema": "",
+      "columns": {
+        "label_id": {
+          "name": "label_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "message_id": {
+          "name": "message_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "server_id": {
+          "name": "server_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "message_claim_labels_claim_fk": {
+          "name": "message_claim_labels_claim_fk",
+          "tableFrom": "message_claim_labels",
+          "tableTo": "message_claims",
+          "columnsFrom": [
+            "server_id",
+            "message_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "message_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "message_claim_labels_label_fk": {
+          "name": "message_claim_labels_label_fk",
+          "tableFrom": "message_claim_labels",
+          "tableTo": "task_labels",
+          "columnsFrom": [
+            "server_id",
+            "label_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "message_claim_labels_server_id_message_id_label_id_pk": {
+          "name": "message_claim_labels_server_id_message_id_label_id_pk",
+          "columns": [
+            "server_id",
+            "message_id",
+            "label_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.message_claims": {
       "name": "message_claims",
       "schema": "",
@@ -12166,6 +12432,13 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "priority": {
+          "name": "priority",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'none'"
         },
         "server_id": {
           "name": "server_id",
@@ -12408,6 +12681,10 @@
         "message_claims_status": {
           "name": "message_claims_status",
           "value": "\"message_claims\".\"status\" in ('todo', 'in_progress', 'in_review', 'done', 'closed')"
+        },
+        "message_claims_priority": {
+          "name": "message_claims_priority",
+          "value": "\"message_claims\".\"priority\" in ('none', 'urgent', 'high', 'medium', 'low')"
         },
         "message_claims_origin": {
           "name": "message_claims_origin",

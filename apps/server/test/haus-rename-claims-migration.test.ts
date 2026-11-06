@@ -11,7 +11,7 @@ import { startPostgresCluster } from './postgres-cluster.ts';
  * its rows under the new names, and a queued or recorded task assignment keeps
  * its identity under the `claim_assignment` source and `claim-assign:` key.
  */
-test('0113 renames tasks to claims and carries assignment deliveries across', async () => {
+test('0114 renames tasks to claims and carries assignment deliveries across', async () => {
     const cluster = await startPostgresCluster();
     const folder = await mkdtemp(join(tmpdir(), 'haus-rename-claims-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
@@ -24,7 +24,7 @@ test('0113 renames tasks to claims and carries assignment deliveries across', as
                 ...journal,
                 entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= idx),
             });
-        await writeFile(journalPath, through(112));
+        await writeFile(journalPath, through(113));
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
 
         // Only the renamed rows matter; Server, Chat, and Agent foreign keys are skipped.
@@ -51,9 +51,9 @@ test('0113 renames tasks to claims and carries assignment deliveries across', as
                     ('srv_one', 'agt_two', 'run_ordinary', 'cht_one', 'human', 'msg_plain')`;
         });
 
-        await writeFile(journalPath, through(113));
+        await writeFile(journalPath, through(114));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
-            '0113_rename-tasks-to-claims',
+            '0114_rename-tasks-to-claims',
         ]);
 
         expect(

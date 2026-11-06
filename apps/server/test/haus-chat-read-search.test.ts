@@ -112,6 +112,40 @@ test('PostgreSQL search returns only authorized Server messages', async () => {
     expect(JSON.stringify(plan)).toContain('chat_messages_search_idx');
 });
 
+test('search keeps a Thread behind its parent Chat access', async () => {
+    const anchor = await owner.trpc.chat.send.mutate({
+        chatId,
+        content: 'Thread anchor',
+        nonce: 'access-anchor',
+        serverId,
+    });
+    await owner.trpc.chat.send.mutate({
+        chatId,
+        content: 'Wombat reply',
+        nonce: 'access-reply',
+        serverId,
+        thread: { anchorMessageId: anchor.message.id },
+    });
+    await expect(peer.trpc.chat.search.query({ query: 'wombat', serverId })).resolves.toHaveLength(
+        1
+    );
+
+    await harness.sql`
+        delete from channel_participants
+        where server_id = ${serverId} and chat_id = ${chatId} and user_id = ${peerUserId}
+    `;
+    try {
+        await expect(peer.trpc.chat.search.query({ query: 'wombat', serverId })).resolves.toEqual(
+            []
+        );
+    } finally {
+        await harness.sql`
+            insert into channel_participants (server_id, chat_id, user_id)
+            values (${serverId}, ${chatId}, ${peerUserId})
+        `;
+    }
+});
+
 test('search narrows by author and time window', async () => {
     await peer.trpc.chat.send.mutate({
         chatId,

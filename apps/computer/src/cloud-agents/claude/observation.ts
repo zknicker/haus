@@ -2,11 +2,13 @@ import { cloudAgentActivityMaxLength, cloudAgentSummaryMaxLength } from '@haus/a
 import type { CloudAgentProviderObservation } from '../provider.ts';
 import type { ClaudeSession, ClaudeSessionEvent } from './controller.ts';
 import { evidence } from './evidence.ts';
+import { questionOf } from './pending-question.ts';
 import {
     type ClaudeLogEntry,
     claudeRunTag,
     isHausPrompt,
     isRunPrompt,
+    lastOf,
     logEntriesOf,
 } from './session-events.ts';
 
@@ -34,7 +36,7 @@ export function claudeRunObservation(input: {
     cancelRequestId: string;
     events: ClaudeSessionEvent[];
     observedAt: string;
-    ref: { runId: string; workId: string };
+    ref: { providerRunId?: string | null; runId: string; workId: string };
     session: ClaudeSession;
     /** The backward scan for this Run's own prompt gave up before reaching it or the log's end. */
     truncated?: boolean;
@@ -48,7 +50,10 @@ export function claudeRunObservation(input: {
             entry.text.split(/\r?\n/u).some((line) => line.trim() === tag)
     );
     const prompt = chronological[start] as Entry<'prompt'> | undefined;
-    if (!prompt) {
+    // A Run already found once needs no second discovery: a restart loses the
+    // reading's window, not the fact, and every event read is at or after that prompt.
+    const anchoredRunId = prompt ? null : (input.ref.providerRunId ?? null);
+    if (!(prompt || anchoredRunId)) {
         if (session.status === 'archived') {
             return {
                 observedAt,
@@ -78,7 +83,7 @@ export function claudeRunObservation(input: {
     // into this same session before this Run's own turn finished, so reading
     // past that point would attribute a later Run's activity and result to
     // this one.
-    const rest = chronological.slice(start + 1);
+    const rest = prompt ? chronological.slice(start + 1) : chronological;
     const nextPromptOffset = rest.findIndex(isHausPrompt);
     const after = nextPromptOffset === -1 ? rest : rest.slice(0, nextPromptOffset);
     // Claude took the prompt when it logged it; the reading's own time is only when Haus looked.
@@ -86,16 +91,36 @@ export function claudeRunObservation(input: {
     const base: Base = {
         ...evidence(after),
         observedAt,
-        providerRunId: prompt.id,
+        providerRunId: prompt?.id ?? (anchoredRunId as string),
         rawStatus: session.workerStatus,
         ...(startedAt ? { startedAt: new Date(startedAt).toISOString() } : {}),
     };
     const observation = afterPrompt(base, after, input);
-    if (observation.status !== 'running' || nextPromptOffset === -1) {
-        return observation;
+    const shared =
+        observation.status === 'running' && nextPromptOffset !== -1
+            ? sharedTurnResult(rest, nextPromptOffset)
+            : null;
+    if (shared) {
+        return sharedResultObservation(base, shared);
     }
-    const shared = sharedTurnResult(rest, nextPromptOffset);
-    return shared ? sharedResultObservation(base, shared) : observation;
+    return anchoredRunId ? surfaceLostResult(observation, after, session) : observation;
+}
+
+/** An idle session whose result lies past the window read can't settle; say so, don't go quiet. */
+function surfaceLostResult(
+    observation: CloudAgentProviderObservation,
+    after: ClaudeLogEntry[],
+    session: ClaudeSession
+): CloudAgentProviderObservation {
+    return observation.status === 'running' &&
+        session.workerStatus !== 'running' &&
+        openTasks(after) === 0
+        ? {
+              ...observation,
+              errorCode: claudePromptNotFoundErrorCode,
+              summary: 'Claude’s session log is too large to find this Run’s result in it.',
+          }
+        : observation;
 }
 
 type Base = Omit<CloudAgentProviderObservation, 'status'>;
@@ -205,51 +230,6 @@ function sharedResultObservation(
     };
 }
 
-/** What the worker is waiting on: the open AskUserQuestion, else the tool it wants to use. */
-function questionOf(entries: ClaudeLogEntry[], pendingAction: unknown): string {
-    const answered = new Set(
-        entries.flatMap((entry) => (entry.kind === 'tool-result' ? [entry.toolUseId] : []))
-    );
-    const open = lastOf(
-        entries,
-        (entry): entry is Entry<'tool-use'> => entry.kind === 'tool-use' && !answered.has(entry.id)
-    );
-    if (open?.name === 'AskUserQuestion') {
-        const asked = askedQuestions(open.input);
-        if (asked) {
-            return asked;
-        }
-    }
-    if (open) {
-        return `Claude is asking to use ${open.name}.`;
-    }
-    const described = typeof pendingAction === 'string' ? pendingAction.trim() : '';
-    return described || 'Claude is waiting for an answer.';
-}
-
-function askedQuestions(input: unknown): string | null {
-    const questions = (input as { questions?: unknown } | null)?.questions;
-    if (!Array.isArray(questions)) {
-        return null;
-    }
-    const lines = questions.flatMap((question: { options?: unknown; question?: unknown }) => {
-        if (typeof question?.question !== 'string') {
-            return [];
-        }
-        const options = Array.isArray(question.options)
-            ? question.options.flatMap((option: { label?: unknown }) =>
-                  typeof option?.label === 'string' ? [option.label] : []
-              )
-            : [];
-        return [
-            options.length > 0
-                ? `${question.question} (${options.join(' / ')})`
-                : question.question,
-        ];
-    });
-    return lines.length > 0 ? lines.join('\n') : null;
-}
-
 function openTasks(entries: ClaudeLogEntry[]): number {
     const tasks = new Map<string, boolean>();
     for (const entry of entries) {
@@ -285,16 +265,4 @@ function activity(
 function bounded(text: string, limit: number): string {
     const trimmed = text.trim();
     return trimmed.length > limit ? `${trimmed.slice(0, limit - 1)}…` : trimmed;
-}
-
-function lastOf<T, S extends T>(items: T[], match: (item: T) => item is S): S | undefined;
-function lastOf<T>(items: T[], match: (item: T) => boolean): T | undefined;
-function lastOf<T>(items: T[], match: (item: T) => boolean): T | undefined {
-    for (let index = items.length - 1; index >= 0; index--) {
-        const item = items[index] as T;
-        if (match(item)) {
-            return item;
-        }
-    }
-    return undefined;
 }
