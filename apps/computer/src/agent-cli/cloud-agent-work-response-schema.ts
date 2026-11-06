@@ -1,5 +1,6 @@
 import {
     cloudAgentBranchSchema,
+    cloudAgentPullRequestReadingSchema,
     cloudAgentPullRequestSchema,
     cloudAgentReconcileEntrySchema,
     cloudAgentRunModelParamSchema,
@@ -23,6 +24,10 @@ const timestampSchema = z.iso.datetime({ offset: true });
  */
 
 const cloudAgentPullRequestResponseSchema = z.looseObject(cloudAgentPullRequestSchema.shape);
+
+const cloudAgentPullRequestReadingResponseSchema = z.looseObject(
+    cloudAgentPullRequestReadingSchema.shape
+);
 
 const cloudAgentBranchResponseSchema = z.looseObject({
     ...cloudAgentBranchSchema.shape,
@@ -104,6 +109,8 @@ export const cloudAgentWorkResponseSchema = z.looseObject({
     activity: cloudAgentActivityResponseSchema.nullable(),
     cancelRequestedBy: cloudAgentCancelRequestedByResponseSchema.nullable(),
     job: cloudAgentJobResponseSchema,
+    // A Server older than this Computer sends no reading.
+    pullRequest: cloudAgentPullRequestReadingResponseSchema.nullable().default(null),
     runs: z.array(cloudAgentRunResponseSchema).max(cloudAgentRunsRetained),
 });
 

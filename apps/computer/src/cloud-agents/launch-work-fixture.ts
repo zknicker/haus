@@ -40,6 +40,7 @@ export const receipt = {
         createdAt: '2026-09-04T12:00:00.000Z',
         environmentId: null,
         environmentName: null,
+        pullRequest: null,
         id: workId,
         job: { followUp: null, startedAt: null, state: 'working' },
         messageId: 'msg_1a2b3c4d5e6f7890',

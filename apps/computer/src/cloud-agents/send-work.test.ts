@@ -10,6 +10,7 @@ const work = {
     id: 'caw_1234567890abcdef',
     environmentId: null,
     environmentName: null,
+    pullRequest: null,
     job: { followUp: null, startedAt: null, state: 'working' },
     agentId: 'agt_test',
     computerId: 'cmp_test',
