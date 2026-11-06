@@ -99,6 +99,14 @@ test('a Thread on a work card is open without a follow, until unfollowed', async
     const row = (await listOpen()).threads.find((t) => t.threadChatId === threadChatId);
     expect(row).toMatchObject({ jobCount: 1, liveJobCount: 1, state: 'working' });
 
+    const workId = (started.body.work as { id: string }).id;
+    expect(
+        await fixture.owner.trpc.cloudAgentWork.listLinks.query({
+            serverId: fixture.serverId,
+            workIds: [workId],
+        })
+    ).toEqual([{ anchorMessageId: null, chatId: fixture.channelId, workId }]);
+
     await setFollow(threadChatId, false);
     expect((await listOpen()).threads.map((t) => t.threadChatId)).not.toContain(threadChatId);
 });
