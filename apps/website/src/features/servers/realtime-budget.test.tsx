@@ -104,6 +104,7 @@ function expectedStreams(role: 'admin' | 'member') {
         'task.onUpdated',
         'taskInbox.onChanged',
         'taskLabel.onUpdated',
+        'thread.onClosedUpdated',
         'thread.onFollowUpdated',
     ];
     const operator = role === 'admin' ? ['invitation.onUpdated', 'reminder.onUpdated'] : [];
@@ -121,13 +122,13 @@ function expectedStreams(role: 'admin' | 'member') {
 
 /**
  * The per-window subscription budget (specs/realtime-events.md, "Topology"):
- * 2 × accessible Servers, 18 active-Server streams, 2 role-gated streams for
+ * 2 × accessible Servers, 19 active-Server streams, 2 role-gated streams for
  * Owners and Admins, the 2 hoisted Agent streams, and 3 per mounted Chat view.
  */
 describe('realtime subscription budget', () => {
     for (const [role, expected] of [
-        ['member', 32],
-        ['admin', 34],
+        ['member', 33],
+        ['admin', 35],
     ] as const) {
         test(`three Servers, one shown and one kept Chat view, as ${role}: ${expected} streams`, async () => {
             const harness = createRealtimeHarness(answer);

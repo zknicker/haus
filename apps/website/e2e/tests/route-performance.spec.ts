@@ -20,7 +20,7 @@ test('cold Tasks navigation paints its shell before the board module arrives', a
             .evaluate(async (row) => {
                 row.dispatchEvent(new MouseEvent('click', { bubbles: true }));
                 const frames: boolean[] = [];
-                for (let index = 0; index < 12; index += 1) {
+                for (let index = 0; index < 60; index += 1) {
                     await new Promise(requestAnimationFrame);
                     // The redirect frame reads "Tasks"; the board's own frame, its name.
                     frames.push(

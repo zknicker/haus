@@ -54,7 +54,8 @@ export const migrationsSince0060 = [
     '0111_reminder-wake-rules',
     '0112_cloud-agent-environment',
     '0113_cloud-agent-pull-requests',
-    '0114_rename-tasks-to-claims',
-    '0115_task-boards',
-    '0116_drop-claim-priority-labels',
+    '0114_thread-closures',
+    '0115_rename-tasks-to-claims',
+    '0116_task-boards',
+    '0117_drop-claim-priority-labels',
 ];

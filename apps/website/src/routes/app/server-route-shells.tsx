@@ -17,3 +17,4 @@ export { ServerSettingsPage } from './server-settings-page.tsx';
 export { SharedArtifactsPage } from './shared-artifacts-page.tsx';
 export { TaskPageRoute } from './task-page-route.tsx';
 export { TasksIndexRoute } from './tasks-index-route.tsx';
+export { ThreadsPage } from './threads-page.tsx';

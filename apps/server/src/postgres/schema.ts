@@ -53,6 +53,7 @@ export * from './schema/task-inbox-items.ts';
 export * from './schema/task-labels.ts';
 export * from './schema/task-links.ts';
 export * from './schema/tasks.ts';
+export * from './schema/thread-closures.ts';
 export * from './schema/thread-follows.ts';
 export * from './schema/triggers.ts';
 export * from './schema/users.ts';

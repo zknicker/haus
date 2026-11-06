@@ -180,9 +180,8 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({
     await expect(page.getByRole('link', { name: 'Automations', exact: true })).toBeVisible();
     await expect(page.getByText(/Nothing scheduled\./u)).toBeVisible();
     await expect(page.getByText('Local watchdog', { exact: true })).toHaveCount(0);
-    // Cloud agent history stays: it lists only the work a member can already see.
     await expect(
-        page.getByRole('button', { name: /view (reminder|trigger) history/iu })
+        page.getByRole('button', { name: /view (?:reminder|trigger) history/iu })
     ).toHaveCount(0);
 });
 

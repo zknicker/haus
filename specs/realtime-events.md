@@ -69,6 +69,7 @@ again before each delivery; the audience column is the additional rule.
 | `chat.onMessageReactionUpdated` | `messageReactionUpdatedEventSchema` (`chat-events.ts`) | `serverId`, `chatId`, `parentChatId`, `messageId` | Chat access | **Invalidate** the `chat.message` entry, `chat.search`, `cloudAgentWork.listActive`, `claim.list` |
 | `chat.onRead` | `chatReadEventSchema` (`chat-events.ts`) | `serverId`, `chatId`, `parentChatId`, `sequence`, `threadAnchorMessageId` (Thread read only, paired with `parentChatId`) | The reader only | **Invalidate** `chat.list`, skipped when the settled list already shows zero unread for the Chat (or a Thread's parent). A Thread read also invalidates the `threadAnchorMessageId` entry (its summary's unread count); no cached Thread context needed |
 | `thread.onFollowUpdated` | `threadFollowUpdatedEventSchema` (`chat-events.ts`) | `serverId`, `threadChatId`, `parentChatId`, `anchorMessageId`, `followed` | The follower only | **Invalidate** the anchor's `chat.message` entry, `chat.list` |
+| `thread.onClosedUpdated` | `threadClosedUpdatedEventSchema` (`chat-events.ts`) | `serverId`, `threadChatId`, `closed` | The closer only | **Invalidate** `thread.listOpen`, `thread.listEarlier` |
 | `chat.onLifecycle` | `chatLifecycleEventSchema` (`chat-events.ts`) | `serverId`, `chatId`, `action` (`created`, `updated`, `archived`, `unarchived`, `deleted`) | Chat access, except `deleted`, which reaches every Server member (7a873a99e) | **Invalidate** `chat.list`, `chat.listArchived`, `chat.get` (chatId), `agent.chats`; `deleted` also runs the Chat-loss purge (Refusal classes) |
 | `claim.onChanged` | `claimChangedEventSchema` (`claim.ts`) | `serverId`, `chatId`, `messageId`, `kind` (`created`, `updated`) | Chat access of `chatId` | **Invalidate** the `chat.message` entry, `claim.list` |
 | `taskLabel.onUpdated` | `taskLabelUpdatedEventSchema` (`task-labels.ts`) | `serverId`, `labelId` | Every member | **Invalidate** `taskLabel.list`; no message carries a label |
@@ -269,7 +270,7 @@ receives no realtime traffic.
   | Group | Streams | Count |
   | --- | --- | --- |
   | Every accessible Server | `server.onUpdated`, `member.onUpdated` | 2 × accessible Servers |
-  | Active Server, every role | `agent`, `computer`, `mcp`, `cloudAgentSettings`, `artifact` `.onUpdated`; `chat.onMessageCreated`, `chat.onMessageReactionUpdated`, `chat.onRead`, `thread.onFollowUpdated`, `chat.onLifecycle`, `claim.onChanged`, `taskLabel.onUpdated`, `cloudAgentWork.onUpdated`, `imageGeneration.onUpdated`, `board.onUpdated`, `task.onCreated`, `task.onUpdated` | 17 |
+  | Active Server, every role | `agent`, `computer`, `mcp`, `cloudAgentSettings`, `artifact` `.onUpdated`; `chat.onMessageCreated`, `chat.onMessageReactionUpdated`, `chat.onRead`, `thread.onFollowUpdated`, `thread.onClosedUpdated`, `chat.onLifecycle`, `claim.onChanged`, `taskLabel.onUpdated`, `cloudAgentWork.onUpdated`, `imageGeneration.onUpdated`, `board.onUpdated`, `task.onCreated`, `task.onUpdated`, `taskInbox.onChanged` | 19 |
   | Active Server, Owner/Admin only | `reminder.onUpdated`, `invitation.onUpdated` | 2 |
   | Active Server, kept Server-rooted | `agent.onLifecycle`, `agent.onActivity` (one mount each per window; the slice hoists duplicates) | 2 |
   | Per mounted Chat view (shown or kept, at most 5 kept) | `chat.onEngagement`, `chat.onThought`, `chat.onComposition` | 3 × mounted Chat views |
@@ -281,7 +282,7 @@ receives no realtime traffic.
   hold zero active entity observers (`subscribed: false`, below).
 
   A unit test mounts the shell with three Servers, one shown and one kept Chat view, as a member
-  and as an Admin, and asserts the exact stream count (6 + 18 + 2 + 6 = 32 as a member; 34 as an
+  and as an Admin, and asserts the exact stream count (6 + 19 + 2 + 6 = 33 as a member; 35 as an
   Admin), that the hidden kept view holds zero active `chat.message` observers, and that a
   reconnect's starts reconcile owned reads through the coalescer only (no `chat.message`, no
   direct reads beyond the volatile projections).

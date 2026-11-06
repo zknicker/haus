@@ -4,7 +4,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 /**
  * Removes requeued wakes whose reason went away while their run was active: a
  * Trigger fire of a removed Trigger, a claim assignment for a claim that no longer
- * exists (migration 0115 turned it into a Task), and a Task assignment that is not
+ * exists (migration 0116 turned it into a Task), and a Task assignment that is not
  * the current one. An assignment is stale when the Task now belongs to someone
  * else, or when the same Agent holds a newer assignment of it: reassigned away and
  * back while the run was active, which already queued that newer row.

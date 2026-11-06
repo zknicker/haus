@@ -10,7 +10,7 @@ read_when:
 
 # Open Threads
 
-Status: proposed, 2026-11-05. Phases 1 and 2 are built. [ADR 0051](../docs/adr/0051-open-threads-are-a-lens.md) records the
+Status: proposed, 2026-11-05. Phases 1 to 4 are built. [ADR 0051](../docs/adr/0051-open-threads-are-a-lens.md) records the
 decision. The [design board](https://claude.ai/artifact/K3g2MVRZPdkReZbkykP4vB) shows the prototype.
 Where the board and this spec differ, this spec wins.
 
@@ -51,6 +51,9 @@ either:
 The second clause is what surfaces work an Agent started on its own, from a Trigger or a heartbeat,
 which nobody follows yet. It does not change follows, so it does not change unread.
 
+A Thread holds work when a link sits on its anchor Message, as a work card's Thread does, or on a
+Message inside it.
+
 A candidate is **open** unless its state below has expired or the viewer closed it.
 
 ### State
@@ -79,7 +82,7 @@ most urgent. `<d>` is relative time.
 
 `needs-input` sits under With agents because the delegating Agent answers it, not the human. Its
 question never appears here, matching the card. `<Agent>` in `waiting` is the Agent that last wrote
-in the Thread, else the Agent the viewer's message addressed.
+in the Thread.
 
 Expiry uses fixed hours because the Server has no viewer timezone
 ([timezone contract](../docs/adr/0040-agents-resolve-human-timezones-explicitly.md)). An expired
@@ -138,8 +141,8 @@ narrows the loaded rows by title, parent, Agent, or pull request number. Rows Op
 
 ### Full-page Thread
 
-The desktop page `threads/:chatId/:anchorMessageId` exists. The web gains the same route, sharing
-`ThreadContent`. Opening a Thread from a transcript still uses the web side pane, unchanged; Go
+The page `threads/:chatId/:anchorMessageId` serves desktop and the web, sharing `ThreadContent`. On
+the web the Thread header fills the shell's band, and an artifact opens in its Chat. Opening a Thread from a transcript still uses the web side pane, unchanged; Go
 from a sidebar row or the command menu uses the page.
 
 ### Work panel
@@ -151,14 +154,13 @@ The band's **Work** button toggles it, remembered per device.
 
 For each job, in start order:
 
-1. **Job:** provider mark, job-state chip, title, status line, repository, branch, **Open in
-   `<provider>`**, and **Stop** under today's authority.
-2. **Pull request**, when one exists: number, state, title, checks, review, diff, **View PR**, and
-   `Last read <d>` when the reading is Computer-only.
+1. **Job:** the Cloud Agent work card itself, with its status line, pull request row, and actions.
+2. **Pull request**, when one exists: title, checks, review, and `Last read <d>` when the reading is
+   Computer-only.
 3. **Runs**, when there is more than one: each Run's status, duration, and summary, newest first.
 
-One **Linked from** block closes the panel, listing every conversation that links the work and
-visible to the viewer. Each entry Opens.
+One **Linked from** block closes the panel, listing every other conversation that links the work and
+is visible to the viewer (`cloudAgentWork.listLinks`). Each entry Opens.
 
 While the panel is open, a linking Message inside that Thread shows a one-line reference (provider
 mark and title) instead of the full card, so the page states each fact once. Pressing it scrolls
@@ -167,7 +169,8 @@ keeps the card, including the web side pane and the parent Chat.
 
 ### Band
 
-The Thread band gains **Close** (or **Reopen**) beside the follow toggle.
+The Thread header's menu gains **Close** (or **Reopen**) beside the follow item, on Threads that are
+on either list.
 
 ### Search
 
@@ -176,8 +179,8 @@ the parent. Each result gains `thread: { parentChatId, anchorMessageId } | null`
 on the Message inside its Thread.
 
 The command menu's **In threads** group lists Message hits in Threads, above Messages. Phase 3 adds
-a **Threads** group above it (title matches, from the same read as the Threads page plus a Server
-query over work titles and anchor Messages), where a row shows its status when it is open.
+a **Threads** group above it (title matches over the viewer's open Threads), where a row shows its
+status.
 
 ## Pull request readings
 
@@ -247,15 +250,17 @@ needs no [Computer protocol](haus-cli.md#8-server-api-apiagent) bump.
 Procedures live in `apps/server/src/haus-api/thread/`, contracts in `packages/haus-api`.
 
 ```ts
-thread.listOpen({ serverId }) => { threads: OpenThread[] }
-thread.listEarlier({ serverId, scope: 'following' | 'all', cursor }) => { threads: ThreadRow[]; nextCursor }
+thread.listOpen({ serverId }) => { threads: OpenThread[]; closedThreadChatIds: string[] }
+thread.listEarlier({ serverId, scope: 'following' | 'all', cursor }) => { threads: OpenThread[]; nextCursor }
 thread.setClosed({ serverId, threadChatId, closed }) => void
 thread.onClosedUpdated // one human's closes, across their devices
 ```
 
 `OpenThread` carries `threadChatId`, `parentChatId`, `anchorMessageId`, `title`, `state`,
-`group`, `expiresAt`, the facts its status line needs, and `lastActivityAt`. One query reads the
-candidates and their inputs; there is no per-Thread read.
+`group`, `expiresAt`, the facts its status line needs, and `lastActivityAt`. A fixed number of
+queries read the candidates and their inputs; there is no per-Thread read. Both lists read every
+candidate and filter in the Server, which is fine at today's size; add a recency bound if it stops
+being.
 
 The App hook owns invalidation from the events that already exist: `chat.onMessageCreated`,
 `thread.onFollowUpdated`, `cloudAgentWork.onUpdated`, plus `thread.onClosedUpdated`. Events notify

@@ -87,6 +87,13 @@ export const threadFollowUpdatedEventSchema = z
 
 export type ThreadFollowUpdatedEvent = z.infer<typeof threadFollowUpdatedEventSchema>;
 
+/** `thread.onClosedUpdated`: the subscriber closed or reopened a Thread. Reader only. */
+export const threadClosedUpdatedEventSchema = z
+    .object({ closed: z.boolean(), serverId: idSchema, threadChatId: idSchema })
+    .strict();
+
+export type ThreadClosedUpdatedEvent = z.infer<typeof threadClosedUpdatedEventSchema>;
+
 /**
  * `chat.onLifecycle`: one Chat's existence changed. `created` for a new
  * Channel or a DM's first resolution, `updated` for a rename, appearance, or

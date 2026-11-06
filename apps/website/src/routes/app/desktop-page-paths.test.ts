@@ -45,16 +45,14 @@ test('a Thread opened on a claim inside it carries the claim and stays the same 
     );
 });
 
-test('only desktop tabs route Thread, Attachments, and artifact pages', () => {
+test('both surfaces route a Thread; only desktop tabs route Attachments and artifact pages', () => {
     const paths = (desktop: boolean) =>
         serverPageRoutes({ desktop }).map((route) => route.path ?? '(index)');
-    const desktopOnly = [
-        'threads/:chatId/:anchorMessageId',
-        'files/:chatId',
-        'artifacts/:artifactKey',
-    ];
+    const threadPage = 'threads/:chatId/:anchorMessageId';
+    const desktopOnly = ['files/:chatId', 'artifacts/:artifactKey'];
+    expect(paths(false)).toContain(threadPage);
     expect(paths(false)).not.toContain(desktopOnly[0]);
-    expect(paths(true)).toEqual(expect.arrayContaining(desktopOnly));
+    expect(paths(true)).toEqual(expect.arrayContaining([threadPage, ...desktopOnly]));
     // The catch-all stays last on both.
     expect(paths(false).at(-1)).toBe('*');
     expect(paths(true).at(-1)).toBe('*');

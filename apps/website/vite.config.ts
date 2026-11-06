@@ -29,6 +29,9 @@ export default defineConfig(({ command }) => ({
             process.env.VITE_HAUS_PRODUCT_VERSION ?? productVersion
         ),
         'import.meta.env.VITE_HAUS_RELEASE_SNAPSHOT': JSON.stringify(releaseSnapshot),
+        // React Aria's Virtualizer reads this bare when NODE_ENV is `test` (App e2e), where the
+        // browser has no `process`. Remove once it stops reading `process.env` directly.
+        'process.env.VIRT_ON': '"1"',
     },
     optimizeDeps: {
         esbuildOptions: {

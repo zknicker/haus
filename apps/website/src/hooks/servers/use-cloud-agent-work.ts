@@ -8,6 +8,16 @@ export function useChatCloudAgentWork(serverId: string, chatId: string) {
     );
 }
 
+/** Every conversation linking these jobs, for the Work panel's Linked from block. */
+export function useCloudAgentWorkLinks(serverId: string, workIds: string[]) {
+    return (
+        hausTrpc.cloudAgentWork.listLinks.useQuery(
+            { serverId, workIds },
+            { ...queryPolicy.syncedSnapshot, enabled: workIds.length > 0 }
+        ).data ?? []
+    );
+}
+
 /**
  * Every queued or running Cloud Agent work the viewer can see on one Server,
  * oldest first. Server membership and Chat access gate the read, so work the

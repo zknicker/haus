@@ -8,11 +8,30 @@ import { decodeTaskAssignment } from '../src/tasks/task-assignment-envelope.ts';
 import { startPostgresCluster } from './postgres-cluster.ts';
 
 /**
- * The production upgrade: a Server already at 0112, with rows under the old task
- * names, takes 0113–0116 in one batch. Backlog claims become GEN Tasks, an Agent
- * claim stays a claim, and the attentions main added ride through untouched.
+ * The production upgrade: a Server with rows under the old task names takes the
+ * board Tasks migrations in one batch, from whichever migration it reached.
+ * Backlog claims become GEN Tasks, an Agent claim stays a claim, and the
+ * attentions main added ride through untouched.
  */
-test('0113–0116 upgrade a Server at 0112 in one batch', async () => {
+const boardTaskMigrations = [
+    '0115_rename-tasks-to-claims',
+    '0116_task-boards',
+    '0117_drop-claim-priority-labels',
+];
+
+test('0113–0117 upgrade a Server at 0112 in one batch', async () => {
+    await upgradeFrom(112, [
+        '0113_cloud-agent-pull-requests',
+        '0114_thread-closures',
+        ...boardTaskMigrations,
+    ]);
+}, 60_000);
+
+test("0115–0117 upgrade a Server at main's newest migration, 0114", async () => {
+    await upgradeFrom(114, boardTaskMigrations);
+}, 60_000);
+
+async function upgradeFrom(startIdx: number, expected: string[]) {
     const cluster = await startPostgresCluster();
     const folder = await mkdtemp(join(tmpdir(), 'haus-tasks-upgrade-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
@@ -25,17 +44,14 @@ test('0113–0116 upgrade a Server at 0112 in one batch', async () => {
                 ...journal,
                 entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= idx),
             });
-        await writeFile(journalPath, through(112));
+        await writeFile(journalPath, through(startIdx));
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
-        await seedRowsAt0112(database);
+        await seedOldTaskRows(database);
 
-        await writeFile(journalPath, through(116));
-        expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
-            '0113_cloud-agent-pull-requests',
-            '0114_rename-tasks-to-claims',
-            '0115_task-boards',
-            '0116_drop-claim-priority-labels',
-        ]);
+        await writeFile(journalPath, through(117));
+        expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual(
+            expected
+        );
 
         expect(
             await database`SELECT t.number, t.title, t.priority, c.category, b.next_number
@@ -120,10 +136,10 @@ test('0113–0116 upgrade a Server at 0112 in one batch', async () => {
         await cluster.stop();
         await rm(folder, { force: true, recursive: true });
     }
-}, 60_000);
+}
 
 /** Rows the migrations' foreign keys reach are real; the seed itself skips Chat wiring. */
-async function seedRowsAt0112(database: SQL) {
+async function seedOldTaskRows(database: SQL) {
     await database.begin(async (tx) => {
         await tx`SET LOCAL session_replication_role = replica`;
         await tx`INSERT INTO servers (id, slug, display_name) VALUES ('srv_one', 'one', 'One')`;

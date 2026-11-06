@@ -68,7 +68,7 @@
     "apps/server/test/haus-server-onboarding.test.ts": 783,
     "apps/server/test/haus-trigger-api.test.ts": 597,
     "apps/server/test/haus-triggers.test.ts": 469,
-    "apps/website/e2e/tests/messaging.spec.ts": 481,
+    "apps/website/e2e/tests/messaging.spec.ts": 473,
     "apps/website/e2e/tests/servers.spec.ts": 590,
     "apps/website/electron/main.cjs": 470,
     "apps/website/scripts/generate-channel-icon-catalog.ts": 1703,

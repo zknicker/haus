@@ -267,12 +267,12 @@ Haus 14.0.0 is an operator-approved exception (2026-10-13): migration `0087_arti
 `artifacts.name`, so Server 12.0.0 and earlier cannot run on the migrated schema and recovery is a
 forward fix; losing existing Artifacts is acceptable at this stage of the product.
 
-The board Tasks release (migrations 0114–0116, Computer protocol 35, ADR 0051) is an
-operator-approved forward-only release. Migration `0114_rename-tasks-to-claims` renames
+The board Tasks release (migrations 0115–0117, Computer protocol 35, ADR 0051) is an
+operator-approved forward-only release. Migration `0115_rename-tasks-to-claims` renames
 `message_tasks` to `message_claims` and `chats.last_task_number` to `last_claim_number`, and
-rewrites queued `task_assignment` inbox and trigger rows. Migration `0115_task-boards` adds boards
+rewrites queued `task_assignment` inbox and trigger rows. Migration `0116_task-boards` adds boards
 and Tasks, moves `composed` and `converted` claims onto each Server's General board, deletes those
-claim rows, and translates their queued wakes. Migration `0116_drop-claim-priority-labels` drops
+claim rows, and translates their queued wakes. Migration `0117_drop-claim-priority-labels` drops
 `message_claims.priority` and `message_claim_labels`. The previous Server reads `message_tasks`, so
 it cannot run on the migrated schema: automatic activation rollback restores only the binary, and
 recovery is a forward fix. Take a manual `pg_dump` right before merging the release PR, because no

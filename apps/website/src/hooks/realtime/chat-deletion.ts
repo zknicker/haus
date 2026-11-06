@@ -3,6 +3,7 @@ import { getQueryKey } from '@trpc/react-query';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import type { TargetedReadCoalescer } from '../../lib/targeted-read-coalescer.ts';
 import { runChatLoss } from '../servers/server-loss.ts';
+import { invalidateOpenThreads } from './open-thread-reads.ts';
 
 type ChatReadsCoalescer = Pick<TargetedReadCoalescer, 'invalidate' | 'purgeChat'>;
 
@@ -61,5 +62,6 @@ export function invalidateChatLifecycleReads(
     coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.agent.chats, { serverId }) });
     // A Thread row needs a listed parent: archiving, deleting, or hiding one drops its Threads.
     coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.thread.listUnread, { serverId }) });
+    invalidateOpenThreads(coalescer, serverId);
     coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.chat.unreadPreviews, { serverId }) });
 }

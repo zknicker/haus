@@ -8,9 +8,9 @@ import { serverRoute } from '../../features/servers/server-routes.ts';
 export type ArtifactPageTarget = HausResourceTarget & { agentId: string };
 
 /**
- * Desktop-only page addresses (ADR 0039): a Thread, a chat's Attachments, and an
- * Agent's artifact are ordinary pages a tab can show. The web keeps them in the
- * chat side pane and has no such routes. Each second segment names the page,
+ * Page addresses (ADR 0039): a Thread, a chat's Attachments, and an Agent's
+ * artifact are ordinary pages a tab can show. The web has the Thread page too,
+ * and keeps the others in the chat side pane. Each second segment names the page,
  * so `tabPageKey` tells two Threads or two artifacts apart. A Thread opened on
  * a claim inside it carries that message in `?claim=`, so its page states the claim.
  */

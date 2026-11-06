@@ -9,7 +9,7 @@ import {
     runPsql,
 } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
-import { openMessageThread } from '../support/thread-actions.ts';
+import { openMessageThread, unfollowFromThreadMenu } from '../support/thread-actions.ts';
 
 test.beforeAll(async () => {
     const { accessToken, databaseUrl } = await createAppTestFixture();
@@ -106,7 +106,7 @@ test('a human messages in #all with only the hosted Server online', async ({ pag
     await expect(page.getByText('Second durable human message', { exact: true })).toBeVisible();
 
     // The sidebar renders as a treegrid, so its search row is a row, not a button.
-    await page.getByRole('row', { name: 'Search' }).click();
+    await page.getByRole('row', { name: 'Search', exact: true }).click();
     await page.getByPlaceholder('Search or run a command').fill('First durable');
     await page.getByText('See all results').click();
     // Results render as ItemCard buttons whose accessible name carries the
@@ -203,15 +203,7 @@ test('a hosted Thread panel updates live and catches up after websocket reconnec
     await expect(panel.getByText('First hosted Thread reply', { exact: true })).toBeVisible();
     // Following lives in the thread's name menu; posting a reply auto-follows,
     // so the menu offers the unfollow escape hatch until it is used.
-    const threadMenu = panel.getByRole('button', { name: /thread actions$/u });
-    await threadMenu.click();
-    await page.getByRole('menuitem', { name: 'Stop following thread' }).click();
-    await threadMenu.click();
-    await expect(page.getByRole('menuitem', { name: 'Follow thread' })).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(
-        page.getByRole('menuitem', { includeHidden: true, name: 'Follow thread' })
-    ).toHaveCount(0);
+    await unfollowFromThreadMenu(page, panel);
 
     const ownerFixture = await createAppTestFixture();
     const peerFixture = await createAppTestFixture('peer');

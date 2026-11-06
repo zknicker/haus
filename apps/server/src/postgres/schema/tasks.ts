@@ -60,7 +60,7 @@ export const tasksTable = pgTable(
             name: 'tasks_board_fk',
         }).onDelete('cascade'),
         // Not cascade: a column holding Tasks cannot be removed until
-        // `board.setColumns` moves them. 0115 defers this check to commit, so a Server
+        // `board.setColumns` moves them. 0116 defers this check to commit, so a Server
         // delete can cascade through columns and Tasks together.
         foreignKey({
             columns: [table.serverId, table.boardId, table.columnId],

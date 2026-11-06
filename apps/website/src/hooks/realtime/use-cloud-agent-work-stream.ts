@@ -5,6 +5,7 @@ import {
     type TargetedReadCoalescer,
     useTargetedReadCoalescer,
 } from '../../lib/targeted-read-coalescer.ts';
+import { invalidateOpenThreads } from './open-thread-reads.ts';
 import { useSubscriptionRestart } from './use-subscription-restart.ts';
 
 /**
@@ -55,6 +56,10 @@ export function applyCloudAgentWorkUpdate(
 }
 
 function invalidateActiveWork(coalescer: TargetedReadCoalescer, serverId: string) {
+    invalidateOpenThreads(coalescer, serverId);
+    coalescer.invalidate({
+        queryKey: getQueryKey(hausTrpc.cloudAgentWork.listLinks, { serverId }),
+    });
     coalescer.invalidate({
         queryKey: getQueryKey(hausTrpc.cloudAgentWork.listAutomations, { serverId }),
     });

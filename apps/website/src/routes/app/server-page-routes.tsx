@@ -11,8 +11,8 @@ import { readServerRouteShells } from './server-route-modules.ts';
 /**
  * The one table of pages inside a Server (`/s/:slug/…`). The web mounts it
  * under the window router's `ServerLayout`; desktop mounts the same table in
- * every tab's own router (ADR 0039), plus the pages only a tab shows: a
- * Thread, a chat's Attachments, and an artifact. Child routes render cached frames
+ * every tab's own router (ADR 0039), plus the pages only a tab shows: a chat's
+ * Attachments and an artifact. Child routes render cached frames
  * synchronously (no `lazy`), which is what lets a plain `useRoutes` serve them.
  */
 export function serverPageRoutes({ desktop }: { desktop: boolean }): RouteObject[] {
@@ -26,6 +26,7 @@ export function serverPageRoutes({ desktop }: { desktop: boolean }): RouteObject
         { path: 'tasks', Component: serverRouteComponent('TasksIndexRoute') },
         { path: 'tasks/:boardKey', Component: serverRouteComponent('BoardPageRoute') },
         { path: 'tasks/:boardKey/:number', Component: serverRouteComponent('TaskPageRoute') },
+        { path: 'threads', Component: serverRouteComponent('ThreadsPage') },
         { path: 'activity', Component: serverRouteComponent('ActivityPage') },
         { path: 'artifacts', Component: serverRouteComponent('SharedArtifactsPage') },
         { path: 'artifacts/:artifactKey', Component: serverRouteComponent('SharedArtifactsPage') },
@@ -66,6 +67,7 @@ export function serverPageRoutes({ desktop }: { desktop: boolean }): RouteObject
                 },
             ],
         },
+        { path: 'threads/:chatId/:anchorMessageId', element: deferred(<ThreadPageRoute />) },
         ...(desktop ? desktopPageRoutes : []),
         { path: '*', element: <ServerUnknownPage /> },
     ];
@@ -80,7 +82,6 @@ const FilesPageRoute = React.lazy(async () => ({
 
 /** Pages only a desktop tab shows; the web hosts them in the chat side pane. */
 const desktopPageRoutes: RouteObject[] = [
-    { path: 'threads/:chatId/:anchorMessageId', element: deferred(<ThreadPageRoute />) },
     { path: 'files/:chatId', element: deferred(<FilesPageRoute />) },
 ];
 
