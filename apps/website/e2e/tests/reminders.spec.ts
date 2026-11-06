@@ -138,14 +138,14 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({
     });
     await expect(rows.nth(1)).toContainText('Local watchdog');
     await expect(rows.nth(1)).toContainText('Daily');
-    await expect(rows.nth(1)).toContainText('Exit 0');
+    await expect(rows.nth(1)).toContainText('Woke');
     await expect(rows.nth(2)).toContainText('Standup nudge');
     await expect(rows.nth(2)).toContainText('Every Monday');
     await expect(rows.nth(2)).toContainText('No answer');
     await expect(rows.nth(3)).toContainText('Deploy check');
     await expect(rows.nth(3)).toContainText('Once');
     await expect(rows.nth(4)).toContainText('Local watchdog');
-    await expect(rows.nth(4)).toContainText('Timed out');
+    await expect(rows.nth(4)).toContainText('Failing');
     await expect(drawer.getByText('Weekly digest')).toHaveCount(0);
 
     // The one answered fire is reachable; a scripted fire reports its script
@@ -260,19 +260,19 @@ function seedReminderState(input: {
          );
          insert into reminder_fires (
            id, server_id, reminder_id, fired_at, scheduled_for,
-           has_script, script_exit_code, script_timed_out
+           has_script, script_exit_code, script_timed_out, outcome
          ) values (
            'fir_e2e_watchdog_new', '${input.serverId}', 'rem_e2e_watchdog',
-           now() - interval '1 day', now() - interval '1 day', true, 0, false
+           now() - interval '1 day', now() - interval '1 day', true, 0, false, 'woke'
          ), (
            'fir_e2e_standup', '${input.serverId}', 'rem_e2e_standup',
-           now() - interval '36 hours', now() - interval '36 hours', false, null, false
+           now() - interval '36 hours', now() - interval '36 hours', false, null, false, 'woke'
          ), (
            'fir_e2e_deploy', '${input.serverId}', 'rem_e2e_deploy',
-           now() - interval '2 days', now() - interval '2 days', false, null, false
+           now() - interval '2 days', now() - interval '2 days', false, null, false, 'woke'
          ), (
            'fir_e2e_watchdog_old', '${input.serverId}', 'rem_e2e_watchdog',
-           now() - interval '3 days', now() - interval '3 days', true, null, true
+           now() - interval '3 days', now() - interval '3 days', true, null, true, 'failed'
          );
          insert into message_causes (
            message_id, server_id, kind, attribution, reminder_id, reminder_fire_id,

@@ -22,6 +22,9 @@ beforeEach(async () => {
     dataRoot = await mkdtemp(join(tmpdir(), 'haus-cloud-capability-env-'));
     // A developer's own Claude Code sign-in must not leak into these readings.
     restores.push(setCloudAgentProvider(unavailableCloudAgentProvider('claude')));
+    // The live environment list reads the host login directly, past the provider fake, so every
+    // test starts on a throwaway login and an empty list. A test wanting environments stubs them.
+    await hostClaudeEnvironments([]);
 });
 
 afterEach(async () => {
@@ -58,12 +61,8 @@ function setEnvironmentRequest(
     };
 }
 
-function installFakeClaude(environments: { id: string; name: string }[] = []) {
-    const provider = {
-        ...createFakeCloudAgentProvider(),
-        listEnvironments: () => Promise.resolve(environments),
-        provider: 'claude' as const,
-    };
+function installFakeClaude() {
+    const provider = { ...createFakeCloudAgentProvider(), provider: 'claude' as const };
     restores.push(setCloudAgentProvider(provider));
     return provider;
 }
@@ -272,7 +271,7 @@ test('set-environment rejects an archived id', async () => {
 
 test('set-environment with null unpins, with no live check needed', async () => {
     await writeClaudeEnvironmentId(dataRoot, 'env_a');
-    installFakeClaude([{ id: 'env_a', name: 'Alpha' }]);
+    installFakeClaude();
 
     const result = await runCloudAgentCapabilityRequest(
         setEnvironmentRequest(null),

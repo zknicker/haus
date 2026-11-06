@@ -1,3 +1,4 @@
+import { movedTaskVerbHint } from './moved-task-verbs.ts';
 import {
     type CliCommand,
     type CliFlag,
@@ -114,12 +115,14 @@ function commandName(groupName: string, sub: SubCommand): string {
 function reportUnknownSub(groupName: string, name: string | undefined, subs: SubCommand[]): number {
     const names = subs.filter((entry) => !entry.bare).map((entry) => entry.name);
     const hint = name ? suggest(name, names) : null;
+    const moved = movedTaskVerbHint(groupName, name);
     process.stderr.write(
         `${errorBlock(
             name ? `Unknown ${groupName} command '${name}'.` : `Missing ${groupName} command.`,
             hint
                 ? `Did you mean '${groupName} ${hint}'?`
-                : `Run 'haus ${groupName} --help' for the command list.`
+                : `Run 'haus ${groupName} --help' for the command list.`,
+            ...(moved ? [moved] : [])
         )}\n`
     );
     return 2;

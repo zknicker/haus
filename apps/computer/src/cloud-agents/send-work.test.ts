@@ -18,6 +18,7 @@ const work = {
     provider: 'cursor',
     providerAgentId: 'bc_same',
     providerUrl: null,
+    pullRequest: null,
     repository: 'zknicker/haus',
     startingRef: 'main',
     title: 'Existing work',

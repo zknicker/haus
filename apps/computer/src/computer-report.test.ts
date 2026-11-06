@@ -1,5 +1,23 @@
-import { expect, test } from 'bun:test';
+import { afterEach, beforeEach, expect, test } from 'bun:test';
+import { unavailableCloudAgentProvider } from './cloud-agents/provider.ts';
+import { setCloudAgentProvider } from './cloud-agents/registry.ts';
 import { toReportedAgentState } from './computer-report.ts';
+
+const restores: Array<() => void> = [];
+
+// A report reads Cloud Agent readiness, which must not reach this machine's own logins.
+beforeEach(() => {
+    restores.push(
+        setCloudAgentProvider(unavailableCloudAgentProvider('claude')),
+        setCloudAgentProvider(unavailableCloudAgentProvider('cursor'))
+    );
+});
+
+afterEach(() => {
+    while (restores.length > 0) {
+        restores.pop()?.();
+    }
+});
 
 test('reported Agent state preserves reasoning effort', () => {
     expect(

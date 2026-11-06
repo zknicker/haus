@@ -46,6 +46,7 @@ export const receipt = {
         provider: 'cursor',
         providerAgentId: null,
         providerUrl: null,
+        pullRequest: null,
         repository: 'haus/haus',
         runs: [],
         startedAt: null,
