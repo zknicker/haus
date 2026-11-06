@@ -1,0 +1,13 @@
+// A Cloud Agent Run or Work moves only through `advanceCloudAgentRun` and
+// `projectCloudAgentWork`, so a literal status write anywhere else skips the
+// transition table (specs/cloud-agent-run-lifecycle.md).
+language js
+
+`$db.update($table).set({ $props })` where {
+  $table <: or { `cloudAgentRunsTable`, `cloudAgentWorkTable` },
+  $props <: some r"(?s)status(?:: .*)?",
+  register_diagnostic(
+    span = $props,
+    message = "Cloud Agent status written outside the Run lifecycle. Go through advanceCloudAgentRun and projectCloudAgentWork. See specs/cloud-agent-run-lifecycle.md."
+  )
+}

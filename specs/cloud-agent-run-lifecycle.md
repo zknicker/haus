@@ -87,8 +87,8 @@ Settled means `pending_input`, `completed`, `failed`, `cancelled`, or `expired`.
 stays settled: its answer is a new Run. Adding a status means adding rows here, and the test walks
 every status pair so a missing row fails.
 
-A lint rule with valid and invalid cases allows status writes on `cloud_agent_runs` and
-`cloud_agent_work` only in the module that applies a `RunStep`, plus Run creation.
+A lint rule with valid and invalid cases rejects a literal `status` in an update of
+`cloud_agent_runs` or `cloud_agent_work`, so writes come from the lifecycle functions.
 
 ### 2. Work is a projection of its newest Run
 
@@ -184,8 +184,9 @@ Each one has a test in the slice that introduces it.
 Each slice ships alone, and behavior changes only where it says so.
 
 1. **Transition table.** Add `advanceCloudAgentRun` and `projectCloudAgentWork`, route the
-   observation and send paths through them, and add the lint rule. No behavior change. Proof:
-   exhaustive table test and the existing Server stall tests.
+   observation and send paths through them, and add the lint rule. No behavior change. Until slice
+   3, a reading carries `stalled: boolean` in place of `stall`. Proof: exhaustive table test and
+   the existing Server stall tests.
 2. **Cancel on the Run.** Migrate the columns and copy existing requests onto live Runs. Proof: a
    Work with a running predecessor and a queued follow-up cancels both without a reconnect.
 3. **Stalls and notices.** Migrate the inbox and Run columns, backfill from `dedupe_key`, bump the

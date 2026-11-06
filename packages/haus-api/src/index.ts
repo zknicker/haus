@@ -111,6 +111,7 @@ export * from './cloud-agent-automation.ts';
 export * from './cloud-agent-job.ts';
 export * from './cloud-agent-model.ts';
 export * from './cloud-agent-model-choice.ts';
+export * from './cloud-agent-run-lifecycle.ts';
 export * from './cloud-agent-shared.ts';
 export * from './cloud-agent-work-link.ts';
 export * from './computer-disk.ts';
