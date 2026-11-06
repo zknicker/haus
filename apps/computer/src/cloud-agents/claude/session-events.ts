@@ -166,3 +166,15 @@ function record(value: unknown): Record<string, unknown> | null {
 function count(value: unknown): number {
     return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : 0;
 }
+
+export function lastOf<T, S extends T>(items: T[], match: (item: T) => item is S): S | undefined;
+export function lastOf<T>(items: T[], match: (item: T) => boolean): T | undefined;
+export function lastOf<T>(items: T[], match: (item: T) => boolean): T | undefined {
+    for (let index = items.length - 1; index >= 0; index--) {
+        const item = items[index] as T;
+        if (match(item)) {
+            return item;
+        }
+    }
+    return undefined;
+}

@@ -136,7 +136,10 @@ export async function applyCloudAgentObservation(
                 )
             );
 
-        const stalled = !settling && isStalledErrorCode(observation.errorCode);
+        // Work already settled, cancelled by a human say, has nobody left to act on a stall.
+        const stalled =
+            !(settling || isTerminalCloudAgentStatus(row.workStatus)) &&
+            isStalledErrorCode(observation.errorCode);
         // The notice goes to the Chat that asked for the work, never to a later
         // link (ADR 0044). If that Chat is gone, the work settles (or keeps
         // retrying) silently.

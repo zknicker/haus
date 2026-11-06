@@ -712,11 +712,15 @@ The Claude adapter (`apps/computer/src/cloud-agents/claude/`) drives Claude Code
   tagged prompt turns up, bounded so one undiscovered Run never pays for an unbounded scan. Once
   found, Computer keeps that window in memory and later ticks resume from its newest event instead
   of rescanning the whole history again, so a long, busy session costs no more per poll than a
-  short one (TECH-7). A session with enough background activity before Computer ever discovers the
-  prompt — after a restart, say — can still log more than the bounded scan reads back through; that
-  reading reports `running` with `errorCode` `claude-prompt-not-found` and one inbox attention
-  rather than `queued`, since reading `queued` forever would leave the Run looking unaddressed even
-  once it has long finished with no sign anything was cut off. The Server side also never lets a
+  short one (TECH-7). A restart loses that window but not the fact: a Run whose `providerRunId` is
+  already known needs no second discovery, so Computer reads the newest events as this Run's own
+  and settles it from them; Server merges branch evidence, so nothing earlier is lost. Only a Run
+  never found, or an idle session whose result lies past the scan, reports `running` with
+  `errorCode` `claude-prompt-not-found` and one inbox attention rather than `queued`, since reading
+  `queued` forever would leave the Run looking unaddressed even once it has long finished with no
+  sign anything was cut off. Work already settled raises no stall attention: nobody is left to act
+  on it. A stall attention's inbox id is `<runId>:stall:<window>`; `@haus/api` owns that shape and
+  every reader resolves it through `cloudAgentAttentionRunId`. The Server side also never lets a
   non-terminal Run or its work record regress to `queued` once it has read anything else, so a
   Run already known to be addressed keeps that status even while this gap persists.
 - **Mapping.**
@@ -724,7 +728,8 @@ The Claude adapter (`apps/computer/src/cloud-agents/claude/`) drives Claude Code
   | Claude session state | Haus status |
   | --- | --- |
   | Tagged prompt not yet in the log | `queued` (`expired` if the session is archived) |
-  | Tagged prompt lost behind the scan's bound | `running` with `errorCode` `claude-prompt-not-found` |
+  | Tagged prompt never found behind the scan's bound | `running` with `errorCode` `claude-prompt-not-found` |
+  | Known Run, result past the scan's bound, session idle | `running` with `errorCode` `claude-prompt-not-found` |
   | `requires_action` | `pending_input`; the open AskUserQuestion, or the tool Claude asks to use, is the summary |
   | `idle` with no open background tasks after a result | `completed`, or `failed` with `errorCode` `claude-<subtype>` |
   | Haus's own interrupt acknowledged and the worker not running | `cancelled` |

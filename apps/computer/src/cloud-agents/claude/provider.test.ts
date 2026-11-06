@@ -123,6 +123,44 @@ test('a prompt the scan cap lost surfaces instead of reading queued forever', as
     });
 });
 
+test('a restart past the scan cap settles a Run Server already saw Claude take', async () => {
+    const { controller } = recordedController({
+        events: [
+            prompt,
+            { message: { content: [{ text: 'noise', type: 'text' }] }, type: 'assistant' },
+            { is_error: false, result: 'Done.', subtype: 'success', type: 'result' },
+        ],
+        truncateAt: 2,
+        session: { workerStatus: 'idle' },
+    });
+
+    expect(
+        await createClaudeCloudAgentProvider(unusedDataRoot, controller).read({
+            ...ref,
+            providerRunId: 'prompt-1',
+        })
+    ).toMatchObject({ providerRunId: 'prompt-1', status: 'completed', summary: 'Done.' });
+});
+
+test('a known Run whose result is past the scan cap surfaces instead of going quiet', async () => {
+    const { controller } = recordedController({
+        events: [
+            prompt,
+            { is_error: false, result: 'Done.', subtype: 'success', type: 'result' },
+            { message: { content: [{ text: 'noise', type: 'text' }] }, type: 'assistant' },
+        ],
+        truncateAt: 1,
+        session: { workerStatus: 'idle' },
+    });
+
+    expect(
+        await createClaudeCloudAgentProvider(unusedDataRoot, controller).read({
+            ...ref,
+            providerRunId: 'prompt-1',
+        })
+    ).toMatchObject({ errorCode: 'claude-prompt-not-found', status: 'running' });
+});
+
 test('cancel stops open background tasks, then interrupts once', async () => {
     const { calls, controller } = recordedController({
         events: [prompt, { subtype: 'task_started', task_id: 'bg1', type: 'system' }],

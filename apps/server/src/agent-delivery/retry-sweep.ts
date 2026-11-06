@@ -1,6 +1,7 @@
 import { type EffectRuntime, instrumentOperation, settle } from '@haus/effect';
 import { Data, Effect, Exit, Schedule, Scope } from 'effect';
 import type { AgentDelivery } from './delivery.ts';
+import { DeliverySweepError } from './dispatch-each.ts';
 
 const sweepInterval = '2 seconds';
 
@@ -44,6 +45,9 @@ export async function startDeliveryRetrySweep<R>(
                     Effect.annotateLogs({
                         failureKind: failureKind(error.cause),
                         operation: 'delivery.retry-sweep',
+                        ...(error.cause instanceof DeliverySweepError
+                            ? { failures: error.cause.failures }
+                            : {}),
                     })
                 )
             )
