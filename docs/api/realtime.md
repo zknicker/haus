@@ -32,7 +32,8 @@ ids and small facts, never rows.
 | `chat.onMessageCreated` | `useMessageCreatedStream` | Tail read every cached transcript list of the Chat (a Thread reply also refreshes its parent anchor's entity); invalidate `chat.list`, `chat.search`, `chat.unreadPreviews`; a Thread reply also invalidates `thread.listUnread` |
 | `chat.onMessageReactionUpdated` | `useMessageReactionStream` | Invalidate the `chat.message` entity, `chat.search`, `cloudAgentWork.listActive`, `task.list` |
 | `chat.onRead` (reader only) | `useChatReadStream` | Invalidate `chat.list` unless the settled list already shows zero; a Thread read refreshes its anchor entity and invalidates `thread.listUnread`; any read that moves a list invalidates `chat.unreadPreviews` |
-| `thread.onFollowUpdated` (follower only) | `useThreadFollowStream` | Invalidate the anchor entity, `thread.listUnread`, and `chat.unreadPreviews` |
+| `thread.onFollowUpdated` (follower only) | `useThreadFollowStream` | Invalidate the anchor entity, `thread.listUnread`, `chat.unreadPreviews`, and the Open Threads reads |
+| `thread.onClosedUpdated` (closer only) | `useThreadClosedStream` | Invalidate `thread.listOpen` and `thread.listEarlier` |
 | `chat.onLifecycle` | `useChatLifecycleStream` | Invalidate `chat.list`, `chat.listArchived`, `chat.get`, `agent.chats`, `thread.listUnread`, `chat.unreadPreviews`; `deleted` runs the Chat-loss purge and invalidates `cloudAgentWork.listActive` and every `cloudAgentWork.listForChat`, since linked work outlives the Chat |
 | `task.onChanged` | `useTaskChangeStream` | Invalidate the task Message's entity and `task.list` |
 | `taskLabel.onUpdated` | `useTaskLabelStream` | Abort the Server's in-flight tail reads, then refetch its transcript lists and entities carrying the label; invalidate `taskLabel.list`, `task.list` |

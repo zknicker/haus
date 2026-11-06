@@ -10,16 +10,19 @@ import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useColorThemeDefinition } from '../../hooks/shell/use-color-theme.ts';
 import { useChatSearchResultRoute } from '../../hooks/threads/use-chat-search-result-route.ts';
+import { useThreadRoute } from '../../hooks/threads/use-thread-opener.ts';
 import type { ServerSummary } from '../../lib/haus-server.tsx';
 import { serverSearchRoute } from '../servers/server-routes.ts';
 import { setShowTasksInChat, useShowTasksInChat } from '../tasks/show-tasks-in-chat.ts';
 import { type AgentAvatarLookup, CommandMenuShell } from './command-menu.tsx';
 import { CommandMenuMessageResults } from './command-menu-messages.tsx';
+import { CommandMenuThreadResults } from './command-menu-threads.tsx';
 
 export function CommandMenu({ server }: { server: ServerSummary }) {
     const { pathname } = useLocation();
     const navigateRoute = useNavigate();
     const resultRoute = useChatSearchResultRoute(server.slug);
+    const threadRoute = useThreadRoute(server.slug);
     const { devMode, setDevMode } = useDevMode();
     const { forcedTheme, setTheme } = useTheme();
     const modeLocked = forcedTheme !== null;
@@ -75,6 +78,12 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
 
     return (
         <CommandMenuShell commandGroups={commandGroups} lookupAgentAvatarUrl={lookupAgentAvatarUrl}>
+            <CommandMenuThreadResults
+                onOpen={(thread) =>
+                    navigate(threadRoute(thread.parentChatId, thread.anchorMessageId))
+                }
+                serverId={server.id}
+            />
             <CommandMenuMessageResults
                 onOpenResult={(result) => navigate(resultRoute(result))}
                 onSeeAll={(query) => navigate(serverSearchRoute(server.slug, query))}

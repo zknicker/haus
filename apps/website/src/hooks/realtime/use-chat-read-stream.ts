@@ -8,6 +8,7 @@ import {
     useTargetedReadCoalescer,
 } from '../../lib/targeted-read-coalescer.ts';
 import { readChangesUnreadList } from '../servers/chat-read-cache.ts';
+import { invalidateOpenThreads } from './open-thread-reads.ts';
 import { useSubscriptionRestart } from './use-subscription-restart.ts';
 
 type ReadUtils = Pick<ReturnType<typeof hausTrpc.useUtils>, 'chat' | 'thread'>;
@@ -38,6 +39,7 @@ export function useChatReadStream(
             coalescer.invalidate({
                 queryKey: getQueryKey(hausTrpc.thread.listUnread, { serverId }),
             });
+            invalidateOpenThreads(coalescer, serverId);
             coalescer.invalidate({
                 queryKey: getQueryKey(hausTrpc.chat.unreadPreviews, { serverId }),
             });
@@ -79,6 +81,9 @@ export function applyChatRead({
                     ? getQueryKey(hausTrpc.chat.list, { serverId })
                     : getQueryKey(hausTrpc.thread.listUnread, { serverId }),
         });
+        if (list === 'threads') {
+            invalidateOpenThreads(coalescer, serverId);
+        }
         // A read short of the newest message leaves the row with fewer waiting messages.
         coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.chat.unreadPreviews, { serverId }) });
     }

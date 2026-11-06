@@ -85,6 +85,8 @@ describe('Chat stream hooks', () => {
             listKey('chat.list', { serverId }),
             listKey('chat.search', { serverId }),
             listKey('thread.listUnread', { serverId }),
+            listKey('thread.listOpen', { serverId }),
+            listKey('thread.listEarlier', { serverId }),
             listKey('chat.unreadPreviews', { serverId }),
         ]);
     });
@@ -112,6 +114,8 @@ describe('Chat stream hooks', () => {
             listKey('chat.list', { serverId }),
             listKey('chat.search', { serverId }),
             listKey('thread.listUnread', { serverId }),
+            listKey('thread.listOpen', { serverId }),
+            listKey('thread.listEarlier', { serverId }),
             listKey('chat.unreadPreviews', { serverId }),
         ]);
     });
@@ -150,6 +154,8 @@ describe('Chat stream hooks', () => {
         // A Thread is unread on its own: its read leaves the parent's row alone (ADR 0043).
         expect(invalidated(onEvent)).toEqual([
             listKey('thread.listUnread', { serverId }),
+            listKey('thread.listOpen', { serverId }),
+            listKey('thread.listEarlier', { serverId }),
             listKey('chat.unreadPreviews', { serverId }),
         ]);
         expect<unknown>(onEvent.at(-1)).toEqual({
@@ -160,6 +166,8 @@ describe('Chat stream hooks', () => {
         expect(invalidated(onRecovery)).toEqual([
             listKey('chat.list', { serverId }),
             listKey('thread.listUnread', { serverId }),
+            listKey('thread.listOpen', { serverId }),
+            listKey('thread.listEarlier', { serverId }),
             listKey('chat.unreadPreviews', { serverId }),
         ]);
     });
@@ -183,6 +191,8 @@ describe('Chat stream hooks', () => {
         });
         const reads = [
             listKey('thread.listUnread', { serverId }),
+            listKey('thread.listOpen', { serverId }),
+            listKey('thread.listEarlier', { serverId }),
             listKey('chat.unreadPreviews', { serverId }),
         ];
         expect(invalidated(onEvent)).toEqual(reads);
@@ -207,6 +217,8 @@ describe('Chat stream hooks', () => {
             listKey('chat.get', { chatId: 'cht_a', serverId }),
             listKey('agent.chats', { serverId }),
             listKey('thread.listUnread', { serverId }),
+            listKey('thread.listOpen', { serverId }),
+            listKey('thread.listEarlier', { serverId }),
             listKey('chat.unreadPreviews', { serverId }),
             // Linked Cloud Agent work may leave the viewer's lists (ADR 0044).
             listKey('cloudAgentWork.listAutomations', { serverId }),
@@ -262,12 +274,16 @@ describe('Chat stream hooks', () => {
         expect(invalidated(onEvent)).toEqual([
             listKey('cloudAgentWork.listForChat', { chatId: 'cht_thread', serverId }),
             listKey('cloudAgentWork.listForChat', { chatId: 'cht_a', serverId }),
+            listKey('thread.listOpen', { serverId }),
+            listKey('thread.listEarlier', { serverId }),
             listKey('cloudAgentWork.listAutomations', { serverId }),
             listKey('cloudAgentWork.listActive', { serverId }),
         ]);
         expect<unknown>(onRecovery[0]).toEqual(bulkLists);
         expect(invalidated(onRecovery)).toEqual([
             listKey('cloudAgentWork.listForChat', { serverId }),
+            listKey('thread.listOpen', { serverId }),
+            listKey('thread.listEarlier', { serverId }),
             listKey('cloudAgentWork.listAutomations', { serverId }),
             listKey('cloudAgentWork.listActive', { serverId }),
         ]);

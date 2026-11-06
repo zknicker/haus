@@ -5,6 +5,7 @@ import {
     type TargetedReadCoalescer,
     useTargetedReadCoalescer,
 } from '../../lib/targeted-read-coalescer.ts';
+import { invalidateOpenThreads } from './open-thread-reads.ts';
 import { useSubscriptionRestart } from './use-subscription-restart.ts';
 
 /**
@@ -48,5 +49,6 @@ export function applyThreadFollow(
 /** Follow state decides which Threads are unread, and so which Inbox rows preview. */
 function invalidateUnreadThreads(coalescer: TargetedReadCoalescer, serverId: string) {
     coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.thread.listUnread, { serverId }) });
+    invalidateOpenThreads(coalescer, serverId);
     coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.chat.unreadPreviews, { serverId }) });
 }

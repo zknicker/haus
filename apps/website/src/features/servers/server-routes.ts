@@ -42,6 +42,11 @@ export function activityRoute(slug: string) {
     return `${serverRoute(slug)}/activity`;
 }
 
+/** Every Thread still in motion, plus Earlier (specs/open-threads.md). */
+export function threadsRoute(slug: string) {
+    return `${serverRoute(slug)}/threads`;
+}
+
 export function tasksRoute(slug: string) {
     return `${serverRoute(slug)}/tasks`;
 }

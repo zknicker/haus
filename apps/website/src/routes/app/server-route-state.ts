@@ -18,7 +18,8 @@ export type AppSection =
     | 'inbox'
     | 'search'
     | 'settings'
-    | 'tasks';
+    | 'tasks'
+    | 'threads';
 
 /**
  * Only Settings replaces the sidebar. Everywhere else the chat navigation
@@ -55,6 +56,9 @@ export function resolveActiveSection(pathname: string, slug: string): AppSection
     }
     if (suffix.startsWith('/tasks')) {
         return 'tasks';
+    }
+    if (suffix === '/threads') {
+        return 'threads';
     }
     if (suffix.startsWith('/activity')) {
         return 'activity';

@@ -13,6 +13,7 @@ import { useMessageReactionStream } from '../../hooks/realtime/use-message-react
 import { useReminderStream } from '../../hooks/realtime/use-reminder-stream.ts';
 import { useTaskChangeStream } from '../../hooks/realtime/use-task-change-stream.ts';
 import { useTaskLabelStream } from '../../hooks/realtime/use-task-label-stream.ts';
+import { useThreadClosedStream } from '../../hooks/realtime/use-thread-closed-stream.ts';
 import { useThreadFollowStream } from '../../hooks/realtime/use-thread-follow-stream.ts';
 import { MessageNotifications } from '../notifications/message-notifications.tsx';
 
@@ -37,6 +38,7 @@ export const ServerRealtimeListeners = React.memo(function ServerRealtimeListene
             <MessageNotifications key={serverId} server={server} />
             <MessageReactionStream serverId={serverId} />
             <ThreadFollowStream serverId={serverId} />
+            <ThreadClosedStream serverId={serverId} />
             <ChatLifecycleStream serverId={serverId} />
             <TaskChangeStream serverId={serverId} />
             <TaskLabelStream serverId={serverId} />
@@ -64,6 +66,11 @@ function MessageReactionStream({ serverId }: StreamProps) {
 
 function ThreadFollowStream({ serverId }: StreamProps) {
     useThreadFollowStream(serverId);
+    return null;
+}
+
+function ThreadClosedStream({ serverId }: StreamProps) {
+    useThreadClosedStream(serverId);
     return null;
 }
 

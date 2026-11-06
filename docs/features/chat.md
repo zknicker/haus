@@ -76,6 +76,9 @@ and [Agent Inbox](../../specs/inbox.md).
   the returned identity through ordinary `haus message send`, usually in `#all`.
   Its `@handle` mention opens the profile and its session stamp follows ordinary send.
   Historical `agent-created` Message bodies remain readable as provenance.
+* **Open Threads.** The sidebar's Open threads section and the Threads page list Threads still in
+  motion, with their status, grouped by who holds them. Close files one under Earlier until someone
+  else writes. See [Open Threads](../../specs/open-threads.md).
 * **Message attachments and Threads.** Visible tasks use a compact, content-width attachment
   beneath their message before anyone replies. It opens the existing Thread destination without a
   zero-reply count. Once replies exist, one recessed Thread card holds the task metadata, hoisted

@@ -15,3 +15,4 @@ export { ServerLayout } from './server-layout.tsx';
 export { ServerSettingsPage } from './server-settings-page.tsx';
 export { SharedArtifactsPage } from './shared-artifacts-page.tsx';
 export { TasksPage } from './tasks-page.tsx';
+export { ThreadsPage } from './threads-page.tsx';

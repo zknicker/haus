@@ -23,6 +23,16 @@ The React product surface through which humans use one or more Haus Servers. It 
 or the Electron desktop shell; Electron adds native window, credential, deep-link, and update behavior.
 _Avoid_: Server UI, website, Electron-only App
 
+**Open Thread**:
+A Thread still in motion for one human: followed, or holding Cloud Agent work they have not
+unfollowed, and not yet expired or closed. A derived lens, not a record; only Close is stored.
+_Avoid_: Task, Needs you, tracked Thread
+
+**Pull request reading**:
+The Server's evidence of one pull request some Cloud Agent work reported, kept live from GitHub.
+Haus never acts on a pull request through it.
+_Avoid_: Pull request record, PR state
+
 **Computer**:
 A Server-scoped attachment of a physical machine that runs Agent sessions and Agent turns and
 stores its Agents, workspaces, skills, queues, and execution credentials. None of those resources

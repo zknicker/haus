@@ -30,6 +30,8 @@ const ownedReads = new Set([
     'chat.markRead',
     // A missed Thread reply may have made a Thread unread (ADR 0043).
     'thread.listUnread',
+    // A new Thread reply can move an Open Threads row.
+    'thread.listOpen',
 ]);
 
 test('A: one failed stream restarts alone and recovers only its owned reads', async ({ page }) => {

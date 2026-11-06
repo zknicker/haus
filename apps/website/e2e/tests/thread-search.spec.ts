@@ -44,7 +44,7 @@ test('Search finds a Thread reply and opens its Thread', async ({ page }) => {
     await openChannel(page, 'all');
 
     // The sidebar renders as a treegrid, so its search row is a row, not a button.
-    await page.getByRole('row', { name: 'Search' }).click();
+    await page.getByRole('row', { name: 'Search', exact: true }).click();
     await page.getByPlaceholder('Search or run a command').fill('quokka');
     const result = page.getByRole('menuitem', { name: /Buried quokka reply/ });
     await expect(result).toContainText('Thread in #all');

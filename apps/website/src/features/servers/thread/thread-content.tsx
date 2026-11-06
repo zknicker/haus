@@ -183,9 +183,10 @@ export function ThreadContent({
                     }
                 }}
                 onViewInChannel={onViewInChannel}
+                serverId={chat.serverId}
                 takeover={takeover}
                 target={titles.target}
-                threadExists={threadChatId !== undefined}
+                threadChatId={threadChatId}
             />
             <TranscriptRenderProvider value={renderContext}>
                 <div className="max-h-[50%] shrink-0 overflow-y-auto px-5">

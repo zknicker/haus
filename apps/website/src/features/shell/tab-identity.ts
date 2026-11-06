@@ -166,6 +166,7 @@ const sectionLabels: Record<AppSection, string> = {
     search: 'Search',
     settings: 'Settings',
     tasks: 'Tasks',
+    threads: 'Threads',
 };
 
 function chatIdentity(chat: TabChat, records: TabIdentityRecords): TabIdentity {

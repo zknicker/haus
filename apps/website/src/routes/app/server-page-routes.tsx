@@ -24,6 +24,7 @@ export function serverPageRoutes({ desktop }: { desktop: boolean }): RouteObject
         { path: 'dm/:agentId', Component: serverRouteComponent('ImplicitAgentDmRoute') },
         { path: 'inbox', Component: serverRouteComponent('InboxPage') },
         { path: 'tasks', Component: serverRouteComponent('TasksPage') },
+        { path: 'threads', Component: serverRouteComponent('ThreadsPage') },
         { path: 'activity', Component: serverRouteComponent('ActivityPage') },
         { path: 'artifacts', Component: serverRouteComponent('SharedArtifactsPage') },
         { path: 'artifacts/:artifactKey', Component: serverRouteComponent('SharedArtifactsPage') },

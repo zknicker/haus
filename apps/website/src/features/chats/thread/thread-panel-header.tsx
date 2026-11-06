@@ -4,12 +4,14 @@ import {
     ArrowDown01Icon,
     ArrowLeft01Icon,
     ArrowUpRight01Icon,
+    CheckmarkCircle02Icon,
     Copy01Icon,
     Notification01Icon,
     NotificationOff01Icon,
     PlusSignIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
+import { useSetThreadClosed, useThreadClosure } from '../../../hooks/threads/use-open-threads.ts';
 import { writeClipboardText } from '../../../lib/clipboard.ts';
 import { bandHeightClassName, shellBandIconSize } from '../../shell/section-header.tsx';
 
@@ -21,9 +23,10 @@ export function ThreadPanelHeader({
     onClose,
     onFollowChange,
     onViewInChannel,
+    serverId,
     target,
     takeover,
-    threadExists,
+    threadChatId,
 }: {
     followed: boolean;
     followPending: boolean;
@@ -33,10 +36,14 @@ export function ThreadPanelHeader({
     onClose?: () => void;
     onFollowChange: (follow: boolean) => void;
     onViewInChannel: () => void;
+    serverId: string;
     target: null | string;
     takeover: boolean;
-    threadExists: boolean;
+    threadChatId: string | undefined;
 }) {
+    const closure = useThreadClosure(serverId, threadChatId);
+    const setClosed = useSetThreadClosed();
+    const threadExists = threadChatId !== undefined;
     const runAction = (key: React.Key) => {
         if (key === 'view') {
             onViewInChannel();
@@ -44,6 +51,10 @@ export function ThreadPanelHeader({
         }
         if (key === 'follow') {
             onFollowChange(!followed);
+            return;
+        }
+        if (key === 'closure' && threadChatId) {
+            setClosed.mutate({ closed: closure === 'open', serverId, threadChatId });
             return;
         }
         if (key === 'copy' && target) {
@@ -92,6 +103,7 @@ export function ThreadPanelHeader({
                             <Dropdown.Popover placement="bottom start">
                                 <Dropdown.Menu onAction={runAction}>
                                     <ThreadDropdownItems
+                                        closure={closure}
                                         followed={followed}
                                         followPending={followPending}
                                         target={target}
@@ -128,6 +140,12 @@ export function ThreadPanelHeader({
                                     {followed ? 'Stop following thread' : 'Follow thread'}
                                 </Label>
                             </ContextMenu.Item>
+                            {closure ? (
+                                <ContextMenu.Item id="closure" textValue={closureLabel(closure)}>
+                                    <Icon icon={CheckmarkCircle02Icon} size={16} />
+                                    <Label>{closureLabel(closure)}</Label>
+                                </ContextMenu.Item>
+                            ) : null}
                         </ContextMenu.Menu>
                     </ContextMenu.Popover>
                 </ContextMenu>
@@ -155,12 +173,18 @@ export function ThreadPanelHeader({
     );
 }
 
+function closureLabel(closure: 'closed' | 'open') {
+    return closure === 'open' ? 'Close' : 'Reopen';
+}
+
 function ThreadDropdownItems({
+    closure,
     followed,
     followPending,
     target,
     threadExists,
 }: {
+    closure: 'closed' | 'open' | null;
     followed: boolean;
     followPending: boolean;
     target: null | string;
@@ -184,6 +208,12 @@ function ThreadDropdownItems({
                 <Icon icon={followed ? NotificationOff01Icon : Notification01Icon} size={16} />
                 <Label>{followed ? 'Stop following thread' : 'Follow thread'}</Label>
             </Dropdown.Item>
+            {closure ? (
+                <Dropdown.Item id="closure" textValue={closureLabel(closure)}>
+                    <Icon icon={CheckmarkCircle02Icon} size={16} />
+                    <Label>{closureLabel(closure)}</Label>
+                </Dropdown.Item>
+            ) : null}
         </>
     );
 }

@@ -42,6 +42,7 @@ export const serverRouteModules = {
     inbox: cachedRouteModule(() => import('./inbox-page-content.tsx')),
     settingsSection: cachedRouteModule(() => import('./settings-route.tsx')),
     tasks: cachedRouteModule(() => import('./tasks-page-content.tsx')),
+    threads: cachedRouteModule(() => import('./threads-page-content.tsx')),
 };
 
 const routeModulesBySection: Record<
@@ -56,6 +57,7 @@ const routeModulesBySection: Record<
     search: [],
     settings: [serverRouteModules.settingsSection],
     tasks: [serverRouteModules.tasks],
+    threads: [serverRouteModules.threads],
 };
 
 /** Best-effort route warming. A failed preload is retried by the real navigation. */
