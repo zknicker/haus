@@ -146,21 +146,17 @@ test('Unread is a triage list: one open row, moved by keys and pressing, read by
     await expect(channelRow).toContainText('Deploy notes are posted.');
     await expect(channelComposer).toBeVisible();
     await expect(channelComposer).not.toBeFocused();
-    // The other row is one collapsed line quoting its newest waiting message.
+    // Every row is open with its own composer, quoting its newest waiting message.
     await expect(threadRow).toContainText('Found it: a stale cache key.');
-    await expect(threadRow.getByRole('textbox')).toHaveCount(0);
+    await expect(threadComposer).toBeVisible();
+    await expect(channelRow).toHaveAttribute('data-selected', 'true');
 
-    // J opens the next row and closes this one; K comes back.
+    // J selects the next row; K comes back.
     await page.keyboard.press('j');
-    await expect(threadComposer).toBeVisible();
-    await expect(channelRow.getByRole('textbox')).toHaveCount(0);
+    await expect(threadRow).toHaveAttribute('data-selected', 'true');
     await page.keyboard.press('k');
-    await expect(channelComposer).toBeVisible();
-
-    // Pressing a collapsed row opens it in place rather than navigating.
-    await threadRow.getByRole('button', { expanded: false }).click();
-    await expect(threadComposer).toBeVisible();
-    await expect(page).toHaveURL(/\/s\/inbox-triage\/inbox$/u);
+    await expect(channelRow).toHaveAttribute('data-selected', 'true');
+    await page.keyboard.press('j');
 
     // R puts the cursor in the open row's composer; a reply reads the row and
     // opens the next one.
