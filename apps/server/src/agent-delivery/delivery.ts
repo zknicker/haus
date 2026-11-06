@@ -44,6 +44,7 @@ import {
     reconcileConfigureFrame,
     startPromptFacts,
 } from './dispatch-config.ts';
+import { dispatchEach } from './dispatch-each.ts';
 import { traceAgentDispatch } from './dispatch-telemetry.ts';
 import {
     boundedCompatibleRows,
@@ -65,6 +66,7 @@ import {
 import { interruptActiveRun, killedRun } from './interrupt-active-run.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
 import { consumeNoticeAck } from './notice-ack.ts';
+import { retireOrphanedAttentions } from './retire-orphaned-attentions.ts';
 import { isBackedOff } from './retry-policy.ts';
 import { recordSessionRotation } from './session-rotation.ts';
 import * as store from './store.ts';
@@ -770,10 +772,7 @@ export class AgentDelivery {
 
     /** Periodic reconciliation: resend unacknowledged deliveries, drain stragglers. */
     async sweep(): Promise<void> {
-        const candidates = await store.listDispatchCandidates(this.db);
-        for (const candidate of candidates) {
-            await this.dispatchAgent(candidate.agentId, candidate.serverId);
-        }
+        await dispatchEach(this, await store.listDispatchCandidates(this.db));
     }
 
     /**
@@ -796,6 +795,7 @@ export class AgentDelivery {
             return null;
         }
         await markCursorSubsumedSeen(tx, { agentId, serverId: state.serverId });
+        await retireOrphanedAttentions(tx, agentId);
         const yielded = await yieldHeartbeatToAddressed(tx, state);
         if (yielded) {
             const next = await this.planDispatch(tx, agentId);

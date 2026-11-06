@@ -139,3 +139,42 @@ test('a Run already running never regresses to queued when its prompt briefly go
     expect(await readNotFoundAttentions()).toHaveLength(1);
     socket.close();
 });
+
+test('a job already cancelled raises no stall attention', async () => {
+    const runner = await fixture.mintRunner('run_cloud_stall_cancelled');
+    const created = await fixture.postStart(
+        runner,
+        fixture.startBody({ nonce: 'stall-cancelled' })
+    );
+    const work = created.body.work as CloudAgentWork;
+    const runId = created.body.runId as string;
+    const socket = await fixture.attachComputer();
+    await fixture.harness.sql`
+        update cloud_agent_work set status = 'cancelled', terminal_at = now() where id = ${work.id}
+    `;
+
+    socket.send(
+        JSON.stringify({
+            observation: {
+                errorCode: 'claude-prompt-not-found',
+                observedAt: '2026-09-04T13:00:00.000Z',
+                runId,
+                status: 'running',
+                workId: work.id,
+            },
+            type: 'cloud-agent-observation',
+        })
+    );
+    await fixture.waitFor(async () => {
+        const [run] = (await fixture.harness.sql`
+            select error_code from cloud_agent_runs where id = ${runId}
+        `) as { error_code: string | null }[];
+        return run?.error_code;
+    });
+
+    const rows = (await fixture.harness.sql`
+        select id from agent_inbox where dedupe_key like ${`${runId}:stall:%`}
+    `) as { id: string }[];
+    expect(rows).toHaveLength(0);
+    socket.close();
+});
