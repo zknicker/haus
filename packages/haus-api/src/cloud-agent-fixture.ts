@@ -12,6 +12,7 @@ export const work = {
     job: { followUp: null, startedAt: '2026-09-04T12:00:30.000Z', state: 'working' },
     messageId: 'msg_1234567890abcdef',
     provider: 'cursor',
+    pullRequest: null,
     providerAgentId: 'bc_abc',
     providerUrl: 'https://cursor.com/agents/bc_abc',
     repository: 'haus/haus',

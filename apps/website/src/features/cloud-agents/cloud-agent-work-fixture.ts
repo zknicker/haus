@@ -28,6 +28,7 @@ export function cloudAgentWorkFixture(overrides: Partial<CloudAgentWork> = {}): 
         provider: 'cursor' as const,
         providerAgentId: null,
         providerUrl: null,
+        pullRequest: null,
         repository: 'haus/haus',
         startedAt: at,
         startingRef: null,
