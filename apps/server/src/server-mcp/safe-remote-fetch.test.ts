@@ -85,6 +85,59 @@ describe('safeFetch', () => {
         expect(capturedInit?.tls?.serverName).toBe('1.1.1.1');
     });
 
+    test('forwards credentials across a same-origin redirect', async () => {
+        let hops = 0;
+        let secondHopHeaders: Headers | undefined;
+        globalThis.fetch = (async (_url: unknown, init: unknown) => {
+            hops += 1;
+            if (hops === 1) {
+                return Response.redirect('https://1.1.1.1/other-path', 302);
+            }
+            secondHopHeaders = (init as RequestInit).headers as Headers;
+            return new Response('ok', { status: 200 });
+        }) as unknown as typeof fetch;
+
+        await safeFetch(
+            'https://1.1.1.1/mcp',
+            { headers: { authorization: 'Bearer secret', 'x-mcp-secret': 'shh' } },
+            label,
+            allow
+        );
+
+        expect(secondHopHeaders?.get('authorization')).toBe('Bearer secret');
+        expect(secondHopHeaders?.get('x-mcp-secret')).toBe('shh');
+    });
+
+    test('strips credentials and custom headers across a cross-origin redirect', async () => {
+        let hops = 0;
+        let secondHopHeaders: Headers | undefined;
+        globalThis.fetch = (async (_url: unknown, init: unknown) => {
+            hops += 1;
+            if (hops === 1) {
+                return Response.redirect('https://2.2.2.2/other-path', 302);
+            }
+            secondHopHeaders = (init as RequestInit).headers as Headers;
+            return new Response('ok', { status: 200 });
+        }) as unknown as typeof fetch;
+
+        await safeFetch(
+            'https://1.1.1.1/mcp',
+            {
+                headers: {
+                    accept: 'application/json',
+                    authorization: 'Bearer secret',
+                    'x-mcp-secret': 'shh',
+                },
+            },
+            label,
+            allow
+        );
+
+        expect(secondHopHeaders?.get('authorization')).toBeNull();
+        expect(secondHopHeaders?.get('x-mcp-secret')).toBeNull();
+        expect(secondHopHeaders?.get('accept')).toBe('application/json');
+    });
+
     test('allows the same private-IP hostname once allowPrivateNetworks is true', async () => {
         stubLookup([{ address: '127.0.0.1', family: 4 }]);
         let fetchCalls = 0;
