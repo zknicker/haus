@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useThreadUnreadLanding } from '../../../hooks/threads/use-unread-threads.ts';
 import { holdLandedRow } from './thread-landing-hold.ts';
 
@@ -24,7 +25,8 @@ const readableReplyPx = 48;
  * top fade with the reply before it peeking, held there while the Thread's
  * layout settles. Renders inside the Thread's
  * `MessageScrollerProvider`, after its `MessageScroller`, so the rows exist
- * when it lands.
+ * when it lands. A link that names a reply (`?at=<sequence>`, a Search result)
+ * lands there instead, the same way.
  */
 export function ThreadUnreadLanding({
     sequenceByEntryId,
@@ -39,18 +41,26 @@ export function ThreadUnreadLanding({
     viewportRef: React.RefObject<HTMLDivElement | null>;
 }) {
     const landing = useThreadUnreadLanding(serverId, threadChatId);
+    const [searchParams] = useSearchParams();
+    const requestedSequence = landingSequenceParam(searchParams.get('at'));
+    const landingKey = `${threadChatId}:${requestedSequence}`;
     const decidedFor = React.useRef<string | null>(null);
     // The hold releases itself (user scroll intent or its settle window), never
     // on effect cleanup: dev StrictMode's remount would end it at once.
     const releaseHold = React.useRef<(() => void) | null>(null);
-    const ready = threadChatId !== undefined && sequenceByEntryId.size > 0 && landing !== undefined;
+    const ready =
+        threadChatId !== undefined &&
+        sequenceByEntryId.size > 0 &&
+        (requestedSequence !== null || landing !== undefined);
 
     React.useLayoutEffect(() => {
-        if (!ready || decidedFor.current === threadChatId) {
+        if (!ready || decidedFor.current === landingKey) {
             return;
         }
-        decidedFor.current = threadChatId;
-        const entryId = landing ? threadLandingEntryId(sequenceByEntryId, landing.sequence) : null;
+        decidedFor.current = landingKey;
+        const sequence = requestedSequence ?? landing?.sequence;
+        const entryId =
+            sequence === undefined ? null : threadLandingEntryId(sequenceByEntryId, sequence);
         const viewport = viewportRef.current;
         const row = entryId ? viewport?.querySelector(messageItemSelector(entryId)) : null;
         if (!(viewport && row)) {
@@ -62,9 +72,15 @@ export function ThreadUnreadLanding({
             releaseHold.current?.();
             releaseHold.current = holdLandedRow(viewport, row);
         }
-    }, [landing, ready, sequenceByEntryId, threadChatId, viewportRef]);
+    }, [landing, landingKey, ready, requestedSequence, sequenceByEntryId, viewportRef]);
 
     return null;
+}
+
+/** The reply a link asks to land on; null when it names none or nothing valid. */
+export function landingSequenceParam(value: string | null): number | null {
+    const sequence = Number(value);
+    return value !== null && Number.isInteger(sequence) && sequence > 0 ? sequence : null;
 }
 
 /** The viewport and landing row, in the viewport's scroll coordinates. */

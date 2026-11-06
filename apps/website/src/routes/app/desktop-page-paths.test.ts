@@ -38,7 +38,7 @@ test('two Threads in one chat are different pages; Attachments is its own page',
 
 test('a Thread opened on a task inside it carries the task and stays the same page', () => {
     const plain = threadPagePath('acme', 'c1', 'm1');
-    const onTask = threadPagePath('acme', 'c1', 'm1', 'msg_reply');
+    const onTask = threadPagePath('acme', 'c1', 'm1', { taskMessageId: 'msg_reply' });
     expect(onTask).toBe('/s/acme/threads/c1/m1?task=msg_reply');
     expect(tabPageKey({ kind: 'app', path: onTask })).toBe(
         tabPageKey({ kind: 'app', path: plain })

@@ -50,7 +50,7 @@ export function useDesktopPageOpeners(): DesktopPageOpeners | null {
             openFiles: (chatId) => openPage(filesPagePath(slug, chatId)),
             openPage,
             openThread: (chatId, anchorMessageId, gesture, taskMessageId) =>
-                openPage(threadPagePath(slug, chatId, anchorMessageId, taskMessageId), gesture),
+                openPage(threadPagePath(slug, chatId, anchorMessageId, { taskMessageId }), gesture),
         };
     }, [slug, tabId, tabs]);
 }

@@ -1,4 +1,4 @@
-import type { Agent, Chat, ServerMember } from '@haus/api';
+import type { Agent, Chat, ChatSearchResult, ServerMember } from '@haus/api';
 import { Label, ListBox, Select } from '@heroui/react';
 import * as React from 'react';
 import type { ChatSearchFilters } from '../../../hooks/servers/use-chat-search.ts';
@@ -198,6 +198,22 @@ function activeTriggerClassName(active: boolean): string | undefined {
 
 function activeIndicatorClassName(active: boolean): string | undefined {
     return active ? 'text-accent-soft-foreground' : undefined;
+}
+
+/** The Channel or DM a result belongs to; a Thread Message reads its parent. */
+export function searchResultChatId(result: ChatSearchResult): string {
+    return result.thread?.parentChatId ?? result.chatId;
+}
+
+/** Where a result sits, as its row names it; null while its Chat is unknown. */
+export function searchResultLabel(result: ChatSearchResult, chat: Chat | undefined): string | null {
+    if (!chat) {
+        return null;
+    }
+    if (!result.thread) {
+        return searchChatLabel(chat);
+    }
+    return chat.kind === 'channel' ? `Thread in ${searchChatLabel(chat)}` : 'Thread in DM';
 }
 
 export function searchChatLabel(chat: Chat): string {

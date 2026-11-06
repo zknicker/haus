@@ -63,9 +63,54 @@ test('concurrent first replies converge on one deterministic child Thread', asyn
         messages: [{ sequence: 1 }, { sequence: 2 }],
     });
     await expect(owner.trpc.chat.list.query({ serverId: server.id })).resolves.toHaveLength(1);
+});
+
+test('search finds Thread messages and says where they sit', async () => {
+    const server = await owner.trpc.server.create.mutate({
+        displayName: 'Thread Search',
+        slug: 'thread-search',
+    });
+    const parentChatId = server.channels[0].id;
+    const anchor = await owner.trpc.chat.send.mutate({
+        chatId: parentChatId,
+        content: 'Anchor without the term',
+        nonce: 'search-anchor',
+        serverId: server.id,
+    });
+    const reply = await owner.trpc.chat.send.mutate({
+        chatId: parentChatId,
+        content: 'Buried quokka reply',
+        nonce: 'search-reply',
+        serverId: server.id,
+        thread: { anchorMessageId: anchor.message.id },
+    });
+    await owner.trpc.chat.send.mutate({
+        chatId: parentChatId,
+        content: 'Top-level quokka message',
+        nonce: 'search-top-level',
+        serverId: server.id,
+    });
+
+    const results = await owner.trpc.chat.search.query({ query: 'quokka', serverId: server.id });
+    expect(results.map((result) => [result.content, result.thread])).toEqual([
+        ['Top-level quokka message', null],
+        ['Buried quokka reply', { anchorMessageId: anchor.message.id, parentChatId }],
+    ]);
+    expect(results[1]).toMatchObject({
+        chatId: reply.threadChatId,
+        sequence: reply.message.sequence,
+    });
+
     await expect(
-        owner.trpc.chat.search.query({ query: 'first', serverId: server.id })
-    ).resolves.toEqual([]);
+        owner.trpc.chat.search.query({ chatId: parentChatId, query: 'quokka', serverId: server.id })
+    ).resolves.toHaveLength(2);
+    await expect(
+        owner.trpc.chat.search.query({
+            chatId: reply.threadChatId as string,
+            query: 'quokka',
+            serverId: server.id,
+        })
+    ).resolves.toMatchObject([{ content: 'Buried quokka reply' }]);
 });
 
 test('a direct mention restores an explicit Thread unfollow', async () => {

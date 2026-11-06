@@ -274,24 +274,3 @@ export const chatMessagePageSchema = z
 export * from './chat-channel-lifecycle.ts';
 export * from './chat-composition.ts';
 export * from './chat-thread-follow.ts';
-
-export const chatSearchInputSchema = z
-    .object({
-        /** Only messages created at or after this instant. */
-        after: timestampSchema.optional(),
-        authorAgentId: idSchema.optional(),
-        authorUserId: idSchema.optional(),
-        chatId: idSchema.optional(),
-        limit: z.number().int().min(1).max(100).default(50),
-        query: z.string().trim().min(1).max(500),
-        serverId: idSchema,
-    })
-    .strict();
-
-export const chatSearchResultSchema = chatMessageSchema.extend({
-    chatArchivedAt: timestampSchema.nullable(),
-});
-
-export type ChatSearchResult = z.infer<typeof chatSearchResultSchema>;
-
-export const chatSearchResultsSchema = z.array(chatSearchResultSchema);
