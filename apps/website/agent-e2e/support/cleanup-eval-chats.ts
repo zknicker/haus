@@ -1,13 +1,13 @@
-export interface EvalCleanupTask {
-    task: {
+export interface EvalCleanupClaim {
+    claim: {
         chatId: string;
         threadChatId: string;
     };
 }
 
-/** `task.list` answers with the page wrapper, not a bare array. */
-export interface EvalCleanupTaskList {
-    tasks: readonly EvalCleanupTask[];
+/** `claim.list` answers with the page wrapper, not a bare array. */
+export interface EvalCleanupClaimList {
+    claims: readonly EvalCleanupClaim[];
 }
 
 interface EvalCleanupChatPage {
@@ -23,17 +23,17 @@ export type EvalCleanupOperation = <T>(operation: Promise<T>, label: string) => 
 
 export function expandEvalCleanupChatIds(
     chatIds: Iterable<string | null | undefined>,
-    tasks: readonly EvalCleanupTask[]
+    claims: readonly EvalCleanupClaim[]
 ) {
     const requestedChatIds = new Set(
         [...chatIds].filter((chatId): chatId is string => Boolean(chatId))
     );
 
-    for (const task of tasks) {
-        const { chatId, threadChatId } = task.task;
+    for (const claim of claims) {
+        const { chatId, threadChatId } = claim.claim;
         if (requestedChatIds.has(threadChatId) && !requestedChatIds.has(chatId)) {
             throw new Error(
-                `Refusing Agent E2E cleanup for task Thread ${threadChatId}: its parent Chat ${chatId} is not in the exact cleanup set.`
+                `Refusing Agent E2E cleanup for claim Thread ${threadChatId}: its parent Chat ${chatId} is not in the exact cleanup set.`
             );
         }
         if (requestedChatIds.has(chatId)) {
@@ -55,10 +55,10 @@ export async function cleanupEvalChats(
     }
 
     const listed = (await runOperation(
-        harness.trpc('task.list', { serverId: harness.serverId }),
-        `list task Threads for cleanup of ${requestedChatIds.join(', ')}`
-    )) as EvalCleanupTaskList;
-    const exactChatIds = new Set(expandEvalCleanupChatIds(requestedChatIds, listed.tasks));
+        harness.trpc('claim.list', { serverId: harness.serverId }),
+        `list claim Threads for cleanup of ${requestedChatIds.join(', ')}`
+    )) as EvalCleanupClaimList;
+    const exactChatIds = new Set(expandEvalCleanupChatIds(requestedChatIds, listed.claims));
     for (const chatId of requestedChatIds) {
         const page = (await runOperation(
             harness.trpc('chat.messages', {

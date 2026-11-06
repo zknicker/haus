@@ -9,6 +9,7 @@ import { revealTab } from './tab-drag/tab-reveal.ts';
 import { useTabDragHandlers } from './tab-drag/tab-rows-drag.tsx';
 import { parseTabPage, type TabIdentity } from './tab-identity.ts';
 import {
+    useBoardTabName,
     useSharedArtifactTabTitle,
     useTabIdentity,
     useThreadTabExcerpt,
@@ -50,6 +51,9 @@ export function PaneTab({
             />
         );
     }
+    if (page.kind === 'board') {
+        return <BoardPaneTab dragging={dragging} location={location} page={page} tabId={tabId} />;
+    }
     return <PlainPaneTab dragging={dragging} location={location} tabId={tabId} />;
 }
 
@@ -83,6 +87,17 @@ function SharedArtifactPaneTab({
 }) {
     const artifactTitle = useSharedArtifactTabTitle(shared);
     return <PaneTabView identity={useTabIdentity(props.location, { artifactTitle })} {...props} />;
+}
+
+/** A board tab reads the board list for its name, as its page does. */
+function BoardPaneTab({
+    page,
+    ...props
+}: PaneTabProps & {
+    page: Parameters<typeof useBoardTabName>[0];
+}) {
+    const boardName = useBoardTabName(page);
+    return <PaneTabView identity={useTabIdentity(props.location, { boardName })} {...props} />;
 }
 
 function PaneTabView({

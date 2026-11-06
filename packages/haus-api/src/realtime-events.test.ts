@@ -1,11 +1,11 @@
 import { expect, test } from 'bun:test';
+import { claimChangedEventSchema } from './claim.ts';
 import {
     computerUpdatedEventSchema,
     memberUpdatedEventSchema,
     realtimeRefusalSchema,
     serverUpdatedEventSchema,
 } from './realtime-events.ts';
-import { taskChangedEventSchema } from './task.ts';
 
 test('only three refusal classes exist, each coded rather than a bare tRPC code', () => {
     expect(realtimeRefusalSchema.options).toEqual([
@@ -37,13 +37,13 @@ test('Agent skill and workspace changes never ride the Computer notice', () => {
     ).toThrow();
 });
 
-test('a task notice names the Message and carries no task row', () => {
+test('a claim notice names the Message and carries no claim row', () => {
     const event = {
         chatId: 'cht_1',
         kind: 'updated' as const,
         messageId: 'msg_1',
         serverId: 'srv_1',
     };
-    expect(taskChangedEventSchema.parse(event)).toEqual(event);
-    expect(() => taskChangedEventSchema.parse({ ...event, task: {} })).toThrow();
+    expect(claimChangedEventSchema.parse(event)).toEqual(event);
+    expect(() => claimChangedEventSchema.parse({ ...event, claim: {} })).toThrow();
 });

@@ -130,7 +130,7 @@ export async function runCheck(deps: MessageDeps): Promise<number> {
                 line: formatDeliveryEnvelope(row.target, row.message, row.threadFollowReactivated),
             });
         }
-        // A fire or a task assignment has no Chat message but is still an inbox
+        // A fire or a claim assignment has no Chat message but is still an inbox
         // item: it must drain and page exactly like one.
         for (const event of response.automations) {
             envelopes.push({

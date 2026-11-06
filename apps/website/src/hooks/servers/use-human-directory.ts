@@ -4,7 +4,7 @@ import { useMembers } from './use-members.ts';
 
 /**
  * Names and faces for humans a surface only knows by id. Backed by the member
- * directory the workspace already returns, so a transcript author, a task
+ * directory the workspace already returns, so a transcript author, a claim
  * assignee, and the members page never disagree about who someone is.
  */
 export function useHumanDirectory(serverId: string | undefined, options?: { enabled?: boolean }) {

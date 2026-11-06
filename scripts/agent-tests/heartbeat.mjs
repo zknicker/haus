@@ -257,7 +257,7 @@ function toolLines(tool) {
     return [call, `> ${output.slice(0, 400)}`];
 }
 
-/** Agent-authored messages in a chat after `sinceSequence`, including task Threads promoted from it. */
+/** Agent-authored messages in a chat after `sinceSequence`, including claim Threads promoted from it. */
 export async function agentPosts(kit, chatId, agentId, sinceSequence = 0) {
     const messages = await kit.readMessages(chatId);
     return kit.authoredBy(messages, agentId, sinceSequence);

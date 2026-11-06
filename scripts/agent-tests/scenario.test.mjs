@@ -11,16 +11,16 @@ import { AssertionError, createExpect, defineScenario, isScenario } from './scen
 describe('expect helper', () => {
     test('records passing gates', () => {
         const assertions = [];
-        createExpect(assertions)('in_progress', 'task status').toBe('in_progress');
-        expect(assertions).toEqual([{ label: 'task status', ok: true }]);
+        createExpect(assertions)('in_progress', 'claim status').toBe('in_progress');
+        expect(assertions).toEqual([{ label: 'claim status', ok: true }]);
     });
 
     test('reports the actual value on failure', () => {
         const assertions = [];
         const check = createExpect(assertions);
-        expect(() => check('todo', 'task status').toBe('in_progress')).toThrow(AssertionError);
+        expect(() => check('todo', 'claim status').toBe('in_progress')).toThrow(AssertionError);
         expect(assertions[0].ok).toBe(false);
-        expect(assertions[0].message).toBe('task status: expected "in_progress", got "todo"');
+        expect(assertions[0].message).toBe('claim status: expected "in_progress", got "todo"');
     });
 
     test('names the container on length and containment failures', () => {

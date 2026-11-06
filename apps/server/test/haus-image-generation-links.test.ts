@@ -95,45 +95,45 @@ test('only visible generations link; the projection follows link order; updates 
     expect(relinked.message.imageGenerations.map(({ id }) => id)).toEqual([firstId]);
 });
 
-test('task Messages record image links for Agent and human authors, and replay', async () => {
+test('claim Messages record image links for Agent and human authors, and replay', async () => {
     const { channelId, harness, orbitAgentId, owner, serverId } = fixture;
-    const runner = await fixture.mintRunner('run_img_task_links');
-    const generationId = (await fixture.create(runner, { nonce: 'task-link-1' })).body.generation
+    const runner = await fixture.mintRunner('run_img_claim_links');
+    const generationId = (await fixture.create(runner, { nonce: 'claim-link-1' })).body.generation
         .id as string;
     await fixture.settled(runner, generationId);
     const link = formatImageGenerationLink(generationId);
     await readTargetAsAgent(harness, { agentId: orbitAgentId, serverId }, runner, '#art');
 
-    const agentTask = {
-        nonce: 'agent-task-img',
+    const agentClaim = {
+        nonce: 'agent-claim-img',
         target: '#art',
         titles: [`Review ${link}`, `Ghost [Gone](image-generation://${ghost})`],
     };
-    const created = await fixture.agentCall(runner, 'POST', '/api/agent/tasks/create', agentTask);
+    const created = await fixture.agentCall(runner, 'POST', '/api/agent/claims/create', agentClaim);
     expect(created.status).toBe(200);
-    const agentMessageId = created.body.tasks[0].message.id as string;
+    const agentMessageId = created.body.claims[0].message.id as string;
     const agentRows = (await harness.sql`
         select generation_id from image_generation_links
         where server_id = ${serverId} and message_id = ${agentMessageId}
     `) as { generation_id: string }[];
     expect(agentRows).toEqual([{ generation_id: generationId }]);
     // The unseen link degraded to its label, and a retry replays instead of conflicting.
-    const replay = await fixture.agentCall(runner, 'POST', '/api/agent/tasks/create', agentTask);
+    const replay = await fixture.agentCall(runner, 'POST', '/api/agent/claims/create', agentClaim);
     expect(replay.status).toBe(200);
     expect(JSON.stringify(replay.body)).not.toContain(ghost);
 
-    // The Owner can read the Message above, so a human task may now link the generation too.
+    // The Owner can read the Message above, so a human claim may now link the generation too.
     const humanInput = {
         chatId: channelId,
         content: `Polish ${link}`,
-        nonce: 'human-task-img',
+        nonce: 'human-claim-img',
         serverId,
     };
-    const human = await owner.trpc.task.create.mutate(humanInput);
+    const human = await owner.trpc.claim.create.mutate(humanInput);
     const humanRows = (await harness.sql`
         select generation_id from image_generation_links
-        where server_id = ${serverId} and message_id = ${human.task.messageId}
+        where server_id = ${serverId} and message_id = ${human.claim.messageId}
     `) as { generation_id: string }[];
     expect(humanRows).toEqual([{ generation_id: generationId }]);
-    expect((await owner.trpc.task.create.mutate(humanInput)).idempotent).toBe(true);
+    expect((await owner.trpc.claim.create.mutate(humanInput)).idempotent).toBe(true);
 });

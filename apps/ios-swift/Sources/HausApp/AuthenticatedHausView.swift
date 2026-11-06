@@ -13,8 +13,13 @@ struct AuthenticatedHausView: View {
     /// the Store's read acknowledgements always name the same Chat.
     @State var selectedDestinationID: ChatDestination.ID?
     @State var canvasScrollTarget: MessageScrollTarget?
+    /// Ticks when a route puts something on the canvas, so a drawer left open
+    /// behind a pushed Task closes rather than covering it.
+    @State var canvasRouteRevision = 0
     @State var path: [HausRootRoute] = []
     @State var agentCall: AgentCallRequest?
+    /// The message a drawer's Convert to Task is converting.
+    @State var convertingMessage: MessagePresentation?
     @State var failedWorkOpenID: String?
     /// A cold start lands on the Inbox, which is the canvas itself rather than
     /// a screen over it; see `AuthenticatedHausView+Routes`.
@@ -79,6 +84,7 @@ struct AuthenticatedHausView: View {
         .task { await store.start() }
         .onAppear(perform: installTranscriptRoutes)
         .sheet(item: $agentCall) { request in AgentCallView(request: request, client: store.client) }
+        .convertToTask($convertingMessage, source: store.taskBoardSource, onOpenTask: openTask)
         .onChange(of: selectedDestinationID) { previous, current in
             // The first selection lands from the shell's own sync; a change
             // from one destination to another is the user navigating, and a
@@ -124,6 +130,7 @@ struct AuthenticatedHausView: View {
                     selectedDestinationID: $selectedDestinationID,
                     showsInbox: $showsInboxCanvas,
                     scrollTarget: $canvasScrollTarget,
+                    canvasRouteRevision: canvasRouteRevision,
                     messagesForDestination: { store.messagePresentations(chatID: $0.pendingKey) },
                     isMessageHistoryLoaded: { destination in
                         guard let chat = destination.durableChat else { return true }
@@ -137,6 +144,7 @@ struct AuthenticatedHausView: View {
                                 persistence: store.settingsPersistence,
                                 cloudAgentActions: store.cloudAgentSettings,
                                 automations: store.agentAutomations { openCanvasChat(.chat($0)) },
+                                stoppedClaims: store.agentStoppedClaims { openClaim($0) },
                                 notifications: push.setting,
                                 appearance: appearanceBinding,
                                 initialPath: initialPath,
@@ -149,7 +157,7 @@ struct AuthenticatedHausView: View {
                     inboxCanvas: inboxCanvas(contentInsets:onOpenSidebar:),
                     onOpenTasks: { path.append(.tasks) },
                     onOpenInbox: openInbox,
-                    showsTasks: path.last == .tasks,
+                    showsTasks: path.last?.isTasksRoute == true,
                     inboxHasUnread: (store.unreadChatCount ?? 0) > 0,
                     ghostTempo: store.agentActivityGhostTempo,
                     onOpenThread: openThread,
@@ -207,6 +215,7 @@ struct AuthenticatedHausView: View {
                         try await store.agentActivityPresentations(agentID: agentID)
                     },
                     agentProfile: { store.agentProfilePresentation(agentID: $0) },
+                    agentStoppedClaims: store.agentStoppedClaims { openClaim($0) },
                     mentionOptions: { store.mentionOptions(for: $0) },
                     loadMentionOptions: { await store.loadMentionOptions(for: $0) },
                     createChannel: { draft in
@@ -220,15 +229,7 @@ struct AuthenticatedHausView: View {
                 )
                 .hausHiddenNavigationBar()
                 .navigationDestination(for: HausRootRoute.self) { route in
-                    switch route {
-                    case .tasks:
-                        TaskListDestinationView(
-                            persistence: store.settingsTasksPersistence,
-                            onOpenTask: openTask
-                        )
-                    case .thread(let thread):
-                        threadDestination(thread)
-                    }
+                    taskRouteDestination(route)
                 }
                 .onChange(of: path) { _, current in
                     guard !current.carriesThread else { return }
@@ -263,10 +264,10 @@ struct AuthenticatedHausView: View {
                 .task { await push.attach(store) }
                 // Consumed outside the change handler: clearing the value a
                 // `task(id:)` keys on would cancel the Thread anchor read.
-                .onChange(of: push.pendingOpen, initial: true) { _, payload in
-                    guard let payload else { return }
+                .onChange(of: push.pendingOpen, initial: true) { _, request in
+                    guard let request else { return }
                     push.pendingOpen = nil
-                    Task { await openPushNotification(payload) }
+                    Task { await openPushNotification(request) }
                 }
                 .preferredColorScheme(preferredColorScheme)
                 .seasonalIconOffer()
@@ -279,12 +280,6 @@ struct AuthenticatedHausView: View {
                 )
             }
         }
-    }
-
-    /// Owners and Admins may cancel a live Cloud Agent run from its card.
-    private var cloudAgentCancel: CloudAgentCancelAction? {
-        guard store.canManageServer else { return nil }
-        return CloudAgentCancelAction { [store] workID in try await store.cancelCloudAgent(workID: workID) }
     }
 
     private var appearanceBinding: Binding<AppearancePreference> {

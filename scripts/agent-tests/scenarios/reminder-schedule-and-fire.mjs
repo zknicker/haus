@@ -76,7 +76,7 @@ export default defineScenario({
             );
             expect(
                 reports,
-                'follow-up reports across the anchor and its task Threads'
+                'follow-up reports across the anchor and its claim Threads'
             ).toHaveLength(1);
         } finally {
             await cancelIfScheduled(kit, reminder);
@@ -86,11 +86,11 @@ export default defineScenario({
 
 async function readAgentReplies(kit, chatId, agentId) {
     const direct = await kit.readMessages(chatId);
-    const { tasks } = await kit.trpc('task.list', { serverId: kit.serverId });
+    const { claims } = await kit.trpc('claim.list', { serverId: kit.serverId });
     const threads = await Promise.all(
-        tasks
-            .filter((entry) => entry.task.chatId === chatId)
-            .map((entry) => kit.readMessages(entry.task.threadChatId))
+        claims
+            .filter((entry) => entry.claim.chatId === chatId)
+            .map((entry) => kit.readMessages(entry.claim.threadChatId))
     );
     return [...direct, ...threads.flat()].filter(
         (message) => message.author.kind === 'agent' && message.author.agentId === agentId

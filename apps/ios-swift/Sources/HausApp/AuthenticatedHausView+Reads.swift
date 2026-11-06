@@ -25,7 +25,7 @@ extension AuthenticatedHausView {
         switch path.last {
         case .thread:
             selectedThread?.resolvedChatID(selectedThread: selectedThread, store: store)
-        case .tasks:
+        case .tasks, .board, .task:
             nil
         case nil:
             canvasOpenChatID
@@ -46,7 +46,7 @@ extension AuthenticatedHausView {
         store.reportVisibleMessages(chatID: chatID, messageIDs: messageIDs)
     }
 
-    /// A pushed Thread's viewport. Its anchor and task rows carry no Server
+    /// A pushed Thread's viewport. Its anchor and claim rows carry no Server
     /// sequence, so the Store simply cannot resolve them.
     func reportVisibleReplies(_ messageIDs: [String], in thread: ThreadSelection) {
         guard let chatID = resolvedThreadChatID(for: thread) else { return }

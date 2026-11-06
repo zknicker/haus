@@ -104,12 +104,12 @@ public enum ChatFixtures {
                             avatarURL: cove.avatarURL,
                             presence: cove.presence
                         ),
-                        content: "The Server contract is already carrying the task and reply data we need.",
+                        content: "The Server contract is already carrying the claim and reply data we need.",
                         createdAt: .now.addingTimeInterval(-25)
                     ),
                 ]
             ),
-            task: TaskPresentation(
+            claim: ClaimPresentation(
                 number: 42,
                 status: .inProgress,
                 assignee: nil,

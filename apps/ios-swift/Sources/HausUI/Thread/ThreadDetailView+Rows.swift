@@ -7,12 +7,12 @@ extension ThreadDetailView {
         case .anchor(let message, let hasReplies):
             messageRow(message, emphasized: true)
                 .padding(.bottom, hasReplies ? 2 : 0)
-        case .taskMetadata(let task, let hasReplies):
-            // Opened for a reply's task, the title no longer names the
+        case .claimMetadata(let claim, let hasReplies):
+            // Opened for a reply's claim, the title no longer names the
             // anchor's, so the card names its own.
-            ThreadTaskMetadataView(
-                task: task,
-                namesTask: ThreadOpening.opensForReplyTask(anchor: anchor, taskMessageID: taskMessageID)
+            ThreadClaimMetadataView(
+                claim: claim,
+                namesClaim: ThreadOpening.opensForReplyClaim(anchor: anchor, claimMessageID: claimMessageID)
             )
                 .padding(.top, 12)
                 .padding(.bottom, hasReplies ? 2 : 0)
@@ -34,7 +34,7 @@ extension ThreadDetailView {
             )
             .padding(.top, 10)
         case .reply(let message):
-            messageRow(message, marksTask: true, isOpenedTask: message.id == taskMessageID)
+            messageRow(message, marksClaim: true, isOpenedClaim: message.id == claimMessageID)
                 .padding(.top, 10)
         case .dayDivider(let date):
             TranscriptDayDivider(date: date)
@@ -45,14 +45,14 @@ extension ThreadDetailView {
     func messageRow(
         _ message: MessagePresentation,
         emphasized: Bool = false,
-        marksTask: Bool = false,
-        isOpenedTask: Bool = false
+        marksClaim: Bool = false,
+        isOpenedClaim: Bool = false
     ) -> ThreadMessageRow {
         ThreadMessageRow(
             message: message,
             emphasized: emphasized,
-            marksTask: marksTask,
-            isOpenedTask: isOpenedTask,
+            marksClaim: marksClaim,
+            isOpenedClaim: isOpenedClaim,
             onOpenAttachment: onOpenAttachment,
             preview: $attachmentPreview,
             tiles: attachmentTiles,
@@ -73,12 +73,13 @@ extension ThreadDetailView {
             canOpenThread: false,
             onReact: { actionMessage = message },
             onReply: {},
-            onOpenThread: {}
+            onOpenThread: {},
+            onConvertToTask: MessageActionRoutes.convertToTaskAction(for: message)
         )
     }
 
     /// The message a row's long press opens the drawer for: a durable anchor
-    /// or reply, never the task facts or a send still in flight.
+    /// or reply, never the claim facts or a send still in flight.
     static func drawerMessage(for item: ThreadTranscriptItem) -> MessagePresentation? {
         item.message.flatMap { $0.isPending ? nil : $0 }
     }

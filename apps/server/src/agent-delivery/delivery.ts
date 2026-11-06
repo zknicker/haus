@@ -10,6 +10,10 @@ import {
 } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
 import { and, eq, sql } from 'drizzle-orm';
+import {
+    runLivenessClaimEvents,
+    settleAgentBackgroundClaims,
+} from '../claims/background-claims.ts';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -26,8 +30,8 @@ import { readActiveAgentActivity } from '../server-agents/agent-activity-history
 import type { AgentConfigurationRotation } from '../server-agents/configure-agent.ts';
 import { recordAgentTurnSummary, recordRunTrigger } from '../server-agents/record-agent-turn.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { runLivenessTaskEvents, settleAgentBackgroundClaims } from '../tasks/background-claims.ts';
 import { publishCommittedAgentActivity } from './activity-events.ts';
+import { planBusyNotice } from './busy-notice.ts';
 import { admitQueuedAgentDrain, restartIdleAgentChain, settleAgentChain } from './chain-budget.ts';
 import { advanceSeenForRun, markCursorSubsumedSeen } from './cursors.ts';
 import {
@@ -50,19 +54,14 @@ import {
     boundedCompatibleRows,
     chatIdsOf,
     claimRunItems,
-    maxDrainRows,
-    noticeWindow,
     readDrainCandidates,
     startFrame,
 } from './drain-selection.ts';
 import * as failureHold from './failure-hold.ts';
-import { planHeartbeatRun } from './heartbeat-run.ts';
+import { planChatlessRun } from './heartbeat-run.ts';
 import { type YieldedHeartbeat, yieldHeartbeatToAddressed } from './heartbeat-yield.ts';
 import { buildInboxItems } from './inbox-items.ts';
-import {
-    isConcreteInboxSource as isConcreteSource,
-    isNoticelessInboxSource,
-} from './inbox-lanes.ts';
+import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
 import { interruptActiveRun, killedRun } from './interrupt-active-run.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
 import { consumeNoticeAck } from './notice-ack.ts';
@@ -82,13 +81,13 @@ export interface DeliveryTransport {
 
 export interface DispatchPlan {
     activities?: AgentActivityEvent[];
+    /** `claim.updated` for the claims this run just made live. */
+    claimEvents?: PreparedRealtimeEvent[];
     computerId: string;
     configuration?: DeferredConfiguration;
     frame: AgentCommand;
     serverId: string;
     suppressSend?: boolean;
-    /** `task.updated` for the tasks this run just made live. */
-    taskEvents?: PreparedRealtimeEvent[];
     /** A daytime heartbeat this plan stopped to make room for addressed work. */
     yielded?: YieldedHeartbeat;
 }
@@ -239,7 +238,7 @@ export class AgentDelivery {
             await lockServerRow(tx, input.serverId);
             const state = await store.readDeliveryState(tx, input.agentId);
             let activity: AgentActivityEvent | null = null;
-            let taskEvents: PreparedRealtimeEvent[] = [];
+            let claimEvents: PreparedRealtimeEvent[] = [];
             if (state?.activeRunId) {
                 await revokeRunnerCredentialsForRun(tx, {
                     agentId: input.agentId,
@@ -257,7 +256,7 @@ export class AgentDelivery {
                     runId: state.activeRunId,
                     serverId: input.serverId,
                 });
-                taskEvents = await settleAgentBackgroundClaims(tx, killedRun(input, state));
+                claimEvents = await settleAgentBackgroundClaims(tx, killedRun(input, state));
                 await store.clearActiveRun(tx, input.agentId);
             }
             await store.clearInboxNotices(tx, { agentId: input.agentId });
@@ -302,10 +301,10 @@ export class AgentDelivery {
                 configuration,
                 runId: state?.activeRunId ?? null,
                 sessionGeneration: rotated.sessionGeneration,
-                taskEvents,
+                claimEvents,
             };
         });
-        publishRealtime(result.taskEvents);
+        publishRealtime(result.claimEvents);
         if (result.activity) {
             publishCommittedAgentActivity(result.activity);
         }
@@ -426,7 +425,7 @@ export class AgentDelivery {
                     runId: summary.runId,
                     serverId,
                 });
-                const taskEvents = await runLivenessTaskEvents(tx, {
+                const claimEvents = await runLivenessClaimEvents(tx, {
                     agentId: summary.agentId,
                     runId: summary.runId,
                     serverId,
@@ -461,13 +460,13 @@ export class AgentDelivery {
                     chatId: state.activeRunChatId,
                     config,
                     plan: await this.planDispatch(tx, summary.agentId),
-                    taskEvents,
+                    claimEvents,
                 };
             });
             if (!recovery) {
                 return;
             }
-            publishRealtime(recovery.taskEvents);
+            publishRealtime(recovery.claimEvents);
             if (recovery.activity) {
                 publishCommittedAgentActivity(recovery.activity);
             }
@@ -550,14 +549,14 @@ export class AgentDelivery {
                     agentId: summary.agentId,
                     serverId,
                 });
-                const taskEvents = await settleAgentBackgroundClaims(tx, runScope);
+                const claimEvents = await settleAgentBackgroundClaims(tx, runScope);
                 await store.clearActiveRun(tx, summary.agentId);
                 return {
                     activity,
                     chatId,
                     configuration,
                     plan: await this.planDispatch(tx, summary.agentId),
-                    taskEvents,
+                    claimEvents,
                 };
             }
             // A failed turn that produced model-visible output must not requeue
@@ -605,19 +604,19 @@ export class AgentDelivery {
                 agentId: summary.agentId,
                 serverId,
             });
-            const taskEvents = await settleAgentBackgroundClaims(tx, runScope);
+            const claimEvents = await settleAgentBackgroundClaims(tx, runScope);
             await store.clearActiveRun(tx, summary.agentId);
             await failureHold.recordTurnFailure(tx, runScope, state, {
                 failureCode: summary.failureCode,
                 failureFingerprint: summary.failureFingerprint,
                 failureKind: summary.failureKind,
             });
-            return { activity, chatId, configuration, plan: null, taskEvents };
+            return { activity, chatId, configuration, plan: null, claimEvents };
         });
         if (!settlement) {
             return;
         }
-        publishRealtime(settlement.taskEvents);
+        publishRealtime(settlement.claimEvents);
         if (settlement.activity) {
             publishCommittedAgentActivity(settlement.activity);
         }
@@ -812,7 +811,7 @@ export class AgentDelivery {
                 }),
                 activities,
                 configuration: yielded.configuration ?? next?.configuration,
-                taskEvents: [...yielded.taskEvents, ...(next?.taskEvents ?? [])],
+                claimEvents: [...yielded.claimEvents, ...(next?.claimEvents ?? [])],
                 yielded,
             };
         }
@@ -870,35 +869,18 @@ export class AgentDelivery {
                     serverId: state.serverId,
                 };
             }
-            const unnoticed = (
-                await store.listUnnoticedQueuedItems(tx, agentId, maxDrainRows)
-            ).filter((row) => !isNoticelessInboxSource(row.source));
-            if (unnoticed.length > 0) {
-                const pending = noticeWindow(
-                    (await store.listQueuedItems(tx, agentId, 1000)).filter(
-                        (row) => !isNoticelessInboxSource(row.source)
-                    ),
-                    unnoticed
-                );
-                return {
-                    computerId: state.activeRunComputerId,
-                    frame: {
-                        agentId,
-                        inbox: await buildInboxItems(tx, pending),
-                        runId: state.activeRunId,
-                        totalPending: await store.countQueuedNoticeItems(tx, agentId),
-                        type: 'notice',
-                        unreadElsewhere: await readUnreadElsewhere(tx, {
-                            agentId,
-                            drainedItemIds: [],
-                            representedChatIds: chatIdsOf(pending),
-                            serverId: state.serverId,
-                        }),
-                    },
-                    serverId: state.serverId,
-                };
-            }
-            return null;
+            const notice = await planBusyNotice(tx, {
+                agentId,
+                runId: state.activeRunId,
+                serverId: state.serverId,
+            });
+            return notice
+                ? {
+                      computerId: state.activeRunComputerId,
+                      frame: notice,
+                      serverId: state.serverId,
+                  }
+                : null;
         }
         if (isBackedOff(state)) {
             return null;
@@ -914,11 +896,13 @@ export class AgentDelivery {
             return null;
         }
         const first = admitted.lead;
-        // A dream, heartbeat, report, or sub-agent wake is concrete work with no Chat: a
-        // chatless run. A heartbeat-family run resets the chain, so admission may also pick
-        // it as the lead at the ceiling.
+        // A dream, heartbeat, report, sub-agent wake, or Task assignment is concrete work with
+        // no Chat: a chatless run. A heartbeat-family run resets the chain, so admission may
+        // also pick it as the lead at the ceiling. Each runs alone, except Task assignments,
+        // which coalesce: ten assignments wake the Agent once (ADR 0051).
         if (isChatlessInboxSource(first.source)) {
-            return await planHeartbeatRun(tx, { agentId, config, row: first, state });
+            const rows = first.source === 'task_assignment' ? admitted.selected : [first];
+            return await planChatlessRun(tx, { agentId, config, rows, state });
         }
         const runId = createOpaqueId('run');
         const concrete = isConcreteSource(first.source);
@@ -951,7 +935,7 @@ export class AgentDelivery {
         return {
             ...(activity ? { activities: [activity] } : {}),
             computerId: config.computerId,
-            taskEvents: await runLivenessTaskEvents(tx, {
+            claimEvents: await runLivenessClaimEvents(tx, {
                 agentId,
                 runId,
                 serverId: state.serverId,
@@ -988,7 +972,7 @@ export class AgentDelivery {
         if (!plan) {
             return;
         }
-        publishRealtime(plan.taskEvents ?? []);
+        publishRealtime(plan.claimEvents ?? []);
         if (plan.yielded) {
             publishAgentLifecycle({
                 agentId: plan.yielded.agentId,
@@ -1039,7 +1023,7 @@ export class AgentDelivery {
         input: { agentId: string; serverId: string },
         kill: NonNullable<Awaited<ReturnType<typeof interruptActiveRun>>>
     ) {
-        publishRealtime(kill.taskEvents);
+        publishRealtime(kill.claimEvents);
         if (kill.activity) {
             publishCommittedAgentActivity(kill.activity);
         }

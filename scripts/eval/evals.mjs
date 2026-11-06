@@ -55,7 +55,15 @@ export const evals = {
             'reminder-schedule-and-fire',
         ],
         summary:
-            'Agents wake for what is addressed to them, stay quiet on FYIs, ask before irreversible acts, claim tasks (in the Thread a request arrived in), and follow up on schedule.',
+            'Agents wake for what is addressed to them, stay quiet on FYIs, ask before irreversible acts, claim work (in the Thread a request arrived in), and follow up on schedule.',
+    },
+    // Board Tasks (ADR 0051). The scenario makes its own board, so lanes share no queue.
+    tasks: {
+        judge: null,
+        profiles: {},
+        scenarios: ['task-queue-pacing', 'task-blocked-takes-next'],
+        summary:
+            'Tasks assigned to an Agent are worked one card at a time by priority, carried to the next by the move receipt, with no pickup posts; a Task blocked on a person goes back to todo with an @mention and the queue moves on.',
     },
     // Both overwrite MEMORY.md on the stack's own Computer. Rule quality is
     // scored out of band by scripts/agent-tests/memory-feedback-grade.mjs.

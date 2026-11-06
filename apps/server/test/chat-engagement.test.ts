@@ -28,9 +28,9 @@ beforeAll(async () => {
     connection = await connectHausDatabase(cluster.databaseUrl);
     uninstall = installChatEngagementProjector(connection.db, {
         run: (_operation, work) => {
-            const task = work().then(() => undefined);
-            settleWork.push(task);
-            return task;
+            const claim = work().then(() => undefined);
+            settleWork.push(claim);
+            return claim;
         },
     });
     void (async () => {

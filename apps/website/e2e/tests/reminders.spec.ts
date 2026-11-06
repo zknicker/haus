@@ -1,4 +1,4 @@
-import { e2eHumanUserId, signInAsAppHuman } from '../support/app-session.ts';
+import { signInAsAppHuman } from '../support/app-session.ts';
 import { attachComputer, createTestServer, openChannel, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -76,13 +76,13 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({
     await page.keyboard.press('Escape');
     await expect(sheet).toHaveCount(0);
 
-    // A viewer reads times in their saved Profile timezone, whatever the device says.
-    const saveTimezone = (zone: string) =>
-        runPsql(
-            session.databaseUrl,
-            `update users set timezone = '${zone}' where id = '${e2eHumanUserId}'`
-        );
-    saveTimezone('Asia/Tokyo');
+    // Times read in the viewer's saved zone, which a new device never overwrites.
+    const { members, viewerUserId } = await client.member.list.query({ serverId: server.id });
+    const savedZone = members.find((member) => member.userId === viewerUserId)?.timezone;
+    if (!savedZone) {
+        throw new Error('The reminder fixture has no saved viewer timezone.');
+    }
+    await client.member.setTimezone.mutate({ serverId: server.id, timezone: 'Asia/Tokyo' });
     const context = await browser.newContext({
         timezoneId: 'Asia/Tokyo',
         locale: 'en-US',
@@ -109,7 +109,8 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({
         });
     } finally {
         await context.close();
-        saveTimezone('America/New_York');
+        // The e2e human is shared, so the next spec reads times where this one found them.
+        await client.member.setTimezone.mutate({ serverId: server.id, timezone: savedZone });
     }
     // Reminders and Triggers share the Automations page, each as its own section.
     await expect(page.getByText(/No triggers yet\./u)).toBeVisible();
@@ -264,10 +265,10 @@ function seedReminderState(input: {
            now() - interval '1 day', now() - interval '1 day', true, 0, false, 'woke'
          ), (
            'fir_e2e_standup', '${input.serverId}', 'rem_e2e_standup',
-           now() - interval '36 hours', now() - interval '36 hours', false, null, false, null
+           now() - interval '36 hours', now() - interval '36 hours', false, null, false, 'woke'
          ), (
            'fir_e2e_deploy', '${input.serverId}', 'rem_e2e_deploy',
-           now() - interval '2 days', now() - interval '2 days', false, null, false, null
+           now() - interval '2 days', now() - interval '2 days', false, null, false, 'woke'
          ), (
            'fir_e2e_watchdog_old', '${input.serverId}', 'rem_e2e_watchdog',
            now() - interval '3 days', now() - interval '3 days', true, null, true, 'failed'

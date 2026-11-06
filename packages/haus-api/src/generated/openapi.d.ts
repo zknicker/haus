@@ -640,15 +640,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/agent/tasks": {
+    "/api/agent/claims": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List task-messages visible to the calling agent. */
-        get: operations["listAgentTasks"];
+        /** List claim-messages visible to the calling agent. */
+        get: operations["listAgentClaims"];
         put?: never;
         post?: never;
         delete?: never;
@@ -657,7 +657,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/agent/tasks/create": {
+    "/api/agent/claims/create": {
         parameters: {
             query?: never;
             header?: never;
@@ -666,15 +666,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create one or more task-messages. */
-        post: operations["createAgentTasks"];
+        /** Create one or more claim-messages. */
+        post: operations["createAgentClaims"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/agent/tasks/claim": {
+    "/api/agent/claims/claim": {
         parameters: {
             query?: never;
             header?: never;
@@ -683,15 +683,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Claim task-messages for the calling agent. */
-        post: operations["claimAgentTasks"];
+        /** Claim messages for the calling agent. */
+        post: operations["claimAgentClaims"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/agent/tasks/unclaim": {
+    "/api/agent/claims/release": {
         parameters: {
             query?: never;
             header?: never;
@@ -700,15 +700,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Release one task claimed by the calling agent. */
-        post: operations["unclaimAgentTask"];
+        /** Release one claim held by the calling agent. */
+        post: operations["releaseAgentClaim"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/agent/tasks/assign": {
+    "/api/agent/claims/assign": {
         parameters: {
             query?: never;
             header?: never;
@@ -717,15 +717,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Assign one task to an Agent member of its Chat without changing its status. */
-        post: operations["assignAgentTask"];
+        /** Assign one claim to an Agent member of its Chat without changing its status. */
+        post: operations["assignAgentClaim"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/agent/tasks/unassign": {
+    "/api/agent/claims/unassign": {
         parameters: {
             query?: never;
             header?: never;
@@ -734,15 +734,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Clear one task's assignee without changing its status. */
-        post: operations["unassignAgentTask"];
+        /** Clear one claim's assignee without changing its status. */
+        post: operations["unassignAgentClaim"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/agent/tasks/update": {
+    "/api/agent/claims/update": {
         parameters: {
             query?: never;
             header?: never;
@@ -751,8 +751,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Update one task status. */
-        post: operations["updateAgentTask"];
+        /** Update one claim status. */
+        post: operations["updateAgentClaim"];
         delete?: never;
         options?: never;
         head?: never;
@@ -855,6 +855,159 @@ export interface paths {
         put?: never;
         /** Cancel an owned reminder. */
         post: operations["cancelAgentReminder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List board Tasks on the calling agent's Server. */
+        get: operations["listAgentTasks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/tasks/show": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read one Task by key, with the messages and Reminders that reference it. */
+        get: operations["showAgentTask"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/tasks/create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create one Task on a board. */
+        post: operations["createAgentTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/tasks/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move one Task to another column on its board. */
+        post: operations["moveAgentTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/tasks/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Edit one Task's title, description, priority, labels, or due date. */
+        post: operations["updateAgentTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/tasks/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assign one Task to a person or Agent, or unassign it. */
+        post: operations["assignAgentTask"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/boards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the Server's unarchived boards with their columns and open counts. */
+        get: operations["listAgentBoards"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/boards/create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a board with the default columns. */
+        post: operations["createAgentBoard"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/boards/columns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replace a board's whole ordered column list. */
+        post: operations["setAgentBoardColumns"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1565,40 +1718,40 @@ export interface components {
             members: components["schemas"]["AgentChannelMember"][];
         };
         /** @enum {string} */
-        AgentTaskStatus: "todo" | "in_progress" | "in_review" | "done" | "closed";
-        AgentTaskRow: {
+        AgentClaimStatus: "todo" | "in_progress" | "in_review" | "done" | "closed";
+        AgentClaimRow: {
             assignee: string | null;
             message: components["schemas"]["AgentMessage"];
             number: number;
-            status: components["schemas"]["AgentTaskStatus"];
+            status: components["schemas"]["AgentClaimStatus"];
             target: string | null;
-            /** @description The task revision; pass it as expectedRevision to act only on this state. */
+            /** @description The claim revision; pass it as expectedRevision to act only on this state. */
             version: number;
         };
-        AgentTaskListResponse: {
+        AgentClaimListResponse: {
+            claims: components["schemas"]["AgentClaimRow"][];
             /** @description Matching rows left out by the 50-row limit. */
             omitted: number;
-            tasks: components["schemas"]["AgentTaskRow"][];
         };
-        AgentTaskCreateResponse: {
-            tasks: components["schemas"]["AgentTaskRow"][];
+        AgentClaimCreateResponse: {
+            claims: components["schemas"]["AgentClaimRow"][];
         };
-        AgentTaskClaimResponse: {
-            results: components["schemas"]["AgentTaskClaimResult"][];
+        AgentClaimClaimResponse: {
+            results: components["schemas"]["AgentClaimClaimResult"][];
         };
-        AgentTaskClaimResult: {
-            /** @description The structured holder conflict on a row refused because someone else holds the task. */
+        AgentClaimClaimResult: {
+            claim: components["schemas"]["AgentClaimRow"] | null;
+            /** @description The structured holder conflict on a row refused because someone else holds the claim. */
             claimConflict: Record<string, never> | null;
             number: number;
             /** @enum {string} */
             outcome: "claimed" | "already_yours" | "refused";
             reason: string | null;
-            task: components["schemas"]["AgentTaskRow"] | null;
         };
-        AgentTaskSingleResponse: {
-            task: components["schemas"]["AgentTaskRow"];
+        AgentClaimSingleResponse: {
+            claim: components["schemas"]["AgentClaimRow"];
         };
-        AgentTaskCreateRequest: {
+        AgentClaimCreateRequest: {
             /** @description @handle of an Agent member of the target Chat. */
             assignee?: string;
             content?: string;
@@ -1606,32 +1759,32 @@ export interface components {
             target: string;
             titles?: string[];
         };
-        AgentTaskClaimRequest: {
+        AgentClaimClaimRequest: {
             messageId?: string;
             numbers?: number[];
             target: string;
         } & (unknown | unknown);
-        AgentTaskUnclaimRequest: {
+        AgentClaimReleaseRequest: {
             number: number;
             target: string;
         };
-        AgentTaskAssignRequest: {
-            /** @description @handle of an Agent member of the task's Chat. Humans are never assignees; human, missing, retired, and out-of-Chat handles share one not-assignable refusal. */
+        AgentClaimAssignRequest: {
+            /** @description @handle of an Agent member of the claim's Chat. Humans are never assignees; human, missing, retired, and out-of-Chat handles share one not-assignable refusal. */
             assignee: string;
-            /** @description Apply only if the task is still at this revision. */
+            /** @description Apply only if the claim is still at this revision. */
             expectedRevision?: number;
             number: number;
             target: string;
         };
-        AgentTaskUnassignRequest: {
-            /** @description Apply only if the task is still at this revision. */
+        AgentClaimUnassignRequest: {
+            /** @description Apply only if the claim is still at this revision. */
             expectedRevision?: number;
             number: number;
             target: string;
         };
-        AgentTaskUpdateRequest: {
+        AgentClaimUpdateRequest: {
             number: number;
-            status: components["schemas"]["AgentTaskStatus"];
+            status: components["schemas"]["AgentClaimStatus"];
             target: string;
         };
         /** @enum {string} */
@@ -1892,6 +2045,168 @@ export interface components {
             commandId: string;
             expectedVersion: number;
             id: string;
+        };
+        /** @description A board key, like SEC. */
+        AgentBoardKey: string;
+        /** @description A Task key, its board key and number, like SEC-12. */
+        AgentTaskKey: string;
+        /** @enum {string} */
+        AgentTaskCategory: "backlog" | "todo" | "active" | "done" | "canceled";
+        /** @enum {string} */
+        AgentTaskPriority: "none" | "urgent" | "high" | "medium" | "low";
+        /** @description A person or Agent of the Server, by handle. */
+        AgentTaskActor: {
+            handle: string | null;
+            /** @enum {string} */
+            type: "human" | "agent";
+        };
+        AgentBoardColumn: {
+            category: components["schemas"]["AgentTaskCategory"];
+            id: string;
+            name: string;
+            position: number;
+        };
+        AgentBoard: {
+            /** Format: date-time */
+            archivedAt: string | null;
+            columns: components["schemas"]["AgentBoardColumn"][];
+            id: string;
+            key: components["schemas"]["AgentBoardKey"];
+            name: string;
+            openTaskCount: number;
+            /** @description The board revision; pass it as expectedVersion to act only on this state. */
+            version: number;
+        };
+        AgentBoardListResponse: {
+            boards: components["schemas"]["AgentBoard"][];
+        };
+        AgentBoardSingleResponse: {
+            board: components["schemas"]["AgentBoard"];
+        };
+        AgentBoardCreateRequest: {
+            key: components["schemas"]["AgentBoardKey"];
+            name: string;
+        };
+        /** @description The full ordered column list. A column with an id keeps it; one without is created; an existing column left out is removed. A removed column that holds Tasks needs a moveTasks entry naming the column they move to. */
+        AgentBoardColumnsRequest: {
+            board: components["schemas"]["AgentBoardKey"];
+            columns: {
+                category: components["schemas"]["AgentTaskCategory"];
+                id?: string;
+                name: string;
+            }[];
+            /** @description Apply only if the board is still at this version; omit to use the current one. */
+            expectedVersion?: number;
+            /** @description Removed column id to the column id its Tasks move to. */
+            moveTasks?: {
+                [key: string]: string;
+            };
+        };
+        AgentTaskRow: {
+            assignee: components["schemas"]["AgentTaskActor"] | null;
+            board: components["schemas"]["AgentBoardKey"];
+            category: components["schemas"]["AgentTaskCategory"];
+            column: string;
+            columnId: string;
+            /** Format: date-time */
+            completedAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            createdBy: components["schemas"]["AgentTaskActor"];
+            /** Format: date */
+            dueOn: string | null;
+            key: components["schemas"]["AgentTaskKey"];
+            labels: string[];
+            priority: components["schemas"]["AgentTaskPriority"];
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** @description The Task revision; pass it as expectedVersion to act only on this state. */
+            version: number;
+        };
+        AgentTaskListResponse: {
+            /** @description Matching Tasks left out by the 50-row limit. */
+            omitted: number;
+            tasks: components["schemas"]["AgentTaskRow"][];
+        };
+        AgentTaskMention: {
+            author: string;
+            /** Format: date-time */
+            createdAt: string;
+            excerpt: string;
+            messageId: string;
+            /** @description Where the message is, as a send target (a Channel, DM, or Thread). */
+            target: string;
+        };
+        AgentTaskReminder: {
+            anchorTarget: string;
+            id: string;
+            /** Format: date-time */
+            nextFireAt: string | null;
+            repeat: string | null;
+            title: string;
+        };
+        AgentTaskShowResponse: {
+            description: string;
+            /** @description Messages that reference the Task, newest first. */
+            mentions: components["schemas"]["AgentTaskMention"][];
+            /** @description Reminders whose description references the Task. */
+            reminders: components["schemas"]["AgentTaskReminder"][];
+            task: components["schemas"]["AgentTaskRow"];
+        };
+        AgentTaskSingleResponse: {
+            task: components["schemas"]["AgentTaskRow"];
+        };
+        AgentTaskMoveResponse: {
+            /** @description Open Tasks still assigned to the calling agent, by category. */
+            queue: {
+                active: number;
+                todo: number;
+            };
+            task: components["schemas"]["AgentTaskRow"];
+        };
+        AgentTaskCreateRequest: {
+            /** @description `me` or an @handle of a person or Agent of the Server. */
+            assignee?: string;
+            board: components["schemas"]["AgentBoardKey"];
+            /** @description A column name or id on the board; defaults to its first todo column. */
+            column?: string;
+            description?: string;
+            /** Format: date */
+            dueOn?: string;
+            /** @description Label names from the Server's task label catalog. */
+            labels?: string[];
+            priority?: components["schemas"]["AgentTaskPriority"];
+            title: string;
+        };
+        AgentTaskMoveRequest: {
+            /** @description A column name or id on the Task's board. */
+            column: string;
+            /** @description Apply only if the Task is still at this version; omit to use the current one. */
+            expectedVersion?: number;
+            key: components["schemas"]["AgentTaskKey"];
+        };
+        AgentTaskUpdateRequest: {
+            description?: string;
+            /**
+             * Format: date
+             * @description A date, or null to clear it.
+             */
+            dueOn?: string | null;
+            /** @description Apply only if the Task is still at this version; omit to use the current one. */
+            expectedVersion?: number;
+            key: components["schemas"]["AgentTaskKey"];
+            /** @description The Task's whole label set, by name. */
+            labels?: string[];
+            priority?: components["schemas"]["AgentTaskPriority"];
+            title?: string;
+        } | unknown | unknown | unknown | unknown | unknown;
+        AgentTaskAssignRequest: {
+            /** @description `me`, an @handle of a person or Agent of the Server, or null to unassign. */
+            assignee: string | null;
+            /** @description Apply only if the Task is still at this version; omit to use the current one. */
+            expectedVersion?: number;
+            key: components["schemas"]["AgentTaskKey"];
         };
         AgentAttachment: {
             byteSize: number;
@@ -2156,7 +2471,7 @@ export interface components {
             created_at: components["schemas"]["Timestamp"];
             deleted_at: components["schemas"]["Timestamp"] | null;
             metadata: components["schemas"]["JsonObject"];
-            task?: components["schemas"]["MessageTask"] | null;
+            claim?: components["schemas"]["MessageClaim"] | null;
             /** @description The first linked Cloud Agent work, kept for released CLIs; read `cloud_agent_works`. */
             cloud_agent_work?: components["schemas"]["MessageCloudAgentWork"] | null;
             /** @description Every Cloud Agent work this Message links, in link order. */
@@ -2164,6 +2479,14 @@ export interface components {
             agent_created?: components["schemas"]["MessageAgentCreated"] | null;
             reactions?: components["schemas"]["MessageReaction"][];
             reply?: components["schemas"]["ChatMessageReply"] | null;
+            /** @description Task references resolved in `content` when it was written, in content order. */
+            task_links?: components["schemas"]["MessageTaskLink"][];
+        };
+        MessageTaskLink: {
+            task_id: string;
+            key: string;
+            /** @description The exact matched substring of `content`. */
+            text: string;
         };
         MessageAgentCreated: {
             agent_id: string;
@@ -2197,34 +2520,25 @@ export interface components {
                 pull_request_url: string | null;
             }[];
         };
-        MessageTask: {
+        MessageClaim: {
             number: number;
             /** @enum {string} */
             status: "todo" | "in_progress" | "in_review" | "done" | "closed";
-            assignee: components["schemas"]["TaskActor"] | null;
+            assignee: components["schemas"]["ClaimActor"] | null;
             claimed_at: components["schemas"]["Timestamp"] | null;
-            /** @enum {string} */
-            priority: "none" | "urgent" | "high" | "medium" | "low";
-            labels: components["schemas"]["TaskLabel"][];
             /** @enum {string} */
             origin: "composed" | "converted" | "claimed";
             created_at: components["schemas"]["Timestamp"];
             updated_at: components["schemas"]["Timestamp"];
         };
-        /** @description The Agent holding a task. Humans are never task assignees. */
-        TaskActor: {
+        /** @description The Agent holding a claim. Humans are never claim assignees. */
+        ClaimActor: {
             id: string;
             handle: string | null;
         };
-        TaskLabel: {
-            id: string;
-            name: string;
-            /** @enum {string} */
-            color: "red" | "orange" | "amber" | "green" | "teal" | "blue" | "purple" | "pink" | "gray";
-        };
         MessageReaction: {
             emoji: string;
-            actors: components["schemas"]["TaskActor"][];
+            actors: components["schemas"]["ClaimActor"][];
         };
         CreateMessageRequest: {
             id: components["schemas"]["MessageId"];
@@ -3603,13 +3917,13 @@ export interface operations {
             default: components["responses"]["AgentError"];
         };
     };
-    listAgentTasks: {
+    listAgentClaims: {
         parameters: {
             query?: {
                 target?: string;
                 /** @description One status or `all`; defaults to todo, in_progress, and in_review. */
                 status?: "all" | "todo" | "in_progress" | "in_review" | "done" | "closed";
-                /** @description `true` keeps tasks claimed by or assigned to the calling agent. */
+                /** @description `true` keeps claims held by or assigned to the calling agent. */
                 mine?: "true" | "false";
             };
             header?: never;
@@ -3618,19 +3932,19 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Visible task-messages. */
+            /** @description Visible claim-messages. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AgentTaskListResponse"];
+                    "application/json": components["schemas"]["AgentClaimListResponse"];
                 };
             };
             default: components["responses"]["AgentError"];
         };
     };
-    createAgentTasks: {
+    createAgentClaims: {
         parameters: {
             query?: never;
             header?: never;
@@ -3639,23 +3953,23 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AgentTaskCreateRequest"];
+                "application/json": components["schemas"]["AgentClaimCreateRequest"];
             };
         };
         responses: {
-            /** @description Created task-messages. */
+            /** @description Created claim-messages. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AgentTaskCreateResponse"];
+                    "application/json": components["schemas"]["AgentClaimCreateResponse"];
                 };
             };
             default: components["responses"]["AgentError"];
         };
     };
-    claimAgentTasks: {
+    claimAgentClaims: {
         parameters: {
             query?: never;
             header?: never;
@@ -3664,23 +3978,23 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AgentTaskClaimRequest"];
+                "application/json": components["schemas"]["AgentClaimClaimRequest"];
             };
         };
         responses: {
-            /** @description One result row per requested task. */
+            /** @description One result row per requested claim. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AgentTaskClaimResponse"];
+                    "application/json": components["schemas"]["AgentClaimClaimResponse"];
                 };
             };
             default: components["responses"]["AgentError"];
         };
     };
-    unclaimAgentTask: {
+    releaseAgentClaim: {
         parameters: {
             query?: never;
             header?: never;
@@ -3689,23 +4003,23 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AgentTaskUnclaimRequest"];
+                "application/json": components["schemas"]["AgentClaimReleaseRequest"];
             };
         };
         responses: {
-            /** @description Updated task-message. */
+            /** @description Updated claim-message. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AgentTaskSingleResponse"];
+                    "application/json": components["schemas"]["AgentClaimSingleResponse"];
                 };
             };
             default: components["responses"]["AgentError"];
         };
     };
-    assignAgentTask: {
+    assignAgentClaim: {
         parameters: {
             query?: never;
             header?: never;
@@ -3714,23 +4028,23 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AgentTaskAssignRequest"];
+                "application/json": components["schemas"]["AgentClaimAssignRequest"];
             };
         };
         responses: {
-            /** @description Updated task-message. */
+            /** @description Updated claim-message. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AgentTaskSingleResponse"];
+                    "application/json": components["schemas"]["AgentClaimSingleResponse"];
                 };
             };
             default: components["responses"]["AgentError"];
         };
     };
-    unassignAgentTask: {
+    unassignAgentClaim: {
         parameters: {
             query?: never;
             header?: never;
@@ -3739,23 +4053,23 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AgentTaskUnassignRequest"];
+                "application/json": components["schemas"]["AgentClaimUnassignRequest"];
             };
         };
         responses: {
-            /** @description Updated task-message. */
+            /** @description Updated claim-message. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AgentTaskSingleResponse"];
+                    "application/json": components["schemas"]["AgentClaimSingleResponse"];
                 };
             };
             default: components["responses"]["AgentError"];
         };
     };
-    updateAgentTask: {
+    updateAgentClaim: {
         parameters: {
             query?: never;
             header?: never;
@@ -3764,17 +4078,17 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AgentTaskUpdateRequest"];
+                "application/json": components["schemas"]["AgentClaimUpdateRequest"];
             };
         };
         responses: {
-            /** @description Updated task-message. */
+            /** @description Updated claim-message. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AgentTaskSingleResponse"];
+                    "application/json": components["schemas"]["AgentClaimSingleResponse"];
                 };
             };
             default: components["responses"]["AgentError"];
@@ -3922,6 +4236,228 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentReminderSingleResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    listAgentTasks: {
+        parameters: {
+            query?: {
+                /** @description A board key; omit for every unarchived board. */
+                board?: components["schemas"]["AgentBoardKey"];
+                /** @description `me`, an @handle of a person or Agent, or `none` for unassigned Tasks. */
+                assignee?: string;
+                /** @description Comma-separated column categories; defaults to the open ones, backlog,todo,active. */
+                category?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matching Tasks, by priority then age. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTaskListResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    showAgentTask: {
+        parameters: {
+            query: {
+                key: components["schemas"]["AgentTaskKey"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The Task, its description, Mentioned in, and Reminders. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTaskShowResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    createAgentTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentTaskCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created Task. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTaskSingleResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    moveAgentTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentTaskMoveRequest"];
+            };
+        };
+        responses: {
+            /** @description Moved Task and what is still waiting for the calling agent. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTaskMoveResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    updateAgentTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentTaskUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated Task. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTaskSingleResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    assignAgentTask: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentTaskAssignRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated Task. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTaskSingleResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    listAgentBoards: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Boards. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentBoardListResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    createAgentBoard: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentBoardCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created board. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentBoardSingleResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    setAgentBoardColumns: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentBoardColumnsRequest"];
+            };
+        };
+        responses: {
+            /** @description The board with its new columns. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentBoardSingleResponse"];
                 };
             };
             default: components["responses"]["AgentError"];

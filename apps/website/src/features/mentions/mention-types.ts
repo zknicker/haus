@@ -9,6 +9,7 @@ export type MentionKind =
     | 'image-generation'
     | 'plugin'
     | 'skill'
+    | 'task'
     | 'user';
 export type ReferenceKind = MentionKind | 'pull-request' | 'website' | 'product';
 export type MentionOptionKind = MentionKind;
@@ -22,6 +23,7 @@ export type MentionProjection =
     | 'image-input'
     | 'path-reference'
     | 'skill-activation'
+    | 'task-reference'
     | 'user-reference';
 
 export interface ReferenceActivationTarget {

@@ -70,8 +70,8 @@ test('each mutation publishes exactly its own topic', async () => {
         })
     ).toEqual([]);
     expect(repeatedRead?.advanced).toBe(false);
-    expect(await topicsOf(() => owner.trpc.task.promote.mutate({ messageId, serverId }))).toEqual([
-        'task.changed',
+    expect(await topicsOf(() => owner.trpc.claim.promote.mutate({ messageId, serverId }))).toEqual([
+        'claim.changed',
     ]);
     expect(
         await topicsOf(() => owner.trpc.taskLabel.create.mutate({ name: 'Ops', serverId }))

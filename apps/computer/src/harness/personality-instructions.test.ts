@@ -49,7 +49,7 @@ test('the pickup bullet replaces the Raft acknowledge-and-outline and progress b
     const prompt = render({});
 
     expect(prompt).toContain(
-        "- When someone asks you to do something: if you can answer from what you have or one quick look-up, just answer (claim it first if it is a task), with no reaction first. When you'll change files, run commands, or dig into something before replying, react with your signature emoji (👀) as you pick it up. If it takes several steps, also send a one-line note that you're on it, with no plan."
+        "- When someone asks you to do something: if you can answer from what you have or one quick look-up, just answer (claim it first if it needs a claim), with no reaction first. When you'll change files, run commands, or dig into something before replying, react with your signature emoji (👀) as you pick it up. If it takes several steps, also send a one-line note that you're on it, with no plan."
     );
     expect(prompt).toContain(
         '- For multi-step work, send short progress updates as meaningful steps land; skip updates that change nothing.'

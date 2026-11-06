@@ -1,6 +1,6 @@
 // Shared seams for the room scenarios: one Agent's reactions on a message, and
 // a peer claim made through the same runner contract the Computer uses, so a
-// seeded claim is indistinguishable from one a real `haus task claim` made.
+// seeded claim is indistinguishable from one a real `haus claim` made.
 
 import { createAgentAuthor } from './author.mjs';
 
@@ -27,7 +27,7 @@ export function agentReactions(message, agentId) {
 
 /**
  * Claims the top-level message `messageId` as `agentId` (promoting it to a
- * task), exactly like `haus task claim --message-id`. Throws unless the Server
+ * claim), exactly like `haus claim --message-id`. Throws unless the Server
  * granted the claim, so a scenario never runs on an unseeded lock.
  */
 export async function claimMessageAsAgent(kit, { agentId, channel, messageId }) {
@@ -37,7 +37,7 @@ export async function claimMessageAsAgent(kit, { agentId, channel, messageId }) 
         stamp: kit.stamp,
     });
     const token = await author.mint(agentId, channel.id);
-    const response = await fetch(`${kit.harness.serverUrl}/api/agent/tasks/claim`, {
+    const response = await fetch(`${kit.harness.serverUrl}/api/agent/claims/claim`, {
         body: JSON.stringify({ messageId, target: `#${channel.name}` }),
         headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
         method: 'POST',

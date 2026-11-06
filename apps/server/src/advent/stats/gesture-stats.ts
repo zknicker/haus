@@ -89,7 +89,7 @@ export async function readTasksClosed(
         db,
         sql`
             select count(*)::int as count
-            from message_tasks task
+            from message_claims task
             join chats chat on chat.server_id = task.server_id and chat.id = task.chat_id
             where task.server_id = ${scope.serverId}
               and task.created_by_user_id = ${scope.userId}

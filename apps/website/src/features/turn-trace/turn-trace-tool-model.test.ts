@@ -179,8 +179,8 @@ test('a running call reads in the present tense; it settles into the past', () =
 test('MEMORY.md upkeep and all-haus commands are bookkeeping; real work is not', () => {
     const memory = classifyTraceTool(tool({ input: { path: 'MEMORY.md' }, toolName: 'read' }));
     const nested = classifyTraceTool(tool({ input: { path: 'docs/MEMORY.md' }, toolName: 'read' }));
-    const claim = classifyTraceTool(tool({ input: { command: 'haus task claim --number 1' } }));
-    const mixed = classifyTraceTool(tool({ input: { command: 'haus task claim && bun test' } }));
+    const claim = classifyTraceTool(tool({ input: { command: 'haus claim --number 1' } }));
+    const mixed = classifyTraceTool(tool({ input: { command: 'haus claim && bun test' } }));
     assert.equal(memory.isBookkeeping, true);
     assert.equal(nested.isBookkeeping, false);
     assert.equal(claim.isBookkeeping, true);

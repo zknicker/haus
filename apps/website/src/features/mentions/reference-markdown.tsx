@@ -82,48 +82,78 @@ export const ReferenceMarkdown = React.memo(
 
 ReferenceMarkdown.displayName = 'ReferenceMarkdown';
 
+/** One span of the source to rewrite: `linkText` is the Markdown link it becomes, given its token. */
+interface MarkdownReferenceEdit {
+    end: number;
+    link: PreparedLink;
+    linkText: (token: string) => string;
+    start: number;
+}
+
 export function prepareMarkdownReferences(content: string, suppliedMentions?: readonly Mention[]) {
     const mentions = suppliedMentions ?? readMentionsFromMarkdown(content);
-    const mentionsByStart = new Map(mentions.map((mention) => [mention.start, mention]));
     const links = new Map<string, PreparedLink>();
+    const edits = [...linkEdits(content, mentions), ...bareMentionEdits(content, mentions)].sort(
+        (left, right) => left.start - right.start
+    );
     let cursor = 0;
     let preparedContent = '';
 
-    for (const match of content.matchAll(markdownLinkPattern)) {
-        const start = match.index;
-        const text = match[0];
-        const target = match[2]?.trim();
-
-        if (
-            start === undefined ||
-            !text ||
-            !target ||
-            content[start - 1] === '!' ||
-            start < cursor
-        ) {
+    for (const edit of edits) {
+        if (edit.start < cursor) {
             continue;
         }
-
-        const reference = mentionsByStart.get(start);
-        const resource = parseHausResourceLink(target);
-
-        if (!(reference || resource)) {
-            continue;
-        }
-
         const token = `${referenceOrigin}/${links.size}`;
-        const targetStart = text.indexOf('](') + 2;
-        const rewritten = `${text.slice(0, targetStart)}${token})`;
-
-        preparedContent += content.slice(cursor, start);
-        preparedContent += rewritten;
-        cursor = start + text.length;
-        links.set(
-            token,
-            reference ? { kind: 'reference', reference } : { href: target, kind: 'resource' }
-        );
+        preparedContent += content.slice(cursor, edit.start);
+        preparedContent += edit.linkText(token);
+        cursor = edit.end;
+        links.set(token, edit.link);
     }
 
     preparedContent += content.slice(cursor);
     return { content: preparedContent, links };
+}
+
+/** The source's own reference and resource links, retargeted at a token. */
+function linkEdits(content: string, mentions: readonly Mention[]): MarkdownReferenceEdit[] {
+    const mentionsByStart = new Map(mentions.map((mention) => [mention.start, mention]));
+    return [...content.matchAll(markdownLinkPattern)].flatMap((match) => {
+        const start = match.index;
+        const text = match[0];
+        const target = match[2]?.trim();
+        if (!(text && target) || content[start - 1] === '!') {
+            return [];
+        }
+        const reference = mentionsByStart.get(start);
+        const resource = parseHausResourceLink(target);
+        if (!(reference || resource)) {
+            return [];
+        }
+        const targetStart = text.indexOf('](') + 2;
+        return [
+            {
+                end: start + text.length,
+                link: reference
+                    ? ({ kind: 'reference', reference } as const)
+                    : ({ href: target, kind: 'resource' } as const),
+                linkText: (token: string) => `${text.slice(0, targetStart)}${token})`,
+                start,
+            },
+        ];
+    });
+}
+
+/**
+ * A mention written as plain text, a bare Task key, has no link to retarget, so
+ * it gains one: Markdown then hands it to `ContextLink` like any other chip.
+ */
+function bareMentionEdits(content: string, mentions: readonly Mention[]): MarkdownReferenceEdit[] {
+    return mentions
+        .filter((mention) => mention.kind === 'task' && !content.startsWith('[', mention.start))
+        .map((reference) => ({
+            end: reference.end,
+            link: { kind: 'reference', reference },
+            linkText: (token: string) => `[${reference.text}](${token})`,
+            start: reference.start,
+        }));
 }

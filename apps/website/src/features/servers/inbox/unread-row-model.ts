@@ -84,7 +84,7 @@ export function selectionAfterLeaving(
  * answered (ADR 0050).
  */
 export function unreadRowReadInput(
-    row: UnreadRow,
+    row: Exclude<UnreadRow, { kind: 'task' }>,
     serverId: string,
     read: UnreadRowRead
 ): ChatMarkReadInput {

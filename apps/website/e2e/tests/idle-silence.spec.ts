@@ -46,6 +46,7 @@ const focusRefetchAllowance: Record<string, { max: number; reason: string }> = {
     'trpc member.list': { max: 1, reason: 'the member directory' },
     'trpc server.bySlug': { max: 1, reason: 'the open Server' },
     'trpc server.list': { max: 1, reason: 'the Server switcher' },
+    'trpc taskInbox.list': { max: 1, reason: 'the Task items behind the Inbox badge' },
     'trpc thread.listUnread': { max: 1, reason: 'the unread Threads behind the Inbox badge' },
     'trpc thread.listOpen': { max: 1, reason: 'the sidebar Open threads section' },
 };

@@ -2,6 +2,7 @@ import { idSchema } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import { openAgentChatRead } from '../agent-reads/agent-chat-reads.ts';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
+import { followMaterializedClaimThread } from '../claims/claim-thread-follows.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentThreadFollowsTable,
@@ -9,7 +10,6 @@ import {
     chatsTable,
     threadFollowsTable,
 } from '../postgres/schema.ts';
-import { followMaterializedTaskThread } from '../tasks/task-thread-follows.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { threadChatIdForAnchor } from './thread-id.ts';
 
@@ -148,7 +148,7 @@ export async function ensureThreadRecord(
         .onConflictDoNothing()
         .returning({ id: chatsTable.id });
     if (materialized) {
-        await followMaterializedTaskThread(db, {
+        await followMaterializedClaimThread(db, {
             anchorMessageId: input.anchorMessageId,
             serverId: input.serverId,
             threadChatId,

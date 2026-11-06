@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { Chat } from '@haus/api';
+import type { Board, Chat } from '@haus/api';
 import {
     resolveActiveSection,
     resolveAgentProfileTarget,
@@ -7,6 +7,7 @@ import {
     resolveSelectedChatId,
     resolveSettingsSection,
     resolveSidebarPage,
+    resolveTasksSectionRoute,
 } from './server-route-state.ts';
 
 describe('Server route state', () => {
@@ -21,6 +22,25 @@ describe('Server route state', () => {
         );
         expect(resolveChatSectionRoute(chats, 'deleted-chat', 'dev')).toBe('/s/dev/chats/chat-all');
         expect(resolveChatSectionRoute([], null, 'dev')).toBe('/s/dev');
+    });
+
+    test('/tasks lands on the last-viewed board, else the first', () => {
+        const boards = [
+            { id: 'brd_gen', key: 'GEN' },
+            { id: 'brd_sec', key: 'SEC' },
+        ] as Board[];
+
+        expect(resolveTasksSectionRoute(boards, 'brd_sec', 'dev')).toBe('/s/dev/tasks/SEC');
+        expect(resolveTasksSectionRoute(boards, 'archived-board', 'dev')).toBe('/s/dev/tasks/GEN');
+        expect(resolveTasksSectionRoute(boards, null, 'dev')).toBe('/s/dev/tasks/GEN');
+        expect(resolveTasksSectionRoute([], null, 'dev')).toBeNull();
+    });
+
+    test('every Tasks address is the Tasks section, beside the chat navigation', () => {
+        expect(resolveActiveSection('/s/dev/tasks', 'dev')).toBe('tasks');
+        expect(resolveActiveSection('/s/dev/tasks/SEC', 'dev')).toBe('tasks');
+        expect(resolveActiveSection('/s/dev/tasks/SEC/12', 'dev')).toBe('tasks');
+        expect(resolveSidebarPage('tasks')).toBe('server');
     });
 
     test('treats removed overview routes as Chat entry paths', () => {

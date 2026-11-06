@@ -1,7 +1,7 @@
-// Exact-set eval chat cleanup. Chats in the set expand to the task Threads
-// they own. A task Thread whose parent is NOT in the set is never deleted:
-// deleting the thread chat alone orphans the durable task row and breaks the
-// Server's task invariant for everyone (observed live as task.list 500s).
+// Exact-set eval chat cleanup. Chats in the set expand to the claim Threads
+// they own. A claim Thread whose parent is NOT in the set is never deleted:
+// deleting the thread chat alone orphans the durable claim row and breaks the
+// Server's claim invariant for everyone (observed live as task.list, now claim.list, 500s).
 // Threads promoted from a standing Owner DM are therefore retained — the DM
 // preserves them as ordinary collaboration history.
 
@@ -22,12 +22,12 @@ export async function settleEvalCleanup(operation, timeoutMs = 60_000) {
     }
 }
 
-export function expandEvalCleanupChatIds(chatIds, tasks) {
+export function expandEvalCleanupChatIds(chatIds, claims) {
     const requestedChatIds = new Set([...chatIds].filter(Boolean));
     const retained = [];
 
-    for (const entry of tasks) {
-        const { chatId, threadChatId } = entry.task;
+    for (const entry of claims) {
+        const { chatId, threadChatId } = entry.claim;
         if (requestedChatIds.has(threadChatId) && !requestedChatIds.has(chatId)) {
             requestedChatIds.delete(threadChatId);
             retained.push(threadChatId);
@@ -51,7 +51,7 @@ export function chunkChatIds(chatIds, size = chunkSize) {
 /**
  * Deletes the exact chat set, expanded to the Threads those chats own.
  * Returns every id it RESOLVED — deleted, or intentionally retained because
- * deleting it alone would orphan a task — so callers can forget both kinds.
+ * deleting it alone would orphan a claim — so callers can forget both kinds.
  */
 export async function cleanupEvalChats({ serverId, trpc }, chatIds) {
     const requestedChatIds = [...chatIds].filter(Boolean);
@@ -59,8 +59,8 @@ export async function cleanupEvalChats({ serverId, trpc }, chatIds) {
         return [];
     }
 
-    const { tasks } = await trpc('task.list', { serverId });
-    const expansion = expandEvalCleanupChatIds(requestedChatIds, tasks);
+    const { claims } = await trpc('claim.list', { serverId });
+    const expansion = expandEvalCleanupChatIds(requestedChatIds, claims);
     const exactChatIds = new Set(expansion.chatIds);
     for (const chatId of expansion.chatIds) {
         const page = await trpc('chat.messages', { chatId, limit: 100, serverId });
@@ -74,7 +74,7 @@ export async function cleanupEvalChats({ serverId, trpc }, chatIds) {
     }
     if (expansion.retained.length > 0) {
         process.stderr.write(
-            `  · retained ${expansion.retained.length} task Thread(s) whose parent chat is preserved (task rows must outlive the eval run)\n`
+            `  · retained ${expansion.retained.length} claim Thread(s) whose parent chat is preserved (claim rows must outlive the eval run)\n`
         );
     }
     return [...exactChatIds, ...expansion.retained];

@@ -1,6 +1,6 @@
 import { formatCloudAgentWorkLink } from '@haus/api';
 import { seedCloudAgentWork, startCloudAgentWork } from '../support/agent-cloud-agent.ts';
-import { createTestServer, openChannel } from '../support/server.ts';
+import { createTestServer, openChannel, openHappeningNow } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 const credential = 'computer-cloud-agent-links-credential-1';
@@ -82,8 +82,8 @@ test('linked Cloud Agent work reads as the same card wherever it is linked', asy
         serverId: server.id,
     });
     await page.goto(`/s/${slug}/inbox`);
-    await page.getByRole('button', { name: /running now/u }).click();
-    const row = page.getByRole('button', { name: new RegExp(launchTitle, 'u') });
+    const happeningNow = await openHappeningNow(page);
+    const row = happeningNow.getByRole('button', { name: new RegExp(launchTitle, 'u') });
     await expect(row).toBeVisible();
     await row.click();
     await expect(page).toHaveURL(new RegExp(`/chats/${techOps.id}`, 'u'));

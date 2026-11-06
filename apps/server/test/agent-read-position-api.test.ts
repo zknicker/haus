@@ -70,11 +70,11 @@ test('an Agent send into a DM leaves the human message it never saw unread', asy
     expect(await readPosition(dmChatId)).toBe(sent.sequence);
 });
 
-test('task create leaves an unseen channel message unread, and a plain read reports the pre-read position', async () => {
-    const human = await humanSend(fixture.channelId, 'Release notes are up.', 'task_unseen_1');
-    const runner = await fixture.mintRunner('run_read_position_task');
-    const created = await fixture.post('/api/agent/tasks/create', runner, {
-        nonce: 'read_position_task_1',
+test('claim create leaves an unseen channel message unread, and a plain read reports the pre-read position', async () => {
+    const human = await humanSend(fixture.channelId, 'Release notes are up.', 'claim_unseen_1');
+    const runner = await fixture.mintRunner('run_read_position_claim');
+    const created = await fixture.post('/api/agent/claims/create', runner, {
+        nonce: 'read_position_claim_1',
         target: '#product',
         titles: ['Proofread the release notes'],
     });

@@ -25,7 +25,7 @@ export async function readChatMessage(
         if (!(cause instanceof ChatNotFoundError)) {
             throw cause;
         }
-        // A task Thread nobody has replied in has no Chat row, so no messages.
+        // A claim Thread nobody has replied in has no Chat row, so no messages.
         await requireThreadAccess(db, member, {
             serverId: input.serverId,
             threadChatId: input.chatId,

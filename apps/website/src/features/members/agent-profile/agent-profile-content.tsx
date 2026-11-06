@@ -12,6 +12,7 @@ import {
     AgentRuntimeSection,
     AgentSkillsSection,
 } from './agent-setup-sections.tsx';
+import { AgentStalledClaims } from './agent-stalled-claims.tsx';
 
 export { AgentWorkspace };
 
@@ -26,6 +27,7 @@ export function AgentHubContent({
 }) {
     return (
         <>
+            <AgentStalledClaims agent={agent} server={server} />
             <AgentChats agent={agent} server={server} />
             <AgentRecentActivity
                 agent={agent}

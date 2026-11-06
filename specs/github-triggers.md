@@ -260,9 +260,10 @@ The App and CLI show the suppressed count so a noisy Trigger is narrowed with fi
 Today `chain-budget.ts` counts only `agent:` rows, so any Trigger wake resets the chain and an
 Agent that writes to GitHub can wake itself forever. The budget changes for every Trigger kind:
 
-- `isAutomationAuthored(row)` is true for `agent:*`, `trigger`, and `trigger_problem` rows. A drain
+- `isAutomationAuthored(row)` is true for `agent:*`, `trigger`, and `trigger_problem` rows, and for
+  a `task_assignment` an Agent made, so two Agents assigning each other stop at the ceiling. A drain
   made only of such rows increments `agent_chain_turns`; any other row (human message, reminder,
-  task assignment) resets it to 0, as today.
+  claim assignment, a person's Task assignment) resets it to 0, as today.
 - At `maxAgentChainTurns` (16) the drain holds: rows stay queued and human input releases them, as
   today.
 - Below the ceiling, a drain that starts more than 30 minutes after `agent_chain_advanced_at`
@@ -273,8 +274,9 @@ Agent that writes to GitHub can wake itself forever. The budget changes for ever
 - Admission judges the drain that will actually run, never the whole queue. A concrete Trigger row
   leads its own run, so when a person releases a held chain (their arrival resets the count) the
   queued fire drains first (counting 1) and the person's message drains next (resetting to 0). A
-  Reminder or task assignment does not reset on arrival: at the ceiling it leads instead of the
-  held fire, resets the chain on settlement, and the fire drains after it from 0.
+  Reminder, claim assignment, or a person's Task assignment does not reset on arrival: at the
+  ceiling it leads instead of the held fire, resets the chain on settlement, and the fire drains
+  after it from 0.
 
 Loops are tight (seconds to minutes per cycle), so they hit the ceiling; a CI fix loop with
 ten-minute runs stops after 16 attempts until a person speaks.
@@ -283,7 +285,7 @@ ten-minute runs stops after 16 attempts until a person speaks.
 
 A Trigger with a `problem` stays armed, does not fire, and says why. Entering a problem bumps
 `version` and enqueues one problem notice to the owning Agent in the anchor Chat. Notices use
-inbox source `trigger_problem` (concrete and bodiless, so `retire-removed-trigger-items` never
+inbox source `trigger_problem` (concrete and bodiless, so `retire-stale-requeued-items` never
 touches them), dedupe `problem:<triggerId>:<problem>:<problem_since>`, and name the fix. Clearing
 notifies nobody.
 
@@ -341,7 +343,7 @@ Server tests cover: signature valid, wrong, and missing; duplicate guid and rede
 fire; unknown and suspended installations route nothing; repository outside the access cache
 routes nothing; per-event matching tables; author default; projection caps; suppressed counting;
 fan-out of 25 matches in one transaction and rollback on failure; the 26th create refused; each
-problem transition with one `trigger_problem` notice that survives `retire-removed-trigger-items`;
+problem transition with one `trigger_problem` notice that survives `retire-stale-requeued-items`;
 chain budget increments on Trigger drains, resets on human rows, holds at 16, and resets after the
 quiet window; recovery from recorded delivery-API fixtures covering pagination, a non-`failure`
 missed delivery, overlap dedupe, and the retention gap; envelope snapshot. Fixtures are real Haus

@@ -14,7 +14,7 @@ import { publishRealtime } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { nextReminderFireAt, parseReminderRepeat } from './cadence.ts';
 import { reminderEnvelope } from './reminder-envelope.ts';
-import { prepareReminderEvent } from './reminder-events.ts';
+import { prepareReminderEvents } from './reminder-events.ts';
 import {
     ReminderAgentInactiveError,
     ReminderAnchorAccessError,
@@ -113,7 +113,7 @@ async function fireNextDueReminder(
 
             const canceled = await cancelIfUnauthorized(tx, reminder, now);
             if (canceled) {
-                return { dispatch: null, events: [canceled], fired: true };
+                return { dispatch: null, events: canceled, fired: true };
             }
             // A fire posts no message, so the Chat sequence never moves. The
             // locked read still pins the anchor for the rest of the commit.
@@ -202,7 +202,7 @@ async function fireNextDueReminder(
                         eq(remindersTable.id, reminder.id)
                     )
                 );
-            const reminderEvent = prepareReminderEvent({
+            const events = await prepareReminderEvents(tx, {
                 action: 'fired',
                 ownerAgentId: reminder.ownerAgentId,
                 reminderId: reminder.id,
@@ -230,7 +230,7 @@ async function fireNextDueReminder(
                                 kind: 'script' as const,
                             }
                           : null,
-                events: [reminderEvent],
+                events,
                 fired: true,
             };
         });
@@ -246,7 +246,7 @@ async function cancelIfUnauthorized(
     db: HausDatabase,
     reminder: typeof remindersTable.$inferSelect,
     now: Date
-): Promise<PreparedRealtimeEvent | null> {
+): Promise<PreparedRealtimeEvent[] | null> {
     try {
         await requireActiveAgent(db, reminder.serverId, reminder.ownerAgentId);
         await requireAgentAnchor(db, {
@@ -331,7 +331,7 @@ async function cancelUnauthorizedReminder(
             )
         );
     await retireQueuedReminderFires(db, reminder.serverId, reminder.id);
-    return prepareReminderEvent({
+    return await prepareReminderEvents(db, {
         action: 'canceled',
         ownerAgentId: reminder.ownerAgentId,
         reminderId: reminder.id,

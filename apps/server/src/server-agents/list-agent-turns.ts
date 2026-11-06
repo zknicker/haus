@@ -89,6 +89,7 @@ export async function readSettledTurns(
         rows.map((row) =>
             row.triggerSource && row.triggerWorkId
                 ? {
+                      agentId: row.agentId,
                       chatId: row.triggerChatId,
                       runId: row.runId,
                       source: row.triggerSource,

@@ -2,6 +2,8 @@ import {
     agentHeartbeatAttentionSchema,
     agentHeartbeatReportAttentionSchema,
     agentSubagentWakeAttentionSchema,
+    agentTaskAssignmentNoticeSchema,
+    agentTaskAssignmentsSchema,
 } from '@haus/api';
 import type {
     AgentNoticeCommand,
@@ -153,22 +155,35 @@ export function parseNoticeCommand(frame: unknown): AgentNoticeCommand | null {
         frame.runId.length === 0 ||
         typeof frame.totalPending !== 'number' ||
         !Number.isInteger(frame.totalPending) ||
-        frame.totalPending < 1 ||
-        !parseInbox(frame.inbox)?.length
+        frame.totalPending < 0
     ) {
         return null;
     }
+    const inbox = parseInbox(frame.inbox);
     const unreadElsewhere = parseUnreadElsewhere(frame.unreadElsewhere);
-    if (!unreadElsewhere) {
+    const tasks = agentTaskAssignmentNoticeSchema.optional().safeParse(frame.taskAssignments);
+    if (!(inbox && unreadElsewhere && tasks.success)) {
+        return null;
+    }
+    if (!tasks.data && (inbox.length === 0 || frame.totalPending < 1)) {
         return null;
     }
     return {
         agentId: frame.agentId,
-        inbox: parseInbox(frame.inbox) ?? [],
+        inbox,
         runId: frame.runId,
+        ...(tasks.data ? { taskAssignments: tasks.data } : {}),
         totalPending: frame.totalPending,
         type: 'notice',
         unreadElsewhere,
+    };
+}
+
+/** The exact queued work one busy notice names, for its durable ack. */
+export function noticeReceipt(notice: AgentNoticeCommand) {
+    return {
+        runId: notice.runId,
+        workIds: [...notice.inbox.map((item) => item.id), ...(notice.taskAssignments?.ids ?? [])],
     };
 }
 
@@ -189,16 +204,22 @@ export function parseStopBackgroundCommand(frame: unknown): AgentStopBackgroundC
 }
 
 /**
- * Only a heartbeat, report, or sub-agent wake run is chatless, and it carries nothing but
- * its one attention.
+ * Only a heartbeat, report, sub-agent wake, or Task assignment run is chatless, and it
+ * carries nothing but its one attention.
  */
 function parseRunChat(
     frame: Record<string, unknown>,
     itemCount: number
-): Pick<AgentStartCommand, 'chatId' | 'heartbeat' | 'heartbeatReport' | 'subagentWake'> | null {
-    const attentions = [frame.heartbeat, frame.heartbeatReport, frame.subagentWake].filter(
-        (attention) => attention !== undefined
-    ).length;
+): Pick<
+    AgentStartCommand,
+    'chatId' | 'heartbeat' | 'heartbeatReport' | 'subagentWake' | 'taskAssignments'
+> | null {
+    const attentions = [
+        frame.heartbeat,
+        frame.heartbeatReport,
+        frame.subagentWake,
+        frame.taskAssignments,
+    ].filter((attention) => attention !== undefined).length;
     if (attentions === 0) {
         return typeof frame.chatId === 'string' && frame.chatId.length > 0
             ? { chatId: frame.chatId }
@@ -219,6 +240,10 @@ function parseRunChat(
     if (frame.heartbeatReport !== undefined) {
         const report = agentHeartbeatReportAttentionSchema.safeParse(frame.heartbeatReport);
         return report.success ? { chatId: null, heartbeatReport: report.data } : null;
+    }
+    if (frame.taskAssignments !== undefined) {
+        const assignments = agentTaskAssignmentsSchema.safeParse(frame.taskAssignments);
+        return assignments.success ? { chatId: null, taskAssignments: assignments.data } : null;
     }
     const wake = agentSubagentWakeAttentionSchema.safeParse(frame.subagentWake);
     return wake.success ? { chatId: null, subagentWake: wake.data } : null;

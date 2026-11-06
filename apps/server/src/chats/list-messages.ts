@@ -23,7 +23,7 @@ export async function listChatMessages(
         if (!(cause instanceof ChatNotFoundError)) {
             throw cause;
         }
-        // A task Thread nobody has replied in has no Chat row yet. It is still
+        // A claim Thread nobody has replied in has no Chat row yet. It is still
         // addressable by its derived id, and it reads as what it is: empty.
         await requireThreadAccess(db, member, {
             serverId: input.serverId,

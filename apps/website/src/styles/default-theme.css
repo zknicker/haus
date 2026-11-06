@@ -2356,6 +2356,15 @@
     }
 
     /*
+     * Stock cards paint `--overlay`, and in dark that lands on the exact tone
+     * of the column's 40% `--default` wash, so a card had no edge at all. The
+     * full `--default` is the step up a card needs.
+     */
+    :is([data-theme="dark"], .dark) .kanban__card-content {
+        background-color: var(--default);
+    }
+
+    /*
      * The turn trace is evidence: commands, diffs, and file contents. A stock
      * right drawer is sized for a settings form, and at that width every code
      * line wraps, which is exactly what the full-width Activity tab shows it
@@ -2959,7 +2968,7 @@
     }
 
     /*
-     * A Thread over a page (Task and Cloud Agent peeks). The transcript's edge
+     * A Thread over a page (Cloud Agent peeks). The transcript's edge
      * bands sit on the dialog's surface, not the page: a rounded clip drops
      * their mask, so the dialog stays unclipped, and they wash with its own
      * colour. The bottom band reaches the dialog's corners, so it carries the

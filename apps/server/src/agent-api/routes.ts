@@ -9,7 +9,9 @@ import { registerAgentAgentRoutes } from './agent-routes.ts';
 import { registerAgentAttachmentRoutes } from './attachment-routes.ts';
 import { unfollowAgentThread } from './attention.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
+import { registerAgentBoardRoutes } from './board-routes.ts';
 import { registerAgentChannelRoutes } from './channel-routes.ts';
+import { registerAgentClaimRoutes } from './claim-routes.ts';
 import { registerAgentCloudAgentRoutes } from './cloud-agent-routes.ts';
 import { readAgentServerDirectory } from './directory.ts';
 import { registerAgentHeartbeatRoutes } from './heartbeat-routes.ts';
@@ -108,11 +110,17 @@ export function registerAgentApiRoutes(
     registerAgentMcpRoutes(app, { db: options.db, runtime: options.mcpRuntime });
     registerAgentReactionRoutes(app, options.db);
     registerAgentReminderRoutes(app, options.db);
+    registerAgentClaimRoutes(app, {
+        agentDelivery: options.agentDelivery,
+        db: options.db,
+        postCommitWork: options.postCommitWork,
+    });
     registerAgentTaskRoutes(app, {
         agentDelivery: options.agentDelivery,
         db: options.db,
         postCommitWork: options.postCommitWork,
     });
+    registerAgentBoardRoutes(app, options.db);
     registerAgentTriggerRoutes(app, options.db, {
         githubTransport: options.githubApp?.transport ?? {},
     });

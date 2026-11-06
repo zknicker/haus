@@ -33,7 +33,7 @@ export async function serveLocalAgentEvents(input: {
 
 async function localAgentEvents(location: AgentInboxLocation) {
     const pending = await readPendingInboxState(location);
-    // A pending fire or task assignment has no cached body and only the Server
+    // A pending fire or claim assignment has no cached body and only the Server
     // can retire it. Let the whole pull go upstream so those items and messages
     // arrive in one ordered response instead of being split across a local page
     // and a Server page.

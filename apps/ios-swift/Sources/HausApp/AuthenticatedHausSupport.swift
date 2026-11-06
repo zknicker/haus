@@ -22,13 +22,23 @@ struct SettingsUnavailableSheet: View {
 }
 
 /// Tasks and Threads share the root stack, so a Thread opened from a Task pops
-/// back to the Task list rather than to the canvas underneath. The Inbox is not
+/// back to that Task rather than to the canvas underneath. The Inbox is not
 /// here: it is the canvas itself, which is why it wears no navigation bar and
 /// no Back button — see `AuthenticatedHausView+Routes`.
 enum HausRootRoute: Hashable {
-    /// The Task list the sidebar opens.
+    /// The board picker the sidebar opens.
     case tasks
+    case board(boardID: String)
+    case task(taskID: String)
     case thread(ThreadSelection)
+
+    /// Whether this is one of the screens the sidebar's Tasks row stands for.
+    var isTasksRoute: Bool {
+        switch self {
+        case .tasks, .board, .task: true
+        case .thread: false
+        }
+    }
 }
 
 /// A Thread route anchored by the parent message, which exists before the child
@@ -43,10 +53,10 @@ struct ThreadSelection: Hashable, Identifiable {
     let parentChatID: String
     var threadChatID: String?
     let anchor: MessagePresentation
-    /// The reply whose task this Thread was opened for
-    /// (`TaskOpening.containingThread`). The Thread lands on it instead of the
-    /// unread landing and always marks its task.
-    var taskMessageID: String?
+    /// The reply whose claim this Thread was opened for
+    /// (`ClaimOpening.containingThread`). The Thread lands on it instead of the
+    /// unread landing and always marks its claim.
+    var claimMessageID: String?
     /// The Cloud Agent work this Thread was opened for. It names the screen,
     /// the identity the reader came for, as the App's work peek does.
     var title: String?

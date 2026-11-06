@@ -55,6 +55,7 @@ export const linkedMessage: ChatMessage = {
     sequence: 7,
     serverId: 'srv_studio',
     sessionGeneration: 1,
+    taskLinks: [],
 };
 
 /** Both arms of "Happening now"'s `location`. */

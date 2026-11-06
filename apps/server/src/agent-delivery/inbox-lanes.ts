@@ -1,12 +1,12 @@
-// The attentions with no Chat (dream, heartbeat, heartbeat report, sub-agent wake) are a
-// first-party contract; `@haus/api` owns the list.
+// The attentions with no Chat (dream, heartbeat, heartbeat report, sub-agent wake, Task
+// assignment) are a first-party contract; `@haus/api` owns the list.
 import { chatlessInboxSources } from '@haus/api';
 
 /**
  * Which inbox items ride the concrete lane. A concrete item's envelope is
  * composed into the run's own first prompt and is served the moment the
  * Computer accepts that run; everything else rides the notice lane, where the
- * Agent decides whether to pull the body. Fires and task assignments are
+ * Agent decides whether to pull the body. Fires and claim assignments are
  * concrete because they exist nowhere but the inbox: a discretionary pull is
  * the only thing standing between the wake and its reason, and an unread one
  * leaves an answer with no provable cause (specs/inbox.md). A Trigger problem
@@ -19,11 +19,12 @@ export const concreteInboxSources = [
     'trigger_problem',
     'image_generation_failed',
     'reminder',
-    'task_assignment',
+    'claim_assignment',
     'dream',
     'heartbeat',
     'heartbeat_report',
     'subagent',
+    'task_assignment',
 ] as const;
 
 export function isConcreteInboxSource(source: string): boolean {
@@ -45,9 +46,11 @@ export const bodilessInboxSources = [
 ] as const;
 
 /**
- * Attentions no busy notice, unread digest, or `haus inbox check` lists: Cove's
- * bootstrap and the chatless attentions, which lead their own runs, and a new
- * Agent's greeting, which rides a run rather than being read (greeting.ts).
+ * Attentions no notice row, unread digest, or `haus inbox check` lists: Cove's
+ * bootstrap and the chatless attentions, which lead their own runs and have no
+ * Chat to list them under, and a new Agent's greeting, which rides a run rather
+ * than being read (greeting.ts). Only Task assignments reach a busy Agent at all,
+ * as a bare count beside those rows (`planBusyNotice`).
  */
 export const noticelessInboxSources = ['onboarding', 'greeting', ...chatlessInboxSources] as const;
 

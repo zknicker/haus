@@ -1,27 +1,27 @@
-import { taskChangedTopic } from '../realtime/topics.ts';
-import { threadChatIdForAnchor } from '../threads/thread-id.ts';
+import { taskCreatedTopic, taskUpdatedTopic } from '../realtime/topics.ts';
 
-/**
- * Prepares `task.changed` for a task row the caller is about to commit. The
- * App invalidates the task Message's entity and `task.list`, so the event names
- * the Chat the Message sits in: a Thread task's Thread, whose access follows
- * its parent. `threadChatId` is null or the task's own work Thread for a
- * top-level task; that Thread may not exist yet, so an event must not name it.
- */
-export function prepareTaskEvent(input: {
-    chatId: string;
-    messageId: string;
+interface TaskEventSubject {
+    boardId: string;
+    id: string;
     serverId: string;
-    threadChatId: string | null;
-    type: 'task.created' | 'task.updated';
-}) {
-    const inThread =
-        input.threadChatId !== null &&
-        input.threadChatId !== threadChatIdForAnchor(input.messageId);
-    return taskChangedTopic.prepare({
-        chatId: inThread ? (input.threadChatId as string) : input.chatId,
-        kind: input.type === 'task.created' ? 'created' : 'updated',
-        messageId: input.messageId,
-        serverId: input.serverId,
-    });
+    version: number;
+}
+
+/** `task.created` for a Task about to commit. Ids and version only. */
+export function prepareTaskCreatedEvent(task: TaskEventSubject) {
+    return taskCreatedTopic.prepare(toEvent(task));
+}
+
+/** `task.updated` for an edit, move, assignment, or column restructure about to commit. */
+export function prepareTaskUpdatedEvent(task: TaskEventSubject) {
+    return taskUpdatedTopic.prepare(toEvent(task));
+}
+
+function toEvent(task: TaskEventSubject) {
+    return {
+        boardId: task.boardId,
+        serverId: task.serverId,
+        taskId: task.id,
+        version: task.version,
+    };
 }

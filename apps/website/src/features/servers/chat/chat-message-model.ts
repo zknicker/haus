@@ -6,7 +6,7 @@ import type { TranscriptMessageRow } from '../../chats/transcript-contract.ts';
 import { messageCloudAgentWork } from '../../cloud-agents/message-cloud-agent-work.ts';
 import { messageImageGenerations } from '../../image-generation/message-image-generations.ts';
 
-export function mergeTaskAnchor<Message extends { id: string; sequence: number }>(
+export function mergeClaimAnchor<Message extends { id: string; sequence: number }>(
     messages: readonly Message[] | undefined,
     anchor: Message | undefined
 ): readonly Message[] | undefined {
@@ -18,7 +18,7 @@ export function mergeTaskAnchor<Message extends { id: string; sequence: number }
 
 export type ProjectedChatMessageRow = TranscriptMessageRow;
 
-/** The directories a message's task fields are resolved against. */
+/** The directories a message's claim fields are resolved against. */
 export interface ChatMessageDirectories {
     handleByAgentId: ReadonlyMap<string, string>;
 }
@@ -73,7 +73,8 @@ export function projectChatMessage(
             reactions: message.reactions,
             reply: message.reply,
             sendNonce: message.nonce,
-            task: messageTask(message.task, directories.handleByAgentId),
+            claim: messageClaim(message.claim, directories.handleByAgentId),
+            taskLinks: message.taskLinks,
             timestamp: message.createdAt,
         },
         responseId: agentId ? message.id : undefined,
@@ -82,40 +83,38 @@ export function projectChatMessage(
     };
 }
 
-function messageTask(
-    task: ChatMessage['task'],
+function messageClaim(
+    claim: ChatMessage['claim'],
     handleByAgentId: ReadonlyMap<string, string>
-): TranscriptMessage['task'] {
-    if (!task) {
+): TranscriptMessage['claim'] {
+    if (!claim) {
         return null;
     }
     return {
-        assignee: taskAssignee(task, handleByAgentId),
-        claimed_at: task.claimedAt,
-        created_at: task.createdAt,
-        labels: task.labels,
+        assignee: claimAssignee(claim, handleByAgentId),
+        claimed_at: claim.claimedAt,
+        created_at: claim.createdAt,
         // Tier and liveness are what the transcript's marks read: whether this
-        // task has a Thread surface at all, and whether anyone is on it now.
-        live: task.live,
-        number: task.number,
-        origin: task.origin,
-        priority: task.priority,
-        status: task.status,
-        tier: task.tier,
-        updated_at: task.updatedAt,
+        // claim has a Thread surface at all, and whether anyone is on it now.
+        live: claim.live,
+        number: claim.number,
+        origin: claim.origin,
+        status: claim.status,
+        tier: claim.tier,
+        updated_at: claim.updatedAt,
     };
 }
 
-function taskAssignee(
-    task: NonNullable<ChatMessage['task']>,
+function claimAssignee(
+    claim: NonNullable<ChatMessage['claim']>,
     handleByAgentId: ReadonlyMap<string, string>
 ): { handle: string | null; id: string; kind: 'agent' } | null {
-    if (!task.assigneeAgentId) {
+    if (!claim.assigneeAgentId) {
         return null;
     }
     return {
-        handle: handleByAgentId.get(task.assigneeAgentId) ?? null,
-        id: task.assigneeAgentId,
+        handle: handleByAgentId.get(claim.assigneeAgentId) ?? null,
+        id: claim.assigneeAgentId,
         kind: 'agent',
     };
 }

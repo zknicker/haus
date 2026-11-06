@@ -2,10 +2,10 @@
 import Testing
 
 struct ThreadReplyRevealTests {
-    @Test func anchorAndTaskAreNotPreviousReplies() {
+    @Test func anchorAndClaimAreNotPreviousReplies() {
         let anchor = ChatFixtures.messages[2]
         var previous: [ThreadTranscriptItem] = [.anchor(anchor, hasReplies: false)]
-        if let task = anchor.task { previous.append(.taskMetadata(task, hasReplies: false)) }
+        if let claim = anchor.claim { previous.append(.claimMetadata(claim, hasReplies: false)) }
         #expect(ThreadReplyReveal.onLatestReplyChange(
             previousLatestID: previous.last(where: { $0.replyID != nil })?.replyID,
             isNearBottom: true,

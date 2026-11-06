@@ -55,4 +55,7 @@ export const migrationsSince0060 = [
     '0112_cloud-agent-environment',
     '0113_cloud-agent-pull-requests',
     '0114_thread-closures',
+    '0115_rename-tasks-to-claims',
+    '0116_task-boards',
+    '0117_drop-claim-priority-labels',
 ];

@@ -148,7 +148,7 @@ export const agentMessageDraftsTable = pgTable(
 
 /**
  * The Agent inbox: the durable ledger of everything offered to one Agent.
- * Ordinary Chat deliveries, Cloud Agent attentions, task assignments, and Trigger
+ * Ordinary Chat deliveries, Cloud Agent attentions, claim assignments, and Trigger
  * and Reminder fires all ride these rows, each keyed by its own identity.
  * `state` is the live-queue gate: only a `queued` row is deliverable, and every
  * queue read filters on it. `noticeRunId` records
@@ -171,7 +171,7 @@ export const agentInboxTable = pgTable(
         agentId: text('agent_id').notNull(),
         /**
          * Null exactly for the chatless attentions: `dream`, `heartbeat`, `heartbeat_report`,
-         * and a `subagent` wake.
+         * a `subagent` wake, and a `task_assignment`.
          */
         chatId: text('chat_id'),
         content: text('content').notNull(),
@@ -224,7 +224,7 @@ export const agentInboxTable = pgTable(
             .on(table.agentId, table.runId)
             .where(sql`${table.state} <> 'seen'`),
         // The notice lane's equivalent: a run that was only told about a row
-        // still holds it, and task liveness reads that edge on every dispatch.
+        // still holds it, and claim liveness reads that edge on every dispatch.
         index('agent_inbox_notice_run_idx')
             .on(table.agentId, table.noticeRunId)
             .where(sql`${table.state} <> 'seen'`),
@@ -240,7 +240,7 @@ export const agentInboxTable = pgTable(
         ),
         check(
             'agent_inbox_chat',
-            sql`(${table.chatId} is null) = (${table.source} in ('dream', 'heartbeat', 'heartbeat_report', 'subagent'))`
+            sql`(${table.chatId} is null) = (${table.source} in ('dream', 'heartbeat', 'heartbeat_report', 'subagent', 'task_assignment'))`
         ),
         check('agent_inbox_id_shape', sql`${table.id} ~ '^inb_[A-Za-z0-9_-]{16}$'`),
         check('agent_inbox_state', sql`${table.state} in ('queued', 'accepted', 'served', 'seen')`),

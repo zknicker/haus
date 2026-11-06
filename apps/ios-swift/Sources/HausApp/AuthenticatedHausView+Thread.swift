@@ -6,6 +6,12 @@ import SwiftUI
 /// from the Store, and the two things it can ask for beyond a reply — opening
 /// an Agent, and following the Thread.
 extension AuthenticatedHausView {
+    /// Owners and Admins may cancel a live Cloud Agent run from its card.
+    var cloudAgentCancel: CloudAgentCancelAction? {
+        guard store.canManageServer else { return nil }
+        return CloudAgentCancelAction { [store] workID in try await store.cancelCloudAgent(workID: workID) }
+    }
+
     /// A Thread is a pushed screen above the canvas, so opening an Agent from a
     /// reply pops back to the canvas the shell's own Agent route lands on.
     @MainActor
@@ -74,9 +80,9 @@ extension AuthenticatedHausView {
             title: thread.title,
             engagementChatID: resolvedThreadChatID(for: thread),
             engagementStyle: threadEngagementStyle(for: thread),
-            landingMessageID: thread.taskMessageID
+            landingMessageID: thread.claimMessageID
                 ?? store.unreadThreadLanding(threadChatID: resolvedThreadChatID(for: thread)),
-            taskMessageID: thread.taskMessageID,
+            claimMessageID: thread.claimMessageID,
             onVisibleMessagesChange: { reportVisibleReplies($0, in: thread) }
         )
         .task {

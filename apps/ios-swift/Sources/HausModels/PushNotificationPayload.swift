@@ -67,6 +67,78 @@ public struct PushNotificationPayload: Sendable, Equatable {
     }
 }
 
+/// The keys a Task assignment push carries (ADR 0051). `kind` tells it from a
+/// message push, and it names no sender or conversation: it is a plain alert
+/// the Notification Service extension never rewrites.
+public struct PushTaskAssignmentPayload: Sendable, Equatable {
+    public static let kind = "task_assignment"
+
+    public let serverID: String
+    public let taskID: String
+    /// `SEC-12`, as it read when the push was sent.
+    public let key: String
+
+    public init(serverID: String, taskID: String, key: String) {
+        self.serverID = serverID
+        self.taskID = taskID
+        self.key = key
+    }
+
+    /// Nil for a message push, or when a required key is missing.
+    public init?(userInfo: [AnyHashable: Any]) {
+        guard userInfo["kind"] as? String == Self.kind,
+              let serverID = userInfo["serverId"] as? String, !serverID.isEmpty,
+              let taskID = userInfo["taskId"] as? String, !taskID.isEmpty,
+              let key = userInfo["key"] as? String, !key.isEmpty
+        else { return nil }
+        self.init(serverID: serverID, taskID: taskID, key: key)
+    }
+}
+
+/// Several assignments landing inside one read grace, as one push (ADR 0051).
+/// It names no Task; a tap opens the Inbox, which holds a row per Task. Like
+/// the single push it is a plain alert the extension never rewrites.
+public struct PushTaskAssignmentBurstPayload: Sendable, Equatable {
+    public static let kind = "task_assignment_burst"
+
+    public let serverID: String
+    public let count: Int
+
+    public init(serverID: String, count: Int) {
+        self.serverID = serverID
+        self.count = count
+    }
+
+    /// Nil for any other push, or when a required key is missing.
+    public init?(userInfo: [AnyHashable: Any]) {
+        guard userInfo["kind"] as? String == Self.kind,
+              let serverID = userInfo["serverId"] as? String, !serverID.isEmpty,
+              let count = userInfo["count"] as? Int
+        else { return nil }
+        self.init(serverID: serverID, count: count)
+    }
+}
+
+/// What a tapped notification names.
+public enum PushOpenRequest: Sendable, Equatable {
+    case message(PushNotificationPayload)
+    case task(PushTaskAssignmentPayload)
+    case taskBurst(PushTaskAssignmentBurstPayload)
+
+    /// Nil when `userInfo` is none of them, so a malformed push opens nothing.
+    public init?(userInfo: [AnyHashable: Any]) {
+        if let task = PushTaskAssignmentPayload(userInfo: userInfo) {
+            self = .task(task)
+        } else if let burst = PushTaskAssignmentBurstPayload(userInfo: userInfo) {
+            self = .taskBurst(burst)
+        } else if let message = PushNotificationPayload(userInfo: userInfo) {
+            self = .message(message)
+        } else {
+            return nil
+        }
+    }
+}
+
 /// The screen a tapped notification opens: a DM or Channel on the canvas, or
 /// a Thread pushed over it.
 public enum PushNotificationRoute: Sendable, Equatable {

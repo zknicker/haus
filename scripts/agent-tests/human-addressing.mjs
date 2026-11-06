@@ -35,7 +35,7 @@ export function humanAddressingReason(message, userId, threadAnchorAuthor = null
 
 /**
  * Where the human answers so the asking Agent sees it: inside the Thread the
- * question arrived in (any Thread, task or not), else as an inline reply to
+ * question arrived in (any Thread, claim or not), else as an inline reply to
  * the question itself.
  */
 export function answerPlacement({ channelId, questionId, thread }) {

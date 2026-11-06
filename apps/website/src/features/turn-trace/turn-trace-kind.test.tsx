@@ -54,7 +54,7 @@ test('a row colors its icon and bar by kind and keeps its label neutral', () => 
 
 test('a lone Haus bookkeeping call keeps the muted Haus mark and bar', () => {
     const markup = render({
-        tools: [tool({ input: { command: 'haus task done tsk_1' }, toolCallId: 'call-haus' })],
+        tools: [tool({ input: { command: 'haus claim list' }, toolCallId: 'call-haus' })],
     });
     assert.match(markup, /data-trace-bar="haus"/);
     assert.match(markup, /size-3\.5 shrink-0 text-muted/);

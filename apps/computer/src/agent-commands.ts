@@ -1,6 +1,8 @@
 import type {
     AgentHeartbeatAttention,
     AgentHeartbeatReportAttention,
+    AgentTaskAssignment,
+    AgentTaskAssignmentNotice,
     AgentTurnActivitySummary,
     AgentTurnFailureCode,
     ConnectionChipKind,
@@ -18,7 +20,7 @@ export interface AgentStartCommand {
     agentName?: string;
     /** Pickup reaction; null or absent means the prompt's default. */
     agentSignatureEmoji?: string | null;
-    /** The run's Chat; null only for a heartbeat, heartbeat-report, or sub-agent wake run. */
+    /** The run's Chat; null only for a chatless run: a heartbeat, report, wake, or assignment. */
     chatId: string | null;
     /** Chips the Server's connections add to chat; the prompt teaches the ones an Agent writes. */
     connectionChips?: ConnectionChipKind[];
@@ -39,6 +41,8 @@ export interface AgentStartCommand {
     sessionGeneration: number;
     /** Background work the Agent started finished or stopped; a chatless run with no inbox. */
     subagentWake?: { createdAt: string; id: string };
+    /** Board Tasks assigned to the Agent; a chatless run in the main session, with no inbox. */
+    taskAssignments?: AgentTaskAssignment[];
     totalPending: number;
     traceContext?: { traceparent: string };
     type: 'start';
@@ -86,6 +90,8 @@ export interface AgentNoticeCommand {
     agentId: string;
     inbox: AgentInboxItem[];
     runId: string;
+    /** Queued Task assignments, a bare count beside the inbox; a notice carries one or both. */
+    taskAssignments?: AgentTaskAssignmentNotice;
     totalPending: number;
     type: 'notice';
     unreadElsewhere?: UnreadElsewhere[];

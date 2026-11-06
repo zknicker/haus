@@ -1,4 +1,4 @@
-import type { Agent, Chat } from '@haus/api';
+import { type Agent, type Chat, formatTaskKey, parseTaskKey } from '@haus/api';
 import type { TabLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import type { BrowserTab } from '../../lib/desktop-browser.ts';
 import { parseArtifactPageKey } from '../../routes/app/desktop-page-paths.ts';
@@ -21,7 +21,7 @@ export type TabMark =
     | { kind: 'avatar'; name: string; src: string | null }
     | { kind: 'channel'; color: string | null; icon: string | null }
     | { kind: 'favicon'; loading: boolean; url: string | null }
-    | { kind: 'glyph'; glyph: 'artifact' | 'files' | 'newTab' | AppSection }
+    | { kind: 'glyph'; glyph: 'artifact' | 'board' | 'files' | 'newTab' | 'task' | AppSection }
     | { kind: 'none' };
 
 /** What a location shows, before any record is looked up. */
@@ -33,19 +33,22 @@ export type TabPage =
           shared: { artifactId: string; revisionId: string | null } | null;
           title: string | null;
       }
+    | { kind: 'board'; boardKey: string }
     | { kind: 'browser'; title: string; url: string; viewId: string }
     | { kind: 'chat'; chatId: string }
     | { kind: 'dm'; agentId: string }
     | { kind: 'files'; chatId: string }
     | { kind: 'newTab' }
     | { kind: 'section'; section: AppSection }
+    | { kind: 'task'; taskKey: string }
     | { kind: 'thread'; anchorMessageId: string; chatId: string };
 
 /**
  * Parses a tab location. App paths are `/s/<slug>/<section>/<id>…`; desktop
  * Thread, Attachments, and artifact pages are `threads/<chatId>/<anchorId>`,
  * `files/<chatId>`, and `artifacts/<key>?title=…`; a shared library file is
- * `artifacts/<artifactId>`, titled from its record.
+ * `artifacts/<artifactId>`, titled from its record. A board is
+ * `tasks/<boardKey>` and a Task `tasks/<boardKey>/<number>`.
  */
 export function parseTabPage(location: TabLocation): TabPage {
     if (location.kind === 'browser') {
@@ -80,6 +83,8 @@ export function parseTabPage(location: TabLocation): TabPage {
             return first
                 ? artifactPage(first, new URLSearchParams(search))
                 : sectionPage(pathname, slug);
+        case 'tasks':
+            return tasksPage(first, second) ?? sectionPage(pathname, slug);
         default:
             return sectionPage(pathname, slug);
     }
@@ -90,6 +95,8 @@ export interface TabIdentityRecords {
     agents: readonly Pick<Agent, 'avatarUrl' | 'displayName' | 'id'>[] | null;
     /** A shared artifact page's title, once its record loads. */
     artifactTitle: string | null;
+    /** A board page's name, once `board.list` loads. */
+    boardName: string | null;
     /** The live web view's state, when Electron has reported it. */
     browserTab: Pick<BrowserTab, 'faviconUrl' | 'loading' | 'title' | 'url'> | null;
     chats: readonly TabChat[] | null;
@@ -139,6 +146,14 @@ export function resolveTabIdentity(page: TabPage, records: TabIdentityRecords): 
                 mark: { kind: 'glyph', glyph: 'artifact' },
                 place: null,
             };
+        case 'board':
+            return {
+                label: records.boardName ?? '',
+                mark: { kind: 'glyph', glyph: 'board' },
+                place: null,
+            };
+        case 'task':
+            return { label: page.taskKey, mark: { kind: 'glyph', glyph: 'task' }, place: null };
         case 'newTab':
             return { label: 'New tab', mark: { kind: 'glyph', glyph: 'newTab' }, place: null };
         case 'section':
@@ -217,6 +232,18 @@ function artifactPage(key: string, search: URLSearchParams): TabPage {
             : { artifactId: key, revisionId: search.get('revision') },
         title: search.get('title'),
     };
+}
+
+/** Null for `/tasks` itself, and for an address no Task key can parse. */
+function tasksPage(boardKey: string, number: string): TabPage | null {
+    if (!boardKey) {
+        return null;
+    }
+    if (!number) {
+        return { kind: 'board', boardKey };
+    }
+    const parsed = parseTaskKey(`${boardKey}-${number}`);
+    return parsed ? { kind: 'task', taskKey: formatTaskKey(parsed.boardKey, parsed.number) } : null;
 }
 
 function sectionPage(pathname: string, slug: string): TabPage {

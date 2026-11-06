@@ -12,18 +12,18 @@ export type ArtifactPageTarget = HausResourceTarget & { agentId: string };
  * artifact are ordinary pages a tab can show. The web has the Thread page too,
  * and keeps the others in the chat side pane. Each second segment names the page,
  * so `tabPageKey` tells two Threads or two artifacts apart. A Thread opened on
- * a task inside it carries that message in `?task=`, so its page states the task.
+ * a claim inside it carries that message in `?claim=`, so its page states the claim.
  */
 export function threadPagePath(
     slug: string,
     chatId: string,
     anchorMessageId: string,
-    { landingSequence, taskMessageId }: { landingSequence?: number; taskMessageId?: string } = {}
+    { claimMessageId, landingSequence }: { claimMessageId?: string; landingSequence?: number } = {}
 ) {
     const path = `${serverRoute(slug)}/threads/${encodeURIComponent(chatId)}/${encodeURIComponent(anchorMessageId)}`;
     const params = new URLSearchParams();
-    if (taskMessageId) {
-        params.set('task', taskMessageId);
+    if (claimMessageId) {
+        params.set('claim', claimMessageId);
     }
     if (landingSequence !== undefined) {
         params.set('at', String(landingSequence));

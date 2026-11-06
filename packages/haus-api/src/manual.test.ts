@@ -7,17 +7,17 @@ import {
 } from './manual.ts';
 
 const recipeTopic = {
-    body: '# Claim the task\n',
+    body: '# Claim before work\n',
     class: 'technique' as const,
     evidence: 'verified' as const,
-    id: 'recipes/technique/task-claim-lock',
+    id: 'recipes/technique/claim-lock',
     industries: ['universal'],
     kind: 'recipe' as const,
-    prereqs: ['task board or message id'],
+    prereqs: ['message number or id'],
     related: ['recipes/index'],
     summary: 'Claim canonical work before acting.',
     tier: 'seeded' as const,
-    title: 'Claim the task before work',
+    title: 'Claim before work',
     triggers: ['should I claim this before starting'],
 };
 

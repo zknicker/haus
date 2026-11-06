@@ -72,8 +72,6 @@ function ChannelNavigationContextMenu({
         // Deleting the channel you are in leaves it; any other page stays put.
         onDeleted: isCurrent ? () => navigate(serverRoute(slug), { replace: true }) : undefined,
         openFiles: openers?.openFiles,
-        // Desktop: the row's Tasks is Open (the right pane), not the row's own Go.
-        openPath: openers ? (path) => openers.openPage(path) : navigate,
         slug,
     });
 

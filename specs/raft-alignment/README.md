@@ -314,7 +314,8 @@ inbox. Human **Start** resumes the current session and drains that work.
   notes). A **Haus onboarding agent modeled on Cindy** (playbook/objectives/FAQ recovered
   locally as reference) ships as its own deliverable. Server-hosted `haus manual` (tier 3)
   stays deferred; skills cover that niche for now.
-- **D8 — Chat-first tasks; `specs/tasks.md` superseded.** A task is a message promoted with task
+- **D8 — Chat-first tasks; the pre-Raft task spec superseded (now `specs/claims.md`, renamed
+  to claims per ADR 0051).** A task is a message promoted with task
   metadata (`[task #N status=…]` envelope suffix); the message's thread is the work surface;
   claim-before-work is the concurrency lock; statuses `todo → in_progress → in_review → done`
   (+ reversible `closed`); assignee independent of status. Pull replaces push dispatch: assigned
@@ -630,7 +631,8 @@ wake gated on `delivered > seen`.
 ## Existing specs impacted
 
 Rewritten or retired by this program (each within the workstream that lands the change; until
-then they describe the pre-Raft system): `specs/tasks.md` (superseded by D8), `specs/cron.md`
+then they describe the pre-Raft system): `specs/claims.md`, then `specs/tasks.md` (superseded
+by D8), `specs/cron.md`
 (D4), `specs/memories.md` + memory specs (D3), Wiki specs (D3b), `specs/steering.md` (I2 —
 notices replace body pushes), `specs/sessions.md` (I1/I3 — floating turns, exact visibility ledger;
 global-session core survives), the retired Runtime CLI and skill specs, ADR 0011 (amended by I1),

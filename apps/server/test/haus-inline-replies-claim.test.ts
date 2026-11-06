@@ -25,11 +25,11 @@ test('inline reply claims stay isolated and nonce retries keep ancestry', async 
         serverId: fixture.serverId,
     });
     const raceClaims = await Promise.all([
-        fixture.post('/api/agent/tasks/claim', orbit, {
+        fixture.post('/api/agent/claims/claim', orbit, {
             messageId: raceRoot.message.id,
             target: '#product',
         }),
-        fixture.post('/api/agent/tasks/claim', peer, {
+        fixture.post('/api/agent/claims/claim', peer, {
             messageId: raceRoot.message.id,
             target: '#product',
         }),
@@ -47,14 +47,14 @@ test('inline reply claims stay isolated and nonce retries keep ancestry', async 
     );
     const winner = winningIndex === 0 ? orbit : peer;
     const loser = winningIndex === 0 ? peer : orbit;
-    const taskNumber = (
+    const claimNumber = (
         raceClaims[winningIndex]?.body as
-            | { results?: Array<{ task: { number: number } | null }> }
+            | { results?: Array<{ claim: { number: number } | null }> }
             | undefined
-    )?.results?.[0]?.task?.number;
-    expect(taskNumber).toBeTypeOf('number');
-    const completed = await fixture.post('/api/agent/tasks/update', winner, {
-        number: taskNumber,
+    )?.results?.[0]?.claim?.number;
+    expect(claimNumber).toBeTypeOf('number');
+    const completed = await fixture.post('/api/agent/claims/update', winner, {
+        number: claimNumber,
         status: 'done',
         target: '#product',
     });
@@ -88,7 +88,7 @@ test('inline reply claims stay isolated and nonce retries keep ancestry', async 
         target: '#product',
     });
     expect(leftBeforeClaim.status).toBe(200);
-    const claimedLater = await fixture.post('/api/agent/tasks/claim', peer, {
+    const claimedLater = await fixture.post('/api/agent/claims/claim', peer, {
         messageId: authoredReplyId ?? '',
         target: '#product',
     });
@@ -108,7 +108,7 @@ test('inline reply claims stay isolated and nonce retries keep ancestry', async 
         nonce: 'inline_isolated_root',
         serverId: fixture.serverId,
     });
-    const isolatedClaim = await fixture.post('/api/agent/tasks/claim', loser, {
+    const isolatedClaim = await fixture.post('/api/agent/claims/claim', loser, {
         messageId: isolatedRoot.message.id,
         target: '#product',
     });

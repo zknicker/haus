@@ -31,7 +31,7 @@ export function useChatMessageReaction() {
             });
             void utils.cloudAgentWork.listActive.invalidate({ serverId: input.serverId });
             void utils.chat.search.invalidate({ serverId: input.serverId });
-            void utils.task.list.invalidate({ serverId: input.serverId }, { refetchType: 'all' });
+            void utils.claim.list.invalidate({ serverId: input.serverId }, { refetchType: 'all' });
         },
     });
 }

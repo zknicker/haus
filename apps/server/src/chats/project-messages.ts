@@ -1,10 +1,11 @@
 import type { ChatMessage, ThreadSummary } from '@haus/api';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import { readMessageCauses } from '../automations/message-cause-read.ts';
+import { listMessageClaimMap } from '../claims/claim-shape.ts';
 import { readLinkedCloudAgentWork } from '../cloud-agents/linked-cloud-agent-work.ts';
 import { readLinkedImageGenerations } from '../image-generation/linked-image-generations.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { listMessageTaskMap } from '../tasks/task-shape.ts';
+import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
 import { listThreadSummaries } from '../threads/list-thread-summaries.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { readMessageBodies } from './message-bodies.ts';
@@ -27,22 +28,24 @@ export async function projectChatMessages(
     const messageIds = rows.map((message) => message.id);
     const [
         attachmentsByMessageId,
-        taskByMessageId,
+        claimByMessageId,
         causeByMessageId,
         bodyByMessageId,
         workByMessageId,
         imageGenerationsByMessageId,
         reactionsByMessageId,
         replyByMessageId,
+        taskLinksByMessageId,
     ] = await Promise.all([
         readMessageAttachments(db, input.serverId, messageIds),
-        listMessageTaskMap(db, input.serverId, messageIds),
+        listMessageClaimMap(db, input.serverId, messageIds),
         readMessageCauses(db, input.serverId, messageIds),
         readMessageBodies(db, input.serverId, messageIds),
         readLinkedCloudAgentWork(db, input.serverId, messageIds),
         readLinkedImageGenerations(db, input.serverId, messageIds),
         readChatMessageReactions(db, input.serverId, messageIds),
         readInlineReplyContexts(db, input.serverId, rows),
+        readMessageTaskLinks(db, input.serverId, messageIds),
     ]);
     const messages = rows.map((message) => ({
         ...toChatMessage(message, {
@@ -54,8 +57,9 @@ export async function projectChatMessages(
             imageGenerations: imageGenerationsByMessageId.get(message.id),
             reactions: reactionsByMessageId.get(message.id),
             reply: replyByMessageId.get(message.id) ?? null,
+            taskLinks: taskLinksByMessageId.get(message.id),
         }),
-        task: taskByMessageId.get(message.id) ?? null,
+        claim: claimByMessageId.get(message.id) ?? null,
     }));
 
     return {

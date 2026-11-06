@@ -10,10 +10,11 @@ export const deleteAgentProcedure = memberProcedure
     .input(deleteAgentInputSchema)
     .mutation(async ({ ctx, input }) => {
         try {
-            const result = await deleteAgent(ctx.hausDb, ctx.member, input);
-            for (const event of result.taskEvents) {
+            const result = await deleteAgent(ctx.hausDb, ctx.agentDelivery, ctx.member, input);
+            for (const event of result.claimEvents) {
                 publishRealtime(event);
             }
+            publishRealtime(result.taskEvents);
             ctx.agentDelivery.retireAgent({
                 agentId: result.agentId,
                 computerId: result.computerId,

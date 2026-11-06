@@ -3,10 +3,9 @@ import SwiftUI
 
 /// The shared status shape behind every Haus status glyph.
 ///
-/// Two status types exist — `TaskStatus` on the Server-backed task list and
-/// `TaskStatusPresentation` on chat presentation — and neither should learn
-/// about color. This is the one place a status becomes a hue, mirroring the
-/// desktop `taskStatusDiscClasses` mapping.
+/// `ClaimStatusPresentation` should not learn about color, so this is the one
+/// place a claim status becomes a hue, mirroring the desktop
+/// `taskStatusDiscClasses` mapping.
 enum TaskStatusShape: Sendable, CaseIterable {
     case todo
     case inProgress
@@ -26,7 +25,7 @@ enum TaskStatusShape: Sendable, CaseIterable {
         }
     }
 
-    /// How much of the inner pie is filled while the task is still live.
+    /// How much of the inner pie is filled while the claim is still live.
     fileprivate var fillFraction: CGFloat {
         switch self {
         case .todo: 0
@@ -38,17 +37,7 @@ enum TaskStatusShape: Sendable, CaseIterable {
 }
 
 extension TaskStatusShape {
-    init(_ status: TaskStatus) {
-        switch status {
-        case .todo: self = .todo
-        case .inProgress: self = .inProgress
-        case .inReview: self = .inReview
-        case .done: self = .done
-        case .closed: self = .closed
-        }
-    }
-
-    init(_ status: TaskStatusPresentation) {
+    init(_ status: ClaimStatusPresentation) {
         switch status {
         case .todo: self = .todo
         case .inProgress: self = .inProgress
@@ -59,8 +48,8 @@ extension TaskStatusShape {
     }
 }
 
-/// Linear-style task status disc: an outline ring that fills clockwise as the
-/// task progresses, landing on a solid check (done) or cross (closed).
+/// Linear-style claim status disc: an outline ring that fills clockwise as the
+/// claim progresses, landing on a solid check (done) or cross (closed).
 ///
 /// Geometry is the desktop SVG's 16pt viewBox scaled by `size`. Terminal-state
 /// glyphs are cut out in `surface` rather than white: the disc fills with a
@@ -120,7 +109,7 @@ struct TaskStatusDisc: View {
     }
 }
 
-private struct TaskDoneCheck: Shape {
+struct TaskDoneCheck: Shape {
     func path(in rect: CGRect) -> Path {
         let unit = rect.width / 16
         var path = Path()
@@ -131,7 +120,7 @@ private struct TaskDoneCheck: Shape {
     }
 }
 
-private struct TaskClosedCross: Shape {
+struct TaskClosedCross: Shape {
     func path(in rect: CGRect) -> Path {
         let unit = rect.width / 16
         var path = Path()

@@ -16,7 +16,7 @@ import {
     parseReminderCommandResult,
     ReminderVersionConflictError,
 } from './mutations.ts';
-import { prepareReminderEvent } from './reminder-events.ts';
+import { prepareReminderEvents } from './reminder-events.ts';
 import {
     type Reminder,
     type ReminderClock,
@@ -217,7 +217,7 @@ export async function cancelOperatorReminder(
             resultSnapshot: shapedReminder,
             serverId: input.serverId,
         });
-        const event = prepareReminderEvent({
+        const event = await prepareReminderEvents(tx, {
             action: 'canceled',
             ownerAgentId: updated.ownerAgentId,
             reminderId: updated.id,

@@ -50,10 +50,15 @@ test('Manual and Cove guidance reference registered Haus subcommands and flags',
             /\bhaus ([a-z-]+) ([a-z-]+)([^\n`]*)/gu
         )) {
             const commands = commandGroups[group as keyof typeof commandGroups];
-            const command = commands?.find((entry) => entry.name === verb);
+            // A flag in verb position addresses the group's bare action (`haus claim --target …`).
+            const bare = verb!.startsWith('-');
+            const command = commands?.find((entry) =>
+                bare ? entry.bare : !entry.bare && entry.name === verb
+            );
             expect(command, `haus ${group} ${verb}`).toBeDefined();
             const flags = new Set(['--help', ...(command?.flags ?? []).map((flag) => flag.name)]);
-            for (const [flag] of tail!.split(/\bhaus /u)[0]!.matchAll(/--[a-z][a-z-]*/gu)) {
+            const flagText = bare ? `${verb}${tail}` : tail!;
+            for (const [flag] of flagText.split(/\bhaus /u)[0]!.matchAll(/--[a-z][a-z-]*/gu)) {
                 expect(flags.has(flag), `haus ${group} ${verb} ${flag}`).toBe(true);
             }
             references += 1;
