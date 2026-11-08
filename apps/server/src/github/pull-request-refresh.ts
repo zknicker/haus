@@ -138,7 +138,11 @@ async function writeReading(
     }
 }
 
-/** A mark that arrived during the read stays, so that change gets its own read. */
+/**
+ * A mark that arrived during the read stays, so that change gets its own read.
+ * Postgres keeps microseconds and the row read back as a JavaScript Date keeps
+ * milliseconds, so the stored mark is compared at the precision that was read.
+ */
 async function clearMark(db: Pick<HausDatabase, 'update'>, row: ReadingRow): Promise<void> {
     await db
         .update(cloudAgentPullRequestsTable)
@@ -146,7 +150,7 @@ async function clearMark(db: Pick<HausDatabase, 'update'>, row: ReadingRow): Pro
         .where(
             and(
                 rowKey(row),
-                sql`${cloudAgentPullRequestsTable.refreshRequestedAt} = ${row.refreshRequestedAt}`
+                sql`date_trunc('milliseconds', ${cloudAgentPullRequestsTable.refreshRequestedAt}) = ${row.refreshRequestedAt}`
             )
         );
 }

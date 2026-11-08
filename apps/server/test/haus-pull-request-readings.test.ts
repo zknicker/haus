@@ -104,6 +104,17 @@ test('a read replaces the frozen snapshot with what GitHub says now', async () =
     expect((await reading())?.settled_at).toEqual(new Date('2026-11-02T09:00:00.000Z'));
 });
 
+test('a mark written by Postgres itself, with microseconds, clears after its read', async () => {
+    // Migration 0113 marked every backfilled row with now(), which keeps microseconds.
+    await harness.sql`
+        update cloud_agent_pull_requests
+        set refresh_requested_at = '2026-11-01 12:00:00.123456+00'
+    `;
+    await refresh();
+    expect((await reading())?.refresh_requested_at).toBeNull();
+    expect((await reading())?.source).toBe('github');
+});
+
 test('a later snapshot never overwrites a GitHub reading', async () => {
     await refresh();
     await seedPullRequestReadings(connection.db, {
