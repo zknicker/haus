@@ -13,11 +13,27 @@ export interface SafeFetchOptions {
 export interface PinnedRequestTarget {
     hostHeader: string;
     tls?: { serverName: string };
-    url: URL;
+    /** One pinned URL per validated address, in connection-attempt order. */
+    urls: URL[];
 }
 
 const redirectStatuses = new Set([301, 302, 303, 307, 308]);
 const maxHops = 5;
+
+// Errors that mean the socket never connected, so nothing was sent and the
+// next validated address is safe to try. Anything else (an HTTP response,
+// a TLS/certificate failure, a reset mid-request, the caller's own abort)
+// is surfaced as-is. The first set is what Bun's fetch reports; the second
+// is older Bun's spelling of the same failures.
+const CONNECT_FAILURE_CODES = new Set([
+    'EADDRNOTAVAIL',
+    'ECONNREFUSED',
+    'EHOSTUNREACH',
+    'ENETUNREACH',
+    'ETIMEDOUT',
+    'ConnectionRefused',
+    'FailedToOpenSocket',
+]);
 
 // Native fetch/XHR redirect handling strips Authorization on a cross-origin
 // hop; this module's manual redirect loop must too, but it is a generic
@@ -75,13 +91,15 @@ export async function buildPinnedRequestTarget(
     options: SafeFetchOptions
 ): Promise<PinnedRequestTarget> {
     const addresses = await assertAllowedFetchTarget(url, label, options);
-    const pinned = new URL(url.toString());
-    // The WHATWG URL setter silently drops a bare (unbracketed) IPv6 literal,
-    // so the resolved address has to be bracketed by hand before assignment.
-    pinned.hostname = net.isIP(addresses[0]) === 6 ? `[${addresses[0]}]` : addresses[0];
+    // IPv4 first: hosts without an IPv6 route fail fast on a v6 address, but
+    // trying v4 first means the common case never pays for that attempt.
+    const ordered = [
+        ...addresses.filter((address) => net.isIP(address) !== 6),
+        ...addresses.filter((address) => net.isIP(address) === 6),
+    ];
     return {
         hostHeader: url.host,
-        url: pinned,
+        urls: ordered.map((address) => pinnedUrl(url, address)),
         ...(url.protocol === 'https:' ? { tls: { serverName: stripBrackets(url.hostname) } } : {}),
     };
 }
@@ -98,7 +116,7 @@ export async function safeFetch(
         const headers = new Headers(requestInit.headers);
         headers.set('Host', target.hostHeader);
         const callerTls = (requestInit as { tls?: { serverName: string } }).tls;
-        const response = await globalThis.fetch(target.url, {
+        const response = await fetchFirstReachable(target.urls, {
             ...requestInit,
             headers,
             redirect: 'manual',
@@ -120,6 +138,36 @@ export async function safeFetch(
         url = redirectUrl;
     }
     throw new Error('Too many redirects');
+}
+
+async function fetchFirstReachable(urls: URL[], init: RequestInit): Promise<Response> {
+    // A stream body may be partly consumed by a failed attempt, so it gets
+    // exactly one; string and URLSearchParams bodies (what MCP and OAuth
+    // send) are safe to replay because a connect failure sent nothing.
+    const canRetry = !(init.body instanceof ReadableStream);
+    for (const [index, url] of urls.entries()) {
+        try {
+            return await globalThis.fetch(url, init);
+        } catch (error) {
+            if (!canRetry || index === urls.length - 1 || !isConnectFailure(error)) {
+                throw error;
+            }
+        }
+    }
+    throw new Error('No addresses to connect to');
+}
+
+function isConnectFailure(error: unknown): boolean {
+    const code = (error as { code?: unknown } | null)?.code;
+    return typeof code === 'string' && CONNECT_FAILURE_CODES.has(code);
+}
+
+function pinnedUrl(url: URL, address: string): URL {
+    const pinned = new URL(url.toString());
+    // The WHATWG URL setter silently drops a bare (unbracketed) IPv6 literal,
+    // so the resolved address has to be bracketed by hand before assignment.
+    pinned.hostname = net.isIP(address) === 6 ? `[${address}]` : address;
+    return pinned;
 }
 
 function normalizeInput(
