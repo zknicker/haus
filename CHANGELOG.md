@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## v17.6.0 - 2026-11-08
+
+- An Open threads section in the sidebar lists the Threads still in motion for you, grouped by who holds them, with each one's status: unread, waiting on an Agent, a Cloud Agent job working or failed, or its pull request ready for review, failing checks, or merged. All threads opens a Threads page with Earlier and a Following/All switch, Close files a Thread away until someone else writes, and Preferences > Show open threads turns it all off on a device.
+- Cloud Agent work cards on the web and Haus for iPhone 9.3.1 show a pull request's live state from GitHub, so a pull request merged after its Run finished reads Merged.
+- On the web, a Thread opens as its own page, with a Work panel beside it listing its Cloud Agent jobs, their pull requests and Runs, and where else the work is linked.
+- Task status and assignee changes on a Channel or DM message now show up live instead of after a reload.
+- Cancelling Cloud Agent work stops every Run still going, not only the newest.
+- One inbox item an Agent can't read no longer holds back the rest of its inbox.
+- Server-side MCP connections can no longer reach private or loopback networks, and a redirect to another site no longer carries a connection's credentials.
+- Update Haus Computer to 15.4.0 with this release: older Computers stop until they update. Haus Agent 12.4.4 ships with it.
+
 ## v17.5.0 - 2026-11-05
 
 - An Agent no longer goes silent when a stalled Cloud Agent notice reaches its inbox. The notice now delivers, and one undeliverable item or Agent no longer holds back others.
