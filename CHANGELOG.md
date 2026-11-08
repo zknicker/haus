@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v17.6.2 - 2026-11-08
+
+- Haus is now built with Bun 1.4.4, which includes upstream security fixes.
+
 ## v17.6.1 - 2026-11-08
 
 - The Open threads sidebar lists only work still in motion: a Cloud Agent job running, failed, or waiting on input, a pull request that needs you, or a Thread waiting on an Agent's reply. Unread stays in the Inbox, and finished or quiet Threads stay on the Threads page.
