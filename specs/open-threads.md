@@ -58,14 +58,20 @@ A candidate is **open** unless its state below has expired or the viewer closed 
 
 ### State
 
-`deriveOpenThreadState` in `packages/haus-api` is one pure function, so every client agrees. The
-first matching row wins. A Thread with several jobs or pull requests reads them all and takes the
-most urgent. `<d>` is relative time.
+`deriveOpenThreadState` in `packages/haus-api` (`open-thread-state.ts`) is one pure function, so
+every client agrees. The first matching row wins. A Thread with several jobs or pull requests reads
+them all and takes the most urgent. `<d>` is relative time.
+
+Every job state and pull request state is handled by name, so a new one fails the type check
+instead of falling through. Each row takes its time from its own record: a settled job from its
+`settledAt`, a merged or closed pull request from its `settledAt`, a conversation from its newest
+Message (`chats.last_activity_at`, which is null exactly when nobody has written in the Thread). A
+settled fact with no recorded time is not open. No row borrows another record's time.
 
 | State | When | Status line | Group | Expires |
 | --- | --- | --- | --- | --- |
 | `unread` | `threadUnreadCount` above zero | `<Author> replied · <d>`, or `<Author> mentioned you · <d>` | With you | Never |
-| `job-failed` | A job's state is `failed` and no newer job is live | `Job failed` | With you | 24h after the last write |
+| `job-failed` | A job's state is `failed` and no job is live | `Job failed` | With you | 24h after the failed job settled |
 | `checks-failing` | An open pull request's `checks` is `failing` | `Checks failing` | With you | Pull request settles |
 | `changes-requested` | An open pull request's `review` is `changes-requested` | `Changes requested` | With you | Pull request settles |
 | `approved` | An open pull request's `review` is `approved` and checks are not pending | `Approved` | With you | Pull request settles |
@@ -77,7 +83,7 @@ most urgent. `<d>` is relative time.
 | `waiting` | The viewer wrote the Thread's last message | `Waiting on <Agent> · <d>`, else `Waiting for a reply · <d>` | With agents | 24h after the last write |
 | `merged` | Every pull request settled, at least one merged | `Merged · <d>` | Recent | 12h after it merged |
 | `pr-closed` | Every pull request closed unmerged | `PR closed · <d>` | Recent | 12h after it closed |
-| `done` | Every job settled, no pull request | `Done · <d>` | Recent | 24h after the last write |
+| `done` | Every job settled (`done`, `cancelled`, or `expired`) | `Done · <d>` | Recent | 24h after the newest job settled |
 | `recent` | Anything else | `<Author> replied · <d>` | Recent | 24h after the last write |
 
 `needs-input` sits under With agents because the delegating Agent answers it, not the human. Its
@@ -120,7 +126,10 @@ Agent-authored Thread titles are out of scope.
 ### Sidebar
 
 An **Open threads** section sits between the top menu and Channels, with **All threads** at the
-trailing end of its header. Each row has a status glyph, the title, then the status line and the
+trailing end of its header. It lists only work in motion: `job-failed`, `checks-failing`,
+`changes-requested`, `approved`, `ready-for-review`, `working`, `needs-input`, `checks-running`,
+`draft`, and `waiting`. Unread stays in the Inbox; `merged`, `pr-closed`, `done`, and `recent` stay
+on the Threads page. Each row has a status glyph, the title, then the status line and the
 parent's context label on a second line (`DM` for any direct message). Glyphs differ by shape as
 well as color.
 
@@ -231,7 +240,8 @@ type CloudAgentPullRequestReading = {
 - **One refresher.** A serial Server loop takes marked rows one at a time and reads
   `pulls/{n}`, `pulls/{n}/reviews`, `commits/{sha}/check-runs`, and `commits/{sha}/status` with the
   installation token. It coalesces repeated marks, and it never fans out, per the dev Server pool
-  hazard. It writes source `github` and emits `cloudAgentWork.updated` for linked work only when the
+  hazard. A read clears only the mark it read, compared at millisecond precision, since Postgres
+  keeps microseconds. It writes source `github` and emits `cloudAgentWork.updated` for linked work only when the
   reading changed.
 - **Rollups.** `checks` is `failing` if any completed check or status failed, else `pending` if any
   is unfinished, else `passing`, else `none`. `review` takes each reviewer's latest non-comment

@@ -3,9 +3,10 @@ import type { CloudAgentPullRequestReading } from './cloud-agent-shared.ts';
 import {
     deriveOpenThreadState,
     isOpenThreadExpired,
+    isOpenThreadInSidebar,
     type OpenThreadFacts,
-    threadTitle,
-} from './open-threads.ts';
+} from './open-thread-state.ts';
+import { threadTitle } from './open-threads.ts';
 
 const now = new Date('2026-11-05T12:00:00.000Z');
 const lastActivityAt = '2026-11-05T11:00:00.000Z';
@@ -116,14 +117,32 @@ describe('deriveOpenThreadState', () => {
         expect(state(facts)).toMatchObject({ group, state: expectedState });
     });
 
-    test('a newer live job clears an older failure', () => {
-        const retry = work(live, null, '2026-11-05T11:30:00.000Z');
-        expect(state({ works: [work(failed), retry] }).state).toBe('working');
+    test('a live job outranks a failed one', () => {
+        expect(state({ works: [work(failed), work(live)] }).state).toBe('working');
     });
 
-    test('a Computer-only reading past seven days counts as settled', () => {
+    test('a Computer-only reading past seven days says nothing, so the settled job decides', () => {
         const stale = pr({ observedAt: '2026-10-20T00:00:00.000Z', source: 'computer' });
-        expect(state({ works: [work(done, stale)] }).state).toBe('recent');
+        expect(state({ lastActivityAt: null, works: [work(done, stale)] })).toMatchObject({
+            at: lastActivityAt,
+            expiresAt: '2026-11-06T11:00:00.000Z',
+            state: 'done',
+        });
+    });
+
+    test('a cancelled job is settled, timed from when it settled', () => {
+        const cancelled = {
+            followUp: null,
+            settledAt: lastActivityAt,
+            state: 'cancelled',
+        } as const;
+        expect(state({ lastActivityAt: null, works: [work(cancelled)] }).state).toBe('done');
+    });
+
+    test('a settled fact with no recorded time is already over, never permanent', () => {
+        const merged = pr({ settledAt: null, source: 'computer', state: 'merged' });
+        expect(state({ works: [work(done, merged)] }).expiresAt).toBe(now.toISOString());
+        expect(state({ lastActivityAt: null }).expiresAt).toBe(now.toISOString());
     });
 
     test('merged expires twelve hours after it merged, recent a day after the last write', () => {
@@ -132,6 +151,15 @@ describe('deriveOpenThreadState', () => {
         expect(state({}).expiresAt).toBe('2026-11-06T11:00:00.000Z');
         expect(state({ unreadCount: 1 }).expiresAt).toBeNull();
     });
+});
+
+test('the sidebar lists work in motion, not unread or settled Threads', () => {
+    expect(isOpenThreadInSidebar({ state: 'working' })).toBe(true);
+    expect(isOpenThreadInSidebar({ state: 'waiting' })).toBe(true);
+    expect(isOpenThreadInSidebar({ state: 'job-failed' })).toBe(true);
+    for (const settled of ['unread', 'merged', 'pr-closed', 'done', 'recent'] as const) {
+        expect(isOpenThreadInSidebar({ state: settled })).toBe(false);
+    }
 });
 
 test('an expired reading is no longer open', () => {

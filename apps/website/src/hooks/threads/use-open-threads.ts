@@ -1,6 +1,7 @@
 import {
     type EarlierThreadsScope,
     isOpenThreadExpired,
+    isOpenThreadInSidebar,
     type OpenThread,
     openThreadGroups,
 } from '@haus/api';
@@ -51,8 +52,11 @@ function useOpenThreadList<Selected>(
     );
 }
 
+/** The sidebar lists only work in motion; the Threads page lists every open Thread. */
 function selectLayout(list: OpenThreadList) {
-    return sidebarOpenThreads(sortOpenThreads(list.threads, new Date()));
+    return sidebarOpenThreads(
+        sortOpenThreads(list.threads, new Date()).filter(isOpenThreadInSidebar)
+    );
 }
 
 /** The section's structure only; each row reads its own entry. */
