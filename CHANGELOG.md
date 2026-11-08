@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v17.6.1 - 2026-11-08
+
+- The Open threads sidebar lists only work still in motion: a Cloud Agent job running, failed, or waiting on input, a pull request that needs you, or a Thread waiting on an Agent's reply. Unread stays in the Inbox, and finished or quiet Threads stay on the Threads page.
+- A finished or cancelled Cloud Agent job nobody replied to no longer sits in Open threads forever as "Someone replied · unknown".
+- Pull request state on work cards catches up: Haus now finishes rereading every pull request from GitHub instead of rereading the same few, so ones merged while their Run was running read Merged.
+
 ## v17.6.0 - 2026-11-08
 
 - An Open threads section in the sidebar lists the Threads still in motion for you, grouped by who holds them, with each one's status: unread, waiting on an Agent, a Cloud Agent job working or failed, or its pull request ready for review, failing checks, or merged. All threads opens a Threads page with Earlier and a Following/All switch, Close files a Thread away until someone else writes, and Preferences > Show open threads turns it all off on a device.

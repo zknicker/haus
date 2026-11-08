@@ -2068,5 +2068,16 @@
       "computer": "15.4.0",
       "agent": "12.4.4"
     }
+  },
+  {
+    "version": "17.6.1",
+    "date": "2026-11-08",
+    "targets": {
+      "server": "16.6.1",
+      "app": null,
+      "ios": null,
+      "computer": null,
+      "agent": null
+    }
   }
 ]
