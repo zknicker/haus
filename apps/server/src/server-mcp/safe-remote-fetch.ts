@@ -24,13 +24,14 @@ const maxHops = 5;
 // next validated address is safe to try. Anything else (an HTTP response,
 // a TLS/certificate failure, a reset mid-request, the caller's own abort)
 // is surfaced as-is. The first set is what Bun's fetch reports; the second
-// is older Bun's spelling of the same failures.
+// is older Bun's spelling of the same failures. ETIMEDOUT is deliberately
+// absent: it can fire after the request went out, and replaying a POST to
+// another address could run an MCP tool call twice.
 const CONNECT_FAILURE_CODES = new Set([
     'EADDRNOTAVAIL',
     'ECONNREFUSED',
     'EHOSTUNREACH',
     'ENETUNREACH',
-    'ETIMEDOUT',
     'ConnectionRefused',
     'FailedToOpenSocket',
 ]);
