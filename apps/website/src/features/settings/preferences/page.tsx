@@ -2,6 +2,7 @@ import { Switch } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { PageColumn } from '../../shell/page-column.tsx';
 import { setShowTasksInChat, useShowTasksInChat } from '../../tasks/show-tasks-in-chat.ts';
+import { setShowOpenThreads, useShowOpenThreads } from '../../threads/show-open-threads.ts';
 import { HausVersionSummary } from '../../updates/haus-version-summary.tsx';
 import { useHausUpdate } from '../../updates/use-haus-update.ts';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
@@ -45,6 +46,7 @@ function AppearanceSection() {
 
 function ChatSection() {
     const showTasksInChat = useShowTasksInChat();
+    const showOpenThreads = useShowOpenThreads();
 
     return (
         <ItemCardGroup variant="transparent">
@@ -64,6 +66,27 @@ function ChatSection() {
                             aria-label="Show tasks in chat"
                             isSelected={showTasksInChat}
                             onChange={setShowTasksInChat}
+                        >
+                            <Switch.Content>
+                                <Switch.Control>
+                                    <Switch.Thumb />
+                                </Switch.Control>
+                            </Switch.Content>
+                        </Switch>
+                    </ItemCard.Action>
+                </ItemCard>
+                <ItemCard>
+                    <ItemCard.Content>
+                        <ItemCard.Title>Show open threads</ItemCard.Title>
+                        <ItemCard.Description>
+                            Lists Threads still in motion in the sidebar.
+                        </ItemCard.Description>
+                    </ItemCard.Content>
+                    <ItemCard.Action>
+                        <Switch
+                            aria-label="Show open threads"
+                            isSelected={showOpenThreads}
+                            onChange={setShowOpenThreads}
                         >
                             <Switch.Content>
                                 <Switch.Control>

@@ -129,6 +129,10 @@ row moves only when its group changes. The section shows at most twelve rows, fi
 With you rows are never folded away. Past twelve, **All threads** carries `+<n>`. With no open
 Threads the header stays and shows no rows. Nothing renders until the read settles.
 
+**Show open threads** in Preferences turns this section, the command menu's Threads group, and Close
+off on one device. It is on by default. Search, pull request readings, and the Threads page's address
+are unaffected.
+
 Rows follow [ADR 0046](../docs/adr/0046-the-sidebar-goes-pages-open-to-the-right.md): a click is Go.
 Each row reads its own entry, keeping the sidebar's render isolation.
 
