@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v17.6.3 - 2026-11-08
+
+- Connected tools hosted behind Cloudflare work again. Haus now tries each of a server's checked addresses instead of only the first.
+
 ## v17.6.2 - 2026-11-08
 
 - Haus is now built with Bun 1.4.4, which includes upstream security fixes.
