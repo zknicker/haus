@@ -7,11 +7,7 @@ import type {
     CloudAgentProviderObservation,
     CloudAgentRunRef,
 } from './provider.ts';
-import {
-    cloudAgentDeliveryFailure,
-    launchRecordGraceMs,
-    launchRecordMissing,
-} from './send-delivery.ts';
+import { launchRecordGraceMs, launchRecordMissing } from './send-delivery.ts';
 import type { CloudAgentSendQueue } from './send-queue.ts';
 
 /** A monitored Run the provider has not addressed yet. */
@@ -163,7 +159,7 @@ function queued(observedAt: string, summary: string): CloudAgentProviderObservat
 /**
  * Reported every tick once `send-queue.ts`'s auto-interrupt fallback has been
  * tried and still didn't deliver: still queued, still retrying, but now
- * carrying the errorCode Server uses to raise exactly one inbox attention
+ * carrying the stall Server uses to raise exactly one inbox attention
  * (then sparse reminders) without failing the Run. TECH-7's design
  * refinement: a busy provider never fails the follow-up on its own, and
  * clearing the session's current work gets one automatic try before anyone
@@ -178,8 +174,8 @@ function autoInterruptFailedQueued(
             at: observedAt,
             summary: 'Auto-interrupt did not clear the session; still retrying.',
         },
-        errorCode: cloudAgentDeliveryFailure.followUpAutoInterruptFailed,
         observedAt,
+        stallCode: 'followup-auto-interrupt-failed',
         status: 'queued',
         summary: `Haus automatically interrupted the session to deliver this follow-up, but it still didn't go through. Last error: ${delivery.lastError}. Haus keeps retrying; stop, interrupt, or relaunch if you want to act now.`,
     };

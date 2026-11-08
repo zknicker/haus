@@ -8,6 +8,7 @@ import { threadPageRoute } from '../../hooks/threads/use-thread-opener.ts';
 import { threadsRoute } from '../servers/server-routes.ts';
 import { OpenThreadGlyph } from '../threads/open-thread-glyph.tsx';
 import { openThreadStatusLine } from '../threads/open-thread-status.ts';
+import { useShowOpenThreads } from '../threads/show-open-threads.ts';
 import { ChatGroup } from './chat-navigation-group.tsx';
 
 /**
@@ -15,7 +16,11 @@ import { ChatGroup } from './chat-navigation-group.tsx';
  * carries no badge. It reads only its structure; each row reads its own entry.
  * Nothing renders until the read settles.
  */
-export function OpenThreadsSection({
+export function OpenThreadsSection(props: { currentPath: string; serverId: string; slug: string }) {
+    return useShowOpenThreads() ? <OpenThreadsList {...props} /> : null;
+}
+
+function OpenThreadsList({
     currentPath,
     serverId,
     slug,

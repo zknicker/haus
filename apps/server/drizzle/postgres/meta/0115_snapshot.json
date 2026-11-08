@@ -1,5 +1,5 @@
 {
-  "id": "f2b4603f-0ca9-470d-83d0-76e02b0abc0d",
+  "id": "248f522e-b928-4e49-9e64-f497eb5863b5",
   "prevId": "0e820fe6-a283-4070-bf02-d9f33886f252",
   "version": "7",
   "dialect": "postgresql",
@@ -5663,6 +5663,13 @@
           "notNull": true,
           "default": 0
         },
+        "last_task_number": {
+          "name": "last_task_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
         "name": {
           "name": "name",
           "type": "text",
@@ -5692,13 +5699,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "last_claim_number": {
-          "name": "last_claim_number",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 0
         }
       },
       "indexes": {
@@ -5955,6 +5955,10 @@
           "name": "chats_nonnegative_sequence",
           "value": "\"chats\".\"last_message_sequence\" >= 0"
         },
+        "chats_nonnegative_task_number": {
+          "name": "chats_nonnegative_task_number",
+          "value": "\"chats\".\"last_task_number\" >= 0"
+        },
         "chats_description_length": {
           "name": "chats_description_length",
           "value": "\"chats\".\"description\" is null or (\"chats\".\"kind\" = 'channel' and char_length(\"chats\".\"description\") between 1 and 500)"
@@ -5974,10 +5978,6 @@
         "chats_shape": {
           "name": "chats_shape",
           "value": "(\n                (\n                    \"chats\".\"kind\" = 'channel'\n                    and \"chats\".\"name\" is not null\n                    and \"chats\".\"dm_agent_id\" is null\n                    and \"chats\".\"dm_member_one_stint\" is null\n                    and \"chats\".\"dm_member_one_user_id\" is null\n                    and \"chats\".\"dm_member_two_stint\" is null\n                    and \"chats\".\"dm_member_two_user_id\" is null\n                    and \"chats\".\"parent_chat_id\" is null\n                    and \"chats\".\"parent_chat_kind\" is null\n                    and \"chats\".\"anchor_message_id\" is null\n                    and (not \"chats\".\"is_all\" or \"chats\".\"name\" = 'all')\n                )\n                or (\n                    \"chats\".\"kind\" = 'dm'\n                    and \"chats\".\"name\" is null\n                    and \"chats\".\"color\" is null\n                    and \"chats\".\"icon\" is null\n                    and \"chats\".\"is_all\" = false\n                    and \"chats\".\"dm_member_one_stint\" is not null\n                    and \"chats\".\"dm_member_one_user_id\" is not null\n                    and \"chats\".\"parent_chat_id\" is null\n                    and \"chats\".\"parent_chat_kind\" is null\n                    and \"chats\".\"anchor_message_id\" is null\n                    and (\n                        (\n                            \"chats\".\"dm_agent_id\" is null\n                            and \"chats\".\"dm_member_two_stint\" is not null\n                            and \"chats\".\"dm_member_two_user_id\" is not null\n                            and \"chats\".\"dm_member_one_user_id\" collate \"C\" < \"chats\".\"dm_member_two_user_id\" collate \"C\"\n                        )\n                        or (\n                            \"chats\".\"dm_agent_id\" is not null\n                            and \"chats\".\"dm_member_two_stint\" is null\n                            and \"chats\".\"dm_member_two_user_id\" is null\n                        )\n                    )\n                )\n                or (\n                    \"chats\".\"kind\" = 'thread'\n                    and \"chats\".\"name\" is null\n                    and \"chats\".\"color\" is null\n                    and \"chats\".\"icon\" is null\n                    and \"chats\".\"is_all\" = false\n                    and \"chats\".\"dm_agent_id\" is null\n                    and \"chats\".\"dm_member_one_stint\" is null\n                    and \"chats\".\"dm_member_one_user_id\" is null\n                    and \"chats\".\"dm_member_two_stint\" is null\n                    and \"chats\".\"dm_member_two_user_id\" is null\n                    and \"chats\".\"parent_chat_id\" is not null\n                    and \"chats\".\"parent_chat_kind\" in ('channel', 'dm')\n                    and \"chats\".\"anchor_message_id\" is not null\n                )\n            )"
-        },
-        "chats_nonnegative_claim_number": {
-          "name": "chats_nonnegative_claim_number",
-          "value": "\"chats\".\"last_claim_number\" >= 0"
         }
       },
       "isRLSEnabled": false
@@ -6420,6 +6420,24 @@
           "notNull": true,
           "default": "'[]'::jsonb"
         },
+        "cancel_requested_at": {
+          "name": "cancel_requested_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cancel_requested_by_agent_id": {
+          "name": "cancel_requested_by_agent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cancel_requested_by_user_id": {
+          "name": "cancel_requested_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -6571,6 +6589,36 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        },
+        "cloud_agent_runs_cancel_agent_fk": {
+          "name": "cloud_agent_runs_cancel_agent_fk",
+          "tableFrom": "cloud_agent_runs",
+          "tableTo": "agents",
+          "columnsFrom": [
+            "server_id",
+            "cancel_requested_by_agent_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "cloud_agent_runs_cancel_membership_fk": {
+          "name": "cloud_agent_runs_cancel_membership_fk",
+          "tableFrom": "cloud_agent_runs",
+          "tableTo": "server_memberships",
+          "columnsFrom": [
+            "server_id",
+            "cancel_requested_by_user_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "user_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -6593,6 +6641,10 @@
         "cloud_agent_runs_status": {
           "name": "cloud_agent_runs_status",
           "value": "\"cloud_agent_runs\".\"status\" in ('queued', 'running', 'pending_input', 'completed', 'failed', 'cancelled', 'expired')"
+        },
+        "cloud_agent_runs_cancel_shape": {
+          "name": "cloud_agent_runs_cancel_shape",
+          "value": "(\"cloud_agent_runs\".\"cancel_requested_at\" is not null) = (num_nonnulls(\n                \"cloud_agent_runs\".\"cancel_requested_by_user_id\", \"cloud_agent_runs\".\"cancel_requested_by_agent_id\"\n            ) = 1)"
         },
         "cloud_agent_runs_model_shape": {
           "name": "cloud_agent_runs_model_shape",
@@ -6630,24 +6682,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "cancel_requested_at": {
-          "name": "cancel_requested_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "cancel_requested_by_agent_id": {
-          "name": "cancel_requested_by_agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "cancel_requested_by_user_id": {
-          "name": "cancel_requested_by_user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "chat_id": {
           "name": "chat_id",
@@ -6843,36 +6877,6 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
-        },
-        "cloud_agent_work_cancel_agent_fk": {
-          "name": "cloud_agent_work_cancel_agent_fk",
-          "tableFrom": "cloud_agent_work",
-          "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "cancel_requested_by_agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "cloud_agent_work_cancel_membership_fk": {
-          "name": "cloud_agent_work_cancel_membership_fk",
-          "tableFrom": "cloud_agent_work",
-          "tableTo": "server_memberships",
-          "columnsFrom": [
-            "server_id",
-            "cancel_requested_by_user_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "user_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -6911,10 +6915,6 @@
         "cloud_agent_work_activity_shape": {
           "name": "cloud_agent_work_activity_shape",
           "value": "(\"cloud_agent_work\".\"activity_summary\" is null) = (\"cloud_agent_work\".\"activity_at\" is null)\n                and (\"cloud_agent_work\".\"activity_summary\" is null\n                    or char_length(\"cloud_agent_work\".\"activity_summary\") between 1 and 120)"
-        },
-        "cloud_agent_work_cancel_shape": {
-          "name": "cloud_agent_work_cancel_shape",
-          "value": "(\"cloud_agent_work\".\"cancel_requested_at\" is not null) = (num_nonnulls(\n                \"cloud_agent_work\".\"cancel_requested_by_user_id\", \"cloud_agent_work\".\"cancel_requested_by_agent_id\"\n            ) = 1)"
         },
         "cloud_agent_work_terminal_shape": {
           "name": "cloud_agent_work_terminal_shape",
@@ -9943,6 +9943,410 @@
       },
       "isRLSEnabled": false
     },
+    "public.message_task_labels": {
+      "name": "message_task_labels",
+      "schema": "",
+      "columns": {
+        "label_id": {
+          "name": "label_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "message_id": {
+          "name": "message_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "server_id": {
+          "name": "server_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "message_task_labels_task_fk": {
+          "name": "message_task_labels_task_fk",
+          "tableFrom": "message_task_labels",
+          "tableTo": "message_tasks",
+          "columnsFrom": [
+            "server_id",
+            "message_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "message_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "message_task_labels_label_fk": {
+          "name": "message_task_labels_label_fk",
+          "tableFrom": "message_task_labels",
+          "tableTo": "task_labels",
+          "columnsFrom": [
+            "server_id",
+            "label_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "message_task_labels_server_id_message_id_label_id_pk": {
+          "name": "message_task_labels_server_id_message_id_label_id_pk",
+          "columns": [
+            "server_id",
+            "message_id",
+            "label_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.message_tasks": {
+      "name": "message_tasks",
+      "schema": "",
+      "columns": {
+        "assignee_agent_id": {
+          "name": "assignee_agent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "chat_id": {
+          "name": "chat_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claimed_at": {
+          "name": "claimed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by_agent_id": {
+          "name": "created_by_agent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "message_chat_id": {
+          "name": "message_chat_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "generated": {
+            "as": "coalesce(thread_chat_id, chat_id)",
+            "type": "stored"
+          }
+        },
+        "message_id": {
+          "name": "message_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "number": {
+          "name": "number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "origin": {
+          "name": "origin",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "priority": {
+          "name": "priority",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'none'"
+        },
+        "server_id": {
+          "name": "server_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'todo'"
+        },
+        "thread_chat_id": {
+          "name": "thread_chat_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tracked_at": {
+          "name": "tracked_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        }
+      },
+      "indexes": {
+        "message_tasks_chat_number_key": {
+          "name": "message_tasks_chat_number_key",
+          "columns": [
+            {
+              "expression": "server_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "chat_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "number",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "message_tasks_chat_status_idx": {
+          "name": "message_tasks_chat_status_idx",
+          "columns": [
+            {
+              "expression": "server_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "chat_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "message_tasks_open_claim_idx": {
+          "name": "message_tasks_open_claim_idx",
+          "columns": [
+            {
+              "expression": "server_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "assignee_agent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"message_tasks\".\"origin\" = 'claimed' and \"message_tasks\".\"tracked_at\" is null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "message_tasks_chat_fk": {
+          "name": "message_tasks_chat_fk",
+          "tableFrom": "message_tasks",
+          "tableTo": "chats",
+          "columnsFrom": [
+            "server_id",
+            "chat_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "message_tasks_message_fk": {
+          "name": "message_tasks_message_fk",
+          "tableFrom": "message_tasks",
+          "tableTo": "chat_messages",
+          "columnsFrom": [
+            "server_id",
+            "message_chat_id",
+            "message_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "chat_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "message_tasks_thread_fk": {
+          "name": "message_tasks_thread_fk",
+          "tableFrom": "message_tasks",
+          "tableTo": "chats",
+          "columnsFrom": [
+            "server_id",
+            "thread_chat_id",
+            "chat_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "id",
+            "parent_chat_id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "message_tasks_creator_membership_fk": {
+          "name": "message_tasks_creator_membership_fk",
+          "tableFrom": "message_tasks",
+          "tableTo": "server_memberships",
+          "columnsFrom": [
+            "server_id",
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "user_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "message_tasks_creator_agent_fk": {
+          "name": "message_tasks_creator_agent_fk",
+          "tableFrom": "message_tasks",
+          "tableTo": "agents",
+          "columnsFrom": [
+            "server_id",
+            "created_by_agent_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "message_tasks_assignee_agent_fk": {
+          "name": "message_tasks_assignee_agent_fk",
+          "tableFrom": "message_tasks",
+          "tableTo": "agents",
+          "columnsFrom": [
+            "server_id",
+            "assignee_agent_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "message_tasks_server_id_message_id_pk": {
+          "name": "message_tasks_server_id_message_id_pk",
+          "columns": [
+            "server_id",
+            "message_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "message_tasks_creator_shape": {
+          "name": "message_tasks_creator_shape",
+          "value": "num_nonnulls(\"message_tasks\".\"created_by_user_id\", \"message_tasks\".\"created_by_agent_id\") = 1"
+        },
+        "message_tasks_positive_number": {
+          "name": "message_tasks_positive_number",
+          "value": "\"message_tasks\".\"number\" > 0"
+        },
+        "message_tasks_positive_version": {
+          "name": "message_tasks_positive_version",
+          "value": "\"message_tasks\".\"version\" > 0"
+        },
+        "message_tasks_status": {
+          "name": "message_tasks_status",
+          "value": "\"message_tasks\".\"status\" in ('todo', 'in_progress', 'in_review', 'done', 'closed')"
+        },
+        "message_tasks_priority": {
+          "name": "message_tasks_priority",
+          "value": "\"message_tasks\".\"priority\" in ('none', 'urgent', 'high', 'medium', 'low')"
+        },
+        "message_tasks_origin": {
+          "name": "message_tasks_origin",
+          "value": "\"message_tasks\".\"origin\" in ('claimed', 'composed', 'converted')"
+        },
+        "message_tasks_claim_shape": {
+          "name": "message_tasks_claim_shape",
+          "value": "\"message_tasks\".\"claimed_at\" is null or \"message_tasks\".\"assignee_agent_id\" is not null"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.push_devices": {
       "name": "push_devices",
       "schema": "",
@@ -12375,410 +12779,6 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.message_claim_labels": {
-      "name": "message_claim_labels",
-      "schema": "",
-      "columns": {
-        "label_id": {
-          "name": "label_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "message_id": {
-          "name": "message_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "server_id": {
-          "name": "server_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "message_claim_labels_claim_fk": {
-          "name": "message_claim_labels_claim_fk",
-          "tableFrom": "message_claim_labels",
-          "tableTo": "message_claims",
-          "columnsFrom": [
-            "server_id",
-            "message_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "message_id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "message_claim_labels_label_fk": {
-          "name": "message_claim_labels_label_fk",
-          "tableFrom": "message_claim_labels",
-          "tableTo": "task_labels",
-          "columnsFrom": [
-            "server_id",
-            "label_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "message_claim_labels_server_id_message_id_label_id_pk": {
-          "name": "message_claim_labels_server_id_message_id_label_id_pk",
-          "columns": [
-            "server_id",
-            "message_id",
-            "label_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.message_claims": {
-      "name": "message_claims",
-      "schema": "",
-      "columns": {
-        "assignee_agent_id": {
-          "name": "assignee_agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "chat_id": {
-          "name": "chat_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "claimed_at": {
-          "name": "claimed_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "created_by_agent_id": {
-          "name": "created_by_agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_by_user_id": {
-          "name": "created_by_user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "message_chat_id": {
-          "name": "message_chat_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "generated": {
-            "as": "coalesce(thread_chat_id, chat_id)",
-            "type": "stored"
-          }
-        },
-        "message_id": {
-          "name": "message_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "number": {
-          "name": "number",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "origin": {
-          "name": "origin",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "priority": {
-          "name": "priority",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'none'"
-        },
-        "server_id": {
-          "name": "server_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'todo'"
-        },
-        "thread_chat_id": {
-          "name": "thread_chat_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "tracked_at": {
-          "name": "tracked_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "version": {
-          "name": "version",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 1
-        }
-      },
-      "indexes": {
-        "message_claims_chat_number_key": {
-          "name": "message_claims_chat_number_key",
-          "columns": [
-            {
-              "expression": "server_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "chat_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "number",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "message_claims_chat_status_idx": {
-          "name": "message_claims_chat_status_idx",
-          "columns": [
-            {
-              "expression": "server_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "chat_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "message_claims_open_claim_idx": {
-          "name": "message_claims_open_claim_idx",
-          "columns": [
-            {
-              "expression": "server_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "assignee_agent_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "where": "\"message_claims\".\"origin\" = 'claimed' and \"message_claims\".\"tracked_at\" is null",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "message_claims_chat_fk": {
-          "name": "message_claims_chat_fk",
-          "tableFrom": "message_claims",
-          "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "chat_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "message_claims_message_fk": {
-          "name": "message_claims_message_fk",
-          "tableFrom": "message_claims",
-          "tableTo": "chat_messages",
-          "columnsFrom": [
-            "server_id",
-            "message_chat_id",
-            "message_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "chat_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "message_claims_thread_fk": {
-          "name": "message_claims_thread_fk",
-          "tableFrom": "message_claims",
-          "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "thread_chat_id",
-            "chat_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id",
-            "parent_chat_id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "message_claims_creator_membership_fk": {
-          "name": "message_claims_creator_membership_fk",
-          "tableFrom": "message_claims",
-          "tableTo": "server_memberships",
-          "columnsFrom": [
-            "server_id",
-            "created_by_user_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "user_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "message_claims_creator_agent_fk": {
-          "name": "message_claims_creator_agent_fk",
-          "tableFrom": "message_claims",
-          "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "created_by_agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "message_claims_assignee_agent_fk": {
-          "name": "message_claims_assignee_agent_fk",
-          "tableFrom": "message_claims",
-          "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "assignee_agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "message_claims_server_id_message_id_pk": {
-          "name": "message_claims_server_id_message_id_pk",
-          "columns": [
-            "server_id",
-            "message_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "message_claims_creator_shape": {
-          "name": "message_claims_creator_shape",
-          "value": "num_nonnulls(\"message_claims\".\"created_by_user_id\", \"message_claims\".\"created_by_agent_id\") = 1"
-        },
-        "message_claims_positive_number": {
-          "name": "message_claims_positive_number",
-          "value": "\"message_claims\".\"number\" > 0"
-        },
-        "message_claims_positive_version": {
-          "name": "message_claims_positive_version",
-          "value": "\"message_claims\".\"version\" > 0"
-        },
-        "message_claims_status": {
-          "name": "message_claims_status",
-          "value": "\"message_claims\".\"status\" in ('todo', 'in_progress', 'in_review', 'done', 'closed')"
-        },
-        "message_claims_priority": {
-          "name": "message_claims_priority",
-          "value": "\"message_claims\".\"priority\" in ('none', 'urgent', 'high', 'medium', 'low')"
-        },
-        "message_claims_origin": {
-          "name": "message_claims_origin",
-          "value": "\"message_claims\".\"origin\" in ('claimed', 'composed', 'converted')"
-        },
-        "message_claims_claim_shape": {
-          "name": "message_claims_claim_shape",
-          "value": "\"message_claims\".\"claimed_at\" is null or \"message_claims\".\"assignee_agent_id\" is not null"
-        }
-      },
       "isRLSEnabled": false
     }
   },

@@ -96,7 +96,10 @@ describe('deriveCloudAgentJob', () => {
     test('a follow-up an auto-interrupt still could not deliver reads stalled, not waiting', () => {
         expect(
             job(
-                run('queued', { createdAt: queuedAt, errorCode: 'followup-auto-interrupt-failed' }),
+                run('queued', {
+                    createdAt: queuedAt,
+                    stall: { code: 'followup-auto-interrupt-failed' },
+                }),
                 run('completed')
             )
         ).toMatchObject({

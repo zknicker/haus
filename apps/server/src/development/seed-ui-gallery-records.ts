@@ -164,10 +164,10 @@ export async function galleryWork(
         startingRef: 'main',
         title: input.title,
         ...workLifecycle(input, context, { followUpAt, observedAt, terminalAt }),
-        cancelRequestedAt: input.cancelling ? context.now : null,
-        cancelRequestedByUserId: input.cancelling ? context.userId : null,
     });
     await db.insert(cloudAgentRunsTable).values({
+        cancelRequestedAt: input.cancelling ? context.now : null,
+        cancelRequestedByUserId: input.cancelling ? context.userId : null,
         id: createOpaqueId('car'),
         serverId: context.serverId,
         workId,

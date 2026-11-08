@@ -1,63 +1,23 @@
-import { type CloudAgentObservation, cloudAgentStallAttentionId } from '@haus/api';
+import type { CloudAgentRunNotice, CloudAgentRunStall } from '@haus/api';
 import { and, eq, isNotNull, isNull, or } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable } from '../postgres/schema.ts';
 import { linkParentChatsTable } from './cloud-agent-work-visibility.ts';
 
 /**
- * Computer tries this once a follow-up's send keeps failing past its own
- * grace period: ask the provider to clear whatever holds the session busy
- * (`send --interrupt`'s own mechanism), then retry the send right away. A
- * follow-up still queued and retrying carries this errorCode when even that
- * didn't deliver it — never on its own a reason to settle. One inbox
- * attention still wakes the delegating Agent, so it is never silent, but
- * sparse reminders replace a terminal failure: Computer reports the same
- * errorCode on every retry tick, and this dedupes every report inside one
- * window to the same attention, then opens a fresh one each time a new
- * window starts. There is no shared enum for the string: the Computer side
- * and the website status line each compare this literal, the same way
- * `cloud-agent-presentation.ts` already compares raw `launch-` and
- * `provider-launch-` prefixes without one.
+ * The opaque inbox key of one notice: a settling Run gets exactly one, keyed by
+ * its own id. A stall repeats on every retry tick, so its key names the stall
+ * and its reminder window: the same window collapses to one notice, and the
+ * next window opens a fresh one.
  */
-export const followUpAutoInterruptFailedErrorCode = 'followup-auto-interrupt-failed';
-/**
- * Claude's own session log can grow past what a bounded backward scan for
- * this Run's prompt will read through. Rather than read that as `queued`
- * forever with no sign anything was cut off, Computer reports this errorCode
- * on a non-terminal Run so it still gets an attention, the same way a stuck
- * follow-up does (TECH-7).
- */
-export const claudePromptNotFoundErrorCode = 'claude-prompt-not-found';
-const nonTerminalAttentionErrorCodes: ReadonlySet<string> = new Set([
-    followUpAutoInterruptFailedErrorCode,
-    claudePromptNotFoundErrorCode,
-]);
-/** How often a non-terminal Run still stuck after that gets another reminder. */
-const stallReminderMs = 2 * 60 * 60_000;
-
-/** Whether a non-settling observation's errorCode still earns an attention. */
-export function isStalledErrorCode(errorCode: string | null | undefined): boolean {
-    return errorCode != null && nonTerminalAttentionErrorCodes.has(errorCode);
-}
-
-/**
- * A settling Run gets exactly one attention, keyed by its own id. A stall
- * repeats on every retry tick, so its key buckets by wall-clock window
- * instead: the same bucket collapses to the same attention, and the next
- * bucket opens a fresh one.
- */
-export function attentionDedupeKey(
-    observation: CloudAgentObservation,
-    stalled: boolean,
-    observedAt: Date
+export function noticeDedupeKey(
+    runId: string,
+    notice: CloudAgentRunNotice,
+    stall: CloudAgentRunStall | null
 ): string {
-    if (!stalled) {
-        return observation.runId;
-    }
-    return cloudAgentStallAttentionId(
-        observation.runId,
-        Math.floor(observedAt.getTime() / stallReminderMs)
-    );
+    return notice.kind === 'stall' && stall
+        ? `${runId}:stall:${stall.since.getTime()}:${notice.window}`
+        : runId;
 }
 
 /** A Chat that still exists and is not tombstoned, nor is its parent. */

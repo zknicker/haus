@@ -15,7 +15,7 @@ export async function listComputerCloudAgentWork(
 ): Promise<CloudAgentReconcileEntry[]> {
     const rows = await db
         .select({
-            cancelRequestedAt: cloudAgentWorkTable.cancelRequestedAt,
+            cancelRequestedAt: cloudAgentRunsTable.cancelRequestedAt,
             workId: cloudAgentWorkTable.id,
             provider: cloudAgentWorkTable.provider,
             providerAgentId: cloudAgentWorkTable.providerAgentId,

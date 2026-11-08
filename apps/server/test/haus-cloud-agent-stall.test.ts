@@ -22,7 +22,7 @@ test('a follow-up an auto-interrupt still could not deliver notifies once per wi
             at: observedAt,
             summary: 'Auto-interrupt did not clear the session; still retrying.',
         },
-        errorCode: 'followup-auto-interrupt-failed',
+        stallCode: 'followup-auto-interrupt-failed',
         observedAt,
         runId,
         status: 'queued',
@@ -119,7 +119,7 @@ test('a Run already running never regresses to queued when its prompt briefly go
     socket.send(
         JSON.stringify({
             observation: {
-                errorCode: 'claude-prompt-not-found',
+                stallCode: 'claude-prompt-not-found',
                 observedAt: '2026-09-04T13:05:00.000Z',
                 runId,
                 status: 'queued',
@@ -132,9 +132,9 @@ test('a Run already running never regresses to queued when its prompt briefly go
     await fixture.waitFor(async () => (await readNotFoundAttentions()).length > 0 || null);
     expect(await fixture.readRun(runId)).toMatchObject({ status: 'running', terminal_at: null });
     const [runRow] = (await fixture.harness.sql`
-        select error_code from cloud_agent_runs where id = ${runId}
-    `) as { error_code: string | null }[];
-    expect(runRow?.error_code).toBe('claude-prompt-not-found');
+        select stall_code from cloud_agent_runs where id = ${runId}
+    `) as { stall_code: string | null }[];
+    expect(runRow?.stall_code).toBe('claude-prompt-not-found');
     expect(await fixture.readWork(work.id)).toMatchObject({ status: 'running' });
     expect(await readNotFoundAttentions()).toHaveLength(1);
     socket.close();
@@ -156,7 +156,7 @@ test('a job already cancelled raises no stall attention', async () => {
     socket.send(
         JSON.stringify({
             observation: {
-                errorCode: 'claude-prompt-not-found',
+                stallCode: 'claude-prompt-not-found',
                 observedAt: '2026-09-04T13:00:00.000Z',
                 runId,
                 status: 'running',
@@ -167,14 +167,94 @@ test('a job already cancelled raises no stall attention', async () => {
     );
     await fixture.waitFor(async () => {
         const [run] = (await fixture.harness.sql`
-            select error_code from cloud_agent_runs where id = ${runId}
-        `) as { error_code: string | null }[];
-        return run?.error_code;
+            select stall_code from cloud_agent_runs where id = ${runId}
+        `) as { stall_code: string | null }[];
+        return run?.stall_code;
     });
 
     const rows = (await fixture.harness.sql`
         select id from agent_inbox where dedupe_key like ${`${runId}:stall:%`}
     `) as { id: string }[];
     expect(rows).toHaveLength(0);
+    socket.close();
+});
+
+test('settling a Run replaces its unread stall notices with the one outcome', async () => {
+    const runner = await fixture.mintRunner('run_cloud_stall_settles');
+    const created = await fixture.postStart(
+        runner,
+        fixture.startBody({ nonce: 'cloud-stall-settles' })
+    );
+    const work = created.body.work as CloudAgentWork;
+    const runId = created.body.runId as string;
+    const socket = await fixture.attachComputer();
+    const readNotices = () =>
+        fixture.harness.sql`
+            select cloud_agent_notice from agent_inbox where cloud_agent_run_id = ${runId}
+        ` as Promise<{ cloud_agent_notice: string }[]>;
+
+    socket.send(
+        JSON.stringify({
+            observation: {
+                observedAt: '2026-09-04T13:00:00.000Z',
+                runId,
+                stallCode: 'followup-auto-interrupt-failed',
+                status: 'queued',
+                workId: work.id,
+            },
+            type: 'cloud-agent-observation',
+        })
+    );
+    await fixture.waitFor(async () => (await readNotices()).length > 0 || null);
+    socket.send(
+        JSON.stringify({
+            observation: {
+                observedAt: '2026-09-04T13:05:00.000Z',
+                runId,
+                status: 'cancelled',
+                workId: work.id,
+            },
+            type: 'cloud-agent-observation',
+        })
+    );
+    await fixture.waitForWorkStatus(work.id, 'cancelled');
+
+    expect(await readNotices()).toEqual([{ cloud_agent_notice: 'settled' }]);
+    socket.close();
+});
+
+test('a Run being cancelled earns no stall notice', async () => {
+    const runner = await fixture.mintRunner('run_cloud_stall_cancelling');
+    const created = await fixture.postStart(
+        runner,
+        fixture.startBody({ nonce: 'cloud-stall-cancelling' })
+    );
+    const work = created.body.work as CloudAgentWork;
+    const runId = created.body.runId as string;
+    const socket = await fixture.attachComputer();
+    expect((await fixture.postCancel(runner, work.id)).status).toBe(200);
+
+    socket.send(
+        JSON.stringify({
+            observation: {
+                observedAt: '2026-09-04T13:00:00.000Z',
+                runId,
+                stallCode: 'followup-auto-interrupt-failed',
+                status: 'queued',
+                workId: work.id,
+            },
+            type: 'cloud-agent-observation',
+        })
+    );
+    await fixture.waitFor(async () => {
+        const [run] = (await fixture.harness.sql`
+            select stall_code from cloud_agent_runs where id = ${runId}
+        `) as { stall_code: string | null }[];
+        return run?.stall_code;
+    });
+
+    expect(
+        await fixture.harness.sql`select id from agent_inbox where cloud_agent_run_id = ${runId}`
+    ).toHaveLength(0);
     socket.close();
 });

@@ -14,24 +14,36 @@ import { startPostgresCluster } from './postgres-cluster.ts';
  * attentions main added ride through untouched.
  */
 const boardTaskMigrations = [
-    '0115_rename-tasks-to-claims',
-    '0116_task-boards',
-    '0117_drop-claim-priority-labels',
+    '0118_rename-tasks-to-claims',
+    '0119_task-boards',
+    '0120_drop-claim-priority-labels',
 ];
 
-test('0113–0117 upgrade a Server at 0112 in one batch', async () => {
-    await upgradeFrom(112, [
-        '0113_cloud-agent-pull-requests',
-        '0114_thread-closures',
-        ...boardTaskMigrations,
-    ]);
+// 0116 deletes this orphaned Cloud Agent notice before 0118 and 0119 alter the inbox.
+test('0113–0120 upgrade a Server at 0112 in one batch', async () => {
+    await upgradeFrom(
+        112,
+        [
+            '0113_cloud-agent-pull-requests',
+            '0114_thread-closures',
+            '0115_cloud-agent-run-cancel',
+            '0116_cloud-agent-typed-notices',
+            '0117_inbox-undelivered-reason',
+            ...boardTaskMigrations,
+        ],
+        { orphanedCloudNotice: true }
+    );
 }, 60_000);
 
-test("0115–0117 upgrade a Server at main's newest migration, 0114", async () => {
-    await upgradeFrom(114, boardTaskMigrations);
+test("0118–0120 upgrade a Server at main's newest migration, 0117", async () => {
+    await upgradeFrom(117, boardTaskMigrations, { orphanedCloudNotice: false });
 }, 60_000);
 
-async function upgradeFrom(startIdx: number, expected: string[]) {
+async function upgradeFrom(
+    startIdx: number,
+    expected: string[],
+    seed: { orphanedCloudNotice: boolean }
+) {
     const cluster = await startPostgresCluster();
     const folder = await mkdtemp(join(tmpdir(), 'haus-tasks-upgrade-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
@@ -46,9 +58,9 @@ async function upgradeFrom(startIdx: number, expected: string[]) {
             });
         await writeFile(journalPath, through(startIdx));
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
-        await seedOldTaskRows(database);
+        await seedOldTaskRows(database, seed);
 
-        await writeFile(journalPath, through(117));
+        await writeFile(journalPath, through(120));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual(
             expected
         );
@@ -139,7 +151,7 @@ async function upgradeFrom(startIdx: number, expected: string[]) {
 }
 
 /** Rows the migrations' foreign keys reach are real; the seed itself skips Chat wiring. */
-async function seedOldTaskRows(database: SQL) {
+async function seedOldTaskRows(database: SQL, seed: { orphanedCloudNotice: boolean }) {
     await database.begin(async (tx) => {
         await tx`SET LOCAL session_replication_role = replica`;
         await tx`INSERT INTO servers (id, slug, display_name) VALUES ('srv_one', 'one', 'One')`;
@@ -185,5 +197,10 @@ async function seedOldTaskRows(database: SQL) {
         await tx`INSERT INTO agent_run_triggers (server_id, agent_id, run_id, chat_id, source, work_id)
             VALUES ('srv_one', 'agt_one', 'run_assignment', 'cht_one', 'task_assignment',
                 'task-assign:msg_claimed:1')`;
+        if (seed.orphanedCloudNotice) {
+            await tx`INSERT INTO agent_inbox (id, server_id, agent_id, chat_id, content, dedupe_key, source)
+                VALUES ('inb_orphancloud00000', 'srv_one', 'agt_one', 'cht_one', 'Run settled',
+                    'car_gone000000000000', 'cloud_agent_work')`;
+        }
     });
 }

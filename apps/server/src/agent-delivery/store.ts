@@ -9,6 +9,7 @@ import {
     chatMessagesTable,
     messageClaimsTable,
 } from '../postgres/schema.ts';
+import type { EnqueueInput } from './enqueue-input.ts';
 import {
     bodilessInboxSources,
     concreteInboxSources,
@@ -35,6 +36,8 @@ export interface InboxItemRow {
     /** Why this item names the Agent personally; null is an ambient delivery. */
     addressedReason: AddressedReason | null;
     chatId: string | null;
+    cloudAgentNotice: 'settled' | 'stall' | null;
+    cloudAgentRunId: string | null;
     content: string;
     createdAt: Date;
     dedupeKey: string;
@@ -50,6 +53,8 @@ export interface InboxItemRow {
 export const inboxItemColumns = {
     addressedReason: agentInboxTable.addressedReason,
     chatId: agentInboxTable.chatId,
+    cloudAgentNotice: agentInboxTable.cloudAgentNotice,
+    cloudAgentRunId: agentInboxTable.cloudAgentRunId,
     content: agentInboxTable.content,
     createdAt: agentInboxTable.createdAt,
     dedupeKey: agentInboxTable.dedupeKey,
@@ -111,18 +116,7 @@ export async function setStopped(
  */
 export async function enqueueInboxItem(
     db: HausDatabase,
-    input: {
-        addressedReason?: AddressedReason | null;
-        agentId: string;
-        chatId: string | null;
-        content: string;
-        createdAt?: Date;
-        dedupeKey: string;
-        mentioned?: boolean;
-        serverId: string;
-        source: string;
-        threadFollowReactivated?: boolean;
-    }
+    input: Omit<EnqueueInput, 'sequence' | 'source'> & { source: string }
 ): Promise<void> {
     // Omitted optional fields take their column defaults.
     await db

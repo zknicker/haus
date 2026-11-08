@@ -8,12 +8,12 @@ import { decodeTaskAssignment } from '../src/tasks/task-assignment-envelope.ts';
 import { startPostgresCluster } from './postgres-cluster.ts';
 
 /**
- * ADR 0051 decision 9 over rows 0115 wrote: every Server gains the General
+ * ADR 0051 decision 9 over rows 0118 wrote: every Server gains the General
  * board, human-composed and converted claims become GEN Tasks (status to
  * column, labels, assignee, creator, timestamps, and a Mentioned in link to
  * the message), and Agent claims stay claims.
  */
-test('0116 gives every Server a General board and moves backlog claims onto it', async () => {
+test('0119 gives every Server a General board and moves backlog claims onto it', async () => {
     const cluster = await startPostgresCluster();
     const folder = await mkdtemp(join(tmpdir(), 'haus-task-boards-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
@@ -26,7 +26,7 @@ test('0116 gives every Server a General board and moves backlog claims onto it',
                 ...journal,
                 entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= idx),
             });
-        await writeFile(journalPath, through(115));
+        await writeFile(journalPath, through(118));
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
 
         // The rows the new foreign keys reach are real; Chat wiring is skipped.
@@ -86,9 +86,9 @@ test('0116 gives every Server a General board and moves backlog claims onto it',
                      '2026-01-05T00:00:00Z')`;
         });
 
-        await writeFile(journalPath, through(116));
+        await writeFile(journalPath, through(119));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
-            '0116_task-boards',
+            '0119_task-boards',
         ]);
 
         const boards = await database`

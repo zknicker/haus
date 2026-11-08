@@ -2,7 +2,6 @@ import {
     addressedReasonSchema,
     agentThreadContextSchema,
     chatMessageReplySchema,
-    cloudAgentAttentionRunId,
     cloudAgentWorkAttentionSchema,
     humanTimezoneSchema,
 } from '@haus/api';
@@ -68,6 +67,18 @@ export function parseInbox(value: unknown): AgentInboxItem[] | null {
     return inbox;
 }
 
+/** The items in a rejected frame that named themselves, so Server can leave them out. */
+export function rejectedInboxItems(value: unknown): { id: string; reason: string }[] {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+    return value.flatMap((item) =>
+        !parseInboxItem(item) && isRecord(item) && typeof item.id === 'string' && item.id.length > 0
+            ? [{ id: item.id, reason: 'The Computer could not read this inbox item.' }]
+            : []
+    );
+}
+
 function parseInboxItem(item: unknown): AgentInboxItem | null {
     if (
         !(
@@ -118,12 +129,7 @@ function invalidAttentionIdentity(
     work: AgentCloudAgentWorkAttention | null | undefined
 ): boolean {
     if (work) {
-        return (
-            item.sequence !== 0 ||
-            typeof item.id !== 'string' ||
-            cloudAgentAttentionRunId(item.id) !== work.runId ||
-            item.senderType !== 'system'
-        );
+        return item.sequence !== 0 || item.senderType !== 'system';
     }
     return item.sequence === 0;
 }

@@ -8,6 +8,7 @@ import {
     cloudAgentSummaryMaxLength,
     cloudAgentTitleSchema,
 } from './cloud-agent-shared.ts';
+import { cloudAgentStallCodeSchema } from './cloud-agent-stall.ts';
 import { humanTimezoneSchema } from './membership.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
@@ -22,9 +23,12 @@ export const cloudAgentWorkAttentionSchema = z
         branches: z.array(cloudAgentBranchSchema).max(50),
         errorCode: z.string().trim().min(1).max(120).nullable(),
         provider: cloudAgentProviderSchema,
+        /** Why this Run reached the Agent: it settled, or it is stuck and still live. */
+        notice: z.enum(['settled', 'stall']),
         providerUrl: z.url().max(2000).nullable(),
         repository: z.string().trim().min(1).max(200),
         runId: idSchema,
+        stallCode: cloudAgentStallCodeSchema.nullable(),
         status: cloudAgentStatusSchema,
         summary: z.string().trim().min(1).max(cloudAgentSummaryMaxLength).nullable(),
         title: cloudAgentTitleSchema,
@@ -33,18 +37,6 @@ export const cloudAgentWorkAttentionSchema = z
     .strict();
 
 export type CloudAgentWorkAttention = z.infer<typeof cloudAgentWorkAttentionSchema>;
-
-const stallAttentionMark = ':stall:';
-
-/** A stalled Run repeats on every tick, so its attention identity buckets by reminder window. */
-export function cloudAgentStallAttentionId(runId: string, window: number): string {
-    return `${runId}${stallAttentionMark}${window}`;
-}
-
-/** The Run an attention describes: its own id, or the Run a stall identity names. */
-export function cloudAgentAttentionRunId(attentionId: string): string {
-    return attentionId.split(stallAttentionMark, 1)[0] ?? attentionId;
-}
 
 /**
  * Why an item is addressed to this Agent personally rather than ambiently: a DM,
@@ -137,12 +129,10 @@ export const agentInboxItemSchema = z
     .refine(
         (item) =>
             item.cloudAgentWork
-                ? item.sequence === 0 &&
-                  cloudAgentAttentionRunId(item.id) === item.cloudAgentWork.runId &&
-                  item.senderType === 'system'
+                ? item.sequence === 0 && item.senderType === 'system'
                 : item.sequence > 0,
         {
-            message: 'Typed attentions use their own identity and zero Chat sequence.',
+            message: 'Typed attentions are system items with zero Chat sequence.',
             path: ['sequence'],
         }
     )

@@ -4,7 +4,6 @@ import type {
     CloudAgentWorkAttention,
     HausAgentMessage,
 } from '@haus/api';
-import { cloudAgentAttentionRunId } from '@haus/api';
 import { and, eq, inArray } from 'drizzle-orm';
 import {
     messageSelection,
@@ -12,7 +11,10 @@ import {
     toAgentMessages,
 } from '../agent-api/message-view.ts';
 import { listMessageClaimMap } from '../claims/claim-shape.ts';
-import { readCloudAgentWorkAttentions } from '../cloud-agents/read-cloud-agent-work-attentions.ts';
+import {
+    type CloudAgentRunAttention,
+    readCloudAgentWorkAttentions,
+} from '../cloud-agents/read-cloud-agent-work-attentions.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
 import { chatOf } from './inbox-lanes.ts';
@@ -53,11 +55,9 @@ export async function buildInboxItems(
             ? await readCloudAgentWorkAttentions(
                   db,
                   serverId,
-                  rows
-                      .filter((row) => row.source === 'cloud_agent_work')
-                      .map((row) => cloudAgentAttentionRunId(row.dedupeKey))
+                  rows.flatMap((row) => (row.cloudAgentRunId ? [row.cloudAgentRunId] : []))
               )
-            : new Map<string, CloudAgentWorkAttention>();
+            : new Map<string, CloudAgentRunAttention>();
     const sequenceByMessageId = new Map(
         messageRows.map((message) => [message.id, message.sequence])
     );
@@ -149,13 +149,13 @@ function messageFacets(apiMessage: HausAgentMessage | undefined) {
 /** A Cloud Agent row whose attention vanished cannot be rendered truthfully. */
 function requireAttention(
     row: store.InboxItemRow,
-    attentions: Map<string, CloudAgentWorkAttention>
+    attentions: Map<string, CloudAgentRunAttention>
 ): CloudAgentWorkAttention {
-    const attention = attentions.get(cloudAgentAttentionRunId(row.dedupeKey));
-    if (!attention) {
+    const attention = row.cloudAgentRunId ? attentions.get(row.cloudAgentRunId) : undefined;
+    if (!(attention && row.cloudAgentNotice)) {
         throw new CloudAgentAttentionMissingError(row.dedupeKey);
     }
-    return attention;
+    return { ...attention, notice: row.cloudAgentNotice };
 }
 
 /** Named so a failed dispatch's log says which item stopped it. */

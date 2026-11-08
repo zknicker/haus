@@ -57,4 +57,12 @@ test('a replied Thread sits in the sidebar, opens, closes, and files under Earli
     await expect(
         page.getByRole('button', { name: /Should we ship the quokka migration/ })
     ).toBeVisible();
+
+    // The Preferences switch hides the section on this device, and it stays hidden.
+    await page.goto('/s/open-threads/settings/preferences');
+    await page.getByRole('switch', { name: 'Show open threads' }).click({ force: true });
+    await expect(page.getByRole('link', { name: 'All threads' })).toHaveCount(0);
+    await page.goto('/s/open-threads');
+    await openChannel(page, 'all');
+    await expect(page.getByRole('link', { name: 'All threads' })).toHaveCount(0);
 });

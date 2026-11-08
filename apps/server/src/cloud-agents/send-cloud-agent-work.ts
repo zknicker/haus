@@ -1,5 +1,9 @@
 import { createHash } from 'node:crypto';
-import type { AgentCloudAgentSendInput, AgentCloudAgentSendReceipt } from '@haus/api';
+import {
+    type AgentCloudAgentSendInput,
+    type AgentCloudAgentSendReceipt,
+    projectCloudAgentWork,
+} from '@haus/api';
 import { and, eq, lt, sql } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -98,12 +102,11 @@ export async function sendCloudAgentWork(
             await tx
                 .update(cloudAgentWorkTable)
                 .set({
-                    status: 'queued',
-                    terminalAt: null,
-                    startedAt: null,
-                    cancelRequestedAt: null,
-                    cancelRequestedByAgentId: null,
-                    cancelRequestedByUserId: null,
+                    ...projectCloudAgentWork({
+                        startedAt: null,
+                        status: 'queued',
+                        terminalAt: null,
+                    }),
                     activityAt: null,
                     activitySummary: null,
                     updatedAt: sql`clock_timestamp()`,

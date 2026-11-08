@@ -115,6 +115,7 @@ export interface AgentTurnFrame {
     modelId: string;
     /** Whether the turn produced any durable send — governs safe requeue. */
     outputProduced: boolean;
+    rejectedItems?: { id: string; reason: string }[];
     runId: string;
     runtimeId: string;
     startedAt: string;

@@ -29,8 +29,6 @@ type Entry<Kind extends ClaudeLogEntry['kind']> = Extract<ClaudeLogEntry, { kind
  * - Haus's own interrupt, acknowledged and no longer running, is `cancelled`.
  * - An archived session that never finished the Run is `expired`.
  */
-/** A non-terminal Run reporting this never settles it, but still wakes the delegating Agent. */
-export const claudePromptNotFoundErrorCode = 'claude-prompt-not-found';
 
 export function claudeRunObservation(input: {
     cancelRequestId: string;
@@ -68,8 +66,8 @@ export function claudeRunObservation(input: {
         // instead (TECH-7).
         return input.truncated
             ? {
-                  errorCode: claudePromptNotFoundErrorCode,
                   observedAt,
+                  stallCode: 'claude-prompt-not-found',
                   status: 'running',
                   summary: 'Claude’s session log is too large to find this Run’s own prompt in it.',
               }
@@ -117,7 +115,7 @@ function surfaceLostResult(
         openTasks(after) === 0
         ? {
               ...observation,
-              errorCode: claudePromptNotFoundErrorCode,
+              stallCode: 'claude-prompt-not-found',
               summary: 'Claude’s session log is too large to find this Run’s result in it.',
           }
         : observation;

@@ -59,6 +59,7 @@ export function cloudAgentRunFixture(overrides: Partial<CloudAgentRun> = {}): Cl
         providerRunId: status === 'queued' ? null : 'run_cursor',
         rawStatus: null,
         runId: 'car_one',
+        stall: null,
         startedAt: status === 'queued' ? null : at,
         status,
         summary: null,

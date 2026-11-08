@@ -5,6 +5,7 @@ import {
     openThreadGroups,
 } from '@haus/api';
 import * as React from 'react';
+import { useShowOpenThreads } from '../../features/threads/show-open-threads.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
@@ -39,10 +40,14 @@ export function sidebarOpenThreads(sorted: readonly OpenThread[]) {
     };
 }
 
-function useOpenThreadList<Selected>(serverId: string, select: (list: OpenThreadList) => Selected) {
+function useOpenThreadList<Selected>(
+    serverId: string,
+    select: (list: OpenThreadList) => Selected,
+    enabled = true
+) {
     return hausTrpc.thread.listOpen.useQuery(
         { serverId },
-        { ...queryPolicy.syncedSnapshot, select }
+        { ...queryPolicy.syncedSnapshot, enabled, select }
     );
 }
 
@@ -86,7 +91,9 @@ export function useThreadClosure(serverId: string, threadChatId: string | undefi
         },
         [threadChatId]
     );
-    return useOpenThreadList(serverId, select).data ?? null;
+    const shown = useShowOpenThreads();
+    const closure = useOpenThreadList(serverId, select, shown).data ?? null;
+    return shown ? closure : null;
 }
 
 /** `thread.onClosedUpdated` owns the refresh. */

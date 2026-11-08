@@ -205,7 +205,7 @@ function formatCloudAgentWorkAttention(work: AgentCloudAgentWorkAttention, targe
         `[Haus cloud agent attention status=${work.status} work=${work.workId} run=${work.runId} target=${target}]`,
         indentContinuationLines(`${work.title} — ${work.repository} (${work.provider})`),
         `summary=${work.summary ? indentContinuationLines(work.summary) : '-'}`,
-        `errorCode=${work.errorCode ?? '-'}`,
+        `errorCode=${work.errorCode ?? work.stallCode ?? '-'}`,
         `branches=${branches.length > 0 ? branches.join(', ') : '-'}`,
         `url=${work.providerUrl ?? '-'}`,
         ...(work.status === 'pending_input'

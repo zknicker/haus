@@ -1,5 +1,4 @@
 import {
-    type AddressedReason,
     type Agent,
     type AgentActivityEvent,
     type AgentCommand,
@@ -57,6 +56,7 @@ import {
     readDrainCandidates,
     startFrame,
 } from './drain-selection.ts';
+import type { EnqueueInput } from './enqueue-input.ts';
 import * as failureHold from './failure-hold.ts';
 import { planChatlessRun } from './heartbeat-run.ts';
 import { type YieldedHeartbeat, yieldHeartbeatToAddressed } from './heartbeat-yield.ts';
@@ -65,12 +65,12 @@ import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
 import { interruptActiveRun, killedRun } from './interrupt-active-run.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
 import { consumeNoticeAck } from './notice-ack.ts';
-import { retireOrphanedAttentions } from './retire-orphaned-attentions.ts';
 import { isBackedOff } from './retry-policy.ts';
 import { recordSessionRotation } from './session-rotation.ts';
 import * as store from './store.ts';
 import { retireQueuedSubagentWakes } from './subagent-wake-request.ts';
 import { attachSummaryVisibility } from './summary-visibility.ts';
+import { isolateUnrenderableItems } from './undeliverable-items.ts';
 import { readUnreadElsewhere } from './unread-elsewhere.ts';
 
 /** The Server→Computer wire, narrowed to what durable delivery needs. */
@@ -95,23 +95,6 @@ export interface DispatchPlan {
 interface DispatchOptions {
     /** Resend even an acknowledged run — a reconnecting Computer lost its process. */
     resendActive?: boolean;
-}
-
-export interface EnqueueInput {
-    /** Why this item names the Agent personally; null is an ambient delivery. */
-    addressedReason?: AddressedReason | null;
-    agentId: string;
-    chatId: string | null;
-    content: string;
-    /** Queue time for work with no Chat message of its own, such as an automation fire. */
-    createdAt?: Date;
-    /** Idempotency key; a duplicate delivery of the same message is a no-op. */
-    dedupeKey: string;
-    mentioned?: boolean;
-    sequence?: number;
-    serverId: string;
-    source?: string;
-    threadFollowReactivated?: boolean;
 }
 
 /**
@@ -168,6 +151,17 @@ export class AgentDelivery {
         serverId: string,
         options?: DispatchOptions
     ): Promise<void> {
+        try {
+            await this.dispatchOnce(agentId, serverId, options);
+        } catch (cause) {
+            if (!(await isolateUnrenderableItems(this.db, { agentId, serverId }))) {
+                throw cause;
+            }
+            await this.dispatchOnce(agentId, serverId, options);
+        }
+    }
+
+    private async dispatchOnce(agentId: string, serverId: string, options?: DispatchOptions) {
         const plan = await traceAgentDispatch(this.runtime, { agentId, serverId }, async () =>
             this.db.transaction(async (tx) => {
                 await lockServerRow(tx, serverId);
@@ -794,7 +788,6 @@ export class AgentDelivery {
             return null;
         }
         await markCursorSubsumedSeen(tx, { agentId, serverId: state.serverId });
-        await retireOrphanedAttentions(tx, agentId);
         const yielded = await yieldHeartbeatToAddressed(tx, state);
         if (yielded) {
             const next = await this.planDispatch(tx, agentId);
