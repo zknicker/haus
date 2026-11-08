@@ -1,7 +1,12 @@
 import type { AgentInboxItem, HausAgentMessage } from '@haus/api';
 
 /** Server-authored inbox sources that speak as the Haus system sender. */
-const systemSources = new Set(['task_assignment', 'trigger_problem', 'image_generation_failed']);
+const systemSources = new Set([
+    'delivery_problem',
+    'task_assignment',
+    'trigger_problem',
+    'image_generation_failed',
+]);
 
 export function inboxSender(input: {
     attention: boolean;

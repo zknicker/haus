@@ -55,4 +55,7 @@ export const migrationsSince0060 = [
     '0112_cloud-agent-environment',
     '0113_cloud-agent-pull-requests',
     '0114_thread-closures',
+    '0115_cloud-agent-run-cancel',
+    '0116_cloud-agent-typed-notices',
+    '0117_inbox-undelivered-reason',
 ];

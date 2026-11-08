@@ -422,10 +422,12 @@ test('projects a concrete typed attention into the first prompt by its own ident
                     cloudAgentWork: {
                         branches: [],
                         errorCode: null,
+                        notice: 'settled',
                         provider: 'cursor',
                         providerUrl: null,
                         repository: 'haus/haus',
                         runId: 'car_1234567890abcdef',
+                        stallCode: null,
                         status: 'completed',
                         summary: 'Opened a pull request.',
                         title: 'Fix the flaky delivery test',

@@ -175,7 +175,9 @@ export function registerAgentCloudAgentRoutes(
             for (const event of requested.events) {
                 publishRealtime(event);
             }
-            dependencies.computers.send(requested.computerId, requested.command);
+            for (const command of requested.commands) {
+                dependencies.computers.send(requested.computerId, command);
+            }
             return { work: requested.work };
         } catch (cause) {
             return sendCloudAgentFailure(reply, cause);

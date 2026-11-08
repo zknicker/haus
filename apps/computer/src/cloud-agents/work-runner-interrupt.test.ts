@@ -77,7 +77,7 @@ test('a follow-up whose send keeps failing is auto-interrupted, and reports that
     await f.work.reconcile([followUp]);
     const stalled = (observation: CloudAgentObservation) =>
         observation.runId === followUp.runId &&
-        observation.errorCode === 'followup-auto-interrupt-failed';
+        observation.stallCode === 'followup-auto-interrupt-failed';
     await f.tickUntil(() => f.observations.some(stalled), 60); // past the 2-minute interrupt grace
     expect(f.observations.find(stalled)).toMatchObject({ status: 'queued' });
     expect(await f.journal.read('srv_cloud', followUp)).toMatchObject({

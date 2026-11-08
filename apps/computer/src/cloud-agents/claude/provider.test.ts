@@ -118,7 +118,7 @@ test('a prompt the scan cap lost surfaces instead of reading queued forever', as
     expect(
         await createClaudeCloudAgentProvider(unusedDataRoot, controller).read(ref)
     ).toMatchObject({
-        errorCode: 'claude-prompt-not-found',
+        stallCode: 'claude-prompt-not-found',
         status: 'running',
     });
 });
@@ -158,7 +158,7 @@ test('a known Run whose result is past the scan cap surfaces instead of going qu
             ...ref,
             providerRunId: 'prompt-1',
         })
-    ).toMatchObject({ errorCode: 'claude-prompt-not-found', status: 'running' });
+    ).toMatchObject({ stallCode: 'claude-prompt-not-found', status: 'running' });
 });
 
 test('cancel stops open background tasks, then interrupts once', async () => {

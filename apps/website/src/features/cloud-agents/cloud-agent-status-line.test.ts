@@ -54,8 +54,8 @@ test('a stalled follow-up reads distinctly from an ordinary wait', () => {
         runs: [
             run({
                 createdAt: minutesAgo(35),
-                errorCode: 'followup-auto-interrupt-failed',
                 runId: 'car_two',
+                stall: { code: 'followup-auto-interrupt-failed', since: minutesAgo(5) },
                 status: 'queued',
             }),
             run({ status: 'completed', terminalAt: minutesAgo(40) }),

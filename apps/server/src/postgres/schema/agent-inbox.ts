@@ -16,6 +16,7 @@ import { agentsTable } from './agents.ts';
 import { bunJsonb } from './bun-jsonb.ts';
 import { chatMessagesTable } from './chat-messages.ts';
 import { chatsTable } from './chats.ts';
+import { cloudAgentRunsTable } from './cloud-agents.ts';
 import { serversTable } from './servers.ts';
 
 export const agentInboxCursorsTable = pgTable(
@@ -174,6 +175,10 @@ export const agentInboxTable = pgTable(
          * and a `subagent` wake.
          */
         chatId: text('chat_id'),
+        /** Why a `cloud_agent_work` row reached this Agent. */
+        cloudAgentNotice: text('cloud_agent_notice').$type<'settled' | 'stall'>(),
+        /** The Run a `cloud_agent_work` row describes; `dedupe_key` stays opaque. */
+        cloudAgentRunId: text('cloud_agent_run_id'),
         content: text('content').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         dedupeKey: text('dedupe_key').notNull(),
@@ -200,6 +205,8 @@ export const agentInboxTable = pgTable(
             .$type<'queued' | 'accepted' | 'served' | 'seen'>(),
         /** A direct Thread mention changed this recipient's explicit unfollow back to followed. */
         threadFollowReactivated: boolean('thread_follow_reactivated').notNull().default(false),
+        /** Why this row settled `seen` without ever reaching the model. */
+        undeliveredReason: text('undelivered_reason'),
     },
     (table) => [
         foreignKey({
@@ -212,6 +219,18 @@ export const agentInboxTable = pgTable(
             foreignColumns: [chatsTable.serverId, chatsTable.id],
             name: 'agent_inbox_chat_fk',
         }).onDelete('cascade'),
+        foreignKey({
+            columns: [table.serverId, table.cloudAgentRunId],
+            foreignColumns: [cloudAgentRunsTable.serverId, cloudAgentRunsTable.id],
+            name: 'agent_inbox_cloud_agent_run_fk',
+        }).onDelete('cascade'),
+        check(
+            'agent_inbox_cloud_agent_notice',
+            sql`(${table.source} = 'cloud_agent_work') = (${table.cloudAgentRunId} is not null)
+                and (${table.cloudAgentRunId} is null) = (${table.cloudAgentNotice} is null)
+                and (${table.cloudAgentNotice} is null
+                    or ${table.cloudAgentNotice} in ('settled', 'stall'))`
+        ),
         uniqueIndex('agent_inbox_dedupe_key').on(table.serverId, table.agentId, table.dedupeKey),
         index('agent_inbox_queue_idx').on(table.serverId, table.agentId, table.createdAt),
         index('agent_inbox_queued_idx')
@@ -241,6 +260,11 @@ export const agentInboxTable = pgTable(
         check(
             'agent_inbox_chat',
             sql`(${table.chatId} is null) = (${table.source} in ('dream', 'heartbeat', 'heartbeat_report', 'subagent'))`
+        ),
+        check(
+            'agent_inbox_undelivered_shape',
+            sql`${table.undeliveredReason} is null or (${table.state} = 'seen'
+                and char_length(${table.undeliveredReason}) between 1 and 500)`
         ),
         check('agent_inbox_id_shape', sql`${table.id} ~ '^inb_[A-Za-z0-9_-]{16}$'`),
         check('agent_inbox_state', sql`${table.state} in ('queued', 'accepted', 'served', 'seen')`),

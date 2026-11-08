@@ -2,6 +2,7 @@ import * as z from 'zod';
 import { cloudAgentJobSchema } from './cloud-agent-job.ts';
 import { cloudAgentRunModelSchema } from './cloud-agent-model.ts';
 import { cloudAgentProviderSchema } from './cloud-agent-provider.ts';
+import { cloudAgentStallCodeSchema } from './cloud-agent-stall.ts';
 import { cloudAgentTimestampSchema } from './cloud-agent-time.ts';
 
 const cloudAgentIdSchema = z.string().trim().min(1);
@@ -199,6 +200,10 @@ export const cloudAgentRunSchema = z
         rawStatus: z.string().trim().min(1).max(120).nullable(),
         runId: cloudAgentIdSchema,
         startedAt: cloudAgentTimestampSchema.nullable(),
+        stall: z
+            .object({ code: cloudAgentStallCodeSchema, since: cloudAgentTimestampSchema })
+            .strict()
+            .nullable(),
         status: cloudAgentStatusSchema,
         summary: z.string().trim().min(1).max(cloudAgentSummaryMaxLength).nullable(),
         terminalAt: cloudAgentTimestampSchema.nullable(),

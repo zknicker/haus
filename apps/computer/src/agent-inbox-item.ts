@@ -4,6 +4,7 @@ import type {
     ChatMessageReply,
     CloudAgentBranch,
     CloudAgentProvider,
+    CloudAgentStallCode,
     CloudAgentStatus,
 } from '@haus/api';
 
@@ -42,10 +43,12 @@ export interface AgentInboxItem {
 export interface AgentCloudAgentWorkAttention {
     branches: CloudAgentBranch[];
     errorCode: string | null;
+    notice: 'settled' | 'stall';
     provider: CloudAgentProvider;
     providerUrl: string | null;
     repository: string;
     runId: string;
+    stallCode: CloudAgentStallCode | null;
     status: CloudAgentStatus;
     summary: string | null;
     title: string;

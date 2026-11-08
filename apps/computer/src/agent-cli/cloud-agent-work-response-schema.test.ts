@@ -65,6 +65,7 @@ const workWithUnknownFields = {
             providerRunId: 'run_abc',
             rawStatus: 'RUNNING',
             runId: 'car_1234567890abcdef',
+            stall: null,
             startedAt: '2026-09-04T12:00:30.000Z',
             status: 'running',
             summary: null,
