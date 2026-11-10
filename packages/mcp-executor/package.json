@@ -13,7 +13,7 @@
   "dependencies": {
     "@executor-js/runtime-quickjs": "1.6.8",
     "@jitl/quickjs-wasmfile-release-sync": "0.31.0",
-    "effect": "4.0.0-beta.59",
+    "effect": "4.0.0-beta.103",
     "quickjs-emscripten-core": "0.31.0",
     "zod": "4.1.11"
   },
