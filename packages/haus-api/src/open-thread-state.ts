@@ -10,7 +10,8 @@ export interface OpenThreadFacts {
     /** The Thread's newest Message; null exactly when nobody has written in it. */
     lastActivityAt: string | null;
     unreadCount: number;
-    viewerWroteLast: boolean;
+    /** The viewer wrote in the Thread, wrote its anchor, or was mentioned in either. */
+    viewerTookPart: boolean;
     works: readonly Pick<CloudAgentWork, 'activity' | 'job' | 'pullRequest' | 'updatedAt'>[];
 }
 
@@ -27,21 +28,36 @@ const hour = 3_600_000;
 /** A reading only a Computer reported cannot be trusted as open past this. */
 const computerReadingTrustedFor = 7 * 24 * hour;
 
-/** The states the sidebar lists: work still in motion. The Threads page lists every state. */
+/**
+ * The states the sidebar always lists: work in motion, settled work until its
+ * own timer ends, and a conversation the viewer took part in. The Threads page
+ * lists every state.
+ */
 const sidebarStates = new Set<OpenThreadState>([
+    'active',
     'approved',
     'changes-requested',
     'checks-failing',
     'checks-running',
+    'done',
     'draft',
     'job-failed',
+    'merged',
     'needs-input',
+    'pr-closed',
     'ready-for-review',
-    'waiting',
     'working',
 ]);
 
-export function isOpenThreadInSidebar(thread: { state: OpenThreadState }): boolean {
+/** `unread` joins only when the viewer took part or the Thread holds work; `recent` never does. */
+export function isOpenThreadInSidebar(thread: {
+    jobCount: number;
+    state: OpenThreadState;
+    viewerTookPart: boolean;
+}): boolean {
+    if (thread.state === 'unread') {
+        return thread.viewerTookPart || thread.jobCount > 0;
+    }
     return sidebarStates.has(thread.state);
 }
 
@@ -97,9 +113,6 @@ export function deriveOpenThreadState(facts: OpenThreadFacts, now: Date): OpenTh
     if (pulls.some((pull) => pull.kind === 'draft')) {
         return reading('draft', null, null);
     }
-    if (facts.viewerWroteLast) {
-        return timed('waiting', lastWrite, 24, now);
-    }
     const merged = pulls.filter((pull) => pull.kind === 'merged');
     if (merged.length > 0 && open.length === 0) {
         return timed('merged', newest(merged.flatMap((pull) => pull.at ?? [])), 12, now);
@@ -111,7 +124,7 @@ export function deriveOpenThreadState(facts: OpenThreadFacts, now: Date): OpenTh
     if (jobs.length > 0 && jobs.every((job) => job.kind === 'settled')) {
         return timed('done', newest(jobs.flatMap((job) => job.at ?? [])), 24, now);
     }
-    return timed('recent', lastWrite, 24, now);
+    return timed(facts.viewerTookPart ? 'active' : 'recent', lastWrite, 24, now);
 }
 
 /** A reading past its `expiresAt` leaves the sidebar on its next render. */

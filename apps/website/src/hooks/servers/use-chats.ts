@@ -75,6 +75,7 @@ export function useChatNavigationEntry(
                       kind: chat.kind,
                       name: chat.name,
                       peerAgentDisplayName: chat.peerAgentDisplayName,
+                      peerAgentId: chat.peerAgentId,
                       serverId: chat.serverId,
                       unreadCount: chat.unreadCount,
                   }
@@ -87,7 +88,15 @@ export function useChatNavigationEntry(
 
 export type ChatNavigationEntry = Pick<
     Chat,
-    'color' | 'icon' | 'id' | 'kind' | 'name' | 'peerAgentDisplayName' | 'serverId' | 'unreadCount'
+    | 'color'
+    | 'icon'
+    | 'id'
+    | 'kind'
+    | 'name'
+    | 'peerAgentDisplayName'
+    | 'peerAgentId'
+    | 'serverId'
+    | 'unreadCount'
 >;
 
 /** An Agent's DM as its sidebar row shows it; null until the DM has a chat. */

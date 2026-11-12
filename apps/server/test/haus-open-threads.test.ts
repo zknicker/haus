@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import { isOpenThreadInSidebar } from '@haus/api';
 import { threadChatIdForAnchor } from '../src/threads/thread-id.ts';
 import { cloudAgentFixture } from './cloud-agent-fixture.ts';
 
@@ -32,17 +33,97 @@ const setFollow = (threadChatId: string, follow: boolean) =>
         threadChatId,
     });
 
-test('a followed Thread is open, titled from its anchor, and waits on the reply', async () => {
+test('a Thread the viewer wrote in is active, titled from its anchor, whoever wrote last', async () => {
     const thread = await anchorWithReply('followed');
     await setFollow(thread.threadChatId, true);
 
     const row = (await listOpen()).threads.find((t) => t.threadChatId === thread.threadChatId);
     expect(row).toMatchObject({
-        group: 'with-agents',
+        group: 'recent',
         parentChatId: fixture.channelId,
-        state: 'waiting',
+        state: 'active',
         title: '@Blippy followed anchor',
+        viewerTookPart: true,
     });
+    expect(row && isOpenThreadInSidebar(row)).toBe(true);
+});
+
+test('a reply the viewer has read keeps a Thread they took part in active', async () => {
+    const thread = await anchorWithReply('read-reply');
+    const reply = await fixture.peer.trpc.chat.send.mutate({
+        chatId: fixture.channelId,
+        content: 'Done, shipped it.',
+        nonce: 'read-reply-peer',
+        serverId: fixture.serverId,
+        thread: { anchorMessageId: thread.anchorMessageId },
+    });
+    const unread = (await listOpen()).threads.find((t) => t.threadChatId === thread.threadChatId);
+    expect(unread).toMatchObject({ actorName: 'Bo', state: 'unread', viewerTookPart: true });
+    expect(unread && isOpenThreadInSidebar(unread)).toBe(true);
+
+    await fixture.owner.trpc.chat.markRead.mutate({
+        chatId: thread.threadChatId,
+        sequence: reply.message.sequence,
+        serverId: fixture.serverId,
+    });
+    const read = (await listOpen()).threads.find((t) => t.threadChatId === thread.threadChatId);
+    expect(read).toMatchObject({ actorName: 'Bo', state: 'active' });
+});
+
+test('a followed conversation the viewer never touched stays off the sidebar', async () => {
+    const anchor = await fixture.peer.trpc.chat.send.mutate({
+        chatId: fixture.channelId,
+        content: '🎄 Thursday best-sellers watch',
+        nonce: 'untouched-anchor',
+        serverId: fixture.serverId,
+    });
+    const reply = await fixture.peer.trpc.chat.send.mutate({
+        chatId: fixture.channelId,
+        content: 'Numbers are in.',
+        nonce: 'untouched-reply',
+        serverId: fixture.serverId,
+        thread: { anchorMessageId: anchor.message.id },
+    });
+    const threadChatId = threadChatIdForAnchor(anchor.message.id);
+    await setFollow(threadChatId, true);
+
+    const unread = (await listOpen()).threads.find((t) => t.threadChatId === threadChatId);
+    expect(unread).toMatchObject({
+        state: 'unread',
+        title: 'Thursday best-sellers watch',
+        viewerTookPart: false,
+    });
+    expect(unread && isOpenThreadInSidebar(unread)).toBe(false);
+
+    await fixture.owner.trpc.chat.markRead.mutate({
+        chatId: threadChatId,
+        sequence: reply.message.sequence,
+        serverId: fixture.serverId,
+    });
+    const read = (await listOpen()).threads.find((t) => t.threadChatId === threadChatId);
+    expect(read).toMatchObject({ state: 'recent', viewerTookPart: false });
+    expect(read && isOpenThreadInSidebar(read)).toBe(false);
+});
+
+test('a mention in the anchor counts as taking part', async () => {
+    const anchor = await fixture.peer.trpc.chat.send.mutate({
+        chatId: fixture.channelId,
+        content: `[@Ada](user://${fixture.ownerUserId}) can you look?`,
+        nonce: 'mentioned-anchor',
+        serverId: fixture.serverId,
+    });
+    await fixture.peer.trpc.chat.send.mutate({
+        chatId: fixture.channelId,
+        content: 'Details here.',
+        nonce: 'mentioned-reply',
+        serverId: fixture.serverId,
+        thread: { anchorMessageId: anchor.message.id },
+    });
+    const threadChatId = threadChatIdForAnchor(anchor.message.id);
+    await setFollow(threadChatId, true);
+
+    const row = (await listOpen()).threads.find((t) => t.threadChatId === threadChatId);
+    expect(row).toMatchObject({ viewerTookPart: true });
 });
 
 test('Close files a Thread under Earlier until someone else writes', async () => {

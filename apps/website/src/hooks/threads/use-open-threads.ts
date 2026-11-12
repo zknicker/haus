@@ -31,12 +31,24 @@ export function sortOpenThreads(threads: readonly OpenThread[], now: Date): Open
         .map(({ thread }) => thread);
 }
 
-/** The sidebar's rows: at most twelve, more only when With you needs them. */
-export function sidebarOpenThreads(sorted: readonly OpenThread[]) {
-    const withYou = sorted.filter((thread) => thread.group === 'with-you').length;
-    const shown = sorted.slice(0, Math.max(sidebarRowLimit, withYou));
+/**
+ * The sidebar's rows: Threads with work first, then conversations, each in
+ * Server order (newest activity first). At most twelve, more only when a With
+ * you row would otherwise fold away.
+ */
+export function sidebarOpenThreads(threads: readonly OpenThread[], now: Date) {
+    const listed = threads.filter(
+        (thread) => !isOpenThreadExpired(thread, now) && isOpenThreadInSidebar(thread)
+    );
+    const ordered = [
+        ...listed.filter((thread) => thread.jobCount > 0),
+        ...listed.filter((thread) => thread.jobCount === 0),
+    ];
+    const shown = ordered.filter(
+        (thread, index) => index < sidebarRowLimit || thread.group === 'with-you'
+    );
     return {
-        hiddenCount: sorted.length - shown.length,
+        hiddenCount: ordered.length - shown.length,
         threadChatIds: shown.map((thread) => thread.threadChatId),
     };
 }
@@ -52,11 +64,9 @@ function useOpenThreadList<Selected>(
     );
 }
 
-/** The sidebar lists only work in motion; the Threads page lists every open Thread. */
+/** The sidebar lists work and the viewer's own conversations; the Threads page lists every open Thread. */
 function selectLayout(list: OpenThreadList) {
-    return sidebarOpenThreads(
-        sortOpenThreads(list.threads, new Date()).filter(isOpenThreadInSidebar)
-    );
+    return sidebarOpenThreads(list.threads, new Date());
 }
 
 /** The section's structure only; each row reads its own entry. */

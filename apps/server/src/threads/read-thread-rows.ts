@@ -51,14 +51,6 @@ export async function readThreadRows(
             anchorMessageId: chatsTable.anchorMessageId,
             closedThroughSequence: threadClosuresTable.closedThroughSequence,
             lastActivityAt: chatsTable.lastActivityAt,
-            lastAgentName: sql<string | null>`(
-                select agent.display_name from chat_messages reply
-                join agents agent
-                    on agent.server_id = reply.server_id and agent.id = reply.author_agent_id
-                where reply.server_id = ${chatsTable.serverId}
-                    and reply.chat_id = ${chatsTable.id}
-                order by reply.sequence desc limit 1
-            )`,
             lastMessage: {
                 authorAgentDisplayName: lastMessage.authorAgentDisplayName,
                 authorAgentId: lastMessage.authorAgentId,
@@ -87,6 +79,15 @@ export async function readThreadRows(
             parentChatId: chatsTable.parentChatId,
             threadChatId: chatsTable.id,
             unreadCount: threadUnreadCount(userId),
+            viewerTookPart: sql<boolean>`exists (
+                select 1 from chat_messages part
+                where part.server_id = ${chatsTable.serverId}
+                    and (part.chat_id = ${chatsTable.id} or part.id = ${chatsTable.anchorMessageId})
+                    and (
+                        part.author_user_id = ${userId}
+                        or part.mentioned_user_ids @> array[${userId}]::text[]
+                    )
+            )`,
         })
         .from(chatsTable)
         .leftJoin(
@@ -134,18 +135,14 @@ export async function readThreadRows(
             {
                 lastActivityAt,
                 unreadCount: row.unreadCount,
-                viewerWroteLast: row.lastMessage?.authorUserId === userId,
+                viewerTookPart: row.viewerTookPart,
                 works,
             },
             now
         );
-        const latest = toChatLastMessage(row.lastMessage);
         const thread: OpenThread = {
             ...reading,
-            actorName:
-                reading.state === 'waiting'
-                    ? row.lastAgentName
-                    : (latest?.authorDisplayName ?? null),
+            actorName: toChatLastMessage(row.lastMessage)?.authorDisplayName ?? null,
             anchorMessageId,
             jobCount: works.length,
             lastActivityAt,
@@ -157,7 +154,9 @@ export async function readThreadRows(
                 anchorContent: row.anchorContent,
                 oldestWorkTitle: works[0]?.title ?? null,
             }),
+            unreadCount: row.unreadCount,
             updatedAt: newestUpdate(works),
+            viewerTookPart: row.viewerTookPart,
         };
         const closed =
             row.closedThroughSequence !== null &&

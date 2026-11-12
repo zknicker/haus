@@ -34,9 +34,11 @@ test('a replied Thread sits in the sidebar, opens, closes, and files under Earli
     await page.goto('/s/open-threads');
     await openChannel(page, 'all');
 
+    // The viewer wrote in it, so it is theirs to come back to; one line, no status claim.
     const sidebarRow = page.getByRole('row', { name: /Should we ship the quokka migration/ });
-    await expect(sidebarRow).toContainText('Waiting for a reply');
-    await expect(sidebarRow).toContainText('#all');
+    await expect(sidebarRow).toBeVisible();
+    await expect(sidebarRow).not.toContainText('Waiting');
+    await expect(sidebarRow).not.toContainText('#all');
     await page.screenshot({ path: 'test-results/open-threads-sidebar.png' });
 
     await sidebarRow.click();
@@ -44,7 +46,7 @@ test('a replied Thread sits in the sidebar, opens, closes, and files under Earli
 
     await page.getByRole('link', { name: 'All threads' }).click();
     await expect(page).toHaveURL(/\/threads$/);
-    await expect(page.getByRole('heading', { name: 'With agents' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Recent' })).toBeVisible();
     await page.screenshot({ path: 'test-results/open-threads-page.png' });
 
     await page.getByRole('button', { name: /Should we ship the quokka migration/ }).click();

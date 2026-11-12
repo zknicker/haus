@@ -6,6 +6,7 @@ export const openThreadGroups = ['with-you', 'with-agents', 'recent'] as const;
 export type OpenThreadGroup = (typeof openThreadGroups)[number];
 
 export const openThreadGroupByState = {
+    active: 'recent',
     approved: 'with-you',
     'changes-requested': 'with-you',
     'checks-failing': 'with-you',
@@ -19,7 +20,6 @@ export const openThreadGroupByState = {
     'ready-for-review': 'with-you',
     recent: 'recent',
     unread: 'with-you',
-    waiting: 'with-agents',
     working: 'with-agents',
 } as const satisfies Record<string, OpenThreadGroup>;
 
@@ -31,7 +31,7 @@ const openThreadStateSchema = z.enum(
 
 export const openThreadSchema = z
     .object({
-        /** The author behind an `unread` or `recent` line, or the Agent a `waiting` line names. */
+        /** The author of the Thread's newest Message, behind an `unread`, `active`, or `recent` line. */
         actorName: z.string().min(1).nullable(),
         anchorMessageId: idSchema,
         /** The moment the status line's `<d>` counts from. */
@@ -47,8 +47,12 @@ export const openThreadSchema = z
         state: openThreadStateSchema,
         threadChatId: idSchema,
         title: z.string().min(1),
+        /** Replies the viewer has not read; the sidebar row's count chip. */
+        unreadCount: z.number().int().nonnegative(),
         /** The newest word from a live job; past ten minutes a `working` line says so. */
         updatedAt: timestampSchema.nullable(),
+        /** The viewer wrote in the Thread, wrote its anchor, or was mentioned in either. */
+        viewerTookPart: z.boolean(),
     })
     .strict();
 
@@ -84,7 +88,10 @@ export const threadClosedInputSchema = z
 
 export type EarlierThreadsScope = z.infer<typeof earlierThreadsInputSchema>['scope'];
 
-/** The Thread's title: its oldest work's title, else the anchor's first plain line. */
+/**
+ * The Thread's title: its oldest work's title, else the anchor's first plain
+ * line without its leading emoji (kept when the line is nothing else).
+ */
 export function threadTitle(input: {
     anchorContent: string | null;
     oldestWorkTitle: string | null;
@@ -97,5 +104,13 @@ export function threadTitle(input: {
         .split('\n')
         .map((candidate) => candidate.trim())
         .find((candidate) => candidate.length > 0);
-    return line ? line.slice(0, 80).trim() : 'Thread';
+    if (!line) {
+        return 'Thread';
+    }
+    const words = line.replace(leadingEmoji, '');
+    return (words.length > 0 ? words : line).slice(0, 80).trim();
 }
+
+/** Pictographs with their joiners, variation selectors, skin tones, and flags, then spacing. */
+const leadingEmoji =
+    /^(?:\p{Extended_Pictographic}|\p{Regional_Indicator}|\p{Emoji_Modifier}|‍|️|⃣)+\s*/u;

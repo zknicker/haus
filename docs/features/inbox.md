@@ -25,8 +25,9 @@ a Chat, a Thread, or an Agent profile.
 The agent-side concept with a similar name is the [Agent inbox](../../specs/inbox.md), the durable
 delivery ledger that wakes Agents. Say "Agent inbox" wherever the two could be confused.
 
-Threads a human has read but that are still in motion live in the sidebar's Open threads section,
-not here. See [Open Threads](../../specs/open-threads.md). The Inbox stays an unread list.
+Threads still in motion for a human, Cloud Agent work and conversations they took part in, also
+sit in the sidebar's Open threads section, read or not. That section is a lens with no badge; see
+[Open Threads](../../specs/open-threads.md). The Inbox stays an unread list.
 
 ## Layout
 
