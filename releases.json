@@ -2101,5 +2101,16 @@
       "computer": null,
       "agent": null
     }
+  },
+  {
+    "version": "17.6.4",
+    "date": "2026-11-12",
+    "targets": {
+      "server": "16.6.4",
+      "app": null,
+      "ios": null,
+      "computer": null,
+      "agent": null
+    }
   }
 ]
