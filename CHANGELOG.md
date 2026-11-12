@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v17.6.4 - 2026-11-12
+
+- The Open threads sidebar now lists the conversations you are in: a Thread you wrote in, started, or were mentioned in stays listed for a day after its last message, read or unread. It no longer shows "Waiting for a reply" after you say thanks, and a Thread no longer drops out the moment an Agent answers.
+- Open threads rows are one line: a cloud for Cloud Agent work or the Thread's Channel or DM mark, the title, then an unread count or the time since the last activity. Finished work stays listed until its own timer ends.
+- Thread titles drop a leading emoji.
+
 ## v17.6.3 - 2026-11-08
 
 - Connected tools hosted behind Cloudflare work again. Haus now tries each of a server's checked addresses instead of only the first.
