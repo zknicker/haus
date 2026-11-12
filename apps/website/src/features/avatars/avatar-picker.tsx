@@ -58,11 +58,7 @@ export function AvatarPicker({
     const hint = avatarUploadHint();
     const busy = isDisabled || isPending || isReading;
     const displaySrc = previewSrc ?? src;
-    const statusMessage = isReading
-        ? `Reading ${label}…`
-        : isPending
-          ? `Saving ${label}…`
-          : null;
+    const statusMessage = isReading ? `Reading ${label}…` : isPending ? `Saving ${label}…` : null;
 
     React.useEffect(() => {
         if (previewSrc && src && src !== previewSrc) {
