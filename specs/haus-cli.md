@@ -160,12 +160,12 @@ Rules:
   is already a thread. (Populated from WS3 on; absent before.)
 - Suffixes, in order: attachments
   (`[2 attachments: a.png (id:att_…), … — use haus attachment view to download]`, WS5),
-  task (`[task #N status=… assignee=…]`, WS5),
+  claim (`[claim #N status=… assignee=…]`, WS5; named task until ADR 0051),
   cloud agent work (`[cloud-agent-work status=… title=… pr=#N]`, one per work the message links,
   the pull request omitted until the Run reports one).
 - The turn-drain envelope carries the same work facts compressed inside the
   bracket instead of as trailing suffixes, in the same order:
-  `task=#N:status:assignee` (`unassigned` when nobody owns it), then
+  `claim=#N:status:assignee` (`unassigned` when nobody owns it), then
   `mentioned=true`. The attachment suffix is not a work fact and
   stays a trailing suffix on the drain envelope too. Suffix and marker grammars
   share one formatting owner (`apps/computer/src/inbox-format.ts`), except the
@@ -403,7 +403,9 @@ per family:
 | | `add` | ADR 0028 (landed) | `add --target <t> --agent @handle` puts another active Agent in a channel; idempotent, wakes nothing, refuses Cove |
 | | `mute` `unmute` | WS4 | Attention stores land with the inbox |
 | thread | `unfollow` | WS3 | T1 follows model |
-| task | `list create claim unclaim assign unassign update` | WS5 (landed) | D8 model: `list [--target] [--mine] [--status all\|…]` defaults to unfinished work and caps at 50 rows with a `Truncated: N more` line; claim by `--number` (repeatable) or `--message-id` (converts + claims), one transaction answering one row per task (claimed, already yours, refused) and exiting non-zero only when nothing was granted; `create` takes repeatable `--title` or a stdin body and names each task's thread address; `assign --assignee @agent` / `unassign` move ownership to any Agent member of the Chat without touching status (optional `--expected-revision`, shown as `rev=` in `list`; one uniform not-assignable refusal, which the CLI pairs with the @mention hand-off because humans never hold tasks, [ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)); `update` is member-level along the status transition table |
+| claim | bare `claim`, `list create release assign unassign update` | WS5 (landed); renamed from `task` by [ADR 0051](../docs/adr/0051-tasks-are-boards-and-claims-are-the-lock.md) | D8 model: the bare group claims (`haus claim --target <t> --number N`): a first argument that is a flag runs the group's own action. `list [--target] [--mine] [--status all\|…]` defaults to unfinished work and caps at 50 rows with a `Truncated: N more` line; the bare claim takes `--number` (repeatable) or `--message-id` (converts + claims), one transaction answering one row per claim (claimed, already yours, refused) and exiting non-zero only when nothing was granted; `release` puts down a claim you hold (formerly `unclaim`); `create` takes repeatable `--title` or a stdin body and names each claim's thread address; `assign --assignee @agent` / `unassign` move ownership to any Agent member of the Chat without touching status (optional `--expected-revision`, shown as `rev=` in `list`; one uniform not-assignable refusal, which the CLI pairs with the @mention hand-off because humans never hold claims, [ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)); `update` is member-level along the status transition table |
+| task | `list show create move update assign` | [ADR 0051](../docs/adr/0051-tasks-are-boards-and-claims-are-the-lock.md) (landed) | Board Tasks, addressed by key (`SEC-12`). `list [--all] [--board <key>] [--assignee <me\|none\|@handle>] [--category <categories>]` always sends a category list and sends `assignee=me` unless `--all`, `--board`, or `--assignee` asks about other people's work, printing most urgent then oldest, at most 50 rows with a `Truncated: N more` line; `show <key>` prints the Task, its board's columns with categories, description, Mentioned in, and Reminders; `create --board <key> --title <text> [--description <text\|->] [--column <name>] [--assignee <me\|@handle>] [--priority <priority>] [--labels <names>] [--due <date>]` is not idempotent; `move <key> --column <name>` prints a receipt, and every move into a `done` or `canceled` column adds the caller's queue (`3 more assigned to you in todo`), printing no line when it is empty; `update <key>` takes `--title --description --priority --labels --due`, with `none` clearing `--labels` or `--due`; `assign <key> <handle\|me\|none>`. `move`, `update`, and `assign` take `--expected-version <n>` and otherwise last write wins. `--description -` reads stdin. Reads work in a heartbeat run; writes answer `REGULAR_TURN_REQUIRED` |
+| board | `list create columns` | [ADR 0051](../docs/adr/0051-tasks-are-boards-and-claims-are-the-lock.md) (landed) | `list` prints each board's key, name, open count, and columns with categories; `create --key <key> --name <text>` starts the default columns; `columns <key> add --name <text> --category <category> [--position <n>] \| rename --column <name> --name <text> \| move --column <name> --position <n> \| remove --column <name> [--move-to <column>]` computes the whole ordered list client-side and sends it with the version it read, so a change that landed first fails closed. A new column without `--position` lands after the last column of its category; removing a column that holds Tasks without `--move-to` is `INVALID_ARG` naming the flag |
 | attachment | `upload view` | WS5 (landed) | `upload --path [--mime-type]` returns an id; the send carries it via `--attachment-id` (divergence: no `--target` on upload, see §10) |
 | profile | `show update` | WS5 (landed) | Agent-facing `show [@handle]`, `update --description` (≤280 chars); human display names and handles are edited in App Settings |
 | reminder | `schedule list snooze update cancel log` | WS5 (landed) | D4 model: `schedule --title [--description] (--delay-seconds \| --fire-at) [--repeat] --message-id [--script]`; `--title` is a short label (60 chars, one line) and `--description` the full instruction; `update` changes one thing, with title and description counting as one; message anchors only |
@@ -458,6 +460,24 @@ POST /api/agent/cloud-agents       { content, nonce, provider, repository, start
                                    → { chatId, idempotent, messageId, runId, sequence,
                                        target, work }
 POST /api/agent/cloud-agents/cancel { workId } → { work }
+GET  /api/agent/claims             ?target=&status=&mine= → { claims, omitted }
+POST /api/agent/claims/create      { target, nonce, titles?, content?, assignee? } → { claims }
+POST /api/agent/claims/claim       { target, numbers?, messageId? } → { results }
+POST /api/agent/claims/release     { target, number } → { claim }
+POST /api/agent/claims/update      { target, number, status } → { claim }
+POST /api/agent/claims/assign      { target, number, assignee, expectedRevision? } → { claim }
+POST /api/agent/claims/unassign    { target, number, expectedRevision? } → { claim }
+GET  /api/agent/tasks              ?board=&assignee=&category= → { tasks, omitted }
+GET  /api/agent/tasks/show         ?key= → { task, description, mentions, reminders }
+POST /api/agent/tasks/create       { board, title, description?, column?, assignee?, priority?,
+                                     labels?, dueOn? } → { task }
+POST /api/agent/tasks/move         { key, column, expectedVersion? } → { task, queue }
+POST /api/agent/tasks/update       { key, title?, description?, priority?, labels?, dueOn?,
+                                     expectedVersion? } → { task }
+POST /api/agent/tasks/assign       { key, assignee, expectedVersion? } → { task }
+GET  /api/agent/boards             → { boards }
+POST /api/agent/boards/create      { key, name } → { board }
+POST /api/agent/boards/columns     { board, columns, moveTasks?, expectedVersion? } → { board }
 ```
 
 - Sends are idempotent by `nonce` (existing message dedupe rules).
@@ -518,7 +538,9 @@ All approved by operator ruling W1 (program contract, 2026-07-21).
 | `attachment upload` takes no `--target` (Raft's does) | Upload is decoupled from posting; the message send carries `--attachment-id`, so an upload never implies a visible post (WS5). |
 | Reminder and Trigger fires post no receipt in chat, and the Agent answers with `haus message send --cause <fireId>` | Not a divergence: Raft delivers a fire as a transient `msg=-` notice and a typed app inbox item, not a durable chat row, and the receipt sentence in its prompt was never corroborated. The divergence is `--cause`, which Raft has no equivalent of: a Haus answer names the exact fire it answers, and that provenance feeds the cause line, hover card, and Thread context card (ADR 0026). |
 | `reminder schedule` has no `--channel` anchor variant | The prompt teaches message anchors explicitly (anchorless reminders lose their context); Raft's `--channel` flag semantics are unverified in the wire layer (WS5). |
-| `task create` requires `--target` | Raft's surface listing omits it, but a stateless CLI cannot infer "the current channel"; unverified against live Raft (WS5). |
+| `claim create` requires `--target` | Raft's surface listing omits it, but a stateless CLI cannot infer "the current channel"; unverified against live Raft (WS5). |
+| Raft's `task` family is `haus claim`: the bare group claims, `release` is Raft's `unclaim`, and history and drain lines say `claim #N` / `claim=#N` | Haus keeps the word *task* for its board product and calls the message lock a claim ([ADR 0051](../docs/adr/0051-tasks-are-boards-and-claims-are-the-lock.md)); behavior is unchanged. |
+| `task` and `board` families are Haus-owned | Raft has no board product; `haus task` is the board Task tracker of [ADR 0051](../docs/adr/0051-tasks-are-boards-and-claims-are-the-lock.md), where Raft's `task` is Haus's `claim`. |
 | `skill` family is Haus-owned | Raft has no skill verbs; family 9 replaces our retired `skills_*` engine tools (D5/W2). |
 
 ## 11. Manual cutover checklist (WS1)

@@ -3,13 +3,13 @@ import { and, eq, sql } from 'drizzle-orm';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { messageTasksTable } from '../src/postgres/schema.ts';
-import { taskChangedTopic } from '../src/realtime/topics.ts';
+import { messageClaimsTable } from '../src/postgres/schema.ts';
+import { claimChangedTopic } from '../src/realtime/topics.ts';
 import {
     answerInChat,
     beginRun,
     FakeTransport,
-    readTask,
+    readClaim,
     recordRunOperation,
     replyInThread,
     seedBackgroundClaim,
@@ -42,8 +42,8 @@ test('a claim the run answers stays open and tracked until explicit completion',
     await run.delivery.onTurnSettled(claim.computerId, turnSummary(claim.agentId, run.runId));
 
     // A run reply is evidence of conversation only. The Agent must explicitly
-    // update the task to `done`.
-    expect(await readTask(connection.db, claim)).toMatchObject({
+    // update the claim to `done`.
+    expect(await readClaim(connection.db, claim)).toMatchObject({
         status: 'in_progress',
         tier: 'tracked',
     });
@@ -59,7 +59,7 @@ test('an acknowledgment the run kept working past leaves the claim tracked', asy
 
     await run.delivery.onTurnSettled(claim.computerId, turnSummary(claim.agentId, run.runId));
 
-    expect(await readTask(connection.db, claim)).toMatchObject({
+    expect(await readClaim(connection.db, claim)).toMatchObject({
         status: 'in_progress',
         tier: 'tracked',
     });
@@ -74,7 +74,7 @@ test('an acknowledgment, work, then a real answer still leaves the claim open', 
 
     await run.delivery.onTurnSettled(claim.computerId, turnSummary(claim.agentId, run.runId));
 
-    expect(await readTask(connection.db, claim)).toMatchObject({
+    expect(await readClaim(connection.db, claim)).toMatchObject({
         status: 'in_progress',
         tier: 'tracked',
     });
@@ -87,7 +87,7 @@ test('a reply from a run that used no tools still needs explicit completion', as
 
     await run.delivery.onTurnSettled(claim.computerId, turnSummary(claim.agentId, run.runId));
 
-    expect(await readTask(connection.db, claim)).toMatchObject({
+    expect(await readClaim(connection.db, claim)).toMatchObject({
         status: 'in_progress',
         tier: 'tracked',
     });
@@ -99,7 +99,7 @@ test('a claim that outlives its settled run stays in progress and becomes tracke
 
     await run.delivery.onTurnSettled(claim.computerId, turnSummary(claim.agentId, run.runId));
 
-    expect(await readTask(connection.db, claim)).toMatchObject({
+    expect(await readClaim(connection.db, claim)).toMatchObject({
         status: 'in_progress',
         tier: 'tracked',
     });
@@ -113,14 +113,14 @@ test('a claimant Thread reply does not affect settlement tier', async () => {
 
     await run.delivery.onTurnSettled(claim.computerId, turnSummary(claim.agentId, run.runId));
 
-    expect(await readTask(connection.db, claim)).toMatchObject({
+    expect(await readClaim(connection.db, claim)).toMatchObject({
         status: 'in_progress',
         tier: 'tracked',
     });
 });
 
 // An unmentioned peer Agent replied in the anchor's Thread before the assignee
-// had even claimed. Thread replies do not affect task tier, and a settled open
+// had even claimed. Thread replies do not affect claim tier, and a settled open
 // claim is tracked regardless of who spoke there.
 test("a peer Agent's Thread reply does not change settlement", async () => {
     const claim = await seedBackgroundClaim(connection.db);
@@ -131,7 +131,7 @@ test("a peer Agent's Thread reply does not change settlement", async () => {
 
     await run.delivery.onTurnSettled(claim.computerId, turnSummary(claim.agentId, run.runId));
 
-    expect(await readTask(connection.db, claim)).toMatchObject({
+    expect(await readClaim(connection.db, claim)).toMatchObject({
         status: 'in_progress',
         tier: 'tracked',
     });
@@ -141,7 +141,7 @@ test("a bystander's Thread reply does not promote the claim either", async () =>
     const claim = await seedBackgroundClaim(connection.db);
     await replyInThread(connection.db, claim, { userId: claim.userId });
 
-    expect(await readTask(connection.db, claim)).toMatchObject({
+    expect(await readClaim(connection.db, claim)).toMatchObject({
         status: 'in_progress',
         tier: 'background',
     });
@@ -156,7 +156,7 @@ test('a failed run leaves the claim in progress and tracked', async () => {
         turnSummary(claim.agentId, run.runId, 'failed')
     );
 
-    expect(await readTask(connection.db, claim)).toMatchObject({
+    expect(await readClaim(connection.db, claim)).toMatchObject({
         status: 'in_progress',
         tier: 'tracked',
     });
@@ -165,12 +165,12 @@ test('a failed run leaves the claim in progress and tracked', async () => {
 test('a reply from a different run in the same Chat does not complete the claim', async () => {
     const claim = await seedBackgroundClaim(connection.db);
     const run = await beginRun(connection.db, claim);
-    // Same Agent, same Chat, another run: run output never completes a task.
+    // Same Agent, same Chat, another run: run output never completes a claim.
     await answerInChat(connection.db, claim, `${run.runId}-other`);
 
     await run.delivery.onTurnSettled(claim.computerId, turnSummary(claim.agentId, run.runId));
 
-    expect(await readTask(connection.db, claim)).toMatchObject({
+    expect(await readClaim(connection.db, claim)).toMatchObject({
         status: 'in_progress',
         tier: 'tracked',
     });
@@ -186,7 +186,7 @@ test('a failed run that replied tracks the claim rather than closing it', async 
         turnSummary(claim.agentId, run.runId, 'failed')
     );
 
-    expect(await readTask(connection.db, claim)).toMatchObject({
+    expect(await readClaim(connection.db, claim)).toMatchObject({
         status: 'in_progress',
         tier: 'tracked',
     });
@@ -198,24 +198,24 @@ test('a run a human stops leaves its claim tracked and in progress', async () =>
 
     await run.delivery.stop({ agentId: claim.agentId, serverId: claim.serverId });
 
-    expect(await readTask(connection.db, claim)).toMatchObject({
+    expect(await readClaim(connection.db, claim)).toMatchObject({
         live: false,
         status: 'in_progress',
         tier: 'tracked',
     });
 });
 
-test('an interrupted run leaves its claim tracked and emits a task update', async () => {
+test('an interrupted run leaves its claim tracked and emits a claim update', async () => {
     const claim = await seedBackgroundClaim(connection.db);
     const run = await beginRun(connection.db, claim);
-    const updates = captureTopic(taskChangedTopic);
+    const updates = captureTopic(claimChangedTopic);
 
     await run.delivery.onTurnSettled(
         claim.computerId,
         turnSummary(claim.agentId, run.runId, 'interrupted')
     );
 
-    expect(await readTask(connection.db, claim)).toMatchObject({
+    expect(await readClaim(connection.db, claim)).toMatchObject({
         status: 'in_progress',
         tier: 'tracked',
     });
@@ -238,37 +238,37 @@ test('a claim the Agent closed itself settles without a second write', async () 
     const run = await beginRun(connection.db, claim);
     await answerInChat(connection.db, claim, run.runId);
     await connection.db
-        .update(messageTasksTable)
-        .set({ status: 'done', version: sql`${messageTasksTable.version} + 1` })
+        .update(messageClaimsTable)
+        .set({ status: 'done', version: sql`${messageClaimsTable.version} + 1` })
         .where(
             and(
-                eq(messageTasksTable.serverId, claim.serverId),
-                eq(messageTasksTable.messageId, claim.messageId)
+                eq(messageClaimsTable.serverId, claim.serverId),
+                eq(messageClaimsTable.messageId, claim.messageId)
             )
         );
-    const closed = await readTask(connection.db, claim);
+    const closed = await readClaim(connection.db, claim);
 
     await run.delivery.onTurnSettled(claim.computerId, turnSummary(claim.agentId, run.runId));
 
-    expect(await readTask(connection.db, claim)).toMatchObject({
+    expect(await readClaim(connection.db, claim)).toMatchObject({
         status: 'done',
         tier: 'background',
         version: closed?.version,
     });
 });
 
-test('a task is live while its assignee runs on it and not after settling', async () => {
+test('a claim is live while its assignee runs on it and not after settling', async () => {
     const claim = await seedBackgroundClaim(connection.db);
     const run = await beginRun(connection.db, claim);
 
-    expect(await readTask(connection.db, claim)).toMatchObject({ live: true, tier: 'background' });
+    expect(await readClaim(connection.db, claim)).toMatchObject({ live: true, tier: 'background' });
 
     await run.delivery.onTurnSettled(claim.computerId, turnSummary(claim.agentId, run.runId));
 
-    expect(await readTask(connection.db, claim)).toMatchObject({ live: false });
+    expect(await readClaim(connection.db, claim)).toMatchObject({ live: false });
 });
 
-test('a run serving another message leaves the task idle', async () => {
+test('a run serving another message leaves the claim idle', async () => {
     const claim = await seedBackgroundClaim(connection.db);
     const other = await sendHumanMessage(connection.db, claim, 'unrelated work');
     const transport = new FakeTransport();
@@ -282,5 +282,5 @@ test('a run serving another message leaves the task idle', async () => {
         serverId: claim.serverId,
     });
 
-    expect(await readTask(connection.db, claim)).toMatchObject({ live: false });
+    expect(await readClaim(connection.db, claim)).toMatchObject({ live: false });
 });

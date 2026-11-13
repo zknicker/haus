@@ -41,7 +41,7 @@ test('the sidebar goes in the left pane, pages open on the right, and Settings i
     // Go: with the right pane focused, a sidebar row still navigates the left pane's tab.
     await openSection(page, 'Tasks');
     await expect(left).toHaveCount(1);
-    await expect(left.first()).toContainText('Tasks');
+    await expect(left.first()).toContainText('General');
     await expect(right).toHaveCount(1);
     await expect(right.first()).toContainText('Navigation thread root');
 

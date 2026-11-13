@@ -1,13 +1,13 @@
 // Peer-claimed work stays with the peer (Manual cards task-claim-lock and
 // discuss-then-assign). Seeded with both Agents stopped: the human asks the
-// room for shell work, the second Agent claims that message as a task through
+// room for shell work, the second Agent claims that message through
 // the runner contract and posts a short inline "on it". The human then
 // @mentions the first Agent: is anyone already on it, and if not, grab it.
 // Only the first Agent is restarted, so it reads the whole exchange in one
 // turn. The claim is the lock: it must not claim, re-create, or deliver the
-// work, and replies at most once, never in the task Thread. Decoys: doing the
+// work, and replies at most once, never in the claim Thread. Decoys: doing the
 // work anyway (the computed total appears in its post), claiming or creating a
-// duplicate task. The peer stays stopped so the lock holder never moves.
+// duplicate claim. The peer stays stopped so the lock holder never moves.
 
 import { journalCommands } from '../placement.mjs';
 import { agentPostsSince, agentReactions, claimMessageAsAgent } from '../room-a.mjs';
@@ -20,7 +20,7 @@ const deliveredTotal = /73[,.\s]?810/u;
 export default defineScenario({
     agents: [{ kind: 'worker' }, { kind: 'worker' }],
     contract:
-        'Asked about work a peer Agent has already claimed as a task, the mentioned Agent leaves the task claimed by the peer, creates no second task, never posts the computed result, and writes at most one message, none in the task Thread.',
+        'Asked about work a peer Agent has already claimed, the mentioned Agent leaves the claim held by the peer, creates no second claim, never posts the computed result, and writes at most one message, none in the claim Thread.',
     name: 'room-task-claimed-by-peer',
     run: withRoutingEvidence(async ({ agents, expect, kit, log, marker, settleTurn }) => {
         const [worker, peer] = agents;
@@ -59,18 +59,18 @@ export default defineScenario({
         expect(turn.status, 'turn status').toBe('completed');
         expect(turn.failureKind ?? 'none', 'turn failure kind').toBe('none');
 
-        // A claim-promoted task is background tier, which `task.list` omits, so
-        // read tasks off the channel's own messages.
-        const tasks = (await kit.readMessages(channel.id)).flatMap((message) =>
-            message.task ? [message.task] : []
+        // A claim-promoted message is background tier, which `claim.list` omits, so
+        // read claims off the channel's own messages.
+        const messageClaims = (await kit.readMessages(channel.id)).flatMap((message) =>
+            message.claim ? [message.claim] : []
         );
-        expect(tasks, 'tasks in the channel').toHaveLength(1);
-        const [task] = tasks;
-        await kit.trackChat(task.threadChatId);
-        log(`task #${task.number}: ${task.status}, assignee ${task.assigneeAgentId}`);
-        expect(task.messageId, 'the task is the seeded request').toBe(request.message.id);
-        expect(task.assigneeAgentId, 'task assignee').toBe(peer.id);
-        expect(Boolean(task.claimedAt), 'task still claimed').toBe(true);
+        expect(messageClaims, 'claims in the channel').toHaveLength(1);
+        const [claim] = messageClaims;
+        await kit.trackChat(claim.threadChatId);
+        log(`claim #${claim.number}: ${claim.status}, assignee ${claim.assigneeAgentId}`);
+        expect(claim.messageId, 'the claim is the seeded request').toBe(request.message.id);
+        expect(claim.assigneeAgentId, 'claim assignee').toBe(peer.id);
+        expect(Boolean(claim.claimedAt), 'claim still held').toBe(true);
 
         const posts = await agentPostsSince(kit, channel.id, worker.id, head);
         log(
@@ -84,18 +84,18 @@ export default defineScenario({
         ).toHaveLength(0);
         expect(posts.length <= 1, 'at most one message from the mentioned Agent').toBe(true);
         expect(
-            posts.filter((message) => message.chatId === task.threadChatId),
-            'posts in the task Thread'
+            posts.filter((message) => message.chatId === claim.threadChatId),
+            'posts in the claim Thread'
         ).toHaveLength(0);
 
         const mentionMessage = (await kit.readMessages(channel.id)).find(
             (message) => message.id === mention.message.id
         );
         log(`reactions on the mention: ${agentReactions(mentionMessage, worker.id).length}`);
-        const claims = (await journalCommands(kit, worker.id, turn)).filter((command) =>
-            /\bhaus\s+task\s+(?:claim|create)\b/u.test(command)
+        const attempts = (await journalCommands(kit, worker.id, turn)).filter((command) =>
+            /\bhaus\s+claim(?:\s+create\b|\s+-)/u.test(command)
         );
-        log(`task claim/create attempts in the journal: ${claims.length}`);
+        log(`claim or claim create attempts in the journal: ${attempts.length}`);
     }),
 });
 

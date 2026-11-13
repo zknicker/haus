@@ -120,7 +120,7 @@ struct OptimisticTranscriptTests {
             sequence: sequence,
             serverID: "server-1",
             sessionGeneration: nil,
-            task: nil
+            claim: nil
         )
     }
 }

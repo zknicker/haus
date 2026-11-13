@@ -1,5 +1,5 @@
-import type { TaskClaimConflict } from '@haus/api';
-import { formatTaskClaimConflict } from './agent-claim-conflict.ts';
+import type { ClaimConflict } from '@haus/api';
+import { formatClaimConflict } from './agent-claim-conflict.ts';
 
 export type AgentCliErrorCode =
     | 'AGENT_CREATE_ANNOUNCEMENT_MISSING_HANDLE'
@@ -56,7 +56,7 @@ export class AgentCliError extends Error {
         readonly code: AgentCliErrorCode | string,
         message: string,
         readonly options: {
-            claimConflict?: TaskClaimConflict;
+            claimConflict?: ClaimConflict;
             draftSaved?: boolean;
             nextAction?: string;
             retryable?: boolean;
@@ -69,7 +69,7 @@ export class AgentCliError extends Error {
 
 export function renderAgentCliError(error: AgentCliError): string {
     const lead = error.options.claimConflict
-        ? formatTaskClaimConflict(error.options.claimConflict)
+        ? formatClaimConflict(error.options.claimConflict)
         : `Error: ${error.message}`;
     const lines = [lead, `Code: ${error.code}`];
     if (error.options.draftSaved !== undefined) {

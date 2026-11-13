@@ -18,6 +18,45 @@ struct MessageActionMenuTests {
         #expect(groups == [[.reply, .replyInThread], [.copyText]])
     }
 
+    @Test func convertToTaskJoinsTheConversationActions() {
+        let groups = MessageActionMenu.groups(
+            for: message(),
+            canReplyInline: true,
+            canOpenThread: true,
+            canConvertToTask: true
+        )
+        #expect(groups == [[.reply, .replyInThread, .convertToTask], [.copyText]])
+    }
+
+    /// A Thread keeps no reply actions, but any readable message converts.
+    @Test func aThreadReplyConverts() {
+        let groups = MessageActionMenu.groups(
+            for: message(),
+            canReplyInline: false,
+            canOpenThread: false,
+            canConvertToTask: true
+        )
+        #expect(groups == [[.convertToTask], [.copyText]])
+    }
+
+    /// `sourceMessageId` has nothing to name until the Server has the message.
+    @Test func aPendingMessageCannotConvert() {
+        let pending = MessagePresentation(
+            id: "m1",
+            author: MessageAuthorPresentation(id: "a1", name: "Ada", avatarURL: nil),
+            content: "Hello",
+            createdAt: .now,
+            isPending: true
+        )
+        let groups = MessageActionMenu.groups(
+            for: pending,
+            canReplyInline: false,
+            canOpenThread: false,
+            canConvertToTask: true
+        )
+        #expect(groups == [[.copyText]])
+    }
+
     @Test func aMessageWithAThreadOpensIt() {
         let thread = ThreadPreviewPresentation(threadChatID: "t1", replyCount: 2, unreadCount: 0, recentReplies: [])
         let groups = MessageActionMenu.groups(for: message(thread: thread), canReplyInline: false, canOpenThread: true)

@@ -65,7 +65,7 @@ test('web links open browser tabs on the right, and the sidebar keeps to the lef
 
     // The sidebar is Go: it navigates the left pane's tab and leaves the web pages alone.
     await openSection(page, 'Tasks');
-    await expect(left.nth(0)).toContainText('Tasks');
+    await expect(left.nth(0)).toContainText('General');
     await expect(right).toHaveCount(2);
     await right.nth(0).click();
     await expect(address).toHaveValue('example.com/docs');

@@ -42,6 +42,7 @@ public struct SettingsSheet: View {
     let persistence: SettingsPersistence
     let cloudAgentActions: CloudAgentSettingsActions
     let automations: AgentAutomationsActions
+    let stoppedClaims: AgentStoppedClaimsActions
     let onSignOut: SettingsSignOut?
     let notifications: PushNotificationsSetting
     @State var data: SettingsData
@@ -60,6 +61,7 @@ public struct SettingsSheet: View {
         persistence: SettingsPersistence = .preview,
         cloudAgentActions: CloudAgentSettingsActions = .unavailable,
         automations: AgentAutomationsActions = .preview,
+        stoppedClaims: AgentStoppedClaimsActions = .unavailable,
         notifications: PushNotificationsSetting = PushNotificationsSetting(),
         appearance: Binding<AppearancePreference> = .constant(.system),
         initialPath: [SettingsRoute] = [],
@@ -69,6 +71,7 @@ public struct SettingsSheet: View {
         self.persistence = persistence
         self.cloudAgentActions = cloudAgentActions
         self.automations = automations
+        self.stoppedClaims = stoppedClaims
         self.notifications = notifications
         _data = State(initialValue: data)
         _path = State(initialValue: initialPath)

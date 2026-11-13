@@ -38,7 +38,7 @@ const pendingBody = {
             mentioned: false,
             pendingCount: 2,
             target: 'dm:@richard',
-            taskNumber: null,
+            claimNumber: null,
         },
     ],
     totalPending: 2,

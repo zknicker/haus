@@ -1,13 +1,16 @@
 import { describe, expect, test } from 'bun:test';
-import type { Chat } from '@haus/api';
+import type { Board, Chat } from '@haus/api';
 import type { ServerSummary } from '../../lib/haus-server.tsx';
 import {
     lastServerSlugStorageKey,
     parseInvitationToken,
+    readLastBoardId,
     readLastChatId,
     readLastServerSlug,
+    rememberLastBoardId,
     rememberLastChatId,
     rememberLastServerSlug,
+    resolveEntryBoard,
     resolveEntryChat,
     resolveEntryServer,
 } from './server-choice.ts';
@@ -62,6 +65,30 @@ describe('Chat entry choice', () => {
 
         expect(readLastChatId('studio', storage)).toBe('chat-product');
         expect(readLastChatId('arcade', storage)).toBe('chat-all');
+    });
+});
+
+describe('board entry choice', () => {
+    test('uses the last listed board, then the first', () => {
+        const boards = [{ id: 'board-general' }, { id: 'board-security' }] as Board[];
+
+        expect(resolveEntryBoard(boards, 'board-security')?.id).toBe('board-security');
+        expect(resolveEntryBoard(boards, 'archived-board')?.id).toBe('board-general');
+        expect(resolveEntryBoard([], null)).toBeNull();
+    });
+
+    test('persists the last board independently for each Server', () => {
+        const values = new Map<string, string>();
+        const storage = {
+            getItem: (key: string) => values.get(key) ?? null,
+            setItem: (key: string, value: string) => values.set(key, value),
+        };
+
+        rememberLastBoardId('studio', 'board-security', storage);
+        rememberLastBoardId('arcade', 'board-general', storage);
+
+        expect(readLastBoardId('studio', storage)).toBe('board-security');
+        expect(readLastBoardId('arcade', storage)).toBe('board-general');
     });
 });
 

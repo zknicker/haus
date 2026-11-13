@@ -141,7 +141,7 @@ PostgreSQL owns the hosted collaboration tables
 | `channel_participants` | One human's participation in one Channel |
 | `thread_follows` | Per-human Thread attention; never membership |
 | `agents` / `channel_agent_participants` | Hosted Agent identity and uploaded avatar (`avatar_id`), immutable Computer assignment, Server-owned desired runtime/model, the Computer-reported effective snapshot, the creating human or Agent plus the announcement Message an Agent-created Agent anchors to, and Channel access for reminder authorship |
-| `agent_delivery` / `agent_inbox` | One-row-per-Agent Stop flag and single in-flight run (the per-Agent serialization boundary), and the agent inbox drained into runs — the only agent-only lane, including the items with no backing message: automation fires, task assignments, and the chatless nightly `dream` |
+| `agent_delivery` / `agent_inbox` | One-row-per-Agent Stop flag and single in-flight run (the per-Agent serialization boundary), and the agent inbox drained into runs — the only agent-only lane, including the items with no backing message: automation fires, claim assignments, and the chatless nightly `dream` |
 | `agent_turns` | Compact per-run turn summary reported by a Computer after a launch settles |
 | `agent_run_triggers` | The inbox work (source, Chat, work id) the Server chose to wake each run, recorded at dispatch so a settled turn can name its trigger; Chat is null only for a dream run |
 | `agent_session_rotations` | One row per Agent session rotation: the generation it started, when, and why |
@@ -150,8 +150,8 @@ PostgreSQL owns the hosted collaboration tables
 | `chat_reads` | One monotonic reader high-water mark per Chat |
 | `agent_chat_reads` | One monotonic Agent read position per Chat, behind `haus inbox check` and `message read --unread`; it outlives session rotation ([Data model](data-model.md)) |
 | `attachments` | Server/Chat-scoped metadata, upload state, content digest, and optional message association |
-| `message_tasks` | Lifecycle metadata keyed directly to one canonical hosted message |
-| `task_labels` / `message_task_labels` | Small Server task-label catalog and task links |
+| `message_claims` | Lifecycle metadata keyed directly to one canonical hosted message |
+| `task_labels` / `task_label_assignments` | Small Server task-label catalog and its Task links |
 | `reminders` / `reminder_commands` | Author-owned schedules and idempotent optimistic commands with original result snapshots |
 | `reminder_fires` | One durable row per logical scheduled fire, recording in `has_script` whether that wake ran a script; a fire writes no Chat message and the table has no receipt column |
 | `triggers` | Agent-owned inbound webhook wakes with hashed secrets, anchored to a Chat and, for an Agent-created one, to the asking message |
@@ -427,13 +427,13 @@ retires queued rows immediately, and failed-run requeue removes a wake whose
 parent is now tombstoned, so a removed Trigger cannot keep waking an Agent while
 an in-flight turn still settles safely.
 
-**Stale `in_review` task close** (`TASK_IN_REVIEW_STALE_DAYS`, 7) closes each
-`in_review` task whose own row has not changed and whose Thread — the one
-anchored on the task message — has taken no new message inside the window. Each
-close is its own transaction taking the Server row and the task row, re-checking
-staleness under the lock, bumping the version, and publishing `task.changed`
+**Stale `in_review` claim close** (`CLAIM_IN_REVIEW_STALE_DAYS`, 7) closes each
+`in_review` claim whose own row has not changed and whose Thread — the one
+anchored on the claim message — has taken no new message inside the window. Each
+close is its own transaction taking the Server row and the claim row, re-checking
+staleness under the lock, bumping the version, and publishing `claim.changed`
 after commit, so App caches invalidate exactly as they do for an operator's
-change. Neither `message_tasks` nor the task event carries an actor or a reason,
+change. Neither `message_claims` nor the claim event carries an actor or a reason,
 so the close records no author; reopening is the ordinary update path.
 
 ## Attachment storage and recovery
@@ -585,13 +585,13 @@ Server query, mutation, and subscription resolves membership through it:
 - `chat.*` resolves current membership and Chat participation before every
   read or write. Thread access resolves through the parent Channel or DM.
   Realtime and composition subscriptions recheck that access for each event delivery.
-- `task.*` resolves current membership and parent-Chat access. Assignment also
+- `claim.*` resolves current membership and parent-Chat access. Assignment also
   requires Owner/Admin authority and filters targets to active humans with that
-  same parent-Chat access and membership stint. Task writes lock the Server
-  before authorizing, then serialize versioned changes against the task row.
-- Membership removal releases the departing human's task claims and
-  assignments and publishes `task.changed` for each. Reinvitation restores neither those
-  links nor private task/Thread access from the former stint.
+  same parent-Chat access and membership stint. Claim writes lock the Server
+  before authorizing, then serialize versioned changes against the claim row.
+- Membership removal releases the departing human's claims and
+  assignments and publishes `claim.changed` for each. Reinvitation restores neither those
+  links nor private claim/Thread access from the former stint.
 - Realtime delivery skips events for inaccessible Chats without ending the
   stream. Revoked Server membership ends the stream with `membership_lost`.
 
@@ -609,11 +609,11 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
   An author already visible in the transcript is the entry point for their DM.
   A retired Agent's implicit DM row leaves active navigation and is not an App destination.
   Canonical collaboration records remain durable Server history; the retired Agent is absent from
-  every member control and receives no new sends or task messages.
+  every member control and receives no new sends or claim messages.
   Message replies open hidden child Threads in the resizable side pane; Threads
   never enter the hosted sidebar Chat list.
-  Task rows open the canonical message's existing child Thread. Task controls
-  call the hosted API directly; `task.onChanged` owns exact cache invalidation.
+  Claim rows open the canonical message's existing child Thread. Claim controls
+  call the hosted API directly; `claim.onChanged` owns exact cache invalidation.
 - `/s/<slug>/members` manages humans and invitations.
 - `/s/<slug>/computers` is the Owner/Admin Computer inventory. It shows
   the reported machine name, attachment health, reported runtimes/models,

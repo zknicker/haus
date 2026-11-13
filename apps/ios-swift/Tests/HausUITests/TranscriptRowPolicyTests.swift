@@ -112,10 +112,10 @@ struct TranscriptRowPolicyTests {
         #expect(widest == [0: "10.", 1: "\u{2022}"])
     }
 
-    @Test func aTaskThreadIsNamedForItsTask() {
+    @Test func aClaimThreadIsNamedForItsClaim() {
         #expect(ThreadOpening.title(anchor: ChatFixtures.messages[1]) == "Thread")
-        if let task = ChatFixtures.messages[2].task {
-            #expect(ThreadOpening.title(anchor: ChatFixtures.messages[2]) == "Task #\(task.number)")
+        if let claim = ChatFixtures.messages[2].claim {
+            #expect(ThreadOpening.title(anchor: ChatFixtures.messages[2]) == "Claim #\(claim.number)")
         }
     }
 }

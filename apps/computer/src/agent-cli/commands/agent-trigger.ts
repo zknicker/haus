@@ -82,7 +82,7 @@ export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
     {
         examples: [
             'haus trigger create --title "deploy finished" --message-id 1a2b3c4d --output ./deploy-trigger-secret',
-            'haus trigger create --title "sentry alert" --message-id 1a2b3c4d --output ./sentry-trigger-secret --instruction "Summarize the error in this thread and open a task when it is new."',
+            'haus trigger create --title "sentry alert" --message-id 1a2b3c4d --output ./sentry-trigger-secret --instruction "Summarize the error in this thread and open a claim when it is new."',
             'haus trigger create --kind github --title "CI failed on main" --message-id 1a2b3c4d --repo acme/api --event workflow_run --conclusion failure --branch main',
             'haus trigger create --kind github --title "new PRs" --message-id 1a2b3c4d --org acme --event pull_request --action opened --action ready_for_review',
         ],

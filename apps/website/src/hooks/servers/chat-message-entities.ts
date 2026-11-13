@@ -58,7 +58,7 @@ export function chatMessageQueryOptions(
 /**
  * Seeds one canonical `chat.messages` read's entities in a single batch: one
  * entry per message with its Thread summary or null. Only canonical
- * projections seed; a `chat.search` row never does (it carries no task or
+ * projections seed; a `chat.search` row never does (it carries no claim or
  * Thread summary). Structural sharing keeps an unchanged entity's object, so
  * its row does not re-render.
  */
@@ -114,20 +114,4 @@ export function isChatMessageEntityOf(
         input.serverId === scope.serverId &&
         (scope.chatId === undefined || input.chatId === scope.chatId)
     );
-}
-
-/**
- * Derived dependency: task labels are embedded rows, so a renamed, recolored,
- * or deleted label invalidates every cached entity of the Server that carries it.
- */
-export function entityCarriesTaskLabel(
-    query: Pick<Query, 'queryKey' | 'state'>,
-    serverId: string,
-    labelId: string
-) {
-    if (!isChatMessageEntityOf(query, { serverId })) {
-        return false;
-    }
-    const entry = query.state.data as ChatMessageEntry | undefined;
-    return Boolean(entry?.message.task?.labels.some((label) => label.id === labelId));
 }

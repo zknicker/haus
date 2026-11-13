@@ -127,7 +127,7 @@ for (const role of ['member', 'admin'] as const) {
         await expect(
             page.getByRole('navigation', { name: 'Breadcrumb' }).getByText('Tasks', { exact: true })
         ).toBeVisible();
-        await expect(page).toHaveURL(new RegExp(`/s/${slug}/tasks$`, 'u'));
+        await expect(page).toHaveURL(new RegExp(`/s/${slug}/tasks/GEN$`, 'u'));
         // No Computer exists even after completion. This must not restart onboarding.
         await page.goto(`/s/${slug}`);
         await expect(page.getByRole('textbox', { name: 'Message all' })).toBeVisible();

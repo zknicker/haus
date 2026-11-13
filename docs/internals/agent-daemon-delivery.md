@@ -42,7 +42,7 @@ Server queued work
   -> accepted ACK
   -> content-free notice (ordinary Chat work)
   -> Agent-chosen local message check (ordinary Chat work)
-  -> concrete typed attention (Cove, committed action, fire, task assignment)
+  -> concrete typed attention (Cove, committed action, fire, claim assignment)
   -> exact visibility receipt where applicable
   -> settled proof
   -> Server exact seen evidence + consumption
@@ -183,21 +183,21 @@ recreation after settlement; a committed action's `(Server, action)` identity
 does the same. The Computer suppresses a consumed action on same-run replay and
 only reoffers it when a failed new run is explicitly materialized.
 
-Task messages use the same exact inbox path as ordinary messages and carry their
-canonical task number, state, priority, and assignee metadata. A mention may bypass a Channel mute
+Claim messages use the same exact inbox path as ordinary messages and carry their
+canonical claim number, state, priority, and assignee metadata. A mention may bypass a Channel mute
 without unmuting it. A direct Thread mention restores an explicit unfollow; the recipient's pending
 row persists the `threadFollowReactivated` effect so Computer can repeat the restoration notice and
 exact unfollow command on replay without changing canonical Chat content. Muting or unfollowing purges already-queued
-ambient work on that exact target while preserving personal mentions, assigned tasks, and reminder
+ambient work on that exact target while preserving personal mentions, assigned claims, and reminder
 wakes by their canonical domain relationships. Muting a parent Channel does not purge or suppress
 ordinary work from its followed Threads.
 
-An Agent-created peer assignment creates the canonical task message once, reserves
-its single ownership slot for the peer, follows the deterministic task Thread
-for that peer, and enqueues that exact task for the assigned Agent even when ambient Channel
-delivery is muted. A separate assignee-only pending row, source `task_assignment` and keyed by the
-assignment identity rather than by a message, points the Agent back to that canonical task and
-carries the personal-attention signal without creating a second task or a Chat message. Neither
+An Agent-created peer assignment creates the canonical claim message once, reserves
+its single ownership slot for the peer, follows the deterministic claim Thread
+for that peer, and enqueues that exact claim for the assigned Agent even when ambient Channel
+delivery is muted. A separate assignee-only pending row, source `claim_assignment` and keyed by the
+assignment identity rather than by a message, points the Agent back to that canonical claim and
+carries the personal-attention signal without creating a second claim or a Chat message. Neither
 system needs a generic delivery-bypass flag.
 
 ## Long-Horizon Continuity
@@ -322,9 +322,9 @@ Sixteen consecutive drains containing only automation-authored work (Agent
 messages, Trigger fires, Trigger problem notices, and sub-agent wakes: sources
 `agent:*`, `trigger`, `trigger_problem`, and `subagent`) are allowed. The seventeenth remains queued
 until human input arrives; human input resets the counter on arrival, and any
-drain containing other work (a human message, a reminder, a task assignment)
+drain containing other work (a human message, a reminder, a claim assignment)
 resets it at settlement. Admission judges the drain that will actually run: at
-the ceiling a queued reminder or task assignment leads ahead of held
+the ceiling a queued reminder or claim assignment leads ahead of held
 automation work, resets the chain, and the held work drains after it.
 `agent_chain_advanced_at` records when the counter
 last advanced: below the ceiling, a drain that starts more than 30 minutes
@@ -360,7 +360,7 @@ commits. Start, Restart, a session reset, and a configure that changes runtime
 or model also lift it, without rotating the session beyond what that action
 already does. Outside a pause, a human message releases a counted hold only
 after its window passes and never cuts a short or rate-limit backoff short.
-Agent-authored, reminder, trigger, task-assignment, Cloud Agent, onboarding, and
+Agent-authored, reminder, trigger, claim-assignment, Cloud Agent, onboarding, and
 greeting work never lifts a pause or releases a hold; it waits behind it. `agent.get`
 and `agent.list` project the pause as `wakePause` (failure count, last failure
 kind, code, and time, `pausedAt`, and `nextProbeAt`, null while the probe runs);
@@ -451,13 +451,13 @@ composition bubble remains tied only to an explicit in-flight message and its co
 | Wake pause opens on a repeated or persistent failure, probes 1h → 4h → 24h, clears on success, and lifts only for human intent | `apps/server/src/agent-delivery/wake-pause.test.ts`, `apps/server/test/agent-wake-pause.test.ts`, `apps/server/test/haus-agent-wake-pause.test.ts` |
 | A typed provider failure fails the turn; a rejected credential ends it at the first retry; the runtime issue clears on success | `apps/computer/src/harness/runtime-session-failure.test.ts`, `apps/computer/src/harness/runtime-session-failure-turn.test.ts`, `apps/computer/src/launch-runtime-auth.test.ts`, `apps/computer/src/runtime/codex/codex-turn-failures.test.ts` |
 | Dispatch, acceptance, and settlement project semantic lifecycle phases | `apps/server/test/agent-delivery.test.ts` |
-| `As Task` enters the inbox with canonical task metadata | `apps/server/test/haus-agent-run.test.ts`, `apps/computer/src/inbox-format.test.ts` |
+| A claim enters the inbox with canonical claim metadata | `apps/server/test/haus-agent-run.test.ts`, `apps/computer/src/inbox-format.test.ts` |
 | Fresh Agent Thread replies materialize the authorized anchor | `apps/server/test/haus-agent-run.test.ts` |
 | Mute purges ordinary work without blocking personal mentions; a Thread mention restores an unfollow | `apps/server/test/haus-agent-run.test.ts` |
 | Freshness validation and Agent send commit share one Server lock | `apps/server/test/haus-agent-run.test.ts` |
 | Agent claims share one ownership lock; humans never claim | `apps/server/test/haus-agent-run.test.ts` |
-| Agent peer assignment is idempotent and delivers the exact canonical task identity to a muted peer | `apps/server/test/haus-agent-run.test.ts` |
-| Agent retirement releases task ownership and emits durable updates | `apps/server/test/haus-agents.test.ts` |
+| Agent peer assignment is idempotent and delivers the exact canonical claim identity to a muted peer | `apps/server/test/haus-agent-run.test.ts` |
+| Agent retirement releases claim ownership and emits durable updates | `apps/server/test/haus-agents.test.ts` |
 
 These tests are protocol guards. Live Raft-versus-Haus behavioral scenarios
 are a later product audit and do not replace them.

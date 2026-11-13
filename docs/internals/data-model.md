@@ -15,7 +15,7 @@ the migration command.
 
 | Store | Owner | Contents |
 | --- | --- | --- |
-| Server PostgreSQL | Haus Server | Users, Servers, membership, Chats, Messages, message reactions, threads, Tasks, Reminders, Agents, desired execution configuration, Computer attachments and reports, MCP connections, image generations (`image_generations`), their Message links (`image_generation_links`) and per-provider keys (`image_generation_keys`), GitHub installations, Triggers and their fire history, automation provenance on Agent messages, and authorization. |
+| Server PostgreSQL | Haus Server | Users, Servers, membership, Chats, Messages, message reactions, threads, Claims, task labels, Reminders, Agents, desired execution configuration, Computer attachments and reports, MCP connections, image generations (`image_generations`), their Message links (`image_generation_links`) and per-provider keys (`image_generation_keys`), GitHub installations, Triggers and their fire history, automation provenance on Agent messages, and authorization. |
 | Computer data root | Haus Computer | Attachment credentials, delivery queues, logs, Agent homes, skills, workspaces, runtime state, cached provider-usage snapshots, and effective execution evidence. |
 | Browser/App storage | Haus App | Cache, local preferences, desktop presentation state, and optimistic rows. |
 
@@ -82,7 +82,7 @@ forward (`greatest`):
   same way. A missing row reads as 0.
 - `message read --unread` moves it through the returned page; a plain history page moves it only
   when no message sits between the position and the page start.
-- The Agent's own send or task create moves it like exact visibility below: its own messages count
+- The Agent's own send or claim create moves it like exact visibility below: its own messages count
   as read, and it stops below the first message from someone else the Agent was never shown.
 - Exact visibility (`recordExactMessagesServed`) moves it to the highest S where every message in
   (position, S] by someone else is exactly visible to the Agent in its current session.
@@ -92,8 +92,10 @@ committing. Haus omits that settle window: a Chat sequence is allocated by `upda
 last_message_sequence = last_message_sequence + 1` inside the sending transaction, so the Chat row
 lock serializes allocation through commit and no reader can see N+1 before N.
 
-`message_tasks.assignee_agent_id` is the only task assignee; tasks are Agent work and carry no
-human assignee.
+`message_claims.assignee_agent_id` is the only claim assignee; claims are Agent work and carry no
+human assignee. A claim is only the lock on its message, so it has no priority or labels: those
+live on `tasks`. `task_labels` is the Server's label catalog and `task_label_assignments` links it
+to Tasks. Members create catalog entries; Owners and Admins rename, recolor, or delete them.
 
 `cloud_agent_work` is the standalone Cloud Agent work record (ADR 0044). Its `chat_id`,
 `launch_message_id`, and `computer_id` name the requesting Chat, launch Message, and launching
@@ -200,7 +202,7 @@ migrations deleted the `reminder`, `trigger`, `task`, and `session` rows written
 the `schedule_receipt_message_id` column on `reminders` and the `receipt_message_id` columns on
 `reminder_fires`, `trigger_fires`, and `reminder_agent_attention`, and nulled the Trigger anchors
 that pointed at deleted creation receipts. An agent-only delivery is an `agent_inbox` row keyed by a
-non-message identity — a fire id, a task assignment identity — not a message with a
+non-message identity — a fire id, a claim assignment identity — not a message with a
 filter over it; `agent_inbox` is the renamed `agent_pending_work` and `agent_delivery` keeps its own
 name for per-Agent run state.
 

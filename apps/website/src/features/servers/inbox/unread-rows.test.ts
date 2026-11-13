@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { Chat, UnreadThread } from '@haus/api';
+import type { Chat, TaskInboxItem, UnreadThread } from '@haus/api';
 import { countUnreadRows, selectUnreadRows, unreadChatFacts } from './unread-rows.ts';
 
 function chat(id: string, unreadCount: number, lastActivityAt: null | string): Chat {
@@ -12,6 +12,10 @@ function thread(
     lastActivityAt: null | string
 ): UnreadThread {
     return { lastActivityAt, parentChatId, threadChatId, unreadCount: 1 } as UnreadThread;
+}
+
+function taskItem(id: string, assignedAt: string): TaskInboxItem {
+    return { assignedAt, task: { id } } as TaskInboxItem;
 }
 
 const ids = (rows: ReturnType<typeof selectUnreadRows>) => rows.map((row) => row.id);
@@ -45,6 +49,32 @@ test('unread Threads are their own rows, merged by activity, under a read parent
 
     expect(ids(rows)).toEqual(['thr_new', 'cht_lit', 'thr_old']);
     expect(rows[0]).toMatchObject({ kind: 'thread', parent: { id: 'cht_read' } });
+});
+
+test('Task items merge into the feed by their assignment, one card per Task', () => {
+    const chats = [chat('cht_lit', 1, '2026-10-01T10:00:00.000Z')];
+    const rows = selectUnreadRows(
+        chats,
+        [thread('thr_old', 'cht_lit', '2026-10-01T08:00:00.000Z')],
+        [
+            taskItem('tsk_new', '2026-10-01T12:00:00.000Z'),
+            // 05:00 at -04:00 is 09:00Z: between the Thread and the Chat.
+            taskItem('tsk_mid', '2026-10-01T05:00:00.000-04:00'),
+        ]
+    );
+
+    expect(ids(rows)).toEqual(['tsk_new', 'cht_lit', 'tsk_mid', 'thr_old']);
+    expect(rows[0]).toMatchObject({ kind: 'task', item: { task: { id: 'tsk_new' } } });
+});
+
+test('the badge counts Task items with the rows they sit among', () => {
+    const chats = [chat('cht_lit', 3, null)];
+    const items = [taskItem('tsk_a', '2026-10-01T12:00:00.000Z')];
+
+    const count = countUnreadRows(unreadChatFacts(chats), [], items.length);
+
+    expect(count).toBe(2);
+    expect(count).toBe(selectUnreadRows(chats, [], items).length);
 });
 
 test('a Thread whose parent the list does not hold yet waits for it', () => {

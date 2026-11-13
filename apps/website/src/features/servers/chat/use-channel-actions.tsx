@@ -11,14 +11,11 @@ import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
 import { ChannelAgentsDialog } from '../../chats/channel-agents-dialog.tsx';
 import { ChannelAppearanceDialog } from '../../chats/channel-appearance-dialog.tsx';
 import { ChannelDetailsDialog } from '../../chats/channel-details-dialog.tsx';
-import { tasksRoute } from '../server-routes.ts';
 
 /** Where a chat menu's links go; each surface places them its own way. */
 export interface ChatActionRoutes {
     /** The chat's Attachments. Omitted where a surface cannot open them, which hides the item. */
     openFiles?: (chatId: string) => void;
-    /** Tasks and profile links: the surface's own navigate (a router, a tab, the sidebar). */
-    openPath: (path: string) => void;
 }
 
 export interface ChannelActions {
@@ -43,7 +40,6 @@ type ChannelEditDialog = 'agents' | 'appearance' | 'rename';
 export function useChannelActions({
     onDeleted,
     openFiles,
-    openPath,
     slug,
 }: ChatActionRoutes & {
     onDeleted?: (chat: Chat) => void;
@@ -62,10 +58,6 @@ export function useChannelActions({
     const [deleting, setDeleting] = React.useState<Chat | null>(null);
 
     const run = (chat: Chat, key: React.Key) => {
-        if (key === 'tasks') {
-            openPath(`${tasksRoute(slug)}?chat=${encodeURIComponent(chat.id)}`);
-            return;
-        }
         if (key === 'files') {
             openFiles?.(chat.id);
             return;
@@ -108,7 +100,7 @@ export function useChannelActions({
             {deleting ? (
                 <DeleteDialog
                     confirmation={deleting.name ?? ''}
-                    description="This permanently deletes the channel, its messages, threads, tasks, reminders, reactions, and attachments. This cannot be undone."
+                    description="This permanently deletes the channel, its messages, threads, claims, reminders, reactions, and attachments. This cannot be undone."
                     error={deleteChannel.error?.message}
                     onConfirm={() => {
                         deleteChannel

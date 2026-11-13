@@ -132,17 +132,6 @@ final class TranscriptStoreTests: XCTestCase {
         XCTAssertEqual(store.lists[chat]?.messageIDs.first, "m41")
         XCTAssertEqual(store.lists[chat]?.scannedThroughSequence, 60)
     }
-
-    func testLabelScanFindsOnlyEntitiesCarryingTheLabel() {
-        var store = TranscriptStore()
-        store.write(F.page([
-            F.message("m1", sequence: 1, labelID: "label_1"),
-            F.message("m2", sequence: 2, labelID: "label_2"),
-            F.message("m3", sequence: 3),
-        ]), to: chat, as: .replace)
-
-        XCTAssertEqual(store.refreshes(carryingLabel: "label_1"), [EntityRefresh(chatID: "chat_1", messageID: "m1")])
-    }
 }
 
 /// The tail bits and dirty sets (specs/realtime-events.md race cases).

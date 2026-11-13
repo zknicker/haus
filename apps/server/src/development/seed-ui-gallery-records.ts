@@ -1,11 +1,11 @@
 import {
+    type ClaimTier,
     type CloudAgentProvider,
     type CloudAgentStatus,
     formatCloudAgentWorkLink,
     formatUserReferenceTarget,
     isTerminalCloudAgentStatus,
-    type MessageTask,
-    type TaskOrigin,
+    type MessageClaim,
 } from '@haus/api';
 import { eq, sql } from 'drizzle-orm';
 import { recordCloudAgentWorkLinks } from '../chats/cloud-agent-work-links.ts';
@@ -15,7 +15,7 @@ import {
     chatsTable,
     cloudAgentRunsTable,
     cloudAgentWorkTable,
-    messageTasksTable,
+    messageClaimsTable,
 } from '../postgres/schema.ts';
 import { ensureThreadRecord } from '../threads/ensure-thread.ts';
 import { appendSeedMessages } from './seed-inbox-messages.ts';
@@ -56,35 +56,32 @@ export async function galleryThread(db: HausDatabase, context: GalleryContext, m
     return { ...context, chatId: thread.id };
 }
 
-export async function galleryTask(
+export async function galleryClaim(
     db: HausDatabase,
     context: GalleryContext,
     messageId: string,
-    origin: TaskOrigin,
-    status: MessageTask['status']
+    tier: ClaimTier,
+    status: MessageClaim['status']
 ) {
     const [chat] = await db
         .update(chatsTable)
-        .set({ lastTaskNumber: sql`${chatsTable.lastTaskNumber} + 1` })
+        .set({ lastClaimNumber: sql`${chatsTable.lastClaimNumber} + 1` })
         .where(eq(chatsTable.id, context.chatId))
-        .returning({ number: chatsTable.lastTaskNumber });
+        .returning({ number: chatsTable.lastClaimNumber });
     if (!chat) {
         throw new Error('UI gallery channel is missing');
     }
-    await db.insert(messageTasksTable).values({
+    await db.insert(messageClaimsTable).values({
         serverId: context.serverId,
         chatId: context.chatId,
         messageId,
         number: chat.number,
-        origin,
+        origin: 'claimed',
         status,
         assigneeAgentId: context.agentId,
         createdByAgentId: context.agentId,
-        claimedAt: origin === 'claimed' ? context.now : null,
-        trackedAt:
-            origin === 'claimed' && (status === 'in_progress' || status === 'done')
-                ? null
-                : context.now,
+        claimedAt: context.now,
+        trackedAt: tier === 'tracked' ? context.now : null,
     });
 }
 

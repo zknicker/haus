@@ -1,64 +1,83 @@
-import { and, eq, sql } from 'drizzle-orm';
-import { requireChatWritable, requireChatWriteAccess } from '../chats/chat-access.ts';
+import type { TaskActor } from '@haus/api';
+import { and, eq, isNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable, serverMembershipsTable } from '../postgres/schema.ts';
+import { agentsTable, serversTable } from '../postgres/schema.ts';
+import { requireServerMembership, ServerAccessDeniedError } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
 
-/**
- * Who is changing a task. A person acts through the App as a Server member; an
- * Agent acts through the Agent API, which already resolved its target Chat
- * from the Agent's own participation.
- */
-export type TaskActor = { agentId: string; kind: 'agent' } | { kind: 'human'; member: HausUser };
+export type { TaskActor } from '@haus/api';
 
-/** Member-level write authority on the task's Chat, for either kind of actor. */
-export async function requireTaskActorWrite(
-    tx: HausDatabase,
-    actor: TaskActor,
-    input: { chatId: string; serverId: string }
-) {
-    if (actor.kind === 'human') {
-        await requireChatWriteAccess(tx, actor.member, input);
+/**
+ * The actor of a board or Task write. Every human member and every Agent of
+ * the Server reads and writes every board (ADR 0051), so the only check is
+ * standing on the Server: an active membership, or a non-retired Agent.
+ */
+export async function requireTaskActor(
+    db: Pick<HausDatabase, 'select'>,
+    serverId: string,
+    actor: TaskActor
+): Promise<void> {
+    if (actor.kind === 'user') {
+        await requireServerMembership(db, { id: actor.userId }, serverId);
         return;
     }
-    await requireChatWritable(tx, input);
-}
-
-/** Locks the Server memberships an assignment reads, in a stable order. */
-export async function lockTaskMemberships(tx: HausDatabase, serverId: string, userIds: string[]) {
-    for (const userId of [...new Set(userIds)].sort()) {
-        await tx.execute(sql`
-            select user_id from server_memberships
-            where server_id = ${serverId}
-              and user_id = ${userId}
-              and revoked_at is null
-            for update
-        `);
-    }
-}
-
-export async function taskActorHandle(
-    tx: HausDatabase,
-    actor: TaskActor,
-    serverId: string
-): Promise<null | string> {
-    if (actor.kind === 'agent') {
-        const [agent] = await tx
-            .select({ handle: agentsTable.handle })
-            .from(agentsTable)
-            .where(and(eq(agentsTable.serverId, serverId), eq(agentsTable.id, actor.agentId)))
-            .limit(1);
-        return agent?.handle ?? null;
-    }
-    const [membership] = await tx
-        .select({ handle: serverMembershipsTable.handle })
-        .from(serverMembershipsTable)
+    const [agent] = await db
+        .select({ id: agentsTable.id })
+        .from(agentsTable)
+        .innerJoin(serversTable, eq(serversTable.id, agentsTable.serverId))
         .where(
             and(
-                eq(serverMembershipsTable.serverId, serverId),
-                eq(serverMembershipsTable.userId, actor.member.id)
+                eq(agentsTable.serverId, serverId),
+                eq(agentsTable.id, actor.agentId),
+                isNull(agentsTable.retiredAt),
+                isNull(serversTable.deletedAt)
             )
         )
         .limit(1);
-    return membership?.handle ?? null;
+    if (!agent) {
+        throw new ServerAccessDeniedError();
+    }
+}
+
+/** The signed-in person as a Task actor; a human with no Haus User is no member. */
+export function memberTaskActor(member: HausUser | null): TaskActor {
+    if (!member) {
+        throw new ServerAccessDeniedError();
+    }
+    return { kind: 'user', userId: member.id };
+}
+
+export function creatorColumns(actor: TaskActor) {
+    return actor.kind === 'user'
+        ? { createdByAgentId: null, createdByUserId: actor.userId }
+        : { createdByAgentId: actor.agentId, createdByUserId: null };
+}
+
+/** Reads a stored exactly-one-of user/agent pair; a row with neither fails the mapping. */
+export function actorFromColumns(userId: string | null, agentId: string | null): TaskActor {
+    if (userId !== null) {
+        return { kind: 'user', userId };
+    }
+    if (agentId !== null) {
+        return { agentId, kind: 'agent' };
+    }
+    throw new Error('A Task actor row names neither a person nor an Agent.');
+}
+
+/** A nullable stored user/agent pair: the assignee. */
+export function optionalActorFromColumns(
+    userId: string | null,
+    agentId: string | null
+): TaskActor | null {
+    return userId === null && agentId === null ? null : actorFromColumns(userId, agentId);
+}
+
+export function sameTaskActor(left: TaskActor | null, right: TaskActor | null): boolean {
+    if (left === null || right === null) {
+        return left === right;
+    }
+    if (left.kind === 'user') {
+        return right.kind === 'user' && right.userId === left.userId;
+    }
+    return right.kind === 'agent' && right.agentId === left.agentId;
 }

@@ -11,6 +11,12 @@ extension AuthenticatedHausView {
         InAppReferenceRoutes.openThread = { reference in
             openReferencedThread(reference)
         }
+        InAppReferenceRoutes.openTask = { reference in
+            openTask(reference.taskID)
+        }
+        MessageActionRoutes.convertToTask = { message in
+            convertingMessage = message
+        }
         ArtifactPageReader.read = { [store] agentID, path in
             try await store.readArtifactPage(agentID: agentID, path: path)
         }

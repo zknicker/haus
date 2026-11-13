@@ -9,7 +9,6 @@ import {
 import {
     chatMessageEntityDefaults,
     chatMessageQueryKey,
-    entityCarriesTaskLabel,
     seedChatMessageEntities,
 } from './chat-message-entities.ts';
 
@@ -46,23 +45,4 @@ test('an entity collected while its id stays listed fetches when a row observes 
     expect(cache.reads('chat.message')).toHaveLength(1);
     list.close();
     row.close();
-});
-
-test('a label scan finds exactly the entities carrying the label', () => {
-    const cache = createTranscriptCache(() => new Promise(() => undefined));
-    const labelled = (sequence: number, labelId: string) =>
-        message(chatId, sequence, {
-            task: { labels: [{ id: labelId }] } as never,
-        });
-    seedChatMessageEntities(
-        cache.queryClient,
-        page([labelled(1, 'lbl_one'), labelled(2, 'lbl_two'), message(chatId, 3)])
-    );
-    const carriers = cache.queryClient
-        .getQueryCache()
-        .findAll({ predicate: (query) => entityCarriesTaskLabel(query, serverId, 'lbl_one') });
-
-    expect(carriers.map((query) => query.queryKey[1])).toEqual([
-        { input: { chatId, messageId: `msg_${chatId}_1`, serverId }, type: 'query' },
-    ]);
 });

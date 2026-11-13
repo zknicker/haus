@@ -28,6 +28,7 @@ public struct InboxPageView: View {
     private let resolveActor: InboxActorResolver
     private let onOpen: (InboxOpenRequest) -> Void
     private let onMarkRead: (String) -> Void
+    private let taskActions: InboxTaskActions
     private let onRefresh: () async -> Void
     private let onOpenSidebar: () -> Void
     /// The canvas ignores safe areas, so the chrome row carries its own
@@ -39,6 +40,8 @@ public struct InboxPageView: View {
     /// Ticks once per swipe that marks a row read: the swipe commits under the
     /// finger, so it confirms by touch.
     @State private var swipedReadFeedback = 0
+    /// What the last Task action said, with its Undo, for as long as it stays.
+    @State private var taskNotice: InboxTaskNotice?
 
     public init(
         greetingName: String?,
@@ -49,6 +52,7 @@ public struct InboxPageView: View {
         resolveActor: @escaping InboxActorResolver,
         onOpen: @escaping (InboxOpenRequest) -> Void,
         onMarkRead: @escaping (String) -> Void,
+        taskActions: InboxTaskActions,
         onRefresh: @escaping () async -> Void,
         onOpenSidebar: @escaping () -> Void,
         contentInsets: EdgeInsets = EdgeInsets()
@@ -61,6 +65,7 @@ public struct InboxPageView: View {
         self.resolveActor = resolveActor
         self.onOpen = onOpen
         self.onMarkRead = onMarkRead
+        self.taskActions = taskActions
         self.onRefresh = onRefresh
         self.onOpenSidebar = onOpenSidebar
         self.contentInsets = contentInsets
@@ -78,6 +83,35 @@ public struct InboxPageView: View {
                 }
                 .padding(.top, contentInsets.top)
             }
+            // An overlay, not a section: the rows stay where the reader left
+            // them while a resolved item leaves.
+            .overlay(alignment: .bottom) { noticeBar }
+            .task(id: taskNotice?.id) { await expireNotice() }
+    }
+
+    @ViewBuilder
+    private var noticeBar: some View {
+        if let taskNotice {
+            InboxTaskNoticeBar(notice: taskNotice) { undo in
+                show(nil)
+                Task { show(await taskActions.undo(undo)) }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 12 + contentInsets.bottom)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+
+    /// Long enough to read the line and reach for Undo.
+    private func expireNotice() async {
+        guard taskNotice != nil else { return }
+        try? await Task.sleep(for: .seconds(6))
+        guard !Task.isCancelled else { return }
+        withAnimation(.snappy) { taskNotice = nil }
+    }
+
+    private func show(_ notice: InboxTaskNotice?) {
+        withAnimation(.snappy) { taskNotice = notice }
     }
 
     /// A stock inset-grouped List, so an Unread row's swipe, its removal, and
@@ -94,7 +128,14 @@ public struct InboxPageView: View {
                 now: now,
                 onOpen: onOpen,
                 onMarkRead: onMarkRead,
-                onSwipedRead: { swipedReadFeedback += 1 }
+                onSwipedRead: { swipedReadFeedback += 1 },
+                onMoveTask: { item, column in
+                    Task { show(await taskActions.move(item, column)) }
+                },
+                onMarkTaskRead: { item in
+                    Task { show(await taskActions.markRead(item)) }
+                },
+                onReplyToTask: { item, content in await taskActions.reply(item, content) }
             )
             InboxHappeningNowSection(rows: happeningNowRows, onOpen: onOpen)
         }

@@ -1,136 +1,121 @@
+---
+summary: The board Tasks contract — boards with keys, columns mapped to fixed categories, Task numbering and versions, references from messages and Reminders, what an assignment does to a person and an Agent, the Agent routes, and where each rule lives in the Server.
+read_when:
+  - changing boards, columns, column categories, or `board.setColumns`
+  - changing Task fields, numbering, keys, moves, `completedAt`, or assignment
+  - changing Task references (`task://` links, bare keys), Mentioned in, or Task Reminders
+  - changing the person Task Inbox, Task assignment delivery to an Agent, or the assignment push
+  - changing the `/api/agent/tasks` or `/api/agent/boards` routes
+---
+
 # Tasks
 
-Chat-first tasks implement D8 from `specs/raft-alignment/README.md`. A task is one canonical hosted
-message plus Server-owned lifecycle metadata. Conversation continues inline in its channel or DM,
-or in a deliberately chosen child Thread. All task views project the canonical message and metadata.
+[ADR 0051](../docs/adr/0051-tasks-are-boards-and-claims-are-the-lock.md) is the product contract:
+a **Task** is a standalone Server record on a **board**; a **claim** is the Agent-only lock on a
+message ([claims.md](claims.md)). This file pins the rules the Server enforces. Wire shapes live in
+`packages/haus-api/src/{board,task,task-input,task-key,task-inbox}.ts`; the tRPC surface is
+[docs/api/tasks.md](../docs/api/tasks.md).
 
-Tasks are Agent work ([ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)). Only an
-Agent holds a task; humans create, promote, assign to Agents, and change status, but never claim or
-hold one. An Agent that needs a person @mentions them in an inline reply where
-the request arrived (or in the Thread if it arrived inside one), never in a Thread on the task
-message itself.
+## Boards and columns
 
-## Hosted model
+- A board has a `key` (`^[A-Z][A-Z0-9]{1,4}$`, unique per Server even while archived, editable), a
+  `name` (1–60), an optional `archivedAt`, and a `version`. Archived boards leave default lists and
+  refuse new Tasks.
+- Every Server has the **General** board, key `GEN`, created in the transaction that creates the
+  Server (`insertGeneralBoard`, also the dev seed); migration 0119 backfilled existing Servers. It
+  keeps its key and is never archived; it can be renamed.
+- Each column has a `name` (1–40, unique per board case-insensitively), a `position`, and a fixed
+  `category`: `backlog | todo | active | done | canceled`. A board keeps at least one `todo`,
+  `active`, and `done` column. New boards start with Backlog, Todo, In progress, Done, Canceled.
+- `board.setColumns` replaces the whole ordered list in one transaction (`boards/column-plan.ts`
+  checks every invariant first). Kept ids are updated in place, drafts without an id are created,
+  and a removed column that holds Tasks needs `moveTasks[removedId] = keptId`. Moved Tasks, and Tasks
+  whose kept column changed between open and closed categories, gain or lose `completedAt` and bump
+  their version, each with a `task.updated`.
 
-`message_tasks` keys metadata by `(server_id, message_id)` and also binds the canonical
-`chat_id`, always the top-level Channel or DM: monotonic per-Chat task number, status, optional Agent assignee (`assignee_agent_id`) and claim time,
-priority, origin, creator, monotonic version, and a nullable `tracked_at`. The work-surface Thread
-id is derived deterministically from the message id; it is not stored on the task row, and the
-Thread itself does not exist until someone replies in it. A task on a Thread message also records
-that Thread in `thread_chat_id`; the message's own Chat is the generated
-`message_chat_id = coalesce(thread_chat_id, chat_id)`, which the message foreign key uses, and a
-foreign key to `chats (id, parent_chat_id)` keeps the Thread a child of `chat_id`. The Thread it
-sits in is its work surface (`threadChatId` on the wire), since Threads never nest. Only an Agent's
-claim creates one; the number comes from the parent's counter.
+## Tasks
 
-`origin` is `composed` (a human composed the message as a task), `converted` (a human promoted an
-existing message), or `claimed` (an Agent claimed a message nobody had promoted, or created one
-already assigned to itself). Reads derive two
-more fields. `tier` is `background` for a `claimed` task in `in_progress` or `done` that carries
-has no `tracked_at`. Inline and Thread messages leave the tier alone; everything else is `tracked`,
-and only the default Board and List lenses distinguish them. `live` is true while the assignee
-Agent's in-flight run holds the task's message or Thread. `tracked_at` records what the current row
-cannot show — the status left `in_progress`/`done`, or the claiming run settled with the work open
-— so the tier predicate stays a pure function of one row, and only ever
-moves a task from background to tracked.
+- Fields: board, per-board `number`, `title` (1–200), markdown `description` (≤ 20,000), column
+  and derived `category`, at most one assignee (an active member or a non-retired Agent), priority,
+  labels from the task label catalog, display-only `dueOn`, exactly one creator, timestamps, and
+  `version`.
+- The key is `<board.key>-<number>`, derived when read: re-keying a board re-keys its Tasks.
+- Numbers come from `boards.next_number` under the board row lock, after the Server row lock.
+- `completedAt` is set exactly while the Task is in a `done` or `canceled` column: entering one
+  sets it, leaving clears it, closed to closed keeps it.
+- Every mutation takes `expectedVersion` and fails closed with a conflict. Moving to the current
+  column or assigning the current assignee changes nothing. There is no deletion and no
+  cross-board move.
+- Every human member and Agent reads and writes every board and Task (`requireTaskActor`).
 
-An explicit status update completes the task. Posting a message never sets it `done`. Agents set
-their own finished work `done`, using `in_review` only for a requested sign-off or a pending human
-decision; claims left open when a run settles remain
-`in_progress` and become tracked, including completed, failed, interrupted, and stopped runs.
+## References
 
-`task_labels` is the small Server task-label catalog; `message_task_labels` links catalog entries
-to tasks. Composite foreign keys keep task, message, Chat, assignee, and labels in one
-Server tenant. `chat_messages.task` and task-list reads project the same row.
+- A message or Reminder description references a Task by an explicit `task://<taskId>` link or a
+  **bare key** (`SEC-12`): case-sensitive, word-bounded, and ignored inside inline code, fences,
+  Markdown links, and plain URLs (`tasks/task-reference-scan.ts`). It must match a Task on the
+  Server; anything else stays plain text. Content is never rewritten.
+- Messages resolve at write time inside the insert transaction (`chats/message-links.ts`) and
+  record `task_message_links`, the Task's **Mentioned in**. Every mapped `ChatMessage` carries
+  `taskLinks: [{ taskId, key, text }]` in content order, `text` being the exact matched substring;
+  the Agent message view carries the same as `task_links`. A new link publishes `task.updated` at
+  the Task's current version, so an open Task refetches Mentioned in.
+- Convert to Task (`task.create` with `sourceMessageId`) works on any message the actor can read,
+  defaults the description to its content, and records it with the key as link text.
+- Mentioned in lists only messages in Chats the reader can read (`actorVisibleChats`), and the
+  Task's Reminders list only those anchored in such a Chat, so a DM never leaks through a Task.
+- A mention and an Inbox context message name their **place** (`taskMessagePlaceSchema`): the
+  Channel or DM id, kind, and name (null for a DM), and the Thread anchor for a Thread reply. It is
+  read in the same batched query as the message (`tasks/task-message-place.ts`), so a client labels
+  `#security · Thread`, opens, and replies with no read of its own.
+- Reminder create and description update re-record `task_reminder_links`, the Task's
+  **Reminders**; a snooze keeps them. Every Reminder change that moves that list (schedule, edit,
+  snooze, cancel, fire, a deleted anchor Channel or owner Agent, the retention sweep) publishes
+  `task.updated` at the Task's current version for the Tasks it linked or unlinked.
 
-Channel or DM messages, including inline replies, can be promoted; an Agent can also claim a
-Thread message. Promotion is idempotent by canonical
-message identity. Atomic create uses the message nonce for replay and creates the message, task,
-and durable events in one transaction — not the Thread. Creation and promotion do not append a
-user-visible state-change message; the canonical task message is the record. A task whose Thread was never needed still answers
-`thread.get`, `chat.messages`, and its `threadSummary` as an empty Thread, so deep links keep
-working; deliberately following such a Thread materializes it, and the claimant's follow attaches
-the moment it appears.
-A direct Agent-to-Agent assignment writes no Chat message at all. It enqueues one `agent_inbox`
-item for the assignee — kind `task_assignment`, keyed by the assignment identity, carrying
-`mentioned=true` — which reaches that Agent through the ordinary inbox ([inbox.md](inbox.md)) and
-never touches the transcript, search, the Chat list, or `lastActivityAt`. Haus has no hidden Chat
-message to filter, and the human's view of the same fact is the task chip on the canonical task
-message (ADR 0026).
+## Assignment
 
-## Authority and concurrency
+`applyTaskAssignmentChange` (`tasks/task-assignment.ts`) runs inside every transaction that
+changes an assignee (`task.create` with an assignee, `task.assign`, and a departure: deleting an
+Agent or removing a member unassigns every Task they hold, closed ones too, in that same
+transaction through `tasks/clear-task-assignments.ts`). It is the one seam for assignment effects:
 
-- Status is member-level. Humans with write access to the task's Chat can create/promote a
-  task and update status, priority, or task labels using `expectedVersion`. Any Agent in the
-  Chat may change status too, holder or not, along the transition table: `todo` → `in_progress`
-  / `closed`; `in_progress` → `in_review` / `done` / `closed`; `in_review` → `done` /
-  `in_progress` / `closed`; `done` → `todo` / `in_progress` / `in_review` / `closed`; `closed`
-  → `todo` / `in_progress`. Humans in the App are not limited by the table. Moving `todo` or
-  `closed` to `in_progress` needs an assignee (claim first) and stamps the claim; a `todo` that
-  already carries a claim stamp is refused as a concurrent start; returning to `todo` clears the
-  stamp. Haus has no task deletion.
-- Claim is self-only and Agent-only; a human has no claim or unclaim. Task writes lock the Server before membership, Chat, and task rows. The
-  first valid claimant wins; a second claimant cannot acquire ownership at the same version.
-- An Agent claim conflicts only with the current holder, never with an unrelated status, priority,
-  or label edit. A batch claim is one transaction answering per task — claimed, already yours, or
-  refused with a reason — so every granted claim commits and emits `task.updated` together.
-- A successful Agent claim follows the request's inline reply chain in the same transaction.
-  A reply to a human's original request therefore reaches its claimant. Completion preserves
-  attention; subsequent work can be claimed on a later reply without reopening the old task.
-- Only the current assignee can unclaim.
-- Assignment is member-level. Any human or Agent who can write in the task's Chat can assign it
-  to any Agent of that Chat or clear it, including over another Agent's hold. The assignee must
-  be an active Agent that already participates in the parent Chat; a human is never an assignee.
-  Agents name the assignee by `@handle`; a human, missing, retired, or out-of-Chat handle answers
-  one uniform "not assignable in this chat" refusal.
-  Assignment never changes status and clears the claim stamp; re-assigning the current owner is
-  a no-op that keeps the version. An optional expected revision makes a stale assign lose.
-  Assigning another Agent enqueues its typed assignment pending work and wakes it. In every case
-  the recipient must claim before working, and a finished task cannot be assigned.
-- Members can create task-label catalog entries. Owners and Admins can rename, recolor, or delete
-  catalog entries.
-- Revoked Server membership, lost parent-Chat access, cross-Server ids, and stale versions fail
-  closed.
-- Agent retirement releases that Agent's claims and assignments with versioned `task.updated`
-  events. Reinvitation or reactivation restores no old assignment or Thread access.
+- **Person:** assigning someone other than yourself upserts their `task_inbox_items` row (fresh,
+  uncleared, stamped with the new version and assigner); reassigning away deletes it. The assignee
+  moving the Task clears it, and so do `taskInbox.clear` and opening the Task; `taskInbox.restore`
+  is the App's Undo. Each change publishes `taskInbox.changed` to that person only.
+- **Push:** the same assignment publishes the Server-internal `task.assigned`, and iPhone push
+  sends the assignee `<assigner> assigned you SEC-12` after the read grace, unless the item was
+  cleared or withdrawn by then. `taskAssignmentNotifiedUserId` in `@haus/api` is the one rule for
+  both: a person, assigned by someone else.
+- **Bursts:** the first assignment opens a per-person window of one read grace; it never extends.
+  What is still news when it closes is one push: a single assignment stays as above, and several
+  are one `task_assignment_burst` push (`Zero assigned you 6 tasks`, or `6 tasks assigned to you`
+  from several assigners) that opens the Inbox. The desktop notifier collapses the same way over
+  the assignments one `taskInbox.list` read brings. The Inbox stays one item per Task.
+- **Agent:** assigning another Agent queues a chatless `task_assignment` item and a wake;
+  reassigning away retires one still queued ([inbox.md](inbox.md#item-kinds-and-lifecycle)). An
+  Agent assigning itself queues nothing. An assignment from another Agent spends the automation
+  chain; a person's resets it.
 
-Assignee and status are independent. Claiming an unassigned `todo` task moves it to
-`in_progress`; unclaiming preserves status. Done tasks cannot be claimed or unclaimed.
+The Task Inbox list (`tasks/task-inbox.ts`) returns each uncleared item with its Task, board name,
+assigner, and context message: the newest `task_message_links` message the reader can read,
+through `actorVisibleChats`, projected like a transcript message, beside its `contextPlace`.
+`chat.unreadChatCount` adds
+uncleared items, so the badge counts them and the App refreshes it on `taskInbox.onChanged`.
 
-## Events and recovery
+## Agent routes
 
-Task transactions emit small concrete durable events:
+`agent-api/task-routes.ts` and `board-routes.ts` serve `haus task` and `haus board` (the
+`/api/agent/tasks` and `/api/agent/boards` paths in `openapi.yaml`, inputs in
+`packages/haus-api/src/agent-task.ts`). They address Tasks by key, boards by key, assignees by
+`me` or handle, labels by name, and columns by name or id. `expectedVersion` is optional: without
+it the last write wins, so a write that lost the race to the version it read reads again and
+retries, a bounded number of times (`withImplicitVersion`). A named version fails closed.
+`POST /api/agent/tasks/move` answers with `queue: { todo, active }`, the caller's open Tasks.
 
-- `message.created`: the canonical message's Chat sequence and cursor when composing a new task
-- `task.created`: Server, parent Chat, canonical message, sequence, and cursor
-- `task.updated`: the same ids for lifecycle changes
-- `task.label.updated`: Server, label, and cursor
+The Server has no blocked state. A Task an Agent is waiting on a person for sits in `todo` with no
+field to mark it, and the receipt's `queue` still counts it. Agent behavior reads past it: the
+Agent's @mention, listed under Mentioned in, is the only record (ADR 0051 decisions 6 and 7).
 
-Events notify; PostgreSQL task/message/label reads remain authoritative. The App uses the same
-event targeting for live delivery and cursor catch-up after reconnect.
-
-## Surfaces
-
-- Hosted App: Server Board and List lenses, which exclude background-tier tasks by default and
-  report how many they hid (`includeBackground` widens them), with create, Agent assignment, status,
-  priority, and task-label controls, and a **Stopped before finishing** group after **Needs your
-  review** for `claimed` tasks whose run settled with the work open. Opening a task opens the canonical message's hosted Thread,
-  where a task metadata header projects the number, status, assignee, and creator. Status and
-  assignment edits use the same versioned task mutations as the other lenses.
-- Managed CLI: `haus task list|create|claim|unclaim|assign|unassign|update` uses the Computer's scoped runner
-  authority and hosted Server task API. Agent identity comes from that runner credential. An Agent
-  claims a message before any tool-using work on it, and a claim row that loses to a standing
-  claim carries the structured `claimConflict` documented in
-  [Agents API](../docs/api/agents.md#task-routes). `task list` defaults to unfinished work,
-  accepts `--status all` and `--mine`, and caps its rows with an explicit truncation count.
-
-The App has no calendar or scheduling fields. The word “calendar” in PRD-140's original acceptance
-text is stale relative to ADR 0015, D8, and the accepted WS6 plan; reminder/scheduling work belongs
-to PRD-141. Production activation of the managed CLI belongs to PRD-145.
-
-## Non-goals
-
-No due dates, task-owned reminders, attachments, task deletion, task-specific queue, per-task
-conversation store, generic workflow engine, or generic label/taxonomy framework. Reminders may
-separately anchor to task messages. Task delivery and peer assignment use the ordinary Agent inbox
-path.
+A heartbeat run reads Tasks and boards and writes neither (`403 REGULAR_TURN_REQUIRED`): its
+throwaway session changes nothing other people see, and it reports what it found instead.

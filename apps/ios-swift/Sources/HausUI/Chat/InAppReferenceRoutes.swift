@@ -16,12 +16,17 @@ import SwiftUI
 public enum InAppReferenceRoutes {
     /// Opens a Thread from a Thread reference chip.
     public static var openThread: ((ThreadReferenceTarget) -> Void)?
+    /// Opens a Task from a Task reference chip.
+    public static var openTask: ((TaskReferenceTarget) -> Void)?
 
     /// The in-app action a link stands for, or nil when the system should
     /// open it as an ordinary address.
     public static func action(for url: URL) -> (() -> Void)? {
         if let artifact = SharedArtifactLinkTarget(inAppURL: url) {
             return { SharedArtifactPresenter.present(artifact) }
+        }
+        if let task = TaskReferenceTarget(url: url) {
+            return { openTask?(task) }
         }
         guard let thread = ThreadReferenceTarget(url: url) else { return nil }
         return { openThread?(thread) }

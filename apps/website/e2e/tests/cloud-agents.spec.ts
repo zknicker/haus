@@ -4,7 +4,7 @@ import {
     startCloudAgentWork,
 } from '../support/agent-cloud-agent.ts';
 import { sendBootstrap, socketMessage, socketOpen } from '../support/computer-socket.ts';
-import { createTestServer, openChannel } from '../support/server.ts';
+import { createTestServer, openChannel, openHappeningNow } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 const workTitle = 'Fix the failing migration';
@@ -34,12 +34,11 @@ test('Cloud Agent work reads as one card in the Chat and in its Thread', async (
 
     // The Inbox is where background work that outlives a turn stays visible.
     await page.goto('/s/cloud-agent-work/inbox');
-    await page.getByRole('button', { name: /running now/u }).click();
-    // Inbox rows are pressable cards named by their title, not grid rows.
-    const inboxRow = page
-        .getByRole('dialog', { name: 'Happening now' })
-        .getByRole('button', { name: new RegExp(workTitle, 'u') });
+    // Happening now rows are pressable cards named by their title, not grid rows.
+    const happeningNow = await openHappeningNow(page);
+    const inboxRow = happeningNow.getByRole('button', { name: new RegExp(workTitle, 'u') });
     await expect(inboxRow).toBeVisible();
+    // No Run has reported yet, so the queued launch reads as its stage.
     await expect(inboxRow).toContainText('Starting');
     await expect(inboxRow).toContainText('#all');
     await expect(inboxRow).toContainText('Orbit');
@@ -155,7 +154,8 @@ test('Cloud Agent work reads as one card in the Chat and in its Thread', async (
 
     // Settled work leaves "Happening now", which lists only live work.
     await page.goto('/s/cloud-agent-work/inbox');
-    await expect(page.getByRole('button', { name: new RegExp(workTitle, 'u') })).toHaveCount(0);
+    await expect(page.getByRole('complementary', { name: 'Agent activity' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /running now$/u })).toHaveCount(0);
 
     // Work delegated inside somebody else's Thread hoists its status onto that
     // Thread's own surface in the Chat, so a reader scanning back sees that
@@ -204,18 +204,19 @@ test('Cloud Agent work reads as one card in the Chat and in its Thread', async (
     await expect(nestedCard).toContainText('Working');
     await page.setViewportSize({ width: 1280, height: 400 });
     await conversation.evaluate((element) => {
-        element.scrollTop = 0;
-    });
-    const initialTop = await card.evaluate((element) => element.getBoundingClientRect().top);
-    await conversation.evaluate((element) => {
         element.scrollTop = element.scrollHeight;
     });
     await expect
         .poll(() => conversation.evaluate((element) => element.scrollTop))
         .toBeGreaterThan(0);
+    // Shrinking can already pin the Thread to its newest row, so this reads where the
+    // first card ended up, not how far it moved: above the fold, beneath the newest.
+    const conversationTop = await conversation.evaluate(
+        (element) => element.getBoundingClientRect().top
+    );
     await expect
         .poll(() => card.evaluate((element) => element.getBoundingClientRect().top))
-        .toBeLessThan(initialTop);
+        .toBeLessThan(conversationTop);
     await expect(nestedCard).toBeInViewport();
     computer.send(
         cloudAgentObservationFrame({

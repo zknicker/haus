@@ -98,11 +98,11 @@ function stdoutWrite(text: string): void {
     process.stdout.write(text);
 }
 
-/** Error block: `✗ message` plus an optional `  ↳ hint` line, both on stderr. */
-export function errorBlock(message: string, hint?: string): string {
+/** Error block: `✗ message` plus one `  ↳ hint` line per hint, all on stderr. */
+export function errorBlock(message: string, ...hints: string[]): string {
     const mark = paint('✗', 'red', process.stderr);
     const lines = [`${mark} ${message}`];
-    if (hint) {
+    for (const hint of hints) {
         lines.push(ui.dim(`  ↳ ${hint}`, process.stderr));
     }
     return lines.join('\n');

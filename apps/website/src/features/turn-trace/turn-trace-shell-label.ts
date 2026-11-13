@@ -16,8 +16,8 @@ import type { TraceTense } from './turn-trace-tense.ts';
  * document in. Neither is what the Agent did. A one-line command reads as typed;
  * a compound or multi-line script reads as its most meaningful command, with
  * `cd`/`export`/`echo` setup and `haus` bookkeeping skipped, so a script that
- * claimed a task, wrote seven files, and ran the tests never reads as
- * "Claimed a task". The Command body still shows the original verbatim.
+ * claimed a message, wrote seven files, and ran the tests never reads as
+ * "Claimed a message". The Command body still shows the original verbatim.
  */
 export interface ShellLabel {
     /** A muted line beside the label: a stdin script's first meaningful line. */

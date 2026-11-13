@@ -16,7 +16,7 @@ for (const fixture of executionBookkeepingCases) {
 test('only a script of haus calls is haus-only', () => {
     expect(
         isHausOnlyShellScript(
-            "haus message send --target dm:@zach <<'HAUSMSG'\nDone.\nHAUSMSG\nhaus task update --help"
+            "haus message send --target dm:@zach <<'HAUSMSG'\nDone.\nHAUSMSG\nhaus claim update --help"
         )
     ).toBe(true);
     expect(isHausOnlyShellScript('/bin/zsh -lc "env HAUS_X=1 /opt/bin/haus message check"')).toBe(

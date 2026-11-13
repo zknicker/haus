@@ -21,7 +21,8 @@ struct MessageRowAccessibilityActions {
         canOpenThread: Bool,
         onReact: @escaping () -> Void,
         onReply: @escaping () -> Void,
-        onOpenThread: @escaping () -> Void
+        onOpenThread: @escaping () -> Void,
+        onConvertToTask: (() -> Void)? = nil
     ) -> Self {
         guard !message.isPending else { return .none }
         return MessageRowAccessibilityActions(
@@ -29,12 +30,14 @@ struct MessageRowAccessibilityActions {
             actions: MessageActionMenu.groups(
                 for: message,
                 canReplyInline: canReplyInline,
-                canOpenThread: canOpenThread
+                canOpenThread: canOpenThread,
+                canConvertToTask: onConvertToTask != nil
             ).flatMap(\.self),
             perform: { action in
                 switch action {
                 case .reply: onReply()
                 case .replyInThread, .openThread: onOpenThread()
+                case .convertToTask: onConvertToTask?()
                 case .copyText: MessageClipboard.copy(message)
                 }
             }

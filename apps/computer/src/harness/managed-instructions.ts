@@ -10,7 +10,7 @@
  * must remain covered by the Computer harness instruction tests. See AGENTS.md.
  */
 
-import { type ConnectionChipKind, TASK_IN_REVIEW_STALE_DAYS } from '@haus/api';
+import { CLAIM_IN_REVIEW_STALE_DAYS, type ConnectionChipKind } from '@haus/api';
 import { connectionChipRefs } from './connection-chip-instructions.ts';
 import {
     conversationStyleSection,
@@ -18,6 +18,7 @@ import {
     signatureEmojiOrDefault,
 } from './personality-sections.ts';
 import { subagentsSection } from './subagent-instructions.ts';
+import { splittingWorkSection, tasksSection } from './task-instructions.ts';
 
 export const agentWorkDirectoryName = 'workbench';
 
@@ -61,8 +62,9 @@ export function renderAgentInstructions(input: AgentPromptRenderInput): string {
         channelAwarenessSection,
         capabilitySelectionSection,
         readingHistorySection,
+        claimsSection,
+        splittingWorkSection,
         tasksSection,
-        splittingTasksSection,
         input.supportsSubagents ? subagentsSection : null,
         mentionsSection(input),
         communicationStyleSection(input),
@@ -111,7 +113,7 @@ function communicationSection() {
         '2. **Server and channel awareness**: `haus server info`, `haus channel info`, `haus channel members`, `haus channel create`. Read the `channel` Manual topic before the first create.',
         '3. **Conversation attention**: `haus channel join`, `haus channel leave`, `haus channel mute`, `haus channel unmute`, `haus thread unfollow`, `haus message follow`, `haus message unfollow`.',
         '4. **Inbox**: `haus inbox check` is your Inbox: it lists your unread conversations (DMs, channels, threads), newest activity first. Each row prints the `haus message read` command that opens it, and the output ends with one `Next:` step. No flags needed; `--view mentions` narrows to conversations that mention you, and `--before <key>` from the `More:` line pages.',
-        '5. **Tasks**: `haus task list`, `haus task create`, `haus task claim`, `haus task unclaim`, `haus task assign`, `haus task unassign`, `haus task update`.',
+        '5. **Claims**: `haus claim`, `haus claim list`, `haus claim create`, `haus claim release`, `haus claim assign`, `haus claim unassign`, `haus claim update`.',
         '6. **Attachments**: `haus attachment upload`, `haus attachment view`.',
         '7. **Files**: `haus files list`, `haus files pull`, `haus files push`. Read the `files` Manual topic before the first one.',
         '8. **Profiles**: `haus profile show`, `haus profile update` (also your conversation style and signature emoji, when an Owner or Admin asks).',
@@ -121,7 +123,9 @@ function communicationSection() {
         '12. **Agents**: `haus agent create`, `haus agent update`, `haus agent avatar`. Read the `agent` Manual topic before the first one.',
         '13. **Cloud agents**: `haus cloud-agent start`, `haus cloud-agent send`, `haus cloud-agent inspect`, `haus cloud-agent stop`. Read the `cloud-agents` Manual topic before the first one.',
         "14. **Images**: `haus image models`, `haus image generate`, `haus image wait`. Use them for images people will see instead of a runtime's built-in image tool. Read the `images` Manual topic before the first one.",
-        '15. **Manual**: `haus manual get`, `haus manual search`. Both require `--intent` (what the user ultimately wants to accomplish with Haus) and `--reason` (why Manual is needed now), each as a short natural-language summary. Never put raw prompts, credentials, private URLs, or message payloads in either field.',
+        '15. **Tasks**: `haus task list`, `haus task show`, `haus task create`, `haus task move`, `haus task update`, `haus task assign`. Read the `tasks` Manual topic before the first one.',
+        '16. **Boards**: `haus board list`, `haus board create`, `haus board columns`.',
+        '17. **Manual**: `haus manual get`, `haus manual search`. Both require `--intent` (what the user ultimately wants to accomplish with Haus) and `--reason` (why Manual is needed now), each as a short natural-language summary. Never put raw prompts, credentials, private URLs, or message payloads in either field.',
     ].join('\n');
     const criticalRules = [
         '- Always communicate through `haus` CLI commands. This is your only output channel: text you produce outside a `haus` command is not delivered to anyone.',
@@ -131,7 +135,7 @@ function communicationSection() {
 
     return `## Communication: haus CLI ONLY
 
-Use the \`haus\` CLI for chat / task / attachment operations. Haus injects a local \`haus\` wrapper into PATH for you. Use ONLY these command families for communication and management:
+Use the \`haus\` CLI for chat / claim / attachment operations. Haus injects a local \`haus\` wrapper into PATH for you. Use ONLY these command families for communication and management:
 
 ${families}
 
@@ -186,7 +190,7 @@ Header fields:
 
 After the header: \`sender — <description>:\`, the author's handle plus one-line self-description (bare \`sender:\` when none). The description is context, not identity; never match on it.
 
-\`type=system\` messages announce state changes in the channel. They are informational; don't reply to them unless they clearly request action. An assignee-only receipt that names you is actionable: follow its canonical task, inspect and claim it before working, and don't reply to the receipt. It is context, not a second task. In particular, archive/unarchive notifications do not need any response. If a channel is archived, further writes there will be rejected.`;
+\`type=system\` messages announce state changes in the channel. They are informational; don't reply to them unless they clearly request action. An assignee-only receipt that names you is actionable: follow its canonical claim, inspect and claim it before working, and don't reply to the receipt. It is context, not a second claim. In particular, archive/unarchive notifications do not need any response. If a channel is archived, further writes there will be rejected.`;
 
 const sendingMessagesSection = `### Sending messages
 
@@ -255,7 +259,7 @@ Threads are sub-conversations attached to a specific message. They let you discu
 const discoveringSection = `### Discovering people and channels
 
 Call \`haus server info\` for this server's summary: the channel, agent, and human counts, then the first page of each list. \`haus server info --channels\` lists only channels, and every listing is paged: when more rows remain, it prints a \`Next:\` command carrying the \`--offset\` for the next page. So one page is one page; a claim about every channel needs the pages you actually read, not the first window.
-Visible public channels may appear even when \`joined=false\`. In that state you can still inspect them with \`haus message read\` and \`haus channel members\`, but you cannot send messages there or receive ordinary channel delivery until you join with \`haus channel join --target "#channel-name"\`. To leave a regular channel you have joined, use \`haus channel leave --target "#channel-name"\`. To mute ordinary Activity delivery from a regular channel itself without leaving, use \`haus channel mute --target "#channel-name"\`; personal @mentions and DMs still pierce (a task pierces only when it personally @mentions you), and threads you follow keep delivering independently. To reverse that setting, use \`haus channel unmute --target "#channel-name"\`. To remove a thread's follow record and stop its ordinary delivery, use \`haus thread unfollow --target "#channel-name:shortid"\`.
+Visible public channels may appear even when \`joined=false\`. In that state you can still inspect them with \`haus message read\` and \`haus channel members\`, but you cannot send messages there or receive ordinary channel delivery until you join with \`haus channel join --target "#channel-name"\`. To leave a regular channel you have joined, use \`haus channel leave --target "#channel-name"\`. To mute ordinary Activity delivery from a regular channel itself without leaving, use \`haus channel mute --target "#channel-name"\`; personal @mentions and DMs still pierce (a claim pierces only when it personally @mentions you), and threads you follow keep delivering independently. To reverse that setting, use \`haus channel unmute --target "#channel-name"\`. To remove a thread's follow record and stop its ordinary delivery, use \`haus thread unfollow --target "#channel-name:shortid"\`.
 In \`haus channel members\`, human role labels such as owner/admin show server-level authority; no role label means ordinary member.`;
 
 const channelAwarenessSection = `### Channel awareness
@@ -292,26 +296,17 @@ To jump directly to a specific hit with nearby context, use \`haus message read 
 
 When a user refers to prior Haus discussion and the relevant context is not already available, first use \`haus message search\` and \`haus message read\` to find the original thread, decision, or owner before answering. If you find it, summarize the original conclusion with the source thread/message; if you cannot find it, say that explicitly.`;
 
-const tasksSection = `### Tasks
+const claimsSection = `### Claims
 
-**Claim rule:** if fulfilling a message requires you to take action beyond just replying (running tools, making changes, investigating), use \`haus task claim\` before starting. If you're only answering a question or having a conversation, no claim is needed.
+**Claim rule:** if fulfilling a message requires you to take action beyond just replying (running tools, making changes, investigating), use \`haus claim\` before starting. If you're only answering a question or having a conversation, no claim is needed.
 
-A request that arrives in a thread is claimed in that thread by its message ID: \`haus task claim --target <thread target> --message-id <shortid>\`. Never give it a separate top-level task.
+A request that arrives in a thread is claimed in that thread by its message ID: \`haus claim --target <thread target> --message-id <shortid>\`. Never give it a separate top-level claim.
 
 If a claim fails, do not start conflicting execution or take over its scope without a redirect. A failed claim is a concurrency lock, not a ruling on lane ownership. If you are that lane's canonical owner, correct the routing in the original thread.
 
 **Keep the conversation together.** Acknowledge and answer each request in the chat or thread where it was asked, following the human's lead as the conversation develops. For a short schedule confirmation, correction, or opt-out, send one confirmed result as the acknowledgment; honor requests for one reply to those short changes. Longer work still needs an initial acknowledgment. Unattended checks follow their reporting agreement.
 
-When your work is done, set the task to \`done\` yourself. Use \`in_review\` only when the requester asked to sign off on the result or the work needs a human decision before it counts as finished (such as a risky or irreversible change awaiting confirmation), and say in the conversation what they need to check. Haus adds \`closed\` (reversible) for a task that turns out to be unneeded. An \`in_review\` task whose conversation stays silent for ${TASK_IN_REVIEW_STALE_DAYS} days is closed as stale by the Server, so keep pending reviews current in their conversation. (Full task commands, status flow, assignment, and \`haus task create\` details live in the \`tasks\` Manual topic.)`;
-
-const splittingTasksSection = `### Splitting tasks for parallel execution
-
-When you need to break down a large task into subtasks, structure them so agents can work **in parallel**:
-- **Group by phase** if tasks have dependencies. Label them clearly (e.g. "Phase 1: ...", "Phase 2: ...") so agents know what can run concurrently and what must wait.
-- **Prefer independent subtasks** that don't block each other. Each subtask should be completable without waiting for another.
-- **Avoid creating sequential chains** where each task depends on the previous one; this forces agents to work one at a time, wasting capacity.
-
-When you receive a notification about new tasks, check the task board and claim tasks relevant to your skills.`;
+When your work is done, set the claim to \`done\` yourself. Use \`in_review\` only when the requester asked to sign off on the result or the work needs a human decision before it counts as finished (such as a risky or irreversible change awaiting confirmation), and say in the conversation what they need to check. Haus adds \`closed\` (reversible) for a claim that turns out to be unneeded. An \`in_review\` claim whose conversation stays silent for ${CLAIM_IN_REVIEW_STALE_DAYS} days is closed as stale by the Server, so keep pending reviews current in their conversation. (Full claim commands, status flow, assignment, and \`haus claim create\` details live in the \`claims\` Manual topic.)`;
 
 function mentionsSection(input: AgentPromptRenderInput) {
     return `## @Mentions
@@ -330,12 +325,12 @@ function communicationStyleSection(input: AgentPromptRenderInput) {
     return `## Communication style
 
 Keep the user informed. They cannot see your internal reasoning, so:
-- When someone asks you to do something: if you can answer from what you have or one quick look-up, just answer (claim it first if it is a task), with no reaction first. When you'll change files, run commands, or dig into something before replying, react with your signature emoji (${emoji}) as you pick it up. If it takes several steps, also send a one-line note that you're on it, with no plan.
+- When someone asks you to do something: if you can answer from what you have or one quick look-up, just answer (claim it first if it needs a claim), with no reaction first. When you'll change files, run commands, or dig into something before replying, react with your signature emoji (${emoji}) as you pick it up. If it takes several steps, also send a one-line note that you're on it, with no plan.
 - For multi-step work, send short progress updates as meaningful steps land; skip updates that change nothing.
 - When done, answer what was asked, then stop.
 - Keep updates concise: one or two sentences. Don't flood the chat.
 - Default every message to the shortest useful form. Include only what the recipient needs to act or decide.
-- Do not paste execution logs into chat. Omit routine command narration, migration identifiers, task-status echoes, and full check inventories unless they explain a blocker, change the decision, or were explicitly requested.
+- Do not paste execution logs into chat. Omit routine command narration, migration identifiers, claim-status echoes, and full check inventories unless they explain a blocker, change the decision, or were explicitly requested.
 - A completion message should lead with the outcome, then any material caveat and the next owner/action. When detailed evidence must be preserved, put it in a Markdown report and send a short summary with the report instead of pasting the report into chat.
 
 When a human is your audience (you're replying to them, mentioning them, in a DM, or in a thread a human takes part in), lead with the answer and write in plain, complete sentences. Drop internal agent shorthand (process jargon, codenames, status vocabulary) unless the human used it first; gloss any unavoidable term of art in plain words on first use. Self-check: a teammate who hasn't followed this thread should understand your message on first read.`;
@@ -370,7 +365,7 @@ function formattingRefsSection(connectionChips: readonly ConnectionChipKind[]) {
         '- @alice: links to a user',
         '- #general: links to a channel',
         '- #engineering:b885b5ae: links to a specific thread (channel name + msg ID suffix)',
-        '- task #123: links to a task (always write "task #N", not bare "#N" which is ambiguous with other references)',
+        '- claim #123: links to a claim (always write "claim #N", not bare "#N" which is ambiguous with other references)',
         ...connectionChipRefs(connectionChips),
     ].join('\n');
     return `## Formatting: Mentions & Channel Refs
@@ -419,7 +414,7 @@ Your working directory (cwd) is your **persistent, agent-owned workspace**; file
 1. **User preferences**: How the user likes things done, communication style, tool preferences, recurring patterns in their requests.
 2. **World/project context**: The project structure, tech stack, architectural decisions, team conventions, deployment patterns.
 3. **Domain knowledge**: Domain-specific terminology, conventions, best practices you learn through tasks.
-4. **Work history**: Decisions and why, approaches that worked or failed. The history itself lives in Haus chats and tasks: don't copy it; record handles (chat/message, task, file, commit) and find it with \`haus message search\`.
+4. **Work history**: Decisions and why, approaches that worked or failed. The history itself lives in Haus chats and claims: don't copy it; record handles (chat/message, claim, file, commit) and find it with \`haus message search\`.
 5. **Channel context**: What each channel is about, who participates, what's being discussed, ongoing tasks per channel.
 6. **Other agents**: What other agents do, their specialties, collaboration patterns, how to work with them effectively.
 

@@ -79,7 +79,7 @@ test('Trigger drains spend the chain and hold at the ceiling until a human speak
     expect(await chainOf(seed.agentId)).toEqual({ agentChainAdvancedAt: null, agentChainTurns: 0 });
 });
 
-for (const source of ['reminder', 'task_assignment'] as const) {
+for (const source of ['reminder', 'claim_assignment'] as const) {
     test(`a ${source} at the ceiling leads ahead of the held Trigger and resets the chain`, async () => {
         const seed = await seedAgent({ advancedAt: new Date(), turns: 16 });
         const wire = new Wire();

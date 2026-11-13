@@ -1,5 +1,11 @@
 import { sendBootstrap, socketMessage, socketOpen } from '../support/computer-socket.ts';
-import { assertOpaqueId, attachComputer, createTestServer, runPsql } from '../support/server.ts';
+import {
+    assertOpaqueId,
+    attachComputer,
+    createTestServer,
+    openHappeningNow,
+    runPsql,
+} from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 test('Inbox elapsed time ticks through activity changes and reloads', async ({ page }) => {
@@ -61,10 +67,10 @@ test('Inbox elapsed time ticks through activity changes and reloads', async ({ p
         `
         );
         await page.goto('/s/activity-clock/inbox');
-        await page.getByRole('button', { name: /running now/u }).click();
         // The Happening now row, named for the step it is on: the Agents list
         // beside it has its own row for Scout, named for its week.
-        const row = page.getByRole('button', { name: /^Scout: /u });
+        const happeningNow = await openHappeningNow(page);
+        const row = happeningNow.getByRole('button', { name: /^Scout: /u });
         await expect(row).toContainText(/1m \d+s elapsed/u);
         const firstLabel = await row.innerText();
         await expect.poll(() => row.innerText(), { timeout: 2500 }).not.toBe(firstLabel);
@@ -97,7 +103,7 @@ test('Inbox elapsed time ticks through activity changes and reloads', async ({ p
         await expect(row).toContainText('Working');
         await expect(row).toContainText(/1m \d+s elapsed/u);
         await page.reload();
-        await page.getByRole('button', { name: /running now/u }).click();
+        await openHappeningNow(page);
         await expect(row).toContainText('Working');
         await expect(row).toContainText(/1m \d+s elapsed/u);
     } finally {

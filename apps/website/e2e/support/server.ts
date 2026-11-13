@@ -106,6 +106,12 @@ export async function openSection(page: Page, name: string) {
     await page.getByRole('row', { exact: true, name }).click();
 }
 
+/** Opens the Inbox strip's Happening now popover; `page` must already be on the Inbox. */
+export async function openHappeningNow(page: Page) {
+    await page.getByRole('button', { name: /running now$/u }).click();
+    return page.getByRole('dialog').filter({ hasText: 'Happening now' });
+}
+
 export function createClient(token: string) {
     return createTRPCClient<HausRouter>({
         links: [

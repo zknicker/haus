@@ -83,17 +83,22 @@ extension HausStore {
         )
         return page.messages.compactMap { message in
             guard let author = authorPresentation(message.author) else { return nil }
-            // A top-level task names the Thread anchored on it before the
+            // A top-level claim names the Thread anchored on it before the
             // first reply; ordinary messages only gain a child id once a Thread
-            // exists, and a task inside a Thread has no Thread of its own.
+            // exists, and a claim inside a Thread has no Thread of its own.
             let thread = threadByAnchor[message.id].map(threadPresentation)
-                ?? message.task.flatMap { task in
-                    ThreadPreviewProjection.taskThread(task, messageChatID: message.chatID)
+                ?? message.claim.flatMap { claim in
+                    ThreadPreviewProjection.claimThread(claim, messageChatID: message.chatID)
                 }
             // Resolved here so the body goes through the parser that knows the
             // Server's Agents and members, and the trimmed string and its
             // segments always describe each other.
-            let parsed = parsedBody(id: message.id, content: message.displayContent, chatID: message.chatID)
+            let parsed = parsedBody(
+                id: message.id,
+                content: message.displayContent,
+                chatID: message.chatID,
+                taskLinks: message.taskLinks
+            )
             // Every linked work draws the same card, wherever the link sits.
             let linkedWork = message.cloudAgentWork
             return MessagePresentation(
@@ -107,7 +112,7 @@ extension HausStore {
                     replyReferencePresentation(reply.parent)
                 },
                 thread: thread,
-                task: message.task.map(taskPresentation),
+                claim: message.claim.map(claimPresentation),
                 cloudAgents: linkedWork.map { cloudAgentPresentation($0, presentingChatID: message.chatID) },
                 threadCloudAgents: CloudAgentPresentation.threadPreviewWork(
                     cloudAgentWork, anchorMessageID: message.id, ownWorkIDs: Set(linkedWork.map(\.id))
@@ -160,42 +165,26 @@ extension HausStore {
         )
     }
 
-    /// Projects a task-list row back into the shared message presentation used
-    /// by the Chat-owned Thread route. Tasks are canonical messages, so the
-    /// list lens must not invent a second thread presentation.
-    func taskMessagePresentation(_ item: TaskListItem) -> MessagePresentation? {
-        guard let author = authorPresentation(item.message.author) else { return nil }
-        return MessagePresentation(
-            id: item.message.id,
-            author: author,
-            content: item.message.content,
-            createdAt: item.message.createdAt,
-            sequence: item.message.sequence,
-            thread: threadPresentation(item.threadSummary),
-            task: taskPresentation(item.task)
-        )
-    }
-
-    private func threadPresentation(_ thread: ThreadSummary) -> ThreadPreviewPresentation {
+    func threadPresentation(_ thread: ThreadSummary) -> ThreadPreviewPresentation {
         ThreadPreviewProjection.presentation(for: thread) { reply in
             actorPresentation(agentID: reply.authorAgentID, userID: reply.authorUserID)
         }
     }
 
-    private func taskPresentation(_ task: MessageTask) -> TaskPresentation {
-        let status: TaskStatusPresentation = switch task.status {
+    func claimPresentation(_ claim: MessageClaim) -> ClaimPresentation {
+        let status: ClaimStatusPresentation = switch claim.status {
         case .todo: .todo
         case .inProgress: .inProgress
         case .inReview: .inReview
         case .done: .done
         case .closed: .closed
         }
-        return TaskPresentation(
-            number: task.number,
-            origin: task.origin,
+        return ClaimPresentation(
+            number: claim.number,
+            origin: claim.origin,
             status: status,
-            assignee: actorPresentation(agentID: task.assigneeAgentID, userID: nil),
-            creator: actorPresentation(agentID: task.createdByAgentID, userID: task.createdByUserID)
+            assignee: actorPresentation(agentID: claim.assigneeAgentID, userID: nil),
+            creator: actorPresentation(agentID: claim.createdByAgentID, userID: claim.createdByUserID)
         )
     }
 

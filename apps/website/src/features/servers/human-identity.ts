@@ -15,7 +15,7 @@ export function humanHandle(member: Pick<ServerMember, 'handle'>): null | string
 
 /**
  * Names and faces for humans a surface only knows by id — transcript authors,
- * task assignees, DM peers. Ids outside the directory still resolve, so a
+ * claim assignees, DM peers. Ids outside the directory still resolve, so a
  * departed member reads as a stable label rather than a blank.
  */
 export interface HumanDirectory {

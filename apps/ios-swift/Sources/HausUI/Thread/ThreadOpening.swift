@@ -2,19 +2,19 @@ import SwiftUI
 
 /// What a Thread screen says about itself, and how it opens.
 enum ThreadOpening {
-    /// A Task's Thread is named for the Task; any other Thread is a Thread.
-    /// A Thread opened for a task on one of its replies is a Thread too: the
-    /// anchor's task is not the one the reader asked to see.
-    static func title(anchor: MessagePresentation, taskMessageID: String? = nil) -> String {
-        guard !opensForReplyTask(anchor: anchor, taskMessageID: taskMessageID) else { return "Thread" }
-        return anchor.task.map { "Task #\($0.number)" } ?? "Thread"
+    /// A claim's Thread is named for the claim; any other Thread is a Thread.
+    /// A Thread opened for a claim on one of its replies is a Thread too: the
+    /// anchor's claim is not the one the reader asked to see.
+    static func title(anchor: MessagePresentation, claimMessageID: String? = nil) -> String {
+        guard !opensForReplyClaim(anchor: anchor, claimMessageID: claimMessageID) else { return "Thread" }
+        return anchor.claim.map { "Claim #\($0.number)" } ?? "Thread"
     }
 
-    /// Whether the screen opened for a task on one of its replies rather than
-    /// for the Thread itself (`TaskOpening.containingThread`).
-    static func opensForReplyTask(anchor: MessagePresentation, taskMessageID: String?) -> Bool {
-        guard let taskMessageID else { return false }
-        return taskMessageID != anchor.id
+    /// Whether the screen opened for a claim on one of its replies rather than
+    /// for the Thread itself (`ClaimOpening.containingThread`).
+    static func opensForReplyClaim(anchor: MessagePresentation, claimMessageID: String?) -> Bool {
+        guard let claimMessageID else { return false }
+        return claimMessageID != anchor.id
     }
 
     /// Whether the screen should stay blank until its first reply page lands.

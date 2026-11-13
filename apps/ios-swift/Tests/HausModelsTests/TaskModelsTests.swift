@@ -2,112 +2,269 @@ import Foundation
 import XCTest
 @testable import HausModels
 
+/// Tasks as the wire returns them, and the inputs that go back.
 final class TaskModelsTests: XCTestCase {
-    func testTaskListInputOmitsOptionalChatFilter() throws {
-        let input = TaskListInput(serverID: "server_1")
-        let data = try JSONEncoder().encode(input)
-        let object = try XCTUnwrap(
-            JSONSerialization.jsonObject(with: data) as? [String: Any]
-        )
+    func testDecodesATaskOffTheWire() throws {
+        let task = try decodeTask()
 
-        XCTAssertEqual(object["serverId"] as? String, "server_1")
-        XCTAssertNil(object["chatId"])
+        XCTAssertEqual(task.key, "SEC-12")
+        XCTAssertEqual(task.assignee, .agent(agentID: "agent_1"))
+        XCTAssertEqual(task.createdBy, .user(userID: "user_1"))
+        XCTAssertEqual(task.category, .todo)
+        XCTAssertEqual(task.priority, .high)
+        XCTAssertEqual(task.dueOn, "2026-11-10")
+        XCTAssertEqual(task.labelIDs, ["label_1"])
+        XCTAssertNil(task.completedAt)
     }
 
-    func testTaskListInputEncodesBackgroundWideningOnlyWhenRequested() throws {
-        let input = TaskListInput(serverID: "server_1", includeBackground: true)
-        let data = try JSONEncoder().encode(input)
-        let object = try XCTUnwrap(
-            JSONSerialization.jsonObject(with: data) as? [String: Any]
-        )
-
-        XCTAssertEqual(object["includeBackground"] as? Bool, true)
-
-        let narrow = try JSONEncoder().encode(TaskListInput(serverID: "server_1"))
-        let narrowObject = try XCTUnwrap(
-            JSONSerialization.jsonObject(with: narrow) as? [String: Any]
-        )
-
-        XCTAssertNil(narrowObject["includeBackground"])
-    }
-
-    func testTaskMutationInputsUseServerWireNames() throws {
-        let input = TaskUpdateInput(
-            serverID: "server_1",
-            messageID: "message_1",
-            expectedVersion: 3,
-            patch: TaskUpdatePatch(status: .inReview)
-        )
-        let data = try JSONEncoder().encode(input)
-        let object = try XCTUnwrap(
-            JSONSerialization.jsonObject(with: data) as? [String: Any]
-        )
-        let patch = try XCTUnwrap(object["patch"] as? [String: Any])
-
-        XCTAssertEqual(object["serverId"] as? String, "server_1")
-        XCTAssertEqual(object["messageId"] as? String, "message_1")
-        XCTAssertEqual(object["expectedVersion"] as? Int, 3)
-        XCTAssertEqual(patch["status"] as? String, "in_review")
-        XCTAssertNil(patch["priority"])
-    }
-
-    func testDecodesTaskListProjectionWithCanonicalMessageAndThread() throws {
-        let item = try HausJSON.decoder().decode(
-            TaskListItem.self,
+    func testDecodesTheDetailsFlatShape() throws {
+        let detail = try HausJSON.decoder().decode(
+            BoardTaskDetail.self,
             from: Data(
                 """
-                {"chatKind":"dm","chatName":null,"chatPeerUserId":"user_2",
-                 "message":{"attachments":[],"author":{"kind":"human","userId":"user_1","profile":null},"chatId":"chat_1","content":"Review the mobile release","createdAt":"2026-01-01T00:00:00Z","id":"message_1","nonce":"nonce_1","runId":null,"sequence":8,"serverId":"server_1","task":null},
-                 "task":{"assigneeAgentId":"agent_1","chatId":"chat_1","claimedAt":null,"createdAt":"2026-01-01T00:00:00Z","createdByAgentId":null,"createdByUserId":"user_1","labels":[],"live":false,"messageId":"message_1","number":4,"origin":"converted","priority":"urgent","status":"in_review","threadChatId":"thread_1","tier":"tracked","updatedAt":"2026-01-01T00:01:00Z","version":6},
-                 "threadSummary":{"anchorMessageId":"message_1","followed":true,"latestReplyAt":"2026-01-01T00:02:00Z","recentReplies":[],"replyCount":2,"threadChatId":"thread_1","unreadCount":1}}
+                {\(Self.taskFields),
+                 "mentions":[{"authorLabel":"Forge","chatId":"thread_1","createdAt":"2026-11-03T00:00:00Z",
+                   "excerpt":"Should the limit apply?","messageId":"message_1",
+                   "place":{"chatId":"chat_1","chatKind":"channel","chatName":"security",
+                     "threadAnchorMessageId":"anchor_1"}}],
+                 "reminders":[{"anchorChatId":"chat_1","kind":"once","nextFireAt":null,
+                   "reminderId":"reminder_1","title":"Re-check SEC-12"}]}
                 """.utf8
             )
         )
 
-        XCTAssertEqual(item.id, "message_1")
-        XCTAssertEqual(item.task.status, .inReview)
-        XCTAssertEqual(item.task.priority, .urgent)
-        XCTAssertEqual(item.threadSummary.replyCount, 2)
-        XCTAssertEqual(item.chatPeerUserID, "user_2")
+        XCTAssertEqual(detail.task.key, "SEC-12")
+        XCTAssertEqual(detail.mentions[0].chatID, "thread_1")
+        XCTAssertEqual(detail.mentions[0].place.chatID, "chat_1")
+        XCTAssertEqual(detail.mentions[0].place.threadAnchorMessageID, "anchor_1")
+        XCTAssertEqual(detail.mentions[0].place.label, "#security · Thread")
+        XCTAssertEqual(detail.reminders[0].kind, .once)
+        XCTAssertNil(detail.reminders[0].nextFireAt)
     }
 
-    func testDecodesTaskListEnvelopeWithHiddenBackgroundCount() throws {
-        let list = try HausJSON.decoder().decode(
-            TaskList.self,
-            from: Data(
-                """
-                {"backgroundCount":2,"tasks":[
-                 {"chatKind":"channel","chatName":"product","chatPeerUserId":null,
-                  "message":{"attachments":[],"author":{"kind":"human","userId":"user_1","profile":null},"chatId":"chat_1","content":"Ship the release","createdAt":"2026-01-01T00:00:00Z","id":"message_1","nonce":"nonce_1","runId":null,"sequence":8,"serverId":"server_1","task":null},
-                  "task":{"assigneeAgentId":"agent_1","chatId":"chat_1","claimedAt":"2026-01-01T00:01:00Z","createdAt":"2026-01-01T00:00:00Z","createdByAgentId":"agent_1","createdByUserId":null,"labels":[],"live":true,"messageId":"message_1","number":4,"origin":"claimed","priority":"none","status":"in_progress","threadChatId":"thread_1","tier":"tracked","updatedAt":"2026-01-01T00:01:00Z","version":6},
-                  "threadSummary":{"anchorMessageId":"message_1","followed":true,"latestReplyAt":null,"recentReplies":[],"replyCount":0,"threadChatId":"thread_1","unreadCount":0}}]}
-                """.utf8
-            )
-        )
+    func testAMessageDecodesItsTaskLinksAndServersThatPredateThemDecodeEmpty() throws {
+        let message = """
+        "attachments":[],"author":{"kind":"human","userId":"u","profile":null},"chatId":"c",
+        "content":"See SEC-12","createdAt":"2026-11-03T00:00:00Z","id":"m","nonce":"n","runId":null,
+        "sequence":1,"serverId":"s","claim":null
+        """
+        let linked = try HausJSON.decoder().decode(ChatMessage.self, from: Data(
+            #"{\#(message),"taskLinks":[{"key":"SEC-12","taskId":"task_1","text":"SEC-12"}]}"#.utf8
+        ))
+        XCTAssertEqual(linked.taskLinks, [TaskLink(key: "SEC-12", taskID: "task_1", text: "SEC-12")])
 
-        XCTAssertEqual(list.backgroundCount, 2)
-        XCTAssertEqual(list.tasks.count, 1)
-        XCTAssertEqual(list.tasks[0].task.origin, .claimed)
-        XCTAssertEqual(list.tasks[0].task.tier, .tracked)
-        XCTAssertTrue(list.tasks[0].task.live)
+        let older = try HausJSON.decoder().decode(ChatMessage.self, from: Data("{\(message)}".utf8))
+        XCTAssertEqual(older.taskLinks, [])
     }
 
-    func testDecodesBackgroundTierClaimWhenTheLensIsWidened() throws {
-        let list = try HausJSON.decoder().decode(
-            TaskList.self,
-            from: Data(
-                """
-                {"backgroundCount":0,"tasks":[
-                 {"chatKind":"dm","chatName":null,"chatPeerUserId":"user_2",
-                  "message":{"attachments":[],"author":{"kind":"human","userId":"user_1","profile":null},"chatId":"chat_1","content":"Check the log","createdAt":"2026-01-01T00:00:00Z","id":"message_2","nonce":"nonce_2","runId":null,"sequence":9,"serverId":"server_1","task":null},
-                  "task":{"assigneeAgentId":"agent_1","chatId":"chat_1","claimedAt":"2026-01-01T00:00:30Z","createdAt":"2026-01-01T00:00:00Z","createdByAgentId":"agent_1","createdByUserId":null,"labels":[],"live":false,"messageId":"message_2","number":5,"origin":"claimed","priority":"none","status":"done","threadChatId":"thread_2","tier":"background","updatedAt":"2026-01-01T00:02:00Z","version":2},
-                  "threadSummary":{"anchorMessageId":"message_2","followed":false,"latestReplyAt":null,"recentReplies":[],"replyCount":0,"threadChatId":"thread_2","unreadCount":0}}]}
-                """.utf8
-            )
-        )
+    func testAMessageKeepsItsTaskLinksThroughTheLaunchSnapshotCoding() throws {
+        let message = try HausJSON.decoder().decode(ChatMessage.self, from: Data(
+            """
+            {"attachments":[],"author":{"kind":"human","userId":"u","profile":null},"chatId":"c",
+             "content":"See SEC-12","createdAt":"2026-11-03T00:00:00Z","id":"m","nonce":"n","runId":null,
+             "sequence":1,"serverId":"s","claim":null,
+             "taskLinks":[{"key":"SEC-12","taskId":"task_1","text":"SEC-12"}]}
+            """.utf8
+        ))
+        let copy = try HausJSON.decoder().decode(ChatMessage.self, from: HausJSON.encoder().encode(message))
+        XCTAssertEqual(copy.taskLinks, message.taskLinks)
+    }
 
-        XCTAssertEqual(list.backgroundCount, 0)
-        XCTAssertEqual(list.tasks[0].task.tier, .background)
-        XCTAssertFalse(list.tasks[0].task.live)
+    // MARK: - Inputs
+
+    func testCreateOmitsWhatTheServerDefaults() throws {
+        let object = try json(TaskCreateInput(serverID: "s", boardID: "b", title: "Rotate tokens"))
+        XCTAssertEqual(object as? [String: String], ["serverId": "s", "boardId": "b", "title": "Rotate tokens"])
+    }
+
+    /// Convert to Task leaves the description off, so the Server fills it from
+    /// the message rather than taking an explicit blank.
+    func testConvertSendsItsSourceMessageAndNoDescription() throws {
+        let object = try json(TaskCreateInput(
+            serverID: "s",
+            boardID: "b",
+            title: "Rotate tokens",
+            sourceMessageID: "message_1"
+        ))
+        XCTAssertEqual(object["sourceMessageId"] as? String, "message_1")
+        XCTAssertNil(object["description"])
+    }
+
+    func testCreateCarriesAnActorInItsTaggedForm() throws {
+        let object = try json(TaskCreateInput(
+            serverID: "s",
+            boardID: "b",
+            title: "Rotate tokens",
+            columnID: "col",
+            assignee: .user(userID: "u"),
+            priority: .urgent,
+            dueOn: "2026-11-10"
+        ))
+        XCTAssertEqual(object["assignee"] as? [String: String], ["kind": "user", "userId": "u"])
+        XCTAssertEqual(object["columnId"] as? String, "col")
+        XCTAssertEqual(object["priority"] as? String, "urgent")
+        XCTAssertEqual(object["dueOn"] as? String, "2026-11-10")
+    }
+
+    /// The wire tells leaving a due date alone from clearing it.
+    func testUpdateTellsAnUntouchedDueDateFromACleared() throws {
+        let untouched = try json(TaskUpdateInput(
+            serverID: "s", taskID: "t", expectedVersion: 2, patch: TaskUpdatePatch(title: "New")
+        ))
+        let patch = try XCTUnwrap(untouched["patch"] as? [String: Any])
+        XCTAssertEqual(patch as? [String: String], ["title": "New"])
+        XCTAssertEqual(untouched["expectedVersion"] as? Int, 2)
+
+        let cleared = try json(TaskUpdatePatch(dueOn: .cleared))
+        XCTAssertTrue(cleared["dueOn"] is NSNull)
+
+        let set = try json(TaskUpdatePatch(dueOn: .set("2026-11-10")))
+        XCTAssertEqual(set["dueOn"] as? String, "2026-11-10")
+    }
+
+    func testUnassigningSendsAnExplicitNull() throws {
+        let object = try json(TaskAssignInput(serverID: "s", taskID: "t", expectedVersion: 1, assignee: nil))
+        XCTAssertTrue(object["assignee"] is NSNull)
+
+        let assigned = try json(TaskAssignInput(
+            serverID: "s", taskID: "t", expectedVersion: 1, assignee: .agent(agentID: "a")
+        ))
+        XCTAssertEqual(assigned["assignee"] as? [String: String], ["agentId": "a", "kind": "agent"])
+    }
+
+    func testMoveUsesTheServerWireNames() throws {
+        let object = try json(TaskMoveInput(serverID: "s", taskID: "t", expectedVersion: 7, columnID: "c"))
+        XCTAssertEqual(object["taskId"] as? String, "t")
+        XCTAssertEqual(object["columnId"] as? String, "c")
+        XCTAssertEqual(object["expectedVersion"] as? Int, 7)
+    }
+
+    // MARK: - Optimistic move
+
+    func testAMoveReadsAsTheNewColumnAndKeepsTheServersVersion() throws {
+        let task = try decodeTask()
+        let moved = task.moved(to: BoardColumn(category: .done, id: "col_done", name: "Done", position: 3))
+
+        XCTAssertEqual(moved.columnID, "col_done")
+        XCTAssertEqual(moved.category, .done)
+        XCTAssertNotNil(moved.completedAt)
+        XCTAssertEqual(moved.version, task.version)
+    }
+
+    // MARK: - Due date
+
+    func testADueDateIsACalendarDayInTheReadersZone() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "America/Los_Angeles"))
+        let date = try XCTUnwrap(TaskDueDate.date("2026-11-10", calendar: calendar))
+
+        XCTAssertEqual(TaskDueDate.dueOn(from: date, calendar: calendar), "2026-11-10")
+        XCTAssertNil(TaskDueDate.date("2026-02-31", calendar: calendar))
+        XCTAssertNil(TaskDueDate.date("soon", calendar: calendar))
+    }
+
+    func testATaskDueTodayIsNotOverdueUntilTomorrow() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "America/Los_Angeles"))
+        let lateOnTheDay = try XCTUnwrap(
+            calendar.date(from: DateComponents(year: 2026, month: 11, day: 10, hour: 23))
+        )
+        let nextMorning = lateOnTheDay.addingTimeInterval(3_600 * 2)
+
+        XCTAssertFalse(TaskDueDate.isOverdue("2026-11-10", now: lateOnTheDay, calendar: calendar))
+        XCTAssertTrue(TaskDueDate.isOverdue("2026-11-10", now: nextMorning, calendar: calendar))
+    }
+
+    // MARK: - Groups
+
+    func testOpenColumnsSortByPriorityThenDueThenAge() throws {
+        let sorted = BoardTaskGroups.sorted([
+            try decodeTask(number: 3, priority: "none"),
+            try decodeTask(number: 2, priority: "high", dueOn: nil),
+            try decodeTask(number: 4, priority: "high", dueOn: "2026-11-09"),
+            try decodeTask(number: 1, priority: "urgent", dueOn: nil),
+        ], in: .todo)
+
+        XCTAssertEqual(sorted.map(\.number), [1, 4, 2, 3])
+    }
+
+    func testEveryColumnKeepsItsPlaceWhenEmpty() throws {
+        let columns = [
+            BoardColumn(category: .todo, id: "col_todo", name: "Todo", position: 0),
+            BoardColumn(category: .done, id: "col_done", name: "Done", position: 1),
+        ]
+        let groups = BoardTaskGroups.groups(columns: columns, tasks: [try decodeTask()])
+
+        XCTAssertEqual(groups.map(\.column.id), ["col_todo", "col_done"])
+        XCTAssertEqual(groups.map(\.tasks.count), [1, 0])
+    }
+
+    func testFlagsOnlyAgentsHoldingMoreThanOneActiveTask() throws {
+        let tasks = [
+            try decodeTask(number: 1, category: "active", assignee: Self.agent("forge")),
+            try decodeTask(number: 2, category: "active", assignee: Self.agent("forge")),
+            try decodeTask(number: 3, category: "active", assignee: Self.agent("tiny")),
+            try decodeTask(number: 4, category: "todo", assignee: Self.agent("tiny")),
+            try decodeTask(number: 5, category: "active", assignee: #"{"kind":"user","userId":"u"}"#),
+            try decodeTask(number: 6, category: "active", assignee: #"{"kind":"user","userId":"u"}"#),
+        ]
+        let overloaded = BoardTaskGroups.overloadedAgents(tasks)
+
+        XCTAssertEqual(overloaded.map(\.agentID), ["forge"])
+        XCTAssertEqual(overloaded.map(\.count), [2])
+    }
+
+    func testFiltersByAssigneeAndLabel() throws {
+        let task = try decodeTask()
+
+        XCTAssertTrue(BoardTaskFilter().matches(task))
+        XCTAssertTrue(BoardTaskFilter(assignee: .actor(.agent(agentID: "agent_1"))).matches(task))
+        XCTAssertFalse(BoardTaskFilter(assignee: .unassigned).matches(task))
+        XCTAssertTrue(BoardTaskFilter(labelID: "label_1").matches(task))
+        XCTAssertFalse(BoardTaskFilter(labelID: "label_2").matches(task))
+    }
+
+    // MARK: - Fixtures
+
+    private static func agent(_ id: String) -> String {
+        #"{"agentId":"\#(id)","kind":"agent"}"#
+    }
+
+    private static let taskFields = fields(
+        number: 12, category: "todo", priority: "high", dueOn: "2026-11-10", assignee: agent("agent_1")
+    )
+
+    private static func fields(
+        number: Int,
+        category: String,
+        priority: String,
+        dueOn: String?,
+        assignee: String
+    ) -> String {
+        """
+        "assignee":\(assignee),"boardId":"board_1","category":"\(category)","columnId":"col_\(category)",
+        "completedAt":null,"createdAt":"2026-11-03T00:00:00.000Z",
+        "createdBy":{"kind":"user","userId":"user_1"},"description":"","dueOn":\(dueOn.map { "\"\($0)\"" } ?? "null"),
+        "id":"task_\(number)","key":"SEC-\(number)","labelIds":["label_1"],"number":\(number),
+        "priority":"\(priority)","serverId":"server_1","title":"Rotate tokens",
+        "updatedAt":"2026-11-03T00:00:00Z","version":3
+        """
+    }
+
+    private func decodeTask(
+        number: Int = 12,
+        category: String = "todo",
+        priority: String = "high",
+        dueOn: String? = "2026-11-10",
+        assignee: String = TaskModelsTests.agent("agent_1")
+    ) throws -> BoardTask {
+        let body = Self.fields(
+            number: number, category: category, priority: priority, dueOn: dueOn, assignee: assignee
+        )
+        return try HausJSON.decoder().decode(BoardTask.self, from: Data("{\(body)}".utf8))
+    }
+
+    private func json(_ value: some Encodable) throws -> [String: Any] {
+        try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(value)) as? [String: Any])
     }
 }

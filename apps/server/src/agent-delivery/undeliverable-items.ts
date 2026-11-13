@@ -1,8 +1,9 @@
-import type { AgentTurnRejectedItem } from '@haus/api';
+import { type AgentTurnRejectedItem, isChatlessInboxSource } from '@haus/api';
 import { and, asc, eq, inArray, ne } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { decodeTaskAssignment } from '../tasks/task-assignment-envelope.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import * as store from './store.ts';
 
@@ -80,12 +81,27 @@ export async function isolateUnrenderableItems(
     const failed: AgentTurnRejectedItem[] = [];
     for (const row of rows) {
         try {
-            await buildInboxItems(db, [row]);
+            await renderAlone(db, row);
         } catch (cause) {
             failed.push({ id: row.dedupeKey, reason: failureReason(cause) });
         }
     }
     return failed.length > 0 ? await markItemsUndeliverable(db, scope, failed) : 0;
+}
+
+/**
+ * Renders one row the way its run would. A chatless attention never becomes an
+ * inbox envelope (its run frames it alone), so only a Task assignment, whose run
+ * decodes its body, can fail here; a dream or heartbeat carries nothing to render.
+ */
+async function renderAlone(db: HausDatabase, row: store.InboxItemRow): Promise<void> {
+    if (!isChatlessInboxSource(row.source)) {
+        await buildInboxItems(db, [row]);
+        return;
+    }
+    if (row.source === 'task_assignment') {
+        decodeTaskAssignment(row.content);
+    }
 }
 
 function itemLabel(row: { dedupeKey: string; source: string }): string {

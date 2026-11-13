@@ -1,162 +1,267 @@
 import Foundation
 
-/// The exact row returned by `task.list`.
-///
-/// Tasks remain promoted Chat messages. This projection keeps the canonical
-/// message, task metadata, and the task's existing Thread summary together so
-/// a native list can open the same Thread route as Chat.
-public struct TaskListItem: Codable, Identifiable, Sendable, Equatable {
-    public let chatKind: ChatKind
-    public let chatName: String?
-    public let chatPeerUserID: String?
-    public let message: ChatMessage
-    public let task: MessageTask
-    public let threadSummary: ThreadSummary
+/// A person or an Agent of the Server: a Task's creator, assignee, or assigner.
+public enum TaskActor: Codable, Hashable, Sendable {
+    case user(userID: String)
+    case agent(agentID: String)
 
-    public var id: String { message.id }
+    public var userID: String? {
+        if case .user(let userID) = self { userID } else { nil }
+    }
 
-    public init(
-        chatKind: ChatKind,
-        chatName: String?,
-        chatPeerUserID: String?,
-        message: ChatMessage,
-        task: MessageTask,
-        threadSummary: ThreadSummary
-    ) {
-        self.chatKind = chatKind
-        self.chatName = chatName
-        self.chatPeerUserID = chatPeerUserID
-        self.message = message
-        self.task = task
-        self.threadSummary = threadSummary
+    public var agentID: String? {
+        if case .agent(let agentID) = self { agentID } else { nil }
     }
 
     enum CodingKeys: String, CodingKey {
-        case chatKind
-        case chatName
-        case chatPeerUserID = "chatPeerUserId"
-        case message
-        case task
-        case threadSummary
-    }
-}
-
-/// The `task.list` result. `backgroundCount` is how many background-tier tasks
-/// the same query hid, so a lens can say "N background" without a second round
-/// trip; it is 0 whenever `includeBackground` already widened the lens.
-public struct TaskList: Decodable, Equatable, Sendable {
-    public let backgroundCount: Int
-    public let tasks: [TaskListItem]
-
-    public init(backgroundCount: Int, tasks: [TaskListItem]) {
-        self.backgroundCount = backgroundCount
-        self.tasks = tasks
+        case agentID = "agentId"
+        case kind
+        case userID = "userId"
     }
 
-    enum CodingKeys: String, CodingKey {
-        case backgroundCount
-        case tasks
-    }
-}
-
-/// Input for `task.list`. `chatId` is omitted when the Tasks lens spans the
-/// Server; the Server contract treats it as an optional filter.
-/// `includeBackground` is omitted unless a caller wants the background tier the
-/// Board and List hide; the Server defaults it to `false`.
-public struct TaskListInput: Encodable, Equatable, Sendable {
-    public let chatID: String?
-    public let includeBackground: Bool?
-    public let serverID: String
-
-    public init(serverID: String, chatID: String? = nil, includeBackground: Bool? = nil) {
-        self.chatID = chatID
-        self.includeBackground = includeBackground
-        self.serverID = serverID
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case chatID = "chatId"
-        case includeBackground
-        case serverID = "serverId"
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        switch try container.decode(String.self, forKey: .kind) {
+        case "user":
+            self = .user(userID: try container.decode(String.self, forKey: .userID))
+        case "agent":
+            self = .agent(agentID: try container.decode(String.self, forKey: .agentID))
+        case let kind:
+            throw DecodingError.dataCorruptedError(
+                forKey: .kind,
+                in: container,
+                debugDescription: "Unknown Task actor kind \(kind)"
+            )
+        }
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encodeIfPresent(chatID, forKey: .chatID)
-        try container.encodeIfPresent(includeBackground, forKey: .includeBackground)
-        try container.encode(serverID, forKey: .serverID)
-    }
-}
-
-public struct TaskUpdatePatch: Encodable, Equatable, Sendable {
-    public let labelIDs: [String]?
-    public let priority: TaskPriority?
-    public let status: TaskStatus?
-
-    public init(
-        status: TaskStatus? = nil,
-        priority: TaskPriority? = nil,
-        labelIDs: [String]? = nil
-    ) {
-        self.labelIDs = labelIDs
-        self.priority = priority
-        self.status = status
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case labelIDs = "labelIds"
-        case priority
-        case status
-    }
-}
-
-/// Input for `task.update`. The Server rejects an empty patch; callers should
-/// create a patch with at least one non-nil field.
-public struct TaskUpdateInput: Encodable, Equatable, Sendable {
-    public let expectedVersion: Int
-    public let messageID: String
-    public let patch: TaskUpdatePatch
-    public let serverID: String
-
-    public init(
-        serverID: String,
-        messageID: String,
-        expectedVersion: Int,
-        patch: TaskUpdatePatch
-    ) {
-        self.expectedVersion = expectedVersion
-        self.messageID = messageID
-        self.patch = patch
-        self.serverID = serverID
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case expectedVersion
-        case messageID = "messageId"
-        case patch
-        case serverID = "serverId"
-    }
-}
-
-public struct TaskMutationReceipt: Decodable, Equatable, Sendable {
-    public let task: MessageTask
-}
-
-public extension TaskStatus {
-    static let ordered: [TaskStatus] = [.todo, .inProgress, .inReview, .done, .closed]
-
-    var displayName: String {
         switch self {
-        case .todo: "To do"
-        case .inProgress: "In progress"
-        case .inReview: "In review"
-        case .done: "Done"
-        case .closed: "Closed"
+        case .user(let userID):
+            try container.encode("user", forKey: .kind)
+            try container.encode(userID, forKey: .userID)
+        case .agent(let agentID):
+            try container.encode("agent", forKey: .kind)
+            try container.encode(agentID, forKey: .agentID)
         }
     }
 }
 
+/// A standalone work item on a board (ADR 0051), distinct from a claim, which
+/// is the Agent-only lock on a message. Named `BoardTask` because `Task` is
+/// Swift Concurrency's.
+public struct BoardTask: Codable, Identifiable, Hashable, Sendable {
+    public let assignee: TaskActor?
+    public let boardID: String
+    /// The category of `columnID`'s column, derived when read.
+    public let category: ColumnCategory
+    public let columnID: String
+    /// Set while the Task sits in a `done` or `canceled` column.
+    public let completedAt: Date?
+    public let createdAt: Date
+    public let createdBy: TaskActor
+    public let description: String
+    /// `YYYY-MM-DD`, a calendar day: display only, it sorts and badges and
+    /// wakes nothing. See `TaskDueDate`.
+    public let dueOn: String?
+    public let id: String
+    /// `SEC-12`, derived when read, so re-keying a board re-keys its Tasks.
+    public let key: String
+    public let labelIDs: [String]
+    public let number: Int
+    public let priority: TaskPriority
+    public let serverID: String
+    public let title: String
+    public let updatedAt: Date
+    public let version: Int
+
+    public init(
+        assignee: TaskActor?,
+        boardID: String,
+        category: ColumnCategory,
+        columnID: String,
+        completedAt: Date?,
+        createdAt: Date,
+        createdBy: TaskActor,
+        description: String,
+        dueOn: String?,
+        id: String,
+        key: String,
+        labelIDs: [String],
+        number: Int,
+        priority: TaskPriority,
+        serverID: String,
+        title: String,
+        updatedAt: Date,
+        version: Int
+    ) {
+        self.assignee = assignee
+        self.boardID = boardID
+        self.category = category
+        self.columnID = columnID
+        self.completedAt = completedAt
+        self.createdAt = createdAt
+        self.createdBy = createdBy
+        self.description = description
+        self.dueOn = dueOn
+        self.id = id
+        self.key = key
+        self.labelIDs = labelIDs
+        self.number = number
+        self.priority = priority
+        self.serverID = serverID
+        self.title = title
+        self.updatedAt = updatedAt
+        self.version = version
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case assignee
+        case boardID = "boardId"
+        case category
+        case columnID = "columnId"
+        case completedAt
+        case createdAt
+        case createdBy
+        case description
+        case dueOn
+        case id
+        case key
+        case labelIDs = "labelIds"
+        case number
+        case priority
+        case serverID = "serverId"
+        case title
+        case updatedAt
+        case version
+    }
+
+    /// The same Task shown in another column while a move settles. App-local:
+    /// `version` stays the Server's, and the receipt replaces this value.
+    public func moved(to column: BoardColumn) -> BoardTask {
+        BoardTask(
+            assignee: assignee,
+            boardID: boardID,
+            category: column.category,
+            columnID: column.id,
+            completedAt: column.category.isClosed ? completedAt ?? updatedAt : nil,
+            createdAt: createdAt,
+            createdBy: createdBy,
+            description: description,
+            dueOn: dueOn,
+            id: id,
+            key: key,
+            labelIDs: labelIDs,
+            number: number,
+            priority: priority,
+            serverID: serverID,
+            title: title,
+            updatedAt: updatedAt,
+            version: version
+        )
+    }
+}
+
+/// A message that references the Task: its **Mentioned in**, newest first.
+public struct TaskMention: Codable, Identifiable, Hashable, Sendable {
+    public let authorLabel: String
+    /// The message's own Chat: a Thread's Chat for a Thread reply.
+    public let chatID: String
+    public let createdAt: Date
+    public let excerpt: String
+    public let messageID: String
+    public let place: TaskMessagePlace
+
+    public var id: String { messageID }
+
+    enum CodingKeys: String, CodingKey {
+        case authorLabel
+        case chatID = "chatId"
+        case createdAt
+        case excerpt
+        case messageID = "messageId"
+        case place
+    }
+}
+
+/// A Reminder whose description references the Task: its **Reminders**.
+public struct TaskReminderRef: Codable, Identifiable, Hashable, Sendable {
+    public enum Kind: String, Codable, Sendable {
+        case once
+        case recurring
+    }
+
+    public let anchorChatID: String
+    public let kind: Kind
+    /// Nil once a one-shot fired or the Reminder was canceled.
+    public let nextFireAt: Date?
+    public let reminderID: String
+    public let title: String
+
+    public var id: String { reminderID }
+
+    enum CodingKeys: String, CodingKey {
+        case anchorChatID = "anchorChatId"
+        case kind
+        case nextFireAt
+        case reminderID = "reminderId"
+        case title
+    }
+}
+
+/// `task.get`: the Task's fields flat beside `mentions` and `reminders`.
+public struct BoardTaskDetail: Decodable, Identifiable, Hashable, Sendable {
+    public var task: BoardTask
+    public let mentions: [TaskMention]
+    public let reminders: [TaskReminderRef]
+
+    public var id: String { task.id }
+
+    public init(task: BoardTask, mentions: [TaskMention], reminders: [TaskReminderRef]) {
+        self.task = task
+        self.mentions = mentions
+        self.reminders = reminders
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case mentions
+        case reminders
+    }
+
+    public init(from decoder: Decoder) throws {
+        task = try BoardTask(from: decoder)
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        mentions = try container.decode([TaskMention].self, forKey: .mentions)
+        reminders = try container.decode([TaskReminderRef].self, forKey: .reminders)
+    }
+}
+
+/// One Task reference in a message's content, resolved when it was written: an
+/// explicit `task://<taskId>` link or a bare key. `text` is the exact matched
+/// substring, and the content itself never changes.
+public struct TaskLink: Codable, Hashable, Sendable {
+    public let key: String
+    public let taskID: String
+    public let text: String
+
+    public init(key: String, taskID: String, text: String) {
+        self.key = key
+        self.taskID = taskID
+        self.text = text
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case key
+        case taskID = "taskId"
+        case text
+    }
+}
+
 public extension TaskPriority {
+    /// Most pressing first, the order a person picks from and a board sorts by.
+    static let ordered: [TaskPriority] = [.urgent, .high, .medium, .low, .none]
+
     var displayName: String {
         switch self {
         case .none: "No priority"
@@ -164,6 +269,18 @@ public extension TaskPriority {
         case .high: "High"
         case .medium: "Medium"
         case .low: "Low"
+        }
+    }
+
+    /// Sorts `none` after `low`: an unset priority is not a low one, but it
+    /// is the least known about.
+    var sortRank: Int {
+        switch self {
+        case .urgent: 0
+        case .high: 1
+        case .medium: 2
+        case .low: 3
+        case .none: 4
         }
     }
 }

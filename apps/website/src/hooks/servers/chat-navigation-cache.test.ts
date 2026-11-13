@@ -127,6 +127,7 @@ function message(sequence: number): ChatMessage {
         sequence,
         serverId,
         sessionGeneration: null,
+        taskLinks: [],
     };
 }
 

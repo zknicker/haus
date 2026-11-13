@@ -56,6 +56,17 @@ final class HausDrawerState {
 
     func toggle() { set(open: !isPresented) }
 
+    /// A route from outside the sidebar, such as a Task's mention or a tapped
+    /// notification, put something new on the canvas. It closes the way a Chat
+    /// selection does, or the drawer left open behind a pushed Task would cover
+    /// what the route just opened. The close waits a turn, as a selection's
+    /// does, so the canvas has mounted before it slides.
+    func closeForCanvasRoute() {
+        guard isPresented else { return }
+        close = .chatSelection
+        Task { @MainActor [self] in set(open: false) }
+    }
+
     // MARK: Reported by the motion
 
     /// A finger caught the canvas. It is an interactive close whatever ended the

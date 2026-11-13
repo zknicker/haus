@@ -17,14 +17,14 @@ const heredocSend = [
 test('recognizes whole haus CLI invocations from spot-test commands', () => {
     for (const command of [
         heredocSend,
-        'haus task claim --target "#all" --message-id Lmw69Csg',
+        'haus claim --target "#all" --message-id Lmw69Csg',
         'haus message check',
         'haus message read --target "#all" --limit 20',
         'haus inbox check 2>&1',
         'haus profile show',
-        'haus task update --message-id Lmw69Csg --status done',
+        'haus claim update --message-id Lmw69Csg --status done',
         '/Users/me/.haus/computer/servers/srv_1/agents/agt_1/bin/haus message check',
-        'env HAUS_DEBUG=1 haus task list',
+        'env HAUS_DEBUG=1 haus claim list',
         'HAUS_TRACE=1 haus message check',
         `/bin/zsh -lc "haus message send --target \\"#all\\" --body \\"On it\\""`,
         `bash -lc 'haus message check'`,
@@ -32,7 +32,7 @@ test('recognizes whole haus CLI invocations from spot-test commands', () => {
         expect({ command, haus: isHausCliCommand({ command }) }).toEqual({ command, haus: true });
     }
     expect(isHausCliCommand(JSON.stringify({ command: 'haus message check' }))).toBe(true);
-    expect(isHausCliCommand({ command: ['bash', '-lc', 'haus task list'] })).toBe(true);
+    expect(isHausCliCommand({ command: ['bash', '-lc', 'haus claim list'] })).toBe(true);
 });
 
 test('keeps real commands and compound haus commands as commands', () => {
@@ -42,7 +42,7 @@ test('keeps real commands and compound haus commands as commands', () => {
         'git status',
         'bun test',
         'haus message check && curl -sS https://example.com',
-        'haus task list | head -5',
+        'haus claim list | head -5',
         'haus message check; npm run build',
         `${heredocSend}\ngit push`,
         'haussmann --help',
@@ -66,7 +66,7 @@ test('a haus CLI shell call opens no activity while real commands still do', asy
     });
     const commands = [
         ['call_send', heredocSend],
-        ['call_claim', 'haus task claim --target "#all" --message-id Lmw69Csg'],
+        ['call_claim', 'haus claim --target "#all" --message-id Lmw69Csg'],
         ['call_read', "sed -n '1,240p' MEMORY.md"],
         ['call_curl', "curl -sS 'https://api.open-meteo.com/v1/forecast'"],
     ] as const;

@@ -137,7 +137,7 @@ function KeptChatPresence({ active, children }: { active: boolean; children: Rea
 
 /**
  * A hidden view keeps the location and route match it last saw while shown.
- * The route's search params belong to the shown chat (`?thread=`, `?task=`),
+ * The route's search params belong to the shown chat (`?thread=`, `?claim=`),
  * and a navigation changes both context values, which would otherwise
  * re-render every router reader in every hidden view on each switch.
  */
