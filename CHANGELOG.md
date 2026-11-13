@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v17.6.5 - 2026-11-13
+
+- The sidebar's Open threads section is now called Threads, and it disappears when no Thread is in motion instead of leaving an empty header.
+- All threads is an arrow that appears when you hover the Threads header. When the section folds rows away, it ends with an "n more" row that opens the Threads page.
+
 ## v17.6.4 - 2026-11-12
 
 - The Open threads sidebar now lists the conversations you are in: a Thread you wrote in, started, or were mentioned in stays listed for a day after its last message, read or unread. It no longer shows "Waiting for a reply" after you say thanks, and a Thread no longer drops out the moment an Agent answers.
