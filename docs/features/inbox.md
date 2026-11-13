@@ -26,7 +26,7 @@ The agent-side concept with a similar name is the [Agent inbox](../../specs/inbo
 delivery ledger that wakes Agents. Say "Agent inbox" wherever the two could be confused.
 
 Threads still in motion for a human, Cloud Agent work and conversations they took part in, also
-sit in the sidebar's Open threads section, read or not. That section is a lens with no badge; see
+sit in the sidebar's Threads section, read or not. That section is a lens with no badge; see
 [Open Threads](../../specs/open-threads.md). The Inbox stays an unread list.
 
 ## Layout

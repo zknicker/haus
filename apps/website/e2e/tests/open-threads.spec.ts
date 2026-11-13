@@ -44,27 +44,36 @@ test('a replied Thread sits in the sidebar, opens, closes, and files under Earli
     await sidebarRow.click();
     await expect(page).toHaveURL(new RegExp(`/threads/.+/${anchorMessageId}$`));
 
-    await page.getByRole('link', { name: 'All threads' }).click();
+    // The header's All threads action shows on hover.
+    await page.getByRole('button', { name: 'Threads', exact: true }).hover();
+    await page.getByRole('button', { name: 'All threads' }).click();
     await expect(page).toHaveURL(/\/threads$/);
     await expect(page.getByRole('heading', { name: 'Recent' })).toBeVisible();
     await page.screenshot({ path: 'test-results/open-threads-page.png' });
 
+    // The Preferences switch hides the section on this device, and it stays hidden.
+    await page.goto('/s/open-threads/settings/preferences');
+    const showOpenThreads = page.getByRole('switch', { name: 'Show open threads' });
+    await showOpenThreads.click({ force: true });
+    await expect(page.getByRole('button', { name: 'All threads' })).toHaveCount(0);
+    await page.goto('/s/open-threads');
+    await openChannel(page, 'all');
+    await expect(page.getByRole('button', { name: 'All threads' })).toHaveCount(0);
+    await expect(sidebarRow).toBeHidden();
+    await page.goto('/s/open-threads/settings/preferences');
+    await showOpenThreads.click({ force: true });
+
+    await page.goto('/s/open-threads/threads');
     await page.getByRole('button', { name: /Should we ship the quokka migration/ }).click();
     await page.getByRole('button', { name: /thread actions/ }).click();
     await page.getByRole('menuitem', { name: 'Close', exact: true }).click();
     await expect(sidebarRow).toBeHidden();
+    // With no open Thread left, the section and its header are gone.
+    await expect(page.getByRole('button', { name: 'All threads' })).toHaveCount(0);
 
-    await page.getByRole('link', { name: 'All threads' }).click();
+    await page.goto('/s/open-threads/threads');
     await expect(page.getByRole('heading', { name: 'Earlier' })).toBeVisible();
     await expect(
         page.getByRole('button', { name: /Should we ship the quokka migration/ })
     ).toBeVisible();
-
-    // The Preferences switch hides the section on this device, and it stays hidden.
-    await page.goto('/s/open-threads/settings/preferences');
-    await page.getByRole('switch', { name: 'Show open threads' }).click({ force: true });
-    await expect(page.getByRole('link', { name: 'All threads' })).toHaveCount(0);
-    await page.goto('/s/open-threads');
-    await openChannel(page, 'all');
-    await expect(page.getByRole('link', { name: 'All threads' })).toHaveCount(0);
 });

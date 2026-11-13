@@ -129,8 +129,9 @@ Agent-authored Thread titles are out of scope.
 
 ### Sidebar
 
-An **Open threads** section sits between the top menu and Channels, with **All threads** at the
-trailing end of its header (`isOpenThreadInSidebar`). It lists:
+A **Threads** section sits between the top menu and Channels (`isOpenThreadInSidebar`). Its header
+carries an **All threads** icon action that shows on hover or focus, like the Channels header's
+New channel action, and goes to the Threads page as a sidebar row does. It lists:
 
 - every work state: `job-failed`, `checks-failing`, `changes-requested`, `approved`,
   `ready-for-review`, `working`, `needs-input`, `checks-running`, `draft`, and the settled `merged`,
@@ -154,9 +155,9 @@ There is no second line and no tooltip: the status line and the parent's context
 or `DM` for any direct message) show on the Threads page.
 
 Rows with work come first, then conversations, each newest activity first. The section shows at
-most twelve rows, filling from the top; With you rows are never folded away. Past twelve, **All
-threads** carries `+<n>`. With no open Threads the header stays and shows no rows. Nothing renders
-until the read settles.
+most twelve rows, filling from the top; With you rows are never folded away. Past twelve, the list
+ends with one muted **`<n>` more** row that goes to the Threads page. With no open Threads the
+section, header included, does not render. Nothing renders until the read settles.
 
 **Show open threads** in Preferences turns this section, the command menu's Threads group, and Close
 off on one device. It is on by default. Search, pull request readings, and the Threads page's address

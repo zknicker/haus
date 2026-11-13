@@ -4,17 +4,15 @@ import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
 
-/** A folding sidebar section. `action` shows on hover; `trailing` always shows. */
+/** A folding sidebar section. `action` shows on hover or focus. */
 export function ChatGroup({
     action,
     children,
     label,
-    trailing,
 }: {
     action?: React.ReactNode;
     children: React.ReactNode;
     label: string;
-    trailing?: React.ReactNode;
 }) {
     const [collapsed, setCollapsed] = React.useState(false);
 
@@ -50,7 +48,6 @@ export function ChatGroup({
                 <span className="opacity-0 transition-opacity focus-within:opacity-100 group-hover/section:opacity-100">
                     {action}
                 </span>
-                {trailing}
             </div>
             <div className={collapsed ? 'hidden' : undefined}>{children}</div>
         </Sidebar.Group>
