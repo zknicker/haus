@@ -88,7 +88,12 @@ export function AgentConnectionsSection({ agent, server }: { agent: Agent; serve
 
     if (connections.data) {
         return (
-            <AgentConnections agent={agent} connections={connections.data} serverId={server.id} />
+            <AgentConnections
+                agent={agent}
+                canManage={server.role === 'owner' || server.role === 'admin'}
+                connections={connections.data}
+                serverId={server.id}
+            />
         );
     }
     return (

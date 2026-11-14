@@ -3,14 +3,18 @@ import { Separator, Switch } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import * as React from 'react';
 import { ConnectionGlyph } from '../../features/settings/mcp/connection-mark.tsx';
+import { useAgentConnectionAdmin } from '../../hooks/members/use-agent-connection-admin.ts';
 import { useAgentGrant } from '../../hooks/members/use-agent-grant.ts';
 
 export function AgentTools({
     agent,
+    canManage,
     connections,
     serverId,
 }: {
     agent: Agent;
+    /** Owner or Admin: may make this Agent a connection admin. */
+    canManage: boolean;
     connections: McpConnection[];
     serverId: string;
 }) {
@@ -91,6 +95,42 @@ export function AgentTools({
                     })
                 )}
             </ItemCardGroup>
+            {canManage ? <ConnectionAdminCard agent={agent} serverId={serverId} /> : null}
+        </ItemCardGroup>
+    );
+}
+
+/**
+ * The connection admin role: an Owner or Admin lets this Agent manage the switches above for
+ * every Agent (`haus connection`). Members never see it; the Server refuses them anyway.
+ */
+function ConnectionAdminCard({ agent, serverId }: { agent: Agent; serverId: string }) {
+    const admin = useAgentConnectionAdmin(serverId, agent.id);
+
+    return (
+        <ItemCardGroup className="overflow-hidden">
+            <ItemCard>
+                <ItemCard.Content>
+                    <ItemCard.Title>Connection admin</ItemCard.Title>
+                    <ItemCard.Description>
+                        Can turn connection access on and off for any agent
+                    </ItemCard.Description>
+                </ItemCard.Content>
+                <ItemCard.Action>
+                    <Switch
+                        aria-label={`Make ${agent.displayName} a connection admin`}
+                        isDisabled={admin.isPending}
+                        isSelected={agent.connectionAdmin}
+                        onChange={admin.setConnectionAdmin}
+                    >
+                        <Switch.Content>
+                            <Switch.Control>
+                                <Switch.Thumb />
+                            </Switch.Control>
+                        </Switch.Content>
+                    </Switch>
+                </ItemCard.Action>
+            </ItemCard>
         </ItemCardGroup>
     );
 }

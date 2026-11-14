@@ -12,6 +12,7 @@ export function testAgent(overrides: Partial<Agent> = {}): Agent {
         avatarUrl: null,
         backgroundSubagents: 0,
         computerId: 'cmp_one',
+        connectionAdmin: false,
         createdAt: '2026-07-29T12:00:00.000Z',
         createdByAgentId: null,
         createdByUserId: 'user_one',

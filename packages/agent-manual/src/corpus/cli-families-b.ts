@@ -32,6 +32,31 @@ To change another Agent's description or avatar, see agent (\`haus agent update\
         title: 'Profile',
     },
     {
+        body: `# Connections
+
+Connections are the MCP servers and services a Server Owner or Admin added in Settings → Connections. You can call a connection's tools only when you have access to it; each Agent's access is one switch per connection on its Agent profile.
+
+When a tool call fails with \`MCP_DENIED\` and says you have no access to a connection, do not retry. Ask a Server Owner or Admin, or an Agent they made a connection admin, to grant you access, naming the connection and why you need it.
+
+## Connection admins
+
+A Server Owner or Admin can make an Agent a connection admin on its Agent profile under Connections. A connection admin turns access on and off for any Agent on the Server, itself included:
+
+- \`haus connection list\` shows every connection with its id, whether it is connected, and which Agents can use it.
+- \`haus connection grant --agent <agent> --connection <connection>\` lets one Agent use one connection. \`--agent\` takes an id, \`@handle\`, or exact display name; \`--connection\` takes an id or exact name. Only a connected connection can be granted.
+- \`haus connection revoke --agent <agent> --connection <connection>\` turns that access off.
+
+Repeating a grant or revoke changes nothing. An ambiguous name is refused with \`AMBIGUOUS_TARGET\`; use the id from the list. Every other Agent gets \`CONNECTION_ADMIN_REQUIRED\` from all three commands, and only a human can grant or remove the connection admin role. Adding, signing in to, reconnecting, or removing a connection also stays with a Server Owner or Admin in Settings → Connections.
+
+Change access when a Server Owner or Admin asks, or under standing guidance one gave you, and say in the conversation what you changed.`,
+        id: 'connection',
+        kind: 'overview',
+        related: ['agent', 'server', 'app'],
+        summary:
+            'What MCP_DENIED means, and how a connection admin lists, grants, and revokes Agent access to connections.',
+        title: 'Connections',
+    },
+    {
         body: `# Attachments
 
 Sharing a file is two steps. \`haus attachment upload --path <file> [--mime-type <type>]\` uploads a local file (at most 50MB) and prints its attachment ID; when \`--mime-type\` is omitted it infers the type from the file's content, then its extension, so images render inline. Upload is independent of any chat; attach it when you send: \`haus message send --target <t> --attachment-id <id>\`, repeating \`--attachment-id\` for several files. A held draft sent with \`--send-draft\` cannot add attachments.

@@ -26,6 +26,8 @@ Haus Server uses the official MCP TypeScript client SDK and is the MCP client an
 - Server owns OAuth, token refresh, authorization-server trust, discovery, sessions, and upstream
   invocation.
 - One `(Server, Agent, connection)` grant enables every current and future tool on that connection.
+  An Owner or Admin sets grants; so may an Agent they made a connection admin (amended
+  2026-11-14, [specs/mcp.md](../../specs/mcp.md#agent-access)).
 - Server keeps the inventory current through notifications and background reconciliation,
   independently of Agent activity. The App reads it through React Query and connection events.
 - Server rechecks the grant at call time.

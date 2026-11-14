@@ -122,6 +122,7 @@ export * from './computer-runtime.ts';
 export * from './computer-secrets.ts';
 export * from './computer-system-events.ts';
 export * from './computer-update.ts';
+export * from './connection-admin.ts';
 export * from './connection-chips.ts';
 export * from './development-chat-demos.ts';
 export * from './execution-bookkeeping.ts';

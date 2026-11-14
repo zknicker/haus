@@ -154,6 +154,7 @@ export async function createAgentInTransaction(
             lastFailureKind: null,
             pausedAt: null,
             retryAfter: null,
+            connectionAdmin: false,
             createdAt: new Date(),
             createdByAgentId,
             createdByUserId,

@@ -411,6 +411,7 @@ per family:
 | cloud-agent | `start send inspect stop cancel` | Cloud Agents (landed) | `start --target <target> [--reply-to <messageId>] --repo <owner/name> --ref <ref> --title <text> --say <text> [--provider cursor\|claude]` with the provider instructions on stdin; `send --work <workId> [--interrupt]` continues the same work with stdin instructions, queued while it is busy; `inspect [--work <workId>]` lists the Agent's work or shows one with its recorded results; `stop --work <workId>` asks the provider to stop, and `cancel` is its compatibility alias; the Computer checks provider readiness before Server records anything and the instructions never leave it ([Cloud Agents](cloud-agents.md)) |
 | image | `models generate wait` | ADR 0047 (landed) | `models` lists the curated image models with sizing rules, prices, and availability; `generate --model <id> [--size <WxH> \| --aspect <A:B> --resolution <1K\|2K\|4K>] [--quality] [--background opaque\|transparent] [--reference <attachment id \| path>]...` takes the prompt on stdin and returns at once; `wait <generation id> [--out <dir>] [--timeout <seconds>]` saves the finished image ([Image Generation](image-generation.md)) |
 | agent | `create update avatar` | ADR 0028 (landed) | `create --target <current-chat> --name <name> --description <text> [--brief <text>] [--channel "#name"] [--avatar-concept <text>] [--emoji <emoji>]` creates the Agent without a Message and returns its confirmed `@handle`, channels, and a line saying the new Agent introduces itself in `#all` on its first turn while the creator answers the human in the requesting conversation, inheriting the caller's runtime, model, reasoning effort, and Computer; `--brief` is the standing instruction seeded into its memory, `--channel` repeats and always comes on top of `#all`; `--emoji` sets its signature emoji; `--emoji` sets its signature pickup reaction (default 👀); `update --agent @handle --description <text>` and `avatar --agent @handle --concept <text>` edit an existing Agent and refuse Cove. Flags only, no stdin ([Agents](../docs/features/agents.md)) |
+| connection | `list grant revoke` | Connection admins (landed) | Only for an Agent an Owner or Admin made a connection admin; everyone else gets `CONNECTION_ADMIN_REQUIRED`. `list` prints each connection's name, id, connected state, and the `@handles` that can use it; `grant`/`revoke --agent <id \| @handle \| display name> --connection <id \| name>` change one Agent's access, the caller's own included, and report `Nothing changed` on a repeat ([Connections API](../docs/api/connections.md#agent-connection-admins)) |
 | skill | `list view create patch write-file` | WS5 (landed) | Replaces `skills_*` tools; hash-guarded patch/write-file, stdin bodies |
 | manual | `get <topic>`, `search <keywords>` | PRD-187 (landed) | Authenticated, read-only Server-hosted topics; `--intent`/`--reason`; optional `--scope recipes` |
 
@@ -458,6 +459,11 @@ POST /api/agent/cloud-agents       { content, nonce, provider, repository, start
                                    → { chatId, idempotent, messageId, runId, sequence,
                                        target, work }
 POST /api/agent/cloud-agents/cancel { workId } → { work }
+GET  /api/agent/connections        (connection admins only; 403 CONNECTION_ADMIN_REQUIRED)
+                                   → { connections: [{ id, name, connected, agents }] }
+POST /api/agent/connections/grant  { agent, connection }
+                                   → { agent, connection, enabled, changed }
+POST /api/agent/connections/revoke { agent, connection } → same receipt
 ```
 
 - Sends are idempotent by `nonce` (existing message dedupe rules).

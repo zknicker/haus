@@ -827,6 +827,13 @@
       "when": 1794200000013,
       "tag": "0117_inbox-undelivered-reason",
       "breakpoints": true
+    },
+    {
+      "idx": 118,
+      "version": "7",
+      "when": 1794200000014,
+      "tag": "0118_connection-admin",
+      "breakpoints": true
     }
   ]
 }

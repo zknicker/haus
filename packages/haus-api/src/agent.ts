@@ -40,6 +40,11 @@ export const agentSchema = z
          */
         backgroundSubagents: z.number().int().nonnegative().default(0),
         computerId: idSchema,
+        /**
+         * A Server Owner or Admin made this Agent a connection admin: it can turn connection
+         * access on and off for any Agent on the Server (`haus connection`).
+         */
+        connectionAdmin: z.boolean().default(false),
         createdAt: timestampSchema,
         createdByAgentId: z.string().nullable(),
         createdByUserId: z.string().nullable(),

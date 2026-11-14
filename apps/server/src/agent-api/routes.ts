@@ -11,6 +11,7 @@ import { unfollowAgentThread } from './attention.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
 import { registerAgentChannelRoutes } from './channel-routes.ts';
 import { registerAgentCloudAgentRoutes } from './cloud-agent-routes.ts';
+import { registerAgentConnectionRoutes } from './connection-routes.ts';
 import { readAgentServerDirectory } from './directory.ts';
 import { registerAgentHeartbeatRoutes } from './heartbeat-routes.ts';
 import { registerAgentImageGenerationRoutes } from './image-generation-routes.ts';
@@ -92,6 +93,7 @@ export function registerAgentApiRoutes(
         postCommitWork: options.postCommitWork,
     });
     registerAgentChannelRoutes(app, { db: options.db });
+    registerAgentConnectionRoutes(app, options.db);
     registerAgentCloudAgentRoutes(app, {
         agentDelivery: options.agentDelivery,
         computers: options.computers,
