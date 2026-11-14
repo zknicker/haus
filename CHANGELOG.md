@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v17.7.2 - 2026-11-14
+
+- An Agent's Permissions now have their own page, opened by an Owner or Admin from the `···` menu on the Agent's profile. The Connections page is back to the list of connections.
+- The Connections, Permissions, and Profile pages on an Agent's profile no longer carry a line of description under the title.
+
 ## v17.7.1 - 2026-11-14
 
 - The switch that makes an Agent a connection admin moved into its own Permissions section on the Agent's Connections page, and is now called Manage connections.
