@@ -31,9 +31,6 @@ export function AgentTools({
                     "this Agent has N", which is what the switches below already
                     say row by row, and the Overview tile owns that fact. */}
                 <ItemCardGroup.Title>Connections</ItemCardGroup.Title>
-                <ItemCardGroup.Description>
-                    Choose which of this Server's MCP connections this Agent can use.
-                </ItemCardGroup.Description>
             </ItemCardGroup.Header>
             <ItemCardGroup className="overflow-hidden">
                 {toggleable.length === 0 ? (

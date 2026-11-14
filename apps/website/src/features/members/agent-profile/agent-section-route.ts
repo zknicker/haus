@@ -1,4 +1,5 @@
-import { type AgentSection, isAgentSection } from './agent-sections.ts';
+import type { ServerDetail } from '../../../lib/haus-server.tsx';
+import { type AgentSection, canOpenAgentSection, isAgentSection } from './agent-sections.ts';
 
 /**
  * The profile's tabs before the hub (ADR 0038), mapped to the section that now
@@ -22,4 +23,19 @@ export function resolveAgentSectionParam(
         return { kind: 'section', section: value };
     }
     return { kind: 'redirect', section: retiredTabs.get(value ?? '') ?? 'home' };
+}
+
+/**
+ * The same read for a viewer: a section their role cannot open falls back to
+ * the hub exactly as an unknown segment does, so a Member's link to Permissions
+ * lands home rather than on a gate.
+ */
+export function resolveAgentSectionParamForRole(
+    value: string | undefined,
+    role: ServerDetail['role']
+): ReturnType<typeof resolveAgentSectionParam> {
+    const resolved = resolveAgentSectionParam(value);
+    return canOpenAgentSection(resolved.section, role)
+        ? resolved
+        : { kind: 'redirect', section: 'home' };
 }

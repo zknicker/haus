@@ -27,13 +27,16 @@ function render(canManage: boolean, connectionAdmin = false) {
     );
 }
 
-test('an Owner or Admin sees the Permissions section with the Manage connections switch', () => {
+test('an Owner or Admin sees the Permissions list with the Manage connections row', () => {
     const markup = render(true);
     expect(markup).toContain('Permissions');
-    expect(markup).toContain('Choose what this Agent can manage for other Agents.');
     expect(markup).toContain('Manage connections');
     expect(markup).toContain('Can turn connection access on and off for any agent');
     expect(markup).toContain('aria-label="Let Fen manage connections"');
+});
+
+test('the Permissions section carries no section description', () => {
+    expect(render(true)).not.toContain('Choose what this Agent can manage for other Agents.');
 });
 
 test('the switch reflects the Agent record', () => {

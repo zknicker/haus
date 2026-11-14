@@ -1,10 +1,38 @@
 import { expect, test } from 'bun:test';
-import { resolveAgentSectionParam } from './agent-section-route.ts';
+import {
+    resolveAgentSectionParam,
+    resolveAgentSectionParamForRole,
+} from './agent-section-route.ts';
 
 test('current sections render in place', () => {
-    for (const section of ['home', 'runtime', 'automations', 'activity', 'workspace'] as const) {
+    for (const section of [
+        'home',
+        'runtime',
+        'automations',
+        'connections',
+        'permissions',
+        'activity',
+        'workspace',
+    ] as const) {
         expect(resolveAgentSectionParam(section)).toEqual({ kind: 'section', section });
     }
+});
+
+test('Permissions opens for an Owner or Admin and sends a Member to the hub', () => {
+    for (const role of ['owner', 'admin'] as const) {
+        expect(resolveAgentSectionParamForRole('permissions', role)).toEqual({
+            kind: 'section',
+            section: 'permissions',
+        });
+    }
+    // The same fallback an unknown segment gets, not a gate.
+    expect(resolveAgentSectionParamForRole('permissions', 'member')).toEqual(
+        resolveAgentSectionParam('tools')
+    );
+    expect(resolveAgentSectionParamForRole('connections', 'member')).toEqual({
+        kind: 'section',
+        section: 'connections',
+    });
 });
 
 test('retired tabs redirect to the section that holds them now', () => {

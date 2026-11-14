@@ -120,8 +120,9 @@ current in the background and listens for tool changes; no manual refresh is nee
 its conversation.
 
 **Agent connection admins.** An Owner or Admin makes an Agent a connection admin by turning on
-**Manage connections** in the Agent profile's **Permissions** section, below Connections ("Can
-turn connection access on and off for any agent"); Members do not see the section. A
+**Manage connections** on the Agent profile's **Permissions** page, opened from the profile's
+`···` menu ("Can turn connection access on and off for any agent"); Members do not see
+Permissions. A
 connection admin Agent manages the same switches from chat with `haus connection list`, `grant`,
 and `revoke`, for any Agent on the Server, itself included. It cannot add, sign in to, disconnect,
 or remove connections, and it cannot make another Agent a connection admin. Other Agents that run

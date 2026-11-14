@@ -58,14 +58,9 @@ export function AgentSectionBody({
         case 'skills':
             return <AgentSkillsSection agent={agent} server={server} />;
         case 'connections':
-            // Permissions sits under Connections as its own section: its one
-            // row today is the connection admin role.
-            return (
-                <>
-                    <AgentConnectionsSection agent={agent} server={server} />
-                    <AgentPermissionsSection agent={agent} server={server} />
-                </>
-            );
+            return <AgentConnectionsSection agent={agent} server={server} />;
+        case 'permissions':
+            return <AgentPermissionsSection agent={agent} server={server} />;
         case 'activity':
             return <AgentActivity agent={agent} server={server} />;
         case 'dreams':

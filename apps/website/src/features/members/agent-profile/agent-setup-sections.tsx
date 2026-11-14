@@ -15,6 +15,7 @@ import {
 import { serverComputersRoute } from '../../servers/server-routes.ts';
 import { AgentPermissions } from './agent-permissions.tsx';
 import { AgentRuntime } from './agent-runtime.tsx';
+import { canOpenAgentSection } from './agent-sections.ts';
 import { AgentSkills } from './agent-skills.tsx';
 
 /**
@@ -135,12 +136,16 @@ export function AgentSkillsSection({ agent, server }: { agent: Agent; server: Se
     );
 }
 
-/** What this Agent may manage for other Agents; Owner or Admin only, absent for Members. */
+/**
+ * What this Agent may manage for other Agents. The route already sends a
+ * Member home (`canOpenAgentSection`); this check keeps the switches absent
+ * should the page ever render for one anyway.
+ */
 export function AgentPermissionsSection({ agent, server }: { agent: Agent; server: ServerDetail }) {
     return (
         <AgentPermissions
             agent={agent}
-            canManage={server.role === 'owner' || server.role === 'admin'}
+            canManage={canOpenAgentSection('permissions', server.role)}
             serverId={server.id}
         />
     );

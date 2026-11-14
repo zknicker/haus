@@ -63,9 +63,9 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
   injected into the window titlebar, and the view lays out from its container width, so it works in
   a 420px pane.
 - The hub's header states the Agent's photo, name, role, and current availability, offers
-  **Edit Profile** (name, description, the private conversation style, and the signature emoji) for an ordinary Agent, and holds one overflow menu of lifecycle verbs — Stop,
-  Restart, Start fresh session, Full reset, Delete Agent — for Owners and Admins. Members see the
-  header without that menu. A runtime sign-in issue leads under the header. When the Server has
+  **Edit Profile** (name, description, the private conversation style, and the signature emoji) for an ordinary Agent, and holds one `···` overflow menu for Owners and Admins:
+  **Permissions** first, then the lifecycle verbs — Stop, Restart, Start fresh session, Full
+  reset, Delete Agent. Members see the header without that menu. A runtime sign-in issue leads under the header. When the Server has
   paused automatic wakes after repeated failed turns, the header status reads **Paused** and a
   warning Alert there names the failure streak, the last error as a plain sentence (from the
   failure code, never raw error text), and when Haus retries on its own; Owners and Admins also
@@ -73,7 +73,8 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
 - Below the header, six cards each state a fact and open a section: **Runs on** (Computer and
   model, with the Computer's health), **Profile** (who created the Agent and when, else its handle), **Automations**
   (standing reminders and triggers), **Skills** and **Connections** (the first display names, `+N` for the
-  rest), and **Workspace**. Then the Chats this Agent belongs to, recent activity — each turn one line: its time, the request that woke it
+  rest), and **Workspace**. Permissions has no card; an Owner or Admin opens it from the header's
+  `···` menu. Then the Chats this Agent belongs to, recent activity — each turn one line: its time, the request that woke it
   (or, muted, what it did in words when no request is visible), and its duration, and consecutive identical failures folded into one
   row (`Failed 5×`) — and **See all** into Activity, the full-width event log of every turn and its steps under a pinned day overview, and a compact 30-day processed-token tile linking to Usage.
 - The profile's trail rides in the shared page band: `Haus › Juniper › Connections`, the Agent
@@ -82,8 +83,9 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
   Owners and Admins; it is the section's only header (Workspace folds both into one bar). **Runs on**
   holds the assigned Computer and the model/runtime/effort editor; **Profile** the identity
   facts (name, handle, description, created by); **Automations** Reminders and Triggers;
-  **Skills** and **Connections** their editors, with Connections followed by a **Permissions**
-  section for Owners and Admins (**Manage connections**); **Activity** the turn-by-turn execution history;
+  **Skills** and **Connections** their editors; **Permissions**, opened from the hub header's
+  `···` menu, what the Agent may manage for other Agents, where an Owner or Admin turns on
+  **Manage connections** (Members do not see Permissions, and its address sends them to the hub); **Activity** the turn-by-turn execution history;
   **Workspace** the Agent's files as a full-height browser. Workspace has no separate breadcrumb
   header: its band starts with the trail (`Haus / Juniper / Workspace / MEMORY.md`, the open file
   last), then the file's Copy and Raw controls, then one "…" menu holding Show hidden files, Copy

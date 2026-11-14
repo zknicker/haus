@@ -63,6 +63,14 @@ test('no toggleable connection shows the quiet empty row', () => {
     expect(render([connection({ connected: false })])).toContain('No connections yet.');
 });
 
-test('the Connections section no longer carries the connection admin switch', () => {
-    expect(render([connection()])).not.toContain('Manage connections');
+test('the Connections page lists only connections: no permissions row', () => {
+    const markup = render([connection()]);
+    expect(markup).not.toContain('Manage connections');
+    expect(markup).not.toContain('Permissions');
+});
+
+test('the Connections section carries no section description', () => {
+    expect(render([connection()])).not.toContain(
+        "Choose which of this Server's MCP connections this Agent can use."
+    );
 });

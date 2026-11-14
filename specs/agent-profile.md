@@ -34,7 +34,8 @@ drills into its section with a breadcrumb back to the hub
 
 ## Sections
 
-The hub (`home`) links every section through a card; each section is a
+The hub (`home`) links every section through a card, except Permissions,
+which opens from the header's `···` menu; each section is a
 drill-down under a breadcrumb back to the hub, with the lifecycle menu at the
 breadcrumb's end for Owners and Admins.
 
@@ -55,9 +56,14 @@ breadcrumb's end for Owners and Admins.
   display name.
 - **Connections** (`connections`). Server-managed MCP connections granted at
   connection level. Haus does not expose per-tool grants or local/stdin MCP
-  configuration. Below the connection list, Owners and Admins see a
-  **Permissions** section whose **Manage connections** switch makes the Agent a
-  connection admin; Members see no section.
+  configuration.
+- **Permissions** (`permissions`). What the Agent may manage for other Agents,
+  one switch row per power. An Owner or Admin turns on **Manage connections**
+  to make the Agent a connection admin. The hub keeps its six cards; Permissions
+  has none, and an Owner or Admin opens it from the hub header's `···` menu,
+  where it leads ahead of the lifecycle verbs. Members do not see Permissions:
+  the menu is not theirs, and the address falls back to the hub as an unknown
+  section does.
 - **Workspace** (`workspace`). Read-only file tree and viewer over the
   agent's real Computer workspace through an authorized live
   Server↔Computer relay. The Server does not replicate workspace files.
