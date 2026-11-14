@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v17.7.1 - 2026-11-14
+
+- The switch that makes an Agent a connection admin moved into its own Permissions section on the Agent's Connections page, and is now called Manage connections.
+
 ## v17.7.0 - 2026-11-14
 
 - Signing in to a connection again, or replacing its credentials, keeps every Agent's access. Only Disconnect account and Remove from Haus take access away.
