@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v17.7.0 - 2026-11-14
+
+- Signing in to a connection again, or replacing its credentials, keeps every Agent's access. Only Disconnect account and Remove from Haus take access away.
+- Starting a sign-in no longer signs the connection out. It keeps working until the new sign-in finishes.
+- A connection whose service rejected its saved sign-in now shows Sign in required in Settings instead of staying listed as connected while Agents' calls fail.
+- An Owner or Admin can make an Agent a connection admin from the Agent's profile. That Agent can then turn connection access on and off for any Agent with `haus connection list`, `grant`, and `revoke`. It cannot add, sign in to, or remove connections.
+- Update Haus Computer to 15.5.0 to give Agents the `haus connection` commands. Haus Agent 12.5.0 ships with it.
+
 ## v17.6.5 - 2026-11-13
 
 - The sidebar's Open threads section is now called Threads, and it disappears when no Thread is in motion instead of leaving an empty header.
