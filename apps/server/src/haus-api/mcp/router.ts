@@ -172,7 +172,7 @@ export const mcpRouter = createRouter({
         .output(mcpOAuthStartResultSchema)
         .mutation(({ ctx, input }) =>
             withMcpUpdate(input.serverId, () =>
-                startMcpOAuth(ctx.hausDb, ctx.mcpRuntime, ctx.mcpOAuthRelay, ctx.member, input)
+                startMcpOAuth(ctx.hausDb, ctx.mcpOAuthRelay, ctx.member, input)
             )
         ),
 });

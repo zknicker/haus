@@ -7,7 +7,10 @@ import { registerMcpOAuthCallback } from '../src/server-mcp/oauth-callback-route
 import { McpOAuthRelay } from '../src/server-mcp/oauth-relay.ts';
 import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { makeServerRuntime } from '../src/server-runtime.ts';
-import { startControlledOAuthMcpProvider } from './controlled-oauth-mcp.ts';
+import {
+    approveControlledAuthorization as approve,
+    startControlledOAuthMcpProvider,
+} from './controlled-oauth-mcp.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
 const connectionId = 'mcp_oauthrelaytest01';
@@ -141,7 +144,10 @@ test.each(['missing', 'mismatched'])('rejects a %s callback issuer', async (kind
         });
         expect(response.statusCode).toBe(400);
         expect(response.body).toContain('Connection failed');
-        expect((await runtime.readSecret(connectionId)).tokens).toBeUndefined();
+        // A rejected callback keeps the tokens the first sign-in saved.
+        expect((await runtime.readSecret(connectionId)).tokens).toMatchObject({
+            access_token: 'controlled-access',
+        });
     } finally {
         await app.close();
     }
@@ -166,20 +172,3 @@ test('expires routing state before exchanging the callback code', async () => {
         relay.complete(String(authorization.searchParams.get('state')), 'unused-code')
     ).resolves.toEqual({ status: 'expired' });
 });
-
-async function approve(authorization: URL): Promise<URL> {
-    const response = await fetch(`${authorization.origin}/approve`, {
-        body: new URLSearchParams({
-            code_challenge: authorization.searchParams.get('code_challenge') ?? '',
-            redirect_uri: authorization.searchParams.get('redirect_uri') ?? '',
-            state: authorization.searchParams.get('state') ?? '',
-        }),
-        method: 'POST',
-        redirect: 'manual',
-    });
-    const location = response.headers.get('location');
-    if (!location) {
-        throw new Error('The controlled OAuth provider did not return a callback.');
-    }
-    return new URL(location);
-}

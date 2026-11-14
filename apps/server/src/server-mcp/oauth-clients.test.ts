@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import dns from 'node:dns';
 import type { McpPreset } from '@haus/api';
 import { emptySecret, type McpSecret } from './connection-secret.ts';
-import { createMcpOAuthProvider, startMcpAuthorization } from './oauth.ts';
+import { createMcpOAuthProvider } from './oauth.ts';
+import { startMcpAuthorization } from './oauth-sign-in.ts';
 import type { McpRuntime } from './runtime.ts';
 
 const redirectUrl = 'https://haus.chat/mcp/oauth/callback';

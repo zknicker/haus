@@ -10,7 +10,7 @@ import type { ConnectionSignIn } from './use-connection-sign-in.ts';
 /** Which credentials form is open over the connection page. */
 export type CredentialsEditor = 'account-token' | 'headers' | 'token' | 'skool' | 'account-skool';
 
-/** Credentials held back until the Agents losing access are confirmed. */
+/** Credentials held back until the switch for the Agents using them is confirmed. */
 type PendingCredentials =
     | { bearerToken: string; kind: 'token' }
     | { headers: Record<string, string>; kind: 'headers' };
@@ -22,7 +22,7 @@ type PendingCredentials =
  * An OAuth preset's new account is created and signed in from the one press,
  * and `onAccountCreated` moves the reader to it.
  * Replacing credentials that Agents rely on waits for `requestConfirmation`'s
- * dialog to call `confirmPending`.
+ * dialog to call `confirmPending`; those Agents keep access on the new ones.
  */
 export function useConnectionCredentials({
     connection,

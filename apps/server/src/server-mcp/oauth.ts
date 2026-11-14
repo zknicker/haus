@@ -6,99 +6,16 @@ import type {
     OAuthDiscoveryState,
     OAuthTokens,
 } from '@modelcontextprotocol/client';
-import { auth } from '@modelcontextprotocol/client';
 import { env } from '../config/env.ts';
 import type { McpSecret } from './connection-secret.ts';
 import { configuredOAuthClient, configuredOAuthClientInformation } from './oauth-clients.ts';
 import type { McpRuntime } from './runtime.ts';
 import { assertSecureOrLoopbackUrl, secureMcpFetch } from './secure-fetch.ts';
 
-export type McpOAuthStartResult =
-    | { authorizationUrl: string; status: 'ready' }
-    | { authorizationServerOrigin: string; status: 'trust-required' };
-
-class AuthorizationOriginError extends Error {
+/** An authorization-server origin the operator has not approved yet. */
+export class AuthorizationOriginError extends Error {
     constructor(readonly origin: string) {
         super(`Confirm ${origin} before continuing.`);
-    }
-}
-
-export async function startMcpAuthorization(
-    runtime: McpRuntime,
-    input: {
-        allowAuthorizationServerOrigin: boolean;
-        connectionId: string;
-        redirectUrl: string;
-        routingState: string;
-    }
-): Promise<McpOAuthStartResult> {
-    const connection = await requireOAuthConnection(runtime, input.connectionId);
-    assertSecureOrLoopbackUrl(input.redirectUrl, 'OAuth redirect', {
-        allowPrivateNetworks: env.HAUS_MCP_ALLOW_PRIVATE_NETWORKS,
-    });
-    const existing = await runtime.readSecret(input.connectionId);
-    await runtime.writeSecret(input.connectionId, {
-        ...existing,
-        oauthState: undefined,
-        redirectUrl: input.redirectUrl,
-        tokens: undefined,
-        verifier: undefined,
-    });
-    let authorizationUrl: string | null = null;
-    const provider = await createMcpOAuthProvider(runtime, input.connectionId, input.redirectUrl, {
-        allowAuthorizationServerOrigin: input.allowAuthorizationServerOrigin,
-        onRedirect(url) {
-            authorizationUrl = url.toString();
-        },
-        routingState: input.routingState,
-    });
-    try {
-        const configured = configuredOAuthClient(connection.preset);
-        const result = await auth(provider, {
-            fetchFn: provider.fetch,
-            ...(configured?.scopeOverridesResource ? { scope: configured.scope } : {}),
-            serverUrl: connection.url,
-        });
-        if (result !== 'REDIRECT' || !authorizationUrl) {
-            throw new Error('The MCP authorization server did not return an authorization URL.');
-        }
-        return { authorizationUrl, status: 'ready' };
-    } catch (cause) {
-        if (cause instanceof AuthorizationOriginError) {
-            await runtime.writeSecret(input.connectionId, {
-                ...existing,
-                approvedAuthorizationServerOrigins: (await runtime.readSecret(input.connectionId))
-                    .approvedAuthorizationServerOrigins,
-            });
-            return { authorizationServerOrigin: cause.origin, status: 'trust-required' };
-        }
-        await runtime.writeSecret(input.connectionId, existing);
-        throw cause;
-    }
-}
-
-export async function completeMcpAuthorization(
-    runtime: McpRuntime,
-    input: { code: string; connectionId: string; redirectUrl: string; state: string; iss?: string }
-): Promise<void> {
-    const connection = await requireOAuthConnection(runtime, input.connectionId);
-    const provider = await createMcpOAuthProvider(runtime, input.connectionId, input.redirectUrl, {
-        allowAuthorizationServerOrigin: false,
-        onRedirect() {
-            throw new Error('The MCP server requested a new authorization flow.');
-        },
-    });
-    if ((await runtime.readSecret(input.connectionId)).oauthState !== input.state) {
-        throw new Error('MCP OAuth state does not match the authorization attempt.');
-    }
-    const result = await auth(provider, {
-        authorizationCode: input.code,
-        iss: input.iss,
-        fetchFn: provider.fetch,
-        serverUrl: connection.url,
-    });
-    if (result !== 'AUTHORIZED') {
-        throw new Error('MCP authorization did not complete.');
     }
 }
 
@@ -108,6 +25,11 @@ export async function createMcpOAuthProvider(
     redirectUrl: string,
     options: {
         allowAuthorizationServerOrigin: boolean;
+        /**
+         * A sign-in in progress never drops the working tokens: a rejected code
+         * or re-registered client leaves them for the callback to replace.
+         */
+        keepTokens?: boolean;
         onRedirect(url: URL): void;
         routingState?: string;
     }
@@ -121,7 +43,9 @@ export async function createMcpOAuthProvider(
     ]);
     let approvalAvailable = options.allowAuthorizationServerOrigin;
     const update = async (patch: Partial<McpSecret>) => {
-        secret = { ...secret, ...patch };
+        // A sign-in runs beside the live client on the same row; writing a stale
+        // copy would drop the other's PKCE state or refreshed tokens.
+        secret = { ...(await runtime.readSecret(connectionId)), ...patch };
         await runtime.writeSecret(connectionId, secret);
     };
     const trustOrigin = async (url: URL) => {
@@ -230,17 +154,23 @@ export async function createMcpOAuthProvider(
                 await update({ clientInformation: value as unknown as Record<string, unknown> });
             }
         },
+        // Only a sign-in (which brings routing state) persists PKCE state. The
+        // live client cannot finish a browser flow and must not overwrite one.
         async saveCodeVerifier(verifier) {
-            await update({ verifier });
+            if (options.routingState) {
+                await update({ verifier });
+            }
         },
 
         async saveTokens(tokens) {
             await update({ tokens: tokens as unknown as Record<string, unknown> });
         },
         async state() {
-            const state = options.routingState ?? crypto.randomUUID();
-            await update({ oauthState: state });
-            return state;
+            if (!options.routingState) {
+                return crypto.randomUUID();
+            }
+            await update({ oauthState: options.routingState });
+            return options.routingState;
         },
 
         async tokens() {
@@ -275,7 +205,7 @@ export async function createMcpOAuthProvider(
                 ...(scope === 'client'
                     ? { clientInformation: undefined, clientInformationIssuer: undefined }
                     : {}),
-                ...(scope === 'tokens' ? { tokens: undefined } : {}),
+                ...(scope === 'tokens' && !options.keepTokens ? { tokens: undefined } : {}),
                 ...(scope === 'verifier' ? { verifier: undefined } : {}),
                 ...(scope === 'discovery' ? { discoveryState: undefined } : {}),
             });
@@ -283,7 +213,7 @@ export async function createMcpOAuthProvider(
     };
 }
 
-async function requireOAuthConnection(runtime: McpRuntime, connectionId: string) {
+export async function requireOAuthConnection(runtime: McpRuntime, connectionId: string) {
     const connection = await runtime.readConnection(connectionId);
     if (connection.auth !== 'oauth') {
         throw new Error('This MCP connection does not use OAuth.');

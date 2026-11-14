@@ -99,14 +99,33 @@ Haus's hosted OAuth callback before web sign-in can work.
 tools, and grants while keeping the MCP entry; a GitHub connection keeps its installations, and
 its Triggers pause until an Agent is granted again. **Remove from Haus** deletes that entry and its
 saved credentials, including for preset accounts; for GitHub it first removes every installation
-from Haus, pausing their Triggers with one notice to each owning Agent. Signing in again uses the same connection and
-can reuse its configured OAuth client and previously approved authorization-server origins.
+from Haus, pausing their Triggers with one notice to each owning Agent. Only these two actions
+remove Agent access. Signing in again uses the same connection and can reuse its configured OAuth
+client and previously approved authorization-server origins. It keeps every Agent grant, and the
+connection keeps working on its current account until the new sign-in completes; closing the
+sign-in tab changes nothing. Replacing credentials or a token also keeps grants. Grants follow the
+connection, not the upstream account: signing in as a different account gives the granted Agents
+that account. Haus does not check that the account matches, because the Owner or Admin signing in
+is the one choosing it.
+
+When a provider rejects a connection's saved sign-in (an expired or revoked refresh token), Haus
+drops the dead tokens and marks the connection **Sign in required**. Its Agent grants stay stored
+but give no tools until someone signs in again, then apply as before. A momentary outage, where the
+saved sign-in is still intact, leaves the connection connected and retries.
 
 Each Agent profile shows one switch per connected MCP server. Turning it on grants that Agent all
 tools exposed by the connection. The tool names are read-only context, not individual permission
 controls. A connection grant also covers tools the service adds later. Haus Server keeps the list
 current in the background and listens for tool changes; no manual refresh is needed. Access changes take effect on the Agent's next MCP discovery or call without resetting
 its conversation.
+
+**Agent connection admins.** An Owner or Admin can turn on **Connection admin** under an Agent profile's Connections section
+("Can turn connection access on and off for any agent"); Members do not see the switch. A
+connection admin Agent manages the same switches from chat with `haus connection list`, `grant`,
+and `revoke`, for any Agent on the Server, itself included. It cannot add, sign in to, disconnect,
+or remove connections, and it cannot make another Agent a connection admin. Other Agents that run
+these commands are told to ask an Owner or Admin. Each Agent-made change is logged with the acting
+Agent, target Agent, and connection ids. See [Connections API](../api/connections.md#agent-connection-admins).
 
 These grants are an Agent's only MCP access. Agents cannot add MCP servers themselves: MCP servers
 an Agent writes into its execution runtime's own config are ignored (see
@@ -136,5 +155,6 @@ GitHub **Installations** (see [GitHub App connection](../../specs/github-app-con
 **Agent Access** (one switch per Agent; a new grant waits for sign-in), then the reference material: **Tools** (name chips with a count, collapsed to the first few
 behind **Show all N**, expanding inline) and, for a custom connection only, **Information** (Server
 address and sign-in kind). The credentials form, the
-sign-in trust prompt, and the destructive confirmations stay dialogs over the page; the
-confirmations name the Agents that lose access.
+sign-in trust prompt, and the destructive confirmations stay dialogs over the page; Disconnect
+and Remove name the Agents that lose access, and replacing credentials names the Agents that keep
+access on the new ones.

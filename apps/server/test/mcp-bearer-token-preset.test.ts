@@ -4,7 +4,11 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import { createMcpPresetAccount, replaceMcpPresetToken } from '../src/server-mcp/presets.ts';
 import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { makeClient } from '../src/server-mcp/runtime-test-fixtures.ts';
-import { disconnectMcpConnection } from '../src/server-mcp/service.ts';
+import {
+    createMcpConnection,
+    disconnectMcpConnection,
+    replaceMcpHeaders,
+} from '../src/server-mcp/service.ts';
 import { connectSkool } from '../src/server-mcp/skool.ts';
 import { listMcpConnections } from '../src/server-mcp/state.ts';
 import { makeServerRuntime } from '../src/server-runtime.ts';
@@ -14,6 +18,7 @@ import { type HausServerHarness, startHausServerHarness } from './haus-server-ha
 const serverEffectRuntime = makeServerRuntime();
 const token = 'AAAAAAAAAAAAAAAAAAAAAFixture%2BToken';
 const noIcon = () => Promise.resolve(null);
+const agentId = 'agt_bearer_grant';
 
 let harness: HausServerHarness;
 let connection: HausConnection;
@@ -32,6 +37,10 @@ beforeAll(async () => {
         select id from users where auth_subject = 'x-owner'
     `) as { id: string }[];
     member = { subject: 'x-owner', id: user?.id ?? '' };
+    await harness.sql`
+        insert into agents (id, server_id, handle, display_name, home_timezone)
+        values (${agentId}, ${serverId}, 'granted', 'Granted', 'America/New_York')
+    `;
     // Discovery never leaves the process: the fixture client stands in for api.x.com.
     runtime = new McpRuntime(connection.db, serverEffectRuntime, {
         clientFactory: () => Promise.resolve(makeClient('xmcp').client),
@@ -79,7 +88,8 @@ test.each([
         token
     );
 
-    await replaceMcpPresetToken(connection.db, runtime, noIcon, member, {
+    await grant(created.id);
+    const replacedConnection = await replaceMcpPresetToken(connection.db, runtime, noIcon, member, {
         bearerToken: 'replacement-token',
         connectionId: created.id,
         serverId,
@@ -88,6 +98,8 @@ test.each([
         select secret from mcp_secrets where connection_id = ${created.id}
     `) as { secret: { headers: Record<string, string> } }[];
     expect(replaced?.secret.headers).toEqual({ Authorization: 'Bearer replacement-token' });
+    expect(replacedConnection.connected).toBe(true);
+    expect(await grantedAgents(created.id)).toEqual([agentId]);
 
     await disconnectMcpConnection(connection.db, runtime, member, {
         connectionId: created.id,
@@ -97,6 +109,28 @@ test.each([
         select secret from mcp_secrets where connection_id = ${created.id}
     `) as { secret: { headers: Record<string, string> } }[];
     expect(cleared?.secret.headers).toEqual({});
+    expect(await grantedAgents(created.id)).toEqual([]);
+});
+
+test('replacing custom header credentials keeps Agent grants', async () => {
+    const created = await createMcpConnection(connection.db, runtime, noIcon, member, {
+        auth: 'headers',
+        headers: { 'X-Api-Key': 'first-key' },
+        name: 'Custom headers',
+        oauthScopes: [],
+        serverId,
+        url: 'https://custom-headers.example.test/mcp',
+    });
+    await grant(created.id);
+
+    const replaced = await replaceMcpHeaders(connection.db, runtime, noIcon, member, {
+        connectionId: created.id,
+        headers: { 'X-Api-Key': 'second-key' },
+        serverId,
+    });
+
+    expect(replaced).toMatchObject({ connected: true, headerNames: ['X-Api-Key'] });
+    expect(await grantedAgents(created.id)).toEqual([agentId]);
 });
 
 test('the X preset rejects a missing token and arbitrary header edits', async () => {
@@ -180,6 +214,13 @@ test('Skool uses the configured service endpoint and keeps account tokens Server
         'skool-fixture-token'
     );
     expect(JSON.stringify(created)).not.toContain('native-auth');
+    await grant(created.id);
+    await connectSkool(connection.db, runtime, noIcon, member, {
+        connectionId: created.id,
+        serverId,
+        session,
+    });
+    expect(await grantedAgents(created.id)).toEqual([agentId]);
     await disconnectMcpConnection(connection.db, runtime, member, {
         connectionId: created.id,
         serverId,
@@ -219,3 +260,17 @@ test('failed Skool provisioning revokes the temporary account and hides response
     ).rejects.toThrow('Could not finish connecting Skool. Try again.');
     expect(revoked).toBe(true);
 });
+
+async function grant(connectionId: string) {
+    await harness.sql`
+        insert into agent_mcp_connection_grants (server_id, agent_id, connection_id)
+        values (${serverId}, ${agentId}, ${connectionId})
+    `;
+}
+
+async function grantedAgents(connectionId: string): Promise<string[]> {
+    const rows = (await harness.sql`
+        select agent_id from agent_mcp_connection_grants where connection_id = ${connectionId}
+    `) as { agent_id: string }[];
+    return rows.map((row) => row.agent_id);
+}

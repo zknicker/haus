@@ -1,7 +1,6 @@
 import { afterAll, beforeAll, expect, spyOn, test } from 'bun:test';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { mcpUpdatedTopic } from '../src/realtime/topics.ts';
-import { clearMcpIdentity } from '../src/server-mcp/connection-identity.ts';
 import { cacheAnonymousMcpIcons } from '../src/server-mcp/icon-cache.ts';
 import { repairMcpConnectionIcons } from '../src/server-mcp/icon-repair.ts';
 import { createMcpPresetAccount, resolveMcpPresetIcons } from '../src/server-mcp/presets.ts';
@@ -74,7 +73,6 @@ test.each([
     expect(connected).toMatchObject({ connected: true, icon: recommended });
     const disconnected = await disconnectMcpConnection(database.db, runtime, member, input);
     expect(disconnected).toMatchObject({ connected: false, accountLabel: null, icon: recommended });
-    await clearMcpIdentity(database.db, runtime, serverId, added.id);
     expect(await owner.trpc.mcp.list.query({ serverId })).toContainEqual(
         expect.objectContaining({ id: added.id, icon: recommended, connected: false })
     );
