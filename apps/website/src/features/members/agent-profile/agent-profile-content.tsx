@@ -9,6 +9,7 @@ import { AgentRecentActivity } from './agent-recent-activity.tsx';
 import type { AgentSection } from './agent-sections.ts';
 import {
     AgentConnectionsSection,
+    AgentPermissionsSection,
     AgentRuntimeSection,
     AgentSkillsSection,
 } from './agent-setup-sections.tsx';
@@ -57,7 +58,14 @@ export function AgentSectionBody({
         case 'skills':
             return <AgentSkillsSection agent={agent} server={server} />;
         case 'connections':
-            return <AgentConnectionsSection agent={agent} server={server} />;
+            // Permissions sits under Connections as its own section: its one
+            // row today is the connection admin role.
+            return (
+                <>
+                    <AgentConnectionsSection agent={agent} server={server} />
+                    <AgentPermissionsSection agent={agent} server={server} />
+                </>
+            );
         case 'activity':
             return <AgentActivity agent={agent} server={server} />;
         case 'dreams':

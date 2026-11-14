@@ -82,7 +82,8 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
   Owners and Admins; it is the section's only header (Workspace folds both into one bar). **Runs on**
   holds the assigned Computer and the model/runtime/effort editor; **Profile** the identity
   facts (name, handle, description, created by); **Automations** Reminders and Triggers;
-  **Skills** and **Connections** their editors; **Activity** the turn-by-turn execution history;
+  **Skills** and **Connections** their editors, with Connections followed by a **Permissions**
+  section for Owners and Admins (**Manage connections**); **Activity** the turn-by-turn execution history;
   **Workspace** the Agent's files as a full-height browser. Workspace has no separate breadcrumb
   header: its band starts with the trail (`Haus / Juniper / Workspace / MEMORY.md`, the open file
   last), then the file's Copy and Raw controls, then one "…" menu holding Show hidden files, Copy

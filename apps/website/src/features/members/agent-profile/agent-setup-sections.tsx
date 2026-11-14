@@ -13,6 +13,7 @@ import {
     computerLabel,
 } from '../../computers/presentation.ts';
 import { serverComputersRoute } from '../../servers/server-routes.ts';
+import { AgentPermissions } from './agent-permissions.tsx';
 import { AgentRuntime } from './agent-runtime.tsx';
 import { AgentSkills } from './agent-skills.tsx';
 
@@ -88,12 +89,7 @@ export function AgentConnectionsSection({ agent, server }: { agent: Agent; serve
 
     if (connections.data) {
         return (
-            <AgentConnections
-                agent={agent}
-                canManage={server.role === 'owner' || server.role === 'admin'}
-                connections={connections.data}
-                serverId={server.id}
-            />
+            <AgentConnections agent={agent} connections={connections.data} serverId={server.id} />
         );
     }
     return (
@@ -136,6 +132,17 @@ export function AgentSkillsSection({ agent, server }: { agent: Agent; server: Se
                 <SectionPending label="Loading Skills" />
             )}
         </SectionShell>
+    );
+}
+
+/** What this Agent may manage for other Agents; Owner or Admin only, absent for Members. */
+export function AgentPermissionsSection({ agent, server }: { agent: Agent; server: ServerDetail }) {
+    return (
+        <AgentPermissions
+            agent={agent}
+            canManage={server.role === 'owner' || server.role === 'admin'}
+            serverId={server.id}
+        />
     );
 }
 

@@ -119,8 +119,9 @@ controls. A connection grant also covers tools the service adds later. Haus Serv
 current in the background and listens for tool changes; no manual refresh is needed. Access changes take effect on the Agent's next MCP discovery or call without resetting
 its conversation.
 
-**Agent connection admins.** An Owner or Admin can turn on **Connection admin** under an Agent profile's Connections section
-("Can turn connection access on and off for any agent"); Members do not see the switch. A
+**Agent connection admins.** An Owner or Admin makes an Agent a connection admin by turning on
+**Manage connections** in the Agent profile's **Permissions** section, below Connections ("Can
+turn connection access on and off for any agent"); Members do not see the section. A
 connection admin Agent manages the same switches from chat with `haus connection list`, `grant`,
 and `revoke`, for any Agent on the Server, itself included. It cannot add, sign in to, disconnect,
 or remove connections, and it cannot make another Agent a connection admin. Other Agents that run

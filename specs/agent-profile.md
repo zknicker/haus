@@ -55,7 +55,9 @@ breadcrumb's end for Owners and Admins.
   display name.
 - **Connections** (`connections`). Server-managed MCP connections granted at
   connection level. Haus does not expose per-tool grants or local/stdin MCP
-  configuration.
+  configuration. Below the connection list, Owners and Admins see a
+  **Permissions** section whose **Manage connections** switch makes the Agent a
+  connection admin; Members see no section.
 - **Workspace** (`workspace`). Read-only file tree and viewer over the
   agent's real Computer workspace through an authorized live
   Server↔Computer relay. The Server does not replicate workspace files.

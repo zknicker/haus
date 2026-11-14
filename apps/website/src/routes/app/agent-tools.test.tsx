@@ -1,15 +1,12 @@
 import { afterAll, expect, mock, test } from 'bun:test';
+import type { McpConnection } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { testAgent } from '../../features/members/agent-fixtures.ts';
 
-// Bun keeps module mocks for the rest of the worker, so copy the real hooks first and put
-// them back once this file is done (see haus-server-routes.test.tsx).
-const actualAdmin = { ...(await import('../../hooks/members/use-agent-connection-admin.ts')) };
+// Bun keeps module mocks for the rest of the worker, so copy the real hook first and put it
+// back once this file is done (see haus-server-routes.test.tsx).
 const actualGrant = { ...(await import('../../hooks/members/use-agent-grant.ts')) };
 
-mock.module('../../hooks/members/use-agent-connection-admin.ts', () => ({
-    useAgentConnectionAdmin: () => ({ isPending: false, setConnectionAdmin: () => undefined }),
-}));
 mock.module('../../hooks/members/use-agent-grant.ts', () => ({
     useAgentGrant: () => ({ isPending: false, setGrant: () => undefined }),
 }));
@@ -18,36 +15,54 @@ const { AgentTools } = await import('./agent-tools.tsx');
 mock.restore();
 
 afterAll(() => {
-    mock.module('../../hooks/members/use-agent-connection-admin.ts', () => actualAdmin);
     mock.module('../../hooks/members/use-agent-grant.ts', () => actualGrant);
 });
 
-function render(canManage: boolean, connectionAdmin = false) {
+function connection(overrides: Partial<McpConnection> = {}): McpConnection {
+    return {
+        accountLabel: null,
+        auth: 'none',
+        connected: true,
+        grants: [],
+        headerNames: [],
+        icon: null,
+        id: 'mcp_linear0000000000',
+        name: 'Linear',
+        preset: null,
+        serverId: 'srv_one',
+        status: 'online',
+        summary: null,
+        tools: ['list_issues', 'create_issue'],
+        url: 'https://mcp.linear.app/mcp',
+        ...overrides,
+    };
+}
+
+function render(connections: McpConnection[]) {
     return renderToStaticMarkup(
-        <AgentTools
-            agent={testAgent({ connectionAdmin })}
-            canManage={canManage}
-            connections={[]}
-            serverId="srv_one"
-        />
+        <AgentTools agent={testAgent()} connections={connections} serverId="srv_one" />
     );
 }
 
-test('an Owner or Admin sees the connection admin switch with its meaning', () => {
-    const markup = render(true);
-    expect(markup).toContain('Connection admin');
-    expect(markup).toContain('Can turn connection access on and off for any agent');
-    expect(markup).toContain('aria-label="Make Fen a connection admin"');
+test('each connected connection with tools gets a switch for this Agent', () => {
+    const markup = render([connection()]);
+    expect(markup).toContain('Linear');
+    expect(markup).toContain('2 tools');
+    expect(markup).toContain('aria-label="Enable Linear for Fen"');
 });
 
-test('the switch reflects the Agent record', () => {
-    const off = render(true, false);
-    const on = render(true, true);
-    expect(on).not.toEqual(off);
-    expect(on).toMatch(/data-selected="true"/u);
-    expect(off).not.toMatch(/data-selected="true"/u);
+test('a granted connection renders its switch on', () => {
+    const granted = render([
+        connection({ grants: [{ agentId: 'agent_one', connectionId: 'mcp_linear0000000000' }] }),
+    ]);
+    expect(granted).toMatch(/data-selected="true"/u);
+    expect(render([connection()])).not.toMatch(/data-selected="true"/u);
 });
 
-test('a Member never sees the connection admin switch', () => {
-    expect(render(false)).not.toContain('Connection admin');
+test('no toggleable connection shows the quiet empty row', () => {
+    expect(render([connection({ connected: false })])).toContain('No connections yet.');
+});
+
+test('the Connections section no longer carries the connection admin switch', () => {
+    expect(render([connection()])).not.toContain('Manage connections');
 });
