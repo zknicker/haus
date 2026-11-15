@@ -47,18 +47,11 @@ export function HumanIdentity({
             avatar={
                 isSelf ? (
                     <AvatarPicker
-                        isDisabled={setAvatar.isPending}
+                        isPending={setAvatar.isPending}
                         label="profile photo"
                         name={name}
                         onError={setAvatarError}
-                        onSelect={async (image) => {
-                            await setAvatar.mutateAsync({
-                                bytesBase64: image.base64,
-                                mediaType: image.mediaType,
-                                serverId,
-                                target: { kind: 'user' },
-                            });
-                        }}
+                        onSelect={(image) => setAvatar.upload(image)}
                         size={64}
                         src={member.avatarUrl}
                     />
