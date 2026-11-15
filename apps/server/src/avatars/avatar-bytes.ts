@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { type AvatarMediaType, avatarMaxBytes } from '@haus/api/avatar';
+import { type AvatarMediaType, avatarMaxBytes, avatarTooLargeMessage } from '@haus/api/avatar';
 import { AvatarRejectedError } from './avatar-errors.ts';
 
 export interface AvatarBytes {
@@ -19,7 +19,7 @@ export function readAvatarBytes(bytesBase64: string, mediaType: AvatarMediaType)
         throw new AvatarRejectedError('size', 'An avatar image cannot be empty.');
     }
     if (bytes.byteLength > avatarMaxBytes) {
-        throw new AvatarRejectedError('size', 'An avatar image must be 512 KiB or smaller.');
+        throw new AvatarRejectedError('size', avatarTooLargeMessage());
     }
     if (!matchesSignature(bytes, mediaType)) {
         throw new AvatarRejectedError(
