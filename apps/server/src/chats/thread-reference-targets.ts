@@ -14,7 +14,7 @@ export interface ThreadReferenceTarget {
  * it yet, matching how the CLI sends to the same target.
  */
 export async function readReferencedThreads(
-    db: HausDatabase,
+    db: Pick<HausDatabase, 'select'>,
     serverId: string,
     content: string,
     channels: { id: string; name: string }[]

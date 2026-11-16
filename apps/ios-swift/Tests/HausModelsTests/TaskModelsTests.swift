@@ -40,6 +40,35 @@ final class TaskModelsTests: XCTestCase {
         XCTAssertEqual(detail.mentions[0].place.label, "#security · Thread")
         XCTAssertEqual(detail.reminders[0].kind, .once)
         XCTAssertNil(detail.reminders[0].nextFireAt)
+        // A Server that predates the resolved description reads as the description.
+        XCTAssertEqual(detail.descriptionContent, detail.task.description)
+        XCTAssertEqual(detail.descriptionTaskLinks, [])
+    }
+
+    func testDecodesTheResolvedDescriptionAndDropsItWhenAnEditLands() throws {
+        let detail = try HausJSON.decoder().decode(
+            BoardTaskDetail.self,
+            from: Data(
+                """
+                {\(Self.taskFields),
+                 "descriptionContent":"In [#ops](chat://chat_1), see SEC-12",
+                 "descriptionTaskLinks":[{"key":"SEC-12","taskId":"task_12","text":"SEC-12"}],
+                 "mentions":[],"reminders":[]}
+                """.utf8
+            )
+        )
+        let link = TaskLink(key: "SEC-12", taskID: "task_12", text: "SEC-12")
+        XCTAssertEqual(detail.descriptionContent, "In [#ops](chat://chat_1), see SEC-12")
+        XCTAssertEqual(detail.descriptionTaskLinks, [link])
+        // A move keeps the resolved description; an edit renders its own source until the next read.
+        let moved = detail.landing(try decodeTask(category: "active"))
+        XCTAssertEqual(moved.descriptionContent, detail.descriptionContent)
+        let edited = detail.landing(try HausJSON.decoder().decode(
+            BoardTask.self,
+            from: Data("{\(Self.taskFields.replacingOccurrences(of: #""description":"""#, with: #""description":"Now in #infra""#))}".utf8)
+        ))
+        XCTAssertEqual(edited.descriptionContent, "Now in #infra")
+        XCTAssertEqual(edited.descriptionTaskLinks, [link])
     }
 
     func testAMessageDecodesItsTaskLinksAndServersThatPredateThemDecodeEmpty() throws {

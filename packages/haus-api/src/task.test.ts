@@ -101,6 +101,8 @@ test('a Task record keeps its derived key consistent and its fields bounded', ()
     expect(
         taskDetailSchema.parse({
             ...task,
+            descriptionContent: task.description,
+            descriptionTaskLinks: [],
             mentions: [
                 {
                     authorLabel: 'Zero',

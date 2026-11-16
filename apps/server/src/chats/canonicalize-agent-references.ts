@@ -30,7 +30,7 @@ import {
  * being written.
  */
 export async function canonicalizeAgentMessageContentForPersistence(
-    db: HausDatabase,
+    db: Pick<HausDatabase, 'select'>,
     input: {
         additionalAgents?: ParticipantReferenceTarget[];
         content: string;

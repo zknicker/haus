@@ -192,6 +192,51 @@ test('a Task shows what mentions it, opens it, and catches up after a reconnect'
     );
 });
 
+test('a Task description renders its references as the chips chat does', async ({ page }) => {
+    const { client, server } = await createTestServer(page, {
+        displayName: 'Task Description References',
+        slug: 'task-description-refs',
+    });
+    const [general] = await client.board.list.query({ serverId: server.id });
+    const chatId = server.channels.find((chat) => chat.name === 'all')?.id;
+    assertOpaqueId(general?.id);
+    assertOpaqueId(chatId);
+    const blocker = (
+        await client.task.create.mutate({
+            boardId: general.id,
+            serverId: server.id,
+            title: 'Ship the fulfillment fix',
+        })
+    ).task;
+    const { task } = await client.task.create.mutate({
+        boardId: general.id,
+        description: `Raised in #all, blocked on ${blocker.key}. Not \`${blocker.key}\` in code.`,
+        serverId: server.id,
+        title: 'Follow up on the stuck orders',
+    });
+
+    await page.goto(`/s/${server.slug}/tasks/GEN/${task.number}`);
+    const taskChip = page.getByRole('button', { exact: true, name: `Open ${blocker.key}` });
+    const channelChip = page.getByRole('button', { exact: true, name: 'Open all' });
+    await expect(taskChip).toBeVisible();
+    await expect(channelChip).toBeVisible();
+    await expect(page.locator('code', { hasText: blocker.key })).toBeVisible();
+
+    const preview = page.getByRole('tooltip');
+    await expect(async () => {
+        await page.mouse.move(0, 0);
+        await taskChip.hover();
+        await expect(preview).toContainText('Ship the fulfillment fix', { timeout: 1500 });
+    }).toPass({ timeout: 10_000 });
+    await page.mouse.move(0, 0);
+
+    await channelChip.click();
+    await expect(page).toHaveURL(new RegExp(`/chats/${chatId}`, 'u'));
+    await page.goBack();
+    await taskChip.click();
+    await expect(page).toHaveURL(new RegExp(`/tasks/GEN/${blocker.number}$`, 'u'));
+});
+
 test('a stale Task address says so, and the General board stays', async ({ page }) => {
     const { server } = await createTestServer(page, {
         displayName: 'Task Addresses',

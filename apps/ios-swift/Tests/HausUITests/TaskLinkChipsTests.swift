@@ -101,6 +101,34 @@ struct TaskLinkChipsTests {
         #expect(chips(table).map(\.label) == ["SEC-12"])
     }
 
+    /// A Task description draws through the message body path: the Server's
+    /// resolved Channel and Thread references and its resolved key are chips,
+    /// and code and a PR mentioned in words stay text.
+    @Test func aTaskDescriptionDrawsLikeAMessage() throws {
+        let content = """
+        From [#joy-haus-ops thread](chat://chat_ops?thread=msg_wHjAXiaR0000) and [#joy-haus-ops](chat://chat_ops) wHjAXiaR.
+        Blocked on OPS-26 and merchbase-fulfillment PR 29 (d66f487), not `OPS-26`.
+        """
+        let detail = BoardTaskDetail(
+            task: TaskPreviewFixtures.detail.task,
+            descriptionContent: content,
+            descriptionTaskLinks: [TaskLink(key: "OPS-26", taskID: "task_26", text: "OPS-26")],
+            mentions: [],
+            reminders: []
+        )
+        let segments = TaskBoardSource.preview.descriptionBlocks(detail).flatMap(\.segments)
+
+        #expect(chips(segments).map(\.kind) == [.thread, .channel, .task])
+        #expect(chips(segments).last?.id == "task_26")
+        let words = segments.compactMap { segment -> String? in
+            if case .text(let text, _) = segment { text } else { nil }
+        }.joined()
+        #expect(words.contains("merchbase-fulfillment PR 29 (d66f487)"))
+        #expect(segments.contains { segment in
+            if case .text("OPS-26", let style) = segment { style.contains(.code) } else { false }
+        })
+    }
+
     @Test func noLinksLeavesTheBlocksAsParsed() {
         let blocks = RichMessageBlockParser.blocks("SEC-12") { _, _, _ in nil }
         #expect(TaskLinkChips.apply([], to: blocks) == blocks)

@@ -48,6 +48,16 @@ extension HausStore {
         return parsed
     }
 
+    /// A Task description drawn the way a message body is: the Server's
+    /// resolved description through the same reference resolver, with its
+    /// Task keys chipped from the links the Server resolved for it.
+    func taskDescriptionBlocks(_ detail: BoardTaskDetail) -> [RichMessageBlock] {
+        TaskLinkChips.apply(
+            detail.descriptionTaskLinks,
+            to: richMessageBlocks(detail.descriptionContent) { _, _ in }
+        )
+    }
+
     private func richMessageBlocks(
         _ content: String,
         onThreadChip: (_ wireTarget: String, _ label: String?) -> Void

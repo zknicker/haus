@@ -4,6 +4,7 @@ import { ItemCard, ItemCardGroup, PressableFeedback } from '@heroui-pro/react';
 import * as React from 'react';
 import { RelativeTime } from '../../components/time/relative-time.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
+import { messagePreviewLine } from '../chats/message-preview-line.ts';
 import { taskMessagePlaceLabel } from './task-presentation.ts';
 import { useOpenTaskChat, useOpenTaskMention } from './use-open-task-chat.ts';
 
@@ -18,21 +19,25 @@ export function TaskMentions({ mentions }: { mentions: readonly TaskMention[] })
 
     return (
         <TaskLinkSection count={mentions.length} title="Mentioned in">
-            {mentions.map((mention, index) => (
-                <React.Fragment key={mention.messageId}>
-                    {index > 0 ? <Separator /> : null}
-                    <TaskLinkRow onOpen={() => openMention(mention)} title={mention.excerpt}>
-                        <EntityAvatar name={mention.authorLabel} size="sm" />
-                        <ItemCard.Content>
-                            <ItemCard.Title>
-                                {`${mention.authorLabel} · ${taskMessagePlaceLabel(mention.place)} · `}
-                                <RelativeTime value={mention.createdAt} />
-                            </ItemCard.Title>
-                            <ItemCard.Description>{mention.excerpt}</ItemCard.Description>
-                        </ItemCard.Content>
-                    </TaskLinkRow>
-                </React.Fragment>
-            ))}
+            {mentions.map((mention, index) => {
+                // A quoted message, as every quoting surface reads one: a reference is its label.
+                const excerpt = messagePreviewLine(mention.excerpt);
+                return (
+                    <React.Fragment key={mention.messageId}>
+                        {index > 0 ? <Separator /> : null}
+                        <TaskLinkRow onOpen={() => openMention(mention)} title={excerpt}>
+                            <EntityAvatar name={mention.authorLabel} size="sm" />
+                            <ItemCard.Content>
+                                <ItemCard.Title>
+                                    {`${mention.authorLabel} · ${taskMessagePlaceLabel(mention.place)} · `}
+                                    <RelativeTime value={mention.createdAt} />
+                                </ItemCard.Title>
+                                <ItemCard.Description>{excerpt}</ItemCard.Description>
+                            </ItemCard.Content>
+                        </TaskLinkRow>
+                    </React.Fragment>
+                );
+            })}
         </TaskLinkSection>
     );
 }

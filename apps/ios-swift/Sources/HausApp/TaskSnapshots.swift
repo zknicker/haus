@@ -48,9 +48,8 @@ final class TaskSnapshots {
             list.append(task)
         }
         if tasksByBoardID[task.boardID] != nil { tasksByBoardID[task.boardID] = list }
-        if var detail = detailsByID[task.id], detail.task.version <= task.version {
-            detail.task = task
-            detailsByID[task.id] = detail
+        if let detail = detailsByID[task.id], detail.task.version <= task.version {
+            detailsByID[task.id] = detail.landing(task)
         }
         if let index = inboxItems?.firstIndex(where: { $0.id == task.id }),
            inboxItems?[index].task.version ?? 0 <= task.version {

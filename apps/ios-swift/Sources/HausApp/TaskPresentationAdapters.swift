@@ -19,6 +19,7 @@ extension HausStore {
             conversationLabel: { [weak self] chatID in
                 self?.conversationLabel(chatID: chatID) ?? "Thread"
             },
+            descriptionBlocks: { [weak self] detail in self?.taskDescriptionBlocks(detail) ?? [] },
             loadBoards: { [weak self] in try await self?.reloadBoards() },
             loadTasks: { [weak self] boardID in try await self?.reloadBoardTasks(boardID: boardID) },
             loadDetail: { [weak self] taskID in try await self?.reloadTaskDetail(taskID: taskID) },

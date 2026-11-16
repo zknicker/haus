@@ -1,7 +1,7 @@
 import * as z from 'zod';
 import { type ColumnCategory, columnCategorySchema, isClosedColumnCategory } from './board.ts';
 import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
-import { taskKeySchema } from './task-key.ts';
+import { taskKeySchema, taskLinkSchema } from './task-key.ts';
 import { taskPriorities } from './task-labels.ts';
 
 export const TASK_TITLE_MAX_CHARS = 200;
@@ -104,6 +104,15 @@ export const taskReminderRefSchema = z
 export const taskDetailSchema = z
     .object({
         ...taskFields,
+        /**
+         * The description as clients render it, resolved when read: the bare
+         * `@handle`, `#channel`, and `#channel:shortid` tokens an Agent's Message
+         * has rewritten into references when written, rewritten the same way.
+         * Never stored; `description` stays the source a reader edits.
+         */
+        descriptionContent: z.string(),
+        /** The Task references in `descriptionContent`, like a Message's `taskLinks`. */
+        descriptionTaskLinks: z.array(taskLinkSchema),
         mentions: z.array(taskMentionSchema),
         reminders: z.array(taskReminderRefSchema),
     })
