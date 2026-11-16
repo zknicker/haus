@@ -23,6 +23,7 @@ import { createConnectionClient } from './connection-client.ts';
 import { type McpSecret, readMcpSecret, writeMcpSecret } from './connection-secret.ts';
 import { asMcpArguments, McpDeniedError } from './errors.ts';
 import { McpInventory } from './inventory.ts';
+import { markMcpSignInRequired } from './sign-in-required.ts';
 import { callMcpTool, findModelTool, listAllTools, modelToolName } from './tool-catalog.ts';
 import { narrowMcpToolResult } from './tool-result.ts';
 import { classifyMcpUpstreamError } from './upstream-failure.ts';
@@ -254,15 +255,31 @@ export class McpRuntime {
         traceContext?: TraceCarrier,
         signal?: AbortSignal
     ): Promise<T> {
-        return await runMcpUpstream({
-            clients: this.clients,
-            signal,
-            connectionId,
-            operation,
-            traceContext,
-            timeoutMs:
-                operation === 'discovery' ? this.discoveryTimeoutMs : this.invocationTimeoutMs,
-            use,
-        });
+        try {
+            return await runMcpUpstream({
+                clients: this.clients,
+                signal,
+                connectionId,
+                operation,
+                traceContext,
+                timeoutMs:
+                    operation === 'discovery' ? this.discoveryTimeoutMs : this.invocationTimeoutMs,
+                use,
+            });
+        } catch (cause) {
+            // Background inventory and Agent calls both land here, so a provider that
+            // rejected the refresh shows up in Settings, not only in Agent errors.
+            await markMcpSignInRequired(this.db, connectionId, cause).catch((error: unknown) =>
+                this.runtime.runSync(
+                    Effect.logWarning('Could not mark the MCP connection sign-in required').pipe(
+                        Effect.annotateLogs({
+                            connectionId,
+                            error: error instanceof Error ? error.name : 'unknown',
+                        })
+                    )
+                )
+            );
+            throw cause;
+        }
     }
 }

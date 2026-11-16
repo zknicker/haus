@@ -4,7 +4,8 @@ import { eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { mcpConnectionsTable } from '../postgres/schema.ts';
 import { mcpUpdatedTopic } from '../realtime/topics.ts';
-import { completeMcpAuthorization, startMcpAuthorization } from './oauth.ts';
+import { summarizeInstructions } from './instructions-summary.ts';
+import { completeMcpAuthorization, startMcpAuthorization } from './oauth-sign-in.ts';
 import type { McpRuntime } from './runtime.ts';
 
 interface OAuthAttempt {
@@ -72,6 +73,7 @@ export class McpOAuthRelay {
             return { status: 'expired' };
         }
         try {
+            // The old tokens and client served until here; Agent grants carry over.
             await completeMcpAuthorization(this.runtime, {
                 code,
                 iss,
@@ -87,6 +89,7 @@ export class McpOAuthRelay {
                 .set({
                     accountLabel: discovery.accountLabel,
                     connected: true,
+                    summary: summarizeInstructions(discovery.instructions),
                     tools: [...new Set(discovery.tools)].sort(),
                 })
                 .where(eq(mcpConnectionsTable.id, attempt.connectionId))

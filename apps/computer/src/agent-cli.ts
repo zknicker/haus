@@ -5,6 +5,7 @@ import { ATTACHMENT_SUBCOMMANDS } from './agent-cli/commands/agent-attachment.ts
 import { BOARD_SUBCOMMANDS } from './agent-cli/commands/agent-board.ts';
 import { CLAIM_SUBCOMMANDS } from './agent-cli/commands/agent-claim.ts';
 import { CLOUD_AGENT_SUBCOMMANDS } from './agent-cli/commands/agent-cloud-agent.ts';
+import { CONNECTION_SUBCOMMANDS } from './agent-cli/commands/agent-connection.ts';
 import { CHANNEL_SUBCOMMANDS, SERVER_SUBCOMMANDS } from './agent-cli/commands/agent-directory.ts';
 import { HEARTBEAT_SUBCOMMANDS } from './agent-cli/commands/agent-heartbeat.ts';
 import { IMAGE_SUBCOMMANDS } from './agent-cli/commands/agent-image.ts';
@@ -29,6 +30,7 @@ export const commandGroups = {
     channel: CHANNEL_SUBCOMMANDS,
     claim: CLAIM_SUBCOMMANDS,
     'cloud-agent': CLOUD_AGENT_SUBCOMMANDS,
+    connection: CONNECTION_SUBCOMMANDS,
     files: ARTIFACT_SUBCOMMANDS,
     heartbeat: HEARTBEAT_SUBCOMMANDS,
     image: IMAGE_SUBCOMMANDS,

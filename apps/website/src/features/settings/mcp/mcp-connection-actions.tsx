@@ -38,7 +38,9 @@ export function ConnectionDestructiveDialog({
                                 : null}
                             {connection.affectedAgents.length === 0
                                 ? 'No Agents currently use this connection.'
-                                : `${connection.affectedAgents.map((agent) => agent.name).join(', ')} will lose access to this connection.`}
+                                : action === 'replace-credentials'
+                                  ? `${connection.affectedAgents.map((agent) => agent.name).join(', ')} keep access and will use the new credentials.`
+                                  : `${connection.affectedAgents.map((agent) => agent.name).join(', ')} will lose access to this connection.`}
                         </AlertDialog.Body>
                         <AlertDialog.Footer>
                             <Button slot="close" variant="secondary">

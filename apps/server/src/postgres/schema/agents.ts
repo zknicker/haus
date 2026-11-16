@@ -1,6 +1,7 @@
 import type { AgentReasoningEffort } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import {
+    boolean,
     check,
     foreignKey,
     integer,
@@ -33,6 +34,11 @@ export const agentsTable = pgTable(
          * what survives a reprovision, not the seeded file.
          */
         brief: text('brief'),
+        /**
+         * A Server Owner or Admin made this Agent a connection admin: it may turn connection
+         * access on and off for any Agent on its Server, itself included. Only a human sets it.
+         */
+        connectionAdmin: boolean('connection_admin').notNull().default(false),
         creationNonce: text('creation_nonce'),
         creationRequestHash: text('creation_request_hash'),
         computerId: text('computer_id'),

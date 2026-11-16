@@ -17,6 +17,7 @@ import { type ProfileAgentVoice, type ProfileDraft, ProfileEdit } from '../profi
 import { AgentActionsMenu } from './agent-actions-menu.tsx';
 import { canRunAgentActions } from './agent-actions-model.ts';
 import { AgentAvatarGenerator } from './agent-avatar-generator.tsx';
+import type { AgentSection } from './agent-sections.ts';
 
 const headerAvatarSize = 64;
 
@@ -24,7 +25,8 @@ const headerAvatarSize = 64;
  * The Agent's identity at the top of its hub: the mark, the name
  * with its role and current presence, and one muted line of handle and
  * description. The far end carries the two things a reader acts on here —
- * editing the profile, and the lifecycle verbs behind one overflow menu.
+ * editing the profile, and one overflow menu holding Permissions (the one
+ * section without a hub card) and the lifecycle verbs.
  *
  * Created date is deliberately absent: it is a provenance fact, not an identity one,
  * and it lives in the Profile section. Model, runtime, and Computer are absent
@@ -34,10 +36,13 @@ const headerAvatarSize = 64;
 export function AgentHeader({
     agent,
     onDeleted,
+    onOpenSection,
     server,
 }: {
     agent: Agent;
     onDeleted: () => void;
+    /** The hub cards' navigation, for the menu's Permissions item. */
+    onOpenSection: (section: AgentSection) => void;
     server: ServerDetail;
 }) {
     const [avatarError, setAvatarError] = React.useState<string | null>(null);
@@ -98,7 +103,12 @@ export function AgentHeader({
                         />
                     ) : null}
                     {canRunAgentActions(server.role) ? (
-                        <AgentActionsMenu agent={agent} onDeleted={onDeleted} server={server} />
+                        <AgentActionsMenu
+                            agent={agent}
+                            onDeleted={onDeleted}
+                            onOpenSection={onOpenSection}
+                            server={server}
+                        />
                     ) : null}
                 </div>
             }

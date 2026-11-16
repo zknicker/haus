@@ -9,9 +9,6 @@ import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts
  * The Agent's identity as settled facts. Editing lives on the profile header,
  * where the name and the photo already are, so this card states the record —
  * including the created date, which is provenance rather than identity.
- *
- * A factory Agent (Cove) reads the same, with the reason its identity is fixed
- * stated here rather than left as a missing button.
  */
 export function AgentProfileCard({ agent }: { agent: Agent }) {
     const creator = useAgentCreatorName(agent);
@@ -26,11 +23,6 @@ export function AgentProfileCard({ agent }: { agent: Agent }) {
         <ItemCardGroup variant="transparent">
             <ItemCardGroup.Header>
                 <ItemCardGroup.Title>Profile</ItemCardGroup.Title>
-                <ItemCardGroup.Description>
-                    {agent.factoryKind === 'ordinary'
-                        ? 'Edit the name, description, conversation style, signature emoji, and photo from the profile header.'
-                        : `${agent.displayName} is a product-owned Agent, so the Server keeps this identity fixed.`}
-                </ItemCardGroup.Description>
             </ItemCardGroup.Header>
             <ItemCardGroup className="overflow-hidden">
                 {rows.map((row, index) => (

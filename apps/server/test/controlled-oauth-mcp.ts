@@ -10,6 +10,7 @@ export async function startControlledOAuthMcpProvider() {
     const authorizations = new Map<string, Authorization>();
     let accessToken = 'controlled-access';
     let registrations = 0;
+    let tokenOutage = false;
     const handle = async (request: Request): Promise<Response> => {
         const url = new URL(request.url);
         const origin = url.origin;
@@ -62,23 +63,13 @@ export async function startControlledOAuthMcpProvider() {
             return Response.redirect(callback.toString());
         }
         if (url.pathname === '/token' && request.method === 'POST') {
-            const body = new URLSearchParams(await request.text());
-            const code = body.get('code') ?? '';
-            const authorization = authorizations.get(code);
-            if (
-                !authorization ||
-                authorization.redirectUri !== body.get('redirect_uri') ||
-                authorization.challenge !== challenge(body.get('code_verifier') ?? '')
-            ) {
-                return Response.json({ error: 'invalid_grant' }, { status: 400 });
-            }
-            authorizations.delete(code);
-            return Response.json({
-                access_token: accessToken,
-                expires_in: 3600,
-                refresh_token: 'controlled-refresh',
-                token_type: 'Bearer',
-            });
+            return tokenOutage
+                ? Response.json({ error: 'server_error' }, { status: 500 })
+                : exchangeCode(
+                      new URLSearchParams(await request.text()),
+                      authorizations,
+                      accessToken
+                  );
         }
         if (url.pathname === '/mcp' && request.method === 'POST') {
             if (request.headers.get('authorization') !== `Bearer ${accessToken}`) {
@@ -152,12 +143,65 @@ export async function startControlledOAuthMcpProvider() {
     return {
         origin: `http://127.0.0.1:${port}`,
         registrations: () => registrations,
+        /** Expires the issued access token; new sign-ins receive the replacement. */
+        rotateAccessToken: (next: string) => {
+            accessToken = next;
+        },
+        /** Makes the token endpoint fail with a server error, a transient outage. */
+        setTokenOutage: (outage: boolean) => {
+            tokenOutage = outage;
+        },
         stop: () => {
             accessToken = 'stopped';
             server.closeAllConnections();
             server.close();
         },
     };
+}
+
+/**
+ * A refresh carries no code, so it answers invalid_grant: the provider honors
+ * no refresh token, like Cloudflare Access rejecting a stale one.
+ */
+function exchangeCode(
+    body: URLSearchParams,
+    authorizations: Map<string, Authorization>,
+    accessToken: string
+): Response {
+    const code = body.get('code') ?? '';
+    const authorization = authorizations.get(code);
+    if (
+        !authorization ||
+        authorization.redirectUri !== body.get('redirect_uri') ||
+        authorization.challenge !== challenge(body.get('code_verifier') ?? '')
+    ) {
+        return Response.json({ error: 'invalid_grant' }, { status: 400 });
+    }
+    authorizations.delete(code);
+    return Response.json({
+        access_token: accessToken,
+        expires_in: 3600,
+        refresh_token: 'controlled-refresh',
+        token_type: 'Bearer',
+    });
+}
+
+/** Approves an authorization URL as the person would, returning the callback URL. */
+export async function approveControlledAuthorization(authorization: URL): Promise<URL> {
+    const response = await fetch(`${authorization.origin}/approve`, {
+        body: new URLSearchParams({
+            code_challenge: authorization.searchParams.get('code_challenge') ?? '',
+            redirect_uri: authorization.searchParams.get('redirect_uri') ?? '',
+            state: authorization.searchParams.get('state') ?? '',
+        }),
+        method: 'POST',
+        redirect: 'manual',
+    });
+    const location = response.headers.get('location');
+    if (!location) {
+        throw new Error('The controlled OAuth provider did not return a callback.');
+    }
+    return new URL(location);
 }
 
 async function sendResponse(outgoing: ServerResponse, response: Response) {

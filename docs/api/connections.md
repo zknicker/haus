@@ -68,14 +68,21 @@ Printful store linking remains an upstream tool flow after MerchBase authenticat
 `mcp.addPresetAccount` is a union keyed by `preset`: OAuth and keyless presets accept no token, and a
 bearer-token preset (`x` or `factory`) requires `bearerToken`, a single header-safe token. Server stores it as an
 `Authorization: Bearer` secret header and connects immediately; the token is never returned.
-`mcp.replacePresetToken` swaps that token and clears grants; `mcp.replaceHeaders` rejects
-bearer-token presets.
+`mcp.replacePresetToken` swaps that token and keeps grants; `mcp.replaceHeaders` rejects
+bearer-token presets. Header replacement and Skool reconnect keep grants too. Only `mcp.disconnect`
+and `mcp.delete` remove a connection's grants.
 
 `mcp.startOAuth` creates Server-held PKCE and routing state. On a loopback Server the App sends the
 callback as `http://127.0.0.1:<port>/mcp/oauth/callback`, never `localhost`, because providers such
 as GitHub accept an arbitrary port only for the IP literal (RFC 8252 §7.3). The hosted callback validates state;
 Server exchanges the code, persists tokens and client registration, and performs refresh. Computer
-does not participate. The OAuth provider reads stored tokens on every request, so a refresh another
+does not participate. Starting a sign-in changes nothing the connection works with: it asks the SDK
+for a fresh authorization (`forceReauthorization`) without discarding stored tokens, so `connected`,
+`tools`, `accountLabel`, `summary`, the live client, and grants all stay until the callback
+completes. The callback then swaps in the new tokens, closes the old client, rediscovers, and writes
+the new identity. A failed or abandoned sign-in leaves the previous tokens in place. Grants survive
+re-sign-in even when it lands on a different upstream account; that is deliberate
+(`apps/server/src/server-mcp/oauth-sign-in.ts`). The OAuth provider reads stored tokens on every request, so a refresh another
 Server path performs (the GitHub user token, below) reaches live MCP clients at once.
 
 `mcp.connectSkool` accepts the isolated desktop session and checks Server Owner/Admin
@@ -87,6 +94,27 @@ public API. No network route serves that logical URL.
 
 `mcp.setGrant` stores one `(Server, Agent, connection)` grant. Enabling it makes every current tool
 on the connection available to that Agent, including tools added later.
+
+### Agent connection admins
+
+`agent.setConnectionAdmin` (`{serverId, agentId, connectionAdmin}`, Owner or Admin) sets the
+`agents.connection_admin` flag, exposed as `Agent.connectionAdmin`. No Agent API route writes it.
+A connection admin's runner credential reaches three routes through the per-run loopback proxy:
+
+```txt
+GET  /api/agent/connections          → {connections: [{id, name, connected, agents: [{id, handle, displayName}]}]}
+POST /api/agent/connections/grant    {agent, connection} → {agent, connection: {id, name}, enabled, changed}
+POST /api/agent/connections/revoke   {agent, connection} → same receipt
+```
+
+`agent` is an id, `@handle`, or exact display name; `connection` is an id or exact name. The list
+carries no URL, header names, account labels, or secrets. Grant and revoke run the same transaction
+as `mcp.setGrant` (Server row lock, same-Server check, connected-before-enable), differing only in
+authorization. Refusals: `CONNECTION_ADMIN_REQUIRED` (403, every route, when the caller lacks the
+flag), `AGENT_NOT_FOUND` and `CONNECTION_NOT_FOUND` (404, including another Server's records),
+`AMBIGUOUS_TARGET` (409), and `CONNECTION_NOT_CONNECTED` (409). Each grant or revoke logs one
+`agent connection grant` line with the acting and target Agent ids, connection id, `enabled`, and
+`changed`; a change publishes the connection event.
 
 Computer exposes a fixed `execute` tool. Its search, schema lookup, and invocation call scoped
 Server endpoints through the current per-run loopback proxy:
@@ -163,7 +191,15 @@ naming the HTTP status (`apps/computer/src/server-mcp-response.ts`), and its loo
 an unreadable or over-1-MiB Server body with a typed JSON error.
 
 `connected` describes retained connection identity, not momentary upstream health. These transient
-failures do not disconnect the account or erase its connection-level Agent grants.
+failures do not disconnect the account or erase its connection-level Agent grants. One failure does
+end the identity: when discovery or invocation of an OAuth connection fails with
+`MCP_AUTH_REQUIRED` and its stored tokens are gone (the SDK discards them when the provider answers
+a refresh with `invalid_grant`), Server sets `connected: false` and publishes `mcp.onUpdated`, so
+Settings shows Sign in required (`apps/server/src/server-mcp/sign-in-required.ts`). Grants stay
+stored; a not-connected connection contributes no tools, invocation answers `MCP_DENIED` naming it
+disconnected, GitHub Triggers report `sign_in_required`, and everything resumes when sign-in
+completes. An auth failure that leaves tokens in place (an unreachable token endpoint) keeps the
+connection connected.
 
 `accountLabel` is the upstream `serverInfo.name` unless a preset resolves the signed-in identity
 over its own authenticated MCP client: the GitHub preset calls the server's `get_me` tool and uses
@@ -209,7 +245,8 @@ tools and name a GitHub account on their Triggers ([Triggers API](triggers.md)).
 
 `icon` on a connection is `{ light, dark }`, each an inline `data:` image URI or `null`, or the
 whole field is `null`. It is service branding, independent of the signed-in account.
-Disconnecting or starting a new sign-in clears account identity and grants while retaining the icon.
+Disconnecting clears account identity and grants while retaining the icon; signing in again keeps
+grants and replaces identity only when the sign-in completes.
 
 Custom resolution order is the MCP server's advertised `serverInfo.icons` (SEP-973), then `/favicon.ico`
 on the site behind its host, then the icon `<link>`s (`icon`, `shortcut icon`, `apple-touch-icon`)
@@ -272,7 +309,8 @@ sends no instructions has `summary: null`, and the App falls back to showing the
 Preset defaults use the API aliases. Existing saved URLs and OAuth secrets remain
 explicit migration work: disconnect, replace the exact intended legacy URL, clear
 old scopes/discovery/client credentials, approve the new authorization server,
-and reconnect. Preserve connection ownership and record Agent grants before the
-normal disconnect flow clears them; regrant explicitly after authentication.
+and reconnect. Preserve connection ownership. Signing in again keeps Agent grants;
+if the cutover uses the disconnect flow instead, record grants first, because disconnect
+clears them, and regrant explicitly after authentication.
 Factory bearer connections require a named Factory agent credential, not a
 Merchbase Account Center key. Do not change Haus's own authentication or tunnel.

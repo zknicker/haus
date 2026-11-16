@@ -310,7 +310,7 @@ jobs:
       - name: Set up Bun for snapshot publication
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: '1.4.2'
+          bun-version: '1.4.4'
       - name: Publish immutable and latest Haus snapshots
         env:
           RELEASE_AGENT_TOOLING_OP_TOKEN: ${{ secrets.GH_RELEASE_AGENT_TOOLING_OP_TOKEN }}

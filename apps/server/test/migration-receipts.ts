@@ -58,7 +58,8 @@ export const migrationsSince0060 = [
     '0115_cloud-agent-run-cancel',
     '0116_cloud-agent-typed-notices',
     '0117_inbox-undelivered-reason',
-    '0118_rename-tasks-to-claims',
-    '0119_task-boards',
-    '0120_drop-claim-priority-labels',
+    '0118_connection-admin',
+    '0119_rename-tasks-to-claims',
+    '0120_task-boards',
+    '0121_drop-claim-priority-labels',
 ];

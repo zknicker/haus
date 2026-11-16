@@ -3,7 +3,7 @@ import { formatRelativeTime } from '../../lib/format.ts';
 
 const quietAfterMs = 10 * 60_000;
 
-/** The second line of a Thread row (specs/open-threads.md, State). */
+/** A Thread's status line (specs/open-threads.md, State): the Threads page's second line, the sidebar row's tooltip. */
 export function openThreadStatusLine(thread: OpenThread, now = Date.now()): string {
     const ago = formatRelativeTime(thread.at, now);
     switch (thread.state) {
@@ -27,17 +27,30 @@ export function openThreadStatusLine(thread: OpenThread, now = Date.now()): stri
             return 'Checks running';
         case 'draft':
             return 'Draft';
-        case 'waiting':
-            return `${thread.actorName ? `Waiting on ${thread.actorName}` : 'Waiting for a reply'} · ${ago}`;
         case 'merged':
             return `Merged · ${ago}`;
         case 'pr-closed':
             return `PR closed · ${ago}`;
         case 'done':
             return `Done · ${ago}`;
+        case 'active':
         case 'recent':
             return `${thread.actorName ?? 'Someone'} replied · ${ago}`;
     }
+}
+
+/** A sidebar row's trailing age of the Thread's newest Message: `now`, `47m`, `3h`, `2d`. */
+export function openThreadAge(
+    thread: Pick<OpenThread, 'at' | 'lastActivityAt' | 'updatedAt'>,
+    now = Date.now()
+) {
+    // A Thread nobody has written in still has its work's own time.
+    const moment = thread.lastActivityAt ?? thread.updatedAt ?? thread.at;
+    if (!moment) {
+        return null;
+    }
+    const relative = formatRelativeTime(moment, now);
+    return relative === 'just now' ? 'now' : relative.replace(/ ago$/u, '');
 }
 
 function workingLine(thread: OpenThread, ago: string, now: number) {

@@ -45,7 +45,12 @@ export function AgentHub({
 
     return (
         <>
-            <AgentHeader agent={agent} onDeleted={onDeleted} server={server} />
+            <AgentHeader
+                agent={agent}
+                onDeleted={onDeleted}
+                onOpenSection={onSectionChange}
+                server={server}
+            />
             <AgentRuntimeIssue agent={agent} canRestart={canRunAgentActions(server.role)} />
             <AgentHubCards
                 agent={agent}

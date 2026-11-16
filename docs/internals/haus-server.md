@@ -106,7 +106,7 @@ transaction still holds it, which strands that transaction's Server row lock and
 wedges every later durable write. Keeping the two off one pool holds the
 invariant; the split goes away when Bun isolates reserved connections.
 
-The repository pins Bun 1.4.2, which includes the
+The repository pins Bun 1.4.4, which includes the
 [SQL query-ordering fix](https://github.com/oven-sh/bun/pull/33627).
 Development and tests run with automatic SQL pipelining enabled, covered by
 `haus-postgres-concurrency.test.ts`. Production retains

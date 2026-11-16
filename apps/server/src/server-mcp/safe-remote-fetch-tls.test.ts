@@ -140,4 +140,33 @@ describeIfOpenssl('safeFetch TLS pinning', () => {
             server.stop(true);
         }
     });
+
+    test('falls back to the next validated address when the first refuses the connection', async () => {
+        // The server listens on IPv6 loopback only, so the IPv4 address that
+        // is tried first is refused at the socket and the pin moves to ::1.
+        const server = Bun.serve({
+            fetch: () => new Response('fallback-ok'),
+            hostname: '::1',
+            port: 0,
+            tls: { cert, key },
+        });
+        dns.promises.lookup = (() =>
+            Promise.resolve([
+                { address: '127.0.0.1', family: 4 },
+                { address: '::1', family: 6 },
+            ])) as unknown as typeof dns.promises.lookup;
+
+        try {
+            const response = await safeFetch(
+                `https://pinned.example.test:${server.port}/`,
+                { body: '{}', method: 'POST', tls: { ca } } as RequestInit,
+                'tls pinning proof',
+                { allowPrivateNetworks: true }
+            );
+            expect(response.status).toBe(200);
+            expect(await response.text()).toBe('fallback-ok');
+        } finally {
+            server.stop(true);
+        }
+    });
 });

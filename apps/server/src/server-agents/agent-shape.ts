@@ -23,6 +23,7 @@ export interface ConfiguredAgentRow
     avatarId: string | null;
     computerHealth: 'degraded' | 'healthy' | 'offline' | 'update-required';
     computerId: string | null;
+    connectionAdmin: boolean;
     createdAt: Date;
     createdByAgentId: string | null;
     createdByUserId: string | null;
@@ -99,6 +100,7 @@ export function toAgent(row: ConfiguredAgentRow): Agent {
         backgroundSubagents:
             row.computerHealth === 'healthy' ? row.effectiveBackgroundSubagents : 0,
         computerId: row.computerId,
+        connectionAdmin: row.connectionAdmin,
         createdAt: row.createdAt.toISOString(),
         createdByAgentId: row.createdByAgentId ?? null,
         createdByUserId: row.createdByUserId ?? null,

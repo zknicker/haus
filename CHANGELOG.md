@@ -2,6 +2,48 @@
 
 All notable changes to this project will be documented in this file.
 
+## v17.7.2 - 2026-11-14
+
+- An Agent's Permissions now have their own page, opened by an Owner or Admin from the `···` menu on the Agent's profile. The Connections page is back to the list of connections.
+- The Connections, Permissions, and Profile pages on an Agent's profile no longer carry a line of description under the title.
+
+## v17.7.1 - 2026-11-14
+
+- The switch that makes an Agent a connection admin moved into its own Permissions section on the Agent's Connections page, and is now called Manage connections.
+
+## v17.7.0 - 2026-11-14
+
+- Signing in to a connection again, or replacing its credentials, keeps every Agent's access. Only Disconnect account and Remove from Haus take access away.
+- Starting a sign-in no longer signs the connection out. It keeps working until the new sign-in finishes.
+- A connection whose service rejected its saved sign-in now shows Sign in required in Settings instead of staying listed as connected while Agents' calls fail.
+- An Owner or Admin can make an Agent a connection admin from the Agent's profile. That Agent can then turn connection access on and off for any Agent with `haus connection list`, `grant`, and `revoke`. It cannot add, sign in to, or remove connections.
+- Update Haus Computer to 15.5.0 to give Agents the `haus connection` commands. Haus Agent 12.5.0 ships with it.
+
+## v17.6.5 - 2026-11-13
+
+- The sidebar's Open threads section is now called Threads, and it disappears when no Thread is in motion instead of leaving an empty header.
+- All threads is an arrow that appears when you hover the Threads header. When the section folds rows away, it ends with an "n more" row that opens the Threads page.
+
+## v17.6.4 - 2026-11-12
+
+- The Open threads sidebar now lists the conversations you are in: a Thread you wrote in, started, or were mentioned in stays listed for a day after its last message, read or unread. It no longer shows "Waiting for a reply" after you say thanks, and a Thread no longer drops out the moment an Agent answers.
+- Open threads rows are one line: a cloud for Cloud Agent work or the Thread's Channel or DM mark, the title, then an unread count or the time since the last activity. Finished work stays listed until its own timer ends.
+- Thread titles drop a leading emoji.
+
+## v17.6.3 - 2026-11-08
+
+- Connected tools hosted behind Cloudflare work again. Haus now tries each of a server's checked addresses instead of only the first.
+
+## v17.6.2 - 2026-11-08
+
+- Haus is now built with Bun 1.4.4, which includes upstream security fixes.
+
+## v17.6.1 - 2026-11-08
+
+- The Open threads sidebar lists only work still in motion: a Cloud Agent job running, failed, or waiting on input, a pull request that needs you, or a Thread waiting on an Agent's reply. Unread stays in the Inbox, and finished or quiet Threads stay on the Threads page.
+- A finished or cancelled Cloud Agent job nobody replied to no longer sits in Open threads forever as "Someone replied · unknown".
+- Pull request state on work cards catches up: Haus now finishes rereading every pull request from GitHub instead of rereading the same few, so ones merged while their Run was running read Merged.
+
 ## v17.6.0 - 2026-11-08
 
 - An Open threads section in the sidebar lists the Threads still in motion for you, grouped by who holds them, with each one's status: unread, waiting on an Agent, a Cloud Agent job working or failed, or its pull request ready for review, failing checks, or merged. All threads opens a Threads page with Earlier and a Following/All switch, Close files a Thread away until someone else writes, and Preferences > Show open threads turns it all off on a device.

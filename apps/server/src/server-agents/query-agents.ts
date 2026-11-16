@@ -26,6 +26,7 @@ export async function queryAgents(
             activeRunId: agentDeliveryTable.activeRunId,
             avatarId: agentsTable.avatarId,
             computerId: agentsTable.computerId,
+            connectionAdmin: agentsTable.connectionAdmin,
             createdByAgentId: agentsTable.createdByAgentId,
             createdByUserId: agentsTable.createdByUserId,
             computerHealth: computersTable.health,

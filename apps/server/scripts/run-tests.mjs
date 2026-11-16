@@ -12,12 +12,13 @@ const testFiles = [...walk(join(root, 'test')), ...walk(join(root, 'src'))]
     .sort();
 
 // These run a real MCP or OAuth fixture server on plain HTTP over loopback to
-// prove discovery-timeout, invocation, inventory, and relay behavior end to
+// prove discovery-timeout, invocation, inventory, reauth, and relay behavior end to
 // end; that is exactly the local-dev case HAUS_MCP_ALLOW_PRIVATE_NETWORKS
 // exists for, so only their processes opt into it.
 const privateNetworkTestFiles = new Set([
     'test/haus-agent-run.test.ts',
     'test/mcp-inventory.test.ts',
+    'test/mcp-oauth-reauth.test.ts',
     'test/mcp-oauth-relay.test.ts',
 ]);
 

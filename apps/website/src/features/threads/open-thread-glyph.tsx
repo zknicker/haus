@@ -4,6 +4,7 @@ import {
     Cancel01Icon,
     CheckmarkCircle02Icon,
     Clock01Icon,
+    CloudIcon,
     GitMergeIcon,
     GitPullRequestDraftIcon,
     GitPullRequestIcon,
@@ -15,6 +16,7 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
 
 const glyphs: Record<OpenThreadState, { className: string; icon: typeof Tick02Icon }> = {
+    active: { className: 'text-muted', icon: Message01Icon },
     approved: { className: 'text-success', icon: CheckmarkCircle02Icon },
     'changes-requested': { className: 'text-warning', icon: Alert02Icon },
     'checks-failing': { className: 'text-danger', icon: Alert02Icon },
@@ -28,7 +30,6 @@ const glyphs: Record<OpenThreadState, { className: string; icon: typeof Tick02Ic
     'ready-for-review': { className: 'text-accent', icon: GitPullRequestIcon },
     recent: { className: 'text-muted', icon: Message01Icon },
     unread: { className: 'text-accent', icon: Message01Icon },
-    waiting: { className: 'text-muted', icon: Clock01Icon },
     working: { className: 'text-muted', icon: Loading03Icon },
 };
 
@@ -40,6 +41,28 @@ export function OpenThreadGlyph({ size = 16, state }: { size?: number; state: Op
             aria-hidden="true"
             className={cn('shrink-0', className)}
             icon={icon}
+            size={size}
+            style={{ height: size, width: size }}
+        />
+    );
+}
+
+/**
+ * A Thread holding Cloud Agent work, as its sidebar row leads: the cloud
+ * worker in its state's tone, so a failing or reviewable job reads at a glance.
+ */
+export function OpenThreadWorkGlyph({
+    size = 16,
+    state,
+}: {
+    size?: number;
+    state: OpenThreadState;
+}) {
+    return (
+        <Icon
+            aria-hidden="true"
+            className={cn('shrink-0', glyphs[state].className)}
+            icon={CloudIcon}
             size={size}
             style={{ height: size, width: size }}
         />

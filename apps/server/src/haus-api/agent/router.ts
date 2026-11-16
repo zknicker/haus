@@ -25,6 +25,7 @@ import { restartAgentProcedure } from './restart.ts';
 import { agentRunTriggerProcedure } from './run-trigger.ts';
 import { serverTurnsProcedure } from './server-turns.ts';
 import { agentSessionRotationProcedure } from './session-rotation.ts';
+import { setAgentConnectionAdminProcedure } from './set-connection-admin.ts';
 import {
     agentSkillFileProcedure,
     deleteAgentSkillFileProcedure,
@@ -67,6 +68,7 @@ export const agentRouter = createRouter({
     runTrigger: agentRunTriggerProcedure,
     serverTurns: serverTurnsProcedure,
     sessionRotation: agentSessionRotationProcedure,
+    setConnectionAdmin: setAgentConnectionAdminProcedure,
     start: startAgentProcedure,
     stop: stopAgentProcedure,
     turns: agentTurnsProcedure,

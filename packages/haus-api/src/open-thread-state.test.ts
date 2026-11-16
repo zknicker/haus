@@ -3,9 +3,10 @@ import type { CloudAgentPullRequestReading } from './cloud-agent-shared.ts';
 import {
     deriveOpenThreadState,
     isOpenThreadExpired,
+    isOpenThreadInSidebar,
     type OpenThreadFacts,
-    threadTitle,
-} from './open-threads.ts';
+} from './open-thread-state.ts';
+import { threadTitle } from './open-threads.ts';
 
 const now = new Date('2026-11-05T12:00:00.000Z');
 const lastActivityAt = '2026-11-05T11:00:00.000Z';
@@ -63,7 +64,7 @@ function pr(overrides: Partial<CloudAgentPullRequestReading> = {}): CloudAgentPu
 
 function state(facts: Partial<OpenThreadFacts>) {
     return deriveOpenThreadState(
-        { lastActivityAt, unreadCount: 0, viewerWroteLast: false, works: [], ...facts },
+        { lastActivityAt, unreadCount: 0, viewerTookPart: false, works: [], ...facts },
         now
     );
 }
@@ -95,7 +96,6 @@ describe('deriveOpenThreadState', () => {
             'with-agents',
         ],
         ['draft', { works: [work(done, pr({ state: 'draft' }))] }, 'draft', 'with-agents'],
-        ['waiting', { viewerWroteLast: true }, 'waiting', 'with-agents'],
         [
             'merged',
             { works: [work(done, pr({ settledAt: lastActivityAt, state: 'merged' }))] },
@@ -109,6 +109,7 @@ describe('deriveOpenThreadState', () => {
             'recent',
         ],
         ['done', { works: [work(done)] }, 'done', 'recent'],
+        ['a conversation the viewer took part in', { viewerTookPart: true }, 'active', 'recent'],
         ['anything else', {}, 'recent', 'recent'],
     ];
 
@@ -116,14 +117,32 @@ describe('deriveOpenThreadState', () => {
         expect(state(facts)).toMatchObject({ group, state: expectedState });
     });
 
-    test('a newer live job clears an older failure', () => {
-        const retry = work(live, null, '2026-11-05T11:30:00.000Z');
-        expect(state({ works: [work(failed), retry] }).state).toBe('working');
+    test('a live job outranks a failed one', () => {
+        expect(state({ works: [work(failed), work(live)] }).state).toBe('working');
     });
 
-    test('a Computer-only reading past seven days counts as settled', () => {
+    test('a Computer-only reading past seven days says nothing, so the settled job decides', () => {
         const stale = pr({ observedAt: '2026-10-20T00:00:00.000Z', source: 'computer' });
-        expect(state({ works: [work(done, stale)] }).state).toBe('recent');
+        expect(state({ lastActivityAt: null, works: [work(done, stale)] })).toMatchObject({
+            at: lastActivityAt,
+            expiresAt: '2026-11-06T11:00:00.000Z',
+            state: 'done',
+        });
+    });
+
+    test('a cancelled job is settled, timed from when it settled', () => {
+        const cancelled = {
+            followUp: null,
+            settledAt: lastActivityAt,
+            state: 'cancelled',
+        } as const;
+        expect(state({ lastActivityAt: null, works: [work(cancelled)] }).state).toBe('done');
+    });
+
+    test('a settled fact with no recorded time is already over, never permanent', () => {
+        const merged = pr({ settledAt: null, source: 'computer', state: 'merged' });
+        expect(state({ works: [work(done, merged)] }).expiresAt).toBe(now.toISOString());
+        expect(state({ lastActivityAt: null }).expiresAt).toBe(now.toISOString());
     });
 
     test('merged expires twelve hours after it merged, recent a day after the last write', () => {
@@ -131,6 +150,49 @@ describe('deriveOpenThreadState', () => {
         expect(state({ works: [work(done, merged)] }).expiresAt).toBe('2026-11-05T23:00:00.000Z');
         expect(state({}).expiresAt).toBe('2026-11-06T11:00:00.000Z');
         expect(state({ unreadCount: 1 }).expiresAt).toBeNull();
+    });
+
+    test('who wrote last does not matter: a closing thanks reads like any conversation', () => {
+        // The viewer's own "thanks" was the last write; nothing claims it waits on a reply.
+        expect(state({ viewerTookPart: true })).toMatchObject({
+            expiresAt: '2026-11-06T11:00:00.000Z',
+            state: 'active',
+        });
+    });
+
+    test('an Agent reply the viewer has read stays active in a Thread they took part in', () => {
+        expect(state({ unreadCount: 0, viewerTookPart: true }).state).toBe('active');
+        expect(state({ unreadCount: 2, viewerTookPart: true }).state).toBe('unread');
+    });
+
+    test('work outranks taking part', () => {
+        expect(state({ viewerTookPart: true, works: [work(live)] }).state).toBe('working');
+        expect(state({ viewerTookPart: true, works: [work(done)] }).state).toBe('done');
+    });
+});
+
+describe('isOpenThreadInSidebar', () => {
+    const row = (
+        state: Parameters<typeof isOpenThreadInSidebar>[0]['state'],
+        overrides: { jobCount?: number; viewerTookPart?: boolean } = {}
+    ) => ({ jobCount: 0, state, viewerTookPart: false, ...overrides });
+
+    test('work in motion and settled work are listed', () => {
+        for (const listed of ['working', 'job-failed', 'merged', 'pr-closed', 'done'] as const) {
+            expect(isOpenThreadInSidebar(row(listed, { jobCount: 1 }))).toBe(true);
+        }
+    });
+
+    test('a conversation is listed only when the viewer took part', () => {
+        expect(isOpenThreadInSidebar(row('active', { viewerTookPart: true }))).toBe(true);
+        expect(isOpenThreadInSidebar(row('recent'))).toBe(false);
+    });
+
+    test('unread is listed when the viewer took part or the Thread holds work', () => {
+        expect(isOpenThreadInSidebar(row('unread', { viewerTookPart: true }))).toBe(true);
+        expect(isOpenThreadInSidebar(row('unread', { jobCount: 1 }))).toBe(true);
+        // An Agent-started conversation the viewer never touched stays in the Inbox.
+        expect(isOpenThreadInSidebar(row('unread'))).toBe(false);
     });
 });
 
@@ -149,4 +211,14 @@ test('a Thread title prefers its work, then the anchor line with references as t
             oldestWorkTitle: null,
         })
     ).toBe('@Blippy ship it');
+});
+
+test('a Thread title drops the anchor line leading emoji, unless that is all it says', () => {
+    const title = (anchorContent: string) => threadTitle({ anchorContent, oldestWorkTitle: null });
+    expect(title('🎄 Thursday best-sellers watch')).toBe('Thursday best-sellers watch');
+    expect(title('👩🏽‍💻🚀  Deploy notes')).toBe('Deploy notes');
+    expect(title('🇺🇸 Launch')).toBe('Launch');
+    expect(title('🎉')).toBe('🎉');
+    expect(title('Ship it 🚀')).toBe('Ship it 🚀');
+    expect(title('2026 plan')).toBe('2026 plan');
 });

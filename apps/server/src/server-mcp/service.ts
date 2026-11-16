@@ -18,7 +18,6 @@ import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { requireAdmin, requireConnection, requireOperableConnection } from './connection-access.ts';
 import { resolveMcpConnectionIcon } from './connection-branding.ts';
-import { clearMcpIdentity } from './connection-identity.ts';
 import { emptySecret } from './connection-secret.ts';
 import { McpDeniedError } from './errors.ts';
 import type { McpIconResolver } from './icons.ts';
@@ -95,9 +94,12 @@ export async function createMcpConnection(
     return shapeMcpConnection(row);
 }
 
+/**
+ * Starts a sign-in without touching the connection: it keeps working, and its
+ * Agent grants stay, until the callback swaps in the new account.
+ */
 export async function startMcpOAuth(
     db: HausDatabase,
-    runtime: McpRuntime,
     relay: McpOAuthRelay,
     member: HausUser | null,
     input: McpOAuthStart
@@ -107,15 +109,11 @@ export async function startMcpOAuth(
     if (connection.auth !== 'oauth') {
         throw new McpDeniedError('This OAuth connection was not found.');
     }
-    const result = await relay.start({
+    return await relay.start({
         allowAuthorizationServerOrigin: input.allowAuthorizationServerOrigin,
         connectionId: input.connectionId,
         redirectUrl: input.redirectUrl,
     });
-    if (result.status === 'ready') {
-        await clearMcpIdentity(db, runtime, input.serverId, input.connectionId);
-    }
-    return result;
 }
 
 export async function disconnectMcpConnection(
@@ -205,7 +203,7 @@ export async function replaceMcpHeaders(
     return await saveMcpHeaders(db, runtime, resolveIcon, connection, input.headers);
 }
 
-/** Swaps a header connection's secret headers, clears its Agent access, and rediscovers. */
+/** Swaps a header connection's secret headers and rediscovers; Agent grants carry over. */
 export async function saveMcpHeaders(
     db: HausDatabase,
     runtime: McpRuntime,
@@ -226,9 +224,6 @@ export async function saveMcpHeaders(
         })
         .where(eq(mcpConnectionsTable.id, connection.id))
         .returning();
-    await db
-        .delete(agentMcpConnectionGrantsTable)
-        .where(eq(agentMcpConnectionGrantsTable.connectionId, connection.id));
     const row = updated[0];
     if (!row) {
         throw new Error('MCP headers were not saved.');

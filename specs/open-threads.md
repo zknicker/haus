@@ -58,14 +58,20 @@ A candidate is **open** unless its state below has expired or the viewer closed 
 
 ### State
 
-`deriveOpenThreadState` in `packages/haus-api` is one pure function, so every client agrees. The
-first matching row wins. A Thread with several jobs or pull requests reads them all and takes the
-most urgent. `<d>` is relative time.
+`deriveOpenThreadState` in `packages/haus-api` (`open-thread-state.ts`) is one pure function, so
+every client agrees. The first matching row wins. A Thread with several jobs or pull requests reads
+them all and takes the most urgent. `<d>` is relative time.
+
+Every job state and pull request state is handled by name, so a new one fails the type check
+instead of falling through. Each row takes its time from its own record: a settled job from its
+`settledAt`, a merged or closed pull request from its `settledAt`, a conversation from its newest
+Message (`chats.last_activity_at`, which is null exactly when nobody has written in the Thread). A
+settled fact with no recorded time is not open. No row borrows another record's time.
 
 | State | When | Status line | Group | Expires |
 | --- | --- | --- | --- | --- |
 | `unread` | `threadUnreadCount` above zero | `<Author> replied · <d>`, or `<Author> mentioned you · <d>` | With you | Never |
-| `job-failed` | A job's state is `failed` and no newer job is live | `Job failed` | With you | 24h after the last write |
+| `job-failed` | A job's state is `failed` and no job is live | `Job failed` | With you | 24h after the failed job settled |
 | `checks-failing` | An open pull request's `checks` is `failing` | `Checks failing` | With you | Pull request settles |
 | `changes-requested` | An open pull request's `review` is `changes-requested` | `Changes requested` | With you | Pull request settles |
 | `approved` | An open pull request's `review` is `approved` and checks are not pending | `Approved` | With you | Pull request settles |
@@ -74,15 +80,19 @@ most urgent. `<d>` is relative time.
 | `needs-input` | A job's state is `pending-input` | `Needs input` | With agents | Job settles |
 | `checks-running` | An open pull request's `checks` is `pending` | `Checks running` | With agents | Pull request changes |
 | `draft` | A draft pull request | `Draft` | With agents | Pull request settles |
-| `waiting` | The viewer wrote the Thread's last message | `Waiting on <Agent> · <d>`, else `Waiting for a reply · <d>` | With agents | 24h after the last write |
 | `merged` | Every pull request settled, at least one merged | `Merged · <d>` | Recent | 12h after it merged |
 | `pr-closed` | Every pull request closed unmerged | `PR closed · <d>` | Recent | 12h after it closed |
-| `done` | Every job settled, no pull request | `Done · <d>` | Recent | 24h after the last write |
+| `done` | Every job settled (`done`, `cancelled`, or `expired`) | `Done · <d>` | Recent | 24h after the newest job settled |
+| `active` | Anything else, and the viewer took part | `<Author> replied · <d>` | Recent | 24h after the last write |
 | `recent` | Anything else | `<Author> replied · <d>` | Recent | 24h after the last write |
 
 `needs-input` sits under With agents because the delegating Agent answers it, not the human. Its
-question never appears here, matching the card. `<Agent>` in `waiting` is the Agent that last wrote
-in the Thread.
+question never appears here, matching the card. `<Author>` is whoever wrote the Thread's newest
+Message.
+
+The viewer **took part** (`viewerTookPart`) when they wrote any Message in the Thread, wrote its
+anchor, or are mentioned in either. Who wrote last decides nothing: a closing "thanks" is not a
+question, so no state claims the Thread waits on a reply.
 
 Expiry uses fixed hours because the Server has no viewer timezone
 ([timezone contract](../docs/adr/0040-agents-resolve-human-timezones-explicitly.md)). An expired
@@ -110,8 +120,8 @@ A Thread is closed while its newest Message from someone else is at or below
 `threadTitle` in `packages/haus-api` derives the title at read time and stores nothing:
 
 1. The title of the Thread's oldest Cloud Agent work.
-2. Otherwise the anchor Message's first line, with reference markup rendered as plain text, cut at
-   80 characters.
+2. Otherwise the anchor Message's first line, with reference markup rendered as plain text and its
+   leading emoji dropped (kept when the line is nothing else), cut at 80 characters.
 
 Agent-authored Thread titles are out of scope.
 
@@ -119,15 +129,35 @@ Agent-authored Thread titles are out of scope.
 
 ### Sidebar
 
-An **Open threads** section sits between the top menu and Channels, with **All threads** at the
-trailing end of its header. Each row has a status glyph, the title, then the status line and the
-parent's context label on a second line (`DM` for any direct message). Glyphs differ by shape as
-well as color.
+A **Threads** section sits between the top menu and Channels (`isOpenThreadInSidebar`). Its header
+carries an **All threads** icon action that shows on hover or focus, like the Channels header's
+New channel action, and goes to the Threads page as a sidebar row does. It lists:
 
-Rows sort by group (With you, With agents, Recent), then newest Thread first within a group, so a
-row moves only when its group changes. The section shows at most twelve rows, filling from the top;
-With you rows are never folded away. Past twelve, **All threads** carries `+<n>`. With no open
-Threads the header stays and shows no rows. Nothing renders until the read settles.
+- every work state: `job-failed`, `checks-failing`, `changes-requested`, `approved`,
+  `ready-for-review`, `working`, `needs-input`, `checks-running`, `draft`, and the settled `merged`,
+  `pr-closed`, and `done`, which leave on their own timers;
+- `active`, a conversation the viewer took part in;
+- `unread`, when the viewer took part or the Thread holds work.
+
+`recent` and an `unread` conversation the viewer never touched (an Agent-started Thread, say) stay
+on the Threads page and in the Inbox.
+
+Each row is one line at Channel-row density:
+
+- **Mark.** A Thread holding Cloud Agent work leads with the cloud worker glyph in its state's tone.
+  Any other leads with its parent's own mark: the Channel's icon tile, or the peer's avatar for a
+  direct message, as the Channels and Direct messages rows draw them.
+- **Title** on one line. An `unread` row uses the Channel rows' unread emphasis.
+- **Trailing:** the unread count chip on an `unread` row (the chip Channel and DM rows wear), else the muted age of the
+  newest Message (`47m`).
+
+There is no second line and no tooltip: the status line and the parent's context label (`#channel`,
+or `DM` for any direct message) show on the Threads page.
+
+Rows with work come first, then conversations, each newest activity first. The section shows at
+most twelve rows, filling from the top; With you rows are never folded away. Past twelve, the list
+ends with one muted **`<n>` more** row that goes to the Threads page. With no open Threads the
+section, header included, does not render. Nothing renders until the read settles.
 
 **Show open threads** in Preferences turns this section, the command menu's Threads group, and Close
 off on one device. It is on by default. Search, pull request readings, and the Threads page's address
@@ -231,7 +261,8 @@ type CloudAgentPullRequestReading = {
 - **One refresher.** A serial Server loop takes marked rows one at a time and reads
   `pulls/{n}`, `pulls/{n}/reviews`, `commits/{sha}/check-runs`, and `commits/{sha}/status` with the
   installation token. It coalesces repeated marks, and it never fans out, per the dev Server pool
-  hazard. It writes source `github` and emits `cloudAgentWork.updated` for linked work only when the
+  hazard. A read clears only the mark it read, compared at millisecond precision, since Postgres
+  keeps microseconds. It writes source `github` and emits `cloudAgentWork.updated` for linked work only when the
   reading changed.
 - **Rollups.** `checks` is `failing` if any completed check or status failed, else `pending` if any
   is unfinished, else `passing`, else `none`. `review` takes each reviewer's latest non-comment
@@ -261,7 +292,7 @@ thread.onClosedUpdated // one human's closes, across their devices
 ```
 
 `OpenThread` carries `threadChatId`, `parentChatId`, `anchorMessageId`, `title`, `state`,
-`group`, `expiresAt`, the facts its status line needs, and `lastActivityAt`. A fixed number of
+`group`, `expiresAt`, the facts its status line needs, `viewerTookPart`, `unreadCount`, and `lastActivityAt`. A fixed number of
 queries read the candidates and their inputs; there is no per-Thread read. Both lists read every
 candidate and filter in the Server, which is fine at today's size; add a recency bound if it stops
 being.

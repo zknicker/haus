@@ -9,6 +9,7 @@ import { AgentRecentActivity } from './agent-recent-activity.tsx';
 import type { AgentSection } from './agent-sections.ts';
 import {
     AgentConnectionsSection,
+    AgentPermissionsSection,
     AgentRuntimeSection,
     AgentSkillsSection,
 } from './agent-setup-sections.tsx';
@@ -60,6 +61,8 @@ export function AgentSectionBody({
             return <AgentSkillsSection agent={agent} server={server} />;
         case 'connections':
             return <AgentConnectionsSection agent={agent} server={server} />;
+        case 'permissions':
+            return <AgentPermissionsSection agent={agent} server={server} />;
         case 'activity':
             return <AgentActivity agent={agent} server={server} />;
         case 'dreams':

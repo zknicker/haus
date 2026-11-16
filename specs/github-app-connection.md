@@ -83,8 +83,10 @@ refreshes of one connection in a Server process share one exchange, and the new 
 under the secret-row lock only while the stored refresh token is still the one exchanged;
 otherwise the pair another path stored first wins.
 
-Starting sign-in already clears the connection's identity and Agent grants (`clearMcpIdentity`),
-and disconnect deletes grants. Both stay as they are.
+Signing in again keeps the connection's Agent grants and leaves its identity and tokens in place
+until the callback completes ([MCP connections](mcp.md#product-model)); disconnect deletes grants.
+A GitHub connection whose stored tokens were discarded after a rejected refresh becomes
+`connected: false`, so its Triggers report `sign_in_required` until someone signs in again.
 
 ## Installations
 
@@ -233,7 +235,8 @@ items are deleted.
 The migration that adds these tables invalidates every `preset = 'github'` connection: deletes its
 `mcp_secrets` row, deletes its Agent grants, sets `connected = false`, `tools = '{}'`,
 `account_label = null`. Grants are not preserved; after signing in again an Owner or Admin regrants
-Agents, which matches every other re-sign-in. No compatibility stub exists.
+Agents. That was a one-time migration; an ordinary re-sign-in keeps grants
+([MCP connections](mcp.md#product-model)). No compatibility stub exists.
 
 ## App UI
 

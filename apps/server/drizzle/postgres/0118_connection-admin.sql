@@ -1,0 +1,1 @@
+ALTER TABLE "agents" ADD COLUMN "connection_admin" boolean DEFAULT false NOT NULL;

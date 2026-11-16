@@ -43,6 +43,11 @@ read_when:
 - Disconnect clears the active identity, tokens, inventory, and Agent grants. It preserves
   reusable client registration and operator-approved authorization origins. All connections,
   including preset accounts, may be deleted; deletion also removes their stored secrets and grants.
+  Disconnect and deletion are the only paths that remove grants. Signing in again, replacing
+  headers or a preset token, and reconnecting Skool keep every grant, including when the new
+  credentials belong to a different upstream account: grants follow the connection, and the Owner
+  or Admin who signs in chooses the account. Starting an OAuth sign-in changes nothing until its
+  callback completes; an abandoned sign-in leaves the connection working on its old tokens.
   Deleting a GitHub connection first tombstones its installations and degrades their Triggers in
   the same transaction ([removal](github-app-connection.md#removal-and-deletion)).
 
@@ -56,6 +61,11 @@ connection state before reading the account-scoped cache.
 
 - A grant is `(server_id, agent_id, connection_id)` and enables every tool currently exposed by
   that connection, including tools added later.
+- An Owner or Admin changes grants in the App. An Agent changes them only when an Owner or Admin
+  made it a connection admin (`agents.connection_admin`, human-set only); it may then grant or
+  revoke any Agent's access, its own included, through `haus connection`, and nothing else about
+  connections. Both paths share one transactional grant write and differ only in authorization;
+  each Agent-made change is logged by id.
 - Tool discovery changes the read-only tool list; it does not create a second grant layer.
 - Server rechecks the connection grant before every upstream call.
 - Computer receives only safe names, descriptions, and input schemas for granted tools.
@@ -107,7 +117,11 @@ connection state before reading the account-scoped cache.
   lifecycle changes.
 - Invocation is authorized by the scoped runner identity plus the current Server grant.
 - `connected` means the Server retains an active connection identity; it is not transient upstream
-  health. Request failures do not disconnect an account or erase grants.
+  health. Request failures do not disconnect an account or erase grants. The exception is lost
+  identity: an OAuth connection whose discovery or invocation needs reauthorization and whose
+  stored tokens are gone (the provider rejected the refresh) becomes `connected: false` and shows
+  Sign in required. Its grants stay stored, contribute no tools while it is signed out, and apply
+  again when sign-in completes.
 
 ## Agent execution
 

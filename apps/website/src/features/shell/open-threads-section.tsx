@@ -1,20 +1,21 @@
+import { Button } from '@heroui/react';
 import { Sidebar } from '@heroui-pro/react';
-import { Link } from 'react-router-dom';
-import { useChatNavigationEntry } from '../../hooks/servers/use-chats.ts';
+import { ArrowRight02Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { Icon } from '../../components/ui/icon.tsx';
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
-import { usePressNavigationWith } from '../../hooks/shell/use-press-navigation.ts';
-import { useOpenThreadEntry, useOpenThreadLayout } from '../../hooks/threads/use-open-threads.ts';
-import { threadPageRoute } from '../../hooks/threads/use-thread-opener.ts';
+import { useOpenThreadLayout } from '../../hooks/threads/use-open-threads.ts';
 import { threadsRoute } from '../servers/server-routes.ts';
-import { OpenThreadGlyph } from '../threads/open-thread-glyph.tsx';
-import { openThreadStatusLine } from '../threads/open-thread-status.ts';
 import { useShowOpenThreads } from '../threads/show-open-threads.ts';
 import { ChatGroup } from './chat-navigation-group.tsx';
+import { OpenThreadRow } from './open-thread-row.tsx';
+import { OpenThreadsMoreRow } from './open-threads-more-row.tsx';
+import { sidebarActionIconSize } from './section-header.tsx';
 
 /**
- * Threads still in motion for the viewer: a lens, not an attention tier, so it
- * carries no badge. It reads only its structure; each row reads its own entry.
- * Nothing renders until the read settles.
+ * The viewer's Threads in motion: Cloud Agent work, and conversations they
+ * took part in. A lens, not an attention tier, so it carries no badge. It
+ * reads only its structure; each row reads its own entry. Nothing renders
+ * until the read settles, and nothing at all while no Thread is open.
  */
 export function OpenThreadsSection(props: { currentPath: string; serverId: string; slug: string }) {
     return useShowOpenThreads() ? <OpenThreadsList {...props} /> : null;
@@ -30,77 +31,41 @@ function OpenThreadsList({
     slug: string;
 }) {
     const layout = useOpenThreadLayout(serverId);
-    if (!layout) {
+    if (!layout || layout.threadChatIds.length === 0) {
         return null;
     }
     return (
-        <ChatGroup
-            label="Open threads"
-            trailing={
-                <Link className="pe-2 text-muted text-xs" to={threadsRoute(slug)}>
-                    All threads{layout.hiddenCount > 0 ? ` +${layout.hiddenCount}` : ''}
-                </Link>
-            }
-        >
-            {layout.threadChatIds.length > 0 ? (
-                <Sidebar.Menu aria-label="Open threads">
-                    {layout.threadChatIds.map((threadChatId) => (
-                        <OpenThreadRow
-                            currentPath={currentPath}
-                            key={threadChatId}
-                            serverId={serverId}
-                            slug={slug}
-                            threadChatId={threadChatId}
-                        />
-                    ))}
-                </Sidebar.Menu>
-            ) : null}
+        <ChatGroup action={<AllThreadsAction slug={slug} />} label="Threads">
+            <Sidebar.Menu aria-label="Threads">
+                {layout.threadChatIds.map((threadChatId) => (
+                    <OpenThreadRow
+                        currentPath={currentPath}
+                        key={threadChatId}
+                        serverId={serverId}
+                        slug={slug}
+                        threadChatId={threadChatId}
+                    />
+                ))}
+                {layout.hiddenCount > 0 ? (
+                    <OpenThreadsMoreRow hiddenCount={layout.hiddenCount} slug={slug} />
+                ) : null}
+            </Sidebar.Menu>
         </ChatGroup>
     );
 }
 
-function OpenThreadRow({
-    currentPath,
-    serverId,
-    slug,
-    threadChatId,
-}: {
-    currentPath: string;
-    serverId: string;
-    slug: string;
-    threadChatId: string;
-}) {
-    const thread = useOpenThreadEntry(serverId, threadChatId);
-    const parent = useChatNavigationEntry(serverId, thread?.parentChatId ?? '');
-    const href = thread ? threadPageRoute(slug, thread.parentChatId, thread.anchorMessageId) : '';
-    const pressRef = usePressNavigationWith(useSidebarNavigate(), href, noPreload);
-    if (!thread) {
-        return null;
-    }
-    const context = parent ? (parent.kind === 'channel' ? `#${parent.name}` : 'DM') : null;
-
+/** The header's hover action: Go to the Threads page, like a sidebar row. */
+function AllThreadsAction({ slug }: { slug: string }) {
+    const navigate = useSidebarNavigate();
     return (
-        <Sidebar.MenuItem
-            href={href}
-            id={threadChatId}
-            isCurrent={href === currentPath}
-            ref={pressRef}
-            textValue={thread.title}
+        <Button
+            aria-label="All threads"
+            isIconOnly
+            onPress={() => navigate(threadsRoute(slug))}
+            size="sm"
+            variant="ghost"
         >
-            <Sidebar.MenuIcon>
-                <OpenThreadGlyph state={thread.state} />
-            </Sidebar.MenuIcon>
-            <Sidebar.MenuItemContent>
-                <span className="flex min-w-0 flex-col">
-                    <Sidebar.MenuLabel>{thread.title}</Sidebar.MenuLabel>
-                    <span className="truncate text-muted text-xs">
-                        {openThreadStatusLine(thread)}
-                        {context ? ` · ${context}` : ''}
-                    </span>
-                </span>
-            </Sidebar.MenuItemContent>
-        </Sidebar.MenuItem>
+            <Icon aria-hidden="true" icon={ArrowRight02Icon} size={sidebarActionIconSize} />
+        </Button>
     );
 }
-
-function noPreload() {}

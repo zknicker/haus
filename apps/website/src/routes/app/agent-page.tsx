@@ -1,7 +1,7 @@
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { AgentLoading } from '../../features/members/agent-profile/agent-loading.tsx';
 import { AgentProfileView } from '../../features/members/agent-profile/agent-profile-view.tsx';
-import { resolveAgentSectionParam } from '../../features/members/agent-profile/agent-section-route.ts';
+import { resolveAgentSectionParamForRole } from '../../features/members/agent-profile/agent-section-route.ts';
 import { useServerContext } from '../../features/servers/server-context.ts';
 import {
     agentProfileRoute,
@@ -28,7 +28,7 @@ export function AgentProfileRoute() {
     const agents = useAgents(server.id);
     const record = agent.data ?? agents.data?.find((candidate) => candidate.id === agentId);
     const membersRoute = serverSettingsSectionRoute(server.slug, 'members');
-    const section = resolveAgentSectionParam(sectionParam);
+    const section = resolveAgentSectionParamForRole(sectionParam, server.role);
     useWindowTitle(record?.displayName);
 
     if (section.kind === 'redirect') {

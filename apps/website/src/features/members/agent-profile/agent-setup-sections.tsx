@@ -13,7 +13,9 @@ import {
     computerLabel,
 } from '../../computers/presentation.ts';
 import { serverComputersRoute } from '../../servers/server-routes.ts';
+import { AgentPermissions } from './agent-permissions.tsx';
 import { AgentRuntime } from './agent-runtime.tsx';
+import { canOpenAgentSection } from './agent-sections.ts';
 import { AgentSkills } from './agent-skills.tsx';
 
 /**
@@ -131,6 +133,21 @@ export function AgentSkillsSection({ agent, server }: { agent: Agent; server: Se
                 <SectionPending label="Loading Skills" />
             )}
         </SectionShell>
+    );
+}
+
+/**
+ * What this Agent may manage for other Agents. The route already sends a
+ * Member home (`canOpenAgentSection`); this check keeps the switches absent
+ * should the page ever render for one anyway.
+ */
+export function AgentPermissionsSection({ agent, server }: { agent: Agent; server: ServerDetail }) {
+    return (
+        <AgentPermissions
+            agent={agent}
+            canManage={canOpenAgentSection('permissions', server.role)}
+            serverId={server.id}
+        />
     );
 }
 

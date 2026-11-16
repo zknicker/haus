@@ -832,21 +832,28 @@
       "idx": 118,
       "version": "7",
       "when": 1794200000014,
-      "tag": "0118_rename-tasks-to-claims",
+      "tag": "0118_connection-admin",
       "breakpoints": true
     },
     {
       "idx": 119,
       "version": "7",
       "when": 1794200000015,
-      "tag": "0119_task-boards",
+      "tag": "0119_rename-tasks-to-claims",
       "breakpoints": true
     },
     {
       "idx": 120,
       "version": "7",
       "when": 1794200000016,
-      "tag": "0120_drop-claim-priority-labels",
+      "tag": "0120_task-boards",
+      "breakpoints": true
+    },
+    {
+      "idx": 121,
+      "version": "7",
+      "when": 1794200000017,
+      "tag": "0121_drop-claim-priority-labels",
       "breakpoints": true
     }
   ]

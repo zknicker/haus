@@ -14,13 +14,13 @@ import { startPostgresCluster } from './postgres-cluster.ts';
  * attentions main added ride through untouched.
  */
 const boardTaskMigrations = [
-    '0118_rename-tasks-to-claims',
-    '0119_task-boards',
-    '0120_drop-claim-priority-labels',
+    '0119_rename-tasks-to-claims',
+    '0120_task-boards',
+    '0121_drop-claim-priority-labels',
 ];
 
-// 0116 deletes this orphaned Cloud Agent notice before 0118 and 0119 alter the inbox.
-test('0113–0120 upgrade a Server at 0112 in one batch', async () => {
+// 0116 deletes this orphaned Cloud Agent notice before 0119 and 0120 alter the inbox.
+test('0113–0121 upgrade a Server at 0112 in one batch', async () => {
     await upgradeFrom(
         112,
         [
@@ -29,14 +29,15 @@ test('0113–0120 upgrade a Server at 0112 in one batch', async () => {
             '0115_cloud-agent-run-cancel',
             '0116_cloud-agent-typed-notices',
             '0117_inbox-undelivered-reason',
+            '0118_connection-admin',
             ...boardTaskMigrations,
         ],
         { orphanedCloudNotice: true }
     );
 }, 60_000);
 
-test("0118–0120 upgrade a Server at main's newest migration, 0117", async () => {
-    await upgradeFrom(117, boardTaskMigrations, { orphanedCloudNotice: false });
+test("0119–0121 upgrade a Server at main's newest migration, 0118", async () => {
+    await upgradeFrom(118, boardTaskMigrations, { orphanedCloudNotice: false });
 }, 60_000);
 
 async function upgradeFrom(
@@ -60,7 +61,7 @@ async function upgradeFrom(
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
         await seedOldTaskRows(database, seed);
 
-        await writeFile(journalPath, through(120));
+        await writeFile(journalPath, through(121));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual(
             expected
         );

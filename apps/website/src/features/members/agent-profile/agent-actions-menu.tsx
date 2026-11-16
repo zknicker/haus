@@ -5,6 +5,7 @@ import {
     Delete02Icon,
     MoreHorizontalIcon,
     RefreshIcon,
+    ShieldUserIcon,
     SparklesIcon,
     StopCircleIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
@@ -18,11 +19,14 @@ import { useAgentStop } from '../../../hooks/members/use-agent-stop.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
 import { type AgentAction, disabledAgentActions, fullResetCopy } from './agent-actions-model.ts';
+import { type AgentSection, canOpenAgentSection } from './agent-sections.ts';
 
 const menuIconSize = 16;
 
 interface AgentActionsValue {
     disabledKeys: ReadonlySet<AgentAction>;
+    /** Opens Permissions, which has no hub card; null where the host or role offers none. */
+    openPermissions: (() => void) | null;
     run: (action: AgentAction) => void;
 }
 
@@ -69,6 +73,11 @@ export function AgentActionsMenu({
 interface AgentActionsProps {
     agent: Agent;
     onDeleted: () => void;
+    /**
+     * The hub's section navigation. When given, the menu leads with the
+     * sections that have no hub card (Permissions), for the roles that may open them.
+     */
+    onOpenSection?: (section: AgentSection) => void;
     server: ServerDetail;
 }
 
@@ -83,6 +92,7 @@ export function AgentActions({
     agent,
     children,
     onDeleted,
+    onOpenSection,
     server,
 }: AgentActionsProps & { children: React.ReactNode }) {
     const [fullResetOpen, setFullResetOpen] = React.useState(false);
@@ -117,8 +127,13 @@ export function AgentActions({
         }
     };
 
+    const openPermissions =
+        onOpenSection && canOpenAgentSection('permissions', server.role)
+            ? () => onOpenSection('permissions')
+            : null;
+
     return (
-        <AgentActionsContext.Provider value={{ disabledKeys, run }}>
+        <AgentActionsContext.Provider value={{ disabledKeys, openPermissions, run }}>
             {children}
             <AlertDialog isOpen={fullResetOpen} onOpenChange={setFullResetOpen}>
                 <AlertDialog.Backdrop isDismissable>
@@ -189,6 +204,21 @@ export function AgentActionsSections() {
     });
     return (
         <>
+            {actions.openPermissions ? (
+                <>
+                    <Dropdown.Section>
+                        <Dropdown.Item
+                            id="permissions"
+                            onAction={actions.openPermissions}
+                            textValue="Permissions"
+                        >
+                            <Icon aria-hidden="true" icon={ShieldUserIcon} size={menuIconSize} />
+                            <Label>Permissions</Label>
+                        </Dropdown.Item>
+                    </Dropdown.Section>
+                    <Separator orientation="horizontal" />
+                </>
+            ) : null}
             <Dropdown.Section>
                 <Header>Session</Header>
                 <Dropdown.Item {...item('stop')} textValue="Stop">
