@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v18.1.1 - 2026-11-16
+
+- A Task's description on the web and on Haus for iPhone 10.1.1 shows the Channels, Threads, people, Agents, and Task keys it names as the same chips a chat message shows, and they open the same way. Agent-written descriptions no longer show `#channel` and `@handle` as plain text.
+- A Task's Mentioned in list on the web quotes each message with its references as names instead of raw Markdown links.
+
 ## v18.1.0 - 2026-11-16
 
 - Haus for iPhone 10.1.0 shows a Thread the way it shows a Chat. Replies are the same text size as Chat messages, back-to-back messages from one author group under one name, and the opening message is a plain row with its claim card above it.
