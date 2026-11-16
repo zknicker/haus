@@ -78,7 +78,8 @@ struct ThreadClaimMarkTests {
         let items = ThreadTranscriptItem.items(anchor: anchor, replies: [reply])
 
         #expect(items.map(\.id) == ["thread-anchor-message_anchor", "message_reply"])
-        #expect(items.last == .reply(reply))
+        #expect(items.last?.message == reply)
+        #expect(items.last?.replyID == reply.id)
     }
 
     private func messageClaim(chatID: String, threadChatID: String) throws -> MessageClaim {

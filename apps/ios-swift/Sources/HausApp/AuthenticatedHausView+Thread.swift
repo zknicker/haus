@@ -83,6 +83,12 @@ extension AuthenticatedHausView {
             landingMessageID: thread.claimMessageID
                 ?? store.unreadThreadLanding(threadChatID: resolvedThreadChatID(for: thread)),
             claimMessageID: thread.claimMessageID,
+            mentionOptions: threadParentDestination(for: thread).map { store.mentionOptions(for: $0) } ?? [],
+            onLoadMentionOptions: {
+                guard let parent = threadParentDestination(for: thread) else { return }
+                await store.loadMentionOptions(for: parent)
+            },
+            peerAgentID: threadParentDestination(for: thread)?.kind.peerAgentID,
             onVisibleMessagesChange: { reportVisibleReplies($0, in: thread) }
         )
         .task {
@@ -98,6 +104,13 @@ extension AuthenticatedHausView {
         case .channel: return chat.name.map { "#\($0)" }
         case .dm: return "DM"
         }
+    }
+
+    /// The parent Chat as the shell knows it. The Thread composer mentions
+    /// from its roster, as the web Thread composer does, and shares the parent
+    /// composer's cached options.
+    func threadParentDestination(for thread: ThreadSelection) -> ChatDestination? {
+        store.chatDestinations.first { $0.durableChat?.id == thread.parentChatID }
     }
 
     /// A DM Thread's Agent is the DM's, so its row is the thought, as in the DM.

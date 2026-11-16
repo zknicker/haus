@@ -96,6 +96,68 @@ struct TranscriptDayTests {
         ])
     }
 
+    /// A Thread groups like the Chat timeline: the anchor opens the first
+    /// block, a quick follow-up by the same author continues it, and another
+    /// author or a new day opens a block of its own.
+    @Test func threadRowsGroupLikeChatRows() {
+        let anchor = message("root", at: day(0, hour: 9, minute: 0))
+        let followUp = message("r1", at: day(0, hour: 9, minute: 1))
+        let other = MessagePresentation(
+            id: "r2",
+            author: MessageAuthorPresentation(id: "user-zach", name: "Zach", avatarURL: nil),
+            content: "Message r2",
+            createdAt: day(0, hour: 9, minute: 2)
+        )
+        let nextDay = message("r3", at: day(1, hour: 9, minute: 0))
+
+        let items = ThreadTranscriptItem.items(
+            anchor: anchor,
+            replies: [followUp, other, nextDay],
+            calendar: utc
+        )
+        let groupings = items.compactMap { item -> TranscriptRowGrouping? in
+            switch item {
+            case .anchor(_, let grouping), .reply(_, let grouping), .inlineReply(_, let grouping): grouping
+            case .claimMetadata, .inlineReplies, .dayDivider: nil
+            }
+        }
+
+        #expect(groupings.map(\.isContinuation) == [false, true, false, false])
+        #expect(groupings.map(\.startsDay) == [true, false, false, true])
+        #expect(groupings == [
+            TranscriptRowGrouping(anchor, after: nil, calendar: utc),
+            TranscriptRowGrouping(followUp, after: anchor, calendar: utc),
+            TranscriptRowGrouping(other, after: followUp, calendar: utc),
+            TranscriptRowGrouping(nextDay, after: other, calendar: utc),
+        ])
+    }
+
+    /// The anchor heads the Thread, so an inline reply to it states no
+    /// reference and groups as a plain message.
+    @Test func aReplyToTheAnchorStatesNoReference() {
+        let anchor = message("root", at: day(0, hour: 9, minute: 0))
+        let first = message("i1", at: day(0, hour: 9, minute: 1), replyingTo: anchor)
+        let second = message("i2", at: day(0, hour: 9, minute: 2), replyingTo: anchor)
+
+        let groupings = threadGroupings(anchor: anchor, inlineReplies: [first, second])
+
+        #expect(groupings.map(\.showsReplyReference) == [false, false])
+        #expect(groupings.map(\.isContinuation) == [true, true])
+    }
+
+    /// A reference to anything but the anchor still shows, once per run.
+    @Test func aReplyToAnotherMessageKeepsItsReference() {
+        let anchor = message("root", at: day(0, hour: 9, minute: 0))
+        let target = message("r1", at: day(0, hour: 9, minute: 1))
+        let first = message("i1", at: day(0, hour: 9, minute: 2), replyingTo: target)
+        let second = message("i2", at: day(0, hour: 9, minute: 3), replyingTo: target)
+
+        let groupings = threadGroupings(anchor: anchor, replies: [target], inlineReplies: [first, second])
+
+        #expect(groupings.map(\.showsReplyReference) == [false, true, false])
+        #expect(groupings.map(\.isContinuation) == [true, false, true])
+    }
+
     @Test func anEmptyParentChainAddsNoRows() {
         let anchor = message("root", at: day(0, hour: 9, minute: 0))
         let items = ThreadTranscriptItem.items(
@@ -122,11 +184,38 @@ private func day(_ offset: Int, hour: Int, minute: Int) -> Date {
     return utc.date(byAdding: DateComponents(hour: hour, minute: minute), to: start)!
 }
 
-private func message(_ id: String, at date: Date) -> MessagePresentation {
+private func message(
+    _ id: String,
+    at date: Date,
+    replyingTo parent: MessagePresentation? = nil
+) -> MessagePresentation {
     MessagePresentation(
         id: id,
         author: MessageAuthorPresentation(id: "agent-blippy", name: "Blippy", avatarURL: nil),
         content: "Message \(id)",
-        createdAt: date
+        createdAt: date,
+        inlineReply: parent.map {
+            MessageReplyReferencePresentation(id: $0.id, author: $0.author, content: $0.content, createdAt: $0.createdAt)
+        }
     )
+}
+
+/// The groupings of a Thread's conversation rows, after the anchor.
+private func threadGroupings(
+    anchor: MessagePresentation,
+    replies: [MessagePresentation] = [],
+    inlineReplies: [MessagePresentation]
+) -> [TranscriptRowGrouping] {
+    ThreadTranscriptItem.items(
+        anchor: anchor,
+        replies: replies,
+        includesInlineReplies: true,
+        inlineReplies: inlineReplies,
+        calendar: utc
+    ).compactMap { item in
+        switch item {
+        case .reply(_, let grouping), .inlineReply(_, let grouping): grouping
+        case .anchor, .claimMetadata, .inlineReplies, .dayDivider: nil
+        }
+    }
 }

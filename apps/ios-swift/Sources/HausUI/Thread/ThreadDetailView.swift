@@ -35,9 +35,16 @@ public struct ThreadDetailView: View {
     private let contextLabel: String?
     /// Names what the Thread was opened for, in place of its own title.
     private let title: String?
+    /// The parent Chat's mention roster: a reply mentions what a message in
+    /// that Chat could, as on the web Thread composer.
+    private let mentionOptions: [MentionOptionPresentation]
+    private let onLoadMentionOptions: () async -> Void
+    /// A DM Thread's peer Agent, whose stopped notice sits over the composer
+    /// as it does in the DM (`ChatComposerStatus`).
+    private let peerAgentID: String?
 
     @State private var draft = ""
-    @State private var projection = ThreadTranscriptProjection()
+    @State var projection = ThreadTranscriptProjection()
     /// A Thread known to have replies opens blank until its first reply page
     /// lands, so the push never shows the anchor first and then snaps to the
     /// newest reply. See `ThreadOpening`.
@@ -45,7 +52,9 @@ public struct ThreadDetailView: View {
     /// Whether the navigation subtitle reads "Connecting…" (`ConnectionOutage`).
     @State private var showsOutage = false
     @State private var isNearNewest = true
-    @State private var reveal: TranscriptReveal?
+    @State var reveal: TranscriptReveal?
+    /// The message an inline-reply reference just revealed, tinted briefly.
+    @State var highlightedMessageID: String?
     /// Same ownership rule as the Chat timeline: the screen presents, the rows
     /// only ask.
     @State var attachmentPreview: AttachmentPreview?
@@ -91,9 +100,15 @@ public struct ThreadDetailView: View {
         engagementStyle: HeaderEngagementStyle = .roster,
         landingMessageID: String? = nil,
         claimMessageID: String? = nil,
+        mentionOptions: [MentionOptionPresentation] = [],
+        onLoadMentionOptions: @escaping () async -> Void = {},
+        peerAgentID: String? = nil,
         onVisibleMessagesChange: @escaping ([String]) -> Void = { _ in }
     ) {
         self.anchor = anchor
+        self.mentionOptions = mentionOptions
+        self.onLoadMentionOptions = onLoadMentionOptions
+        self.peerAgentID = peerAgentID
         self.claimMessageID = claimMessageID
         self.replyProvider = replies
         self.contextLabel = contextLabel
@@ -142,14 +157,18 @@ public struct ThreadDetailView: View {
                         if isReadOnly {
                             ThreadReadOnlyNotice()
                         } else {
-                            MessageComposerView(
-                                text: $draft,
-                                interaction: composerInteraction,
-                                placeholder: "Reply in thread",
-                                isTextFocused: $isComposerFocused,
-                                transitionNamespace: composerTransitionNamespace,
-                                onSend: onSend
-                            )
+                            VStack(spacing: 0) {
+                                ChatComposerStatus(peerAgentID: peerAgentID)
+                                MessageComposerView(
+                                    text: $draft,
+                                    interaction: composerInteraction,
+                                    placeholder: "Reply in thread",
+                                    isTextFocused: $isComposerFocused,
+                                    mentionOptions: mentionOptions,
+                                    transitionNamespace: composerTransitionNamespace,
+                                    onSend: onSend
+                                )
+                            }
                         }
                     }
             }
@@ -201,6 +220,8 @@ public struct ThreadDetailView: View {
             }
         }
         .task(id: inlineReplies?.id) { if let inlineReplies { _ = await inlineReplies.load() } }
+        .task { await onLoadMentionOptions() }
+        .task(id: highlightedMessageID) { await fadeHighlight() }
         // A first page that never comes (offline, a failed fetch) must not
         // leave the Thread blank.
         .task {
