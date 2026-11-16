@@ -1,4 +1,9 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import {
+    formatAgentReferenceTarget,
+    formatChatReferenceTarget,
+    formatChatThreadReferenceTarget,
+} from '@haus/api';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { scheduleReminder } from '../src/reminders/reminders.ts';
 import { updateReminder } from '../src/reminders/reschedule.ts';
@@ -53,6 +58,63 @@ afterAll(async () => {
     owner?.close();
     await connection?.close();
     await harness?.close();
+});
+
+describe('description references', () => {
+    test('task.get resolves a description like an Agent message, when read', async () => {
+        const anchor = await owner.trpc.chat.send.mutate({
+            chatId,
+            content: 'Thread anchor for a description',
+            nonce: 'refs-description-anchor',
+            serverId,
+        });
+        const [channel] = (await harness.sql`
+            select name from chats where id = ${chatId}
+        `) as { name: string }[];
+        const channelName = channel?.name ?? '';
+        const shortId = anchor.message.id.slice(4, 12);
+        const description = [
+            `Seen in #${channelName}:${shortId}, see SEC-1 with @refs-cove.`,
+            'Not `SEC-1` in code; merchbase-fulfillment PR 29 (d66f487) stays text.',
+        ].join('\n');
+        const { task } = await owner.trpc.task.create.mutate({
+            boardId: securityBoardId,
+            description,
+            serverId,
+            title: 'Described',
+        });
+
+        const detail = await owner.trpc.task.get.query({ serverId, taskId: task.id });
+        expect(detail.description).toBe(description);
+        expect(detail.descriptionContent).toBe(
+            [
+                `Seen in [#${channelName} thread](${formatChatThreadReferenceTarget(chatId, anchor.message.id)}), see SEC-1 with [@refs-cove](${formatAgentReferenceTarget(agentId)}).`,
+                'Not `SEC-1` in code; merchbase-fulfillment PR 29 (d66f487) stays text.',
+            ].join('\n')
+        );
+        expect(detail.descriptionTaskLinks).toEqual([
+            { key: 'SEC-1', taskId: sec1.id, text: 'SEC-1' },
+        ]);
+
+        // Read time, not write time: an edit resolves on the next read with no bookkeeping.
+        await owner.trpc.task.update.mutate({
+            expectedVersion: task.version,
+            patch: { description: `Now ${gen1.key} in #${channelName}` },
+            serverId,
+            taskId: task.id,
+        });
+        const edited = await owner.trpc.task.get.query({ serverId, taskId: task.id });
+        expect(edited.descriptionContent).toBe(
+            `Now ${gen1.key} in [#${channelName}](${formatChatReferenceTarget(chatId)})`
+        );
+        expect(edited.descriptionTaskLinks).toEqual([
+            { key: gen1.key, taskId: gen1.id, text: gen1.key },
+        ]);
+        // A description names a Task; it is not one of its Mentioned in.
+        expect((await owner.trpc.task.get.query({ serverId, taskId: gen1.id })).mentions).toEqual(
+            []
+        );
+    });
 });
 
 describe('message references', () => {

@@ -34,6 +34,26 @@ export async function resolveTaskReferences(
     db: Reader,
     input: { content: string; serverId: string }
 ): Promise<TaskMessageLink[]> {
+    const links = await resolveKeyedTaskReferences(db, input);
+    return links.map(({ ordinal, taskId, text }) => ({ ordinal, taskId, text }));
+}
+
+/**
+ * The same resolution as the `taskLinks` a client renders, for text resolved
+ * when read rather than recorded: a Task description (`task.get`).
+ */
+export async function resolveTaskLinks(
+    db: Reader,
+    input: { content: string; serverId: string }
+): Promise<TaskLink[]> {
+    const links = await resolveKeyedTaskReferences(db, input);
+    return links.map(({ key, taskId, text }) => ({ key, taskId, text }));
+}
+
+async function resolveKeyedTaskReferences(
+    db: Reader,
+    input: { content: string; serverId: string }
+): Promise<(TaskMessageLink & { key: string })[]> {
     const candidates = readTaskReferenceCandidates(input.content)
         .filter((candidate) => candidate.text.length <= maxLinkTextChars)
         .slice(0, maxCandidates);
@@ -65,18 +85,17 @@ export async function resolveTaskReferences(
                 )
             )
         );
-    const byId = new Set(rows.map((row) => row.id));
-    const byKey = new Map(rows.map((row) => [formatTaskKey(row.boardKey, row.number), row.id]));
-    const links: TaskMessageLink[] = [];
+    const keyById = new Map(rows.map((row) => [row.id, formatTaskKey(row.boardKey, row.number)]));
+    const idByKey = new Map([...keyById].map(([id, key]) => [key, id]));
+    const links: (TaskMessageLink & { key: string })[] = [];
     for (const candidate of candidates) {
         const taskId =
             candidate.kind === 'id'
-                ? byId.has(candidate.taskId)
-                    ? candidate.taskId
-                    : undefined
-                : byKey.get(formatTaskKey(candidate.boardKey, candidate.number));
-        if (taskId) {
-            links.push({ ordinal: links.length, taskId, text: candidate.text });
+                ? candidate.taskId
+                : idByKey.get(formatTaskKey(candidate.boardKey, candidate.number));
+        const key = taskId ? keyById.get(taskId) : undefined;
+        if (taskId && key) {
+            links.push({ key, ordinal: links.length, taskId, text: candidate.text });
         }
     }
     return links;

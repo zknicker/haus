@@ -107,6 +107,22 @@ describe('writeTaskResult', () => {
         });
     });
 
+    test('an edited description renders its own source until the detail refetches', () => {
+        const queryClient = seed();
+        writeTaskResult(
+            queryClient,
+            task('tsk_12', { description: 'Seen in #ops', title: 'Renamed', version: 3 })
+        );
+        expect(queryClient.getQueryData<TaskDetail>(detailByKey)?.descriptionContent).toBe(
+            'Seen in [#ops](chat://cht_ops)'
+        );
+
+        writeTaskResult(queryClient, task('tsk_12', { description: 'Now #infra', version: 4 }));
+        expect(queryClient.getQueryData<TaskDetail>(detailByKey)?.descriptionContent).toBe(
+            'Now #infra'
+        );
+    });
+
     test('an ack older than a landed read does not overwrite it', () => {
         const queryClient = seed();
         writeTaskResult(queryClient, task('tsk_12', { title: 'Stale', version: 1 }));
@@ -121,7 +137,14 @@ function seed() {
     const tasks = [task('tsk_12'), task('tsk_13', { key: 'SEC-13', number: 13 })];
     queryClient.setQueryData(boardList, tasks);
     queryClient.setQueryData(openList, tasks);
-    queryClient.setQueryData(detailByKey, { ...task('tsk_12'), mentions: [], reminders: [] });
+    const detail: TaskDetail = {
+        ...task('tsk_12', { description: 'Seen in #ops' }),
+        descriptionContent: 'Seen in [#ops](chat://cht_ops)',
+        descriptionTaskLinks: [],
+        mentions: [],
+        reminders: [],
+    };
+    queryClient.setQueryData(detailByKey, detail);
     return queryClient;
 }
 

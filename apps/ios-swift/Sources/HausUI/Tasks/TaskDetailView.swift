@@ -78,7 +78,7 @@ public struct TaskDetailView: View {
 
     private func list(_ detail: BoardTaskDetail) -> some View {
         List {
-            header(detail.task)
+            header(detail)
             if let errorMessage {
                 Label(errorMessage, systemImage: "exclamationmark.triangle")
                     .font(.footnote)
@@ -107,20 +107,22 @@ public struct TaskDetailView: View {
     }
 
     /// The title and the description read as the Task's own words, not as form
-    /// fields, so editing them is a deliberate step into a sheet.
-    private func header(_ task: BoardTask) -> some View {
+    /// fields, so editing them is a deliberate step into a sheet. The
+    /// description draws like a message body, so its references are the same
+    /// chips a Channel shows and open the same way.
+    private func header(_ detail: BoardTaskDetail) -> some View {
         Section {
             VStack(alignment: .leading, spacing: 10) {
-                Text(task.title)
+                Text(detail.task.title)
                     .font(.title3.weight(.semibold))
                     .frame(maxWidth: .infinity, alignment: .leading)
-                if task.description.isEmpty {
+                if detail.task.description.isEmpty {
                     Button("Add a description") { showsEditor = true }
                         .buttonStyle(.borderless)
                         .font(.subheadline)
                 } else {
                     RichMessageContentView(
-                        blocks: RichMessageBlockParser.blocks(task.description) { _, _, _ in nil },
+                        blocks: source.descriptionBlocks(detail),
                         textStyle: .subheadline
                     )
                 }

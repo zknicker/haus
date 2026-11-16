@@ -106,9 +106,20 @@ export function writeTaskResult(queryClient: QueryClient, task: Task) {
     for (const query of detailQueries(queryClient, task.serverId)) {
         const detail = query.state.data as TaskDetail | undefined;
         if (detail?.id === task.id && detail.version <= task.version) {
-            queryClient.setQueryData<TaskDetail>(query.queryKey, { ...detail, ...task });
+            queryClient.setQueryData<TaskDetail>(query.queryKey, withTask(detail, task));
         }
     }
+}
+
+/**
+ * A detail with the acked Task's fields. Its resolved description was read for
+ * the old text, so an edited one renders its own source until `task.onUpdated`
+ * refetches; the Task links stay, since they match by text.
+ */
+function withTask(detail: TaskDetail, task: Task): TaskDetail {
+    return task.description === detail.description
+        ? { ...detail, ...task }
+        : { ...detail, ...task, descriptionContent: task.description };
 }
 
 function listQueries(queryClient: QueryClient, serverId: string) {

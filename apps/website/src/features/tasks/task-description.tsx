@@ -3,7 +3,11 @@ import { Button, TextArea, TextField } from '@heroui/react';
 import * as React from 'react';
 import { useUpdateTask } from '../../hooks/tasks/use-update-task.ts';
 import { ReferenceMarkdown } from '../mentions/reference-markdown.tsx';
+import { readReferenceMentions } from '../mentions/reference-mentions.ts';
+import { useReferenceDirectory } from '../mentions/use-reference-directory.ts';
+import { useChatReferenceActivation } from '../servers/chat/use-chat-reference-activation.ts';
 import { SettingsRowError } from '../settings/layout/settings-text.tsx';
+import { useOpenTaskChat } from './use-open-task-chat.ts';
 
 /**
  * The markdown description, rendered until the reader asks to edit. The source
@@ -17,9 +21,7 @@ export function TaskDescription({ task }: { task: TaskDetail }) {
     if (draft === null) {
         return (
             <div className="flex flex-col items-start gap-2">
-                {task.description ? (
-                    <ReferenceMarkdown content={task.description} serverId={task.serverId} />
-                ) : null}
+                {task.description ? <TaskDescriptionBody task={task} /> : null}
                 <Button onPress={() => setDraft(task.description)} size="sm" variant="ghost">
                     {task.description ? 'Edit description' : 'Add description'}
                 </Button>
@@ -62,5 +64,30 @@ export function TaskDescription({ task }: { task: TaskDetail }) {
                 </Button>
             </div>
         </div>
+    );
+}
+
+/**
+ * The description reads like a message: the Server's resolved form renders
+ * through the chat path, so its references are the same chips with the same
+ * hover cards, and a press opens the Channel, Thread, Agent, or Task.
+ */
+function TaskDescriptionBody({ task }: { task: TaskDetail }) {
+    const directory = useReferenceDirectory(task.serverId);
+    const activateReference = useChatReferenceActivation(useOpenTaskChat());
+    const mentions = readReferenceMentions(
+        task.descriptionContent,
+        task.descriptionTaskLinks,
+        directory
+    );
+
+    return (
+        <ReferenceMarkdown
+            content={task.descriptionContent}
+            mentions={mentions}
+            onReferenceActivate={activateReference}
+            previewReferences
+            serverId={task.serverId}
+        />
     );
 }

@@ -1,5 +1,6 @@
 import type { TaskMention } from '@haus/api';
 import { toast } from '@heroui/react';
+import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChatAppearances } from '../../hooks/servers/use-chats.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
@@ -37,18 +38,22 @@ export function useOpenTaskChat() {
     const utils = hausTrpc.useUtils();
     const navigate = useNavigate();
 
-    return (chatId: string) => {
-        if (chats.has(chatId)) {
-            navigate(serverChatRoute(server.slug, chatId));
-            return;
-        }
-        utils.thread.get
-            .fetch({ serverId: server.id, threadChatId: chatId })
-            .then(({ anchorMessageId, parentChatId }) =>
-                navigate(serverChatThreadRoute(server.slug, parentChatId, anchorMessageId))
-            )
-            .catch((error: Error) =>
-                toast.danger('Could not open that Thread', { description: error.message })
-            );
-    };
+    // Stable, so a description that activates references through it keeps its memoized render.
+    return React.useCallback(
+        (chatId: string) => {
+            if (chats.has(chatId)) {
+                navigate(serverChatRoute(server.slug, chatId));
+                return;
+            }
+            utils.thread.get
+                .fetch({ serverId: server.id, threadChatId: chatId })
+                .then(({ anchorMessageId, parentChatId }) =>
+                    navigate(serverChatThreadRoute(server.slug, parentChatId, anchorMessageId))
+                )
+                .catch((error: Error) =>
+                    toast.danger('Could not open that Thread', { description: error.message })
+                );
+        },
+        [chats, navigate, server.id, server.slug, utils]
+    );
 }

@@ -16,14 +16,8 @@ import {
     type MessageImageSegment,
     splitImageGenerationContent,
 } from '../../image-generation/message-image-generations.ts';
-import {
-    applyAgentMentionAppearance,
-    applyChatMentionAppearance,
-    applyHumanMentionAppearance,
-    readMentionsFromMarkdown,
-} from '../../mentions/mention-metadata.ts';
 import type { ReferenceActivation } from '../../mentions/mention-types.ts';
-import { applyTaskLinks } from '../../mentions/task-reference-scan.ts';
+import { readReferenceMentions } from '../../mentions/reference-mentions.ts';
 import { ArtifactMessage } from './artifact-message.tsx';
 
 type HumanDirectory = ReturnType<typeof useHumanDirectory>;
@@ -150,30 +144,7 @@ function MessageTextBody({
     onReferenceActivate?: ReferenceActivation;
     taskLinks: TranscriptMessage['taskLinks'];
 }) {
-    const mentions = applyTaskLinks(
-        applyHumanMentionAppearance(
-            applyChatMentionAppearance(
-                applyAgentMentionAppearance(readMentionsFromMarkdown(content), (agentId) => {
-                    const agent = agentId ? agentsById.get(agentId) : undefined;
-                    return {
-                        avatarUrl: agent?.avatarUrl ?? null,
-                        displayName: agent?.displayName ?? null,
-                        primaryColor: null,
-                    };
-                }),
-                (chatId) => {
-                    const chat = chatId ? chatsById.get(chatId) : undefined;
-                    return { color: chat?.color ?? null, icon: chat?.icon ?? null };
-                }
-            ),
-            (userId) => ({
-                avatarUrl: humans.avatarUrl(userId ?? null),
-                displayName: humans.member(userId ?? null) ? humans.name(userId ?? null) : null,
-            })
-        ),
-        content,
-        taskLinks
-    );
+    const mentions = readReferenceMentions(content, taskLinks, { agentsById, chatsById, humans });
 
     return hausAgentId ? (
         <ArtifactMessage

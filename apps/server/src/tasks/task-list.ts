@@ -9,6 +9,7 @@ import { and, count, eq, inArray, isNull, type SQL } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { boardColumnsTable, boardsTable, tasksTable } from '../postgres/schema.ts';
 import { requireTaskActor, type TaskActor } from './task-actor.ts';
+import { readTaskDescriptionReferences } from './task-description-references.ts';
 import { TaskNotFoundError } from './task-errors.ts';
 import { listTaskMentions, listTaskReminders } from './task-mentions.ts';
 import { readTasks } from './task-read.ts';
@@ -48,6 +49,10 @@ export async function getTask(
     const scope = { serverId: input.serverId, taskId: task.id };
     return {
         ...task,
+        ...(await readTaskDescriptionReferences(db, {
+            description: task.description,
+            serverId: input.serverId,
+        })),
         mentions: await listTaskMentions(db, actor, scope),
         reminders: await listTaskReminders(db, actor, scope),
     };

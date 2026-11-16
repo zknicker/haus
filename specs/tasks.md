@@ -59,6 +59,12 @@ message ([claims.md](claims.md)). This file pins the rules the Server enforces. 
   `taskLinks: [{ taskId, key, text }]` in content order, `text` being the exact matched substring;
   the Agent message view carries the same as `task_links`. A new link publishes `task.updated` at
   the Task's current version, so an open Task refetches Mentioned in.
+- A Task description resolves when read, never when written (`tasks/task-description-references.ts`):
+  `task.get` returns `descriptionContent`, the description with its bare `@handle`, `#channel`, and
+  `#channel:shortid` tokens rewritten into references exactly as an Agent's Message is when sent,
+  and `descriptionTaskLinks` for the Task references in it. Clients render both through the
+  Message path, so a description shows the same chips as chat; `description` stays the edited
+  source, and a description is never a Task's Mentioned in.
 - Convert to Task (`task.create` with `sourceMessageId`) works on any message the actor can read,
   defaults the description to its content, and records it with the key as link text.
 - Mentioned in lists only messages in Chats the reader can read (`actorVisibleChats`), and the

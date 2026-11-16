@@ -68,6 +68,9 @@ public struct TaskBoardSource: Sendable {
     public let actor: @MainActor @Sendable (TaskActor) -> MessageAuthorPresentation?
     /// Where a Chat is, as a label: `#product`, `DM`, or `Thread`.
     public let conversationLabel: @MainActor @Sendable (_ chatID: String) -> String
+    /// A Task's description as a message body draws: its references resolved
+    /// against the Store's directory and its Task keys chipped.
+    public let descriptionBlocks: @MainActor @Sendable (BoardTaskDetail) -> [RichMessageBlock]
 
     public let loadBoards: @MainActor @Sendable () async throws -> Void
     public let loadTasks: @MainActor @Sendable (_ boardID: String) async throws -> Void
@@ -89,6 +92,7 @@ public struct TaskBoardSource: Sendable {
         assignees: @escaping @MainActor @Sendable () -> [TaskAssigneeOption],
         actor: @escaping @MainActor @Sendable (TaskActor) -> MessageAuthorPresentation?,
         conversationLabel: @escaping @MainActor @Sendable (String) -> String,
+        descriptionBlocks: @escaping @MainActor @Sendable (BoardTaskDetail) -> [RichMessageBlock],
         loadBoards: @escaping @MainActor @Sendable () async throws -> Void,
         loadTasks: @escaping @MainActor @Sendable (String) async throws -> Void,
         loadDetail: @escaping @MainActor @Sendable (String) async throws -> Void,
@@ -107,6 +111,7 @@ public struct TaskBoardSource: Sendable {
         self.assignees = assignees
         self.actor = actor
         self.conversationLabel = conversationLabel
+        self.descriptionBlocks = descriptionBlocks
         self.loadBoards = loadBoards
         self.loadTasks = loadTasks
         self.loadDetail = loadDetail
@@ -134,6 +139,12 @@ extension TaskBoardSource {
             }
         },
         conversationLabel: { _ in "#security" },
+        descriptionBlocks: { detail in
+            TaskLinkChips.apply(
+                detail.descriptionTaskLinks,
+                to: RichMessageBlockParser.blocks(detail.descriptionContent) { _, _, _ in nil }
+            )
+        },
         loadBoards: {},
         loadTasks: { _ in },
         loadDetail: { _ in },
