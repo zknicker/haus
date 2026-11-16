@@ -12,6 +12,10 @@ import Foundation
 /// would otherwise read as belonging to the message above. A plain message
 /// never joins a reply's block for the same reason, and no block runs across a
 /// day divider.
+///
+/// A Thread passes its anchor as `implicitReplyID`: a reply to the anchor is
+/// already in the anchor's conversation, so its reference is implied rather
+/// than stated, and the row groups as a plain message.
 struct TranscriptRowGrouping: Equatable {
     let isContinuation: Bool
     let showsReplyReference: Bool
@@ -23,10 +27,15 @@ struct TranscriptRowGrouping: Equatable {
     init(
         _ message: MessagePresentation,
         after previous: MessagePresentation?,
+        implicitReplyID: String? = nil,
         calendar: Calendar = .current
     ) {
-        let repeatsReference = previous.map { Self.continuesReplyChain($0, message) } ?? false
-        showsReplyReference = message.inlineReply != nil && !repeatsReference
+        let parentID = Self.statedParent(message, implicitReplyID: implicitReplyID)
+        let previousParentID = previous.flatMap { Self.statedParent($0, implicitReplyID: implicitReplyID) }
+        let repeatsReference = previous.map {
+            parentID != nil && parentID == previousParentID && $0.author.id == message.author.id
+        } ?? false
+        showsReplyReference = parentID != nil && !repeatsReference
         startsDay = previous.map {
             !calendar.isDate($0.createdAt, inSameDayAs: message.createdAt)
         } ?? true
@@ -42,17 +51,13 @@ struct TranscriptRowGrouping: Equatable {
             isContinuation = false
             return
         }
-        let neitherReplies = message.inlineReply == nil && previous.inlineReply == nil
+        let neitherReplies = parentID == nil && previousParentID == nil
         isContinuation = neitherReplies || repeatsReference
     }
 
-    private static func continuesReplyChain(
-        _ previous: MessagePresentation,
-        _ next: MessagePresentation
-    ) -> Bool {
-        guard let previousParent = previous.inlineReply?.id,
-              let nextParent = next.inlineReply?.id
-        else { return false }
-        return previousParent == nextParent && previous.author.id == next.author.id
+    /// The message a row's reference names, unless the surface already implies it.
+    private static func statedParent(_ message: MessagePresentation, implicitReplyID: String?) -> String? {
+        guard let parentID = message.inlineReply?.id, parentID != implicitReplyID else { return nil }
+        return parentID
     }
 }

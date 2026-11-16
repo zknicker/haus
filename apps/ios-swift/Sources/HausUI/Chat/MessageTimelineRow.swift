@@ -1,6 +1,21 @@
 import SwiftUI
 
-/// One message in the Chat transcript: identity, what it says, the visuals it
+/// What a message row states about Threads below its own content. A Thread
+/// draws its rows through the same `MessageTimelineRow` as the Chat, so this
+/// is the one place the two transcripts differ.
+enum MessageRowThreadMark: Equatable {
+    /// The Chat transcript: the way into the message's Thread
+    /// (`ThreadPreviewCard`), when it has one.
+    case ingress
+    /// A reply inside a Thread states its own claim (`ThreadClaimMark`) and
+    /// never offers a way into the Thread it already sits in.
+    case claim(isOpenedClaim: Bool)
+    /// Inside a Thread, a row that states neither: the anchor, whose claim the
+    /// metadata card states, and the parent Chat's inline replies.
+    case hidden
+}
+
+/// One message in a Chat or Thread transcript: identity, what it says, the visuals it
 /// drew, its attachments, and the cards that hang off it.
 ///
 /// Split out of `MessageTimelineView` so the screen keeps only the list, the
@@ -22,6 +37,9 @@ struct MessageTimelineRow: View {
     let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
     /// The drawer's actions, for VoiceOver.
     var accessibilityActions: MessageRowAccessibilityActions = .none
+    /// What the row says about Threads under its content; the Chat's ingress
+    /// unless a Thread transcript is drawing it.
+    var threadMark: MessageRowThreadMark = .ingress
     @AppStorage(ShowClaimsInChat.storageKey) private var showClaimsInChat = false
 
     var body: some View {
@@ -111,18 +129,25 @@ struct MessageTimelineRow: View {
                     NotSentCaption()
                 }
 
-                if ThreadPreviewProjection.showsIngress(
-                    replyCount: message.thread?.replyCount ?? 0,
-                    claim: ingressClaim
-                ) {
-                    ThreadPreviewCard(
-                        anchorMessageID: message.id,
-                        thread: message.thread,
-                        claim: ingressClaim,
-                        cloudAgents: message.threadCloudAgents,
-                        onOpen: onOpenThread
-                    )
-                    .id(message.id)
+                switch threadMark {
+                case .ingress:
+                    if ThreadPreviewProjection.showsIngress(
+                        replyCount: message.thread?.replyCount ?? 0,
+                        claim: ingressClaim
+                    ) {
+                        ThreadPreviewCard(
+                            anchorMessageID: message.id,
+                            thread: message.thread,
+                            claim: ingressClaim,
+                            cloudAgents: message.threadCloudAgents,
+                            onOpen: onOpenThread
+                        )
+                        .id(message.id)
+                    }
+                case .claim(let isOpenedClaim):
+                    ThreadClaimMark(claim: message.claim, isOpenedClaim: isOpenedClaim)
+                case .hidden:
+                    EmptyView()
                 }
             }
         }

@@ -61,7 +61,10 @@ struct ThreadInlineRepliesLoader: View {
                 .padding(.top, 12)
                 .padding(.bottom, 8)
             } else {
-                Color.clear.frame(height: 0)
+                // One point, not zero: a table cell that sizes itself to zero
+                // falls back to UIKit's default 44pt row, which opened a gap
+                // between the anchor and its first reply.
+                Color.clear.frame(height: 1)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

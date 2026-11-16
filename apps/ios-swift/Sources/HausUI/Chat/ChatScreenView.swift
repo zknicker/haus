@@ -239,7 +239,8 @@ public struct ChatScreenView: View {
 }
 
 extension ChatKind {
-    var peerAgentID: String? {
+    /// An Agent DM's peer, whose stopped notice sits over the composer.
+    public var peerAgentID: String? {
         if case .agentDirectMessage(let agent) = self { agent.id } else { nil }
     }
 

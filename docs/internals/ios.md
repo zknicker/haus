@@ -541,7 +541,7 @@ The `.agentCreated` body case stays as provenance, and `HausStoreMessageLoading`
 an Agent the directory does not list yet and refetch. Transcript rows are hosted in
 `UIHostingConfiguration` cells, which do not inherit the enclosing SwiftUI hierarchy's custom
 environment values, so row-level actions travel as explicit closures through `MessageTimelineView`
-and `ThreadMessageRow`, never through `@Environment`.
+and `ThreadDetailView` into the one shared `MessageTimelineRow`, never through `@Environment`.
 
 The app deploys to iOS 18 and progressively adopts iOS 26 Liquid Glass for functional
 chrome. System navigation and sheet controls inherit the platform treatment; custom menu, search,
@@ -998,8 +998,19 @@ surface alone.
 
 A Thread is titled "Thread", "Claim #N" for a claim's Thread, or the work's title when Cloud Agent
 work opened it, with its conversation ("#design", or "DM") as the subtitle (`ThreadOpening`). Every
-Thread reads as one conversation by time: the anchor, then the parent Chat's inline replies to it
-among the Thread's replies, as in the App (`ThreadTranscriptItem.items`). One the anchor says has replies opens blank until its first
+Thread reads as one conversation by time: the anchor's claim metadata when it has any, the anchor,
+then the parent Chat's inline replies to it among the Thread's replies, as in the App
+(`ThreadTranscriptItem.items`). A Thread is a Chat view, not its own row kind: the anchor, replies,
+and inline replies draw through the Chat timeline's `MessageTimelineRow` at the Chat's text size and
+spacing, and each carries the same `TranscriptRowGrouping` against the message above it, the anchor
+included. The row's `MessageRowThreadMark` is the only difference: a reply states its own claim
+(`ThreadClaimMark`) and no row offers a Thread ingress. Like the App's Thread, the anchor is a plain
+first row with no card or replies divider. A reply to the anchor states no reference, since the
+anchor heads the Thread (`TranscriptRowGrouping`'s `implicitReplyID`); references to any other
+message still show. An inline-reply reference reveals and briefly highlights
+its target when the Thread holds it. The composer mentions from the parent Chat's `chat.mentionOptions`
+roster and shows a DM peer's stopped notice (`ChatComposerStatus`); it offers no inline reply, which
+the App's Thread composer does not either. One the anchor says has replies opens blank until its first
 reply page lands — at most `ThreadOpening.holdLimit` — so the push never draws the anchor first and
 then snaps to the newest reply.
 

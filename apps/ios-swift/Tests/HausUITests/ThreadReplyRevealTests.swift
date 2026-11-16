@@ -4,14 +4,14 @@ import Testing
 struct ThreadReplyRevealTests {
     @Test func anchorAndClaimAreNotPreviousReplies() {
         let anchor = ChatFixtures.messages[2]
-        var previous: [ThreadTranscriptItem] = [.anchor(anchor, hasReplies: false)]
-        if let claim = anchor.claim { previous.append(.claimMetadata(claim, hasReplies: false)) }
+        var previous = ThreadTranscriptItem.items(anchor: anchor, replies: [])
         #expect(ThreadReplyReveal.onLatestReplyChange(
             previousLatestID: previous.last(where: { $0.replyID != nil })?.replyID,
             isNearBottom: true,
             latestIsPending: false
         ) == .settle)
-        previous.append(.reply(ChatFixtures.messages[0]))
+        let reply = ChatFixtures.messages[0]
+        previous.append(.reply(reply, grouping: TranscriptRowGrouping(reply, after: anchor)))
         #expect(previous.last(where: { $0.replyID != nil })?.replyID == ChatFixtures.messages[0].id)
     }
 

@@ -18,8 +18,8 @@ struct ThreadInlineRepliesTests {
         )
 
         #expect(items.map(\.id) == [
-            "thread-anchor-message-3",
             "thread-claim-metadata",
+            "thread-anchor-message-3",
             "thread-inline-replies",
             "thread-inline-reply-parent-1",
             "thread-1",
