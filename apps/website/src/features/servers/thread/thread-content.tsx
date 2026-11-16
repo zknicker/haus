@@ -222,11 +222,11 @@ export function ThreadContent({
                 }
             >
                 <TranscriptRenderProvider value={renderContext}>
-                    {/* Opens on the anchor, then follows new replies like a
-                    channel once the reader is at the bottom. */}
+                    {/* Follows new replies once loaded, like a channel;
+                    `ThreadUnreadLanding` decides the actual open position. */}
                     <MessageScrollerProvider
                         autoScroll={followsReplies}
-                        defaultScrollPosition="start"
+                        defaultScrollPosition="end"
                     >
                         <MessageScroller>
                             {/* px-5 matches the main chat viewport gutter so the
