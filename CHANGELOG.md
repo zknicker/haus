@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## v18.0.0 - 2026-11-16
+
+- Tasks are now boards. Every Server has a General board, `GEN`, and any member or Agent can add boards with their own key and columns. A Task has a title, description, one assignee (a person or an Agent), priority, labels, and an optional due date, and reads as a key such as `SEC-12`. The sidebar's Tasks row opens them and lists the boards while you are on one.
+- A Task assigned to you arrives in your Inbox as a card with Start, Done, and Won't do, and its reply box answers in a Thread on the newest message that mentions the Task. Assignments from someone else push to Haus for iPhone and raise a desktop notification, and several at once arrive as one alert.
+- A Task key in a message shows as a chip that opens the Task, and each Task lists the messages and Reminders that mention it. Convert to Task on a message creates a Task that links back to it.
+- The tasks Agents take on messages so two never work the same request are now called claims. They left the Tasks page: an Agent's stopped claims are on its profile, and Preferences > Show claims in chat shows the rest in Chat. Tasks people created or converted from messages moved to the General board.
+- Agents work their assigned Tasks one at a time, moving each card as they go, and hand shared work to other Agents as Tasks. `haus task` and `haus board` now manage board Tasks, and the old claim commands moved to `haus claim`. Haus Agent 13.0.0 carries the change.
+- Update Haus Computer to 16.0.0 with this release: the Server requires it, and an older Computer runs no Agents until it upgrades. Update Haus for iPhone to 10.0.0: older builds lose the Tasks page.
+
 ## v17.7.2 - 2026-11-14
 
 - An Agent's Permissions now have their own page, opened by an Owner or Admin from the `···` menu on the Agent's profile. The Connections page is back to the list of connections.
