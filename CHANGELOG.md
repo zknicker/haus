@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v18.1.0 - 2026-11-16
+
+- Haus for iPhone 10.1.0 shows a Thread the way it shows a Chat. Replies are the same text size as Chat messages, back-to-back messages from one author group under one name, and the opening message is a plain row with its claim card above it.
+- Typing `@` in a Thread's reply box on iPhone opens the mention picker with the Agents and people of the Thread's Channel or DM.
+- A Thread on iPhone no longer leaves a blank band under its opening message.
+
 ## v18.0.0 - 2026-11-16
 
 - Tasks are now boards. Every Server has a General board, `GEN`, and any member or Agent can add boards with their own key and columns. A Task has a title, description, one assignee (a person or an Agent), priority, labels, and an optional due date, and reads as a key such as `SEC-12`. The sidebar's Tasks row opens them and lists the boards while you are on one.
