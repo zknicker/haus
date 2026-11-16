@@ -45,7 +45,7 @@ export function useChatTranscript({
     pendingMessages = emptyPendingMessages,
     replyTargetMessageId,
     serverId,
-    taskChipHiddenMessageId,
+    claimChipHiddenMessageId,
     turnDetailsAccess = 'summary',
     viewerUserId,
 }: ChatTranscriptInput) {
@@ -191,7 +191,7 @@ export function useChatTranscript({
                 causeLineHidden,
                 repliedRunIds: new Set<string>(),
                 resolveActorProfile,
-                taskChipHiddenMessageId,
+                claimChipHiddenMessageId,
                 threadActionsEnabled: Boolean(onOpenThread),
                 viewerUserId,
             }) satisfies TranscriptRenderContextValue,
@@ -218,7 +218,7 @@ export function useChatTranscript({
             replyTargetMessageId,
             resolveActorProfile,
             serverId,
-            taskChipHiddenMessageId,
+            claimChipHiddenMessageId,
             turnDetailsAccess,
             viewerUserId,
         ]

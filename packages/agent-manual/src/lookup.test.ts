@@ -88,9 +88,7 @@ test('every command family noun resolves to its topic, singular and plural', () 
         const singular = family.endsWith('s') ? family.slice(0, -1) : family;
         expect(resolveManualTopic(singular)?.id).toBe(topicId);
         expect(resolveManualTopic(`${singular}s`)?.id).toBe(topicId);
-        expect(getManualTopic(topicId)?.body).toContain(
-            family === 'task' ? 'haus task' : `haus ${family}`
-        );
+        expect(getManualTopic(topicId)?.body).toContain(`haus ${family}`);
     }
 });
 

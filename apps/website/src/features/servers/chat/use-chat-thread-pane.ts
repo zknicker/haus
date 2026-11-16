@@ -6,11 +6,11 @@ import { setChatSidePane } from '../../../hooks/pane/use-chat-side-pane.ts';
 import { useChatMessage } from '../../../hooks/servers/use-chat-message.ts';
 import { usePendingMessageReveal } from '../../../hooks/servers/use-pending-message-reveal.ts';
 import { type OpenThread, useOpenThread } from '../../../hooks/threads/use-open-thread.ts';
-import { type ChatInitialTask, useChatThreadSelection } from './use-chat-thread-selection.ts';
+import { type ChatInitialClaim, useChatThreadSelection } from './use-chat-thread-selection.ts';
 
 /**
  * Where a Chat's Threads open. Desktop routes every opener, `?thread=` and
- * `?task=` deep links included, to the Thread's page (`useOpenThread`, a link
+ * `?claim=` deep links included, to the Thread's page (`useOpenThread`, a link
  * from this tab, ADR 0039) and strips the param, so the chat side pane never
  * hosts a Thread there. The website keeps the Thread in the chat side pane,
  * its anchor carried in `?thread=`. A Thread page's "View in chat" reveals its
@@ -19,13 +19,13 @@ import { type ChatInitialTask, useChatThreadSelection } from './use-chat-thread-
 export function useChatThreadPane({
     chatId,
     serverId,
-    initialTask,
+    initialClaim,
     ready,
     revealMessage,
 }: {
     chatId: string;
     serverId: string;
-    initialTask: ChatInitialTask | undefined;
+    initialClaim: ChatInitialClaim | undefined;
     /** The chat's transcript list has loaded. */
     ready: boolean;
     revealMessage: (target: { id: string; sequence: number }) => void;
@@ -34,14 +34,14 @@ export function useChatThreadPane({
     const [searchParams, setSearchParams] = useSearchParams();
     const [selection, setSelection] = useChatThreadSelection(
         chatId,
-        openThreadTab ? undefined : initialTask
+        openThreadTab ? undefined : initialClaim
     );
-    useThreadTabDeepLink(chatId, openThreadTab, initialTask);
+    useThreadTabDeepLink(chatId, openThreadTab, initialClaim);
     // A kept chat view (`KeptChatViews`) keeps its selection while hidden. On
-    // reveal, a route with no `?thread=` or `?task=` shows no Thread, as a
+    // reveal, a route with no `?thread=` or `?claim=` shows no Thread, as a
     // freshly mounted view would.
     const syncSelectionToRoute = React.useEffectEvent(() => {
-        if (openThreadTab || searchParams.has('thread') || searchParams.has('task')) {
+        if (openThreadTab || searchParams.has('thread') || searchParams.has('claim')) {
             return;
         }
         setSelection(null);
@@ -56,7 +56,7 @@ export function useChatThreadPane({
     });
     usePendingMessageReveal({ chatId, ready, reveal: revealMessage });
     // The selection carries identity; the record itself is read live from its
-    // entity, so a Thread left open follows its anchor's own changes — a Task
+    // entity, so a Thread left open follows its anchor's own changes — a Claim
     // claimed, a Cloud Agent work that finished, a new reply in its summary.
     // The captured message is the fallback until the entity loads.
     const selected = useChatMessage(serverId, chatId, selection?.anchor.id ?? '', {
@@ -160,21 +160,21 @@ export function useChatThreadPane({
 }
 
 /**
- * Desktop: a `?thread=` or `?task=` link opens that Thread's page, then leaves
- * the URL. A task's Thread is resolved first: a task inside a Thread opens the
- * Thread it sits in, whose anchor is not the task's message, and the page
- * carries that message so it states the task.
+ * Desktop: a `?thread=` or `?claim=` link opens that Thread's page, then leaves
+ * the URL. A claim's Thread is resolved first: a claim inside a Thread opens the
+ * Thread it sits in, whose anchor is not the claim's message, and the page
+ * carries that message so it states the claim.
  */
 function useThreadTabDeepLink(
     chatId: string,
     openThreadTab: OpenThread | null,
-    initialTask: ChatInitialTask | undefined
+    initialClaim: ChatInitialClaim | undefined
 ) {
     const [searchParams, setSearchParams] = useSearchParams();
     const linkedThread = searchParams.get('thread');
-    const fromTask = linkedThread === null && searchParams.has('task');
-    const anchorMessageId = linkedThread ?? (fromTask ? initialTask?.anchor.id : null);
-    const taskMessageId = fromTask ? initialTask?.taskMessage?.id : undefined;
+    const fromClaim = linkedThread === null && searchParams.has('claim');
+    const anchorMessageId = linkedThread ?? (fromClaim ? initialClaim?.anchor.id : null);
+    const claimMessageId = fromClaim ? initialClaim?.claimMessage?.id : undefined;
     React.useEffect(() => {
         if (!(openThreadTab && anchorMessageId)) {
             return;
@@ -186,11 +186,11 @@ function useThreadTabDeepLink(
             (current) => {
                 const next = new URLSearchParams(current);
                 next.delete('thread');
-                next.delete('task');
+                next.delete('claim');
                 return next;
             },
             { replace: true }
         );
-        openThreadTab(chatId, anchorMessageId, 'auto', taskMessageId);
-    }, [anchorMessageId, chatId, openThreadTab, setSearchParams, taskMessageId]);
+        openThreadTab(chatId, anchorMessageId, 'auto', claimMessageId);
+    }, [anchorMessageId, chatId, openThreadTab, setSearchParams, claimMessageId]);
 }

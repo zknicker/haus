@@ -96,7 +96,7 @@ describe('result thought excerpts', () => {
             'curl -H Authorization: Bearer … api.github.com/user',
             'gh auth token',
             // Haus bookkeeping inside a compound command, and the Agent's own files.
-            'cat MEMORY.md && haus task update --help',
+            'cat MEMORY.md && haus claim update --help',
             'ls notes/ && cat notes/onboarding.md',
             // Shell commands that print files return their contents, like a file read.
             'cat config.toml',

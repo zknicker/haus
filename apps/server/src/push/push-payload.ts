@@ -65,7 +65,7 @@ function readConversation(row: PushMessage): PushNotificationConversation | null
 }
 
 /** Cuts a name to the push budget on a code point boundary, with an ellipsis. */
-function clampName(name: string): string {
+export function clampName(name: string): string {
     if (name.length <= pushNotificationSenderNameMaxLength) {
         return name;
     }

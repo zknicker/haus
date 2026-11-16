@@ -9,7 +9,7 @@ export interface BareReferenceToken {
     threadAnchor?: string;
 }
 
-interface ReferenceRange {
+export interface ReferenceRange {
     end: number;
     start: number;
 }
@@ -69,19 +69,21 @@ function hasTokenBoundary(character: string | undefined) {
     return !(character && /[-A-Za-z0-9_@#]/u.test(character));
 }
 
-function isInsidePlainUrl(content: string, start: number) {
+export function isInsidePlainUrl(content: string, start: number) {
     return /(?:https?:\/\/|www\.)[^\s]*$/iu.test(content.slice(0, start));
 }
 
-function readProtectedRanges(content: string): ReferenceRange[] {
-    const ranges = readMarkdownLinkRanges(content);
+/** Fenced blocks and inline code spans: prose that never resolves a reference. */
+export function readCodeRanges(content: string): ReferenceRange[] {
     const fences = readFenceRanges(content);
-    ranges.push(...fences);
-    ranges.push(...readInlineCodeRanges(content, fences));
-    return mergeRanges(ranges);
+    return mergeRanges([...fences, ...readInlineCodeRanges(content, fences)]);
 }
 
-function readMarkdownLinkRanges(content: string): ReferenceRange[] {
+function readProtectedRanges(content: string): ReferenceRange[] {
+    return mergeRanges([...readMarkdownLinkRanges(content), ...readCodeRanges(content)]);
+}
+
+export function readMarkdownLinkRanges(content: string): ReferenceRange[] {
     const ranges: ReferenceRange[] = [];
     const linkPattern = /!?\[[^\]\n]*\]\([^)\n]*\)/gu;
     for (const match of content.matchAll(linkPattern)) {
@@ -157,7 +159,7 @@ function readInlineCodeRanges(content: string, fences: ReferenceRange[]): Refere
     return ranges;
 }
 
-function isProtectedRange(ranges: ReferenceRange[], start: number, end: number) {
+export function isProtectedRange(ranges: ReferenceRange[], start: number, end: number) {
     return ranges.some((range) => start >= range.start && end <= range.end);
 }
 

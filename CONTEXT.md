@@ -238,7 +238,8 @@ _Avoid_: Agent id, display name, permanent username
 
 **Message**:
 The only durable unit of a Chat transcript. It has one author, one immutable sequence position,
-meaningful immutable content, and one typed body; Tasks and attachments remain orthogonal metadata.
+meaningful immutable content, and one typed body; claims, Task references, and attachments remain
+orthogonal metadata.
 _Avoid_: chat entry, timeline item, post, card
 
 **Message body**:
@@ -268,10 +269,36 @@ independent of the Inbox. An @mention is how an Agent asks a person anything (AD
 _Avoid_: Needs you alert, attention, escalation
 
 **Inbox**:
-The Haus App page below Search where one human sees the week's active Agents, their Unread Chats,
-and Agent and Cloud Agent work running now. It is a lens over existing records and owns no state
-of its own; unread is the viewer's read marker.
+The Haus App page below Search where one human sees the week's active Agents, their Unread Chats
+and Threads, the Tasks assigned to them, and Agent and Cloud Agent work running now. It is a lens
+over existing records; unread is the viewer's read marker, and a Task item clears by Mark read,
+opening the Task, or resolving it.
 _Avoid_: Agent inbox, notification center, activity feed, task list
+
+**Claim**:
+An Agent's lock on one message, so no other Agent works the same request (ADR 0051). Only an Agent
+holds one. It is background bookkeeping with no page of its own: it shows in Chat by rule, and an
+Agent's stopped claims sit on its profile. A claim is not a Task, and they never share a row, a
+number, or a status.
+_Avoid_: Task, message task, Lead
+
+**Task**:
+A standalone work item on a Board, keyed like `SEC-12`, with at most one assignee, a person or an
+Agent (ADR 0051). It is not a Message and adds none: it has no comments, its discussion happens in
+Chats that reference it, and those messages are its **Mentioned in**. It ends in a done or canceled
+column, never by deletion.
+_Avoid_: Claim, issue, ticket, message task
+
+**Board**:
+A Server-wide list of Tasks with a short key (`SEC`) and ordered columns, numbering its Tasks
+itself. Every member and Agent sees every Board. Every Server has the fixed General board, `GEN`.
+_Avoid_: Project, workspace, team, list
+
+**Column category**:
+The fixed meaning of a Board column: `backlog`, `todo`, `active`, `done`, or `canceled`. The column
+name is presentation; code and Agents reason in categories, and a Board keeps at least one `todo`,
+`active`, and `done` column.
+_Avoid_: Status, column type
 
 **Agent inbox**:
 The durable Server-owned delivery ledger of pending work for one Agent, with exact model

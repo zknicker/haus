@@ -9,6 +9,7 @@ export const agentInboxCheckResponseSchema = z.object({
         z.object({
             // An older Server omits the work facts; its rows print untagged.
             chatId: z.string().min(1),
+            claimNumber: z.number().int().positive().nullable().default(null),
             cloudAgentResult: z.boolean().default(false),
             // An older Server omits it; the pending row's open command then has no --after.
             firstSequence: z.number().int().positive().nullable().optional(),
@@ -18,7 +19,6 @@ export const agentInboxCheckResponseSchema = z.object({
             mentioned: z.boolean(),
             pendingCount: z.number().int().positive(),
             target: z.string().min(1),
-            taskNumber: z.number().int().positive().nullable().default(null),
         })
     ),
     totalPending: z.number().int().nonnegative(),

@@ -618,14 +618,14 @@ test('the local-first pull answers with the automations array the Agent CLI expe
     }
 });
 
-test('a pending task assignment routes the whole pull upstream like a fire', async () => {
+test('a pending claim assignment routes the whole pull upstream like a fire', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'haus-proxy-assignment-'));
     const location = { agentId: 'agt_assign', dataRoot, serverId: 'srv_assign' };
     const assignment: AgentInboxItem = {
         chatId: 'cht_proxy',
-        content: '[Haus task assignment task=#7 target=#general assignedBy=@operator] Ship it',
+        content: '[Haus claim assignment claim=#7 target=#general assignedBy=@operator] Ship it',
         createdAt: new Date(Date.UTC(2026, 7, 4, 0, 0, 1)).toISOString(),
-        id: 'task-assign:msg_1a2b3c4d5e6f:3',
+        id: 'claim-assign:msg_1a2b3c4d5e6f:3',
         mentioned: true,
         senderHandle: 'haus',
         senderType: 'system',

@@ -15,13 +15,14 @@ import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
 import { chatLastMessageSchema } from './chat-last-message.ts';
 import * as reactionContracts from './chat-message-reactions.ts';
 import * as receiptContracts from './chat-message-receipts.ts';
+import { messageClaimSchema } from './claim-shared.ts';
 import { cloudAgentWorkSchema } from './cloud-agent-shared.ts';
 import {
     chatMessageAuthoredContentMaxLength,
     chatMessageContentMaxLength,
 } from './cloud-agent-work-link.ts';
 import { imageGenerationSchema } from './image-generation.ts';
-import { messageTaskSchema } from './task-shared.ts';
+import { taskLinkSchema } from './task-key.ts';
 
 export { idSchema } from './chat-contract-primitives.ts';
 export * from './chat-message-context.ts';
@@ -34,6 +35,7 @@ export const chatMessageSchema = z
         /** Why an Agent wrote this: the Trigger or Reminder fire it answered. */
         cause: messageCauseSchema.optional(),
         chatId: idSchema,
+        claim: messageClaimSchema.nullable().optional(),
         /**
          * The Cloud Agent work this Message links, in link order (ADR 0044).
          * Each entry is visible to the viewer; the card renders from here.
@@ -60,7 +62,7 @@ export const chatMessageSchema = z
          */
         sessionGeneration: z.number().int().positive().nullable().default(null),
         serverId: idSchema,
-        task: messageTaskSchema.nullable().optional(),
+        taskLinks: z.array(taskLinkSchema).default([]),
     })
     .strict();
 

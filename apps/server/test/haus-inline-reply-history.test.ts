@@ -14,7 +14,7 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('task inspection pages its inline chain without including unrelated chat messages or creating a thread', async () => {
+test('claim inspection pages its inline chain without including unrelated chat messages or creating a thread', async () => {
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Reply history',
         slug: 'reply-history',

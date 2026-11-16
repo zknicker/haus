@@ -44,17 +44,20 @@ test('lets Inbox read at the same weight and x as Search and Tasks', () => {
     expect(inboxLabel).not.toContain('ms-');
 });
 
-test('badges Inbox with its unread Chat count in the Chat rows own chip', () => {
+test('badges Inbox with what is waiting there in the Chat rows own chip', () => {
     const markup = navigationMarkup({ inboxUnreadCount: 3 });
 
-    expect(markup).toContain('aria-label="3 unread chats"');
+    // The count holds unread Chats, Threads, and assigned Tasks, so it says Inbox.
+    expect(markup).toContain('aria-label="3 waiting in Inbox"');
     // The same chip the unread counts wear, inside the row's own content, at
     // the row's natural trailing edge.
-    expect(/data-sidebar="label"[^>]*>(?:(?!<\/li>).)*?3 unread chats/s.test(markup)).toBe(true);
+    expect(/data-sidebar="label"[^>]*>(?:(?!<\/li>).)*?3 waiting in Inbox/s.test(markup)).toBe(
+        true
+    );
 });
 
-test('says nothing when nothing is unread', () => {
-    expect(navigationMarkup({ inboxUnreadCount: 0 })).not.toContain('unread chats');
+test('says nothing when nothing is waiting', () => {
+    expect(navigationMarkup({ inboxUnreadCount: 0 })).not.toContain('waiting in Inbox');
 });
 
 test('leads the sidebar with Inbox, which is the row the shell offsets', () => {

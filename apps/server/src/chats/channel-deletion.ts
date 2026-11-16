@@ -8,7 +8,9 @@ import {
     serverOnboardingTable,
     triggersTable,
 } from '../postgres/schema.ts';
+import { publishRealtime } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { prepareTaskLinkEvents, readReminderTaskIds } from '../tasks/task-reference-links.ts';
 
 interface DeletedChannelTarget {
     chatId: string;
@@ -77,7 +79,7 @@ export async function purgeDeletedChannel(
                 )
     );
 
-    await db.transaction(async (tx) => {
+    const taskEvents = await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const [deleted] = await tx
             .select({ id: chatsTable.id })
@@ -91,17 +93,26 @@ export async function purgeDeletedChannel(
                 )
             );
         if (!deleted) {
-            return;
+            return [];
         }
 
-        await tx
-            .delete(remindersTable)
-            .where(
-                and(
-                    eq(remindersTable.serverId, input.serverId),
-                    inArray(remindersTable.anchorChatId, chatIds)
-                )
-            );
+        const anchored = and(
+            eq(remindersTable.serverId, input.serverId),
+            inArray(remindersTable.anchorChatId, chatIds)
+        );
+        // The links cascade with the Reminders, so read them first.
+        const reminders = await tx
+            .select({ id: remindersTable.id })
+            .from(remindersTable)
+            .where(anchored);
+        const events = await prepareTaskLinkEvents(tx, {
+            serverId: input.serverId,
+            taskIds: await readReminderTaskIds(tx, {
+                reminderIds: reminders.map((reminder) => reminder.id),
+                serverId: input.serverId,
+            }),
+        });
+        await tx.delete(remindersTable).where(anchored);
         // Triggers anchored in the aggregate, tombstones included, go with it;
         // their fires cascade and message causes keep their own snapshots.
         await tx
@@ -119,7 +130,9 @@ export async function purgeDeletedChannel(
         await tx
             .delete(chatsTable)
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
+        return events;
     });
+    publishRealtime(taskEvents);
 }
 
 /** The durable onboarding record names this channel forever, so it is never purged. */

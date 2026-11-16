@@ -37,8 +37,8 @@ test('a haus command reads as the product action it is, never "with haus"', () =
     );
     assert.equal(formatShellLabel(`zsh -lc 'haus message check'`), 'Checked messages');
     assert.equal(formatShellLabel(`zsh -lc 'haus inbox check'`), 'Checked inbox');
-    assert.equal(formatShellLabel('haus task claim --number 3'), 'Claimed a task');
-    assert.equal(formatShellLabel('haus task update --number 3 --status done'), 'Updated a task');
+    assert.equal(formatShellLabel('haus claim --number 3'), 'Claimed a message');
+    assert.equal(formatShellLabel('haus claim update --number 3 --status done'), 'Updated a claim');
     assert.equal(formatShellLabel('haus message react --target "#all" --message-id 1a'), 'Reacted');
     assert.equal(formatShellLabel('haus reminder schedule --delay-seconds 60'), 'Set a reminder');
 });
@@ -61,12 +61,12 @@ test('a sent message names where it went; a DM is "DM", never the peer', () => {
 
 test('a haus command with no verb of its own still states what ran', () => {
     assert.equal(formatShellLabel('haus skill list'), 'Ran haus skill list');
-    assert.equal(formatShellLabel('haus task claim --help'), 'Read haus help');
+    assert.equal(formatShellLabel('haus claim --help'), 'Read haus help');
     assert.equal(formatShellLabel(`zsh -lc 'ls -la'`), 'Ran ls -la');
     assert.equal(formatShellLabel('   '), 'Ran a command');
 });
 
-test('P0-3: a script that claimed a task, wrote files, and ran tests reads as the work', () => {
+test('P0-3: a script that claimed a message, wrote files, and ran tests reads as the work', () => {
     const label = readShellLabel(setupCommand);
     assert.equal(label.past, 'Wrote 7 files, ran npm test');
     assert.equal(label.present, 'Writing 7 files, running npm test');
@@ -77,18 +77,15 @@ test('P0-3: a script that claimed a task, wrote files, and ran tests reads as th
 
 test('P0-3: a haus call beside real commands never names the row', () => {
     assert.equal(
-        formatShellLabel('haus task claim --help 2>&1 | head -5; node --version; which bun'),
+        formatShellLabel('haus claim --help 2>&1 | head -5; node --version; which bun'),
         'Ran node --version'
     );
-    assert.equal(
-        readShellLabel('haus task claim --help; node --version; which bun').extraCommands,
-        1
-    );
+    assert.equal(readShellLabel('haus claim --help; node --version; which bun').extraCommands, 1);
 });
 
 test('an all-haus script reads as its first real verb', () => {
     const label = readShellLabel(
-        "haus message send --target dm:@zach <<'HAUSMSG'\nDone.\nHAUSMSG\nhaus task update --help"
+        "haus message send --target dm:@zach <<'HAUSMSG'\nDone.\nHAUSMSG\nhaus claim update --help"
     );
     assert.equal(label.past, 'Sent a message to DM');
     assert.equal(label.extraCommands, 1);

@@ -1,15 +1,11 @@
-import { taskMutationSchema, taskUpdateInputSchema } from '@haus/api';
-import { publishRealtime } from '../../realtime/topic.ts';
-import { updateTask } from '../../tasks/update-task.ts';
-import { taskProcedure } from './procedure.ts';
+import { taskMutationResultSchema, taskUpdateInputSchema } from '@haus/api';
+import { memberTaskActor } from '../../tasks/task-actor.ts';
+import { updateTask } from '../../tasks/task-update.ts';
+import { commitTaskWrite, taskProcedure } from './procedure.ts';
 
 export const updateTaskProcedure = taskProcedure
     .input(taskUpdateInputSchema)
-    .output(taskMutationSchema)
-    .mutation(async ({ ctx, input }) => {
-        const result = await updateTask(ctx.hausDb, ctx.member, input);
-        if (result.event) {
-            publishRealtime(result.event);
-        }
-        return { task: result.task };
-    });
+    .output(taskMutationResultSchema)
+    .mutation(async ({ ctx, input }) =>
+        commitTaskWrite(ctx, await updateTask(ctx.hausDb, memberTaskActor(ctx.member), input))
+    );

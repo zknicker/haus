@@ -259,6 +259,8 @@ struct ParsedMessageBody {
     /// the anchor was not loaded). A Thread chip reads another page rather
     /// than the reference directory, so the memo checks these on reuse.
     var threadChips: [String: String?] = [:]
+    /// The Message's Task links this body chipped.
+    var taskLinks: [TaskLink] = []
 }
 
 enum HausStoreError: LocalizedError {

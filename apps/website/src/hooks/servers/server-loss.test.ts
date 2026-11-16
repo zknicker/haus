@@ -25,7 +25,7 @@ describe('Server-scoped query predicate', () => {
             'member.list',
             'invitation.list',
             'reminder.list',
-            'task.list',
+            'claim.list',
             'taskLabel.list',
             'stats.live',
             'cloudAgentSettings.get',

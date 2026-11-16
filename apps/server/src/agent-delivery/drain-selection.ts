@@ -2,7 +2,7 @@ import { type AgentCommand, isChatlessInboxSource } from '@haus/api';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { type AgentDispatchConfig, startPromptFacts } from './dispatch-config.ts';
 import { attachQueuedGreeting, isGreetingRow, retireSpentGreeting } from './greeting.ts';
-import { heartbeatLeadGate, heartbeatStartFrame } from './heartbeat-run.ts';
+import { chatlessStartFrame, heartbeatLeadGate } from './heartbeat-run.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import {
     isConcreteInboxSource as isConcreteSource,
@@ -47,9 +47,9 @@ export async function startFrame(
     // A greeting rides the run without being one of its items (greeting.ts).
     const greets = attachedRows.some(isGreetingRow);
     const runRows = attachedRows.filter((row) => !isGreetingRow(row));
-    const chatlessRow = runRows.find((row) => isChatlessInboxSource(row.source));
-    if (chatlessRow) {
-        return await heartbeatStartFrame(db, state, config, chatlessRow);
+    const chatlessRows = runRows.filter((row) => isChatlessInboxSource(row.source));
+    if (chatlessRows.length > 0) {
+        return await chatlessStartFrame(db, state, config, chatlessRows);
     }
     const noticeRows =
         runRows.length === 0 && state.activeRunId
@@ -167,10 +167,11 @@ function preferredDrainLead(rows: store.InboxItemRow[]): store.InboxItemRow | un
 
 /**
  * A chatless run cannot carry the greeting, so while one waits a dream,
- * heartbeat, or heartbeat report does not lead: a report would otherwise open
- * the new Agent's main session without it. A sub-agent wake is never held
- * (specs/heartbeat.md): it exists only after the main session ran, and the
- * greeting rides the next ordinary run, which shows it warm or cold.
+ * heartbeat, heartbeat report, or Task assignment does not lead: a report or an
+ * assignment would otherwise open the new Agent's main session without it. A
+ * sub-agent wake is never held (specs/heartbeat.md): it exists only after the
+ * main session ran, and the greeting rides the next ordinary run, which shows it
+ * warm or cold.
  */
 function waitsForGreeting(source: string): boolean {
     return isChatlessInboxSource(source) && source !== 'subagent';
@@ -178,7 +179,7 @@ function waitsForGreeting(source: string): boolean {
 
 /**
  * One drain never mixes the lanes, and a concrete drain never mixes kinds: a
- * fire, a task assignment, a Cloud Agent result, and Cove's bootstrap each earn
+ * fire, a claim assignment, a Cloud Agent result, and Cove's bootstrap each earn
  * their own dedicated wake, which is also what keeps the sole-fire cause
  * inference readable (specs/inbox.md).
  */

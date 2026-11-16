@@ -1,3 +1,4 @@
+import HausModels
 import SwiftUI
 
 struct AgentProfileView: View {
@@ -8,6 +9,9 @@ struct AgentProfileView: View {
     let onOpenAvatarGenerator: () -> Void
     let onOpenRuntimeConfiguration: () -> Void
     let onOpenAutomations: (() -> Void)?
+    let stoppedClaims: AgentStoppedClaimsActions
+    let onOpenClaim: (ClaimListItem) -> Void
+    @State private var stoppedClaimsState = AgentStoppedClaimsState.loading
     @State private var name: String
     @State private var savedName: String
     @State private var isSaving = false
@@ -20,7 +24,9 @@ struct AgentProfileView: View {
         onSaveAvatar: @escaping @Sendable (AvatarImagePayload) async throws -> Void = { _ in },
         onOpenAvatarGenerator: @escaping () -> Void = {},
         onOpenRuntimeConfiguration: @escaping () -> Void = {},
-        onOpenAutomations: (() -> Void)? = nil
+        onOpenAutomations: (() -> Void)? = nil,
+        stoppedClaims: AgentStoppedClaimsActions = .unavailable,
+        onOpenClaim: @escaping (ClaimListItem) -> Void = { _ in }
     ) {
         self.agent = agent
         self.onEditDescription = onEditDescription
@@ -29,6 +35,8 @@ struct AgentProfileView: View {
         self.onOpenAvatarGenerator = onOpenAvatarGenerator
         self.onOpenRuntimeConfiguration = onOpenRuntimeConfiguration
         self.onOpenAutomations = onOpenAutomations
+        self.stoppedClaims = stoppedClaims
+        self.onOpenClaim = onOpenClaim
         _name = State(initialValue: agent.displayName)
         _savedName = State(initialValue: agent.displayName)
     }
@@ -91,6 +99,8 @@ struct AgentProfileView: View {
                     }
                 }
 
+                stoppedClaimsSection
+
                 if let errorMessage {
                     Text(errorMessage)
                         .font(.footnote)
@@ -102,6 +112,7 @@ struct AgentProfileView: View {
             .padding(.top, 10)
             .padding(.bottom, 28)
         }
+        .loadsStoppedClaims(agentID: agent.id, actions: stoppedClaims, into: $stoppedClaimsState)
         .scrollIndicators(.hidden)
         .background(HausPlatformColor.groupedBackground)
         .navigationTitle(agent.displayName)
@@ -122,6 +133,35 @@ struct AgentProfileView: View {
                 }
                 .disabled(!hasNameChanges || isSaving)
                 .accessibilityLabel("Save name")
+            }
+        }
+    }
+
+    /// Only when there is something to say: an Agent that left nothing
+    /// unfinished has no section here.
+    @ViewBuilder
+    private var stoppedClaimsSection: some View {
+        let claims = stoppedClaimsState.claims
+        if let failure = stoppedClaimsState.failure {
+            SettingsSection(StoppedClaims.title) {
+                Text(failure)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .padding(16)
+            }
+        } else if !claims.isEmpty {
+            SettingsSection(StoppedClaims.title) {
+                SettingsListGroup {
+                    ForEach(claims) { item in
+                        DisclosureRow(
+                            item.stoppedClaimTitle,
+                            subtitle: item.stoppedClaimDetail(now: .now),
+                            icon: .tasks,
+                            showsDivider: item.id != claims.last?.id,
+                            action: { onOpenClaim(item) }
+                        )
+                    }
+                }
             }
         }
     }

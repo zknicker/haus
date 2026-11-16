@@ -15,7 +15,7 @@ enum HausRadius {
     /// Content inside a transcript or list row: cards, code blocks, image
     /// tiles, press and highlight tints, the action list, search fields.
     static let medium: CGFloat = 12
-    /// Standalone surfaces: an emphasized Thread anchor, task metadata, and
+    /// Standalone surfaces: an emphasized Thread anchor, claim metadata, and
     /// the banners that float over a screen.
     static let large: CGFloat = 16
     /// Grouped sections on a sheet, such as Settings lists.

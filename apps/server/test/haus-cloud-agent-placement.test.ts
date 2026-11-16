@@ -61,23 +61,23 @@ test('an inline reply launch keeps its Channel and gets its own work Thread', as
     expect(await settleTarget(placed)).toBe(fixture.channelId);
 });
 
-test('a Task Thread launch posts in the Task Thread and notifies it', async () => {
-    const task = await fixture.owner.trpc.task.create.mutate({
+test('a Claim Thread launch posts in the Claim Thread and notifies it', async () => {
+    const claim = await fixture.owner.trpc.claim.create.mutate({
         chatId: fixture.channelId,
         content: 'Harden the deploy script',
-        nonce: 'place-task',
+        nonce: 'place-claim',
         serverId: fixture.serverId,
     });
-    const threadId = threadChatIdForAnchor(task.task.messageId);
-    const target = `#product:${task.task.messageId}`;
+    const threadId = threadChatIdForAnchor(claim.claim.messageId);
+    const target = `#product:${claim.claim.messageId}`;
     await fixture.owner.trpc.chat.send.mutate({
         chatId: fixture.channelId,
         content: 'Starting the Thread.',
-        nonce: 'place-task-reply',
+        nonce: 'place-claim-reply',
         serverId: fixture.serverId,
-        thread: { anchorMessageId: task.task.messageId },
+        thread: { anchorMessageId: claim.claim.messageId },
     });
-    const placed = await launch(target, 'place-task-launch');
+    const placed = await launch(target, 'place-claim-launch');
     expect(placed.receipt).toMatchObject({ chatId: threadId, target });
     expect(await threadsUnder(threadId, placed.messageId)).toEqual([]);
     expect(await orbitFollows(threadId)).toBe(true);

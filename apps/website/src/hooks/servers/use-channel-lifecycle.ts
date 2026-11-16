@@ -8,7 +8,7 @@ function useLifecycleInvalidation() {
             utils.chat.list.invalidate({ serverId }),
             utils.chat.listArchived.invalidate({ serverId }),
             utils.chat.search.invalidate({ serverId }),
-            utils.task.list.invalidate({ serverId }, { refetchType: 'all' }),
+            utils.claim.list.invalidate({ serverId }, { refetchType: 'all' }),
         ]);
     };
 }

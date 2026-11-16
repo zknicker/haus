@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { eq, inArray } from 'drizzle-orm';
 import { openAttachmentRoot } from '../src/attachments/attachment-root.ts';
 import { readMessageCauses } from '../src/automations/message-cause-read.ts';
 import { developmentArtifactFiles } from '../src/development/seed-artifact-files.ts';
@@ -14,13 +15,17 @@ import {
     agentsTable,
     attachmentsTable,
     avatarsTable,
+    boardsTable,
     chatMessagesTable,
     chatsTable,
     computersTable,
     mcpConnectionsTable,
-    messageTasksTable,
+    messageClaimsTable,
     serverOnboardingTable,
     serversTable,
+    taskInboxItemsTable,
+    taskMessageLinksTable,
+    tasksTable,
     threadFollowsTable,
     usersTable,
 } from '../src/postgres/schema.ts';
@@ -168,7 +173,7 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     const threads = (await connection.db.select().from(chatsTable)).filter(
         (chat) => chat.kind === 'thread'
     );
-    const tasks = await connection.db.select().from(messageTasksTable);
+    const claims = await connection.db.select().from(messageClaimsTable);
     const users = await connection.db.select().from(usersTable);
 
     // Every Agent is attributed, so the human's Created Agents is populated.
@@ -197,35 +202,57 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     expect(threads.every((thread) => thread.anchorMessageId && thread.parentChatId)).toBe(true);
     expect(await connection.db.select().from(threadFollowsTable)).toHaveLength(3);
 
-    // Every promoted task carries its deterministic Thread. A claim does not:
-    // the Thread is materialized when somebody first replies in it, which is
-    // exactly what the seeded stalled claim never got.
-    const threadIds = new Set(threads.map((thread) => thread.id));
-    expect(
-        tasks
-            .filter((task) => task.chatId === allChannelId && task.origin !== 'claimed')
-            .every((task) => threadIds.has(`cht_thr_${task.messageId.replace(/^msg_/u, '')}`))
-    ).toBe(true);
+    // The General board's demo Tasks, each mentioned by the message it came from.
+    // The two handed to the owner are Inbox items; one's context is a Thread
+    // reply, and each message names its Task, so the chip shows. The board's
+    // counter is past them, so the first real Task does not collide with a
+    // seeded number.
+    const tasks = await connection.db.select().from(tasksTable);
+    const links = await connection.db.select().from(taskMessageLinksTable);
+    expect(tasks.map((task) => task.number).sort()).toEqual([1, 2, 3, 4]);
+    expect(links.map((link) => link.text).sort()).toEqual(['GEN-1', 'GEN-2', 'GEN-3', 'GEN-4']);
+    const [general] = await connection.db.select().from(boardsTable);
+    expect(general).toMatchObject({ key: 'GEN', nextNumber: 5 });
+    const inboxItems = await connection.db.select().from(taskInboxItemsTable);
+    const ownerTasks = tasks.filter((task) => task.assigneeUserId !== null);
+    expect(ownerTasks.map((task) => task.number).sort()).toEqual([3, 4]);
+    expect(inboxItems.map((item) => item.taskId).sort()).toEqual(
+        ownerTasks.map((task) => task.id).sort()
+    );
+    expect(inboxItems.every((item) => item.assignedByAgentId !== null)).toBe(true);
+    const linkedMessages = await connection.db
+        .select({ chatKind: chatsTable.kind, content: chatMessagesTable.content })
+        .from(chatMessagesTable)
+        .innerJoin(chatsTable, eq(chatsTable.id, chatMessagesTable.chatId))
+        .where(
+            inArray(
+                chatMessagesTable.id,
+                links.filter((link) => /GEN-[34]/u.test(link.text)).map((link) => link.messageId)
+            )
+        );
+    expect(linkedMessages.map((message) => message.chatKind).sort()).toEqual(['channel', 'thread']);
+    expect(linkedMessages.every((message) => /GEN-[34]/u.test(message.content))).toBe(true);
 
-    // Two Agent-held promoted tasks in two statuses, plus
-    // the Inbox seed's stalled claim. The channel's counter is past all of
-    // them, so promoting a message in the seeded `#all` does not collide with
-    // a seeded task number.
-    expect(tasks).toHaveLength(13);
+    // The Inbox seed's stalled claim is the only one in `#all`. The channel's
+    // counter is past it, so promoting a message there does not collide with a
+    // seeded claim number.
+    expect(claims).toHaveLength(11);
     const [allChannel] = (await connection.db.select().from(chatsTable)).filter(
         (chat) => chat.isAll
     );
-    expect(allChannel?.lastTaskNumber).toBe(
-        Math.max(...tasks.filter((task) => task.chatId === allChannelId).map((task) => task.number))
+    expect(allChannel?.lastClaimNumber).toBe(
+        Math.max(
+            ...claims.filter((claim) => claim.chatId === allChannelId).map((claim) => claim.number)
+        )
     );
     expect(
-        tasks
-            .filter((task) => task.chatId === allChannelId)
-            .map((task) => task.status)
+        claims
+            .filter((claim) => claim.chatId === allChannelId)
+            .map((claim) => claim.status)
             .sort()
-    ).toEqual(['in_progress', 'in_progress', 'todo']);
-    // Tasks are Agent work (ADR 0037): every seeded task is held by an Agent.
-    expect(tasks.every((task) => task.assigneeAgentId !== null)).toBe(true);
+    ).toEqual(['in_progress']);
+    // Claims are Agent work (ADR 0037): every seeded claim is held by an Agent.
+    expect(claims.every((claim) => claim.assigneeAgentId !== null)).toBe(true);
 
     // A Server-managed connection the Agent Connections surface can grant.
     expect(await connection.db.select().from(mcpConnectionsTable)).toHaveLength(1);

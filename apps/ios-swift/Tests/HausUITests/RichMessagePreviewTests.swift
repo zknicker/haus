@@ -58,7 +58,7 @@ struct RichMessagePreviewTests {
 }
 
 /// The two preview surfaces that render a message body without the transcript's
-/// fence split: a Server search result, and a task row's one-line title.
+/// fence split: a Server search result, and a claim row's one-line title.
 struct MessagePreviewSurfaceTests {
     private let fenced = "Shipped it.\n```visual Weekly sales\n<h1>Sales</h1>\n<svg></svg>\n```"
 
@@ -90,9 +90,9 @@ struct MessagePreviewSurfaceTests {
         #expect(result.content == "Ship it.\nTomorrow, ideally.")
     }
 
-    /// The task row is one line, so its anchor collapses to one — and a task
+    /// The claim row is one line, so its anchor collapses to one — and a claim
     /// whose anchor is a visual reads as the visual's name.
-    @Test func aTaskTitleCollapsesToOneLineAndNamesItsVisual() {
+    @Test func aClaimTitleCollapsesToOneLineAndNamesItsVisual() {
         #expect(RichMessageParser.oneLinePreview(fenced) == "Shipped it. Weekly sales")
     }
 }

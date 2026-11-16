@@ -135,27 +135,27 @@ test('listActive shows queued and running work to members with Chat access only'
     socket.close();
 });
 
-test('a Task Thread lists every delegation under its anchor without leaking other work', async () => {
-    const task = await fixture.owner.trpc.task.create.mutate({
+test('a Claim Thread lists every delegation under its anchor without leaking other work', async () => {
+    const claim = await fixture.owner.trpc.claim.create.mutate({
         chatId: fixture.channelId,
         serverId: fixture.serverId,
         content: 'Review both halves',
-        nonce: 'cloud-multiple-task',
+        nonce: 'cloud-multiple-claim',
     });
-    // A launch never opens a Thread, so the Task Thread is already in progress.
+    // A launch never opens a Thread, so the Claim Thread is already in progress.
     await fixture.owner.trpc.chat.send.mutate({
         chatId: fixture.channelId,
         content: 'Split it in two.',
         nonce: 'cloud-multiple-thread',
         serverId: fixture.serverId,
-        thread: { anchorMessageId: task.task.messageId },
+        thread: { anchorMessageId: claim.claim.messageId },
     });
     const runner = await fixture.mintRunner('run_cloud_multiple');
-    await fixture.readTarget(runner, `#product:${task.task.messageId}`);
+    await fixture.readTarget(runner, `#product:${claim.claim.messageId}`);
     const first = await fixture.postStart(
         runner,
         fixture.startBody({
-            target: `#product:${task.task.messageId}`,
+            target: `#product:${claim.claim.messageId}`,
             nonce: 'cloud-multiple-one',
             title: 'First review',
         })
@@ -163,7 +163,7 @@ test('a Task Thread lists every delegation under its anchor without leaking othe
     const second = await fixture.postStart(
         runner,
         fixture.startBody({
-            target: `#product:${task.task.messageId}`,
+            target: `#product:${claim.claim.messageId}`,
             nonce: 'cloud-multiple-two',
             title: 'Second review',
         })
@@ -176,7 +176,7 @@ test('a Task Thread lists every delegation under its anchor without leaking othe
     });
     expect(
         rows
-            .filter((row) => row.anchorMessageId === task.task.messageId)
+            .filter((row) => row.anchorMessageId === claim.claim.messageId)
             .map((row) => row.work.title)
     ).toEqual(['First review', 'Second review']);
     await expect(
@@ -189,7 +189,7 @@ test('a Task Thread lists every delegation under its anchor without leaking othe
 
 test('reconnect hands the Computer every non-terminal work it still owns', async () => {
     const runner = await fixture.mintRunner('run_cloud_reconcile');
-    // The Task created above posted in #product; a launch there must have read it.
+    // The Claim created above posted in #product; a launch there must have read it.
     await fixture.readTarget(runner, '#product');
     const created = await fixture.postStart(
         runner,

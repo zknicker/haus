@@ -38,7 +38,7 @@ export function expectAgentVoice(expect, messages) {
 
 /**
  * Top-level messages in the scenario's channels, the conversation surface the
- * house voice governs. DMs and Threads (task work, drafted deliverables) are out
+ * house voice governs. DMs and Threads (claim work, drafted deliverables) are out
  * of scope. Channels are the tracked chats with a name. Read-only: the gate
  * never claims chats for cleanup.
  */

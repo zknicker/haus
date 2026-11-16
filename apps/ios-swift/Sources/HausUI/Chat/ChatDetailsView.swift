@@ -14,6 +14,7 @@ public struct ChatDetailsView: View {
     private let loadAgentActivity: @Sendable (String) async throws -> [AgentActivityPresentation]
     private let agentProfile: (String) -> AgentProfilePresentation?
     private let onOpenAgentProfile: (String) -> Void
+    private let stoppedClaims: AgentStoppedClaimsActions
     @State private var historyState = ActivityHistoryState.idle
     @State private var path: [ChatDetailsRoute] = []
     @State private var detent = PresentationDetent.medium
@@ -30,8 +31,10 @@ public struct ChatDetailsView: View {
         currentActivity: AgentActivityPresentation? = nil,
         loadAgentActivity: @escaping @Sendable (String) async throws -> [AgentActivityPresentation] = { _ in [] },
         agentProfile: @escaping (String) -> AgentProfilePresentation? = { _ in nil },
-        onOpenAgentProfile: @escaping (String) -> Void = { _ in }
+        onOpenAgentProfile: @escaping (String) -> Void = { _ in },
+        stoppedClaims: AgentStoppedClaimsActions = .unavailable
     ) {
+        self.stoppedClaims = stoppedClaims
         self.chat = chat
         self.server = server
         self.currentActivity = currentActivity
@@ -77,6 +80,11 @@ public struct ChatDetailsView: View {
                         agent: agent,
                         profile: agentProfile(agent.id),
                         currentActivity: currentActivity,
+                        stoppedClaims: stoppedClaims,
+                        onOpenClaim: { item in
+                            stoppedClaims.open(item)
+                            dismiss()
+                        },
                         onManageInSettings: { onOpenAgentProfile(agent.id) }
                     )
                 }

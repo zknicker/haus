@@ -139,7 +139,7 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     /// posted in a Channel or DM as a reply to another message.
     public let inlineReply: MessageReplyReferencePresentation?
     public let thread: ThreadPreviewPresentation?
-    public let task: TaskPresentation?
+    public let claim: ClaimPresentation?
     public let isPending: Bool
     /// A pending row whose send did not reach Server: the viewer's own row,
     /// marked "Not sent", until they retry or delete it.
@@ -170,7 +170,7 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         sequence: Int? = nil,
         inlineReply: MessageReplyReferencePresentation? = nil,
         thread: ThreadPreviewPresentation? = nil,
-        task: TaskPresentation? = nil,
+        claim: ClaimPresentation? = nil,
         isPending: Bool = false,
         isSendFailed: Bool = false,
         cloudAgents: [CloudAgentPresentation] = [],
@@ -196,7 +196,7 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         self.sequence = sequence
         self.inlineReply = inlineReply
         self.thread = thread
-        self.task = task
+        self.claim = claim
         self.isPending = isPending
         self.isSendFailed = isPending && isSendFailed
         self.cloudAgents = cloudAgents

@@ -5,7 +5,7 @@ import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { reminderCommandsTable, remindersTable } from '../postgres/schema.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { prepareReminderEvent } from './reminder-events.ts';
+import { prepareReminderEvents } from './reminder-events.ts';
 import {
     type Reminder,
     type ReminderClock,
@@ -97,7 +97,7 @@ export async function cancelReminder(
             resultSnapshot: toReminder(updated, agent.handle),
             serverId: input.serverId,
         });
-        const event = prepareReminderEvent({
+        const event = await prepareReminderEvents(tx, {
             action: 'canceled',
             ownerAgentId: updated.ownerAgentId,
             reminderId: updated.id,

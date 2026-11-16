@@ -6,7 +6,10 @@ import {
     reminderAgentAttentionTable,
     reminderFiresTable,
     remindersTable,
+    taskReminderLinksTable,
 } from '../postgres/schema.ts';
+import { publishRealtime } from '../realtime/topic.ts';
+import { prepareTaskLinkEvents } from '../tasks/task-reference-links.ts';
 import type { ReminderClock } from './reminder-model.ts';
 
 const sweepIntervalMs = 60 * 60 * 1000;
@@ -51,16 +54,34 @@ export async function deleteExpiredReminderHistory(db: HausDatabase, now: Date):
                 eq(reminderAgentAttentionTable.reminderId, remindersTable.id)
             )
         );
-    const deleted = await db
-        .delete(remindersTable)
-        .where(
+    const expired = and(
+        inArray(remindersTable.status, ['canceled', 'fired']),
+        lt(remindersTable.updatedAt, settledBefore),
+        notExists(reminderAwake)
+    );
+    // The links cascade with the Reminders, so read them first.
+    const linked = await db
+        .select({
+            serverId: taskReminderLinksTable.serverId,
+            taskId: taskReminderLinksTable.taskId,
+        })
+        .from(taskReminderLinksTable)
+        .innerJoin(
+            remindersTable,
             and(
-                inArray(remindersTable.status, ['canceled', 'fired']),
-                lt(remindersTable.updatedAt, settledBefore),
-                notExists(reminderAwake)
+                eq(remindersTable.serverId, taskReminderLinksTable.serverId),
+                eq(remindersTable.id, taskReminderLinksTable.reminderId)
             )
         )
+        .where(expired);
+    const deleted = await db
+        .delete(remindersTable)
+        .where(expired)
         .returning({ id: remindersTable.id });
+    for (const serverId of new Set(linked.map((link) => link.serverId))) {
+        const taskIds = linked.filter((link) => link.serverId === serverId).map((l) => l.taskId);
+        publishRealtime(await prepareTaskLinkEvents(db, { serverId, taskIds }));
+    }
     const fireAwake = db
         .select({ fireId: reminderAgentAttentionTable.fireId })
         .from(reminderAgentAttentionTable)

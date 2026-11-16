@@ -47,8 +47,18 @@ export function threadsRoute(slug: string) {
     return `${serverRoute(slug)}/threads`;
 }
 
+/** Tasks: resolves to the last-viewed board, or the Server's first. */
 export function tasksRoute(slug: string) {
     return `${serverRoute(slug)}/tasks`;
+}
+
+export function boardRoute(slug: string, boardKey: string) {
+    return `${tasksRoute(slug)}/${encodeURIComponent(boardKey)}`;
+}
+
+/** One Task's page, `SEC-12` being board `SEC` and number 12. */
+export function taskRoute(slug: string, boardKey: string, number: number) {
+    return `${boardRoute(slug, boardKey)}/${number}`;
 }
 
 /**

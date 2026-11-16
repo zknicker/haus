@@ -3,7 +3,7 @@ import XCTest
 @testable import HausModels
 
 /// Each focused stream's payload decodes from the Server's wire shape
-/// (`packages/haus-api/src/{chat-events,task,cloud-agent}.ts`).
+/// (`packages/haus-api/src/{chat-events,claim,cloud-agent}.ts`).
 final class RealtimeEventsTests: XCTestCase {
     func testDecodesMessageCreatedIncludingAThreadReply() throws {
         let event = try decode(MessageCreatedEvent.self, """
@@ -64,11 +64,11 @@ final class RealtimeEventsTests: XCTestCase {
         }
     }
 
-    func testDecodesTaskChangedAndLabelUpdated() throws {
-        let task = try decode(TaskChangedEvent.self, """
+    func testDecodesClaimChangedAndLabelUpdated() throws {
+        let claim = try decode(ClaimChangedEvent.self, """
         {"chatId":"chat_1","kind":"updated","messageId":"m1","serverId":"server_1"}
         """)
-        XCTAssertEqual(task, TaskChangedEvent(serverID: "server_1", chatID: "chat_1", messageID: "m1", kind: .updated))
+        XCTAssertEqual(claim, ClaimChangedEvent(serverID: "server_1", chatID: "chat_1", messageID: "m1", kind: .updated))
 
         let label = try decode(TaskLabelUpdatedEvent.self, #"{"labelId":"label_1","serverId":"server_1"}"#)
         XCTAssertEqual(label, TaskLabelUpdatedEvent(serverID: "server_1", labelID: "label_1"))
@@ -140,7 +140,7 @@ final class ChatRealtimeEffectsTests: XCTestCase {
         let effects = ChatRealtimeEffects([
             .reactionUpdated(.init(serverID: "s", chatID: "chat_1", messageID: "m1")),
             .reactionUpdated(.init(serverID: "s", chatID: "chat_1", messageID: "m1")),
-            .taskChanged(.init(serverID: "s", chatID: "chat_1", messageID: "m2", kind: .created)),
+            .claimChanged(.init(serverID: "s", chatID: "chat_1", messageID: "m2", kind: .created)),
             .cloudAgentWorkUpdated(.init(
                 serverID: "s", chatID: "thread_1", parentChatID: "chat_1", messageID: "w1", workID: "work_1"
             )),
@@ -158,8 +158,51 @@ final class ChatRealtimeEffectsTests: XCTestCase {
         XCTAssertTrue(effects.tailSequenceByChatID.isEmpty)
         XCTAssertEqual(effects.liveReactionMessageIDs, ["m1"])
         XCTAssertEqual(effects.cloudAgentWorkChatIDs, ["thread_1", "chat_1"])
-        XCTAssertTrue(effects.reloadsServerTasks)
         XCTAssertTrue(effects.reloadsActiveCloudAgentWork)
+    }
+
+    /// A burst of moves on one board costs one list read, and every Task that
+    /// changed is named once, for its open detail and its Inbox item.
+    func testTaskEventsCoalesceIntoOneReadPerBoard() {
+        let effects = ChatRealtimeEffects([
+            .taskChanged(.init(boardID: "board_1", serverID: "s", taskID: "task_1", version: 2)),
+            .taskChanged(.init(boardID: "board_1", serverID: "s", taskID: "task_2", version: 5)),
+            .boardUpdated(.init(boardID: "board_2", serverID: "s", version: 3)),
+        ], serverID: "s")
+
+        XCTAssertEqual(effects.boardIDsToReload, ["board_1", "board_2"])
+        XCTAssertEqual(effects.changedTaskIDs, ["task_1", "task_2"])
+        XCTAssertFalse(effects.reloadsTaskInbox)
+        XCTAssertFalse(effects.needsChatListRead { _ in nil })
+    }
+
+    func testATaskInboxChangeReadsTheInboxAlone() {
+        let effects = ChatRealtimeEffects([
+            .taskInboxChanged(.init(serverID: "s", userID: "user_1")),
+        ], serverID: "s")
+
+        XCTAssertTrue(effects.reloadsTaskInbox)
+        XCTAssertTrue(effects.boardIDsToReload.isEmpty)
+    }
+
+    func testTaskEventsDecodeTheServerPayloads() throws {
+        let task = try HausJSON.decoder().decode(
+            TaskChangedEvent.self,
+            from: Data(#"{"boardId":"b","serverId":"s","taskId":"t","version":4}"#.utf8)
+        )
+        XCTAssertEqual(task, TaskChangedEvent(boardID: "b", serverID: "s", taskID: "t", version: 4))
+
+        let board = try HausJSON.decoder().decode(
+            BoardUpdatedEvent.self,
+            from: Data(#"{"boardId":"b","serverId":"s","version":2}"#.utf8)
+        )
+        XCTAssertEqual(board, BoardUpdatedEvent(boardID: "b", serverID: "s", version: 2))
+
+        let inbox = try HausJSON.decoder().decode(
+            TaskInboxChangedEvent.self,
+            from: Data(#"{"serverId":"s","userId":"u"}"#.utf8)
+        )
+        XCTAssertEqual(inbox, TaskInboxChangedEvent(serverID: "s", userID: "u"))
     }
 
     func testAReadSkipsTheChatListWhenItAlreadyShowsNothingUnread() {

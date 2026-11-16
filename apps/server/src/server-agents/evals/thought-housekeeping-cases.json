@@ -18,7 +18,7 @@
       "id": "claim-task",
       "kind": "reasoning",
       "expected": "skip",
-      "text": "There's a new request in #product. I'm looking to claim a task for it so nobody else picks it up. Let me run haus task claim on that message."
+      "text": "There's a new request in #product. I'm looking to claim a task for it so nobody else picks it up. Let me run haus claim on that message."
     },
     {
       "id": "task-board",

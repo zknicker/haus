@@ -1,0 +1,299 @@
+import { expect, test } from 'bun:test';
+import type * as z from 'zod';
+import { AgentApiClient, type AgentApiRequester } from '../agent-api-client.ts';
+import { AgentCliError, renderAgentCliError } from '../agent-error.ts';
+import type { ParsedArgs } from '../parse.ts';
+import { runClaim, runClaimCreate, runClaimList } from './agent-claim-actions.ts';
+
+test('a claim names the inline reply for each granted claim, never its claim thread', async () => {
+    const outputs: string[] = [];
+    await runClaim(
+        claimArgs(['7']),
+        claimDeps(stubClient({ results: [granted(7, 'claimed')] }), outputs)
+    );
+
+    expect(outputs.join('')).toBe(
+        'Claim results (1 claimed):\n#7 (msg:1a2b3c4d): claimed · inline reply --target "#general" --reply-to 1a2b3c4d\n'
+    );
+    expect(outputs.join('')).not.toContain('#general:1a2b3c4d');
+});
+
+test('a partial batch claim prints every row and still succeeds', async () => {
+    const outputs: string[] = [];
+    const exit = await runClaim(
+        claimArgs(['7', '8', '9']),
+        claimDeps(
+            stubClient({
+                results: [
+                    granted(7, 'claimed'),
+                    granted(8, 'already_yours'),
+                    {
+                        claimConflict: sageConflict,
+                        number: 9,
+                        outcome: 'refused',
+                        reason: 'That claim is already owned by another assignee.',
+                        claim: claimRow(9),
+                    },
+                ],
+            }),
+            outputs
+        )
+    );
+
+    expect(exit).toBe(0);
+    expect(outputs.join('')).toBe(
+        'Claim results (1 claimed, 1 already yours, 1 refused):\n' +
+            '#7 (msg:1a2b3c4d): claimed · inline reply --target "#general" --reply-to 1a2b3c4d\n' +
+            '#8 (msg:1a2b3c4d): already yours · inline reply --target "#general" --reply-to 1a2b3c4d\n' +
+            '#9 (msg:1a2b3c4d): refused — held by @sage\n'
+    );
+});
+
+test('a batch claim with nothing granted fails with one line per refusal', async () => {
+    const outputs: string[] = [];
+    const failure = await runClaim(
+        claimArgs(['9', '10']),
+        claimDeps(
+            stubClient({
+                results: [
+                    {
+                        claimConflict: sageConflict,
+                        number: 9,
+                        outcome: 'refused',
+                        reason: 'That claim is already owned by another assignee.',
+                        claim: claimRow(9),
+                    },
+                    {
+                        claimConflict: null,
+                        number: 10,
+                        outcome: 'refused',
+                        reason: 'No claim #10 exists in that target.',
+                        claim: null,
+                    },
+                ],
+            }),
+            outputs
+        )
+    ).then(
+        () => null,
+        (error: unknown) => error
+    );
+
+    expect(outputs.join('')).toContain('#10: refused — No claim #10 exists in that target\n');
+    expect(failure).toBeInstanceOf(AgentCliError);
+    expect((failure as AgentCliError).message).toBe(
+        'Claim refused — #9 held by @sage; #10 No claim #10 exists in that target.'
+    );
+});
+
+test('a lost claim prints the structured conflict instead of a refresh notice', async () => {
+    const fetcher = (async () =>
+        Response.json({
+            results: [
+                {
+                    claimConflict: sageConflict,
+                    number: 7,
+                    outcome: 'refused',
+                    reason: 'That claim is already owned by another assignee.',
+                    claim: claimRow(7),
+                },
+            ],
+        })) as unknown as typeof fetch;
+    const client = new AgentApiClient(
+        {
+            agentId: 'agt_wren',
+            serverUrl: 'http://127.0.0.1:18790',
+            token: `grta_${'a'.repeat(43)}`,
+            tokenFile: '/tmp/token',
+        },
+        fetcher
+    );
+    const args: ParsedArgs = {
+        flags: {},
+        help: false,
+        positionals: [],
+        valueLists: { '--number': ['7'] },
+        values: { '--target': '#general' },
+    };
+
+    const failure = await runClaim(args, {
+        client,
+        mintNonce: () => 'nonce',
+        readStdin: async () => '',
+        stdinIsTty: () => false,
+        write: () => undefined,
+    }).then(
+        () => null,
+        (error: unknown) => error
+    );
+
+    expect(failure).toBeInstanceOf(AgentCliError);
+    expect(renderAgentCliError(failure as AgentCliError)).toBe(
+        'Claim failed — @sage currently holds the implementation lock (assignment state as of 2026-09-08T17:09:52.000Z).\n' +
+            'Blocked: starting conflicting implementation/change work.\n' +
+            'Not blocked by this claim conflict (each still subject to its own authority/policy): reading the claim and its Thread · replying in the Thread with findings, questions, or review · claiming a different claim in this lane · raising the routing with the people in the original Chat.\n' +
+            'This is not a ruling on who owns or leads this lane. If you are its canonical owner or believe it is misrouted: correct the routing in the original thread.\n' +
+            'Code: TASK_CONFLICT\n'
+    );
+});
+
+test('a claim conflict without a structured body keeps the ordinary refusal', async () => {
+    const fetcher = (async () =>
+        Response.json(
+            {
+                code: 'TASK_CONFLICT',
+                message: 'That claim changed; refresh it before updating.',
+            },
+            { status: 409 }
+        )) as unknown as typeof fetch;
+    const client = new AgentApiClient(
+        {
+            agentId: 'agt_wren',
+            serverUrl: 'http://127.0.0.1:18790',
+            token: `grta_${'a'.repeat(43)}`,
+            tokenFile: '/tmp/token',
+        },
+        fetcher
+    );
+    const args: ParsedArgs = {
+        flags: {},
+        help: false,
+        positionals: [],
+        valueLists: { '--number': ['7'] },
+        values: { '--target': '#general' },
+    };
+
+    const failure = await runClaim(args, {
+        client,
+        mintNonce: () => 'nonce',
+        readStdin: async () => '',
+        stdinIsTty: () => false,
+        write: () => undefined,
+    }).then(
+        () => null,
+        (error: unknown) => error
+    );
+
+    expect(renderAgentCliError(failure as AgentCliError)).toBe(
+        'Error: That claim changed; refresh it before updating.\nCode: TASK_CONFLICT\n'
+    );
+});
+
+test('claim create names every created claim its own thread address', async () => {
+    const outputs: string[] = [];
+    const row = claimRow(8);
+    const second = { ...row, message: { ...row.message, id: 'msg_9f8e7d6c00000000' } };
+    await runClaimCreate(
+        {
+            flags: {},
+            help: false,
+            positionals: [],
+            valueLists: { '--title': ['one', 'two'] },
+            values: { '--target': '#general' },
+        },
+        claimDeps(stubClient({ claims: [claimRow(7), second] }), outputs)
+    );
+
+    expect(outputs.join('')).toBe(
+        'Created claim #7 [in_progress] in #general. Message ID: msg_1a2b3c4d00000000. Thread: "#general:1a2b3c4d".\n' +
+            'Created claim #8 [in_progress] in #general. Message ID: msg_9f8e7d6c00000000. Thread: "#general:9f8e7d6c".\n'
+    );
+});
+
+test('claim list sends --mine and states how many rows the limit hid', async () => {
+    const outputs: string[] = [];
+    const routes: string[] = [];
+    const client: AgentApiRequester = {
+        request: async <T>(route: string, schema: z.ZodType<T>) => {
+            routes.push(route);
+            return schema.parse({ omitted: 12, claims: [claimRow(7)] }) as T;
+        },
+    };
+    await runClaimList(
+        {
+            flags: { '--mine': true },
+            help: false,
+            positionals: [],
+            valueLists: {},
+            values: { '--status': 'all' },
+        },
+        claimDeps(client, outputs)
+    );
+
+    expect(routes).toEqual(['/api/agent/claims?status=all&mine=true']);
+    expect(outputs.join('')).toContain(
+        '\nTruncated: 12 more. Narrow with --target, --status, or --mine.\n'
+    );
+});
+
+const sageConflict = {
+    blockedActions: ['start_conflicting_execution'],
+    claimedAt: '2026-09-08T17:04:11.000Z',
+    conflictScope: 'implementation_execution',
+    currentAssignee: { name: 'sage', type: 'agent' },
+    kind: 'claim_conflict',
+    observedAt: '2026-09-08T17:09:52.000Z',
+    status: 'in_progress',
+    unblockedActionExamples: [
+        'reading the claim and its Thread',
+        'replying in the Thread with findings, questions, or review',
+        'claiming a different claim in this lane',
+        'raising the routing with the people in the original Chat',
+    ],
+};
+
+function claimRow(number: number) {
+    return {
+        assignee: null,
+        message: {
+            attachments: [],
+            author: { id: 'usr_wren', kind: 'user', label: 'wren', metadata: {} },
+            body_kind: 'text',
+            chat_id: 'cht_general',
+            content: 'Audit the Server export',
+            created_at: '2026-07-26T20:00:00.000Z',
+            deleted_at: null,
+            delivery_id: null,
+            id: 'msg_1a2b3c4d00000000',
+            metadata: {},
+            nonce: 'claim-cli-test',
+            role: 'user',
+            sender: { description: null, handle: 'wren', type: 'human' },
+            sequence: 1,
+        },
+        number,
+        status: 'in_progress',
+        target: '#general',
+        version: 3,
+    };
+}
+
+function granted(number: number, outcome: 'already_yours' | 'claimed') {
+    return { claimConflict: null, number, outcome, reason: null, claim: claimRow(number) };
+}
+
+function claimArgs(numbers: string[]): ParsedArgs {
+    return {
+        flags: {},
+        help: false,
+        positionals: [],
+        valueLists: { '--number': numbers },
+        values: { '--target': '#general' },
+    };
+}
+
+function stubClient(body: unknown): AgentApiRequester {
+    return {
+        request: async <T>(_route: string, schema: z.ZodType<T>) => schema.parse(body) as T,
+    };
+}
+
+function claimDeps(client: AgentApiRequester, outputs: string[]) {
+    return {
+        client,
+        mintNonce: () => 'nonce',
+        readStdin: async () => '',
+        stdinIsTty: () => false,
+        write: (text: string) => outputs.push(text),
+    };
+}

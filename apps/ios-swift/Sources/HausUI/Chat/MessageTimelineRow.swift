@@ -22,7 +22,7 @@ struct MessageTimelineRow: View {
     let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
     /// The drawer's actions, for VoiceOver.
     var accessibilityActions: MessageRowAccessibilityActions = .none
-    @AppStorage(ShowTasksInChat.storageKey) private var showTasksInChat = false
+    @AppStorage(ShowClaimsInChat.storageKey) private var showClaimsInChat = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -113,12 +113,12 @@ struct MessageTimelineRow: View {
 
                 if ThreadPreviewProjection.showsIngress(
                     replyCount: message.thread?.replyCount ?? 0,
-                    task: ingressTask
+                    claim: ingressClaim
                 ) {
                     ThreadPreviewCard(
                         anchorMessageID: message.id,
                         thread: message.thread,
-                        task: ingressTask,
+                        claim: ingressClaim,
                         cloudAgents: message.threadCloudAgents,
                         onOpen: onOpenThread
                     )
@@ -132,14 +132,14 @@ struct MessageTimelineRow: View {
         }
     }
 
-    /// The task this row states, or nil for a claim the reader has not asked
+    /// The claim this row states, or nil for a claim the reader has not asked
     /// to see and nobody has replied to. Chat's own preference, per device,
     /// like appearance.
-    private var ingressTask: TaskPresentation? {
-        ThreadPreviewProjection.ingressTask(
-            message.task,
+    private var ingressClaim: ClaimPresentation? {
+        ThreadPreviewProjection.ingressClaim(
+            message.claim,
             hasReplies: (message.thread?.replyCount ?? 0) > 0,
-            showTasksInChat: showTasksInChat
+            showClaimsInChat: showClaimsInChat
         )
     }
 

@@ -1,12 +1,27 @@
-import { afterEach, expect, test } from 'bun:test';
+import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { unavailableCloudAgentProvider } from './cloud-agents/provider.ts';
+import { setCloudAgentProvider } from './cloud-agents/registry.ts';
 import { refreshRuntimeAuthentication } from './runtime-auth-refresh.ts';
 import { readRuntimeIssues, recordRuntimeOutcome } from './runtime-issues.ts';
 
 const roots: string[] = [];
+const restores: Array<() => void> = [];
+
+// A report reads Cloud Agent readiness, which must not reach this machine's own logins.
+beforeEach(() => {
+    restores.push(
+        setCloudAgentProvider(unavailableCloudAgentProvider('claude')),
+        setCloudAgentProvider(unavailableCloudAgentProvider('cursor'))
+    );
+});
+
 afterEach(async () => {
+    while (restores.length > 0) {
+        restores.pop()?.();
+    }
     await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 

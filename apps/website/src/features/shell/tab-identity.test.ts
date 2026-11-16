@@ -6,6 +6,7 @@ const app = (path: string) => ({ kind: 'app', path }) as const;
 const records: TabIdentityRecords = {
     artifactTitle: null,
     agents: [{ avatarUrl: 'https://a/blippy.png', displayName: 'Blippy', id: 'ag1' }],
+    boardName: null,
     browserTab: null,
     chats: [
         {
@@ -115,6 +116,35 @@ test('a shared artifact tab shows its file title once the record loads', () => {
     );
     const workspace = parseTabPage(app('/s/acme/artifacts/workspaceFile%3Aag1%3Aplan.md'));
     expect(resolveTabIdentity(workspace, records).label).toBe('Workspace');
+});
+
+test('a board tab reads its name; a Task tab reads its key from the address alone', () => {
+    const board = parseTabPage(app('/s/acme/tasks/SEC'));
+    expect(board).toEqual({ boardKey: 'SEC', kind: 'board' });
+    expect(resolveTabIdentity(board, { ...records, boardName: 'Security' })).toEqual({
+        label: 'Security',
+        mark: { glyph: 'board', kind: 'glyph' },
+        place: null,
+    });
+    // The glyph holds the slot while `board.list` loads.
+    expect(resolveTabIdentity(board, records)).toEqual({
+        label: '',
+        mark: { glyph: 'board', kind: 'glyph' },
+        place: null,
+    });
+
+    const task = parseTabPage(app('/s/acme/tasks/SEC/12'));
+    expect(task).toEqual({ kind: 'task', taskKey: 'SEC-12' });
+    expect(resolveTabIdentity(task, records)).toEqual({
+        label: 'SEC-12',
+        mark: { glyph: 'task', kind: 'glyph' },
+        place: null,
+    });
+    // An address no key parses reads as the section it redirects to.
+    expect(parseTabPage(app('/s/acme/tasks/SEC/abc'))).toEqual({
+        kind: 'section',
+        section: 'tasks',
+    });
 });
 
 test('sections wear their glyph; web pages prefer the live title and favicon', () => {

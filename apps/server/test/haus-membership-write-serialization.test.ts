@@ -190,12 +190,12 @@ test('Thread follow queued behind removal reauthorizes before it writes', async 
     member.client.close();
 });
 
-test('task update queued behind removal reauthorizes before it writes', async () => {
-    const member = await addMember('task-update');
-    const created = await owner.trpc.task.create.mutate({
+test('claim update queued behind removal reauthorizes before it writes', async () => {
+    const member = await addMember('claim-update');
+    const created = await owner.trpc.claim.create.mutate({
         chatId: allChatId,
         content: 'Claim only while membership is current',
-        nonce: 'task-claim-membership-serialization',
+        nonce: 'claim-claim-membership-serialization',
         serverId,
     });
     let removal: Promise<unknown> = Promise.resolve();
@@ -204,10 +204,10 @@ test('task update queued behind removal reauthorizes before it writes', async ()
     await whileServerRowIsHeld(async () => {
         removal = remove(member.userId);
         await Bun.sleep(120);
-        claim = member.client.trpc.task.update.mutate({
-            expectedVersion: created.task.version,
-            messageId: created.task.messageId,
-            patch: { priority: 'high' },
+        claim = member.client.trpc.claim.update.mutate({
+            expectedVersion: created.claim.version,
+            messageId: created.claim.messageId,
+            patch: { status: 'closed' },
             serverId,
         });
         await Bun.sleep(120);
@@ -222,12 +222,12 @@ test('task update queued behind removal reauthorizes before it writes', async ()
             expect.stringMatching(/not a member/i)
         );
     }
-    const listed = (await owner.trpc.task.list.query({ serverId })).tasks.find(
-        (candidate) => candidate.task.messageId === created.task.messageId
+    const listed = (await owner.trpc.claim.list.query({ serverId })).claims.find(
+        (candidate) => candidate.claim.messageId === created.claim.messageId
     );
-    expect(listed?.task).toMatchObject({
-        priority: 'none',
-        version: created.task.version,
+    expect(listed?.claim).toMatchObject({
+        status: 'todo',
+        version: created.claim.version,
     });
     member.client.close();
 });

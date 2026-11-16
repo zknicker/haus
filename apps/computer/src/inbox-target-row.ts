@@ -5,6 +5,8 @@
  * drifting (Raft prints both with one row formatter too).
  */
 export interface InboxTargetSummary {
+    /** The latest item's claim number, when it is a claim. */
+    claimNumber: number | null;
     /** A settled Cloud Agent Run waits here, so the target counts work items. */
     cloudAgentResult: boolean;
     firstShortId: string;
@@ -13,8 +15,6 @@ export interface InboxTargetSummary {
     mentioned: boolean;
     pendingCount: number;
     target: string;
-    /** The latest item's task number, when it is a task. */
-    taskNumber: number | null;
 }
 
 export function formatInboxTargetRow(row: InboxTargetSummary): string {
@@ -32,7 +32,7 @@ export function formatInboxTargetRow(row: InboxTargetSummary): string {
 function formatInboxTags(row: InboxTargetSummary): string {
     const tags = [
         targetTag(row.target),
-        row.taskNumber === null ? null : `task #${row.taskNumber}`,
+        row.claimNumber === null ? null : `claim #${row.claimNumber}`,
         row.cloudAgentResult ? 'cloud agent result' : null,
         row.mentioned ? 'you were mentioned' : null,
     ].filter(Boolean);

@@ -141,7 +141,7 @@ extension HausStore {
 
     // MARK: - Per-message refresh
 
-    /// A changed annotation (reaction, Thread summary, task, Cloud Agent work):
+    /// A changed annotation (reaction, Thread summary, claim, Cloud Agent work):
     /// mark it dirty for list reads in flight, cancel any older read of it,
     /// and read it again if a view shows it.
     func refreshEntity(_ refresh: EntityRefresh) {

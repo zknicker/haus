@@ -64,7 +64,7 @@ final class UtilityModelsTests: XCTestCase {
           "runId":null,
           "sequence":2,
           "serverId":"server_1",
-          "task":null
+          "claim":null
         }
         """
 

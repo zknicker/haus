@@ -23,7 +23,7 @@ import {
     chatMessagesTable,
     chatsTable,
     computersTable,
-    messageTasksTable,
+    messageClaimsTable,
     serverMembershipsTable,
     serversTable,
     usersTable,
@@ -886,8 +886,8 @@ test('attests a multi-message Computer-local pull without wedging the transactio
     transport.online.add(seed.computerId);
     const delivery = new AgentDelivery(connection.db, transport);
     const messageIds = await Promise.all([
-        insertHumanMessage(seed, 'task anchor one', 1),
-        insertHumanMessage(seed, 'task anchor two', 2),
+        insertHumanMessage(seed, 'claim anchor one', 1),
+        insertHumanMessage(seed, 'claim anchor two', 2),
     ]);
     const threadChatId = `cht_thr_${messageIds[0]?.slice(4)}`;
     await connection.db.insert(chatsTable).values({
@@ -901,14 +901,14 @@ test('attests a multi-message Computer-local pull without wedging the transactio
     await connection.db.insert(chatMessagesTable).values({
         authorUserId: seed.userId,
         chatId: threadChatId,
-        content: 'task thread briefing',
+        content: 'claim thread briefing',
         id: briefingId,
         nonce: createOpaqueId('nonce'),
         sequence: 1,
         serverId: seed.serverId,
     });
     messageIds.push(briefingId);
-    await connection.db.insert(messageTasksTable).values([
+    await connection.db.insert(messageClaimsTable).values([
         {
             assigneeAgentId: seed.agentId,
             chatId: seed.chatId,
@@ -934,7 +934,7 @@ test('attests a multi-message Computer-local pull without wedging the transactio
     await delivery.deliver({
         agentId: seed.agentId,
         chatId: seed.chatId,
-        content: 'task anchor one',
+        content: 'claim anchor one',
         dedupeKey: messageIds[0] ?? '',
         sequence: 1,
         serverId: seed.serverId,
@@ -945,7 +945,7 @@ test('attests a multi-message Computer-local pull without wedging the transactio
         {
             agentId: seed.agentId,
             chatId: seed.chatId,
-            content: 'task anchor two',
+            content: 'claim anchor two',
             dedupeKey: messageIds[1] ?? '',
             id: createOpaqueId('inb'),
             serverId: seed.serverId,
@@ -954,7 +954,7 @@ test('attests a multi-message Computer-local pull without wedging the transactio
         {
             agentId: seed.agentId,
             chatId: threadChatId,
-            content: 'task thread briefing',
+            content: 'claim thread briefing',
             dedupeKey: messageIds[2] ?? '',
             id: createOpaqueId('inb'),
             serverId: seed.serverId,
@@ -1001,7 +1001,7 @@ test('reconnect replays busy work pulled by an unsettled active run', async () =
     await delivery.onAck({ agentId: seed.agentId, runId });
 
     const followUpMessageId = await insertHumanMessage(seed, 'pull then crash', 2);
-    await connection.db.insert(messageTasksTable).values({
+    await connection.db.insert(messageClaimsTable).values({
         assigneeAgentId: seed.agentId,
         chatId: seed.chatId,
         claimedAt: new Date(),
@@ -1034,7 +1034,7 @@ test('reconnect replays busy work pulled by an unsettled active run', async () =
     expect(starts).toHaveLength(2);
     expect(starts[1]?.runId).toBe(runId);
     expect(starts[1]?.inbox.map((item) => item.content)).toEqual(['first', 'pull then crash']);
-    expect(starts[1]?.inbox[1]?.task).toMatchObject({
+    expect(starts[1]?.inbox[1]?.claim).toMatchObject({
         assigneeAgentId: seed.agentId,
         number: 1,
         status: 'in_progress',
@@ -2590,13 +2590,13 @@ test('wakes an idle Agent with the Trigger fire envelope already in its frame', 
     expect(await readDeliveryLedger(seed.agentId)).toHaveLength(2);
 });
 
-test('wakes an idle Agent concretely for a Reminder fire and a task assignment', async () => {
+test('wakes an idle Agent concretely for a Reminder fire and a claim assignment', async () => {
     const seed = await seedAgent();
     const transport = new FakeTransport();
     transport.online.add(seed.computerId);
     const delivery = new AgentDelivery(connection.db, transport);
     const fireId = createOpaqueId('rmf');
-    const assignmentKey = 'task-assign:msg_assignment_concrete:1';
+    const assignmentKey = 'claim-assign:msg_assignment_concrete:1';
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -2627,7 +2627,7 @@ test('wakes an idle Agent concretely for a Reminder fire and a task assignment',
         dedupeKey: assignmentKey,
         mentioned: true,
         serverId: seed.serverId,
-        source: 'task_assignment',
+        source: 'claim_assignment',
     });
     expect(transport.framesOfType('start')).toHaveLength(1);
     expect(transport.framesOfType('notice')[0]?.inbox.map((item) => item.id)).toEqual([

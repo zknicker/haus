@@ -451,7 +451,7 @@ test('projects a concrete typed attention into the first prompt by its own ident
     expect(streamedPrompts[0]).toContain('Opened a pull request.');
 });
 
-test('projects a concrete fire and a task assignment into the first prompt', async () => {
+test('projects a concrete fire and a claim assignment into the first prompt', async () => {
     const fire = {
         chatId: 'cht_origin',
         content: [
@@ -481,9 +481,9 @@ test('projects a concrete fire and a task assignment into the first prompt', asy
     const assignment = {
         chatId: 'cht_origin',
         content:
-            '[Haus task assignment task=#1 target=#general assignedBy=@zach] Scout the release notes',
+            '[Haus claim assignment claim=#1 target=#general assignedBy=@zach] Scout the release notes',
         createdAt: '2026-07-27T00:00:00.000Z',
-        id: 'task-assign:msg_1a2b3c4d5e6f:3',
+        id: 'claim-assign:msg_1a2b3c4d5e6f:3',
         mentioned: true,
         senderHandle: 'haus',
         senderType: 'system' as const,
@@ -493,7 +493,7 @@ test('projects a concrete fire and a task assignment into the first prompt', asy
     await runHarnessTurn(turnInput({ inbox: [assignment], inboxDelivery: 'concrete' }));
 
     expect(streamedPrompts[0]).toContain(
-        '[target=#general msg=1a2b3c4d time=2026-07-27 00:00:00 UTC type=system mentioned=true] haus: [Haus task assignment task=#1 target=#general assignedBy=@zach] Scout the release notes'
+        '[target=#general msg=1a2b3c4d time=2026-07-27 00:00:00 UTC type=system mentioned=true] haus: [Haus claim assignment claim=#1 target=#general assignedBy=@zach] Scout the release notes'
     );
 });
 

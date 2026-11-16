@@ -14,6 +14,8 @@ public enum InboxOpenRequest: Hashable, Sendable {
     /// `thread.listUnread` keys its row by.
     case thread(threadChatID: String)
     case cloudAgentWork(workID: String)
+    /// An assigned Task, which opening clears from the Inbox.
+    case task(taskID: String)
 }
 
 /// The mark every Inbox row leads with: a face, a Channel's icon box, or
@@ -30,11 +32,21 @@ public enum InboxMark: Hashable, Sendable {
 /// A week card's mark. Rows draw the same mark at `InboxMetrics.markSize`.
 public let inboxMarkSize: CGFloat = 32
 
-/// One unread Chat or Thread: its mark and title, the line that is waiting,
-/// and when. Every row in the section is unread, so the row carries no unread
-/// flag and never a count — the count stays behind in the record.
+/// One unread Chat or Thread, or one assigned Task: its mark and title, the
+/// line that is waiting, and when. Every row in the section is unread, so the
+/// row carries no unread flag and never a count — the count stays behind in
+/// the record.
 public struct InboxUnreadRow: Identifiable, Hashable, Sendable {
+    /// What the row is, which decides how it draws.
+    public enum Kind: Hashable, Sendable {
+        /// A Chat or Thread: the two-line Messages row.
+        case conversation
+        /// An assigned Task, which is worked in place (`InboxTaskRow`).
+        case task(InboxTaskItem)
+    }
+
     /// The Chat — a Thread row's own Chat — which is also what Mark read names.
+    /// A Task row's is its own, so it can never collide with a Chat's.
     public let id: String
     public let mark: InboxMark
     /// `#product` for a Channel, the peer's name for a DM; a Thread row names
@@ -43,6 +55,7 @@ public struct InboxUnreadRow: Identifiable, Hashable, Sendable {
     public let preview: String
     public let lastActivityAt: Date?
     public let open: InboxOpenRequest
+    public let kind: Kind
 
     public init(
         id: String,
@@ -50,7 +63,8 @@ public struct InboxUnreadRow: Identifiable, Hashable, Sendable {
         title: String,
         preview: String,
         lastActivityAt: Date?,
-        open: InboxOpenRequest
+        open: InboxOpenRequest,
+        kind: Kind = .conversation
     ) {
         self.id = id
         self.mark = mark
@@ -58,6 +72,7 @@ public struct InboxUnreadRow: Identifiable, Hashable, Sendable {
         self.preview = preview
         self.lastActivityAt = lastActivityAt
         self.open = open
+        self.kind = kind
     }
 }
 

@@ -11,7 +11,7 @@ export const leaveServerProcedure = serverMemberProcedure
     .input(leaveServerInputSchema)
     .output(removedServerMemberSchema)
     .mutation(async ({ ctx, input }) => {
-        const departure = await removeServerMember(ctx.hausDb, ctx.member, {
+        const departure = await removeServerMember(ctx.hausDb, ctx.agentDelivery, ctx.member, {
             confirmation: input.confirmation,
             serverId: input.serverId,
         });

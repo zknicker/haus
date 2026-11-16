@@ -37,7 +37,7 @@ export const chatsTable = pgTable(
         kind: text('kind').notNull().$type<'channel' | 'dm' | 'thread'>(),
         lastActivityAt: timestamp('last_activity_at', { withTimezone: true }),
         lastMessageSequence: integer('last_message_sequence').notNull().default(0),
-        lastTaskNumber: integer('last_task_number').notNull().default(0),
+        lastClaimNumber: integer('last_claim_number').notNull().default(0),
         name: text('name'),
         anchorMessageId: text('anchor_message_id'),
         parentChatId: text('parent_chat_id'),
@@ -90,7 +90,7 @@ export const chatsTable = pgTable(
             name: 'chats_dm_agent_fk',
         }),
         check('chats_nonnegative_sequence', sql`${table.lastMessageSequence} >= 0`),
-        check('chats_nonnegative_task_number', sql`${table.lastTaskNumber} >= 0`),
+        check('chats_nonnegative_claim_number', sql`${table.lastClaimNumber} >= 0`),
         check(
             'chats_description_length',
             sql`${table.description} is null or (${table.kind} = 'channel' and char_length(${table.description}) between 1 and 500)`

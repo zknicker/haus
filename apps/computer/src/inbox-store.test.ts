@@ -186,11 +186,11 @@ test('names bodiless frames apart from ordinary and typed system inbox rows', ()
     expect(isAutomationInboxItem(automationItem('trf_41c2d8e9', 'trigger', 'trigger'))).toBe(true);
     expect(isAutomationInboxItem(automationItem('rmf_9a8b7c6d', 'reminder', 'system'))).toBe(true);
     expect(
-        isAutomationInboxItem(automationItem('task-assign:msg_1a2b3c4d:3', 'haus', 'system'))
+        isAutomationInboxItem(automationItem('claim-assign:msg_1a2b3c4d:3', 'haus', 'system'))
     ).toBe(true);
     // A saved pre-migration assignment still has to be consumed as an automation.
     expect(
-        isAutomationInboxItem(automationItem('task-assign:msg_1a2b3c4d:3', 'haus', 'system'))
+        isAutomationInboxItem(automationItem('claim-assign:msg_1a2b3c4d:3', 'haus', 'system'))
     ).toBe(true);
     expect(isAutomationInboxItem(item('msg_plain', '#general', 1))).toBe(false);
     expect(

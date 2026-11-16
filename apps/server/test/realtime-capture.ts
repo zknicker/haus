@@ -141,8 +141,8 @@ export async function publishedSince(
 }
 
 /**
- * What was published about one message, as `message.created`, `task.created`,
- * `task.updated`, or the topic name: messages before tasks, each in publish order.
+ * What was published about one message, as `message.created`, `claim.created`,
+ * `claim.updated`, or the topic name: grouped by topic name, each in publish order.
  */
 export async function publishedKinds(
     capture: ReturnType<typeof captureAllTopics>,
@@ -153,7 +153,7 @@ export async function publishedKinds(
         .published()
         .filter(({ event }) => (event as { messageId?: string }).messageId === messageId)
         .map(({ event, topic }) =>
-            topic === 'task.changed' ? `task.${(event as { kind: string }).kind}` : topic
+            topic === 'claim.changed' ? `claim.${(event as { kind: string }).kind}` : topic
         );
 }
 

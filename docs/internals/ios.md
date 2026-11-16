@@ -748,10 +748,12 @@ finger, so a drag ends inside the row it started on, and a still-live row tap wo
 on release (`DrawerPanDelegateTests`). There is no edge-only hit zone and
 no all-or-nothing open. Because the drawer owns every right-drag on the canvas, no canvas row carries
 a leading swipe action: a row's swipe actions sit on the trailing edge (swipe-left), as the Inbox's
-Mark read and Archived's Restore do, so one drag never both reveals a row action and moves the drawer. Selecting a Chat is the only action that closes the drawer; every sidebar
-entry point that presents another surface — Search, Tasks, Settings, Archived, New channel — leaves
-the drawer open behind it, so dismissing returns to the open drawer and no presentation ever runs
-against the closing spring.
+Mark read and Archived's Restore do, so one drag never both reveals a row action and moves the drawer. Putting something on the canvas is the only action that closes the drawer:
+selecting a Chat, or a route from outside the sidebar such as a Task's mention or a tapped
+notification (`closeForCanvasRoute`), which would otherwise land behind a drawer left open under a
+pushed Task. Every sidebar entry point that presents another surface — Search, Tasks, Settings,
+Archived, New channel — leaves the drawer open behind it, so dismissing returns to the open drawer
+and no presentation ever runs against the closing spring.
 
 A drag of the drawer is GPU-composited translation and nothing else: a pan frame evaluates no
 SwiftUI body and lays out neither the sidebar nor the canvas. `HausDrawerContainer` hosts each side
@@ -943,53 +945,78 @@ list, since linked work outlives it. Cards scroll with their Messages and follow
 
 An anchor message owns one unboxed Thread ingress, joined to its avatar rail by a rounded connector.
 The reply count and chevron lead, followed by the latest Server-projected reply's avatar, author,
-and one-line snippet. Task status remains a secondary note; cloud agents sit below as cards (above).
-The whole ingress opens the Thread, including before a Task's first reply. Every row uses an 18pt
-identity mark. Reply and Task rows enter, exit, and swap with a 220ms slide/fade; Reduce Motion uses
+and one-line snippet. Claim status remains a secondary note; cloud agents sit below as cards (above).
+The whole ingress opens the Thread, including before a claim's first reply. Every row uses an 18pt
+identity mark. Reply and claim rows enter, exit, and swap with a 220ms slide/fade; Reduce Motion uses
 a 150ms crossfade. The count stays in place. The anchor
-message remains the task title and is never duplicated inside the ingress.
+message remains the claim's title and is never duplicated inside the ingress.
 
-Chat honors the App's own task visibility rule (`TaskVisibility.visibleInChat` in `HausModels`,
-applied through `ThreadPreviewProjection.ingressTask`). An **empty** claim an Agent made for itself
+Chat honors the App's own claim visibility rule (`ClaimVisibility.visibleInChat` in `HausModels`,
+applied through `ThreadPreviewProjection.ingressClaim`). An **empty** claim an Agent made for itself
 states nothing in Chat unless the reader asked for it: no note, no ingress, no reserved space. A
-task a human composed or converted always states itself, and so does any task whose Thread has
-replies — the App's own `hasReplies || taskVisibleInChat(…)` rule. Once people are talking in a
+claim a human composed or converted always states itself, and so does any claim whose Thread has
+replies — the App's own `hasReplies || claimVisibleInChat(…)` rule. Once people are talking in a
 Thread its card is on screen anyway, and which work they are talking about is part of reading it,
-so the ingress states `Task #N · status` even under a hidden claim. The preference is per device,
-like appearance — `@AppStorage` under the App's own `haus.chat.showTasks` key — and Settings →
-Preferences → **Show tasks in chat** is the switch.
+so the ingress states `Claim #N · status` even under a hidden claim. The preference is per device,
+like appearance — `@AppStorage` under the App's own `haus.chat.showClaims` key — and Settings →
+Preferences → **Show claims in chat** is the switch.
 
-A task an Agent claimed on a Thread reply (`message.chatID != task.chatID`) has no Thread of its
-own, so it builds no preview; the reply itself carries `ThreadTaskMark` (`Task #N · status`) under
-the same visibility rule. Opening such a task goes through `TaskOpening`: it resolves the Thread's
-real anchor with `thread.get` and lands on the task message, where a top-level task opens the
+A claim an Agent made on a Thread reply (`message.chatID != claim.chatID`) has no Thread of its
+own, so it builds no preview; the reply itself carries `ThreadClaimMark` (`Claim #N · status`) under
+the same visibility rule. Opening such a claim goes through `ClaimOpening`: it resolves the Thread's
+real anchor with `thread.get` and lands on the claim message, where a top-level claim opens the
 Thread anchored on itself.
 
-The Task list reads the Store's own Server-wide lens rather than a second copy of the same query,
-so a durable `task.created` or `task.updated` repaints it without a pull to refresh; only the
-widened background lens is the screen's, because it is a different question the reader asked for a
-moment (`@State`, not a route). Its one control states what the default lens hid — `N background` —
-and stays away on a Server with no background claims; widened, it states what it is showing and
-keeps stating it at zero, because on iPhone it is the only way back out. Background rows there wear
-a muted `background` word rather than a chip.
+Tasks are boards ([ADR 0051](../adr/0051-tasks-are-boards-and-claims-are-the-lock.md)), and the
+phone holds them apart from Chat state. `TaskSnapshots` is its own observable on the Store: the
+boards, each board's Tasks, Task details, the label catalog, and the reader's Inbox items. Every list
+stays nil until its first read, so "nothing here" is never "not yet known", a durable event refreshes
+only what is held, and a move repaints the board without touching anything that watches Chats.
+`pendingMoves` and `settlingInboxTaskIDs` are the app-local part: a settling move shows the Task in
+the column it is going to, and the read snapshots only ever hold Server answers. `land(_:)` puts a
+mutation's answer wherever a copy of that Task lives, and an older version never overwrites a newer
+one. `HausUI/Tasks` owns the screens; `TaskPresentationAdapters.swift` is the seam
+(`TaskBoardSource`).
 
-Tasks are Server work, not a settings screen. The sidebar opens the Task list as a push on the root
-navigation stack, and opening a Task row pushes its Thread on top of that list, so Back walks Thread
-→ Task list → Chat canvas.
+Tasks are Server work, not a settings screen. The sidebar's Tasks row opens the board picker as a
+push on the root navigation stack, a board pushes over it, and a Task over that, so Back walks Task
+→ board → boards → whichever canvas is showing. A Task has no Chat of its own, so none of these
+selects one. A Thread opened from a Task's **Mentioned in** pushes on top and pops back to that Task;
+a top-level mention opens its Chat at the message. `TaskMention.place` names the Channel or DM and
+the Thread anchor, so a row reads `#security · Thread` and opens with no `thread.get`: only an anchor
+the parent page does not hold costs one `chat.messages` read. A Reminder row still resolves a
+Thread anchor with `thread.get`, because `TaskReminderRef` names only its anchor Chat. Opening a Task
+clears its Inbox item and its delivered notification, from whichever surface opened it; being seen
+in a list never does.
 
-Opening a Task leaves the canvas selection alone — its route carries the
-parent Chat id and the Task carries the child Chat id, so selecting the parent would mark a channel
-the user never visited as read and strand them there once the Tasks list pops. A pushed Thread owns
-the open Chat while it is on screen, and the shell's Chat selection resumes ownership when it pops;
-the covered canvas Chat stays named so its page keeps refreshing underneath, but read
-acknowledgements belong to the deepest surface alone.
+A pushed Thread leaves the canvas selection alone — its route carries the parent Chat id and the
+row carries the child Chat id, so selecting the parent would mark a channel the user never visited
+as read and strand them there once the push pops. A pushed Thread owns the open Chat while it is on
+screen, and the shell's Chat selection resumes ownership when it pops; the covered canvas Chat stays
+named so its page keeps refreshing underneath, but read acknowledgements belong to the deepest
+surface alone.
 
-A Thread is titled "Thread", "Task #N" for a Task's Thread, or the work's title when Cloud Agent
+A Thread is titled "Thread", "Claim #N" for a claim's Thread, or the work's title when Cloud Agent
 work opened it, with its conversation ("#design", or "DM") as the subtitle (`ThreadOpening`). Every
 Thread reads as one conversation by time: the anchor, then the parent Chat's inline replies to it
 among the Thread's replies, as in the App (`ThreadTranscriptItem.items`). One the anchor says has replies opens blank until its first
 reply page lands — at most `ThreadOpening.holdLimit` — so the push never draws the anchor first and
 then snaps to the newest reply.
+
+A message's Task references read as chips. A written `[SEC-12](task://id)` is already a reference
+by the time `RichMessageParser` runs; a bare `SEC-12` is not, because the Server records it without
+rewriting the content. `TaskLinkChips` turns the bare keys a message's `taskLinks` resolved into
+chips, working on the parsed runs rather than the Markdown, so code spans, code blocks, Markdown
+links, and autolinked URLs never reach it and a key the Server did not resolve stays text. The chip
+reads the Task's current key, since a re-keyed board re-keys its Tasks while the message keeps the
+words it was written with. A tapped chip pushes the Task.
+
+**Convert to Task** sits in the message action drawer, and in a row's accessibility actions, for any
+sent message (`MessageActionRoutes.convertToTask`). It presents `ConvertToTaskSheet`, offers the
+message's first line as the title, and leaves the description empty so the Server defaults it to
+the content and records the reference. The reader stays in the conversation; a line floats over the
+top of the screen for six seconds as the way into the new Task, as an overlay so nothing in the
+transcript moves.
 
 The Inbox is the phone's landing screen and the sidebar's anchor. It mirrors the App page section
 for section — header, **Active this week**, **Unread**, **Happening now** —
@@ -1008,11 +1035,12 @@ than to either of them: the leading chrome button sits where it sits on a Chat s
 and the edge pan are the same ones. `showsInbox` is App-owned state (`AuthenticatedHausView`) and
 the shell clears it whenever a Chat is selected; the sidebar's Inbox row sets it back. The last-open
 Chat is still restored for the drawer's selection, and selecting one swaps the canvas the way it
-always did. `HausRootRoute` therefore carries only `.tasks` and `.thread`. A Cloud Agent work row
+always did. `HausRootRoute` therefore carries only `.tasks` (the board picker), `.board`, `.task`,
+and `.thread`. A Cloud Agent work row
 opens the row's `location`: the launch work Thread when the viewer can read it, else the Thread of
 the newest visible linking Message (by `threadChatId`), carrying the conversation's Chat id and the
 anchor Message — the same pair a Thread composer sends to — and leaving the canvas selection alone
-for the same reason a Task does. A location the phone cannot open is skipped; an Unread row opens its DM or Channel.
+for the same reason any pushed Thread does. A location the phone cannot open is skipped; an Unread row opens its DM or Channel.
 Unread and **Happening now** rows share one Messages-style two-line row (`InboxRowView`): a 44pt
 mark, the title with its perishable fact trailing, and the context below in secondary. Each line is
 capped at one, so every row in both sections is the same height at a given text size. At
@@ -1029,7 +1057,8 @@ row marks read with a trailing swipe (swipe-left; `.swipeActions(edge: .trailing
 allowed) whose button is a bare image, which iOS 26 draws as an icon-only circle (its accessibility label is "Mark read"),
 confirmed by a success haptic, or the long-press peek's **Mark Read**. A week card that lands after
 the **Active this week** strip has drawn joins it with an animated insertion rather than a reshuffle.
-Stalled claims live on the Task list, in its **Stopped before finishing** group. One row still lands somewhere the App does not send it, because the phone
+An Agent's stopped claims live on its profile, under **Stopped before finishing** (`StoppedClaims`),
+read with one `claim.list` per profile opened; claims have no list of their own. One row still lands somewhere the App does not send it, because the phone
 has nowhere else: an Agent in **Happening now** opens that Agent's DM rather than a profile page. The sidebar's first row is the
 Inbox, wearing the iridescent Haus ghost at 26 points in the same glyph
 column every other row uses — a deliberate exception to the column's 26-point boxed glyphs, because
@@ -1042,19 +1071,21 @@ on this Server is working: `HausStore.agentActivityGhostTempo` resolves the App'
 `agent.onActivity` rewrites on every tool call, so a busy Server does not invalidate the shell.
 
 What the Inbox stands on is Server-wide and Store-owned rather than screen-owned. `HausStoreInbox`
-reads the Chat list's unread Chats, the unread Threads (`thread.listUnread`), the Cloud Agent work running right now
+reads the Chat list's unread Chats, the unread Threads (`thread.listUnread`), the reader's Task items
+(`taskInbox.list`), the Cloud Agent work running right now
 (`cloudAgentWork.listActive`), and the Server's token-usage snapshot (`stats.live`), and each stays
 nil until its first load. That nil is load-bearing: `unreadChatCount` is nil until the Chat list
 has landed, so "nothing unread" is never confused with "not yet known". The count is the number of
-Unread rows on the active Server — Chats with an `unreadCount` above zero plus listed unread
-Threads, the same rows the App lists — and it
+Unread rows on the active Server — Chats with an `unreadCount` above zero, listed unread
+Threads, and uncleared Task items, the same rows the App lists — and it
 drives the sidebar's Inbox dot. The app icon badge is not that count: it is the Server's cross-Server
 `chat.unreadChatCount`, the number push puts on `aps.badge`. `HausStoreIconBadge` reads it into
 `iconBadgeCount` wherever the Chat list reloads (Server load, snapshot refresh on foreground or
 reconnect, every `reloadChats`) and on becoming active without a background trip. Durable events refresh only what this
 client already holds, the way the App's invalidation only refetches a live query:
-`message.created` and `chat.read` reload the Chat list, `task.created` and `task.updated` reload the
-Server Task lens beside the affected Chat page, `cloudAgentWork.updated` reloads the active
+`message.created` and `chat.read` reload the Chat list, `claim.onChanged` reloads the affected Chat
+page, `taskInbox.onChanged` reloads the Task items and the icon badge, a `task.onUpdated` for a held
+item reloads them too, `cloudAgentWork.updated` reloads the active
 work list beside its own, and a settled Agent turn or a Computer update reloads the usage snapshot.
 A failed Inbox read keeps the previous snapshot and is logged — a stale row is honest, while a
 Chat-level send alert raised by a background read is not.
@@ -1074,14 +1105,33 @@ the navigation bar (`TranscriptLanding`) — decided once per open, so reading n
 Thread row marks the Thread's own Chat. Newer activity brings the row back. The unread Threads are
 read beside every Chat-list read (so `message.created`, `thread.onFollowUpdated`, and
 `chat.onLifecycle` refresh them), and a `chat.onRead` for a Thread re-reads them and the badge
-alone, never the parent's Chat-list row. The sidebar's Inbox dot counts Chat and Thread rows
-alike, matching the icon badge (`chat.unreadChatCount`).
+alone, never the parent's Chat-list row. The sidebar's Inbox dot counts Chat rows, Thread rows, and
+Task items alike, matching the icon badge (`chat.unreadChatCount`).
 There is no question screen, card, or marker — the mention chip in the transcript is the whole
 presentation of a question ([Inbox](../features/inbox.md#notifications)).
 
-A Task lens widens through `loadTasks(includeBackground:)`, and
-a Server-wide read keeps `task.list`'s `backgroundCount` on the Store so a surface can say "N
-background" without a second round trip. An "Active this week" card keeps its figure and sparkline
+A Task assigned to the reader is an Unread row too, one per Task and never bundled, merged into the
+feed by its assignment time (`InboxTaskRow`). Where a conversation row is two lines that open
+somewhere, this one carries the work: the board, key, and assigner; the title, priority, and due
+day; its context message under `<author> in #security · Thread`; a composer; **Start**, **Done**,
+and **Won't do**; the status menu; and **Open Task** and **Mark Read** under the more menu. Each is
+its own hit target, because a List row's tap would swallow them; the title is the way into the Task.
+`TaskInboxItem.contextPlace` names the context message's Channel or DM and Thread anchor, so the
+label, the reply, and the read-only check all come from the row: a reply goes through
+`sendThreadReply` to that parent with no `thread.get`, into the Thread the message sits in or the
+one on it, and leaves the Task waiting. A resolve moves the Task, a Mark read clears the item, and
+either leaves a notice bar over the feed with its Undo; `settlingInboxTaskIDs` takes the row away at
+once and a failure puts it back.
+
+A Task assignment reaches the phone as a `task_assignment` push: a plain alert, which the Notification
+Service extension never rewrites, grouped under the Task id, so opening the Task clears it.
+`PushOpenRequest` is what a tapped notification names, decoded from `userInfo`: `.message`, `.task`,
+or `.taskBurst`. Several assignments inside the Server's read grace arrive as one
+`task_assignment_burst` push (`Zero assigned you 6 tasks`) that names no Task, and a tap opens the
+Inbox, which still holds a row per Task. A request for another Server opens nothing, and a malformed
+one decodes to nil.
+
+An "Active this week" card keeps its figure and sparkline
 on one row at standard text sizes; at accessibility sizes it widens, stacks the header, figure, and
 sparkline, and lets the caption wrap rather than truncate. The week behind "Active this week" is sliced per Agent out
 of that one usage snapshot (`AgentTokenUsage.summarize`, the App's `summarizeAgentTokenUsage`) on
@@ -1167,7 +1217,8 @@ contract and `specs/realtime-events.md` the normative spec; this is the iPhone's
 
 `HausStoreEventStreams.swift` runs one focused subscription per `RealtimeStream`:
 `chat.onMessageCreated`, `chat.onMessageReactionUpdated`, `chat.onRead`, `thread.onFollowUpdated`,
-`chat.onLifecycle`, `cloudAgentWork.onUpdated`, `task.onChanged`, `taskLabel.onUpdated`,
+`chat.onLifecycle`, `cloudAgentWork.onUpdated`, `claim.onChanged`, `taskLabel.onUpdated`,
+`board.onUpdated`, `task.onCreated`, `task.onUpdated`, `taskInbox.onChanged`,
 `agent.onLifecycle`, `agent.onActivity`, `computer.onUpdated`, and `server.onUpdated`, the
 membership sentinel. `computer.onUpdated` owns Agent presence beside the lifecycle stream: after a
 Server restart the streams resubscribe before the Computer reattaches, so their start reads an
@@ -1178,7 +1229,9 @@ stream ends and restarts alone with capped backoff (1 s doubling to 30 s, reset 
 connected); a sibling never notices. The connection indicator follows only the message and Agent
 lifecycle streams. Chat events coalesce into targeted reads (`ChatRealtimeEffects`): a tail read per
 loaded list for a new message, a `chat.message` read per changed annotation, one shared Chat list
-read.
+read. Task events coalesce the same way against `TaskSnapshots` (`applyTaskEffects`): only a held
+board, detail, or label list reads, and the Task Inbox reads on `taskInbox.onChanged` or a change to
+a held item.
 
 Recovery is anchored to the subscription start (`RealtimeReconciliation`). A read that finished
 before a stream subscribed can miss a commit whose event fired before the subscription existed, so
@@ -1192,11 +1245,9 @@ reloads the open lists' loaded pages and marks off-screen lists to reload when s
 clock makes the newest-started `chat.list` and `server.list` read win, so a slow foreground
 snapshot never overwrites a reconciliation that already landed.
 
-A label carries no message ids, so `taskLabel.onUpdated` owns open transcripts as well as task
-lenses. A label update first retires every tail read in flight (`TranscriptReads.invalidateTails`):
-a tail begun before the rename could seed a message the cache had not seen under the former label,
-which no carrier refresh would name. The retired tail writes nothing and reads again. Then cached
-carriers refresh and open lists reload.
+No message carries a label, so `taskLabel.onUpdated` owns only the label catalog. The Task streams
+own `boards`, `boardTasks`, and `taskInbox` (`RealtimeProjection`); the Task Inbox is shell state like
+the Chat list, so a start always reads it, because the Inbox dot counts it.
 
 Refusals follow the coded `hausRefusal` only, never a bare tRPC code. `membership_lost` is final
 for the Server: every stream stops, in-flight reads are cancelled (a cancelled read writes nothing),

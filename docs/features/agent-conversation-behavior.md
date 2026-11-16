@@ -1,10 +1,11 @@
 ---
-summary: The cross-cutting contract for how a Haus Agent behaves in conversation (reply placement, voice, reactions, formatting, who answers, and visible work), with the source that owns each trait and the guard that keeps it from regressing.
+summary: The cross-cutting contract for how a Haus Agent behaves in conversation (reply placement, voice, reactions, formatting, who answers, visible work, and quiet Task pacing), with the source that owns each trait and the guard that keeps it from regressing.
 read_when:
   - changing the Agent prompt's voice, personality, conversation style, signature emoji, or formatting guidance
   - changing where Agents post acknowledgments, progress, or answers, or when they react instead of replying
   - changing mention routing, sole-addressee narrowing, or thread context delivered to a mentioned Agent
   - changing the typing strip, thought phrasing, or mid-turn notices
+  - changing how an Agent paces its assigned Tasks or what it says about them
   - editing specs/raft-alignment/prompt-divergences.md rows for Personality, Communication style, Startup step 4, Sending messages, Conversation etiquette, or Formatting
   - reviewing an Agent transcript that "feels off" and looking for which contract it broke
 ---
@@ -24,7 +25,7 @@ in the channel: "On it. I'm pulling last year's Halloween ad numbers for the sam
 shortly 🎃". Juniper, also in the channel, stayed quiet. Earlier that day Beacon's ads digest was a
 table for the numbers, a few short sections, and plain prose around them.
 
-What makes it right: the acknowledgment lands where the question was asked, not in a task thread;
+What makes it right: the acknowledgment lands where the question was asked, not in a claim thread;
 it names exactly what is being fetched without narrating a plan; it sounds like a teammate, with a
 seasonal emoji that fits the moment; only the addressed Agent speaks; and structure appears only
 where the content is data. Every section below is one of those properties.
@@ -42,7 +43,7 @@ signature-emoji reaction on the request and, when it takes several steps, a one-
 with no plan. A question answerable from what the Agent has or one quick look-up is simply
 answered, with no reaction first. The Agent's working notes and progress, even when someone asked
 to be kept posted, go in a thread on its own pickup note in a channel, never in a thread on the
-request (that notifies its author for every post) and never in a task thread; in a DM they stay
+request (that notifies its author for every post) and never in a claim thread; in a DM they stay
 private. A result or question left only there
 has not reached the requester. When done, the Agent answers what was asked and stops: no
 obligatory summary or closing offer. CLI receipts carry no placement advice: the send receipt
@@ -70,7 +71,7 @@ baseline); the instruction did (3/3) with `placement` unchanged, on `codex/gpt-5
   `task-thread-routing` in the `attention` eval (`scripts/agent-tests/scenarios/`);
   `thread-instructions.test.ts` (visibility paragraphs, "When done, answer what was asked, then
   stop."), `managed-instructions.test.ts` ("the inline reply that answers the request carries
-  --done", "task updates follow the requesting conversation"),
+  --done", "claim updates follow the requesting conversation"),
   `personality-instructions.test.ts` ("the pickup bullet replaces the Raft acknowledge-and-outline
   and progress bullets"); `packages/agent-manual/src/product-topics.test.ts`; register rows
   "Sending messages" and "Communication style".
@@ -209,7 +210,7 @@ can steer as an inbox notice, so the settled reply reflects it.
 
 ## 8. Working beside other Agents
 
-In a channel shared with other Agents and a human, an Agent leaves a peer's claimed task to that
+In a channel shared with other Agents and a human, an Agent leaves a peer's claim to that
 peer, acts on a peer's handoff from the evidence it carries instead of re-asking the human, never
 takes a peer's guess as the human's answer to a pending question, answers a reminder fire at its
 anchor even while a Thread exchange is live, and draws a requested chart the way the visuals skill
@@ -242,12 +243,39 @@ Live scenarios that exercise each Manual card or managed skill, as of 2026-10-20
 The uncovered cards are mostly multi-Agent orchestration and verification recipes that need
 several turns or outside systems.
 
+## 9. Tasks are worked quietly, one at a time
+
+A Task is queued work on a board, and it takes no claim: a claim is the lock on a message. An Agent
+keeps one Task active at a time, picks by priority and then age, moves that card to an active
+column, and works it. Moving the card is the status update, so nobody hears about the pickup; the
+Agent posts only when it needs a person or has a result worth sharing. Finishing moves the card to
+a done column, and that move's receipt names what is still waiting, so the Agent carries on without
+a scheduler. A Task blocked on a person does not hold up the queue: the Agent @mentions them with
+its key where the work lives, moves the card back to todo, takes the next Task, and leaves it until
+they answer. Work split for other Agents is Tasks on a board, assigned; claims stay for work inside
+a conversation. Chat requests interleave between turns while the active card holds its place. A
+Task's assignment arrives in the Agent inbox with no Chat, so a run started by one has no
+conversation to answer in unless the Agent picks one. Discussion about a Task stays in the Channels
+and Threads that reference its key, and a reference is written as the bare key (`SEC-12`). A
+heartbeat reads Tasks and writes none: its report names what sat waiting, leaving out a Task the
+Agent is waiting on a person for.
+
+- Owner: [ADR 0051](../adr/0051-tasks-are-boards-and-claims-are-the-lock.md) decisions 6 and 7;
+  `tasksSection` in `apps/computer/src/harness/task-instructions.ts`; the `tasks` Manual topic in
+  `packages/agent-manual/src/product-topics.ts`; the move receipt's queue line
+  ([specs/tasks.md](../../specs/tasks.md#agent-routes)).
+- Guards: `apps/computer/src/harness/task-instructions.test.ts`; the `tasks` eval (`bun run eval
+  tasks`), whose `task-queue-pacing` scenario assigns three Tasks and proves they are worked most
+  urgent first with no message before the last one finishes, and whose `task-blocked-takes-next`
+  scenario proves a Task only a person can decide gets an @mention and goes back to todo while the
+  other is worked to done.
+
 ## Anti-patterns this replaced
 
 - Service-desk voice ("Great question!") and closing offers ("Let me know if...").
 - Em dashes and bold-label walls in ordinary chat replies.
 - Acknowledge-and-outline-the-plan messages before starting work.
-- Progress spam in the request's thread or the task thread.
+- Progress spam in the request's thread or the claim thread.
 - A deliverable posted only in the thread on the Agent's own pickup note, where the requester
   sees a one-line preview and gets no notification.
 - An obligatory recap after finishing.

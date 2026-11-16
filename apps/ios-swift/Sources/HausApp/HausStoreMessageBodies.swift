@@ -7,8 +7,13 @@ import HausUI
 extension HausStore {
     /// The body parse is the expensive step of a row, so it is memoized per
     /// message and survives every rebuild that cannot change it.
-    func parsedBody(id: String, content: String, chatID: String) -> ParsedMessageBody {
-        let parsed = memoizedBody(id: id, content: content)
+    func parsedBody(
+        id: String,
+        content: String,
+        chatID: String,
+        taskLinks: [TaskLink] = []
+    ) -> ParsedMessageBody {
+        let parsed = memoizedBody(id: id, content: content, taskLinks: taskLinks)
         if !parsed.threadChips.isEmpty {
             projections.threadChipReferrers.record(
                 referrer: chatID,
@@ -18,9 +23,12 @@ extension HausStore {
         return parsed
     }
 
-    private func memoizedBody(id: String, content: String) -> ParsedMessageBody {
+    private func memoizedBody(id: String, content: String, taskLinks: [TaskLink]) -> ParsedMessageBody {
         let revision = projections.referenceRevision
+        // Task links ride the Message rather than the reference directory: a
+        // re-keyed board changes them without changing the content.
         if let cached = projections.bodies.cached(id: id, content: content, revision: revision),
+           cached.taskLinks == taskLinks,
            cached.threadChips.allSatisfy({ threadReferencePresentation(wireTarget: $0.key)?.label == $0.value }) {
             return cached
         }
@@ -29,7 +37,13 @@ extension HausStore {
         let blocks = SharedArtifactLinkScope.$current.withValue(projections.sharedArtifacts.scope) {
             richMessageBlocks(visuals.prose) { target, label in threadChips.updateValue(label, forKey: target) }
         }
-        let parsed = ParsedMessageBody(body: body, visuals: visuals, richBlocks: blocks, threadChips: threadChips)
+        let parsed = ParsedMessageBody(
+            body: body,
+            visuals: visuals,
+            richBlocks: TaskLinkChips.apply(taskLinks, to: blocks),
+            threadChips: threadChips,
+            taskLinks: taskLinks
+        )
         projections.bodies.remember(parsed, id: id, content: content, revision: revision)
         return parsed
     }

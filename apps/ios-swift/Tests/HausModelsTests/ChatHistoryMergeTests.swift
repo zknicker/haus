@@ -44,7 +44,7 @@ final class ChatHistoryMergeTests: XCTestCase {
           "runId":null,
           "sequence":\(sequence),
           "serverId":"srv_preview",
-          "task":null
+          "claim":null
         }
         """
         return try HausJSON.decoder().decode(ChatMessage.self, from: Data(json.utf8))

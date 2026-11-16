@@ -126,6 +126,8 @@ export interface StoredChatMessageRelations {
     reactions?: ChatMessage['reactions'];
     /** Bounded direct-parent and chain-root context for an inline reply. */
     reply?: ChatMessage['reply'];
+    /** The Task references recorded when the Message was written, in content order. */
+    taskLinks?: ChatMessage['taskLinks'];
 }
 
 export function toChatMessage(
@@ -141,6 +143,7 @@ export function toChatMessage(
         imageGenerations = [],
         reactions = [],
         reply = null,
+        taskLinks = [],
     } = related;
     return {
         attachments,
@@ -160,6 +163,7 @@ export function toChatMessage(
         sequence: message.sequence,
         serverId: message.serverId,
         sessionGeneration: message.sessionGeneration,
+        taskLinks,
     };
 }
 

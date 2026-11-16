@@ -48,7 +48,7 @@ import {
 export const REMINDER_SUBCOMMANDS: SubCommand[] = [
     {
         examples: [
-            'haus reminder schedule --title "CI Check" --description "check if CI finished and update the task" --delay-seconds 1800 --message-id 1a2b3c4d',
+            'haus reminder schedule --title "CI Check" --description "check if CI finished and update the claim" --delay-seconds 1800 --message-id 1a2b3c4d',
             'haus reminder schedule --title "Monday Advertising Review" --description "check advertising and flag campaigns that need bid adjustments" --repeat weekly:mon@09:00 --timezone America/New_York --message-id 1a2b3c4d',
             "haus reminder schedule --title 'Nightly Export Watch' --delay-seconds 3600 --repeat every:1h --message-id 1a2b3c4d --script 'check-export --quiet-when-ok'",
             "haus reminder schedule --title 'Disk Watchdog' --repeat every:15m --message-id 1a2b3c4d --script 'check-disk.sh' --wake-on-change --fail-after 3",
@@ -108,7 +108,7 @@ export const REMINDER_SUBCOMMANDS: SubCommand[] = [
     },
     {
         examples: [
-            'haus reminder update --id rem_1a2b3c4d5e6f --title "CI Check" --description "check CI and update task #3"',
+            'haus reminder update --id rem_1a2b3c4d5e6f --title "CI Check" --description "check CI and update claim #3"',
             'haus reminder update --id rem_1a2b3c4d5e6f --fail-after 3',
             'haus reminder update --id rem_1a2b3c4d5e6f --fail-after none',
             'haus reminder update --id rem_1a2b3c4d5e6f --no-wake-on-change',

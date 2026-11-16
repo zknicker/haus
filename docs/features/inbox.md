@@ -108,8 +108,8 @@ hold theirs in one bordered group with a separator between each pair, inside the
 Unread sets its cards on the page (below). A quiet section says so in one muted row-shaped slot, so it keeps the section's shape
 rather than changing it to say so.
 
-**Unread** — every Channel, DM, and Thread with something the viewer has not read, newest
-activity first, one row each. A Channel or DM row is `chat.list`'s `unreadCount` above zero: its
+**Unread** — every Channel, DM, and Thread with something the viewer has not read, and every Task
+assigned to them ([Task cards](#task-cards)), newest activity first, one row each. A Channel or DM row is `chat.list`'s `unreadCount` above zero: its
 own messages from others above the viewer's read marker. A Thread is unread on its own, never
 through its parent ([ADR 0043](../adr/0043-threads-are-unread-on-their-own.md)): a Thread row is a
 `thread.listUnread` row, a Thread with replies from others above the viewer's Thread marker that
@@ -204,9 +204,8 @@ a failed send keeps its draft in that conversation's composer. Mark read on a Ch
 message and every Thread under it, so that Chat's Thread rows clear too; Mark read on a Thread row
 reads that Thread. Newer activity brings a row back.
 
-Stalled claims are not here. A claim an Agent took and stopped short of finishing belongs to the
-Tasks page, in its **Stopped before finishing** group after **Needs your review**
-([Tasks](tasks.md)).
+Stalled claims are not here. A claim an Agent took and stopped short of finishing belongs to that
+Agent's profile, under **Stopped before finishing** ([Claims](claims.md)).
 
 A failed Server onboarding appears on the owner's setup screen. Until setup completes,
 owners remain in setup and members and Admins remain on the waiting page, outside the Inbox.
@@ -251,6 +250,30 @@ ground back, and `.inbox-unread-selected` adds the ring.
 Rows in the Agents and Happening now lists stack a title over a subline instead, because a popover
 is narrow; each is a pressable `ItemCard` with a 32px mark (`inbox-list-row.tsx`). A Cloud Agent
 work row's trailing status disc is 16px, the app's icon size.
+
+### Task cards
+
+A Task assigned to the viewer by someone else is a card in the same feed, one per Task and never
+bundled ([ADR 0051](../adr/0051-tasks-are-boards-and-claims-are-the-lock.md),
+[`unread-task-row.tsx`](../../apps/website/src/features/servers/inbox/unread-task-row.tsx)). It
+sorts by its assignment and counts in the badge like any row, and J, K, E, R, and Return treat it
+as a queue item: E clears it, Return opens the Task, and R focuses its composer.
+
+The source line names the board, the key, and who assigned it. Under it sit the priority, title,
+due day, and the status picker; then the **context message**, the newest message referencing the
+Task, rendered as the transcript renders it under a line naming where it was written; then that
+message's Thread composer. A reply goes into that Thread and leaves the card waiting, because the
+Task is still the viewer's to resolve. With no context message there is no composer.
+
+**Start**, **Done**, and **Won't do** move the Task to the board's first `active`, `done`, or
+`canceled` column, and the picker reaches any column. A category the Task is already in is not
+offered. The card then gives way to a slim row where it sat, with an Undo that moves the Task back
+and restores the item. Only the newest resolve keeps its row: the next card worked takes it away.
+Mark read and opening the Task clear the card without moving the Task, and leave no row.
+
+The list paints once the Task items and the boards they need have settled, so no card grows under
+the reader. `taskInbox.list` names each context message's place (`#security · Thread`, its parent
+Channel or DM, and the Thread anchor), so a card opens and replies with no read of its own.
 
 ## Current stub
 
@@ -312,12 +335,16 @@ stops the next notification; only a message already read is not notified.
   push waits about 4 seconds and is skipped if the human has read the message by then anywhere —
   typically a focused App window that has the Chat (or the Thread) open. The
   title is the author, plus ` in #channel` outside a DM; the body is a plain-text preview cut to
-  180 characters; the badge is the human's unread Chats plus unread Threads across every Server —
-  the same count the sidebar badge shows per Server, summed. The app sets its icon from the same Server count
+  180 characters; the badge is the human's unread Chats, unread Threads, and uncleared Task items
+  across every Server. The app sets its icon from the same Server count
   (`chat.unreadChatCount`), so a badge never shrinks when the app opens. Pushes group by conversation and collapse by message id, and a
   tap opens the conversation (or Thread). The human's own messages, Chats they cannot see, and
   archived Chats never push. The Server sends only when an APNs key is configured; see
-  [iPhone Push](../operations/ios-push.md).
+  [iPhone Push](../operations/ios-push.md). A Task someone else assigned the human pushes too,
+  titled `<assigner> assigned you SEC-12`, unless its Inbox item clears within the same wait.
+  Several assignments landing inside that wait are one push, `Zero assigned you 6 tasks`, and a tap
+  opens the Inbox, which still holds a card per Task. The desktop notification does the same for
+  assignments that arrive in one list read.
 - **iPhone Focus**: a push tells iOS why it addresses the human. A DM breaks through a Focus when
   its sender is an allowed person; in a Channel or Thread, only a mention of the human or a reply
   to their message does (for an allowed sender). Haus never marks pushes Time Sensitive.

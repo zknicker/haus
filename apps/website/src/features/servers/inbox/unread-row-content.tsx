@@ -1,4 +1,4 @@
-import type { ChatUnreadPreview } from '@haus/api';
+import type { ChatMessage } from '@haus/api';
 import { Button } from '@heroui/react';
 import { type RefObject, useLayoutEffect, useRef, useState } from 'react';
 import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
@@ -77,11 +77,11 @@ export function UnreadRowContent({
                     serverId={serverId}
                 />
             ) : (
-                <NewestMessage
+                <ClampedMessages
                     chatId={chatId}
                     conversationChatId={conversationChatId}
+                    messages={preview.messages.slice(-1)}
                     onOpen={onOpen}
-                    preview={preview}
                     serverId={serverId}
                 />
             )}
@@ -90,26 +90,26 @@ export function UnreadRowContent({
 }
 
 /**
- * The newest waiting message alone, clamped to a few lines so every card
- * is about the same height and the reader's eye moves card to card. The clamp
- * is a clipping box around the transcript's own rendering, never a restyle
- * of it, fading out where it cuts; "Show more" lifts it, and appears only
- * when the message is actually taller than the box.
+ * The one message a card shows — the newest waiting one, or a Task's context
+ * message — clamped to a few lines so every card is about the same height and
+ * the reader's eye moves card to card. The clamp is a clipping box around the
+ * transcript's own rendering, never a restyle of it, fading out where it cuts;
+ * "Show more" lifts it, and appears only when the message is actually taller
+ * than the box.
  */
-function NewestMessage({
+export function ClampedMessages({
     chatId,
     conversationChatId,
+    messages,
     onOpen,
-    preview,
     serverId,
 }: {
     chatId: string;
     conversationChatId: string;
+    messages: readonly ChatMessage[];
     onOpen: () => void;
-    preview: ChatUnreadPreview;
     serverId: string;
 }) {
-    const newest = preview.messages.slice(-1);
     const [expanded, setExpanded] = useState(false);
     const boxRef = useRef<HTMLDivElement>(null);
     const overflows = useOverflows(boxRef, !expanded);
@@ -131,7 +131,7 @@ function NewestMessage({
                 <UnreadRowMessages
                     chatId={chatId}
                     conversationChatId={conversationChatId}
-                    messages={newest}
+                    messages={messages}
                     onOpenConversation={onOpen}
                     serverId={serverId}
                 />

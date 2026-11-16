@@ -23,8 +23,8 @@ export const executionBookkeepingCases: readonly ExecutionBookkeepingCase[] = [
     },
     {
         bookkeeping: true,
-        input: { command: ['/bin/zsh', '-lc', 'haus task claim --number 1'] },
-        name: "a task claim in a runtime's argv wrapper",
+        input: { command: ['/bin/zsh', '-lc', 'haus claim --number 1'] },
+        name: "a claim in a runtime's argv wrapper",
         toolName: 'exec',
     },
     {
@@ -41,7 +41,7 @@ export const executionBookkeepingCases: readonly ExecutionBookkeepingCase[] = [
     },
     {
         bookkeeping: false,
-        input: { command: 'haus task update --status done && bun test' },
+        input: { command: 'haus claim update --status done && bun test' },
         name: 'haus beside real work',
         toolName: 'Bash',
     },

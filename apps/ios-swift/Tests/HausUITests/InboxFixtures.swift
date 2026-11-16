@@ -110,7 +110,7 @@ enum InboxFixtures {
             "displayName":"Blippy"}},
          "chatId":"chat_1","content":\(quoted(content)),
          "createdAt":"\(createdAt)","id":"\(id)","nonce":"nonce_\(id)",
-         "runId":null,"sequence":1,"serverId":"server_1","task":null}
+         "runId":null,"sequence":1,"serverId":"server_1","claim":null}
         """
     }
 

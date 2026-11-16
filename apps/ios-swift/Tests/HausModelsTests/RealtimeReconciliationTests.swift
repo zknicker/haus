@@ -32,11 +32,11 @@ final class RealtimeReconciliationTests: XCTestCase {
     /// stream could have missed.
     func testAReadBegunAfterTheStartIsSkipped() {
         var reconciliation = RealtimeReconciliation()
-        reconciliation.streamStarted(reconciling: [.chatList, .taskLenses])
+        reconciliation.streamStarted(reconciling: [.chatList, .boards])
         let eventRead = reconciliation.beginRead()
         reconciliation.landed(.chatList, readStartedAt: eventRead)
 
-        XCTAssertEqual(reconciliation.take(), [.taskLenses])
+        XCTAssertEqual(reconciliation.take(), [.boards])
     }
 
     /// Streams starting together share one pass, anchored to the latest start.

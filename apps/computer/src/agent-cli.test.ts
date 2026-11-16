@@ -5,6 +5,7 @@ const families = [
     'agent',
     'attachment',
     'channel',
+    'claim',
     'cloud-agent',
     'files',
     'inbox',
@@ -13,7 +14,6 @@ const families = [
     'reminder',
     'server',
     'skill',
-    'task',
     'thread',
     'trigger',
 ] as const;

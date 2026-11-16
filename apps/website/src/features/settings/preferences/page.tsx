@@ -1,7 +1,7 @@
 import { Switch } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { setShowClaimsInChat, useShowClaimsInChat } from '../../claims/show-claims-in-chat.ts';
 import { PageColumn } from '../../shell/page-column.tsx';
-import { setShowTasksInChat, useShowTasksInChat } from '../../tasks/show-tasks-in-chat.ts';
 import { setShowOpenThreads, useShowOpenThreads } from '../../threads/show-open-threads.ts';
 import { HausVersionSummary } from '../../updates/haus-version-summary.tsx';
 import { useHausUpdate } from '../../updates/use-haus-update.ts';
@@ -45,7 +45,7 @@ function AppearanceSection() {
 }
 
 function ChatSection() {
-    const showTasksInChat = useShowTasksInChat();
+    const showClaimsInChat = useShowClaimsInChat();
     const showOpenThreads = useShowOpenThreads();
 
     return (
@@ -56,16 +56,16 @@ function ChatSection() {
             <ItemCardGroup className="overflow-hidden">
                 <ItemCard>
                     <ItemCard.Content>
-                        <ItemCard.Title>Show tasks in chat</ItemCard.Title>
+                        <ItemCard.Title>Show claims in chat</ItemCard.Title>
                         <ItemCard.Description>
-                            Agents claim tasks as they work. Off, those stay on the Tasks page.
+                            Agents make claims as they work. Off, those stay on the Tasks page.
                         </ItemCard.Description>
                     </ItemCard.Content>
                     <ItemCard.Action>
                         <Switch
-                            aria-label="Show tasks in chat"
-                            isSelected={showTasksInChat}
-                            onChange={setShowTasksInChat}
+                            aria-label="Show claims in chat"
+                            isSelected={showClaimsInChat}
+                            onChange={setShowClaimsInChat}
                         >
                             <Switch.Content>
                                 <Switch.Control>

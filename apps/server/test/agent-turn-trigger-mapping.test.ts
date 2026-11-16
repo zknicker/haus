@@ -12,10 +12,10 @@ test('maps each inbox source to its narrow trigger kind', () => {
         messageId: 'msg_one',
         preview: null,
     });
-    expect(at('task_assignment', 'task-assign:msg_task:3')).toEqual({
+    expect(at('claim_assignment', 'claim-assign:msg_claim:3')).toEqual({
         chatId: 'cht_one',
-        kind: 'task',
-        messageId: 'msg_task',
+        kind: 'claim',
+        messageId: 'msg_claim',
         preview: null,
     });
     expect(
@@ -30,7 +30,7 @@ test('maps each inbox source to its narrow trigger kind', () => {
             new Map([['msg_one', { attachmentCount: 0, content: 'secret' }]])
         )
     ).toEqual({ kind: 'private' });
-    expect(at('task_assignment', 'not-a-task-key')).toBeNull();
+    expect(at('claim_assignment', 'not-a-claim-key')).toBeNull();
     expect(at('reminder')).toEqual({ chatId: 'cht_one', kind: 'reminder' });
     expect(at('trigger')).toEqual({ chatId: 'cht_one', kind: 'trigger' });
     expect(at('cloud_agent_work')).toEqual({ chatId: 'cht_one', kind: 'cloud_agent' });

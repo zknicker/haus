@@ -2,6 +2,7 @@ import type { ChatMessage } from '@haus/api';
 import { and, eq, getTableColumns, inArray } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import { readMessageCauses } from '../automations/message-cause-read.ts';
+import { listMessageClaimMap } from '../claims/claim-shape.ts';
 import { readLinkedCloudAgentWork } from '../cloud-agents/linked-cloud-agent-work.ts';
 import { readLinkedImageGenerations } from '../image-generation/linked-image-generations.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -11,7 +12,7 @@ import {
     serverMembershipsTable,
     usersTable,
 } from '../postgres/schema.ts';
-import { listMessageTaskMap } from '../tasks/task-shape.ts';
+import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
 import { readMessageBodies } from './message-bodies.ts';
 import { readChatMessageReactions } from './message-reactions.ts';
 import { readStoredAuthorProfile, toChatMessage } from './message-shape.ts';
@@ -19,7 +20,7 @@ import { readInlineReplyContexts } from './reply-context.ts';
 
 /**
  * Reads named Messages the way the Chat transcript reads a page: the same
- * author profile, typed body, cause, attachment, and task projections. Callers
+ * author profile, typed body, cause, attachment, and claim projections. Callers
  * that already hold a Message use it to pull in one more a surface needs — the
  * anchor a Cloud Agent work row came from, for instance.
  * Authorization belongs to the caller, which is why this takes explicit ids.
@@ -64,16 +65,17 @@ export async function readMessagesById(
             and(eq(chatMessagesTable.serverId, serverId), inArray(chatMessagesTable.id, messageIds))
         );
     const foundIds = rows.map((row) => row.id);
-    const [attachments, tasks, causes, bodies, works, images, reactions, replies] =
+    const [attachments, claims, causes, bodies, works, images, reactions, replies, taskLinks] =
         await Promise.all([
             readMessageAttachments(db, serverId, foundIds),
-            listMessageTaskMap(db, serverId, foundIds),
+            listMessageClaimMap(db, serverId, foundIds),
             readMessageCauses(db, serverId, foundIds),
             readMessageBodies(db, serverId, foundIds),
             readLinkedCloudAgentWork(db, serverId, foundIds),
             readLinkedImageGenerations(db, serverId, foundIds),
             readChatMessageReactions(db, serverId, foundIds),
             readInlineReplyContexts(db, serverId, rows),
+            readMessageTaskLinks(db, serverId, foundIds),
         ]);
     return new Map(
         rows.map((row) => [
@@ -88,8 +90,9 @@ export async function readMessagesById(
                     imageGenerations: images.get(row.id),
                     reactions: reactions.get(row.id),
                     reply: replies.get(row.id) ?? null,
+                    taskLinks: taskLinks.get(row.id),
                 }),
-                task: tasks.get(row.id) ?? null,
+                claim: claims.get(row.id) ?? null,
             },
         ])
     );

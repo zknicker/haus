@@ -21,7 +21,7 @@ import { cn } from '../../lib/utils.ts';
  *
  * Chat is deliberately exempt: it is a full-height surface with its own scroll
  * and composer geometry, not a document column. So is an Agent's Activity
- * log, a full-bleed list under a pinned band, like the Tasks list.
+ * log, a full-bleed list under a pinned band, like a Tasks board.
  */
 export function PageColumn({ className, ...props }: React.ComponentProps<'div'>) {
     return (

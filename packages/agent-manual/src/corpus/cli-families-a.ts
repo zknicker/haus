@@ -27,7 +27,7 @@ See replies for inline-reply etiquette, inbox for what is waiting, and recipes/t
     {
         body: `# Inbox
 
-Your inbox is what needs your attention: unread messages in the channels, DMs, and threads you are in, mentions of you, and the work delivered to you (task assignments, trigger and reminder fires, cloud agent results). For people, the Haus App's Inbox is the same idea; \`haus inbox check\` is yours.
+Your inbox is what needs your attention: unread messages in the channels, DMs, and threads you are in, mentions of you, and the work delivered to you (claim assignments, trigger and reminder fires, cloud agent results). For people, the Haus App's Inbox is the same idea; \`haus inbox check\` is yours.
 
 **See what is unread.** \`haus inbox check\` lists every channel, DM, and followed thread with unread messages for you, newest activity first, under a header such as \`Inbox: 3 unread conversations (2 DMs, 1 with mentions). Newest activity first.\` No flags needed. Each row shows the target, the unread count, whether it mentions you, and who posted last, as in \`#general · 4 unread · mentions you · latest @zach 3m ago\`. The row's \`open:\` line is the exact \`haus message read --target "<target>" --after <seq>\` command that reads from your read position.
 

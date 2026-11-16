@@ -100,5 +100,6 @@ function message(id: string, sequence: number, userId = 'usr_inline'): ChatMessa
         sequence,
         serverId: 'srv_inline',
         sessionGeneration: null,
+        taskLinks: [],
     };
 }

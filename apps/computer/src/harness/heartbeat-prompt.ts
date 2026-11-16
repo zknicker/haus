@@ -39,19 +39,27 @@ export async function composeHeartbeatInput(
         remindersLine(heartbeat.reminders),
         connectionsLine(heartbeat.connections),
         everyRunSteps,
-        ...(heartbeat.kind === 'nightly'
-            ? [
-                  'Nightly, also: recipe steps 7–10 (reflect, consolidate memory, follow up dropped promises, write the learned summary only if there are real lessons).',
-              ]
-            : []),
+        heartbeat.kind === 'nightly'
+            ? 'Nightly, also: recipe steps 7–10 (reflect, consolidate memory, follow up dropped promises, write the learned summary only if there are real lessons).'
+            : stalledQueueStep,
     ].join('\n\n');
 }
+
+/**
+ * The queue's backstop (ADR 0051 decision 7). A daytime run starts only while the Agent is idle,
+ * so a Task still in todo has stalled, unless the Agent is waiting on a person for it. No field
+ * says so, and this run's session is fresh, so the Agent's own @mention under Mentioned in is the
+ * evidence. The run cannot write Tasks (specs/tasks.md), so its report is what restarts the queue,
+ * which is why a key repeats even though findings do not.
+ */
+const stalledQueueStep =
+    'Daytime, also: run `haus task list --category todo`. You are idle, so a Task still in todo means your queue stalled, unless you asked a person about it and they have not answered: `haus task show <key>` lists your @mention under Mentioned in. That Task is blocked, not stalled, so leave it out. You can read Tasks here but not move them, so put each stalled key in your report, even one a past report named, and your main session resumes the queue.';
 
 const everyRunSteps = [
     'Every run, even a quiet one:',
     '1. Catch up: read each digest conversation with its command; the digest has no bodies.',
     '2. Notice: check the sources your work depends on for what is new or still open, by calling the connections above with the `execute` tool, then look wider as your role suggests.',
-    '3. Follow leads: a listed lead is held by the Agent named; leave another Agent\'s lead to it. An unanswered question is a lead even if step 2 already found its answer. Before researching or reporting one, claim it with `haus lead claim --topic "..." [--message-id <id>]` (not `haus task claim`); refused means another Agent claimed or finished it, so leave it out of your report. Record the result with `haus lead done --id <id> --finding "..."`.',
+    '3. Follow leads: a listed lead is held by the Agent named; leave another Agent\'s lead to it. An unanswered question is a lead even if step 2 already found its answer. Before researching or reporting one, claim it with `haus lead claim --topic "..." [--message-id <id>]` (not `haus claim`); refused means another Agent claimed or finished it, so leave it out of your report. Record the result with `haus lead done --id <id> --finding "..."`.',
     '4. Decide: ask of each open item whether it needs you or someone you work for and is still unhandled, and report it if so. Whether it changed does not matter; a past quiet run decided for itself, so decide again. Stay quiet when nothing does; never resend a finding a past report already carried; a checkpoint whose first line is `Report: quiet` carried nothing.',
     "5. Report or stay quiet: at most one `haus heartbeat report` (body on stdin, findings first: what, why it matters, how sure, next step). An answer to someone's question names the chat and message id it answers: the asker has heard nothing until your main session replies there, so the next step is that reply. Daytime runs never edit MEMORY.md.",
     '6. Checkpoint: write `heartbeat/checkpoints/<YYYY-MM-DD>/<HH-mm>.md` (nightly: `heartbeat/daily/<YYYY-MM-DD>.md`) opening with `Report: quiet` or `Report: <exact report>`, then, for each open item you did not report, why it needs nobody now (unchanged is not a reason), what you checked and could not, open leads, and where to pick up. Do not read back what you wrote.',
@@ -67,12 +75,16 @@ export function composeHeartbeatReportInput(
         report.text,
         report.heartbeatKind === 'nightly'
             ? `This came from your nightly heartbeat, so post nothing now. For anything someone should hear, ${MORNING_REMINDER}. Otherwise do nothing.`
-            : daytimeDecision(
+            : `${daytimeDecision(
                   options.now ?? new Date(),
                   (options.quietHours ?? heartbeatQuietHoursSwitch()) === 'on'
-              ),
+              )} ${STALLED_QUEUE_RESUME}`,
     ].join('\n\n');
 }
+
+/** Moving cards reaches nobody, so a queue resumes without the heads-up a post would need. */
+const STALLED_QUEUE_RESUME =
+    'If it names Tasks assigned to you waiting in todo, your queue stalled: start the next one now, skipping any blocked on a person.';
 
 /**
  * The morning turn sees the reminder, not this report, so its description carries the

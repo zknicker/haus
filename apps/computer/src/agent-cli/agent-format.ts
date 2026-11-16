@@ -52,7 +52,7 @@ export function formatDeliveryEnvelope(
 
 /**
  * A bodiless inbox item served on `haus message check`: a Trigger or Reminder
- * fire, or a task assignment. None of them has a Chat message, so the item's own
+ * fire, or a claim assignment. None of them has a Chat message, so the item's own
  * identity fills the envelope: `msg=` is its short id, `type=` is `trigger` or
  * `system`, and the sender is `trigger`, `reminder`, or `haus` — the exact
  * header the launch drain prints for the same item.
@@ -86,11 +86,11 @@ export function shortMessageId(messageId: string): string {
 
 /**
  * Every product record a Message carries rides its line in one fixed order:
- * attachments, the task metadata, delegated Cloud Agent
+ * attachments, the claim metadata, delegated Cloud Agent
  * work, the Agent this Message created, then its reactions.
  */
 function messageSuffixes(message: AgentCliMessage): string {
-    return `${formatAttachmentSuffix(message.attachments)}${taskSuffix(message)}${cloudAgentWorkSuffix(message)}${agentCreatedSuffix(message)}${formatReactionsSuffix(message.reactions)}`;
+    return `${formatAttachmentSuffix(message.attachments)}${claimSuffix(message)}${cloudAgentWorkSuffix(message)}${agentCreatedSuffix(message)}${formatReactionsSuffix(message.reactions)}`;
 }
 
 const reactionActorLimit = 3;
@@ -115,14 +115,14 @@ export function formatReactionsSuffix(reactions: AgentCliMessage['reactions']): 
     return ` [reactions: ${rendered.join(' · ')}]`;
 }
 
-/** Task-messages ride every surface with their metadata suffix (D8). */
-function taskSuffix(message: AgentCliMessage): string {
-    const task = message.task;
-    if (!task) {
+/** Claim-messages ride every surface with their metadata suffix (D8). */
+function claimSuffix(message: AgentCliMessage): string {
+    const claim = message.claim;
+    if (!claim) {
         return '';
     }
-    const assignee = task.assignee?.handle ? ` assignee=@${task.assignee.handle}` : '';
-    return ` [task #${task.number} status=${task.status}${assignee}]`;
+    const assignee = claim.assignee?.handle ? ` assignee=@${claim.assignee.handle}` : '';
+    return ` [claim #${claim.number} status=${claim.status}${assignee}]`;
 }
 
 /**

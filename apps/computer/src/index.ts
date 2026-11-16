@@ -1355,11 +1355,9 @@ async function connect(
                 if (retiredAgents.has(notice.agentId)) {
                     return;
                 }
-                const location = {
-                    agentId: notice.agentId,
-                    dataRoot,
-                    serverId: attachment.serverId,
-                };
+                const { agentId } = notice;
+                const location = { agentId, dataRoot, serverId: attachment.serverId };
+                const receipt = commandFrames.noticeReceipt(notice);
                 let injected = false;
                 void trackWriter(
                     replacePendingInbox(
@@ -1372,15 +1370,15 @@ async function connect(
                                 injected = await sink.deliver(projected);
                             }
                         },
-                        { runId: notice.runId, workIds: notice.inbox.map((item) => item.id) }
+                        receipt,
+                        notice.taskAssignments
                     )
                         .then(() => {
                             if (injected) {
                                 sendFrame({
                                     agentId: notice.agentId,
-                                    runId: notice.runId,
+                                    ...receipt,
                                     type: 'notice-ack',
-                                    workIds: notice.inbox.map((item) => item.id),
                                 });
                             }
                         })
@@ -1531,12 +1529,12 @@ async function handleStartCommand(input: {
                             if (marker?.status !== 'accepted') {
                                 await reofferPendingMessages(location, command.inbox ?? []);
                             }
-                            const modelInbox = await acceptRunInbox(
+                            launchCommand.inbox = await acceptRunInbox(
                                 location,
                                 command.runId,
-                                command.inbox ?? []
+                                command.inbox ?? [],
+                                command.taskAssignments !== undefined
                             );
-                            launchCommand.inbox = modelInbox;
                         }
                         await writeRunMarker(dataRoot, {
                             marker: { status: 'accepted' },

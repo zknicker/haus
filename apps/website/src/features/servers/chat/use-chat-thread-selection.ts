@@ -1,56 +1,56 @@
 import type { ChatMessage, ThreadSummary } from '@haus/api';
 import * as React from 'react';
 import { setChatSidePane } from '../../../hooks/pane/use-chat-side-pane.ts';
-import type { TaskThread } from '../tasks/use-task-thread.ts';
+import type { ClaimThread } from '../claims/use-claim-thread.ts';
 
-/** A `?task=` link's Thread: the task's own, or the one its message sits in. */
-export type ChatInitialTask = TaskThread;
+/** A `?claim=` link's Thread: the claim's own, or the one its message sits in. */
+export type ChatInitialClaim = ClaimThread;
 
 export interface ChatThreadSelection {
     anchor: ChatMessage;
+    /** The Claim the Thread was opened on when its message sits inside the Thread. */
+    claimMessage?: ChatMessage | null;
     initialSummary: ThreadSummary | null;
     initialThreadChatId?: string;
-    /** The Task the Thread was opened on when its message sits inside the Thread. */
-    taskMessage?: ChatMessage | null;
 }
 
-export function useChatThreadSelection(chatId: string, initialTask?: ChatInitialTask) {
+export function useChatThreadSelection(chatId: string, initialClaim?: ChatInitialClaim) {
     const [selection, setSelection] = React.useState<ChatThreadSelection | null>(() =>
-        initialTask ? taskSelection(initialTask) : null
+        initialClaim ? claimSelection(initialClaim) : null
     );
-    const initialTaskIdRef = React.useRef<string | null>(null);
+    const initialClaimIdRef = React.useRef<string | null>(null);
 
     React.useEffect(() => {
-        if (!initialTask) {
-            initialTaskIdRef.current = null;
+        if (!initialClaim) {
+            initialClaimIdRef.current = null;
             return;
         }
-        if (initialTaskIdRef.current === initialTask.taskMessageId) {
+        if (initialClaimIdRef.current === initialClaim.claimMessageId) {
             return;
         }
-        const previousTaskId = initialTaskIdRef.current;
-        initialTaskIdRef.current = initialTask.taskMessageId;
+        const previousClaimId = initialClaimIdRef.current;
+        initialClaimIdRef.current = initialClaim.claimMessageId;
         setSelection((current) =>
-            !current || selectionTaskId(current) === previousTaskId
-                ? taskSelection(initialTask)
+            !current || selectionClaimId(current) === previousClaimId
+                ? claimSelection(initialClaim)
                 : current
         );
         setChatSidePane(chatId, 'thread');
-    }, [chatId, initialTask]);
+    }, [chatId, initialClaim]);
 
     return [selection, setSelection] as const;
 }
 
-function taskSelection(task: ChatInitialTask): ChatThreadSelection {
+function claimSelection(claim: ChatInitialClaim): ChatThreadSelection {
     return {
-        anchor: task.anchor,
-        initialSummary: task.summary,
-        initialThreadChatId: task.threadChatId,
-        taskMessage: task.taskMessage,
+        anchor: claim.anchor,
+        initialSummary: claim.summary,
+        initialThreadChatId: claim.threadChatId,
+        claimMessage: claim.claimMessage,
     };
 }
 
-/** The task a selection opened: its in-Thread message, else its anchor's own. */
-function selectionTaskId(selection: ChatThreadSelection) {
-    return selection.taskMessage?.id ?? selection.anchor.id;
+/** The claim a selection opened: its in-Thread message, else its anchor's own. */
+function selectionClaimId(selection: ChatThreadSelection) {
+    return selection.claimMessage?.id ?? selection.anchor.id;
 }

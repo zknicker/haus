@@ -4,7 +4,7 @@ import { EntityAvatar } from './entity-avatar.tsx';
 /**
  * A named identity rendered inline: the mark plus the name. Agents and people
  * read the same here by design, so anywhere the product names one of them —
- * a task's assignee or creator, a picker row — it looks like the same thing.
+ * a claim's assignee or creator, a picker row — it looks like the same thing.
  */
 export function EntityName({
     avatarUrl,

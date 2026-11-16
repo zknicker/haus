@@ -55,7 +55,7 @@ export const taskThreadRouting = new Map<string, ReadonlyArray<readonly [string,
             ],
             [
                 '- **Done without review**: human never validates behavior. Counter: implementation goes to `in_review`; approval moves it to done.',
-                '- **Silent sign-off**: a task parked in `in_review` with no ask. Counter: name what the human must check, or mark it done.',
+                '- **Silent sign-off**: a claim parked in `in_review` with no ask. Counter: name what the human must check, or mark it done.',
             ],
         ],
     ],

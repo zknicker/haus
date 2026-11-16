@@ -13,13 +13,13 @@ export function classifyShellCall(
 
 /**
  * Recognizes a shell tool call whose whole command is one `haus` CLI
- * invocation: `haus message check`, `/abs/bin/haus task claim …`,
+ * invocation: `haus message check`, `/abs/bin/haus claim …`,
  * `env HAUS_X=1 haus …`, a runtime's `/bin/zsh -lc "…"` wrapper, and a
  * heredoc send (`haus message send … <<'HAUSMSG'` … `HAUSMSG`).
  *
  * Such a call is Agent bookkeeping, not a command the person would call work:
  * the structured proxy already reports its message checks, the Server its
- * sends, and task or profile updates are not work at all. It never becomes a
+ * sends, and claim or profile updates are not work at all. It never becomes a
  * thought either; any other command may, only as a scrubbed description
  * (`thought-action.ts`, ADR 0036). A compound command (`haus … && curl …`) is
  * real work and stays a command.

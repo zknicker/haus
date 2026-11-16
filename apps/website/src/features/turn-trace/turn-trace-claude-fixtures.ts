@@ -22,7 +22,7 @@ export const complexTurn = journal(
     [
         call('claim', 'bash', ['40:28.605', '40:29.149'], {
             command:
-                'haus task claim --target dm:@zach-knickerbocker --message-id hVrzqTGM 2>&1 | head -3',
+                'haus claim --target dm:@zach-knickerbocker --message-id hVrzqTGM 2>&1 | head -3',
         }),
         call(
             'sec',
@@ -140,7 +140,7 @@ export const complexTurn = journal(
 
 /** Tiny / claude-code: one script that claims, writes seven files, and runs the tests. */
 export const setupCommand = [
-    'haus task claim --target dm:@zach-knickerbocker --message-id 5QKFt9Q4 2>&1 | tail -3',
+    'haus claim --target dm:@zach-knickerbocker --message-id 5QKFt9Q4 2>&1 | tail -3',
     'mkdir -p projects/tinylink/src projects/tinylink/test && cd projects/tinylink',
     ...[
         'package.json',
@@ -153,7 +153,7 @@ export const setupCommand = [
     ].flatMap((file) => [
         `cat > ${file} <<'EOF'`,
         '{',
-        '  "x": 1; haus task claim && echo nope',
+        '  "x": 1; haus claim && echo nope',
         '}',
         'EOF',
     ]),

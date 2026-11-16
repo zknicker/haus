@@ -129,7 +129,7 @@ export function UnreadThreadRow({
  * messages — an archived Channel, or a retired Agent's DM — as its own
  * composer goes away. A Thread answers to its parent's state.
  */
-function replyInto(
+export function replyInto(
     chat: Chat,
     /** What the composer addresses, as the conversation's own composer does. */
     name: string,

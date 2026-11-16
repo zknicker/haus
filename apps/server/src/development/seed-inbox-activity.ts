@@ -58,7 +58,7 @@ export async function seedDevelopmentInboxActivity(
 /**
  * The morning's #all: a request nobody promoted, Blippy's claim on it, and the
  * badge work it drifted into. The claim's anchor id is minted here because the
- * task row points at it.
+ * claim row points at it.
  */
 async function seedAllChannelActivity(
     tx: HausDatabase,

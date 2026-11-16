@@ -147,7 +147,7 @@ function userRow(input: {
             senderType: 'user',
             sourceSessionId: null,
             sourceSessionKey: 'hosted:human',
-            task: null,
+            claim: null,
             timestamp: input.timestamp,
         },
         thread: null,

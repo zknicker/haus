@@ -6,7 +6,7 @@ import type { HausOutputs } from '../../lib/haus-server.tsx';
  * "Normalized transcript cache"): the facts the row model groups and orders
  * by, plus the other parts of a message that never change once it commits.
  * Messages are append-only, so these are fixed for the life of the id. The
- * mutable annotations (reactions, task, Cloud Agent work body, Thread summary)
+ * mutable annotations (reactions, claim, Cloud Agent work body, Thread summary)
  * and the prose live only on the `chat.message` entity a row reads.
  *
  * `author` carries its profile because the transcript names a deleted author

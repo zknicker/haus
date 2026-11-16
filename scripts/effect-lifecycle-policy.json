@@ -329,7 +329,7 @@
         "timer": 2
       }
     },
-    "apps/computer/src/inbox-store.ts": {
+    "apps/computer/src/inbox-store-io.ts": {
       "disposition": "finite-cleanup",
       "reason": "Each inbox mutation is one finite atomic filesystem transaction whose lock and temporary file cannot outlive the call.",
       "risks": {

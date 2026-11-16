@@ -11,7 +11,7 @@ import {
 /**
  * Refuses when the Agent has an unseen Message from someone else in the target
  * Chat, by the send hold's rule (`unseenAttention`), and otherwise advances its
- * seen cursor. Sits beside `task-freshness`, the same rule for the Task lane.
+ * seen cursor. Sits beside `claim-freshness`, the same rule for the Claim lane.
  */
 export async function assertFreshAgentView(
     db: HausDatabase,

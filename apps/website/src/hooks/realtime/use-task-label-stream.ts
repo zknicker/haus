@@ -1,4 +1,3 @@
-import type { TaskLabelUpdatedEvent } from '@haus/api';
 import { getQueryKey } from '@trpc/react-query';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import {
@@ -7,18 +6,12 @@ import {
 } from '../../lib/targeted-read-coalescer.ts';
 import { useSubscriptionRestart } from './use-subscription-restart.ts';
 
-/**
- * `taskLabel.onUpdated`: the label catalog and the task list (task rows embed
- * their labels), plus every cached transcript and entity carrying the label.
- * A start reconciles the catalog, the task list, and the transcript lists.
- */
+/** `taskLabel.onUpdated`: the label catalog, the one read that carries a label. */
 export function useTaskLabelStream(serverId: string | undefined) {
     const coalescer = useTargetedReadCoalescer();
-    // A missed label event may have renamed a label any loaded message carries.
     const stream = useSubscriptionRestart('taskLabel.onUpdated', serverId, () => {
         if (serverId) {
-            coalescer.recoverTranscriptLists({ serverId });
-            invalidateLabelReads(coalescer, serverId);
+            invalidateLabelCatalog(coalescer, serverId);
         }
     });
 
@@ -27,22 +20,13 @@ export function useTaskLabelStream(serverId: string | undefined) {
         {
             enabled: serverId !== undefined && stream.open,
             onComplete: () => stream.completed(reset),
-            onData: (event) => applyTaskLabelUpdate(coalescer, event),
+            onData: (event) => invalidateLabelCatalog(coalescer, event.serverId),
             onError: (error) => stream.failed(error, reset),
             onStarted: stream.started,
         }
     );
 }
 
-export function applyTaskLabelUpdate(
-    coalescer: TargetedReadCoalescer,
-    event: TaskLabelUpdatedEvent
-) {
-    void coalescer.noteTaskLabelUpdated(event);
-    invalidateLabelReads(coalescer, event.serverId);
-}
-
-function invalidateLabelReads(coalescer: TargetedReadCoalescer, serverId: string) {
+function invalidateLabelCatalog(coalescer: TargetedReadCoalescer, serverId: string) {
     coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.taskLabel.list, { serverId }) });
-    coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.task.list, { serverId }) });
 }

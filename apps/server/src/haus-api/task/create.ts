@@ -1,16 +1,14 @@
-import { taskCreateInputSchema, taskPromotionSchema } from '@haus/api';
-import { publishRealtime } from '../../realtime/topic.ts';
-import { createTask } from '../../tasks/create-task.ts';
-import { taskProcedure } from './procedure.ts';
+import { taskCreateInputSchema, taskMutationResultSchema } from '@haus/api';
+import { memberTaskActor } from '../../tasks/task-actor.ts';
+import { createTask } from '../../tasks/task-create.ts';
+import { commitTaskWrite, taskProcedure } from './procedure.ts';
 
 export const createTaskProcedure = taskProcedure
     .input(taskCreateInputSchema)
-    .output(taskPromotionSchema)
-    .mutation(async ({ ctx, input }) => {
-        const result = await createTask(ctx.hausDb, ctx.member, input, ctx.agentDelivery);
-
-        publishRealtime(result.events);
-        await ctx.postCommitWork.wakeAgents(ctx.agentDelivery, result.wakes);
-
-        return { idempotent: result.idempotent, task: result.task };
-    });
+    .output(taskMutationResultSchema)
+    .mutation(async ({ ctx, input }) =>
+        commitTaskWrite(
+            ctx,
+            await createTask(ctx.hausDb, memberTaskActor(ctx.member), ctx.agentDelivery, input)
+        )
+    );

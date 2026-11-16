@@ -23,6 +23,7 @@ import {
     readMentionsFromMarkdown,
 } from '../../mentions/mention-metadata.ts';
 import type { ReferenceActivation } from '../../mentions/mention-types.ts';
+import { applyTaskLinks } from '../../mentions/task-reference-scan.ts';
 import { ArtifactMessage } from './artifact-message.tsx';
 
 type HumanDirectory = ReturnType<typeof useHumanDirectory>;
@@ -78,6 +79,7 @@ export function ServerChatMessageContent({
                                 humans={humans}
                                 onOpenArtifact={onOpenArtifact}
                                 onReferenceActivate={onReferenceActivate}
+                                taskLinks={message.taskLinks}
                             />
                         </SectionGap>
                     )
@@ -137,6 +139,7 @@ function MessageTextBody({
     humans,
     onOpenArtifact,
     onReferenceActivate,
+    taskLinks,
 }: {
     agentsById: ReadonlyMap<string, Agent>;
     chatsById: ReadonlyMap<string, Chat>;
@@ -145,26 +148,31 @@ function MessageTextBody({
     humans: HumanDirectory;
     onOpenArtifact: (target: HausResourceTarget) => void;
     onReferenceActivate?: ReferenceActivation;
+    taskLinks: TranscriptMessage['taskLinks'];
 }) {
-    const mentions = applyHumanMentionAppearance(
-        applyChatMentionAppearance(
-            applyAgentMentionAppearance(readMentionsFromMarkdown(content), (agentId) => {
-                const agent = agentId ? agentsById.get(agentId) : undefined;
-                return {
-                    avatarUrl: agent?.avatarUrl ?? null,
-                    displayName: agent?.displayName ?? null,
-                    primaryColor: null,
-                };
-            }),
-            (chatId) => {
-                const chat = chatId ? chatsById.get(chatId) : undefined;
-                return { color: chat?.color ?? null, icon: chat?.icon ?? null };
-            }
+    const mentions = applyTaskLinks(
+        applyHumanMentionAppearance(
+            applyChatMentionAppearance(
+                applyAgentMentionAppearance(readMentionsFromMarkdown(content), (agentId) => {
+                    const agent = agentId ? agentsById.get(agentId) : undefined;
+                    return {
+                        avatarUrl: agent?.avatarUrl ?? null,
+                        displayName: agent?.displayName ?? null,
+                        primaryColor: null,
+                    };
+                }),
+                (chatId) => {
+                    const chat = chatId ? chatsById.get(chatId) : undefined;
+                    return { color: chat?.color ?? null, icon: chat?.icon ?? null };
+                }
+            ),
+            (userId) => ({
+                avatarUrl: humans.avatarUrl(userId ?? null),
+                displayName: humans.member(userId ?? null) ? humans.name(userId ?? null) : null,
+            })
         ),
-        (userId) => ({
-            avatarUrl: humans.avatarUrl(userId ?? null),
-            displayName: humans.member(userId ?? null) ? humans.name(userId ?? null) : null,
-        })
+        content,
+        taskLinks
     );
 
     return hausAgentId ? (

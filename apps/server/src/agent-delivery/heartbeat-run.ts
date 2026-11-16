@@ -5,6 +5,7 @@ import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentInboxTable, agentRunTriggersTable, agentsTable } from '../postgres/schema.ts';
 import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import { recordRunTrigger } from '../server-agents/record-agent-turn.ts';
+import { decodeTaskAssignment } from '../tasks/task-assignment-envelope.ts';
 import type { ConfiguredAgent } from './deferred-configuration.ts';
 import type { DispatchPlan } from './delivery.ts';
 import { type AgentDispatchConfig, startPromptFacts } from './dispatch-config.ts';
@@ -23,6 +24,8 @@ type HeartbeatFrameConfig = Pick<
     | 'homeTimezone'
     | 'sessionGeneration'
 >;
+
+type ChatlessRow = Pick<store.InboxItemRow, 'content' | 'createdAt' | 'dedupeKey' | 'source'>;
 
 /** A dream still queued this long after its request missed its night; it is retired, never led. */
 export const dreamStaleMs = 4 * 60 * 60 * 1000;
@@ -92,23 +95,35 @@ export async function heartbeatLeadGate(
 }
 
 /**
- * Starts the run a queued dream, heartbeat, heartbeat report, or sub-agent wake
- * leads. Each is concrete work with no Chat, so its run carries it alone: no
- * inbox items, no Chat lifecycle event. Busy notices, settlement, failure, and
- * Stop treat it like any concrete run.
+ * Starts the run a queued dream, heartbeat, heartbeat report, sub-agent wake, or
+ * batch of Task assignments leads. Each is concrete work with no Chat, so its run
+ * carries its attention alone: no inbox items, no Chat lifecycle event. Busy
+ * notices, settlement, failure, and Stop treat it like any concrete run. Which
+ * session it runs in is the attention's to say: only a dream or heartbeat opens a
+ * throwaway one, and everything else resumes the main session.
  */
-export async function planHeartbeatRun(
+export async function planChatlessRun(
     tx: HausDatabase,
     input: {
         agentId: string;
         config: ConfiguredAgent;
-        row: store.InboxItemRow;
+        rows: store.InboxItemRow[];
         state: store.AgentDeliveryRow;
     }
 ): Promise<DispatchPlan> {
-    const { agentId, config, row, state } = input;
+    const { agentId, config, state } = input;
     const runId = createOpaqueId('run');
-    await store.attachQueuedItemsToRun(tx, { agentId, itemIds: [row.id], runId });
+    await store.attachQueuedItemsToRun(tx, {
+        agentId,
+        itemIds: input.rows.map((row) => row.id),
+        runId,
+    });
+    // Reread in queue order, so this frame and every resend list the same rows alike.
+    const rows = await store.listInboxItemsForRun(tx, { agentId, runId });
+    const [lead] = rows;
+    if (!lead) {
+        throw new Error(`Chatless run ${runId} attached no inbox item.`);
+    }
     await store.beginActiveRun(tx, {
         agentId,
         chatId: null,
@@ -118,7 +133,7 @@ export async function planHeartbeatRun(
         runId,
         runtimeId: config.desiredRuntimeId,
     });
-    await recordRunTrigger(tx, { agentId, runId, serverId: state.serverId }, row);
+    await recordRunTrigger(tx, { agentId, runId, serverId: state.serverId }, lead);
     const activity = await appendServerAgentActivity(tx, {
         agentId,
         category: 'starting_work',
@@ -129,7 +144,7 @@ export async function planHeartbeatRun(
     return {
         ...(activity ? { activities: [activity] } : {}),
         computerId: config.computerId,
-        frame: await heartbeatStartFrame(
+        frame: await chatlessStartFrame(
             tx,
             {
                 activeRunId: runId,
@@ -139,7 +154,7 @@ export async function planHeartbeatRun(
                 serverId: state.serverId,
             },
             config,
-            row
+            rows
         ),
         serverId: state.serverId,
     };
@@ -148,15 +163,16 @@ export async function planHeartbeatRun(
 /**
  * The chatless run's start frame, identical on first dispatch and every resend:
  * the digest is bounded by the run's own trigger time, not by when it is rebuilt.
+ * `rows` is the run's whole attention: several only for Task assignments.
  */
-export async function heartbeatStartFrame(
+export async function chatlessStartFrame(
     db: HausDatabase,
     state: Pick<
         store.AgentDeliveryRow,
         'activeRunId' | 'activeRunModelId' | 'activeRunRuntimeId' | 'agentId' | 'serverId'
     >,
     config: HeartbeatFrameConfig,
-    row: Pick<store.InboxItemRow, 'content' | 'createdAt' | 'dedupeKey' | 'source'>
+    rows: readonly ChatlessRow[]
 ): Promise<AgentCommand> {
     const runId = state.activeRunId ?? '';
     return {
@@ -165,7 +181,7 @@ export async function heartbeatStartFrame(
         agentName: config.agentName,
         chatId: null,
         drainItemIds: [],
-        ...(await attentionOf(db, state, row)),
+        ...(await attentionOf(db, state, rows)),
         homeTimezone: config.homeTimezone,
         inbox: [],
         inboxDelivery: 'concrete',
@@ -183,8 +199,17 @@ export async function heartbeatStartFrame(
 async function attentionOf(
     db: HausDatabase,
     state: Pick<store.AgentDeliveryRow, 'activeRunId' | 'agentId' | 'serverId'>,
-    row: Pick<store.InboxItemRow, 'content' | 'createdAt' | 'dedupeKey' | 'source'>
+    rows: readonly ChatlessRow[]
 ) {
+    const [row] = rows;
+    if (!row) {
+        throw new Error(`Chatless run ${state.activeRunId} carries no attention.`);
+    }
+    if (row.source === 'task_assignment') {
+        return {
+            taskAssignments: rows.map((assignment) => decodeTaskAssignment(assignment.content)),
+        };
+    }
     const createdAt = row.createdAt.toISOString();
     if (row.source === 'subagent') {
         // The runtime's own report is already in the conversation; the wake carries no body.

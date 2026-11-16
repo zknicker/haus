@@ -154,52 +154,49 @@ test('busy notices include target metadata but never message bodies', () => {
     expect(notice).not.toContain('This must also stay hidden');
 });
 
-test('projects task and mention intent into both drain and busy-notice metadata', () => {
-    const task = item({
+test('projects claim and mention intent into both drain and busy-notice metadata', () => {
+    const claim = item({
         mentioned: true,
-        task: {
+        claim: {
             assigneeAgentId: null,
             messageId: 'msg_first',
             number: 7,
-            priority: 'high',
             status: 'todo',
         },
     });
 
-    expect(composeInboxDrain([task])).toContain(
-        'type=human task=#7:todo:unassigned mentioned=true'
+    expect(composeInboxDrain([claim])).toContain(
+        'type=human claim=#7:todo:unassigned mentioned=true'
     );
-    expect(composeInboxNotice([task])).toContain('· task #7 · you were mentioned');
+    expect(composeInboxNotice([claim])).toContain('· claim #7 · you were mentioned');
 });
 
-test('names the claim for an open task before the delivery trailer, and only for todo tasks', () => {
+test('names the claim command for an open claim before the delivery trailer, and only for todo claims', () => {
     const open = item({
-        task: {
+        claim: {
             assigneeAgentId: null,
             messageId: 'msg_first',
             number: 7,
-            priority: 'none',
             status: 'todo',
         },
     });
     expect(composeInboxDrain([open])).toContain(
         [
             '',
-            'Task #7 is open: if it is yours to take, claim it with `haus task claim --target "#general" --number 7` before you reply or start work.',
+            'Claim #7 is open: if it is yours to take, claim it with `haus claim --target "#general" --number 7` before you reply or start work.',
             'Respond as appropriate. Complete all your work before stopping.',
         ].join('\n')
     );
 
     const started = item({
-        task: {
+        claim: {
             assigneeAgentId: 'agent_1',
             messageId: 'msg_first',
             number: 7,
-            priority: 'none',
             status: 'in_progress',
         },
     });
-    expect(composeInboxDrain([started])).not.toContain('haus task claim');
+    expect(composeInboxDrain([started])).not.toContain('is open: if it is yours to take');
 });
 
 test('leaves an ordinary text message envelope free of work markers', () => {
@@ -215,20 +212,20 @@ test('leaves an ordinary text message envelope free of work markers', () => {
     );
 });
 
-test('renders a task assignment as a bodiless @haus item keyed to its task message', () => {
+test('renders a claim assignment as a bodiless @haus item keyed to its claim message', () => {
     const assignment = item({
         content:
-            '[Haus task assignment task=#1 target=#general assignedBy=@zach] Scout the release notes',
-        id: 'task-assign:msg_1a2b3c4d5e6f:3',
+            '[Haus claim assignment claim=#1 target=#general assignedBy=@zach] Scout the release notes',
+        id: 'claim-assign:msg_1a2b3c4d5e6f:3',
         mentioned: true,
         senderHandle: 'haus',
         senderType: 'system',
     });
 
-    // The assignment key shortens to the task message it hands over, so `msg=`
+    // The assignment key shortens to the claim message it hands over, so `msg=`
     // stays an id the Agent can read, thread on, or react to.
     expect(composeInboxDrain([assignment])).toContain(
-        '[target=#general msg=1a2b3c4d time=2026-07-27 00:00:00 UTC type=system mentioned=true] haus: [Haus task assignment task=#1 target=#general assignedBy=@zach] Scout the release notes'
+        '[target=#general msg=1a2b3c4d time=2026-07-27 00:00:00 UTC type=system mentioned=true] haus: [Haus claim assignment claim=#1 target=#general assignedBy=@zach] Scout the release notes'
     );
     const notice = composeInboxNotice([assignment]);
     expect(notice).toContain('1 unread message total');

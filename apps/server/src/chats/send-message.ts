@@ -17,6 +17,7 @@ import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatMessagesTable, chatsTable, threadFollowsTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
 import { ensureThread } from '../threads/ensure-thread.ts';
 import { autoFollowThreadMentions } from '../threads/thread-attention.ts';
 import type { HausUser } from '../users/haus-user.ts';
@@ -269,6 +270,9 @@ export async function sendChatMessage(
                             messageId
                         ) ?? [],
                     reply: await readInlineReplyContext(tx, input.serverId, message),
+                    taskLinks: (await readMessageTaskLinks(tx, input.serverId, [messageId])).get(
+                        messageId
+                    ),
                 }),
                 threadChatId: thread?.id ?? null,
             },

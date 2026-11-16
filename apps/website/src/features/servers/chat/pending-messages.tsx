@@ -42,7 +42,7 @@ export function projectPendingChatMessageRows(
                 senderType: 'user',
                 sourceSessionId: null,
                 sourceSessionKey: 'hosted:human',
-                task: null,
+                claim: null,
                 // The Server's own creation time as soon as the receipt names
                 // it, so the turn header's time never changes on confirmation.
                 timestamp: notBefore,

@@ -64,7 +64,7 @@ struct SettingsHubView: View {
 
                 PushNotificationsSection(setting: notifications)
 
-                SettingsSection("Preferences", footer: ShowTasksInChat.footer) {
+                SettingsSection("Preferences", footer: ShowClaimsInChat.footer) {
                     SettingsListGroup {
                         PickerRow(
                             "Appearance",
@@ -74,7 +74,7 @@ struct SettingsHubView: View {
                             onChange: { appearance = $0 }
                         )
                         AppIconRow()
-                        ShowTasksInChatRow()
+                        ShowClaimsInChatRow()
                     }
                 }
 

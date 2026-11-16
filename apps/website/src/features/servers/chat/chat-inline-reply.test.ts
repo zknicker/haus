@@ -36,12 +36,12 @@ test('selecting a reply keeps the direct parent and existing chain root', () => 
     expect(target.root).toBe(root);
 });
 
-test('task inspection keeps chain context while rendering its anchor once', () => {
+test('claim inspection keeps chain context while rendering its anchor once', () => {
     const root = message('msg_root', 1);
-    const task = message('msg_task', 2);
+    const claim = message('msg_claim', 2);
     const reply = message('msg_reply', 3);
 
-    expect(threadInlineReplyMessages([root, task, reply], task.id)).toEqual([root, reply]);
+    expect(threadInlineReplyMessages([root, claim, reply], claim.id)).toEqual([root, reply]);
 });
 
 test('inline reply sends only the selected parent id and clears after success', async () => {
@@ -128,6 +128,7 @@ function message(id: string, sequence: number): ChatMessage {
         sequence,
         serverId: 'srv_inline',
         sessionGeneration: null,
+        taskLinks: [],
     };
 }
 

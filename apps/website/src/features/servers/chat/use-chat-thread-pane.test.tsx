@@ -36,7 +36,7 @@ let navigate: NavigateFunction = () => {};
 function ProbeChatView({ chatId }: { chatId: string }) {
     const pane = useChatThreadPane({
         chatId,
-        initialTask: undefined,
+        initialClaim: undefined,
         revealMessage: () => {},
         serverId: 'server_one',
         ready: true,
@@ -93,7 +93,7 @@ test('a kept chat revealed by a route without ?thread= shows no Thread', async (
 function DeepLinkProbe() {
     useChatThreadPane({
         chatId: 'c1',
-        initialTask: undefined,
+        initialClaim: undefined,
         revealMessage: () => {},
         serverId: 'server_one',
         ready: true,

@@ -61,8 +61,12 @@ test('inline replies send, survive reload, and navigate to an off-page parent', 
         ).toBeLessThan(1);
     }
     await page.getByRole('button', { name: 'Cancel reply' }).hover();
+    // Reply focuses the composer, and Cancel never takes that focus: the
+    // button does not focus on press, so the person keeps typing where they were.
     await page.mouse.down();
+    await expect(composer).toBeFocused();
     await page.mouse.up();
+    await expect(composer).toBeFocused();
     await expect(page.locator('[data-inline-reply-reference]')).toHaveCount(0);
     await expect(page.locator('.chat-reply-target')).toHaveCount(0);
     expect((await rootRow.boundingBox())?.y).toBe(initialMessageBox?.y);
@@ -140,14 +144,14 @@ test('inline replies send, survive reload, and navigate to an off-page parent', 
         .toBe(root.message.id);
 });
 
-test('task inspection shows its inline conversation without creating a thread', async ({
+test('claim inspection shows its inline conversation without creating a thread', async ({
     page,
 }, testInfo) => {
     const { accessToken, databaseUrl } = await createAppTestFixture();
     const client = createClient(accessToken);
     const server = await client.server.create.mutate({
-        displayName: 'Reply Task',
-        slug: 'reply-task',
+        displayName: 'Reply Claim',
+        slug: 'reply-claim',
     });
     completeOnboarding(databaseUrl, server.id);
     const chatId = server.channels[0].id;
@@ -155,9 +159,9 @@ test('task inspection shows its inline conversation without creating a thread', 
         chatId,
         serverId: server.id,
         content: 'Review yesterday’s sales',
-        nonce: 'task-root',
+        nonce: 'claim-root',
     });
-    await client.task.promote.mutate({ messageId: root.message.id, serverId: server.id });
+    await client.claim.promote.mutate({ messageId: root.message.id, serverId: server.id });
     await client.chat.send.mutate({
         chatId,
         serverId: server.id,
@@ -168,12 +172,12 @@ test('task inspection shows its inline conversation without creating a thread', 
         chatId,
         serverId: server.id,
         content: 'Include returns in the report.',
-        nonce: 'task-followup',
+        nonce: 'claim-followup',
         replyToMessageId: root.message.id,
     });
     await signInAsAppHuman(page);
-    await page.goto(`/s/reply-task/tasks?task=${root.message.id}`);
-    const dialog = page.getByRole('dialog', { name: 'Task #1 thread' });
+    await page.goto(`/s/reply-claim/chats/${chatId}?claim=${root.message.id}`);
+    const dialog = page.getByRole('complementary', { name: 'Thread' });
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText('Review yesterday’s sales', { exact: true })).toHaveCount(2);
     const quote = dialog.locator('[data-inline-reply-preview]');
@@ -210,5 +214,5 @@ test('task inspection shows its inline conversation without creating a thread', 
         channelHistory.messages.some((message) => message.content === 'Discuss the details here.')
     ).toBe(false);
     expect(channelHistory.threads).toHaveLength(1);
-    await page.screenshot({ path: testInfo.outputPath('task-unified-conversation.png') });
+    await page.screenshot({ path: testInfo.outputPath('claim-unified-conversation.png') });
 });

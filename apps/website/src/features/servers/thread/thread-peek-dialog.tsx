@@ -10,7 +10,7 @@ import { ThreadContent } from './thread-content.tsx';
 /**
  * Raft-style peek: opening a record from a list page shows its Thread work
  * surface in a dialog over that page instead of navigating into the parent
- * Chat. The Tasks page peeks a Task. "View in chat"
+ * Chat. The Tasks page peeks a Claim. "View in chat"
  * (and artifact opens, which are chat-scoped) still navigate to the Chat.
  */
 export function ThreadPeekDialog({
@@ -21,7 +21,7 @@ export function ThreadPeekDialog({
     initialThreadChatId,
     onClose,
     summary,
-    taskMessage,
+    claimMessage,
 }: {
     anchor: ChatMessage;
     ariaLabel: string;
@@ -30,19 +30,19 @@ export function ThreadPeekDialog({
     initialThreadChatId: string;
     onClose: () => void;
     summary: ThreadSummary | null;
-    /** The Task the peek opened when its message sits inside this Thread. */
-    taskMessage?: ChatMessage | null;
+    /** The Claim the peek opened when its message sits inside this Thread. */
+    claimMessage?: ChatMessage | null;
 }) {
     const navigate = useNavigate();
     const { server } = useServerContext();
     const activateReference = useChatReferenceActivation((chatId) =>
         navigate(serverChatRoute(server.slug, chatId))
     );
-    // A task inside a Thread is read in that Thread, so the Chat opens with it.
+    // A claim inside a Thread is read in that Thread, so the Chat opens with it.
     const openParentChat = () => {
         onClose();
         navigate(
-            taskMessage
+            claimMessage
                 ? serverChatThreadRoute(server.slug, chat.id, anchor.id)
                 : serverChatRoute(server.slug, chat.id)
         );
@@ -71,6 +71,7 @@ export function ThreadPeekDialog({
                         active
                         anchor={anchor}
                         chat={chat}
+                        claimMessage={claimMessage}
                         composerVariant="secondary"
                         headerTitle={headerTitle}
                         initialThreadChatId={initialThreadChatId}
@@ -85,7 +86,6 @@ export function ThreadPeekDialog({
                         readOnly={readOnly}
                         summary={summary}
                         takeover={false}
-                        taskMessage={taskMessage}
                         turnDetailsAccess={getTurnDetailAccess(server.role)}
                         width={null}
                     />

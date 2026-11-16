@@ -21,8 +21,8 @@ const filledBars: Record<Extract<TaskPriority, 'high' | 'low' | 'medium'>, numbe
 
 /**
  * Linear-style priority glyph: signal bars for low/medium/high, an
- * exclamation tile for urgent, faint dots when unset. Urgent carries the
- * shared orange label token; everything else rides `currentColor` so call
+ * exclamation tile for urgent, faint dots when unset. Urgent always carries
+ * the shared orange label token; everything else rides `currentColor` so call
  * sites set the hue (typically `text-muted`).
  */
 export function TaskPriorityIcon({
@@ -36,7 +36,7 @@ export function TaskPriorityIcon({
         return (
             <svg
                 aria-hidden="true"
-                className={cn(glyphSize, 'shrink-0 text-[var(--label-orange-fg)]', className)}
+                className={cn(glyphSize, 'shrink-0', className, 'text-[var(--label-orange-fg)]')}
                 viewBox="0 0 16 16"
             >
                 <rect fill="currentColor" height="13" rx="3.5" width="13" x="1.5" y="1.5" />

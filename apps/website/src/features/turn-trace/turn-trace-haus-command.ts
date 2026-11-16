@@ -17,6 +17,13 @@ export interface HausMessage {
 /** [past, present] for each Agent CLI command with a verb of its own. */
 const hausVerbs: Record<string, readonly [string, string]> = {
     'attachment upload': ['Uploaded a file', 'Uploading a file'],
+    claim: ['Claimed a message', 'Claiming a message'],
+    'claim assign': ['Assigned a claim', 'Assigning a claim'],
+    'claim create': ['Created a claim', 'Creating a claim'],
+    'claim list': ['Listed claims', 'Listing claims'],
+    'claim release': ['Released a claim', 'Releasing a claim'],
+    'claim unassign': ['Unassigned a claim', 'Unassigning a claim'],
+    'claim update': ['Updated a claim', 'Updating a claim'],
     'inbox check': ['Checked inbox', 'Checking inbox'],
     'message check': ['Checked messages', 'Checking messages'],
     'message follow': ['Followed a thread', 'Following a thread'],
@@ -31,13 +38,6 @@ const hausVerbs: Record<string, readonly [string, string]> = {
     'reminder schedule': ['Set a reminder', 'Setting a reminder'],
     'reminder snooze': ['Snoozed a reminder', 'Snoozing a reminder'],
     'reminder update': ['Updated a reminder', 'Updating a reminder'],
-    'task assign': ['Assigned a task', 'Assigning a task'],
-    'task claim': ['Claimed a task', 'Claiming a task'],
-    'task create': ['Created a task', 'Creating a task'],
-    'task list': ['Listed tasks', 'Listing tasks'],
-    'task unassign': ['Unassigned a task', 'Unassigning a task'],
-    'task unclaim': ['Released a task', 'Releasing a task'],
-    'task update': ['Updated a task', 'Updating a task'],
     'thread unfollow': ['Unfollowed a thread', 'Unfollowing a thread'],
 };
 

@@ -3,8 +3,8 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import { ChatArchivedError } from '../chats/chat-access.ts';
 import { resolveRunnerCredential } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { AgentClaimError, AgentClaimNonceReusedError } from './claim-error.ts';
 import { AgentTargetError } from './resolve-target.ts';
-import { AgentTaskError, AgentTaskNonceReusedError } from './task-error.ts';
 
 export async function authorizeAgentRunner(db: HausDatabase, request: FastifyRequest) {
     const header = request.headers.authorization;
@@ -31,10 +31,10 @@ export function sendAgentReadError(reply: FastifyReply, cause: unknown) {
     if (cause instanceof AgentTargetError) {
         return sendAgentApiError(reply, 404, 'INVALID_TARGET', cause.message);
     }
-    if (cause instanceof AgentTaskNonceReusedError) {
+    if (cause instanceof AgentClaimNonceReusedError) {
         return sendAgentApiError(reply, 409, AGENT_IDEMPOTENCY_KEY_REUSED, cause.message);
     }
-    if (cause instanceof AgentTaskError) {
+    if (cause instanceof AgentClaimError) {
         return sendAgentApiError(reply, 409, 'TASK_CONFLICT', cause.message);
     }
     if (cause instanceof ChatArchivedError) {

@@ -113,7 +113,7 @@ diff and retain preparatory changes only where they fit this contract. Record cu
 Server, Computer, App, and Agent-scenario results before editing expected behavior.
 
 Add a new ADR amending ADR 0013's retirement of inline replies and ADR 0015's task-work location
-rules. Update specs/threads.md, specs/tasks.md, specs/inbox.md, and affected feature docs as their
+rules. Update specs/threads.md, specs/claims.md, specs/inbox.md, and affected feature docs as their
 implementations land. Preserve the global-session decision in ADR 0011.
 
 Exit: approved behavior matrix, baseline failures separated from intentional expected changes,

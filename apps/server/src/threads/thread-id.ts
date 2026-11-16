@@ -1,6 +1,6 @@
 /**
  * A Thread's id is derived from its anchor message, never stored on the anchor
- * or on the task. Every surface that needs the id — the task read model,
+ * or on the claim. Every surface that needs the id — the claim read model,
  * freshness checks, materialization — computes it from this one place, so a
  * Thread that has not been created yet still has exactly one name.
  */

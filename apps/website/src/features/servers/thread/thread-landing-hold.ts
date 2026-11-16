@@ -4,7 +4,7 @@ const userScrollIntents = ['keydown', 'pointerdown', 'touchmove', 'wheel'] as co
 
 /**
  * Holds a just-landed row at its viewport offset while the Thread settles.
- * Rows above it (inline reply cards, media, the Task panel over the viewport)
+ * Rows above it (inline reply cards, media, the Claim panel over the viewport)
  * can finish rendering after the landing and would otherwise shift it under
  * the top fade. The hold ends at the first user scroll intent or once the
  * settle window passes; the returned release ends it early.

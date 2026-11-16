@@ -14,7 +14,7 @@ public struct AttachmentMetadata: Codable, Identifiable, Sendable, Equatable {
     }
 }
 
-public enum TaskStatus: String, Codable, Sendable {
+public enum ClaimStatus: String, Codable, Sendable {
     case todo
     case inProgress = "in_progress"
     case inReview = "in_review"
@@ -30,20 +30,20 @@ public enum TaskPriority: String, Codable, Sendable {
     case low
 }
 
-/// How the task row came to exist. `composed` is a human composing a message
-/// as a task, `converted` a human promoting an existing message, and `claimed`
+/// How the claim row came to exist. `composed` is a human composing a message
+/// as a claim, `converted` a human promoting an existing message, and `claimed`
 /// an Agent taking the claim before working a message nobody had promoted.
-public enum TaskOrigin: String, Codable, Sendable {
+public enum ClaimOrigin: String, Codable, Sendable {
     case composed
     case converted
     case claimed
 }
 
-/// Which lens a task belongs to. A `background` task is an Agent's own
+/// Which lens a claim belongs to. A `background` claim is an Agent's own
 /// record-keeping claim on work it finished inside one turn; it stays
 /// queryable but stays off the default Board and List. Everything else is
 /// `tracked`.
-public enum TaskTier: String, Codable, Sendable {
+public enum ClaimTier: String, Codable, Sendable {
     case background
     case tracked
 }
@@ -60,24 +60,22 @@ public struct TaskLabel: Codable, Identifiable, Sendable, Equatable {
     }
 }
 
-public struct MessageTask: Codable, Identifiable, Sendable, Equatable {
-    /// Tasks are Agent work (ADR 0037): only an Agent ever holds one.
+public struct MessageClaim: Codable, Identifiable, Sendable, Equatable {
+    /// Claims are Agent work (ADR 0037): only an Agent ever holds one.
     public let assigneeAgentID: String?
     public let chatID: String
     public let claimedAt: Date?
     public let createdAt: Date
     public let createdByAgentID: String?
     public let createdByUserID: String?
-    public let labels: [TaskLabel]
-    /// The assignee Agent is running a turn on this task right now.
+    /// The assignee Agent is running a turn on this claim right now.
     public let live: Bool
     public let messageID: String
     public let number: Int
-    public let origin: TaskOrigin
-    public let priority: TaskPriority
-    public let status: TaskStatus
+    public let origin: ClaimOrigin
+    public let status: ClaimStatus
     public let threadChatID: String
-    public let tier: TaskTier
+    public let tier: ClaimTier
     public let updatedAt: Date
     public let version: Int
 
@@ -90,12 +88,10 @@ public struct MessageTask: Codable, Identifiable, Sendable, Equatable {
         case createdAt
         case createdByAgentID = "createdByAgentId"
         case createdByUserID = "createdByUserId"
-        case labels
         case live
         case messageID = "messageId"
         case number
         case origin
-        case priority
         case status
         case threadChatID = "threadChatId"
         case tier

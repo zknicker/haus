@@ -32,7 +32,7 @@ export function DmNavigationContextMenu({
     const openers = useDesktopPageOpeners();
     const actions = useDmActions({
         openFiles: openers?.openFiles,
-        // Desktop: View profile and Tasks are Open (the right pane), not the row's own Go.
+        // Desktop: View profile is Open (the right pane), not the row's own Go.
         openPath: openers ? (path) => openers.openPage(path) : navigate,
         slug,
     });

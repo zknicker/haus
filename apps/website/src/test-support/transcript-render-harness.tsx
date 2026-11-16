@@ -235,6 +235,7 @@ export function message(chatId: string, sequence: number, agentId?: string): Cha
         sequence,
         serverId,
         sessionGeneration: null,
+        taskLinks: [],
     };
 }
 

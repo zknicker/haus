@@ -123,7 +123,7 @@ export type AutomationFireContext = z.infer<typeof automationFireContextSchema>;
 
 /**
  * One typed delivery served on `haus message check` that has no chat message
- * of its own: a Trigger or Reminder fire, or a task assignment. It cannot ride
+ * of its own: a Trigger or Reminder fire, or a claim assignment. It cannot ride
  * the message array of `/api/agent/events`, so it carries its own envelope body
  * plus the identity the Agent CLI needs to render the same
  * `[target=… msg=… time=… type=…]` header the launch drain uses.
@@ -132,7 +132,7 @@ export const agentAutomationEventSchema = z
     .object({
         content: z.string(),
         createdAt: timestampSchema,
-        /** The fire id (`trf_…` or `rmf_…`) or assignment key. Fires render `msg=-`; an assignment renders its task message id. */
+        /** The fire id (`trf_…` or `rmf_…`) or assignment key. Fires render `msg=-`; an assignment renders its claim message id. */
         id: idSchema,
         senderHandle: z.enum(['haus', 'reminder', 'trigger']),
         senderType: z.enum(['system', 'trigger']),

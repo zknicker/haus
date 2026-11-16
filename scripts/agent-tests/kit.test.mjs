@@ -66,20 +66,20 @@ describe('marker', () => {
 });
 
 describe('cleanup expansion', () => {
-    const tasks = [{ task: { chatId: 'cht_parent', threadChatId: 'cht_thread' } }];
+    const claims = [{ claim: { chatId: 'cht_parent', threadChatId: 'cht_thread' } }];
 
     test('adds the Threads owned by a requested parent Chat', () => {
-        expect(expandEvalCleanupChatIds(['cht_parent'], tasks)).toEqual({
+        expect(expandEvalCleanupChatIds(['cht_parent'], claims)).toEqual({
             chatIds: ['cht_parent', 'cht_thread'],
             retained: [],
         });
     });
 
-    test('retains a task Thread whose parent is not in the set', () => {
-        // Deleting a task's thread chat alone orphans the durable task row and
-        // 500s task.list server-wide (observed live). The thread is retained
+    test('retains a claim Thread whose parent is not in the set', () => {
+        // Deleting a claim's thread chat alone orphans the durable claim row and
+        // 500s claim.list server-wide (observed live). The thread is retained
         // and reported resolved so cleanup state stops retrying it.
-        expect(expandEvalCleanupChatIds(['cht_thread'], tasks)).toEqual({
+        expect(expandEvalCleanupChatIds(['cht_thread'], claims)).toEqual({
             chatIds: [],
             retained: ['cht_thread'],
         });
@@ -432,8 +432,8 @@ function createFakeHarness({
             }
             return { agentId: input.agentId };
         }
-        if (path === 'task.list') {
-            return { backgroundCount: 0, tasks: [] };
+        if (path === 'claim.list') {
+            return { backgroundCount: 0, claims: [] };
         }
         if (path === 'chat.messages') {
             return { messages: [], threads: [] };

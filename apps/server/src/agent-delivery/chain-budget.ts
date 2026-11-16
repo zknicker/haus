@@ -1,13 +1,15 @@
-import { and, eq, gt, inArray, isNull, lt, notInArray, notLike, or } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNull, lt, notInArray, notLike, or, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentDeliveryTable, agentInboxTable } from '../postgres/schema.ts';
+import { decodeTaskAssignment } from '../tasks/task-assignment-envelope.ts';
 import { concreteInboxSources } from './inbox-lanes.ts';
 import { type InboxItemRow, inboxItemColumns, inboxOrder, queuedFor } from './store.ts';
 
 // The automation chain budget (specs/github-triggers.md#automation-chain-budget).
 // A drain made only of automation-authored work (Agent messages, Trigger fires,
-// Trigger problem notices) spends one turn; any other work (a human message, a
-// Reminder, a task assignment) resets the chain. At the ceiling the drain
+// Trigger problem notices, Task assignments an Agent made) spends one turn; any
+// other work (a human message, a Reminder, a claim assignment, a person's Task
+// assignment) resets the chain. At the ceiling the drain
 // holds until a human speaks. A chain that has sat idle for half an hour below
 // the ceiling restarts, so spaced, legitimate fires never accumulate.
 
@@ -16,6 +18,8 @@ export const maxAgentChainTurns = 16;
 export const agentChainIdleResetMs = 30 * 60 * 1000;
 
 interface AuthoredWork {
+    /** Read only for a `task_assignment`, whose attention names who made it. */
+    content?: string;
     source: string;
 }
 
@@ -39,6 +43,9 @@ const automationInboxSources = [
 ] as const;
 
 export function isAutomationAuthored(row: AuthoredWork): boolean {
+    if (row.source === 'task_assignment') {
+        return row.content !== undefined && decodeTaskAssignment(row.content).assignedByAgent;
+    }
     return (
         row.source.startsWith('agent:') ||
         (automationInboxSources as readonly string[]).includes(row.source)
@@ -52,7 +59,7 @@ export function canBeginAgentDrain(rows: AuthoredWork[], currentTurns: number): 
 /**
  * Chooses the drain before admitting it: admission judges the rows that will
  * actually run, never the whole queue. At the ceiling an automation-only drain
- * holds, and the oldest work that resets the chain (a Reminder, a task
+ * holds, and the oldest work that resets the chain (a Reminder, a claim
  * assignment, a human message) leads instead, so the held automation drains
  * after it from zero. Null holds the Agent.
  */
@@ -201,6 +208,10 @@ async function findOldestQueuedChainResetItem(
                 queuedFor(agentId),
                 notLike(agentInboxTable.source, 'agent:%'),
                 notInArray(agentInboxTable.source, [...automationInboxSources]),
+                // A case, so only a Task assignment's content is ever read as JSON.
+                sql`case when ${agentInboxTable.source} = 'task_assignment'
+                    then (${agentInboxTable.content}::jsonb ->> 'assignedByAgent') = 'false'
+                    else true end`,
                 or(
                     inArray(agentInboxTable.source, [...concreteInboxSources]),
                     isNull(agentInboxTable.noticeRunId)

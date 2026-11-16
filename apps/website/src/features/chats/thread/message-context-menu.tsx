@@ -6,9 +6,10 @@ import {
     Copy01Icon,
     Link01Icon,
     ReplyIcon,
+    TaskAdd01Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { writeClipboardText } from '../../../lib/clipboard.ts';
 import { cn } from '../../../lib/utils.ts';
@@ -20,6 +21,13 @@ import {
 import { useMessageContextActions } from './message-context-actions.tsx';
 import { hasOwnReaction, quickReactionEmoji } from './message-reactions.tsx';
 import { isThreadAnchorRow } from './thread-anchor.ts';
+
+// Every transcript row renders this menu and almost none converts, so the
+// dialog and its Server reads load on the first ask.
+const ConvertToTaskDialog = lazy(async () => {
+    const dialog = await import('../../tasks/convert-to-task-dialog.tsx');
+    return { default: dialog.ConvertToTaskDialog };
+});
 
 export function MessageContextMenu({
     children,
@@ -37,7 +45,10 @@ export function MessageContextMenu({
     const canReply = Boolean(context?.threadActionsEnabled && isThreadAnchorRow(row));
     const canReplyInline = Boolean(context?.onSelectInlineReply && isThreadAnchorRow(row));
     const canReact = Boolean(context?.onToggleReaction && isThreadAnchorRow(row));
+    const serverId = context?.turnDetails?.serverId;
+    const canConvert = Boolean(serverId && isThreadAnchorRow(row));
     const [open, setOpen] = useState(false);
+    const [converting, setConverting] = useState(false);
     const [linkUrl, setLinkUrl] = useState<string | null>(null);
 
     const captureLink = (event: React.SyntheticEvent<HTMLDivElement>) => {
@@ -79,78 +90,104 @@ export function MessageContextMenu({
             context?.onSelectInlineReply?.(row.message);
             return;
         }
+        if (key === 'convert-to-task') {
+            setConverting(true);
+            return;
+        }
         if (key === 'details') {
             messageActions?.onViewTurnDetails();
         }
     };
 
     return (
-        <ContextMenu onOpenChange={setOpen} open={open}>
-            <ContextMenu.Trigger
-                className={cn('group/message-row relative block min-w-0 rounded-lg', className)}
-                data-message-id={row.message.id}
-                onContextMenuCapture={captureLink}
-                onMouseEnter={onMessageHover}
-                onPointerDownCapture={captureLink}
-            >
-                {children}
-            </ContextMenu.Trigger>
-            <ContextMenu.Popover>
-                {canReact ? (
-                    <>
-                        <Toolbar
-                            aria-label="Add reaction"
-                            className="justify-between px-2.5 pt-2.5 pb-1.5"
+        <>
+            <ContextMenu onOpenChange={setOpen} open={open}>
+                <ContextMenu.Trigger
+                    className={cn('group/message-row relative block min-w-0 rounded-lg', className)}
+                    data-message-id={row.message.id}
+                    onContextMenuCapture={captureLink}
+                    onMouseEnter={onMessageHover}
+                    onPointerDownCapture={captureLink}
+                >
+                    {children}
+                </ContextMenu.Trigger>
+                <ContextMenu.Popover>
+                    {canReact ? (
+                        <>
+                            <Toolbar
+                                aria-label="Add reaction"
+                                className="justify-between px-2.5 pt-2.5 pb-1.5"
+                            >
+                                {quickReactionEmoji.map((emoji) => (
+                                    <Button
+                                        aria-label={`React with ${emoji}`}
+                                        isIconOnly
+                                        key={emoji}
+                                        onPress={() => react(emoji)}
+                                        size="md"
+                                        variant={
+                                            hasOwnReaction(row, emoji, context?.viewerUserId)
+                                                ? 'secondary'
+                                                : 'ghost'
+                                        }
+                                    >
+                                        <span className="text-[17px] leading-none">{emoji}</span>
+                                    </Button>
+                                ))}
+                            </Toolbar>
+                            <ContextMenu.Separator />
+                        </>
+                    ) : null}
+                    <ContextMenu.Menu aria-label="Message actions" onAction={onAction}>
+                        {linkUrl ? (
+                            <ContextMenu.Item id="copy-link" textValue="Copy link">
+                                <Icon aria-hidden="true" icon={Link01Icon} size={16} />
+                                <Label>Copy link</Label>
+                            </ContextMenu.Item>
+                        ) : null}
+                        <ContextMenu.Item id="copy" textValue="Copy message">
+                            <Icon aria-hidden="true" icon={Copy01Icon} size={16} />
+                            <Label>Copy message</Label>
+                        </ContextMenu.Item>
+                        <ContextMenu.Item
+                            id="reply"
+                            isDisabled={!canReply}
+                            textValue="Reply in thread"
                         >
-                            {quickReactionEmoji.map((emoji) => (
-                                <Button
-                                    aria-label={`React with ${emoji}`}
-                                    isIconOnly
-                                    key={emoji}
-                                    onPress={() => react(emoji)}
-                                    size="md"
-                                    variant={
-                                        hasOwnReaction(row, emoji, context?.viewerUserId)
-                                            ? 'secondary'
-                                            : 'ghost'
-                                    }
-                                >
-                                    <span className="text-[17px] leading-none">{emoji}</span>
-                                </Button>
-                            ))}
-                        </Toolbar>
-                        <ContextMenu.Separator />
-                    </>
-                ) : null}
-                <ContextMenu.Menu aria-label="Message actions" onAction={onAction}>
-                    {linkUrl ? (
-                        <ContextMenu.Item id="copy-link" textValue="Copy link">
-                            <Icon aria-hidden="true" icon={Link01Icon} size={16} />
-                            <Label>Copy link</Label>
+                            <Icon aria-hidden="true" icon={BubbleChatIcon} size={16} />
+                            <Label>Reply in thread</Label>
                         </ContextMenu.Item>
-                    ) : null}
-                    <ContextMenu.Item id="copy" textValue="Copy message">
-                        <Icon aria-hidden="true" icon={Copy01Icon} size={16} />
-                        <Label>Copy message</Label>
-                    </ContextMenu.Item>
-                    <ContextMenu.Item id="reply" isDisabled={!canReply} textValue="Reply in thread">
-                        <Icon aria-hidden="true" icon={BubbleChatIcon} size={16} />
-                        <Label>Reply in thread</Label>
-                    </ContextMenu.Item>
-                    {canReplyInline ? (
-                        <ContextMenu.Item id="reply-inline" textValue="Reply">
-                            <Icon aria-hidden="true" icon={ReplyIcon} size={16} />
-                            <Label>Reply</Label>
-                        </ContextMenu.Item>
-                    ) : null}
-                    {messageActions ? (
-                        <ContextMenu.Item id="details" textValue="View turn details">
-                            <Icon aria-hidden="true" icon={Activity01Icon} size={16} />
-                            <Label>View turn details</Label>
-                        </ContextMenu.Item>
-                    ) : null}
-                </ContextMenu.Menu>
-            </ContextMenu.Popover>
-        </ContextMenu>
+                        {canReplyInline ? (
+                            <ContextMenu.Item id="reply-inline" textValue="Reply">
+                                <Icon aria-hidden="true" icon={ReplyIcon} size={16} />
+                                <Label>Reply</Label>
+                            </ContextMenu.Item>
+                        ) : null}
+                        {canConvert ? (
+                            <ContextMenu.Item id="convert-to-task" textValue="Convert to Task">
+                                <Icon aria-hidden="true" icon={TaskAdd01Icon} size={16} />
+                                <Label>Convert to Task</Label>
+                            </ContextMenu.Item>
+                        ) : null}
+                        {messageActions ? (
+                            <ContextMenu.Item id="details" textValue="View turn details">
+                                <Icon aria-hidden="true" icon={Activity01Icon} size={16} />
+                                <Label>View turn details</Label>
+                            </ContextMenu.Item>
+                        ) : null}
+                    </ContextMenu.Menu>
+                </ContextMenu.Popover>
+            </ContextMenu>
+            {converting && serverId ? (
+                <Suspense fallback={null}>
+                    <ConvertToTaskDialog
+                        content={row.message.content}
+                        messageId={row.message.id}
+                        onClose={() => setConverting(false)}
+                        serverId={serverId}
+                    />
+                </Suspense>
+            ) : null}
+        </>
     );
 }

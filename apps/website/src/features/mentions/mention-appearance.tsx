@@ -11,6 +11,7 @@ import {
     Image01Icon,
     MagicWand01Icon,
     PlugIcon,
+    Task01Icon,
     UserIcon,
 } from '@hugeicons-pro/core-solid-rounded';
 import {
@@ -42,6 +43,7 @@ const mentionIconKeys = [
     'plugin',
     'pull-request',
     'skill',
+    'task',
     'thread',
     'unknown',
     'user',
@@ -79,6 +81,7 @@ const defaultMentionAppearance = {
     product: { icon: 'image' },
     'pull-request': { icon: 'pull-request' },
     skill: { icon: 'skill' },
+    task: { icon: 'task' },
     user: { icon: 'user' },
     website: { icon: 'website' },
 } satisfies Record<ReferenceKind, MentionAppearance>;
@@ -95,6 +98,7 @@ const mentionIconMap = {
     plugin: PlugIcon,
     'pull-request': GitPullRequestIcon,
     skill: AiSparklesIcon,
+    task: Task01Icon,
     thread: MessageMultiple02Icon,
     unknown: MagicWand01Icon,
     user: UserIcon,

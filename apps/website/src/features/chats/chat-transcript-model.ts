@@ -54,7 +54,7 @@ const turnMaxGapMs = 5 * 60 * 1000;
 // turn's attachments (widgets, clarifications, stop notes) join that entry by
 // run or response id — a direct lookup, never order-sensitive grouping.
 // Consecutive plain user messages still read as one block, which is
-// presentation adjacency, not turn reconstruction; a message carrying a task
+// presentation adjacency, not turn reconstruction; a message carrying a claim
 // or a Thread keeps its own row so its block stays attached to its prose.
 export function buildTranscriptEntries(input: {
     activeReplies?: readonly TranscriptActiveReply[];
@@ -209,7 +209,7 @@ function canAppendUserMessage(entry: TranscriptTurnEntry, item: TranscriptItem) 
         return false;
     }
 
-    // A task, Thread, or inline reply owns its own conversation context.
+    // A claim, Thread, or inline reply owns its own conversation context.
     // Merging it with a neighbour would stack that block against the wrong
     // message, so anything with attached work stands as its own row.
     const previous = entry.items.at(-1);
@@ -226,9 +226,9 @@ function canAppendUserMessage(entry: TranscriptTurnEntry, item: TranscriptItem) 
 
 function hasAttachedWork(item: TranscriptItem) {
     const row = item.kind === 'row' && item.row.kind === 'message' ? item.row : null;
-    // A skeleton row (`entity`) carries no task or Thread; its flag says whether the entity does.
+    // A skeleton row (`entity`) carries no claim or Thread; its flag says whether the entity does.
     return Boolean(
-        row?.entity?.attachedWork || row?.message.task || row?.thread || row?.message.reply
+        row?.entity?.attachedWork || row?.message.claim || row?.thread || row?.message.reply
     );
 }
 

@@ -1,7 +1,7 @@
 import { ChatComposer } from '../chat/chat-composer-variants.tsx';
 import { ChatTypingIndicator } from '../chat/chat-typing-indicator.tsx';
 
-/** The dedicated Thread composer stays explicit while a Task is inspected. */
+/** The dedicated Thread composer stays explicit while a Claim is inspected. */
 export function ThreadContentComposer({
     chatId,
     chatName,
@@ -12,7 +12,7 @@ export function ThreadContentComposer({
     pendingChatId,
     readOnly,
     serverId,
-    task,
+    claim,
     threadChatId,
 }: {
     chatId: string;
@@ -24,7 +24,7 @@ export function ThreadContentComposer({
     pendingChatId: string;
     readOnly: boolean;
     serverId: string;
-    task: boolean;
+    claim: boolean;
     /** The Thread's own chat, which Agents engage; absent until the first reply. */
     threadChatId: string | undefined;
 }) {
@@ -43,7 +43,7 @@ export function ThreadContentComposer({
             onSend={onReplySent}
             onThreadCreated={onThreadCreated}
             pendingChatId={pendingChatId}
-            placeholder={task ? 'Reply in thread…' : 'Add a reply…'}
+            placeholder={claim ? 'Reply in thread…' : 'Add a reply…'}
             serverId={serverId}
             status={<ChatTypingIndicator chatId={threadChatId} serverId={serverId} />}
             thread={{ anchorMessageId }}

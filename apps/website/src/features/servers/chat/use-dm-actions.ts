@@ -1,5 +1,5 @@
 import type * as React from 'react';
-import { agentProfileRoute, tasksRoute } from '../server-routes.ts';
+import { agentProfileRoute } from '../server-routes.ts';
 import type { ChatActionRoutes } from './use-channel-actions.tsx';
 
 /** The DM a menu opened on; an implicit Agent DM has no chat yet. */
@@ -14,14 +14,20 @@ export interface DmActions {
 }
 
 /** Every DM menu's actions: the web topbar's •••, the sidebar row, and a desktop tab. */
-export function useDmActions({ openFiles, openPath, slug }: ChatActionRoutes & { slug: string }) {
+export function useDmActions({
+    openFiles,
+    openPath,
+    slug,
+}: ChatActionRoutes & {
+    /** The profile link: the surface's own navigate (a router, a tab, the sidebar). */
+    openPath: (path: string) => void;
+    slug: string;
+}) {
     return {
         filesAvailable: Boolean(openFiles),
         run: ({ agentId, chatId }, key) => {
             if (key === 'profile' && agentId) {
                 openPath(agentProfileRoute(slug, agentId));
-            } else if (key === 'tasks' && chatId) {
-                openPath(`${tasksRoute(slug)}?chat=${encodeURIComponent(chatId)}`);
             } else if (key === 'files' && chatId) {
                 openFiles?.(chatId);
             }

@@ -13,6 +13,12 @@ export interface AgentInboxItem {
     addressed?: boolean;
     addressedReason?: AddressedReason;
     chatId: string;
+    claim?: {
+        assigneeAgentId: string | null;
+        messageId: string;
+        number: number;
+        status: 'closed' | 'done' | 'in_progress' | 'in_review' | 'todo';
+    };
     cloudAgentWork?: AgentCloudAgentWorkAttention;
     content: string;
     createdAt: string;
@@ -27,13 +33,6 @@ export interface AgentInboxItem {
     senderType: 'agent' | 'human' | 'system' | 'trigger';
     sequence: number;
     target: string;
-    task?: {
-        assigneeAgentId: string | null;
-        messageId: string;
-        number: number;
-        priority: 'high' | 'low' | 'medium' | 'none' | 'urgent';
-        status: 'closed' | 'done' | 'in_progress' | 'in_review' | 'todo';
-    };
     /** The Thread a mention arrived in, when the Agent has no visible context for it. */
     threadContext?: AgentThreadContext;
     threadFollowReactivated?: boolean;

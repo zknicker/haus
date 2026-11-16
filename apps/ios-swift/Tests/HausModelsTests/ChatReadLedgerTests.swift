@@ -18,7 +18,7 @@ struct ChatReadLedgerTests {
             visibleMessageIDs: ["m3", "m1", "m2"],
             sequenceByMessageID: sequences
         ) == 9)
-        // A Thread's anchor, its task metadata, and an optimistic send are rows
+        // A Thread's anchor, its claim metadata, and an optimistic send are rows
         // the loaded page cannot name.
         #expect(ChatReadVisibility.highestVisibleSequence(
             visibleMessageIDs: ["thread-anchor-m9", "m1", "thread-pending-send"],

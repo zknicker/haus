@@ -2,7 +2,6 @@ import type { MessageCreatedEvent } from '@haus/api';
 import { type Query, type QueryClient, type QueryKey, useQueryClient } from '@tanstack/react-query';
 import {
     chatMessageQueryKey,
-    entityCarriesTaskLabel,
     isChatMessageEntityOf,
 } from '../hooks/servers/chat-message-entities.ts';
 import { hausTrpc } from './haus-server.tsx';
@@ -12,7 +11,7 @@ import { type ChatScope, type HausClient, TranscriptListReads } from './transcri
 
 export type { ChatScope } from './transcript-list-reads.ts';
 
-/** One message whose annotations (reactions, Thread summary, task, Cloud Agent work) changed. */
+/** One message whose annotations (reactions, Thread summary, claim, Cloud Agent work) changed. */
 export interface MessageTarget extends ChatScope {
     messageId: string;
 }
@@ -36,7 +35,7 @@ export interface TargetedReadCoalescer {
     /** The list-read owner `chatMessagesQueryOptions` reads pages through. */
     readonly lists: TranscriptListReads;
     /**
-     * Reaction, Thread summary (reply, read, follow), task, or Cloud Agent
+     * Reaction, Thread summary (reply, read, follow), claim, or Cloud Agent
      * work changed one message: mark it dirty, cancel its in-flight fetch,
      * then invalidate its entity.
      */
@@ -52,11 +51,6 @@ export interface TargetedReadCoalescer {
             'chatId' | 'parentChatId' | 'sequence' | 'serverId' | 'threadAnchorMessageId'
         >
     ): void;
-    /**
-     * A label has no message ids: abort the Server's tail reads, cancel and
-     * refetch its lists, then its carriers.
-     */
-    noteTaskLabelUpdated(event: { labelId: string; serverId: string }): Promise<void>;
     /** Runs `listener(scope)` after each Chat purge (kept views and pending rows drop theirs). */
     onChatPurged(listener: (scope: ChatScope) => void): () => void;
     /** `chat.onLifecycle` `deleted`: abort tails, cancel and remove the Chat's lists and entities. */
@@ -172,25 +166,6 @@ export function createTargetedReadCoalescer({
                     serverId: event.serverId,
                 });
             }
-        },
-        noteTaskLabelUpdated: async ({ labelId, serverId }) => {
-            const serverLists = lists.lists({ serverId });
-            // No list or tail read in flight may land and seed the old label:
-            // abort the Server's tails (React Query cannot cancel them), then
-            // cancel its list fetches. The bulk refetch below re-reads any tail.
-            lists.abort({ serverId });
-            await queryClient.cancelQueries({ predicate: (query) => serverLists.includes(query) });
-            invalidateEach(serverLists);
-            const fetching = (query: Query) =>
-                isChatMessageEntityOf(query, { serverId }) &&
-                query.state.fetchStatus === 'fetching';
-            await queryClient.cancelQueries({ predicate: fetching });
-            invalidateEach(
-                queryClient.getQueryCache().findAll({
-                    predicate: (query) =>
-                        fetching(query) || entityCarriesTaskLabel(query, serverId, labelId),
-                })
-            );
         },
         onChatPurged: (listener) => subscribeChatPurges(queryClient, listener),
         purgeChat: async (scope) => {

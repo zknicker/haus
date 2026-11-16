@@ -262,7 +262,7 @@ function pending(overrides: Partial<AgentInboxPendingRow>): AgentInboxPendingRow
         mentioned: false,
         pendingCount: 1,
         target: '#ops',
-        taskNumber: null,
+        claimNumber: null,
         ...overrides,
     };
 }

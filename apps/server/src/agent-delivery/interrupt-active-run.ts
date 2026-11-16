@@ -1,8 +1,8 @@
+import { settleAgentBackgroundClaims } from '../claims/background-claims.ts';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { settleAgentBackgroundClaims } from '../tasks/background-claims.ts';
 import { rotateDeferredConfiguration } from './deferred-configuration.ts';
 import * as store from './store.ts';
 import { retireQueuedSubagentWakes } from './subagent-wake-request.ts';
@@ -52,7 +52,7 @@ export async function interruptActiveRun(
             agentId: input.agentId,
             serverId: input.serverId,
         });
-        const taskEvents = await settleAgentBackgroundClaims(tx, killedRun(input, state));
+        const claimEvents = await settleAgentBackgroundClaims(tx, killedRun(input, state));
         await store.clearActiveRun(tx, input.agentId);
         return {
             activity,
@@ -60,7 +60,7 @@ export async function interruptActiveRun(
             computerId: state.activeRunComputerId,
             configuration,
             runId: state.activeRunId,
-            taskEvents,
+            claimEvents,
         };
     });
 }

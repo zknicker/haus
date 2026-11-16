@@ -8,12 +8,12 @@ export const memoryHygieneRecipe = createManualRecipe({
 Use this when MEMORY.md or notes/ start to harm recovery: MEMORY.md runs long, Active Context reads like a diary, finished work still looks current, or one fact lives in several places. The nightly heartbeat run applies these rules (see recipes/technique/heartbeat).
 
 ### Use When / Don't Use When
-Use it after finishing work, before long tasks, and whenever you catch yourself appending. Do not use memory as a task queue or alarm clock; tasks and reminders own work and wakeups, and Haus chats own history.
+Use it after finishing work, before long tasks, and whenever you catch yourself appending. Do not use memory as a task queue or alarm clock; claims and reminders own work and wakeups, and Haus chats own history.
 
 ### What goes where
 - **MEMORY.md is hot memory plus an index.** Hot memory is what you need on every wake, in plain text: your role; how people want you to communicate; standing preferences and directives that hold until changed ("@dana wants a one-line summary before any detail", "never post in #all without asking"); and Active Context. Then a Key Knowledge index of notes.
 - **notes/ holds deeper knowledge you are not using right now**: a project's architecture, a customer's history of requirements, how deploys work, what each channel is for. Each note is a topic file holding the current truth on one subject, named for it (\`notes/billing-api.md\`), never for a date or session.
-- **History stays in Haus chats and tasks.** What was said, decided, and done is already there. For work state, keep durable handles (chat or message, task, file path, commit) and find the story with \`haus message search\`.
+- **History stays in Haus chats and claims.** What was said, decided, and done is already there. For work state, keep durable handles (chat or message, claim, file path, commit) and find the story with \`haus message search\`.
 
 ### Write rules, not records
 Standing Preferences are rules you follow, not a log of feedback.
@@ -63,7 +63,7 @@ Agents whose MEMORY.md grew as an append-only diary carried stale "currently wor
     ],
     slug: 'memory-hygiene',
     summary:
-        'Keep MEMORY.md to hot memory plus a notes index, notes/ as current topic files, and history in Haus chats and tasks.',
+        'Keep MEMORY.md to hot memory plus a notes index, notes/ as current topic files, and history in Haus chats and claims.',
     tier: 'query',
     title: 'Keep MEMORY.md hot and notes/ current',
     triggers: [

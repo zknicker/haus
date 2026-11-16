@@ -4,7 +4,7 @@ struct ThreadPreviewCard: View {
     /// The Thread's anchor Message, which keys the stack's expansion.
     let anchorMessageID: String
     let thread: ThreadPreviewPresentation?
-    let task: TaskPresentation?
+    let claim: ClaimPresentation?
     var cloudAgents: [CloudAgentPresentation] = []
     let onOpen: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -45,20 +45,20 @@ struct ThreadPreviewCard: View {
                 .animation(rowAnimation, value: thread?.latestReply)
 
                 ZStack(alignment: .leading) {
-                    if let task {
+                    if let claim {
                         HStack(spacing: 5) {
-                            TaskStatusDisc(status: TaskStatusShape(task.status), size: 18, surface: HausPlatformColor.inputSurface)
-                            Text("Task #\(task.number) · \(task.status.rawValue)").lineLimit(1)
+                            TaskStatusDisc(status: TaskStatusShape(claim.status), size: 18, surface: HausPlatformColor.inputSurface)
+                            Text("Claim #\(claim.number) · \(claim.status.rawValue)").lineLimit(1)
                         }
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                        .id("\(task.number):\(task.status.rawValue)")
+                        .id("\(claim.number):\(claim.status.rawValue)")
                         .transition(rowTransition)
                     }
                 }
                 .clipped()
-                .animation(rowAnimation, value: task?.status)
-                .animation(rowAnimation, value: task?.number)
+                .animation(rowAnimation, value: claim?.status)
+                .animation(rowAnimation, value: claim?.number)
             }
             .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             .padding(.vertical, 4)
@@ -89,7 +89,7 @@ struct ThreadPreviewCard: View {
     }
 
     private var replyLabel: String {
-        ThreadPreviewProjection.replyLabel(replyCount: thread?.replyCount ?? 0, hasTask: task != nil)
+        ThreadPreviewProjection.replyLabel(replyCount: thread?.replyCount ?? 0, hasClaim: claim != nil)
             ?? "Reply in thread"
     }
 
@@ -110,7 +110,7 @@ struct ThreadPreviewCard: View {
         if let reply = thread?.latestReply {
             parts.append("\(reply.author.name): \(RichMessageParser.oneLinePreview(reply.content))")
         }
-        if let task { parts.append("Task number \(task.number), \(task.status.rawValue)") }
+        if let claim { parts.append("Claim number \(claim.number), \(claim.status.rawValue)") }
         return parts.joined(separator: ". ") + ". Open thread"
     }
 }
@@ -131,6 +131,6 @@ private struct ThreadPreviewReplyRow: View {
 }
 
 #Preview {
-    ThreadPreviewCard(anchorMessageID: ChatFixtures.messages[2].id, thread: ChatFixtures.messages[2].thread, task: ChatFixtures.messages[2].task, onOpen: {})
+    ThreadPreviewCard(anchorMessageID: ChatFixtures.messages[2].id, thread: ChatFixtures.messages[2].thread, claim: ChatFixtures.messages[2].claim, onOpen: {})
         .padding(40)
 }

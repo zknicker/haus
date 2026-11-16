@@ -33,11 +33,12 @@ const minimumSlack = 3;
 export async function installRenderBudget(page: Page, testInfo: TestInfo, layout: Layout) {
     await installRenderCounter(page);
     const traffic = recordAppTraffic(page);
+    // Longer than the 1 s read-receipt settle (chat-read-cache.ts), so a previous
+    // step's trailing reads and renders never land in the next one.
+    const settle = () => traffic.settled({ quietMs: 1500 });
     return {
         measure: async (name: string, action: () => Promise<void>) => {
-            // Longer than the 1 s read-receipt settle (chat-read-cache.ts), so a
-            // previous step's trailing reads and renders never land in this one.
-            await traffic.settled({ quietMs: 1500 });
+            await settle();
             await settleRenders(page, 1500);
             await resetRenders(page);
             await action();
@@ -45,6 +46,7 @@ export async function installRenderBudget(page: Page, testInfo: TestInfo, layout
             const tally = await settleRenders(page);
             checkBudget(testInfo, { layout, name }, tally);
         },
+        settle,
     };
 }
 

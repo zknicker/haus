@@ -2,7 +2,7 @@ import SwiftUI
 
 enum ThreadTranscriptItem: Identifiable, Equatable {
     case anchor(MessagePresentation, hasReplies: Bool)
-    case taskMetadata(TaskPresentation, hasReplies: Bool)
+    case claimMetadata(ClaimPresentation, hasReplies: Bool)
     /// Owns the parent chain's load; draws only its failure.
     case inlineReplies
     case inlineReply(MessagePresentation)
@@ -13,7 +13,7 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
     var id: String {
         switch self {
         case .anchor(let message, _): "thread-anchor-\(message.id)"
-        case .taskMetadata: "thread-task-metadata"
+        case .claimMetadata: "thread-claim-metadata"
         case .inlineReplies: "thread-inline-replies"
         case .inlineReply(let message): "thread-inline-reply-\(message.id)"
         case .reply(let message): message.id
@@ -25,7 +25,7 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
         switch self {
         case .reply(let message): message.isPending
         case .inlineReply(let message): message.isPending
-        case .anchor, .taskMetadata, .inlineReplies, .dayDivider: false
+        case .anchor, .claimMetadata, .inlineReplies, .dayDivider: false
         }
     }
 
@@ -38,11 +38,11 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
     var message: MessagePresentation? {
         switch self {
         case .anchor(let message, _), .inlineReply(let message), .reply(let message): message
-        case .taskMetadata, .inlineReplies, .dayDivider: nil
+        case .claimMetadata, .inlineReplies, .dayDivider: nil
         }
     }
 
-    /// The Thread transcript in order: the anchor, its task metadata when it
+    /// The Thread transcript in order: the anchor, its claim metadata when it
     /// has any, then one conversation by time — the parent Chat's inline
     /// replies to the anchor among the Thread's replies, the viewer's own
     /// optimistic replies with them. Chat sequences are local to each source,
@@ -58,8 +58,8 @@ enum ThreadTranscriptItem: Identifiable, Equatable {
     ) -> [ThreadTranscriptItem] {
         let hasReplies = !replies.isEmpty
         var items: [ThreadTranscriptItem] = [.anchor(anchor, hasReplies: hasReplies)]
-        if let task = anchor.task {
-            items.append(.taskMetadata(task, hasReplies: hasReplies))
+        if let claim = anchor.claim {
+            items.append(.claimMetadata(claim, hasReplies: hasReplies))
         }
         if includesInlineReplies {
             items.append(.inlineReplies)
@@ -134,13 +134,13 @@ enum ThreadReplyReveal: Equatable {
     }
 }
 
-#Preview("Task Thread") {
+#Preview("Claim Thread") {
     NavigationStack {
         ThreadDetailView(
             anchor: ChatFixtures.messages[2],
             replies: [
                 MessagePresentation(
-                    id: "task-thread-reply-1",
+                    id: "claim-thread-reply-1",
                     author: ChatFixtures.messages[1].author,
                     content: "I’ll keep the work visible in this Thread.",
                     createdAt: .now.addingTimeInterval(-45)

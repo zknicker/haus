@@ -8,7 +8,7 @@ import { transcriptTurnGeometry } from './chat-transcript-turn-geometry.ts';
  * The author's line: who spoke, and when. Nothing else. What an Agent is
  * generally for belongs to its hover card and profile; what a message answers
  * — an automation fire, a reply parent — sits on the context lines above it
- * (`TurnContext`); and a task moving on this message states itself below.
+ * (`TurnContext`); and a claim moving on this message states itself below.
  */
 export function TurnHeader({
     composerId,

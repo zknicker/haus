@@ -40,6 +40,15 @@ export interface TranscriptRenderContextValue {
      */
     causeLineHidden?: boolean;
     chatId?: string;
+    /**
+     * The one Message whose claim chip a surrounding panel already states. A
+     * Thread opened on a Claim names it in the header and states its status,
+     * assignee, and creator in the metadata panel above the anchor, so that
+     * Claim's own chip — on the anchor, or on the reply an Agent claimed inside
+     * the Thread — would repeat all of it. Any other claimed reply in the
+     * Thread still wears its chip, by the Show claims in chat rule.
+     */
+    claimChipHiddenMessageId?: string;
     composerId?: string;
     /**
      * The Channel or DM this transcript belongs to, which for a Thread is its
@@ -101,15 +110,6 @@ export interface TranscriptRenderContextValue {
     repliedRunIds: ReadonlySet<string>;
     replyTargetMessageId?: string;
     resolveActorProfile?: (actor: TranscriptActor) => TranscriptActorProfile | null;
-    /**
-     * The one Message whose task chip a surrounding panel already states. A
-     * Thread opened on a Task names it in the header and states its status,
-     * assignee, and creator in the metadata panel above the anchor, so that
-     * Task's own chip — on the anchor, or on the reply an Agent claimed inside
-     * the Thread — would repeat all of it. Any other claimed reply in the
-     * Thread still wears its chip, by the Show tasks in chat rule.
-     */
-    taskChipHiddenMessageId?: string;
     threadActionsEnabled: boolean;
     turnDetails?: {
         access: 'journal' | 'summary';

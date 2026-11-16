@@ -16,7 +16,7 @@ test('a message trigger quotes its message; typed work carries ids only', () => 
     expect(
         agentTurnTriggerSchema.parse({
             chatId: 'cht_one',
-            kind: 'task',
+            kind: 'claim',
             messageId: 'msg_gone',
             preview: null,
         })

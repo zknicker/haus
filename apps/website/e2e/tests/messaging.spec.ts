@@ -9,7 +9,7 @@ import {
     runPsql,
 } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
-import { openMessageThread } from '../support/thread-actions.ts';
+import { openMessageThread, unfollowFromThreadMenu } from '../support/thread-actions.ts';
 
 test.beforeAll(async () => {
     const { accessToken, databaseUrl } = await createAppTestFixture();
@@ -203,15 +203,7 @@ test('a hosted Thread panel updates live and catches up after websocket reconnec
     await expect(panel.getByText('First hosted Thread reply', { exact: true })).toBeVisible();
     // Following lives in the thread's name menu; posting a reply auto-follows,
     // so the menu offers the unfollow escape hatch until it is used.
-    const threadMenu = panel.getByRole('button', { name: /thread actions$/u });
-    await threadMenu.click();
-    await page.getByRole('menuitem', { name: 'Stop following thread' }).click();
-    await threadMenu.click();
-    await expect(page.getByRole('menuitem', { name: 'Follow thread' })).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(
-        page.getByRole('menuitem', { includeHidden: true, name: 'Follow thread' })
-    ).toHaveCount(0);
+    await unfollowFromThreadMenu(page, panel);
 
     const ownerFixture = await createAppTestFixture();
     const peerFixture = await createAppTestFixture('peer');
@@ -459,7 +451,7 @@ function seedReferenceFixture(input: { chatId: string; databaseUrl: string; serv
 test('a signed-out human cannot read hosted messages', async ({ page }) => {
     await page.goto('/s/hosted-messages');
 
-    await expect(page.getByText('Sign in to open your Haus.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible();
     await expect(page.getByText('First durable human message')).toHaveCount(0);
 });
 

@@ -1,8 +1,9 @@
-import type { Chat } from '@haus/api';
+import type { Board, Chat } from '@haus/api';
 import type { ServerSummary } from '../../lib/haus-server.tsx';
 
 export const lastServerSlugStorageKey = 'haus.last-server-slug';
 const lastChatIdStorageKeyPrefix = 'haus.last-chat-id.';
+const lastBoardIdStorageKeyPrefix = 'haus.last-board-id.';
 
 export function resolveEntryServer(
     servers: ServerSummary[],
@@ -48,6 +49,27 @@ export function rememberLastChatId(
     storage: Pick<Storage, 'setItem'> = window.localStorage
 ) {
     storage.setItem(lastChatIdStorageKey(serverSlug), chatId);
+}
+
+/** The board `/tasks` opens: the last one viewed while it is still listed, else the first. */
+export function resolveEntryBoard(boards: Board[], lastBoardId: string | null): Board | null {
+    return boards.find((board) => board.id === lastBoardId) ?? boards[0] ?? null;
+}
+
+/** By id, not key: a board's key is editable, and a re-key should not lose the place. */
+export function readLastBoardId(
+    serverSlug: string,
+    storage: Pick<Storage, 'getItem'> = window.localStorage
+) {
+    return storage.getItem(`${lastBoardIdStorageKeyPrefix}${serverSlug}`);
+}
+
+export function rememberLastBoardId(
+    serverSlug: string,
+    boardId: string,
+    storage: Pick<Storage, 'setItem'> = window.localStorage
+) {
+    storage.setItem(`${lastBoardIdStorageKeyPrefix}${serverSlug}`, boardId);
 }
 
 export function parseInvitationToken(value: string): string | null {

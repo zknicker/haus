@@ -1,8 +1,10 @@
 import {
     agentUpdatedEventSchema,
     artifactUpdatedEventSchema,
+    boardUpdatedEventSchema,
     chatLifecycleEventSchema,
     chatReadEventSchema,
+    claimChangedEventSchema,
     cloudAgentSettingsUpdatedEventSchema,
     cloudAgentWorkUpdatedEventSchema,
     computerUpdatedEventSchema,
@@ -14,8 +16,11 @@ import {
     messageReactionUpdatedEventSchema,
     reminderUpdatedEventSchema,
     serverUpdatedEventSchema,
-    taskChangedEventSchema,
+    taskAssignedEventSchema,
+    taskCreatedEventSchema,
+    taskInboxChangedEventSchema,
     taskLabelUpdatedEventSchema,
+    taskUpdatedEventSchema,
     threadClosedUpdatedEventSchema,
     threadFollowUpdatedEventSchema,
 } from '@haus/api';
@@ -45,7 +50,7 @@ export const threadClosedUpdatedTopic = createTopic(
     threadClosedUpdatedEventSchema
 );
 export const chatLifecycleTopic = createTopic('chat.lifecycle', chatLifecycleEventSchema);
-export const taskChangedTopic = createTopic('task.changed', taskChangedEventSchema);
+export const claimChangedTopic = createTopic('claim.changed', claimChangedEventSchema);
 export const taskLabelUpdatedTopic = createTopic('taskLabel.updated', taskLabelUpdatedEventSchema);
 export const cloudAgentWorkUpdatedTopic = createTopic(
     'cloudAgentWork.updated',
@@ -73,3 +78,12 @@ export const cloudAgentSettingsUpdatedTopic = createTopic(
     'cloudAgentSettings.updated',
     cloudAgentSettingsUpdatedEventSchema
 );
+
+// Boards and Tasks (ADR 0051).
+export const boardUpdatedTopic = createTopic('board.updated', boardUpdatedEventSchema);
+export const taskCreatedTopic = createTopic('task.created', taskCreatedEventSchema);
+export const taskUpdatedTopic = createTopic('task.updated', taskUpdatedEventSchema);
+/** Assignee only: published with the person as `audienceUserId`. */
+export const taskInboxChangedTopic = createTopic('taskInbox.changed', taskInboxChangedEventSchema);
+/** Server-internal: iPhone push listens; no client stream carries it. */
+export const taskAssignedTopic = createTopic('task.assigned', taskAssignedEventSchema);

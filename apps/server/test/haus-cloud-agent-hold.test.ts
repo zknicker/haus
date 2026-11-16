@@ -50,7 +50,7 @@ test('a launch is not held when the Agent has seen the Chat head', async () => {
     // An Agent's own posts never hold it.
     const again = await fixture.postStart(
         runner,
-        fixture.startBody({ nonce: 'cloud-seen-again', title: 'A second task' })
+        fixture.startBody({ nonce: 'cloud-seen-again', title: 'A second claim' })
     );
     expect(again.body).toMatchObject({ state: 'started' });
 });

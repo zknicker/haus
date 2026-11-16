@@ -3,9 +3,9 @@ import type {
     CloudAgentWork,
     ImageGeneration,
     MessageCause,
-    TaskLabel,
+    TaskLink,
 } from '@haus/api';
-import type { MessageTask, TaskOrigin } from '../tasks/task-presentation.ts';
+import type { ClaimOrigin, MessageClaim } from '../claims/claim-presentation.ts';
 import type { TranscriptSystemRow } from './transcript-system-row.ts';
 
 export type { TranscriptDelivery, TranscriptSystemRow } from './transcript-system-row.ts';
@@ -77,6 +77,14 @@ export interface TranscriptMessage {
      * row of its own, so this is what the cause line renders from.
      */
     cause?: MessageCause | null;
+    claim?:
+        | (MessageClaim & {
+              claimed_at: string | null;
+              created_at: string;
+              origin: ClaimOrigin;
+              updated_at: string;
+          })
+        | null;
     /**
      * The Cloud Agent work this Message links, in link order (ADR 0044). Each
      * renders the same card below the Message.
@@ -104,16 +112,8 @@ export interface TranscriptMessage {
     sendNonce?: string | null;
     sourceSessionId?: string | null;
     sourceSessionKey: string;
-    task?:
-        | (MessageTask & {
-              claimed_at: string | null;
-              created_at: string;
-              labels: TaskLabel[];
-              origin: TaskOrigin;
-              priority: 'none' | 'urgent' | 'high' | 'medium' | 'low';
-              updated_at: string;
-          })
-        | null;
+    /** The Tasks this Message references, in content order (ADR 0051); each renders as a chip. */
+    taskLinks?: readonly TaskLink[];
     timestamp: string;
 }
 
@@ -141,7 +141,7 @@ export interface TranscriptMessageRow {
     connectsToPrevious: boolean;
     /**
      * Set on a skeleton row only (specs/realtime-events.md): the `chat.message`
-     * entity it renders, and whether that entity carries a task or a Thread.
+     * entity it renders, and whether that entity carries a claim or a Thread.
      */
     entity?: { attachedWork: boolean; chatId: string; serverId: string };
     id: string;

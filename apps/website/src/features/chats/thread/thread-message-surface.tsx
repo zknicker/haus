@@ -6,10 +6,10 @@ import type * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { cn } from '../../../lib/utils.ts';
+import { claimVisibleInChat, useShowClaimsInChat } from '../../claims/show-claims-in-chat.ts';
+import { TranscriptClaimChip } from '../../claims/transcript-claim-chip.tsx';
 import { ThreadCloudAgentRows } from '../../cloud-agents/thread-cloud-agent-rows.tsx';
 import { useHoistedCloudAgentWork } from '../../cloud-agents/transcript-cloud-agent-work.tsx';
-import { taskVisibleInChat, useShowTasksInChat } from '../../tasks/show-tasks-in-chat.ts';
-import { TranscriptTaskChip } from '../../tasks/transcript-task-chip.tsx';
 import { LinkedCloudAgentWork } from '../../threads/thread-work-reference.tsx';
 import { ActionTooltip } from '../chat-action-tooltip.tsx';
 import {
@@ -35,7 +35,7 @@ export function ThreadMessageSurface({
     row: TranscriptMessageRow;
 }) {
     const context = useTranscriptRenderContextOptional();
-    const showTasks = useShowTasksInChat();
+    const showClaims = useShowClaimsInChat();
     const canOpenThread = Boolean(context?.threadActionsEnabled && isThreadAnchorRow(row));
     const linked = row.message.cloudAgentWork ?? noWork;
     const works = useHoistedCloudAgentWork(row);
@@ -43,12 +43,12 @@ export function ThreadMessageSurface({
         ? works.filter((item) => !linked.some((own) => own.id === item.id))
         : [];
     const flashing = context?.flashMessageId === row.message.id;
-    // A Thread opened on a Task states it in full in the metadata panel above
+    // A Thread opened on a Claim states it in full in the metadata panel above
     // the anchor, so the anchor's own chip would repeat every word of it.
     const anchored =
-        context?.taskChipHiddenMessageId === row.message.id ? null : (row.message.task ?? null);
+        context?.claimChipHiddenMessageId === row.message.id ? null : (row.message.claim ?? null);
     const hasReplies = (getTranscriptMessageThread(row)?.replyCount ?? 0) > 0;
-    const task = anchored && taskVisibleInChat(anchored.origin, showTasks) ? anchored : null;
+    const claim = anchored && claimVisibleInChat(anchored.origin, showClaims) ? anchored : null;
 
     return (
         <MessageContextMenu
@@ -63,7 +63,7 @@ export function ThreadMessageSurface({
             <ReactionPile row={row} />
             {canOpenThread ? null : (
                 <div className="flex flex-wrap items-center gap-1.5">
-                    {task ? <TranscriptTaskChip row={row} /> : null}
+                    {claim ? <TranscriptClaimChip row={row} /> : null}
                 </div>
             )}
             {/* One card per linked work, the same everywhere the work is
@@ -74,10 +74,10 @@ export function ThreadMessageSurface({
             ))}
             {canOpenThread ? (
                 <ThreadSurfacePreview
+                    claim={claim}
                     hasReplies={hasReplies}
                     hoisted={hoisted}
                     row={row}
-                    task={task}
                 />
             ) : null}
         </MessageContextMenu>
@@ -86,18 +86,18 @@ export function ThreadMessageSurface({
 
 function ThreadSurfacePreview({
     row,
-    task,
+    claim,
     hoisted,
     hasReplies,
 }: {
     row: TranscriptMessageRow;
-    task: TranscriptMessageRow['message']['task'];
+    claim: TranscriptMessageRow['message']['claim'];
     hoisted: readonly CloudAgentWork[];
     hasReplies: boolean;
 }) {
     const context = useTranscriptRenderContextOptional();
-    const label = threadSurfaceLabel({ hoisted: hoisted.length > 0, taskNumber: task?.number });
-    const marks = task ? <TranscriptTaskChip row={row} /> : null;
+    const label = threadSurfaceLabel({ hoisted: hoisted.length > 0, claimNumber: claim?.number });
+    const marks = claim ? <TranscriptClaimChip row={row} /> : null;
     if (hasReplies) {
         return (
             <ThreadPreviewBlock
@@ -142,13 +142,13 @@ function ThreadSurfacePreview({
  */
 export function threadSurfaceLabel({
     hoisted,
-    taskNumber,
+    claimNumber,
 }: {
     hoisted: boolean;
-    taskNumber?: number;
+    claimNumber?: number;
 }): string | undefined {
     const parts = [
-        taskNumber === undefined ? null : `Task #${taskNumber}`,
+        claimNumber === undefined ? null : `Claim #${claimNumber}`,
         hoisted ? 'Cloud Agent work' : null,
     ].filter((part) => part !== null);
 

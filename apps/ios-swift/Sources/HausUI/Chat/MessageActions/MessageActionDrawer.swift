@@ -53,7 +53,8 @@ private struct MessageActionDrawerPresenter: ViewModifier {
                     groups: MessageActionMenu.groups(
                         for: target,
                         canReplyInline: onReply != nil,
-                        canOpenThread: onOpenThread != nil
+                        canOpenThread: onOpenThread != nil,
+                        canConvertToTask: MessageActionRoutes.convertToTask != nil
                     ),
                     onAction: { action in perform(action, on: target) },
                     onReact: { emoji, remove in react(emoji, remove: remove, on: target) }
@@ -65,6 +66,7 @@ private struct MessageActionDrawerPresenter: ViewModifier {
         switch action {
         case .reply: afterDismiss = { onReply?(target) }
         case .replyInThread, .openThread: afterDismiss = { onOpenThread?(target) }
+        case .convertToTask: afterDismiss = { MessageActionRoutes.convertToTask?(target) }
         case .copyText:
             UIPasteboard.general.string = target.prose
         }

@@ -64,20 +64,8 @@ export function UnreadTriageRow({
     triage: UnreadRowTriage;
     view: UnreadRowView;
 }) {
-    // Typing into a card's composer, or tabbing to its controls, selects it.
-    const { focusWithinProps } = useFocusWithin({ onFocusWithin: triage.onSelect });
-
     return (
-        <article
-            aria-label={view.title}
-            className={
-                triage.isRinged
-                    ? 'inbox-unread-row inbox-unread-selected min-w-0'
-                    : 'inbox-unread-row min-w-0'
-            }
-            data-selected={triage.isSelected || undefined}
-            {...focusWithinProps}
-        >
+        <UnreadCardShell label={view.title} triage={triage}>
             <UnreadRowHeader
                 actions={<MarkReadAction onPress={triage.onMarkRead} title={view.title} />}
                 count={<UnreadCountChip count={view.count} />}
@@ -95,6 +83,39 @@ export function UnreadTriageRow({
                 ref={triage.isSelected ? triage.composerRef : null}
                 reply={view.reply}
             />
+        </UnreadCardShell>
+    );
+}
+
+/**
+ * The card every queue item sits in, whatever it renders: one landmark, the
+ * selection's ring, and focus moving into it selecting it.
+ */
+export function UnreadCardShell({
+    children,
+    label,
+    triage,
+}: {
+    children: ReactNode;
+    /** The `article`'s accessible name. */
+    label: string;
+    triage: Pick<UnreadRowTriage, 'isRinged' | 'isSelected' | 'onSelect'>;
+}) {
+    // Typing into a card's composer, or tabbing to its controls, selects it.
+    const { focusWithinProps } = useFocusWithin({ onFocusWithin: triage.onSelect });
+
+    return (
+        <article
+            aria-label={label}
+            className={
+                triage.isRinged
+                    ? 'inbox-unread-row inbox-unread-selected min-w-0'
+                    : 'inbox-unread-row min-w-0'
+            }
+            data-selected={triage.isSelected || undefined}
+            {...focusWithinProps}
+        >
+            {children}
         </article>
     );
 }

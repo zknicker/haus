@@ -131,6 +131,7 @@ extension ChatMessage {
         sequence = try container.decode(Int.self, forKey: .sequence)
         serverID = try container.decode(String.self, forKey: .serverID)
         sessionGeneration = try container.decodeIfPresent(Int.self, forKey: .sessionGeneration)
-        task = try container.decodeIfPresent(MessageTask.self, forKey: .task)
+        claim = try container.decodeIfPresent(MessageClaim.self, forKey: .claim)
+        taskLinks = try container.decodeIfPresent([TaskLink].self, forKey: .taskLinks) ?? []
     }
 }

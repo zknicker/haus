@@ -14,6 +14,11 @@ Accepted (2026-07-22, WS5 of the Raft-alignment program; decision D8 in
 `specs/raft-alignment/README.md`, ruled 2026-07-20/21). Supersedes the retired
 pre-flip tracker (tasks/epics/T-numbers/dispatch).
 
+Superseded in part by [ADR 0051](0051-tasks-are-boards-and-claims-are-the-lock.md) (accepted
+2026-11-03, not yet implemented): the promoted-message mechanics below become *claims*, a
+separate board-based Task tracker takes the Tasks name, and the "dated follow-up is a reminder
+anchored on the task message" line is replaced by Reminders referencing Tasks.
+
 Amended 2026-11-02: an Agent may claim a Thread message. "Thread messages cannot become tasks"
 existed because a task's work surface was its own Thread and Threads cannot nest; the 2026-09-08
 amendment ("Tasks never own Threads") removed that reason. With no Thread message claimable, an

@@ -11,10 +11,10 @@ import { startControlledMcp } from '../controlled-mcp.mjs';
 import { defineScenario } from '../scenario.mjs';
 
 const maxUnavailableTools = 4;
-// Product-mandated turn bookkeeping (pickup reaction, task claim and update, the reply,
+// Product-mandated turn bookkeeping (pickup reaction, claim and claim update, the reply,
 // the session-start memory read) is not capability discovery, so it is not counted.
 const bookkeepingSegment =
-    /^(?:haus\s+(?:message|task)\b|haus\s+manual\s+get\s+tasks\b|(?:sed|cat|head)\b[^|]*\b(?:MEMORY\.md|notes\/)|rg\s+--files\b.*\b(?:MEMORY\.md|notes)|pwd$)/u;
+    /^(?:haus\s+(?:message|claim)\b|haus\s+manual\s+get\s+claims\b|(?:sed|cat|head)\b[^|]*\b(?:MEMORY\.md|notes\/)|rg\s+--files\b.*\b(?:MEMORY\.md|notes)|pwd$)/u;
 // Searching the machine for the capability. The routine MEMORY.md and notes read a
 // fresh session starts with is not reconnaissance, so a bare `rg --files` does not count.
 const reconnaissance =

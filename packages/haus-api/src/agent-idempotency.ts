@@ -1,7 +1,7 @@
 import * as z from 'zod';
 
 /**
- * The idempotency key an Agent CLI create carries: a message or task `nonce`,
+ * The idempotency key an Agent CLI create carries: a message or claim `nonce`,
  * or a reminder `commandId`. The CLI mints one per invocation and resends it on
  * its own retries, so a retried request replays the first result.
  */

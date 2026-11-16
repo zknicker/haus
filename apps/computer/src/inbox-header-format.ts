@@ -52,7 +52,7 @@ function isBodilessInboxId(id: string): boolean {
 /**
  * The `msg=` short id every inbox surface prints, for messages and for the
  * bodiless items alike. A compound assignment key
- * (`task-assign:<messageId>:<version>`) shortens to the task message it hands
+ * (`claim-assign:<messageId>:<version>`) shortens to the claim message it hands
  * over, which is the id the Agent can actually address — reading it, threading
  * on it, or reacting to it. A fire has no such message, so it prints `-`
  * rather than an id the Agent would spend a failed command on.
@@ -61,7 +61,7 @@ export function shortInboxId(id: string): string {
     if (isBodilessInboxId(id)) {
         return '-';
     }
-    const assignment = /^task-assign:(?<messageId>[^:]+):/u.exec(id);
+    const assignment = /^claim-assign:(?<messageId>[^:]+):/u.exec(id);
     const subject = assignment?.groups?.messageId ?? id;
     return subject.replace(/^[a-z]+_/u, '').slice(0, 8) || '-';
 }
@@ -82,14 +82,14 @@ export function indentContinuationLines(text: string): string {
 }
 
 /**
- * A fire or task-assignment body is a Server-composed envelope whose own lines
+ * A fire or claim-assignment body is a Server-composed envelope whose own lines
  * (`fire=…`, the reply command) belong at column 0; the Server already indents
  * its untrusted parts (trigger payload, reminder description, script output),
  * and `haus message check` prints it verbatim too. Every Chat message body is
  * free text and takes the continuation prefix.
  */
 export function inboxBodyText(id: string, content: string): string {
-    return isBodilessInboxId(id) || id.startsWith('task-assign:')
+    return isBodilessInboxId(id) || id.startsWith('claim-assign:')
         ? content
         : indentContinuationLines(content);
 }

@@ -30,14 +30,12 @@ test('an ordinary Message carries no suffix, and the suffixes keep their order',
         formatHistoryLine(
             message({
                 attachments: [{ filename: 'plan.md', id: 'att_1' }],
-                task: {
+                claim: {
                     assignee: { handle: 'scout', id: 'agt_scout' },
                     claimed_at: null,
                     created_at: '2026-09-03T12:00:00.000Z',
-                    labels: [],
                     number: 3,
                     origin: 'composed',
-                    priority: 'none',
                     status: 'in_progress',
                     updated_at: '2026-09-03T12:00:00.000Z',
                 },
@@ -45,7 +43,7 @@ test('an ordinary Message carries no suffix, and the suffixes keep their order',
         )
     ).toEndWith(
         '[1 attachment: plan.md (id:att_1) — use haus attachment view to download]' +
-            ' [task #3 status=in_progress assignee=@scout]'
+            ' [claim #3 status=in_progress assignee=@scout]'
     );
 });
 

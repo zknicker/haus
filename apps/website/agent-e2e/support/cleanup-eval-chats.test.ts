@@ -1,39 +1,39 @@
 import { expect, test } from 'bun:test';
 import {
     cleanupEvalChats,
-    type EvalCleanupTask,
+    type EvalCleanupClaim,
     expandEvalCleanupChatIds,
 } from './cleanup-eval-chats.ts';
 
-const task: EvalCleanupTask = {
-    task: {
+const claim: EvalCleanupClaim = {
+    claim: {
         chatId: 'chat_parent',
-        threadChatId: 'cht_thr_task',
+        threadChatId: 'cht_thr_claim',
     },
 };
 
-test('expands a requested task Chat to its deterministic Thread', () => {
-    expect(expandEvalCleanupChatIds(['chat_parent', 'chat_parent'], [task])).toEqual([
+test('expands a requested claim Chat to its deterministic Thread', () => {
+    expect(expandEvalCleanupChatIds(['chat_parent', 'chat_parent'], [claim])).toEqual([
         'chat_parent',
-        'cht_thr_task',
+        'cht_thr_claim',
     ]);
 });
 
-test('rejects deleting a task Thread without its parent Chat', () => {
-    expect(() => expandEvalCleanupChatIds(['cht_thr_task'], [task])).toThrow(
+test('rejects deleting a claim Thread without its parent Chat', () => {
+    expect(() => expandEvalCleanupChatIds(['cht_thr_claim'], [claim])).toThrow(
         'parent Chat chat_parent is not in the exact cleanup set'
     );
 });
 
-test('does not expand an unrelated task from a permanent Chat', () => {
+test('does not expand an unrelated claim from a permanent Chat', () => {
     expect(
         expandEvalCleanupChatIds(
             ['chat_probe'],
             [
                 {
-                    task: {
+                    claim: {
                         chatId: 'chat_permanent',
-                        threadChatId: 'cht_thr_permanent_task',
+                        threadChatId: 'cht_thr_permanent_claim',
                     },
                 },
             ]
@@ -47,8 +47,8 @@ test('deletes ordinary message Threads with their requested parent Chat', async 
         serverId: 'server_1',
         trpc: async (path: string, input: Record<string, unknown>) => {
             calls.push({ input, path });
-            if (path === 'task.list') {
-                return { backgroundCount: 0, tasks: [] };
+            if (path === 'claim.list') {
+                return { backgroundCount: 0, claims: [] };
             }
             if (path === 'chat.messages') {
                 return { threads: [{ threadChatId: 'cht_thr_message' }] };

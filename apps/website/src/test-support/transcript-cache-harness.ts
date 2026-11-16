@@ -153,6 +153,7 @@ export function message(
         sequence,
         serverId,
         sessionGeneration: null,
+        taskLinks: [],
         ...overrides,
     };
 }

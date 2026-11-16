@@ -59,7 +59,7 @@ test('Unread reads the demo Chats with their last line', async () => {
     expect(dms.every((chat) => chat.unreadCount > 0 || chat.lastMessage === null)).toBe(true);
 });
 
-test('Unread holds Tiny’s DM question; the claim is on Tasks', async () => {
+test('Unread holds Tiny’s DM question; the claim is on Claims', async () => {
     const agents = await owner.trpc.agent.list.query({ serverId });
     const agentId = (handle: string) => agents.find((agent) => agent.handle === handle)?.id;
     const chats = await owner.trpc.chat.list.query({ serverId });
@@ -70,19 +70,19 @@ test('Unread holds Tiny’s DM question; the claim is on Tasks', async () => {
     );
 
     const blippyId = agents.find((agent) => agent.handle === 'blippy')?.id;
-    const { tasks } = await owner.trpc.task.list.query({ includeBackground: false, serverId });
-    const claims = tasks.filter(
-        (item) => item.task.origin === 'claimed' && item.task.assigneeAgentId === blippyId
+    const { claims } = await owner.trpc.claim.list.query({ includeBackground: false, serverId });
+    const held = claims.filter(
+        (item) => item.claim.origin === 'claimed' && item.claim.assigneeAgentId === blippyId
     );
 
-    expect(claims).toHaveLength(1);
-    expect(claims[0]?.task).toMatchObject({
+    expect(held).toHaveLength(1);
+    expect(held[0]?.claim).toMatchObject({
         assigneeAgentId: blippyId,
         live: false,
         status: 'in_progress',
         tier: 'tracked',
     });
-    expect(claims[0]?.message.content).toContain('Reminders on the weekly digest fired twice');
+    expect(held[0]?.message.content).toContain('Reminders on the weekly digest fired twice');
 });
 
 // No running Cloud Agent work is seeded: Computer would reconcile a fake run
@@ -153,7 +153,7 @@ async function countActivity() {
     const [counts] = (await harness.sql`
         select
             (select count(*) from chat_messages where server_id = ${serverId}) as messages,
-            (select count(*) from message_tasks where server_id = ${serverId}) as tasks,
+            (select count(*) from message_claims where server_id = ${serverId}) as claims,
             (select count(*) from cloud_agent_work where server_id = ${serverId}) as work,
             (select count(*) from cloud_agent_runs where server_id = ${serverId}) as runs,
             (select count(*) from agent_turns where server_id = ${serverId}) as turns,

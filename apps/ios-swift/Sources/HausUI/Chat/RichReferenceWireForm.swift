@@ -60,6 +60,9 @@ public enum RichReferenceWireForm {
         if let id = schemeID(target, scheme: "skill") {
             return RichReferenceTarget(kind: .skill, id: id, label: nil)
         }
+        if let id = schemeID(target, scheme: "task") {
+            return RichReferenceTarget(kind: .task, id: id, label: nil)
+        }
         // A stable library URL on this App and the open Server, absolute or
         // root-relative, ahead of the path and web forms it would otherwise
         // read as. Outside a scope (or for a foreign one) it stays that link.

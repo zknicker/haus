@@ -82,7 +82,7 @@ export function SidebarInboxRow({
                 <Sidebar.MenuLabel>Inbox</Sidebar.MenuLabel>
                 {unreadCount > 0 ? (
                     <UnreadCountChip
-                        ariaLabel={`${unreadCount} unread chats`}
+                        ariaLabel={`${unreadCount} waiting in Inbox`}
                         count={unreadCount}
                     />
                 ) : null}

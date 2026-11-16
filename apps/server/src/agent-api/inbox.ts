@@ -38,7 +38,7 @@ export async function pullAgentEvents(db: HausDatabase, runner: ResolvedRunner) 
         // compound query sequences concurrently or it can wait on itself indefinitely.
         for (const row of selected) {
             const target = await targetForChat(tx, runner.serverId, chatOf(row));
-            // A fire or a task assignment writes no Chat message, so its
+            // A fire or a claim assignment writes no Chat message, so its
             // pending row is keyed by its own identity and carries its own
             // envelope body.
             if (!row.dedupeKey.startsWith('msg_')) {
@@ -196,7 +196,7 @@ export async function inspectAgentInbox(db: HausDatabase, runner: ResolvedRunner
                 mentioned: group.some((item) => item.mentioned === true),
                 pendingCount: group.length,
                 target: latest.target,
-                taskNumber: latest.task?.number ?? null,
+                claimNumber: latest.claim?.number ?? null,
                 thread: latest.target.includes(':') && !latest.target.startsWith('dm:'),
             },
         ];
@@ -211,7 +211,7 @@ function firstMessageSequence(group: Array<{ message?: unknown; sequence: number
 
 /**
  * The handle a bodiless delivery speaks under. Only rows with no Chat message
- * reach this: automation fires, and the task assignment handoff, which is
+ * reach this: automation fires, and the claim assignment handoff, which is
  * Server-authored and so speaks as Haus.
  */
 function typedSenderHandle(source: string): AgentAutomationEvent['senderHandle'] {
@@ -225,14 +225,14 @@ function typedSenderHandle(source: string): AgentAutomationEvent['senderHandle']
  * The short id `haus inbox check` prints in a target's `first msg=`/`latest
  * msg=` slot, by the rule the notice's `shortInboxId` applies to the same item.
  * A Trigger or Reminder fire and a Cloud Agent Run have no Chat message behind
- * them, so they print `-`; a task assignment prints the task message it hands
+ * them, so they print `-`; a claim assignment prints the claim message it hands
  * over, which is the id the Agent can actually address.
  */
 function shortId(id: string) {
     if (/^(?:car|rmf|trf)_/u.test(id)) {
         return '-';
     }
-    const assignment = /^task-assign:(?<messageId>[^:]+):/u.exec(id);
+    const assignment = /^claim-assign:(?<messageId>[^:]+):/u.exec(id);
     const subject = assignment?.groups?.messageId ?? id;
     return subject.replace(/^[a-z]+_/u, '').slice(0, 8) || '-';
 }

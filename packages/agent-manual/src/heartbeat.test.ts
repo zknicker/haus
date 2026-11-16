@@ -38,6 +38,13 @@ test('carries the checkpoint paths and the quiet rules', () => {
     );
 });
 
+test('a daytime run reports a stalled Task queue it cannot move', () => {
+    expect(body).toContain('haus task list --category todo');
+    expect(body).toContain('Your heartbeat can read Tasks but not move them');
+    expect(body).toContain('put each stalled key in your report, even one a past report named');
+    expect(body).toContain('That Task is blocked, not stalled, so leave it out.');
+});
+
 test('nightly reflects with evidence and follows up promises', () => {
     expect(body).toContain("Check the other Agent's actual state before calling a handoff dropped");
     expect(body).toContain('One remark is one data point');

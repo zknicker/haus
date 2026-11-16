@@ -3,7 +3,7 @@ import type { AgentInboxItem, HausAgentMessage } from '@haus/api';
 /** Server-authored inbox sources that speak as the Haus system sender. */
 const systemSources = new Set([
     'delivery_problem',
-    'task_assignment',
+    'claim_assignment',
     'trigger_problem',
     'image_generation_failed',
 ]);

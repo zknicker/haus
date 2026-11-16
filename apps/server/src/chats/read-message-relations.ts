@@ -5,6 +5,7 @@ import { readLinkedCloudAgentWork } from '../cloud-agents/linked-cloud-agent-wor
 import { readLinkedImageGenerations } from '../image-generation/linked-image-generations.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
+import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
 import { readChatMessageReactions } from './message-reactions.ts';
 import { readInlineReplyContext } from './reply-context.ts';
 
@@ -18,12 +19,14 @@ export async function readMessageRelations(
     imageGenerations: ChatMessage['imageGenerations'];
     reactions: ChatMessage['reactions'] | undefined;
     reply: ChatMessage['reply'];
+    taskLinks: ChatMessage['taskLinks'];
 }> {
     // The caller may hold a transaction connection, so keep these reads sequential.
     const attachments = await readMessageAttachments(db, serverId, [messageId]);
     const works = await readLinkedCloudAgentWork(db, serverId, [messageId]);
     const images = await readLinkedImageGenerations(db, serverId, [messageId]);
     const reactions = await readChatMessageReactions(db, serverId, [messageId]);
+    const taskLinks = await readMessageTaskLinks(db, serverId, [messageId]);
     const [message] = await db
         .select({
             id: chatMessagesTable.id,
@@ -39,5 +42,6 @@ export async function readMessageRelations(
         imageGenerations: images.get(messageId) ?? [],
         reactions: reactions.get(messageId),
         reply: message ? await readInlineReplyContext(db, serverId, message) : null,
+        taskLinks: taskLinks.get(messageId) ?? [],
     };
 }

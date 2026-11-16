@@ -2,13 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { authoredInChannel, readChannelMessages } from './channel-messages.mjs';
 
-test('includes ordinary and task replies only from the requested channel', async () => {
+test('includes ordinary and claim replies only from the requested channel', async () => {
     const tracked = [];
     const read = [];
     const messages = {
         channel: [{ content: 'human request', author: 'human' }],
         ordinary: [{ content: 'ordinary answer', author: 'agent' }],
-        task: [{ content: 'task answer', author: 'agent' }],
+        claim: [{ content: 'claim answer', author: 'agent' }],
         unrelated: [{ content: 'wrong channel', author: 'agent' }],
     };
     const kit = {
@@ -20,7 +20,7 @@ test('includes ordinary and task replies only from the requested channel', async
         async trpc(procedure, input) {
             assert.equal(procedure, 'chat.messages');
             assert.deepEqual(input, { chatId: 'channel', limit: 100, serverId: 'server' });
-            return { threads: [{ threadChatId: 'ordinary' }, { threadChatId: 'task' }] };
+            return { threads: [{ threadChatId: 'ordinary' }, { threadChatId: 'claim' }] };
         },
         async trackChat(chatId) {
             tracked.push(chatId);
@@ -29,10 +29,10 @@ test('includes ordinary and task replies only from the requested channel', async
     const result = await readChannelMessages(kit, 'channel');
     assert.deepEqual(
         result.map((message) => message.content),
-        ['human request', 'ordinary answer', 'task answer']
+        ['human request', 'ordinary answer', 'claim answer']
     );
-    assert.deepEqual(read, ['channel', 'ordinary', 'task']);
-    assert.deepEqual(tracked, ['ordinary', 'task']);
+    assert.deepEqual(read, ['channel', 'ordinary', 'claim']);
+    assert.deepEqual(tracked, ['ordinary', 'claim']);
     assert.equal(result.filter((message) => message.author === 'agent').length, 2);
 });
 

@@ -62,7 +62,12 @@ extension SettingsSheet {
                         path.append(.agentRuntime(id: agent.id))
                     },
                     // Reminders and Triggers are readable by Owners and Admins only.
-                    onOpenAutomations: canManageServer ? { path.append(.agentAutomations(id: agent.id)) } : nil
+                    onOpenAutomations: canManageServer ? { path.append(.agentAutomations(id: agent.id)) } : nil,
+                    stoppedClaims: stoppedClaims,
+                    onOpenClaim: { item in
+                        stoppedClaims.open(item)
+                        dismiss()
+                    }
                 )
             } else {
                 SettingsUnavailableView(title: "Agent profile")

@@ -84,6 +84,8 @@ test('desktop: a warm tab switch stays within budget', async ({ page }, testInfo
     // Reveal each tab once so both switches below are warm.
     await tabs.nth(1).getByRole('button', { exact: true, name: 'all' }).click();
     await expect(composer(page, 'all')).toBeVisible();
+    // A tab reads only while shown: leave too soon and the measured switch pays for the read.
+    await budget.settle();
     await tabs.nth(0).getByRole('button', { exact: true, name: 'design' }).click();
     await expect(composer(page, 'design')).toBeVisible();
 

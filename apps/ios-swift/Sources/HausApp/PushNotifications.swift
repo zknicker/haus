@@ -22,7 +22,7 @@ final class PushNotifications {
 
     let setting: PushNotificationsSetting
     /// A tapped notification waiting for the signed-in shell to open it.
-    var pendingOpen: PushNotificationPayload?
+    var pendingOpen: PushOpenRequest?
     /// What the reader is looking at, reported by the shell, so a push for
     /// that very conversation does not banner over it.
     @ObservationIgnored var viewingChatID: String?
@@ -86,7 +86,9 @@ final class PushNotifications {
         }
     }
 
-    /// Opening a conversation answers the notifications grouped under it.
+    /// Opening a conversation answers the notifications grouped under it. An
+    /// assignment push groups under its Task id, so opening the Task passes
+    /// that id here too.
     func clearDelivered(openedChatID: String?) async {
         guard openedChatID != nil else { return }
         let center = UNUserNotificationCenter.current()
@@ -111,8 +113,8 @@ final class PushNotifications {
         )
     }
 
-    func open(_ payload: PushNotificationPayload) {
-        pendingOpen = payload
+    func open(_ request: PushOpenRequest) {
+        pendingOpen = request
     }
 
     /// Before sign-out ends the session: stop this account's pushes to this

@@ -175,6 +175,13 @@ struct RichReferenceParityTests {
             label: "the release notes",
             mark: .glyph(.website)
         ),
+        Row(
+            markdown: "[SEC-12](task://task_1)",
+            kind: .task,
+            id: "task_1",
+            label: "SEC-12",
+            mark: .glyph(.tasks)
+        ),
     ]
 
     @Test func readsEveryWireFormTheAppChips() {

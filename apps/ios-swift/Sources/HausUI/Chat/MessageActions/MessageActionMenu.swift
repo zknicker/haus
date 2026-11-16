@@ -5,6 +5,7 @@ enum MessageAction: Hashable, Identifiable, Sendable {
     case reply
     case replyInThread
     case openThread
+    case convertToTask
     case copyText
 
     var id: Self { self }
@@ -14,6 +15,7 @@ enum MessageAction: Hashable, Identifiable, Sendable {
         case .reply: "Reply"
         case .replyInThread: "Reply in Thread"
         case .openThread: "Open Thread"
+        case .convertToTask: "Convert to Task"
         case .copyText: "Copy Text"
         }
     }
@@ -22,8 +24,23 @@ enum MessageAction: Hashable, Identifiable, Sendable {
         switch self {
         case .reply: "arrowshape.turn.up.left"
         case .replyInThread, .openThread: "bubble.left.and.bubble.right"
+        case .convertToTask: "checklist"
         case .copyText: "doc.on.doc"
         }
+    }
+}
+
+/// Where a drawer action goes when it leaves the transcript altogether. The
+/// drawer sits under several screens and no route of its own reaches the App's
+/// root, so the App installs this once, the way it does `InAppReferenceRoutes`.
+/// Nothing installed (previews, tests) leaves the action out.
+@MainActor
+public enum MessageActionRoutes {
+    public static var convertToTask: ((MessagePresentation) -> Void)?
+
+    /// The action for one message's rotor, or nil to leave it out.
+    static func convertToTaskAction(for message: MessagePresentation) -> (() -> Void)? {
+        convertToTask.map { route in { route(message) } }
     }
 }
 
@@ -36,15 +53,19 @@ enum MessageActionMenu {
 
     /// Action groups, each drawn as one inset card: the conversation actions,
     /// then copying. A screen that cannot reply inline or open threads (the
-    /// Thread itself) passes false and keeps only what applies there.
+    /// Thread itself) passes false and keeps only what applies there. Any
+    /// message the reader can see converts, in a Thread too, except one that
+    /// has not reached the Server: `sourceMessageId` has nothing to name yet.
     static func groups(
         for message: MessagePresentation,
         canReplyInline: Bool,
-        canOpenThread: Bool
+        canOpenThread: Bool,
+        canConvertToTask: Bool = false
     ) -> [[MessageAction]] {
         var conversation: [MessageAction] = []
         if canReplyInline { conversation.append(.reply) }
         if canOpenThread { conversation.append(message.thread == nil ? .replyInThread : .openThread) }
+        if canConvertToTask, !message.isPending { conversation.append(.convertToTask) }
         // A body is drawn block by block and a selection cannot cross two text
         // views, so copying the whole message is the drawer's job.
         let copying: [MessageAction] = message.prose.isEmpty ? [] : [.copyText]

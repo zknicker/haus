@@ -1,6 +1,6 @@
 ---
 read_when:
-  - changing Agent delivery, attention, tasks, sessions, MCP, skills, workspace, or reminders
+  - changing Agent delivery, attention, claims, sessions, MCP, skills, workspace, or reminders
   - adding or reviewing live Agent end-to-end coverage
   - auditing Agent behavior after a cross-cutting architecture change
 ---
@@ -86,16 +86,16 @@ Status values:
 | A8 | After an explicit Thread unfollow, a direct mention restores the follow and later ordinary Thread work is delivered again. | Deterministic attention (`thread-refollow-on-mention` retired 2026-10-15) | passing |
 | A9 | Solo multi-step work keeps at most an acknowledgment and the answer in the Channel and narrates progress in a Thread on the Agent's own acknowledgment; one-step work opens no Thread. | `test:agents solo-progress-threads-on-ack`, `test:agents placement-quick-fact` (`task-conversation-routing` retired 2026-10-15) | mapped |
 
-### Tranche 3 — Task ownership and work lifecycle
+### Tranche 3 — Claim ownership and work lifecycle
 
 | ID | Haus behavior | Coverage | Status |
 | --- | --- | --- | --- |
-| T1 | Promoting a message creates one task with that message's Thread as its work surface. | App E2E + deterministic | passing |
-| T2 | An Agent claims actionable work before acting and replies inline where the request arrived; the task Thread on the request stays empty. | `test:agents task-thread-routing` | passing |
+| T1 | Promoting a message creates one claim with that message's Thread as its work surface. | App E2E + deterministic | passing |
+| T2 | An Agent claims actionable work before acting and replies inline where the request arrived; the claim Thread on the request stays empty. | `test:agents task-thread-routing` | passing |
 | T3 | Competing claims produce one owner; the loser stands down. | Deterministic race + prompt contract | passing |
-| T4 | An Agent can acknowledge work, ask for missing input and deliver the result inline where the request arrived, and advance the task state. Useful unsolicited progress is model judgment and remains an observation. | Claim and inline answer in `test:agents task-thread-routing`; the clarify step is an observation (`task-clarify-then-deliver` retired 2026-10-15) | retired |
-| T5 | A task status update uses fresh Thread context rather than stale delivery context. | `eval:sessions` freshness + deterministic freshness (`mid-turn-freshness` retired 2026-10-15) | passing |
-| T6 | Losing membership or task access prevents further reads and mutations. | Deterministic authorization | passing |
+| T4 | An Agent can acknowledge work, ask for missing input and deliver the result inline where the request arrived, and advance the claim state. Useful unsolicited progress is model judgment and remains an observation. | Claim and inline answer in `test:agents task-thread-routing`; the clarify step is an observation (`task-clarify-then-deliver` retired 2026-10-15) | retired |
+| T5 | A claim status update uses fresh Thread context rather than stale delivery context. | `eval:sessions` freshness + deterministic freshness (`mid-turn-freshness` retired 2026-10-15) | passing |
+| T6 | Losing membership or claim access prevents further reads and mutations. | Deterministic authorization | passing |
 
 ### Tranche 4 — Agent creation, onboarding, and retirement
 

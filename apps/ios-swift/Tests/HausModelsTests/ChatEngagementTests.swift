@@ -151,7 +151,7 @@ final class ChatEngagementTests: XCTestCase {
             sequence: 1,
             serverID: "server_1",
             sessionGeneration: nil,
-            task: nil
+            claim: nil
         )
     }
 }

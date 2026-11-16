@@ -454,19 +454,19 @@ test('an Agent send creates the canonical Thread for a visible fresh anchor', as
     expect(humanFollow).toEqual([{ followed: true }]);
 });
 test('an Agent resolves an exact DM thread target and fails closed on wrong peers or anchors', async () => {
-    const created = await owner.trpc.task.create.mutate({
+    const created = await owner.trpc.claim.create.mutate({
         chatId: dmChatId,
         content: 'DM thread target fixture',
-        nonce: 'dm_thread_target_task',
+        nonce: 'dm_thread_target_claim',
         serverId,
     });
-    const shortAnchor = created.task.messageId.slice(4, 12);
+    const shortAnchor = created.claim.messageId.slice(4, 12);
     const humanReply = await owner.trpc.chat.send.mutate({
         chatId: dmChatId,
         content: 'Distinctive DM child Thread reply.',
         nonce: 'human_dm_thread_reply_1',
         serverId,
-        thread: { anchorMessageId: created.task.messageId },
+        thread: { anchorMessageId: created.claim.messageId },
     });
     const [pending] = (await harness.sql`
         select agent_id, chat_id, thread_follow_reactivated
@@ -475,7 +475,7 @@ test('an Agent resolves an exact DM thread target and fails closed on wrong peer
     `) as Array<{ agent_id: string; chat_id: string; thread_follow_reactivated: boolean }>;
     expect(pending).toEqual({
         agent_id: agentId,
-        chat_id: created.task.threadChatId,
+        chat_id: created.claim.threadChatId,
         thread_follow_reactivated: false,
     });
 
@@ -520,7 +520,7 @@ test('an Agent resolves an exact DM thread target and fails closed on wrong peer
     });
 
     const sent = await agentSend(minted.runnerToken, {
-        content: 'This belongs in the DM task thread.',
+        content: 'This belongs in the DM claim thread.',
         nonce: 'agent_dm_thread_target_1',
         target: `dm:@ada:${shortAnchor}`,
     });
@@ -528,7 +528,7 @@ test('an Agent resolves an exact DM thread target and fails closed on wrong peer
         body: {
             shownMessages: [
                 expect.objectContaining({
-                    chat_id: created.task.threadChatId,
+                    chat_id: created.claim.threadChatId,
                     id: humanReply.message.id,
                 }),
             ],
@@ -560,7 +560,7 @@ test('an Agent resolves an exact DM thread target and fails closed on wrong peer
         content: 'Ordinary DM Thread reply after unfollow.',
         nonce: 'dm_thread_suppressed_after_unfollow',
         serverId,
-        thread: { anchorMessageId: created.task.messageId },
+        thread: { anchorMessageId: created.claim.messageId },
     });
     const [suppressedCount] = (await harness.sql`
         select count(*)::int as count from agent_inbox
@@ -575,7 +575,7 @@ test('an Agent resolves an exact DM thread target and fails closed on wrong peer
         content: '@sage please rejoin this DM Thread.',
         nonce: 'dm_thread_mention_reactivation',
         serverId,
-        thread: { anchorMessageId: created.task.messageId },
+        thread: { anchorMessageId: created.claim.messageId },
     });
     const restoredState = (await harness.sql`
         select follow.followed, pending.thread_follow_reactivated
@@ -585,7 +585,7 @@ test('an Agent resolves an exact DM thread target and fails closed on wrong peer
          and pending.agent_id = follow.agent_id
         where follow.server_id = ${serverId}
           and follow.agent_id = ${agentId}
-          and follow.thread_chat_id = ${created.task.threadChatId}
+          and follow.thread_chat_id = ${created.claim.threadChatId}
           and pending.dedupe_key = ${restored.message.id}
     `) as Array<{ followed: boolean; thread_follow_reactivated: boolean }>;
     expect(restoredState).toEqual([{ followed: true, thread_follow_reactivated: true }]);
@@ -615,7 +615,7 @@ test('an Agent resolves an exact DM thread target and fails closed on wrong peer
         content: '@sage this mention should not restore twice.',
         nonce: 'dm_thread_already_followed_mention',
         serverId,
-        thread: { anchorMessageId: created.task.messageId },
+        thread: { anchorMessageId: created.claim.messageId },
     });
     const alreadyFollowedPending = (await harness.sql`
         select mentioned, thread_follow_reactivated from agent_inbox
@@ -625,15 +625,15 @@ test('an Agent resolves an exact DM thread target and fails closed on wrong peer
     `) as Array<{ mentioned: boolean; thread_follow_reactivated: boolean }>;
     expect(alreadyFollowedPending).toEqual([{ mentioned: true, thread_follow_reactivated: false }]);
 });
-test('As Task enters the Agent inbox with canonical unassigned task metadata', async () => {
-    const created = await owner.trpc.task.create.mutate({
+test('As Claim enters the Agent inbox with canonical unassigned claim metadata', async () => {
+    const created = await owner.trpc.claim.create.mutate({
         chatId: dmChatId,
         content: 'Prepare the weekly launch brief.',
-        nonce: 'task_delivery_fixture',
+        nonce: 'claim_delivery_fixture',
         serverId,
     });
 
-    expect(created.task).toMatchObject({
+    expect(created.claim).toMatchObject({
         assigneeAgentId: null,
         origin: 'composed',
         status: 'todo',
@@ -642,17 +642,17 @@ test('As Task enters the Agent inbox with canonical unassigned task metadata', a
         select dedupe_key from agent_inbox
         where server_id = ${serverId}
           and agent_id = ${agentId}
-          and dedupe_key = ${created.task.messageId}
+          and dedupe_key = ${created.claim.messageId}
     `) as Array<{ dedupe_key: string }>;
-    expect(pending).toEqual([{ dedupe_key: created.task.messageId }]);
+    expect(pending).toEqual([{ dedupe_key: created.claim.messageId }]);
 
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_task_projection' });
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_claim_projection' });
     const history = await agentGet(minted.runnerToken, '/api/agent/history', {
         target: 'dm:@ada',
     });
     expect(
-        history.body.messages?.find((message) => message.id === created.task.messageId)?.task
-    ).toMatchObject({ number: created.task.number, status: 'todo' });
+        history.body.messages?.find((message) => message.id === created.claim.messageId)?.claim
+    ).toMatchObject({ number: created.claim.number, status: 'todo' });
 });
 test('ordinary Channel delivery preserves per-recipient direct attention', async () => {
     const peer = await owner.trpc.agent.create.mutate({
@@ -788,7 +788,7 @@ test('mute and explicit unfollow purge ordinary work while preserving exact ment
     `) as Array<{ dedupe_key: string; mentioned: boolean }>;
     expect(mutePending).toEqual([{ dedupe_key: mentioned.message.id, mentioned: true }]);
 
-    const task = await owner.trpc.task.create.mutate({
+    const claim = await owner.trpc.claim.create.mutate({
         chatId: channelId,
         content: 'Thread attention fixture.',
         nonce: 'attention_thread_fixture',
@@ -801,16 +801,16 @@ test('mute and explicit unfollow purge ordinary work while preserving exact ment
         content: '@sage take this thread.',
         nonce: 'attention_thread_follow_seed',
         serverId,
-        thread: { anchorMessageId: task.task.messageId },
+        thread: { anchorMessageId: claim.claim.messageId },
     });
     const threadOrdinary = await owner.trpc.chat.send.mutate({
         chatId: channelId,
         content: 'Routine child update.',
         nonce: 'attention_thread_ordinary',
         serverId,
-        thread: { anchorMessageId: task.task.messageId },
+        thread: { anchorMessageId: claim.claim.messageId },
     });
-    const target = `#attention-contract:${task.task.messageId.slice(4, 12)}`;
+    const target = `#attention-contract:${claim.claim.messageId.slice(4, 12)}`;
     const unfollowed = await agentPost(minted.runnerToken, '/api/agent/threads/unfollow', {
         target,
     });
@@ -829,13 +829,13 @@ test('mute and explicit unfollow purge ordinary work while preserving exact ment
         content: '@sage one direct follow-up.',
         nonce: 'attention_thread_mention',
         serverId,
-        thread: { anchorMessageId: task.task.messageId },
+        thread: { anchorMessageId: claim.claim.messageId },
     });
     const explicit = (await harness.sql`
         select followed from agent_thread_follows
         where server_id = ${serverId}
           and agent_id = ${agentId}
-          and thread_chat_id = ${task.task.threadChatId}
+          and thread_chat_id = ${claim.claim.threadChatId}
     `) as Array<{ followed: boolean }>;
     const threadPending = (await harness.sql`
         select mentioned, thread_follow_reactivated from agent_inbox
@@ -849,7 +849,7 @@ test('mute and explicit unfollow purge ordinary work while preserving exact ment
         content: 'Ordinary follow-up after restored attention.',
         nonce: 'attention_thread_after_reactivation',
         serverId,
-        thread: { anchorMessageId: task.task.messageId },
+        thread: { anchorMessageId: claim.claim.messageId },
     });
     const ordinaryPending = (await harness.sql`
         select mentioned, thread_follow_reactivated from agent_inbox
@@ -863,7 +863,7 @@ test('a followed Thread stays active when its parent Channel is muted', async ()
         name: 'followed-thread-parent-mute',
         serverId,
     });
-    const task = await owner.trpc.task.create.mutate({
+    const claim = await owner.trpc.claim.create.mutate({
         chatId: channel.id,
         content: 'Followed Thread anchor.',
         nonce: 'followed_thread_parent_mute_anchor',
@@ -876,14 +876,14 @@ test('a followed Thread stays active when its parent Channel is muted', async ()
         content: '@sage take this thread.',
         nonce: 'followed_thread_parent_mute_seed',
         serverId,
-        thread: { anchorMessageId: task.task.messageId },
+        thread: { anchorMessageId: claim.claim.messageId },
     });
     const beforeMute = await owner.trpc.chat.send.mutate({
         chatId: channel.id,
         content: 'Queued before the parent mute.',
         nonce: 'followed_thread_before_parent_mute',
         serverId,
-        thread: { anchorMessageId: task.task.messageId },
+        thread: { anchorMessageId: claim.claim.messageId },
     });
     const minted = await mintRunner({
         chatId: channel.id,
@@ -897,7 +897,7 @@ test('a followed Thread stays active when its parent Channel is muted', async ()
         content: 'Delivered after the parent mute.',
         nonce: 'followed_thread_after_parent_mute',
         serverId,
-        thread: { anchorMessageId: task.task.messageId },
+        thread: { anchorMessageId: claim.claim.messageId },
     });
 
     const pending = (await harness.sql`
@@ -912,7 +912,7 @@ test('a followed Thread stays active when its parent Channel is muted', async ()
         [beforeMute.message.id, afterMute.message.id].sort()
     );
 
-    const target = `#followed-thread-parent-mute:${task.task.messageId.slice(4, 12)}`;
+    const target = `#followed-thread-parent-mute:${claim.claim.messageId.slice(4, 12)}`;
     await agentPost(minted.runnerToken, '/api/agent/threads/unfollow', { target });
     const afterUnfollow = (await harness.sql`
         select count(*)::int as n
@@ -1359,17 +1359,17 @@ test('the ported Agent directory can inspect and change channel membership', asy
     expect(left).toMatchObject({ body: { left: true, target: '#research' }, status: 200 });
 });
 
-test('the ported Agent task flow creates, claims, updates, and releases its own work', async () => {
+test('the ported Agent claim flow creates, claims, updates, and releases its own work', async () => {
     const realtime = captureAllTopics();
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_tasks_1' });
-    const created = await agentPost(minted.runnerToken, '/api/agent/tasks/create', {
-        nonce: 'agent_tasks_create_1',
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_claims_1' });
+    const created = await agentPost(minted.runnerToken, '/api/agent/claims/create', {
+        nonce: 'agent_claims_create_1',
         target: '#dispatch',
         titles: ['Audit the delivery boundary'],
     });
     expect(created).toMatchObject({
         body: {
-            tasks: [
+            claims: [
                 {
                     assignee: null,
                     number: 1,
@@ -1382,41 +1382,41 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         status: 200,
     });
 
-    const claimed = await agentPost(minted.runnerToken, '/api/agent/tasks/claim', {
+    const claimed = await agentPost(minted.runnerToken, '/api/agent/claims/claim', {
         numbers: [1],
         target: '#dispatch',
     });
     expect(claimed.body.results[0]).toMatchObject({
         outcome: 'claimed',
-        task: { assignee: { handle: 'sage', id: agentId }, status: 'in_progress', version: 2 },
+        claim: { assignee: { handle: 'sage', id: agentId }, status: 'in_progress', version: 2 },
     });
-    const repeatedClaim = await agentPost(minted.runnerToken, '/api/agent/tasks/claim', {
+    const repeatedClaim = await agentPost(minted.runnerToken, '/api/agent/claims/claim', {
         numbers: [1],
         target: '#dispatch',
     });
     expect(repeatedClaim.body.results[0]).toMatchObject({
         outcome: 'already_yours',
-        task: { assignee: { handle: 'sage', id: agentId }, status: 'in_progress', version: 2 },
+        claim: { assignee: { handle: 'sage', id: agentId }, status: 'in_progress', version: 2 },
     });
-    const updated = await agentPost(minted.runnerToken, '/api/agent/tasks/update', {
+    const updated = await agentPost(minted.runnerToken, '/api/agent/claims/update', {
         number: 1,
         status: 'in_review',
         target: '#dispatch',
     });
-    expect(updated.body.task).toMatchObject({
+    expect(updated.body.claim).toMatchObject({
         assignee: { handle: 'sage', id: agentId },
         status: 'in_review',
         version: 3,
     });
-    const unclaimed = await agentPost(minted.runnerToken, '/api/agent/tasks/unclaim', {
+    const unclaimed = await agentPost(minted.runnerToken, '/api/agent/claims/release', {
         number: 1,
         target: '#dispatch',
     });
-    expect(unclaimed.body.task).toMatchObject({ assignee: null, status: 'in_review', version: 4 });
+    expect(unclaimed.body.claim).toMatchObject({ assignee: null, status: 'in_review', version: 4 });
 
     const [row] = (await harness.sql`
         select created_by_agent_id, created_by_user_id, assignee_agent_id
-        from message_tasks
+        from message_claims
         where server_id = ${serverId} and chat_id = 'cht_targetchannel01' and number = 1
     `) as Array<{
         assignee_agent_id: string | null;
@@ -1428,27 +1428,27 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         created_by_agent_id: agentId,
         created_by_user_id: null,
     });
-    const [taskMessage] = (await harness.sql`
+    const [claimMessage] = (await harness.sql`
         select id from chat_messages
         where server_id = ${serverId} and content = 'Audit the delivery boundary'
     `) as Array<{ id: string }>;
-    expect(await publishedKinds(realtime, taskMessage?.id ?? '')).toEqual([
+    expect(await publishedKinds(realtime, claimMessage?.id ?? '')).toEqual([
+        'claim.created',
+        'claim.updated',
+        'claim.updated',
+        'claim.updated',
         'message.created',
-        'task.created',
-        'task.updated',
-        'task.updated',
-        'task.updated',
     ]);
     const regular = await owner.trpc.chat.send.mutate({
         chatId: 'cht_targetchannel01',
         content: 'Turn this ordinary message into claimed work.',
-        nonce: 'human_task_conversion_1',
+        nonce: 'human_claim_conversion_1',
         serverId,
     });
     const existingThreadReply = await owner.trpc.chat.send.mutate({
         chatId: 'cht_targetchannel01',
-        content: 'Existing thread context must survive task conversion.',
-        nonce: 'human_task_conversion_thread_1',
+        content: 'Existing thread context must survive claim conversion.',
+        nonce: 'human_claim_conversion_thread_1',
         serverId,
         thread: { anchorMessageId: regular.message.id },
     });
@@ -1457,10 +1457,10 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         messages: [
             { chatId: existingThreadReply.message.chatId, id: existingThreadReply.message.id },
         ],
-        runId: 'run_tasks_1',
+        runId: 'run_claims_1',
         serverId,
     });
-    const converted = await agentPost(minted.runnerToken, '/api/agent/tasks/claim', {
+    const converted = await agentPost(minted.runnerToken, '/api/agent/claims/claim', {
         messageId: regular.message.id.slice(4, 12),
         target: '#dispatch',
     });
@@ -1469,7 +1469,7 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
             results: [
                 {
                     outcome: 'claimed',
-                    task: {
+                    claim: {
                         assignee: { handle: 'sage', id: agentId },
                         number: 2,
                         status: 'in_progress',
@@ -1490,14 +1490,14 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
     expect(preservedThread.messages).toEqual(
         expect.arrayContaining([
             expect.objectContaining({
-                content: 'Existing thread context must survive task conversion.',
+                content: 'Existing thread context must survive claim conversion.',
                 id: existingThreadReply.message.id,
             }),
         ])
     );
     const [convertedRow] = (await harness.sql`
         select origin, message_id, assignee_agent_id
-        from message_tasks
+        from message_claims
         where server_id = ${serverId} and chat_id = 'cht_targetchannel01' and number = 2
     `) as Array<{ assignee_agent_id: string | null; message_id: string; origin: string }>;
     expect(convertedRow).toEqual({
@@ -1506,8 +1506,8 @@ test('the ported Agent task flow creates, claims, updates, and releases its own 
         origin: 'claimed',
     });
     expect(await publishedKinds(realtime, regular.message.id)).toEqual([
+        'claim.created',
         'message.created',
-        'task.created',
     ]);
     realtime.stop();
 });
@@ -1538,7 +1538,7 @@ test('concurrent Agent claims choose one owner and the losing Agent cannot proce
         insert into channel_agent_participants (server_id, chat_id, agent_id)
         values (${serverId}, ${channelId}, ${peer.agent.id})
     `;
-    const created = await owner.trpc.task.create.mutate({
+    const created = await owner.trpc.claim.create.mutate({
         chatId: channelId,
         content: 'Exactly one Agent may own this work.',
         nonce: 'concurrent_agent_claim',
@@ -1549,12 +1549,12 @@ test('concurrent Agent claims choose one owner and the losing Agent cannot proce
         mintRunner({ agentId: peer.agent.id, chatId: channelId, runId: 'run_concurrent_rival' }),
     ]);
     const claimBody = {
-        numbers: [created.task.number],
+        numbers: [created.claim.number],
         target: '#concurrent-claim',
     };
     const claims = await Promise.all([
-        agentPost(coveRunner.runnerToken, '/api/agent/tasks/claim', claimBody),
-        agentPost(rivalRunner.runnerToken, '/api/agent/tasks/claim', claimBody),
+        agentPost(coveRunner.runnerToken, '/api/agent/claims/claim', claimBody),
+        agentPost(rivalRunner.runnerToken, '/api/agent/claims/claim', claimBody),
     ]);
 
     const outcomes = claims.map((claim) => claim.body.results?.[0]?.outcome);
@@ -1562,13 +1562,13 @@ test('concurrent Agent claims choose one owner and the losing Agent cannot proce
     const loserIndex = outcomes.indexOf('refused');
     const loserToken = [coveRunner.runnerToken, rivalRunner.runnerToken][loserIndex];
 
-    const update = await agentPost(loserToken ?? '', '/api/agent/tasks/update', {
-        number: created.task.number,
+    const update = await agentPost(loserToken ?? '', '/api/agent/claims/update', {
+        number: created.claim.number,
         status: 'in_progress',
         target: '#concurrent-claim',
     });
-    const unclaim = await agentPost(loserToken ?? '', '/api/agent/tasks/unclaim', {
-        number: created.task.number,
+    const unclaim = await agentPost(loserToken ?? '', '/api/agent/claims/release', {
+        number: created.claim.number,
         target: '#concurrent-claim',
     });
     expect(update).toMatchObject({
@@ -1582,8 +1582,8 @@ test('concurrent Agent claims choose one owner and the losing Agent cannot proce
 
     const [stored] = (await harness.sql`
         select assignee_agent_id, status
-        from message_tasks
-        where server_id = ${serverId} and message_id = ${created.task.messageId}
+        from message_claims
+        where server_id = ${serverId} and message_id = ${created.claim.messageId}
     `) as Array<{ assignee_agent_id: string | null; status: string }>;
     const winnerAgentId = loserIndex === 1 ? agentId : peer.agent.id;
     expect(stored).toEqual({
@@ -1592,11 +1592,11 @@ test('concurrent Agent claims choose one owner and the losing Agent cannot proce
     });
 });
 
-test('runner task access fails closed after the Agent loses its parent Channel', async () => {
-    const channelId = 'cht_revokedtaskaccess';
+test('runner claim access fails closed after the Agent loses its parent Channel', async () => {
+    const channelId = 'cht_revokedclaimaccess';
     await harness.sql`
         insert into chats (id, server_id, kind, name)
-        values (${channelId}, ${serverId}, 'channel', 'revoked-task-access')
+        values (${channelId}, ${serverId}, 'channel', 'revoked-claim-access')
     `;
     await harness.sql`
         insert into channel_agent_participants (server_id, chat_id, agent_id)
@@ -1606,57 +1606,57 @@ test('runner task access fails closed after the Agent loses its parent Channel',
         insert into channel_participants (server_id, chat_id, user_id)
         values (${serverId}, ${channelId}, ${ownerUserId})
     `;
-    const runner = await mintRunner({ chatId: channelId, runId: 'run_revoked_task_access' });
-    const claimed = await agentPost(runner.runnerToken, '/api/agent/tasks/create', {
+    const runner = await mintRunner({ chatId: channelId, runId: 'run_revoked_claim_access' });
+    const claimed = await agentPost(runner.runnerToken, '/api/agent/claims/create', {
         assignee: '@sage',
-        nonce: 'revoked_task_access_claimed',
-        target: '#revoked-task-access',
+        nonce: 'revoked_claim_access_claimed',
+        target: '#revoked-claim-access',
         titles: ['Claimed work becomes inaccessible.'],
     });
-    const unassigned = await agentPost(runner.runnerToken, '/api/agent/tasks/create', {
-        nonce: 'revoked_task_access_unassigned',
-        target: '#revoked-task-access',
+    const unassigned = await agentPost(runner.runnerToken, '/api/agent/claims/create', {
+        nonce: 'revoked_claim_access_unassigned',
+        target: '#revoked-claim-access',
         titles: ['Unassigned work becomes inaccessible.'],
     });
-    const claimedTask = claimed.body.tasks?.[0];
-    const unassignedTask = unassigned.body.tasks?.[0];
-    expect(claimedTask).toBeTruthy();
-    expect(unassignedTask).toBeTruthy();
+    const claimedRow = claimed.body.claims?.[0];
+    const unassignedClaim = unassigned.body.claims?.[0];
+    expect(claimedRow).toBeTruthy();
+    expect(unassignedClaim).toBeTruthy();
 
     await harness.sql`
         delete from channel_agent_participants
         where server_id = ${serverId} and chat_id = ${channelId} and agent_id = ${agentId}
     `;
 
-    const targetedList = await agentGet(runner.runnerToken, '/api/agent/tasks', {
-        target: '#revoked-task-access',
+    const targetedList = await agentGet(runner.runnerToken, '/api/agent/claims', {
+        target: '#revoked-claim-access',
     });
     expect(targetedList).toMatchObject({
         body: { code: 'INVALID_TARGET' },
         status: 404,
     });
-    const readableList = await agentGet(runner.runnerToken, '/api/agent/tasks', {});
+    const readableList = await agentGet(runner.runnerToken, '/api/agent/claims', {});
     expect(readableList.status).toBe(200);
-    expect(readableList.body.tasks).not.toEqual(
+    expect(readableList.body.claims).not.toEqual(
         expect.arrayContaining([
-            expect.objectContaining({ message: { id: claimedTask?.message.id } }),
-            expect.objectContaining({ message: { id: unassignedTask?.message.id } }),
+            expect.objectContaining({ message: { id: claimedRow?.message.id } }),
+            expect.objectContaining({ message: { id: unassignedClaim?.message.id } }),
         ])
     );
 
     for (const attempt of [
-        agentPost(runner.runnerToken, '/api/agent/tasks/claim', {
-            numbers: [unassignedTask?.number],
-            target: '#revoked-task-access',
+        agentPost(runner.runnerToken, '/api/agent/claims/claim', {
+            numbers: [unassignedClaim?.number],
+            target: '#revoked-claim-access',
         }),
-        agentPost(runner.runnerToken, '/api/agent/tasks/update', {
-            number: claimedTask?.number,
+        agentPost(runner.runnerToken, '/api/agent/claims/update', {
+            number: claimedRow?.number,
             status: 'in_review',
-            target: '#revoked-task-access',
+            target: '#revoked-claim-access',
         }),
-        agentPost(runner.runnerToken, '/api/agent/tasks/unclaim', {
-            number: claimedTask?.number,
-            target: '#revoked-task-access',
+        agentPost(runner.runnerToken, '/api/agent/claims/release', {
+            number: claimedRow?.number,
+            target: '#revoked-claim-access',
         }),
     ]) {
         await expect(attempt).resolves.toMatchObject({
@@ -1667,33 +1667,33 @@ test('runner task access fails closed after the Agent loses its parent Channel',
 
     const rows = (await harness.sql`
         select message_id, assignee_agent_id, status
-        from message_tasks
+        from message_claims
         where server_id = ${serverId} and chat_id = ${channelId}
         order by number
     `) as Array<{ assignee_agent_id: string | null; message_id: string; status: string }>;
     expect(rows).toEqual([
         {
             assignee_agent_id: agentId,
-            message_id: claimedTask?.message.id,
+            message_id: claimedRow?.message.id,
             status: 'in_progress',
         },
         {
             assignee_agent_id: null,
-            message_id: unassignedTask?.message.id,
+            message_id: unassignedClaim?.message.id,
             status: 'todo',
         },
     ]);
 });
 
-test('task status updates wait for newer exact-thread context', async () => {
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_task_freshness' });
-    const created = await agentPost(minted.runnerToken, '/api/agent/tasks/create', {
+test('claim status updates wait for newer exact-thread context', async () => {
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_claim_freshness' });
+    const created = await agentPost(minted.runnerToken, '/api/agent/claims/create', {
         assignee: '@sage',
-        nonce: 'agent_task_freshness',
+        nonce: 'agent_claim_freshness',
         target: 'dm:@ada',
         titles: ['Incorporate every late correction.'],
     });
-    const task = created.body.tasks[0] as {
+    const claim = created.body.claims[0] as {
         message: { id: string };
         number: number;
         version: number;
@@ -1701,13 +1701,13 @@ test('task status updates wait for newer exact-thread context', async () => {
     const correction = await owner.trpc.chat.send.mutate({
         chatId: dmChatId,
         content: 'Late correction: include the hostname.',
-        nonce: 'task_freshness_correction',
+        nonce: 'claim_freshness_correction',
         serverId,
-        thread: { anchorMessageId: task.message.id },
+        thread: { anchorMessageId: claim.message.id },
     });
 
-    const held = await agentPost(minted.runnerToken, '/api/agent/tasks/update', {
-        number: task.number,
+    const held = await agentPost(minted.runnerToken, '/api/agent/claims/update', {
+        number: claim.number,
         status: 'in_review',
         target: 'dm:@ada',
     });
@@ -1722,25 +1722,25 @@ test('task status updates wait for newer exact-thread context', async () => {
     await recordExactMessagesServed(connection.db, {
         agentId,
         messages: [{ chatId: correction.message.chatId, id: correction.message.id }],
-        runId: 'run_task_freshness',
+        runId: 'run_claim_freshness',
         serverId,
     });
-    const updated = await agentPost(minted.runnerToken, '/api/agent/tasks/update', {
-        number: task.number,
+    const updated = await agentPost(minted.runnerToken, '/api/agent/claims/update', {
+        number: claim.number,
         status: 'in_review',
         target: 'dm:@ada',
     });
     expect(updated).toMatchObject({
-        body: { task: { status: 'in_review' } },
+        body: { claim: { status: 'in_review' } },
         status: 200,
     });
 });
 
-test('Agent task creation is replay-safe and directly wakes an assigned peer', async () => {
-    const channelId = 'cht_taskdelegation01';
+test('Agent claim creation is replay-safe and directly wakes an assigned peer', async () => {
+    const channelId = 'cht_claimdelegation01';
     await harness.sql`
         insert into chats (id, server_id, kind, name)
-        values (${channelId}, ${serverId}, 'channel', 'task-delegation')
+        values (${channelId}, ${serverId}, 'channel', 'claim-delegation')
     `;
     await harness.sql`
         insert into channel_agent_participants (server_id, chat_id, agent_id)
@@ -1766,17 +1766,17 @@ test('Agent task creation is replay-safe and directly wakes an assigned peer', a
         insert into agent_channel_mutes (server_id, agent_id, chat_id)
         values (${serverId}, ${peer.agent.id}, ${channelId})
     `;
-    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_task_peer_assignment' });
+    const minted = await mintRunner({ chatId: dmChatId, runId: 'run_claim_peer_assignment' });
     const body = {
         assignee: '@scout',
-        nonce: 'agent_task_peer_assignment',
-        target: '#task-delegation',
+        nonce: 'agent_claim_peer_assignment',
+        target: '#claim-delegation',
         titles: ['Scout the release notes.'],
     };
-    const created = await agentPost(minted.runnerToken, '/api/agent/tasks/create', body);
+    const created = await agentPost(minted.runnerToken, '/api/agent/claims/create', body);
     expect(created).toMatchObject({
         body: {
-            tasks: [
+            claims: [
                 {
                     assignee: {
                         handle: 'scout',
@@ -1788,7 +1788,7 @@ test('Agent task creation is replay-safe and directly wakes an assigned peer', a
         },
         status: 200,
     });
-    const messageId = String(created.body.tasks[0]?.message.id);
+    const messageId = String(created.body.claims[0]?.message.id);
     const appMessages = await owner.trpc.chat.messages.query({ chatId: channelId, serverId });
     expect(appMessages.messages).toHaveLength(1);
     expect(appMessages.messages[0]?.id).toBe(messageId);
@@ -1799,9 +1799,9 @@ test('Agent task creation is replay-safe and directly wakes an assigned peer', a
         (candidate) => candidate.id === channelId
     );
     expect(channel?.unreadCount).toBe(1);
-    const replayed = await agentPost(minted.runnerToken, '/api/agent/tasks/create', body);
-    expect(replayed.body.tasks[0]?.message.id).toBe(messageId);
-    const conflictingReplay = await agentPost(minted.runnerToken, '/api/agent/tasks/create', {
+    const replayed = await agentPost(minted.runnerToken, '/api/agent/claims/create', body);
+    expect(replayed.body.claims[0]?.message.id).toBe(messageId);
+    const conflictingReplay = await agentPost(minted.runnerToken, '/api/agent/claims/create', {
         ...body,
         assignee: undefined,
     });
@@ -1814,7 +1814,7 @@ test('Agent task creation is replay-safe and directly wakes an assigned peer', a
         from chat_messages
         where server_id = ${serverId}
           and chat_id = ${channelId}
-          and nonce = 'agent_task_peer_assignment:0'
+          and nonce = 'agent_claim_peer_assignment:0'
     `) as Array<{ count: number }>;
     expect(rows).toEqual([{ count: 1 }]);
     const pending = (await harness.sql`
@@ -1842,9 +1842,9 @@ test('Agent task creation is replay-safe and directly wakes an assigned peer', a
             },
             {
                 agent_id: peer.agent.id,
-                dedupe_key: `task-assign:${messageId}:1`,
+                dedupe_key: `claim-assign:${messageId}:1`,
                 mentioned: true,
-                source: 'task_assignment',
+                source: 'claim_assignment',
             },
         ])
     );
@@ -1852,11 +1852,11 @@ test('Agent task creation is replay-safe and directly wakes an assigned peer', a
     const peerRunner = await mintRunner({
         agentId: peer.agent.id,
         chatId: channelId,
-        runId: 'run_task_peer_assignment_events',
+        runId: 'run_claim_peer_assignment_events',
     });
     await harness.sql`
         update agent_delivery
-        set active_run_id = 'run_task_peer_assignment_events',
+        set active_run_id = 'run_claim_peer_assignment_events',
             active_run_chat_id = ${channelId},
             active_run_computer_id = ${computerId},
             active_run_runtime_id = 'codex',
@@ -1913,12 +1913,12 @@ test('Agent task creation is replay-safe and directly wakes an assigned peer', a
     expect(events.automations).toEqual([
         {
             content:
-                '[Haus task assignment task=#1 target=#task-delegation assignedBy=@sage] Scout the release notes.',
+                '[Haus claim assignment claim=#1 target=#claim-delegation assignedBy=@sage] Scout the release notes.',
             createdAt: expect.any(String),
-            id: `task-assign:${messageId}:1`,
+            id: `claim-assign:${messageId}:1`,
             senderHandle: 'haus',
             senderType: 'system',
-            target: '#task-delegation',
+            target: '#claim-delegation',
         },
     ]);
     // Reservation had no Thread to point at; the first reply materializes it and
@@ -1930,8 +1930,8 @@ test('Agent task creation is replay-safe and directly wakes an assigned peer', a
     expect(reservedThread).toEqual([]);
     await owner.trpc.chat.send.mutate({
         chatId: channelId,
-        content: 'First reply on the assigned task.',
-        nonce: 'agent_task_peer_assignment_reply',
+        content: 'First reply on the assigned claim.',
+        nonce: 'agent_claim_peer_assignment_reply',
         serverId,
         thread: { anchorMessageId: messageId },
     });
@@ -2727,7 +2727,7 @@ async function agentGet(token: string, path: string, query: Record<string, strin
             profile?: Record<string, unknown>;
             reminders?: Record<string, unknown>[];
             rows?: Array<Record<string, unknown> & { chatId?: string; mentioned?: boolean }>;
-            tasks?: Record<string, unknown>[];
+            claims?: Record<string, unknown>[];
             thread_follow_reactivated_message_ids?: string[];
         },
         status: response.status,
@@ -2751,8 +2751,8 @@ async function agentPost(token: string, path: string, body: Record<string, unkno
             reminder?: Record<string, unknown>;
             results?: Record<string, unknown>[];
             target?: string;
-            task?: Record<string, unknown>;
-            tasks?: Array<{
+            claim?: Record<string, unknown>;
+            claims?: Array<{
                 message: { id: string };
                 number: number;
             }>;

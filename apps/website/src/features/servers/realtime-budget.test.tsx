@@ -89,6 +89,7 @@ function expectedStreams(role: 'admin' | 'member') {
     const active = [
         'agent.onUpdated',
         'artifact.onUpdated',
+        'board.onUpdated',
         'chat.onLifecycle',
         'chat.onMessageCreated',
         'chat.onMessageReactionUpdated',
@@ -98,7 +99,10 @@ function expectedStreams(role: 'admin' | 'member') {
         'computer.onUpdated',
         'imageGeneration.onUpdated',
         'mcp.onUpdated',
-        'task.onChanged',
+        'claim.onChanged',
+        'task.onCreated',
+        'task.onUpdated',
+        'taskInbox.onChanged',
         'taskLabel.onUpdated',
         'thread.onClosedUpdated',
         'thread.onFollowUpdated',
@@ -118,13 +122,13 @@ function expectedStreams(role: 'admin' | 'member') {
 
 /**
  * The per-window subscription budget (specs/realtime-events.md, "Topology"):
- * 2 × accessible Servers, 15 active-Server streams, 2 role-gated streams for
+ * 2 × accessible Servers, 19 active-Server streams, 2 role-gated streams for
  * Owners and Admins, the 2 hoisted Agent streams, and 3 per mounted Chat view.
  */
 describe('realtime subscription budget', () => {
     for (const [role, expected] of [
-        ['member', 29],
-        ['admin', 31],
+        ['member', 33],
+        ['admin', 35],
     ] as const) {
         test(`three Servers, one shown and one kept Chat view, as ${role}: ${expected} streams`, async () => {
             const harness = createRealtimeHarness(answer);

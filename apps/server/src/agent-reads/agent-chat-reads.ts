@@ -97,7 +97,7 @@ export async function advanceAgentChatReadContiguous(
 }
 
 /**
- * Delivery-seen, and the Agent's own send or task create (Raft's
+ * Delivery-seen, and the Agent's own send or claim create (Raft's
  * `markAgentOwnSendRead`): after exact visibility records bodies the model was shown,
  * each Chat's read position moves to the highest S such that every message in
  * (position, S] written by someone else is exactly visible to this Agent in

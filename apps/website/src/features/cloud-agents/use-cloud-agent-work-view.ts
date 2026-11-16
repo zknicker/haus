@@ -2,7 +2,7 @@ import { useSearchParams } from 'react-router-dom';
 
 /**
  * Which Cloud Agent work is peeked open. `?work=<workId>` makes it a deep
- * link and Back closes it — the same contract `?task=` gives
+ * link and Back closes it — the same contract `?claim=` gives
  * the Tasks page.
  */
 export function useCloudAgentWorkView() {

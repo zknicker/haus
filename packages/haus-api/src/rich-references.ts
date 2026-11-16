@@ -8,6 +8,7 @@ export type HausRichReferenceKind =
     | 'image-generation'
     | 'plugin'
     | 'skill'
+    | 'task'
     | 'user';
 
 export type HausRichReferenceProjection =
@@ -18,6 +19,7 @@ export type HausRichReferenceProjection =
     | 'image-generation-reference'
     | 'path-reference'
     | 'skill-activation'
+    | 'task-reference'
     | 'user-reference';
 
 export interface HausRichReference {
@@ -58,6 +60,11 @@ export function formatImageGenerationReferenceTarget(generationId: string) {
 
 export function formatSkillReferenceTarget(skillId: string) {
     return `skill://${encodeReferenceId(skillId)}`;
+}
+
+/** `task://<taskId>`: a board Task (ADR 0051). Agents write bare keys like `SEC-12` instead. */
+export function formatTaskReferenceTarget(taskId: string) {
+    return `task://${encodeReferenceId(taskId)}`;
 }
 
 export function formatUserReferenceTarget(userId: string) {
@@ -107,6 +114,10 @@ export function parseImageGenerationReferenceTarget(target: string) {
 
 export function parseSkillReferenceTarget(target: string) {
     return parseSchemeReferenceTarget(target, 'skill');
+}
+
+export function parseTaskReferenceTarget(target: string) {
+    return parseSchemeReferenceTarget(target, 'task');
 }
 
 export function parseUserReferenceTarget(target: string) {
@@ -195,6 +206,14 @@ function parseRichReferenceLink({
             kind: 'image-generation',
             label: rawLabel.replace(/\\([\\[])/gu, '$1'),
             projection: 'image-generation-reference',
+        };
+    }
+
+    if (parseTaskReferenceTarget(target)) {
+        return {
+            kind: 'task',
+            label: rawLabel,
+            projection: 'task-reference',
         };
     }
 

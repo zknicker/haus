@@ -1,5 +1,6 @@
 import type { DeleteAgentInput } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
+import { clearClaimAssignments } from '../claims/clear-claim-assignments.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentDeliveryTable,
@@ -15,15 +16,23 @@ import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { clearTaskAssignments } from '../tasks/clear-task-assignments.ts';
+import type { TaskAgentDelivery } from '../tasks/task-assignment.ts';
+import { prepareTaskLinkEvents, readReminderTaskIds } from '../tasks/task-reference-links.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { AgentDeleteDeniedError } from './agent-config-errors.ts';
 
 /** Retires an Agent in the Server transaction; local Computer cleanup is never a prerequisite. */
 export async function deleteAgent(
     db: HausDatabase,
+    agentDelivery: TaskAgentDelivery,
     member: HausUser | null,
     input: DeleteAgentInput
-): Promise<{ agentId: string; computerId: string; taskEvents: PreparedRealtimeEvent[] }> {
+): Promise<{
+    agentId: string;
+    claimEvents: PreparedRealtimeEvent[];
+    computerId: string;
+    taskEvents: PreparedRealtimeEvent[];
+}> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const server = await requireServerMembership(tx, member, input.serverId);
@@ -83,7 +92,7 @@ export async function deleteAgent(
                     eq(reminderAgentAttentionTable.agentId, agent.id)
                 )
             );
-        await tx
+        const canceled = await tx
             .update(remindersTable)
             .set({ status: 'canceled', updatedAt: new Date() })
             .where(
@@ -92,7 +101,15 @@ export async function deleteAgent(
                     eq(remindersTable.ownerAgentId, agent.id),
                     eq(remindersTable.status, 'scheduled')
                 )
-            );
+            )
+            .returning({ id: remindersTable.id });
+        const reminderTaskEvents = await prepareTaskLinkEvents(tx, {
+            serverId: input.serverId,
+            taskIds: await readReminderTaskIds(tx, {
+                reminderIds: canceled.map((reminder) => reminder.id),
+                serverId: input.serverId,
+            }),
+        });
         await tx
             .delete(channelAgentParticipantsTable)
             .where(
@@ -110,7 +127,12 @@ export async function deleteAgent(
                 )
             );
         await tx.delete(agentDeliveryTable).where(owner);
-        const taskEvents = await clearTaskAssignments(tx, input.serverId, agent.id);
+        const claimEvents = await clearClaimAssignments(tx, input.serverId, agent.id);
+        const assignmentEvents = await clearTaskAssignments(tx, agentDelivery, {
+            actor: { kind: 'user', userId: member.id },
+            assignee: { agentId: agent.id, kind: 'agent' },
+            serverId: input.serverId,
+        });
         await tx
             .update(agentsTable)
             .set({
@@ -125,6 +147,11 @@ export async function deleteAgent(
                 retiredAt: new Date(),
             })
             .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, agent.id)));
-        return { agentId: agent.id, computerId: agent.computerId, taskEvents };
+        return {
+            agentId: agent.id,
+            claimEvents,
+            computerId: agent.computerId,
+            taskEvents: [...reminderTaskEvents, ...assignmentEvents],
+        };
     });
 }

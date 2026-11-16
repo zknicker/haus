@@ -213,8 +213,8 @@ test('a failed bookkeeping call stays a tool, as the trace keeps its own mark', 
         reasoning: [],
         tools: [
             tool({
-                error: 'no such task',
-                input: { command: 'haus task claim --number 9' },
+                error: 'no such claim',
+                input: { command: 'haus claim --number 9' },
                 status: 'failed',
                 toolCallId: 'call_failed',
             }),

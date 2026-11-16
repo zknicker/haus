@@ -9,7 +9,7 @@ export const codexFailureTurn = journal(
     ['44:07.967', '46:08.228'],
     [
         call('claim', 'bash', ['44:18.293', '44:19.014'], {
-            command: "haus task claim --target 'dm:@zach-knickerbocker' --message-id 'EXE8hoyT'",
+            command: "haus claim --target 'dm:@zach-knickerbocker' --message-id 'EXE8hoyT'",
             ...ws,
         }),
         call('memory', 'read', ['44:21.478', '44:21.478'], { path: 'MEMORY.md' }),
@@ -56,7 +56,7 @@ export const codexFailureTurn = journal(
             ...ws,
         }),
         call('done', 'bash', ['46:02.345', '46:02.671'], {
-            command: "haus task update --target 'dm:@zach-knickerbocker' --number 2 --status done",
+            command: "haus claim update --target 'dm:@zach-knickerbocker' --number 2 --status done",
             ...ws,
         }),
         call('memory-write', 'fileChange', ['46:06.510', '46:06.510'], {
@@ -84,7 +84,7 @@ export const imageTurn = journal(
             ...ws,
         }),
         call('help', 'bash', ['39:41.280', '39:41.587'], {
-            command: 'haus task claim --help',
+            command: 'haus claim --help',
             ...ws,
         }),
         call('skill', 'read', ['39:49.374', '39:49.374'], {

@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-import type { ChatMessage, TaskLabel } from '@haus/api';
 import { chatMessagesQueryKey } from '../hooks/servers/use-chat-messages.ts';
 import {
     createTranscriptCache,
@@ -113,84 +112,6 @@ test('a reaction on an absent entity lands after the list read in flight seeds i
     row.close();
 });
 
-test('a label rename cancels the list read in flight; no entity keeps the old label', async () => {
-    const label = (name: string): TaskLabel =>
-        ({ color: 'blue', id: 'lbl_one', name }) as TaskLabel;
-    const withLabel = (name: string): ChatMessage =>
-        message(chatId, 1, { task: { labels: [label(name)] } as unknown as ChatMessage['task'] });
-    let renamed = false;
-    const inFlight = Promise.withResolvers<unknown>();
-    let listReads = 0;
-    const cache = createTranscriptCache((request) => {
-        if (request.path === 'chat.message') {
-            return Promise.resolve({ message: withLabel(renamed ? 'New' : 'Old'), thread: null });
-        }
-        listReads += 1;
-        return listReads === 2
-            ? inFlight.promise
-            : Promise.resolve(page([withLabel(renamed ? 'New' : 'Old')]));
-    });
-    const list = cache.observeList(chatId);
-    await settle(() => cache.listIds(chatId)?.length === 1);
-    const row = cache.observeEntity(chatId, target.messageId);
-    void list.observer.refetch();
-    await settle(() => listReads === 2);
-    renamed = true;
-    await cache.coalescer.noteTaskLabelUpdated({ labelId: 'lbl_one', serverId });
-    cache.coalescer.flushInvalidations();
-    inFlight.resolve(page([withLabel('Old')]));
-    await settle(() => listReads === 3);
-    await settle(() => labelName(cache) === 'New');
-    await settle();
-
-    expect(labelName(cache)).toBe('New');
-    list.close();
-    row.close();
-});
-
-test('a tail read held across a label rename never seeds the old label', async () => {
-    const label = (name: string): TaskLabel =>
-        ({ color: 'blue', id: 'lbl_one', name }) as TaskLabel;
-    const second = (name: string): ChatMessage =>
-        message(chatId, 2, { task: { labels: [label(name)] } as unknown as ChatMessage['task'] });
-    let renamed = false;
-    const tail = Promise.withResolvers<unknown>();
-    const cache = createTranscriptCache((request) => {
-        if (request.path === 'chat.message') {
-            return Promise.resolve({ message: second(renamed ? 'New' : 'Old'), thread: null });
-        }
-        if (request.input.afterSequence !== undefined) {
-            return tail.promise;
-        }
-        return Promise.resolve(
-            page(renamed ? [message(chatId, 1), second('New')] : [message(chatId, 1)])
-        );
-    });
-    const list = cache.observeList(chatId);
-    await settle(() => cache.listIds(chatId)?.length === 1);
-    // Message 2 commits with the old label; its tail read is held in flight.
-    cache.coalescer.noteMessageCreated({
-        chatId,
-        parentChatId: null,
-        sequence: 2,
-        serverId,
-        threadAnchorMessageId: null,
-    });
-    await settle(() => cache.reads('chat.messages').length === 2);
-    renamed = true;
-    await cache.coalescer.noteTaskLabelUpdated({ labelId: 'lbl_one', serverId });
-    cache.coalescer.flushInvalidations();
-    // The bulk list refetch lands the renamed copy first.
-    await settle(() => secondLabel(cache) === 'New');
-    tail.resolve(page([second('Old')]));
-    await settle();
-    await settle();
-
-    expect(secondLabel(cache)).toBe('New');
-    expect(cache.listIds(chatId)).toEqual([`msg_${chatId}_1`, `msg_${chatId}_2`]);
-    list.close();
-});
-
 test('a list read in flight across a Server loss lands and seeds nothing', async () => {
     const listRead = Promise.withResolvers<unknown>();
     const cache = createTranscriptCache(() => listRead.promise);
@@ -258,11 +179,3 @@ test('invalidations of one key coalesce into one refetch per frame', async () =>
     expect(cache.reads('chat.messages').length).toBe(2);
     list.close();
 });
-
-function secondLabel(cache: ReturnType<typeof createTranscriptCache>) {
-    return cache.entity(chatId, `msg_${chatId}_2`)?.data?.message.task?.labels[0]?.name;
-}
-
-function labelName(cache: ReturnType<typeof createTranscriptCache>) {
-    return cache.entity(chatId, target.messageId)?.data?.message.task?.labels[0]?.name;
-}

@@ -82,5 +82,9 @@ async function readTriggerRows(
                 inArray(agentRunTriggersTable.runId, [...input.runIds])
             )
         );
-    return rows.map(({ visibleChatId, ...row }) => ({ ...row, visible: visibleChatId !== null }));
+    return rows.map(({ visibleChatId, ...row }) => ({
+        ...row,
+        agentId: input.agentId,
+        visible: visibleChatId !== null,
+    }));
 }

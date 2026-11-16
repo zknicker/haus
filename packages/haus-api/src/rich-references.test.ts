@@ -5,12 +5,14 @@ import {
     formatChatReferenceTarget,
     formatChatThreadReferenceTarget,
     formatSkillReferenceTarget,
+    formatTaskReferenceTarget,
     parseAgentReferenceTarget,
     parseAppReferenceTarget,
     parseChatReferenceTarget,
     parseChatThreadReferenceTarget,
     parseHausRichReferences,
     parseSkillReferenceTarget,
+    parseTaskReferenceTarget,
     parseUserReferenceTarget,
 } from './rich-references.ts';
 
@@ -106,6 +108,28 @@ describe('Haus rich references', () => {
                 text: '[specs/mentions.md](/repo/specs/mentions.md)',
             },
         ]);
+    });
+
+    it('formats and parses task references', () => {
+        expect(formatTaskReferenceTarget('tsk_12')).toBe('task://tsk_12');
+        expect(formatTaskReferenceTarget('tsk:12')).toBe('task://tsk%3A12');
+        expect(parseTaskReferenceTarget('task://tsk%3A12')).toBe('tsk:12');
+        expect(parseTaskReferenceTarget('task://')).toBeNull();
+        expect(parseTaskReferenceTarget('task://%XX')).toBeNull();
+        expect(parseTaskReferenceTarget('chat://tsk_12')).toBeNull();
+        expect(parseHausRichReferences('See [SEC-12](task://tsk_12) first.')).toEqual([
+            {
+                end: 27,
+                id: 'task://tsk_12',
+                kind: 'task',
+                label: 'SEC-12',
+                projection: 'task-reference',
+                start: 4,
+                text: '[SEC-12](task://tsk_12)',
+            },
+        ]);
+        // A bare key is resolved by the Server against its boards, never by this parser.
+        expect(parseHausRichReferences('SEC-12 is blocked')).toEqual([]);
     });
 
     it('leaves bare mention-looking text unparsed', () => {

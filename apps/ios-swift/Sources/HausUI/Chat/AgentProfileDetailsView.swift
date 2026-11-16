@@ -1,3 +1,4 @@
+import HausModels
 import SwiftUI
 
 /// The read-only Agent profile the Chat details sheet pushes to.
@@ -10,7 +11,11 @@ struct AgentProfileDetailsView: View {
     let agent: AgentPresentation
     var profile: AgentProfilePresentation?
     var currentActivity: AgentActivityPresentation?
+    var stoppedClaims = AgentStoppedClaimsActions.unavailable
+    var onOpenClaim: ((ClaimListItem) -> Void)?
     var onManageInSettings: (() -> Void)?
+
+    @State private var stoppedClaimsState = AgentStoppedClaimsState.loading
 
     var body: some View {
         List {
@@ -45,6 +50,8 @@ struct AgentProfileDetailsView: View {
                 }
             }
 
+            AgentStoppedClaimsSection(state: stoppedClaimsState) { onOpenClaim?($0) }
+
             if let onManageInSettings {
                 Section {
                     Button(action: onManageInSettings) {
@@ -73,6 +80,7 @@ struct AgentProfileDetailsView: View {
 #endif
         .navigationTitle(agent.name)
         .hausInlineNavigationTitle()
+        .loadsStoppedClaims(agentID: agent.id, actions: stoppedClaims, into: $stoppedClaimsState)
     }
 
     private var hero: some View {

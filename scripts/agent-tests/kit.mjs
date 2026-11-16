@@ -61,20 +61,20 @@ export function createAgentTestKit(
         return chat;
     }
 
-    async function sendTask(chatId, content) {
-        const promotion = await trpc('task.create', {
+    async function sendClaim(chatId, content) {
+        const promotion = await trpc('claim.create', {
             chatId,
             content,
             nonce: `agenttests_${context.stamp}_${crypto.randomUUID()}`,
             serverId,
         });
-        const { task } = promotion;
-        await trackChat(task.threadChatId);
+        const { claim } = promotion;
+        await trackChat(claim.threadChatId);
         return {
-            messageId: task.messageId,
-            task,
-            taskId: task.messageId,
-            threadChatId: task.threadChatId,
+            claim,
+            claimId: claim.messageId,
+            messageId: claim.messageId,
+            threadChatId: claim.threadChatId,
         };
     }
 
@@ -94,9 +94,9 @@ export function createAgentTestKit(
     }
 
     /**
-     * An Agent may answer in the chat itself or promote the request to a task
+     * An Agent may answer in the chat itself or promote the request to a claim
      * whose Thread carries the reply — both satisfy an ordinary request. Polls
-     * the chat plus every task Thread promoted from it.
+     * the chat plus every claim Thread promoted from it.
      */
     async function awaitAgentReply(chatId, agentId, predicate, timeoutMs = 240_000) {
         const deadline = Date.now() + timeoutMs;
@@ -109,37 +109,37 @@ export function createAgentTestKit(
             if (direct) {
                 return { container: 'chat', message: direct, threadChatId: null };
             }
-            const { tasks } = await trpc('task.list', { serverId });
-            for (const entry of tasks.filter((item) => item.task.chatId === chatId)) {
-                const inThread = record(await harness.readMessages(entry.task.threadChatId)).find(
+            const { claims } = await trpc('claim.list', { serverId });
+            for (const entry of claims.filter((item) => item.claim.chatId === chatId)) {
+                const inThread = record(await harness.readMessages(entry.claim.threadChatId)).find(
                     matches
                 );
                 if (inThread) {
                     // Track only the matched thread: it answers this scenario's
                     // own prompt. Merely-inspected threads (a shared DM can
                     // carry others) are not ours to claim or delete.
-                    await trackChat(entry.task.threadChatId);
+                    await trackChat(entry.claim.threadChatId);
                     return {
                         container: 'thread',
                         message: inThread,
-                        threadChatId: entry.task.threadChatId,
+                        threadChatId: entry.claim.threadChatId,
                     };
                 }
             }
             await new Promise((resolve) => setTimeout(resolve, 2000));
         }
         throw new Error(
-            `no matching Agent reply in ${chatId} or its task Threads within ${Math.round(timeoutMs / 1000)}s.`
+            `no matching Agent reply in ${chatId} or its claim Threads within ${Math.round(timeoutMs / 1000)}s.`
         );
     }
 
-    async function readTask(messageId) {
-        const { tasks } = await trpc('task.list', { serverId });
-        const found = tasks.find((entry) => entry.task.messageId === messageId);
+    async function readClaim(messageId) {
+        const { claims } = await trpc('claim.list', { serverId });
+        const found = claims.find((entry) => entry.claim.messageId === messageId);
         if (!found) {
-            throw new Error(`Task ${messageId} is no longer listed on Server ${serverId}.`);
+            throw new Error(`Claim ${messageId} is no longer listed on Server ${serverId}.`);
         }
-        return found.task;
+        return found.claim;
     }
 
     async function settleTurn(agentId, options = {}) {
@@ -253,13 +253,13 @@ export function createAgentTestKit(
         ...heartbeatKitMembers({ serverId, settleTurn, trpc }),
         marker,
         provision,
+        readClaim,
         readHead: (chatId) => harness.readHead(chatId),
         readMessages,
-        readTask,
         retire,
         scenarioName,
+        sendClaim,
         sendInThread,
-        sendTask,
         serverId,
         settleTurn,
         stamp: context.stamp,

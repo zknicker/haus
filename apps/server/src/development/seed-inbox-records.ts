@@ -8,7 +8,7 @@ import {
     chatsTable,
     cloudAgentRunsTable,
     cloudAgentWorkTable,
-    messageTasksTable,
+    messageClaimsTable,
 } from '../postgres/schema.ts';
 import { ensureThreadRecord } from '../threads/ensure-thread.ts';
 import { threadChatIdForAnchor } from '../threads/thread-id.ts';
@@ -29,13 +29,13 @@ export async function seedStalledClaim(
 ): Promise<void> {
     const [numbered] = await tx
         .update(chatsTable)
-        .set({ lastTaskNumber: sql`${chatsTable.lastTaskNumber} + 1` })
+        .set({ lastClaimNumber: sql`${chatsTable.lastClaimNumber} + 1` })
         .where(and(eq(chatsTable.serverId, context.serverId), eq(chatsTable.id, context.allChatId)))
-        .returning({ number: chatsTable.lastTaskNumber });
+        .returning({ number: chatsTable.lastClaimNumber });
     if (!numbered) {
-        throw new Error('The development Inbox seed found no #all Chat to number a task in.');
+        throw new Error('The development Inbox seed found no #all Chat to number a claim in.');
     }
-    await tx.insert(messageTasksTable).values({
+    await tx.insert(messageClaimsTable).values({
         assigneeAgentId: context.blippyId,
         chatId: context.allChatId,
         claimedAt: input.claimedAt,

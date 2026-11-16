@@ -3,11 +3,11 @@ import SwiftUI
 struct ThreadMessageRow: View {
     let message: MessagePresentation
     var emphasized = false
-    /// A reply states its own task on itself (`ThreadTaskMark`). The anchor's
-    /// task has its metadata card instead.
-    var marksTask = false
-    /// This reply carries the task the Thread was opened for.
-    var isOpenedTask = false
+    /// A reply states its own claim on itself (`ThreadClaimMark`). The anchor's
+    /// claim has its metadata card instead.
+    var marksClaim = false
+    /// This reply carries the claim the Thread was opened for.
+    var isOpenedClaim = false
     var onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL = { attachment in
         guard let localURL = attachment.localURL else { throw CancellationError() }
         return localURL
@@ -82,8 +82,8 @@ struct ThreadMessageRow: View {
                     NotSentCaption()
                 }
 
-                if marksTask {
-                    ThreadTaskMark(task: message.task, isOpenedTask: isOpenedTask)
+                if marksClaim {
+                    ThreadClaimMark(claim: message.claim, isOpenedClaim: isOpenedClaim)
                 }
             }
         }

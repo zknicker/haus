@@ -112,7 +112,60 @@ test('a followed Thread is its own Unread row, apart from its Channel, and opens
     await expect(page.getByText('All caught up.')).toBeVisible();
 });
 
-test('Unread is a triage list: one open row, moved by keys and pressing, read by reply or E', async ({
+test('a Task card is a queue item among Chats: J reaches it, Return opens the Task and clears it', async ({
+    page,
+}) => {
+    const { client, server, session } = await createTestServer(page, {
+        displayName: 'Inbox Tasks',
+        slug: 'inbox-tasks',
+    });
+    await client.member.updateProfile.mutate({
+        description: null,
+        displayName: 'Ada',
+        handle: 'ada',
+        serverId: server.id,
+    });
+    const agent = await createChannelAgent({
+        channelName: 'all',
+        databaseUrl: session.databaseUrl,
+        serverId: server.id,
+        slug: 'inbox-tasks',
+        token: session.accessToken,
+    });
+    const { key } = await agent.createTask({
+        assignee: 'ada',
+        board: 'GEN',
+        title: 'Review the vault',
+    });
+    // Newer than the assignment, so the Channel leads the feed.
+    await agent.send('Deploy notes are posted.', 'tasks-channel');
+
+    await page.goto('/s/inbox-tasks/inbox');
+    const channelCard = page.getByRole('article', { exact: true, name: '#all' });
+    const taskCard = page.getByRole('article', { name: `${key}: Review the vault` });
+    await expect(channelCard).toHaveAttribute('data-selected', 'true');
+    await expect(taskCard).toBeVisible();
+    await expect(taskCard).not.toHaveAttribute('data-selected', 'true');
+    // A Task with no message referencing it has no conversation to reply in.
+    await expect(taskCard.getByRole('textbox')).toHaveCount(0);
+    await expect(page.getByLabel('2 waiting in Inbox')).toBeVisible();
+
+    await page.keyboard.press('j');
+    await expect(taskCard).toHaveAttribute('data-selected', 'true');
+    await page.keyboard.press('k');
+    await expect(channelCard).toHaveAttribute('data-selected', 'true');
+    await page.keyboard.press('j');
+    await expect(taskCard).toHaveAttribute('data-selected', 'true');
+
+    await page.keyboard.press('Enter');
+    const [board, number] = key.split('-');
+    await expect(page).toHaveURL(new RegExp(`/s/inbox-tasks/tasks/${board}/${number}$`, 'u'));
+    await expect
+        .poll(async () => (await client.taskInbox.list.query({ serverId: server.id })).items)
+        .toEqual([]);
+});
+
+test('Unread is a feed of open cards: one selected, moved by keys and pressing, read by reply or E', async ({
     page,
 }) => {
     const { client, server, session } = await createTestServer(page, {
@@ -141,36 +194,44 @@ test('Unread is a triage list: one open row, moved by keys and pressing, read by
     const channelComposer = channelRow.getByRole('textbox', { name: 'Message all' });
     const threadComposer = threadRow.getByRole('textbox', { name: 'Message Thread — #all' });
 
-    // Newest first, and the first row is open: its newest message and the
-    // Chat's own composer, which does not take the cursor on load.
+    // Newest first, and every card is open: its newest waiting message and its
+    // own composer. The first is selected, and no composer takes the cursor on
+    // load.
     await expect(channelRow).toContainText('Deploy notes are posted.');
+    await expect(channelRow).toHaveAttribute('data-selected', 'true');
     await expect(channelComposer).toBeVisible();
     await expect(channelComposer).not.toBeFocused();
-    // Every row is open with its own composer, quoting its newest waiting message.
     await expect(threadRow).toContainText('Found it: a stale cache key.');
+    await expect(threadRow).not.toHaveAttribute('data-selected', 'true');
     await expect(threadComposer).toBeVisible();
-    await expect(channelRow).toHaveAttribute('data-selected', 'true');
 
-    // J selects the next row; K comes back.
+    // J selects the next card and K comes back; both cards stay open.
     await page.keyboard.press('j');
     await expect(threadRow).toHaveAttribute('data-selected', 'true');
+    await expect(channelRow).not.toHaveAttribute('data-selected', 'true');
+    await expect(channelComposer).toBeVisible();
     await page.keyboard.press('k');
     await expect(channelRow).toHaveAttribute('data-selected', 'true');
-    await page.keyboard.press('j');
+    await expect(threadComposer).toBeVisible();
 
-    // R puts the cursor in the open row's composer; a reply reads the row and
-    // opens the next one.
+    // R puts the cursor in the selected card's composer.
     await page.keyboard.press('r');
-    await expect(threadComposer).toBeFocused();
+    await expect(channelComposer).toBeFocused();
+
+    // Moving into another card's composer selects that card in place, and a
+    // reply reads it and selects the next one.
+    await threadComposer.click();
+    await expect(threadRow).toHaveAttribute('data-selected', 'true');
+    await expect(page).toHaveURL(/\/s\/inbox-triage\/inbox$/u);
     await page.keyboard.type('Thanks, fixing it now.');
     await page.keyboard.press('Enter');
     await expect(threadRow).toHaveCount(0);
-    await expect(channelComposer).toBeVisible();
+    await expect(channelRow).toHaveAttribute('data-selected', 'true');
     await expect
         .poll(async () => (await client.thread.listUnread.query({ serverId: server.id })).threads)
         .toEqual([]);
 
-    // E marks the open row read.
+    // E marks the selected card read.
     await page.keyboard.press('e');
     await expect(channelRow).toHaveCount(0);
     await expect(page.getByText('All caught up.')).toBeVisible();
