@@ -1,30 +1,29 @@
 ---
-summary: Agent-skill issue tracker configuration for Linear.
+summary: Agent-skill issue tracker configuration for Haus Tasks.
 read_when:
   - using issue-writing, PRD, or triage skills in this repo
   - changing where Haus agent-skill issues are tracked
 ---
 
-# Issue tracker: Linear
+# Issue tracker: Haus Tasks
 
-Issues and PRDs for this repo live in Linear under the `PRD` team with the
-`Haus` product label.
+Issues and PRDs for this repo live in Haus Tasks, not an external tracker. Use `haus task` and
+`haus board` (`specs/haus-cli.md`).
 
 ## Conventions
 
-- Use Linear tooling for issue operations, not GitHub Issues or local markdown.
-- Create Haus repo work in the Linear `PRD` team unless the user names another team.
-- Apply the `Haus` label to Haus repo issues.
-- If a skill needs to create an issue and the Linear project is ambiguous, ask for the target
-  project before creating it.
-- If a skill needs to fetch a ticket, use the Linear issue key or URL the user provides.
+- Use `haus task` / `haus board` for issue operations, not GitHub Issues or local markdown.
+- If a skill needs to create an issue and the target board is ambiguous, ask for the board key
+  before creating it.
+- If a skill needs to fetch a ticket, use the Task key the user provides (for example `SEC-12`).
 - Triage state uses the labels defined in `docs/agents/triage-labels.md`.
 
 ## Publishing work
 
-When a skill says "publish to the issue tracker," create a Linear issue in the `PRD` team with
-the `Haus` label.
+When a skill says "publish to the issue tracker," create a Task with `haus task create --board
+<key> --title <text>` on the board the user names.
 
 ## Fetching work
 
-When a skill says "fetch the relevant ticket," read the referenced Linear issue by key or URL.
+When a skill says "fetch the relevant ticket," read the referenced Task with `haus task show
+<key>`.

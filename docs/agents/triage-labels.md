@@ -1,16 +1,16 @@
 ---
-summary: Default triage label vocabulary for agent-skill work in Linear.
+summary: Default triage label vocabulary for agent-skill work in Haus Tasks.
 read_when:
   - using the triage skill in this repo
-  - configuring Linear labels for Haus agent-skill workflows
+  - configuring Haus Tasks labels for agent-skill workflows
 ---
 
 # Triage labels
 
 The skills speak in terms of five canonical triage roles. This file maps those roles to the label
-strings used in Linear.
+strings used on Haus Tasks boards.
 
-| Label in mattpocock/skills | Label in Linear | Meaning |
+| Label in mattpocock/skills | Label in Haus Tasks | Meaning |
 | --- | --- | --- |
 | `needs-triage` | `needs-triage` | Maintainer needs to evaluate this issue |
 | `needs-info` | `needs-info` | Waiting on reporter for more information |
@@ -18,5 +18,6 @@ strings used in Linear.
 | `ready-for-human` | `ready-for-human` | Requires human implementation |
 | `wontfix` | `wontfix` | Will not be actioned |
 
-When a skill mentions a role such as "apply the AFK-ready triage label," use the corresponding
-Linear label string from this table.
+When a skill mentions a role such as "apply the AFK-ready triage label," add the corresponding
+label from this table with `haus task update <key> --labels <names>` (the whole label set, as a
+comma list).
