@@ -255,11 +255,12 @@ report, use `.agents/skills/tune-agent-behavior/SKILL.md`.
 
 ### Issue tracker
 
-Issues live in the Linear `PRD` team with the `Haus` label. See `docs/agents/issue-tracker.md`.
+Issues live in Haus Tasks (`haus task` / `haus board`). See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
-Use the default five-label triage vocabulary in Linear. See `docs/agents/triage-labels.md`.
+Use the default five-label triage vocabulary as Haus Tasks labels. See
+`docs/agents/triage-labels.md`.
 
 ### Domain docs
 
