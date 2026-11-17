@@ -1,13 +1,13 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import {
-    artifactListResultSchema,
-    artifactMetadataSchema,
-    artifactMoveResultSchema,
-    artifactVersionsResultSchema,
-} from '@haus/api';
 import * as z from 'zod';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
+import {
+    artifactListResultResponseSchema,
+    artifactMetadataResponseSchema,
+    artifactMoveResultResponseSchema,
+    artifactVersionsResultResponseSchema,
+} from '../artifact-drive-response-schema.ts';
 import { type ParsedArgs, UsageError } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
 import { requireDrivePath, runArtifactPull } from './artifact-pull.ts';
@@ -107,7 +107,7 @@ export const ARTIFACT_SUBCOMMANDS: SubCommand[] = [
             return print(
                 await createAgentApiClient().request(
                     '/api/agent/artifacts/move',
-                    artifactMoveResultSchema,
+                    artifactMoveResultResponseSchema,
                     {
                         method: 'POST',
                         body: {
@@ -142,7 +142,7 @@ export const ARTIFACT_SUBCOMMANDS: SubCommand[] = [
             const id = await resolveArtifactId(client, args.positionals[0]);
             const result = await client.request(
                 artifactRoute(id, '/view'),
-                z.object({ artifact: artifactMetadataSchema, path: z.string().min(1) }),
+                z.object({ artifact: artifactMetadataResponseSchema, path: z.string().min(1) }),
                 { query: { revision_id: args.values['--revision-id'] }, timeoutMs: 300_000 }
             );
             const output = args.values['--output'];
@@ -164,9 +164,13 @@ export const ARTIFACT_SUBCOMMANDS: SubCommand[] = [
             const client = createAgentApiClient();
             const id = await resolveArtifactId(client, args.positionals[0]);
             return print(
-                await client.request(artifactRoute(id, '/versions'), artifactVersionsResultSchema, {
-                    query: { offset: args.values['--offset'] ?? '0' },
-                })
+                await client.request(
+                    artifactRoute(id, '/versions'),
+                    artifactVersionsResultResponseSchema,
+                    {
+                        query: { offset: args.values['--offset'] ?? '0' },
+                    }
+                )
             );
         },
     },
@@ -206,7 +210,7 @@ export async function runArtifactList(
     const [folder] = arity(args, 0, 1).positionals;
     const prefix =
         folder === undefined || folder === '' || folder === '/' ? '' : requireDrivePath(folder);
-    const result = await client.request('/api/agent/artifacts', artifactListResultSchema, {
+    const result = await client.request('/api/agent/artifacts', artifactListResultResponseSchema, {
         query: {
             prefix,
             recursive: args.flags['--recursive'] ? 'true' : undefined,

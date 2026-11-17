@@ -3,16 +3,18 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {
     type ArtifactMetadata,
-    artifactListResultSchema,
-    artifactMetadataSchema,
     artifactPathBasename,
     artifactPathIsInside,
-    artifactPublishResultSchema,
     parseArtifactPath,
 } from '@haus/api';
 import * as z from 'zod';
 import type { AgentApiRequester } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
+import {
+    artifactListResultResponseSchema,
+    artifactMetadataResponseSchema,
+    artifactPublishResultResponseSchema,
+} from '../artifact-drive-response-schema.ts';
 import type { ParsedArgs } from '../parse.ts';
 import {
     displayPath,
@@ -29,7 +31,7 @@ import {
 } from './artifact-manifest.ts';
 
 const base = '/api/agent/artifacts';
-const viewSchema = z.object({ artifact: artifactMetadataSchema, path: z.string().min(1) });
+const viewSchema = z.object({ artifact: artifactMetadataResponseSchema, path: z.string().min(1) });
 
 type FileResult = 'updated' | 'unchanged' | 'kept' | 'merge';
 interface PullReport {
@@ -94,9 +96,13 @@ export async function runArtifactPull(
 /** Reads the current file at a path, or null when the path is a folder or empty. */
 async function fileAt(client: AgentApiRequester, drivePath: string) {
     try {
-        const result = await client.request(`${base}/by-path`, artifactPublishResultSchema, {
-            query: { path: drivePath },
-        });
+        const result = await client.request(
+            `${base}/by-path`,
+            artifactPublishResultResponseSchema,
+            {
+                query: { path: drivePath },
+            }
+        );
         return result.artifact;
     } catch (error) {
         if (error instanceof AgentCliError && error.code === 'NOT_FOUND') {
@@ -110,9 +116,9 @@ async function listFolder(client: AgentApiRequester, prefix: string): Promise<Ar
     const artifacts: ArtifactMetadata[] = [];
     let offset: number | null = 0;
     while (offset !== null) {
-        const page: z.infer<typeof artifactListResultSchema> = await client.request(
+        const page: z.infer<typeof artifactListResultResponseSchema> = await client.request(
             base,
-            artifactListResultSchema,
+            artifactListResultResponseSchema,
             { query: { prefix, recursive: 'true', order: 'path', limit: 200, offset } }
         );
         artifacts.push(...page.artifacts);
