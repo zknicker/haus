@@ -26,6 +26,6 @@
     "@haus/mcp-executor": "workspace:*",
     "effect": "3.22.1",
     "yaml": "2.9.0",
-    "zod": "4.1.11"
+    "zod": "4.6.6"
   }
 }
