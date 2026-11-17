@@ -1505,6 +1505,16 @@
     }
 
     /*
+     * Hover follows the pointer. Pro fades PressableFeedback's highlight over
+     * 150ms, so sweeping down a list of pressable rows crossfaded two rows at
+     * once and the fill trailed the pointer. Stock menus, list boxes, and
+     * sidebar items already switch instantly; pressable rows and cards match.
+     */
+    .pressable-feedback__highlight {
+        --pressable-feedback-transition-duration: 0ms;
+    }
+
+    /*
      * The same drift one level down: ItemCard's icon slot is a 36px box that
      * Pro pins at ×1, visibly squarer than the 32px avatars at ×2 it sits
      * beside in the same lists. ×2.25 is the identity-mark curve
