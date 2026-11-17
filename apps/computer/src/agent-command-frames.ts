@@ -1,10 +1,10 @@
 import {
-    agentHeartbeatAttentionSchema,
-    agentHeartbeatReportAttentionSchema,
-    agentSubagentWakeAttentionSchema,
-    agentTaskAssignmentNoticeSchema,
-    agentTaskAssignmentsSchema,
-} from '@haus/api';
+    agentHeartbeatAttentionResponseSchema,
+    agentHeartbeatReportAttentionResponseSchema,
+    agentSubagentWakeAttentionResponseSchema,
+    agentTaskAssignmentNoticeResponseSchema,
+    agentTaskAssignmentsResponseSchema,
+} from './agent-command-frames-response-schema.ts';
 import type {
     AgentNoticeCommand,
     AgentResetCommand,
@@ -161,7 +161,9 @@ export function parseNoticeCommand(frame: unknown): AgentNoticeCommand | null {
     }
     const inbox = parseInbox(frame.inbox);
     const unreadElsewhere = parseUnreadElsewhere(frame.unreadElsewhere);
-    const tasks = agentTaskAssignmentNoticeSchema.optional().safeParse(frame.taskAssignments);
+    const tasks = agentTaskAssignmentNoticeResponseSchema
+        .optional()
+        .safeParse(frame.taskAssignments);
     if (!(inbox && unreadElsewhere && tasks.success)) {
         return null;
     }
@@ -234,18 +236,18 @@ function parseRunChat(
         return null;
     }
     if (frame.heartbeat !== undefined) {
-        const heartbeat = agentHeartbeatAttentionSchema.safeParse(frame.heartbeat);
+        const heartbeat = agentHeartbeatAttentionResponseSchema.safeParse(frame.heartbeat);
         return heartbeat.success ? { chatId: null, heartbeat: heartbeat.data } : null;
     }
     if (frame.heartbeatReport !== undefined) {
-        const report = agentHeartbeatReportAttentionSchema.safeParse(frame.heartbeatReport);
+        const report = agentHeartbeatReportAttentionResponseSchema.safeParse(frame.heartbeatReport);
         return report.success ? { chatId: null, heartbeatReport: report.data } : null;
     }
     if (frame.taskAssignments !== undefined) {
-        const assignments = agentTaskAssignmentsSchema.safeParse(frame.taskAssignments);
+        const assignments = agentTaskAssignmentsResponseSchema.safeParse(frame.taskAssignments);
         return assignments.success ? { chatId: null, taskAssignments: assignments.data } : null;
     }
-    const wake = agentSubagentWakeAttentionSchema.safeParse(frame.subagentWake);
+    const wake = agentSubagentWakeAttentionResponseSchema.safeParse(frame.subagentWake);
     return wake.success ? { chatId: null, subagentWake: wake.data } : null;
 }
 
