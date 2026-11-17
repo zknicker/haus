@@ -31,5 +31,17 @@ export async function listAgentCloudAgentWork(
         runner.serverId,
         rows.map((row) => row.id)
     );
-    return rows.map((row) => toCloudAgentWork(row, details.get(row.id)));
+    const works = rows.map((row) => toCloudAgentWork(row, details.get(row.id)));
+    // A routine list-all-active-works call (no `workId`) never embeds a Run's
+    // full report (TECH-8): it can run to 64 KiB each, and this route is
+    // polled far more often than a single-work fetch names a Run to inspect.
+    // A single-work fetch (`workId` set) keeps every stored `report` as is.
+    return workId ? works : works.map(stripReports);
+}
+
+function stripReports(work: CloudAgentWork): CloudAgentWork {
+    return {
+        ...work,
+        runs: work.runs.map((run) => (run.report ? { ...run, report: null } : run)),
+    };
 }

@@ -90,6 +90,10 @@ test('cloud work keeps implementation details and requester outcomes in their co
     // Round 4: Claude never waits behind a predecessor's turn; Cursor still does.
     expect(body).toContain('takes the follow-up right away, even mid-turn');
     expect(body).toContain('a Cursor agent queues it until its active run finishes');
+    // TECH-8: `summary` is a capped head; `--report` reads the full report it was cut from.
+    expect(body).toContain('`summary` is only a capped head, up to 2000 characters');
+    expect(body).toContain('More: haus cloud-agent inspect --work <id> --report');
+    expect(body).toContain('[clipped at 64 KiB]');
 });
 
 test('a cloud agent launch card is an inline reply and never opens a new thread', () => {

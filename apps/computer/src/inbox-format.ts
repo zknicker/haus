@@ -213,6 +213,12 @@ function formatCloudAgentWorkAttention(work: AgentCloudAgentWorkAttention, targe
                   `The cloud agent stopped to ask the question in summary. Answer it yourself when the request settles it, or ask the requester first; send the answer with: haus cloud-agent send --work ${work.workId}`,
               ]
             : []),
+        // `summary` above is already the short, 2000-char head (TECH-8); this
+        // only points at the rest for a completed/failed Run whose stored
+        // report outgrew it. `pending_input` keeps its own pointer above.
+        ...((work.status === 'completed' || work.status === 'failed') && work.hasFullReport === true
+            ? [`More: haus cloud-agent inspect --work ${work.workId} --report`]
+            : []),
     ].join('\n');
 }
 

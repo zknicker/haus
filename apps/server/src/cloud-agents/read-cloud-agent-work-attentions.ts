@@ -24,6 +24,7 @@ export async function readCloudAgentWorkAttentions(
             errorCode: cloudAgentRunsTable.errorCode,
             provider: cloudAgentWorkTable.provider,
             providerUrl: cloudAgentWorkTable.providerUrl,
+            report: cloudAgentRunsTable.report,
             repository: cloudAgentWorkTable.repository,
             runId: cloudAgentRunsTable.id,
             stallCode: cloudAgentRunsTable.stallCode,
@@ -43,5 +44,14 @@ export async function readCloudAgentWorkAttentions(
         .where(
             and(eq(cloudAgentRunsTable.serverId, serverId), inArray(cloudAgentRunsTable.id, runIds))
         );
-    return new Map(rows.map((row) => [row.runId, runAttentionSchema.parse(row)]));
+    return new Map(
+        rows.map((row) => {
+            const { report, ...attention } = row;
+            // `summary` is a capped head of `report.text` (TECH-8); a reader needs
+            // the pointer whenever the full report outgrew that head.
+            const hasFullReport =
+                report !== null && report.text.length > (row.summary?.length ?? 0);
+            return [row.runId, runAttentionSchema.parse({ ...attention, hasFullReport })];
+        })
+    );
 }

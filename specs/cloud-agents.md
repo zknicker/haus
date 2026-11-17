@@ -371,7 +371,8 @@ type CloudAgentRun = {
 
     startedAt: string | null;
     terminalAt: string | null;
-    summary: string | null;
+    summary: string | null; // capped at 2000 characters: the head `report` was cut from
+    report: { clipped: boolean; text: string } | null; // the full report, capped at 64 KiB
     errorCode: string | null;
     branches: {
         repository: string;
@@ -402,6 +403,21 @@ A cancelled Run cannot resume, so continuing after cancellation creates another 
 work and retains the cancelled Run's partial evidence. `runs` is ordered newest first and is bounded
 at twenty; the work keeps recent Runs for inspection rather than an unbounded execution history.
 Each accepted follow-up adds a Run to the existing work without creating another Message or Task.
+
+**Summary and report (TECH-8).** `summary` is a capped head (2000 characters), the one short result
+the inbox attention and the chat card show inline. `report` is the full text it was cut from,
+capped separately at 64 KiB (`clipped` marks whether even that cap was hit); it is `null` until a
+Run observes one. The Computer derives both from the same source text, so `summary` is always a
+truncated-consistent prefix of `report.text`, never an independently cut sibling that can drift
+from it. For the Claude provider, the window's first `result` log entry is always the Run's own
+answer to its own prompt; any later one is a turn Claude Code started on its own (a
+self-started/adopted turn) and is never treated as the report. The inbox attention's
+`hasFullReport` is `true` exactly when the stored report is longer than the stored summary, so a
+reader knows there is more before fetching it; `haus cloud-agent inspect --work <id> --report`
+prints that Run's full `report.text` verbatim, with a trailing `[clipped at 64 KiB]` marker line
+when `clipped` is true. `GET /api/agent/cloud-agents` only ever sends a Run's full `report` on a
+single-work fetch (`workId` set); a routine list-all call (`workId` absent) nulls it out, so
+polling the list never embeds a potentially-64-KiB blob per Run.
 
 `pending_input` is settled, like `completed`: the cloud agent stopped to ask a question and the
 Run's `summary` is that question. It creates the same one `cloud_agent_work` inbox attention as any

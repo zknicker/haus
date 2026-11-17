@@ -126,6 +126,94 @@ test('a follow-up that never reached the provider tells its Agent why', () => {
     );
 });
 
+test('a settled Run whose stored report outgrew its summary points at --report', () => {
+    const attention = item({
+        chatId: 'cht_origin',
+        cloudAgentWork: {
+            branches: [],
+            errorCode: null,
+            hasFullReport: true,
+            notice: 'settled',
+            provider: 'cursor',
+            providerUrl: 'https://cursor.com/agents/bc_one',
+            repository: 'haus/haus',
+            runId: 'car_1234567890abcdef',
+            stallCode: null,
+            status: 'completed',
+            summary: 'Opened a pull request.',
+            title: 'Fix the flaky delivery test',
+            workId: 'caw_1234567890abcdef',
+        },
+        content: '',
+        id: 'car_1234567890abcdef',
+        senderHandle: 'haus',
+        senderType: 'system',
+        sequence: 0,
+    });
+
+    expect(composeInboxDrain([attention])).toContain(
+        'More: haus cloud-agent inspect --work caw_1234567890abcdef --report'
+    );
+});
+
+test('a settled Run with no fuller report adds no --report pointer', () => {
+    const attention = item({
+        chatId: 'cht_origin',
+        cloudAgentWork: {
+            branches: [],
+            errorCode: null,
+            hasFullReport: false,
+            notice: 'settled',
+            provider: 'cursor',
+            providerUrl: 'https://cursor.com/agents/bc_one',
+            repository: 'haus/haus',
+            runId: 'car_1234567890abcdef',
+            stallCode: null,
+            status: 'completed',
+            summary: 'Opened a pull request.',
+            title: 'Fix the flaky delivery test',
+            workId: 'caw_1234567890abcdef',
+        },
+        content: '',
+        id: 'car_1234567890abcdef',
+        senderHandle: 'haus',
+        senderType: 'system',
+        sequence: 0,
+    });
+
+    expect(composeInboxDrain([attention])).not.toContain('--report');
+});
+
+test('a pending-input question keeps its own send pointer even when hasFullReport is true', () => {
+    const attention = item({
+        chatId: 'cht_origin',
+        cloudAgentWork: {
+            branches: [],
+            errorCode: null,
+            hasFullReport: true,
+            notice: 'settled',
+            provider: 'claude',
+            providerUrl: 'https://claude.ai/code/session_01Question',
+            repository: 'haus/haus',
+            runId: 'car_1234567890abcdef',
+            stallCode: null,
+            status: 'pending_input',
+            summary: 'Should the reminder default to 9am or 10am? (9am / 10am)',
+            title: 'Pick the reminder default',
+            workId: 'caw_1234567890abcdef',
+        },
+        content: '',
+        id: 'car_1234567890abcdef',
+        senderHandle: 'haus',
+        senderType: 'system',
+        sequence: 0,
+    });
+
+    const drain = composeInboxDrain([attention]);
+    expect(drain).toContain('haus cloud-agent send --work caw_1234567890abcdef');
+    expect(drain).not.toContain('--report');
+});
+
 test('a cloud agent question tells its Agent how to answer it', () => {
     const attention = item({
         chatId: 'cht_origin',

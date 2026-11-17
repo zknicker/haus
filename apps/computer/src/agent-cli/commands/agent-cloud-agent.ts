@@ -1,42 +1,30 @@
-import { randomUUID } from 'node:crypto';
 import {
     type CloudAgentProvider,
     cloudAgentProviderSchema,
     cloudAgentRepositorySchema,
     cloudAgentTitleSchema,
 } from '@haus/api';
-import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { agentCloudAgentStartResponseSchema } from '../agent-api-schemas.ts';
 import { AgentCliError } from '../agent-error.ts';
-import {
-    renderCloudAgentStart,
-    renderCloudAgentWorkDetail,
-    renderCloudAgentWorkList,
-} from '../cloud-agent-render.ts';
+import { renderCloudAgentStart } from '../cloud-agent-render.ts';
 import {
     agentCloudAgentCancelReceiptResponseSchema,
-    agentCloudAgentListReceiptResponseSchema,
     agentCloudAgentSendReceiptResponseSchema,
 } from '../cloud-agent-work-response-schema.ts';
 import type { ParsedArgs } from '../parse.ts';
-import { readAgentStdin } from '../stdin.ts';
 import type { SubCommand } from '../subcommand.ts';
+import { type CloudAgentDeps, defaultDeps } from './agent-cloud-agent-deps.ts';
+import { INSPECT_COMMAND, runCloudAgentInspect } from './agent-cloud-agent-inspect.ts';
 import { assertAgentTarget, requiredValue } from './agent-command-utils.ts';
 import { optionalCause } from './agent-message-input.ts';
+
+export { runCloudAgentInspect };
 
 const START_RECIPE = `haus cloud-agent start --target "#product" --reply-to <messageId> --repo haus/haus --ref main \\
   --title "Fix the flaky delivery test" \\
   --say "Handing the flaky delivery test to a cloud agent; I will report back." <<'HAUSMSG'
 Reproduce apps/server/test/agent-delivery.test.ts locally, find the race, and open a pull request.
 HAUSMSG`;
-
-interface CloudAgentDeps {
-    client: AgentApiRequester;
-    mintNonce(): string;
-    readStdin(): Promise<string>;
-    stdinIsTty: boolean;
-    write(text: string): void;
-}
 
 const START_COMMAND: SubCommand = {
     examples: [START_RECIPE],
@@ -86,22 +74,6 @@ const SEND_COMMAND: SubCommand = {
     run: (args) => runCloudAgentSend(args, defaultDeps()),
     summary: 'Send stdin instructions to the same cloud agent; queue while busy',
     usage: 'haus cloud-agent send --work <workId> [--interrupt]',
-};
-
-const INSPECT_COMMAND: SubCommand = {
-    examples: ['haus cloud-agent inspect', 'haus cloud-agent inspect --work caw_9f2c1a0b7d4e6f81'],
-    flags: [
-        {
-            description: 'Work to inspect; omit to list your work',
-            name: '--work',
-            valueName: '<workId>',
-        },
-    ],
-    name: 'inspect',
-    positionals: [],
-    run: (args) => runCloudAgentInspect(args, defaultDeps()),
-    summary: 'Inspect your cloud agent work and its recorded results',
-    usage: 'haus cloud-agent inspect [--work <workId>]',
 };
 
 const STOP_COMMAND: SubCommand = {
@@ -159,20 +131,6 @@ export async function runCloudAgentSend(args: ParsedArgs, deps: CloudAgentDeps):
     deps.write(
         `Follow-up accepted for ${receipt.work.title}. Work ID: ${receipt.work.id}\nThe result reaches your inbox when this follow-up settles. Use this Work ID for further revisions.\n`
     );
-    return 0;
-}
-
-export async function runCloudAgentInspect(
-    args: ParsedArgs,
-    deps: CloudAgentDeps
-): Promise<number> {
-    const workId = args.values['--work']?.trim();
-    const { works } = await deps.client.request(
-        '/api/agent/cloud-agents',
-        agentCloudAgentListReceiptResponseSchema,
-        { query: { workId } }
-    );
-    deps.write(workId ? renderCloudAgentWorkDetail(works) : renderCloudAgentWorkList(works));
     return 0;
 }
 
@@ -255,16 +213,6 @@ function readTitle(args: ParsedArgs): string {
         });
     }
     return parsed.data;
-}
-
-function defaultDeps(): CloudAgentDeps {
-    return {
-        client: createAgentApiClient(),
-        mintNonce: () => `cloud-agent-${randomUUID()}`,
-        readStdin: readAgentStdin,
-        stdinIsTty: process.stdin.isTTY === true,
-        write: (text) => process.stdout.write(text),
-    };
 }
 
 function readProvider(args: ParsedArgs): CloudAgentProvider | undefined {

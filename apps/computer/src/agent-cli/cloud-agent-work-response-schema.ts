@@ -3,6 +3,7 @@ import {
     cloudAgentPullRequestReadingSchema,
     cloudAgentPullRequestSchema,
     cloudAgentReconcileEntrySchema,
+    cloudAgentReportSchema,
     cloudAgentRunModelParamSchema,
     cloudAgentRunModelSchema,
     cloudAgentRunSchema,
@@ -36,6 +37,9 @@ export const cloudAgentBranchResponseSchema = z.looseObject({
 
 const cloudAgentUsageResponseSchema = z.looseObject(cloudAgentUsageSchema.shape);
 
+/** The full report `summary` is cut from (TECH-8); loosened like every other nested object here. */
+const cloudAgentReportResponseSchema = z.looseObject(cloudAgentReportSchema.shape);
+
 const cloudAgentRunModelParamResponseSchema = z.looseObject(cloudAgentRunModelParamSchema.shape);
 
 const cloudAgentRunModelResponseSchema = z.looseObject({
@@ -47,6 +51,8 @@ const cloudAgentRunResponseSchema = z.looseObject({
     ...cloudAgentRunSchema.shape,
     branches: z.array(cloudAgentBranchResponseSchema).max(50),
     model: cloudAgentRunModelResponseSchema,
+    // A Server older than this Computer sends no report.
+    report: cloudAgentReportResponseSchema.nullable().default(null),
     usage: cloudAgentUsageResponseSchema.nullable(),
 });
 

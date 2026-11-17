@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
 import {
+    findCloudAgentReportRun,
+    renderCloudAgentReportText,
     renderCloudAgentStart,
     renderCloudAgentWorkDetail,
     renderCloudAgentWorkList,
@@ -87,6 +89,68 @@ test('inspect prints each work with its link, escaping titles the link grammar c
         '\nLink: [Fix the flaky delivery test](cloud-agent://caw_1234567890abcdef)\n'
     );
     expect(renderCloudAgentWorkDetail([])).toBe('[]\n');
+});
+
+test('the detail dump points to --report only for a Run whose stored report outgrew its summary', () => {
+    const outgrown = {
+        ...work,
+        id: 'caw_outgrown',
+        runs: [
+            {
+                report: { clipped: false, text: 'Opened a pull request. Also ran the full suite.' },
+                runId: 'car_outgrown',
+                summary: 'Opened a pull request.',
+            },
+        ],
+    };
+    const noMore = {
+        ...work,
+        id: 'caw_no_more',
+        runs: [
+            { report: { clipped: false, text: 'Done.' }, runId: 'car_no_more', summary: 'Done.' },
+        ],
+    };
+    const noReport = {
+        ...work,
+        id: 'caw_no_report',
+        runs: [{ report: null, runId: 'car_no_report', summary: 'Done.' }],
+    };
+
+    const detail = renderCloudAgentWorkDetail([outgrown, noMore, noReport]);
+    expect(detail).toContain('More: haus cloud-agent inspect --work caw_outgrown --report');
+    expect(detail).not.toContain('--work caw_no_more --report');
+    expect(detail).not.toContain('--work caw_no_report --report');
+});
+
+test('findCloudAgentReportRun resolves the newest Run with a report by default, or one named by id', () => {
+    const olderWithReport = {
+        report: { clipped: false, text: 'Older report.' },
+        runId: 'car_older',
+        summary: null,
+    };
+    const newestWithoutReport = { report: null, runId: 'car_newest', summary: null };
+    // Runs are newest-first, matching the stored shape `cloudAgentRunSchema` documents.
+    const works = [{ id: 'caw_1', runs: [newestWithoutReport, olderWithReport] }];
+
+    expect(findCloudAgentReportRun(works, 'caw_1')).toEqual(olderWithReport);
+    expect(findCloudAgentReportRun(works, 'caw_1', 'car_newest')).toEqual(newestWithoutReport);
+    expect(findCloudAgentReportRun(works, 'caw_1', 'car_missing')).toBeUndefined();
+    expect(findCloudAgentReportRun(works, 'caw_missing')).toBeUndefined();
+});
+
+test('renderCloudAgentReportText prints the full text, with a clip marker only when clipped', () => {
+    expect(
+        renderCloudAgentReportText({
+            report: { clipped: false, text: 'Opened a pull request.' },
+            runId: 'car_1',
+        })
+    ).toBe('Opened a pull request.\n');
+    expect(
+        renderCloudAgentReportText({
+            report: { clipped: true, text: 'Opened a pull request.' },
+            runId: 'car_1',
+        })
+    ).toBe('Opened a pull request.\n[clipped at 64 KiB]\n');
 });
 
 test('a pinned Claude environment shows as a short marker on its list line, never on an unpinned one', () => {

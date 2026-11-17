@@ -224,7 +224,8 @@ export function cloudAgentFixture() {
 
     async function readRun(runId: string) {
         const [row] = (await harness.sql`
-        select branches, cancel_requested_at, raw_status, started_at, status, summary, terminal_at
+        select branches, cancel_requested_at, raw_status, report, started_at, status, summary,
+               terminal_at
         from cloud_agent_runs where id = ${runId}
     `) as Record<string, unknown>[];
         return row;

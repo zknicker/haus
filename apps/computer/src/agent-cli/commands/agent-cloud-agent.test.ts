@@ -91,6 +91,78 @@ test('inspect lists owned work or requests recorded details for one work', async
     ]);
 });
 
+test('--report requires --work, with a clear usage error otherwise', async () => {
+    const input = args();
+    input.flags['--report'] = true;
+    await expect(
+        runCloudAgentInspect(input, {
+            client: requester([]),
+            mintNonce: () => 'unused',
+            readStdin: () => Promise.resolve(''),
+            stdinIsTty: true,
+            write: () => undefined,
+        })
+    ).rejects.toThrow(/--report only works alongside --work/);
+});
+
+/** A work carrying one Run with a full report, for the `--report` tests below. */
+function requesterWithReport(report: { clipped: boolean; text: string } | null): AgentApiRequester {
+    const workWithReport = {
+        ...work,
+        runs: [
+            {
+                branches: [],
+                createdAt: work.createdAt,
+                errorCode: null,
+                model: { droppedParams: [], fallbackFrom: null, id: null, params: [] },
+                providerRunId: 'run_abc',
+                rawStatus: 'FINISHED',
+                report,
+                runId: 'car_1234567890abcdef',
+                stall: null,
+                startedAt: work.createdAt,
+                status: 'completed',
+                summary: 'Opened a pull request.',
+                terminalAt: work.createdAt,
+                usage: null,
+            },
+        ],
+    };
+    return {
+        request(_path, schema) {
+            return Promise.resolve(schema.parse({ works: [workWithReport] }));
+        },
+    };
+}
+
+test('--report prints the full report text, with a clip marker only when clipped', async () => {
+    const output: string[] = [];
+    const input = args({ '--work': work.id });
+    input.flags['--report'] = true;
+    await runCloudAgentInspect(input, {
+        client: requesterWithReport({ clipped: true, text: 'Opened a pull request.' }),
+        mintNonce: () => 'unused',
+        readStdin: () => Promise.resolve(''),
+        stdinIsTty: true,
+        write: (text) => output.push(text),
+    });
+    expect(output.join('')).toBe('Opened a pull request.\n[clipped at 64 KiB]\n');
+});
+
+test('--report fails clearly when the work has no Run carrying a report', async () => {
+    const input = args({ '--work': work.id });
+    input.flags['--report'] = true;
+    await expect(
+        runCloudAgentInspect(input, {
+            client: requesterWithReport(null),
+            mintNonce: () => 'unused',
+            readStdin: () => Promise.resolve(''),
+            stdinIsTty: true,
+            write: () => undefined,
+        })
+    ).rejects.toThrow(/has no Run with a recorded report/);
+});
+
 /** A newer Server's `work`, carrying a field this Computer build predates. */
 function requesterFromNewerServer(): AgentApiRequester {
     const workFromNewerServer = { ...work, aFieldThisBuildPredates: 'added by a later release' };
