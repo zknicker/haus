@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## v18.2.0 - 2026-11-17
+
+- A Cloud Agent Run now keeps its full final report alongside its short summary. `haus cloud-agent inspect --work <id> --report` prints the whole thing, and the inbox notice points to it whenever there's more to read than the summary shows.
+- A Claude cloud Run no longer reports a trivial background result in place of its real one when Claude Code starts a background turn of its own right after the Run's own turn finishes.
+- Haus Server no longer rejects a Cloud Agent observation because Computer sent a field it doesn't yet recognize, so a newer Computer keeps reporting correctly through a Server update.
+- Settings → Connections shows the list immediately instead of waiting on Recommended icons to load.
+- Visiting a Server's address after onboarding finishes no longer redirects back into the onboarding chat.
+- Pressable list rows and cards highlight instantly on hover instead of fading in.
+- Haus Agent now hands off only bulk reading and independent parallel work to a sub-agent and does everything else itself, matching how Claude Code Agents actually work.
+- Update Haus Computer to 16.1.0 for the full-report command and inbox pointer. Haus Agent 13.1.0 ships with it.
+
 ## v18.1.2 - 2026-11-17
 
 - A fully read Thread now opens on its newest reply, the same as a Channel or DM, instead of landing back at the top.
