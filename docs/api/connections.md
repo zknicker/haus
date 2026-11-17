@@ -281,8 +281,9 @@ Preset fallback discovery prefers the homepage's advertised icon links over `/fa
 regardless of sign-in state, so publisher-owned versioned assets replace cached legacy favicons.
 Authenticated discovery first uses standard MCP icon metadata. Failed resolution retains the last
 valid stored icon. `mcp.presetIcons` requires Server membership. Server shares anonymous lookups
-in a bounded five-minute cache, including unavailable artwork; authenticated icon metadata bypasses
-that cache. The App also caches the catalog for five minutes and makes no upstream image requests.
+in a bounded cache, including unavailable artwork; only a URL's first lookup waits on the
+network, and after five minutes the last answer keeps serving while one background lookup
+replaces it. Authenticated icon metadata bypasses that cache. The App also caches the catalog for five minutes and makes no upstream image requests.
 Missing artwork falls back to a monogram when no valid image has been resolved.
 
 Icons resolve at write time and are stored on the connection; `mcp.list` is a pure PostgreSQL read
@@ -290,8 +291,9 @@ and never fetches. Preset creation stores branding before sign-in. Icons refresh
 tool refresh. Preset connections stored with a missing
 or malformed icon, and no bundled mark, recover through a bounded background repair after Server
 startup, which stores each resolved icon and announces `mcp.onUpdated` for its Server.
-`mcp.presetIcons` (the Recommended catalog) still resolves on read behind the five-minute cache;
-the App loads it beside the list and falls back to bundled marks or monograms until it arrives.
+`mcp.presetIcons` (the Recommended catalog) still resolves on read behind that cache; the App
+loads it in its own unbatched request beside the list, so the list never waits on it, and falls
+back to bundled marks or monograms until it arrives.
 
 ## Connection Summary
 
