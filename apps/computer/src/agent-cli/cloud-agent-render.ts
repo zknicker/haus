@@ -31,12 +31,57 @@ export function renderCloudAgentWorkList(works: readonly CloudAgentWorkLinkSourc
 /** `haus cloud-agent inspect --work <id>`: the recorded work, then its link. */
 export function renderCloudAgentWorkDetail(works: readonly CloudAgentWorkLinkSource[]): string {
     const links = works.map((work) => `Link: ${formatCloudAgentWorkLink(work.title, work.id)}`);
-    return `${JSON.stringify(works, null, 2)}\n${links.length ? `${[...links, linkSentence].join('\n')}\n` : ''}`;
+    const reportPointers = works
+        // One pointer per work, not per Run: `--report` always reads the newest
+        // Run with one, so a second identical line would add nothing (TECH-8).
+        .filter((work) => work.runs.some(runHasMoreReport))
+        .map((work) => reportPointerLine(work.id));
+    const trailer = [...links, ...reportPointers, ...(links.length ? [linkSentence] : [])];
+    return `${JSON.stringify(works, null, 2)}\n${trailer.length ? `${trailer.join('\n')}\n` : ''}`;
 }
 
-interface CloudAgentWorkLinkSource {
-    environmentName?: string | null;
+/**
+ * The Run `haus cloud-agent inspect --work <id> --report` shows: the one
+ * named by `--run`, or else the newest Run on that work carrying a report.
+ */
+export function findCloudAgentReportRun(
+    works: readonly CloudAgentWorkReportSource[],
+    workId: string,
+    runId?: string
+): CloudAgentRunReportSource | undefined {
+    const work = works.find((candidate) => candidate.id === workId);
+    const runs = work?.runs ?? [];
+    return runId ? runs.find((run) => run.runId === runId) : runs.find((run) => run.report);
+}
+
+/** The plain-text block `--report` prints for one resolved Run. */
+export function renderCloudAgentReportText(run: CloudAgentRunReportSource): string {
+    const clippedLine = run.report?.clipped ? '\n[clipped at 64 KiB]' : '';
+    return `${run.report?.text ?? ''}${clippedLine}\n`;
+}
+
+function reportPointerLine(workId: string): string {
+    return `More: haus cloud-agent inspect --work ${workId} --report`;
+}
+
+/** Mirrors `hasFullReport`: the full report outgrew the capped `summary` already shown. */
+function runHasMoreReport(run: CloudAgentRunReportSource): boolean {
+    return Boolean(run.report) && (run.report?.text.length ?? 0) > (run.summary?.length ?? 0);
+}
+
+export interface CloudAgentRunReportSource {
+    report: { clipped: boolean; text: string } | null;
+    runId: string;
+    summary?: string | null;
+}
+
+interface CloudAgentWorkReportSource {
     id: string;
+    runs: readonly CloudAgentRunReportSource[];
+}
+
+interface CloudAgentWorkLinkSource extends CloudAgentWorkReportSource {
+    environmentName?: string | null;
     repository: string;
     status: string;
     title: string;

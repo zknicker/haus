@@ -42,6 +42,8 @@ export interface AgentInboxItem {
 export interface AgentCloudAgentWorkAttention {
     branches: CloudAgentBranch[];
     errorCode: string | null;
+    /** Whether `summary` is only the capped head of a longer report (TECH-8). */
+    hasFullReport?: boolean;
     notice: 'settled' | 'stall';
     provider: CloudAgentProvider;
     providerUrl: string | null;

@@ -1,12 +1,13 @@
 import {
     type CloudAgentBranch,
+    type CloudAgentReport,
     type CloudAgentStatus,
     type CloudAgentUsage,
     cloudAgentActivityMaxLength,
     cloudAgentBranchRepositorySchema,
-    cloudAgentSummaryMaxLength,
 } from '@haus/api';
 import type { CloudAgentProviderObservation } from '../provider.ts';
+import { boundedReport, boundedSummary } from '../report-text.ts';
 import type { CursorBranchReading, CursorRunReading, CursorRunStatus } from './transport.ts';
 
 /**
@@ -45,7 +46,7 @@ export function observationOf(
     reading: CursorRunReading,
     context: { agentId: string; observedAt: string }
 ): CloudAgentProviderObservation {
-    const summary = boundedSummary(reading);
+    const report = reportOf(reading);
     const usage = usageOf(reading);
     const branches = branchesOf(reading.branches);
     const errorCode = reading.errorCode ? bounded(collapse(reading.errorCode), 120) : '';
@@ -59,7 +60,7 @@ export function observationOf(
         providerUrl: cursorAgentUrl(context.agentId),
         rawStatus: reading.rawStatus,
         status: cloudAgentStatusOf(reading.rawStatus),
-        ...(summary ? { summary } : {}),
+        ...(report ? { report, summary: boundedSummary(report) } : {}),
         ...(usage ? { usage } : {}),
     };
 }
@@ -142,9 +143,9 @@ export function usageOf(reading: CursorRunReading): CloudAgentUsage | null {
 }
 
 /** The Run's own words: its result when it has one, its error when it failed. */
-function boundedSummary(reading: CursorRunReading): string | null {
+function reportOf(reading: CursorRunReading): CloudAgentReport | null {
     const text = reading.result ?? reading.errorMessage;
-    return text ? bounded(collapse(text), cloudAgentSummaryMaxLength) : null;
+    return text ? boundedReport(collapse(text)) : null;
 }
 
 /**

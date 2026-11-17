@@ -23,6 +23,14 @@ export const cloudAgentWorkAttentionSchema = z
         branches: z.array(cloudAgentBranchSchema).max(50),
         errorCode: z.string().trim().min(1).max(120).nullable(),
         provider: cloudAgentProviderSchema,
+        /**
+         * Whether `summary` is only the head of a longer report (TECH-8): a
+         * reader who wants the rest runs `haus cloud-agent inspect --work
+         * <id> --report`. Optional, not defaulted, so an inbox item already
+         * queued before this field existed still parses; its absence reads
+         * as false (no known fuller report), never as true.
+         */
+        hasFullReport: z.boolean().optional(),
         /** Why this Run reached the Agent: it settled, or it is stuck and still live. */
         notice: z.enum(['settled', 'stall']),
         providerUrl: z.url().max(2000).nullable(),

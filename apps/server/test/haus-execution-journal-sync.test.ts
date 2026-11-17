@@ -1,13 +1,13 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { createHash } from 'node:crypto';
-import {
-    computerBootstrapProtocolVersion,
-    computerProtocolVersion,
-    type ExecutionJournalUploadRecord,
-} from '@haus/api';
+import type { ExecutionJournalUploadRecord } from '@haus/api';
 import { connectHausDatabase } from '../src/postgres/connection.ts';
 import { deleteExpiredExecutionJournals } from '../src/server-agents/execution-journal-retention.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
+import {
+    bootstrapFrame,
+    computerSocketUrl,
+    digest,
+} from './haus-execution-journal-sync-support.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
 // A Computer syncs each run's journal over its attachment socket; members read
@@ -53,7 +53,7 @@ beforeAll(async () => {
             (${strangerId}, ${serverId}, 'journal-stranger', 'Stranger', 'America/New_York',
                 null, null, null)
     `;
-    computer = new WebSocket(computerSocketUrl());
+    computer = new WebSocket(computerSocketUrl(harness));
     computer.addEventListener('message', (event) => received.push(JSON.parse(String(event.data))));
     await new Promise<void>((resolve, reject) => {
         computer.addEventListener('open', () => resolve(), { once: true });
@@ -61,7 +61,7 @@ beforeAll(async () => {
             once: true,
         });
     });
-    computer.send(JSON.stringify(bootstrapFrame()));
+    computer.send(JSON.stringify(bootstrapFrame(credential)));
     expect(await waitFor((frame) => frame.type === 'bootstrap-accepted')).toEqual({
         mode: 'ordinary',
         type: 'bootstrap-accepted',
@@ -271,33 +271,4 @@ async function waitFor(
         await Bun.sleep(10);
     }
     throw new Error('The Server never sent the expected frame.');
-}
-
-function bootstrapFrame() {
-    return {
-        architecture: 'arm64',
-        bootstrapProtocolVersion: computerBootstrapProtocolVersion,
-        credential,
-        health: 'healthy',
-        operatingSystem: 'darwin',
-        productVersion: '9.4.0',
-        protocolVersion: computerProtocolVersion,
-        type: 'bootstrap',
-        update: {
-            detail: null,
-            phase: 'idle',
-            targetVersion: null,
-            updatedAt: '2026-10-09T12:00:00.000Z',
-        },
-    };
-}
-
-function digest(value: string) {
-    return createHash('sha256').update(value).digest('hex');
-}
-
-function computerSocketUrl() {
-    const url = new URL('/computer/attachment', harness.url);
-    url.protocol = 'ws:';
-    return url;
 }

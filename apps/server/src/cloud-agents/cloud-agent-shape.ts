@@ -40,6 +40,7 @@ export function toCloudAgentRun(row: RunRow): CloudAgentRun {
         },
         providerRunId: row.providerRunId,
         rawStatus: row.rawStatus,
+        report: row.report ?? null,
         runId: row.id,
         stall:
             row.stallCode && row.stallSince

@@ -207,6 +207,7 @@ function runObservationUpdate(
         ...(observation.rawStatus ? { rawStatus: observation.rawStatus } : {}),
         stallCode: step.stall?.code ?? null,
         stallSince: step.stall?.since ?? null,
+        report: observation.report ?? null,
         summary: observation.summary ?? null,
         ...(observation.usage ? { usage: observation.usage } : {}),
     };

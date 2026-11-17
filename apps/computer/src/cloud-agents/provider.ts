@@ -2,6 +2,7 @@ import type {
     CloudAgentBranch,
     CloudAgentEnvironment,
     CloudAgentProvider as CloudAgentProviderId,
+    CloudAgentReport,
     CloudAgentRunModel,
     CloudAgentStallCode,
     CloudAgentStatus,
@@ -129,6 +130,8 @@ export interface CloudAgentProviderObservation {
     providerRunId?: string;
     providerUrl?: string;
     rawStatus?: string;
+    /** The full report `summary` was cut from (TECH-8); absent before any Run observes one. */
+    report?: CloudAgentReport;
     /** Set on every reading of a stuck live Run. */
     stallCode?: CloudAgentStallCode;
     /** Provider-reported Run creation time, when available. */

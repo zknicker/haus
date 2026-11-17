@@ -64,6 +64,7 @@ const workWithUnknownFields = {
             model: { droppedParams: [], fallbackFrom: null, id: null, params: [] },
             providerRunId: 'run_abc',
             rawStatus: 'RUNNING',
+            report: { clipped: false, futureReportField: true, text: 'Opened a pull request.' },
             runId: 'car_1234567890abcdef',
             stall: null,
             startedAt: '2026-09-04T12:00:30.000Z',
@@ -90,6 +91,16 @@ test('the Computer response schema parses a work record carrying fields from a n
     expect(parsed.id).toBe('caw_1234567890abcdef');
     expect(parsed.title).toBe('Fix the flaky delivery test');
     expect(parsed.runs[0]?.runId).toBe('car_1234567890abcdef');
+    expect(parsed.runs[0]?.report?.text).toBe('Opened a pull request.');
+});
+
+test('the Computer response schema defaults a missing report to null, for a Server older than this Computer', () => {
+    const { report: _omitted, ...runWithoutReport } = workWithUnknownFields.runs[0];
+    const parsed = cloudAgentWorkResponseSchema.parse({
+        ...workWithUnknownFields,
+        runs: [runWithoutReport],
+    });
+    expect(parsed.runs[0]?.report).toBeNull();
 });
 
 test('the Computer response schema tolerates an unknown field on a list receipt', () => {

@@ -1,5 +1,6 @@
 import { cloudAgentActivityMaxLength, cloudAgentSummaryMaxLength } from '@haus/api';
 import type { CloudAgentProviderObservation } from '../provider.ts';
+import { boundedReport, boundedSummary } from '../report-text.ts';
 import type { ClaudeSession, ClaudeSessionEvent } from './controller.ts';
 import { evidence } from './evidence.ts';
 import { questionOf } from './pending-question.ts';
@@ -141,7 +142,11 @@ function afterPrompt(
         };
     }
     const tasks = openTasks(after);
-    const result = lastOf(after, (entry): entry is Entry<'result'> => entry.kind === 'result');
+    // First, not last: this Run's own prompted turn always produces this
+    // window's first result. A self-started or adopted turn (a background
+    // task finishing, idle compaction) only ever runs while idle, so its own
+    // trivial result can only land after this one, never answer it.
+    const result = after.find((entry): entry is Entry<'result'> => entry.kind === 'result');
     if (!running && tasks === 0 && result) {
         return resultObservation(base, result);
     }
@@ -170,20 +175,20 @@ function answered(entries: ClaudeLogEntry[], requestId: string): boolean {
 
 function resultObservation(base: Base, result: Entry<'result'>): CloudAgentProviderObservation {
     if (!result.isError) {
+        const report = result.text ? boundedReport(result.text) : null;
         return {
             ...base,
             status: 'completed',
-            ...(result.text ? { summary: bounded(result.text, cloudAgentSummaryMaxLength) } : {}),
+            ...(report ? { report, summary: boundedSummary(report) } : {}),
         };
     }
+    const report = boundedReport(result.text ?? `Claude stopped: ${result.subtype}.`);
     return {
         ...base,
         errorCode: `claude-${result.subtype}`.slice(0, 120),
+        report,
         status: 'failed',
-        summary: bounded(
-            result.text ?? `Claude stopped: ${result.subtype}.`,
-            cloudAgentSummaryMaxLength
-        ),
+        summary: boundedSummary(report),
     };
 }
 
@@ -219,12 +224,14 @@ function sharedResultObservation(
 ): CloudAgentProviderObservation {
     const settled = resultObservation(base, shared.result);
     const note = `Continued in follow-up ${shared.followUpRunId}, which finished it.`;
+    // Rebuild from the settled report's own full text, not its already-cut
+    // summary, so the note never costs report detail a summary-only rebound
+    // would silently drop.
+    const report = boundedReport(settled.report ? `${note} ${settled.report.text}` : note);
     return {
         ...settled,
-        summary: bounded(
-            settled.summary ? `${note} ${settled.summary}` : note,
-            cloudAgentSummaryMaxLength
-        ),
+        report,
+        summary: boundedSummary(report),
     };
 }
 

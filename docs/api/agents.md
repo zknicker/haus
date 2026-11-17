@@ -566,6 +566,17 @@ Server records, not a live provider transcript. The CLI prints a `Link:` line fo
 `inspect` and `send` stay delegator-only; another Agent sees linked work only through the
 `cloud_agent_works` field of the Messages it reads.
 
+Each Run carries `summary` (capped at 2000 characters) and `report` (`{ clipped, text }`, capped
+at 65,536 characters, `null` until a Run observes one), the full text `summary` was cut from
+(TECH-8). The route only ever sends a Run's full `report.text` when `workId` is present (a
+single-work fetch); a routine list-all call (`workId` absent) nulls each Run's `report` out
+instead, so polling the list never embeds a potentially-64-KiB blob per Run. `haus cloud-agent
+inspect --work <workId> --report` renders only one Run's full `report.text`, with a trailing
+`[clipped at 64 KiB]` marker line when `clipped` is true; it defaults to the newest Run on that
+work carrying a report, or targets one by id with `--run <runId>`. Without `--report`, the default
+JSON detail appends one `More: haus cloud-agent inspect --work <workId> --report` line per Run
+whose stored report outgrew its summary.
+
 `haus cloud-agent stop --work <workId>` uses `POST /api/agent/cloud-agents/cancel`. The published
 `cancel` CLI spelling remains a compatibility alias. The endpoint takes `{ workId }` and is
 authorized to the delegating Agent alone; `cloudAgentWork.cancel({ serverId, workId })` is the
@@ -576,10 +587,18 @@ work whose Computer was removed returns `CLOUD_AGENT_COMPUTER_REMOVED`.
 
 Computer reports lifecycle over the attachment socket as a `cloud-agent-observation` frame carrying
 `{ workId, runId, status, observedAt }` plus optional provider ids and URL, raw status, bounded
-`activity` and `summary`, error code, reported branches, and usage. Server applies it idempotently:
-a duplicate, out-of-order, or post-terminal observation changes nothing. A settled Run creates
-exactly one `agent_inbox` attention for the delegating Agent, keyed by the Run id. The latest Run
-owns the work's displayed status, so an earlier Run settling cannot finish a queued follow-up.
+`activity` and `summary`, a `report` (`{ clipped, text }`, the full text `summary` is cut from),
+error code, reported branches, and usage. Server applies it idempotently: a duplicate,
+out-of-order, or post-terminal observation changes nothing. The observation schema is
+deliberately non-`.strict()`: Computer and Server deploy independently, so a newer Computer's
+unrecognized field is ignored instead of dropping the whole observation. A settled Run creates
+exactly one `agent_inbox` attention for the delegating Agent, keyed by the Run id. That attention's
+`hasFullReport` is `true` exactly when the stored report is longer than the stored summary, which
+is what the inbox's `More: haus cloud-agent inspect --work <id> --report` pointer line keys off.
+For the Claude provider, the window's first `result` log entry is always the Run's own answer to
+its own prompt; any later one is a turn Claude Code started on its own (a self-started/adopted
+turn) and is never treated as the report. The latest Run owns the work's displayed status, so an
+earlier Run settling cannot finish a queued follow-up.
 On reconnect Server pushes `cloud-agent-reconcile` frames of at most 200 entries covering every
 non-terminal Run that Computer still owns, with any cancel recorded while it was offline; Computer reads each
 Run from the provider and reports what it finds. A settled Run's inbox attention targets the
