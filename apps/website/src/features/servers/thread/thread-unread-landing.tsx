@@ -15,18 +15,22 @@ const landingContextPx = 48;
 const readableReplyPx = 48;
 
 /**
- * Opens a Thread at its first unread reply rather than its top (ADR 0043), so
- * the reply the viewer came for is in view, wherever the Thread was opened
- * from. The landing is `thread.listUnread`'s first counted reply, decided
- * once per Thread from a settled list: reading moves the row, and the view
- * must not chase it. Like Slack, a reply already in view from the start
- * position — a short Thread, or one above the fold — keeps the anchor in view
- * and scrolls nowhere; a reply below the fold scrolls up to sit clear of the
- * top fade with the reply before it peeking, held there while the Thread's
- * layout settles. Renders inside the Thread's
- * `MessageScrollerProvider`, after its `MessageScroller`, so the rows exist
- * when it lands. A link that names a reply (`?at=<sequence>`, a Search result)
- * lands there instead, the same way.
+ * Decides where a Thread opens, the way `ChatScrollPositionMemory` and
+ * `ChatSendScroll` decide it for a channel or DM: once its rows are loaded
+ * and measured, not from the initial `defaultScrollPosition` guess a Thread
+ * mounts with before that (the anchor alone, before its replies have loaded,
+ * trivially fits). With nothing to land on, it opens on the newest reply,
+ * like a channel. With an unread reply (ADR 0043) or a requested landing
+ * (`?at=<sequence>`, a Search result), it opens there instead, so the reply
+ * the viewer came for is in view, wherever the Thread was opened from. The
+ * landing is `thread.listUnread`'s first counted reply, decided once per
+ * Thread from a settled list: reading moves the row, and the view must not
+ * chase it. Like Slack, a reply already in view from the start position — a
+ * short Thread, or one above the fold — keeps the anchor in view and scrolls
+ * nowhere; a reply below the fold scrolls up to sit clear of the top fade
+ * with the reply before it peeking, held there while the Thread's layout
+ * settles. Renders inside the Thread's `MessageScrollerProvider`, after its
+ * `MessageScroller`, so the rows exist when it lands.
  */
 export function ThreadUnreadLanding({
     sequenceByEntryId,
@@ -57,13 +61,22 @@ export function ThreadUnreadLanding({
         if (!ready || decidedFor.current === landingKey) {
             return;
         }
+        const viewport = viewportRef.current;
+        if (!viewport) {
+            return;
+        }
         decidedFor.current = landingKey;
         const sequence = requestedSequence ?? landing?.sequence;
         const entryId =
             sequence === undefined ? null : threadLandingEntryId(sequenceByEntryId, sequence);
-        const viewport = viewportRef.current;
-        const row = entryId ? viewport?.querySelector(messageItemSelector(entryId)) : null;
-        if (!(viewport && row)) {
+        if (entryId === null) {
+            // No unread reply and no requested sequence: open on the newest
+            // reply, like a channel or DM.
+            viewport.scrollTo({ behavior: 'instant', top: viewport.scrollHeight });
+            return;
+        }
+        const row = viewport.querySelector(messageItemSelector(entryId));
+        if (!row) {
             return;
         }
         const top = threadLandingScrollTop(measureLanding(viewport, row));
