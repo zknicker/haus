@@ -1,11 +1,15 @@
 import { join } from 'node:path';
 import { agentSubagentWakeResultSchema } from '@haus/api';
+import * as z from 'zod';
 import { parseStopBackgroundCommand, parseStopCommand } from './agent-command-frames.ts';
 import type { AgentWorkCoordinator } from './agent-work-coordinator.ts';
 import type { BackgroundWorkReporter } from './background-work-reporter.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
 import { evictWarmRuntime } from './runtime/runtime-context.ts';
 import { handleServerRuntimeSettingsFrame } from './server-runtime-settings-frame.ts';
+
+/** Loosened so a newer Server's wake-result field does not strand an older Computer. */
+const agentSubagentWakeResultResponseSchema = z.looseObject(agentSubagentWakeResultSchema.shape);
 
 /**
  * Server frames about an Agent's run and what its runtime does between turns. A human Stop:
@@ -34,7 +38,7 @@ export function handleBackgroundFrame(
         deps.agentWork.abortRun(stop.runId);
         return true;
     }
-    const wakeResult = agentSubagentWakeResultSchema.safeParse(frame);
+    const wakeResult = agentSubagentWakeResultResponseSchema.safeParse(frame);
     if (wakeResult.success) {
         deps.backgroundWork?.onWakeResult(wakeResult.data);
         return true;
