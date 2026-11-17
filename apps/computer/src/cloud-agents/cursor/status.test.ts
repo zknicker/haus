@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { cloudAgentBranchSchema } from '@haus/api';
+import { cloudAgentBranchSchema, cloudAgentReportMaxLength } from '@haus/api';
+import { boundedReport, boundedSummary } from '../report-text.ts';
 import { branchesOf, observationOf, repositoryOf } from './status.ts';
 
 describe('a Cursor repository reference reads back as one repository label', () => {
@@ -78,6 +79,71 @@ test('a branch Cursor reports without a branch name is dropped', () => {
     expect(
         branchesOf([{ branch: null, prUrl: null, repoUrl: 'github.com/merchbaseco/tmterminal' }])
     ).toEqual([]);
+});
+
+test('a result past the summary limit but under the report cap truncates only the summary', () => {
+    const text = 'Fixed the flaky test. '.repeat(200); // 4600 chars: over cloudAgentSummaryMaxLength, under the report cap
+    const observation = observationOf(
+        {
+            branches: [],
+            errorCode: null,
+            errorMessage: null,
+            rawStatus: 'FINISHED',
+            result: text,
+            runId: 'run_long',
+            usage: null,
+        },
+        { agentId: 'bc_long', observedAt: '2026-10-26T23:06:00.000Z' }
+    );
+
+    const expectedReport = boundedReport(text);
+    expect(observation.report).toEqual(expectedReport);
+    expect(observation.report?.clipped).toBe(false);
+    expect(observation.summary).toBe(boundedSummary(expectedReport));
+    expect(observation.summary).not.toBe(text);
+    expect(observation.summary?.endsWith('…')).toBe(true);
+});
+
+test('a result past the report’s own hard cap is clipped the same way Claude’s path would clip it', () => {
+    const text = 'x'.repeat(cloudAgentReportMaxLength + 1000);
+    const observation = observationOf(
+        {
+            branches: [],
+            errorCode: null,
+            errorMessage: null,
+            rawStatus: 'FINISHED',
+            result: text,
+            runId: 'run_huge',
+            usage: null,
+        },
+        { agentId: 'bc_huge', observedAt: '2026-10-26T23:06:00.000Z' }
+    );
+
+    expect(observation.report).toEqual(boundedReport(text));
+    expect(observation.report?.clipped).toBe(true);
+    expect(observation.report?.text).toHaveLength(cloudAgentReportMaxLength);
+    expect(observation.summary).toBe(boundedSummary(boundedReport(text)));
+});
+
+test('an error message with no result also becomes the report and summary', () => {
+    const observation = observationOf(
+        {
+            branches: [],
+            errorCode: 'provider_error',
+            errorMessage: 'The provider could not start the Agent.',
+            rawStatus: 'ERROR',
+            result: null,
+            runId: 'run_error',
+            usage: null,
+        },
+        { agentId: 'bc_error', observedAt: '2026-10-26T23:06:00.000Z' }
+    );
+
+    expect(observation.report).toEqual({
+        clipped: false,
+        text: 'The provider could not start the Agent.',
+    });
+    expect(observation.summary).toBe('The provider could not start the Agent.');
 });
 
 test('a Run first read after sleep retains its provider start time', () => {

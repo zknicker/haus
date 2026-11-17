@@ -190,6 +190,25 @@ test('a result landing after a mid-turn follow-up still settles the predecessor,
     expect(followUp).toMatchObject({ status: 'completed', summary: 'Finished the follow-up.' });
 });
 
+test("a self-started turn's own trivial result never replaces this Run's real one", () => {
+    // Claude Code can start a turn on its own while idle (a background task
+    // finishing, idle compaction) once this Run's own prompted turn has
+    // already produced its own result, and that self-started turn's result
+    // lands chronologically after it, in the same window (TECH-8). The FIRST
+    // result in the window is always the one answering this Run's own
+    // prompt.
+    const real = result({
+        result: 'Fixed the flaky test. Opened https://github.com/zknicker/haus/pull/99.',
+    });
+    const selfStarted = result({ result: 'Done.' });
+    const observation = observe([prompt, real, selfStarted], session({ workerStatus: 'idle' }));
+    expect(observation).toMatchObject({
+        report: { text: 'Fixed the flaky test. Opened https://github.com/zknicker/haus/pull/99.' },
+        status: 'completed',
+        summary: 'Fixed the flaky test. Opened https://github.com/zknicker/haus/pull/99.',
+    });
+});
+
 test('the pushed branch and its pull request are reported together', () => {
     expect(
         observe(
