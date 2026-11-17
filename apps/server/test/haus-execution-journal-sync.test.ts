@@ -23,6 +23,8 @@ const agentId = 'agt_journalsync00000';
 const strangerId = 'agt_journalstranger0';
 const credential = 'journal-sync-computer-credential';
 const at = (second: number) => `2026-10-14T12:00:${String(second).padStart(2, '0')}.000Z`;
+// The retention sweep reads this clock, not the wall clock, so the fixed fixture runs never age out.
+const fixtureNow = new Date(at(59));
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
@@ -181,12 +183,13 @@ test('someone outside the Server cannot read or watch its journals', async () =>
 test('the retention sweep deletes runs older than thirty days with their records', async () => {
     expect(await upload('run_ancient', [opened('run_ancient')], 1)).toBe('stored');
     await harness.sql`
-        update agent_execution_journals set run_started_at = now() - interval '31 days'
+        update agent_execution_journals
+        set run_started_at = ${fixtureNow.toISOString()}::timestamptz - interval '31 days'
         where run_id = 'run_ancient'
     `;
     const connection = await connectHausDatabase(harness.databaseUrl);
     try {
-        expect(await deleteExpiredExecutionJournals(connection.db, new Date())).toEqual([
+        expect(await deleteExpiredExecutionJournals(connection.db, fixtureNow)).toEqual([
             'run_ancient',
         ]);
     } finally {
