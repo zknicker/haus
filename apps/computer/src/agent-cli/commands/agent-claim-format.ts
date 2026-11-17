@@ -5,6 +5,9 @@ import { AgentCliError } from '../agent-error.ts';
 import { shortMessageId } from '../agent-format.ts';
 import { isThreadTarget } from '../agent-render.ts';
 
+/** Loosened so a newer Server's claim-conflict field does not strand an older Computer. */
+const claimConflictResponseSchema = z.looseObject(claimConflictSchema.shape);
+
 export const claimRowSchema = z.object({
     assignee: claimActorSchema.nullable(),
     message: agentMessageSchema,
@@ -17,7 +20,7 @@ export type ClaimRow = z.infer<typeof claimRowSchema>;
 
 export const claimResultSchema = z.object({
     claim: claimRowSchema.nullable(),
-    claimConflict: claimConflictSchema.nullable(),
+    claimConflict: claimConflictResponseSchema.nullable(),
     number: z.number().int().positive(),
     outcome: z.enum(['already_yours', 'claimed', 'refused']),
     reason: z.string().nullable(),
