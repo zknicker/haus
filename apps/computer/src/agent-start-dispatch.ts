@@ -1,11 +1,21 @@
 import { agentStartCommandSchema } from '@haus/api';
+import { z } from 'zod';
 import { parseStartCommand } from './agent-command-frames.ts';
 import { rejectedInboxItems } from './agent-inbox-input.ts';
 import type { AgentWorkCoordinator } from './agent-work-coordinator.ts';
 import type { AgentStartCommand, AgentTurnFrame } from './launch.ts';
 
-const startIdentitySchema = agentStartCommandSchema
-    .pick({ agentId: true, modelId: true, runId: true, runtimeId: true, type: true })
+// zod rejects .pick()/.omit() on a schema carrying its own .refine() (as
+// agentStartCommandSchema does), so this rebuilds the identity subset from
+// the canonical field schemas instead of picking them off the refined one.
+const startIdentitySchema = z
+    .object({
+        agentId: agentStartCommandSchema.shape.agentId,
+        modelId: agentStartCommandSchema.shape.modelId,
+        runId: agentStartCommandSchema.shape.runId,
+        runtimeId: agentStartCommandSchema.shape.runtimeId,
+        type: agentStartCommandSchema.shape.type,
+    })
     .strip();
 
 export async function dispatchAgentStart(
