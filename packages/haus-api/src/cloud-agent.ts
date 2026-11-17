@@ -5,6 +5,7 @@ import {
     cloudAgentBranchSchema,
     cloudAgentProviderSchema,
     cloudAgentRefSchema,
+    cloudAgentReportSchema,
     cloudAgentRepositorySchema,
     cloudAgentStatusSchema,
     cloudAgentSummaryMaxLength,
@@ -142,30 +143,37 @@ export type AgentCloudAgentCancelReceipt = z.infer<typeof agentCloudAgentCancelR
 /**
  * One bounded Computer observation of a provider Run. Applying it is
  * idempotent: a stale or duplicate observation changes nothing.
+ *
+ * Not `.strict()`: this is the one Computer-to-Server trust boundary in the
+ * cloud-agent wire contract, and Computer and Server deploy independently.
+ * A `.strict()` schema rejects the whole frame on an unrecognized key, so a
+ * newer Computer sending a field an older Server's schema does not know yet
+ * would otherwise lose the entire observation instead of just that field.
+ * Every future addition here must stay `.optional()` for the same reason.
  */
-export const cloudAgentObservationSchema = z
-    .object({
-        activity: cloudAgentActivitySchema.optional(),
-        branches: z.array(cloudAgentBranchSchema).max(50).optional(),
-        environmentId: z.string().trim().min(1).max(200).optional(),
-        environmentName: z.string().trim().min(1).max(200).optional(),
-        errorCode: z.string().trim().min(1).max(120).optional(),
-        observedAt: timestampSchema,
-        /** Provider Run creation time; observation time is only the reporting clock. */
-        startedAt: timestampSchema.optional(),
-        providerAgentId: z.string().trim().min(1).max(200).optional(),
-        providerRunId: z.string().trim().min(1).max(200).optional(),
-        providerUrl: z.url().max(2000).optional(),
-        rawStatus: z.string().trim().min(1).max(120).optional(),
-        runId: idSchema,
-        /** Set on every reading of a stuck live Run; absent means it is not stalled. */
-        stallCode: cloudAgentStallCodeSchema.optional(),
-        status: cloudAgentStatusSchema,
-        summary: z.string().trim().min(1).max(cloudAgentSummaryMaxLength).optional(),
-        usage: cloudAgentUsageSchema.optional(),
-        workId: idSchema,
-    })
-    .strict();
+export const cloudAgentObservationSchema = z.object({
+    activity: cloudAgentActivitySchema.optional(),
+    branches: z.array(cloudAgentBranchSchema).max(50).optional(),
+    environmentId: z.string().trim().min(1).max(200).optional(),
+    environmentName: z.string().trim().min(1).max(200).optional(),
+    errorCode: z.string().trim().min(1).max(120).optional(),
+    observedAt: timestampSchema,
+    /** Provider Run creation time; observation time is only the reporting clock. */
+    startedAt: timestampSchema.optional(),
+    providerAgentId: z.string().trim().min(1).max(200).optional(),
+    providerRunId: z.string().trim().min(1).max(200).optional(),
+    providerUrl: z.url().max(2000).optional(),
+    rawStatus: z.string().trim().min(1).max(120).optional(),
+    /** The full report `summary` was cut from (TECH-8); absent before any Run observes one. */
+    report: cloudAgentReportSchema.optional(),
+    runId: idSchema,
+    /** Set on every reading of a stuck live Run; absent means it is not stalled. */
+    stallCode: cloudAgentStallCodeSchema.optional(),
+    status: cloudAgentStatusSchema,
+    summary: z.string().trim().min(1).max(cloudAgentSummaryMaxLength).optional(),
+    usage: cloudAgentUsageSchema.optional(),
+    workId: idSchema,
+});
 
 export type CloudAgentObservation = z.infer<typeof cloudAgentObservationSchema>;
 

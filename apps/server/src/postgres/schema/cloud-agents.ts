@@ -2,6 +2,7 @@ import type {
     CloudAgentBranch,
     CloudAgentModelParamName,
     CloudAgentProvider,
+    CloudAgentReport,
     CloudAgentRunModelParam,
     CloudAgentStallCode,
     CloudAgentStatus,
@@ -127,6 +128,8 @@ export const cloudAgentRunsTable = pgTable(
         observedAt: timestamp('observed_at', { withTimezone: true }),
         providerRunId: text('provider_run_id'),
         rawStatus: text('raw_status'),
+        /** The full report `summary` is cut from (TECH-8); null until a Run observes one. */
+        report: bunJsonb('report').$type<CloudAgentReport | null>(),
         serverId: text('server_id').notNull(),
         /** Why a live Run is stuck, and since when; a settled Run has neither. */
         stallCode: text('stall_code').$type<CloudAgentStallCode>(),
@@ -194,6 +197,14 @@ export const cloudAgentRunsTable = pgTable(
                 `("cloud_agent_runs"."status" in ${settled})
                 = ("cloud_agent_runs"."terminal_at" is not null)`
             )
+        ),
+        check(
+            'cloud_agent_runs_report_shape',
+            sql`${table.report} is null or (
+                jsonb_typeof(${table.report}) = 'object'
+                and char_length(${table.report}->>'text') between 1 and 65536
+                and jsonb_typeof(${table.report}->'clipped') = 'boolean'
+            )`
         ),
     ]
 );
