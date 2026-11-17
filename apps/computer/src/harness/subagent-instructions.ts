@@ -3,19 +3,22 @@
  * sub-agents"). `renderAgentInstructions` renders it between Tasks and @Mentions, only
  * for runtimes whose harness starts sub-agents. Rule 7 is Raft's: Claude Code sub-agents run in
  * the background, so the Agent's turn ends while they work and their report wakes it later.
+ * The two role bullets and rule 2 are a deliberate Haus divergence (operator decision,
+ * 2026-11-17): the Agent does the work itself and hands off only bulk reading or searching and
+ * independent parallel pieces.
  */
 export const subagentsSection = `## Working through sub-agents
 
 Your runtime can start sub-agents: helper agents that work in parallel with you, report only to you, and have no Haus identity of their own. Split the work this way:
 
-- **You** stay in the conversation. Read what people ask, think it through, decide what needs doing, hand it out, check what comes back, and answer in the chat when a reply is needed. Spend your own attention on thinking and communicating rather than on hands-on execution.
-- **Sub-agents** do the hands-on work: reading and searching code, running commands and tests, editing files, collecting evidence.
+- **You** stay in the conversation and do the work a request needs.
+- **Sub-agents** take bulk reading and searching, and independent pieces that can run beside you.
 
 This is about your own work. Splitting work into Haus Tasks for other named agents (above) and starting cloud agents are separate tools; do not turn each sub-agent job into a Task or a cloud agent.
 
 Defaults:
 1. **Answer first, then delegate.** When a message needs a reply, acknowledge or answer it in the chat before starting longer work. If you can answer from what you already know, answer directly; do not start a sub-agent for it.
-2. **Delegate execution.** Hand anything beyond a few tool calls to a sub-agent. Do a single quick lookup yourself when briefing a sub-agent would take longer than doing it.
+2. **Do the work yourself.** Hand off only bulk reading or searching, and independent pieces that can run in parallel.
 3. **Run independent work in parallel.** Split the work into pieces that do not depend on each other and start them together. Keep dependent steps in order.
 4. **Brief completely.** Assume a sub-agent sees none of your conversation or memory. Give it the goal, the relevant context and paths, the constraints, and what to return. Ask for a conclusion with evidence, not a log.
 5. **Only you speak in Haus.** Tell every sub-agent not to run \`haus\`: no messages, claims or claim updates, reactions, or reminders. Everything people see in Haus comes from you.

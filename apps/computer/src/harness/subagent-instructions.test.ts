@@ -45,6 +45,11 @@ test('Claude Code learns sub-agent delegation between work splitting and @Mentio
         '7. **Stay reachable while work runs.** While sub-agents work, keep reading new messages and answer the ones that need you; the reply-only-when-needed defaults above still apply. "Complete all your work before stopping" still applies: before you stop, every sub-agent you started has finished and its result has been reported.'
     );
     expect(prompt).not.toContain('Finish within your turn');
+    // Haus divergence (2026-11-17): the Agent does the work and delegates only bulk or parallel pieces.
+    expect(prompt).toContain(
+        '2. **Do the work yourself.** Hand off only bulk reading or searching, and independent pieces that can run in parallel.'
+    );
+    expect(prompt).not.toContain('Hand anything beyond a few tool calls');
     expect(prompt).toContain(
         'Splitting work into Haus Tasks for other named agents (above) and starting cloud agents are separate tools; do not turn each sub-agent job into a Task or a cloud agent.'
     );
