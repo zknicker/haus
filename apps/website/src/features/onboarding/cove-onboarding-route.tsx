@@ -47,28 +47,17 @@ export function CoveOnboardingRoute() {
     let view = getCoveOnboardingView(server.data.onboarding);
     let redirect: string | null = null;
     if (view === 'app') {
-        const serverRoot = `/s/${server.data.slug}`;
-        const target = `/s/${server.data.slug}/chats/${server.data.onboarding.channelId}`;
         const handoff = resolveCoveAppHandoff({
-            onboardingChatPath: target,
+            onboardingChatPath: `/s/${server.data.slug}/chats/${server.data.onboarding.channelId}`,
             pathname: location.pathname,
             pending: wasGated.current === server.data.id,
-            serverRootPath: serverRoot,
         });
-        if (handoff.redirect && wasGated.current === server.data.id) {
-            redirect = handoff.redirect;
-            view = 'applying-cove';
-        } else if (handoff.redirect) {
-            return (
-                <>
-                    <ActivationLoading />
-                    <Navigate replace to={handoff.redirect} />
-                </>
-            );
-        } else {
+        if (!handoff.redirect) {
             wasGated.current = null;
             return <Outlet />;
         }
+        redirect = handoff.redirect;
+        view = 'applying-cove';
     }
     wasGated.current = server.data.id;
 

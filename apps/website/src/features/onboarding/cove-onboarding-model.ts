@@ -39,17 +39,18 @@ export function getCoveOnboardingView(onboarding: ServerOnboarding): CoveOnboard
     return onboarding.computerId ? 'detecting-runtimes' : 'connect-computer';
 }
 
+/**
+ * Only the live handoff (this window just watched the gate finish) enters the onboarding
+ * chat. Later visits, including App launch at the Server root, navigate normally.
+ */
 export function resolveCoveAppHandoff(input: {
     onboardingChatPath: string;
     pathname: string;
     pending: boolean;
-    serverRootPath: string;
 }) {
-    const shouldEnterOnboardingChat = input.pending || input.pathname === input.serverRootPath;
     return {
-        pending: false,
         redirect:
-            shouldEnterOnboardingChat && input.pathname !== input.onboardingChatPath
+            input.pending && input.pathname !== input.onboardingChatPath
                 ? input.onboardingChatPath
                 : null,
     };

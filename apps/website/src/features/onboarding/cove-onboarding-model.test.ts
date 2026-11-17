@@ -158,20 +158,29 @@ describe('Cove onboarding presentation boundary', () => {
 });
 
 test('completed onboarding redirects once, then releases ordinary Chat navigation', () => {
-    const first = resolveCoveAppHandoff({
-        onboardingChatPath: '/s/fresh/chats/onboarding',
-        pathname: '/s/fresh',
-        pending: true,
-        serverRootPath: '/s/fresh',
-    });
-    expect(first).toEqual({ pending: false, redirect: '/s/fresh/chats/onboarding' });
+    expect(
+        resolveCoveAppHandoff({
+            onboardingChatPath: '/s/fresh/chats/onboarding',
+            pathname: '/s/fresh',
+            pending: true,
+        })
+    ).toEqual({ redirect: '/s/fresh/chats/onboarding' });
 
     expect(
         resolveCoveAppHandoff({
             onboardingChatPath: '/s/fresh/chats/onboarding',
             pathname: '/s/fresh/chats/general',
-            pending: first.pending,
-            serverRootPath: '/s/fresh',
+            pending: false,
         })
-    ).toEqual({ pending: false, redirect: null });
+    ).toEqual({ redirect: null });
+});
+
+test('a later visit to the Server root lands on the Server index, not the onboarding chat', () => {
+    expect(
+        resolveCoveAppHandoff({
+            onboardingChatPath: '/s/fresh/chats/onboarding',
+            pathname: '/s/fresh',
+            pending: false,
+        })
+    ).toEqual({ redirect: null });
 });
