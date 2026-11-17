@@ -1,12 +1,11 @@
-import {
-    addressedReasonSchema,
-    agentThreadContextSchema,
-    chatMessageReplySchema,
-    cloudAgentWorkAttentionSchema,
-    humanTimezoneSchema,
-} from '@haus/api';
+import { addressedReasonSchema, humanTimezoneSchema } from '@haus/api';
 import type { UnreadElsewhere } from './agent-commands.ts';
+import {
+    agentThreadContextResponseSchema,
+    cloudAgentWorkAttentionResponseSchema,
+} from './agent-inbox-attention-response-schema.ts';
 import type { AgentCloudAgentWorkAttention, AgentInboxItem } from './agent-inbox-item.ts';
+import { chatMessageReplyResponseSchema } from './chat-message-reply-response-schema.ts';
 
 /**
  * Inbox identities the Server marked drainable for this run. An older Server
@@ -106,8 +105,8 @@ function parseInboxItem(item: unknown): AgentInboxItem | null {
         return null;
     }
     const cloudAgentWork = parseCloudAgentWorkAttention(item.cloudAgentWork);
-    const reply = chatMessageReplySchema.nullish().safeParse(item.reply);
-    const threadContext = agentThreadContextSchema.optional().safeParse(item.threadContext);
+    const reply = chatMessageReplyResponseSchema.nullish().safeParse(item.reply);
+    const threadContext = agentThreadContextResponseSchema.optional().safeParse(item.threadContext);
     if (!(reply.success && threadContext.success)) {
         return null;
     }
@@ -140,7 +139,7 @@ function parseCloudAgentWorkAttention(
     if (value === undefined) {
         return undefined;
     }
-    const parsed = cloudAgentWorkAttentionSchema.safeParse(value);
+    const parsed = cloudAgentWorkAttentionResponseSchema.safeParse(value);
     return parsed.success ? parsed.data : null;
 }
 

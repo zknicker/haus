@@ -1,14 +1,21 @@
 import {
     agentAutomationEventSchema,
-    chatMessageReplySchema,
     claimOrigins,
     type HausAgentMessage,
     type HausAgentSendResponse,
     humanTimezoneSchema,
 } from '@haus/api';
 import * as z from 'zod';
+import { chatMessageReplyResponseSchema } from '../chat-message-reply-response-schema.ts';
 import { agentCloudAgentReceiptResponseSchema } from './cloud-agent-work-response-schema.ts';
 import { messageCloudAgentWorkSchema } from './message-cloud-agent-work-schema.ts';
+
+/**
+ * Loosened at its own level so a newer Server's automation event field
+ * (a Trigger or Reminder fire, or a claim assignment) does not strand an
+ * older Computer reading `haus message check`.
+ */
+const agentAutomationEventResponseSchema = z.looseObject(agentAutomationEventSchema.shape);
 
 const jsonObjectSchema = z.record(z.string(), z.unknown());
 
@@ -62,7 +69,7 @@ export const agentMessageSchema = z.object({
         .array(z.object({ actors: z.array(claimActorSchema), emoji: z.string() }))
         .optional(),
     replyCount: z.number().int().nonnegative().optional(),
-    reply: chatMessageReplySchema.nullable().optional(),
+    reply: chatMessageReplyResponseSchema.nullable().optional(),
     replyTarget: z.string().min(1).optional(),
     role: z.enum(['user', 'assistant', 'system']),
     sender: z.object({
@@ -127,7 +134,7 @@ export const agentMessageCheckResponseSchema = z.object({
      * and claim assignments. None writes a Chat message, so they ride their own
      * array and carry their own envelope bodies.
      */
-    automations: z.array(agentAutomationEventSchema).default([]),
+    automations: z.array(agentAutomationEventResponseSchema).default([]),
     messages: z.array(
         z.object({
             message: agentMessageSchema,

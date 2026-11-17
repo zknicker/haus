@@ -1,6 +1,7 @@
-import { type AgentTriggerSecretResult, agentTriggerSecretResultSchema } from '@haus/api';
+import type { AgentTriggerSecretResult } from '@haus/api';
 import { AgentApiTransportError } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
+import { agentTriggerSecretResultResponseSchema } from '../agent-trigger-response-schema.ts';
 import type { ParsedArgs } from '../parse.ts';
 import {
     closePrivateSecretSink,
@@ -25,7 +26,7 @@ export async function createWebhookTrigger(
 ): Promise<number> {
     const sink = preparePrivateSecretSink(args.values['--output']);
     const response = await requestIntoSink(sink, 'create', () =>
-        deps.client.request('/api/agent/triggers', agentTriggerSecretResultSchema, {
+        deps.client.request('/api/agent/triggers', agentTriggerSecretResultResponseSchema, {
             body,
             method: 'POST',
         })
@@ -44,7 +45,7 @@ export async function rotateWebhookSecret(
     const response = await requestIntoSink(sink, 'rotate', () =>
         deps.client.request(
             `/api/agent/triggers/${encodeURIComponent(id)}/rotate`,
-            agentTriggerSecretResultSchema,
+            agentTriggerSecretResultResponseSchema,
             { method: 'POST' }
         )
     );

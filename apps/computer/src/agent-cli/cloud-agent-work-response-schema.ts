@@ -29,7 +29,7 @@ const cloudAgentPullRequestReadingResponseSchema = z.looseObject(
     cloudAgentPullRequestReadingSchema.shape
 );
 
-const cloudAgentBranchResponseSchema = z.looseObject({
+export const cloudAgentBranchResponseSchema = z.looseObject({
     ...cloudAgentBranchSchema.shape,
     pullRequest: cloudAgentPullRequestResponseSchema.nullable().optional(),
 });

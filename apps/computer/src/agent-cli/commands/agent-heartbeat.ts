@@ -1,11 +1,10 @@
-import {
-    heartbeatLearnedInputSchema,
-    heartbeatLearnedResponseSchema,
-    heartbeatReportInputSchema,
-    heartbeatReportResponseSchema,
-} from '@haus/api';
+import { heartbeatLearnedInputSchema, heartbeatReportInputSchema } from '@haus/api';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
+import {
+    heartbeatLearnedResultResponseSchema,
+    heartbeatReportResultResponseSchema,
+} from '../heartbeat-lead-response-schema.ts';
 import type { ParsedArgs } from '../parse.ts';
 import { readAgentStdin } from '../stdin.ts';
 import type { SubCommand } from '../subcommand.ts';
@@ -57,7 +56,7 @@ export async function runHeartbeatReport(args: ParsedArgs, deps: HeartbeatDeps):
     if (!input.success) {
         throw new AgentCliError('INVALID_ARG', 'The report must be 1–4000 characters.');
     }
-    await deps.client.request('/api/agent/heartbeat/report', heartbeatReportResponseSchema, {
+    await deps.client.request('/api/agent/heartbeat/report', heartbeatReportResultResponseSchema, {
         body: input.data,
         method: 'POST',
     });
@@ -72,10 +71,14 @@ export async function runHeartbeatLearned(args: ParsedArgs, deps: HeartbeatDeps)
     if (!input.success) {
         throw new AgentCliError('INVALID_ARG', 'The summary must be 1–2000 characters.');
     }
-    await deps.client.request('/api/agent/heartbeat/learned', heartbeatLearnedResponseSchema, {
-        body: input.data,
-        method: 'POST',
-    });
+    await deps.client.request(
+        '/api/agent/heartbeat/learned',
+        heartbeatLearnedResultResponseSchema,
+        {
+            body: input.data,
+            method: 'POST',
+        }
+    );
     deps.write("Summary saved on tonight's run.\n");
     return 0;
 }
