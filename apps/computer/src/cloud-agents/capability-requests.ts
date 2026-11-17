@@ -1,11 +1,12 @@
 import type { CloudAgentCapabilityRequest, CloudAgentCapabilityResult } from '@haus/api';
-import { cloudAgentCapabilityRequestSchema, cloudAgentCapabilityResultSchema } from '@haus/api';
+import { cloudAgentCapabilityResultSchema } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
 import {
     cloudAgentEnvironmentsOf,
     listClaudeCloudEnvironmentsAutoPinning,
     requireLiveClaudeCloudEnvironment,
 } from './claude/environments.ts';
+import { cloudAgentCapabilityRequestResponseSchema } from './command-frame-response-schema.ts';
 import { providerSignIn } from './provider-sign-in.ts';
 import {
     type CloudAgentProviderAccess,
@@ -22,7 +23,7 @@ import {
 export function parseCloudAgentCapabilityRequest(
     value: unknown
 ): CloudAgentCapabilityRequest | null {
-    const parsed = cloudAgentCapabilityRequestSchema.safeParse(value);
+    const parsed = cloudAgentCapabilityRequestResponseSchema.safeParse(value);
     return parsed.success ? parsed.data : null;
 }
 

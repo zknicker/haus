@@ -1,5 +1,11 @@
 import { expect, test } from 'bun:test';
-import { type ClaimRow, formatClaimResults, formatClaimsCreated } from './agent-claim-format.ts';
+import { claimConflictSchema } from '@haus/api';
+import {
+    type ClaimRow,
+    claimResultSchema,
+    formatClaimResults,
+    formatClaimsCreated,
+} from './agent-claim-format.ts';
 
 // A Thread claim's row carries its Thread's own target (`#channel:anchor` or
 // `dm:@handle:anchor`). Threads refuse `--reply-to` and cannot nest.
@@ -45,6 +51,40 @@ test('a Thread claim names the Thread it sits in as its thread address, never a 
     expect(formatClaimsCreated([claimRow('#general:9f8e7d6c')], '#general')).toBe(
         'Created claim #7 [in_progress] in #general:9f8e7d6c. Message ID: msg_1a2b3c4d00000000. Thread: "#general:9f8e7d6c".\n'
     );
+});
+
+/**
+ * A current Server's claim conflict, plus a field a future Server release
+ * might additively send. Before the loosened `claimResultSchema`, this
+ * field stranded `haus claim`'s whole response.
+ */
+const claimConflictWithUnknownField = {
+    blockedActions: ['implementation_execution'],
+    claimedAt: '2026-11-02T20:00:00.000Z',
+    conflictScope: 'implementation_execution',
+    currentAssignee: { name: 'wren', type: 'agent' },
+    futureConflictField: true,
+    kind: 'claim_conflict',
+    observedAt: '2026-11-02T20:05:00.000Z',
+    status: 'in_progress',
+    unblockedActionExamples: [],
+};
+
+test('the canonical strict claim conflict schema rejects a field it does not know', () => {
+    expect(() => claimConflictSchema.parse(claimConflictWithUnknownField)).toThrow(
+        /futureConflictField/
+    );
+});
+
+test('the Computer response schema tolerates an unknown field on a claim conflict', () => {
+    const parsed = claimResultSchema.parse({
+        claim: null,
+        claimConflict: claimConflictWithUnknownField,
+        number: 7,
+        outcome: 'refused',
+        reason: 'Held by @wren.',
+    });
+    expect(parsed.claimConflict?.currentAssignee?.name).toBe('wren');
 });
 
 function claimRow(target: string): ClaimRow {

@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { artifactDownloadResultSchema } from '@haus/api';
+import { artifactDownloadResultResponseSchema } from '../agent-cli/artifact-drive-response-schema.ts';
 import { applyServerAcceptEncoding, relayDecodedResponse } from '../server-encoding.ts';
 import { ArtifactCache } from './cache.ts';
 
@@ -73,7 +73,7 @@ async function handleArtifactRequest(
     if (!response.ok) {
         return await relayDecodedResponse(response);
     }
-    const download = artifactDownloadResultSchema.parse(await response.json());
+    const download = artifactDownloadResultResponseSchema.parse(await response.json());
     const path = await cache.resolve({
         serverId,
         artifact: download.artifact,

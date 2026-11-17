@@ -1,11 +1,7 @@
-import {
-    type AgentGithubTriggerConfigInput,
-    agentTriggerResultSchema,
-    type TriggerKind,
-    triggerKindSchema,
-} from '@haus/api';
+import { type AgentGithubTriggerConfigInput, type TriggerKind, triggerKindSchema } from '@haus/api';
 import type { AgentApiRequester } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
+import { agentTriggerResultResponseSchema } from '../agent-trigger-response-schema.ts';
 import type { ParsedArgs } from '../parse.ts';
 import { githubOnlyFlags, readGithubTriggerConfig } from './agent-trigger-github.ts';
 
@@ -57,7 +53,7 @@ export function readTriggerConfig(
 export async function readTriggerKind(client: AgentApiRequester, id: string): Promise<TriggerKind> {
     const { trigger } = await client.request(
         `/api/agent/triggers/${encodeURIComponent(id)}`,
-        agentTriggerResultSchema,
+        agentTriggerResultResponseSchema,
         { method: 'GET' }
     );
     return trigger.kind;

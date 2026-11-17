@@ -1,12 +1,11 @@
-import {
-    type Lead,
-    leadClaimResultSchema,
-    leadDoneInputSchema,
-    leadListResponseSchema,
-} from '@haus/api';
+import { type Lead, leadDoneInputSchema } from '@haus/api';
 import * as z from 'zod';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
+import {
+    leadClaimResultResponseSchema,
+    leadListResultResponseSchema,
+} from '../heartbeat-lead-response-schema.ts';
 import type { ParsedArgs } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
 import { requiredValue } from './agent-command-utils.ts';
@@ -78,7 +77,7 @@ export const LEAD_SUBCOMMANDS: SubCommand[] = [
 
 export async function runLeadClaim(args: ParsedArgs, deps: LeadDeps): Promise<number> {
     const messageId = args.values['--message-id']?.trim();
-    const result = await deps.client.request('/api/agent/leads', leadClaimResultSchema, {
+    const result = await deps.client.request('/api/agent/leads', leadClaimResultResponseSchema, {
         body: { ...(messageId ? { messageId } : {}), topic: requiredValue(args, '--topic') },
         method: 'POST',
     });
@@ -91,7 +90,7 @@ export async function runLeadClaim(args: ParsedArgs, deps: LeadDeps): Promise<nu
 }
 
 export async function runLeadList(deps: LeadDeps): Promise<number> {
-    const { leads } = await deps.client.request('/api/agent/leads', leadListResponseSchema);
+    const { leads } = await deps.client.request('/api/agent/leads', leadListResultResponseSchema);
     if (leads.length === 0) {
         deps.write('No leads in the last 7 days.\n');
         return 0;

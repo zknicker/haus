@@ -1,5 +1,9 @@
 import { expect, test } from 'bun:test';
-import { agentStartCommandSchema, agentTurnSummarySchema } from '@haus/api';
+import {
+    agentStartCommandSchema,
+    agentTurnSummarySchema,
+    cloudAgentWorkAttentionSchema,
+} from '@haus/api';
 import { parseStartCommand } from './agent-command-frames.ts';
 import { parseInbox, rejectedInboxItems } from './agent-inbox-input.ts';
 import { dispatchAgentStart } from './agent-start-dispatch.ts';
@@ -143,4 +147,116 @@ test("accepts a human sender's IANA zone and refuses one on any other sender", (
     );
     expect(parseInbox([item('agent', 'America/Chicago')])).toBeNull();
     expect(parseInbox([item('human', '+05:00')])).toBeNull();
+});
+
+/**
+ * A current Server's inline reply, thread-join context, and settled Cloud
+ * Agent attention, each carrying a field a future Server release might
+ * additively send at every nesting level the shape reaches. Before the
+ * loosened response schemas, any one of these fields stranded the whole
+ * inbox item: `parseInbox` requires every item in the frame to parse, so a
+ * single unrecognized field failed the entire `start` or `notice` command
+ * closed, rather than just the one inbox item.
+ */
+function inboxItemWithUnknownNestedFields() {
+    const reply = {
+        futureReplyField: true,
+        parent: {
+            author: { agentId: 'agt_orbit', futureAuthorField: true, kind: 'agent' },
+            content: 'Earlier message',
+            createdAt: '2026-09-04T12:00:00.000Z',
+            futureReferenceField: true,
+            id: 'msg_parent1234567890',
+            sequence: 1,
+        },
+        parentMessageId: 'msg_parent1234567890',
+        root: {
+            author: { futureAuthorField: true, kind: 'human', userId: 'usr_zach' },
+            content: 'Root message',
+            createdAt: '2026-09-04T11:00:00.000Z',
+            futureReferenceField: true,
+            id: 'msg_root1234567890',
+            sequence: 1,
+        },
+        rootMessageId: 'msg_root1234567890',
+    };
+    const threadMessage = {
+        chatId: 'cht_1',
+        content: 'Standup at 9?',
+        createdAt: '2026-09-23T00:00:00.000Z',
+        futureThreadMessageField: true,
+        id: 'msg_1',
+        senderHandle: 'ada',
+        senderType: 'human',
+        sequence: 1,
+    };
+    const threadContext = {
+        futureThreadContextField: true,
+        parentMessage: threadMessage,
+        parentTarget: '#product',
+        recentMessages: [threadMessage],
+        suggestedReadTarget: '#product',
+        threadTarget: '#product:msg_1',
+        truncated: false,
+    };
+    const cloudAgentWork = {
+        branches: [
+            {
+                branch: 'fix/flaky-delivery',
+                futureBranchField: true,
+                pullRequest: {
+                    additions: 12,
+                    changedFiles: 2,
+                    deletions: 3,
+                    futurePullRequestField: true,
+                    number: 42,
+                    observedAt: '2026-09-04T12:05:00.000Z',
+                    state: 'open',
+                },
+                pullRequestUrl: 'https://github.com/haus/haus/pull/42',
+                repository: 'haus/haus',
+            },
+        ],
+        errorCode: null,
+        futureAttentionField: true,
+        notice: 'settled',
+        provider: 'cursor',
+        providerUrl: null,
+        repository: 'haus/haus',
+        runId: 'car_1234567890abcdef',
+        stallCode: null,
+        status: 'completed',
+        summary: 'Opened a pull request.',
+        title: 'Fix the flaky delivery test',
+        workId: 'caw_1234567890abcdef',
+    };
+    return {
+        chatId: 'cht_origin',
+        cloudAgentWork,
+        content: '',
+        createdAt: '2026-09-08T03:47:39.214Z',
+        id: cloudAgentWork.runId,
+        reply,
+        senderHandle: 'haus',
+        senderType: 'system',
+        sequence: 0,
+        target: '@operator',
+        threadContext,
+    };
+}
+
+test('the canonical strict cloud agent attention schema rejects a field it does not know', () => {
+    const { cloudAgentWork } = inboxItemWithUnknownNestedFields();
+    expect(() => cloudAgentWorkAttentionSchema.parse(cloudAgentWork)).toThrow(
+        /futureAttentionField/
+    );
+});
+
+test('parseInbox tolerates an inline reply, thread context, and cloud agent attention carrying fields from a newer Server, at every nesting level', () => {
+    const item = inboxItemWithUnknownNestedFields();
+    const [parsed] = parseInbox([item]) ?? [];
+    expect(parsed?.id).toBe(item.id);
+    expect(parsed?.reply?.parentMessageId).toBe('msg_parent1234567890');
+    expect(parsed?.threadContext?.parentMessage.id).toBe('msg_1');
+    expect(parsed?.cloudAgentWork?.branches[0]?.pullRequest?.number).toBe(42);
 });

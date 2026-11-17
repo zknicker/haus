@@ -1,11 +1,10 @@
 import { readFile } from 'node:fs/promises';
-import {
-    agentTriggerResultSchema,
-    agentTriggerUpdateInputSchema,
-    githubTriggerPreviewInputSchema,
-    githubTriggerPreviewResultSchema,
-} from '@haus/api';
+import { agentTriggerUpdateInputSchema, githubTriggerPreviewInputSchema } from '@haus/api';
 import { AgentCliError } from '../agent-error.ts';
+import {
+    agentTriggerResultResponseSchema,
+    githubTriggerPreviewResultResponseSchema,
+} from '../agent-trigger-response-schema.ts';
 import type { ParsedArgs } from '../parse.ts';
 import type { TriggerDeps } from './agent-trigger-actions.ts';
 import { hasConfigFlags, readTriggerConfig, readTriggerKind } from './agent-trigger-config.ts';
@@ -28,7 +27,7 @@ export async function runTriggerUpdate(args: ParsedArgs, deps: TriggerDeps): Pro
     }
     const result = await deps.client.request(
         `/api/agent/triggers/${encodeURIComponent(id)}`,
-        agentTriggerResultSchema,
+        agentTriggerResultResponseSchema,
         { body: input.data, method: 'PATCH' }
     );
     deps.write(`Updated. ${describeTrigger(result.trigger)}\n`);
@@ -53,7 +52,7 @@ export async function runTriggerPreview(args: ParsedArgs, deps: TriggerDeps): Pr
             'Provide a supported --event and a webhook JSON object.'
         );
     }
-    const result = await deps.client.request(route, githubTriggerPreviewResultSchema, {
+    const result = await deps.client.request(route, githubTriggerPreviewResultResponseSchema, {
         body: input.data,
         method: 'POST',
     });
