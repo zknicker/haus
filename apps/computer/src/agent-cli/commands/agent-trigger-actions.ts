@@ -1,8 +1,4 @@
 import {
-    agentTriggerDeleteResultSchema,
-    agentTriggerListSchema,
-    agentTriggerLogSchema,
-    agentTriggerResultSchema,
     type TriggerFire,
     type TriggerFireDetail,
     triggerInstructionMaxBytes,
@@ -12,6 +8,12 @@ import {
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
 import { formatUtcTime } from '../agent-format.ts';
+import {
+    agentTriggerDeleteResultResponseSchema,
+    agentTriggerListResponseSchema,
+    agentTriggerLogResponseSchema,
+    agentTriggerResultResponseSchema,
+} from '../agent-trigger-response-schema.ts';
 import type { ParsedArgs } from '../parse.ts';
 import { readKind, readTriggerConfig } from './agent-trigger-config.ts';
 import { createWebhookTrigger, rotateWebhookSecret } from './agent-trigger-secret.ts';
@@ -47,10 +49,14 @@ export async function runTriggerCreate(args: ParsedArgs, deps: TriggerDeps): Pro
             { nextAction: 'Drop --output and run the command again.' }
         );
     }
-    const response = await deps.client.request('/api/agent/triggers', agentTriggerResultSchema, {
-        body,
-        method: 'POST',
-    });
+    const response = await deps.client.request(
+        '/api/agent/triggers',
+        agentTriggerResultResponseSchema,
+        {
+            body,
+            method: 'POST',
+        }
+    );
     deps.write(
         `Created. ${describeTrigger(response.trigger)}\nNo URL or secret: GitHub deliveries reach you directly. Check fires with haus trigger log --id ${response.trigger.id}.\n`
     );
@@ -58,9 +64,13 @@ export async function runTriggerCreate(args: ParsedArgs, deps: TriggerDeps): Pro
 }
 
 export async function runTriggerList(_args: ParsedArgs, deps: TriggerDeps): Promise<number> {
-    const response = await deps.client.request('/api/agent/triggers', agentTriggerListSchema, {
-        method: 'GET',
-    });
+    const response = await deps.client.request(
+        '/api/agent/triggers',
+        agentTriggerListResponseSchema,
+        {
+            method: 'GET',
+        }
+    );
     if (response.triggers.length === 0) {
         deps.write(
             'No triggers. Create one with haus trigger create when an outside event should reach you.\n'
@@ -75,7 +85,7 @@ export async function runTriggerShow(args: ParsedArgs, deps: TriggerDeps): Promi
     const id = requireTriggerId(args);
     const response = await deps.client.request(
         `/api/agent/triggers/${encodeURIComponent(id)}`,
-        agentTriggerResultSchema,
+        agentTriggerResultResponseSchema,
         { method: 'GET' }
     );
     const { trigger } = response;
@@ -98,7 +108,7 @@ export async function runTriggerStatus(
     const id = requireTriggerId(args);
     const response = await deps.client.request(
         `/api/agent/triggers/${encodeURIComponent(id)}/${action}`,
-        agentTriggerResultSchema,
+        agentTriggerResultResponseSchema,
         { method: 'POST' }
     );
     const label = action === 'enable' ? 'Armed' : 'Disabled';
@@ -114,7 +124,7 @@ export async function runTriggerDelete(args: ParsedArgs, deps: TriggerDeps): Pro
     const id = requireTriggerId(args);
     const response = await deps.client.request(
         `/api/agent/triggers/${encodeURIComponent(id)}`,
-        agentTriggerDeleteResultSchema,
+        agentTriggerDeleteResultResponseSchema,
         { method: 'DELETE' }
     );
     deps.write(
@@ -129,7 +139,7 @@ export async function runTriggerLog(args: ParsedArgs, deps: TriggerDeps): Promis
     const limit = readLimit(args);
     const response = await deps.client.request(
         `/api/agent/triggers/${encodeURIComponent(id)}/log`,
-        agentTriggerLogSchema,
+        agentTriggerLogResponseSchema,
         { method: 'GET', query: { fire: fireId, limit } }
     );
     if (response.kind === 'fire') {
