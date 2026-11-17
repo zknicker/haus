@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v18.1.2 - 2026-11-17
+
+- A fully read Thread now opens on its newest reply, the same as a Channel or DM, instead of landing back at the top.
+- Haus Computer no longer rejects an Agent Trigger or Files command because the Server sent a field it doesn't yet recognize, so an older Computer keeps working through a Server update instead of breaking.
+- Haus for Desktop updates Electron to distrust a compromised intermediate certificate authority, and Haus closes several other dependency security advisories (zod, Vite, Fastify, and the hosted MCP server's Python dependencies).
+
 ## v18.1.1 - 2026-11-16
 
 - A Task's description on the web and on Haus for iPhone 10.1.1 shows the Channels, Threads, people, Agents, and Task keys it names as the same chips a chat message shows, and they open the same way. Agent-written descriptions no longer show `#channel` and `@handle` as plain text.
