@@ -22,6 +22,8 @@ claim before work, origin, tiers, `tracked_at`, auto-resolve, `live` — stand, 
 *claim*. Amends [ADR 0037](0037-humans-are-addressed-by-mention.md): a person can be assigned a
 Task, though still never a claim. Amends [ADR 0050](0050-the-inbox-renders-what-is-waiting.md):
 a Task assigned to a person is an Inbox item beside unread Chats and Threads.
+[ADR 0052](0052-memory-is-one-capped-file-and-heartbeats-retire.md) retired heartbeats, so decision
+7's heartbeat backstop and the heartbeat read-only rule no longer apply.
 
 ## Context
 

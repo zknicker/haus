@@ -296,8 +296,7 @@ A Claude Code background sub-agent or shell outlives the turn that started it
 finishes while the Agent is idle, Claude Code starts a turn of its own; the
 Computer asks the Server for a sub-agent wake (`agent-subagent-wake`) and holds
 the Agent's `haus` calls at the loopback proxy until that run's runner arrives.
-The Server queues one chatless concrete row (source `subagent`, built like a
-dream run) for the Agent's current session generation only; the wake run adopts
+The Server queues one chatless concrete row (source `subagent`) for the Agent's current session generation only; the wake run adopts
 Claude Code's turn instead of writing a prompt. The Server answers every request
 with `agent-subagent-wake-result`: `accepted`, or `refused` (wrong generation or
 Computer, a stopped Agent, or the automation chain at its ceiling with no reset
@@ -312,12 +311,7 @@ and session reset retire queued wakes.
 
 ## Bounds And Failures
 
-One Agent admits one turn at a time; different Agents run concurrently. A heartbeat
-(daytime or nightly) takes that one run slot as a chatless run, but it executes in a throwaway
-harness session that never touches the main session's resume state
-([ADR 0049](../adr/0049-heartbeats-run-in-throwaway-sessions.md)). A daytime heartbeat is skipped
-when the Agent is busy and yields its slot when a message addressed to the Agent is waiting; the
-nightly run queues and retires after four hours.
+One Agent admits one turn at a time; different Agents run concurrently.
 Sixteen consecutive drains containing only automation-authored work (Agent
 messages, Trigger fires, Trigger problem notices, and sub-agent wakes: sources
 `agent:*`, `trigger`, `trigger_problem`, and `subagent`) are allowed. The seventeenth remains queued

@@ -1,10 +1,10 @@
 ---
-summary: Fresh-session instruction composition and persistent Agent context.
+summary: Fresh-session instruction composition, MEMORY.md delivery in the turn input, and persistent Agent context.
 read_when:
   - changing generated Agent instructions
   - changing session resume, reset, model switching, or recovery
   - changing runtime launch config, Agent HOME setup, or what a runtime loads from disk (AGENTS.md, CLAUDE.md, settings)
-  - changing nightly dreaming, its quiet window, the dream request, or the dream turn's input
+  - changing how MEMORY.md reaches the turn input, its 8,000-character cap, or the memory receipt
   - changing compaction, idle compaction, or the Idle compaction Server setting
 ---
 
@@ -26,22 +26,19 @@ model session. Per-turn message delivery is an inbox concern; see
   context and prior data reads must be rechecked.
 - The model session spans every Chat the Agent participates in and resumes
   between deliveries and Computer restarts.
-- Each turn reads the current MEMORY.md (hot memory plus a notes index) and only the additional
-  notes needed for the task.
-  Context compression also requires a recovery read. These are Agent instructions, not automatic
-  file injection or a Computer-enforced freshness guarantee; the same global session still resumes.
-- Heartbeats (daytime check-ins and the nightly dream) each run as one turn in a fresh throwaway
-  session, `<agentId>-hb-<runId>`, with the same instructions, model, workspace, memory, and
-  tools. They never resume, rewrite, or interrupt the main session, so its cache and compaction
-  stay as they were. Their input is composed by Computer: a header naming the recipe
-  (`haus manual get recipes/technique/heartbeat`), the Server's digest of conversations since the
-  last run, the latest checkpoint, and where to read open reminders and leads. The nightly run
-  is the dream: it reflects, consolidates memory with the `memory-hygiene` Manual topic, follows
-  up dropped promises, and writes a summary. Its input never lives in standing-prompt text
-  ([heartbeat spec](../../specs/heartbeat.md), [Agent Workspace](../../specs/workspace.md#dreaming)).
-- After any heartbeat, the main session's next turn input carries one line saying how many
-  heartbeats ran since its last turn, how many reported, and where the latest checkpoint is. A
-  heartbeat report already reaches the main session as an inbox item.
+- `MEMORY.md` at the workspace root is the Agent's memory, and the Computer delivers it: at turn
+  start it reads the file and puts it in the turn input when its content differs from what this
+  session last received. An unchanged file adds nothing to the turn; a missing file delivers
+  nothing. Delivery is capped at 8,000 characters: a longer file is cut at a line boundary under
+  the cap, with a notice in the same block naming the file's size and the cap and asking the Agent
+  to tighten it. A memory receipt (content digest) works like the instruction receipt: it advances
+  only after a turn that carried the file or whose own edits produced the current content, and it
+  resets on a fresh session or a compacted turn, so the next turn carries the file again
+  ([ADR 0052](../adr/0052-memory-is-one-capped-file-and-heartbeats-retire.md),
+  [Agent Workspace](../../specs/workspace.md#memory)). The Agent reads any other notes it needs
+  itself.
+- Every turn runs in the Agent's one main session. Haus runs no scheduled, unprompted turns:
+  heartbeats and the nightly dream retired with ADR 0052.
 - Explicit MCP requests use the fixed `execute` tool to discover and invoke currently granted
   Server tools. MCP grants and discovery results never change the host-tool catalog.
   Missing tools call for the specific connection or grant to be repaired; local configuration
@@ -109,14 +106,15 @@ and other prompt text is never cut just to make room. Raft-verbatim text is neve
 AGENTS.md and [the divergence register](../../specs/raft-alignment/prompt-divergences.md).
 
 Durable Agent knowledge lives in the Agent-owned workspace (`MEMORY.md` and
-notes), not an injected memory system. Agents read older canonical Chat history
-through the `haus` CLI when inbox delivery is insufficient.
+notes). Only `MEMORY.md` reaches the turn input, and only when it changed. Agents
+read older canonical Chat history through the `haus` CLI when inbox delivery is
+insufficient.
 
-A model's context is the composed instructions, the workspace files the Agent
-chooses to read, and its isolated `HOME` (skill links and runtime state). No
-runtime auto-loads `AGENTS.md`, `CLAUDE.md`, or an equivalent from the
-workspace, its ancestors, or the operator's home; the Agent reads `MEMORY.md`
-itself, as the prompt directs. Computer enforces this per runtime:
+A model's context is the composed instructions, `MEMORY.md` as the Computer
+delivers it, the workspace files the Agent chooses to read, and its isolated
+`HOME` (skill links and runtime state). No runtime auto-loads `AGENTS.md`,
+`CLAUDE.md`, or an equivalent from the workspace, its ancestors, or the
+operator's home. Computer enforces this per runtime:
 
 | Runtime | Ambient instruction loading | Haus setting |
 | --- | --- | --- |

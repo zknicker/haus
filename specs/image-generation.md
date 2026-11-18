@@ -170,8 +170,8 @@ generation never enqueues anything and never wakes the Agent.
 - It lands in the Chat of the earliest live Message that links the generation, where people saw
   the card fail. It is committed in its own transaction right after the failure settles, then the
   Agent is woken.
-- **Unlinked failures send nothing.** `agent_inbox.chat_id` is null only for a `dream`, and every
-  inbox lane, target, and trigger projection assumes a Chat for everything else. A chatless notice
+- **Unlinked failures send nothing.** Every inbox lane, target, and trigger projection
+  assumes a Chat except the dedicated chatless lanes (sub-agent wakes, Task assignments). A chatless notice
   would mean a new lane across schema, target rendering, and turn triggers. The Agent that never
   posted the link is either running `wait` (which prints the failure) or nobody saw a card. A
   failure that lands in the instant before the link posts is also silent; the card still shows it.

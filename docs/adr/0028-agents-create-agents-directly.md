@@ -15,7 +15,9 @@ read_when:
 Accepted 2026-09-09. Amended 2026-10-03 to separate creation from introduction, and 2026-11-03
 to make the new Agent's own greeting its only introduction. Supersedes the prepared-action and human-commit clauses of ADR 0024. Amends
 ADR 0025 (the `agent-creation-proposal` body becomes `agent-created`) and ADR 0021 (Cove's factory
-guidance and the shared Manual corpus).
+guidance and the shared Manual corpus). Its clauses about dreams, heartbeats, and heartbeat
+reports lapsed when [ADR 0052](0052-memory-is-one-capped-file-and-heartbeats-retire.md) retired
+them.
 
 ## Decision
 
