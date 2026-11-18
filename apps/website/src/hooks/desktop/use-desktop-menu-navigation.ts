@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 
 /**

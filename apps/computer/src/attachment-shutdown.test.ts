@@ -2,6 +2,7 @@ import { expect, spyOn, test } from 'bun:test';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { AttachmentDaemonWork } from './attachment-daemon-work.ts';
 import {
     stopAttachmentProcess,

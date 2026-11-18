@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+
 import type { AgentExecutionJournal } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { TurnTracePresentation } from './turn-trace.tsx';
+
 import { codexFailureTurn, imageTurn } from './turn-trace-codex-fixtures.ts';
+import { TurnTracePresentation } from './turn-trace.tsx';
 
 test('a reasoning title is a Thought row on the grid, its title as muted detail', () => {
     const markup = renderJournal(codexFailureTurn);

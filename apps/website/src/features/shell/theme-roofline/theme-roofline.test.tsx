@@ -1,5 +1,7 @@
 import { afterEach, expect, test } from 'bun:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { selectColorTheme } from '../../../hooks/shell/use-color-theme.ts';
 import { WindowBand } from '../window-band.tsx';
 import { ThemeRoofline } from './theme-roofline.tsx';

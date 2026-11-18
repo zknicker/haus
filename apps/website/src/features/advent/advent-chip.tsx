@@ -2,6 +2,7 @@ import { adventDoorCount } from '@haus/api';
 import { Chip } from '@heroui/react';
 import * as React from 'react';
 import { Button } from 'react-aria-components';
+
 import { useColorThemeDefinition } from '../../hooks/shell/use-color-theme.ts';
 import { useServerContext } from '../servers/server-context.ts';
 import { AdventCalendarDialog } from './advent-calendar-dialog.tsx';
@@ -44,7 +45,7 @@ function AdventEntry({ season }: { season: AdventSeason }) {
                         ? 'Open the advent calendar, your year in Haus'
                         : `Open the advent calendar, day ${season.today}`
                 }
-                className="inline-flex shrink-0 cursor-(--cursor-interactive) rounded-2xl outline-none data-[focus-visible]:ring-2 data-[focus-visible]:ring-focus"
+                className="data-[focus-visible]:ring-focus inline-flex shrink-0 cursor-(--cursor-interactive) rounded-2xl outline-none data-[focus-visible]:ring-2"
                 onPress={() => setIsOpen(true)}
             >
                 <Chip size="sm" variant="secondary">
@@ -60,7 +61,7 @@ function AdventEntry({ season }: { season: AdventSeason }) {
                     {unopened ? (
                         <span
                             aria-hidden="true"
-                            className="size-1.5 shrink-0 rounded-full bg-accent"
+                            className="bg-accent size-1.5 shrink-0 rounded-full"
                         />
                     ) : null}
                 </Chip>

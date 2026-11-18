@@ -1,5 +1,6 @@
 import { type CloudAgentProvider, cloudAgentProviders } from '@haus/api';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+
 import {
     type CloudAgentSettingsTarget,
     useCloudAgentSettings,
@@ -9,12 +10,12 @@ import { formatRelativeTime } from '../../../lib/format.ts';
 import { cloudAgentProviderName } from '../../cloud-agents/cloud-agent-provider-presentation.ts';
 import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 import { SettingsFact, SettingsRowError, SettingsRowWarning } from '../layout/settings-text.tsx';
+import { CloudAgentModelPicker } from './cloud-agent-model-picker.tsx';
 import {
     type CloudAgentModelView,
     cloudAgentModelView,
     modelSettingForKey,
 } from './cloud-agent-model.ts';
-import { CloudAgentModelPicker } from './cloud-agent-model-picker.tsx';
 import { CloudAgentParamRows } from './cloud-agent-param-rows.tsx';
 
 /**

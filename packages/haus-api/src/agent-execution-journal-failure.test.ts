@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { executionToolFailure, executionTurnFailure } from './agent-execution-journal-failure.ts';
 
 test('names a failed turn by its terminal error line, not its stack', () => {

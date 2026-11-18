@@ -1,7 +1,9 @@
 import { expect, test } from 'bun:test';
+
 import type { AgentActivityEvent, AgentActivityHistoryPage } from '@haus/api';
 import { QueryClient, QueryObserver } from '@tanstack/react-query';
 import { getQueryKey } from '@trpc/react-query';
+
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { selectActivityPreview } from '../members/use-agent-activity-preview.ts';
 import {

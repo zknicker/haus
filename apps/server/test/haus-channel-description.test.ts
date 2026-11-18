@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { allChannelDescription } from '../src/servers/contracts.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 

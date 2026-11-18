@@ -13,6 +13,7 @@ import {
     unique,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
+
 import { avatarsTable } from './avatars.ts';
 import { bunJsonb } from './bun-jsonb.ts';
 import { chatMessagesTable } from './chat-messages.ts';

@@ -1,5 +1,6 @@
 import type { agentMcpCatalogQuerySchema } from '@haus/api';
 import type * as z from 'zod';
+
 import type { GrantedConnection } from './agent-access.ts';
 import type { McpCatalogTool, McpToolDefinition } from './runtime.ts';
 

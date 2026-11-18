@@ -4,6 +4,7 @@ import { SquareLock02Icon } from '@hugeicons-pro/core-solid-rounded';
 import { motion, useReducedMotion } from 'motion/react';
 import type * as React from 'react';
 import { Button as DoorButton } from 'react-aria-components';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { AdventLine } from './advent-line.tsx';
 import { type DoorState, doorColor } from './advent-season.ts';
@@ -44,7 +45,7 @@ export function AdventDoor({
         <Tooltip delay={250}>
             <DoorButton
                 aria-label={doorLabel(day, state, entry)}
-                className="advent-door rounded-xl outline-none data-[focus-visible]:ring-2 data-[focus-visible]:ring-focus"
+                className="advent-door data-[focus-visible]:ring-focus rounded-xl outline-none data-[focus-visible]:ring-2"
                 data-color={color}
                 data-door={day}
                 data-state={state}

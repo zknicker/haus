@@ -1,6 +1,8 @@
 import { afterAll, afterEach, expect, test } from 'bun:test';
+
 import { makeTestRuntime, settle } from '@haus/effect';
 import { TestClock } from 'effect';
+
 import { createCursorCloudAgentProvider } from './cursor/provider.ts';
 import { createRecordedCursorTransport, recordedAuth } from './cursor/recorded-transport.ts';
 import type { CursorAuth, CursorTransport } from './cursor/transport.ts';

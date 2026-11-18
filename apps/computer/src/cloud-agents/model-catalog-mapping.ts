@@ -8,6 +8,7 @@ import {
     cursorAutoModelId,
     cursorFastParamId,
 } from '@haus/api';
+
 import type { CloudAgentModelListing, CloudAgentModelParamValue } from './provider.ts';
 
 /** Cursor spells one effort control three ways; the first one a model lists wins. */

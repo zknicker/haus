@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import { eq } from 'drizzle-orm';
+
 import { inspectAgentInbox } from '../src/agent-api/inbox.ts';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import type { ResolvedRunner } from '../src/computers/runner-credentials.ts';

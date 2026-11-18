@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { parse } from 'yaml';
 
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));

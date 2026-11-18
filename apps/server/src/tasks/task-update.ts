@@ -1,5 +1,6 @@
 import type { TaskUpdateInput } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { tasksTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';

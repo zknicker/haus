@@ -1,10 +1,11 @@
 import { expect, test } from 'bun:test';
+
+import { resolveCloudAgentRunModel } from './cloud-agent-model-choice.ts';
 import {
     cloudAgentModelCatalogSchema,
     cloudAgentModelSettingSchema,
     cloudAgentRunModelSchema,
 } from './cloud-agent-model.ts';
-import { resolveCloudAgentRunModel } from './cloud-agent-model-choice.ts';
 import { computerInventorySchema } from './computer-inventory.ts';
 
 const nano = {

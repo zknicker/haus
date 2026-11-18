@@ -1,14 +1,14 @@
 {
-  "name": "haus-about",
-  "compatibility_date": "2026-09-10",
-  "workers_dev": false,
-  "routes": [
-    { "pattern": "haus.chat/about", "zone_name": "haus.chat" },
-    { "pattern": "haus.chat/about/*", "zone_name": "haus.chat" }
-  ],
-  "assets": {
-    "directory": "./public",
-    "html_handling": "force-trailing-slash",
-    "not_found_handling": "none"
-  }
+    "name": "haus-about",
+    "compatibility_date": "2026-09-10",
+    "workers_dev": false,
+    "routes": [
+        { "pattern": "haus.chat/about", "zone_name": "haus.chat" },
+        { "pattern": "haus.chat/about/*", "zone_name": "haus.chat" },
+    ],
+    "assets": {
+        "directory": "./public",
+        "html_handling": "force-trailing-slash",
+        "not_found_handling": "none",
+    },
 }

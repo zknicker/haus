@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { link, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+
 import type { StoredNoticeReceipt } from '../delivery.ts';
 
 export async function deliverStoredNotice(

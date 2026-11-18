@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+
 import type { Agent, AgentLifecycleEvent } from '@haus/api';
+
 import type { CurrentAgentActivity } from '../../../hooks/agents/current-agent-activity.ts';
 import { currentAgentActivityLabels, happeningNowAgentRows } from './inbox-agent-activity.ts';
 

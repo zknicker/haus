@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { type StalledClaim, selectStalledClaims } from './stalled-claims.ts';
 
 function claim(overrides: Partial<StalledClaim> & { id: string }) {

@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import type { BrowserCommand } from '../../lib/desktop-browser.ts';
 
 export interface BrowserFind {

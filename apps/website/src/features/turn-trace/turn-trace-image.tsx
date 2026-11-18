@@ -54,7 +54,7 @@ function WorkspaceImage({
         <TurnTraceImageViewer image={image} path={path} src={src} workspace={workspace}>
             <img
                 alt={path}
-                className="h-auto max-h-60 w-auto max-w-full rounded-md border border-separator bg-background object-contain"
+                className="border-separator bg-background h-auto max-h-60 w-auto max-w-full rounded-md border object-contain"
                 // Generated images are square by default; the attributes only seed
                 // the aspect ratio before the data URI decodes.
                 height={1024}
@@ -70,10 +70,10 @@ function ImageFileName({ image }: { image: TurnTraceImage }) {
         return null;
     }
     return (
-        <p className="flex min-w-0 max-w-full items-baseline gap-2 text-sm">
-            <span className="min-w-0 truncate text-foreground">{image.file.name}</span>
+        <p className="flex max-w-full min-w-0 items-baseline gap-2 text-sm">
+            <span className="text-foreground min-w-0 truncate">{image.file.name}</span>
             {image.file.dir ? (
-                <span className="min-w-0 truncate text-muted">{image.file.dir}</span>
+                <span className="text-muted min-w-0 truncate">{image.file.dir}</span>
             ) : null}
         </p>
     );

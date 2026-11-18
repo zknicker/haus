@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+
 import type { GithubDelivery, GithubIngestOutcome } from './delivery-ingest.ts';
 import type { GithubApp } from './github-app.ts';
 import { registerGithubSinkRoute } from './sink-route.ts';

@@ -1,8 +1,9 @@
 import type { GeneratedAvatar } from '@haus/api/avatar-generation';
-import { Skeleton } from '@heroui/react';
 import { TextShimmer } from '@heroui-pro/react';
+import { Skeleton } from '@heroui/react';
 import { AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { useReducedMotion } from 'motion/react';
+
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import {
@@ -34,7 +35,7 @@ export function AvatarGenerationStage({
     session: AvatarGenerationSession;
 }) {
     return (
-        <div className="card-shell relative flex aspect-square w-full items-center justify-center overflow-hidden bg-surface-secondary">
+        <div className="card-shell bg-surface-secondary relative flex aspect-square w-full items-center justify-center overflow-hidden">
             <StageContent currentAvatarUrl={currentAvatarUrl} name={name} session={session} />
             <AvatarStagePager onStage={onStage} session={session} />
         </div>
@@ -71,8 +72,8 @@ function StageContent({
                 className="flex max-w-64 flex-col items-center gap-2 px-6 text-center"
                 role="alert"
             >
-                <Icon className="size-6 text-danger" icon={AlertCircleIcon} />
-                <p className="line-clamp-4 text-danger text-sm" title={session.run.error}>
+                <Icon className="text-danger size-6" icon={AlertCircleIcon} />
+                <p className="text-danger line-clamp-4 text-sm" title={session.run.error}>
                     {session.run.error}
                 </p>
             </div>

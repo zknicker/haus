@@ -1,6 +1,7 @@
 import { Button, Dropdown, Label } from '@heroui/react';
 import { LabelIcon, MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { useServerContext } from '../servers/server-context.ts';
 import { TaskLabelsDialog } from './details/task-labels-dialog.tsx';

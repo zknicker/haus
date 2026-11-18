@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+
 import { appRoutes } from '../../../lib/app-routes.ts';
 import { useLayoutContext } from '../../shell/use-layout-context.ts';
 

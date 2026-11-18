@@ -1,7 +1,8 @@
 import type { Chat, ChatMessage } from '@haus/api';
+
 import { useChatSidePane } from '../../../hooks/pane/use-chat-side-pane.ts';
-import { ChatArtifactPanel } from '../../chats/chat-artifact-panel.tsx';
 import type { ChatArtifactPanelState } from '../../chats/chat-artifact-panel-state.ts';
+import { ChatArtifactPanel } from '../../chats/chat-artifact-panel.tsx';
 import { ShellSidePane } from '../../shell/shell-side-pane.tsx';
 import { ChatFilesPanel } from './chat-files.tsx';
 

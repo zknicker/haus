@@ -1,5 +1,6 @@
 import { agentStartCommandSchema } from '@haus/api';
 import { z } from 'zod';
+
 import { parseStartCommand } from './agent-command-frames.ts';
 import { rejectedInboxItems } from './agent-inbox-input.ts';
 import type { AgentWorkCoordinator } from './agent-work-coordinator.ts';

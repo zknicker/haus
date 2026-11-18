@@ -1,7 +1,8 @@
 import type { Agent } from '@haus/api';
-import { Chip, Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup, PressableFeedback } from '@heroui-pro/react';
+import { Chip, Separator } from '@heroui/react';
 import * as React from 'react';
+
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profile.ts';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
@@ -18,7 +19,7 @@ export function CreatedAgents({ serverId, userId }: { serverId: string; userId: 
                 <ItemCardGroup.Title>
                     Created Agents
                     {agents.data ? (
-                        <span className="ms-2 text-muted tabular-nums">{created.length}</span>
+                        <span className="text-muted ms-2 tabular-nums">{created.length}</span>
                     ) : null}
                 </ItemCardGroup.Title>
             </ItemCardGroup.Header>
@@ -58,7 +59,7 @@ function CreatedAgentRow({ agent }: { agent: Agent }) {
 
     return (
         <ItemCard<'button'>
-            className="relative w-full cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            className="focus-visible:ring-focus relative w-full cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2"
             onClick={() => openAgentProfile(agent.id)}
             render={(props) => <button type="button" {...props} />}
         >

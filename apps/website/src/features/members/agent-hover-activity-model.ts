@@ -1,4 +1,5 @@
 import type { AgentActivityEvent, AgentCurrentActivity } from '@haus/api';
+
 import { formatCurrentAgentActivityLabel } from '../../hooks/agents/current-agent-activity.ts';
 import { formatShortTime } from '../../lib/format.ts';
 import { formatAgentActivityEvent } from './agent-profile/agent-activity-model.ts';

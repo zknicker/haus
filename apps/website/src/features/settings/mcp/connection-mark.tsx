@@ -30,7 +30,7 @@ export function ConnectionGlyph({ connection }: { connection: ConnectionMarkSubj
     // The slot sizes `svg`, not text, so a letter would otherwise land on the
     // document's 16px base — a size that appears nowhere else in the app.
     return (
-        <span className="font-medium text-sm" style={{ color: `var(${icon.colorVar})` }}>
+        <span className="text-sm font-medium" style={{ color: `var(${icon.colorVar})` }}>
             {icon.letter}
         </span>
     );

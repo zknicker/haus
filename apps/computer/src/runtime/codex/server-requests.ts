@@ -1,5 +1,5 @@
-import { jsonRpcMethodNotFound } from '../json-rpc.ts';
 import { JsonRpcHandlerError } from '../json-rpc-connection.ts';
+import { jsonRpcMethodNotFound } from '../json-rpc.ts';
 
 /**
  * Haus Agents run unattended with full access: Codex never asks under `approvalPolicy: never` and

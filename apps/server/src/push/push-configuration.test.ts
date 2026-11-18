@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { exportPKCS8, generateKeyPair } from 'jose';
+
 import { createPushSender } from './push-configuration.ts';
 
 test('a malformed APPLE_TEAM_ID disables push with a reason instead of failing boot', async () => {

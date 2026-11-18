@@ -1,6 +1,8 @@
 import { chmod, mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+
 import type { AgentReasoningEffort } from '@haus/api';
+
 import type { HostToolMcpDescriptor } from '../../host-tools/mcp-server.ts';
 
 /**

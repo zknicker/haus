@@ -1,4 +1,5 @@
 import { leaveServerInputSchema, removedServerMemberSchema } from '@haus/api';
+
 import { removeServerMember } from '../../servers/remove-member.ts';
 import { announceDeparture } from './departure-signals.ts';
 import { serverMemberProcedure } from './procedure.ts';

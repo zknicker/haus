@@ -1,4 +1,5 @@
 import { Chip } from '@heroui/react';
+
 import { cn } from '../../lib/utils.ts';
 
 function sameDay(left: Date, right: Date) {
@@ -42,11 +43,11 @@ export function DayDivider({ className, label }: { className?: string; label: st
             className={cn('relative flex min-w-0 items-center gap-3 py-0.5', className)}
             data-slot="day-divider"
         >
-            <span aria-hidden className="min-w-6 flex-1 border-separator border-t" />
+            <span aria-hidden className="border-separator min-w-6 flex-1 border-t" />
             <Chip color="accent" size="sm" variant="soft">
                 {label}
             </Chip>
-            <span aria-hidden className="min-w-6 flex-1 border-separator border-t" />
+            <span aria-hidden className="border-separator min-w-6 flex-1 border-t" />
         </div>
     );
 }

@@ -1,6 +1,7 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import {
     libraryRows,
     librarySection,
@@ -203,7 +204,9 @@ test('members upload files and folders into the open folder, replace, and rename
     const filesPick = page.waitForEvent('filechooser');
     await page.getByRole('button', { name: 'Upload', exact: true }).click();
     await page.getByRole('menuitem', { name: 'Files…', exact: true }).click();
-    await (await filesPick).setFiles([
+    await (
+        await filesPick
+    ).setFiles([
         { buffer: Buffer.from('#!/bin/sh\n'), mimeType: 'text/x-shellscript', name: 'setup.sh' },
         { buffer: Buffer.from('new'), mimeType: 'text/plain', name: 'new.txt' },
     ]);

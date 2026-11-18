@@ -1,5 +1,6 @@
 import type { MessageRoutingAudit, MessageRoutingDebug as RoutingDebugData } from '@haus/api';
 import { Button, Popover } from '@heroui/react';
+
 import { useDevMode } from '../../../components/dev-mode-provider.tsx';
 import { useMessageRouting } from '../../../hooks/servers/use-message-routing.ts';
 import { RoutingDecisionPanel } from './routing-decision-panel.tsx';
@@ -34,7 +35,7 @@ function SavedMessageRouting({ serverId, messageId }: { serverId: string; messag
         return null;
     }
     if (!query.data.audit) {
-        return <p className="text-base text-muted">Routing not recorded</p>;
+        return <p className="text-muted text-base">Routing not recorded</p>;
     }
     return <MessageRoutingDetails audit={query.data.audit} data={query.data} />;
 }

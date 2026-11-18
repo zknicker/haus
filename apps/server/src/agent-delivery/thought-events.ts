@@ -1,4 +1,5 @@
 import EventEmitter, { on } from 'node:events';
+
 import { type AgentThoughtEvent, agentThoughtEventSchema } from '@haus/api';
 
 const eventName = 'agent.thought.announced';

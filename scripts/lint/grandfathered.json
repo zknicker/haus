@@ -67,16 +67,12 @@
             "apps/computer/src/proxy-lost-receipt.test.ts",
             "apps/computer/src/proxy.test.ts"
         ],
-        "no-empty": [
-            "apps/website/e2e/tests/servers.spec.ts"
-        ],
+        "no-empty": ["apps/website/e2e/tests/servers.spec.ts"],
         "no-new-func": [
             "apps/website/electron/preload.test.cjs",
             "packages/agent-workspace/src/visuals-fragments.test.ts"
         ],
-        "no-unreachable-loop": [
-            "apps/computer/src/runtime/event-queue.test.ts"
-        ],
+        "no-unreachable-loop": ["apps/computer/src/runtime/event-queue.test.ts"],
         "no-unsafe-optional-chaining": [
             "apps/computer/src/agent-cli/commands/agent-agent-create.test.ts",
             "apps/computer/src/agent-cli/commands/agent-attachment.test.ts",
@@ -90,9 +86,7 @@
             "apps/server/test/thread-migration-dataset-links.ts",
             "apps/website/src/features/settings/layout/navigation.test.ts"
         ],
-        "no-unused-vars": [
-            "apps/computer/src/runtime/runtime-context.test.ts"
-        ],
+        "no-unused-vars": ["apps/computer/src/runtime/runtime-context.test.ts"],
         "prefer-const": [
             "apps/computer/src/runtime/grok/fixtures/fake-grok.ts",
             "apps/website/electron/native-auth-manager.cjs"

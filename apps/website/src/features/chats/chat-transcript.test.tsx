@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
+
 import {
     MessageScroller,
     MessageScrollerProvider,
@@ -10,13 +12,13 @@ import {
 import { DevModeProvider } from '../../components/dev-mode-provider.tsx';
 import { renderWithTrpc } from '../../test-support/trpc-test-provider.tsx';
 import { ArtifactLogEntry } from '../sessions/log/event-entry/artifact-entry.tsx';
-import { ChatTranscriptPresentation } from './chat-transcript.tsx';
 import { groupAgentItems } from './chat-transcript-item-utils.ts';
 import type { TranscriptRow } from './chat-transcript-model.ts';
 import type { TranscriptRenderContextValue } from './chat-transcript-render-context.tsx';
 import { SystemStep } from './chat-transcript-system-step.tsx';
-import { filterPaneSegments, getActiveReplyDisplayText } from './chat-transcript-turn.tsx';
 import { resolveMentionAgentId } from './chat-transcript-turn-header.tsx';
+import { filterPaneSegments, getActiveReplyDisplayText } from './chat-transcript-turn.tsx';
+import { ChatTranscriptPresentation } from './chat-transcript.tsx';
 import { withLocalTimelineMessageMetadata } from './local-timeline-message.ts';
 import { ToolStep } from './tool-steps/registry.tsx';
 import type { TranscriptMessageRow } from './transcript-contract.ts';

@@ -1,4 +1,5 @@
 import { and, asc, eq, sql } from 'drizzle-orm';
+
 import { requireChatWritable } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -32,25 +33,15 @@ import {
 } from './reminder-model.ts';
 import { resolveScheduleTiming } from './schedule-timing.ts';
 
-export {
-    cancelReminder,
-    ReminderVersionConflictError,
-} from './mutations.ts';
-export type {
-    Reminder,
-    ReminderClock,
-    ScheduleReminderInput,
-} from './reminder-model.ts';
+export { cancelReminder, ReminderVersionConflictError } from './mutations.ts';
+export type { Reminder, ReminderClock, ScheduleReminderInput } from './reminder-model.ts';
 export { ReminderCommandConflictError } from './reminder-model.ts';
 export {
     listReminderAgentAttention,
     listReminderFires,
     readOwnedReminder,
 } from './reminder-queries.ts';
-export {
-    snoozeReminder,
-    updateReminder,
-} from './reschedule.ts';
+export { snoozeReminder, updateReminder } from './reschedule.ts';
 export { tickReminders } from './scheduler.ts';
 
 /** Reminder row for the owning Agent, with whether its anchor Chat is still reachable. */

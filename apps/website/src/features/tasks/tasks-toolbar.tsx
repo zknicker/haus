@@ -1,15 +1,16 @@
-import { Label, ListBox, Toolbar } from '@heroui/react';
 import { InlineSelect } from '@heroui-pro/react/inline-select';
+import { Label, ListBox, Toolbar } from '@heroui/react';
 import type * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
+
 import { useTaskLabels } from '../../hooks/servers/use-task-labels.ts';
 import { useTaskKeys } from '../../hooks/tasks/use-task-keys.ts';
 import { useServerContext } from '../servers/server-context.ts';
 import { LabelDot } from './label-chip.tsx';
 import { unassignedKey } from './task-assignee.ts';
 import { PersonListBox } from './task-pickers.tsx';
-import { taskStateLabels, taskStateOrder } from './task-state.ts';
 import { TaskStateDisc } from './task-state-disc.tsx';
+import { taskStateLabels, taskStateOrder } from './task-state.ts';
 import type { TasksPageFilters } from './tasks-page-model.ts';
 import { useTaskPeople } from './use-task-people.ts';
 

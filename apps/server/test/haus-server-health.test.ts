@@ -3,9 +3,11 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { makeTestRuntime } from '@haus/effect';
 import { TestClock } from 'effect';
 import Fastify from 'fastify';
+
 import { registerHausHealth } from '../src/haus-health.ts';
 import {
     createHausServerApplication,

@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+
 import type { ServerMemberDirectory } from '@haus/api/membership';
+
 import { memberChangeDescription, serverMemberRowActions } from './server-member-actions.ts';
 
 const ownerId = 'usr_aaaaaaowner1';

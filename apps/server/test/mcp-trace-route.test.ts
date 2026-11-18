@@ -1,12 +1,14 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import { makeTelemetryLayer } from '@haus/effect';
 import { InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { ManagedRuntime } from 'effect';
 import Fastify from 'fastify';
+
 import { registerAgentMcpRoutes } from '../src/agent-api/mcp-routes.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { makeClient } from '../src/server-mcp/runtime-test-fixtures.ts';
+import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { modelToolName } from '../src/server-mcp/tool-catalog.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';

@@ -1,4 +1,5 @@
 import { compositionEventSchema, compositionSubscriptionInputSchema } from '@haus/api';
+
 import { requireChatAccess } from '../../chats/chat-access.ts';
 import { subscribeToChatCompositions } from '../../chats/composition-hub.ts';
 import { chatProcedure } from './procedure.ts';

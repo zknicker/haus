@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import type { HausDesktopBridge } from '../../lib/desktop-bridge.ts';
 import {
     type CloudAgentProviderTarget,

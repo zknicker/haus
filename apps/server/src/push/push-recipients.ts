@@ -5,6 +5,7 @@ import {
     messageNotificationReason,
 } from '@haus/api';
 import { and, eq, gte } from 'drizzle-orm';
+
 import { visibleChats } from '../chats/chat-visibility.ts';
 import { countUnreadInboxRows } from '../chats/unread-chat-count.ts';
 import type { HausDatabase } from '../postgres/connection.ts';

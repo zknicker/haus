@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { useViewShown } from '../../hooks/desktop-tabs/view-shown.ts';
 
 const defaultCatchUpWindowMs = 650;

@@ -1,9 +1,10 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import { skoolHostedUrl } from '../src/hosted-mcp/catalog.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createMcpPresetAccount, replaceMcpPresetToken } from '../src/server-mcp/presets.ts';
-import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { makeClient } from '../src/server-mcp/runtime-test-fixtures.ts';
+import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import {
     createMcpConnection,
     disconnectMcpConnection,
@@ -62,55 +63,64 @@ afterAll(async () => {
 test.each([
     ['x', 'X', 'https://api.x.com/mcp'],
     ['factory', 'Factory', 'https://factory-agent.merchbase.co/mcp'],
-] as const)('%s stores its token as a Server-only Authorization header', async (preset, name, url) => {
-    const created = await createMcpPresetAccount(connection.db, runtime, noIcon, member, {
-        bearerToken: token,
-        name,
-        preset,
-        serverId,
-    });
+] as const)(
+    '%s stores its token as a Server-only Authorization header',
+    async (preset, name, url) => {
+        const created = await createMcpPresetAccount(connection.db, runtime, noIcon, member, {
+            bearerToken: token,
+            name,
+            preset,
+            serverId,
+        });
 
-    expect(created).toMatchObject({
-        auth: 'headers',
-        connected: true,
-        headerNames: ['Authorization'],
-        preset,
-        tools: ['echo'],
-        url,
-    });
-    const [secret] = (await harness.sql`
+        expect(created).toMatchObject({
+            auth: 'headers',
+            connected: true,
+            headerNames: ['Authorization'],
+            preset,
+            tools: ['echo'],
+            url,
+        });
+        const [secret] = (await harness.sql`
         select secret from mcp_secrets where connection_id = ${created.id}
     `) as { secret: { headers: Record<string, string> } }[];
-    expect(secret?.secret.headers).toEqual({ Authorization: `Bearer ${token}` });
-    const listed = await owner.trpc.mcp.list.query({ serverId });
-    expect(JSON.stringify(listed)).not.toContain(token);
-    expect(JSON.stringify(await listMcpConnections(connection.db, member, serverId))).not.toContain(
-        token
-    );
+        expect(secret?.secret.headers).toEqual({ Authorization: `Bearer ${token}` });
+        const listed = await owner.trpc.mcp.list.query({ serverId });
+        expect(JSON.stringify(listed)).not.toContain(token);
+        expect(
+            JSON.stringify(await listMcpConnections(connection.db, member, serverId))
+        ).not.toContain(token);
 
-    await grant(created.id);
-    const replacedConnection = await replaceMcpPresetToken(connection.db, runtime, noIcon, member, {
-        bearerToken: 'replacement-token',
-        connectionId: created.id,
-        serverId,
-    });
-    const [replaced] = (await harness.sql`
+        await grant(created.id);
+        const replacedConnection = await replaceMcpPresetToken(
+            connection.db,
+            runtime,
+            noIcon,
+            member,
+            {
+                bearerToken: 'replacement-token',
+                connectionId: created.id,
+                serverId,
+            }
+        );
+        const [replaced] = (await harness.sql`
         select secret from mcp_secrets where connection_id = ${created.id}
     `) as { secret: { headers: Record<string, string> } }[];
-    expect(replaced?.secret.headers).toEqual({ Authorization: 'Bearer replacement-token' });
-    expect(replacedConnection.connected).toBe(true);
-    expect(await grantedAgents(created.id)).toEqual([agentId]);
+        expect(replaced?.secret.headers).toEqual({ Authorization: 'Bearer replacement-token' });
+        expect(replacedConnection.connected).toBe(true);
+        expect(await grantedAgents(created.id)).toEqual([agentId]);
 
-    await disconnectMcpConnection(connection.db, runtime, member, {
-        connectionId: created.id,
-        serverId,
-    });
-    const [cleared] = (await harness.sql`
+        await disconnectMcpConnection(connection.db, runtime, member, {
+            connectionId: created.id,
+            serverId,
+        });
+        const [cleared] = (await harness.sql`
         select secret from mcp_secrets where connection_id = ${created.id}
     `) as { secret: { headers: Record<string, string> } }[];
-    expect(cleared?.secret.headers).toEqual({});
-    expect(await grantedAgents(created.id)).toEqual([]);
-});
+        expect(cleared?.secret.headers).toEqual({});
+        expect(await grantedAgents(created.id)).toEqual([]);
+    }
+);
 
 test('replacing custom header credentials keeps Agent grants', async () => {
     const created = await createMcpConnection(connection.db, runtime, noIcon, member, {

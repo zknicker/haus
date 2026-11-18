@@ -12,6 +12,7 @@ import {
 } from '@heroui/react';
 import type * as React from 'react';
 import { useState } from 'react';
+
 import { SecretFieldsEditor } from './mcp-secret-fields.tsx';
 import {
     buildSaveInput,
@@ -47,7 +48,7 @@ export function McpConnectionFormDrawer({
                     <Drawer.CloseTrigger />
                     <Drawer.Header>
                         <Drawer.Heading>Add connection</Drawer.Heading>
-                        <p className="mt-1.5 text-muted text-sm leading-5">
+                        <p className="text-muted mt-1.5 text-sm leading-5">
                             Point Haus at an MCP server, then authorize it if it asks for
                             credentials.
                         </p>

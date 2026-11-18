@@ -1,8 +1,9 @@
 import * as z from 'zod';
+
 import type { RuntimeTurn } from '../driver.ts';
 import { EventQueue } from '../event-queue.ts';
-import { JsonRpcRequestError } from '../json-rpc.ts';
 import type { JsonRpcConnection } from '../json-rpc-connection.ts';
+import { JsonRpcRequestError } from '../json-rpc.ts';
 import type { TurnEvent } from '../turn-event.ts';
 import { grokRequestFailure } from './grok-failure.ts';
 import type { GrokTurnNormalizer } from './grok-turn-normalizer.ts';

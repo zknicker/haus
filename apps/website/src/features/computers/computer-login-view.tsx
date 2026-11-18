@@ -1,9 +1,9 @@
 import { Button, InputOTP, REGEXP_ONLY_DIGITS_AND_CHARS, Spinner } from '@heroui/react';
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
+
 import { ActivationShell, ActivationStep } from '../../components/activation/activation-shell.tsx';
 import { hausTrpc } from '../../lib/haus-server.tsx';
-
 import { loginDescription, loginTitle } from './computer-login-copy.tsx';
 
 const codeLength = 8;
@@ -147,10 +147,10 @@ export function ComputerLoginApproval({
                 </div>
             ) : null}
             {statusQuery.error ? (
-                <p className="text-center text-danger text-sm">{statusQuery.error.message}</p>
+                <p className="text-danger text-center text-sm">{statusQuery.error.message}</p>
             ) : null}
             {approve.error || deny.error ? (
-                <p className="text-center text-danger text-sm">
+                <p className="text-danger text-center text-sm">
                     {(approve.error ?? deny.error)?.message}
                 </p>
             ) : null}
@@ -197,9 +197,9 @@ function LoginActions({
     return (
         <div className="flex w-full flex-col gap-6">
             <div className="flex flex-col items-center gap-1">
-                <p className="text-center text-muted text-sm">
+                <p className="text-muted text-center text-sm">
                     Signed in as{' '}
-                    <span className="font-medium text-foreground">
+                    <span className="text-foreground font-medium">
                         {accountLabel ?? 'your active account'}
                     </span>
                 </p>

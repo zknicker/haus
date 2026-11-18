@@ -4,6 +4,7 @@ import type {
     AgentExecutionJournalReasoning,
     AgentExecutionJournalTool,
 } from '@haus/api';
+
 import { classifyTraceTool, type TurnTraceTool } from './turn-trace-tool-model.ts';
 
 export type TurnTraceEntry =

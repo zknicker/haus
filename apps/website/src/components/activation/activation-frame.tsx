@@ -1,7 +1,9 @@
 import { createContext, type PropsWithChildren, useContext, useMemo, useState } from 'react';
+
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import { HausMascot } from '../haus-mascot.tsx';
 import { AppShell, AppShellDragRegion } from '../ui/app-shell.tsx';
+
 import './activation.css';
 
 interface ActivationSlots {

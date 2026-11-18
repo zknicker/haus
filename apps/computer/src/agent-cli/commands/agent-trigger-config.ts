@@ -1,4 +1,5 @@
 import { type AgentGithubTriggerConfigInput, type TriggerKind, triggerKindSchema } from '@haus/api';
+
 import type { AgentApiRequester } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
 import { agentTriggerResultResponseSchema } from '../agent-trigger-response-schema.ts';

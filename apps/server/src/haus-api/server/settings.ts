@@ -4,6 +4,7 @@ import {
     serverSettingsSetIdleCompactionInputSchema,
 } from '@haus/api';
 import { TRPCError } from '@trpc/server';
+
 import { serverUpdatedTopic } from '../../realtime/topics.ts';
 import {
     readServerRuntimeSettingsCommand,

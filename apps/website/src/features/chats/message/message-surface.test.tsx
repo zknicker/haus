@@ -1,10 +1,12 @@
 import { expect, test } from 'bun:test';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createTRPCQueryUtils } from '@trpc/react-query';
 import { observable } from '@trpc/server/observable';
 import type * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+
 import { linkedWork } from '../../../../../../packages/haus-api/src/cloud-agent-work-fixture.ts';
 import { hausTrpc } from '../../../lib/haus-server.tsx';
 import { testAgent } from '../../members/agent-fixtures.ts';

@@ -1,8 +1,9 @@
 import type { Agent, CloudAgentAutomation } from '@haus/api';
-import { Button, Chip, Separator, Tooltip } from '@heroui/react';
 import { ItemCard, PressableFeedback } from '@heroui-pro/react';
+import { Button, Chip, Separator, Tooltip } from '@heroui/react';
 import { HistoryIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentCloudAutomations } from '../../../hooks/members/use-agent-cloud-automations.ts';
@@ -63,7 +64,7 @@ export function AgentCloudAutomations({ agent, server }: { agent: Agent; server:
                     ))
                 )}
             </ProfileListSection>
-            <p className="px-3 text-muted text-sm">
+            <p className="text-muted px-3 text-sm">
                 {history
                     ? 'Latest 100 handoffs, including work Haus can no longer track.'
                     : `Managed by Haus. ${agent.displayName} is notified when a run finishes or needs input.`}
@@ -78,7 +79,7 @@ function CloudAutomationRow({ now, row }: { now: number; row: CloudAgentAutomati
     const open = () => openWork({ id: row.work.id, location: row.location });
     return (
         <ItemCard<'button'>
-            className="relative w-full cursor-(--cursor-interactive) overflow-hidden text-left focus-visible:ring-2 focus-visible:ring-focus"
+            className="focus-visible:ring-focus relative w-full cursor-(--cursor-interactive) overflow-hidden text-left focus-visible:ring-2"
             onClick={open}
             render={(props) => <button type="button" {...props} />}
         >

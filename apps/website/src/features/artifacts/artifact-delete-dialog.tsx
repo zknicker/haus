@@ -1,4 +1,5 @@
 import { AlertDialog, Button } from '@heroui/react';
+
 import { useArtifactDelete } from '../../hooks/artifacts/use-artifact-delete.ts';
 
 /** The file a delete is confirming. */

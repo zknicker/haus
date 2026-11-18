@@ -1,5 +1,6 @@
 import { Chip } from '@heroui/react';
 import type * as React from 'react';
+
 import { getChannelColorStyle } from '../../components/chats/channel-color-options.ts';
 import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';
 import { opensPlaceAttribute } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
@@ -51,7 +52,7 @@ export function ReferenceChipView({
     const chip = (
         <Chip
             className={cn(
-                'reference-chip max-w-full whitespace-nowrap align-middle',
+                'reference-chip max-w-full align-middle whitespace-nowrap',
                 kind === 'chat' && 'reference-chip--channel',
                 kind === 'pull-request' && 'reference-chip--pull-request',
                 kind === 'skill' && 'reference-chip--skill',
@@ -100,7 +101,7 @@ export function ReferenceChipView({
         <button
             aria-label={`${activatable ? 'Open' : 'Preview'} ${displayLabel}`}
             {...openProps(activatable ? onActivate : undefined, activationTarget)}
-            className="reference-chip-trigger inline-flex max-w-full cursor-(--cursor-interactive) rounded-lg align-middle outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            className="reference-chip-trigger focus-visible:ring-focus inline-flex max-w-full cursor-(--cursor-interactive) rounded-lg align-middle outline-none focus-visible:ring-2"
             type="button"
         >
             {chip}

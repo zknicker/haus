@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { chatEngagementEventSchema } from './chat-engagement.ts';
 
 const base = {

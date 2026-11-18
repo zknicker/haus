@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { checkAgentVoice } from './agent-voice.mjs';
 import { agentVoiceViolations } from './voice-gate.mjs';
 

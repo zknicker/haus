@@ -1,6 +1,8 @@
 import { expect, test } from 'bun:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+
 import { BandBreadcrumbs } from './band-breadcrumbs.tsx';
 import type { BandCrumb } from './band-trail.ts';
 

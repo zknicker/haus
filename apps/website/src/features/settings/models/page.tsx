@@ -1,6 +1,7 @@
-import { Alert, Chip, SearchField } from '@heroui/react';
 import { DataGrid, type DataGridColumn, ItemCardGroup } from '@heroui-pro/react';
+import { Alert, Chip, SearchField } from '@heroui/react';
 import * as React from 'react';
+
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import { PageColumn } from '../../shell/page-column.tsx';
 import { ImageGenerationSettings } from '../image-generation/image-generation-group.tsx';
@@ -99,7 +100,7 @@ export function ModelsSettings({
                     <ItemCardGroup.Title>
                         Reported Models
                         {computers.data ? (
-                            <span className="ms-2 text-muted tabular-nums">{models.length}</span>
+                            <span className="text-muted ms-2 tabular-nums">{models.length}</span>
                         ) : null}
                     </ItemCardGroup.Title>
                     {/* Scoped to this section, so it rides in the section header
@@ -127,7 +128,7 @@ export function ModelsSettings({
                         getRowId={(item) => item.id}
                     />
                 ) : (
-                    <p className="py-8 text-center text-muted text-sm">
+                    <p className="text-muted py-8 text-center text-sm">
                         {query ? 'No models match your search.' : 'No models reported yet.'}
                     </p>
                 )}
@@ -203,7 +204,7 @@ const modelColumns: DataGridColumn<ModelCatalogItem>[] = [
     },
     {
         allowsSorting: true,
-        cell: (item) => <span className="font-mono text-muted">{item.id}</span>,
+        cell: (item) => <span className="text-muted font-mono">{item.id}</span>,
         header: 'Identifier',
         id: 'id',
         minWidth: 180,

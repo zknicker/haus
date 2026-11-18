@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { McpRequests } from './requests.ts';
 
 test('cancellation arriving first prevents a later dispatch and is runner-scoped', () => {

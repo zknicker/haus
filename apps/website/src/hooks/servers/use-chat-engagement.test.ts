@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { ChatEngagementEvent, ChatEngagements } from '@haus/api';
+
 import { applyChatEngagementEvent } from './use-chat-engagement.ts';
 
 const base = {

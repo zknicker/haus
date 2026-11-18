@@ -1,5 +1,6 @@
 import type { ChatMessage } from '@haus/api';
 import { and, eq, getTableColumns, inArray } from 'drizzle-orm';
+
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import { readMessageCauses } from '../automations/message-cause-read.ts';
 import { listMessageClaimMap } from '../claims/claim-shape.ts';

@@ -6,6 +6,7 @@ import type {
     WebhookTrigger,
 } from '@haus/api';
 import { and, asc, eq, isNull } from 'drizzle-orm';
+
 import type { GithubApiTransport } from '../github/github-api.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { serverMembershipsTable, triggersTable } from '../postgres/schema.ts';

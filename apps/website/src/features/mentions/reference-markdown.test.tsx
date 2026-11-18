@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { ReferenceMarkdown } from './reference-markdown.tsx';
 
 // An inline-flex link sits on the text baseline by default, and the chip's

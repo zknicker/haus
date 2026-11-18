@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { chmod, copyFile, mkdir, mkdtemp, open, rename, rm, stat } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+
 import {
     computerAppleSigningIdentity,
     computerAppleTeamId,

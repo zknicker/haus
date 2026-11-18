@@ -172,39 +172,39 @@ function notifyCovers() {
 function isBrowserTab(value: unknown): value is BrowserTab {
     return Boolean(
         value &&
-            typeof value === 'object' &&
-            'id' in value &&
-            typeof value.id === 'string' &&
-            'url' in value &&
-            typeof value.url === 'string' &&
-            'title' in value &&
-            typeof value.title === 'string' &&
-            'loading' in value &&
-            typeof value.loading === 'boolean' &&
-            'error' in value &&
-            (value.error === null || typeof value.error === 'string') &&
-            'faviconUrl' in value &&
-            (value.faviconUrl === null || isFaviconUrl(value.faviconUrl)) &&
-            'canGoBack' in value &&
-            typeof value.canGoBack === 'boolean' &&
-            'canGoForward' in value &&
-            typeof value.canGoForward === 'boolean' &&
-            'zoomFactor' in value &&
-            typeof value.zoomFactor === 'number' &&
-            value.zoomFactor > 0 &&
-            'find' in value &&
-            (value.find === null || isFindResult(value.find))
+        typeof value === 'object' &&
+        'id' in value &&
+        typeof value.id === 'string' &&
+        'url' in value &&
+        typeof value.url === 'string' &&
+        'title' in value &&
+        typeof value.title === 'string' &&
+        'loading' in value &&
+        typeof value.loading === 'boolean' &&
+        'error' in value &&
+        (value.error === null || typeof value.error === 'string') &&
+        'faviconUrl' in value &&
+        (value.faviconUrl === null || isFaviconUrl(value.faviconUrl)) &&
+        'canGoBack' in value &&
+        typeof value.canGoBack === 'boolean' &&
+        'canGoForward' in value &&
+        typeof value.canGoForward === 'boolean' &&
+        'zoomFactor' in value &&
+        typeof value.zoomFactor === 'number' &&
+        value.zoomFactor > 0 &&
+        'find' in value &&
+        (value.find === null || isFindResult(value.find))
     );
 }
 
 function isFindResult(value: unknown): value is BrowserFindResult {
     return Boolean(
         value &&
-            typeof value === 'object' &&
-            'activeMatch' in value &&
-            Number.isInteger(value.activeMatch) &&
-            'matches' in value &&
-            Number.isInteger(value.matches)
+        typeof value === 'object' &&
+        'activeMatch' in value &&
+        Number.isInteger(value.activeMatch) &&
+        'matches' in value &&
+        Number.isInteger(value.matches)
     );
 }
 

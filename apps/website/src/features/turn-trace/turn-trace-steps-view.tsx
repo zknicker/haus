@@ -1,5 +1,6 @@
 import { BrainIcon, BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { AnimatePresence } from 'motion/react';
+
 import { formatAgentActivityEvent } from '../members/agent-profile/agent-activity-model.ts';
 import {
     TraceCallStep,
@@ -125,7 +126,7 @@ function TraceThoughtStep({ step }: { step: TurnTraceThoughtStep }) {
         <TraceDisclosure {...cells}>
             <TraceGroup>
                 <TraceBody>
-                    <ul className="grid gap-0.5 text-muted text-sm">
+                    <ul className="text-muted grid gap-0.5 text-sm">
                         {thoughts.map((thought, index) => (
                             <li className={traceBranchClass} key={index}>
                                 {thought}

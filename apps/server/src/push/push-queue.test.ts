@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { createPushQueue } from './push-queue.ts';
 
 test('runs at most `concurrency` tasks at once and drains them all', async () => {

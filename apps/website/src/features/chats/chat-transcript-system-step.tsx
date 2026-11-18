@@ -1,6 +1,5 @@
-import { Drawer } from '@heroui/react';
 import { ChatMessage } from '@heroui-pro/react';
-import type { HugeiconsIconProps } from '@hugeicons/react';
+import { Drawer } from '@heroui/react';
 import {
     BrainIcon,
     Cancel01Icon,
@@ -11,7 +10,9 @@ import {
     PackageIcon,
     ToolsIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
+import type { HugeiconsIconProps } from '@hugeicons/react';
 import * as React from 'react';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { formatTimestamp } from '../../lib/format.ts';
 import { AccessEventLogEntry } from '../sessions/log/event-entry/access-entry.tsx';
@@ -247,12 +248,12 @@ function RuntimeNoticeLabel({
     return (
         <>
             <button
-                className="inline-flex min-w-0 max-w-full items-baseline gap-1.5 text-left hover:text-foreground"
+                className="hover:text-foreground inline-flex max-w-full min-w-0 items-baseline gap-1.5 text-left"
                 data-testid="runtime-notice-trigger"
                 onClick={() => onOpenChange(true)}
                 type="button"
             >
-                <span className="truncate font-medium text-muted">{summary.label}</span>
+                <span className="text-muted truncate font-medium">{summary.label}</span>
             </button>
             <RuntimeNoticeDrawer
                 isOpen={isOpen}
@@ -284,9 +285,9 @@ function RuntimeNoticeDrawer({
                     <Drawer.CloseTrigger />
                     <Drawer.Header>
                         <div className="flex items-center gap-3">
-                            <div className="card-shell flex size-9 shrink-0 items-center justify-center border border-separator bg-surface-secondary">
+                            <div className="card-shell border-separator bg-surface-secondary flex size-9 shrink-0 items-center justify-center border">
                                 <Icon
-                                    className="size-[18px] text-muted"
+                                    className="text-muted size-[18px]"
                                     icon={summary.icon}
                                     strokeWidth={1.6}
                                 />
@@ -299,7 +300,7 @@ function RuntimeNoticeDrawer({
                     </Drawer.Header>
                     <Drawer.Body>
                         <div className="flex min-w-0 flex-col gap-5">
-                            <div className="card-shell flex flex-col gap-1 border border-separator bg-surface-secondary px-3 py-2.5">
+                            <div className="card-shell border-separator bg-surface-secondary flex flex-col gap-1 border px-3 py-2.5">
                                 {details.map((detail) => (
                                     <RuntimeNoticeMetaRow
                                         key={detail.label}
@@ -311,16 +312,16 @@ function RuntimeNoticeDrawer({
                             {row.runtimeNotice.text ? (
                                 <div className="flex flex-col gap-3">
                                     <div className="flex flex-col gap-1">
-                                        <h3 className="font-medium text-foreground text-sm">
+                                        <h3 className="text-foreground text-sm font-medium">
                                             Raw engine notice
                                         </h3>
-                                        <p className="max-w-[58ch] text-pretty text-muted text-sm">
+                                        <p className="text-muted max-w-[58ch] text-sm text-pretty">
                                             Original engine text captured before Haus rendered it as
                                             a runtime notice.
                                         </p>
                                     </div>
-                                    <div className="card-shell border border-separator bg-surface-secondary px-3 py-2">
-                                        <code className="break-all font-mono text-foreground text-sm leading-relaxed">
+                                    <div className="card-shell border-separator bg-surface-secondary border px-3 py-2">
+                                        <code className="text-foreground font-mono text-sm leading-relaxed break-all">
                                             {row.runtimeNotice.text}
                                         </code>
                                     </div>
@@ -338,7 +339,7 @@ function RuntimeNoticeMetaRow({ label, value }: { label: string; value: string }
     return (
         <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-3 text-sm">
             <span className="text-muted">{label}</span>
-            <span className="min-w-0 break-all text-foreground">{value}</span>
+            <span className="text-foreground min-w-0 break-all">{value}</span>
         </div>
     );
 }

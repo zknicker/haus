@@ -1,8 +1,9 @@
-import { Button, Description, Dropdown, Label } from '@heroui/react';
 import { EmptyState } from '@heroui-pro/react';
+import { Button, Description, Dropdown, Label } from '@heroui/react';
 import { ComputerIcon, MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { PageTopbar } from '../shell/shell-topbar.tsx';
@@ -124,8 +125,8 @@ function ComputerUnavailable() {
     return (
         <div className="flex min-h-full items-center justify-center p-6 text-center">
             <div>
-                <h2 className="font-medium text-foreground text-sm">Computers unavailable</h2>
-                <p className="mt-1 text-muted text-sm">Try opening this page again.</p>
+                <h2 className="text-foreground text-sm font-medium">Computers unavailable</h2>
+                <p className="text-muted mt-1 text-sm">Try opening this page again.</p>
             </div>
         </div>
     );

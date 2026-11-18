@@ -1,4 +1,5 @@
 import { Effect } from 'effect';
+
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import { type HostToolServer, startHostToolServer } from '../host-tools/mcp-server.ts';
 import type { BackgroundWorkListener, BackgroundWorkReports } from './background-work.ts';

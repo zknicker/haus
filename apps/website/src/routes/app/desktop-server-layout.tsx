@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+
 import { ConnectionNotice } from '../../features/servers/connection-notice.tsx';
 import { serverSearchRoute, serverSettingsRoute } from '../../features/servers/server-routes.ts';
 import { BrowserViewsProvider } from '../../features/shell/browser-views-provider.tsx';
@@ -16,13 +17,13 @@ import { useDesktopTabWindow } from '../../features/shell/use-desktop-tab-window
 import { type DesktopShell, DesktopShellContext } from '../../features/shell/use-tab-navigator.ts';
 import { useBrowserViews } from '../../hooks/browser/browser-views-context.ts';
 import { stepPageHistory } from '../../hooks/browser/page-history-step.ts';
+import { useDesktopTabs } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
+import type { TabLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
+import { focusedTabId } from '../../hooks/desktop-tabs/desktop-tabs-panes.ts';
 import {
     useDesktopMenuNavigation,
     useDesktopTabHistory,
 } from '../../hooks/desktop/use-desktop-menu-navigation.ts';
-import { useDesktopTabs } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
-import type { TabLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
-import { focusedTabId } from '../../hooks/desktop-tabs/desktop-tabs-panes.ts';
 import type { ServerDetail } from '../../lib/haus-server.tsx';
 import { windowSeedPath } from './desktop-page-paths.ts';
 import { ServerShell } from './server-shell.tsx';

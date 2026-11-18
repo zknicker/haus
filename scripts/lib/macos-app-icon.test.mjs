@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+
 import { requireCompiledIcon, syncOptionalAssetCatalog } from './macos-app-icon.mjs';
 
 const temporaryDirectories = [];

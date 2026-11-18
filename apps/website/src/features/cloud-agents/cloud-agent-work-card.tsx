@@ -2,6 +2,7 @@ import type { CloudAgentBranch, CloudAgentPullRequestReading, CloudAgentWork } f
 import { Chip } from '@heroui/react';
 import { GitPullRequestIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
+
 import { ActionCard } from '../../components/chats/action-card.tsx';
 import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
@@ -106,7 +107,7 @@ export function CloudAgentPullRequestRow({
     return (
         <ActionCard.Meta data-testid="cloud-agent-work-pull-request">
             <Icon aria-hidden="true" icon={GitPullRequestIcon} />
-            <span className="font-medium text-foreground">{`PR #${number}`}</span>
+            <span className="text-foreground font-medium">{`PR #${number}`}</span>
             {pullRequest ? (
                 <>
                     {` · ${pullRequestStateLabels[pullRequest.state]} · `}

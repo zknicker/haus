@@ -1,9 +1,11 @@
 import { expect, test } from 'bun:test';
+
 import {
     agentCloudAgentListReceiptSchema,
     agentCloudAgentSendReceiptSchema,
     cloudAgentWorkSchema,
 } from '@haus/api';
+
 import {
     agentCloudAgentListReceiptResponseSchema,
     agentCloudAgentSendReceiptResponseSchema,

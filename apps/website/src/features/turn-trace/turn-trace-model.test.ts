@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+
 import type { AgentActivityEvent, AgentExecutionJournal } from '@haus/api';
+
 import { buildTurnTrace } from './turn-trace-model.ts';
 
 test('buildTurnTrace has only reasoning and tool rows, ordered by observed time', () => {

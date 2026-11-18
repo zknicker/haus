@@ -1,5 +1,6 @@
 import type { ComputerUpdateProgress } from '@haus/api';
 import { eq } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computersTable } from '../postgres/schema.ts';
 

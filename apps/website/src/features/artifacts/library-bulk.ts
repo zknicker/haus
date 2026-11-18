@@ -1,5 +1,6 @@
 import type { ArtifactRecord } from '@haus/api';
 import { artifactPathIsInside, artifactPathKey, artifactPathParent } from '@haus/api';
+
 import { formatArtifactBytes } from './artifact-format.ts';
 import type { LibraryItem } from './library-items.ts';
 

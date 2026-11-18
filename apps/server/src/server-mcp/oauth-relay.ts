@@ -1,6 +1,8 @@
 import { randomBytes } from 'node:crypto';
+
 import type { McpOAuthStartResult, McpPreset } from '@haus/api';
 import { eq } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { mcpConnectionsTable } from '../postgres/schema.ts';
 import { mcpUpdatedTopic } from '../realtime/topics.ts';

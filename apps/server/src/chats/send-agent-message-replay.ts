@@ -1,13 +1,14 @@
 import type { AttachmentMetadata, HausAgentMessage, MessageBodyKind } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
+
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
 import { replayCloudAgentWorkLinks } from './cloud-agent-work-links.ts';
 import { replayImageGenerationLinks } from './image-generation-links.ts';
 import { readInlineReplyContext } from './reply-context.ts';
-import type { SendAgentMessageInput, SendAgentMessageResult } from './send-agent-message.ts';
 import { AgentSendConflictError } from './send-agent-message-errors.ts';
+import type { SendAgentMessageInput, SendAgentMessageResult } from './send-agent-message.ts';
 
 export async function readExistingAgentMessage(
     db: Pick<HausDatabase, 'select'>,

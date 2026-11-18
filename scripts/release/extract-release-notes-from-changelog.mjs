@@ -2,6 +2,7 @@
 
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { fail, readFlagValue, readText } from './release-utils.mjs';
 
 const main = async () => {

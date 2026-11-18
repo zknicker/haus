@@ -1,5 +1,6 @@
 import type { IncomingMessage, Server } from 'node:http';
 import type { Duplex } from 'node:stream';
+
 import {
     computerBootstrapHelloSchema,
     computerHeartbeatNegotiationSchema,
@@ -7,14 +8,15 @@ import {
     computerProtocolVersion,
 } from '@haus/api';
 import { WebSocket, WebSocketServer } from 'ws';
+
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { clearStartRejectedHolds } from '../agent-delivery/failure-hold.ts';
 import { onAgentLifecycle } from '../agent-delivery/lifecycle.ts';
 import { sendPendingCoveApplication } from '../onboarding/create-cove.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computerUpdatedTopic } from '../realtime/topics.ts';
-import { createAgentThoughts } from '../server-agents/agent-thought.ts';
 import type { ThoughtSummarizer } from '../server-agents/agent-thought-summarizer.ts';
+import { createAgentThoughts } from '../server-agents/agent-thought.ts';
 import { clearHausAgentState } from '../server-agents/record-haus-agent-state.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { readServerRuntimeSettingsCommand } from '../servers/server-settings.ts';

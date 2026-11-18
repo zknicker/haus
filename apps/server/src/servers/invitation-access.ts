@@ -1,5 +1,6 @@
 import { canManageServerInvitations, type ServerInvitation } from '@haus/api';
 import { type SQL, sql } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { serverInvitationsTable } from '../postgres/schema.ts';
 import type { HausUser } from '../users/haus-user.ts';

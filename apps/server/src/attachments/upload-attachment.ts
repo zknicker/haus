@@ -2,6 +2,7 @@ import type { AttachmentUploadResult } from '@haus/api';
 import { asError, settle } from '@haus/effect';
 import { and, eq } from 'drizzle-orm';
 import { Effect } from 'effect';
+
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { attachmentsTable } from '../postgres/schema.ts';

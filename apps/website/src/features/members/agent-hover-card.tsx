@@ -1,5 +1,6 @@
 import { Spinner } from '@heroui/react';
 import type * as React from 'react';
+
 import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useAgent } from '../../hooks/members/use-agent.ts';
@@ -63,7 +64,7 @@ export function AgentHoverCardContent({
 
     if (agent.isPending && !agent.data) {
         return (
-            <span className="haus-hover-card__section flex min-h-12 items-center justify-center gap-2 text-muted text-xs">
+            <span className="haus-hover-card__section text-muted flex min-h-12 items-center justify-center gap-2 text-xs">
                 <Spinner color="current" size="sm" />
                 Loading Agent…
             </span>

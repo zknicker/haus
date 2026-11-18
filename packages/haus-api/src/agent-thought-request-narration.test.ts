@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { narratesRequest, withoutRequestNarration } from './agent-thought-request-narration.ts';
 
 describe('request narration', () => {

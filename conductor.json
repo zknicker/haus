@@ -1,7 +1,7 @@
 {
-  "scripts": {
-    "setup": "bun install --frozen-lockfile",
-    "run": "bun run desktop:dev:runtime",
-    "archive": "true"
-  }
+    "scripts": {
+        "setup": "bun install --frozen-lockfile",
+        "run": "bun run desktop:dev:runtime",
+        "archive": "true"
+    }
 }

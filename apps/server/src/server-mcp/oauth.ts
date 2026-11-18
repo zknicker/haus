@@ -6,6 +6,7 @@ import type {
     OAuthDiscoveryState,
     OAuthTokens,
 } from '@modelcontextprotocol/client';
+
 import { env } from '../config/env.ts';
 import type { McpSecret } from './connection-secret.ts';
 import { configuredOAuthClient, configuredOAuthClientInformation } from './oauth-clients.ts';

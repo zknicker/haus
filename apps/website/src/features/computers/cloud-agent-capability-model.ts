@@ -4,6 +4,7 @@ import type {
     CloudAgentProvider,
     ComputerInventory,
 } from '@haus/api';
+
 import { cloudAgentProviderName } from '../cloud-agents/cloud-agent-provider-presentation.ts';
 
 export interface CloudAgentCapabilityView {

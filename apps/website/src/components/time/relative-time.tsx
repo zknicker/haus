@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { formatRelativeTime } from '../../lib/format.ts';
 
 export function useRelativeNow(intervalMs = 30_000) {

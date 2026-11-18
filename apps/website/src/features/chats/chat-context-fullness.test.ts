@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+
 import { type ContextWindowModel, getChatContextFullness } from './chat-context-fullness.ts';
 import type { TranscriptRow } from './transcript-contract.ts';
 

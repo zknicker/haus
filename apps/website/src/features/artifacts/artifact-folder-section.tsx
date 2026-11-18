@@ -1,6 +1,7 @@
 import type { ArtifactFolderEntry, ArtifactMetadata } from '@haus/api';
 import { Tooltip } from '@heroui/react';
 import { GridListItem, GridListSection } from 'react-aria-components';
+
 import { useArtifactThumbnailUrls } from '../../hooks/artifacts/use-artifact-thumbnails.ts';
 import { useArtifactActionsContext } from './artifact-actions-context.ts';
 import { hasLibraryPreview } from './artifact-format.ts';

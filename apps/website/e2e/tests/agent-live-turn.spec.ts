@@ -1,4 +1,5 @@
 import type { ExecutionJournalUploadRecord } from '@haus/api';
+
 import { sendBootstrap, socketMessage, socketOpen } from '../support/computer-socket.ts';
 import { assertOpaqueId, attachComputer, createTestServer, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
@@ -100,23 +101,20 @@ test('live turn retains open tool evidence and scroll through refresh, reasoning
                 block: { id: 'thought', startedAt, text: 'Inspecting the active queue.' },
                 type: 'reasoning',
             },
-            ...Array.from(
-                { length: 24 },
-                (_, index): ExecutionJournalUploadRecord => ({
-                    tool: {
-                        toolCallId: `call_${index}`,
-                        toolName: 'bash',
-                        startedAt: new Date(now.getTime() - 70_000 + index * 1000).toISOString(),
-                        endedAt: new Date(now.getTime() - 69_500 + index * 1000).toISOString(),
-                        status: 'completed',
-                        // One-line shell calls fold into one row; multi-line scripts keep a row
-                        // each, so the log is tall enough to scroll and call_2 stands alone.
-                        input: { command: `cd /tmp\necho inspection-${index}` },
-                        output: `Evidence ${index}`,
-                    },
-                    type: 'tool',
-                })
-            ),
+            ...Array.from({ length: 24 }, (_, index): ExecutionJournalUploadRecord => ({
+                tool: {
+                    toolCallId: `call_${index}`,
+                    toolName: 'bash',
+                    startedAt: new Date(now.getTime() - 70_000 + index * 1000).toISOString(),
+                    endedAt: new Date(now.getTime() - 69_500 + index * 1000).toISOString(),
+                    status: 'completed',
+                    // One-line shell calls fold into one row; multi-line scripts keep a row
+                    // each, so the log is tall enough to scroll and call_2 stands alone.
+                    input: { command: `cd /tmp\necho inspection-${index}` },
+                    output: `Evidence ${index}`,
+                },
+                type: 'tool',
+            })),
         ]);
         // The running turn opens on arrival; its header is the Disclosure trigger.
         const turnHeader = page.locator(

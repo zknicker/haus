@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import type { TraceBarKind } from '../../turn-trace/turn-trace-grid.tsx';
 import type { TurnTraceStatus } from '../../turn-trace/turn-trace-tool-model.ts';
 

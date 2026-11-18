@@ -1,6 +1,7 @@
 import { type McpIcon, mcpIconSchema } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
 import * as z from 'zod';
+
 import { env } from '../config/env.ts';
 import { cacheAnonymousMcpIcons } from './icon-cache.ts';
 import { encodeFetchedIcon, iconMediaTypes, readDataUrl } from './icon-encoding.ts';

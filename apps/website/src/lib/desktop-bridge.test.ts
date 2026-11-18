@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { type HausDesktopBridge, resolveDesktopBridge } from './desktop-bridge.ts';
 
 const current = { loadsApp: true } as unknown as HausDesktopBridge;

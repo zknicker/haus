@@ -1,15 +1,17 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
+
 import { type Browser, chromium, type Page } from '@playwright/test';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { ReferenceChip } from '../mentions/reference-chip.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
+import { TranscriptMessageBlock } from './chat-transcript-message-block.tsx';
 import {
     ChatTranscriptMessageContent,
     type TranscriptMessage,
 } from './chat-transcript-message.tsx';
-import { TranscriptMessageBlock } from './chat-transcript-message-block.tsx';
 
 const appointmentText =
     'Your next dentist appointment is Dental Cleaning on Monday, September 28, 2026 at 10:00 AM EDT, at Meridian Dental, NYC. 🫡';

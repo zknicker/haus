@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { renderAgentInstructions } from './managed-instructions.ts';
 
 // Raft reaches its Artifacts App through Integrations plus a Manual pointer; Haus's shared files

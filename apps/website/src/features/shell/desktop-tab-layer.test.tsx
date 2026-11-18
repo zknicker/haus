@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import * as React from 'react';
 import type { Root } from 'react-dom/client';
+
 import { DesktopTabsContext } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import type { DesktopTabsState } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import { createDesktopTabsStore } from '../../hooks/desktop-tabs/desktop-tabs-store.ts';

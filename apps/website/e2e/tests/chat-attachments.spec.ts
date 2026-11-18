@@ -1,4 +1,5 @@
 import { deflateSync } from 'node:zlib';
+
 import { createAppTestFixture, signInAsAppHuman } from '../support/app-session.ts';
 import {
     assertOpaqueId,
@@ -97,7 +98,9 @@ test('the image viewer steps through a message’s images and keeps focus at the
 
     const chooser = page.waitForEvent('filechooser');
     await chat(page).getByLabel('Add attachments', { exact: true }).click();
-    await (await chooser).setFiles([
+    await (
+        await chooser
+    ).setFiles([
         { buffer: solidPng(48, 32), mimeType: 'image/png', name: 'step-one.png' },
         { buffer: solidPng(32, 48), mimeType: 'image/png', name: 'step-two.png' },
     ]);

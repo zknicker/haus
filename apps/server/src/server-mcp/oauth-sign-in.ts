@@ -1,11 +1,12 @@
 import { auth } from '@modelcontextprotocol/client';
+
 import { env } from '../config/env.ts';
+import { configuredOAuthClient } from './oauth-clients.ts';
 import {
     AuthorizationOriginError,
     createMcpOAuthProvider,
     requireOAuthConnection,
 } from './oauth.ts';
-import { configuredOAuthClient } from './oauth-clients.ts';
 import type { McpRuntime } from './runtime.ts';
 import { assertSecureOrLoopbackUrl } from './secure-fetch.ts';
 

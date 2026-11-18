@@ -1,4 +1,5 @@
 import type { TaskFollowReceipt, TaskSetFollowInput } from '@haus/api';
+
 import { requireChatAccess } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';

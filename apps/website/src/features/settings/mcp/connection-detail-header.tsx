@@ -1,5 +1,6 @@
 import { Button, Dropdown, Label } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 import { ConnectionGlyph } from './connection-mark.tsx';
 import type { McpConnection } from './mcp-server-shared.ts';
@@ -38,7 +39,7 @@ export function ConnectionDetailHeader({
                 <ConnectionGlyph connection={connection} />
             </span>
             <div className="flex min-w-0 items-center gap-2">
-                <h1 className="min-w-0 flex-1 truncate font-semibold text-2xl text-foreground tracking-tight">
+                <h1 className="text-foreground min-w-0 flex-1 truncate text-2xl font-semibold tracking-tight">
                     {connection.name}
                 </h1>
                 <Dropdown>

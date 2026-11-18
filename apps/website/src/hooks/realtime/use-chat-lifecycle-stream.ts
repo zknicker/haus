@@ -1,5 +1,6 @@
 import type { ChatLifecycleEvent } from '@haus/api';
 import { type QueryClient, useQueryClient } from '@tanstack/react-query';
+
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import {
     type TargetedReadCoalescer,

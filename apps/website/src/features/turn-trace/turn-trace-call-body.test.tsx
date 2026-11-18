@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+
 import type { AgentExecutionJournalTool } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { TurnTraceCallBody } from './turn-trace-call-body.tsx';
 import { classifyTraceTool } from './turn-trace-tool-model.ts';
 import { traceTextMaxChars } from './turn-trace-values.ts';

@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+
 import type * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { TraceElbow, TraceGroup, TraceNested, traceBranchClass } from './turn-trace-depth.tsx';
 import { TraceLine, TraceRow } from './turn-trace-row.tsx';
 import { TurnTraceSteps } from './turn-trace-steps-view.tsx';

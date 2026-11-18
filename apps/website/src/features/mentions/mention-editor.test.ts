@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest';
+
 import { isMentionEditorLineBreakShortcut } from './mention-editor.tsx';
 
 test('mention editor inserts a line break for Shift+Enter', () => {

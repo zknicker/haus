@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { isSkillDirty } from './skill-dialog.tsx';
 
 test('Agent skill save enables only when SKILL.md content changes', () => {

@@ -1,6 +1,7 @@
-import { Chip } from '@heroui/react';
 import { ItemCard, PressableFeedback } from '@heroui-pro/react';
+import { Chip } from '@heroui/react';
 import type * as React from 'react';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 
 export interface HubCardStatus {
@@ -51,7 +52,7 @@ export function AgentHubCard({
 
     return (
         <ItemCard<'button'>
-            className="relative w-full cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            className="focus-visible:ring-focus relative w-full cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2"
             onClick={onPress}
             render={(props) => <button type="button" {...props} />}
         >

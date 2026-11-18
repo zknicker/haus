@@ -1,6 +1,8 @@
 import { expect, test } from 'bun:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
+
 import { AppRouteError } from './app-route-error.tsx';
 
 test('an address no route matches says the page is not found, not a raw 404', () => {

@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { createAgentHandle } from './agent-handle.ts';
 
 describe('createAgentHandle', () => {

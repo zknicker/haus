@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { cn } from '../../lib/utils.ts';
 
 /**
@@ -101,7 +102,7 @@ export function TraceElbow({ at }: { at: 'line' | 'pass' | 'row' }) {
             <span
                 aria-hidden
                 className={cn(
-                    'pointer-events-none absolute w-px bg-separator',
+                    'bg-separator pointer-events-none absolute w-px',
                     traceElbowRun[at],
                     line && '[:last-child>&]:hidden'
                 )}
@@ -112,7 +113,7 @@ export function TraceElbow({ at }: { at: 'line' | 'pass' | 'row' }) {
                 <span
                     aria-hidden
                     className={cn(
-                        'pointer-events-none absolute top-0 box-content border-separator border-b',
+                        'border-separator pointer-events-none absolute top-0 box-content border-b',
                         'start-[calc(var(--trace-rail)+1px)] w-(--trace-arm)',
                         '[:last-child>&]:start-(--trace-rail) [:last-child>&]:border-s',
                         line.className

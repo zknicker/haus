@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import {
     cliFamilyTopics,
     getManualTopic,
@@ -9,8 +10,8 @@ import {
     resolveManualTopic,
     searchManualTopics,
 } from './index.ts';
-import { createManualLookup } from './lookup.ts';
 import { lookupKey } from './lookup-text.ts';
+import { createManualLookup } from './lookup.ts';
 
 const topIds = (query: string, scope: 'all' | 'recipes' = 'all') =>
     searchManualTopics(query, { limit: 5, scope }).map(({ id }) => id);

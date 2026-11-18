@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { isMcpBearerTokenPreset, mcpPresetAccountCreateSchema, mcpPresetSchema } from './mcp.ts';
 
 const base = { name: 'Account', serverId: 'srv_1' };

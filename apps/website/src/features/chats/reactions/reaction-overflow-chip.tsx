@@ -1,6 +1,7 @@
 import { Chip, Tooltip } from '@heroui/react';
 import type * as React from 'react';
 import { Button } from 'react-aria-components';
+
 import type { ReactionSticker } from './reaction-pile-model.ts';
 import { ReactorFace, useReactors } from './reactor-identity.tsx';
 

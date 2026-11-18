@@ -1,6 +1,7 @@
 import { type ImageGenerationProvider, imageGenerationProviderKeySchema } from '@haus/api';
 import { Button, FieldError, Form, Input, Label, Modal, TextField } from '@heroui/react';
 import { useState } from 'react';
+
 import { providerNames } from './image-generation-settings-model.ts';
 
 const FORM_ID = 'image-generation-key-form';
@@ -78,7 +79,7 @@ function KeyForm({
         <>
             <Modal.Header>
                 <Modal.Heading>{`${replacing ? 'Replace' : 'Add'} ${name} key`}</Modal.Heading>
-                <p className="mt-1.5 text-muted text-sm leading-5">
+                <p className="text-muted mt-1.5 text-sm leading-5">
                     Agents on this Server generate images with your own {name} account.
                 </p>
             </Modal.Header>

@@ -1,4 +1,5 @@
 import { join } from 'node:path';
+
 import type { McpPreset } from '@haus/api';
 
 export const skoolHostedUrl = 'https://hosted-mcp.haus.invalid/skool/mcp';

@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { readHausReleaseIdentity } from '../src/haus-release-identity.ts';
 
 test('reads the exact product version, source revision, and artifact digest', () => {

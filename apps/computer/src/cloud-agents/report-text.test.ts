@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { cloudAgentReportMaxLength } from '@haus/api';
+
 import { boundedReport, boundedSummary } from './report-text.ts';
 
 test('a report under its limit keeps the trimmed text unclipped', () => {

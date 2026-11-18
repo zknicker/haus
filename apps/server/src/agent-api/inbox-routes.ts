@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
+
 import {
     announceRunEngagements,
     installChatEngagementProjector,
@@ -7,8 +8,8 @@ import {
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
-import { attestAgentEvents, inspectAgentInbox, pullAgentEvents } from './inbox.ts';
 import { registerAgentInboxConversationsRoute } from './inbox-conversations-route.ts';
+import { attestAgentEvents, inspectAgentInbox, pullAgentEvents } from './inbox.ts';
 
 const visibleEventsSchema = z.object({
     messages: z

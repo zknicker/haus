@@ -20,16 +20,16 @@ export function DeliveryCard({
             }`}
         >
             <span
-                className={`font-medium text-xs uppercase tracking-[0.16em] ${
+                className={`text-xs font-medium tracking-[0.16em] uppercase ${
                     outgoing ? 'text-accent' : 'text-warning'
                 }`}
             >
                 {outgoing ? `Delivered to ${targetLabel}` : `Delivered from ${targetLabel}`}
             </span>
-            <span className="line-clamp-3 text-foreground text-sm">
+            <span className="text-foreground line-clamp-3 text-sm">
                 {delivery.messageText ?? targetLabel}
             </span>
-            <span className="font-mono text-muted text-xs">{targetSessionKey}</span>
+            <span className="text-muted font-mono text-xs">{targetSessionKey}</span>
         </div>
     );
 }

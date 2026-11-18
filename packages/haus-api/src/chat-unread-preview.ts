@@ -1,6 +1,7 @@
 import * as z from 'zod';
-import { chatMessageSchema } from './chat.ts';
+
 import { idSchema } from './chat-contract-primitives.ts';
+import { chatMessageSchema } from './chat.ts';
 import { taskKeySchema } from './task-key.ts';
 import { taskStateSchema } from './task-state.ts';
 

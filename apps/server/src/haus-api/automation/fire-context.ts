@@ -1,4 +1,5 @@
 import { automationFireContextInputSchema, automationFireContextSchema } from '@haus/api';
+
 import { readAutomationFireContext } from '../../automations/fire-context.ts';
 import { automationProcedure } from './procedure.ts';
 

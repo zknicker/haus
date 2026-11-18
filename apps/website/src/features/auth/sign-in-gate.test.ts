@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+
 import type { AppSession } from '@haus/api/app-session';
+
 import { resolveSignInGate } from './sign-in-gate.tsx';
 
 const session: AppSession = {

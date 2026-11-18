@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import {
     OAuthError,
     ProtocolError,
@@ -7,6 +8,7 @@ import {
     SdkHttpError,
     UnauthorizedError,
 } from '@modelcontextprotocol/client';
+
 import { McpReconnectRequiredError } from './errors.ts';
 import { classifyMcpUpstreamError, sanitizeUpstreamReason } from './upstream-failure.ts';
 

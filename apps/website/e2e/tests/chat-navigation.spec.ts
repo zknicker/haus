@@ -83,9 +83,9 @@ for (const intent of ['hover', 'focus'] as const) {
                 samples.push({
                     hasVisibleMessage: Boolean(
                         viewportBox &&
-                            messageBox &&
-                            messageBox.bottom > viewportBox.top &&
-                            messageBox.top < viewportBox.bottom
+                        messageBox &&
+                        messageBox.bottom > viewportBox.top &&
+                        messageBox.top < viewportBox.bottom
                     ),
                     hasSurface: Boolean(surface),
                 });

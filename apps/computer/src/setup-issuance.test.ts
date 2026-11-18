@@ -3,7 +3,9 @@ import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import type { ServerWebSocket } from 'bun';
+
 import { getFreePort } from './test-port.ts';
 
 const entrypoint = fileURLToPath(new URL('./index.ts', import.meta.url));

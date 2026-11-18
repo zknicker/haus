@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import type { ConfiguredAgentRow } from '../src/server-agents/agent-shape.ts';
 import { deriveAgentAvailability, deriveAgentStatus } from '../src/server-agents/agent-shape.ts';
 

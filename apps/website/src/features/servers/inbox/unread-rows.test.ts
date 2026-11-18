@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { Chat, ChatUnreadPreview } from '@haus/api';
+
 import { countUnreadChats, followedTaskPreviews, selectUnreadRows } from './unread-rows.ts';
 
 function chat(id: string, unreadCount: number, lastActivityAt: null | string): Chat {

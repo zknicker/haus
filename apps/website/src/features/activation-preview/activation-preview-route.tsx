@@ -1,5 +1,6 @@
 import { Description, Label, ListBox, Select } from '@heroui/react';
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
+
 import { AcceptInvitationPage } from '../../routes/app/accept-invitation-page.tsx';
 import { CoveOnboardingRoute } from '../onboarding/cove-onboarding-route.tsx';
 import {

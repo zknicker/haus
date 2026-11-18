@@ -1,5 +1,6 @@
 import type { CloudAgentRunNotice, CloudAgentRunStall } from '@haus/api';
 import { and, eq, isNotNull, isNull, or } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable } from '../postgres/schema.ts';
 import { linkParentChatsTable } from './cloud-agent-work-visibility.ts';

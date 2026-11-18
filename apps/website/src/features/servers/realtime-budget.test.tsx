@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+
 import { MemoryRouter } from 'react-router-dom';
+
 import { AgentActivityProvider } from '../../hooks/agents/use-current-agent-activity.tsx';
 import { useMemberUpdateStream } from '../../hooks/realtime/use-member-update-stream.ts';
 import { useServerUpdateStream } from '../../hooks/realtime/use-server-update-stream.ts';

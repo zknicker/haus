@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import type { DesktopTabsState } from './desktop-tabs-model.ts';
 import { focusedSelection, selectionFor } from './desktop-tabs-selection.ts';
 import { parseDesktopTabs, serializeDesktopTabs } from './desktop-tabs-storage.ts';

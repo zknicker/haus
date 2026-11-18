@@ -1,7 +1,9 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import * as React from 'react';
 import type { Root } from 'react-dom/client';
 import { type Navigator, type To, useNavigate, useRoutes, useSearchParams } from 'react-router-dom';
+
 import { installFakeDom } from '../../test-support/fake-dom.ts';
 import { useChatReferenceActivation } from '../servers/chat/use-chat-reference-activation.ts';
 import { IsolatedTabRouter } from './tab-router.tsx';

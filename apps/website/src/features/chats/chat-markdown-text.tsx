@@ -82,7 +82,7 @@ export function ChatMarkdownText({
 
         return (
             <p
-                className="my-0 whitespace-pre-wrap break-words text-base [overflow-wrap:anywhere]"
+                className="my-0 text-base [overflow-wrap:anywhere] break-words whitespace-pre-wrap"
                 key={`prose:${block.start}`}
             >
                 {renderMarkdownInline({
@@ -183,7 +183,7 @@ function ChatMarkdownHeading({
 
     if (block.depth === 1) {
         return (
-            <h1 className="mt-4 mb-2 whitespace-normal break-words font-semibold text-xl leading-8 [overflow-wrap:anywhere] first:mt-0">
+            <h1 className="mt-4 mb-2 text-xl leading-8 font-semibold [overflow-wrap:anywhere] break-words whitespace-normal first:mt-0">
                 {content}
             </h1>
         );
@@ -191,14 +191,14 @@ function ChatMarkdownHeading({
 
     if (block.depth === 2) {
         return (
-            <h2 className="mt-4 mb-1.5 whitespace-normal break-words font-semibold text-lg leading-7 [overflow-wrap:anywhere] first:mt-0">
+            <h2 className="mt-4 mb-1.5 text-lg leading-7 font-semibold [overflow-wrap:anywhere] break-words whitespace-normal first:mt-0">
                 {content}
             </h2>
         );
     }
 
     return (
-        <h3 className="mt-3 mb-1 whitespace-normal break-words font-semibold text-base leading-6 [overflow-wrap:anywhere] first:mt-0">
+        <h3 className="mt-3 mb-1 text-base leading-6 font-semibold [overflow-wrap:anywhere] break-words whitespace-normal first:mt-0">
             {content}
         </h3>
     );

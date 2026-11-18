@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+
 import { postgresLocaleEnvironment, stopStaleDevPostgres } from './dev-postgres.mjs';
 
 test('stopStaleDevPostgres stops the postmaster for the managed data root', () => {

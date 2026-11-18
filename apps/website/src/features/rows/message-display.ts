@@ -1,7 +1,9 @@
 import type { TranscriptMessage, TranscriptToolCall } from '../chats/transcript-contract.ts';
 
-interface MessageDisplayInput
-    extends Pick<TranscriptMessage, 'content' | 'metadata' | 'senderType'> {
+interface MessageDisplayInput extends Pick<
+    TranscriptMessage,
+    'content' | 'metadata' | 'senderType'
+> {
     toolCall?: TranscriptToolCall | null;
 }
 

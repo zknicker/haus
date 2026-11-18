@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { ExistingBrowserConnection } from './existing-browser.ts';
 import type { ProcessRecord } from './types.ts';
 

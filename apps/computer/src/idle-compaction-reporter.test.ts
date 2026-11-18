@@ -2,7 +2,9 @@ import { afterAll, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { type AgentIdleCompactionReport, agentIdleCompactionReportSchema } from '@haus/api';
+
 import { makeDaemonRuntime } from './daemon-runtime.ts';
 import { readComputerExecutionJournal } from './harness/execution-journal.ts';
 import { createIdleCompactionReporter } from './idle-compaction-reporter.ts';

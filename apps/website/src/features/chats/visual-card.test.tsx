@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import {
     buildVisualSrcDoc,
     visualD3Url,
@@ -7,6 +8,7 @@ import {
     visualWorldAtlasCountriesUrl,
 } from '@haus/api/widgets/visual/frame';
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { VisualCard } from './visual-card.tsx';
 import { visualHeightCache, visualIdentity } from './visual-height-cache.ts';
 

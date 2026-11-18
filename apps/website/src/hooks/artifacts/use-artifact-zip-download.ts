@@ -1,5 +1,6 @@
 import { toast } from '@heroui/react';
 import { useState } from 'react';
+
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import { getHausServerOrigin, hausTrpc } from '../../lib/haus-server.tsx';
 

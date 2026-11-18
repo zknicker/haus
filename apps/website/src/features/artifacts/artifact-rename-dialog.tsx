@@ -1,6 +1,7 @@
 import { artifactPathBasename } from '@haus/api';
 import { Button, FieldError, Form, Input, Label, Modal, TextField } from '@heroui/react';
 import * as React from 'react';
+
 import { useArtifactMove } from '../../hooks/artifacts/use-artifact-move.ts';
 import {
     type ArtifactRenameTarget,

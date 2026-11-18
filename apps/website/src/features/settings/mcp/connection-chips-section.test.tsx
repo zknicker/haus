@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { ConnectionChipsSection } from './connection-chips-section.tsx';
 
 test('RankWrangler says it adds product chips, beside an inert sample product chip', () => {

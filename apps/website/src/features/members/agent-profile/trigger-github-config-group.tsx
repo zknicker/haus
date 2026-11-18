@@ -1,7 +1,8 @@
 import type { GithubTrigger } from '@haus/api';
-import { Alert, Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Alert, Separator } from '@heroui/react';
 import { Fragment } from 'react';
+
 import { AutomationFactRow } from './automation-fact-row.tsx';
 import { githubEventSpecs, githubEventSummary } from './trigger-github-events-model.ts';
 import {
@@ -61,7 +62,7 @@ export function TriggerGithubConfigGroup({
                                     <ItemCard.Title>
                                         {githubEventSpecs[entry.event].label}
                                     </ItemCard.Title>
-                                    <ItemCard.Description className="max-w-full whitespace-pre-wrap break-words">
+                                    <ItemCard.Description className="max-w-full break-words whitespace-pre-wrap">
                                         {githubEventSummary(entry)}
                                     </ItemCard.Description>
                                 </ItemCard.Content>

@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { renderAgentInstructions } from './managed-instructions.ts';
 
 // Raft v1.21.2 clauses: a missing documented command means an old CLI, not an

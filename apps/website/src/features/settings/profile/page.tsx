@@ -1,8 +1,9 @@
 import type { ServerMember } from '@haus/api/membership';
 import { participantHandleSchema, suggestParticipantHandle } from '@haus/api/participant-handle';
-import { Button, Input, Separator, TextField } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Button, Input, Separator, TextField } from '@heroui/react';
 import * as React from 'react';
+
 import { useHumanAvatar } from '../../../hooks/members/use-human-avatar.ts';
 import { useHumanIdentity } from '../../../hooks/members/use-human-identity.ts';
 import { useMembers } from '../../../hooks/servers/use-members.ts';

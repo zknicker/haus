@@ -1,10 +1,11 @@
 import * as React from 'react';
+
 import { CompactCode, CompactCodeBlock } from '../../components/code/compact-code-block.tsx';
 import { cn } from '../../lib/utils.ts';
 import { TraceFoldButton, TurnTraceNote } from './turn-trace-blocks.tsx';
 import { foldTraceLines } from './turn-trace-fold.ts';
-import { TraceJson } from './turn-trace-json.tsx';
 import { readTraceJson } from './turn-trace-json-model.ts';
+import { TraceJson } from './turn-trace-json.tsx';
 import { clampTraceText, stableJson, traceTextMaxChars } from './turn-trace-values.ts';
 
 /**

@@ -2,8 +2,8 @@ import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import { formatRelativeTime } from '../../lib/format.ts';
 import type { HoverLogLine, HoverTimedLine } from './agent-hover-activity-model.ts';
 import { formatTurnOutcome } from './agent-profile/agent-turn-outcome.ts';
-import { TurnDuration } from './agent-profile/agent-turn-row.tsx';
 import { getTurnRowStatus, type TurnRowTitle } from './agent-profile/agent-turn-row-model.ts';
+import { TurnDuration } from './agent-profile/agent-turn-row.tsx';
 import type { RecentActivityRow } from './agent-profile/recent-activity-rows.ts';
 
 /**
@@ -25,13 +25,13 @@ export function AgentHoverTurn({ row, title }: { row: RecentActivityRow; title: 
             <span className="flex min-w-0 flex-1 flex-col">
                 {title.kind === 'none' ? (
                     // Same rule as the turn list: no visible request, one outcome line.
-                    <span className="min-w-0 truncate text-foreground">{outcome}</span>
+                    <span className="text-foreground min-w-0 truncate">{outcome}</span>
                 ) : (
                     <>
-                        <span className="min-h-4 min-w-0 truncate text-foreground">
+                        <span className="text-foreground min-h-4 min-w-0 truncate">
                             {title.kind === 'text' ? title.text : null}
                         </span>
-                        <span className="min-w-0 truncate text-muted">
+                        <span className="text-muted min-w-0 truncate">
                             {title.place ? `${title.place} · ${outcome}` : outcome}
                         </span>
                     </>
@@ -40,7 +40,7 @@ export function AgentHoverTurn({ row, title }: { row: RecentActivityRow; title: 
             {statusLabel ? (
                 <span
                     className={
-                        status?.kind === 'failed' ? 'shrink-0 text-danger' : 'shrink-0 text-warning'
+                        status?.kind === 'failed' ? 'text-danger shrink-0' : 'text-warning shrink-0'
                     }
                 >
                     {statusLabel}
@@ -70,7 +70,7 @@ export function HoverTimedRow({ className, line }: { className: string; line: Ho
 export function HoverLogRow({ line }: { line: HoverLogLine }) {
     return (
         <li className="flex min-w-0 items-center gap-2">
-            <span className="min-w-0 flex-1 truncate text-foreground">{line.label}</span>
+            <span className="text-foreground min-w-0 flex-1 truncate">{line.label}</span>
             <time className={numericColumn} dateTime={line.occurredAt}>
                 {line.time}
             </time>

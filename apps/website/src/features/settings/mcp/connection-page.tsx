@@ -1,10 +1,11 @@
 import { Alert } from '@heroui/react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { useAgents } from '../../../hooks/members/use-agents.ts';
-import { useConnection } from '../../../hooks/servers/use-connection.ts';
 import { useConnectionDelete } from '../../../hooks/servers/use-connection-delete.ts';
 import { useConnectionDisconnect } from '../../../hooks/servers/use-connection-disconnect.ts';
+import { useConnection } from '../../../hooks/servers/use-connection.ts';
 import { useSkoolConnect } from '../../../hooks/servers/use-skool-connect.ts';
 import { useServerContext } from '../../servers/server-context.ts';
 import { settingsConnectionRoute } from '../../servers/server-routes.ts';

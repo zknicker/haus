@@ -1,5 +1,5 @@
-import { Button, Label, Toolbar, toast } from '@heroui/react';
 import { ContextMenu } from '@heroui-pro/react';
+import { Button, Label, Toolbar, toast } from '@heroui/react';
 import {
     Activity01Icon,
     Copy01Icon,
@@ -8,6 +8,7 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
 import { useState } from 'react';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 import { writeClipboardText } from '../../../lib/clipboard.ts';
 import { cn } from '../../../lib/utils.ts';

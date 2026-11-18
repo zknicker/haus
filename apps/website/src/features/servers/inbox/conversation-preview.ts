@@ -1,4 +1,5 @@
 import type { ChatLastMessage } from '@haus/api';
+
 import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 
 /** Who the row already names, so the quote does not name them again. */

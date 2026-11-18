@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'bun:test';
+
 import type { HausCreateMessageRequest } from '@haus/api';
+
 import { createHausClient } from './client.ts';
 
 describe('Haus SDK client', () => {

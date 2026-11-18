@@ -5,6 +5,7 @@ import {
     modelDefaultReasoningEffort,
     modelReasoningEfforts,
 } from '@haus/api';
+
 import { InventorySelect } from './inventory-select.tsx';
 
 type Model = ComputerInventory['runtimes'][number]['models'][number];

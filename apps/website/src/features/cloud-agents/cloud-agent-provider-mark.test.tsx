@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { CloudAgentKeycap } from './cloud-agent-provider-mark.tsx';
 
 test('a cloud agent key badges its provider once the key is large enough to read it', () => {

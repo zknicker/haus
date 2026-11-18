@@ -1,5 +1,6 @@
 import { toast } from '@heroui/react';
 import * as React from 'react';
+
 import { browserViewLayout } from '../../hooks/browser/browser-view-layout.ts';
 import { createViewSweeper, unnamedViewGraceMs } from '../../hooks/browser/browser-view-sweep.ts';
 import { focusedViewId, referencedViewIds } from '../../hooks/browser/browser-view-tabs.ts';

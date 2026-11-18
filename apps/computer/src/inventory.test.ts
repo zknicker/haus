@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { detectInventory, featuresForRuntime, reasoningEffortsForModel } from './inventory.ts';
 import { resolveRuntimeExecutable, runtimeSearchPath } from './runtime-discovery.ts';
 

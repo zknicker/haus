@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { ChannelHoverCard, ChannelHoverCardContent } from './channel-hover-card.tsx';
 import { getMentionAppearance } from './mention-appearance.tsx';
 import { ReferenceChip } from './reference-chip.tsx';

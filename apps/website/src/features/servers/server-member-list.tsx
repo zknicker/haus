@@ -2,6 +2,7 @@ import type { ServerMember, ServerMemberDirectory } from '@haus/api/membership';
 import { Button, Chip, Separator } from '@heroui/react';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
+
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { humanDisplayName } from './human-identity.ts';
 import { type ServerMemberRowAction, serverMemberRowActions } from './server-member-actions.ts';
@@ -36,7 +37,7 @@ export function ServerMemberList({
                                 controls are destructive, so the whole row must
                                 not be a click target. */}
                             <Link
-                                className="min-w-0 truncate rounded-sm font-medium text-foreground text-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-focus"
+                                className="text-foreground focus-visible:ring-focus min-w-0 truncate rounded-sm text-sm font-medium outline-none hover:underline focus-visible:ring-2"
                                 to={settingsHumanRoute(serverSlug, member.userId)}
                             >
                                 {humanDisplayName(member)}

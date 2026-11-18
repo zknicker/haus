@@ -1,5 +1,6 @@
-import { Switch } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Switch } from '@heroui/react';
+
 import { setShowClaimsInChat, useShowClaimsInChat } from '../../claims/show-claims-in-chat.ts';
 import { PageColumn } from '../../shell/page-column.tsx';
 import { HausVersionSummary } from '../../updates/haus-version-summary.tsx';

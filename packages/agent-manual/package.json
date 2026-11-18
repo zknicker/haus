@@ -1,16 +1,16 @@
 {
-  "name": "@haus/agent-manual",
-  "private": true,
-  "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
-  },
-  "scripts": {
-    "test": "bun test src",
-    "typecheck": "tsc --noEmit"
-  },
-  "devDependencies": {
-    "@types/bun": "1.3.13",
-    "typescript": "5.9.3"
-  }
+    "name": "@haus/agent-manual",
+    "private": true,
+    "type": "module",
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "scripts": {
+        "test": "bun test src",
+        "typecheck": "tsc --noEmit"
+    },
+    "devDependencies": {
+        "@types/bun": "1.3.13",
+        "typescript": "5.9.3"
+    }
 }

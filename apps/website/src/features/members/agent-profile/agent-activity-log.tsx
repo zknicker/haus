@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { cn } from '../../../lib/utils.ts';
 import { TraceLayoutProvider } from '../../turn-trace/turn-trace-grid.tsx';
 import {
@@ -143,15 +144,15 @@ export function ActivityLog({
                                 data-log-day={logDay.key}
                                 key={logDay.key}
                             >
-                                <h3 className="border-separator border-b px-(--trace-pad) pt-4 pb-2 font-semibold text-sm">
+                                <h3 className="border-separator border-b px-(--trace-pad) pt-4 pb-2 text-sm font-semibold">
                                     {logDay.label}
                                 </h3>
                                 {logDay.entries.length === 0 ? (
-                                    <p className="px-(--trace-pad) py-3 text-muted text-sm">
+                                    <p className="text-muted px-(--trace-pad) py-3 text-sm">
                                         No activity
                                     </p>
                                 ) : null}
-                                <div className="grid min-w-0 divide-y divide-separator">
+                                <div className="divide-separator grid min-w-0 divide-y">
                                     {logDay.entries.map((entry) => (
                                         <ActivityLogTurn
                                             access={access}

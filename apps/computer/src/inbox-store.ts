@@ -1,6 +1,8 @@
 import { mkdir, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
+
 import type { AgentTaskAssignmentNotice } from '@haus/api';
+
 import type { AgentInboxItem } from './agent-inbox-item.ts';
 import { noticePath, type StoredNoticeReceipt, writePendingNotice } from './delivery.ts';
 import { composeInboxNotice } from './inbox-format.ts';

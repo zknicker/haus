@@ -6,13 +6,14 @@ import {
     MoreVerticalIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import { Link } from 'react-router-dom';
+
 import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useArtifactPublicLink } from '../../hooks/artifacts/use-artifact-public-link.ts';
 import { artifactActionItems } from './artifact-action-items.tsx';
-import type { FileActionId } from './artifact-actions.ts';
 import { useArtifactActionsContext } from './artifact-actions-context.ts';
+import type { FileActionId } from './artifact-actions.ts';
 import { artifactKindLabel, artifactTimeLabel } from './artifact-format.ts';
 import { PublicLinkChip } from './artifact-public-link-mark.tsx';
 import { ArtifactFileIcon } from './icons/artifact-file-icon.tsx';
@@ -52,10 +53,10 @@ export function ArtifactViewerHeader({
         <header className="artifact-viewer-header flex items-center gap-4">
             <ArtifactFileIcon kind={kind} size={48} />
             <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <h1 className="truncate font-semibold text-2xl text-foreground tracking-tight">
+                <h1 className="text-foreground truncate text-2xl font-semibold tracking-tight">
                     {artifact.title}
                 </h1>
-                <p className="flex min-w-0 items-center gap-1.5 text-muted text-sm">
+                <p className="text-muted flex min-w-0 items-center gap-1.5 text-sm">
                     <span className="shrink-0">{artifactKindLabel(kind)} ·</span>
                     <EntityAvatar name={author.name} size={16} src={author.src} />
                     <span className="truncate">

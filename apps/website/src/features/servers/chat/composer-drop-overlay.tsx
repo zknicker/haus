@@ -1,6 +1,7 @@
 import { ImageUpload01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { createPortal } from 'react-dom';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 import { springs } from '../../../lib/springs.ts';
 
@@ -35,21 +36,21 @@ export function ComposerDropOverlay({
                     initial={{ opacity: 0 }}
                     transition={springs.moderate}
                 >
-                    <div className="absolute inset-0 bg-background opacity-90" />
+                    <div className="bg-background absolute inset-0 opacity-90" />
                     <motion.div
                         animate={{ scale: 1 }}
-                        className="card-shell relative flex size-full flex-col items-center justify-center border-2 border-accent border-dashed"
+                        className="card-shell border-accent relative flex size-full flex-col items-center justify-center border-2 border-dashed"
                         exit={reduceMotion ? undefined : { scale: 0.99 }}
                         initial={reduceMotion ? false : { scale: 0.98 }}
                         transition={springs.moderate}
                     >
-                        <span className="mb-4 flex size-12 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-overlay">
+                        <span className="bg-accent text-accent-foreground shadow-overlay mb-4 flex size-12 items-center justify-center rounded-full">
                             <Icon className="size-6" icon={ImageUpload01Icon} />
                         </span>
-                        <p className="font-semibold text-base text-foreground">
+                        <p className="text-foreground text-base font-semibold">
                             Drop files to attach
                         </p>
-                        <p className="mt-1 text-muted text-sm">Images and files up to 50 MB</p>
+                        <p className="text-muted mt-1 text-sm">Images and files up to 50 MB</p>
                     </motion.div>
                 </motion.div>
             ) : null}

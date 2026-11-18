@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { isHousekeepingPhrase, isHousekeepingThought } from './thought-housekeeping.ts';
 
 test('drops the Agent’s own process from the fallback', () => {

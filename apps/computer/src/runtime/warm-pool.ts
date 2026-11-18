@@ -1,8 +1,8 @@
-import type { IdleCompactable } from './idle-compaction.ts';
 import {
     type IdleCompactionOptions,
     IdleCompactionScheduler,
 } from './idle-compaction-scheduler.ts';
+import type { IdleCompactable } from './idle-compaction.ts';
 
 /**
  * A parked native runtime process (`claude`, `codex app-server`, `grok`) between turns. One whose

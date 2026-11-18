@@ -1,4 +1,5 @@
 import { githubTriggerEventNameSchema } from '@haus/api';
+
 import type { SubCommand } from '../subcommand.ts';
 import {
     defaultTriggerDeps,

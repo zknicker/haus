@@ -1,7 +1,8 @@
 import { type Agent, type Trigger, triggerTitleMaxLength } from '@haus/api';
-import { Button, FieldError, Form, Input, Label, TextArea, TextField } from '@heroui/react';
 import { Sheet } from '@heroui-pro/react';
+import { Button, FieldError, Form, Input, Label, TextArea, TextField } from '@heroui/react';
 import * as React from 'react';
+
 import { useTriggerDelete } from '../../../hooks/members/use-trigger-delete.ts';
 import { useTriggerRotate } from '../../../hooks/members/use-trigger-rotate.ts';
 import { useTriggerRuns } from '../../../hooks/members/use-trigger-runs.ts';
@@ -73,7 +74,7 @@ export function TriggerDetailPanel({
         <>
             <Sheet.Header>
                 <Sheet.Heading>{trigger.title}</Sheet.Heading>
-                <p className="mt-1.5 text-muted text-sm leading-5">
+                <p className="text-muted mt-1.5 text-sm leading-5">
                     {`${triggerKindLabel(trigger.kind)} trigger`}
                 </p>
             </Sheet.Header>

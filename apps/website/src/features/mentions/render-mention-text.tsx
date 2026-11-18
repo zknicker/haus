@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { normalizeMentions } from './mention-text.ts';
 import type { Mention } from './mention-types.ts';
 import { ReferenceChip } from './reference-chip.tsx';

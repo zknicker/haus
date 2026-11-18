@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
+
 import { commandGroups } from '../apps/computer/src/agent-cli.ts';
 import {
     coveGuidanceConflictNotice,
@@ -68,9 +69,8 @@ test('Manual and Cove guidance reference registered Haus subcommands and flags',
 });
 
 test('Cove notices and the playbook use the same offer-state and send-status vocabulary', async () => {
-    const { coveCoordinationGuidance } = await import(
-        '../packages/agent-workspace/src/cove-coordination-guidance.ts'
-    );
+    const { coveCoordinationGuidance } =
+        await import('../packages/agent-workspace/src/cove-coordination-guidance.ts');
     const notice = coveTurnGuidanceNotice('cove')!;
     const states = coveCoordinationGuidance.match(/Keep review_offer_state[^:]+: ([^.]+)\./u)![1]!;
     const playbookStates = states.split(/,\s*| or /u).map((state) => state.trim());

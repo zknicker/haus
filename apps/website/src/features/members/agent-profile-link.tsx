@@ -1,4 +1,5 @@
 import { Link, type LinkProps, useParams } from 'react-router-dom';
+
 import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.ts';
 import { usePreloadAgentProfile } from '../../hooks/members/use-preload-agent-profile.ts';
 import { usePressNavigation } from '../../hooks/shell/use-press-navigation.ts';

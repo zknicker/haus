@@ -1,5 +1,7 @@
 import { beforeAll, expect, test } from 'bun:test';
+
 import { artifactListInputSchema } from '@haus/api';
+
 import { runArtifactAction } from '../src/artifacts/action.ts';
 import { pngDpi } from '../src/artifacts/image-facts.ts';
 import { ArtifactThumbnails } from '../src/artifacts/thumbnails.ts';

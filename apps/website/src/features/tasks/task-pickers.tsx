@@ -1,4 +1,5 @@
 import { Label, ListBox } from '@heroui/react';
+
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { type TaskPriority, taskPriorityLabels, taskPriorityOrder } from './task-presentation.ts';
 import { TaskPriorityIcon } from './task-priority-icon.tsx';

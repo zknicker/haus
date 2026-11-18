@@ -1,9 +1,10 @@
 import type { Agent } from '@haus/api';
-import { Button, Dropdown, Label, Separator } from '@heroui/react';
 import { ItemCard, PressableFeedback } from '@heroui-pro/react';
+import { Button, Dropdown, Label, Separator } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { RelativeTime } from '../../../components/time/relative-time.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useClaimRelease } from '../../../hooks/servers/use-claim-release.ts';
@@ -45,7 +46,7 @@ export function AgentStalledClaims({ agent, server }: { agent: Agent; server: Se
                     {}
                     <div className="flex min-w-0 items-center gap-1">
                         <ItemCard<'button'>
-                            className="relative min-w-0 flex-1 cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                            className="focus-visible:ring-focus relative min-w-0 flex-1 cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2"
                             onClick={() =>
                                 navigate(
                                     serverChatMessageRoute(

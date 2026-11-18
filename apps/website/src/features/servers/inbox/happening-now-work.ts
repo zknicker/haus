@@ -5,6 +5,7 @@ import type {
     CloudAgentJobState,
     CloudAgentProvider,
 } from '@haus/api';
+
 import { cloudAgentWorkText, elapsedSince } from '../../cloud-agents/cloud-agent-presentation.ts';
 import { conversationLabel } from '../conversation-label.ts';
 import type { HumanDirectory } from '../human-identity.ts';

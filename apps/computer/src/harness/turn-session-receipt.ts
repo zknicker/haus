@@ -1,7 +1,8 @@
 import { type AgentReasoningEffort, hausAgentVersion } from '@haus/api';
+
 import type { RuntimeResumeState } from '../runtime/resume-state.ts';
-import type { ComposedInstructions } from './instructions.ts';
 import { deliveredInstructionReceipt, type InstructionsUpdatePlan } from './instructions-update.ts';
+import type { ComposedInstructions } from './instructions.ts';
 import { type MemoryDelivery, memoryReceiptAfterTurn } from './memory-delivery.ts';
 import type { AgentSessionState } from './session-store.ts';
 

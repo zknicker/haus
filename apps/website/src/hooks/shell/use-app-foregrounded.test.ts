@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { isAppForegrounded } from './use-app-foregrounded.ts';
 
 test('the app is foregrounded only when its document is visible and window is focused', () => {

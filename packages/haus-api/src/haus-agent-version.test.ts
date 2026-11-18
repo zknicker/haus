@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import manifest from '../haus-agent.json' with { type: 'json' };
 import { agentEffectiveStateSchema, hausAgentReportFrameSchema } from './agent.ts';
 import { hausAgentVersion } from './haus-agent-version.ts';

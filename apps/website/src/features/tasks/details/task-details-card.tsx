@@ -1,5 +1,6 @@
 import type { TaskDetail } from '@haus/api';
 import type * as React from 'react';
+
 import { InlineCard } from '../../../components/ui/inline-card.tsx';
 import { TaskDescription } from './task-description.tsx';
 import { TaskDuePicker, TaskLabelsPicker, TaskPrioritySelect } from './task-detail-pickers.tsx';
@@ -8,7 +9,7 @@ export function TaskDetailsCard({ task }: { task: TaskDetail }) {
     return (
         <InlineCard
             aria-label="Details"
-            className="border border-separator bg-nested-surface p-3"
+            className="border-separator bg-nested-surface border p-3"
             role="region"
             tone="plain"
         >

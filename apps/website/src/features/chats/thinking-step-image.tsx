@@ -34,7 +34,7 @@ export function ThinkingStepImage({
                 src={src}
                 width={width}
             />
-            {caption ? <span className="mt-1 block text-muted text-xs">{caption}</span> : null}
+            {caption ? <span className="text-muted mt-1 block text-xs">{caption}</span> : null}
         </div>
     );
 }

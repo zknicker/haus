@@ -1,4 +1,3 @@
-import type { IconSvgElement } from '@hugeicons/react';
 import {
     AiBrain01Icon,
     Analytics01Icon,
@@ -11,6 +10,8 @@ import {
     UserMultipleIcon,
     ZapIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
+import type { IconSvgElement } from '@hugeicons/react';
+
 import { appRoutes } from '../../../lib/app-routes.ts';
 
 /**

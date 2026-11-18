@@ -1,16 +1,17 @@
 import { describe, expect, test } from 'bun:test';
+
 import {
     agentTriggerCreateInputSchema,
     agentTriggerCreateResultSchema,
     agentTriggerSchema,
 } from './agent-triggers.ts';
-import { githubInstallationSchema } from './github.ts';
 import {
     githubTriggerEventNameSchema,
     githubTriggerEventPermission,
     githubTriggerEventsSchema,
     githubTriggerRepositoriesSchema,
 } from './github-trigger-events.ts';
+import { githubInstallationSchema } from './github.ts';
 import {
     triggerCreateInputSchema,
     triggerCreateResultSchema,

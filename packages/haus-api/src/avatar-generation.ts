@@ -1,4 +1,5 @@
 import * as z from 'zod';
+
 import { avatarMaxBytes, avatarMediaTypeSchema, avatarPixelSize } from './avatar.ts';
 
 const idSchema = z.string().trim().min(1);

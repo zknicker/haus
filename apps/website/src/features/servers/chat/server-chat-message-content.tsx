@@ -1,5 +1,6 @@
 import type { Agent, Chat } from '@haus/api';
 import * as React from 'react';
+
 import type { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { ChatMarkdownText } from '../../chats/chat-markdown-text.tsx';
 import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx';

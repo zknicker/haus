@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import type { HausClient } from './haus-client.ts';
 import { type NotificationFixture, startNotificationFixture } from './notification-fixture.ts';
 import { deviceToken, FakePushSender } from './push-fake-sender.ts';

@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { commonPrefixLength } from './use-revealed-text.ts';
 
 const defaultStreamingTextRangeDurationMs = 920;

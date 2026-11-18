@@ -1,15 +1,16 @@
-import { Badge, Button, Tooltip } from '@heroui/react';
 import { Sidebar } from '@heroui-pro/react';
+import { Badge, Button, Tooltip } from '@heroui/react';
 import { ComputerIcon, PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { cn } from '../../lib/utils.ts';
 import { serverComputersRoute } from '../servers/server-routes.ts';
 import { AddComputerDialog } from './add-computer-dialog.tsx';
-import { computerDiskWarning } from './computer-disk.ts';
 import { ComputerDiskChip } from './computer-disk-warning.tsx';
+import { computerDiskWarning } from './computer-disk.ts';
 import { computerHealthColor, computerHealthLabel, computerLabel } from './presentation.ts';
 
 /**
@@ -56,11 +57,11 @@ export function SettingsComputersGroup({
                     <span className="sr-only">Loading Computers</span>
                 </div>
             ) : computers.error && !computers.data ? (
-                <p className="px-2 py-1 text-muted text-sm" role="alert">
+                <p className="text-muted px-2 py-1 text-sm" role="alert">
                     Couldn’t load Computers
                 </p>
             ) : items.length === 0 ? (
-                <p className="px-2 py-1 text-muted text-sm">No Computers attached.</p>
+                <p className="text-muted px-2 py-1 text-sm">No Computers attached.</p>
             ) : (
                 <Sidebar.Menu aria-label="Computers">
                     {items.map((computer) => (

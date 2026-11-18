@@ -1,5 +1,6 @@
 import { settle } from '@haus/effect';
 import { Effect } from 'effect';
+
 import type { HarnessTurnInput } from './executor.ts';
 
 /** Startup phases cover wedges before the stream watchdog can observe an event. */

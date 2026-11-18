@@ -1,5 +1,6 @@
 import { socketSessionRefreshInputSchema, socketSessionRefreshResultSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
+
 import { HausAuthError, type HausSessionIdentity } from '../../identity/haus-sessions.ts';
 import { publicProcedure, unauthorized } from '../trpc.ts';
 

@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import type { AgentThoughtEvent, AgentThoughtFrame } from '@haus/api';
+
 import { attestAgentEvents } from '../src/agent-api/inbox.ts';
 import {
     announceAgentThought,
@@ -7,11 +9,11 @@ import {
 } from '../src/agent-delivery/thought-events.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
+import type { ThoughtSummary } from '../src/server-agents/agent-thought-summarizer.ts';
 import {
     admitComputerAgentThought,
     createAgentThoughts,
 } from '../src/server-agents/agent-thought.ts';
-import type { ThoughtSummary } from '../src/server-agents/agent-thought-summarizer.ts';
 import {
     at,
     collectBackground,

@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { canonicalIanaTimezone } from './timezone.ts';
 
 test('accepts IANA zone names and canonicalizes their case', () => {

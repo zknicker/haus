@@ -1,6 +1,7 @@
 import type { Agent, Chat, ServerMember } from '@haus/api';
 import { Label, ListBox, Select } from '@heroui/react';
 import * as React from 'react';
+
 import type { ChatSearchFilters } from '../../../hooks/servers/use-chat-search.ts';
 import { AgentOptionLabel } from '../../agents/agent-option-label.tsx';
 

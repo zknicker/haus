@@ -130,11 +130,11 @@ export function pickAgentTarget(
 export function isReady(agent) {
     return Boolean(
         agent &&
-            agent.status === 'applied' &&
-            agent.availability === 'idle' &&
-            agent.effectiveRuntimeId === agent.desiredRuntimeId &&
-            agent.effectiveModelId === agent.desiredModelId &&
-            agent.missingResources.length === 0
+        agent.status === 'applied' &&
+        agent.availability === 'idle' &&
+        agent.effectiveRuntimeId === agent.desiredRuntimeId &&
+        agent.effectiveModelId === agent.desiredModelId &&
+        agent.missingResources.length === 0
     );
 }
 

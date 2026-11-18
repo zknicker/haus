@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import * as React from 'react';
 import {
     MemoryRouter,
@@ -9,6 +10,7 @@ import {
     useParams,
     useSearchParams,
 } from 'react-router-dom';
+
 import { useViewShown, useViewShownChange } from '../../../hooks/desktop-tabs/view-shown.ts';
 import { WindowTitle } from '../../../hooks/shell/use-window-title.ts';
 import {

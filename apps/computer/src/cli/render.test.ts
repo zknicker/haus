@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { cliColorsEnabled, createCliRenderer } from './render.ts';
 
 test('plain rendering keeps glyphs and drops ANSI codes', () => {

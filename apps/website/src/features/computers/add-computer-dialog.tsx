@@ -1,5 +1,6 @@
 import { Button, Modal } from '@heroui/react';
 import { ComputerIcon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { ComputerSetupCommands } from './computer-setup-commands.tsx';
 
@@ -22,7 +23,7 @@ export function AddComputerDialog({
                             <Icon className="size-5" icon={ComputerIcon} />
                         </Modal.Icon>
                         <Modal.Heading>Add Computer</Modal.Heading>
-                        <p className="mt-1.5 text-muted text-sm leading-5">
+                        <p className="text-muted mt-1.5 text-sm leading-5">
                             Run Agents on an Apple Silicon Mac you control.
                         </p>
                     </Modal.Header>

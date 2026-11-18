@@ -2,7 +2,9 @@ import { expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { Effect } from 'effect';
+
 import { AttachmentDaemonWork } from './attachment-daemon-work.ts';
 import { drainAttachmentDaemon, withAttachmentShutdown } from './attachment-shutdown.ts';
 import { makeDaemonRuntime } from './daemon-runtime.ts';

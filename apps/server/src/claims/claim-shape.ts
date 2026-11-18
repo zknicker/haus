@@ -1,5 +1,6 @@
 import type { MessageClaim } from '@haus/api';
 import { and, eq, inArray } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { messageClaimsTable } from '../postgres/schema.ts';
 import { loadLiveClaimMessageIds } from './claim-liveness.ts';

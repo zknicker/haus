@@ -1,6 +1,7 @@
 import { Button, Kbd, ProgressBar, Toolbar, Tooltip, toast } from '@heroui/react';
 import { LinkSquare02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { browserAddressId, useBrowserViews } from '../../hooks/browser/browser-views-context.ts';
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';

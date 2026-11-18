@@ -1,6 +1,7 @@
 import type { Agent } from '@haus/api';
-import { Switch } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Switch } from '@heroui/react';
+
 import { useAgentConnectionAdmin } from '../../../hooks/members/use-agent-connection-admin.ts';
 
 /**

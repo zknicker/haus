@@ -1,5 +1,6 @@
 import { Spinner } from '@heroui/react';
 import * as React from 'react';
+
 import { cn } from '../../lib/utils.ts';
 
 const loadingIndicatorDelayMs = 180;
@@ -31,7 +32,7 @@ export function ChatTranscriptLoadingIndicator({
         <output
             aria-label="Loading chat transcript"
             className={cn(
-                'pointer-events-none inline-flex animate-[chat-loading-indicator-in_160ms_cubic-bezier(0.23,1,0.32,1)_both] items-center justify-center text-muted',
+                'text-muted pointer-events-none inline-flex animate-[chat-loading-indicator-in_160ms_cubic-bezier(0.23,1,0.32,1)_both] items-center justify-center',
                 className
             )}
         >

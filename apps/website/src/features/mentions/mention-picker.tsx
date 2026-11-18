@@ -1,5 +1,6 @@
 import { Spinner } from '@heroui/react';
 import * as React from 'react';
+
 import { cn } from '../../lib/utils.ts';
 import { getMentionAppearance, MentionAppearanceIcon } from './mention-appearance.tsx';
 import { getMentionDisplayLabel } from './mention-display-label.ts';
@@ -52,7 +53,7 @@ export function MentionPicker({
     return (
         <div
             className={cn(
-                'card-shell absolute right-0 bottom-[calc(100%+0.4rem)] left-0 z-20 flex max-h-64 w-full flex-col overflow-hidden border border-separator bg-overlay p-1 text-sm shadow-overlay',
+                'card-shell border-separator bg-overlay shadow-overlay absolute right-0 bottom-[calc(100%+0.4rem)] left-0 z-20 flex max-h-64 w-full flex-col overflow-hidden border p-1 text-sm',
                 className
             )}
             role="listbox"
@@ -63,12 +64,12 @@ export function MentionPicker({
                 ref={scrollContainerRef}
             >
                 <div className="flex w-full flex-col">
-                    {hasVisibleRows ? null : <div className="px-2 py-2 text-muted">No results</div>}
+                    {hasVisibleRows ? null : <div className="text-muted px-2 py-2">No results</div>}
                     {groups.map((group, groupIndex) => (
                         <div key={group.label}>
                             <div
                                 className={cn(
-                                    'sticky top-0 z-10 bg-overlay px-2 py-1 text-muted',
+                                    'bg-overlay text-muted sticky top-0 z-10 px-2 py-1',
                                     groupIndex > 0 && 'pt-2'
                                 )}
                                 data-mention-group-label
@@ -76,7 +77,7 @@ export function MentionPicker({
                                 {group.label}
                             </div>
                             {group.status ? (
-                                <div className="flex h-8 items-center gap-2 px-2 text-muted">
+                                <div className="text-muted flex h-8 items-center gap-2 px-2">
                                     <Spinner color="current" size="sm" />
                                     <span>Searching files...</span>
                                 </div>
@@ -89,7 +90,7 @@ export function MentionPicker({
                                     <button
                                         aria-selected={index === activeIndex}
                                         className={cn(
-                                            'card-shell h-8 w-full shrink-0 cursor-(--cursor-interactive) overflow-hidden px-2.5 text-left text-foreground outline-hidden focus:bg-default',
+                                            'card-shell text-foreground focus:bg-default h-8 w-full shrink-0 cursor-(--cursor-interactive) overflow-hidden px-2.5 text-left outline-hidden',
                                             index === activeIndex
                                                 ? 'bg-default'
                                                 : 'hover:bg-default'
@@ -114,7 +115,7 @@ export function MentionPicker({
                                             <MentionAppearanceIcon
                                                 agentAvatar={appearance.agentAvatar}
                                                 className={cn(
-                                                    'shrink-0 text-foreground',
+                                                    'text-foreground shrink-0',
                                                     appearance.agentAvatar
                                                         ? undefined
                                                         : 'size-[15px] rounded-sm object-contain'
@@ -124,19 +125,19 @@ export function MentionPicker({
                                             />
                                             <span
                                                 className={cn(
-                                                    'truncate font-medium text-foreground',
+                                                    'text-foreground truncate font-medium',
                                                     option.description && 'shrink-0'
                                                 )}
                                             >
                                                 {displayLabel}
                                             </span>
                                             {option.description ? (
-                                                <span className="min-w-0 flex-1 truncate text-muted">
+                                                <span className="text-muted min-w-0 flex-1 truncate">
                                                     {option.description}
                                                 </span>
                                             ) : null}
                                             {option.sourceLabel && !option.description ? (
-                                                <span className="min-w-0 flex-1 truncate text-muted">
+                                                <span className="text-muted min-w-0 flex-1 truncate">
                                                     {option.sourceLabel}
                                                 </span>
                                             ) : null}

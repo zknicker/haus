@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { createGeminiThoughtSummarizer, thoughtSummaryModel } from './agent-thought-summarizer.ts';
 
 function fakeGemini(respond: (init: RequestInit) => Promise<Response>) {

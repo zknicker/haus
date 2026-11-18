@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import * as React from 'react';
+
 import { installFakeDom } from '../../test-support/fake-dom.ts';
 import { WorkspaceTabLabel } from './workspace-tab.tsx';
 

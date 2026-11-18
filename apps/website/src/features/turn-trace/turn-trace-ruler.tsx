@@ -12,11 +12,11 @@ export function TraceRuler({ className, scale }: { className?: string; scale: Tr
     return (
         <span
             aria-hidden
-            className={cn('relative @max-2xl/activity-log:hidden min-w-0 self-stretch', className)}
+            className={cn('relative min-w-0 self-stretch @max-2xl/activity-log:hidden', className)}
             data-trace-cell="track"
             data-trace-ruler={scale.scaleMs}
         >
-            <span className="absolute inset-x-0 bottom-0 h-px bg-trace-axis" />
+            <span className="bg-trace-axis absolute inset-x-0 bottom-0 h-px" />
             {scale.ticks.map((tick, index) => (
                 <span key={tick}>
                     <span
@@ -29,7 +29,7 @@ export function TraceRuler({ className, scale }: { className?: string; scale: Tr
                     />
                     <span
                         className={cn(
-                            'absolute bottom-1.5 whitespace-nowrap font-normal text-muted text-xs tabular-nums leading-none',
+                            'text-muted absolute bottom-1.5 text-xs leading-none font-normal whitespace-nowrap tabular-nums',
                             'transition-[left] duration-200 ease-linear motion-reduce:transition-none',
                             index === 0 && 'translate-x-0',
                             index === last && '-translate-x-full',

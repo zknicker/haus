@@ -2,6 +2,7 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import {
     type AgentExecutionJournalRecordsFrame,
     EXECUTION_JOURNAL_UPLOAD_FRAME_MAX_BYTES,
@@ -9,6 +10,7 @@ import {
     type ExecutionJournalUploadRecord,
     replayExecutionJournalUpload,
 } from '@haus/api';
+
 import {
     createComputerExecutionJournal,
     executionJournalPath,

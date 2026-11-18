@@ -1,6 +1,7 @@
 import { skoolSessionSchema } from '@haus/api';
 import { toast } from '@heroui/react';
 import { useRef, useState } from 'react';
+
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { useOptionalDesktopTabs } from '../desktop-tabs/desktop-tabs-context.ts';

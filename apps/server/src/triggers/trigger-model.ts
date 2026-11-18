@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+
 import type {
     Trigger,
     TriggerFireErrorCode,
@@ -7,6 +8,7 @@ import type {
     WebhookTrigger,
 } from '@haus/api';
 import { triggerSecretPrefix } from '@haus/api';
+
 import { hashComputerSecret } from '../computers/service.ts';
 import { type GithubTriggerRow, toGithubTriggerView } from '../github/github-trigger-view.ts';
 import type { triggersTable } from '../postgres/schema.ts';

@@ -1,7 +1,8 @@
 import * as z from 'zod';
+
 import { idSchema } from './chat.ts';
-import { cloudAgentObservationSchema, cloudAgentReconcileEntrySchema } from './cloud-agent.ts';
 import { cloudAgentCapabilityStateSchema, cloudAgentProviderSchema } from './cloud-agent-shared.ts';
+import { cloudAgentObservationSchema, cloudAgentReconcileEntrySchema } from './cloud-agent.ts';
 
 /**
  * Server-recorded cancellation riding down to the Computer that owns the

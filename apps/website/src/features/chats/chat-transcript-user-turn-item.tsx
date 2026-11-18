@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { ChatTranscriptMessageContent } from './chat-transcript-message.tsx';
+
 import { TranscriptMessageBlock } from './chat-transcript-message-block.tsx';
+import { ChatTranscriptMessageContent } from './chat-transcript-message.tsx';
 import type { TranscriptItem } from './chat-transcript-model.ts';
 import { useTranscriptRenderContextOptional } from './chat-transcript-render-context.tsx';
 import { InlineReplyMessageSurface } from './inline-reply-action.tsx';

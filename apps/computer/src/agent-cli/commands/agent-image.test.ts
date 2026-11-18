@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { AgentCliError } from '../agent-error.ts';
 import { readGenerateFlags, runImageGenerate } from '../image-generate.ts';
 import { imageNotPostedSentence } from '../image-render.ts';
@@ -82,16 +83,12 @@ test('wait on an already-ready generation does not sleep and honors --out', asyn
     await runImageWait(waitArgs({ '--out': 'art/drafts' }), harness({ polls: [ready] }).deps);
 });
 
-test.each([
-    'low',
-    'medium',
-    'high',
-    'xhigh',
-    'max',
-    'auto',
-])('quality %s is passed through unvalidated', (quality) => {
-    expect(readGenerateFlags(args({ '--quality': quality })).input.quality).toBe(quality);
-});
+test.each(['low', 'medium', 'high', 'xhigh', 'max', 'auto'])(
+    'quality %s is passed through unvalidated',
+    (quality) => {
+        expect(readGenerateFlags(args({ '--quality': quality })).input.quality).toBe(quality);
+    }
+);
 
 test('a failed generation fails wait with the reason', async () => {
     const h = harness({

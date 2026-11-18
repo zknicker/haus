@@ -1,5 +1,6 @@
 import { and, eq, exists, inArray, isNotNull, isNull, or, type SQL, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
+
 import { visibleChatSql } from '../agent-api/message-view.ts';
 import { visibleChats } from '../chats/chat-visibility.ts';
 import type { HausDatabase } from '../postgres/connection.ts';

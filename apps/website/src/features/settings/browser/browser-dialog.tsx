@@ -1,6 +1,7 @@
 import { Button, Form, Modal } from '@heroui/react';
 import type { HugeiconsIconProps } from '@hugeicons/react';
 import type { ReactNode } from 'react';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 
 // Shell for Browser connection settings.
@@ -41,7 +42,7 @@ export function BrowserDialog({
                         </Modal.Icon>
                         <Modal.Heading>{title}</Modal.Heading>
                         {description ? (
-                            <p className="mt-1.5 text-muted text-sm leading-5">{description}</p>
+                            <p className="text-muted mt-1.5 text-sm leading-5">{description}</p>
                         ) : null}
                     </Modal.Header>
                     <Modal.Body>

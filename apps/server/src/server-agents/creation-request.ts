@@ -1,6 +1,8 @@
 import { createHash } from 'node:crypto';
+
 import type { AgentCreateAgentReceipt, AgentCreateAgentRequest } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
+
 import { assertFreshAgentView } from '../agent-api/chat-freshness.ts';
 import { resolveAgentTarget } from '../agent-api/resolve-target.ts';
 import { requireChatWritable } from '../chats/chat-access.ts';

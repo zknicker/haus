@@ -1,8 +1,9 @@
-import { Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup, PressableFeedback } from '@heroui-pro/react';
+import { Separator } from '@heroui/react';
 import { Tick02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Fragment } from 'react';
 import { Link, useMatch } from 'react-router-dom';
+
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import type { ServerSummary } from '../../../lib/haus-server.tsx';
@@ -42,7 +43,7 @@ function ServerRow({ server }: { server: ServerSummary }) {
     return (
         <ItemCard<'a'>
             aria-current={isCurrent ? 'page' : undefined}
-            className="relative w-full cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            className="focus-visible:ring-focus relative w-full cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2"
             render={(props) => <Link {...props} to={route} />}
         >
             <PressableFeedback.Highlight />

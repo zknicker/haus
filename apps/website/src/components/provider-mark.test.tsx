@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, test } from 'vitest';
+
 import { ProviderMark, type ProviderMarkId } from './provider-mark.tsx';
 
 test('renders provider marks as bare glyphs that inherit their surface color', () => {

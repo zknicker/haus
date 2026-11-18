@@ -1,5 +1,6 @@
 import type { Agent, CoveApplyCommand, CoveApplyResult } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
+
 import { enqueueInboxItem } from '../agent-delivery/store.ts';
 import { openAgentChatRead } from '../agent-reads/agent-chat-reads.ts';
 import type { ComputerConnections } from '../computers/connections.ts';

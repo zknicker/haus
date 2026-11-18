@@ -1,7 +1,9 @@
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { chromium } from '@playwright/test';
+
 import { resolveDevPorts } from '../../../scripts/dev-ports.mjs';
 
 const repositoryRoot = path.resolve(fileURLToPath(new URL('../../../', import.meta.url)));

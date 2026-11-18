@@ -1,4 +1,5 @@
 import { and, eq, isNull } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { computersTable, serversTable } from '../postgres/schema.ts';

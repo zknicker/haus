@@ -5,6 +5,7 @@ import {
     chipConnection,
 } from '@haus/api';
 import { asc, eq } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { mcpConnectionsTable } from '../postgres/schema.ts';
 import type { McpRuntime } from '../server-mcp/runtime.ts';

@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import { and, eq } from 'drizzle-orm';
+
 import { attestAgentEvents } from '../src/agent-api/inbox.ts';
 import { prepareAgentSend } from '../src/agent-api/send-hold.ts';
 import { readDeliveryState } from '../src/agent-delivery/store.ts';

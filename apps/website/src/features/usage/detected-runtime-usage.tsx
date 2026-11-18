@@ -1,6 +1,7 @@
 import type { ComputerInventory, ComputerRuntimeId, UsageOverview } from '@haus/api';
-import { Chip, ProgressBar, Skeleton, Tooltip } from '@heroui/react';
 import { DataGrid, type DataGridColumn } from '@heroui-pro/react';
+import { Chip, ProgressBar, Skeleton, Tooltip } from '@heroui/react';
+
 import { ProviderMark } from '../../components/provider-mark.tsx';
 import { formatTimestamp } from '../../lib/format.ts';
 import { RuntimeIssueHelp } from './runtime-issue.tsx';
@@ -80,7 +81,7 @@ function runtimeColumns(now: number, computerName: string): DataGridColumn<Runti
         {
             cell: (item) => (
                 <div className="flex min-w-0 items-center gap-3">
-                    <ProviderMark className="size-5 shrink-0 text-muted" provider={item.id} />
+                    <ProviderMark className="text-muted size-5 shrink-0" provider={item.id} />
                     <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                             <p className="truncate font-medium">{item.title}</p>
@@ -112,7 +113,7 @@ function runtimeColumns(now: number, computerName: string): DataGridColumn<Runti
                 item.window ? (
                     <UsageMeter label={`${item.title} ${item.window.label}`} window={item.window} />
                 ) : (
-                    <span className="truncate text-muted text-sm">
+                    <span className="text-muted truncate text-sm">
                         {item.issue ? '—' : item.status}
                     </span>
                 ),
@@ -194,7 +195,7 @@ function UsageMeter({ label, window }: { label: string; window: DisplayPlanWindo
                     <ProgressBar.Fill />
                 </ProgressBar.Track>
             </ProgressBar>
-            <span className="w-10 shrink-0 text-right font-medium text-sm tabular-nums">
+            <span className="w-10 shrink-0 text-right text-sm font-medium tabular-nums">
                 {Math.round(window.usedPercent)}%
             </span>
         </div>
@@ -211,7 +212,7 @@ function UnsupportedMeter() {
     return (
         <div className="flex min-w-0 items-center gap-3">
             <div aria-hidden="true" className="progress-bar__track min-w-12 flex-1 opacity-40" />
-            <span className="w-10 shrink-0 text-right text-muted text-sm">—</span>
+            <span className="text-muted w-10 shrink-0 text-right text-sm">—</span>
             <span className="sr-only">No 5-hour limit</span>
         </div>
     );

@@ -2,6 +2,7 @@ import {
     type ComputerInventoryRefreshResult,
     computerInventoryRefreshRequestSchema,
 } from '@haus/api';
+
 import { reportStateError } from './computer-report.ts';
 import { detectInventory } from './inventory.ts';
 

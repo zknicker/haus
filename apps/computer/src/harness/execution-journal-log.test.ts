@@ -3,14 +3,16 @@ import { readFileSync } from 'node:fs';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { EXECUTION_JOURNAL_VALUE_MAX_CHARS, type ExecutionJournalDocument } from '@haus/api';
+
+import { type JournalRecord, replayJournalRecords } from './execution-journal-records.ts';
+import { executionJournalLogPath } from './execution-journal-store.ts';
 import {
     createComputerExecutionJournal,
     executionJournalPath,
     readComputerExecutionJournal,
 } from './execution-journal.ts';
-import { type JournalRecord, replayJournalRecords } from './execution-journal-records.ts';
-import { executionJournalLogPath } from './execution-journal-store.ts';
 
 const roots: string[] = [];
 

@@ -1,5 +1,6 @@
 import type { ClaimAssignee } from '@haus/api';
 import { and, asc, eq, isNull } from 'drizzle-orm';
+
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 import { requireChatAccess } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -65,12 +66,10 @@ async function listAssignableAgents(
                   .where(and(active, eq(channelAgentParticipantsTable.chatId, input.chatId)))
                   .orderBy(asc(agentsTable.displayName));
 
-    return rows.map(
-        (row): ClaimAssignee => ({
-            agentId: row.agentId,
-            avatarUrl: avatarUrlFor(row.avatarId),
-            displayName: row.displayName,
-            handle: row.handle,
-        })
-    );
+    return rows.map((row): ClaimAssignee => ({
+        agentId: row.agentId,
+        avatarUrl: avatarUrlFor(row.avatarId),
+        displayName: row.displayName,
+        handle: row.handle,
+    }));
 }

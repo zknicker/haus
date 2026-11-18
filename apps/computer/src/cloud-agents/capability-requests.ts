@@ -1,6 +1,7 @@
 import type { CloudAgentCapabilityRequest, CloudAgentCapabilityResult } from '@haus/api';
 import { cloudAgentCapabilityResultSchema } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
+
 import {
     cloudAgentEnvironmentsOf,
     listClaudeCloudEnvironmentsAutoPinning,

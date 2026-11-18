@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+
 import type { Agent, TokenUsageOverview } from '@haus/api';
+
 import { summarizeAgentTokenUsage } from '../../stats/agent-usage-summary.ts';
 import { formatTokens } from '../../stats/usage-format.ts';
 import {

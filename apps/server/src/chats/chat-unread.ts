@@ -1,4 +1,5 @@
 import { type SQL, sql } from 'drizzle-orm';
+
 import { chatsTable } from '../postgres/schema.ts';
 import { visibleChats } from './chat-visibility.ts';
 

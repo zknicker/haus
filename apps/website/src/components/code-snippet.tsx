@@ -1,4 +1,5 @@
 import type * as React from 'react';
+
 import { cn } from '../lib/utils.ts';
 import { CopyButton } from './copy-button.tsx';
 
@@ -16,7 +17,7 @@ export function CodeSnippet({ className, copyValue, lines, ...props }: CodeSnipp
     return (
         <div
             className={cn(
-                'card-shell flex min-w-0 gap-2 bg-surface-secondary ps-3 pe-1 font-mono text-foreground text-sm',
+                'card-shell bg-surface-secondary text-foreground flex min-w-0 gap-2 ps-3 pe-1 font-mono text-sm',
                 isMultiLine ? 'items-start py-1.5' : 'h-8 items-center',
                 className
             )}
@@ -25,7 +26,7 @@ export function CodeSnippet({ className, copyValue, lines, ...props }: CodeSnipp
             <code
                 className={cn(
                     'scrollbar-none min-w-0 flex-1 overflow-x-auto',
-                    isMultiLine ? 'whitespace-pre-wrap break-all' : 'whitespace-nowrap'
+                    isMultiLine ? 'break-all whitespace-pre-wrap' : 'whitespace-nowrap'
                 )}
             >
                 {normalizedLines.join('\n')}

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'bun:test';
+
 import { formatAgentReferenceTarget, formatChatReferenceTarget } from '@haus/api';
+
 import { canonicalizeAgentMessageContent } from './canonicalize-agent-references.ts';
 
 const agents = [

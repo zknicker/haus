@@ -1,4 +1,3 @@
-import type { IconSvgElement } from '@hugeicons/react';
 import {
     Activity03Icon,
     Chat01Icon,
@@ -10,6 +9,8 @@ import {
     UserCircleIcon,
     UserMultiple02Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
+import type { IconSvgElement } from '@hugeicons/react';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import type { RouteTab } from '../../hooks/shell/use-route-tab.ts';
 import { cn } from '../../lib/utils.ts';

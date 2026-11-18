@@ -1,5 +1,6 @@
 import { chmod, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+
 import {
     type ComputerSecretsIssue,
     type ComputerSecretsOperation,
@@ -10,6 +11,7 @@ import {
     onePasswordVaultSchema,
 } from '@haus/api';
 import { z } from 'zod';
+
 import { type SecretsKeychain, secretsKeychainService } from './keychain.ts';
 import { renderSecretsSchema, renderSecretsWrapper, secretBindings } from './render.ts';
 import { isSecretsRuntimeInstalled, secretsVarlockBin } from './runtime.ts';

@@ -1,4 +1,5 @@
 import type { CloudAgentModelCatalog } from '@haus/api';
+
 import type { AttachmentConnectionWork } from '../attachment-connection-work.ts';
 import { mapCloudAgentModelCatalog } from './model-catalog-mapping.ts';
 import type { CloudAgentProvider, CloudAgentReadiness } from './provider.ts';

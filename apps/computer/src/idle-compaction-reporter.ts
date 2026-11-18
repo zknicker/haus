@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { basename, dirname } from 'node:path';
+
 import type { AgentIdleCompactionReport } from '@haus/api';
 import { Effect } from 'effect';
+
 import type { DaemonRuntime } from './daemon-runtime.ts';
 import { journalSinkFor } from './execution-journal-upload/attachment-journal-uploads.ts';
 import {
@@ -9,8 +11,8 @@ import {
     type ExecutionJournalSink,
 } from './harness/execution-journal.ts';
 import { clearDeliveredMemoryDigest } from './harness/session-store.ts';
-import type { IdleCompactionResult } from './runtime/idle-compaction.ts';
 import type { IdleCompactionHooks } from './runtime/idle-compaction-scheduler.ts';
+import type { IdleCompactionResult } from './runtime/idle-compaction.ts';
 import type { WarmIdentity } from './runtime/warm-pool.ts';
 
 export interface IdleCompactionReporterDeps {

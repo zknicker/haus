@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { getManualTopic, searchManualTopics } from './index.ts';
 
 const body = getManualTopic('files')?.body ?? '';

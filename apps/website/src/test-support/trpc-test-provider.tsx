@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpBatchLink } from '@trpc/client';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { hausTrpc } from '../lib/haus-server.tsx';
 
 /**

@@ -1,5 +1,6 @@
 import type { ChatMessageEntity } from '@haus/api';
 import * as React from 'react';
+
 import type { TranscriptMessage } from './chat-transcript-message.tsx';
 import type { ConversationMessageLayout, TranscriptActor } from './chat-transcript-model.ts';
 import type { TranscriptActorProfile, TranscriptMessageRow } from './transcript-contract.ts';

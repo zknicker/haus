@@ -1,4 +1,5 @@
 import { beforeAll, describe, expect, test } from 'bun:test';
+
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 import type { HausClient } from './haus-client.ts';

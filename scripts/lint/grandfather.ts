@@ -28,7 +28,9 @@ for (const rule of [...new Set([...Object.keys(current.rules), ...adopted])].sor
         continue;
     }
     const files = [...(violations.files.get(rule) ?? [])].sort();
-    const kept = adopted.has(rule) ? files : files.filter((file) => current.rules[rule]?.includes(file));
+    const kept = adopted.has(rule)
+        ? files
+        : files.filter((file) => current.rules[rule]?.includes(file));
     if (kept.length > 0) {
         next.rules[rule] = kept;
     }
@@ -68,7 +70,10 @@ function lintWithoutExemptions() {
         const rule = ruleName(diagnostic.code);
         if (rule === complexityRule) {
             const score = Number(complexityMessage.exec(diagnostic.message)?.[1]);
-            complexity.set(diagnostic.filename, Math.max(score, complexity.get(diagnostic.filename) ?? 0));
+            complexity.set(
+                diagnostic.filename,
+                Math.max(score, complexity.get(diagnostic.filename) ?? 0)
+            );
             continue;
         }
         files.set(rule, (files.get(rule) ?? new Set()).add(diagnostic.filename));

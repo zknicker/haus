@@ -1,4 +1,6 @@
 import { expect, test } from 'bun:test';
+
+import { createJevRouter } from './jev-client.ts';
 import {
     decodeRoutingDecision,
     type RoutingState,
@@ -6,7 +8,6 @@ import {
     routingQuestions,
     routingThreshold,
 } from './jev.ts';
-import { createJevRouter } from './jev-client.ts';
 
 function answer(
     choice = 'a',

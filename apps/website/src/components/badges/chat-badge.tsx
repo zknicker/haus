@@ -1,12 +1,13 @@
 import { Chip } from '@heroui/react';
-import type { IconSvgElement } from '@hugeicons/react';
 import {
     BubbleChatIcon,
     HashtagIcon,
     MessageMultiple02Icon,
     UserMultiple02Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
+import type { IconSvgElement } from '@hugeicons/react';
 import type * as React from 'react';
+
 import { cn } from '../../lib/utils.ts';
 import { Icon } from '../ui/icon.tsx';
 
@@ -33,7 +34,7 @@ export function ChatBadge({ className, kind, title }: ChatBadgeProps): React.Rea
             title={title}
             variant="secondary"
         >
-            <Icon className="shrink-0 text-muted" icon={KIND_ICON[kind]} size={14} />
+            <Icon className="text-muted shrink-0" icon={KIND_ICON[kind]} size={14} />
             <Chip.Label className="min-w-0 truncate">{title}</Chip.Label>
         </Chip>
     );

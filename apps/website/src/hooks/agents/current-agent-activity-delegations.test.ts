@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { AgentActivityEvent } from '@haus/api';
+
 import {
     type CurrentAgentActivity,
     mergeCurrentAgentActivityLiveEvent,

@@ -1,5 +1,6 @@
 import type { TaskActor } from '@haus/api';
 import * as React from 'react';
+
 import { useAgentAppearances } from '../../hooks/members/use-agents.ts';
 import { useHumanDirectory } from '../../hooks/servers/use-human-directory.ts';
 import { useMembers } from '../../hooks/servers/use-members.ts';

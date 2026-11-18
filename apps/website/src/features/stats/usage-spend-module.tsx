@@ -1,7 +1,8 @@
 import type { UsageOverview } from '@haus/api';
-import { Card } from '@heroui/react';
 import { BarChart } from '@heroui-pro/react/bar-chart';
+import { Card } from '@heroui/react';
 import { AiAudioIcon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { UsageSpendSummary } from './usage-spend-summary.tsx';
 import { openRouterKeyColors, useUsageSpend } from './use-usage-spend.ts';
@@ -24,8 +25,8 @@ export function UsageSpendModule({ liveUsage }: { liveUsage: UsageOverview }) {
                 <Card.Content>
                     <div className="flex h-32 items-center justify-center">
                         <div className="max-w-sm text-center">
-                            <p className="font-medium text-base">No usage yet</p>
-                            <p className="mt-1 text-muted text-sm">{emptyChartMessage}</p>
+                            <p className="text-base font-medium">No usage yet</p>
+                            <p className="text-muted mt-1 text-sm">{emptyChartMessage}</p>
                         </div>
                     </div>
                 </Card.Content>

@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import {
     AggregationTemporality,
     DataPointType,
@@ -7,6 +8,7 @@ import {
 } from '@opentelemetry/sdk-metrics';
 import { InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { Cause, Effect, Exit, ManagedRuntime, Option } from 'effect';
+
 import {
     makeProcessTelemetryLayer,
     makeTelemetryLayer,

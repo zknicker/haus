@@ -1,4 +1,5 @@
 import { Tabs } from '@heroui/react';
+
 import { ActivationStep } from '../../components/activation/activation-shell.tsx';
 import type { ServerDetail } from '../../lib/haus-server.tsx';
 import { ComputerSetupCommands } from '../computers/computer-setup-commands.tsx';
@@ -45,7 +46,7 @@ export function CoveComputerStep({
                         </Tabs.List>
                     </Tabs.ListContainer>
                     <Tabs.Panel className="grid min-w-0 gap-4 pt-4" id="macos">
-                        <p className="text-base text-muted sm:text-sm">
+                        <p className="text-muted text-base sm:text-sm">
                             Run these commands on the Mac you want to connect. Already installed
                             Haus Computer? Skip to Setup.
                         </p>

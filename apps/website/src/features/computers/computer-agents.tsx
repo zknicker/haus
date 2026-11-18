@@ -1,6 +1,7 @@
-import { Chip } from '@heroui/react';
 import { DataGrid, type DataGridColumn, ItemCardGroup } from '@heroui-pro/react';
+import { Chip } from '@heroui/react';
 import { InboxIcon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.ts';
 import { useAgents } from '../../hooks/members/use-agents.ts';
@@ -53,7 +54,7 @@ export function ComputerAgents({ computerId, serverId }: { computerId: string; s
                     <ItemCardGroup.Title>
                         Agents on This Computer
                         {agents.data ? (
-                            <span className="ms-2 text-muted tabular-nums">{rows.length}</span>
+                            <span className="text-muted ms-2 tabular-nums">{rows.length}</span>
                         ) : null}
                     </ItemCardGroup.Title>
                 </ItemCardGroup.Header>

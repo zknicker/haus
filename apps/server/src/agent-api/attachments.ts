@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
 import { basename } from 'node:path';
+
 import { attachmentMediaTypeSniffBytes, resolveAttachmentMediaType } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
+
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import { isVisibleGeneratedImage } from '../image-generation/image-generation-visibility.ts';

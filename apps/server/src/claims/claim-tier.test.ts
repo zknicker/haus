@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { type ClaimTierRow, resolveClaimTier, stampsClaimTracked } from './claim-tier.ts';
 
 const claimed: ClaimTierRow = {

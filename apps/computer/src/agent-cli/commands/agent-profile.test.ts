@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import type { AgentApiRequest, AgentApiRequester } from '../agent-api-client.ts';
 import type { ParsedArgs } from '../parse.ts';
 import { readProfileUpdate, runProfileShow, runProfileUpdate } from './agent-profile.ts';

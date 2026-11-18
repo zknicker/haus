@@ -1,6 +1,7 @@
 import { makeProcessTelemetryRelay } from '@haus/effect';
 import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
 import type { FastifyInstance } from 'fastify';
+
 import { registerAgentArtifactRoutes } from './agent-api/artifact-routes.ts';
 import { registerAgentApiRoutes } from './agent-api/routes.ts';
 import { registerArtifactPublicRoutes } from './artifacts/public-route.ts';

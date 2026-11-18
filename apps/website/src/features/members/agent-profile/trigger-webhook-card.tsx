@@ -1,5 +1,5 @@
-import { Alert } from '@heroui/react';
 import { CodeBlock } from '@heroui-pro/react/code-block';
+import { Alert } from '@heroui/react';
 
 /** What a mint hands back once: where to POST, the bearer secret, and a ready call. */
 export interface TriggerSecretReveal {

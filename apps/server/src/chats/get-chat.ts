@@ -1,4 +1,5 @@
 import type { Chat } from '@haus/api';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { ChatNotFoundError } from './chat-access.ts';

@@ -1,4 +1,5 @@
 import { artifactTargetInputSchema } from '@haus/api';
+
 import { deleteArtifact } from '../../artifacts/delete.ts';
 import { artifactProcedure } from './procedure.ts';
 

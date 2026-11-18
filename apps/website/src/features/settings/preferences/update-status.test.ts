@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { getUpdateStatusMessage } from './update-status.tsx';
 
 describe('update settings status message', () => {

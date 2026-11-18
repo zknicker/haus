@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { connectionIcon } from './connection-icon.ts';
 
 const light = 'data:image/png;base64,AAAA';

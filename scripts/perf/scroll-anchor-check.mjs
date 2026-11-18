@@ -19,6 +19,7 @@
 //          [--serve-dist <dir>] [--shots <dir>] [--headed]
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
+
 import {
     captureAuth,
     defaultBase,

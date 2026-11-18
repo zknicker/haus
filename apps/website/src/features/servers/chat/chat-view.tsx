@@ -2,6 +2,7 @@ import type { Chat } from '@haus/api';
 import { EmptyState } from '@heroui-pro/react';
 import { Message01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useOptionalDesktopTabs } from '../../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import {

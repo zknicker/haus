@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import type { Slot } from './tab-drag-geometry.ts';
 
 /** What the rows draw while tabs ride this window's band: which tabs, at which slot. */

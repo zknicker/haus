@@ -1,5 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+
 import { seedCoveWorkspace, validateCoveWorkspace } from '@haus/agent-workspace';
 import {
     type ComputerInventory,
@@ -7,6 +8,7 @@ import {
     type CoveApplyResult,
     coveApplyCommandSchema,
 } from '@haus/api';
+
 import {
     readAgentSeedConfiguration,
     readAppliedAgentConfiguration,

@@ -15,6 +15,7 @@ import {
     skoolConnectSchema,
 } from '@haus/api';
 import { TRPCError } from '@trpc/server';
+
 import { mcpUpdatedTopic } from '../../realtime/topics.ts';
 import { deleteMcpConnection } from '../../server-mcp/delete-connection.ts';
 import { McpDeniedError } from '../../server-mcp/errors.ts';

@@ -1,12 +1,13 @@
 import { expect, test } from 'bun:test';
+
 import type { AgentApiRequest, AgentApiRequester } from '../agent-api-client.ts';
+import { args, requester, work } from './agent-cloud-agent-fixture.ts';
 import {
     CLOUD_AGENT_SUBCOMMANDS,
     runCloudAgentCancel,
     runCloudAgentInspect,
     runCloudAgentSend,
 } from './agent-cloud-agent.ts';
-import { args, requester, work } from './agent-cloud-agent-fixture.ts';
 
 test('cancel names the work it asked the provider to stop', async () => {
     const routes: string[] = [];

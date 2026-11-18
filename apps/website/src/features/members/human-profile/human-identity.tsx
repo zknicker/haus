@@ -2,6 +2,7 @@ import type { ServerMember } from '@haus/api/membership';
 import { Chip } from '@heroui/react';
 import { ShieldUserIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { ProfileFact, ProfileFacts } from '../../../components/ui/profile-facts.tsx';
@@ -75,7 +76,7 @@ export function HumanIdentity({
                 </>
             }
         >
-            {error ? <p className="mb-3 text-danger text-sm">{error}</p> : null}
+            {error ? <p className="text-danger mb-3 text-sm">{error}</p> : null}
             <ProfileFacts>
                 <ProfileFact
                     label="Role"

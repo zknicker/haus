@@ -1,5 +1,6 @@
 import type { ChatMessageReaction } from '@haus/api';
 import { and, asc, eq, inArray } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, messageReactionsTable, serverMembershipsTable } from '../postgres/schema.ts';
 

@@ -1,4 +1,5 @@
 import type { Agent, ChatMessage } from '@haus/api';
+
 import type { ChatMessageLayout } from '../../../hooks/servers/chat-message-layout.ts';
 import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx';
 import type { TranscriptActor } from '../../chats/chat-transcript-model.ts';

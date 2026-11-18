@@ -2,10 +2,13 @@
 
 import { ChatMessage } from '@heroui-pro/react';
 import type { HTMLAttributes, ReactNode } from 'react';
+
 import { cn } from '../../lib/utils.ts';
 
-export interface TranscriptMessageBlockProps
-    extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
+export interface TranscriptMessageBlockProps extends Omit<
+    HTMLAttributes<HTMLDivElement>,
+    'children'
+> {
     attachments?: ReactNode;
     children?: ReactNode;
     from: 'user' | 'assistant';

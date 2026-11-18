@@ -1,4 +1,5 @@
 import { toast } from '@heroui/react';
+
 import { writeClipboardText } from '../../lib/clipboard.ts';
 
 /** Copies an artifact address and confirms it, the way every copy action in the library does. */

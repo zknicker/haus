@@ -1,5 +1,6 @@
 import dns from 'node:dns';
 import net from 'node:net';
+
 import { isBlockedNetworkAddress } from './network-guard.ts';
 
 export const BLOCKED_MESSAGE =

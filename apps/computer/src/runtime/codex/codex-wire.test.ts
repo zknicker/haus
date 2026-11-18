@@ -1,5 +1,6 @@
 // Ported from botiverse/raft-source packages/daemon/src/drivers/runtimeSession.test.ts (FSL-1.1-ALv2)
 import { describe, expect, test } from 'bun:test';
+
 import { JsonRpcConnectionClosedError, JsonRpcRequestError } from '../json-rpc.ts';
 import { CodexConnection, CodexProcessExitedError } from './codex-connection.ts';
 import { FakeAppServer } from './testing/fake-app-server.ts';

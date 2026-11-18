@@ -1,4 +1,5 @@
 import EventEmitter, { on } from 'node:events';
+
 import { type AgentLifecycleEvent, agentLifecycleEventSchema } from '@haus/api';
 
 const eventName = 'agent.lifecycle';

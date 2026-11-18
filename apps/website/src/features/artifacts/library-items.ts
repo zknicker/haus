@@ -22,22 +22,18 @@ export function libraryItems(
     publicLinks: Readonly<Record<string, ArtifactPublicLink>>
 ): LibraryItem[] {
     return [
-        ...folders.map(
-            (folder): LibraryItem => ({
-                key: folder.path,
-                kind: 'folder',
-                path: folder.path,
-            })
-        ),
-        ...files.map(
-            (file): LibraryItem => ({
-                file,
-                key: file.artifact_id,
-                kind: 'file',
-                path: file.path,
-                publicLink: publicLinks[file.artifact_id] ?? null,
-            })
-        ),
+        ...folders.map((folder): LibraryItem => ({
+            key: folder.path,
+            kind: 'folder',
+            path: folder.path,
+        })),
+        ...files.map((file): LibraryItem => ({
+            file,
+            key: file.artifact_id,
+            kind: 'file',
+            path: file.path,
+            publicLink: publicLinks[file.artifact_id] ?? null,
+        })),
     ];
 }
 

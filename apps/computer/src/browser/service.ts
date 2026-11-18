@@ -1,6 +1,7 @@
 import type { AgentRuntimeBrowserConnection } from '@haus/api';
 import { asError, type EffectRuntime, settle } from '@haus/effect';
 import { Effect } from 'effect';
+
 import { detectChromeApplications } from './chrome-detection.ts';
 import { BrowserCommandQueue } from './command-queue.ts';
 import { ExistingBrowserConnection } from './existing-browser.ts';

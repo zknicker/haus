@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { agentCloudAgentReceiptSchema } from '@haus/api';
+
 import { cloudAgentFixture } from './cloud-agent-fixture.ts';
 import { cloudAgentLinkHelpers } from './cloud-agent-link-helpers.ts';
 import { startTestTask } from './task-place-fixture.ts';

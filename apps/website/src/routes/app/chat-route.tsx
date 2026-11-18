@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
-import { ChatPage } from '../../features/servers/chat/chat-page.tsx';
+
 import { ChatPagePending } from '../../features/servers/chat/chat-page-pending.tsx';
+import { ChatPage } from '../../features/servers/chat/chat-page.tsx';
 import { useChatViewModule } from '../../features/servers/chat/chat-view-module.ts';
 import { useServerContext } from '../../features/servers/server-context.ts';
 import { useAgents } from '../../hooks/members/use-agents.ts';

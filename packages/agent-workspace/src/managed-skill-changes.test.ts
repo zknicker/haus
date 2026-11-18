@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { defaultVisualsSkill, factoryManagedSkillHashes } from './managed-skills.ts';
 
 test('visuals skill tells agents to tag and rebuild what they derive from it', () => {

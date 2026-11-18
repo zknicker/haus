@@ -8,6 +8,7 @@ import {
     useMemo,
     useState,
 } from 'react';
+
 import { useColorThemeSync } from '../hooks/shell/use-color-theme.ts';
 import { useThemeAppIcon } from '../hooks/shell/use-theme-app-icon.ts';
 import type { ColorTheme } from '../lib/color-theme.ts';

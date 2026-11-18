@@ -10,6 +10,7 @@
  * and one run at a time, so this resend pass never starves live frames.
  */
 import { join } from 'node:path';
+
 import {
     type AgentExecutionJournalAck,
     type AgentExecutionJournalRecordsFrame,
@@ -17,12 +18,13 @@ import {
     EXECUTION_JOURNAL_RETENTION_DAYS,
     type ExecutionJournalDocument,
 } from '@haus/api';
+
 import { outlineExecutionJournal } from '../execution-journal-outline.ts';
+import type { JournalRecord } from '../harness/execution-journal-records.ts';
 import {
     type ExecutionJournalSink,
     readComputerExecutionJournal,
 } from '../harness/execution-journal.ts';
-import type { JournalRecord } from '../harness/execution-journal-records.ts';
 import {
     createJournalRecordPresenter,
     type JournalRecordPresenter,

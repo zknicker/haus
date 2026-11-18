@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { normalizeReactionEmoji } from './reaction-emoji.ts';
 
 const VS16 = '\uFE0F';

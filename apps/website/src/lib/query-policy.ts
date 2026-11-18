@@ -1,4 +1,5 @@
 import type { DefaultOptions, Query } from '@tanstack/react-query';
+
 import { shouldRetryQuery } from './query-retry.ts';
 
 const THIRTY_SECONDS_MS = 30_000;

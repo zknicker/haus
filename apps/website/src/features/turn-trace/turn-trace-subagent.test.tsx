@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+
 import type { AgentExecutionJournal, AgentExecutionJournalTool } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { TurnTracePresentation } from './turn-trace.tsx';
+
 import { buildTurnTrace } from './turn-trace-model.ts';
 import {
     formatSubagentDetails,
@@ -11,6 +12,7 @@ import {
     resolveSubagentStatus,
 } from './turn-trace-subagent.ts';
 import type { TurnTraceTool } from './turn-trace-tool-model.ts';
+import { TurnTracePresentation } from './turn-trace.tsx';
 
 test('a sub-agent call nests its own calls in start order under one top-level row', () => {
     const entries = buildTurnTrace(

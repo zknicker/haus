@@ -1,6 +1,7 @@
 import { artifactPathParent } from '@haus/api';
 import * as React from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+
 import { useArtifact } from '../../hooks/artifacts/use-artifact.ts';
 import type { BandCrumb } from '../shell/band-trail.ts';
 import { PageBand } from '../shell/page-band.tsx';
@@ -90,7 +91,7 @@ export function ArtifactViewer({
                                 serverId={serverId}
                                 stepper={stepper(false)}
                             />
-                            <div className="grid min-w-0 @4xl:grid-cols-[minmax(0,1fr)_18rem] items-start gap-8">
+                            <div className="grid min-w-0 items-start gap-8 @4xl:grid-cols-[minmax(0,1fr)_18rem]">
                                 <ArtifactPreview
                                     artifact={artifact}
                                     key={artifact.revision_id}

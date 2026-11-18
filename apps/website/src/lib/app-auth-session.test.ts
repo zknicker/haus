@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+
 import type { AppSession } from '@haus/api/app-session';
+
 import {
     appSessionRefreshLeadMs,
     createAppAuthStore,

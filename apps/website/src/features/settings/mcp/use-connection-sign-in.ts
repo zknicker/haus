@@ -1,5 +1,6 @@
 import { toast } from '@heroui/react';
 import * as React from 'react';
+
 import { useConnectionOauthStart } from '../../../hooks/servers/use-connection-oauth-start.ts';
 import { getHausServerOrigin } from '../../../lib/haus-server.tsx';
 import { createAndSignIn, type SignInFlow, signIn } from './connection-sign-in-flow.ts';

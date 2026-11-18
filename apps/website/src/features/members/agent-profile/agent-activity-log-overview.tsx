@@ -1,6 +1,7 @@
 import { Button } from '@heroui/react';
 import { ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 import { formatShortTime } from '../../../lib/format.ts';
 import { cn } from '../../../lib/utils.ts';
@@ -87,7 +88,7 @@ export function ActivityLogOverview({
             <section
                 aria-label={`${day.label} overview`}
                 className={cn(
-                    'sticky top-0 z-10 -mt-px grid cursor-default gap-1.5 border-b bg-background px-(--trace-pad) pt-2 pb-1',
+                    'bg-background sticky top-0 z-10 -mt-px grid cursor-default gap-1.5 border-b px-(--trace-pad) pt-2 pb-1',
                     'transition-colors duration-150 motion-reduce:transition-none',
                     isStuck ? 'border-separator' : 'border-transparent'
                 )}
@@ -116,7 +117,7 @@ export function ActivityLogOverview({
                     >
                         <Icon icon={ArrowRight01Icon} size={16} />
                     </Button>
-                    <h3 aria-live="polite" className="ms-1 shrink-0 font-medium text-sm">
+                    <h3 aria-live="polite" className="ms-1 shrink-0 text-sm font-medium">
                         {day.label}
                     </h3>
                     <OverviewReadout day={day} showAgent={showAgent}>
@@ -130,13 +131,13 @@ export function ActivityLogOverview({
                 </div>
                 {/* Below 42rem the strip's folded breaks crowd; the day bar carries the day. */}
                 <div
-                    className="relative @max-2xl/activity-log:hidden h-6"
+                    className="relative h-6 @max-2xl/activity-log:hidden"
                     onPointerLeave={() => hover.set(null)}
                 >
                     {timeline.spans.map((span) => (
                         <span
                             aria-hidden
-                            className="absolute top-1/2 border-border border-t border-dotted"
+                            className="border-border absolute top-1/2 border-t border-dotted"
                             key={`lane-${span.left}`}
                             style={{ left: `${span.left}%`, width: `${span.width}%` }}
                         />
@@ -149,7 +150,7 @@ export function ActivityLogOverview({
                         />
                     ))}
                     {timeline.isToday ? (
-                        <span aria-hidden className="absolute inset-y-0 end-0 w-px bg-accent" />
+                        <span aria-hidden className="bg-accent absolute inset-y-0 end-0 w-px" />
                     ) : null}
                 </div>
                 <OverviewRuler
@@ -172,7 +173,7 @@ function TimelineTurn({ block, startedAt }: { block: TimelineBlock; startedAt: s
     return (
         <button
             aria-label={`${statusLabels[block.status]} turn at ${formatShortTime(startedAt)}`}
-            className="absolute inset-y-0 flex cursor-(--cursor-interactive) items-center rounded-xs outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            className="focus-visible:ring-focus absolute inset-y-0 flex cursor-(--cursor-interactive) items-center rounded-xs outline-none focus-visible:ring-2"
             onClick={() => reveal(block.runId)}
             onFocus={() => hover.set({ runId: block.runId, source: 'overview', span: null })}
             onPointerEnter={() => hover.set({ runId: block.runId, source: 'overview', span: null })}
@@ -191,7 +192,7 @@ function TimelineTurn({ block, startedAt }: { block: TimelineBlock; startedAt: s
                     linked && !isLinked && 'opacity-45'
                 )}
             >
-                <span className="absolute inset-0 bg-trace-quiet" />
+                <span className="bg-trace-quiet absolute inset-0" />
                 {marks?.map((mark, index) => (
                     <span
                         className={cn('absolute inset-y-0 min-w-px', barTone(mark))}
@@ -208,11 +209,11 @@ function TimelineTurn({ block, startedAt }: { block: TimelineBlock; startedAt: s
                     />
                 ) : null}
                 {block.status === 'working' ? (
-                    <span className="absolute inset-y-0 end-0 w-1 bg-accent motion-safe:animate-pulse" />
+                    <span className="bg-accent absolute inset-y-0 end-0 w-1 motion-safe:animate-pulse" />
                 ) : null}
                 {span ? (
                     <span
-                        className="absolute inset-y-0 min-w-0.5 bg-foreground"
+                        className="bg-foreground absolute inset-y-0 min-w-0.5"
                         style={{ left: `${span.start * 100}%`, width: `${span.width * 100}%` }}
                     />
                 ) : null}

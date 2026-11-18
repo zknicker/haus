@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import dns from 'node:dns';
+
 import { BLOCKED_MESSAGE, SCHEME_MESSAGE, safeFetch } from './safe-remote-fetch.ts';
 
 const originalLookup = dns.promises.lookup;

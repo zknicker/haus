@@ -6,6 +6,7 @@ import {
     Sorting01Icon,
     UserIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { ArtifactCreatorOptions, useCreatorLabel } from './artifact-creator-menu.tsx';
 import { ArtifactKindOptions, kindTitles } from './artifact-kind-menu.tsx';

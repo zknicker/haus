@@ -1,5 +1,6 @@
-import type { IconSvgElement } from '@hugeicons/react';
 import { Atom02Icon } from '@hugeicons-pro/core-stroke-rounded';
+import type { IconSvgElement } from '@hugeicons/react';
+
 import type { ModelProviderLogoSource } from '../components/badges/model-provider-logo.tsx';
 import {
     configuredModelProviders,

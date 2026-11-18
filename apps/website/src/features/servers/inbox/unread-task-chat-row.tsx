@@ -1,4 +1,5 @@
 import type { Chat } from '@haus/api';
+
 import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 import { TaskStateDisc } from '../../tasks/task-state-disc.tsx';
 import type { FollowedTaskPreview } from './unread-rows.ts';

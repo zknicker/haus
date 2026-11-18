@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+
 import { agentImageGenerationCreateInputSchema } from '@haus/api';
+
 import { resolveImageGenerationRequest } from '../image-generation-request.ts';
 import { GeminiImageAdapter } from './gemini-image-adapter.ts';
 import { ImageProviderError } from './image-provider.ts';

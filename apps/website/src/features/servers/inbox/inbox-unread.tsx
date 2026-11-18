@@ -1,6 +1,7 @@
 import type { Chat } from '@haus/api';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { tabStayState } from '../../../hooks/desktop-tabs/tab-navigation.ts';
 import {
     useFollowedTaskPreviews,
@@ -18,15 +19,15 @@ import { chatNavigationName } from '../../shell/chat-navigation-name.ts';
 import type { ChatComposerHandle } from '../chat/chat-composer.tsx';
 import { useServerContext } from '../server-context.ts';
 import { serverChatRoute, taskRoute } from '../server-routes.ts';
-import { InboxSectionPending } from './inbox-section.tsx';
 import { InboxRowList } from './inbox-section-rows.tsx';
+import { InboxSectionPending } from './inbox-section.tsx';
 import { UnreadChatRow } from './inbox-unread-row.tsx';
 import { unreadRowReadInput } from './unread-row-model.ts';
 import { selectUnreadRows, type UnreadRow } from './unread-rows.ts';
 import { UnreadTaskChatRow } from './unread-task-chat-row.tsx';
 import type { UnreadRowTriage } from './unread-triage-row.tsx';
-import { useUnreadTriage } from './use-unread-triage.ts';
 import { type UnreadTriageCommand, useUnreadTriageKeys } from './use-unread-triage-keys.ts';
+import { useUnreadTriage } from './use-unread-triage.ts';
 
 export function InboxUnread() {
     const { server } = useServerContext();

@@ -1,6 +1,7 @@
 import { Button, toast } from '@heroui/react';
 import { Globe02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { newBrowserLocation } from '../../hooks/browser/browser-view-tabs.ts';
 import { useBrowserViews } from '../../hooks/browser/browser-views-context.ts';
@@ -49,7 +50,7 @@ export function NewTabPage({ className, tabId }: { className?: string; tabId: st
     return (
         <section
             aria-label="New tab"
-            className={cn('flex min-h-0 flex-col bg-background', className)}
+            className={cn('bg-background flex min-h-0 flex-col', className)}
         >
             <form
                 className={`${pageToolbarClassName} browser-toolbar grid shrink-0 grid-cols-[minmax(0,1fr)] items-center`}

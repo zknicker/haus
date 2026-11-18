@@ -1,5 +1,6 @@
 import { PromptInput } from '@heroui-pro/react';
 import { Attachment01Icon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import type { ChatContextFullness } from './chat-context-fullness.ts';
 
@@ -30,7 +31,7 @@ export function ChatComposerContextFullness({ fullness }: { fullness: ChatContex
 
     return (
         <div
-            className="flex items-center gap-1.5 text-muted text-xs"
+            className="text-muted flex items-center gap-1.5 text-xs"
             title={`${percentLabel} context used`}
         >
             <svg aria-hidden="true" className="size-4 -rotate-90" viewBox="0 0 20 20">

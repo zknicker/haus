@@ -6,6 +6,7 @@ import { existsSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { agentWorkspacePath } from '../author.mjs';
 import { foundTheKitContract, runFoundTheKit, starterKit } from '../placement-kit.mjs';
 import { withRoutingEvidence } from '../routing-evidence.mjs';

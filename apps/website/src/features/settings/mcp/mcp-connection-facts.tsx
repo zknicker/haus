@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+
 import { ConnectionSection } from './connection-section.tsx';
 import type { McpConnection } from './mcp-server-shared.ts';
 
@@ -33,7 +34,7 @@ function Fact({ children, label }: { children: ReactNode; label: string }) {
     return (
         <>
             <dt className="text-muted">{label}</dt>
-            <dd className="min-w-0 text-foreground">{children}</dd>
+            <dd className="text-foreground min-w-0">{children}</dd>
         </>
     );
 }

@@ -1,5 +1,6 @@
 import type { ChatMessage } from '@haus/api';
 import * as React from 'react';
+
 import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profile.ts';
 import { useAgentAppearances } from '../../../hooks/members/use-agents.ts';
 import type { ChatMessageLayout } from '../../../hooks/servers/chat-message-layout.ts';

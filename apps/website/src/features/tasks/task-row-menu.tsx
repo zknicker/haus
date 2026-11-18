@@ -1,6 +1,7 @@
 import type { Task } from '@haus/api';
 import { Button, Dropdown, Header, Label, Separator } from '@heroui/react';
 import { CopyLinkIcon, MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useAssignTask } from '../../hooks/tasks/use-assign-task.ts';
@@ -8,8 +9,8 @@ import { useSetTaskState } from '../../hooks/tasks/use-set-task-state.ts';
 import { copyTaskReference } from './copy-task-reference.ts';
 import { assigneeFromKey, assigneeKey, unassignedKey } from './task-assignee.ts';
 import { changeTaskState } from './task-properties.tsx';
-import { isTaskState, taskStateLabels, taskStateOrder } from './task-state.ts';
 import { TaskStateDisc } from './task-state-disc.tsx';
+import { isTaskState, taskStateLabels, taskStateOrder } from './task-state.ts';
 import { showTaskUpdateError } from './task-update-error.ts';
 import { useTaskPeople } from './use-task-people.ts';
 

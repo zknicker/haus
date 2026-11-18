@@ -215,7 +215,11 @@ export const emojiIconMap: Readonly<Record<string, readonly EmojiIconRow[]>> = {
         ],
         ['Shaka01Icon', '🤙', 'call me hand shaka hang loose surf'],
         ['LoveKoreanFingerIcon', '🫰', 'finger heart love korean heart cute'],
-        ['PointingRight01Icon', '👉🫵👆☝️', 'backhand index pointing right you point up above this'],
+        [
+            'PointingRight01Icon',
+            '👉🫵👆☝️',
+            'backhand index pointing right you point up above this',
+        ],
         ['PointingLeft01Icon', '👈', 'backhand index pointing left point'],
         ['HandPointingDown01Icon', '👇', 'backhand index pointing down point below'],
         ['DoNotTouch01Icon', '🖕🚫', 'middle finger rude do not touch prohibited'],
@@ -276,11 +280,7 @@ export const emojiIconMap: Readonly<Record<string, readonly EmojiIconRow[]>> = {
         ['DeveloperIcon', '🧑‍💻👨‍💻👩‍💻', 'technologist developer programmer coder engineer'],
         ['MicVocalIcon', '🧑‍🎤👨‍🎤👩‍🎤', 'singer vocalist performer artist microphone'],
         ['PaintBoardIcon', '🧑‍🎨👨‍🎨👩‍🎨🎨', 'artist painter palette art paint'],
-        [
-            'AirplaneSeatIcon',
-            '🧑‍✈️👨‍✈️👩‍✈️💺',
-            'pilot aviator flight crew cabin seat airplane reserved',
-        ],
+        ['AirplaneSeatIcon', '🧑‍✈️👨‍✈️👩‍✈️💺', 'pilot aviator flight crew cabin seat airplane reserved'],
         ['Astronaut01Icon', '🧑‍🚀👨‍🚀👩‍🚀', 'astronaut spaceman cosmonaut space'],
         [
             'FireExtinguisherIcon',
@@ -1147,7 +1147,11 @@ export const emojiIconMap: Readonly<Record<string, readonly EmojiIconRow[]>> = {
         ['ZodiacOphiuchusIcon', '⛎', 'ophiuchus zodiac serpent astrology'],
         ['VenusIcon', '♀️', 'female sign venus woman gender'],
         ['MarsIcon', '♂️', 'male sign mars man gender'],
-        ['VenusAndMarsIcon', '⚧️♀️♂️🏳️‍⚧️', 'transgender symbol venus and mars gender flag trans pride'],
+        [
+            'VenusAndMarsIcon',
+            '⚧️♀️♂️🏳️‍⚧️',
+            'transgender symbol venus and mars gender flag trans pride',
+        ],
         ['NonBinaryIcon', '⚧️', 'non binary gender identity'],
     ],
 };

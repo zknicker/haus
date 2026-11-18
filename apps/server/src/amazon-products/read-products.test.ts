@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { AmazonProductSummary } from '@haus/api';
+
 import { parseProductDetails, rankWranglerPayload } from './rankwrangler-payload.ts';
 
 const product = {

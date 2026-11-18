@@ -1,8 +1,9 @@
 import { expect, test } from 'bun:test';
+
 import { readAmazonProductSummary } from '../src/amazon-products/read-products.ts';
 import { connectHausDatabase } from '../src/postgres/connection.ts';
-import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { makeClient } from '../src/server-mcp/runtime-test-fixtures.ts';
+import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { makeServerRuntime } from '../src/server-runtime.ts';
 import { findUserById } from '../src/users/haus-user.ts';
 import { createHausClient } from './haus-client.ts';

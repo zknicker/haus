@@ -1,6 +1,7 @@
 import { Button, Tooltip } from '@heroui/react';
 import { ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 import {
     type AvatarGenerationSession,
@@ -53,7 +54,7 @@ export function AvatarStagePager({
 
     return (
         <div className="absolute inset-x-0 bottom-3 flex justify-center">
-            <div className="flex items-center gap-1 rounded-full bg-background/80 p-1 opacity-70 backdrop-blur-sm transition-opacity focus-within:opacity-100 hover:opacity-100 motion-reduce:transition-none">
+            <div className="bg-background/80 flex items-center gap-1 rounded-full p-1 opacity-70 backdrop-blur-sm transition-opacity focus-within:opacity-100 hover:opacity-100 motion-reduce:transition-none">
                 <PagerButton
                     icon={ArrowLeft01Icon}
                     isDisabled={session.saving}
@@ -61,7 +62,7 @@ export function AvatarStagePager({
                     onKeyDown={onKeyDown}
                     onPress={() => page(-1)}
                 />
-                <span className="min-w-10 text-center text-foreground text-xs tabular-nums">
+                <span className="text-foreground min-w-10 text-center text-xs tabular-nums">
                     {position} / {slots.length}
                 </span>
                 <PagerButton

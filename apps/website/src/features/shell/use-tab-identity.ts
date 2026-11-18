@@ -1,4 +1,5 @@
 import { useParams } from 'react-router-dom';
+
 import { useArtifact } from '../../hooks/artifacts/use-artifact.ts';
 import { useBrowserViews } from '../../hooks/browser/browser-views-context.ts';
 import type { TabLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';

@@ -1,5 +1,5 @@
-import { createManualLookup, type ManualMatch, type ManualSearchScope } from './lookup.ts';
 import { queryTerms } from './lookup-text.ts';
+import { createManualLookup, type ManualMatch, type ManualSearchScope } from './lookup.ts';
 import { manualTopics } from './topics.ts';
 import type { ManualTopic } from './types.ts';
 

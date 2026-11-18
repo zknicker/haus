@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { CloudAgentModel } from '@haus/api';
+
 import { createFakeCloudAgentProvider } from './fake-provider.ts';
 import {
     cloudAgentModelCatalogMaxAgeMs,

@@ -4,6 +4,7 @@ import type {
     AgentSubagentWakeRetire,
 } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';

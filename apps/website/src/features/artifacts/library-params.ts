@@ -5,6 +5,7 @@ import {
     parseArtifactPath,
 } from '@haus/api';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+
 import { serverRoute } from '../servers/server-routes.ts';
 import { creatorKey, parseCreatorKey } from './artifact-creators.ts';
 

@@ -2,6 +2,7 @@ import { avatarMediaTypes } from '@haus/api/avatar';
 import { Button, Description, Dropdown, Label, Tooltip } from '@heroui/react';
 import { AiMagicIcon, Camera01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import type { EntityAvatarProps } from '../../components/ui/entity-avatar.tsx';
 import { EntityAvatar, identityMarkRadius } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
@@ -89,7 +90,7 @@ export function AvatarPicker({
         >
             <span className="relative">
                 <EntityAvatar name={name} size={size} src={src} />
-                <span className="absolute -right-1.5 -bottom-1.5 inline-flex size-6 items-center justify-center rounded-full bg-surface-secondary text-muted ring-2 ring-background">
+                <span className="bg-surface-secondary text-muted ring-background absolute -right-1.5 -bottom-1.5 inline-flex size-6 items-center justify-center rounded-full ring-2">
                     <Icon className="size-4" icon={Camera01Icon} strokeWidth={2} />
                 </span>
             </span>

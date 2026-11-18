@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { makeTelemetryLayer, tracePromise } from '@haus/effect';
 import {
     AggregationTemporality,
@@ -7,6 +8,7 @@ import {
 } from '@opentelemetry/sdk-metrics';
 import { InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { Layer, ManagedRuntime, TestClock, TestContext } from 'effect';
+
 import { startDeliveryRetrySweep } from './agent-delivery/retry-sweep.ts';
 import { createReminderScheduler } from './reminders/reminder-scheduler.ts';
 

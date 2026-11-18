@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, expect } from 'bun:test';
 import { createHash } from 'node:crypto';
+
 import type { ImageGeneration } from '@haus/api';
+
 import { ImageProviderError } from '../src/image-generation/providers/image-provider.ts';
 import type { ImageProviderAdapters } from '../src/image-generation/run-image-generation.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';

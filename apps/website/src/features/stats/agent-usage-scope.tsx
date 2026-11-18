@@ -1,5 +1,6 @@
 import { Label, ListBox, Select } from '@heroui/react';
 import { UserMultiple02Icon } from '@hugeicons-pro/core-stroke-rounded';
+
 import {
     EntityAvatar,
     type EntityAvatarProps,
@@ -110,7 +111,7 @@ function AllAgentsMark({
         <span className="flex shrink-0 -space-x-2">
             {agents.slice(0, 3).map((agent) => (
                 <EntityAvatar
-                    className="ring-2 ring-surface"
+                    className="ring-surface ring-2"
                     key={agent.agentId}
                     name={agent.agentName}
                     size={size}
@@ -132,7 +133,7 @@ function EveryAgentMark() {
     return (
         <span
             aria-hidden="true"
-            className="flex shrink-0 items-center justify-center bg-[var(--default)] text-muted"
+            className="text-muted flex shrink-0 items-center justify-center bg-[var(--default)]"
             style={{
                 borderRadius: identityMarkRadius(boxSize),
                 height: boxSize,

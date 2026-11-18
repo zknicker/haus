@@ -1,9 +1,10 @@
 import { expect, test } from 'bun:test';
+
 import type { AgentApiRequest } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';
-import { runCloudAgentStart } from './agent-cloud-agent.ts';
 import { args, requester } from './agent-cloud-agent-fixture.ts';
+import { runCloudAgentStart } from './agent-cloud-agent.ts';
 
 test('starts one Cloud Agent with the stdin instructions and the Agent’s own words', async () => {
     const seen: AgentApiRequest[] = [];

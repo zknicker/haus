@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { chatTypingThoughtRecallLingerMs } from './chat-typing-thought.ts';
 
 /**

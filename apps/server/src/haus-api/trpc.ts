@@ -1,5 +1,6 @@
 import { appProtocolVersion } from '@haus/api';
 import { initTRPC, TRPCError } from '@trpc/server';
+
 import { artifactErrorData } from '../artifacts/error-data.ts';
 import type { HausSessionIdentity } from '../identity/haus-sessions.ts';
 import { HausAuthError } from '../identity/haus-sessions.ts';

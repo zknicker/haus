@@ -1,6 +1,8 @@
 import { expect, test } from 'bun:test';
+
 import { tracePromise } from '@haus/effect';
 import { Effect } from 'effect';
+
 import { closeDaemonRuntimeResources, makeDaemonRuntime } from './daemon-runtime.ts';
 
 test('daemon runtime executes effects and disposes idempotently', async () => {

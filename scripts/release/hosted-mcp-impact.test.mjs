@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+
 import { assertRequiredTargetsSelected, calculateReleaseImpact } from './release-impact.mjs';
 
 for (const file of [

@@ -5,9 +5,10 @@ import type {
     ComputerModelFeature,
 } from '@haus/api';
 import { type ComputerRuntimeId, computerRuntimeCatalog } from '@haus/api/computer-runtime';
+
 import { detectCloudAgentProviders } from './cloud-agents/registry.ts';
-import { supportsSubagents } from './runtime/runtime-subagents.ts';
 import { resolveRuntimeById } from './runtime-discovery.ts';
+import { supportsSubagents } from './runtime/runtime-subagents.ts';
 
 type ComputerRuntime = ComputerInventory['runtimes'][number];
 

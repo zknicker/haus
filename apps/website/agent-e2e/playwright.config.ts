@@ -1,6 +1,8 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { defineConfig } from '@playwright/test';
+
 import { resolveDevPorts } from '../../../scripts/dev-ports.mjs';
 import { agentE2eAuthStatePath } from './global-setup.ts';
 

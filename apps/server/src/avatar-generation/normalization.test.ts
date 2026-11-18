@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { normalizeGeneratedAvatar } from './normalization.ts';
 import { AvatarImageOutputError } from './service.ts';
 

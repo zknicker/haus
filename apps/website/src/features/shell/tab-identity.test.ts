@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest';
+
 import { parseTabPage, resolveTabIdentity, type TabIdentityRecords } from './tab-identity.ts';
 
 const app = (path: string) => ({ kind: 'app', path }) as const;

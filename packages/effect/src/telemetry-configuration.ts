@@ -35,8 +35,8 @@ export function telemetryEnabled(environment: ProcessTelemetryEnvironment): bool
         !telemetryDisabled(environment) &&
         Boolean(
             environment.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT?.trim() ||
-                environment.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT?.trim() ||
-                environment.OTEL_EXPORTER_OTLP_ENDPOINT?.trim()
+            environment.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT?.trim() ||
+            environment.OTEL_EXPORTER_OTLP_ENDPOINT?.trim()
         )
     );
 }

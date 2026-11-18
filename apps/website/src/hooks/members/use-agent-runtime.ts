@@ -1,4 +1,5 @@
 import type { ConfigureAgentInput } from '@haus/api';
+
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { withSavingToast } from '../../lib/saving-toast.ts';
 import { refreshAgent } from './agent-refresh.ts';

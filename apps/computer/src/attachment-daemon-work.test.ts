@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { AttachmentDaemonWork } from './attachment-daemon-work.ts';
 import { makeDaemonRuntime } from './daemon-runtime.ts';
 
@@ -85,9 +86,8 @@ test('shutdown drains an accepted reset before considering its old parked sessio
     const { tmpdir } = await import('node:os');
     const { join } = await import('node:path');
     const { harnessSessionOwner } = await import('./harness/session-lifecycle.ts');
-    const { resolveTurnSession, writeAgentSessionState, readAgentSessionState } = await import(
-        './harness/session-store.ts'
-    );
+    const { resolveTurnSession, writeAgentSessionState, readAgentSessionState } =
+        await import('./harness/session-store.ts');
     const root = await mkdtemp(join(tmpdir(), 'haus-shutdown-reset-'));
     const runtime = makeDaemonRuntime();
     const work = new AttachmentDaemonWork(runtime);

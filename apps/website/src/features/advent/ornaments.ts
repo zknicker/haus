@@ -1,14 +1,15 @@
 import { type AdventFact, adventFacts } from '@haus/api';
-import baubleSource from './assets/ornament-bauble.png';
+
 import baublePurpleSource from './assets/ornament-bauble-purple.png';
 import baubleSnowflakeSource from './assets/ornament-bauble-snowflake.png';
 import baubleStripedSource from './assets/ornament-bauble-striped.png';
+import baubleSource from './assets/ornament-bauble.png';
 import bellSource from './assets/ornament-bell.png';
 import bowSource from './assets/ornament-bow.png';
 import candyCaneSource from './assets/ornament-candy-cane.png';
 import drumSource from './assets/ornament-drum.png';
-import gingerbreadSource from './assets/ornament-gingerbread.png';
 import gingerbreadHouseSource from './assets/ornament-gingerbread-house.png';
+import gingerbreadSource from './assets/ornament-gingerbread.png';
 import icicleSource from './assets/ornament-icicle.png';
 import lanternSource from './assets/ornament-lantern.png';
 import mittenSource from './assets/ornament-mitten.png';

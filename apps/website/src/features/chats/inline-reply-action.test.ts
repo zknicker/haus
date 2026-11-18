@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import type { TranscriptItem } from './chat-transcript-model.ts';
 import { getInlineReplyTargetRow } from './inline-reply-action.tsx';
 import type { TranscriptMessageRow } from './transcript-contract.ts';

@@ -1,5 +1,6 @@
 import type { AddressedReason } from '@haus/api';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
+
 import { mentionedAgentIds } from '../chats/reply-subscriptions.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {

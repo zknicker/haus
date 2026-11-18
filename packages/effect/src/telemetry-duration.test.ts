@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import {
     AggregationTemporality,
     DataPointType,
@@ -6,6 +7,7 @@ import {
     PeriodicExportingMetricReader,
 } from '@opentelemetry/sdk-metrics';
 import { Deferred, Effect, Fiber, Layer, ManagedRuntime, TestClock, TestContext } from 'effect';
+
 import { makeTelemetryLayer, withTelemetrySpan } from './telemetry.ts';
 
 test('records virtual multi-minute operation duration in milliseconds', async () => {

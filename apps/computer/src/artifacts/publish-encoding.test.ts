@@ -2,7 +2,9 @@ import { afterEach, expect, spyOn, test } from 'bun:test';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import * as z from 'zod';
+
 import { AgentApiClient } from '../agent-cli/agent-api-client.ts';
 import { ARTIFACT_SUBCOMMANDS } from '../agent-cli/commands/agent-artifact.ts';
 import { parseArgs } from '../agent-cli/parse.ts';

@@ -1,9 +1,9 @@
 import { Disclosure } from '@heroui/react';
 import * as React from 'react';
+
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { formatShortTime } from '../../../lib/format.ts';
 import { cn } from '../../../lib/utils.ts';
-import { readTurnTraceAxis } from '../../turn-trace/turn-trace.tsx';
 import { TraceNested } from '../../turn-trace/turn-trace-depth.tsx';
 import {
     traceRowClass,
@@ -15,6 +15,7 @@ import { TurnTraceScopeProvider } from '../../turn-trace/turn-trace-scope.tsx';
 import { TurnTraceScroll } from '../../turn-trace/turn-trace-scroll.tsx';
 import { TurnTraceSteps } from '../../turn-trace/turn-trace-steps-view.tsx';
 import { buildTurnTraceView, type TurnTraceView } from '../../turn-trace/turn-trace-view.ts';
+import { readTurnTraceAxis } from '../../turn-trace/turn-trace.tsx';
 import { useTurnTraceNow } from '../../turn-trace/use-turn-trace-now.ts';
 import { type ActivityLogEntry, readStepMarks } from './agent-activity-log-entries.ts';
 import { useLogTurnJournal } from './agent-activity-log-journal.ts';
@@ -27,8 +28,8 @@ import {
 } from './agent-activity-log-turn-parts.tsx';
 import type { TurnDetailAccess, TurnJournalPresentation } from './agent-activity-model.ts';
 import { formatTurnOutcome } from './agent-turn-outcome.ts';
-import { TurnDuration, TurnRowTitleLine, TurnStatusGlyph } from './agent-turn-row.tsx';
 import { getTurnRowStatus } from './agent-turn-row-model.ts';
+import { TurnDuration, TurnRowTitleLine, TurnStatusGlyph } from './agent-turn-row.tsx';
 
 /**
  * One turn as a group in the flat log: a header row on the log's columns
@@ -111,7 +112,7 @@ export function ActivityLogTurn({
                                 data-log-header
                             >
                                 <time
-                                    className="whitespace-nowrap text-foreground text-sm tabular-nums"
+                                    className="text-foreground text-sm whitespace-nowrap tabular-nums"
                                     dateTime={turn.startedAt}
                                 >
                                     {formatShortTime(turn.startedAt)}
@@ -141,7 +142,7 @@ export function ActivityLogTurn({
                                     className="@max-2xl/activity-log:hidden"
                                     data-trace-cell="track"
                                 />
-                                <span className="whitespace-nowrap text-end text-muted text-sm tabular-nums">
+                                <span className="text-muted text-end text-sm whitespace-nowrap tabular-nums">
                                     <TurnDuration turn={turn} />
                                 </span>
                                 <span className="flex size-4 items-center justify-center">
@@ -212,7 +213,7 @@ function TurnSteps({
 function LogNote({ children }: { children: React.ReactNode }) {
     return (
         <p
-            className="pe-(--trace-pad) pb-1 text-muted text-sm"
+            className="text-muted pe-(--trace-pad) pb-1 text-sm"
             style={{ paddingInlineStart: 'calc(var(--trace-lead) + var(--trace-pad) + 0.75rem)' }}
         >
             {children}

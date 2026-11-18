@@ -1,4 +1,5 @@
 import type * as React from 'react';
+
 import { cn } from '../../lib/utils.ts';
 import type { TraceBar, TraceLayout, TraceRowTone } from './turn-trace-grid.tsx';
 import { traceKindFill } from './turn-trace-kind.ts';
@@ -27,7 +28,7 @@ export function TraceTrack({
         <span
             aria-hidden
             className={cn(
-                'relative @max-2xl/activity-log:hidden min-w-0',
+                'relative min-w-0 @max-2xl/activity-log:hidden',
                 // The log's lane fills the row so its gridlines run row to row.
                 isLog ? 'self-stretch' : 'h-4'
             )}
@@ -75,7 +76,7 @@ export function TraceLane() {
     return (
         <span
             aria-hidden
-            className="relative @max-2xl/activity-log:hidden min-w-0 self-stretch"
+            className="relative min-w-0 self-stretch @max-2xl/activity-log:hidden"
             data-trace-cell="lane"
         >
             {gridTicks ? <TraceGridlines axisMs={axisMs} ticks={gridTicks} /> : null}

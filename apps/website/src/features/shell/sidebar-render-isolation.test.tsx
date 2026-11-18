@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import { Sidebar } from '@heroui-pro/react';
+
 import { useChatMessages } from '../../hooks/servers/use-chat-messages.ts';
 import { installKeptChatViewTestDom } from '../../test-support/kept-chat-views-harness.tsx';
 import {

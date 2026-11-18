@@ -1,9 +1,10 @@
 import type { Chat } from '@haus/api';
-import { Button, Dropdown, Tooltip } from '@heroui/react';
 import { ContextMenu } from '@heroui-pro/react';
+import { Button, Dropdown, Tooltip } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { serverRoute } from '../server-routes.ts';

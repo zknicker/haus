@@ -1,4 +1,5 @@
 import type { ConnectionChipKind } from '@haus/api';
+
 import type { AgentStartCommand, UnreadElsewhere } from '../agent-commands.ts';
 import type { AgentInboxItem } from '../agent-inbox-item.ts';
 import { composeInboxDrain, composeInboxNotice, formatUnreadElsewhere } from '../inbox-format.ts';

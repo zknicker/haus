@@ -1,4 +1,5 @@
 import { type HausAgentSendResponse, TASK_TARGET_PATTERN } from '@haus/api';
+
 import type { AgentCliMessage } from './agent-api-schemas.ts';
 import { formatDeliveryEnvelope, shortMessageId } from './agent-format.ts';
 import { renderFailedImageGenerations } from './image-render.ts';

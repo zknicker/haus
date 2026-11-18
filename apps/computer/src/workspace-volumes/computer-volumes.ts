@@ -1,5 +1,6 @@
 import { readdir, realpath } from 'node:fs/promises';
 import { join, sep } from 'node:path';
+
 import { hostWorkspaceDisk, type WorkspaceDisk } from './disk-image.ts';
 import { isMissing, releaseOrphanedWorkspaces, withStorageLock } from './storage-ledger.ts';
 import {

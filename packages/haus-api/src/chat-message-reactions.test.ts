@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
-import { chatMessageReactionReceiptSchema } from './chat.ts';
+
 import { chatMessageReactionInputSchema } from './chat-message-reactions.ts';
+import { chatMessageReactionReceiptSchema } from './chat.ts';
 
 test('reaction mutations carry only client intent and return a durable receipt shape', () => {
     expect(

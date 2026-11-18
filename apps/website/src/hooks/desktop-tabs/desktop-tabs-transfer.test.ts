@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import type { DesktopTab, TabBundle } from './desktop-tabs-model.ts';
 import { parseTabBundle } from './desktop-tabs-storage.ts';
 import { app, describeTabs, run, split, start, web } from './desktop-tabs-test-fixtures.ts';

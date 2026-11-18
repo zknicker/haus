@@ -1,10 +1,11 @@
 import type { Task } from '@haus/api';
+
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useTask } from '../../hooks/tasks/use-task.ts';
 import { formatDueOn } from '../tasks/task-facts.tsx';
 import { taskPriorityLabels } from '../tasks/task-presentation.ts';
-import { taskStateLabels } from '../tasks/task-state.ts';
 import { TaskStateDisc } from '../tasks/task-state-disc.tsx';
+import { taskStateLabels } from '../tasks/task-state.ts';
 import { type TaskPerson, useTaskActor } from '../tasks/use-task-people.ts';
 import {
     ReferencePreviewHeader,
@@ -71,7 +72,7 @@ export function TaskHoverCardView({
                 </ReferencePreviewText>
             ) : null}
             {facts.length > 0 ? (
-                <div className="flex min-w-0 items-center gap-1.5 text-muted text-xs">
+                <div className="text-muted flex min-w-0 items-center gap-1.5 text-xs">
                     {assignee ? (
                         <EntityAvatar name={assignee.label} size={16} src={assignee.avatarUrl} />
                     ) : null}

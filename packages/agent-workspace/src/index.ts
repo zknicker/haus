@@ -15,7 +15,4 @@ export {
     visualsSkillFiles,
     visualsSkillId,
 } from './managed-skills.ts';
-export {
-    type SeedAgentWorkspaceInput,
-    seedAgentWorkspace,
-} from './starter-kit.ts';
+export { type SeedAgentWorkspaceInput, seedAgentWorkspace } from './starter-kit.ts';

@@ -5,6 +5,7 @@ import {
     visualHeights,
 } from '@haus/api/widgets/visual/frame';
 import * as React from 'react';
+
 import { agentHtmlColorScheme, agentHtmlTokenDeclarations } from '../../agent-html/tokens.ts';
 import { useVisualContentHeight } from './use-visual-content-height.ts';
 
@@ -48,7 +49,7 @@ export function VisualCard({
         // a card in a card. The cap is a drawn figure's measure — the same one
         // narration and legacy widget rows use — not the reply column, which
         // runs wider (ADR 0031).
-        <div className="w-full min-w-0 max-w-[46rem]" ref={containerRef}>
+        <div className="w-full max-w-[46rem] min-w-0" ref={containerRef}>
             <iframe
                 className="block w-full border-0 bg-transparent"
                 ref={frameRef}

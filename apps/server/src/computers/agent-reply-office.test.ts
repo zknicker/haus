@@ -1,6 +1,8 @@
 import { afterAll, expect, test } from 'bun:test';
+
 import type { AgentSkillFileResult, AgentSkillImportResult, AgentWorkspaceResult } from '@haus/api';
 import { makeTestRuntime } from '@haus/effect';
+
 import { AgentReplyOffice } from './agent-reply-office.ts';
 
 const agentId = 'agt_1234567890123456';

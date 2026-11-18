@@ -1,5 +1,6 @@
 import { Toolbar } from '@heroui/react';
 import { ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { useDesktopTabsSelector } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import { usePaneHistory } from '../../hooks/desktop-tabs/use-pane-history.ts';

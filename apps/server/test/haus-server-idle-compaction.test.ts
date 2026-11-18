@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { AgentIdleCompactionReport } from '@haus/api';
+
 import { cloudAgentFixture } from './cloud-agent-fixture.ts';
 
 /**

@@ -1,7 +1,8 @@
-import { Button, Tooltip } from '@heroui/react';
 import { ItemCard } from '@heroui-pro/react';
+import { Button, Tooltip } from '@heroui/react';
 import { InformationCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type React from 'react';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 
 /**

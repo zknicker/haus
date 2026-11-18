@@ -1,7 +1,9 @@
 import { mkdir } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+
 import type { AgentReasoningEffort } from '@haus/api';
+
 import type { HostToolMcpDescriptor } from '../../host-tools/mcp-server.ts';
 import { referenceAuthProfiles } from '../auth-profiles.ts';
 import { configReadResultSchema } from './protocol.ts';

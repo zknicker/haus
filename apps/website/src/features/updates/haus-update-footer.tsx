@@ -6,6 +6,7 @@ import {
     ReloadIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import { AnimatePresence } from 'motion/react';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { HausStatusEntrance } from './haus-status-entrance.tsx';
 import {

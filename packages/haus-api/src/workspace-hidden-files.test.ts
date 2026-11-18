@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import { agentWorkspaceListInputSchema, agentWorkspaceReadInputSchema } from './agent.ts';
+
 import { agentWorkspaceRequestSchema } from './agent-workspace-files.ts';
+import { agentWorkspaceListInputSchema, agentWorkspaceReadInputSchema } from './agent.ts';
 import { agentRuntimeWorkspaceFileListInputSchema } from './runtime/contracts.ts';
 
 describe('workspace hidden-file contracts', () => {

@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { openSettingsTab } from './use-settings-opener.ts';
 
 test('the Settings button: the singleton on a plain press, a tab beside the left pane’s on a modified one', () => {

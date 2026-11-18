@@ -1,5 +1,6 @@
 import type { Trigger, TriggerFire, TriggerFireDetail } from '@haus/api';
 import { and, asc, desc, eq, isNull } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,

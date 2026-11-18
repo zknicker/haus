@@ -6,6 +6,7 @@ import {
     Task01Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';

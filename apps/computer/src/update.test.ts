@@ -3,7 +3,14 @@ import { createHash, generateKeyPairSync, sign } from 'node:crypto';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { getFreePort } from './test-port.ts';
+import {
+    type ComputerUpdateProgress,
+    computerProtocolVersion,
+    computerReleaseSigningPayload,
+    type SignedComputerRelease,
+} from './update-contract.ts';
 import {
     admitActiveRun,
     readUpdateProgress,
@@ -11,12 +18,6 @@ import {
     runSignedUpdate,
     verifySignedRelease,
 } from './update.ts';
-import {
-    type ComputerUpdateProgress,
-    computerProtocolVersion,
-    computerReleaseSigningPayload,
-    type SignedComputerRelease,
-} from './update-contract.ts';
 
 test('legacy persisted progress gains the stable bootstrap fields', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'haus-update-progress-test-'));

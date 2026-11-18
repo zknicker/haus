@@ -1,5 +1,6 @@
 import type * as React from 'react';
 import { useParams } from 'react-router-dom';
+
 import { SharedArtifactScopeProvider } from './shared-artifact-scope.tsx';
 
 /**

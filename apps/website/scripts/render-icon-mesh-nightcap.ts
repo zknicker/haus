@@ -7,8 +7,8 @@
 
 import type { GlassPiece } from '../src/components/haus-ghost-figure.ts';
 import { SANTA_GLASS } from '../src/components/haus-santa-ghost-palette.ts';
-import { type EdgeVeil, ICON_PROFILE, type IconProfile, type RimStop } from './render-icon-mesh.ts';
 import type { MeshFootprint } from './render-icon-mesh-figure.ts';
+import { type EdgeVeil, ICON_PROFILE, type IconProfile, type RimStop } from './render-icon-mesh.ts';
 
 /** The tile-only numbers for one piece. Everything else is the mark's. */
 interface PieceTuning {

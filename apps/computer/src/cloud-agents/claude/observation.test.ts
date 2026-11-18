@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import type { ClaudeSession, ClaudeSessionEvent } from './controller.ts';
 import { claudeRunObservation } from './observation.ts';
 

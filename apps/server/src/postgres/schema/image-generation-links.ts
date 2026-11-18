@@ -9,6 +9,7 @@ import {
     text,
     timestamp,
 } from 'drizzle-orm/pg-core';
+
 import { chatMessagesTable } from './chat-messages.ts';
 import { imageGenerationsTable } from './image-generations.ts';
 

@@ -36,7 +36,7 @@ export function UpdateTooltipContent({
             <HausUpdateProgress steps={view.steps} />
             {visibleFacts.length > 0 ? <HausVersionBreakdown facts={visibleFacts} /> : null}
             {view.phase === 'failed' && !hasSurfaceFailure ? (
-                <p className="grid gap-0.5 text-danger text-sm">
+                <p className="text-danger grid gap-0.5 text-sm">
                     <span>{view.detail}</span>
                     <span className="text-foreground">
                         Try again. If it continues, restart Haus.

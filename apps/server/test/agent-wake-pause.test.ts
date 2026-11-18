@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import type { AgentTurnSummary, AgentUpdatedEvent } from '@haus/api';
 import { eq } from 'drizzle-orm';
+
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { readDeliveryState } from '../src/agent-delivery/store.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';

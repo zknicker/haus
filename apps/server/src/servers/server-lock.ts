@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { serversTable } from '../postgres/schema.ts';
 

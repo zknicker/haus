@@ -1,7 +1,9 @@
 import type { IncomingMessage, Server } from 'node:http';
 import type { Duplex } from 'node:stream';
+
 import { appProtocolHeaders, appProtocolVersion, voiceCallInputSchema } from '@haus/api';
 import { type WebSocket, WebSocketServer } from 'ws';
+
 import type { HausContext } from '../haus-api/context.ts';
 import { socketSessionExpiredCloseCode } from '../haus-api/socket-session.ts';
 import { findUserById } from '../users/haus-user.ts';

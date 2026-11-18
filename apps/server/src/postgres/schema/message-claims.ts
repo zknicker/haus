@@ -10,6 +10,7 @@ import {
     timestamp,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
+
 import { agentsTable } from './agents.ts';
 import { chatMessagesTable } from './chat-messages.ts';
 import { chatsTable } from './chats.ts';

@@ -1,4 +1,5 @@
 import EventEmitter, { on } from 'node:events';
+
 import type { AgentExecutionJournalChange } from '@haus/api';
 
 interface ServerJournalChange extends AgentExecutionJournalChange {

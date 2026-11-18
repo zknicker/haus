@@ -10,6 +10,7 @@ import {
 } from '@heroui/react';
 import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import { CopyButton } from '../../components/copy-button.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useServerInvitationCommands } from '../../hooks/servers/use-server-invitations.ts';
@@ -50,7 +51,7 @@ export function InvitePopover({ serverId }: { serverId: string }) {
                                 Send this link to {issued.invitation.email}. It is shown once.
                             </p>
                             <div className="flex items-center gap-2">
-                                <code className="min-w-0 flex-1 truncate font-mono text-muted text-xs">
+                                <code className="text-muted min-w-0 flex-1 truncate font-mono text-xs">
                                     {invitationLink(issued.token)}
                                 </code>
                                 <CopyButton value={invitationLink(issued.token)} />

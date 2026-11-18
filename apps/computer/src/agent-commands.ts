@@ -5,6 +5,7 @@ import type {
     AgentTurnFailureCode,
     ConnectionChipKind,
 } from '@haus/api';
+
 import type { AgentInboxItem } from './agent-inbox-item.ts';
 import type { RuntimeFailureKind } from './runtime-failure.ts';
 

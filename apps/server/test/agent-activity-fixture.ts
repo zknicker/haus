@@ -1,5 +1,7 @@
 import { randomBytes } from 'node:crypto';
+
 import type { AgentActivityFrame, AgentCommand, AgentTurnSummary } from '@haus/api';
+
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import type { HausDatabase } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';

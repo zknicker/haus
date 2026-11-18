@@ -1,5 +1,6 @@
 import { type AvatarMediaType, isAvatarId } from '@haus/api/avatar';
 import { eq } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { avatarsTable } from '../postgres/schema.ts';
 

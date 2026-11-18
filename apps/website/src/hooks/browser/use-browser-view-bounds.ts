@@ -1,5 +1,6 @@
 import { toast } from '@heroui/react';
 import * as React from 'react';
+
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import {
     type BrowserBounds,

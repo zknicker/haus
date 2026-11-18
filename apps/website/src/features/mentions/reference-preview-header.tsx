@@ -1,4 +1,5 @@
 import type * as React from 'react';
+
 import { cn } from '../../lib/utils.ts';
 import { type MentionAppearance, MentionAppearanceIcon } from './mention-appearance.tsx';
 
@@ -25,10 +26,10 @@ export function ReferencePreviewHeader({
             <div className="haus-hover-card__identity flex min-w-0 items-center gap-1.5">
                 {mark}
                 <div className="flex min-w-0 items-baseline gap-1.5">
-                    <strong className="truncate font-semibold text-foreground text-sm">
+                    <strong className="text-foreground truncate text-sm font-semibold">
                         {title}
                     </strong>
-                    {meta ? <span className="shrink-0 text-muted text-xs">· {meta}</span> : null}
+                    {meta ? <span className="text-muted shrink-0 text-xs">· {meta}</span> : null}
                 </div>
             </div>
             {children}

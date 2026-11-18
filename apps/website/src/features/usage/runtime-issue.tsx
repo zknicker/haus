@@ -1,7 +1,8 @@
 import type { ComputerRuntimeId } from '@haus/api';
-import { Button } from '@heroui/react';
 import { HoverCard } from '@heroui-pro/react';
+import { Button } from '@heroui/react';
 import { Alert02Icon, HelpCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { CodeSnippet } from '../../components/code-snippet.tsx';
 import { hausHoverCardClassName } from '../../components/ui/cursor-hover-card.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
@@ -67,7 +68,7 @@ export function RuntimeIssueHelpContent({
     const mark = (
         <Icon
             aria-hidden="true"
-            className="shrink-0 text-warning"
+            className="text-warning shrink-0"
             icon={Alert02Icon}
             size={16}
             style={{ height: 16, width: 16 }}

@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { type SessionConnection, SessionConnections } from '../src/identity/session-connections.ts';
 
 test('local sign-out closes tracked WebSocket and SSE connections for one Haus session', () => {

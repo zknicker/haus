@@ -1,7 +1,8 @@
-import { Separator } from '@heroui/react';
 import { ChatMessage, ChatMessageActions } from '@heroui-pro/react';
+import { Separator } from '@heroui/react';
 import { Activity01Icon, AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import { RelativeTime } from '../../components/time/relative-time.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { writeClipboardText } from '../../lib/clipboard.ts';
@@ -10,13 +11,13 @@ import { AgentTurnProfileAvatar, TurnAvatar, TurnAvatarSlot } from './agent-turn
 import { AssistantReplyBody } from './assistant-reply-body.tsx';
 import { ActionTooltip } from './chat-action-tooltip.tsx';
 import {
-    ChatTranscriptActivity,
-    ChatTranscriptActivityGroup,
-} from './chat-transcript-activity.tsx';
-import {
     getAssistantNarrationText,
     isAssistantNarrationItem,
 } from './chat-transcript-activity-utils.ts';
+import {
+    ChatTranscriptActivity,
+    ChatTranscriptActivityGroup,
+} from './chat-transcript-activity.tsx';
 import {
     type AgentItemSegment,
     getLastMessage,
@@ -75,7 +76,7 @@ const turnActionsClassName = cn(
     // background token splits the difference. Dark keeps surface-secondary
     // (its background token is near-black and would read as a hole). The
     // border alone defines the edge.
-    'pointer-events-none absolute -top-4 right-5 z-10 items-center gap-px rounded-full border border-border bg-background p-0.5 opacity-0 transition-none dark:bg-surface-secondary',
+    'border-border bg-background dark:bg-surface-secondary pointer-events-none absolute -top-4 right-5 z-10 items-center gap-px rounded-full border p-0.5 opacity-0 transition-none',
     'group-hover/turn:pointer-events-auto group-hover/turn:opacity-100',
     'has-[[data-focus-visible]]:pointer-events-auto has-[[data-focus-visible]]:opacity-100',
     'has-[[aria-expanded=true]]:pointer-events-auto has-[[aria-expanded=true]]:opacity-100'
@@ -107,7 +108,7 @@ export function TranscriptEntryView({
             return (
                 <MessageSurface row={entry.item.row}>
                     {/* pl-11.5 + the surface's px-5 = avatar + gap: the message text column. */}
-                    <p className="flex items-baseline gap-2 py-2 pr-5 pl-11.5 text-muted text-sm">
+                    <p className="text-muted flex items-baseline gap-2 py-2 pr-5 pl-11.5 text-sm">
                         <span className="min-w-0 truncate" title={entry.item.row.message.content}>
                             {entry.item.row.message.content}
                         </span>
@@ -742,7 +743,7 @@ function AssistantNarrationText({ item }: { item: TranscriptItem }) {
     const text = getAssistantNarrationText(item);
 
     return text ? (
-        <div className="min-w-0 max-w-[46rem] whitespace-pre-wrap break-words text-base text-foreground leading-6 [overflow-wrap:anywhere]">
+        <div className="text-foreground max-w-[46rem] min-w-0 text-base leading-6 [overflow-wrap:anywhere] break-words whitespace-pre-wrap">
             {text}
         </div>
     ) : null;
@@ -767,7 +768,7 @@ function AgentTurnStatus({
     // the text's muted color so the row reads as a footnote under whatever
     // the turn already produced.
     return (
-        <p className="max-w-[34rem] pl-0.5 text-muted text-sm leading-5">
+        <p className="text-muted max-w-[34rem] pl-0.5 text-sm leading-5">
             <Icon
                 aria-hidden
                 className="mr-1.5 inline-block size-3.5 shrink-0 align-[-0.2em]"
@@ -835,22 +836,22 @@ function isStreamingMessageMetadata(metadata: Record<string, unknown> | null | u
 
     return Boolean(
         runtime &&
-            typeof runtime === 'object' &&
-            !Array.isArray(runtime) &&
-            (runtime as Record<string, unknown>).streaming === true
+        typeof runtime === 'object' &&
+        !Array.isArray(runtime) &&
+        (runtime as Record<string, unknown>).streaming === true
     );
 }
 
 function hasStoppedTurn(items: TranscriptItem[], runId: string | null | undefined) {
     return Boolean(
         runId &&
-            items.some(
-                (item) =>
-                    item.kind === 'row' &&
-                    item.row.kind === 'system' &&
-                    item.row.systemKind === 'turnStatus' &&
-                    item.row.turnStatus.runId === runId
-            )
+        items.some(
+            (item) =>
+                item.kind === 'row' &&
+                item.row.kind === 'system' &&
+                item.row.systemKind === 'turnStatus' &&
+                item.row.turnStatus.runId === runId
+        )
     );
 }
 

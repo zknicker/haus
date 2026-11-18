@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { startProductionServer, stopProductionServer } from '../src/haus-server-activation.ts';
 
 const serverLabel = 'system/com.haus.server';

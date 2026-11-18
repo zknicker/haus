@@ -7,6 +7,7 @@ import {
 } from '@tanstack/react-query';
 import { TRPCClientError } from '@trpc/client';
 import { observable } from '@trpc/server/observable';
+
 import {
     type ChatMessageEntry,
     chatMessageQueryKey,

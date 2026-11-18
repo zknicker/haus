@@ -1,10 +1,11 @@
 import type { ArtifactPublicLink } from '@haus/api';
 import { Button, Dropdown } from '@heroui/react';
 import { MoreVerticalIcon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { artifactActionItems } from './artifact-action-items.tsx';
-import type { FileActionId } from './artifact-actions.ts';
 import { useArtifactActionsContext } from './artifact-actions-context.ts';
+import type { FileActionId } from './artifact-actions.ts';
 import type { ActionFile } from './use-artifact-actions.tsx';
 
 /** A library file's actions behind its ⋮ button: the same list its right-click menu shows. */

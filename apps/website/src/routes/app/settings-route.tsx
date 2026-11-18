@@ -1,6 +1,7 @@
 import { hasServerAdminAuthority } from '@haus/api/membership';
 import type { ReactNode } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
+
 import { ComputerPage } from '../../features/computers/computer-page.tsx';
 import { HumanProfile } from '../../features/members/human-profile/human-profile.tsx';
 import { HumanDirectory } from '../../features/servers/human-directory.tsx';
@@ -100,7 +101,7 @@ function MembersSection({ server }: { server: ServerSummary }) {
     const canManage = server.role === 'owner' || server.role === 'admin';
 
     if (directory.error && !directory.data) {
-        return <p className="m-auto text-danger text-sm">Couldn’t load humans.</p>;
+        return <p className="text-danger m-auto text-sm">Couldn’t load humans.</p>;
     }
     return (
         <HumanDirectory

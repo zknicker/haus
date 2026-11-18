@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { createBrowserWorkspaceLifecycle } from './browser-workspace-lifecycle.ts';
 
 function harness() {

@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, test } from 'vitest';
+
 import { AppShell, AppShellDragRegion } from './app-shell.tsx';
 
 describe('AppShell drag regions', () => {

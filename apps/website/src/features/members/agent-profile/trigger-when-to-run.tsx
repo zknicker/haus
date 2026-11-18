@@ -1,7 +1,8 @@
-import { Button, Tooltip } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { CodeBlock } from '@heroui-pro/react/code-block';
+import { Button, Tooltip } from '@heroui/react';
 import { InformationCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 import { SettingsFact } from '../../settings/layout/settings-text.tsx';
 import type { TriggerKindOption } from './agent-trigger-model.ts';

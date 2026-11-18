@@ -1,11 +1,13 @@
 import { expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+
 import type { Agent, ChatEngagement } from '@haus/api';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { getQueryKey } from '@trpc/react-query';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { hausTrpc, type ServerDetail } from '../../../lib/haus-server.tsx';
 import { testChat } from '../../chats/chat-fixtures.ts';
 import { testAgent } from '../../members/agent-fixtures.ts';

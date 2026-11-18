@@ -1,5 +1,6 @@
 // Ported from botiverse/raft-source packages/daemon/src/drivers/runtimeSession.test.ts (FSL-1.1-ALv2)
 import { expect, test } from 'bun:test';
+
 import { LineDecoder } from './line-decoder.ts';
 
 test('decodes split UTF-8 stdout before line parsing', () => {

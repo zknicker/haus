@@ -4,7 +4,9 @@ import type { AddressInfo } from 'node:net';
 import { createServer, type Server as NetServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import type { Server } from 'bun';
+
 import { AgentActivityRun } from './agent-activity-run.ts';
 import type { AgentInboxItem } from './agent-inbox-item.ts';
 import { makeDaemonRuntime } from './daemon-runtime.ts';

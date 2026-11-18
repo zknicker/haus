@@ -1,4 +1,5 @@
 import type { Client as MCPClient } from '@modelcontextprotocol/client';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { McpRuntime } from './runtime.ts';
 import { modelToolName } from './tool-catalog.ts';

@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
-import { JsonRpcConnectionClosedError, JsonRpcRequestError } from './json-rpc.ts';
+
 import { JsonRpcConnection, JsonRpcHandlerError } from './json-rpc-connection.ts';
+import { JsonRpcConnectionClosedError, JsonRpcRequestError } from './json-rpc.ts';
 
 function connection() {
     const written: Record<string, unknown>[] = [];

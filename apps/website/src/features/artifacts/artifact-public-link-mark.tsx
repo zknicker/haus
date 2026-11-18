@@ -1,11 +1,12 @@
 import { Chip } from '@heroui/react';
 import { Globe02Icon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { Icon } from '../../components/ui/icon.tsx';
 
 /** A library row's or tile's quiet sign that the file has a public link. */
 export function PublicLinkMark() {
     return (
-        <span aria-label="Public link" className="flex shrink-0 text-muted" role="img">
+        <span aria-label="Public link" className="text-muted flex shrink-0" role="img">
             <Icon icon={Globe02Icon} size={14} />
         </span>
     );

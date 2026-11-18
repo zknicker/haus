@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { triggerProblemNoticeText } from './problem-notice.ts';
 import { desiredProblem, githubAccessStaleMs } from './trigger-problem-sync.ts';
 

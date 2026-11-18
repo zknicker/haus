@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { bigint, check, date, foreignKey, pgTable, primaryKey, text } from 'drizzle-orm/pg-core';
+
 import { agentsTable } from './agents.ts';
 import { serversTable } from './servers.ts';
 

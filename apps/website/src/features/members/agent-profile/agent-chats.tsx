@@ -1,9 +1,10 @@
 import type { Agent } from '@haus/api';
-import { Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup, PressableFeedback } from '@heroui-pro/react';
+import { Separator } from '@heroui/react';
 import { BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { getChannelColorStyle } from '../../../components/chats/channel-color-options.ts';
 import { useChannelIconGlyph } from '../../../components/chats/channel-icon-catalog.ts';
 import { Icon } from '../../../components/ui/icon.tsx';
@@ -24,7 +25,7 @@ export function AgentChats({ agent, server }: { agent: Agent; server: ServerDeta
                 <ItemCardGroup.Title>
                     Chats
                     {chats.data ? (
-                        <span className="ms-2 text-muted tabular-nums">{rows.length}</span>
+                        <span className="text-muted ms-2 tabular-nums">{rows.length}</span>
                     ) : null}
                 </ItemCardGroup.Title>
             </ItemCardGroup.Header>
@@ -74,7 +75,7 @@ function AgentChatRow({
 
     return (
         <ItemCard<'button'>
-            className="relative w-full cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            className="focus-visible:ring-focus relative w-full cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2"
             onClick={onOpen}
             render={(props) => <button type="button" {...props} />}
         >

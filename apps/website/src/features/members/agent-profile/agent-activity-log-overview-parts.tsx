@@ -1,5 +1,6 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import * as React from 'react';
+
 import { formatShortTime } from '../../../lib/format.ts';
 import { cn } from '../../../lib/utils.ts';
 import type { ActivityLogDay } from './agent-activity-log-entries.ts';
@@ -31,7 +32,7 @@ export function OverviewReadout({
         : undefined;
     const turn = entry?.row.latest;
     return (
-        <p className="ms-auto grid min-w-0 ps-6 text-end text-muted text-sm tabular-nums">
+        <p className="text-muted ms-auto grid min-w-0 ps-6 text-end text-sm tabular-nums">
             <AnimatePresence initial={false}>
                 <motion.span
                     animate={{ opacity: 1 }}
@@ -83,17 +84,17 @@ export function OverviewRuler({
     ticks: readonly TimelineTick[];
 }) {
     return (
-        <div aria-hidden className="relative @max-2xl/activity-log:hidden h-5">
+        <div aria-hidden className="relative h-5 @max-2xl/activity-log:hidden">
             {spans.map((span) => (
                 <span
-                    className="absolute top-0 h-px bg-separator"
+                    className="bg-separator absolute top-0 h-px"
                     key={`span-${span.left}`}
                     style={{ left: `${span.left}%`, width: `${span.width}%` }}
                 />
             ))}
             {breaks.map((gap) => (
                 <span
-                    className="absolute -top-1 h-2.5 w-1.5 -translate-x-1/2 -skew-x-[20deg] border-muted border-x"
+                    className="border-muted absolute -top-1 h-2.5 w-1.5 -translate-x-1/2 -skew-x-[20deg] border-x"
                     key={`break-${gap.at}`}
                     style={{ left: `${gap.at}%` }}
                     title={`${gap.label} idle`}
@@ -111,8 +112,8 @@ export function OverviewRuler({
                     />
                     <span
                         className={cn(
-                            'absolute top-1.5 whitespace-nowrap text-xs tabular-nums leading-none',
-                            tick.rank === 'now' ? 'font-medium text-accent' : 'text-muted',
+                            'absolute top-1.5 text-xs leading-none whitespace-nowrap tabular-nums',
+                            tick.rank === 'now' ? 'text-accent font-medium' : 'text-muted',
                             tick.rank === 'start' && 'text-foreground',
                             tick.rank === 'minor' && '-translate-x-1/2',
                             tick.rank === 'now' && '-translate-x-full'

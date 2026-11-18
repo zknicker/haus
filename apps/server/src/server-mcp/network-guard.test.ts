@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { isBlockedNetworkAddress } from './network-guard.ts';
 
 describe('blocked ranges', () => {
@@ -35,14 +36,12 @@ describe('blocked ranges', () => {
 });
 
 describe('public addresses', () => {
-    test.each([
-        '8.8.8.8',
-        '2606:4700:4700::1111',
-        '64:ff9b::8.8.8.8',
-        '2002:0808:0808::',
-    ])('allows %s', (address) => {
-        expect(isBlockedNetworkAddress(address)).toBe(false);
-    });
+    test.each(['8.8.8.8', '2606:4700:4700::1111', '64:ff9b::8.8.8.8', '2002:0808:0808::'])(
+        'allows %s',
+        (address) => {
+            expect(isBlockedNetworkAddress(address)).toBe(false);
+        }
+    );
 });
 
 describe('unclassifiable input', () => {

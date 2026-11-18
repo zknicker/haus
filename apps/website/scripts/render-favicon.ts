@@ -31,11 +31,13 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { chromium } from '@playwright/test';
 import { type ComponentType, createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { HausGhost } from '../src/components/haus-ghost.tsx';
+
 import type { HausMarkProps } from '../src/components/haus-ghost-mark.tsx';
+import { HausGhost } from '../src/components/haus-ghost.tsx';
 import { HausPumpkin } from '../src/components/haus-pumpkin.tsx';
 import { HausSantaGhost } from '../src/components/haus-santa-ghost.tsx';
 import { faviconDir } from '../src/hooks/shell/use-theme-app-icon.ts';

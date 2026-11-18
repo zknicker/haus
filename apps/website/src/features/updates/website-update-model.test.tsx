@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { UpdateTooltipContent } from './haus-status-tooltip-content.tsx';
 import { HausUpdateFooter } from './haus-update-footer.tsx';
 import { type HausUpdateInput, projectHausUpdate } from './haus-update-model.ts';

@@ -7,6 +7,7 @@ import {
     artifactPathKey,
     artifactPathParent,
 } from '@haus/api';
+
 import { type ArtifactFolderTone, artifactFolderTones } from './icons/artifact-folder-icon.tsx';
 
 /** One folder in a drive trail: its name and full path. */

@@ -1,4 +1,5 @@
 import { taskFollowReceiptSchema, taskSetFollowInputSchema } from '@haus/api';
+
 import { publishRealtime } from '../../realtime/topic.ts';
 import { setTaskFollow } from '../../tasks/task-set-follow.ts';
 import { taskProcedure } from './procedure.ts';

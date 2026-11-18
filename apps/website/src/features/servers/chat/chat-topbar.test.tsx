@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { ChatTopbarIdentity, ChatTopbarMeta } from './chat-topbar.tsx';
 
 test('omits live Agent availability copy from the DM topbar', () => {

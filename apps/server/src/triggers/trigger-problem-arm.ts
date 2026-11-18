@@ -1,4 +1,5 @@
 import type { Trigger } from '@haus/api';
+
 import { syncArmedGithubTrigger } from '../github/trigger-problem-sync.ts';
 import type { GithubTriggerProblemEntered } from '../github/trigger-problems.ts';
 import type { HausDatabase } from '../postgres/connection.ts';

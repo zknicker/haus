@@ -1,6 +1,7 @@
-import { Label } from '@heroui/react';
 import { ChatAttachment, ContextMenu } from '@heroui-pro/react';
+import { Label } from '@heroui/react';
 import { Download04Icon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 import { ArtifactFileIcon } from '../../artifacts/icons/artifact-file-icon.tsx';
 import {
@@ -75,7 +76,7 @@ export function AttachmentFileTile({
                         isDisabled={downloadDisabled}
                         textValue="Download"
                     >
-                        <Icon className="size-4 text-muted" icon={Download04Icon} />
+                        <Icon className="text-muted size-4" icon={Download04Icon} />
                         <Label>Download</Label>
                     </ContextMenu.Item>
                 </ContextMenu.Menu>

@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import {
     AggregationTemporality,
     InMemoryMetricExporter,
@@ -6,6 +7,8 @@ import {
 } from '@opentelemetry/sdk-metrics';
 import { InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { ManagedRuntime } from 'effect';
+
+import { makeProcessTelemetryRelay } from './telemetry-relay.ts';
 import {
     makeProcessTelemetryLayer,
     makeTelemetryLayer,
@@ -13,7 +16,6 @@ import {
     sanitizeTelemetryAttributes,
     tracePromise,
 } from './telemetry.ts';
-import { makeProcessTelemetryRelay } from './telemetry-relay.ts';
 
 test('exports parented spans across an explicit trace carrier', async () => {
     const exporter = new InMemorySpanExporter();

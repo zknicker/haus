@@ -1,5 +1,6 @@
 import { Button, Form, Modal } from '@heroui/react';
 import { Link01Icon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { JoinServerFields, useJoinServerForm } from './join-server-form.tsx';
 
@@ -24,7 +25,7 @@ export function JoinServerDialog({
                             <Icon className="size-5" icon={Link01Icon} />
                         </Modal.Icon>
                         <Modal.Heading>Join a Server</Modal.Heading>
-                        <p className="mt-1.5 text-muted text-sm leading-5">
+                        <p className="text-muted mt-1.5 text-sm leading-5">
                             Paste an invitation link or token.
                         </p>
                     </Modal.Header>

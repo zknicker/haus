@@ -1,6 +1,7 @@
 import { Sidebar } from '@heroui-pro/react';
 import { ArrowDown01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
 
@@ -34,7 +35,7 @@ export function ChatGroup({
                     <Icon
                         aria-hidden="true"
                         className={cn(
-                            'shrink-0 text-muted transition-transform',
+                            'text-muted shrink-0 transition-transform',
                             collapsed && '-rotate-90'
                         )}
                         icon={ArrowDown01Icon}
@@ -45,7 +46,7 @@ export function ChatGroup({
                 </button>
                 {/* Quiet chrome: the action only appears on hover or focus,
                     the way HeroUI's own menu actions behave. */}
-                <span className="opacity-0 transition-opacity focus-within:opacity-100 group-hover/section:opacity-100">
+                <span className="opacity-0 transition-opacity group-hover/section:opacity-100 focus-within:opacity-100">
                     {action}
                 </span>
             </div>

@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { shouldRetryFailure } from './failure-policy.ts';
 
 test('does not spend retries on failures that require operator action', () => {

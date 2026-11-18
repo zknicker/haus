@@ -1,6 +1,7 @@
 import type { ActiveCloudAgentWorkLocation } from '@haus/api';
 import { toast } from '@heroui/react';
 import { useNavigate } from 'react-router-dom';
+
 import { tabIntentState } from '../../hooks/desktop-tabs/tab-navigation.ts';
 import { currentOpenGesture } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { requestMessageReveal } from '../../hooks/servers/use-pending-message-reveal.ts';

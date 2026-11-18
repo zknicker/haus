@@ -19,7 +19,9 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { chromium } from '@playwright/test';
+
 import { GLASS, RIM_MASK_FLOOR, SIDE_FADE } from '../src/components/haus-ghost-palette.ts';
 import { BODY_PATH } from '../src/components/haus-ghost-paths.ts';
 import {

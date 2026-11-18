@@ -1,7 +1,7 @@
 import { createRouter } from '../trpc.ts';
 import { agentActiveActivityProcedure } from './active-activity.ts';
-import { agentActivityProcedure } from './activity.ts';
 import { agentActivityHistoryProcedure } from './activity-history.ts';
+import { agentActivityProcedure } from './activity.ts';
 import { agentChatsProcedure } from './chats.ts';
 import { configureAgentProcedure } from './configure.ts';
 import { agentConversationStyleProcedure } from './conversation-style.ts';

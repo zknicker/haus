@@ -1,4 +1,5 @@
 import type { TaskDetail } from '@haus/api';
+
 import { InlineCard } from '../../../components/ui/inline-card.tsx';
 import { formatDueOn, TaskAssigneeMark, TaskLabelChips } from '../task-facts.tsx';
 import { taskPriorityLabels } from '../task-presentation.ts';
@@ -11,7 +12,7 @@ export function TaskHistoryDetails({ task }: { task: TaskDetail }) {
     return (
         <InlineCard
             aria-label="Details"
-            className="border border-separator bg-nested-surface p-3"
+            className="border-separator bg-nested-surface border p-3"
             role="region"
             tone="plain"
         >

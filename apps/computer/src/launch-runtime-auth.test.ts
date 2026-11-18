@@ -2,13 +2,14 @@ import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { disposeServerLaunchHosts } from './agent-launch-host.ts';
 import { makeDaemonRuntime } from './daemon-runtime.ts';
 import type { HarnessTurnInput } from './harness/executor.ts';
 import { type AgentStartCommand, runAgentLaunch } from './launch.ts';
+import { readRuntimeIssues } from './runtime-issues.ts';
 import { fakeRuntimeDriver, finishedTurn } from './runtime/testing/fake-runtime-driver.ts';
 import type { TurnEvent } from './runtime/turn-event.ts';
-import { readRuntimeIssues } from './runtime-issues.ts';
 
 // The exact failure Codex settled Blippy's turn with, typed beside the finished turn.
 const codexAuthFailure: TurnEvent = {

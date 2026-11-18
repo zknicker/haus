@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { MessageCause } from '@haus/api';
+
 import {
     automationStatusChip,
     messageCauseArchivedNote,

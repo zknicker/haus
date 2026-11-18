@@ -1,6 +1,8 @@
 import { expect, test } from 'bun:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createMemoryRouter, Outlet, RouterProvider } from 'react-router-dom';
+
 import { ServerErrorPage } from './server-error-page.tsx';
 
 test('a page failure keeps the Server shell and hides the error behind technical details', async () => {

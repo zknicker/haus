@@ -1,6 +1,7 @@
 import { Button } from '@heroui/react';
 import type { QueryClient } from '@tanstack/react-query';
 import * as React from 'react';
+
 import {
     isUpdateRequiredError,
     type UpdateRequiredMode,
@@ -73,9 +74,9 @@ function useProtocolMismatch(queryClient: QueryClient): boolean {
 
 function UpdateRequiredScreen({ mode }: { mode: UpdateRequiredMode }) {
     return (
-        <div className="flex min-h-screen items-center justify-center bg-background p-6">
+        <div className="bg-background flex min-h-screen items-center justify-center p-6">
             <div className="max-w-md space-y-4 text-center">
-                <h1 className="font-semibold text-foreground text-lg">Update required</h1>
+                <h1 className="text-foreground text-lg font-semibold">Update required</h1>
                 {mode === 'reload' ? <ReloadBody /> : <DesktopUpdateBody />}
             </div>
         </div>

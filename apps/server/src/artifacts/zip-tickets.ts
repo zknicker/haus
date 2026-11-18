@@ -1,5 +1,7 @@
 import { randomBytes } from 'node:crypto';
+
 import { type ArtifactZipInput, artifactZipLinkSeconds } from '@haus/api';
+
 import type { ArtifactActor } from './access.ts';
 
 /** What a zip link downloads, and for whom: access is checked again when it is opened. */

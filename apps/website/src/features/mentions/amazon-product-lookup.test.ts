@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { type AmazonProductQueryState, amazonProductLookupState } from './amazon-product-lookup.ts';
 
 const identity = { asin: 'B07XN9T11R', marketplaceId: 'ATVPDKIKX0DER' } as const;

@@ -1,4 +1,5 @@
 import { type ArtifactMetadata, artifactPublishResultSchema } from '@haus/api';
+
 import { getHausServerOrigin } from '../../lib/haus-server.tsx';
 
 const contentTypePattern = /^[\w!#$&^_.+-]+\/[\w!#$&^_.+-]+$/u;

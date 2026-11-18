@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { performHausUpdateAction } from './haus-update-action.ts';
 
 test('a ready App restarts at once from the footer and never starts a run', () => {

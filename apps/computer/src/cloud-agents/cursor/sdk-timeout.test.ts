@@ -1,5 +1,7 @@
 import { expect, spyOn, test } from 'bun:test';
+
 import { Agent } from '@cursor/sdk';
+
 import { streamCursorRun } from './sdk-stream.ts';
 import { createCursorSdkTransport } from './sdk-transport.ts';
 

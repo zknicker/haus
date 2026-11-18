@@ -1,8 +1,10 @@
 import { expect, test } from 'bun:test';
+
 import { Dropdown } from '@heroui/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpBatchLink } from '@trpc/client';
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { hausTrpc, type ServerDetail } from '../../../lib/haus-server.tsx';
 import { testAgent } from '../agent-fixtures.ts';
 import { AgentActions, AgentActionsSections } from './agent-actions-menu.tsx';

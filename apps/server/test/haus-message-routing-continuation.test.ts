@@ -1,4 +1,5 @@
 import { beforeAll, expect, test } from 'bun:test';
+
 import type { MessageRouter, RoutingDecision, RoutingState } from '../src/message-routing/jev.ts';
 import type { MentionScopeDecision } from '../src/message-routing/mention-scope.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';

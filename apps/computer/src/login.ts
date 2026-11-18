@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { chmod, mkdir, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+
 import { installEnterToOpenUrl, openUrlInBrowser } from './browser-handoff.ts';
 import { stdoutRenderer } from './cli/render.ts';
 import { normalizeHttpOrigin } from './haus-origin.ts';

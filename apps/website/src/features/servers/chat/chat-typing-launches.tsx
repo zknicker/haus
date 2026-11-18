@@ -1,12 +1,13 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import * as React from 'react';
-import type { ChatTypingFace } from './chat-typing-launch.ts';
+
 import {
     type ChatTypingLaunch,
     type ChatTypingLaunchQueue,
     createChatTypingLaunchQueue,
     isStaleChatTypingLaunch,
 } from './chat-typing-launch-queue.ts';
+import type { ChatTypingFace } from './chat-typing-launch.ts';
 
 export interface ChatTypingLauncher {
     dotsRef: React.RefObject<HTMLSpanElement | null>;

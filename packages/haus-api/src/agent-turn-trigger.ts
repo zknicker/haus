@@ -1,7 +1,8 @@
 import * as z from 'zod';
+
 import { idSchema } from './chat-contract-primitives.ts';
-import { taskTitleSchema } from './task.ts';
 import { taskKeySchema } from './task-key.ts';
+import { taskTitleSchema } from './task.ts';
 
 /** How much of a waking message a trigger quotes: enough for any one-line title. */
 export const AGENT_TURN_TRIGGER_PREVIEW_MAX_LENGTH = 1000;

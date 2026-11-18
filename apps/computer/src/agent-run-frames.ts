@@ -1,7 +1,8 @@
 import type { AgentThoughtContent, AgentTurnActivitySummary } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
-import type { ComputerAgentActivityUpdate } from './agent-activity.ts';
+
 import { AgentActivityRun } from './agent-activity-run.ts';
+import type { ComputerAgentActivityUpdate } from './agent-activity.ts';
 import { createAgentThoughtNarrator } from './harness/thought-narrator.ts';
 
 /** One run's presentation: semantic activity and the thought narrator, sharing one frame sender. */

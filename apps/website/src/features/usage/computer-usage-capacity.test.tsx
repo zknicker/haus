@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, test } from 'vitest';
+
 import { ComputerUsageCapacityView } from './computer-usage-capacity.tsx';
 import { computerWith, usageFixture as usage } from './usage-fixtures.ts';
 

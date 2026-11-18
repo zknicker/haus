@@ -1,4 +1,5 @@
 import type { ChatMessage } from '@haus/api';
+
 import type { TranscriptEntry } from './chat-transcript-model.ts';
 
 export function getTranscriptEntrySequences(

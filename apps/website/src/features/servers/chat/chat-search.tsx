@@ -1,8 +1,9 @@
 import type { Chat, ChatSearchResult } from '@haus/api';
-import { Button, Chip, SearchField } from '@heroui/react';
 import { EmptyState, ItemCard, PressableFeedback } from '@heroui-pro/react';
+import { Button, Chip, SearchField } from '@heroui/react';
 import { Search01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
@@ -159,7 +160,7 @@ function SearchResults({
 
     return (
         <>
-            <p className="mb-3 font-medium text-muted text-xs tabular-nums">
+            <p className="text-muted mb-3 text-xs font-medium tabular-nums">
                 {matches.length === 1 ? '1 result' : `${matches.length} results`}
             </p>
             <ul className="flex flex-col gap-2">
@@ -199,17 +200,17 @@ function SearchResultRow({
     // wrapping highlighted snippet is custom content inside ItemCard.Content.
     return (
         <ItemCard<'button'>
-            className="relative w-full cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            className="focus-visible:ring-focus relative w-full cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2"
             render={(props) => <button onClick={onOpen} type="button" {...props} {...opensPlace} />}
             variant="default"
         >
             <PressableFeedback.Highlight />
             <ItemCard.Content>
                 <span className="flex min-w-0 items-center gap-2">
-                    {label ? <span className="shrink-0 text-muted text-sm">{label}</span> : null}
+                    {label ? <span className="text-muted shrink-0 text-sm">{label}</span> : null}
                     <EntityAvatar name={author.name} size={18} src={author.avatarUrl} />
-                    <span className="min-w-0 truncate font-medium text-sm">{author.name}</span>
-                    <span className="shrink-0 text-muted text-xs">
+                    <span className="min-w-0 truncate text-sm font-medium">{author.name}</span>
+                    <span className="text-muted shrink-0 text-xs">
                         {formatRelativeTime(message.createdAt)}
                     </span>
                     {message.chatArchivedAt ? (
@@ -218,7 +219,7 @@ function SearchResultRow({
                         </Chip>
                     ) : null}
                 </span>
-                <span className="mt-1 block text-base text-foreground/90 leading-6">
+                <span className="text-foreground/90 mt-1 block text-base leading-6">
                     {renderSnippet(message.content, query)}
                 </span>
             </ItemCard.Content>

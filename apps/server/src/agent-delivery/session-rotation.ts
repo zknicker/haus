@@ -1,5 +1,6 @@
 import type { AgentSessionRotation, AgentSessionRotationReason } from '@haus/api';
 import { and, desc, eq, lt } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentSessionRotationsTable, agentsTable } from '../postgres/schema.ts';
 

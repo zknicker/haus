@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { readHausReleaseDiscovery } from './haus-release-route.ts';
 
 const snapshot = {

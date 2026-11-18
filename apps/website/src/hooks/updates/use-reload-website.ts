@@ -1,5 +1,6 @@
 import { toast } from '@heroui/react';
 import { useQueryClient } from '@tanstack/react-query';
+
 import { hasChatDrafts } from '../../features/servers/chat/chat-draft-store.ts';
 import { hasPaneEditorDrafts } from '../pane/pane-editor-drafts.ts';
 

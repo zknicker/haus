@@ -121,7 +121,7 @@ function historyRow(entry: BrowserHistoryEntry, needle: string): BrowserAddressS
 }
 
 function wordStart(haystack: string, needle: string) {
-    for (let index = haystack.indexOf(needle); index !== -1; ) {
+    for (let index = haystack.indexOf(needle); index !== -1;) {
         if (index === 0 || !/[\p{L}\p{N}]/u.test(haystack[index - 1] ?? '')) {
             return index;
         }

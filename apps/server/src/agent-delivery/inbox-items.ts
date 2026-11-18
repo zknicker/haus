@@ -6,6 +6,7 @@ import type {
     HausAgentMessage,
 } from '@haus/api';
 import { and, eq, inArray } from 'drizzle-orm';
+
 import {
     messageSelection,
     targetForChat as targetForAgentChat,

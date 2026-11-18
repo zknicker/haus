@@ -1,6 +1,7 @@
 import { EmptyState } from '@heroui-pro/react';
 import { File01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { bandHeightClassName } from '../shell/section-header.tsx';
 import { ArtifactPanelChrome } from './chat-artifact-panel-chrome.tsx';
@@ -65,7 +66,7 @@ function ArtifactPanelBody({
             style={width ? { width } : undefined}
         >
             <header
-                className={`relative z-40 flex ${bandHeightClassName} shrink-0 items-center bg-background`}
+                className={`relative z-40 flex ${bandHeightClassName} bg-background shrink-0 items-center`}
                 data-window-drag-region=""
             >
                 <ArtifactPanelChrome

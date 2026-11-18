@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server';
+
 import {
     AlreadyServerMemberError,
     InvitationAuthorityError,

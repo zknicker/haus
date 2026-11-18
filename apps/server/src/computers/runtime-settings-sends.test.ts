@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { AgentCommand, ServerRuntimeSettingsCommand } from '@haus/api';
+
 import { RuntimeSettingsSends } from './runtime-settings-sends.ts';
 
 const on: ServerRuntimeSettingsCommand = { idleCompaction: true, type: 'server-runtime-settings' };

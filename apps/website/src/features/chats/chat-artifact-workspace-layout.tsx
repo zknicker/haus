@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+
 import type { WorkspaceArtifact } from './chat-artifact-workspace-file.tsx';
 import {
     WorkspaceArtifactContent,
@@ -64,7 +65,7 @@ export function WorkspaceBrowserFrame({
         previewPane
     );
     return (
-        <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
+        <div className="bg-background flex h-full min-h-0 flex-col overflow-hidden">
             {toolbarOverPreview ? null : pageToolbar}
             <div
                 className="grid min-h-0 flex-1 overflow-hidden"

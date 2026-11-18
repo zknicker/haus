@@ -1,5 +1,6 @@
 import type * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { useOptionalDesktopTabs } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import { opensPlaceAttribute } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { artifactPath } from '../artifacts/artifact-format.ts';

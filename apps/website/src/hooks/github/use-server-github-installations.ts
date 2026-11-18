@@ -1,5 +1,6 @@
 import type { GithubInstallation, McpConnection } from '@haus/api';
 import { useQueries } from '@tanstack/react-query';
+
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 import { useConnections } from '../servers/use-connections.ts';

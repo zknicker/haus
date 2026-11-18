@@ -1,7 +1,9 @@
 import { afterAll, expect, test } from 'bun:test';
+
 import type { AgentCommand, CloudAgentCapabilityResult } from '@haus/api';
 import { makeTestRuntime } from '@haus/effect';
 import { TestClock } from 'effect';
+
 import { CloudAgentCapabilityReplyOffice } from './cloud-agent-capability-reply-office.ts';
 
 const computerId = 'cmp_1234567890123456';

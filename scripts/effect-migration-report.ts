@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+
 import {
     analyzeSource,
     type MigrationName,

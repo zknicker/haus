@@ -1,5 +1,7 @@
 import { beforeEach, expect, test } from 'bun:test';
+
 import type { MessageCreatedEvent } from '@haus/api';
+
 import { createMessageNotifier, type NotificationApi } from './message-notifier.ts';
 
 interface Shown {

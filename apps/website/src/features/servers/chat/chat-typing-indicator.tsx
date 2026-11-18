@@ -1,13 +1,13 @@
 import { ChatLoader } from '@heroui-pro/react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import * as React from 'react';
+
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { useAgentActivityListener } from '../../../hooks/agents/use-current-agent-activity.tsx';
 import { useTabPresence } from '../../../hooks/desktop-tabs/tab-presence.ts';
 import { useAgentAppearances } from '../../../hooks/members/use-agents.ts';
 import { useChatEngagement } from '../../../hooks/servers/use-chat-engagement.ts';
 import { springs } from '../../../lib/springs.ts';
-import { type ChatTypist, formatChatTypingLabel, resolveChatTypists } from './chat-typing.ts';
 import { withHeldEngagements } from './chat-typing-hold.ts';
 import {
     admitChatTypingThinking,
@@ -22,8 +22,9 @@ import {
     ChatTypingLaunches,
     useChatTypingLauncher,
 } from './chat-typing-launches.tsx';
-import { type ChatTypingThoughts, shownChatTypingThought } from './chat-typing-thought.ts';
 import { ChatTypingThoughtBubble, useChatTypingThought } from './chat-typing-thought-bubble.tsx';
+import { type ChatTypingThoughts, shownChatTypingThought } from './chat-typing-thought.ts';
+import { type ChatTypist, formatChatTypingLabel, resolveChatTypists } from './chat-typing.ts';
 import { useChatTypingEnds } from './use-chat-typing-ends.ts';
 import { useChatTypingThoughtRecall } from './use-chat-typing-thought-recall.ts';
 
@@ -106,7 +107,7 @@ export function ChatTypingStrip({
     return (
         <div
             aria-live="polite"
-            className="pointer-events-none relative flex h-8 shrink-0 items-center pr-4 pb-2 pl-11 text-muted text-sm"
+            className="text-muted pointer-events-none relative flex h-8 shrink-0 items-center pr-4 pb-2 pl-11 text-sm"
             data-slot="chat-typing"
             ref={stripRef}
         >

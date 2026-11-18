@@ -1,5 +1,6 @@
 import { Card } from '@heroui/react';
 import { GridListItem } from 'react-aria-components';
+
 import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useArtifactActionsContext } from './artifact-actions-context.ts';
 import { ArtifactInlineRename } from './artifact-inline-rename.tsx';

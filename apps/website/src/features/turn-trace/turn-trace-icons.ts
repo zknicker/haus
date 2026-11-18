@@ -1,4 +1,3 @@
-import type { IconSvgElement } from '@hugeicons/react';
 import {
     Alert02Icon,
     ArrowShrinkIcon,
@@ -18,6 +17,8 @@ import {
     Video01Icon,
     Wrench01Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
+import type { IconSvgElement } from '@hugeicons/react';
+
 import { type TraceKind, traceToolKind } from './turn-trace-kind.ts';
 import type { TurnTraceStatus, TurnTraceToolKind } from './turn-trace-tool-model.ts';
 

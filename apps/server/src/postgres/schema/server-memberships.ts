@@ -9,6 +9,7 @@ import {
     unique,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
+
 import { serversTable } from './servers.ts';
 import { usersTable } from './users.ts';
 

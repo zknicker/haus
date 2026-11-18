@@ -1,5 +1,6 @@
 import type { ChannelCreateInput, Chat } from '@haus/api';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
+
 import { openAgentChatRead } from '../agent-reads/agent-chat-reads.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';

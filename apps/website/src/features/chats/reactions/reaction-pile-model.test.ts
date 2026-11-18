@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+
 import type { ChatMessageReaction } from '@haus/api';
+
 import { buildReactionPile, pileWidths, stickerTilt } from './reaction-pile-model.ts';
 import { scheduleStamps } from './use-reaction-stamps.ts';
 

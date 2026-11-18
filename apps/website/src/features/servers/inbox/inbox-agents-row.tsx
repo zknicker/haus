@@ -1,6 +1,7 @@
-import { Chip, Meter } from '@heroui/react';
 import { ItemCard } from '@heroui-pro/react';
+import { Chip, Meter } from '@heroui/react';
 import { ArrowUp02Icon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 import { Sparkline } from '../../../components/ui/sparkline.tsx';
 import { cn } from '../../../lib/utils.ts';
@@ -54,7 +55,7 @@ export function InboxAgentsRow({
                 <span className="flex min-w-0 items-center gap-2">
                     <ItemCard.Title className="min-w-0 flex-1">{name}</ItemCard.Title>
                     {activity.spike === null ? null : <AgentSpikeChip spike={activity.spike} />}
-                    <span className="shrink-0 font-medium text-foreground text-sm tabular-nums">
+                    <span className="text-foreground shrink-0 text-sm font-medium tabular-nums">
                         {formatTokens(activity.totalTokens)}
                     </span>
                 </span>
@@ -79,7 +80,7 @@ export function InboxAgentsRow({
                     />
                 </span>
                 {isLive ? (
-                    <span className="truncate text-accent text-xs">{activity.activityLabel}</span>
+                    <span className="text-accent truncate text-xs">{activity.activityLabel}</span>
                 ) : null}
             </ItemCard.Content>
         </InboxListRow>

@@ -13,6 +13,7 @@ import {
     unique,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
+
 import { agentsTable } from './agents.ts';
 import { bunJsonb } from './bun-jsonb.ts';
 import { chatsTable } from './chats.ts';
@@ -41,7 +42,10 @@ export const chatMessagesTable = pgTable(
          * Human user ids this Message's content `user://` mentions (ADR 0037),
          * written on every send path from `mentionedUserIds`.
          */
-        mentionedUserIds: text('mentioned_user_ids').array().notNull().default(sql`'{}'::text[]`),
+        mentionedUserIds: text('mentioned_user_ids')
+            .array()
+            .notNull()
+            .default(sql`'{}'::text[]`),
         nonce: text('nonce').notNull(),
         /** Direct parent of an inline reply; null for a top-level message. */
         replyToMessageId: text('reply_to_message_id'),

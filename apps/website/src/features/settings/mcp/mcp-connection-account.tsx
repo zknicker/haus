@@ -1,6 +1,7 @@
-import { Avatar, Button, Dropdown, Label, Separator, Spinner } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Avatar, Button, Dropdown, Label, Separator, Spinner } from '@heroui/react';
 import { Add01Icon, MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { SettingsGridCard } from '../layout/settings-card-grid.tsx';

@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { AgentCurrentActivity, AgentTurn } from '@haus/api';
+
 import {
     type ActivityLogEntry,
     readLogDays,
@@ -32,13 +34,11 @@ test('interleaves every Agent newest first and adds each working run', () => {
     ]);
 
     const entries = groups.flatMap(({ agent, turns }) =>
-        turns.map(
-            (turn): ActivityLogEntry => ({
-                agent,
-                row: { count: 1, latest: turn, since: turn.startedAt },
-                title: { kind: 'pending', place: null },
-            })
-        )
+        turns.map((turn): ActivityLogEntry => ({
+            agent,
+            row: { count: 1, latest: turn, since: turn.startedAt },
+            title: { kind: 'pending', place: null },
+        }))
     );
     const order = (agentIds: string[]) =>
         readLogDays(entries, { agentIds }).flatMap((day) =>

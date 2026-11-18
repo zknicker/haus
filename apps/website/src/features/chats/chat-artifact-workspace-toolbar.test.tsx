@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, test, vi } from 'vitest';
+
 import {
     WorkspacePageRailSearch,
     WorkspacePageToolbar,

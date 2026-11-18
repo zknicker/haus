@@ -1,5 +1,6 @@
 import { Drawer } from '@heroui/react';
 import type * as React from 'react';
+
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useAgentTurnActivityHistory } from '../../hooks/members/use-agent-activity-history.ts';
 import { useAgentTurn } from '../../hooks/members/use-agent-turns.ts';
@@ -69,7 +70,7 @@ function TurnDetailsDrawer({
                             <EntityAvatar name={agentName} size="lg" src={agentAvatarUrl} />
                             <div className="min-w-0">
                                 <Drawer.Heading>Turn details</Drawer.Heading>
-                                <p className="truncate text-muted text-sm">{agentName}</p>
+                                <p className="text-muted truncate text-sm">{agentName}</p>
                             </div>
                         </div>
                     </Drawer.Header>

@@ -6,6 +6,7 @@ import {
 } from '@haus/api';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { useArtifactSave } from '../../hooks/artifacts/use-artifact-save.ts';
 import { useArtifactZipDownload } from '../../hooks/artifacts/use-artifact-zip-download.ts';
 import { useServerContext } from '../servers/server-context.ts';
@@ -24,8 +25,8 @@ import { ArtifactDeleteDialog, type ArtifactDeleteTarget } from './artifact-dele
 import { artifactPath } from './artifact-format.ts';
 import { copyArtifactLink, copyArtifactPathText } from './artifact-link.ts';
 import { ArtifactMoveDialog, type ArtifactMoveTarget } from './artifact-move-dialog.tsx';
-import type { ArtifactRenameTarget } from './artifact-rename.ts';
 import { ArtifactRenameDialog } from './artifact-rename-dialog.tsx';
+import type { ArtifactRenameTarget } from './artifact-rename.ts';
 import { rememberLibraryItem } from './library-focus.ts';
 import { libraryHref } from './library-params.ts';
 import { useArtifactCreatorDirectory } from './use-artifact-creator-directory.ts';

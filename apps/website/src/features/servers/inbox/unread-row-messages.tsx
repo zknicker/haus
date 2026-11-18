@@ -1,5 +1,6 @@
 import type { ChatMessage } from '@haus/api';
 import * as React from 'react';
+
 import { buildTranscriptEntries } from '../../chats/chat-transcript-model.ts';
 import { TranscriptRenderProvider } from '../../chats/chat-transcript-render-context.tsx';
 import { TranscriptEntryView } from '../../chats/chat-transcript-turn.tsx';

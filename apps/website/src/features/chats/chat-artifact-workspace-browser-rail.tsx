@@ -37,7 +37,7 @@ export function WorkspaceBrowserRail({
     const { onQueryChange, query, status } = tree;
     return (
         <aside
-            className={`relative flex h-full min-h-0 flex-col overflow-x-hidden border-separator ${treeAtStart ? 'border-e' : 'border-s'}`}
+            className={`border-separator relative flex h-full min-h-0 flex-col overflow-x-hidden ${treeAtStart ? 'border-e' : 'border-s'}`}
         >
             {isPageRail ? null : (
                 <ResizablePaneRail
@@ -71,7 +71,7 @@ export function WorkspaceBrowserRail({
                         <span className="sr-only">Loading workspace files</span>
                     </div>
                 ) : status === 'error' ? (
-                    <p className="p-1 text-danger text-sm" role="alert">
+                    <p className="text-danger p-1 text-sm" role="alert">
                         Unable to browse this workspace.
                     </p>
                 ) : (

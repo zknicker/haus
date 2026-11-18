@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { publishAgentLifecycle, subscribeToAgentLifecycle } from './lifecycle.ts';
 
 test('publishes a validated semantic lifecycle event', async () => {

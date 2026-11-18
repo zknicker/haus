@@ -1,4 +1,5 @@
 import type { AgentCurrentActivity, AgentTurn } from '@haus/api';
+
 import type {
     ActivityLogAgent,
     ActivityLogAgentTurns,

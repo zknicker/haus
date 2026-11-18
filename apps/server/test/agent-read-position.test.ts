@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import { eq } from 'drizzle-orm';
+
 import { followAgentTask } from '../src/agent-api/attention.ts';
 import { readAgentHistory } from '../src/agent-api/message-history.ts';
 import { recordExactMessagesServed } from '../src/agent-delivery/cursors.ts';

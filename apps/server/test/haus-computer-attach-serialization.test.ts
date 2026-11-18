@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { hashComputerSecret } from '../src/computers/service.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';

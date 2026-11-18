@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { remindersSection, triggersSection } from './automation-instructions.ts';
 
 const fireToTask =

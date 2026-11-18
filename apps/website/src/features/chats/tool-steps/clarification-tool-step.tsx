@@ -1,4 +1,5 @@
 import { BubbleChatQuestionIcon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { hasErrorStatus } from '../../sessions/tools/tool-ui.ts';
 import { getToolTarget, InlineToolLabel, ToolTimelineStep } from './tool-summary.tsx';
 import type { ToolStepRendererProps } from './types.ts';
@@ -58,7 +59,7 @@ function ClarificationState({
                 ? `Answered: ${answer}`
                 : 'Answered.';
 
-    return <p className="pt-1 pb-1.5 text-muted text-sm">{label}</p>;
+    return <p className="text-muted pt-1 pb-1.5 text-sm">{label}</p>;
 }
 
 function getClarificationVerb({

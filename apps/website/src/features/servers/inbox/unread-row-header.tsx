@@ -1,5 +1,6 @@
 import { ItemCard } from '@heroui-pro/react';
 import { type ReactNode, type RefObject, useEffect, useRef } from 'react';
+
 import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
 
 export function UnreadRowHeader({
@@ -39,7 +40,7 @@ export function UnreadRowHeader({
                     name={
                         <button
                             aria-label={label}
-                            className="max-w-full cursor-(--cursor-interactive) truncate rounded-sm text-left font-medium text-foreground text-sm outline-none hover:underline focus-visible:ring-2 focus-visible:ring-focus"
+                            className="text-foreground focus-visible:ring-focus max-w-full cursor-(--cursor-interactive) truncate rounded-sm text-left text-sm font-medium outline-none hover:underline focus-visible:ring-2"
                             onClick={onOpen}
                             ref={nameRef}
                             type="button"
@@ -52,7 +53,7 @@ export function UnreadRowHeader({
                 />
             </ItemCard.Content>
             <ItemCard.Action>
-                <span className="flex items-center gap-2 text-muted text-xs">
+                <span className="text-muted flex items-center gap-2 text-xs">
                     {time}
                     {actions}
                     {count}

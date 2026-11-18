@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { releaseManifestUrl } from './update.ts';
 
 describe('Computer release selection', () => {

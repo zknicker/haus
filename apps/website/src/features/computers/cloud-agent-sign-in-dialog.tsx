@@ -1,12 +1,12 @@
-import { Button, Modal, Separator, Spinner } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Button, Modal, Separator, Spinner } from '@heroui/react';
 import { Key01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useState } from 'react';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { writeClipboardText } from '../../lib/clipboard.ts';
 import { openSystemBrowserLink } from '../../lib/open-external-link.ts';
 import { SettingsRowError } from '../settings/layout/settings-text.tsx';
-
 import type { CloudAgentSignInView } from './cloud-agent-sign-in-model.ts';
 
 export function CloudAgentSignInDialog({
@@ -68,7 +68,7 @@ export function CloudAgentSignInDialog({
                         <Modal.Heading>
                             {view.status === 'connected' ? 'Cursor connected' : 'Sign in to Cursor'}
                         </Modal.Heading>
-                        <p className="mt-1.5 text-muted text-sm leading-5">
+                        <p className="text-muted mt-1.5 text-sm leading-5">
                             {view.status === 'connected'
                                 ? `${computerName} can now start Cloud Agents.`
                                 : `Sign in with your browser to connect ${computerName}.`}

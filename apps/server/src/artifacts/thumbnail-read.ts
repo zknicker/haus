@@ -1,4 +1,5 @@
 import type { ArtifactThumbnailResult } from '@haus/api';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ArtifactActor } from './access.ts';
 import { getArtifact } from './read.ts';

@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { bulbSpacing } from './geometry.ts';
 import { measureRoofline } from './measure.ts';
 

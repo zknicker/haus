@@ -1,6 +1,7 @@
 import { normalizeReactionEmoji, reactionEmojiRule } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';

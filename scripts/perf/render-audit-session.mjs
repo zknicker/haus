@@ -2,6 +2,7 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
+
 import { captureAuth, launchChrome, repositoryRoot, sidebarRow } from './browser-session.mjs';
 import { installRenderCounter } from './render-audit-counter.mjs';
 

@@ -1,4 +1,5 @@
 import { and, eq, type SQL, sql } from 'drizzle-orm';
+
 import { listVerifiedEmails } from '../identity/human-identities.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';

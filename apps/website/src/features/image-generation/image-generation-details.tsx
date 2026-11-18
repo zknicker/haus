@@ -1,6 +1,7 @@
 import type { ImageGeneration } from '@haus/api';
 import { Button, Separator } from '@heroui/react';
 import * as React from 'react';
+
 import { formatElapsed, formatImageGenerationCost } from './image-generation-presentation.ts';
 
 type Fact = [label: string, value: string];
@@ -33,7 +34,7 @@ export function ImageGenerationDetails({ generation }: { generation: ReadyImageG
     return (
         <div className="flex min-w-0 flex-col gap-4" data-slot="image-generation-details">
             <div className="flex min-w-0 flex-col gap-0.5">
-                <p className="font-medium text-sm">{generation.modelDisplayName}</p>
+                <p className="text-sm font-medium">{generation.modelDisplayName}</p>
                 <p className="text-muted text-xs tabular-nums">
                     {result.width}×{result.height} · {result.resolution}
                 </p>
@@ -44,7 +45,7 @@ export function ImageGenerationDetails({ generation }: { generation: ReadyImageG
                 {facts.map(([label, value]) => (
                     <React.Fragment key={label}>
                         <dt className="text-muted">{label}</dt>
-                        <dd className="m-0 break-words text-right tabular-nums">{value}</dd>
+                        <dd className="m-0 text-right break-words tabular-nums">{value}</dd>
                     </React.Fragment>
                 ))}
             </dl>
@@ -60,12 +61,12 @@ function ExpandablePrompt({ prompt }: { prompt: string }) {
     const long = prompt.length > promptClampChars;
     return (
         <div className="flex min-w-0 flex-col items-start gap-1.5">
-            <p className="font-medium text-muted text-xs">Prompt</p>
+            <p className="text-muted text-xs font-medium">Prompt</p>
             <p
                 className={
                     expanded || !long
-                        ? 'whitespace-pre-wrap break-words text-sm leading-relaxed'
-                        : 'line-clamp-4 whitespace-pre-wrap break-words text-sm leading-relaxed'
+                        ? 'text-sm leading-relaxed break-words whitespace-pre-wrap'
+                        : 'line-clamp-4 text-sm leading-relaxed break-words whitespace-pre-wrap'
                 }
                 data-selectable-text=""
             >

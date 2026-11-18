@@ -2,6 +2,7 @@ import type { Agent, AgentSkillMetadata } from '@haus/api';
 import { AlertDialog, Button, Modal, TextArea } from '@heroui/react';
 import { SparklesIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useSkillDelete } from '../../../hooks/members/use-skill-delete.ts';
 import { useSkillFile } from '../../../hooks/members/use-skill-file.ts';
@@ -59,7 +60,7 @@ export function SkillDialog({
                             <Modal.Heading>
                                 {skill ? formatSkillName(skill.name) : 'Agent Skill'}
                             </Modal.Heading>
-                            <p className="mt-1.5 text-muted text-sm leading-5">
+                            <p className="text-muted mt-1.5 text-sm leading-5">
                                 Edit this Agent’s own copy of SKILL.md.
                             </p>
                         </Modal.Header>

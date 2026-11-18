@@ -2,6 +2,7 @@ import type { CloudAgentProvider } from '@haus/api';
 import { Tooltip } from '@heroui/react';
 import { CommandLineIcon } from '@hugeicons-pro/core-solid-rounded';
 import { CloudIcon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { ModelProviderLogo } from '../../components/badges/model-provider-logo.tsx';
 import { identityMarkRadius } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
@@ -29,7 +30,7 @@ export function CloudAgentKeycap({
     const key = (
         <span
             aria-hidden="true"
-            className="bg-(image:--automation-keycap-face) relative flex shrink-0 flex-col overflow-hidden shadow-(--automation-keycap-shadow)"
+            className="relative flex shrink-0 flex-col overflow-hidden bg-(image:--automation-keycap-face) shadow-(--automation-keycap-shadow)"
             data-cloud-agent-keycap={provider}
             style={{ borderRadius: identityMarkRadius(size), height: size, width: size }}
         >
@@ -69,14 +70,14 @@ export function CloudAgentKeycapFace({
     return (
         <>
             <span
-                className="grid w-full flex-1 place-items-center text-cloud-agent-mark"
+                className="text-cloud-agent-mark grid w-full flex-1 place-items-center"
                 style={{ paddingBottom: size * 0.09 }}
             >
                 <Icon icon={CommandLineIcon} size={glyph} style={{ height: glyph, width: glyph }} />
             </span>
             {size >= badgeMinKeySize ? (
                 <ModelProviderLogo
-                    className="absolute bg-background shadow-(--automation-keycap-shadow)"
+                    className="bg-background absolute shadow-(--automation-keycap-shadow)"
                     color={presentation.color}
                     fallbackIcon={CloudIcon}
                     iconClassName="size-full object-contain"

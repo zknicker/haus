@@ -1,5 +1,6 @@
 import { motion, type TargetAndTransition, type Transition, useReducedMotion } from 'motion/react';
 import type * as React from 'react';
+
 import { springs } from '../../lib/springs.ts';
 
 export interface HausStatusEntranceMotion {

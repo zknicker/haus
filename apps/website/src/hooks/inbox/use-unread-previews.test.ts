@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { ChatUnreadPreview } from '@haus/api';
+
 import { findUnreadPreview } from './use-unread-previews.ts';
 
 const preview = (chatId: string) =>

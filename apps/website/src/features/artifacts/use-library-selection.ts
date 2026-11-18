@@ -1,5 +1,6 @@
 import * as React from 'react';
 import type { Selection } from 'react-aria-components';
+
 import { lastLibraryItem } from './library-focus.ts';
 import type { LibrarySelection } from './library-selection.ts';
 

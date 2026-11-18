@@ -1,11 +1,12 @@
 import { artifactPathParent } from '@haus/api';
-import { Button } from '@heroui/react';
 import { EmptyState } from '@heroui-pro/react';
+import { Button } from '@heroui/react';
 import {
     FolderLibraryIcon,
     FolderOpenIcon,
     Upload04Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
+
 import { Icon } from '../../components/ui/icon.tsx';
 
 /**

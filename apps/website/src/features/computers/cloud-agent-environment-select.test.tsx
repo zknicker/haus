@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { cloudAgentCapabilityView } from './cloud-agent-capability-model.ts';
 import { CloudAgentCapabilityRow } from './cloud-agent-capability-row.tsx';
 

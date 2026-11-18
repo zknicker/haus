@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { agentCloudAgentReceiptSchema } from '@haus/api';
+
 import { CloudAgentComputerRemovedError } from '../src/cloud-agents/errors.ts';
 import { sendCloudAgentWork } from '../src/cloud-agents/send-cloud-agent-work.ts';
 import { connectHausDatabase } from '../src/postgres/connection.ts';

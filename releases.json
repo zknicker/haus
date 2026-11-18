@@ -1,2224 +1,2224 @@
 [
-  {
-    "version": "1.6.7",
-    "date": "2026-07-28",
-    "targets": {
-      "server": "1.6.7",
-      "app": "1.6.7",
-      "ios": null,
-      "computer": "1.1.1"
-    }
-  },
-  {
-    "version": "1.6.8",
-    "date": "2026-07-29",
-    "targets": {
-      "server": "1.6.8",
-      "app": "1.6.8",
-      "ios": null,
-      "computer": null
-    }
-  },
-  {
-    "version": "1.6.9",
-    "date": "2026-07-29",
-    "targets": {
-      "server": "1.6.9",
-      "app": "1.6.9",
-      "ios": null,
-      "computer": "1.1.2"
-    }
-  },
-  {
-    "version": "1.6.10",
-    "date": "2026-07-29",
-    "targets": {
-      "server": "1.6.10",
-      "app": "1.6.10",
-      "ios": null,
-      "computer": null
-    }
-  },
-  {
-    "version": "1.6.11",
-    "date": "2026-07-29",
-    "targets": {
-      "server": "1.6.11",
-      "app": "1.6.11",
-      "ios": null,
-      "computer": null
-    }
-  },
-  {
-    "version": "1.6.12",
-    "date": "2026-07-29",
-    "targets": {
-      "server": "1.6.12",
-      "app": "1.6.12",
-      "ios": null,
-      "computer": "1.1.4"
-    }
-  },
-  {
-    "version": "1.6.13",
-    "date": "2026-07-29",
-    "targets": {
-      "server": "1.6.13",
-      "app": null,
-      "ios": null,
-      "computer": null
-    }
-  },
-  {
-    "version": "1.6.14",
-    "date": "2026-07-29",
-    "targets": {
-      "server": "1.6.14",
-      "app": null,
-      "ios": null,
-      "computer": "1.1.5"
-    }
-  },
-  {
-    "version": "1.7.0",
-    "date": "2026-08-03",
-    "targets": {
-      "server": "1.7.0",
-      "app": null,
-      "ios": null,
-      "computer": "1.2.0"
-    }
-  },
-  {
-    "version": "1.8.0",
-    "date": "2026-08-08",
-    "targets": {
-      "server": "1.8.0",
-      "app": "1.8.0",
-      "ios": null,
-      "computer": "1.3.0"
-    }
-  },
-  {
-    "version": "1.8.1",
-    "date": "2026-08-08",
-    "targets": {
-      "server": "1.8.1",
-      "app": "1.8.1",
-      "ios": null,
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.2",
-    "date": "2026-08-08",
-    "targets": {
-      "server": "1.8.2",
-      "app": "1.8.2",
-      "ios": null,
-      "computer": "1.3.1"
-    }
-  },
-  {
-    "version": null,
-    "date": "2026-08-08",
-    "targets": {
-      "server": null,
-      "app": null,
-      "ios": null,
-      "computer": "1.3.3"
-    }
-  },
-  {
-    "version": null,
-    "date": "2026-08-09",
-    "targets": {
-      "server": null,
-      "app": null,
-      "ios": null,
-      "computer": "1.4.0"
-    }
-  },
-  {
-    "version": "1.8.5",
-    "date": "2026-08-09",
-    "targets": {
-      "server": "1.8.5",
-      "app": null,
-      "ios": null,
-      "computer": "1.4.0"
-    }
-  },
-  {
-    "version": "1.8.6",
-    "date": "2026-08-09",
-    "targets": {
-      "server": "1.8.6",
-      "app": null,
-      "ios": null,
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.7",
-    "date": "2026-08-10",
-    "targets": {
-      "server": "1.8.7",
-      "app": null,
-      "ios": null,
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.8",
-    "date": "2026-08-10",
-    "targets": {
-      "server": "1.8.8",
-      "app": null,
-      "ios": null,
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.9",
-    "date": "2026-08-10",
-    "targets": {
-      "server": "1.8.9",
-      "app": null,
-      "ios": null,
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.10",
-    "date": "2026-08-10",
-    "targets": {
-      "server": "1.8.10",
-      "app": null,
-      "ios": null,
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.11",
-    "date": "2026-08-10",
-    "targets": {
-      "server": "1.8.11",
-      "app": null,
-      "ios": null,
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.12",
-    "date": "2026-08-10",
-    "targets": {
-      "server": "1.8.12",
-      "app": null,
-      "ios": null,
-      "computer": "1.4.1"
-    }
-  },
-  {
-    "version": "1.8.13",
-    "date": "2026-08-10",
-    "targets": {
-      "server": "1.8.13",
-      "app": null,
-      "ios": null,
-      "computer": "1.4.2"
-    }
-  },
-  {
-    "version": "1.8.14",
-    "date": "2026-08-10",
-    "targets": {
-      "server": "1.8.14",
-      "app": null,
-      "ios": null,
-      "computer": "1.4.3"
-    }
-  },
-  {
-    "version": "1.8.15",
-    "date": "2026-08-10",
-    "targets": {
-      "server": "1.8.15",
-      "app": null,
-      "ios": null,
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.16",
-    "date": "2026-08-10",
-    "targets": {
-      "server": "1.8.16",
-      "app": null,
-      "ios": null,
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.17",
-    "date": "2026-08-11",
-    "targets": {
-      "server": "1.8.17",
-      "app": "1.8.17",
-      "ios": null,
-      "computer": "1.4.4"
-    }
-  },
-  {
-    "version": "1.8.18",
-    "date": "2026-08-18",
-    "targets": {
-      "server": "1.8.18",
-      "app": "1.8.18",
-      "ios": {
-        "version": "1.0.0",
-        "buildNumber": 1
-      },
-      "computer": "1.4.5"
-    }
-  },
-  {
-    "version": "1.8.19",
-    "date": "2026-08-19",
-    "targets": {
-      "server": "1.8.19",
-      "app": null,
-      "ios": {
-        "version": "1.0.1",
-        "buildNumber": 2
-      },
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.20",
-    "date": "2026-08-24",
-    "targets": {
-      "server": "1.8.20",
-      "app": "1.8.20",
-      "ios": {
-        "version": "1.0.2",
-        "buildNumber": 3
-      },
-      "computer": "1.4.6"
-    }
-  },
-  {
-    "version": "1.8.21",
-    "date": "2026-08-25",
-    "targets": {
-      "server": "1.8.21",
-      "app": "1.8.21",
-      "ios": null,
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.22",
-    "date": "2026-08-25",
-    "targets": {
-      "server": "1.8.22",
-      "app": "1.8.22",
-      "ios": {
-        "version": "1.0.3",
-        "buildNumber": 4
-      },
-      "computer": "1.4.7"
-    }
-  },
-  {
-    "version": "1.8.23",
-    "date": "2026-08-26",
-    "targets": {
-      "server": "1.8.23",
-      "app": null,
-      "ios": null,
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.24",
-    "date": "2026-08-26",
-    "targets": {
-      "server": "1.8.24",
-      "app": null,
-      "ios": {
-        "version": "1.0.4",
-        "buildNumber": 5
-      },
-      "computer": "1.4.8"
-    }
-  },
-  {
-    "version": "1.8.25",
-    "date": "2026-08-27",
-    "targets": {
-      "server": "1.8.25",
-      "app": null,
-      "ios": {
-        "version": "1.0.5",
-        "buildNumber": 6
-      },
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.26",
-    "date": "2026-08-27",
-    "targets": {
-      "server": "1.8.26",
-      "app": null,
-      "ios": {
-        "version": "1.0.5",
-        "buildNumber": 6
-      },
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.27",
-    "date": "2026-08-27",
-    "targets": {
-      "server": "1.8.27",
-      "app": null,
-      "ios": {
-        "version": "1.0.5",
-        "buildNumber": 6
-      },
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.28",
-    "date": "2026-08-27",
-    "targets": {
-      "server": "1.8.28",
-      "app": null,
-      "ios": {
-        "version": "1.0.5",
-        "buildNumber": 6
-      },
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.29",
-    "date": "2026-08-27",
-    "targets": {
-      "server": "1.8.29",
-      "app": null,
-      "ios": {
-        "version": "1.0.5",
-        "buildNumber": 6
-      },
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.30",
-    "date": "2026-08-27",
-    "targets": {
-      "server": "1.8.30",
-      "app": null,
-      "ios": {
-        "version": "1.0.5",
-        "buildNumber": 6
-      },
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.31",
-    "date": "2026-08-27",
-    "targets": {
-      "server": "1.8.31",
-      "app": null,
-      "ios": {
-        "version": "1.0.5",
-        "buildNumber": 6
-      },
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.32",
-    "date": "2026-08-27",
-    "targets": {
-      "server": "1.8.32",
-      "app": null,
-      "ios": {
-        "version": "1.0.5",
-        "buildNumber": 6
-      },
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.33",
-    "date": "2026-08-27",
-    "targets": {
-      "server": "1.8.33",
-      "app": null,
-      "ios": {
-        "version": "1.0.5",
-        "buildNumber": 6
-      },
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.34",
-    "date": "2026-08-27",
-    "targets": {
-      "server": "1.8.34",
-      "app": null,
-      "ios": {
-        "version": "1.0.5",
-        "buildNumber": 6
-      },
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.35",
-    "date": "2026-08-27",
-    "targets": {
-      "server": "1.8.35",
-      "app": null,
-      "ios": null,
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.36",
-    "date": "2026-08-28",
-    "targets": {
-      "server": "1.8.36",
-      "app": null,
-      "ios": null,
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.37",
-    "date": "2026-08-28",
-    "targets": {
-      "server": "1.8.37",
-      "app": null,
-      "ios": null,
-      "computer": null
-    }
-  },
-  {
-    "version": "1.8.38",
-    "date": "2026-08-28",
-    "targets": {
-      "server": "1.8.38",
-      "app": null,
-      "ios": null,
-      "computer": null
-    }
-  },
-  {
-    "version": "1.9.0",
-    "date": "2026-08-28",
-    "targets": {
-      "server": "1.9.0",
-      "app": null,
-      "ios": {
-        "version": "1.1.0",
-        "buildNumber": 7
-      },
-      "computer": "1.5.0",
-      "agent": "1.0.0"
-    }
-  },
-  {
-    "version": "1.9.1",
-    "date": "2026-08-29",
-    "targets": {
-      "server": "1.9.1",
-      "app": null,
-      "ios": {
-        "version": "1.1.1",
-        "buildNumber": 8
-      },
-      "computer": "1.5.1",
-      "agent": "1.0.1"
-    }
-  },
-  {
-    "version": "1.9.2",
-    "date": "2026-08-29",
-    "targets": {
-      "server": "1.9.2",
-      "app": null,
-      "ios": {
-        "version": "1.1.2",
-        "buildNumber": 9
-      },
-      "computer": "1.5.2",
-      "agent": "1.0.2"
-    }
-  },
-  {
-    "version": "1.10.0",
-    "date": "2026-08-30",
-    "targets": {
-      "server": "1.10.0",
-      "app": null,
-      "ios": {
-        "version": "1.2.0",
-        "buildNumber": 10
-      },
-      "computer": "1.6.0",
-      "agent": "1.1.0"
-    }
-  },
-  {
-    "version": "1.11.0",
-    "date": "2026-08-30",
-    "targets": {
-      "server": "1.11.0",
-      "app": null,
-      "ios": {
-        "version": "1.2.1",
-        "buildNumber": 11
-      },
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "1.11.1",
-    "date": "2026-08-30",
-    "targets": {
-      "server": null,
-      "app": null,
-      "ios": {
-        "version": "1.2.2",
-        "buildNumber": 12
-      },
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "1.11.2",
-    "date": "2026-08-31",
-    "targets": {
-      "server": "1.11.1",
-      "app": "1.8.23",
-      "ios": {
-        "version": "1.2.3",
-        "buildNumber": 13
-      },
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "1.11.3",
-    "date": "2026-08-31",
-    "targets": {
-      "server": "1.11.2",
-      "app": "1.8.24",
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "1.11.4",
-    "date": "2026-08-31",
-    "targets": {
-      "server": "1.11.3",
-      "app": "1.8.25",
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "1.11.5",
-    "date": "2026-08-31",
-    "targets": {
-      "server": "1.11.4",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "1.11.6",
-    "date": "2026-08-31",
-    "targets": {
-      "server": "1.11.5",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "1.11.7",
-    "date": "2026-08-31",
-    "targets": {
-      "server": "1.11.7",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "1.12.0",
-    "date": "2026-08-31",
-    "targets": {
-      "server": "1.11.8",
-      "app": "1.8.26",
-      "ios": {
-        "version": "1.3.0",
-        "buildNumber": 14
-      },
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "1.12.1",
-    "date": "2026-08-31",
-    "targets": {
-      "server": null,
-      "app": "1.8.27",
-      "ios": {
-        "version": "1.3.1",
-        "buildNumber": 15
-      },
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "1.12.2",
-    "date": "2026-08-31",
-    "targets": {
-      "server": null,
-      "app": "1.8.28",
-      "ios": {
-        "version": "1.3.2",
-        "buildNumber": 16
-      },
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "1.12.3",
-    "date": "2026-08-31",
-    "targets": {
-      "server": null,
-      "app": "1.8.29",
-      "ios": {
-        "version": "1.3.3",
-        "buildNumber": 17
-      },
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "1.12.4",
-    "date": "2026-08-31",
-    "targets": {
-      "server": null,
-      "app": "1.8.30",
-      "ios": {
-        "version": "1.3.4",
-        "buildNumber": 18
-      },
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "1.12.5",
-    "date": "2026-08-31",
-    "targets": {
-      "server": null,
-      "app": "1.8.31",
-      "ios": {
-        "version": "1.3.5",
-        "buildNumber": 19
-      },
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "1.12.6",
-    "date": "2026-08-31",
-    "targets": {
-      "server": null,
-      "app": "1.8.32",
-      "ios": {
-        "version": "1.3.6",
-        "buildNumber": 20
-      },
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "1.12.7",
-    "date": "2026-08-31",
-    "targets": {
-      "server": null,
-      "app": "1.8.33",
-      "ios": {
-        "version": "1.3.7",
-        "buildNumber": 21
-      },
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "1.12.8",
-    "date": "2026-09-01",
-    "targets": {
-      "server": "1.11.9",
-      "app": null,
-      "ios": null,
-      "computer": "1.6.1",
-      "agent": "1.1.1"
-    }
-  },
-  {
-    "version": "1.12.9",
-    "date": "2026-09-01",
-    "targets": {
-      "server": "1.11.10",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "1.13.0",
-    "date": "2026-09-03",
-    "targets": {
-      "server": "1.12.0",
-      "app": null,
-      "ios": {
-        "version": "1.4.0",
-        "buildNumber": 22
-      },
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "1.14.0",
-    "date": "2026-09-04",
-    "targets": {
-      "server": "1.13.0",
-      "app": null,
-      "ios": {
-        "version": "1.4.1",
-        "buildNumber": 23
-      },
-      "computer": "1.7.0",
-      "agent": "1.2.0"
-    }
-  },
-  {
-    "version": "1.14.1",
-    "date": "2026-09-04",
-    "targets": {
-      "server": "1.13.0",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "1.15.0",
-    "date": "2026-09-07",
-    "targets": {
-      "server": "1.14.0",
-      "app": null,
-      "ios": {
-        "version": "1.5.0",
-        "buildNumber": 24
-      },
-      "computer": "1.8.0",
-      "agent": "1.3.0"
-    }
-  },
-  {
-    "version": "1.15.1",
-    "date": "2026-09-07",
-    "targets": {
-      "server": "1.14.1",
-      "app": null,
-      "ios": {
-        "version": "1.5.1",
-        "buildNumber": 25
-      },
-      "computer": "1.8.1",
-      "agent": "1.3.1"
-    }
-  },
-  {
-    "version": "1.15.2",
-    "date": "2026-09-08",
-    "targets": {
-      "server": "1.14.2",
-      "app": null,
-      "ios": {
-        "version": "1.5.2",
-        "buildNumber": 26
-      },
-      "computer": "1.8.2",
-      "agent": "1.3.2"
-    }
-  },
-  {
-    "version": "1.16.0",
-    "date": "2026-09-10",
-    "targets": {
-      "server": "1.15.0",
-      "app": null,
-      "ios": {
-        "version": "1.6.0",
-        "buildNumber": 27
-      },
-      "computer": "1.9.0",
-      "agent": "1.4.0"
-    }
-  },
-  {
-    "version": "2.0.0",
-    "date": "2026-09-10",
-    "targets": {
-      "server": "1.16.0",
-      "app": "2.0.0",
-      "ios": {
+    {
+        "version": "1.6.7",
+        "date": "2026-07-28",
+        "targets": {
+            "server": "1.6.7",
+            "app": "1.6.7",
+            "ios": null,
+            "computer": "1.1.1"
+        }
+    },
+    {
+        "version": "1.6.8",
+        "date": "2026-07-29",
+        "targets": {
+            "server": "1.6.8",
+            "app": "1.6.8",
+            "ios": null,
+            "computer": null
+        }
+    },
+    {
+        "version": "1.6.9",
+        "date": "2026-07-29",
+        "targets": {
+            "server": "1.6.9",
+            "app": "1.6.9",
+            "ios": null,
+            "computer": "1.1.2"
+        }
+    },
+    {
+        "version": "1.6.10",
+        "date": "2026-07-29",
+        "targets": {
+            "server": "1.6.10",
+            "app": "1.6.10",
+            "ios": null,
+            "computer": null
+        }
+    },
+    {
+        "version": "1.6.11",
+        "date": "2026-07-29",
+        "targets": {
+            "server": "1.6.11",
+            "app": "1.6.11",
+            "ios": null,
+            "computer": null
+        }
+    },
+    {
+        "version": "1.6.12",
+        "date": "2026-07-29",
+        "targets": {
+            "server": "1.6.12",
+            "app": "1.6.12",
+            "ios": null,
+            "computer": "1.1.4"
+        }
+    },
+    {
+        "version": "1.6.13",
+        "date": "2026-07-29",
+        "targets": {
+            "server": "1.6.13",
+            "app": null,
+            "ios": null,
+            "computer": null
+        }
+    },
+    {
+        "version": "1.6.14",
+        "date": "2026-07-29",
+        "targets": {
+            "server": "1.6.14",
+            "app": null,
+            "ios": null,
+            "computer": "1.1.5"
+        }
+    },
+    {
+        "version": "1.7.0",
+        "date": "2026-08-03",
+        "targets": {
+            "server": "1.7.0",
+            "app": null,
+            "ios": null,
+            "computer": "1.2.0"
+        }
+    },
+    {
+        "version": "1.8.0",
+        "date": "2026-08-08",
+        "targets": {
+            "server": "1.8.0",
+            "app": "1.8.0",
+            "ios": null,
+            "computer": "1.3.0"
+        }
+    },
+    {
+        "version": "1.8.1",
+        "date": "2026-08-08",
+        "targets": {
+            "server": "1.8.1",
+            "app": "1.8.1",
+            "ios": null,
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.2",
+        "date": "2026-08-08",
+        "targets": {
+            "server": "1.8.2",
+            "app": "1.8.2",
+            "ios": null,
+            "computer": "1.3.1"
+        }
+    },
+    {
+        "version": null,
+        "date": "2026-08-08",
+        "targets": {
+            "server": null,
+            "app": null,
+            "ios": null,
+            "computer": "1.3.3"
+        }
+    },
+    {
+        "version": null,
+        "date": "2026-08-09",
+        "targets": {
+            "server": null,
+            "app": null,
+            "ios": null,
+            "computer": "1.4.0"
+        }
+    },
+    {
+        "version": "1.8.5",
+        "date": "2026-08-09",
+        "targets": {
+            "server": "1.8.5",
+            "app": null,
+            "ios": null,
+            "computer": "1.4.0"
+        }
+    },
+    {
+        "version": "1.8.6",
+        "date": "2026-08-09",
+        "targets": {
+            "server": "1.8.6",
+            "app": null,
+            "ios": null,
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.7",
+        "date": "2026-08-10",
+        "targets": {
+            "server": "1.8.7",
+            "app": null,
+            "ios": null,
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.8",
+        "date": "2026-08-10",
+        "targets": {
+            "server": "1.8.8",
+            "app": null,
+            "ios": null,
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.9",
+        "date": "2026-08-10",
+        "targets": {
+            "server": "1.8.9",
+            "app": null,
+            "ios": null,
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.10",
+        "date": "2026-08-10",
+        "targets": {
+            "server": "1.8.10",
+            "app": null,
+            "ios": null,
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.11",
+        "date": "2026-08-10",
+        "targets": {
+            "server": "1.8.11",
+            "app": null,
+            "ios": null,
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.12",
+        "date": "2026-08-10",
+        "targets": {
+            "server": "1.8.12",
+            "app": null,
+            "ios": null,
+            "computer": "1.4.1"
+        }
+    },
+    {
+        "version": "1.8.13",
+        "date": "2026-08-10",
+        "targets": {
+            "server": "1.8.13",
+            "app": null,
+            "ios": null,
+            "computer": "1.4.2"
+        }
+    },
+    {
+        "version": "1.8.14",
+        "date": "2026-08-10",
+        "targets": {
+            "server": "1.8.14",
+            "app": null,
+            "ios": null,
+            "computer": "1.4.3"
+        }
+    },
+    {
+        "version": "1.8.15",
+        "date": "2026-08-10",
+        "targets": {
+            "server": "1.8.15",
+            "app": null,
+            "ios": null,
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.16",
+        "date": "2026-08-10",
+        "targets": {
+            "server": "1.8.16",
+            "app": null,
+            "ios": null,
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.17",
+        "date": "2026-08-11",
+        "targets": {
+            "server": "1.8.17",
+            "app": "1.8.17",
+            "ios": null,
+            "computer": "1.4.4"
+        }
+    },
+    {
+        "version": "1.8.18",
+        "date": "2026-08-18",
+        "targets": {
+            "server": "1.8.18",
+            "app": "1.8.18",
+            "ios": {
+                "version": "1.0.0",
+                "buildNumber": 1
+            },
+            "computer": "1.4.5"
+        }
+    },
+    {
+        "version": "1.8.19",
+        "date": "2026-08-19",
+        "targets": {
+            "server": "1.8.19",
+            "app": null,
+            "ios": {
+                "version": "1.0.1",
+                "buildNumber": 2
+            },
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.20",
+        "date": "2026-08-24",
+        "targets": {
+            "server": "1.8.20",
+            "app": "1.8.20",
+            "ios": {
+                "version": "1.0.2",
+                "buildNumber": 3
+            },
+            "computer": "1.4.6"
+        }
+    },
+    {
+        "version": "1.8.21",
+        "date": "2026-08-25",
+        "targets": {
+            "server": "1.8.21",
+            "app": "1.8.21",
+            "ios": null,
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.22",
+        "date": "2026-08-25",
+        "targets": {
+            "server": "1.8.22",
+            "app": "1.8.22",
+            "ios": {
+                "version": "1.0.3",
+                "buildNumber": 4
+            },
+            "computer": "1.4.7"
+        }
+    },
+    {
+        "version": "1.8.23",
+        "date": "2026-08-26",
+        "targets": {
+            "server": "1.8.23",
+            "app": null,
+            "ios": null,
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.24",
+        "date": "2026-08-26",
+        "targets": {
+            "server": "1.8.24",
+            "app": null,
+            "ios": {
+                "version": "1.0.4",
+                "buildNumber": 5
+            },
+            "computer": "1.4.8"
+        }
+    },
+    {
+        "version": "1.8.25",
+        "date": "2026-08-27",
+        "targets": {
+            "server": "1.8.25",
+            "app": null,
+            "ios": {
+                "version": "1.0.5",
+                "buildNumber": 6
+            },
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.26",
+        "date": "2026-08-27",
+        "targets": {
+            "server": "1.8.26",
+            "app": null,
+            "ios": {
+                "version": "1.0.5",
+                "buildNumber": 6
+            },
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.27",
+        "date": "2026-08-27",
+        "targets": {
+            "server": "1.8.27",
+            "app": null,
+            "ios": {
+                "version": "1.0.5",
+                "buildNumber": 6
+            },
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.28",
+        "date": "2026-08-27",
+        "targets": {
+            "server": "1.8.28",
+            "app": null,
+            "ios": {
+                "version": "1.0.5",
+                "buildNumber": 6
+            },
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.29",
+        "date": "2026-08-27",
+        "targets": {
+            "server": "1.8.29",
+            "app": null,
+            "ios": {
+                "version": "1.0.5",
+                "buildNumber": 6
+            },
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.30",
+        "date": "2026-08-27",
+        "targets": {
+            "server": "1.8.30",
+            "app": null,
+            "ios": {
+                "version": "1.0.5",
+                "buildNumber": 6
+            },
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.31",
+        "date": "2026-08-27",
+        "targets": {
+            "server": "1.8.31",
+            "app": null,
+            "ios": {
+                "version": "1.0.5",
+                "buildNumber": 6
+            },
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.32",
+        "date": "2026-08-27",
+        "targets": {
+            "server": "1.8.32",
+            "app": null,
+            "ios": {
+                "version": "1.0.5",
+                "buildNumber": 6
+            },
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.33",
+        "date": "2026-08-27",
+        "targets": {
+            "server": "1.8.33",
+            "app": null,
+            "ios": {
+                "version": "1.0.5",
+                "buildNumber": 6
+            },
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.34",
+        "date": "2026-08-27",
+        "targets": {
+            "server": "1.8.34",
+            "app": null,
+            "ios": {
+                "version": "1.0.5",
+                "buildNumber": 6
+            },
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.35",
+        "date": "2026-08-27",
+        "targets": {
+            "server": "1.8.35",
+            "app": null,
+            "ios": null,
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.36",
+        "date": "2026-08-28",
+        "targets": {
+            "server": "1.8.36",
+            "app": null,
+            "ios": null,
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.37",
+        "date": "2026-08-28",
+        "targets": {
+            "server": "1.8.37",
+            "app": null,
+            "ios": null,
+            "computer": null
+        }
+    },
+    {
+        "version": "1.8.38",
+        "date": "2026-08-28",
+        "targets": {
+            "server": "1.8.38",
+            "app": null,
+            "ios": null,
+            "computer": null
+        }
+    },
+    {
+        "version": "1.9.0",
+        "date": "2026-08-28",
+        "targets": {
+            "server": "1.9.0",
+            "app": null,
+            "ios": {
+                "version": "1.1.0",
+                "buildNumber": 7
+            },
+            "computer": "1.5.0",
+            "agent": "1.0.0"
+        }
+    },
+    {
+        "version": "1.9.1",
+        "date": "2026-08-29",
+        "targets": {
+            "server": "1.9.1",
+            "app": null,
+            "ios": {
+                "version": "1.1.1",
+                "buildNumber": 8
+            },
+            "computer": "1.5.1",
+            "agent": "1.0.1"
+        }
+    },
+    {
+        "version": "1.9.2",
+        "date": "2026-08-29",
+        "targets": {
+            "server": "1.9.2",
+            "app": null,
+            "ios": {
+                "version": "1.1.2",
+                "buildNumber": 9
+            },
+            "computer": "1.5.2",
+            "agent": "1.0.2"
+        }
+    },
+    {
+        "version": "1.10.0",
+        "date": "2026-08-30",
+        "targets": {
+            "server": "1.10.0",
+            "app": null,
+            "ios": {
+                "version": "1.2.0",
+                "buildNumber": 10
+            },
+            "computer": "1.6.0",
+            "agent": "1.1.0"
+        }
+    },
+    {
+        "version": "1.11.0",
+        "date": "2026-08-30",
+        "targets": {
+            "server": "1.11.0",
+            "app": null,
+            "ios": {
+                "version": "1.2.1",
+                "buildNumber": 11
+            },
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "1.11.1",
+        "date": "2026-08-30",
+        "targets": {
+            "server": null,
+            "app": null,
+            "ios": {
+                "version": "1.2.2",
+                "buildNumber": 12
+            },
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "1.11.2",
+        "date": "2026-08-31",
+        "targets": {
+            "server": "1.11.1",
+            "app": "1.8.23",
+            "ios": {
+                "version": "1.2.3",
+                "buildNumber": 13
+            },
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "1.11.3",
+        "date": "2026-08-31",
+        "targets": {
+            "server": "1.11.2",
+            "app": "1.8.24",
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "1.11.4",
+        "date": "2026-08-31",
+        "targets": {
+            "server": "1.11.3",
+            "app": "1.8.25",
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "1.11.5",
+        "date": "2026-08-31",
+        "targets": {
+            "server": "1.11.4",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "1.11.6",
+        "date": "2026-08-31",
+        "targets": {
+            "server": "1.11.5",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "1.11.7",
+        "date": "2026-08-31",
+        "targets": {
+            "server": "1.11.7",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "1.12.0",
+        "date": "2026-08-31",
+        "targets": {
+            "server": "1.11.8",
+            "app": "1.8.26",
+            "ios": {
+                "version": "1.3.0",
+                "buildNumber": 14
+            },
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "1.12.1",
+        "date": "2026-08-31",
+        "targets": {
+            "server": null,
+            "app": "1.8.27",
+            "ios": {
+                "version": "1.3.1",
+                "buildNumber": 15
+            },
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "1.12.2",
+        "date": "2026-08-31",
+        "targets": {
+            "server": null,
+            "app": "1.8.28",
+            "ios": {
+                "version": "1.3.2",
+                "buildNumber": 16
+            },
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "1.12.3",
+        "date": "2026-08-31",
+        "targets": {
+            "server": null,
+            "app": "1.8.29",
+            "ios": {
+                "version": "1.3.3",
+                "buildNumber": 17
+            },
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "1.12.4",
+        "date": "2026-08-31",
+        "targets": {
+            "server": null,
+            "app": "1.8.30",
+            "ios": {
+                "version": "1.3.4",
+                "buildNumber": 18
+            },
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "1.12.5",
+        "date": "2026-08-31",
+        "targets": {
+            "server": null,
+            "app": "1.8.31",
+            "ios": {
+                "version": "1.3.5",
+                "buildNumber": 19
+            },
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "1.12.6",
+        "date": "2026-08-31",
+        "targets": {
+            "server": null,
+            "app": "1.8.32",
+            "ios": {
+                "version": "1.3.6",
+                "buildNumber": 20
+            },
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "1.12.7",
+        "date": "2026-08-31",
+        "targets": {
+            "server": null,
+            "app": "1.8.33",
+            "ios": {
+                "version": "1.3.7",
+                "buildNumber": 21
+            },
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "1.12.8",
+        "date": "2026-09-01",
+        "targets": {
+            "server": "1.11.9",
+            "app": null,
+            "ios": null,
+            "computer": "1.6.1",
+            "agent": "1.1.1"
+        }
+    },
+    {
+        "version": "1.12.9",
+        "date": "2026-09-01",
+        "targets": {
+            "server": "1.11.10",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "1.13.0",
+        "date": "2026-09-03",
+        "targets": {
+            "server": "1.12.0",
+            "app": null,
+            "ios": {
+                "version": "1.4.0",
+                "buildNumber": 22
+            },
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "1.14.0",
+        "date": "2026-09-04",
+        "targets": {
+            "server": "1.13.0",
+            "app": null,
+            "ios": {
+                "version": "1.4.1",
+                "buildNumber": 23
+            },
+            "computer": "1.7.0",
+            "agent": "1.2.0"
+        }
+    },
+    {
+        "version": "1.14.1",
+        "date": "2026-09-04",
+        "targets": {
+            "server": "1.13.0",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "1.15.0",
+        "date": "2026-09-07",
+        "targets": {
+            "server": "1.14.0",
+            "app": null,
+            "ios": {
+                "version": "1.5.0",
+                "buildNumber": 24
+            },
+            "computer": "1.8.0",
+            "agent": "1.3.0"
+        }
+    },
+    {
+        "version": "1.15.1",
+        "date": "2026-09-07",
+        "targets": {
+            "server": "1.14.1",
+            "app": null,
+            "ios": {
+                "version": "1.5.1",
+                "buildNumber": 25
+            },
+            "computer": "1.8.1",
+            "agent": "1.3.1"
+        }
+    },
+    {
+        "version": "1.15.2",
+        "date": "2026-09-08",
+        "targets": {
+            "server": "1.14.2",
+            "app": null,
+            "ios": {
+                "version": "1.5.2",
+                "buildNumber": 26
+            },
+            "computer": "1.8.2",
+            "agent": "1.3.2"
+        }
+    },
+    {
+        "version": "1.16.0",
+        "date": "2026-09-10",
+        "targets": {
+            "server": "1.15.0",
+            "app": null,
+            "ios": {
+                "version": "1.6.0",
+                "buildNumber": 27
+            },
+            "computer": "1.9.0",
+            "agent": "1.4.0"
+        }
+    },
+    {
         "version": "2.0.0",
-        "buildNumber": 28
-      },
-      "computer": "1.10.0",
-      "agent": "1.5.0"
-    }
-  },
-  {
-    "version": "3.0.0",
-    "date": "2026-09-11",
-    "targets": {
-      "server": "2.0.0",
-      "app": "3.0.0",
-      "ios": {
+        "date": "2026-09-10",
+        "targets": {
+            "server": "1.16.0",
+            "app": "2.0.0",
+            "ios": {
+                "version": "2.0.0",
+                "buildNumber": 28
+            },
+            "computer": "1.10.0",
+            "agent": "1.5.0"
+        }
+    },
+    {
         "version": "3.0.0",
-        "buildNumber": 29
-      },
-      "computer": "2.0.0",
-      "agent": "2.0.0"
-    }
-  },
-  {
-    "version": "3.1.0",
-    "date": "2026-09-14",
-    "targets": {
-      "server": "2.1.0",
-      "app": null,
-      "ios": {
+        "date": "2026-09-11",
+        "targets": {
+            "server": "2.0.0",
+            "app": "3.0.0",
+            "ios": {
+                "version": "3.0.0",
+                "buildNumber": 29
+            },
+            "computer": "2.0.0",
+            "agent": "2.0.0"
+        }
+    },
+    {
         "version": "3.1.0",
-        "buildNumber": 30
-      },
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "3.1.1",
-    "date": "2026-09-14",
-    "targets": {
-      "server": "2.1.1",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "3.1.2",
-    "date": "2026-09-14",
-    "targets": {
-      "server": "2.1.2",
-      "app": null,
-      "ios": null,
-      "computer": "2.0.1",
-      "agent": "2.0.1"
-    }
-  },
-  {
-    "version": "3.1.3",
-    "date": "2026-09-14",
-    "targets": {
-      "server": "2.1.3",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "3.1.4",
-    "date": "2026-09-14",
-    "targets": {
-      "server": "2.1.4",
-      "app": null,
-      "ios": null,
-      "computer": "2.0.2",
-      "agent": "2.0.2"
-    }
-  },
-  {
-    "version": "3.1.5",
-    "date": "2026-09-14",
-    "targets": {
-      "server": "2.1.5",
-      "app": null,
-      "ios": null,
-      "computer": "2.0.3",
-      "agent": "2.0.3"
-    }
-  },
-  {
-    "version": "4.0.0",
-    "date": "2026-09-15",
-    "targets": {
-      "server": "3.0.0",
-      "app": null,
-      "ios": null,
-      "computer": "3.0.0",
-      "agent": "3.0.0"
-    }
-  },
-  {
-    "version": "4.1.0",
-    "date": "2026-09-17",
-    "targets": {
-      "server": "3.1.0",
-      "app": null,
-      "ios": { "version": "3.2.0", "buildNumber": 31 },
-      "computer": "3.1.0",
-      "agent": "3.1.0"
-    }
-  },
-  {
-    "version": "4.1.1",
-    "date": "2026-09-17",
-    "targets": {
-      "server": "3.1.1",
-      "app": null,
-      "ios": { "version": "3.2.1", "buildNumber": 32 },
-      "computer": "3.1.1",
-      "agent": "3.1.1"
-    }
-  },
-  {
-    "version": "4.2.0",
-    "date": "2026-09-17",
-    "targets": {
-      "server": "3.2.0",
-      "app": null,
-      "ios": null,
-      "computer": "3.2.0",
-      "agent": null
-    }
-  },
-  {
-    "version": "4.3.0",
-    "date": "2026-09-21",
-    "targets": {
-      "server": "3.3.0",
-      "app": null,
-      "ios": { "version": "3.3.0", "buildNumber": 33 },
-      "computer": "3.3.0",
-      "agent": "3.2.0"
-    }
-  },
-  {
-    "version": "4.3.1",
-    "date": "2026-09-21",
-    "targets": {
-      "server": "3.3.1",
-      "app": null,
-      "ios": null,
-      "computer": "3.3.1",
-      "agent": null
-    }
-  },
-  {
-    "version": "5.0.0",
-    "date": "2026-09-21",
-    "targets": {
-      "server": "4.0.0",
-      "app": null,
-      "ios": { "version": "3.3.1", "buildNumber": 34 },
-      "computer": "4.0.0",
-      "agent": "3.3.0"
-    }
-  },
-  {
-    "version": "5.0.1",
-    "date": "2026-09-21",
-    "targets": {
-      "server": "4.0.1",
-      "app": null,
-      "ios": null,
-      "computer": "4.0.1",
-      "agent": null
-    }
-  },
-  {
-    "version": "5.0.2",
-    "date": "2026-09-21",
-    "targets": {
-      "server": "4.0.2",
-      "app": null,
-      "ios": null,
-      "computer": "4.0.2",
-      "agent": "3.3.1"
-    }
-  },
-  {
-    "version": "5.1.0",
-    "date": "2026-09-22",
-    "targets": {
-      "server": "4.1.0",
-      "app": null,
-      "ios": { "version": "3.3.2", "buildNumber": 35 },
-      "computer": "4.1.0",
-      "agent": "3.4.0"
-    }
-  },
-  {
-    "version": "5.2.0",
-    "date": "2026-09-24",
-    "targets": {
-      "server": "4.2.0",
-      "app": null,
-      "ios": { "version": "3.4.0", "buildNumber": 36 },
-      "computer": "4.2.0",
-      "agent": "3.5.0"
-    }
-  },
-  {
-    "version": "5.3.0",
-    "date": "2026-09-28",
-    "targets": {
-      "server": "4.3.0",
-      "app": null,
-      "ios": null,
-      "computer": "4.3.0",
-      "agent": "3.6.0"
-    }
-  },
-  {
-    "version": "5.4.0",
-    "date": "2026-09-29",
-    "targets": {
-      "server": "4.4.0",
-      "app": null,
-      "ios": null,
-      "computer": "4.4.0",
-      "agent": "3.7.0"
-    }
-  },
-  {
-    "version": "5.4.1",
-    "date": "2026-09-29",
-    "targets": {
-      "server": "4.4.1",
-      "app": null,
-      "ios": null,
-      "computer": "4.4.1",
-      "agent": "3.7.1"
-    }
-  },
-  {
-    "version": "6.0.0",
-    "date": "2026-09-30",
-    "targets": {
-      "server": "5.0.0",
-      "app": "4.0.0",
-      "ios": {
+        "date": "2026-09-14",
+        "targets": {
+            "server": "2.1.0",
+            "app": null,
+            "ios": {
+                "version": "3.1.0",
+                "buildNumber": 30
+            },
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "3.1.1",
+        "date": "2026-09-14",
+        "targets": {
+            "server": "2.1.1",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "3.1.2",
+        "date": "2026-09-14",
+        "targets": {
+            "server": "2.1.2",
+            "app": null,
+            "ios": null,
+            "computer": "2.0.1",
+            "agent": "2.0.1"
+        }
+    },
+    {
+        "version": "3.1.3",
+        "date": "2026-09-14",
+        "targets": {
+            "server": "2.1.3",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "3.1.4",
+        "date": "2026-09-14",
+        "targets": {
+            "server": "2.1.4",
+            "app": null,
+            "ios": null,
+            "computer": "2.0.2",
+            "agent": "2.0.2"
+        }
+    },
+    {
+        "version": "3.1.5",
+        "date": "2026-09-14",
+        "targets": {
+            "server": "2.1.5",
+            "app": null,
+            "ios": null,
+            "computer": "2.0.3",
+            "agent": "2.0.3"
+        }
+    },
+    {
         "version": "4.0.0",
-        "buildNumber": 37
-      },
-      "computer": "5.0.0",
-      "agent": "4.0.0"
-    }
-  },
-  {
-    "version": "7.0.0",
-    "date": "2026-10-01",
-    "targets": {
-      "server": "6.0.0",
-      "app": "5.0.0",
-      "ios": { "version": "5.0.0", "buildNumber": 38 },
-      "computer": "5.1.0",
-      "agent": "5.0.0"
-    }
-  },
-  {
-    "version": "7.0.1",
-    "date": "2026-10-02",
-    "targets": {
-      "server": "6.0.1",
-      "app": null,
-      "ios": { "version": "5.0.1", "buildNumber": 39 },
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "7.1.0",
-    "date": "2026-10-03",
-    "targets": {
-      "server": "6.1.0",
-      "app": null,
-      "ios": { "version": "5.1.0", "buildNumber": 40 },
-      "computer": "5.2.0",
-      "agent": "5.1.0"
-    }
-  },
-  {
-    "version": "8.0.0",
-    "date": "2026-10-05",
-    "targets": {
-      "server": "7.0.0",
-      "app": "5.1.0",
-      "ios": { "version": "5.2.0", "buildNumber": 41 },
-      "computer": "6.0.0",
-      "agent": "6.0.0"
-    }
-  },
-  {
-    "version": "8.1.0",
-    "date": "2026-10-06",
-    "targets": {
-      "server": "7.1.0",
-      "app": "5.1.1",
-      "ios": null,
-      "computer": "6.1.0",
-      "agent": "6.1.0"
-    }
-  },
-  {
-    "version": "9.0.0",
-    "date": "2026-10-07",
-    "targets": {
-      "server": "8.0.0",
-      "app": "5.1.2",
-      "ios": { "version": "5.2.1", "buildNumber": 42 },
-      "computer": "7.0.0",
-      "agent": "7.0.0"
-    }
-  },
-  {
-    "version": "9.1.0",
-    "date": "2026-10-08",
-    "targets": {
-      "server": "8.1.0",
-      "app": "5.2.0",
-      "ios": null,
-      "computer": "7.1.0",
-      "agent": "7.1.0"
-    }
-  },
-  {
-    "version": "9.2.0",
-    "date": "2026-10-08",
-    "targets": {
-      "server": "8.1.1",
-      "app": null,
-      "ios": { "version": "5.3.0", "buildNumber": 43 },
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "9.3.0",
-    "date": "2026-10-08",
-    "targets": {
-      "server": "8.2.0",
-      "app": null,
-      "ios": { "version": "5.4.0", "buildNumber": 44 },
-      "computer": "7.2.0",
-      "agent": "7.2.0"
-    }
-  },
-  {
-    "version": "9.4.0",
-    "date": "2026-10-08",
-    "targets": {
-      "server": "8.3.0",
-      "app": null,
-      "ios": { "version": "5.5.0", "buildNumber": 45 },
-      "computer": "7.3.0",
-      "agent": "7.3.0"
-    }
-  },
-  {
-    "version": "9.5.0",
-    "date": "2026-10-09",
-    "targets": {
-      "server": "8.4.0",
-      "app": null,
-      "ios": { "version": "5.6.0", "buildNumber": 46 },
-      "computer": "7.4.0",
-      "agent": "7.4.0"
-    }
-  },
-  {
-    "version": "10.0.0",
-    "date": "2026-10-10",
-    "targets": {
-      "server": "9.0.0",
-      "app": "6.0.0",
-      "ios": { "version": "6.0.0", "buildNumber": 47 },
-      "computer": "8.0.0",
-      "agent": "8.0.0"
-    }
-  },
-  {
-    "version": "10.1.0",
-    "date": "2026-10-10",
-    "targets": {
-      "server": "9.1.0",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "10.1.1",
-    "date": "2026-10-11",
-    "targets": {
-      "server": "9.1.1",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "10.2.0",
-    "date": "2026-10-11",
-    "targets": {
-      "server": "9.2.0",
-      "app": null,
-      "ios": { "version": "6.1.0", "buildNumber": 48 },
-      "computer": "8.0.1",
-      "agent": "8.0.1"
-    }
-  },
-  {
-    "version": "11.0.0",
-    "date": "2026-10-11",
-    "targets": {
-      "server": "10.0.0",
-      "app": null,
-      "ios": { "version": "7.0.0", "buildNumber": 49 },
-      "computer": "8.1.0",
-      "agent": "8.1.0"
-    }
-  },
-  {
-    "version": "12.0.0",
-    "date": "2026-10-11",
-    "targets": {
-      "server": "11.0.0",
-      "app": null,
-      "ios": { "version": "8.0.0", "buildNumber": 50 },
-      "computer": "9.0.0",
-      "agent": "9.0.0"
-    }
-  },
-  {
-    "version": "12.1.0",
-    "date": "2026-10-12",
-    "targets": {
-      "server": "11.1.0",
-      "app": null,
-      "ios": null,
-      "computer": "9.1.0",
-      "agent": "9.1.0"
-    }
-  },
-  {
-    "version": "12.1.1",
-    "date": "2026-10-12",
-    "targets": {
-      "server": "11.1.1",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "12.2.0",
-    "date": "2026-10-12",
-    "targets": {
-      "server": "11.2.0",
-      "app": null,
-      "ios": {
+        "date": "2026-09-15",
+        "targets": {
+            "server": "3.0.0",
+            "app": null,
+            "ios": null,
+            "computer": "3.0.0",
+            "agent": "3.0.0"
+        }
+    },
+    {
+        "version": "4.1.0",
+        "date": "2026-09-17",
+        "targets": {
+            "server": "3.1.0",
+            "app": null,
+            "ios": { "version": "3.2.0", "buildNumber": 31 },
+            "computer": "3.1.0",
+            "agent": "3.1.0"
+        }
+    },
+    {
+        "version": "4.1.1",
+        "date": "2026-09-17",
+        "targets": {
+            "server": "3.1.1",
+            "app": null,
+            "ios": { "version": "3.2.1", "buildNumber": 32 },
+            "computer": "3.1.1",
+            "agent": "3.1.1"
+        }
+    },
+    {
+        "version": "4.2.0",
+        "date": "2026-09-17",
+        "targets": {
+            "server": "3.2.0",
+            "app": null,
+            "ios": null,
+            "computer": "3.2.0",
+            "agent": null
+        }
+    },
+    {
+        "version": "4.3.0",
+        "date": "2026-09-21",
+        "targets": {
+            "server": "3.3.0",
+            "app": null,
+            "ios": { "version": "3.3.0", "buildNumber": 33 },
+            "computer": "3.3.0",
+            "agent": "3.2.0"
+        }
+    },
+    {
+        "version": "4.3.1",
+        "date": "2026-09-21",
+        "targets": {
+            "server": "3.3.1",
+            "app": null,
+            "ios": null,
+            "computer": "3.3.1",
+            "agent": null
+        }
+    },
+    {
+        "version": "5.0.0",
+        "date": "2026-09-21",
+        "targets": {
+            "server": "4.0.0",
+            "app": null,
+            "ios": { "version": "3.3.1", "buildNumber": 34 },
+            "computer": "4.0.0",
+            "agent": "3.3.0"
+        }
+    },
+    {
+        "version": "5.0.1",
+        "date": "2026-09-21",
+        "targets": {
+            "server": "4.0.1",
+            "app": null,
+            "ios": null,
+            "computer": "4.0.1",
+            "agent": null
+        }
+    },
+    {
+        "version": "5.0.2",
+        "date": "2026-09-21",
+        "targets": {
+            "server": "4.0.2",
+            "app": null,
+            "ios": null,
+            "computer": "4.0.2",
+            "agent": "3.3.1"
+        }
+    },
+    {
+        "version": "5.1.0",
+        "date": "2026-09-22",
+        "targets": {
+            "server": "4.1.0",
+            "app": null,
+            "ios": { "version": "3.3.2", "buildNumber": 35 },
+            "computer": "4.1.0",
+            "agent": "3.4.0"
+        }
+    },
+    {
+        "version": "5.2.0",
+        "date": "2026-09-24",
+        "targets": {
+            "server": "4.2.0",
+            "app": null,
+            "ios": { "version": "3.4.0", "buildNumber": 36 },
+            "computer": "4.2.0",
+            "agent": "3.5.0"
+        }
+    },
+    {
+        "version": "5.3.0",
+        "date": "2026-09-28",
+        "targets": {
+            "server": "4.3.0",
+            "app": null,
+            "ios": null,
+            "computer": "4.3.0",
+            "agent": "3.6.0"
+        }
+    },
+    {
+        "version": "5.4.0",
+        "date": "2026-09-29",
+        "targets": {
+            "server": "4.4.0",
+            "app": null,
+            "ios": null,
+            "computer": "4.4.0",
+            "agent": "3.7.0"
+        }
+    },
+    {
+        "version": "5.4.1",
+        "date": "2026-09-29",
+        "targets": {
+            "server": "4.4.1",
+            "app": null,
+            "ios": null,
+            "computer": "4.4.1",
+            "agent": "3.7.1"
+        }
+    },
+    {
+        "version": "6.0.0",
+        "date": "2026-09-30",
+        "targets": {
+            "server": "5.0.0",
+            "app": "4.0.0",
+            "ios": {
+                "version": "4.0.0",
+                "buildNumber": 37
+            },
+            "computer": "5.0.0",
+            "agent": "4.0.0"
+        }
+    },
+    {
+        "version": "7.0.0",
+        "date": "2026-10-01",
+        "targets": {
+            "server": "6.0.0",
+            "app": "5.0.0",
+            "ios": { "version": "5.0.0", "buildNumber": 38 },
+            "computer": "5.1.0",
+            "agent": "5.0.0"
+        }
+    },
+    {
+        "version": "7.0.1",
+        "date": "2026-10-02",
+        "targets": {
+            "server": "6.0.1",
+            "app": null,
+            "ios": { "version": "5.0.1", "buildNumber": 39 },
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "7.1.0",
+        "date": "2026-10-03",
+        "targets": {
+            "server": "6.1.0",
+            "app": null,
+            "ios": { "version": "5.1.0", "buildNumber": 40 },
+            "computer": "5.2.0",
+            "agent": "5.1.0"
+        }
+    },
+    {
+        "version": "8.0.0",
+        "date": "2026-10-05",
+        "targets": {
+            "server": "7.0.0",
+            "app": "5.1.0",
+            "ios": { "version": "5.2.0", "buildNumber": 41 },
+            "computer": "6.0.0",
+            "agent": "6.0.0"
+        }
+    },
+    {
         "version": "8.1.0",
-        "buildNumber": 51
-      },
-      "computer": "9.2.0",
-      "agent": "9.2.0"
-    }
-  },
-  {
-    "version": "12.2.1",
-    "date": "2026-10-12",
-    "targets": {
-      "server": null,
-      "app": null,
-      "ios": null,
-      "computer": "9.2.1",
-      "agent": null
-    }
-  },
-  {
-    "version": "12.2.2",
-    "date": "2026-10-12",
-    "targets": {
-      "server": "11.2.1",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "12.3.0",
-    "date": "2026-10-12",
-    "targets": {
-      "server": "11.3.0",
-      "app": null,
-      "ios": null,
-      "computer": "9.3.0",
-      "agent": "9.3.0"
-    }
-  },
-  {
-    "version": "12.4.0",
-    "date": "2026-10-12",
-    "targets": {
-      "server": "11.4.0",
-      "app": null,
-      "ios": null,
-      "computer": "9.4.0",
-      "agent": "9.4.0"
-    }
-  },
-  {
-    "version": "12.4.1",
-    "date": "2026-10-13",
-    "targets": {
-      "server": "11.4.1",
-      "app": null,
-      "ios": null,
-      "computer": "9.4.1",
-      "agent": "9.4.1"
-    }
-  },
-  {
-    "version": "12.4.2",
-    "date": "2026-10-13",
-    "targets": {
-      "server": "11.4.2",
-      "app": null,
-      "ios": null,
-      "computer": "9.4.2",
-      "agent": "9.4.2"
-    }
-  },
-  {
-    "version": "12.5.0",
-    "date": "2026-10-13",
-    "targets": {
-      "server": "11.5.0",
-      "app": null,
-      "ios": {
-        "version": "8.2.0",
-        "buildNumber": 52
-      },
-      "computer": "9.4.3",
-      "agent": "9.4.3"
-    }
-  },
-  {
-    "version": "12.6.0",
-    "date": "2026-10-13",
-    "targets": {
-      "server": "11.6.0",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "13.0.0",
-    "date": "2026-10-13",
-    "targets": {
-      "server": "12.0.0",
-      "app": "6.1.0",
-      "ios": null,
-      "computer": "10.0.0",
-      "agent": "9.5.0"
-    }
-  },
-  {
-    "version": "14.0.0",
-    "date": "2026-10-13",
-    "targets": {
-      "server": "13.0.0",
-      "app": null,
-      "ios": {
-        "version": "8.3.0",
-        "buildNumber": 53
-      },
-      "computer": "11.0.0",
-      "agent": "10.0.0"
-    }
-  },
-  {
-    "version": "14.1.0",
-    "date": "2026-10-14",
-    "targets": {
-      "server": "13.1.0",
-      "app": null,
-      "ios": null,
-      "computer": "11.1.0",
-      "agent": "10.1.0"
-    }
-  },
-  {
-    "version": "14.1.1",
-    "date": "2026-10-14",
-    "targets": {
-      "server": "13.1.1",
-      "app": null,
-      "ios": null,
-      "computer": "11.1.1",
-      "agent": "10.1.1"
-    }
-  },
-  {
-    "version": "14.2.0",
-    "date": "2026-10-14",
-    "targets": {
-      "server": "13.2.0",
-      "app": null,
-      "ios": {
-        "version": "8.4.0",
-        "buildNumber": 54
-      },
-      "computer": "11.2.0",
-      "agent": "10.2.0"
-    }
-  },
-  {
-    "version": "15.0.0",
-    "date": "2026-10-15",
-    "targets": {
-      "server": "14.0.0",
-      "app": "6.1.1",
-      "ios": {
-        "version": "8.5.0",
-        "buildNumber": 55
-      },
-      "computer": "12.0.0",
-      "agent": "11.0.0"
-    }
-  },
-  {
-    "version": "15.0.1",
-    "date": "2026-10-16",
-    "targets": {
-      "server": "14.0.1",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "15.1.0",
-    "date": "2026-10-16",
-    "targets": {
-      "server": "14.1.0",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "15.1.1",
-    "date": "2026-10-16",
-    "targets": {
-      "server": "14.1.1",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "15.2.0",
-    "date": "2026-10-16",
-    "targets": {
-      "server": "14.2.0",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "15.3.0",
-    "date": "2026-10-16",
-    "targets": {
-      "server": "14.3.0",
-      "app": "6.2.0",
-      "ios": {
-        "version": "8.6.0",
-        "buildNumber": 56
-      },
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "15.4.0",
-    "date": "2026-10-17",
-    "targets": {
-      "server": "14.4.0",
-      "app": "6.3.0",
-      "ios": { "version": "8.6.1", "buildNumber": 57 },
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "15.4.1",
-    "date": "2026-10-17",
-    "targets": {
-      "server": "14.4.1",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "15.5.0",
-    "date": "2026-10-20",
-    "targets": {
-      "server": "14.5.0",
-      "app": null,
-      "ios": null,
-      "computer": "12.1.0",
-      "agent": "11.1.0"
-    }
-  },
-  {
-    "version": "15.5.1",
-    "date": "2026-10-20",
-    "targets": {
-      "server": null,
-      "app": null,
-      "ios": null,
-      "computer": "12.1.1",
-      "agent": null
-    }
-  },
-  {
-    "version": "15.6.0",
-    "date": "2026-10-20",
-    "targets": {
-      "server": "14.6.0",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "15.7.0",
-    "date": "2026-10-23",
-    "targets": {
-      "server": "14.7.0",
-      "app": null,
-      "ios": null,
-      "computer": "12.2.0",
-      "agent": "11.2.0"
-    }
-  },
-  {
-    "version": "15.7.1",
-    "date": "2026-10-23",
-    "targets": {
-      "server": "14.7.1",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "15.8.0",
-    "date": "2026-10-23",
-    "targets": {
-      "server": "14.8.0",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "15.9.0",
-    "date": "2026-10-23",
-    "targets": {
-      "server": "14.9.0",
-      "app": null,
-      "ios": null,
-      "computer": "12.3.0",
-      "agent": "11.2.1"
-    }
-  },
-  {
-    "version": "15.9.1",
-    "date": "2026-10-23",
-    "targets": {
-      "server": "14.9.1",
-      "app": null,
-      "ios": null,
-      "computer": "12.3.1",
-      "agent": "11.2.2"
-    }
-  },
-  {
-    "version": "15.10.0",
-    "date": "2026-10-24",
-    "targets": {
-      "server": "14.10.0",
-      "app": null,
-      "ios": null,
-      "computer": "12.3.2",
-      "agent": "11.2.3"
-    }
-  },
-  {
-    "version": "15.11.0",
-    "date": "2026-10-24",
-    "targets": {
-      "server": "14.11.0",
-      "app": "6.3.1",
-      "ios": null,
-      "computer": "12.4.0",
-      "agent": "11.3.0"
-    }
-  },
-  {
-    "version": "15.11.1",
-    "date": "2026-10-29",
-    "targets": {
-      "server": "14.11.1",
-      "app": null,
-      "ios": {
-        "version": "8.6.2",
-        "buildNumber": 58
-      },
-      "computer": "12.4.1",
-      "agent": null
-    }
-  },
-  {
-    "version": "15.11.2",
-    "date": "2026-10-30",
-    "targets": {
-      "server": "14.11.2",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "15.12.0",
-    "date": "2026-10-30",
-    "targets": {
-      "server": "14.12.0",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "15.12.1",
-    "date": "2026-10-30",
-    "targets": {
-      "server": "14.12.1",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "16.0.0",
-    "date": "2026-10-31",
-    "targets": {
-      "server": "15.0.0",
-      "app": "7.0.0",
-      "ios": {
+        "date": "2026-10-06",
+        "targets": {
+            "server": "7.1.0",
+            "app": "5.1.1",
+            "ios": null,
+            "computer": "6.1.0",
+            "agent": "6.1.0"
+        }
+    },
+    {
         "version": "9.0.0",
-        "buildNumber": 59
-      },
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "16.1.0",
-    "date": "2026-11-01",
-    "targets": {
-      "server": "15.1.0",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "16.1.1",
-    "date": "2026-11-01",
-    "targets": {
-      "server": null,
-      "app": "7.0.1",
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "16.2.0",
-    "date": "2026-11-01",
-    "targets": {
-      "server": "15.2.0",
-      "app": "7.1.0",
-      "ios": {
+        "date": "2026-10-07",
+        "targets": {
+            "server": "8.0.0",
+            "app": "5.1.2",
+            "ios": { "version": "5.2.1", "buildNumber": 42 },
+            "computer": "7.0.0",
+            "agent": "7.0.0"
+        }
+    },
+    {
         "version": "9.1.0",
-        "buildNumber": 60
-      },
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "16.3.0",
-    "date": "2026-11-01",
-    "targets": {
-      "server": "15.3.0",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "16.4.0",
-    "date": "2026-11-02",
-    "targets": {
-      "server": "15.4.0",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "16.5.0",
-    "date": "2026-11-02",
-    "targets": {
-      "server": "15.5.0",
-      "app": null,
-      "ios": {
+        "date": "2026-10-08",
+        "targets": {
+            "server": "8.1.0",
+            "app": "5.2.0",
+            "ios": null,
+            "computer": "7.1.0",
+            "agent": "7.1.0"
+        }
+    },
+    {
         "version": "9.2.0",
-        "buildNumber": 61
-      },
-      "computer": "12.5.0",
-      "agent": "11.4.0"
-    }
-  },
-  {
-    "version": "16.5.1",
-    "date": "2026-11-03",
-    "targets": {
-      "server": "15.5.1",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "16.6.0",
-    "date": "2026-11-03",
-    "targets": {
-      "server": "15.6.0",
-      "app": null,
-      "ios": {
-        "version": "9.2.1",
-        "buildNumber": 62
-      },
-      "computer": "13.0.0",
-      "agent": "11.5.0"
-    }
-  },
-  {
-    "version": "16.6.1",
-    "date": "2026-11-03",
-    "targets": {
-      "server": "15.6.1",
-      "app": null,
-      "ios": null,
-      "computer": "13.0.1",
-      "agent": null
-    }
-  },
-  {
-    "version": "16.6.2",
-    "date": "2026-11-03",
-    "targets": {
-      "server": null,
-      "app": null,
-      "ios": null,
-      "computer": "13.0.2",
-      "agent": null
-    }
-  },
-  {
-    "version": "16.6.3",
-    "date": "2026-11-03",
-    "targets": {
-      "server": "15.6.2",
-      "app": null,
-      "ios": null,
-      "computer": "13.0.3",
-      "agent": "11.5.1"
-    }
-  },
-  {
-    "version": "17.0.0",
-    "date": "2026-11-03",
-    "targets": {
-      "server": "16.0.0",
-      "app": null,
-      "ios": {
-        "version": "9.2.2",
-        "buildNumber": 63
-      },
-      "computer": "14.0.0",
-      "agent": "12.0.0"
-    }
-  },
-  {
-    "version": "17.0.1",
-    "date": "2026-11-03",
-    "targets": {
-      "server": "16.0.1",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "17.1.0",
-    "date": "2026-11-04",
-    "targets": {
-      "server": "16.1.0",
-      "app": null,
-      "ios": null,
-      "computer": "15.0.0",
-      "agent": "12.1.0"
-    }
-  },
-  {
-    "version": "17.2.0",
-    "date": "2026-11-04",
-    "targets": {
-      "server": "16.2.0",
-      "app": null,
-      "ios": null,
-      "computer": "15.1.0",
-      "agent": "12.2.0"
-    }
-  },
-  {
-    "version": "17.3.0",
-    "date": "2026-11-04",
-    "targets": {
-      "server": "16.3.0",
-      "app": "7.2.0",
-      "ios": null,
-      "computer": "15.2.0",
-      "agent": "12.3.0"
-    }
-  },
-  {
-    "version": "17.4.0",
-    "date": "2026-11-05",
-    "targets": {
-      "server": "16.4.0",
-      "app": null,
-      "ios": {
+        "date": "2026-10-08",
+        "targets": {
+            "server": "8.1.1",
+            "app": null,
+            "ios": { "version": "5.3.0", "buildNumber": 43 },
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
         "version": "9.3.0",
-        "buildNumber": 64
-      },
-      "computer": "15.3.0",
-      "agent": "12.4.0"
-    }
-  },
-  {
-    "version": "17.4.1",
-    "date": "2026-11-05",
-    "targets": {
-      "server": "16.4.1",
-      "app": null,
-      "ios": {
-        "version": "9.3.0",
-        "buildNumber": 65
-      },
-      "computer": "15.3.1",
-      "agent": "12.4.1"
-    }
-  },
-  {
-    "version": "17.4.2",
-    "date": "2026-11-05",
-    "targets": {
-      "server": "16.4.2",
-      "app": null,
-      "ios": {
-        "version": "9.3.0",
-        "buildNumber": 66
-      },
-      "computer": "15.3.2",
-      "agent": "12.4.2"
-    }
-  },
-  {
-    "version": "17.5.0",
-    "date": "2026-11-05",
-    "targets": {
-      "server": "16.5.0",
-      "app": null,
-      "ios": {
-        "version": "9.3.0",
-        "buildNumber": 67
-      },
-      "computer": "15.3.3",
-      "agent": "12.4.3"
-    }
-  },
-  {
-    "version": "17.6.0",
-    "date": "2026-11-08",
-    "targets": {
-      "server": "16.6.0",
-      "app": null,
-      "ios": {
-        "version": "9.3.1",
-        "buildNumber": 68
-      },
-      "computer": "15.4.0",
-      "agent": "12.4.4"
-    }
-  },
-  {
-    "version": "17.6.1",
-    "date": "2026-11-08",
-    "targets": {
-      "server": "16.6.1",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "17.6.2",
-    "date": "2026-11-08",
-    "targets": {
-      "server": "16.6.2",
-      "app": null,
-      "ios": null,
-      "computer": "15.4.1",
-      "agent": null
-    }
-  },
-  {
-    "version": "17.6.3",
-    "date": "2026-11-08",
-    "targets": {
-      "server": "16.6.3",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "17.6.4",
-    "date": "2026-11-12",
-    "targets": {
-      "server": "16.6.4",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "17.6.5",
-    "date": "2026-11-13",
-    "targets": {
-      "server": "16.6.5",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "17.7.0",
-    "date": "2026-11-14",
-    "targets": {
-      "server": "16.7.0",
-      "app": null,
-      "ios": null,
-      "computer": "15.5.0",
-      "agent": "12.5.0"
-    }
-  },
-  {
-    "version": "17.7.1",
-    "date": "2026-11-14",
-    "targets": {
-      "server": "16.7.1",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "17.7.2",
-    "date": "2026-11-14",
-    "targets": {
-      "server": "16.7.2",
-      "app": null,
-      "ios": null,
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "18.0.0",
-    "date": "2026-11-16",
-    "targets": {
-      "server": "17.0.0",
-      "app": null,
-      "ios": {
+        "date": "2026-10-08",
+        "targets": {
+            "server": "8.2.0",
+            "app": null,
+            "ios": { "version": "5.4.0", "buildNumber": 44 },
+            "computer": "7.2.0",
+            "agent": "7.2.0"
+        }
+    },
+    {
+        "version": "9.4.0",
+        "date": "2026-10-08",
+        "targets": {
+            "server": "8.3.0",
+            "app": null,
+            "ios": { "version": "5.5.0", "buildNumber": 45 },
+            "computer": "7.3.0",
+            "agent": "7.3.0"
+        }
+    },
+    {
+        "version": "9.5.0",
+        "date": "2026-10-09",
+        "targets": {
+            "server": "8.4.0",
+            "app": null,
+            "ios": { "version": "5.6.0", "buildNumber": 46 },
+            "computer": "7.4.0",
+            "agent": "7.4.0"
+        }
+    },
+    {
         "version": "10.0.0",
-        "buildNumber": 69
-      },
-      "computer": "16.0.0",
-      "agent": "13.0.0"
-    }
-  },
-  {
-    "version": "18.1.0",
-    "date": "2026-11-16",
-    "targets": {
-      "server": null,
-      "app": null,
-      "ios": {
+        "date": "2026-10-10",
+        "targets": {
+            "server": "9.0.0",
+            "app": "6.0.0",
+            "ios": { "version": "6.0.0", "buildNumber": 47 },
+            "computer": "8.0.0",
+            "agent": "8.0.0"
+        }
+    },
+    {
         "version": "10.1.0",
-        "buildNumber": 70
-      },
-      "computer": null,
-      "agent": null
-    }
-  },
-  {
-    "version": "18.1.1",
-    "date": "2026-11-16",
-    "targets": {
-      "server": "17.0.1",
-      "app": null,
-      "ios": {
+        "date": "2026-10-10",
+        "targets": {
+            "server": "9.1.0",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
         "version": "10.1.1",
-        "buildNumber": 71
-      },
-      "computer": null,
-      "agent": null
+        "date": "2026-10-11",
+        "targets": {
+            "server": "9.1.1",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "10.2.0",
+        "date": "2026-10-11",
+        "targets": {
+            "server": "9.2.0",
+            "app": null,
+            "ios": { "version": "6.1.0", "buildNumber": 48 },
+            "computer": "8.0.1",
+            "agent": "8.0.1"
+        }
+    },
+    {
+        "version": "11.0.0",
+        "date": "2026-10-11",
+        "targets": {
+            "server": "10.0.0",
+            "app": null,
+            "ios": { "version": "7.0.0", "buildNumber": 49 },
+            "computer": "8.1.0",
+            "agent": "8.1.0"
+        }
+    },
+    {
+        "version": "12.0.0",
+        "date": "2026-10-11",
+        "targets": {
+            "server": "11.0.0",
+            "app": null,
+            "ios": { "version": "8.0.0", "buildNumber": 50 },
+            "computer": "9.0.0",
+            "agent": "9.0.0"
+        }
+    },
+    {
+        "version": "12.1.0",
+        "date": "2026-10-12",
+        "targets": {
+            "server": "11.1.0",
+            "app": null,
+            "ios": null,
+            "computer": "9.1.0",
+            "agent": "9.1.0"
+        }
+    },
+    {
+        "version": "12.1.1",
+        "date": "2026-10-12",
+        "targets": {
+            "server": "11.1.1",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "12.2.0",
+        "date": "2026-10-12",
+        "targets": {
+            "server": "11.2.0",
+            "app": null,
+            "ios": {
+                "version": "8.1.0",
+                "buildNumber": 51
+            },
+            "computer": "9.2.0",
+            "agent": "9.2.0"
+        }
+    },
+    {
+        "version": "12.2.1",
+        "date": "2026-10-12",
+        "targets": {
+            "server": null,
+            "app": null,
+            "ios": null,
+            "computer": "9.2.1",
+            "agent": null
+        }
+    },
+    {
+        "version": "12.2.2",
+        "date": "2026-10-12",
+        "targets": {
+            "server": "11.2.1",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "12.3.0",
+        "date": "2026-10-12",
+        "targets": {
+            "server": "11.3.0",
+            "app": null,
+            "ios": null,
+            "computer": "9.3.0",
+            "agent": "9.3.0"
+        }
+    },
+    {
+        "version": "12.4.0",
+        "date": "2026-10-12",
+        "targets": {
+            "server": "11.4.0",
+            "app": null,
+            "ios": null,
+            "computer": "9.4.0",
+            "agent": "9.4.0"
+        }
+    },
+    {
+        "version": "12.4.1",
+        "date": "2026-10-13",
+        "targets": {
+            "server": "11.4.1",
+            "app": null,
+            "ios": null,
+            "computer": "9.4.1",
+            "agent": "9.4.1"
+        }
+    },
+    {
+        "version": "12.4.2",
+        "date": "2026-10-13",
+        "targets": {
+            "server": "11.4.2",
+            "app": null,
+            "ios": null,
+            "computer": "9.4.2",
+            "agent": "9.4.2"
+        }
+    },
+    {
+        "version": "12.5.0",
+        "date": "2026-10-13",
+        "targets": {
+            "server": "11.5.0",
+            "app": null,
+            "ios": {
+                "version": "8.2.0",
+                "buildNumber": 52
+            },
+            "computer": "9.4.3",
+            "agent": "9.4.3"
+        }
+    },
+    {
+        "version": "12.6.0",
+        "date": "2026-10-13",
+        "targets": {
+            "server": "11.6.0",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "13.0.0",
+        "date": "2026-10-13",
+        "targets": {
+            "server": "12.0.0",
+            "app": "6.1.0",
+            "ios": null,
+            "computer": "10.0.0",
+            "agent": "9.5.0"
+        }
+    },
+    {
+        "version": "14.0.0",
+        "date": "2026-10-13",
+        "targets": {
+            "server": "13.0.0",
+            "app": null,
+            "ios": {
+                "version": "8.3.0",
+                "buildNumber": 53
+            },
+            "computer": "11.0.0",
+            "agent": "10.0.0"
+        }
+    },
+    {
+        "version": "14.1.0",
+        "date": "2026-10-14",
+        "targets": {
+            "server": "13.1.0",
+            "app": null,
+            "ios": null,
+            "computer": "11.1.0",
+            "agent": "10.1.0"
+        }
+    },
+    {
+        "version": "14.1.1",
+        "date": "2026-10-14",
+        "targets": {
+            "server": "13.1.1",
+            "app": null,
+            "ios": null,
+            "computer": "11.1.1",
+            "agent": "10.1.1"
+        }
+    },
+    {
+        "version": "14.2.0",
+        "date": "2026-10-14",
+        "targets": {
+            "server": "13.2.0",
+            "app": null,
+            "ios": {
+                "version": "8.4.0",
+                "buildNumber": 54
+            },
+            "computer": "11.2.0",
+            "agent": "10.2.0"
+        }
+    },
+    {
+        "version": "15.0.0",
+        "date": "2026-10-15",
+        "targets": {
+            "server": "14.0.0",
+            "app": "6.1.1",
+            "ios": {
+                "version": "8.5.0",
+                "buildNumber": 55
+            },
+            "computer": "12.0.0",
+            "agent": "11.0.0"
+        }
+    },
+    {
+        "version": "15.0.1",
+        "date": "2026-10-16",
+        "targets": {
+            "server": "14.0.1",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "15.1.0",
+        "date": "2026-10-16",
+        "targets": {
+            "server": "14.1.0",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "15.1.1",
+        "date": "2026-10-16",
+        "targets": {
+            "server": "14.1.1",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "15.2.0",
+        "date": "2026-10-16",
+        "targets": {
+            "server": "14.2.0",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "15.3.0",
+        "date": "2026-10-16",
+        "targets": {
+            "server": "14.3.0",
+            "app": "6.2.0",
+            "ios": {
+                "version": "8.6.0",
+                "buildNumber": 56
+            },
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "15.4.0",
+        "date": "2026-10-17",
+        "targets": {
+            "server": "14.4.0",
+            "app": "6.3.0",
+            "ios": { "version": "8.6.1", "buildNumber": 57 },
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "15.4.1",
+        "date": "2026-10-17",
+        "targets": {
+            "server": "14.4.1",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "15.5.0",
+        "date": "2026-10-20",
+        "targets": {
+            "server": "14.5.0",
+            "app": null,
+            "ios": null,
+            "computer": "12.1.0",
+            "agent": "11.1.0"
+        }
+    },
+    {
+        "version": "15.5.1",
+        "date": "2026-10-20",
+        "targets": {
+            "server": null,
+            "app": null,
+            "ios": null,
+            "computer": "12.1.1",
+            "agent": null
+        }
+    },
+    {
+        "version": "15.6.0",
+        "date": "2026-10-20",
+        "targets": {
+            "server": "14.6.0",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "15.7.0",
+        "date": "2026-10-23",
+        "targets": {
+            "server": "14.7.0",
+            "app": null,
+            "ios": null,
+            "computer": "12.2.0",
+            "agent": "11.2.0"
+        }
+    },
+    {
+        "version": "15.7.1",
+        "date": "2026-10-23",
+        "targets": {
+            "server": "14.7.1",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "15.8.0",
+        "date": "2026-10-23",
+        "targets": {
+            "server": "14.8.0",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "15.9.0",
+        "date": "2026-10-23",
+        "targets": {
+            "server": "14.9.0",
+            "app": null,
+            "ios": null,
+            "computer": "12.3.0",
+            "agent": "11.2.1"
+        }
+    },
+    {
+        "version": "15.9.1",
+        "date": "2026-10-23",
+        "targets": {
+            "server": "14.9.1",
+            "app": null,
+            "ios": null,
+            "computer": "12.3.1",
+            "agent": "11.2.2"
+        }
+    },
+    {
+        "version": "15.10.0",
+        "date": "2026-10-24",
+        "targets": {
+            "server": "14.10.0",
+            "app": null,
+            "ios": null,
+            "computer": "12.3.2",
+            "agent": "11.2.3"
+        }
+    },
+    {
+        "version": "15.11.0",
+        "date": "2026-10-24",
+        "targets": {
+            "server": "14.11.0",
+            "app": "6.3.1",
+            "ios": null,
+            "computer": "12.4.0",
+            "agent": "11.3.0"
+        }
+    },
+    {
+        "version": "15.11.1",
+        "date": "2026-10-29",
+        "targets": {
+            "server": "14.11.1",
+            "app": null,
+            "ios": {
+                "version": "8.6.2",
+                "buildNumber": 58
+            },
+            "computer": "12.4.1",
+            "agent": null
+        }
+    },
+    {
+        "version": "15.11.2",
+        "date": "2026-10-30",
+        "targets": {
+            "server": "14.11.2",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "15.12.0",
+        "date": "2026-10-30",
+        "targets": {
+            "server": "14.12.0",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "15.12.1",
+        "date": "2026-10-30",
+        "targets": {
+            "server": "14.12.1",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "16.0.0",
+        "date": "2026-10-31",
+        "targets": {
+            "server": "15.0.0",
+            "app": "7.0.0",
+            "ios": {
+                "version": "9.0.0",
+                "buildNumber": 59
+            },
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "16.1.0",
+        "date": "2026-11-01",
+        "targets": {
+            "server": "15.1.0",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "16.1.1",
+        "date": "2026-11-01",
+        "targets": {
+            "server": null,
+            "app": "7.0.1",
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "16.2.0",
+        "date": "2026-11-01",
+        "targets": {
+            "server": "15.2.0",
+            "app": "7.1.0",
+            "ios": {
+                "version": "9.1.0",
+                "buildNumber": 60
+            },
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "16.3.0",
+        "date": "2026-11-01",
+        "targets": {
+            "server": "15.3.0",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "16.4.0",
+        "date": "2026-11-02",
+        "targets": {
+            "server": "15.4.0",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "16.5.0",
+        "date": "2026-11-02",
+        "targets": {
+            "server": "15.5.0",
+            "app": null,
+            "ios": {
+                "version": "9.2.0",
+                "buildNumber": 61
+            },
+            "computer": "12.5.0",
+            "agent": "11.4.0"
+        }
+    },
+    {
+        "version": "16.5.1",
+        "date": "2026-11-03",
+        "targets": {
+            "server": "15.5.1",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "16.6.0",
+        "date": "2026-11-03",
+        "targets": {
+            "server": "15.6.0",
+            "app": null,
+            "ios": {
+                "version": "9.2.1",
+                "buildNumber": 62
+            },
+            "computer": "13.0.0",
+            "agent": "11.5.0"
+        }
+    },
+    {
+        "version": "16.6.1",
+        "date": "2026-11-03",
+        "targets": {
+            "server": "15.6.1",
+            "app": null,
+            "ios": null,
+            "computer": "13.0.1",
+            "agent": null
+        }
+    },
+    {
+        "version": "16.6.2",
+        "date": "2026-11-03",
+        "targets": {
+            "server": null,
+            "app": null,
+            "ios": null,
+            "computer": "13.0.2",
+            "agent": null
+        }
+    },
+    {
+        "version": "16.6.3",
+        "date": "2026-11-03",
+        "targets": {
+            "server": "15.6.2",
+            "app": null,
+            "ios": null,
+            "computer": "13.0.3",
+            "agent": "11.5.1"
+        }
+    },
+    {
+        "version": "17.0.0",
+        "date": "2026-11-03",
+        "targets": {
+            "server": "16.0.0",
+            "app": null,
+            "ios": {
+                "version": "9.2.2",
+                "buildNumber": 63
+            },
+            "computer": "14.0.0",
+            "agent": "12.0.0"
+        }
+    },
+    {
+        "version": "17.0.1",
+        "date": "2026-11-03",
+        "targets": {
+            "server": "16.0.1",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "17.1.0",
+        "date": "2026-11-04",
+        "targets": {
+            "server": "16.1.0",
+            "app": null,
+            "ios": null,
+            "computer": "15.0.0",
+            "agent": "12.1.0"
+        }
+    },
+    {
+        "version": "17.2.0",
+        "date": "2026-11-04",
+        "targets": {
+            "server": "16.2.0",
+            "app": null,
+            "ios": null,
+            "computer": "15.1.0",
+            "agent": "12.2.0"
+        }
+    },
+    {
+        "version": "17.3.0",
+        "date": "2026-11-04",
+        "targets": {
+            "server": "16.3.0",
+            "app": "7.2.0",
+            "ios": null,
+            "computer": "15.2.0",
+            "agent": "12.3.0"
+        }
+    },
+    {
+        "version": "17.4.0",
+        "date": "2026-11-05",
+        "targets": {
+            "server": "16.4.0",
+            "app": null,
+            "ios": {
+                "version": "9.3.0",
+                "buildNumber": 64
+            },
+            "computer": "15.3.0",
+            "agent": "12.4.0"
+        }
+    },
+    {
+        "version": "17.4.1",
+        "date": "2026-11-05",
+        "targets": {
+            "server": "16.4.1",
+            "app": null,
+            "ios": {
+                "version": "9.3.0",
+                "buildNumber": 65
+            },
+            "computer": "15.3.1",
+            "agent": "12.4.1"
+        }
+    },
+    {
+        "version": "17.4.2",
+        "date": "2026-11-05",
+        "targets": {
+            "server": "16.4.2",
+            "app": null,
+            "ios": {
+                "version": "9.3.0",
+                "buildNumber": 66
+            },
+            "computer": "15.3.2",
+            "agent": "12.4.2"
+        }
+    },
+    {
+        "version": "17.5.0",
+        "date": "2026-11-05",
+        "targets": {
+            "server": "16.5.0",
+            "app": null,
+            "ios": {
+                "version": "9.3.0",
+                "buildNumber": 67
+            },
+            "computer": "15.3.3",
+            "agent": "12.4.3"
+        }
+    },
+    {
+        "version": "17.6.0",
+        "date": "2026-11-08",
+        "targets": {
+            "server": "16.6.0",
+            "app": null,
+            "ios": {
+                "version": "9.3.1",
+                "buildNumber": 68
+            },
+            "computer": "15.4.0",
+            "agent": "12.4.4"
+        }
+    },
+    {
+        "version": "17.6.1",
+        "date": "2026-11-08",
+        "targets": {
+            "server": "16.6.1",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "17.6.2",
+        "date": "2026-11-08",
+        "targets": {
+            "server": "16.6.2",
+            "app": null,
+            "ios": null,
+            "computer": "15.4.1",
+            "agent": null
+        }
+    },
+    {
+        "version": "17.6.3",
+        "date": "2026-11-08",
+        "targets": {
+            "server": "16.6.3",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "17.6.4",
+        "date": "2026-11-12",
+        "targets": {
+            "server": "16.6.4",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "17.6.5",
+        "date": "2026-11-13",
+        "targets": {
+            "server": "16.6.5",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "17.7.0",
+        "date": "2026-11-14",
+        "targets": {
+            "server": "16.7.0",
+            "app": null,
+            "ios": null,
+            "computer": "15.5.0",
+            "agent": "12.5.0"
+        }
+    },
+    {
+        "version": "17.7.1",
+        "date": "2026-11-14",
+        "targets": {
+            "server": "16.7.1",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "17.7.2",
+        "date": "2026-11-14",
+        "targets": {
+            "server": "16.7.2",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "18.0.0",
+        "date": "2026-11-16",
+        "targets": {
+            "server": "17.0.0",
+            "app": null,
+            "ios": {
+                "version": "10.0.0",
+                "buildNumber": 69
+            },
+            "computer": "16.0.0",
+            "agent": "13.0.0"
+        }
+    },
+    {
+        "version": "18.1.0",
+        "date": "2026-11-16",
+        "targets": {
+            "server": null,
+            "app": null,
+            "ios": {
+                "version": "10.1.0",
+                "buildNumber": 70
+            },
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "18.1.1",
+        "date": "2026-11-16",
+        "targets": {
+            "server": "17.0.1",
+            "app": null,
+            "ios": {
+                "version": "10.1.1",
+                "buildNumber": 71
+            },
+            "computer": null,
+            "agent": null
+        }
+    },
+    {
+        "version": "18.1.2",
+        "date": "2026-11-17",
+        "targets": {
+            "server": "17.0.2",
+            "app": "7.2.1",
+            "ios": null,
+            "computer": "16.0.1",
+            "agent": "13.0.1"
+        }
+    },
+    {
+        "version": "18.2.0",
+        "date": "2026-11-17",
+        "targets": {
+            "server": "17.1.0",
+            "app": null,
+            "ios": null,
+            "computer": "16.1.0",
+            "agent": "13.1.0"
+        }
     }
-  },
-  {
-    "version": "18.1.2",
-    "date": "2026-11-17",
-    "targets": {
-      "server": "17.0.2",
-      "app": "7.2.1",
-      "ios": null,
-      "computer": "16.0.1",
-      "agent": "13.0.1"
-    }
-  },
-  {
-    "version": "18.2.0",
-    "date": "2026-11-17",
-    "targets": {
-      "server": "17.1.0",
-      "app": null,
-      "ios": null,
-      "computer": "16.1.0",
-      "agent": "13.1.0"
-    }
-  }
 ]

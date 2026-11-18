@@ -1,4 +1,5 @@
 import type { TriggerKind } from '@haus/api';
+
 import { parseReminderRepeat } from '../reminders/cadence.ts';
 
 const weekdayNames = [

@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { Cause, Effect, Fiber, FiberId, Option, Runtime, TestClock } from 'effect';
+
 import { settle } from './boundary.ts';
 import { makeTestRuntime } from './testing.ts';
 

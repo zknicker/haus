@@ -6,6 +6,7 @@ import type {
     ArtifactRecord,
 } from '@haus/api';
 import { type AnyColumn, and, asc, desc, eq, gt, ilike, not, or, type SQL, sql } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     artifactsTable as artifacts,

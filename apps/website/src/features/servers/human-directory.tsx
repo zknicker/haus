@@ -1,10 +1,11 @@
 import type { Agent } from '@haus/api';
 import type { ServerMember, ServerMemberDirectory } from '@haus/api/membership';
 import { canManageServerInvitations } from '@haus/api/membership';
-import { Button } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Button } from '@heroui/react';
 import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.ts';
 import { useAgents } from '../../hooks/members/use-agents.ts';
@@ -74,7 +75,7 @@ export function HumanDirectory({
                     <ItemCardGroup.Header>
                         <ItemCardGroup.Title>
                             Humans
-                            <span className="ms-2 text-muted tabular-nums">
+                            <span className="text-muted ms-2 tabular-nums">
                                 {directory.members.length}
                             </span>
                         </ItemCardGroup.Title>
@@ -87,7 +88,7 @@ export function HumanDirectory({
                         />
                     </ItemCardGroup>
                     {commandError ? (
-                        <p className="px-4 text-danger text-sm">{commandError}</p>
+                        <p className="text-danger px-4 text-sm">{commandError}</p>
                     ) : null}
                 </ItemCardGroup>
                 {canInvite ? <ServerInvitationsSection serverId={serverId} /> : null}
@@ -143,7 +144,7 @@ function AgentsSection({
             <ItemCardGroup.Header className="flex flex-wrap items-center justify-between gap-3">
                 <ItemCardGroup.Title>
                     Agents
-                    <span className="ms-2 text-muted tabular-nums">{items.length}</span>
+                    <span className="text-muted ms-2 tabular-nums">{items.length}</span>
                 </ItemCardGroup.Title>
                 {canManage ? (
                     <Button

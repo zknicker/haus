@@ -1,4 +1,5 @@
 import type { Chat } from '@haus/api';
+
 import type { ServerSummary } from '../../lib/haus-server.tsx';
 
 export const lastServerSlugStorageKey = 'haus.last-server-slug';

@@ -9,6 +9,7 @@ import { messageBodySchema } from './message-body.ts';
 export * from './message-body.ts';
 
 import * as z from 'zod';
+
 import { attachmentMetadataSchema } from './attachments.ts';
 import { messageCauseSchema } from './automation.ts';
 import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
@@ -69,10 +70,7 @@ export const chatMessageSchema = z
 
 export type ChatMessage = z.infer<typeof chatMessageSchema>;
 
-export {
-    type TaskReplyPreview,
-    taskReplyPreviewSchema,
-} from './task-reply-preview.ts';
+export { type TaskReplyPreview, taskReplyPreviewSchema } from './task-reply-preview.ts';
 
 const chatSendBaseSchema = z
     .object({
@@ -226,10 +224,7 @@ export type ChatMessageReactionReceipt = z.infer<typeof chatMessageReactionRecei
  * Cursor selectors stay in the browser-safe chat contract entrypoint.
  * Their implementation lives separately to keep this shared module small.
  */
-export {
-    type ChatMessagesInput,
-    chatMessagesInputSchema,
-} from './chat-messages-input.ts';
+export { type ChatMessagesInput, chatMessagesInputSchema } from './chat-messages-input.ts';
 
 export const chatMessagePageSchema = z
     .object({

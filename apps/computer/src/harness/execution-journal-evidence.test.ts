@@ -2,10 +2,12 @@ import { afterAll, afterEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+
 import {
     EXECUTION_JOURNAL_REASONING_MAX_BLOCKS,
     EXECUTION_JOURNAL_REASONING_MAX_CHARS,
 } from '@haus/api';
+
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { createComputerActivityProjector } from './activity-projector.ts';

@@ -8,6 +8,7 @@
 //          .perf/results-prod-cpu1.json .perf/baseline/results-prod-cpu4.json \
 //          .perf/results-prod-cpu4.json
 import { readFileSync } from 'node:fs';
+
 import { maxOf, stats } from './stats.mjs';
 
 const files = process.argv.slice(2);

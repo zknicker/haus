@@ -3,6 +3,7 @@ import {
     agentImageGenerationGetInputSchema,
 } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
+
 import {
     ImageGenerationNoKeyError,
     ImageGenerationNonceConflictError,

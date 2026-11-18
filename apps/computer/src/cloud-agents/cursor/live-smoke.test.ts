@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { cloudAgentObservationSchema, isTerminalCloudAgentStatus } from '@haus/api';
+
 import type { CloudAgentRunRef } from '../provider.ts';
 import { createCursorCloudAgentProvider } from './provider.ts';
 import { createCursorSdkTransport } from './sdk-transport.ts';

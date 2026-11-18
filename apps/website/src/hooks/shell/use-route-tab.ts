@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+
 import { appRoutes } from '../../lib/app-routes.ts';
 
 export const routeTabs = [

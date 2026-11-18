@@ -1,4 +1,5 @@
 import type { TokenUsageOverview } from '@haus/api';
+
 import { formatUsageDay, usageDatesThroughToday } from './token-usage-view.ts';
 
 export interface AgentUsageDay {

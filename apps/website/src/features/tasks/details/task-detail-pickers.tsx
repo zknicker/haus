@@ -1,9 +1,10 @@
 import type { Task } from '@haus/api';
-import { Button, Calendar, DatePicker, Label, ListBox } from '@heroui/react';
 import { InlineSelect } from '@heroui-pro/react/inline-select';
+import { Button, Calendar, DatePicker, Label, ListBox } from '@heroui/react';
 import { Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { parseDate } from '@internationalized/date';
 import type * as React from 'react';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useTaskLabels } from '../../../hooks/servers/use-task-labels.ts';
 import { useUpdateTask } from '../../../hooks/tasks/use-update-task.ts';
@@ -110,7 +111,7 @@ export function TaskLabelsPicker({ task }: { task: TaskFields }) {
                         <TaskLabelChips labelIds={task.labelIds} />
                     </span>
                 ) : (
-                    <span className="truncate text-muted text-sm">
+                    <span className="text-muted truncate text-sm">
                         {labels.length === 0 ? 'No labels yet' : 'Add labels'}
                     </span>
                 )}

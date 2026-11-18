@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+
 import { groupAgentItems } from './chat-transcript-item-utils.ts';
 import type { TranscriptItem } from './chat-transcript-model.ts';
 

@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { githubTriggerEventsSchema } from '@haus/api';
+
 import { matchesGithubEvents } from '../src/github/trigger-matching.ts';
 import { matchesPattern, matchesSelection } from '../src/github/trigger-pattern.ts';
 

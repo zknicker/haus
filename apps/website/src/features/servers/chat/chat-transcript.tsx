@@ -1,12 +1,13 @@
 import * as React from 'react';
+
 import { useMessageScrollerVisibility } from '../../../components/chats/message-scroller.tsx';
 import { useTabPresence } from '../../../hooks/desktop-tabs/tab-presence.ts';
 import {
     getHighestVisibleSequence,
     getTranscriptEntrySequences,
 } from '../../chats/chat-read-visibility.ts';
-import { ChatTranscriptPresentation } from '../../chats/chat-transcript.tsx';
 import { buildTranscriptEntries } from '../../chats/chat-transcript-model.ts';
+import { ChatTranscriptPresentation } from '../../chats/chat-transcript.tsx';
 import type { TranscriptRenderWindowHandle } from '../../chats/use-transcript-render-window.ts';
 import { ChatSendScroll } from './chat-send-scroll.tsx';
 import type { ChatTranscriptInput } from './chat-transcript-input.ts';
@@ -50,7 +51,7 @@ export function ChatTranscript({
                     <>
                         {leadingContent}
                         {downloadError ? (
-                            <p className="px-2 text-danger text-sm">{downloadError}</p>
+                            <p className="text-danger px-2 text-sm">{downloadError}</p>
                         ) : null}
                     </>
                 }

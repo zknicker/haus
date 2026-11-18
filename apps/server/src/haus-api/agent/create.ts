@@ -1,5 +1,6 @@
 import { agentCreatedSchema, createAgentInputSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
+
 import { AvatarRejectedError } from '../../avatars/avatar-errors.ts';
 import { publishRealtime } from '../../realtime/topic.ts';
 import { agentUpdatedTopic } from '../../realtime/topics.ts';

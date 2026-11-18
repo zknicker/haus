@@ -6,6 +6,7 @@ import {
     ChartHistogramIcon,
     DatabaseIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import type { TokenTotals } from './token-usage-view.ts';
 
@@ -48,7 +49,7 @@ function TokenKpi({
             <KPI.Header>
                 {/* KPI.Icon is a 32px status-tinted box; a neutral metric takes
                     the bare muted glyph the KPI anatomy uses instead. */}
-                <Icon className="size-4 text-muted" icon={icon} />
+                <Icon className="text-muted size-4" icon={icon} />
                 <KPI.Title>{title}</KPI.Title>
             </KPI.Header>
             <KPI.Content>

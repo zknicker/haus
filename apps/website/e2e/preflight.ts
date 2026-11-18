@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+
 import { chromium } from '@playwright/test';
 
 const workspaceRoot = fileURLToPath(new URL('../../../', import.meta.url));

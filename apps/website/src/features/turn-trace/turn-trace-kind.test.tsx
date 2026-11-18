@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+
 import type { AgentExecutionJournal, AgentExecutionJournalTool } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { TurnTracePresentation } from './turn-trace.tsx';
+
 import { traceKindFill, traceKindText, traceToolKind } from './turn-trace-kind.ts';
 import { barTone } from './turn-trace-track.tsx';
+import { TurnTracePresentation } from './turn-trace.tsx';
 
 test('each tool kind maps to one trace kind, files and search sharing the file hue', () => {
     assert.equal(traceToolKind('shell'), 'shell');

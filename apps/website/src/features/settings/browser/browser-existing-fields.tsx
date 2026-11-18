@@ -1,6 +1,7 @@
 import type { AgentRuntimeBrowserConnection, AgentRuntimeBrowserSettings } from '@haus/api';
-import { Separator } from '@heroui/react';
 import { ItemCard } from '@heroui-pro/react';
+import { Separator } from '@heroui/react';
+
 import { SettingsFact } from '../layout/settings-text.tsx';
 import { BrowserChoice } from './browser-choice.tsx';
 
@@ -87,7 +88,7 @@ function BrowserFact({ label, value }: { label: string; value: string }) {
             <ItemCard.Content>
                 <ItemCard.Title>{label}</ItemCard.Title>
             </ItemCard.Content>
-            <ItemCard.Action className="w-64 min-w-0 max-w-full shrink">
+            <ItemCard.Action className="w-64 max-w-full min-w-0 shrink">
                 <SettingsFact className="block truncate text-right" title={value}>
                     {value}
                 </SettingsFact>

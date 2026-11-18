@@ -8,6 +8,7 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Dialog, Modal, ModalOverlay } from 'react-aria-components';
+
 import { cn } from '../../lib/utils.ts';
 import { Icon } from '../ui/icon.tsx';
 import { type ImageSize, useLightboxZoom } from './image-lightbox-zoom.ts';
@@ -74,12 +75,12 @@ export function ImageLightbox({
 
     return (
         <ModalOverlay
-            className="data-entering:fade-in data-exiting:fade-out fixed inset-0 z-50 bg-black/76 backdrop-blur-md data-entering:animate-in data-exiting:animate-out"
+            className="data-entering:fade-in data-exiting:fade-out data-entering:animate-in data-exiting:animate-out fixed inset-0 z-50 bg-black/76 backdrop-blur-md"
             isDismissable
             isOpen={open}
             onOpenChange={onOpenChange}
         >
-            <Modal className="data-entering:fade-in data-exiting:fade-out data-entering:zoom-in-95 data-exiting:zoom-out-95 fixed inset-0 z-50 data-entering:animate-in data-exiting:animate-out">
+            <Modal className="data-entering:fade-in data-exiting:fade-out data-entering:zoom-in-95 data-exiting:zoom-out-95 data-entering:animate-in data-exiting:animate-out fixed inset-0 z-50">
                 <Dialog aria-label={title} className="flex h-dvh flex-col text-white outline-none">
                     {/* The header owns the actions, so nothing below ever tucks under them. */}
                     <div className="flex h-16 shrink-0 items-center gap-3 pr-4 pl-24">
@@ -143,7 +144,7 @@ export function ImageLightbox({
                             />
                         </div>
                         {details ? (
-                            <aside className="z-20 mx-4 mb-4 max-h-[40%] shrink-0 overflow-auto rounded-2xl bg-surface p-5 text-foreground md:mt-2 md:mb-6 md:max-h-none md:w-80 md:self-start">
+                            <aside className="bg-surface text-foreground z-20 mx-4 mb-4 max-h-[40%] shrink-0 overflow-auto rounded-2xl p-5 md:mt-2 md:mb-6 md:max-h-none md:w-80 md:self-start">
                                 {details}
                             </aside>
                         ) : null}
@@ -268,7 +269,7 @@ function ImageZoomControls({
     zoomLabel: string;
 }) {
     return (
-        <div className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center rounded-full border border-white/15 bg-white text-neutral-950 shadow-black/20 shadow-lg">
+        <div className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center rounded-full border border-white/15 bg-white text-neutral-950 shadow-lg shadow-black/20">
             <button
                 aria-label="Zoom out"
                 className="inline-flex size-10 items-center justify-center rounded-l-full hover:bg-neutral-100 disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent"
@@ -278,7 +279,7 @@ function ImageZoomControls({
             >
                 <Icon icon={MinusSignIcon} size={18} strokeWidth={2} />
             </button>
-            <div className="min-w-16 border-neutral-200 border-x px-3 text-center font-medium text-sm tabular-nums">
+            <div className="min-w-16 border-x border-neutral-200 px-3 text-center text-sm font-medium tabular-nums">
                 {zoomLabel}
             </div>
             <button

@@ -13,6 +13,7 @@ import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-ki
 import { Sidebar } from '@heroui-pro/react';
 import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
+
 import { useChatNavigationEntry } from '../../hooks/servers/use-chats.ts';
 import { channelListModifiers } from './channel-drag-modifiers.ts';
 import { orderChannelIds, readChannelOrder, writeChannelOrder } from './channel-order.ts';
@@ -24,6 +25,7 @@ import {
     type SortableChannel,
     SortableChannelRow,
 } from './sortable-channel-row.tsx';
+
 import './sortable-channel-list.css';
 
 const screenReaderInstructions = {
@@ -232,7 +234,7 @@ function DraggedChannel({ chatId, serverId }: { chatId: string; serverId: string
         return null;
     }
     return (
-        <div className="sidebar__menu-item sortable-channel-overlay shadow-surface ring-1 ring-accent-foreground">
+        <div className="sidebar__menu-item sortable-channel-overlay shadow-surface ring-accent-foreground ring-1">
             <div className="sidebar__menu-item-content">
                 <ChatNavigationRowContent chat={chat} name={chatNavigationName(chat, null)} />
             </div>

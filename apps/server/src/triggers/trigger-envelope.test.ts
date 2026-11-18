@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+
 import { triggerPayloadExcerptMaxChars } from '@haus/api';
+
 import { safeContentType, triggerEnvelope, triggerReceipt } from './trigger-envelope.ts';
 
 const base = {

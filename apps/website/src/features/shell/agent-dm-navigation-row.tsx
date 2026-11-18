@@ -1,6 +1,7 @@
 import { Sidebar } from '@heroui-pro/react';
 import { mergeRefs } from '@react-aria/utils';
 import * as React from 'react';
+
 import { UnreadCountChip } from '../../components/chats/unread-count-chip.tsx';
 import { useAgentMark } from '../../hooks/members/use-agents.ts';
 import { usePreloadAgentRecord } from '../../hooks/members/use-preload-agent-profile.ts';
@@ -71,7 +72,7 @@ export const AgentDmNavigationRow = React.memo(function AgentDmNavigationRow({
                 </Sidebar.MenuIcon>
                 <Sidebar.MenuItemContent>
                     <Sidebar.MenuLabel
-                        className={cn('ms-[2px]', unreadCount > 0 && 'font-medium text-foreground')}
+                        className={cn('ms-[2px]', unreadCount > 0 && 'text-foreground font-medium')}
                     >
                         {agent.displayName}
                     </Sidebar.MenuLabel>

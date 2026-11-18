@@ -3,6 +3,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { requireCompiledIcon, syncOptionalAssetCatalog } from './lib/macos-app-icon.mjs';
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));

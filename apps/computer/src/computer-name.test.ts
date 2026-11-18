@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { normalizeComputerName } from './computer-name.ts';
 
 test('normalizes local hostnames for customer-facing Computer names', () => {

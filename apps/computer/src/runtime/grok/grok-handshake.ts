@@ -1,8 +1,9 @@
 import * as z from 'zod';
+
 import { computerVersion } from '../../build-identity.ts';
 import type { HostToolMcpDescriptor } from '../../host-tools/mcp-server.ts';
-import { JsonRpcRequestError } from '../json-rpc.ts';
 import type { JsonRpcConnection } from '../json-rpc-connection.ts';
+import { JsonRpcRequestError } from '../json-rpc.ts';
 import { RuntimeResumeRejectedError } from '../resume-rejected.ts';
 import { type GrokCredential, grokAuthMethod } from './grok-auth.ts';
 import { grokSessionMeta } from './grok-launch.ts';

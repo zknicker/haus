@@ -1,4 +1,5 @@
 import { afterAll, expect, test } from 'bun:test';
+
 import {
     type Client as MCPClient,
     ProtocolError,
@@ -7,6 +8,7 @@ import {
     SdkHttpError,
     UnauthorizedError,
 } from '@modelcontextprotocol/client';
+
 import { makeServerRuntime } from '../server-runtime.ts';
 import { McpClientCache } from './client-cache.ts';
 import { classifyMcpClientFailure } from './client-failure.ts';

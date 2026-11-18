@@ -1,5 +1,6 @@
 import { AGENT_IDEMPOTENCY_KEY_REUSED } from '@haus/api';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+
 import { ChatArchivedError } from '../chats/chat-access.ts';
 import { resolveRunnerCredential } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';

@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { Agent, AgentLifecycleEvent } from '@haus/api';
+
 import { projectAgentAvailability } from './use-agent-lifecycle.ts';
 
 const agent = {

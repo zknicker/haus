@@ -1,8 +1,9 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createMcpPresetAccount } from '../src/server-mcp/presets.ts';
-import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { makeClient } from '../src/server-mcp/runtime-test-fixtures.ts';
+import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { makeServerRuntime } from '../src/server-runtime.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';

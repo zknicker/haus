@@ -1,7 +1,9 @@
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+
 import { afterEach, describe, expect, it } from 'vitest';
+
 import {
     loadClaudeCredentials,
     parseClaudeCredentialsDocument,
@@ -158,20 +160,20 @@ describe('parseClaudeCredentialsDocument', () => {
     });
 });
 
-it.each([
-    'not-json',
-    '{"claudeAiOauth":{}}',
-])('treats unusable Keychain credentials as an authentication failure: %s', async (raw) => {
-    const tempDir = await mkdtemp(path.join(os.tmpdir(), 'claude-usage-'));
-    tempDirs.push(tempDir);
-    await expect(
-        loadClaudeCredentials({
-            homeDir: tempDir,
-            platform: 'darwin',
-            readKeychain: async () => raw,
-        })
-    ).rejects.toMatchObject({ name: 'ClaudeUsageAuthError' });
-});
+it.each(['not-json', '{"claudeAiOauth":{}}'])(
+    'treats unusable Keychain credentials as an authentication failure: %s',
+    async (raw) => {
+        const tempDir = await mkdtemp(path.join(os.tmpdir(), 'claude-usage-'));
+        tempDirs.push(tempDir);
+        await expect(
+            loadClaudeCredentials({
+                homeDir: tempDir,
+                platform: 'darwin',
+                readKeychain: async () => raw,
+            })
+        ).rejects.toMatchObject({ name: 'ClaudeUsageAuthError' });
+    }
+);
 
 it('treats an invalid credential file as an authentication failure', async () => {
     const tempDir = await mkdtemp(path.join(os.tmpdir(), 'claude-usage-'));

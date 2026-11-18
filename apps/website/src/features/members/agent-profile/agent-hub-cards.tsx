@@ -8,6 +8,7 @@ import {
     Plug01Icon,
     UserIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
+
 import { useAgentCloudAutomations } from '../../../hooks/members/use-agent-cloud-automations.ts';
 import { useAgentReminders } from '../../../hooks/members/use-agent-reminders.ts';
 import { useAgentTriggers } from '../../../hooks/members/use-agent-triggers.ts';
@@ -66,7 +67,7 @@ export function AgentHubCards({
         <ItemCardGroup
             // The column count is the component's own variable; only its
             // breakpoints move to the container (Tailwind container queries).
-            className="@[40rem]:[--item-card-group-columns:2] @[60rem]:[--item-card-group-columns:3] [--item-card-group-columns:1]"
+            className="[--item-card-group-columns:1] @[40rem]:[--item-card-group-columns:2] @[60rem]:[--item-card-group-columns:3]"
             layout="grid"
         >
             <AgentHubCard

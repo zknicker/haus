@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { app, run, split, web } from './desktop-tabs-test-fixtures.ts';
 import { paneHistorySteps } from './use-pane-history.ts';
 

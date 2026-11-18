@@ -6,6 +6,7 @@ import {
 } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, mcpConnectionsTable } from '../postgres/schema.ts';
 

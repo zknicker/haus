@@ -1,4 +1,5 @@
 import type { AgentTurnFailureCode } from '@haus/api';
+
 import { failureFingerprint } from './failure-fingerprint.ts';
 import { AgentSessionResumeRejectedError } from './harness/resume-rejection.ts';
 import { RuntimeSessionFailureError } from './harness/runtime-session-failure.ts';

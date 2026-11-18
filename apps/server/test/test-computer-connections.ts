@@ -1,5 +1,7 @@
 import { afterAll } from 'bun:test';
+
 import { makeTestRuntime } from '@haus/effect';
+
 import { ComputerConnections } from '../src/computers/connections.ts';
 import { makeServerRuntime } from '../src/server-runtime.ts';
 

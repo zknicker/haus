@@ -1,6 +1,7 @@
 import * as z from 'zod';
-import { jsonRpcInvalidParams, jsonRpcMethodNotFound } from '../json-rpc.ts';
+
 import { JsonRpcHandlerError, type JsonRpcRequestHandler } from '../json-rpc-connection.ts';
+import { jsonRpcInvalidParams, jsonRpcMethodNotFound } from '../json-rpc.ts';
 
 const permissionRequestSchema = z.looseObject({
     options: z.array(z.looseObject({ kind: z.string(), optionId: z.string().min(1) })),

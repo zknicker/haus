@@ -1,10 +1,11 @@
 import { expect, test } from 'bun:test';
+
 import { agentStartCommandSchema } from './agent-delivery-frames.ts';
+import { signatureEmojiInputSchema, signatureEmojiRule } from './agent-profile-text.ts';
 import {
     agentSelfProfileUpdateInputSchema,
     updateAgentConversationStyleInputSchema,
 } from './agent-profile.ts';
-import { signatureEmojiInputSchema, signatureEmojiRule } from './agent-profile-text.ts';
 
 const target = { agentId: 'agt_1', serverId: 'srv_1' };
 

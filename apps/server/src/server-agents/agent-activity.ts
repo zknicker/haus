@@ -1,5 +1,6 @@
 import type { AgentActivityEvent, AgentActivityFrame } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentActivityTable, agentDeliveryTable, agentsTable } from '../postgres/schema.ts';

@@ -1,11 +1,12 @@
 import { afterAll, beforeAll, expect, spyOn, test } from 'bun:test';
+
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { mcpUpdatedTopic } from '../src/realtime/topics.ts';
 import { cacheAnonymousMcpIcons } from '../src/server-mcp/icon-cache.ts';
 import { repairMcpConnectionIcons } from '../src/server-mcp/icon-repair.ts';
 import { createMcpPresetAccount, resolveMcpPresetIcons } from '../src/server-mcp/presets.ts';
-import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { makeClient } from '../src/server-mcp/runtime-test-fixtures.ts';
+import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { disconnectMcpConnection, refreshMcpConnection } from '../src/server-mcp/service.ts';
 import { listMcpConnections } from '../src/server-mcp/state.ts';
 import { makeServerRuntime } from '../src/server-runtime.ts';
@@ -51,60 +52,70 @@ afterAll(async () => {
     await harness?.close();
 });
 
-test.each([
-    'merchbase-atlas',
-    'merchbase-fulfillment',
-] as const)('%s keeps its Recommended branding through account lifecycle and legacy reads', async (preset) => {
-    const catalog = await resolveMcpPresetIcons(resolveIcon);
-    const recommended = catalog.find((entry) => entry.preset === preset)?.icon;
-    expect(recommended).toEqual(icon);
-    const beforeAdd = resolutions;
-    const added = await createMcpPresetAccount(database.db, runtime, resolveIcon, member, {
-        name: preset,
-        preset,
-        serverId,
-    });
-    expect(added).toMatchObject({ connected: false, icon: recommended, grants: [], tools: [] });
-    expect(resolutions).toBe(beforeAdd);
-    const input = { connectionId: added.id, serverId };
-    expect(await owner.trpc.mcp.list.query({ serverId })).toContainEqual(added);
+test.each(['merchbase-atlas', 'merchbase-fulfillment'] as const)(
+    '%s keeps its Recommended branding through account lifecycle and legacy reads',
+    async (preset) => {
+        const catalog = await resolveMcpPresetIcons(resolveIcon);
+        const recommended = catalog.find((entry) => entry.preset === preset)?.icon;
+        expect(recommended).toEqual(icon);
+        const beforeAdd = resolutions;
+        const added = await createMcpPresetAccount(database.db, runtime, resolveIcon, member, {
+            name: preset,
+            preset,
+            serverId,
+        });
+        expect(added).toMatchObject({ connected: false, icon: recommended, grants: [], tools: [] });
+        expect(resolutions).toBe(beforeAdd);
+        const input = { connectionId: added.id, serverId };
+        expect(await owner.trpc.mcp.list.query({ serverId })).toContainEqual(added);
 
-    const connected = await refreshMcpConnection(database.db, runtime, resolveIcon, member, input);
-    expect(connected).toMatchObject({ connected: true, icon: recommended });
-    const disconnected = await disconnectMcpConnection(database.db, runtime, member, input);
-    expect(disconnected).toMatchObject({ connected: false, accountLabel: null, icon: recommended });
-    expect(await owner.trpc.mcp.list.query({ serverId })).toContainEqual(
-        expect.objectContaining({ id: added.id, icon: recommended, connected: false })
-    );
+        const connected = await refreshMcpConnection(
+            database.db,
+            runtime,
+            resolveIcon,
+            member,
+            input
+        );
+        expect(connected).toMatchObject({ connected: true, icon: recommended });
+        const disconnected = await disconnectMcpConnection(database.db, runtime, member, input);
+        expect(disconnected).toMatchObject({
+            connected: false,
+            accountLabel: null,
+            icon: recommended,
+        });
+        expect(await owner.trpc.mcp.list.query({ serverId })).toContainEqual(
+            expect.objectContaining({ id: added.id, icon: recommended, connected: false })
+        );
 
-    const refreshed = await refreshMcpConnection(
-        database.db,
-        runtime,
-        async () => null,
-        member,
-        input
-    );
-    expect(refreshed.icon).toEqual(recommended);
+        const refreshed = await refreshMcpConnection(
+            database.db,
+            runtime,
+            async () => null,
+            member,
+            input
+        );
+        expect(refreshed.icon).toEqual(recommended);
 
-    // A row stored without branding stays a pure read: no lookup, no recovery on list.
-    await harness.sql`update mcp_connections set icon = null, connected = false where id = ${added.id}`;
-    const beforeList = resolutions;
-    expect(await listMcpConnections(database.db, member, serverId)).toContainEqual(
-        expect.objectContaining({ id: added.id, icon: null, connected: false })
-    );
-    expect(resolutions).toBe(beforeList);
+        // A row stored without branding stays a pure read: no lookup, no recovery on list.
+        await harness.sql`update mcp_connections set icon = null, connected = false where id = ${added.id}`;
+        const beforeList = resolutions;
+        expect(await listMcpConnections(database.db, member, serverId)).toContainEqual(
+            expect.objectContaining({ id: added.id, icon: null, connected: false })
+        );
+        expect(resolutions).toBe(beforeList);
 
-    // The startup repair restores it and tells the App's update stream.
-    const updates = mcpUpdatedTopic.subscribe();
-    const announced = updates.next();
-    expect((await repairMcpConnectionIcons(database.db, resolveIcon)).repaired).toBe(1);
-    expect((await announced).value?.event).toEqual({ serverId });
-    await updates.return(undefined);
-    expect(await listMcpConnections(database.db, member, serverId)).toContainEqual(
-        expect.objectContaining({ id: added.id, icon: recommended, connected: false })
-    );
-    await owner.trpc.mcp.delete.mutate(input);
-});
+        // The startup repair restores it and tells the App's update stream.
+        const updates = mcpUpdatedTopic.subscribe();
+        const announced = updates.next();
+        expect((await repairMcpConnectionIcons(database.db, resolveIcon)).repaired).toBe(1);
+        expect((await announced).value?.event).toEqual({ serverId });
+        await updates.return(undefined);
+        expect(await listMcpConnections(database.db, member, serverId)).toContainEqual(
+            expect.objectContaining({ id: added.id, icon: recommended, connected: false })
+        );
+        await owner.trpc.mcp.delete.mutate(input);
+    }
+);
 
 test('listing connections never resolves icons, even for rows missing branding', async () => {
     const added = await createMcpPresetAccount(database.db, runtime, resolveIcon, member, {

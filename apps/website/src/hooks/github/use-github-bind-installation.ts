@@ -1,4 +1,5 @@
 import { toast } from '@heroui/react';
+
 import { hausTrpc } from '../../lib/haus-server.tsx';
 
 /** "Add existing installation": binds an owner-checked candidate to the connection. */

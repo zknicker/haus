@@ -1,4 +1,5 @@
 import type { TokenUsageOverview } from '@haus/api';
+
 import {
     agentSeriesColorMap,
     agentSeriesColors,

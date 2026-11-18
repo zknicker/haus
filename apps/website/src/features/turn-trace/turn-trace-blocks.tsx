@@ -1,6 +1,7 @@
-import { Button } from '@heroui/react';
 import { CodeBlock } from '@heroui-pro/react/code-block';
+import { Button } from '@heroui/react';
 import * as React from 'react';
+
 import { MicroLabel } from '../../components/micro-label.tsx';
 import { cn } from '../../lib/utils.ts';
 import { formatTraceFold } from './turn-trace-fold.ts';
@@ -107,7 +108,7 @@ export function TurnTraceFact({ label, value }: { label: string; value: string }
                 <MicroLabel>{label}</MicroLabel>
             </dt>
             <dd
-                className="min-w-0 truncate font-mono text-foreground text-xs"
+                className="text-foreground min-w-0 truncate font-mono text-xs"
                 data-selectable-text=""
             >
                 {value}
@@ -118,7 +119,7 @@ export function TurnTraceFact({ label, value }: { label: string; value: string }
 
 export function TurnTraceNote({ children }: { children: React.ReactNode }) {
     // On the rows' own inline pad, so a note starts where their icons do.
-    return <p className="px-2 text-muted text-sm">{children}</p>;
+    return <p className="text-muted px-2 text-sm">{children}</p>;
 }
 
 /**
@@ -135,7 +136,7 @@ export function TurnTraceProse({ text }: { text: string }) {
         <div className="grid w-full min-w-0 justify-items-start gap-1">
             <p
                 className={cn(
-                    'max-w-prose whitespace-pre-wrap break-words text-muted text-sm',
+                    'text-muted max-w-prose text-sm break-words whitespace-pre-wrap',
                     foldable && !expanded && 'line-clamp-3'
                 )}
                 data-selectable-text=""

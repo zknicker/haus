@@ -1,8 +1,9 @@
 import { ARTIFACT_REVISION_RETENTION_DAYS } from '@haus/api';
-import { Button, Chip, Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Button, Chip, Separator } from '@heroui/react';
 import { Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { useArtifactRestore } from '../../hooks/artifacts/use-artifact-restore.ts';
 import { useArtifactVersions } from '../../hooks/artifacts/use-artifact-versions.ts';
 import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';

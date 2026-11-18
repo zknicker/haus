@@ -1,7 +1,8 @@
 import type { ServerInvitation, ServerInvitationStatus } from '@haus/api/membership';
-import { Button, Chip, Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Button, Chip, Separator } from '@heroui/react';
 import { Fragment } from 'react';
+
 import {
     useServerInvitationCommands,
     useServerInvitations,
@@ -32,7 +33,7 @@ export function ServerInvitationsSection({ serverId }: { serverId: string }) {
                 <ItemCardGroup.Title>
                     Invitations
                     {invitations.data ? (
-                        <span className="ms-2 text-muted tabular-nums">{pending}</span>
+                        <span className="text-muted ms-2 tabular-nums">{pending}</span>
                     ) : null}
                 </ItemCardGroup.Title>
                 <InvitePopover serverId={serverId} />
@@ -43,7 +44,7 @@ export function ServerInvitationsSection({ serverId }: { serverId: string }) {
                     <span className="sr-only">Loading invitations</span>
                 </div>
             ) : invitations.error && !invitations.data ? (
-                <p className="px-4 text-danger text-sm" role="alert">
+                <p className="text-danger px-4 text-sm" role="alert">
                     {invitations.error.message}
                 </p>
             ) : items.length > 0 ? (

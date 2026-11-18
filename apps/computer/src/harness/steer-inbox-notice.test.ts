@@ -2,8 +2,10 @@ import { afterAll, afterEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { makeLifecycleLoggerLayer } from '@haus/effect';
 import { ManagedRuntime } from 'effect';
+
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import type { RuntimeSession, SteerResult } from '../runtime/driver.ts';
 import { createNoticeDelivery, steerInboxNotice } from './steer-inbox-notice.ts';

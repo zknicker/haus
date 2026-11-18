@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { coverBrowserViews } from '../../lib/desktop-browser.ts';
 
 /**

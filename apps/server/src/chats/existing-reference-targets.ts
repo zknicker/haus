@@ -5,6 +5,7 @@ import {
     parseHausRichReferences,
     parseUserReferenceTarget,
 } from '@haus/api';
+
 import type { MessageReferenceTarget } from './message-reference-targets.ts';
 
 export interface ParticipantReferenceTarget {

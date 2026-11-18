@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+
 import { useTabPresence } from '../desktop-tabs/tab-presence.ts';
 
 const baseTitle = 'Haus';

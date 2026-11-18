@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { cn } from '../../lib/utils.ts';
 
 /**
@@ -65,7 +66,7 @@ function ActionCardRoot({
         <article
             className={cn(
                 // Fills the shared in-chat column (`--chat-card-width`), so it
-                'card-shell mt-1.5 flex w-full max-w-(--chat-card-width) flex-col gap-2 border border-separator bg-nested-surface p-3',
+                'card-shell border-separator bg-nested-surface mt-1.5 flex w-full max-w-(--chat-card-width) flex-col gap-2 border p-3',
                 className
             )}
             data-action-kind={actionKind}
@@ -121,7 +122,7 @@ function ActionCardTitle({ children, className, ...props }: React.ComponentProps
     return (
         <div
             className={cn(
-                'flex min-w-0 items-center gap-2 font-medium text-foreground text-sm leading-5',
+                'text-foreground flex min-w-0 items-center gap-2 text-sm leading-5 font-medium',
                 className
             )}
             data-slot="title"
@@ -155,7 +156,7 @@ function ActionCardStatus({ className, ...props }: React.ComponentProps<'span'>)
 function ActionCardDescription({ className, ...props }: React.ComponentProps<'div'>) {
     return (
         <div
-            className={cn('min-w-0 truncate text-muted text-sm leading-5', className)}
+            className={cn('text-muted min-w-0 truncate text-sm leading-5', className)}
             data-slot="description"
             {...props}
         />

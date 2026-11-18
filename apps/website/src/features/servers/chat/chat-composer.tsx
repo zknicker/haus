@@ -1,6 +1,7 @@
 import { PromptInput } from '@heroui-pro/react';
 import { Attachment01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentAppearances } from '../../../hooks/members/use-agents.ts';
 import { useChatMessageSend } from '../../../hooks/servers/use-chat-message-send.ts';
@@ -260,7 +261,7 @@ export function ServerChatComposer({
                     shell, which clips its overflow. */}
                 <MentionComposerPicker composer={mentionComposer} />
             </PromptInput>
-            {errorMessage ? <p className="mt-2 text-danger text-sm">{errorMessage}</p> : null}
+            {errorMessage ? <p className="text-danger mt-2 text-sm">{errorMessage}</p> : null}
         </div>
     );
 

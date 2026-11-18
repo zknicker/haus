@@ -2,12 +2,14 @@ import { expect, test } from 'bun:test';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { ClaudeUsageRequestError, type ClaudeUsageSnapshot } from '@haus/claude-usage';
-import { createClaudePlanUsageReader } from './claude-plan-usage.ts';
+
 import {
     claimClaudeSdkUsageRefresh,
     saveClaudePlanUsageSnapshot,
 } from './claude-plan-usage-state.ts';
+import { createClaudePlanUsageReader } from './claude-plan-usage.ts';
 
 const snapshot: ClaudeUsageSnapshot = {
     capturedAt: '2026-08-14T15:00:00.000Z',

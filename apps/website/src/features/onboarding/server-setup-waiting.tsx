@@ -1,5 +1,6 @@
 import { Button } from '@heroui/react';
 import { useNavigate } from 'react-router-dom';
+
 import { ActivationShell, ActivationStep } from '../../components/activation/activation-shell.tsx';
 import { useSignOut } from '../auth/use-sign-out.ts';
 

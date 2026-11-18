@@ -8,6 +8,7 @@ import {
     wsLink,
 } from '@trpc/client';
 import { WebSocket } from 'ws';
+
 import type { HausRouter } from '../src/haus-api/router.ts';
 import type { HausServerHarness } from './haus-server-harness.ts';
 

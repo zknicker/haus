@@ -4,6 +4,7 @@ import {
     type ServerMemberAction,
 } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { serverMembershipsTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';

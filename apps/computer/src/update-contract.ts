@@ -1,9 +1,6 @@
 import { computerHeartbeatAckSchema, computerHeartbeatConfigurationSchema } from '@haus/api';
 
-export {
-    computerBootstrapProtocolVersion,
-    computerProtocolVersion,
-} from '@haus/api';
+export { computerBootstrapProtocolVersion, computerProtocolVersion } from '@haus/api';
 
 export type ComputerUpdatePhase =
     | 'available'

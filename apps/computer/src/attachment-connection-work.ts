@@ -1,5 +1,6 @@
 import { asError, settle } from '@haus/effect';
 import { type Duration, Effect, Exit, Schedule, Scope } from 'effect';
+
 import type { DaemonRuntime } from './daemon-runtime.ts';
 
 /** Owns recurring work that must stop with one attachment WebSocket. */

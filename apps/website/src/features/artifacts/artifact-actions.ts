@@ -1,5 +1,4 @@
 import type { ArtifactCreator } from '@haus/api';
-import type { HugeiconsIconProps } from '@hugeicons/react';
 import {
     ArrowUpRight01Icon,
     Copy01Icon,
@@ -17,6 +16,7 @@ import {
     Unlink02Icon,
     WorkHistoryIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
+import type { HugeiconsIconProps } from '@hugeicons/react';
 
 /**
  * Every action a file or folder offers, defined once. The row ⋮ menu, the

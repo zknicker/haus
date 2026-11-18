@@ -1,11 +1,13 @@
 import { describe, expect, test } from 'bun:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
-import { HausGhost } from './haus-ghost.tsx';
+
 import { GHOST_FIGURE } from './haus-ghost-figure.ts';
+import { HausGhost } from './haus-ghost.tsx';
 import { HausPumpkin } from './haus-pumpkin.tsx';
-import { HausSantaGhost } from './haus-santa-ghost.tsx';
 import { SANTA_GHOST_FIGURE, SANTA_PIECES } from './haus-santa-ghost-palette.ts';
 import { SANTA_FRAME } from './haus-santa-ghost-paths.ts';
+import { HausSantaGhost } from './haus-santa-ghost.tsx';
 
 const iridescent = (props: { animated?: boolean } = {}) =>
     renderToStaticMarkup(<HausSantaGhost fill="iridescent" {...props} />);

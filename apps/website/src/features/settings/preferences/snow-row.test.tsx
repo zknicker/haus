@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { selectColorTheme } from '../../../hooks/shell/use-color-theme.ts';
 import { getRooflineSnow, selectRooflineSnow } from '../../../hooks/shell/use-roofline-snow.ts';
 import { colorThemes } from '../../../lib/color-themes.ts';

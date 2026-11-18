@@ -1,6 +1,7 @@
 import * as z from 'zod';
-import { chatMessageSchema } from './chat.ts';
+
 import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
+import { chatMessageSchema } from './chat.ts';
 
 export const chatSearchInputSchema = z
     .object({

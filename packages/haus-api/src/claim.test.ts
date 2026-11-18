@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
-import { claimAssigneeRefSchema, claimCreateInputSchema, claimUpdateInputSchema } from './claim.ts';
+
 import { messageClaimSchema } from './claim-shared.ts';
+import { claimAssigneeRefSchema, claimCreateInputSchema, claimUpdateInputSchema } from './claim.ts';
 
 test('claims are held by Agents only', () => {
     expect(claimAssigneeRefSchema.safeParse({ agentId: 'agt_orbit' }).success).toBe(true);

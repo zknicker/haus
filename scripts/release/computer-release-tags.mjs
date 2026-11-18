@@ -1,4 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
+
 import { computerProtocolVersion } from './computer-release-contract.mjs';
 import { fail, repoRoot } from './release-utils.mjs';
 

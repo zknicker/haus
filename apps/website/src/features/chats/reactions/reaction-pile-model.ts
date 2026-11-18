@@ -1,4 +1,5 @@
 import type { ChatMessageReaction } from '@haus/api';
+
 import { reactionKey } from '../../../hooks/servers/fresh-reactions.ts';
 
 export type ReactionActor = ChatMessageReaction['actors'][number];

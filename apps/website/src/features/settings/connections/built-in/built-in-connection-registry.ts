@@ -1,4 +1,5 @@
 import type { McpPreset } from '@haus/api';
+
 import type { BuiltInConnectionDefinition } from './built-in-connection-definition.ts';
 import { githubConnectionDefinition } from './github/github-connection-definition.ts';
 

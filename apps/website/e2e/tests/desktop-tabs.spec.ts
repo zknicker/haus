@@ -1,4 +1,5 @@
 import type { Locator, Page } from '@playwright/test';
+
 import { createChannelAgent } from '../support/channel-agent.ts';
 import {
     installDesktopBrowserStub,

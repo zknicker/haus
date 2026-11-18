@@ -1,4 +1,5 @@
 import type { Agent, AgentActiveDelegation } from '@haus/api';
+
 import { availabilityLabel } from '../computers/presentation.ts';
 import { formatElapsedSince, type HoverTimedLine } from './agent-hover-activity-model.ts';
 

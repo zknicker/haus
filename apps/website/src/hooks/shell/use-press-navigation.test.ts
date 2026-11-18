@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { bindPressNavigation, isPlainPrimaryPress } from './use-press-navigation.ts';
 
 const plain = {

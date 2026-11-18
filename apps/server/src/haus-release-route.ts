@@ -1,5 +1,6 @@
 import { hausReleaseSnapshotSchema } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
+
 import type { HausReleaseIdentity } from './haus-release-identity.ts';
 
 const productionSnapshotUrl = 'https://releases.haus.chat/haus/latest.json';

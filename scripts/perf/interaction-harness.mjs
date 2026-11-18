@@ -30,6 +30,7 @@
 // characterData mutation for --quiet-ms. summarize.mjs and compare.mjs read the JSON.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+
 import {
     captureAuth,
     defaultBase,

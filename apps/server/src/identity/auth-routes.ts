@@ -2,6 +2,7 @@ import { type AppAuthError, nativeAppSessionRequestSchema } from '@haus/api/app-
 import { and, eq, gt } from 'drizzle-orm';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import * as z from 'zod';
+
 import { browserAuthIntentsTable, nativeAuthIntentsTable } from '../postgres/schema.ts';
 import {
     type AuthRouteDependencies,

@@ -39,7 +39,7 @@ export function InboxSection({
                 // HeroUI's own header-with-trailing-content composition.
                 <ItemCardGroup.Header className="flex items-baseline justify-between gap-3">
                     <ItemCardGroup.Title>{title}</ItemCardGroup.Title>
-                    <span className="shrink-0 text-muted text-xs">{meta}</span>
+                    <span className="text-muted shrink-0 text-xs">{meta}</span>
                 </ItemCardGroup.Header>
             )}
             {children}

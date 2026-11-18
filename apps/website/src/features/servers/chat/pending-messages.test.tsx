@@ -1,6 +1,8 @@
 import { expect, test } from 'bun:test';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { attachmentImageKeys } from '../../../hooks/servers/attachment-image.ts';
 import { buildTranscriptEntries } from '../../chats/chat-transcript-model.ts';
 import { isLocalTimelineMessageMetadata } from '../../chats/local-timeline-message.ts';

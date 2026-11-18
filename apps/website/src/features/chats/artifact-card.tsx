@@ -1,6 +1,7 @@
 import type { WidgetArtifactProps } from '@haus/api/widgets/artifact';
 import { ItemCard } from '@heroui-pro/react';
 import { ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { ArtifactFileIcon } from '../artifacts/icons/artifact-file-icon.tsx';
@@ -64,7 +65,7 @@ export function WidgetArtifactCard({ props }: { props: WidgetArtifactProps }) {
         >
             {body}
             <ItemCard.Action>
-                <Icon aria-hidden className="size-4 text-muted" icon={ArrowRight01Icon} />
+                <Icon aria-hidden className="text-muted size-4" icon={ArrowRight01Icon} />
             </ItemCard.Action>
         </ItemCard>
     );

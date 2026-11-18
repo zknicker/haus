@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
+
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { useTabPresence } from '../desktop-tabs/tab-presence.ts';
 import { useAppForegrounded } from '../shell/use-app-foregrounded.ts';

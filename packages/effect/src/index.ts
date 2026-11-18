@@ -1,8 +1,5 @@
 export { asError, type EffectRuntime, type SettleOptions, settle } from './boundary.ts';
-export {
-    type LifecycleConsole,
-    makeLifecycleLoggerLayer,
-} from './logging.ts';
+export { type LifecycleConsole, makeLifecycleLoggerLayer } from './logging.ts';
 export {
     makeProcessTelemetryLayer,
     makeTelemetryLayer,

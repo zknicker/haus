@@ -1,5 +1,6 @@
 import { Button, Spinner } from '@heroui/react';
 import { useParams } from 'react-router-dom';
+
 import { ActivationShell, ActivationStep } from '../../components/activation/activation-shell.tsx';
 import {
     useAcceptInvitation,
@@ -54,7 +55,7 @@ export function AcceptInvitationPage() {
                 title={`Join ${preview.data.serverDisplayName}`}
             >
                 {accept.error ? (
-                    <p className="text-center text-danger text-sm">{accept.error.message}</p>
+                    <p className="text-danger text-center text-sm">{accept.error.message}</p>
                 ) : null}
             </ActivationStep>
         </ActivationShell>

@@ -1,5 +1,6 @@
 import type { AttachmentReservation, AttachmentReserveInput } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
+
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';

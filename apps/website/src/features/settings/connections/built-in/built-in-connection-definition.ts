@@ -1,5 +1,6 @@
 import type { McpPreset } from '@haus/api';
 import type { ComponentType } from 'react';
+
 import type { McpConnection } from '../../mcp/mcp-server-shared.ts';
 
 /** What every built-in section receives from the connection page. */

@@ -1,4 +1,5 @@
 import { claimPromoteInputSchema, claimPromotionSchema } from '@haus/api';
+
 import { promoteMessageClaim } from '../../claims/promote-claim.ts';
 import { publishRealtime } from '../../realtime/topic.ts';
 import { claimProcedure } from './procedure.ts';

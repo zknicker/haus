@@ -6,6 +6,7 @@ import { describe, expect, test } from 'bun:test';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { AssertionError, createExpect, defineScenario, isScenario } from './scenario.mjs';
 
 describe('expect helper', () => {

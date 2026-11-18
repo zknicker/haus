@@ -1,5 +1,6 @@
 import { visualSizeMessageType } from '@haus/api/widgets/visual/frame';
 import * as React from 'react';
+
 import { visualHeightCache, visualIdentity } from './visual-height-cache.ts';
 
 /**

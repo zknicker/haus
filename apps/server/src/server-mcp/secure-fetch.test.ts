@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test';
+
 import { secureMcpFetch } from './secure-fetch.ts';
 
 const tokenUrl = 'https://github.com/login/oauth/access_token';

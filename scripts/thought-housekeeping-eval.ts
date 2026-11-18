@@ -17,6 +17,7 @@
 // Usage: agent-varlock -- ./node_modules/.bin/varlock run -- bun scripts/thought-housekeeping-eval.ts [--only <ids or prefixes>] [--runs <n>] [--no-request] [--no-previous] [--sequences]
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+
 import {
     createGeminiThoughtSummarizer,
     type ThoughtSource,

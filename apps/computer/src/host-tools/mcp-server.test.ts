@@ -1,5 +1,7 @@
 import { afterEach, expect, test } from 'bun:test';
+
 import * as z from 'zod';
+
 import { defineHostTool, type HostToolSet } from './host-tool.ts';
 import { type HostToolMcpDescriptor, startHostToolServer } from './mcp-server.ts';
 

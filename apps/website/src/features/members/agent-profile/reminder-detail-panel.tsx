@@ -1,7 +1,8 @@
 import { REMINDER_HISTORY_RETENTION_DAYS, type Reminder } from '@haus/api';
-import { Button } from '@heroui/react';
 import { Sheet } from '@heroui-pro/react';
+import { Button } from '@heroui/react';
 import * as React from 'react';
+
 import { useReminderCancel } from '../../../hooks/members/use-reminder-cancel.ts';
 import { SettingsRowError } from '../../settings/layout/settings-text.tsx';
 import { reminderDescription } from './agent-reminder-model.ts';
@@ -45,7 +46,7 @@ export function ReminderDetailPanel({
         <>
             <Sheet.Header>
                 <Sheet.Heading>{reminder.title}</Sheet.Heading>
-                <p className="mt-1.5 text-muted text-sm leading-5">{reminderKindLabel(kind)}</p>
+                <p className="text-muted mt-1.5 text-sm leading-5">{reminderKindLabel(kind)}</p>
             </Sheet.Header>
             <Sheet.Body>
                 <div className="grid grid-cols-[minmax(0,1fr)] gap-6">

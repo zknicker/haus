@@ -5,6 +5,7 @@ import {
     StreamableHTTPClientTransport,
 } from '@modelcontextprotocol/client';
 import type { Scope } from 'effect';
+
 import { hostedConnectorId } from '../hosted-mcp/catalog.ts';
 import { hostedMcpFetch } from '../hosted-mcp/transport.ts';
 import { McpReconnectRequiredError } from './errors.ts';

@@ -1,4 +1,6 @@
 import { expect, test } from 'bun:test';
+
+import golden from './frame-golden.json' with { type: 'json' };
 import {
     agentHtmlSandbox,
     buildVisualSrcDoc,
@@ -6,7 +8,6 @@ import {
     type VisualColorScheme,
     visualHeights,
 } from './frame.ts';
-import golden from './frame-golden.json' with { type: 'json' };
 
 // Captured from the App's builder before it moved here: every host must keep
 // building this exact document, so any byte change is a deliberate re-capture.

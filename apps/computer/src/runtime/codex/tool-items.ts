@@ -21,15 +21,13 @@ export function toolItemStarted(item: CodexItem, context: ToolItemContext): Turn
         case 'fileChange':
             return [
                 { ...builtin(id, 'apply_patch'), input: {}, type: 'tool-call' },
-                ...fileChanges(item, context).map(
-                    (input, index): TurnEvent => ({
-                        ...builtin(fileChangeId(id, index), 'fileChange'),
-                        dynamic: true,
-                        input,
-                        sourceToolCallId: id,
-                        type: 'tool-call',
-                    })
-                ),
+                ...fileChanges(item, context).map((input, index): TurnEvent => ({
+                    ...builtin(fileChangeId(id, index), 'fileChange'),
+                    dynamic: true,
+                    input,
+                    sourceToolCallId: id,
+                    type: 'tool-call',
+                })),
             ];
         case 'mcpToolCall':
             return [

@@ -74,10 +74,10 @@ function applyBrowserPlacements(window, views, placements) {
 function isBounds(value) {
     return Boolean(
         value &&
-            ['x', 'y', 'width', 'height'].every(
-                (key) => Number.isFinite(value[key]) && value[key] >= 0
-            ) &&
-            (value.radius === undefined || (Number.isFinite(value.radius) && value.radius >= 0))
+        ['x', 'y', 'width', 'height'].every(
+            (key) => Number.isFinite(value[key]) && value[key] >= 0
+        ) &&
+        (value.radius === undefined || (Number.isFinite(value.radius) && value.radius >= 0))
     );
 }
 

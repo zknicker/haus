@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { ServerErrorView } from '../../routes/app/server-error-page.tsx';
 import { serverRoute } from '../servers/server-routes.ts';
 import { useDesktopShell } from './use-tab-navigator.ts';

@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { colorThemeDefinition, type DayPart } from '../../../lib/color-themes.ts';
 import { greetingLine } from './inbox-greeting.ts';
 

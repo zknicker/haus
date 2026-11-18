@@ -9,6 +9,7 @@ import {
 } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
 import { and, eq, sql } from 'drizzle-orm';
+
 import {
     runLivenessClaimEvents,
     settleAgentBackgroundClaims,
@@ -24,8 +25,8 @@ import {
     settleReminderScript,
 } from '../reminders/reminder-script-delivery.ts';
 import { recordReminderWakeUsage } from '../reminders/reminder-wake-usage.ts';
-import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import { readActiveAgentActivity } from '../server-agents/agent-activity-history.ts';
+import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import type { AgentConfigurationRotation } from '../server-agents/configure-agent.ts';
 import { recordAgentTurnSummary, recordRunTrigger } from '../server-agents/record-agent-turn.ts';
 import { lockServerRow } from '../servers/server-lock.ts';

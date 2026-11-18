@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import type { AgentInboxItem } from './agent-inbox-item.ts';
 import { composeInboxDrain, composeInboxNotice } from './inbox-format.ts';
 

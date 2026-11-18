@@ -1,5 +1,7 @@
 import { afterAll, expect, test } from 'bun:test';
+
 import * as React from 'react';
+
 import { installFakeDom } from '../../../test-support/fake-dom.ts';
 
 // A stamped sticker renders its burst and its glyph side by side, both keyed by

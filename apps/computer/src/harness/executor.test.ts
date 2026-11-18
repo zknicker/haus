@@ -2,9 +2,11 @@ import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { seedCoveWorkspace } from '@haus/agent-workspace';
 import { hausAgentVersion } from '@haus/api';
 import type { ClaudeUsageSnapshot } from '@haus/claude-usage';
+
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { composeInboxDrain, composeInboxNotice } from '../inbox-format.ts';
@@ -16,13 +18,13 @@ import { fakeRuntimeDriver } from '../runtime/testing/fake-runtime-driver.ts';
 import type { RuntimeTokenUsage, TurnEvent } from '../runtime/turn-event.ts';
 import { readClaudePlanUsageState } from '../usage/claude-plan-usage-state.ts';
 import { readComputerExecutionJournal } from './execution-journal.ts';
+import { legacyCoveFaq, legacyCovePlaybook } from './executor-fixtures.ts';
 import {
     HarnessTurnFailedError,
     type HarnessTurnInput,
     runHarnessTurn,
     setRuntimeDriverFactoryForTesting,
 } from './executor.ts';
-import { legacyCoveFaq, legacyCovePlaybook } from './executor-fixtures.ts';
 import { AgentSessionResumeRejectedError } from './resume-rejection.ts';
 import type { AgentSessionState } from './session-store.ts';
 
@@ -1129,41 +1131,44 @@ test.each([
     { boundary: true, supported: true },
     { boundary: true, supported: false },
     { boundary: false, supported: true },
-])('acknowledges stored busy notices only after supported delivery: %j', async ({
-    boundary,
-    supported,
-}) => {
-    await runHarnessTurn(turnInput());
-    sentUserMessages = [];
-    acceptsUserMessages = supported;
-    streamIncludesToolBoundary = boundary;
-    const runtimeDir = join(agentRoot, 'runtime');
-    const notice = '[Haus inbox notice:\\nInbox update: 1 unread message total\\n]';
-    const receipt = { runId: 'run_active', workIds: ['msg_late'] };
-    await writeFile(join(runtimeDir, 'pending-notice.json'), JSON.stringify({ notice, receipt }));
-    const receipts: (typeof receipt)[] = [];
+])(
+    'acknowledges stored busy notices only after supported delivery: %j',
+    async ({ boundary, supported }) => {
+        await runHarnessTurn(turnInput());
+        sentUserMessages = [];
+        acceptsUserMessages = supported;
+        streamIncludesToolBoundary = boundary;
+        const runtimeDir = join(agentRoot, 'runtime');
+        const notice = '[Haus inbox notice:\\nInbox update: 1 unread message total\\n]';
+        const receipt = { runId: 'run_active', workIds: ['msg_late'] };
+        await writeFile(
+            join(runtimeDir, 'pending-notice.json'),
+            JSON.stringify({ notice, receipt })
+        );
+        const receipts: (typeof receipt)[] = [];
 
-    await runHarnessTurn(
-        turnInput({
-            inbox: [],
-            onStoredNoticeDelivered: (value) => receipts.push(value),
-            totalPending: 0,
-        })
-    );
+        await runHarnessTurn(
+            turnInput({
+                inbox: [],
+                onStoredNoticeDelivered: (value) => receipts.push(value),
+                totalPending: 0,
+            })
+        );
 
-    expect(sentUserMessages).toEqual(boundary ? [notice] : []);
-    expect(receipts).toEqual(boundary && supported ? [receipt] : []);
-    if (boundary && supported) {
-        await expect(access(join(runtimeDir, 'pending-notice.json'))).rejects.toThrow();
-    } else {
-        expect(JSON.parse(await readFile(join(runtimeDir, 'pending-notice.json'), 'utf8'))).toEqual(
-            {
+        expect(sentUserMessages).toEqual(boundary ? [notice] : []);
+        expect(receipts).toEqual(boundary && supported ? [receipt] : []);
+        if (boundary && supported) {
+            await expect(access(join(runtimeDir, 'pending-notice.json'))).rejects.toThrow();
+        } else {
+            expect(
+                JSON.parse(await readFile(join(runtimeDir, 'pending-notice.json'), 'utf8'))
+            ).toEqual({
                 notice,
                 receipt,
-            }
-        );
+            });
+        }
     }
-});
+);
 
 test('defers a stored follow-up notice until the cold turn has a safe live boundary', async () => {
     const runtimeDir = join(agentRoot, 'runtime');

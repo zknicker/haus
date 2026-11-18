@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+
 import { AgentCliError } from './agent-error.ts';
 
 // A newly created mode-0600 file that receives a secret the Server mints once,

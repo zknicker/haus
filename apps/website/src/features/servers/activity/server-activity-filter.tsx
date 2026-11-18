@@ -2,6 +2,7 @@ import { Button, Dropdown, Label } from '@heroui/react';
 import { ArrowDown01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type { Key } from 'react';
 import { useSearchParams } from 'react-router-dom';
+
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import type { ActivityLogAgent } from '../../members/agent-profile/agent-activity-log-entries.ts';

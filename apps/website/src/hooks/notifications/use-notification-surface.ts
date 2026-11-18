@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { readMessageNotificationsPreference } from '../../features/notifications/message-notifications-preference.ts';
 import type { NotificationApi } from '../../features/notifications/message-notifier.ts';
 import {

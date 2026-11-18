@@ -1,6 +1,7 @@
 import type { ChatMessage } from '@haus/api';
 import { Button, Description, Label, ListBox, Tooltip } from '@heroui/react';
 import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { identityMarkRadius } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAttachmentDownload } from '../../../hooks/servers/use-attachment-download.ts';
@@ -41,7 +42,7 @@ export function ChatFilesPanel({
                     <header
                         className={`flex ${bandHeightClassName} shrink-0 items-center gap-3 px-3`}
                     >
-                        <h2 className="min-w-0 flex-1 truncate font-semibold text-sm">
+                        <h2 className="min-w-0 flex-1 truncate text-sm font-semibold">
                             Attachments
                         </h2>
                         <Tooltip>
@@ -80,7 +81,7 @@ export function ChatFiles({ messages }: { messages: ChatFilesMessages }) {
     return (
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-1.5 py-2">
             {attachments.length === 0 ? (
-                <p className="m-auto text-muted text-sm">No attachments in this chat.</p>
+                <p className="text-muted m-auto text-sm">No attachments in this chat.</p>
             ) : (
                 <ListBox
                     aria-label="Attachments"
@@ -125,7 +126,7 @@ function ChatFileThumbnail({ attachment }: { attachment: MessageAttachmentItem }
     return image ? (
         <img
             alt=""
-            className="size-8 shrink-0 border border-border object-cover"
+            className="border-border size-8 shrink-0 border object-cover"
             height={32}
             src={image.url}
             // A forced 32px box takes its corner from the box, like an identity mark.

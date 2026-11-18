@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { formatByteSize } from './format.ts';
 
 test('a byte count reads in the unit a person would say it in', () => {

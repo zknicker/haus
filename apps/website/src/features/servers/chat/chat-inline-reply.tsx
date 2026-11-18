@@ -2,6 +2,7 @@ import type { ChatMessage, ChatMessageReplyReference } from '@haus/api';
 import { Button, Tooltip } from '@heroui/react';
 import { Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'framer-motion';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 
@@ -86,8 +87,8 @@ function ReplyReferenceContent({
             inert={!isPresent}
             title={excerpt}
         >
-            <p className="min-w-0 flex-1 truncate text-muted text-sm">
-                Replying to <span className="font-semibold text-foreground">{author}</span>
+            <p className="text-muted min-w-0 flex-1 truncate text-sm">
+                Replying to <span className="text-foreground font-semibold">{author}</span>
             </p>
             <Tooltip delay={0}>
                 <Button

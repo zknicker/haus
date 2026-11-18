@@ -1,14 +1,8 @@
 import { expect, test } from 'bun:test';
+
 import { agentDeliveryRecordSchema, isChatlessInboxSource } from './agent-deliveries.ts';
 import { type AgentTurnTrigger, agentTurnTriggerSchema } from './agent-turn-trigger.ts';
 import { chatMessageSchema } from './chat.ts';
-import {
-    type Task,
-    taskAssigneeSchema,
-    taskDetailSchema,
-    taskMessagePlaceSchema,
-    taskSchema,
-} from './task.ts';
 import {
     taskAssignInputSchema,
     taskGetInputSchema,
@@ -16,6 +10,13 @@ import {
     taskUpdateInputSchema,
 } from './task-input.ts';
 import { formatTaskKey, parseTaskKey, taskKeySchema, taskLinkSchema } from './task-key.ts';
+import {
+    type Task,
+    taskAssigneeSchema,
+    taskDetailSchema,
+    taskMessagePlaceSchema,
+    taskSchema,
+} from './task.ts';
 
 const task: Task = {
     assignee: { agentId: 'agt_zero', kind: 'agent' },

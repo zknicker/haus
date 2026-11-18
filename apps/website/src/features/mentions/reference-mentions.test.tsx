@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test';
+
 import type { TaskLink } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { humanDirectory } from '../servers/human-identity.ts';
 import { ReferenceMarkdown } from './reference-markdown.tsx';
 import { type ReferenceDirectory, readReferenceMentions } from './reference-mentions.ts';

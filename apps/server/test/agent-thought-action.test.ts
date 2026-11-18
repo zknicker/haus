@@ -1,11 +1,13 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import type { AgentThoughtEvent, AgentThoughtFrame } from '@haus/api';
+
 import { attestAgentEvents } from '../src/agent-api/inbox.ts';
 import { subscribeToAgentThoughts } from '../src/agent-delivery/thought-events.ts';
 import { ingestAgentRunFrame } from '../src/computers/ingest-agent-run-frame.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { createAgentThoughts } from '../src/server-agents/agent-thought.ts';
 import type { ThoughtSummarizer } from '../src/server-agents/agent-thought-summarizer.ts';
+import { createAgentThoughts } from '../src/server-agents/agent-thought.ts';
 import { at, collectBackground, fakeSummarizer } from './agent-thought-harness.ts';
 import { wakeOn } from './chat-engagement-harness.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';

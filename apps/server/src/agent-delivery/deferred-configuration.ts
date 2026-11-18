@@ -5,6 +5,7 @@ import {
     reasoningChangeResetsSession,
 } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentMessageDraftsTable, agentsTable } from '../postgres/schema.ts';
 import type { DeliveryTransport } from './delivery.ts';
@@ -105,10 +106,10 @@ export interface ConfiguredAgent {
 export function isConfigured(config: AgentDispatchConfig | null): config is ConfiguredAgent {
     return Boolean(
         config?.computerId &&
-            config.desiredRuntimeId &&
-            config.desiredModelId &&
-            config.retiredAt === null &&
-            (config.factoryKind === 'ordinary' || config.factoryAppliedAt)
+        config.desiredRuntimeId &&
+        config.desiredModelId &&
+        config.retiredAt === null &&
+        (config.factoryKind === 'ordinary' || config.factoryAppliedAt)
     );
 }
 

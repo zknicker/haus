@@ -1,5 +1,6 @@
 import type { MessageClaim } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
+
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { requireActiveDmPeer } from '../chats/active-dm-peer.ts';

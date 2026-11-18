@@ -1,7 +1,8 @@
-import { Button, ScrollShadow } from '@heroui/react';
 import { EmptyState } from '@heroui-pro/react';
+import { Button, ScrollShadow } from '@heroui/react';
 import { Cancel01Icon, UserMultiple02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
+
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import type { ChannelAgentOption } from './channel-agent-picker.tsx';

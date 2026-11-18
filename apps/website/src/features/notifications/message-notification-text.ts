@@ -1,4 +1,5 @@
 import type { Agent, Chat, ChatMessage, MessageNotificationReason } from '@haus/api';
+
 import { messagePreviewLine } from '../chats/message-preview-line.ts';
 import type { HumanDirectory } from '../servers/human-identity.ts';
 import { serverChatRoute } from '../servers/server-routes.ts';

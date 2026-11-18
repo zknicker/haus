@@ -1,6 +1,7 @@
 import { agentMcpCatalogQuerySchema, agentMcpInvocationSchema } from '@haus/api';
 import { parseTraceCarrier } from '@haus/effect';
 import type { FastifyInstance, FastifyReply } from 'fastify';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { mcpCatalogResponse } from '../server-mcp/catalog-response.ts';
 import { McpDeniedError, McpUpstreamError } from '../server-mcp/errors.ts';

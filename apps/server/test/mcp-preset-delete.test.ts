@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -78,28 +79,31 @@ test.each([
     ['handmade', 'https://handmade.merchbase.co/mcp'],
     ['merchbase-fulfillment', 'https://fulfillment.merchbase.co/mcp/printful'],
     ['tmterminal', 'https://tmterminal.merchbase.co/mcp'],
-] as const)('%s awaits discovered OAuth without identity scopes or Agent grants', async (preset, url) => {
-    const fulfillment = await owner.trpc.mcp.addPresetAccount.mutate({
-        name: preset,
-        preset,
-        serverId,
-    });
-    expect(fulfillment).toMatchObject({
-        auth: 'oauth',
-        connected: false,
-        grants: [],
-        headerNames: [],
-        preset,
-        tools: [],
-        url,
-    });
-    const [stored] = await harness.sql`
+] as const)(
+    '%s awaits discovered OAuth without identity scopes or Agent grants',
+    async (preset, url) => {
+        const fulfillment = await owner.trpc.mcp.addPresetAccount.mutate({
+            name: preset,
+            preset,
+            serverId,
+        });
+        expect(fulfillment).toMatchObject({
+            auth: 'oauth',
+            connected: false,
+            grants: [],
+            headerNames: [],
+            preset,
+            tools: [],
+            url,
+        });
+        const [stored] = await harness.sql`
         select secret from mcp_secrets where connection_id = ${fulfillment.id}
     `;
-    expect(stored?.secret.oauthScopes).toEqual([]);
-    expect(stored?.secret.headers).toEqual({});
-    await owner.trpc.mcp.delete.mutate({ connectionId: fulfillment.id, serverId });
-});
+        expect(stored?.secret.oauthScopes).toEqual([]);
+        expect(stored?.secret.headers).toEqual({});
+        await owner.trpc.mcp.delete.mutate({ connectionId: fulfillment.id, serverId });
+    }
+);
 
 test.each([
     'github',
@@ -112,31 +116,42 @@ test.each([
     'rankwrangler',
     'cloudflare',
     'kittl',
-] as const)('deletes a %s account and its secrets without removing another account', async (preset) => {
-    const first = await owner.trpc.mcp.addPresetAccount.mutate({ name: preset, preset, serverId });
-    const second = await owner.trpc.mcp.addPresetAccount.mutate({ name: preset, preset, serverId });
-    expect(first.id).not.toBe(second.id);
-    const input = { connectionId: first.id, serverId };
+] as const)(
+    'deletes a %s account and its secrets without removing another account',
+    async (preset) => {
+        const first = await owner.trpc.mcp.addPresetAccount.mutate({
+            name: preset,
+            preset,
+            serverId,
+        });
+        const second = await owner.trpc.mcp.addPresetAccount.mutate({
+            name: preset,
+            preset,
+            serverId,
+        });
+        expect(first.id).not.toBe(second.id);
+        const input = { connectionId: first.id, serverId };
 
-    await expect(outsider.trpc.mcp.delete.mutate(input)).rejects.toThrow();
-    expect(await owner.trpc.mcp.list.query({ serverId })).toEqual(
-        expect.arrayContaining([expect.objectContaining({ id: first.id })])
-    );
+        await expect(outsider.trpc.mcp.delete.mutate(input)).rejects.toThrow();
+        expect(await owner.trpc.mcp.list.query({ serverId })).toEqual(
+            expect.arrayContaining([expect.objectContaining({ id: first.id })])
+        );
 
-    await expect(owner.trpc.mcp.delete.mutate(input)).resolves.toMatchObject({ id: first.id });
-    expect(
-        await harness.sql`select * from mcp_secrets where connection_id = ${first.id}`
-    ).toHaveLength(0);
-    expect(await owner.trpc.mcp.list.query({ serverId })).toEqual([
-        expect.objectContaining({ id: second.id }),
-    ]);
+        await expect(owner.trpc.mcp.delete.mutate(input)).resolves.toMatchObject({ id: first.id });
+        expect(
+            await harness.sql`select * from mcp_secrets where connection_id = ${first.id}`
+        ).toHaveLength(0);
+        expect(await owner.trpc.mcp.list.query({ serverId })).toEqual([
+            expect.objectContaining({ id: second.id }),
+        ]);
 
-    await harness.sql`update mcp_connections set connected = true where id = ${second.id}`;
-    await expect(
-        owner.trpc.mcp.delete.mutate({ connectionId: second.id, serverId })
-    ).resolves.toMatchObject({ connected: true, id: second.id });
-    expect(await owner.trpc.mcp.list.query({ serverId })).toEqual([]);
-    expect(
-        await harness.sql`select * from mcp_secrets where connection_id = ${second.id}`
-    ).toHaveLength(0);
-});
+        await harness.sql`update mcp_connections set connected = true where id = ${second.id}`;
+        await expect(
+            owner.trpc.mcp.delete.mutate({ connectionId: second.id, serverId })
+        ).resolves.toMatchObject({ connected: true, id: second.id });
+        expect(await owner.trpc.mcp.list.query({ serverId })).toEqual([]);
+        expect(
+            await harness.sql`select * from mcp_secrets where connection_id = ${second.id}`
+        ).toHaveLength(0);
+    }
+);

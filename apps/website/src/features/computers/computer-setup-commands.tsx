@@ -28,7 +28,7 @@ function CommandStep({
 }) {
     return (
         <li className="grid min-w-0 gap-2">
-            <p className="font-medium text-sm">
+            <p className="text-sm font-medium">
                 {number}. {label}
             </p>
             <CodeSnippet lines={command} />

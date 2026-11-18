@@ -6,11 +6,11 @@ export function ArtifactLogEntry({ entry }: { entry: ArtifactRow }) {
     const label = getArtifactLabel(entry.artifact);
 
     return (
-        <div className="card-shell flex items-center gap-2 border border-success-soft bg-success-soft px-3 py-1.5">
-            <span className="font-medium text-success text-xs uppercase tracking-[0.16em]">
+        <div className="card-shell border-success-soft bg-success-soft flex items-center gap-2 border px-3 py-1.5">
+            <span className="text-success text-xs font-medium tracking-[0.16em] uppercase">
                 {entry.artifact.artifactType}
             </span>
-            <span className="min-w-0 truncate text-foreground/90 text-sm">{label}</span>
+            <span className="text-foreground/90 min-w-0 truncate text-sm">{label}</span>
         </div>
     );
 }

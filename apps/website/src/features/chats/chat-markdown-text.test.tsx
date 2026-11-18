@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import type { Mention } from '../mentions/mention-types.ts';
 import { ArtifactPanelOpenProvider } from './artifact-panel-context.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';

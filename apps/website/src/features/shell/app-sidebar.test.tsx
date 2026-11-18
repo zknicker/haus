@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import type { Agent, Chat } from '@haus/api';
 import { Sidebar } from '@heroui-pro/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -6,6 +7,7 @@ import { createTRPCQueryUtils } from '@trpc/react-query';
 import type * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
+
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { testChat } from '../chats/chat-fixtures.ts';
 import { testAgent } from '../members/agent-fixtures.ts';

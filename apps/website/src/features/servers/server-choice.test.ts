@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+
 import type { Chat } from '@haus/api';
+
 import type { ServerSummary } from '../../lib/haus-server.tsx';
 import {
     lastServerSlugStorageKey,

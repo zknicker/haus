@@ -4,8 +4,8 @@ import type { RuntimeResumeState } from '../resume-state.ts';
 import { GROK_CREDENTIAL_REFRESH_WINDOW_MS } from './grok-auth.ts';
 import { closeGrokLive, type GrokLive } from './grok-live.ts';
 import { grokResumeState } from './grok-resume.ts';
-import { GrokTurn } from './grok-turn.ts';
 import { createGrokTurnNormalizer } from './grok-turn-normalizer.ts';
+import { GrokTurn } from './grok-turn.ts';
 
 /** Re-launches the same Grok session in a fresh process (`session/load`). */
 export type GrokRelaunch = (previous: GrokLive) => Promise<GrokLive>;

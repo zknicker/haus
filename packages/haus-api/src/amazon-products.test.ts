@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { amazonProductResultSchema, parseAmazonProduct } from './amazon-products.ts';
 
 test('recognizes US Amazon product identity independently of tracking parameters', () => {

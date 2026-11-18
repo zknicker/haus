@@ -4,6 +4,7 @@ import dns from 'node:dns';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { safeFetch } from './safe-remote-fetch.ts';
 
 // Proves the connection-pinning mechanism (not just the range check, which

@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { gradeRule, standingPreferences } from './memory-feedback-grade.mjs';
 
 test('reads Standing Preferences lines without bullets', () => {

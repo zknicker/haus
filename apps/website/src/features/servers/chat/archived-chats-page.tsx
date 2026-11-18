@@ -1,7 +1,8 @@
-import { Button } from '@heroui/react';
 import { EmptyState, ListView } from '@heroui-pro/react';
+import { Button } from '@heroui/react';
 import { ArchiveIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { useNavigate } from 'react-router-dom';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useArchivedChats } from '../../../hooks/servers/use-archived-chats.ts';
 import { useChannelUnarchive } from '../../../hooks/servers/use-channel-lifecycle.ts';

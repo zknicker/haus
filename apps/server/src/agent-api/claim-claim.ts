@@ -1,5 +1,6 @@
 import type { ClaimConflict } from '@haus/api';
 import { and, eq, inArray, sql } from 'drizzle-orm';
+
 import { requireChatWritable } from '../chats/chat-access.ts';
 import { buildClaimConflict } from '../claims/claim-conflict.ts';
 import { prepareClaimEvent } from '../claims/claim-events.ts';

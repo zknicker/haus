@@ -1,9 +1,9 @@
-import type { AgentExecutionJournal } from './agent-execution-journal.ts';
 import type {
     ExecutionJournalDocument,
     ExecutionJournalTool,
 } from './agent-execution-journal-document.ts';
 import { executionToolFailure, executionTurnFailure } from './agent-execution-journal-failure.ts';
+import type { AgentExecutionJournal } from './agent-execution-journal.ts';
 
 /**
  * Shapes a replayed document for its reader: a readable `failure` beside each

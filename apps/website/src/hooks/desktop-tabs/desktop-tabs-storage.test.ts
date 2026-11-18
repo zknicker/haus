@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { newTabLocation, tabHistoryLimit } from './desktop-tabs-model.ts';
 import { initialDesktopTabs } from './desktop-tabs-reducer.ts';
 import { parseDesktopTabs, serializeDesktopTabs } from './desktop-tabs-storage.ts';

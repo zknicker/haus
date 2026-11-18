@@ -14,7 +14,7 @@ export function UsageSpendSummary({ grandTotal, stats }: UsageSpendSummaryProps)
         <div className="mt-2">
             {stats.map((stat) => (
                 <div
-                    className="flex items-center justify-between border-separator border-b py-2.5"
+                    className="border-separator flex items-center justify-between border-b py-2.5"
                     key={stat.id}
                 >
                     <div className="flex min-w-0 items-center gap-2">
@@ -22,25 +22,25 @@ export function UsageSpendSummary({ grandTotal, stats }: UsageSpendSummaryProps)
                             className="size-2 shrink-0 rounded-full"
                             style={{ backgroundColor: stat.color }}
                         />
-                        <p className="truncate text-base text-foreground">{stat.label}</p>
+                        <p className="text-foreground truncate text-base">{stat.label}</p>
                     </div>
                     <div className="flex items-center gap-4 text-base">
-                        <p className="min-w-[4.5rem] text-right text-foreground tabular-nums">
+                        <p className="text-foreground min-w-[4.5rem] text-right tabular-nums">
                             ${stat.total.toFixed(2)}
                         </p>
-                        <p className="min-w-[2.5rem] text-right text-muted text-sm tabular-nums">
+                        <p className="text-muted min-w-[2.5rem] text-right text-sm tabular-nums">
                             {stat.percent.toFixed(0)}%
                         </p>
                     </div>
                 </div>
             ))}
             <div className="flex items-center justify-between py-2.5">
-                <p className="font-medium text-base text-foreground">Total</p>
+                <p className="text-foreground text-base font-medium">Total</p>
                 <div className="flex items-center gap-4 text-base">
-                    <p className="min-w-[4.5rem] text-right font-medium text-foreground tabular-nums">
+                    <p className="text-foreground min-w-[4.5rem] text-right font-medium tabular-nums">
                         ${grandTotal.toFixed(2)}
                     </p>
-                    <p className="min-w-[2.5rem] text-right text-muted text-sm tabular-nums">
+                    <p className="text-muted min-w-[2.5rem] text-right text-sm tabular-nums">
                         100%
                     </p>
                 </div>

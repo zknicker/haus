@@ -1,6 +1,7 @@
 import { Button } from '@heroui/react';
-import { useStoppedAgentName } from '../../../hooks/members/use-agent.ts';
+
 import { useAgentStart } from '../../../hooks/members/use-agent-start.ts';
+import { useStoppedAgentName } from '../../../hooks/members/use-agent.ts';
 
 /**
  * A stopped Agent's DM still accepts messages, but they wait until someone
@@ -22,7 +23,7 @@ export function StoppedAgentDmNotice({
     }
     return (
         <div
-            className="mx-auto flex w-full items-center justify-between gap-4 px-9 pb-2 text-muted text-sm"
+            className="text-muted mx-auto flex w-full items-center justify-between gap-4 px-9 pb-2 text-sm"
             data-testid="stopped-agent-dm-notice"
         >
             <p>{stoppedName} is stopped and won’t see new messages until it’s started again.</p>

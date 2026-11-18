@@ -3,6 +3,7 @@ import { KPI } from '@heroui-pro/react/kpi';
 import { ArrowUpRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { useAgentUsage } from '../../hooks/members/use-agent-usage.ts';
 import type { ServerDetail } from '../../lib/haus-server.tsx';
@@ -38,7 +39,7 @@ export function AgentUsageTile({ agent, server }: { agent: Agent; server: Server
             <KPI.Header>
                 <KPI.Title>Processed tokens</KPI.Title>
                 <Link
-                    className="ms-auto inline-flex w-fit items-center gap-1 font-semibold text-accent text-sm"
+                    className="text-accent ms-auto inline-flex w-fit items-center gap-1 text-sm font-semibold"
                     to={usageRoute(server.slug, { agentId: agent.id })}
                 >
                     See in Usage

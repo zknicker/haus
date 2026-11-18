@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import { readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+
 import { requestedTarget } from '../agent-tests/provisioner.mjs';
 import { evals, resolveEval } from './evals.mjs';
 import { attentionProfiles, githubTriggerProfiles, placementProfiles } from './profiles.mjs';
@@ -17,15 +18,16 @@ test.each(Object.entries(evals))('%s names real scenarios', (_name, entry) => {
     }
 });
 
-test.each(
-    Object.entries(evals)
-)('%s selects exactly its scenarios through substring --only', (_name, entry) => {
-    // cli.mjs matches --only by substring, so a name must not also select another scenario.
-    const selected = scenarioNames.filter((scenario) =>
-        entry.scenarios.some((only) => scenario.includes(only))
-    );
-    expect(selected.sort()).toEqual([...entry.scenarios].sort());
-});
+test.each(Object.entries(evals))(
+    '%s selects exactly its scenarios through substring --only',
+    (_name, entry) => {
+        // cli.mjs matches --only by substring, so a name must not also select another scenario.
+        const selected = scenarioNames.filter((scenario) =>
+            entry.scenarios.some((only) => scenario.includes(only))
+        );
+        expect(selected.sort()).toEqual([...entry.scenarios].sort());
+    }
+);
 
 test.each(Object.entries(evals))('%s profiles only scenarios it runs', (_name, entry) => {
     for (const profiled of Object.keys(entry.profiles)) {
@@ -49,15 +51,16 @@ test('the placement profiles carry caps and spec ids for every graded scenario',
     }
 });
 
-test.each(
-    Object.entries(evals)
-)('%s profiles carry a spec id, channel bounds, and a cap', (_name, entry) => {
-    for (const profile of Object.values(entry.profiles)) {
-        expect(profile.spec).toBeTruthy();
-        expect(Array.isArray(profile.channel)).toBe(true);
-        expect(profile.reaction || Number.isInteger(profile.cap)).toBe(true);
+test.each(Object.entries(evals))(
+    '%s profiles carry a spec id, channel bounds, and a cap',
+    (_name, entry) => {
+        for (const profile of Object.values(entry.profiles)) {
+            expect(profile.spec).toBeTruthy();
+            expect(Array.isArray(profile.channel)).toBe(true);
+            expect(profile.reaction || Number.isInteger(profile.cap)).toBe(true);
+        }
     }
-});
+);
 
 test('unknown and empty evals refuse to run', () => {
     expect(() => resolveEval('nope')).toThrow(/No eval named nope/u);

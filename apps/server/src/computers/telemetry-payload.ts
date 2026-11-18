@@ -1,6 +1,7 @@
 import { agentReasoningEffortSchema } from '@haus/api';
 import type { OtlpSignal } from '@haus/effect';
 import { z } from 'zod';
+
 import {
     metricsPayloadSchema,
     type TelemetryAttributes,

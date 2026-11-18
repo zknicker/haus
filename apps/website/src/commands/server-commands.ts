@@ -8,6 +8,7 @@ import {
     CursorTextIcon,
     UserCircleIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
+
 import {
     activityRoute,
     inboxRoute,
@@ -110,21 +111,19 @@ function buildNavigationGroup(context: CommandContext, currentChat: Chat | null)
     ];
 
     return {
-        commands: routes.map(
-            (item): AppCommand => ({
-                disabledReason: item.route ? null : 'No Chat is available yet.',
-                icon: item.icon,
-                id: `navigation.${item.id}`,
-                keywords: ['go', 'open', item.id, item.title],
-                opensPage: true,
-                run: () => {
-                    if (item.route) {
-                        context.navigate(item.route);
-                    }
-                },
-                title: item.title,
-            })
-        ),
+        commands: routes.map((item): AppCommand => ({
+            disabledReason: item.route ? null : 'No Chat is available yet.',
+            icon: item.icon,
+            id: `navigation.${item.id}`,
+            keywords: ['go', 'open', item.id, item.title],
+            opensPage: true,
+            run: () => {
+                if (item.route) {
+                    context.navigate(item.route);
+                }
+            },
+            title: item.title,
+        })),
         id: 'navigation',
         title: 'Navigation',
     };

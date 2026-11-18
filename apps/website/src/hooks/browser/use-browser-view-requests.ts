@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import { parseBrowserOpenRequest } from '../../lib/desktop-browser.ts';
 import type { DesktopTabsApi } from '../desktop-tabs/desktop-tabs-context.ts';

@@ -1,6 +1,7 @@
 import type { Agent, ComputerInventory } from '@haus/api';
 import { Alert, Modal, Spinner } from '@heroui/react';
 import type * as React from 'react';
+
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { computerLabel } from '../computers/presentation.ts';
@@ -45,7 +46,7 @@ export function AgentCreationDialog({
                     <Modal.CloseTrigger />
                     <Modal.Header>
                         <Modal.Heading>Create Agent</Modal.Heading>
-                        <p className="mt-1.5 text-muted text-sm leading-5">
+                        <p className="text-muted mt-1.5 text-sm leading-5">
                             Choose where this Agent runs and tune its starting configuration.
                         </p>
                     </Modal.Header>

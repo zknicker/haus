@@ -1,4 +1,5 @@
 import { z } from 'zod';
+
 import type { MentionScopeDecision } from './mention-scope.ts';
 
 export interface RoutingState {

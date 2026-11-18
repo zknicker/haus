@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 
 export function isAppForegrounded(input: { documentVisible: boolean; windowFocused: boolean }) {

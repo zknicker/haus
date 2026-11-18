@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { check, foreignKey, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+
 import { agentsTable } from './agents.ts';
 import { chatMessagesTable } from './chat-messages.ts';
 import { serverMembershipsTable } from './server-memberships.ts';

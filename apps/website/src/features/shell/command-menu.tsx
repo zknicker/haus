@@ -1,8 +1,9 @@
-import { Kbd } from '@heroui/react';
 import { Command } from '@heroui-pro/react';
+import { Kbd } from '@heroui/react';
 import { Search01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type { ReactNode } from 'react';
 import { useMemo } from 'react';
+
 import type { AppCommand, AppCommandGroup } from '../../commands/types.ts';
 import { getCommandSearchText } from '../../commands/types.ts';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
@@ -88,7 +89,7 @@ export function CommandMenuShell({
                                                     {command.title}
                                                 </span>
                                                 {command.disabledReason ? (
-                                                    <span className="truncate text-muted text-sm">
+                                                    <span className="text-muted truncate text-sm">
                                                         {command.disabledReason}
                                                     </span>
                                                 ) : null}

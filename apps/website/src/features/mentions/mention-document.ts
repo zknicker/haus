@@ -1,4 +1,5 @@
 import { type Node as ProseMirrorNode, Schema } from 'prosemirror-model';
+
 import { normalizeMentions } from './mention-text.ts';
 import type { Mention } from './mention-types.ts';
 

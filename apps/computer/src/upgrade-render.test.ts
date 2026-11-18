@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import type { ComputerUpdateProgress } from './update-contract.ts';
 import { createUpgradeRenderer, describeConcurrentUpdate } from './upgrade-render.ts';
 

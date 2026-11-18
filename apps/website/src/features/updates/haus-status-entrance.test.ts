@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { hausStatusEntranceMotion } from './haus-status-entrance.tsx';
 
 const transformKeys = ['scale', 'x', 'y', 'rotate'];

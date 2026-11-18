@@ -1,7 +1,8 @@
 import type { Agent } from '@haus/api';
-import { Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Separator } from '@heroui/react';
 import * as React from 'react';
+
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 

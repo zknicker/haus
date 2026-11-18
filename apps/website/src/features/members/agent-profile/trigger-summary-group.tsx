@@ -1,6 +1,7 @@
 import type { Trigger } from '@haus/api';
-import { Separator, Switch } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Separator, Switch } from '@heroui/react';
+
 import { useTriggerSetStatus } from '../../../hooks/members/use-trigger-set-status.ts';
 import { formatTriggerActivity, triggerCreatorName } from './agent-trigger-model.ts';
 import { AutomationFactRow } from './automation-fact-row.tsx';

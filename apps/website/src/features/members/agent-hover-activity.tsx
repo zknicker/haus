@@ -1,4 +1,5 @@
 import type { AgentCurrentActivity } from '@haus/api';
+
 import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import { useOptionalCurrentAgentActivity } from '../../hooks/agents/use-current-agent-activity.tsx';
 import { useAgentActivityPreview } from '../../hooks/members/use-agent-activity-preview.ts';
@@ -29,7 +30,7 @@ export function AgentHoverActivity({ agentId, serverId }: { agentId: string; ser
     return (
         <section
             aria-label={current ? 'Current activity' : 'Recent turns'}
-            className="flex min-w-0 flex-col gap-1 border-separator border-t pt-2.5 text-xs empty:hidden"
+            className="border-separator flex min-w-0 flex-col gap-1 border-t pt-2.5 text-xs empty:hidden"
         >
             {current ? (
                 <AgentHoverLive agentId={agentId} current={current} serverId={serverId} />
@@ -61,15 +62,15 @@ function AgentHoverLive({
             {title.kind === 'none' ? null : (
                 // Held blank while the trigger reads, so the live line never jumps.
                 <p className="flex min-h-4 min-w-0 gap-1.5">
-                    <span className="min-w-0 truncate text-foreground">
+                    <span className="text-foreground min-w-0 truncate">
                         {title.kind === 'text' ? title.text : null}
                     </span>
                     {title.place ? (
-                        <span className="shrink-0 text-muted">{title.place}</span>
+                        <span className="text-muted shrink-0">{title.place}</span>
                     ) : null}
                 </p>
             )}
-            <HoverTimedRow className="font-medium text-accent" line={live} />
+            <HoverTimedRow className="text-accent font-medium" line={live} />
             {delegations ? <HoverTimedRow className="text-foreground" line={delegations} /> : null}
             {log.length > 0 ? (
                 <ul className="mt-1 flex min-w-0 flex-col gap-1">

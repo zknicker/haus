@@ -2,20 +2,21 @@ import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { fakeRuntimeDriver, finishedTurn } from '../runtime/testing/fake-runtime-driver.ts';
 import { compactionToolName, type TurnEvent } from '../runtime/turn-event.ts';
-import {
-    type HarnessTurnInput,
-    runHarnessTurn,
-    setRuntimeDriverFactoryForTesting,
-} from './executor.ts';
 import {
     instructionsTurnInput,
     readSessionFile,
     updateOpening,
     updateTag,
 } from './executor-instructions-fixtures.ts';
+import {
+    type HarnessTurnInput,
+    runHarnessTurn,
+    setRuntimeDriverFactoryForTesting,
+} from './executor.ts';
 
 const runtime = makeDaemonRuntime();
 afterAll(() => runtime.dispose());

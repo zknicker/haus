@@ -1,4 +1,5 @@
 import { beforeAll, expect, test } from 'bun:test';
+
 import type { MessageRouter, RoutingDecision, RoutingState } from '../src/message-routing/jev.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 

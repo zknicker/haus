@@ -1,4 +1,5 @@
 import { Separator } from '@heroui/react';
+
 import { MicroLabel } from '../../components/micro-label.tsx';
 import { cn } from '../../lib/utils.ts';
 import { formatTraceDuration } from './turn-trace-duration.ts';
@@ -64,7 +65,7 @@ function TraceStat({
             </dt>
             <dd
                 className={cn(
-                    'font-medium text-sm tabular-nums',
+                    'text-sm font-medium tabular-nums',
                     isDanger ? 'text-danger' : 'text-foreground'
                 )}
             >

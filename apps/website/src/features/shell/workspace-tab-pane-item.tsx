@@ -1,6 +1,7 @@
 import { Button, Tooltip } from '@heroui/react';
 import { Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { useDesktopTabs } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import { currentLocation, type TabLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
@@ -9,8 +10,8 @@ import { revealTab } from './tab-drag/tab-reveal.ts';
 import { useTabDragHandlers } from './tab-drag/tab-rows-drag.tsx';
 import { parseTabPage, type TabIdentity } from './tab-identity.ts';
 import { useSharedArtifactTabTitle, useTabIdentity } from './use-tab-identity.ts';
-import { WorkspaceTab, WorkspaceTabAction, WorkspaceTabLabel } from './workspace-tab.tsx';
 import { TabIdentityMark } from './workspace-tab-mark.tsx';
+import { WorkspaceTab, WorkspaceTabAction, WorkspaceTabLabel } from './workspace-tab.tsx';
 
 /**
  * One desktop tab in a pane's row (ADR 0039): its page's mark and title, a

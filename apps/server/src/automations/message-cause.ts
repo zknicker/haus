@@ -1,5 +1,6 @@
 import type { MessageCauseAttribution } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     messageCausesTable,

@@ -1,5 +1,7 @@
 import { afterAll, expect, test } from 'bun:test';
+
 import type { ChatEngagementEvent } from '@haus/api';
+
 import { subscribeToChatEngagements } from '../src/agent-delivery/chat-engagement-events.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 

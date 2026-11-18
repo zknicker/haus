@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { spawn } from 'node:child_process';
+
 import { isProcessGroupAlive, parseProcStat } from './process-group-liveness.ts';
 
 test('parses a process state and group past a comm containing parens', () => {

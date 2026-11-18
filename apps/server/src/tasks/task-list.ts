@@ -6,6 +6,7 @@ import {
     type TaskListInput,
 } from '@haus/api';
 import { and, eq, inArray, isNotNull, isNull, type SQL } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable, taskKeysTable, tasksTable } from '../postgres/schema.ts';
 import { actorVisibleChats } from './actor-visible-chats.ts';

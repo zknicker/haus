@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm';
+
 import { personName } from '../year-scope.ts';
 import type { MessageColumns } from './message-columns.ts';
 

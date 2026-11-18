@@ -1,4 +1,5 @@
 import { agentThoughtActionMaxLength } from '@haus/api';
+
 import type { ComputerAgentActivityCategory } from '../agent-activity.ts';
 import type { ComputerToolClassification } from './activity-tool-fixtures.ts';
 import { type NativeImageToolAction, nativeImageToolAction } from './generated-images.ts';

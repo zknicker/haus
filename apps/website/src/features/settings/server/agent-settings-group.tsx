@@ -1,5 +1,6 @@
-import { Switch } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Switch } from '@heroui/react';
+
 import { useServerIdleCompaction } from '../../../hooks/servers/use-server-idle-compaction.ts';
 import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 

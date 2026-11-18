@@ -1,6 +1,8 @@
 import { expect, test } from 'bun:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
+
 import { readTraceScale } from '../../turn-trace/turn-trace-scale.ts';
 import { LogChatButton, readChatTarget, TurnRuler } from './agent-activity-log-turn-parts.tsx';
 

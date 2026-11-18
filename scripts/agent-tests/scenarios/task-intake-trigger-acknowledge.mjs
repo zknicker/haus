@@ -1,7 +1,7 @@
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
-import { cancelTasksBy, expectSettled, postsAcross, tasksCreatedBy } from '../task-intake.mjs';
 import { armWorkflowTrigger } from '../task-intake-events.mjs';
+import { cancelTasksBy, expectSettled, postsAcross, tasksCreatedBy } from '../task-intake.mjs';
 
 export default defineScenario({
     agents: [{ kind: 'worker' }],

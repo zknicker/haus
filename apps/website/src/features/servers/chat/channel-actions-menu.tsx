@@ -9,6 +9,7 @@ import {
     UserMultiple02Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 import { ChatSurfaceItems } from './chat-surface-items.tsx';
 
@@ -48,7 +49,7 @@ export function ChannelActionsMenu({
                 <Dropdown.Item id="agents" isDisabled={Boolean(chat.archivedAt)} textValue="Agents">
                     <Icon aria-hidden="true" icon={UserMultiple02Icon} size={16} />
                     <Label>Agents</Label>
-                    <span className="ms-auto shrink-0 text-muted text-xs tabular-nums">
+                    <span className="text-muted ms-auto shrink-0 text-xs tabular-nums">
                         {count}
                     </span>
                 </Dropdown.Item>

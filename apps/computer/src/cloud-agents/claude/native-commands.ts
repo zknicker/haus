@@ -1,7 +1,9 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { stripVTControlCharacters } from 'node:util';
+
 import * as z from 'zod';
+
 import { resolveRuntimeExecutable } from '../../runtime-discovery.ts';
 import { ClaudeCodeMissingError, claudeCloudCredentials } from './native-auth.ts';
 

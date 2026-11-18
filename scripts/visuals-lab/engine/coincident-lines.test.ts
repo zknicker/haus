@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import {
     coincidentLines,
     columnsOf,
@@ -47,10 +48,10 @@ test('an actual line riding its pace line is flagged with names, gap and share',
 test('a series oscillating around its flat dashed average is not flagged', () => {
     const daily = line({
         label: 'Daily',
-        points: Array.from(
-            { length: 30 },
-            (_, day): Point => [day * 24, 100 + (day % 2 ? 24 : -24)]
-        ),
+        points: Array.from({ length: 30 }, (_, day): Point => [
+            day * 24,
+            100 + (day % 2 ? 24 : -24),
+        ]),
     });
     const average = line({
         dashed: true,

@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { type DesktopEditCommand, getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import { cn } from '../../lib/utils.ts';
 
@@ -206,7 +207,7 @@ function EditContextMenuItem({
     return (
         <button
             className={cn(
-                'flex w-full cursor-default select-none items-center text-left text-foreground outline-none disabled:pointer-events-none disabled:opacity-50',
+                'text-foreground flex w-full cursor-default items-center text-left outline-none select-none disabled:pointer-events-none disabled:opacity-50',
                 contextMenuItemClassName
             )}
             data-highlighted={highlighted ? '' : undefined}

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { createBrowserRouter, createHashRouter } from 'react-router-dom';
+
 import { ActivationLoading } from './components/activation/activation-loading.tsx';
 import { AppFrame } from './components/app-frame.tsx';
 import { ComputerLoginRoutes } from './features/computers/computer-login-routes.tsx';
@@ -59,9 +60,7 @@ export function createAppRouter() {
                               path: 'prototype/activation/*',
                               lazy: lazyRoute(
                                   () =>
-                                      import(
-                                          './features/activation-preview/activation-preview-route.tsx'
-                                      ),
+                                      import('./features/activation-preview/activation-preview-route.tsx'),
                                   'ActivationPreviewRoute'
                               ),
                           },
@@ -132,7 +131,7 @@ function ServerErrorBoundary() {
     return (
         <React.Suspense
             fallback={
-                <main className="flex min-h-0 flex-1 items-center justify-center text-muted text-sm">
+                <main className="text-muted flex min-h-0 flex-1 items-center justify-center text-sm">
                     Something went wrong…
                 </main>
             }

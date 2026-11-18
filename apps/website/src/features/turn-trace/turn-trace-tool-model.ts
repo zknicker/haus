@@ -4,6 +4,7 @@ import {
     unwrapShellCommand,
 } from '@haus/api';
 import type { ToolPartState } from '@heroui-pro/react/chat-tool';
+
 import { readFailure, type TurnTraceError } from './turn-trace-error.ts';
 import { type HausMessage, readHausMessage } from './turn-trace-haus-command.ts';
 import { readTracePath, type TracePath } from './turn-trace-path.ts';

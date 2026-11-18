@@ -6,6 +6,7 @@ import type {
 } from '@haus/api';
 import type { Query, QueryClient } from '@tanstack/react-query';
 import { getQueryKey } from '@trpc/react-query';
+
 import { hausTrpc } from '../../lib/haus-server.tsx';
 
 /**
@@ -189,9 +190,9 @@ function activityInputOf(query: Query): CachedActivityInput | null {
 function coversEvent(input: CachedActivityInput | null, event: AgentActivityEvent) {
     return Boolean(
         input &&
-            sameAgent(input, event) &&
-            !input.before &&
-            (input.runId === undefined || input.runId === event.runId)
+        sameAgent(input, event) &&
+        !input.before &&
+        (input.runId === undefined || input.runId === event.runId)
     );
 }
 

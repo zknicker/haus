@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+
 import type { AgentExecutionJournal, AgentExecutionJournalTool } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { TurnTracePresentation } from './turn-trace.tsx';
+
 import { readReasoning } from './turn-trace-reasoning.tsx';
 import { turnTraceRevealTransition } from './turn-trace-reveal.tsx';
+import { TurnTracePresentation } from './turn-trace.tsx';
 
 test('every row with evidence is a real button that states whether it is open', () => {
     const markup = render(

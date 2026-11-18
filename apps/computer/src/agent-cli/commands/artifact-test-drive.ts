@@ -2,7 +2,9 @@ import { createHash } from 'node:crypto';
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { type ArtifactMetadata, artifactPathIsInside, artifactPathKey } from '@haus/api';
+
 import type { AgentApiRequest, AgentApiRequester } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
 import type { ArtifactUploader, ArtifactUploadInput } from './artifact-upload.ts';

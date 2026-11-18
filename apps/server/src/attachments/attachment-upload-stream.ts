@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
+
 import { attachmentMediaTypeSniffBytes } from '@haus/api';
+
 import type { AttachmentRoot } from './attachment-root.ts';
 import { AttachmentUploadError } from './attachment-upload-model.ts';
 import { attachmentMaxSizeBytes } from './reserve-attachment.ts';

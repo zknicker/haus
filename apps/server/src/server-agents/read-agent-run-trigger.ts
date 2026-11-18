@@ -1,12 +1,13 @@
 import type { AgentRunTrigger, AgentRunTriggerEntry, AgentRunTriggerInput } from '@haus/api';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
+
 import { visibleChats } from '../chats/chat-visibility.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentRunTriggersTable, chatsTable } from '../postgres/schema.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { requireMemberAgent } from './agent-delivery-control.ts';
-import type { AgentTurnTriggerRecord } from './agent-turn-trigger.ts';
 import { resolveAgentTurnTriggers } from './agent-turn-trigger-previews.ts';
+import type { AgentTurnTriggerRecord } from './agent-turn-trigger.ts';
 
 /**
  * The work that woke one run, recorded at dispatch, so a running turn can be

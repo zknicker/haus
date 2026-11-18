@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, test } from 'bun:test';
+
 import type { SQL } from 'bun';
+
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import {
     cancelReminder,

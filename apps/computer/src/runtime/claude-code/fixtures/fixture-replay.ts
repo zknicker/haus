@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+
 import type { HostToolSession } from '../../../host-tools/mcp-server.ts';
 import type { TurnEvent } from '../../turn-event.ts';
 import { type ClaudeBackgroundHooks, ClaudeConnection } from '../claude-connection.ts';

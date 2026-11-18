@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
+
 import { unavailableCloudAgentProvider } from './cloud-agents/provider.ts';
 import { setCloudAgentProvider } from './cloud-agents/registry.ts';
 import { toReportedAgentState } from './computer-report.ts';

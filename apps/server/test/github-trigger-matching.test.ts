@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+
 import { type GithubTriggerEvents, githubTriggerEventsSchema } from '@haus/api';
+
 import type { Payload } from '../src/github/event-projection/payload.ts';
 import { matchesGithubEvents, repositoryInScope } from '../src/github/trigger-matching.ts';
 import {

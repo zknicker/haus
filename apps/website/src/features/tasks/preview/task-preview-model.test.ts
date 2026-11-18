@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { taskPreviewCounts, taskPreviewLabel } from './task-preview-model.ts';
 
 test('a preview counts its messages and, for a follower, what is new', () => {

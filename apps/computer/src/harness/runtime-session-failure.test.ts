@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { classifyRuntimeFailure, isRetryableRuntimeFailure } from '../runtime-failure.ts';
 import { fatalRuntimeSessionFailure } from './runtime-session-failure.ts';
 

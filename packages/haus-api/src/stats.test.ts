@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { serverUsageOverviewSchema, usageReportSchema } from './stats.ts';
 
 const usage = {

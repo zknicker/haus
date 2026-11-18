@@ -1,5 +1,6 @@
 import { Spinner } from '@heroui/react';
 import { AlertCircleIcon, StopCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { formatShortTime } from '../../../lib/format.ts';
@@ -29,10 +30,10 @@ export function TurnRowContent({ row, title }: { row: RecentActivityRow; title: 
         // `w-0` keeps the long title out of the trigger's min-content width, so
         // the row truncates instead of widening the list past the viewport.
         <span
-            className="me-2 grid w-0 min-w-0 flex-1 grid-cols-[4.25rem_1rem_minmax(0,1fr)_3.25rem] items-start gap-x-2 text-left font-normal text-sm leading-5"
+            className="me-2 grid w-0 min-w-0 flex-1 grid-cols-[4.25rem_1rem_minmax(0,1fr)_3.25rem] items-start gap-x-2 text-left text-sm leading-5 font-normal"
             data-turn-row
         >
-            <time className="whitespace-nowrap text-muted tabular-nums" dateTime={turn.startedAt}>
+            <time className="text-muted whitespace-nowrap tabular-nums" dateTime={turn.startedAt}>
                 {formatShortTime(turn.startedAt)}
             </time>
             <span className="flex h-5 items-center justify-center">
@@ -43,7 +44,7 @@ export function TurnRowContent({ row, title }: { row: RecentActivityRow; title: 
                 title={title}
                 turn={turn}
             />
-            <span className="whitespace-nowrap text-end text-muted tabular-nums">
+            <span className="text-muted text-end whitespace-nowrap tabular-nums">
                 <TurnDuration turn={turn} />
             </span>
         </span>
@@ -70,23 +71,23 @@ export function TurnRowTitleLine({
     turn: AgentActivityTurn;
 }) {
     const repeats =
-        count > 1 ? <span className="shrink-0 text-danger tabular-nums">{count}×</span> : null;
+        count > 1 ? <span className="text-danger shrink-0 tabular-nums">{count}×</span> : null;
     if (title.kind === 'none') {
         return (
             <span className="flex min-w-0 items-baseline gap-1.5">
-                <span className="min-w-0 truncate text-muted">{formatTurnOutcome(turn)}</span>
+                <span className="text-muted min-w-0 truncate">{formatTurnOutcome(turn)}</span>
                 {repeats}
             </span>
         );
     }
     return (
         <span className="flex min-w-0 items-baseline gap-1.5">
-            <span className="min-w-0 truncate text-foreground">
+            <span className="text-foreground min-w-0 truncate">
                 {title.kind === 'text' ? title.text : null}
             </span>
             {/* Regular weight even after a log header's semibold title. */}
             {title.place ? (
-                <span className="shrink-0 font-normal text-muted">{title.place}</span>
+                <span className="text-muted shrink-0 font-normal">{title.place}</span>
             ) : null}
             {repeats}
         </span>
@@ -96,7 +97,7 @@ export function TurnRowTitleLine({
 export function TurnStatusGlyph({ status }: { status: NonNullable<TurnRowStatus> }) {
     if (status.kind === 'working') {
         return (
-            <span className="flex text-accent" title="Working">
+            <span className="text-accent flex" title="Working">
                 <Spinner color="current" size="sm" />
                 <span className="sr-only">Working</span>
             </span>
@@ -105,7 +106,7 @@ export function TurnStatusGlyph({ status }: { status: NonNullable<TurnRowStatus>
     const failed = status.kind === 'failed';
     const label = failed ? 'Failed' : 'Interrupted';
     return (
-        <span className={failed ? 'flex text-danger' : 'flex text-warning'} title={label}>
+        <span className={failed ? 'text-danger flex' : 'text-warning flex'} title={label}>
             <Icon className="size-4" icon={failed ? AlertCircleIcon : StopCircleIcon} />
             <span className="sr-only">{label}</span>
         </span>

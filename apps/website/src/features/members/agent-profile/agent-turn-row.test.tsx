@@ -1,9 +1,11 @@
 import { expect, test } from 'bun:test';
+
 import type { AgentTurnOperationCount } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import type { AgentActivityTurn } from './agent-activity-turns.ts';
-import { TurnRowContent } from './agent-turn-row.tsx';
 import type { TurnRowTitle } from './agent-turn-row-model.ts';
+import { TurnRowContent } from './agent-turn-row.tsx';
 
 test('a titled row is one line: time, request, place, length — no action marks', () => {
     const markup = render(settled({ durationMs: 660_000 }), {

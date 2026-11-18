@@ -1,6 +1,7 @@
 import type { ChatMessage } from '@haus/api';
 import { Button } from '@heroui/react';
 import { type RefObject, useLayoutEffect, useRef, useState } from 'react';
+
 import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useUnreadPreview } from '../../../hooks/inbox/use-unread-previews.ts';
 import type { ChatMessageJumpTarget } from '../../../hooks/servers/use-chat-message-navigation.ts';
@@ -41,7 +42,7 @@ export function UnreadRowContent({
         return null;
     }
     if (preview === null) {
-        return <p className="truncate px-4 pb-3 text-muted text-sm">{fallbackLine}</p>;
+        return <p className="text-muted truncate px-4 pb-3 text-sm">{fallbackLine}</p>;
     }
     const earlier = earlierUnread(preview, revealed);
     return (

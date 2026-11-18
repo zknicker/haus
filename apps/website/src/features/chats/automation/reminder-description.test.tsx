@@ -1,8 +1,10 @@
 import { expect, test } from 'bun:test';
+
 import type { MessageCause } from '@haus/api';
 import type * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+
 import { TrpcTestProvider } from '../../../test-support/trpc-test-provider.tsx';
 import { MessageCauseHoverContent, MessageCauseLine } from './message-cause-line.tsx';
 

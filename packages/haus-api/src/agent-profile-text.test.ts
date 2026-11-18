@@ -1,7 +1,6 @@
 import { expect, test } from 'bun:test';
-import { agentSchema } from './agent.ts';
+
 import { agentCreateAgentInputSchema, agentUpdateAgentInputSchema } from './agent-creation.ts';
-import { updateAgentProfileInputSchema } from './agent-profile.ts';
 import {
     AGENT_DESCRIPTION_MAX_LENGTH,
     AGENT_DESCRIPTION_STORED_MAX_LENGTH,
@@ -9,6 +8,8 @@ import {
     agentDescriptionTooLongMessage,
     isAgentDescriptionWriteAllowed,
 } from './agent-profile-text.ts';
+import { updateAgentProfileInputSchema } from './agent-profile.ts';
+import { agentSchema } from './agent.ts';
 
 const atLimit = 'x'.repeat(AGENT_DESCRIPTION_MAX_LENGTH);
 const overLimit = `${atLimit}x`;

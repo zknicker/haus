@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { type VoiceTarget, voiceInstructions } from './voice-context.ts';
 
 test('voice identity uses the called Agent while retaining delegation and grounding', () => {

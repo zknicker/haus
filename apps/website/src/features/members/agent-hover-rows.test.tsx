@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { AgentHoverTurn, HoverLogRow, HoverTimedRow } from './agent-hover-rows.tsx';
 import type { AgentActivityTurn } from './agent-profile/agent-activity-turns.ts';
 

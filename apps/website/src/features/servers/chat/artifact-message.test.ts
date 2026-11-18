@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { splitArtifactFences } from './artifact-message.tsx';
 
 test('extracts valid page cards while preserving surrounding chat text', () => {

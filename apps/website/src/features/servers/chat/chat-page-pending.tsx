@@ -1,4 +1,5 @@
 import type { Agent, Chat } from '@haus/api';
+
 import { ChannelIconBox } from '../../../components/chats/channel-icon-box.tsx';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
@@ -40,7 +41,7 @@ export function ChatPagePending({ chat, agent }: { chat?: Chat; agent?: Agent })
                                         src={peer?.avatarUrl ?? null}
                                     />
                                 )}
-                                <h1 className="min-w-0 truncate font-semibold text-sm">{name}</h1>
+                                <h1 className="min-w-0 truncate text-sm font-semibold">{name}</h1>
                             </div>
                         }
                     />

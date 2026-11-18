@@ -1,6 +1,7 @@
 import type { CloudAgentWork } from '@haus/api';
 import { toast } from '@heroui/react';
 import { useParams } from 'react-router-dom';
+
 import { useCloudAgentWorkCancel } from '../../hooks/servers/use-cloud-agent-work.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { canCancelCloudAgentWork } from './cloud-agent-presentation.ts';

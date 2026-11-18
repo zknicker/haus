@@ -1,4 +1,5 @@
 import { Sidebar } from '@heroui-pro/react';
+
 import { UnreadCountChip } from '../../components/chats/unread-count-chip.tsx';
 import { useUnreadPreview } from '../../hooks/inbox/use-unread-previews.ts';
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
@@ -6,8 +7,8 @@ import { usePressNavigationWith } from '../../hooks/shell/use-press-navigation.t
 import { useOpenTaskEntry } from '../../hooks/tasks/use-open-tasks.ts';
 import { cn } from '../../lib/utils.ts';
 import { taskRoute } from '../servers/server-routes.ts';
-import { taskStateLabels } from '../tasks/task-state.ts';
 import { TaskStateDisc } from '../tasks/task-state-disc.tsx';
+import { taskStateLabels } from '../tasks/task-state.ts';
 
 export function OpenTaskRow({
     currentPath,
@@ -73,7 +74,7 @@ function OpenTaskLabel({
     const unread = preview ? preview.messages.length + preview.earlierUnreadCount : 0;
     return (
         <>
-            <Sidebar.MenuLabel className={cn(unread > 0 && 'font-medium text-foreground')}>
+            <Sidebar.MenuLabel className={cn(unread > 0 && 'text-foreground font-medium')}>
                 <TaskKey taskKey={taskKey} />
                 {title}
             </Sidebar.MenuLabel>
@@ -83,7 +84,7 @@ function OpenTaskLabel({
 }
 
 function TaskKey({ taskKey }: { taskKey: string }) {
-    return <span className="me-1.5 text-muted tabular-nums">{taskKey}</span>;
+    return <span className="text-muted me-1.5 tabular-nums">{taskKey}</span>;
 }
 
 function noPreload() {}

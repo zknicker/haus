@@ -1,6 +1,7 @@
 import type { AmazonProductIdentity } from '@haus/api';
 import { useQuery } from '@tanstack/react-query';
 import { getQueryKey } from '@trpc/react-query';
+
 import type { RenderedChipAvailability } from '../../hooks/servers/use-connection-chip.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';

@@ -1,4 +1,6 @@
 import { expect, test } from 'bun:test';
+
+import type { IdleCompactionHooks } from './idle-compaction-scheduler.ts';
 import {
     type IdleCompactable,
     type IdleCompactionResult,
@@ -6,7 +8,6 @@ import {
     type IdleCompactionSnapshot,
     ONE_HOUR_CACHE_MS,
 } from './idle-compaction.ts';
-import type { IdleCompactionHooks } from './idle-compaction-scheduler.ts';
 import { type WarmProcess, WarmProcessPool } from './warm-pool.ts';
 
 class CompactableProcess implements WarmProcess, IdleCompactable {

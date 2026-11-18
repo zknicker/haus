@@ -1,4 +1,5 @@
 import { artifactTextInputSchema, artifactTextResultSchema } from '@haus/api';
+
 import { readArtifactText } from '../../artifacts/text.ts';
 import { artifactProcedure } from './procedure.ts';
 

@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { useDesktopTabCommands } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import { currentEntry } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 

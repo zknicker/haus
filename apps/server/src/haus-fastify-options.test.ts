@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import Fastify from 'fastify';
+
 import { hausFastifyOptions } from './haus-fastify-options.ts';
 
 // The App opens with a batch of eight procedures; Fastify's 100-character

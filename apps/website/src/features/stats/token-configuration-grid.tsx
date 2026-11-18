@@ -1,6 +1,7 @@
-import { Card, Chip } from '@heroui/react';
 import { DataGrid, type DataGridColumn, EmptyState, ItemCardGroup } from '@heroui-pro/react';
+import { Card, Chip } from '@heroui/react';
 import { ChartHistogramIcon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import type { ConfigurationUsage } from './token-usage-view.ts';
@@ -20,7 +21,7 @@ export function TokenConfigurationGrid({ rows }: { rows: ConfigurationUsage[] })
                     />
                     <div className="min-w-0">
                         <p className="truncate font-medium">{item.agentName}</p>
-                        <p className="truncate text-muted text-sm">@{item.agentHandle}</p>
+                        <p className="text-muted truncate text-sm">@{item.agentHandle}</p>
                     </div>
                 </div>
             ),

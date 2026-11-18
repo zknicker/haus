@@ -1,5 +1,6 @@
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
+import { cancelReminder, fireReminderNow, scheduleAgentReminder } from '../task-intake-events.mjs';
 import {
     cancelTasksBy,
     expectSettled,
@@ -7,7 +8,6 @@ import {
     settleIfStarted,
     tasksCreatedBy,
 } from '../task-intake.mjs';
-import { cancelReminder, fireReminderNow, scheduleAgentReminder } from '../task-intake-events.mjs';
 
 export default defineScenario({
     agents: [{ kind: 'worker' }],

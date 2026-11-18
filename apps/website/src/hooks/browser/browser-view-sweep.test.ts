@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { createViewSweeper } from './browser-view-sweep.ts';
 
 test('a view no tab names closes only after it stays unnamed for the grace period', () => {

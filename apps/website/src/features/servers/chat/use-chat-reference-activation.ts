@@ -5,6 +5,7 @@ import {
 } from '@haus/api';
 import { useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+
 import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profile.ts';
 import type { ReferenceActivationTarget } from '../../mentions/mention-types.ts';
 import { serverChatMessageRoute } from '../server-routes.ts';

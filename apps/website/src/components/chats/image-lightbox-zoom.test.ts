@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { fitScale, zoomInFrom, zoomOutFrom } from './image-lightbox-zoom.ts';
 
 test('fit is the true scale of a large print, and never enlarges a small image', () => {

@@ -1,4 +1,5 @@
 import type { AgentTriggerSecretResult } from '@haus/api';
+
 import { AgentApiTransportError } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
 import { agentTriggerSecretResultResponseSchema } from '../agent-trigger-response-schema.ts';

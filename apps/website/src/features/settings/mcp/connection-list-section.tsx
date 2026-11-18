@@ -1,7 +1,8 @@
-import { Button, Chip, Tooltip } from '@heroui/react';
 import { ItemCard } from '@heroui-pro/react';
+import { Button, Chip, Tooltip } from '@heroui/react';
 import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type React from 'react';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useConnections } from '../../../hooks/servers/use-connections.ts';
@@ -99,13 +100,13 @@ function connectionsStatus(
     }
     if (connections.error && !connections.data) {
         return (
-            <p className="py-8 text-center text-danger text-sm" role="alert">
+            <p className="text-danger py-8 text-center text-sm" role="alert">
                 {connections.error.message}
             </p>
         );
     }
     if (count === 0) {
-        return <p className="py-8 text-center text-muted text-sm">No connections.</p>;
+        return <p className="text-muted py-8 text-center text-sm">No connections.</p>;
     }
     return null;
 }

@@ -5,6 +5,7 @@
 // these flags. There is no package script behind it.
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { resolveRuntimeById } from '../../../apps/computer/src/runtime-discovery.ts';
 import { stampFor } from '../paths.mjs';
 import { visualsBattery } from './prompts.mjs';

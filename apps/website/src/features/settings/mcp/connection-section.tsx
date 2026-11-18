@@ -28,7 +28,7 @@ export function ConnectionSection({
                 <ItemCardGroup.Title>
                     {title}
                     {count !== undefined && count > 0 ? (
-                        <span className="ms-2 font-normal text-muted tabular-nums">{count}</span>
+                        <span className="text-muted ms-2 font-normal tabular-nums">{count}</span>
                     ) : null}
                     {trailing}
                 </ItemCardGroup.Title>

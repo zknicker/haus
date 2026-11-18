@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { fileURLToPath } from 'node:url';
+
 import { type Browser, chromium } from '@playwright/test';
 
 let browser: Browser;

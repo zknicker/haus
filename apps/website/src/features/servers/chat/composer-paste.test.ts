@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { pastedFiles } from './composer-paste.ts';
 
 const image = new File(['png'], 'image.png', { type: 'image/png' });

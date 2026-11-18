@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { artifactTextRenderer } from './artifact-text.ts';
 
 const file = (filename: string, content_type = 'application/octet-stream') => ({

@@ -1,9 +1,11 @@
 import { createHash } from 'node:crypto';
+
 import {
     EXECUTION_JOURNAL_SUBAGENT_LABEL_MAX_CHARS,
     type ExecutionJournalSubagent,
     type ExecutionJournalSubagentPatch,
 } from '@haus/api';
+
 import { taskUsage } from '../runtime/claude-subagent-events.ts';
 import type { SubagentStatus, SubagentTurnEvent } from '../runtime/turn-event.ts';
 import type { ComputerExecutionJournal } from './execution-journal.ts';

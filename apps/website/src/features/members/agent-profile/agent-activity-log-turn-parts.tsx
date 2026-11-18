@@ -1,6 +1,7 @@
 import { Button } from '@heroui/react';
 import { ArrowUpRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useNavigate } from 'react-router-dom';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { cn } from '../../../lib/utils.ts';
@@ -26,7 +27,7 @@ export function readChatTarget(
  * Chat button: the title truncates before the button, never under it.
  */
 export function ChatButtonRoom() {
-    return <span aria-hidden className="ms-auto @min-2xl/activity-log:hidden w-8 shrink-0" />;
+    return <span aria-hidden className="ms-auto w-8 shrink-0 @min-2xl/activity-log:hidden" />;
 }
 
 /**
@@ -39,7 +40,7 @@ export function TurnRuler({ scale }: { scale: TraceScale }) {
             aria-hidden
             className={cn(
                 traceRowClass('default', 'log'),
-                'pointer-events-none @max-2xl/activity-log:hidden h-5 min-h-0'
+                'pointer-events-none h-5 min-h-0 @max-2xl/activity-log:hidden'
             )}
             data-log-ruler
         >
@@ -72,11 +73,11 @@ export function LogChatButton({
                 traceRowClass('default', 'log'),
                 'pointer-events-none absolute inset-0',
                 'opacity-0',
-                'focus-within:opacity-100 group-hover/turn-header:opacity-100',
+                'group-hover/turn-header:opacity-100 focus-within:opacity-100',
                 'group-has-[[data-log-header]:focus-visible]/turn-header:opacity-100'
             )}
         >
-            <div className="pointer-events-auto @max-2xl/activity-log:col-start-2 col-start-3 flex justify-self-end">
+            <div className="pointer-events-auto col-start-3 flex justify-self-end @max-2xl/activity-log:col-start-2">
                 <Button
                     aria-label={label}
                     onPress={() => navigate(serverChatRoute(serverSlug, target.chatId))}
@@ -84,7 +85,7 @@ export function LogChatButton({
                     variant="ghost"
                     {...opensPlace}
                 >
-                    <span className="@max-2xl/activity-log:sr-only truncate">{label}</span>
+                    <span className="truncate @max-2xl/activity-log:sr-only">{label}</span>
                     <Icon aria-hidden="true" icon={ArrowUpRight01Icon} size={16} />
                 </Button>
             </div>

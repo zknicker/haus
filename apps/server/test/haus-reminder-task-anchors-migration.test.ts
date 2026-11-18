@@ -2,7 +2,9 @@ import { expect, test } from 'bun:test';
 import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { SQL } from 'bun';
+
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { startEmptyDatabase } from './postgres-cluster.ts';
 

@@ -1,5 +1,7 @@
 import http2 from 'node:http2';
+
 import type { PushEnvironment } from '@haus/api';
+
 import { type ApnsCredentials, ApnsProviderToken } from './apns-provider-token.ts';
 import type { PushOutcome, PushRequest, PushSender } from './push-sender.ts';
 

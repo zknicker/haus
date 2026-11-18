@@ -1,5 +1,6 @@
 import type { HausAgentMessage, MessageBodyKind } from '@haus/api';
 import { and, eq, inArray, sql } from 'drizzle-orm';
+
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import { readInlineReplyContexts } from '../chats/reply-context.ts';
 import { listMessageClaimMap } from '../claims/claim-shape.ts';

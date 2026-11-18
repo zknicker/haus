@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { ComputerRemovalAction, RecoveryCommands } from './computer-actions.tsx';
 
 test('Recovery commands are visible in a copyable code block', () => {

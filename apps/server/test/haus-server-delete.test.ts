@@ -1,7 +1,9 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { lstat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+
 import { makeTestRuntime } from '@haus/effect';
+
 import { openAttachmentRoot } from '../src/attachments/attachment-root.ts';
 import { ComputerConnections } from '../src/computers/connections.ts';
 import { connectHausDatabase } from '../src/postgres/connection.ts';

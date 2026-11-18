@@ -1,5 +1,6 @@
 import type { ImageGeneration } from '@haus/api';
 import * as React from 'react';
+
 import { MessageMediaStrip } from '../chats/message-media-strip.tsx';
 import { ImageGenerationCard } from './image-generation-card.tsx';
 import { isReadyImageGeneration } from './image-generation-details.tsx';

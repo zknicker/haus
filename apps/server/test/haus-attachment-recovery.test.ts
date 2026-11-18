@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import { makeTestRuntime } from '@haus/effect';
+
 import { type AttachmentRoot, openAttachmentRoot } from '../src/attachments/attachment-root.ts';
 import { reconcileAttachments } from '../src/attachments/reconcile-attachments.ts';
 import { uploadAttachment } from '../src/attachments/upload-attachment.ts';

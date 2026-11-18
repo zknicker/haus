@@ -1,7 +1,8 @@
 import { expect, test } from 'bun:test';
+
 import { agentInboxItemSchema } from './agent-inbox.ts';
-import { agentTaskListQuerySchema } from './agent-task.ts';
 import { formatTaskTarget, TASK_TARGET_PATTERN } from './agent-task-refusals.ts';
+import { agentTaskListQuerySchema } from './agent-task.ts';
 import { chatMessagePageSchema } from './chat.ts';
 import { taskSetStateInputSchema } from './task-input.ts';
 import { taskKeyCreateInputSchema } from './task-key-ledger.ts';

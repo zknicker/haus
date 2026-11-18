@@ -1,5 +1,6 @@
 import type { MessageRoutingDebug } from '@haus/api';
 import { and, eq, inArray } from 'drizzle-orm';
+
 import { ChatNotFoundError, requireChatAccess } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, chatMessagesTable } from '../postgres/schema.ts';

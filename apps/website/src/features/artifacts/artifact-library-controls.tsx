@@ -1,6 +1,7 @@
 import type { ArtifactCreator } from '@haus/api';
 import { SearchField } from '@heroui/react';
 import type { ReactNode } from 'react';
+
 import { ArtifactCreatorMenu } from './artifact-creator-menu.tsx';
 import { ArtifactFilterMenu } from './artifact-filter-menu.tsx';
 import { ArtifactKindMenu } from './artifact-kind-menu.tsx';
@@ -43,7 +44,7 @@ export function ArtifactLibraryControls({
         <>
             <SearchField
                 aria-label={folderName ? `Search in ${folderName}` : 'Search files'}
-                className="@min-[40rem]/band:w-44 w-36 shrink-0"
+                className="w-36 shrink-0 @min-[40rem]/band:w-44"
                 onChange={onSearchChange}
                 value={search}
             >
@@ -53,7 +54,7 @@ export function ArtifactLibraryControls({
                     <SearchField.ClearButton />
                 </SearchField.Group>
             </SearchField>
-            <span className="@min-[58rem]/band:contents hidden">
+            <span className="hidden @min-[58rem]/band:contents">
                 <ArtifactKindMenu kind={kind} onKindChange={onKindChange} />
                 <ArtifactCreatorMenu
                     creator={creator}

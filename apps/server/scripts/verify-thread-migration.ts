@@ -1,6 +1,8 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
+
 import { SQL } from 'bun';
+
 import { judgeStructure, readStructure, type Structure } from './thread-migration-invariants.ts';
 import {
     compareUnread,

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+
 import { formatFoldLabel } from './turn-trace-fold-label.ts';
 import type { TurnTraceTool } from './turn-trace-tool-model.ts';
 

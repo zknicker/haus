@@ -1,5 +1,6 @@
 import { toast } from '@heroui/react';
 import type * as React from 'react';
+
 import { useBrowserViews } from '../../hooks/browser/browser-views-context.ts';
 import { tabsToRight } from '../../hooks/desktop-tabs/desktop-tabs-commands.ts';
 import { useDesktopTabs } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';

@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { expectedComputerRestartMs } from './haus-update-timing.ts';
 import { isOfflineComputerNoticeCandidate, nextUpdateExpiry } from './use-offline-computers.ts';
 

@@ -1,5 +1,6 @@
 import type { ArtifactPublicLink, ArtifactRecord } from '@haus/api';
 import { GridListHeader, GridListSection } from 'react-aria-components';
+
 import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import { useViewerTimeZone } from '../../hooks/members/use-viewer-time-zone.ts';
 import { groupArtifactsByDate } from './artifact-date-groups.ts';

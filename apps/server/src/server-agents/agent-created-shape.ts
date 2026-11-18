@@ -1,5 +1,6 @@
 import type { CreatedAgentSummary } from '@haus/api';
 import { and, eq, inArray } from 'drizzle-orm';
+
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';

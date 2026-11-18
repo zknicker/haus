@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { bodyRefusal } from './trigger-route.ts';
 
 test('refuses a body Fastify could not read and leaves every other fault alone', () => {

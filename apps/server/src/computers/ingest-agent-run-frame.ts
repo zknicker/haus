@@ -1,4 +1,5 @@
 import { agentActivityFrameSchema } from '@haus/api';
+
 import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { recordComputerAgentActivityWithStatus } from '../server-agents/agent-activity.ts';

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import dns from 'node:dns';
+
 import { BLOCKED_MESSAGE, safeFetch } from './safe-remote-fetch.ts';
 
 // Connection-level fallback across a host's validated DNS answers, e.g. an

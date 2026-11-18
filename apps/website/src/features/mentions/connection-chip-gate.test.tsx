@@ -1,9 +1,11 @@
 import { expect, test } from 'bun:test';
+
 import { type McpConnection, rankWranglerMcpUrl } from '@haus/api';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createTRPCQueryUtils } from '@trpc/react-query';
 import { observable } from '@trpc/server/observable';
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { ReferenceMarkdown } from './reference-markdown.tsx';
 

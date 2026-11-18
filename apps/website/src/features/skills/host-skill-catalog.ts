@@ -1,4 +1,5 @@
 import type { ComputerInventory, ImportableSkill } from '@haus/api';
+
 import { formatSkillName } from './skill-name-format.ts';
 
 /** One skill installed on a Computer, with the Agents whose library carries it. */

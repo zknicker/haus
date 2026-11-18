@@ -1,9 +1,11 @@
 import { describe, expect, test } from 'bun:test';
+
 import {
     pushAlertBodyMaxLength,
     pushNotificationPayloadSchema,
     pushNotificationSenderNameMaxLength,
 } from '@haus/api';
+
 import type { PushMessage } from './push-message.ts';
 import { buildPushPayload } from './push-payload.ts';
 

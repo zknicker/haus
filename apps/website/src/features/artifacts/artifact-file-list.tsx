@@ -1,4 +1,5 @@
 import { ListView } from '@heroui-pro/react';
+
 import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useArtifactActionsContext } from './artifact-actions-context.ts';
 import { formatArtifactBytes } from './artifact-format.ts';

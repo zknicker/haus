@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import type { ExecutionJournalUploadRecord } from '@haus/api';
+
 import { connectHausDatabase } from '../src/postgres/connection.ts';
 import { deleteExpiredExecutionJournals } from '../src/server-agents/execution-journal-retention.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';

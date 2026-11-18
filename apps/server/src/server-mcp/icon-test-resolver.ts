@@ -1,5 +1,7 @@
 import { afterAll } from 'bun:test';
+
 import { makeTestRuntime } from '@haus/effect';
+
 import { makeMcpIconResolver } from './icons.ts';
 
 export { iconRequestInit, type McpIconFetch, siteFaviconUrl } from './icons.ts';

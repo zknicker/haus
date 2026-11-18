@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import type { AddressInfo } from 'node:net';
 import { createServer, type Server } from 'node:net';
+
 import { startLoopbackProxy } from './proxy.ts';
 
 /** Server answers headers, then drops the socket mid-body. */

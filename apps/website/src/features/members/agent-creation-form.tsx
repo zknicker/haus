@@ -11,6 +11,7 @@ import {
     TextField,
 } from '@heroui/react';
 import * as React from 'react';
+
 import { AvatarPicker } from '../avatars/avatar-picker.tsx';
 import type { AvatarImage } from '../avatars/resize-avatar-image.ts';
 import type { AgentCreationSubmitValues, ReportedComputer } from './agent-creation-contract.ts';
@@ -130,7 +131,7 @@ export function AgentCreationForm({
                             src={avatarSrc}
                         />
                         <div className="min-w-0">
-                            <p className="font-medium text-sm">Agent avatar</p>
+                            <p className="text-sm font-medium">Agent avatar</p>
                             <p className="text-muted text-sm">
                                 {avatar
                                     ? 'New image selected.'

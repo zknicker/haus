@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
-import { composeAgentInstructions, volatileHostFacts } from './instructions.ts';
+
 import {
     deliveredInstructionReceipt,
     formatInstructionsUpdate,
@@ -7,6 +7,7 @@ import {
     planInstructionsUpdate,
     withInstructionsUpdate,
 } from './instructions-update.ts';
+import { composeAgentInstructions, volatileHostFacts } from './instructions.ts';
 
 const productVersion = process.env.HAUS_COMPUTER_PRODUCT_VERSION;
 afterEach(() => {

@@ -1,4 +1,5 @@
 import EventEmitter, { on } from 'node:events';
+
 import type { CompositionEvent } from '@haus/api';
 
 const eventName = 'chat.composition';

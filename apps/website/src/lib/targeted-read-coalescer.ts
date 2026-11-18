@@ -1,5 +1,6 @@
 import type { MessageCreatedEvent } from '@haus/api';
 import { type Query, type QueryClient, type QueryKey, useQueryClient } from '@tanstack/react-query';
+
 import {
     chatMessageQueryKey,
     isChatMessageEntityOf,

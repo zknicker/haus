@@ -1,6 +1,7 @@
 import type { HugeiconsIconProps } from '@hugeicons/react';
 import type { ReactNode } from 'react';
 import * as React from 'react';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 import { cn } from '../../../lib/utils.ts';
 import { formatToolDuration, hasErrorStatus } from '../../sessions/tools/tool-ui.ts';
@@ -50,11 +51,11 @@ export function ToolTimelineStep({
             // button's offsetParent is the row itself).
             ref={hoverItem.ref}
         >
-            {isLast ? null : <div className="absolute top-7 bottom-0 left-4 w-px bg-separator" />}
+            {isLast ? null : <div className="bg-separator absolute top-7 bottom-0 left-4 w-px" />}
             <button
                 aria-label={inspectLabel}
                 className={cn(
-                    'flex min-h-[var(--tool-row-min-h,1.75rem)] w-full min-w-0 cursor-default items-center gap-2 rounded-[var(--tool-row-hover-radius,var(--radius-md))] py-1.5 pr-2 pl-[var(--tool-row-inset,0.75rem)] text-left text-muted outline-none transition-none focus-visible:bg-surface-hover focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset',
+                    'text-muted focus-visible:bg-surface-hover focus-visible:ring-focus flex min-h-[var(--tool-row-min-h,1.75rem)] w-full min-w-0 cursor-default items-center gap-2 rounded-[var(--tool-row-hover-radius,var(--radius-md))] py-1.5 pr-2 pl-[var(--tool-row-inset,0.75rem)] text-left transition-none outline-none focus-visible:ring-2 focus-visible:ring-inset',
                     !hoverItem.hasSharedHover && 'hover:bg-surface-hover'
                 )}
                 onClick={() => setIsOpen(true)}
@@ -62,7 +63,7 @@ export function ToolTimelineStep({
                 type="button"
             >
                 <span className="-ml-1 flex size-4 shrink-0 items-center justify-center">
-                    <Icon className="size-4 text-muted" icon={icon} strokeWidth={1.5} />
+                    <Icon className="text-muted size-4" icon={icon} strokeWidth={1.5} />
                 </span>
                 <span className="flex min-w-0 flex-1 items-center text-sm leading-5">{label}</span>
             </button>
@@ -99,7 +100,7 @@ export function InlineToolLabel({
     return (
         <span
             className={cn(
-                'inline-flex min-w-0 max-w-full flex-nowrap items-center gap-1.5 leading-4',
+                'inline-flex max-w-full min-w-0 flex-nowrap items-center gap-1.5 leading-4',
                 isRunning && 'thinking-indicator-text'
             )}
         >
@@ -113,7 +114,7 @@ export function InlineToolLabel({
             </span>
             <span className={cn('truncate', isRunning ? null : 'text-muted')}>{visibleTarget}</span>
             {duration ? (
-                <span className="shrink-0 font-mono text-muted/70 text-xs tabular-nums">
+                <span className="text-muted/70 shrink-0 font-mono text-xs tabular-nums">
                     {duration}
                 </span>
             ) : null}

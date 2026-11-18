@@ -6,6 +6,7 @@
 import { spawn } from 'node:child_process';
 import net from 'node:net';
 import { fileURLToPath } from 'node:url';
+
 import { _electron } from '@playwright/test';
 import electronPath from 'electron';
 

@@ -3,6 +3,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+
 import { verifyComputerOnlyRelease } from './computer-release-verifier.mjs';
 import {
     APP_RELEASE_ASSETS,

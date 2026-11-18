@@ -87,7 +87,9 @@ test('a human messages in #all with only the hosted Server online', async ({ pag
 
     const fileChooser = page.waitForEvent('filechooser');
     await page.getByLabel('Add attachments', { exact: true }).click();
-    await (await fileChooser).setFiles({
+    await (
+        await fileChooser
+    ).setFiles({
         buffer: Buffer.from('hosted attachment bytes'),
         mimeType: 'text/plain',
         name: 'hosted-note.txt',

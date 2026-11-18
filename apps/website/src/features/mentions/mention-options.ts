@@ -1,4 +1,5 @@
 import { formatAgentReferenceTarget } from '@haus/api/rich-references';
+
 import type { MentionOption } from './mention-types.ts';
 
 export function buildAgentMentionOption({

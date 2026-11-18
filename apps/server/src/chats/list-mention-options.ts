@@ -5,6 +5,7 @@ import {
     type MentionOption,
 } from '@haus/api';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
@@ -61,17 +62,15 @@ export async function listMentionOptions(
                   )
                   .orderBy(agentsTable.createdAt);
 
-    const agentOptions = rows.map(
-        (agent): MentionOption => ({
-            description: 'Agent in this chat',
-            id: formatAgentReferenceTarget(agent.id),
-            insertText: `@${agent.displayName}`,
-            kind: 'agent',
-            label: agent.displayName,
-            projection: 'agent-reference',
-            sourceLabel: 'Agents',
-        })
-    );
+    const agentOptions = rows.map((agent): MentionOption => ({
+        description: 'Agent in this chat',
+        id: formatAgentReferenceTarget(agent.id),
+        insertText: `@${agent.displayName}`,
+        kind: 'agent',
+        label: agent.displayName,
+        projection: 'agent-reference',
+        sourceLabel: 'Agents',
+    }));
     const skillScope = new Set(skillAgentIds);
     const skillOptions = new Map<string, MentionOption>();
 

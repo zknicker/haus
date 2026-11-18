@@ -1,5 +1,6 @@
 import type { CloudAgentJobState } from '@haus/api';
 import { Spinner } from '@heroui/react';
+
 import { cn } from '../../lib/utils.ts';
 import { type CloudAgentTone, cloudAgentJobTone } from './cloud-agent-presentation.ts';
 

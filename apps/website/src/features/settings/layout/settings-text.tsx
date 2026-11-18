@@ -1,4 +1,5 @@
 import type React from 'react';
+
 import { cn } from '../../../lib/utils.ts';
 
 /**
@@ -44,7 +45,7 @@ export function SettingsRowError({ children }: { children?: React.ReactNode }) {
     }
 
     return (
-        <p className="mt-1 text-danger text-sm" data-selectable-text="" role="alert">
+        <p className="text-danger mt-1 text-sm" data-selectable-text="" role="alert">
             {children}
         </p>
     );
@@ -60,5 +61,5 @@ export function SettingsRowWarning({ children }: { children?: React.ReactNode })
         return null;
     }
 
-    return <p className="mt-1 text-sm text-warning">{children}</p>;
+    return <p className="text-warning mt-1 text-sm">{children}</p>;
 }

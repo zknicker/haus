@@ -7,6 +7,7 @@ import {
     useMemo,
     useState,
 } from 'react';
+
 import { getDesktopBridge } from '../lib/desktop-bridge.ts';
 
 /**

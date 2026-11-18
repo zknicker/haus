@@ -1,5 +1,6 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import * as React from 'react';
+
 import { ResizablePaneRail } from '../../components/ui/resizable-pane-rail.tsx';
 import {
     artifactPaneWidthLimits,
@@ -46,7 +47,7 @@ export function ChatSidePaneShell({
             aria-hidden={keepMounted && !open ? true : undefined}
             aria-label={label}
             className={cn(
-                'relative flex h-full min-h-0 shrink-0 overflow-hidden border-separator border-l bg-background',
+                'border-separator bg-background relative flex h-full min-h-0 shrink-0 overflow-hidden border-l',
                 takeover ? 'min-w-0 flex-1 shrink border-l-0' : 'z-[36]'
             )}
             exit={closedMotion}

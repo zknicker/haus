@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
+
 import type { AgentExecutionJournal } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { TurnTracePresentation } from './turn-trace.tsx';
+
 import { TurnTraceCallBody } from './turn-trace-call-body.tsx';
 import { TraceNested } from './turn-trace-depth.tsx';
 import { TurnTraceFooter } from './turn-trace-footer.tsx';
@@ -19,6 +20,7 @@ import { TurnTraceScopeProvider } from './turn-trace-scope.tsx';
 import { TurnTraceSteps } from './turn-trace-steps-view.tsx';
 import { call, journal } from './turn-trace-test-fixtures.ts';
 import { buildTurnTraceView } from './turn-trace-view.ts';
+import { TurnTracePresentation } from './turn-trace.tsx';
 
 const tokens = readFileSync(new URL('../../styles/product-tokens.css', import.meta.url), 'utf8');
 

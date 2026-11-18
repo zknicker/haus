@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import { agentImageGenerationCreateInputSchema } from '@haus/api';
+
 import type { AttachmentRoot } from '../src/attachments/attachment-root.ts';
 import { resolveImageGenerationRequest } from '../src/image-generation/image-generation-request.ts';
 import { ImageProviderError } from '../src/image-generation/providers/image-provider.ts';

@@ -14,6 +14,7 @@
 import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+
 import { readAgentSkillNames } from '../../../apps/computer/src/harness/agent-skill-names.ts';
 import { ensureNativeSkillLinks } from '../../../apps/computer/src/harness/native-skill-links.ts';
 import { seedFactoryManagedSkills } from '../../../packages/agent-workspace/src/index.ts';

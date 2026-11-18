@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
+
 import type { ChatMessageLayout } from '../../../hooks/servers/chat-message-layout.ts';
 import type { useAttachmentDownload } from '../../../hooks/servers/use-attachment-download.ts';
 import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx';

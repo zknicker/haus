@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+
 import { RequireOperator } from '../../servers/require-operator.tsx';
 import { useServerContext } from '../../servers/server-context.ts';
 import { serverRoute, settingsConnectionRoute } from '../../servers/server-routes.ts';
@@ -23,7 +24,7 @@ export function ConnectionsPage({ embedded = false }: { embedded?: boolean }) {
             <PageColumn>
                 {embedded ? null : (
                     <Link
-                        className="text-muted text-sm hover:text-foreground"
+                        className="text-muted hover:text-foreground text-sm"
                         to={serverRoute(slug)}
                     >
                         Back to /{slug}

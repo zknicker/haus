@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+
 import type { BrowserCommand, BrowserWorkspaceState } from '../../src/lib/desktop-browser.ts';
 
 /**

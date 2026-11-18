@@ -1,8 +1,9 @@
 import type { ImageGenerationProviderStatus } from '@haus/api';
-import { Button, Dropdown, Label, Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Button, Dropdown, Label, Separator } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 import {
     useImageGenerationSettings,

@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { AgentRuntimeBrowserSettings } from '@haus/api';
+
 import { createDraft, draftError, hasDraftChanges, toSaveInput } from './browser-settings-model.ts';
 
 const connection = { applicationPath: '/Applications/Google Chrome.app', userDataDir: '/shared' };

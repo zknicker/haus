@@ -1,6 +1,7 @@
 import { ComboBox, EmptyState, Input, Label, ListBox } from '@heroui/react';
 import * as React from 'react';
 import { ComboBoxStateContext } from 'react-aria-components';
+
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import type { ChannelAgentOption } from './channel-agent-picker.tsx';
 

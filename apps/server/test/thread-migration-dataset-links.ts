@@ -1,5 +1,5 @@
-import type { DatasetChat, DatasetMessage } from './thread-migration-dataset.ts';
 import { addDatasetRecords } from './thread-migration-dataset-records.ts';
+import type { DatasetChat, DatasetMessage } from './thread-migration-dataset.ts';
 import { addRows, type DatasetTables, idBody } from './thread-migration-rows.ts';
 
 const serverId = 'srv_mig';

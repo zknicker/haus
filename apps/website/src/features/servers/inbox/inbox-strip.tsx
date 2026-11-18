@@ -1,6 +1,7 @@
 import type { Agent } from '@haus/api';
 import { Chip } from '@heroui/react';
 import { ArrowUp02Icon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
@@ -58,7 +59,7 @@ export function InboxStrip({
         <aside aria-label="Agent activity" className="min-w-0">
             <div className="flex min-w-0 items-center gap-3">
                 <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-                    <span className="me-1.5 shrink-0 text-muted text-xs">
+                    <span className="text-muted me-1.5 shrink-0 text-xs">
                         {`Tokens · ${activeAgentWindowDays}d`}
                     </span>
                     {entries.length === 0 ? (
@@ -99,7 +100,7 @@ export function InboxStrip({
                             <>
                                 <span
                                     aria-hidden="true"
-                                    className="size-2 shrink-0 rounded-full bg-success"
+                                    className="bg-success size-2 shrink-0 rounded-full"
                                 />
                                 {`${running} running`}
                             </>
@@ -136,7 +137,7 @@ function AgentWeekChip({ entry, onOpen }: { entry: ActiveAgent; onOpen: () => vo
     return (
         <button
             aria-label={agentWeekLabel(entry)}
-            className="inline-flex shrink-0 cursor-(--cursor-interactive) rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            className="focus-visible:ring-focus inline-flex shrink-0 cursor-(--cursor-interactive) rounded-2xl outline-none focus-visible:ring-2"
             onClick={onOpen}
             type="button"
             {...opensPlace}

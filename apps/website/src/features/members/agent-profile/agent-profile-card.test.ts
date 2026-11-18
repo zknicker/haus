@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { Agent } from '@haus/api';
+
 import { agentCreatorName, formatAgentProfileFact } from './agent-profile-card.tsx';
 
 test('the profile names the Agent that created this one, or the human who did', () => {

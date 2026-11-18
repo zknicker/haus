@@ -2,6 +2,7 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { restartOwnedSession } from './agent-partition-lifecycle.ts';
 import { makeDaemonRuntime } from './daemon-runtime.ts';
 import { isSessionRestartRequested } from './harness/session-restart.ts';

@@ -1,5 +1,6 @@
 import type { ComputerInventory, ComputerRuntimeId, ComputerUsage } from '@haus/api';
 import { Card } from '@heroui/react';
+
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { useUsage } from '../../hooks/servers/use-usage.ts';
 import { computerLabel } from '../computers/presentation.ts';
@@ -79,8 +80,8 @@ function CapacityMessage({ description, title }: { description: string; title: s
     return (
         <Card>
             <Card.Content>
-                <p className="font-medium text-base">{title}</p>
-                <p className="mt-1 text-muted text-sm">{description}</p>
+                <p className="text-base font-medium">{title}</p>
+                <p className="text-muted mt-1 text-sm">{description}</p>
             </Card.Content>
         </Card>
     );

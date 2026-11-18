@@ -1,6 +1,7 @@
 import { Input, Label, TextField } from '@heroui/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { parseInvitationToken } from './server-choice.ts';
 import { invitationRoute } from './server-routes.ts';
 

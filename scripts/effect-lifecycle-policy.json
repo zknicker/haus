@@ -1,1368 +1,1368 @@
 {
-  "customSettlementCeilings": {},
-  "migrationCeilings": {
-    "dispositionImportMismatch": {},
-    "effectImportOnly": {},
-    "effectOwnedConsole": {},
-    "foreignFailureIdentityCatch": {
-      "apps/server/src/haus-server-shutdown.ts": 1
-    },
-    "managedRuntimeConstruction": {},
-    "unknownErrorChannel": {
-      "apps/server/src/haus-server-shutdown.ts": 1
-    }
-  },
-  "migrationExceptions": {
-    "foreignFailureIdentityCatch": {
-      "apps/server/src/haus-server-shutdown.ts": "Shutdown deliberately rethrows the first foreign resource failure unchanged after all finalizers complete."
-    },
-    "unknownErrorChannel": {
-      "apps/server/src/haus-server-shutdown.ts": "Shutdown deliberately preserves the foreign resource failure identity at the finalizer boundary."
-    }
-  },
-  "lifecycleCandidates": {
-    "apps/computer/src/artifacts/cache.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "The finite verified download closes its file handle in lexical finally before returning a cached path. Persistent cache leases are domain records, recovered by process liveness, rather than background resources.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/browser/linux-chrome-detection.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Detection awaits each bounded --version probe and closes the ELF header file descriptor in lexical finally; it owns no detached work.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/execution-journal-upload/journal-uploader.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Each run's idle waiter is one manual promise that resolves when the Server acks the run's last frame or the attachment socket closes; the on-connect resend pass and ledger writes are serialized promise chains owned by the daemon-lifetime uploader.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/pid-lock.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "One awaited operation acquires an exclusive pid lock file with a bounded acquisition deadline and removes it in lexical finally; acquisition closes its file handle in lexical finally. The awaited retry delay owns no detached timer or background task.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 2,
-        "manualPromise": 0,
-        "timer": 2
-      }
-    },
-    "apps/server/src/server-agents/execution-journal-changes.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Each run holds at most one trailing notice timer and one forget timer, each firing once within a second of its schedule; the process-lifetime emitter owns no other resource.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 1
-      }
-    },
-    "apps/server/src/voice/voice-call.ts": {
-      "disposition": "effect-owned",
-      "reason": "The Server runtime owns each call's scoped fixed-rate synchronization fiber and joins in-flight database delivery on socket shutdown. Four bounded timers adapt foreign WebSocket startup, idle-call duration, and graceful closure deadlines.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 4
-      }
-    },
-    "apps/computer/src/cloud-agents/claude/checkout.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "One launch clones into a private temporary directory and removes it in lexical finally whether or not the launch succeeds. Child processes are awaited with their own timeouts.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/cloud-agents/claude/native-commands.ts": {
-      "disposition": "external-adapter",
-      "reason": "Claude Code's launcher is awaited to exit under its own timeout. The two short timers that accept the folder-trust prompt are cleared and the terminal is closed in lexical finally.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 3
-      }
-    },
-    "apps/computer/src/cloud-agents/cursor/provider.ts": {
-      "disposition": "external-adapter",
-      "reason": "Cursor terminal stream handling aborts only the local subscription. The daemon Effect supervisor owns polling, retries and joined subscription teardown.",
-      "risks": {
-        "abortController": 1,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/cloud-agents/cursor/recorded-transport.ts": {
-      "disposition": "test-support",
-      "reason": "Recorded Cursor streams expose an abortable deterministic subscription, removing the listener when the simulated stream ends.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 1,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/cloud-agents/cursor/sdk-stream.ts": {
-      "disposition": "external-adapter",
-      "reason": "The pinned SDK stream bridge closes and joins the SDK reader on interruption. An early rejection observer prevents an unhandled rejection; finalization awaits and propagates that same disposal failure.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 1,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/cloud-agents/cursor/sdk-transport.ts": {
-      "disposition": "external-adapter",
-      "reason": "SDK launches and follow-ups join automatic local stream disposal before returning provider identity. The daemon owns accepted launch completion; finite SDK requests have a pinned timeout patch.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/cloud-agents/fake-provider.ts": {
-      "disposition": "test-support",
-      "reason": "The in-memory Cloud Agent fixture exposes a Promise subscription that settles on abort so supervisor tests exercise joined teardown.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/cloud-agents/launch-journal.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Finite journal writes close their file handles and remove only their own temporary file. Exclusive intent creation and atomic acknowledgement preserve launch identity across process restarts. A finite per-Run write lock serializes terminal settlement with late acknowledgements across journal instances; the lock is released before the Promise returns.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 3,
-        "manualPromise": 1,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/cloud-agents/settings.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "The default-provider write is one atomic rename of a temporary file it removes in lexical finally.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/server/src/artifacts/retention.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "One awaited sweep run drains bounded claim batches and announces each affected Server once in lexical finally. It owns no timer or background task; the boot sweep's closing signal stops it between revisions.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/server/src/artifacts/thumbnails.ts": {
-      "disposition": "external-adapter",
-      "reason": "Bounded thumbnail render queue: the manual promise parks a render until a slot frees and the finally hands that slot on. Server acquires the queue in its Effect Scope; close stops admission and joins renders in flight before database teardown.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 1,
-        "timer": 0
-      }
-    },
-    "apps/server/src/boot-sweep.ts": {
-      "disposition": "external-adapter",
-      "reason": "Upstream fixed-interval maintenance adapter retains its deterministic timer seam. Server acquires each sweep in its Effect Scope; close stops admission, aborts the closing signal a long run checks between steps, and joins the in-flight database write before database teardown.",
-      "risks": {
-        "abortController": 1,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 6
-      }
-    },
-    "apps/computer/src/agent-skill-files.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "One atomic skill-file replacement removes its temporary file before the command returns.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/agent-turn-timings.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "A request-local measurement records elapsed time in finally around an awaited native call; it owns no timer, process, or concurrent work.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/agent-work-coordinator.ts": {
-      "disposition": "effect-owned",
-      "reason": "The daemon runtime owns keyed configuration ordering and active-run cancellation through Effect coordination.",
-      "risks": {
-        "abortController": 3,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/attachment-state.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "A finite atomic filesystem transaction removes its temporary file and lock before returning.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 2,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/daemon-runtime.ts": {
-      "disposition": "effect-owned",
-      "reason": "This is the Computer composition root that creates and disposes the single daemon Effect runtime.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/harness/execution-journal-file.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "The per-journal Promise tail serializes finite atomic writes, and callers await the current write failure.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 1,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/harness/executor.ts": {
-      "disposition": "effect-owned",
-      "reason": "The daemon runtime owns turn streaming and final cleanup across the foreign runtime-driver boundary; turn-notices.ts owns notice delivery. One turn-local controller lets the no-progress deadline interrupt through the same abort path as Stop.",
-      "risks": {
-        "abortController": 1,
-        "catchAndIgnore": 2,
-        "finallyBlock": 2,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/agent-cli/commands/agent-image.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "The one-shot CLI poll waits with a single awaited sleep timer that fires once per poll, bounded by a five-minute timeout; no timer outlives the awaiting command.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 1
-      }
-    },
-    "apps/computer/src/harness/thought-narrator.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Each run holds at most one pending thought timer, which fires once or is cancelled when the run's narrator closes.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 2
-      }
-    },
-    "apps/computer/src/inbox-store-io.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Each inbox mutation is one finite atomic filesystem transaction whose lock and temporary file cannot outlive the call.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/index.ts": {
-      "disposition": "external-adapter",
-      "reason": "The Computer composition root bridges WebSocket closure, atomic attachment writes, and the terminal restart timer to owned services.",
-      "risks": {
-        "abortController": 1,
-        "catchAndIgnore": 0,
-        "finallyBlock": 2,
-        "manualPromise": 1,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/launch.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "The daemon traces and cancels the turn; this adapter releases its scoped runner authority and proxy sinks before returning.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 1,
-        "finallyBlock": 2,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/login.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "The awaited login command removes its TTY listener and temporary credential file before returning.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 2,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/proxy-support.ts": {
-      "disposition": "external-adapter",
-      "reason": "Launch resources own the loopback server; its Promise and timer form a bounded best-effort HTTP attestation deadline.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 1
-      }
-    },
-    "apps/computer/src/reminder-script-execution.ts": {
-      "disposition": "effect-owned",
-      "reason": "The daemon runtime owns reminder subprocess execution and translates Effect interruption into the child AbortSignal.",
-      "risks": {
-        "abortController": 1,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/reminder-script.ts": {
-      "disposition": "effect-owned",
-      "reason": "The daemon runtime owns in-flight reminder execution while the finalizer evicts only the completed single-flight entry.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/test-port.ts": {
-      "disposition": "test-support",
-      "reason": "This production-adjacent test helper only adapts Node server callbacks to reserve an ephemeral test port.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/turn-ledger.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Best-effort ledger writes are one finite atomic file replace each; a failed write removes its temporary file and costs only relaunch resume accuracy.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 2,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/update-install.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Each signed executable installation is a finite atomic file transaction that removes staged artifacts on failure.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/update-locks.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "The update command holds a filesystem admission lock only for one awaited operation and releases it in finally.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/update.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "The signed update transaction is finite and awaited by its daemon owner; finalizers release its PID lock and artifacts.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 2,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/usage/claude-plan-usage-state.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "A finite per-file write queue serializes atomic usage-state updates and evicts its completed Promise entry.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 1,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/usage/claude-plan-usage.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "The request-scoped single-flight cache clears its completed provider request before returning to callers.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/usage/computer-usage-cache.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "The request-scoped usage refresh is a finite single-flight operation that clears its Promise after settlement.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/workspace-files.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "A finite workspace preview closes its local file handle before returning the bounded result.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/server/src/agent-api/attachments.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Each attachment request closes its staged file and discards incomplete storage while preserving the primary route error.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 2,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/server/src/attachments/attachment-root-filesystem.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "A finite directory synchronization closes its filesystem handle before returning.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/server/src/attachments/attachment-root.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "The attachment write admission token is held for one awaited operation and released in its finalizer.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/server/src/attachments/reconcile-attachments.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Startup reconciliation hashes one attachment through a local handle and closes it before validation returns.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/server/src/avatar-generation/service.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "One awaited avatar request releases its per-actor admission permit on every outcome.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/server/src/computers/socket-liveness.ts": {
-      "disposition": "external-adapter",
-      "reason": "One unref'd ping interval per attachment socket adapts ws transport liveness; the socket close handler stops it. An on-demand presence probe adapts one ping to a Promise with a bounded deadline that settles on pong, frame, timeout, or stop.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 2
-      }
-    },
-    "apps/server/src/computers/socket.ts": {
-      "disposition": "external-adapter",
-      "reason": "ServerPostCommitWork owns reconnect work; the remaining Promise only adapts WebSocketServer close callbacks. Best-effort attach sends (pending Cove application, Server runtime settings) ignore a failure because the next attach resends them.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 3,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 2
-      }
-    },
-    "apps/server/src/development/seed-chat-attachment.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Development bootstrap stages one attachment and always discards the bounded staging artifact after commit or failure.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 2,
-        "finallyBlock": 2,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/server/src/haus-api/socket-session.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Each App socket holds at most one session-expiry timer; refresh rearms it and dispose clears it, so it never outlives its socket.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 2
-      }
-    },
-    "apps/server/src/haus-server-application.ts": {
-      "disposition": "effect-owned",
-      "reason": "The Server composition root creates one runtime and orders every owned service finalizer before database disposal.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 4,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/server/src/haus-server-stop.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "The process signal handler races the application close against one deadline timer, clears it, and ends the process; the runtime it would use is disposed by that close.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 2
-      }
-    },
-    "apps/server/src/postgres/bootstrap.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Fresh-schema bootstrap uses one finite administrative connection and closes it before migration continues.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/server/src/postgres/migrations.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "The finite migration command closes its dedicated PostgreSQL client after applying and reading migration state.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/server/src/push/apns-sender.ts": {
-      "disposition": "external-adapter",
-      "reason": "node:http2 APNs adapter: wraps one request stream in a Promise with a stream timeout, and pings each session on an unref'd interval whose deadline destroys a dead session; the interval is cleared when the session closes. Every failure becomes a push outcome; nothing retries.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 2,
-        "timer": 3
-      }
-    },
-    "apps/server/src/push/message-push.ts": {
-      "disposition": "external-adapter",
-      "reason": "Durable-event listener for iPhone push. Server acquires it in its Effect Scope; close aborts the subscription, logs any other listener failure, and drains the bounded push queue before database teardown.",
-      "risks": {
-        "abortController": 1,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/server/src/push/push-queue.ts": {
-      "disposition": "external-adapter",
-      "reason": "Bounded-concurrency queue for iPhone push tasks owned by message-push; a task's read-grace delay is one setTimeout counted in the backlog, tasks settle their own errors, and drain resolves once every delayed, queued, and running task has settled.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 1,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 1
-      }
-    },
-    "apps/server/src/server-mcp/client-cache.ts": {
-      "disposition": "effect-owned",
-      "reason": "The injected Server runtime owns MCP acquisition, operations, retirement, bounded close, and interruption translation.",
-      "risks": {
-        "abortController": 6,
-        "catchAndIgnore": 5,
-        "finallyBlock": 1,
-        "manualPromise": 1,
-        "timer": 2
-      }
-    },
-    "apps/server/src/server-mcp/icon-loader.ts": {
-      "disposition": "effect-owned",
-      "reason": "The Server runtime owns concurrent icon probes and translates fiber interruption to each foreign HTTP AbortSignal.",
-      "risks": {
-        "abortController": 5,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/server/src/server-mcp/runtime-test-fixtures.ts": {
-      "disposition": "test-support",
-      "reason": "Deterministic MCP lifecycle fixtures expose a one-tick timer only to runtime tests.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 1
-      }
-    },
-    "apps/server/src/image-generation/run-image-generation.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "One awaited generation run settles its durable row and re-announces the final state in lexical finally. It owns no detached timer or background task; boot recovery fails rows left generating.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/server/src/identity/cloudflare-access.ts": {
-      "disposition": "external-adapter",
-      "reason": "Cloudflare admission verification awaits a third-party key set. The deadline timer bounds one jose JWKS fetch, the abandoned fetch's rejection is observed so a late failure cannot become an unhandled rejection, and a missed deadline discards that key set so the next request builds a fresh one.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 1,
-        "finallyBlock": 1,
-        "manualPromise": 1,
-        "timer": 2
-      }
-    },
-    "apps/server/src/identity/session-connections.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Each tracked App socket or SSE response owns one access-expiry timer; fresh admission rearms it and close or local session revocation clears it and detaches its listener. Timers cannot outlive their connections.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 1
-      }
-    },
-    "apps/computer/src/server-mcp-client.ts": {
-      "disposition": "external-adapter",
-      "reason": "Finite fetch and body-reader adapter. The turn signal triggers a bounded explicit cancellation request; network failure leaves Server deadlines authoritative.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 1,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/server/src/agent-api/mcp-routes.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Each authenticated HTTP handler releases its cancellation registry entry in finally; the existing MCP runtime owns upstream interruption.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 2,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/server/src/server-mcp/requests.ts": {
-      "disposition": "external-adapter",
-      "reason": "Bounded request cancellation registry adapting HTTP messages to AbortSignals. Entries release with handlers, expire on access, and abort at Fastify shutdown; no background work is launched.",
-      "risks": {
-        "abortController": 2,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/mcp-response.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Bounded MCP response reader cancels and releases the stream reader on success, overflow, and parsing failure.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/runtime-issues.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Finite atomic runtime observation writes serialize per file and release the queue entry after settlement; failures propagate to the caller.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 1,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/attachment-daemon-work.ts": {
-      "disposition": "effect-owned",
-      "reason": "The attachment runtime bounds accepted work and session checkpoints with an Effect deadline; nested finally blocks then close the runtime context (warm processes, host-tool server) and reap every owned sandbox process before releasing routing.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 3,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/attachment-shutdown.ts": {
-      "disposition": "external-adapter",
-      "reason": "Node signal and PID adapters join one finite daemon drain. The terminal disposal deadline is outside the Effect runtime because that runtime is being disposed; timeout and polling timers are cleared or bounded.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 2,
-        "manualPromise": 2,
-        "timer": 3
-      }
-    },
-    "apps/computer/src/harness/session-lifecycle.ts": {
-      "disposition": "external-adapter",
-      "reason": "Finite runtime-driver detach and stop calls share a checkpoint with the turn writer. The attachment runtime owns shutdown admission, cancellation, deadline, and process reaping.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/harness/session-start.ts": {
-      "disposition": "external-adapter",
-      "reason": "runHarnessStart owns the start gate, deadline, and abort; a session the foreign adapter returns after the start was abandoned is destroyed best-effort because nothing else will own it.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 1,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/harness/stopped-turn.ts": {
-      "disposition": "external-adapter",
-      "reason": "Bounds a runtime driver turn's settle with one deadline timer that the finally block always clears; the executor owns the turn and fails it when the deadline wins.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 1,
-        "timer": 2
-      }
-    },
-    "apps/computer/src/harness/stored-notice.ts": {
-      "disposition": "external-adapter",
-      "reason": "The executor owns this finite foreign notice-delivery queue and always closes it when the turn settles; unresolved callback Promises are settled on close. A returned notice's temporary file is removed in finally whether or not its link won.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 2,
-        "manualPromise": 1,
-        "timer": 0
-      }
-    },
-    "apps/server/src/server-agents/agent-thought.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Only threads an injectable schedule into the thought cadence; the cadence owns its timers.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 1
-      }
-    },
-    "apps/server/src/server-agents/thought-cadence.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Each request holds at most one waiting-frame timer and one held still-line timer, each firing once or cancelled when a newer line shows; entries expire after ten idle minutes. Phrasing runs as post-commit background work.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 2
-      }
-    },
-    "apps/server/src/hosted-mcp/process.ts": {
-      "disposition": "external-adapter",
-      "reason": "Foreign subprocess and Unix HTTP adapter; the Server Effect scope owns admission, retries and release. The bounded stop deadline reaps the connector and reported account worker groups.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 3,
-        "finallyBlock": 1,
-        "manualPromise": 2,
-        "timer": 2
-      }
-    },
-    "apps/server/src/hosted-mcp/test-fixture.ts": {
-      "disposition": "test-support",
-      "reason": "Private socket and detached account worker fixture for Server supervision and process-tree cleanup tests.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 1
-      }
-    },
-    "apps/server/src/hosted-mcp/verify-package.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Finite packaging verification closes its MCP client, owned Effect scope, runtime and temporary fixture storage before returning.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 4,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/server/src/server-mcp/service.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "A finite diagnostic refresh resumes background inventory reconciliation on both success and failure; MCP runtime scopes own recurring discovery and client retirement.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/server/src/server-mcp/inventory.ts": {
-      "disposition": "effect-owned",
-      "reason": "The Server runtime owns scoped, fixed-delay MCP reconciliation through Effect clocks; connection revisions serialize inventory writes and suppress late results after client retirement. Finite Promise cleanup removes settled single-flight and write entries.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 1,
-        "finallyBlock": 2,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/cloud-agents/launch-attempt.ts": {
-      "disposition": "external-adapter",
-      "reason": "Request-local AbortController bridge to provider provisioning. The existing Effect-owned work monitor owns the persisted deadline and cancellation; this finite adapter owns no timer, retry loop, or detached task and joins late acknowledgement cancellation before returning.",
-      "risks": {
-        "abortController": 2,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/host-tools/mcp-server.ts": {
-      "disposition": "external-adapter",
-      "reason": "Loopback MCP adapter: each tools/call owns one cancel controller removed in lexical finally; session close and server stop abort a per-session controller. The Computer owner stops the Bun server.",
-      "risks": {
-        "abortController": 4,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/proxy-runner-hold.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Holds Agent requests between turns until a wake run's runner arrives: each waiter's Promise resolves on release or on its own bounded timer, which it clears; proxy close releases every waiter.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 1
-      }
-    },
-    "apps/computer/src/harness/turn-notices.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "One resolver per turn says the stored notice reached delivery; the executor always awaits close(), which unregisters the notice sink, closes the coordinator, and awaits the stored delivery and every steer still in flight.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/runtime/runtime-context.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "The attachment daemon opens one context and closes it at shutdown; close ends every warm process and stops the host-tool server in finally, so a failed process close never leaves the server bound. An eviction marks its Agent root as a deliberate end and clears the mark in finally.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 2,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/runtime/process-group.ts": {
-      "disposition": "external-adapter",
-      "reason": "Ends a foreign runtime child's whole process group: SIGTERM then SIGKILL grace periods whose timers clear in finally, a bounded liveness poll, and a registry entry held until no member is left; a failed termination resets so Computer shutdown retries it.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 1,
-        "timer": 2
-      }
-    },
-    "apps/computer/src/runtime/handshake-deadline.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "One controller per runtime handshake, aborted by the caller's signal or a timeout; every caller clears the timer and the parent listener in finally.",
-      "risks": {
-        "abortController": 1,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 1
-      }
-    },
-    "apps/computer/src/runtime/testing/process-group-testing.ts": {
-      "disposition": "test-support",
-      "reason": "A test process registry resolves one promise when its last registered stop is removed.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/runtime/warm-pool.ts": {
-      "disposition": "external-adapter",
-      "reason": "Parks foreign runtime processes between turns. Each parked process holds one unref'd idle timer, re-armed while the process holds background work and cleared whenever the entry leaves the pool (claim, evict, exit, close); a process that exits while parked is still closed, and idle or exit close failures go to the daemon logger through onCloseError.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 3
-      }
-    },
-    "apps/computer/src/runtime/json-rpc-connection.ts": {
-      "disposition": "external-adapter",
-      "reason": "One resolver per JSON-RPC request, settled by its response, a local abort, a failed write, or close(). A reply to a peer that already closed is dropped because close() owns and reports that failure.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 1,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/runtime/claude-code/claude-compaction.ts": {
-      "disposition": "external-adapter",
-      "reason": "One /compact on a parked foreign claude process: a sink promise settled by its own result or the process exit, raced against one hung-compaction timer cleared in finally, where the sink also detaches. The sink's rejection is pre-observed so a failed write cannot surface it unhandled; the awaited race still reports it.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 1,
-        "finallyBlock": 1,
-        "manualPromise": 2,
-        "timer": 2
-      }
-    },
-    "apps/computer/src/runtime/idle-compaction-scheduler.ts": {
-      "disposition": "external-adapter",
-      "reason": "One unref'd timer per parked Agent session while the Server setting is on, cleared when the entry leaves the warm pool or the setting turns off. A fired compaction is tracked until it settles so the pool can wait for it; its outcome goes to the daemon's report or failed hook, never dropped.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 2
-      }
-    },
-    "apps/computer/src/runtime/claude-code/fixtures/idle-compaction-live.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "Live-test harness: one manual promise resolved by the warm pool's idle compaction report or failure hook; the caller's close() ends the pool and host-tool server in its own finally. Each live turn takes a fresh AbortController it never aborts.",
-      "risks": {
-        "abortController": 1,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/runtime/claude-code/claude-connection.ts": {
-      "disposition": "external-adapter",
-      "reason": "Each control request to the foreign claude process races its answer against one timeout timer cleared in finally; pending controls are rejected when the process exits.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 2,
-        "timer": 2
-      }
-    },
-    "apps/computer/src/runtime/claude-code/claude-install.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "One awaited pinned-binary install unpacks into a staging directory that finally always removes; concurrent callers share the same install promise.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/runtime/claude-code/claude-process.ts": {
-      "disposition": "external-adapter",
-      "reason": "The foreign claude child's exit promise settles on close, error, or an unref'd post-exit grace timer; its process group is owned by process-group.ts, which stays in the Computer process registry until the group is gone.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 2,
-        "timer": 1
-      }
-    },
-    "apps/computer/src/runtime/claude-code/claude-turn-steers.ts": {
-      "disposition": "external-adapter",
-      "reason": "A turn's steers on the foreign claude process: each acknowledgement Promise settles on Claude Code's queued, started, cancelled, or discarded receipt and is raced against claude-steer-receipt.ts's bounded timeout.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/runtime/claude-code/claude-turn.ts": {
-      "disposition": "external-adapter",
-      "reason": "One turn on the foreign claude process: its settle resolver ends with the turn (steer acknowledgements live in claude-turn-steers.ts, the receipt timeout in claude-steer-receipt.ts), and the interrupt's hard-kill timer clears on settle. A kill that fails leaves the turn unsettled for the executor's settle deadline.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 1,
-        "finallyBlock": 1,
-        "manualPromise": 1,
-        "timer": 1
-      }
-    },
-    "apps/computer/src/runtime/claude-code/claude-steer-receipt.ts": {
-      "disposition": "external-adapter",
-      "reason": "Races one written steer's lifecycle receipt from the foreign claude process against a timeout whose timer clears in finally; the receipt promise itself is owned by the turn.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 1,
-        "timer": 2
-      }
-    },
-    "apps/computer/src/runtime/event-queue.ts": {
-      "disposition": "finite-cleanup",
-      "reason": "A single-consumer event queue: at most one pending wake resolver, resolved by the next push or by end(), which every Claude Code and Grok Build turn reaches on settlement or its consumer reaches by stopping early.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/runtime/claude-code/fixtures/capture.ts": {
-      "disposition": "test-support",
-      "reason": "Fixture capture script run by hand against the real CLI; its exit promise and step timeout live only for one scripted capture.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 2,
-        "timer": 1
-      }
-    },
-    "apps/computer/src/runtime/claude-code/fixtures/fake-driver.ts": {
-      "disposition": "test-support",
-      "reason": "Test harness for the Claude Code driver over a stand-in CLI; the controller only builds a never-aborted signal for test opens.",
-      "risks": {
-        "abortController": 1,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/runtime/claude-code/fixtures/fixture-replay.ts": {
-      "disposition": "test-support",
-      "reason": "Replays a recorded stream as a fake process; its exit resolver settles when the fixture ends or the test stops it.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/runtime/codex/app-server.ts": {
-      "disposition": "external-adapter",
-      "reason": "The host-tool readiness resolver settles on the app-server's MCP status or its exit, and the bounded wait for it clears its timer in finally.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 2,
-        "timer": 2
-      }
-    },
-    "apps/computer/src/runtime/codex/codex-transport.ts": {
-      "disposition": "external-adapter",
-      "reason": "The foreign app-server's exit promise settles on close or spawn error; its whole process group is terminated through process-group.ts, also after the leader exits on its own.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 2,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/runtime/codex/codex-driver.ts": {
-      "disposition": "external-adapter",
-      "reason": "Opens one foreign app-server per session; the handshake deadline clears in finally, and a failed open releases the process and its host-tool scope before rethrowing.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/runtime/codex/fixtures/capture-fixtures.ts": {
-      "disposition": "test-support",
-      "reason": "Fixture capture script run by hand against the pinned Codex; it aborts scripted turns and tears its scratch root down in finally.",
-      "risks": {
-        "abortController": 1,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/runtime/codex/testing/fake-app-server.ts": {
-      "disposition": "test-support",
-      "reason": "In-memory app-server for tests; its exit resolver settles when a test crashes or kills it.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/runtime/codex/testing/replay-driver.ts": {
-      "disposition": "test-support",
-      "reason": "Test driver over recorded transports; the controller aborts one replayed step the way the capture script did.",
-      "risks": {
-        "abortController": 1,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/runtime/testing/fake-runtime-driver.ts": {
-      "disposition": "test-support",
-      "reason": "In-memory runtime driver for executor tests; each turn's drain resolver settles when the test consumes or abandons its scripted events.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 1,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/runtime/codex/testing/replay-transport.ts": {
-      "disposition": "test-support",
-      "reason": "Replays a recorded app-server stream; its resolvers settle as the fixture advances, ends, or the test kills the transport.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 4,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/runtime/codex/testing/session-harness.ts": {
-      "disposition": "test-support",
-      "reason": "Test helpers that start fake turns with their own abort controllers and flush queued fake replies with zero-delay timers.",
-      "risks": {
-        "abortController": 2,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 1
-      }
-    },
-    "apps/computer/src/runtime/codex/turn-router.ts": {
-      "disposition": "external-adapter",
-      "reason": "A thread systemError gets one grace timer, replaced by the next, before it ends the run; ending a run is idempotent, so a timer firing after settlement does nothing.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 2
-      }
-    },
-    "apps/computer/src/runtime/codex/turn-run.ts": {
-      "disposition": "external-adapter",
-      "reason": "One Codex turn's state: its idle resolver settles when the run ends, steer-gate waits are bounded by a timer cleared on resolution, and event and turn-id waits wake on every state change including the end.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 4,
-        "timer": 1
-      }
-    },
-    "apps/computer/src/runtime/grok/fixtures/capture.ts": {
-      "disposition": "test-support",
-      "reason": "Fixture capture script run by hand against the installed grok; scripted cancels use their own controllers and one delay timer per scenario.",
-      "risks": {
-        "abortController": 4,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 0,
-        "timer": 1
-      }
-    },
-    "apps/computer/src/runtime/grok/fixtures/fake-grok.ts": {
-      "disposition": "test-support",
-      "reason": "In-memory Grok for session tests; its never-settling exit promise stands for a process that outlives the test.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 0,
-        "manualPromise": 1,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/runtime/grok/grok-live.ts": {
-      "disposition": "external-adapter",
-      "reason": "Launching Grok terminates the child on abort; that memoized termination's failure is reported by the launch failure path that awaits it, and finally removes the abort listener.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 1,
-        "finallyBlock": 1,
-        "manualPromise": 0,
-        "timer": 0
-      }
-    },
-    "apps/computer/src/runtime/grok/grok-process.ts": {
-      "disposition": "external-adapter",
-      "reason": "The foreign grok child's exit promise settles on close or spawn error; a failed write waits a grace period whose timer clears in finally, and its process group is owned by process-group.ts until no member is left.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 0,
-        "finallyBlock": 1,
-        "manualPromise": 3,
-        "timer": 2
-      }
-    },
-    "apps/computer/src/runtime/grok/grok-turn.ts": {
-      "disposition": "external-adapter",
-      "reason": "One session/prompt: its started and settled resolvers resolve at the prompt response. A session/cancel that cannot be written is dropped because the closed connection fails the prompt request itself.",
-      "risks": {
-        "abortController": 0,
-        "catchAndIgnore": 1,
-        "finallyBlock": 0,
-        "manualPromise": 2,
-        "timer": 0
-      }
-    }
-  },
-  "staticRuntimeCeilings": {}
+    "customSettlementCeilings": {},
+    "migrationCeilings": {
+        "dispositionImportMismatch": {},
+        "effectImportOnly": {},
+        "effectOwnedConsole": {},
+        "foreignFailureIdentityCatch": {
+            "apps/server/src/haus-server-shutdown.ts": 1
+        },
+        "managedRuntimeConstruction": {},
+        "unknownErrorChannel": {
+            "apps/server/src/haus-server-shutdown.ts": 1
+        }
+    },
+    "migrationExceptions": {
+        "foreignFailureIdentityCatch": {
+            "apps/server/src/haus-server-shutdown.ts": "Shutdown deliberately rethrows the first foreign resource failure unchanged after all finalizers complete."
+        },
+        "unknownErrorChannel": {
+            "apps/server/src/haus-server-shutdown.ts": "Shutdown deliberately preserves the foreign resource failure identity at the finalizer boundary."
+        }
+    },
+    "lifecycleCandidates": {
+        "apps/computer/src/artifacts/cache.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "The finite verified download closes its file handle in lexical finally before returning a cached path. Persistent cache leases are domain records, recovered by process liveness, rather than background resources.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/browser/linux-chrome-detection.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Detection awaits each bounded --version probe and closes the ELF header file descriptor in lexical finally; it owns no detached work.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/execution-journal-upload/journal-uploader.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Each run's idle waiter is one manual promise that resolves when the Server acks the run's last frame or the attachment socket closes; the on-connect resend pass and ledger writes are serialized promise chains owned by the daemon-lifetime uploader.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/pid-lock.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "One awaited operation acquires an exclusive pid lock file with a bounded acquisition deadline and removes it in lexical finally; acquisition closes its file handle in lexical finally. The awaited retry delay owns no detached timer or background task.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 2,
+                "manualPromise": 0,
+                "timer": 2
+            }
+        },
+        "apps/server/src/server-agents/execution-journal-changes.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Each run holds at most one trailing notice timer and one forget timer, each firing once within a second of its schedule; the process-lifetime emitter owns no other resource.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 1
+            }
+        },
+        "apps/server/src/voice/voice-call.ts": {
+            "disposition": "effect-owned",
+            "reason": "The Server runtime owns each call's scoped fixed-rate synchronization fiber and joins in-flight database delivery on socket shutdown. Four bounded timers adapt foreign WebSocket startup, idle-call duration, and graceful closure deadlines.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 4
+            }
+        },
+        "apps/computer/src/cloud-agents/claude/checkout.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "One launch clones into a private temporary directory and removes it in lexical finally whether or not the launch succeeds. Child processes are awaited with their own timeouts.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/cloud-agents/claude/native-commands.ts": {
+            "disposition": "external-adapter",
+            "reason": "Claude Code's launcher is awaited to exit under its own timeout. The two short timers that accept the folder-trust prompt are cleared and the terminal is closed in lexical finally.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 3
+            }
+        },
+        "apps/computer/src/cloud-agents/cursor/provider.ts": {
+            "disposition": "external-adapter",
+            "reason": "Cursor terminal stream handling aborts only the local subscription. The daemon Effect supervisor owns polling, retries and joined subscription teardown.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/cloud-agents/cursor/recorded-transport.ts": {
+            "disposition": "test-support",
+            "reason": "Recorded Cursor streams expose an abortable deterministic subscription, removing the listener when the simulated stream ends.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/cloud-agents/cursor/sdk-stream.ts": {
+            "disposition": "external-adapter",
+            "reason": "The pinned SDK stream bridge closes and joins the SDK reader on interruption. An early rejection observer prevents an unhandled rejection; finalization awaits and propagates that same disposal failure.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 1,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/cloud-agents/cursor/sdk-transport.ts": {
+            "disposition": "external-adapter",
+            "reason": "SDK launches and follow-ups join automatic local stream disposal before returning provider identity. The daemon owns accepted launch completion; finite SDK requests have a pinned timeout patch.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/cloud-agents/fake-provider.ts": {
+            "disposition": "test-support",
+            "reason": "The in-memory Cloud Agent fixture exposes a Promise subscription that settles on abort so supervisor tests exercise joined teardown.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/cloud-agents/launch-journal.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Finite journal writes close their file handles and remove only their own temporary file. Exclusive intent creation and atomic acknowledgement preserve launch identity across process restarts. A finite per-Run write lock serializes terminal settlement with late acknowledgements across journal instances; the lock is released before the Promise returns.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 3,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/cloud-agents/settings.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "The default-provider write is one atomic rename of a temporary file it removes in lexical finally.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/server/src/artifacts/retention.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "One awaited sweep run drains bounded claim batches and announces each affected Server once in lexical finally. It owns no timer or background task; the boot sweep's closing signal stops it between revisions.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/server/src/artifacts/thumbnails.ts": {
+            "disposition": "external-adapter",
+            "reason": "Bounded thumbnail render queue: the manual promise parks a render until a slot frees and the finally hands that slot on. Server acquires the queue in its Effect Scope; close stops admission and joins renders in flight before database teardown.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/server/src/boot-sweep.ts": {
+            "disposition": "external-adapter",
+            "reason": "Upstream fixed-interval maintenance adapter retains its deterministic timer seam. Server acquires each sweep in its Effect Scope; close stops admission, aborts the closing signal a long run checks between steps, and joins the in-flight database write before database teardown.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 6
+            }
+        },
+        "apps/computer/src/agent-skill-files.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "One atomic skill-file replacement removes its temporary file before the command returns.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/agent-turn-timings.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A request-local measurement records elapsed time in finally around an awaited native call; it owns no timer, process, or concurrent work.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/agent-work-coordinator.ts": {
+            "disposition": "effect-owned",
+            "reason": "The daemon runtime owns keyed configuration ordering and active-run cancellation through Effect coordination.",
+            "risks": {
+                "abortController": 3,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/attachment-state.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A finite atomic filesystem transaction removes its temporary file and lock before returning.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 2,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/daemon-runtime.ts": {
+            "disposition": "effect-owned",
+            "reason": "This is the Computer composition root that creates and disposes the single daemon Effect runtime.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/harness/execution-journal-file.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "The per-journal Promise tail serializes finite atomic writes, and callers await the current write failure.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 1,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/harness/executor.ts": {
+            "disposition": "effect-owned",
+            "reason": "The daemon runtime owns turn streaming and final cleanup across the foreign runtime-driver boundary; turn-notices.ts owns notice delivery. One turn-local controller lets the no-progress deadline interrupt through the same abort path as Stop.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 2,
+                "finallyBlock": 2,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/agent-cli/commands/agent-image.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "The one-shot CLI poll waits with a single awaited sleep timer that fires once per poll, bounded by a five-minute timeout; no timer outlives the awaiting command.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 1
+            }
+        },
+        "apps/computer/src/harness/thought-narrator.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Each run holds at most one pending thought timer, which fires once or is cancelled when the run's narrator closes.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 2
+            }
+        },
+        "apps/computer/src/inbox-store-io.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Each inbox mutation is one finite atomic filesystem transaction whose lock and temporary file cannot outlive the call.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/index.ts": {
+            "disposition": "external-adapter",
+            "reason": "The Computer composition root bridges WebSocket closure, atomic attachment writes, and the terminal restart timer to owned services.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 0,
+                "finallyBlock": 2,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/launch.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "The daemon traces and cancels the turn; this adapter releases its scoped runner authority and proxy sinks before returning.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 1,
+                "finallyBlock": 2,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/login.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "The awaited login command removes its TTY listener and temporary credential file before returning.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 2,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/proxy-support.ts": {
+            "disposition": "external-adapter",
+            "reason": "Launch resources own the loopback server; its Promise and timer form a bounded best-effort HTTP attestation deadline.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 1
+            }
+        },
+        "apps/computer/src/reminder-script-execution.ts": {
+            "disposition": "effect-owned",
+            "reason": "The daemon runtime owns reminder subprocess execution and translates Effect interruption into the child AbortSignal.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/reminder-script.ts": {
+            "disposition": "effect-owned",
+            "reason": "The daemon runtime owns in-flight reminder execution while the finalizer evicts only the completed single-flight entry.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/test-port.ts": {
+            "disposition": "test-support",
+            "reason": "This production-adjacent test helper only adapts Node server callbacks to reserve an ephemeral test port.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/turn-ledger.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Best-effort ledger writes are one finite atomic file replace each; a failed write removes its temporary file and costs only relaunch resume accuracy.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 2,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/update-install.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Each signed executable installation is a finite atomic file transaction that removes staged artifacts on failure.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/update-locks.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "The update command holds a filesystem admission lock only for one awaited operation and releases it in finally.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/update.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "The signed update transaction is finite and awaited by its daemon owner; finalizers release its PID lock and artifacts.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 2,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/usage/claude-plan-usage-state.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A finite per-file write queue serializes atomic usage-state updates and evicts its completed Promise entry.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 1,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/usage/claude-plan-usage.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "The request-scoped single-flight cache clears its completed provider request before returning to callers.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/usage/computer-usage-cache.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "The request-scoped usage refresh is a finite single-flight operation that clears its Promise after settlement.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/workspace-files.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A finite workspace preview closes its local file handle before returning the bounded result.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/server/src/agent-api/attachments.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Each attachment request closes its staged file and discards incomplete storage while preserving the primary route error.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 2,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/server/src/attachments/attachment-root-filesystem.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A finite directory synchronization closes its filesystem handle before returning.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/server/src/attachments/attachment-root.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "The attachment write admission token is held for one awaited operation and released in its finalizer.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/server/src/attachments/reconcile-attachments.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Startup reconciliation hashes one attachment through a local handle and closes it before validation returns.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/server/src/avatar-generation/service.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "One awaited avatar request releases its per-actor admission permit on every outcome.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/server/src/computers/socket-liveness.ts": {
+            "disposition": "external-adapter",
+            "reason": "One unref'd ping interval per attachment socket adapts ws transport liveness; the socket close handler stops it. An on-demand presence probe adapts one ping to a Promise with a bounded deadline that settles on pong, frame, timeout, or stop.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 2
+            }
+        },
+        "apps/server/src/computers/socket.ts": {
+            "disposition": "external-adapter",
+            "reason": "ServerPostCommitWork owns reconnect work; the remaining Promise only adapts WebSocketServer close callbacks. Best-effort attach sends (pending Cove application, Server runtime settings) ignore a failure because the next attach resends them.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 3,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 2
+            }
+        },
+        "apps/server/src/development/seed-chat-attachment.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Development bootstrap stages one attachment and always discards the bounded staging artifact after commit or failure.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 2,
+                "finallyBlock": 2,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/server/src/haus-api/socket-session.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Each App socket holds at most one session-expiry timer; refresh rearms it and dispose clears it, so it never outlives its socket.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 2
+            }
+        },
+        "apps/server/src/haus-server-application.ts": {
+            "disposition": "effect-owned",
+            "reason": "The Server composition root creates one runtime and orders every owned service finalizer before database disposal.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 4,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/server/src/haus-server-stop.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "The process signal handler races the application close against one deadline timer, clears it, and ends the process; the runtime it would use is disposed by that close.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 2
+            }
+        },
+        "apps/server/src/postgres/bootstrap.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Fresh-schema bootstrap uses one finite administrative connection and closes it before migration continues.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/server/src/postgres/migrations.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "The finite migration command closes its dedicated PostgreSQL client after applying and reading migration state.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/server/src/push/apns-sender.ts": {
+            "disposition": "external-adapter",
+            "reason": "node:http2 APNs adapter: wraps one request stream in a Promise with a stream timeout, and pings each session on an unref'd interval whose deadline destroys a dead session; the interval is cleared when the session closes. Every failure becomes a push outcome; nothing retries.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 2,
+                "timer": 3
+            }
+        },
+        "apps/server/src/push/message-push.ts": {
+            "disposition": "external-adapter",
+            "reason": "Durable-event listener for iPhone push. Server acquires it in its Effect Scope; close aborts the subscription, logs any other listener failure, and drains the bounded push queue before database teardown.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/server/src/push/push-queue.ts": {
+            "disposition": "external-adapter",
+            "reason": "Bounded-concurrency queue for iPhone push tasks owned by message-push; a task's read-grace delay is one setTimeout counted in the backlog, tasks settle their own errors, and drain resolves once every delayed, queued, and running task has settled.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 1,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 1
+            }
+        },
+        "apps/server/src/server-mcp/client-cache.ts": {
+            "disposition": "effect-owned",
+            "reason": "The injected Server runtime owns MCP acquisition, operations, retirement, bounded close, and interruption translation.",
+            "risks": {
+                "abortController": 6,
+                "catchAndIgnore": 5,
+                "finallyBlock": 1,
+                "manualPromise": 1,
+                "timer": 2
+            }
+        },
+        "apps/server/src/server-mcp/icon-loader.ts": {
+            "disposition": "effect-owned",
+            "reason": "The Server runtime owns concurrent icon probes and translates fiber interruption to each foreign HTTP AbortSignal.",
+            "risks": {
+                "abortController": 5,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/server/src/server-mcp/runtime-test-fixtures.ts": {
+            "disposition": "test-support",
+            "reason": "Deterministic MCP lifecycle fixtures expose a one-tick timer only to runtime tests.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 1
+            }
+        },
+        "apps/server/src/image-generation/run-image-generation.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "One awaited generation run settles its durable row and re-announces the final state in lexical finally. It owns no detached timer or background task; boot recovery fails rows left generating.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/server/src/identity/cloudflare-access.ts": {
+            "disposition": "external-adapter",
+            "reason": "Cloudflare admission verification awaits a third-party key set. The deadline timer bounds one jose JWKS fetch, the abandoned fetch's rejection is observed so a late failure cannot become an unhandled rejection, and a missed deadline discards that key set so the next request builds a fresh one.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 1,
+                "finallyBlock": 1,
+                "manualPromise": 1,
+                "timer": 2
+            }
+        },
+        "apps/server/src/identity/session-connections.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Each tracked App socket or SSE response owns one access-expiry timer; fresh admission rearms it and close or local session revocation clears it and detaches its listener. Timers cannot outlive their connections.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 1
+            }
+        },
+        "apps/computer/src/server-mcp-client.ts": {
+            "disposition": "external-adapter",
+            "reason": "Finite fetch and body-reader adapter. The turn signal triggers a bounded explicit cancellation request; network failure leaves Server deadlines authoritative.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 1,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/server/src/agent-api/mcp-routes.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Each authenticated HTTP handler releases its cancellation registry entry in finally; the existing MCP runtime owns upstream interruption.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 2,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/server/src/server-mcp/requests.ts": {
+            "disposition": "external-adapter",
+            "reason": "Bounded request cancellation registry adapting HTTP messages to AbortSignals. Entries release with handlers, expire on access, and abort at Fastify shutdown; no background work is launched.",
+            "risks": {
+                "abortController": 2,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/mcp-response.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Bounded MCP response reader cancels and releases the stream reader on success, overflow, and parsing failure.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime-issues.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Finite atomic runtime observation writes serialize per file and release the queue entry after settlement; failures propagate to the caller.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 1,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/attachment-daemon-work.ts": {
+            "disposition": "effect-owned",
+            "reason": "The attachment runtime bounds accepted work and session checkpoints with an Effect deadline; nested finally blocks then close the runtime context (warm processes, host-tool server) and reap every owned sandbox process before releasing routing.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 3,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/attachment-shutdown.ts": {
+            "disposition": "external-adapter",
+            "reason": "Node signal and PID adapters join one finite daemon drain. The terminal disposal deadline is outside the Effect runtime because that runtime is being disposed; timeout and polling timers are cleared or bounded.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 2,
+                "manualPromise": 2,
+                "timer": 3
+            }
+        },
+        "apps/computer/src/harness/session-lifecycle.ts": {
+            "disposition": "external-adapter",
+            "reason": "Finite runtime-driver detach and stop calls share a checkpoint with the turn writer. The attachment runtime owns shutdown admission, cancellation, deadline, and process reaping.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/harness/session-start.ts": {
+            "disposition": "external-adapter",
+            "reason": "runHarnessStart owns the start gate, deadline, and abort; a session the foreign adapter returns after the start was abandoned is destroyed best-effort because nothing else will own it.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 1,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/harness/stopped-turn.ts": {
+            "disposition": "external-adapter",
+            "reason": "Bounds a runtime driver turn's settle with one deadline timer that the finally block always clears; the executor owns the turn and fails it when the deadline wins.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 1,
+                "timer": 2
+            }
+        },
+        "apps/computer/src/harness/stored-notice.ts": {
+            "disposition": "external-adapter",
+            "reason": "The executor owns this finite foreign notice-delivery queue and always closes it when the turn settles; unresolved callback Promises are settled on close. A returned notice's temporary file is removed in finally whether or not its link won.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 2,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/server/src/server-agents/agent-thought.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Only threads an injectable schedule into the thought cadence; the cadence owns its timers.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 1
+            }
+        },
+        "apps/server/src/server-agents/thought-cadence.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Each request holds at most one waiting-frame timer and one held still-line timer, each firing once or cancelled when a newer line shows; entries expire after ten idle minutes. Phrasing runs as post-commit background work.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 2
+            }
+        },
+        "apps/server/src/hosted-mcp/process.ts": {
+            "disposition": "external-adapter",
+            "reason": "Foreign subprocess and Unix HTTP adapter; the Server Effect scope owns admission, retries and release. The bounded stop deadline reaps the connector and reported account worker groups.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 3,
+                "finallyBlock": 1,
+                "manualPromise": 2,
+                "timer": 2
+            }
+        },
+        "apps/server/src/hosted-mcp/test-fixture.ts": {
+            "disposition": "test-support",
+            "reason": "Private socket and detached account worker fixture for Server supervision and process-tree cleanup tests.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 1
+            }
+        },
+        "apps/server/src/hosted-mcp/verify-package.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Finite packaging verification closes its MCP client, owned Effect scope, runtime and temporary fixture storage before returning.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 4,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/server/src/server-mcp/service.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A finite diagnostic refresh resumes background inventory reconciliation on both success and failure; MCP runtime scopes own recurring discovery and client retirement.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/server/src/server-mcp/inventory.ts": {
+            "disposition": "effect-owned",
+            "reason": "The Server runtime owns scoped, fixed-delay MCP reconciliation through Effect clocks; connection revisions serialize inventory writes and suppress late results after client retirement. Finite Promise cleanup removes settled single-flight and write entries.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 1,
+                "finallyBlock": 2,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/cloud-agents/launch-attempt.ts": {
+            "disposition": "external-adapter",
+            "reason": "Request-local AbortController bridge to provider provisioning. The existing Effect-owned work monitor owns the persisted deadline and cancellation; this finite adapter owns no timer, retry loop, or detached task and joins late acknowledgement cancellation before returning.",
+            "risks": {
+                "abortController": 2,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/host-tools/mcp-server.ts": {
+            "disposition": "external-adapter",
+            "reason": "Loopback MCP adapter: each tools/call owns one cancel controller removed in lexical finally; session close and server stop abort a per-session controller. The Computer owner stops the Bun server.",
+            "risks": {
+                "abortController": 4,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/proxy-runner-hold.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Holds Agent requests between turns until a wake run's runner arrives: each waiter's Promise resolves on release or on its own bounded timer, which it clears; proxy close releases every waiter.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 1
+            }
+        },
+        "apps/computer/src/harness/turn-notices.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "One resolver per turn says the stored notice reached delivery; the executor always awaits close(), which unregisters the notice sink, closes the coordinator, and awaits the stored delivery and every steer still in flight.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/runtime-context.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "The attachment daemon opens one context and closes it at shutdown; close ends every warm process and stops the host-tool server in finally, so a failed process close never leaves the server bound. An eviction marks its Agent root as a deliberate end and clears the mark in finally.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 2,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/process-group.ts": {
+            "disposition": "external-adapter",
+            "reason": "Ends a foreign runtime child's whole process group: SIGTERM then SIGKILL grace periods whose timers clear in finally, a bounded liveness poll, and a registry entry held until no member is left; a failed termination resets so Computer shutdown retries it.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 1,
+                "timer": 2
+            }
+        },
+        "apps/computer/src/runtime/handshake-deadline.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "One controller per runtime handshake, aborted by the caller's signal or a timeout; every caller clears the timer and the parent listener in finally.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 1
+            }
+        },
+        "apps/computer/src/runtime/testing/process-group-testing.ts": {
+            "disposition": "test-support",
+            "reason": "A test process registry resolves one promise when its last registered stop is removed.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/warm-pool.ts": {
+            "disposition": "external-adapter",
+            "reason": "Parks foreign runtime processes between turns. Each parked process holds one unref'd idle timer, re-armed while the process holds background work and cleared whenever the entry leaves the pool (claim, evict, exit, close); a process that exits while parked is still closed, and idle or exit close failures go to the daemon logger through onCloseError.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 3
+            }
+        },
+        "apps/computer/src/runtime/json-rpc-connection.ts": {
+            "disposition": "external-adapter",
+            "reason": "One resolver per JSON-RPC request, settled by its response, a local abort, a failed write, or close(). A reply to a peer that already closed is dropped because close() owns and reports that failure.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 1,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/claude-code/claude-compaction.ts": {
+            "disposition": "external-adapter",
+            "reason": "One /compact on a parked foreign claude process: a sink promise settled by its own result or the process exit, raced against one hung-compaction timer cleared in finally, where the sink also detaches. The sink's rejection is pre-observed so a failed write cannot surface it unhandled; the awaited race still reports it.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 1,
+                "finallyBlock": 1,
+                "manualPromise": 2,
+                "timer": 2
+            }
+        },
+        "apps/computer/src/runtime/idle-compaction-scheduler.ts": {
+            "disposition": "external-adapter",
+            "reason": "One unref'd timer per parked Agent session while the Server setting is on, cleared when the entry leaves the warm pool or the setting turns off. A fired compaction is tracked until it settles so the pool can wait for it; its outcome goes to the daemon's report or failed hook, never dropped.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 2
+            }
+        },
+        "apps/computer/src/runtime/claude-code/fixtures/idle-compaction-live.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Live-test harness: one manual promise resolved by the warm pool's idle compaction report or failure hook; the caller's close() ends the pool and host-tool server in its own finally. Each live turn takes a fresh AbortController it never aborts.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/claude-code/claude-connection.ts": {
+            "disposition": "external-adapter",
+            "reason": "Each control request to the foreign claude process races its answer against one timeout timer cleared in finally; pending controls are rejected when the process exits.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 2,
+                "timer": 2
+            }
+        },
+        "apps/computer/src/runtime/claude-code/claude-install.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "One awaited pinned-binary install unpacks into a staging directory that finally always removes; concurrent callers share the same install promise.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/claude-code/claude-process.ts": {
+            "disposition": "external-adapter",
+            "reason": "The foreign claude child's exit promise settles on close, error, or an unref'd post-exit grace timer; its process group is owned by process-group.ts, which stays in the Computer process registry until the group is gone.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 2,
+                "timer": 1
+            }
+        },
+        "apps/computer/src/runtime/claude-code/claude-turn-steers.ts": {
+            "disposition": "external-adapter",
+            "reason": "A turn's steers on the foreign claude process: each acknowledgement Promise settles on Claude Code's queued, started, cancelled, or discarded receipt and is raced against claude-steer-receipt.ts's bounded timeout.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/claude-code/claude-turn.ts": {
+            "disposition": "external-adapter",
+            "reason": "One turn on the foreign claude process: its settle resolver ends with the turn (steer acknowledgements live in claude-turn-steers.ts, the receipt timeout in claude-steer-receipt.ts), and the interrupt's hard-kill timer clears on settle. A kill that fails leaves the turn unsettled for the executor's settle deadline.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 1,
+                "finallyBlock": 1,
+                "manualPromise": 1,
+                "timer": 1
+            }
+        },
+        "apps/computer/src/runtime/claude-code/claude-steer-receipt.ts": {
+            "disposition": "external-adapter",
+            "reason": "Races one written steer's lifecycle receipt from the foreign claude process against a timeout whose timer clears in finally; the receipt promise itself is owned by the turn.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 1,
+                "timer": 2
+            }
+        },
+        "apps/computer/src/runtime/event-queue.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A single-consumer event queue: at most one pending wake resolver, resolved by the next push or by end(), which every Claude Code and Grok Build turn reaches on settlement or its consumer reaches by stopping early.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/claude-code/fixtures/capture.ts": {
+            "disposition": "test-support",
+            "reason": "Fixture capture script run by hand against the real CLI; its exit promise and step timeout live only for one scripted capture.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 2,
+                "timer": 1
+            }
+        },
+        "apps/computer/src/runtime/claude-code/fixtures/fake-driver.ts": {
+            "disposition": "test-support",
+            "reason": "Test harness for the Claude Code driver over a stand-in CLI; the controller only builds a never-aborted signal for test opens.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/claude-code/fixtures/fixture-replay.ts": {
+            "disposition": "test-support",
+            "reason": "Replays a recorded stream as a fake process; its exit resolver settles when the fixture ends or the test stops it.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/codex/app-server.ts": {
+            "disposition": "external-adapter",
+            "reason": "The host-tool readiness resolver settles on the app-server's MCP status or its exit, and the bounded wait for it clears its timer in finally.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 2,
+                "timer": 2
+            }
+        },
+        "apps/computer/src/runtime/codex/codex-transport.ts": {
+            "disposition": "external-adapter",
+            "reason": "The foreign app-server's exit promise settles on close or spawn error; its whole process group is terminated through process-group.ts, also after the leader exits on its own.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 2,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/codex/codex-driver.ts": {
+            "disposition": "external-adapter",
+            "reason": "Opens one foreign app-server per session; the handshake deadline clears in finally, and a failed open releases the process and its host-tool scope before rethrowing.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/codex/fixtures/capture-fixtures.ts": {
+            "disposition": "test-support",
+            "reason": "Fixture capture script run by hand against the pinned Codex; it aborts scripted turns and tears its scratch root down in finally.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/codex/testing/fake-app-server.ts": {
+            "disposition": "test-support",
+            "reason": "In-memory app-server for tests; its exit resolver settles when a test crashes or kills it.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/codex/testing/replay-driver.ts": {
+            "disposition": "test-support",
+            "reason": "Test driver over recorded transports; the controller aborts one replayed step the way the capture script did.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/testing/fake-runtime-driver.ts": {
+            "disposition": "test-support",
+            "reason": "In-memory runtime driver for executor tests; each turn's drain resolver settles when the test consumes or abandons its scripted events.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/codex/testing/replay-transport.ts": {
+            "disposition": "test-support",
+            "reason": "Replays a recorded app-server stream; its resolvers settle as the fixture advances, ends, or the test kills the transport.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 4,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/codex/testing/session-harness.ts": {
+            "disposition": "test-support",
+            "reason": "Test helpers that start fake turns with their own abort controllers and flush queued fake replies with zero-delay timers.",
+            "risks": {
+                "abortController": 2,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 1
+            }
+        },
+        "apps/computer/src/runtime/codex/turn-router.ts": {
+            "disposition": "external-adapter",
+            "reason": "A thread systemError gets one grace timer, replaced by the next, before it ends the run; ending a run is idempotent, so a timer firing after settlement does nothing.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 2
+            }
+        },
+        "apps/computer/src/runtime/codex/turn-run.ts": {
+            "disposition": "external-adapter",
+            "reason": "One Codex turn's state: its idle resolver settles when the run ends, steer-gate waits are bounded by a timer cleared on resolution, and event and turn-id waits wake on every state change including the end.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 4,
+                "timer": 1
+            }
+        },
+        "apps/computer/src/runtime/grok/fixtures/capture.ts": {
+            "disposition": "test-support",
+            "reason": "Fixture capture script run by hand against the installed grok; scripted cancels use their own controllers and one delay timer per scenario.",
+            "risks": {
+                "abortController": 4,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 1
+            }
+        },
+        "apps/computer/src/runtime/grok/fixtures/fake-grok.ts": {
+            "disposition": "test-support",
+            "reason": "In-memory Grok for session tests; its never-settling exit promise stands for a process that outlives the test.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/grok/grok-live.ts": {
+            "disposition": "external-adapter",
+            "reason": "Launching Grok terminates the child on abort; that memoized termination's failure is reported by the launch failure path that awaits it, and finally removes the abort listener.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 1,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/grok/grok-process.ts": {
+            "disposition": "external-adapter",
+            "reason": "The foreign grok child's exit promise settles on close or spawn error; a failed write waits a grace period whose timer clears in finally, and its process group is owned by process-group.ts until no member is left.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 3,
+                "timer": 2
+            }
+        },
+        "apps/computer/src/runtime/grok/grok-turn.ts": {
+            "disposition": "external-adapter",
+            "reason": "One session/prompt: its started and settled resolvers resolve at the prompt response. A session/cancel that cannot be written is dropped because the closed connection fails the prompt request itself.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 1,
+                "finallyBlock": 0,
+                "manualPromise": 2,
+                "timer": 0
+            }
+        }
+    },
+    "staticRuntimeCeilings": {}
 }

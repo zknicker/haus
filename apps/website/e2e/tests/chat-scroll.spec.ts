@@ -1,4 +1,5 @@
 import type { Locator } from '@playwright/test';
+
 import { assertOpaqueId, createTestServer, openChannel, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 

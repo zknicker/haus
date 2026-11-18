@@ -1,4 +1,5 @@
 import { changeServerMemberRoleInputSchema, serverMemberSchema } from '@haus/api';
+
 import { memberUpdatedTopic } from '../../realtime/topics.ts';
 import { changeServerMemberRole } from '../../servers/change-member-role.ts';
 import { serverMemberProcedure } from './procedure.ts';

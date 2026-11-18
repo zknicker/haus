@@ -1,4 +1,5 @@
 import { artifactPublicLinkInputSchema, artifactPublicLinkResultSchema } from '@haus/api';
+
 import { shareArtifact } from '../../artifacts/public-link.ts';
 import { artifactProcedure } from './procedure.ts';
 

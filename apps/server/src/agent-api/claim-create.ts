@@ -1,5 +1,6 @@
 import type { AgentActivityEvent, AgentClaimCreateInput } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
+
 import { readAgentSessionGeneration } from '../agent-delivery/cursors.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';

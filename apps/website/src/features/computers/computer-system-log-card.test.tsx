@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { ComputerSystemLogGrid, ComputerSystemLogPagination } from './computer-system-log-card.tsx';
 
 test('Computer System Log distinguishes loading, empty, and unavailable states', () => {

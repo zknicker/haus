@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
+
 import * as z from 'zod';
+
 import { claudeControllerHeaders } from './native-auth.ts';
 
 const sessionSchema = z.object({

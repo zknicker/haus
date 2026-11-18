@@ -1,8 +1,8 @@
 import { createRouter } from '../trpc.ts';
 import { assignTaskProcedure } from './assign.ts';
 import { getTaskProcedure } from './get.ts';
-import { listTasksProcedure } from './list.ts';
 import { listOpenTasksProcedure } from './list-open.ts';
+import { listTasksProcedure } from './list.ts';
 import { onTaskCreatedProcedure } from './on-created.ts';
 import { onTaskFollowUpdatedProcedure } from './on-follow-updated.ts';
 import { onTaskUpdatedProcedure } from './on-updated.ts';

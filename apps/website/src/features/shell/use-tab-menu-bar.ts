@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
+
 import { parseBrowserShortcut } from '../../hooks/browser/browser-shortcut-keys.ts';
 import type { DesktopTabsApi } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import {

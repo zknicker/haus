@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import type { AgentCliMessage } from './agent-cli/agent-api-schemas.ts';
 import { formatDeliveryEnvelope, formatHistoryLine } from './agent-cli/agent-format.ts';
 import type { AgentInboxItem } from './agent-inbox-item.ts';

@@ -5,6 +5,7 @@ import {
     formatUserReferenceTarget,
 } from '@haus/api';
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, chatsTable, serverMembershipsTable } from '../postgres/schema.ts';
 import { readBareReferenceTokens } from './bare-reference-tokens.ts';

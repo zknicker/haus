@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+
 import type { IconSvgElement } from '@hugeicons/react';
+
 import type { ChannelIconEntry } from '../../components/chats/channel-icon-catalog.ts';
 import { buildChannelIconRows, channelIconRowIndex } from './channel-icon-grid-rows.ts';
 

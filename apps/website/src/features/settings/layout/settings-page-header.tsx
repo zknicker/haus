@@ -1,4 +1,5 @@
 import type React from 'react';
+
 import { cn } from '../../../lib/utils.ts';
 
 /**
@@ -75,13 +76,13 @@ export function SettingsPageHeader({
             <div className="min-w-0">
                 <h1
                     className={cn(
-                        'font-semibold text-2xl text-foreground tracking-tight',
+                        'text-foreground text-2xl font-semibold tracking-tight',
                         meta ? 'leading-7' : undefined
                     )}
                 >
                     {title}
                 </h1>
-                {description ? <p className="mt-1.5 text-muted text-sm">{description}</p> : null}
+                {description ? <p className="text-muted mt-1.5 text-sm">{description}</p> : null}
                 {meta ? <div className="mt-1">{meta}</div> : null}
             </div>
             {aside}

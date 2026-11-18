@@ -1,11 +1,12 @@
 import type { GithubTrigger } from '@haus/api';
 import { Button, Form } from '@heroui/react';
 import { useState } from 'react';
+
 import { useTriggerUpdate } from '../../../hooks/members/use-trigger-update.ts';
 import { SettingsRowError } from '../../settings/layout/settings-text.tsx';
 import { refusalText } from './agent-trigger-model.ts';
-import { TriggerGithubEvents } from './trigger-github-events.tsx';
 import { githubEventDraftFromEntry, githubEventFromDraft } from './trigger-github-events-model.ts';
+import { TriggerGithubEvents } from './trigger-github-events.tsx';
 
 export function TriggerGithubEventEditor({
     trigger,

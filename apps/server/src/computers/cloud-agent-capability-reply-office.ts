@@ -5,6 +5,7 @@ import type {
 } from '@haus/api';
 import { type EffectRuntime, settle } from '@haus/effect';
 import { Deferred, Effect } from 'effect';
+
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 
 type CapabilityReplyValue = NonNullable<CloudAgentCapabilityResult['result']>;

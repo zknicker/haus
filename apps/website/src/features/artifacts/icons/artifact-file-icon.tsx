@@ -1,7 +1,8 @@
 import { type CSSProperties, useId } from 'react';
+
 import { cn } from '../../../lib/utils.ts';
-import { ArtifactFileGlyph } from './artifact-file-glyphs.tsx';
 import { ArtifactFileGlyphSmall } from './artifact-file-glyphs-small.tsx';
+import { ArtifactFileGlyph } from './artifact-file-glyphs.tsx';
 import type { ArtifactFileKind } from './artifact-file-kind.ts';
 
 // Below this the full illustration blurs; rows and tabs get the 16-unit cut.

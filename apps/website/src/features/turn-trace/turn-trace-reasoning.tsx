@@ -1,5 +1,6 @@
 import type { AgentExecutionJournalReasoning } from '@haus/api';
 import { BrainIcon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { parseThinkingSummary } from '../chats/chat-transcript-system-step.tsx';
 import { messagePreviewLine } from '../chats/message-preview-line.ts';
 import { ReferenceMarkdown } from '../mentions/reference-markdown.tsx';
@@ -51,7 +52,7 @@ export function TurnTraceReasoning({
     return (
         <TraceDisclosure {...cells}>
             <TraceBody>
-                <div className="grid min-w-0 max-w-prose justify-items-start gap-1">
+                <div className="grid max-w-prose min-w-0 justify-items-start gap-1">
                     {body ? (
                         <ReferenceMarkdown
                             className="chat-markdown text-muted text-sm"

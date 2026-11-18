@@ -18,7 +18,7 @@ export function ServerMark({ className, name }: { className?: string; name: stri
             // Fixed 24px so the Server reads at the same scale as the Agent
             // avatars below it, independent of sidebar density.
             className={cn(
-                'flex shrink-0 items-center justify-center bg-accent font-semibold text-accent-foreground text-xs',
+                'bg-accent text-accent-foreground flex shrink-0 items-center justify-center text-xs font-semibold',
                 className
             )}
             style={{

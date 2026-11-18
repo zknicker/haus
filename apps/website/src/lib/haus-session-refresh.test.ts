@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { refreshRefusedSession } from './haus-session-refresh.ts';
 
 describe('refreshRefusedSession', () => {

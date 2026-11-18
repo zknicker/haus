@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { deleteArtifact } from '../src/artifacts/delete.ts';
 import { artifactThumbnailKey } from '../src/artifacts/storage.ts';
 import {
@@ -152,9 +153,7 @@ test('non-raster files never render a thumbnail', async () => {
 /** A flat test image, encoded by the same codec the Server renders with. */
 async function poster(width: number, height: number) {
     const image = Bun as unknown as {
-        Image: new (
-            source: Uint8Array
-        ) => {
+        Image: new (source: Uint8Array) => {
             resize(w: number, h: number): { png(): { bytes(): Promise<Uint8Array> } };
         };
     };
@@ -166,9 +165,9 @@ async function poster(width: number, height: number) {
 
 async function imageMetadata(bytes: Uint8Array) {
     const image = Bun as unknown as {
-        Image: new (
-            source: Uint8Array
-        ) => { metadata(): Promise<{ format: string; height: number; width: number }> };
+        Image: new (source: Uint8Array) => {
+            metadata(): Promise<{ format: string; height: number; width: number }>;
+        };
     };
     return await new image.Image(bytes).metadata();
 }

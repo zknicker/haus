@@ -1,7 +1,9 @@
 import type { Dirent } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
+
 import { type AgentReasoningEffort, type HausAgentStatus, hausAgentVersion } from '@haus/api';
+
 import { readAppliedAgentConfiguration } from './agent-configuration.ts';
 import { readAgentSessionState } from './harness/session-store.ts';
 

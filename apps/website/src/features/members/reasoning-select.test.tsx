@@ -1,6 +1,8 @@
 import { expect, test } from 'bun:test';
+
 import type { ComputerInventory } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { isRuntimeConfigDraftAvailable } from './agent-profile/runtime-model.ts';
 import { ReasoningSelect, supportedReasoningEffort } from './reasoning-select.tsx';
 

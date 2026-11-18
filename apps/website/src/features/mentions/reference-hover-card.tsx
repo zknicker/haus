@@ -4,6 +4,7 @@ import {
     parseSkillReferenceTarget,
 } from '@haus/api/rich-references';
 import type * as React from 'react';
+
 import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';
 import { AgentHoverCard } from '../members/agent-hover-card.tsx';
 import { ChannelHoverCard } from './channel-hover-card.tsx';
@@ -115,7 +116,7 @@ export function ReferenceHoverCardContent({
             mark={
                 <ReferencePreviewMark
                     appearance={appearance}
-                    className={kind === 'skill' ? 'size-[16px] text-skill-reference' : undefined}
+                    className={kind === 'skill' ? 'text-skill-reference size-[16px]' : undefined}
                 />
             }
             meta={referenceKindLabel[kind]}

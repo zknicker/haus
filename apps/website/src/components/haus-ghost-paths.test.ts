@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { EYES_PATH } from './haus-ghost-paths.ts';
 
 describe('Haus ghost eyes', () => {

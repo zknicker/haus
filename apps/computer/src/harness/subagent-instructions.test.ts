@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { supportsSubagents } from '../runtime/runtime-subagents.ts';
 import { composeAgentInstructions } from './instructions.ts';
 

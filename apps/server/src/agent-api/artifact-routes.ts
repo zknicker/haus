@@ -1,11 +1,13 @@
 import { randomUUID } from 'node:crypto';
+
 import { artifactFolderSchema, artifactListPageMax } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
+
 import type { ArtifactActor } from '../artifacts/access.ts';
 import { defaultArtifactListFilters, runArtifactAction } from '../artifacts/action.ts';
-import { publishArtifact } from '../artifacts/publish.ts';
 import { publishInputFromQuery } from '../artifacts/publish-route.ts';
+import { publishArtifact } from '../artifacts/publish.ts';
 import { ArtifactError, type ArtifactStorage } from '../artifacts/storage.ts';
 import type { ArtifactThumbnails } from '../artifacts/thumbnails.ts';
 import type { HausDatabase } from '../postgres/connection.ts';

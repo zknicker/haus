@@ -1,5 +1,6 @@
 import type { AgentDeliveriesInput, AgentDeliveryRecord } from '@haus/api';
 import { and, desc, eq } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';

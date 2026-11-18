@@ -8,6 +8,7 @@ import {
 } from '@heroui/react';
 import { Undo02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import { channelColorOptions } from '../../components/chats/channel-color-options.ts';
 import { Icon } from '../../components/ui/icon.tsx';
 import { ChannelIconGrid, type ChannelIconGridSize } from './channel-icon-grid.tsx';

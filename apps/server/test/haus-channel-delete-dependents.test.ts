@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import { makeTestRuntime } from '@haus/effect';
+
 import { openAttachmentRoot } from '../src/attachments/attachment-root.ts';
 import { purgeDeletedChannels } from '../src/chats/channel-lifecycle.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';

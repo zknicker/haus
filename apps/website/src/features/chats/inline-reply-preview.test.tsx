@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { InlineReplyPreview } from './inline-reply-preview.tsx';
 
 test('inline reply preview exposes the quoted parent and jump label', () => {

@@ -1,9 +1,11 @@
 import { expect, test } from 'bun:test';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpBatchLink } from '@trpc/client';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom';
+
 import { AppAuthProvider } from '../../lib/app-auth.tsx';
 import { hausTrpc, type ServerDetail } from '../../lib/haus-server.tsx';
 import { SettingsHumanRoute } from '../../routes/app/settings-route.tsx';

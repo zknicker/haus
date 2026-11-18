@@ -6,6 +6,7 @@ import {
     imageGenerationSettingsSchema,
 } from '@haus/api';
 import { TRPCError } from '@trpc/server';
+
 import { ImageGenerationSettingsDeniedError } from '../../image-generation/image-generation-errors.ts';
 import {
     readImageGenerationSettings,

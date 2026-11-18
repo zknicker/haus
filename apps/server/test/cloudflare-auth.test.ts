@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { createCloudflareAdmissions } from '../src/identity/cloudflare-access.ts';
 import { createCloudflareOAuthMetadataReader } from '../src/identity/cloudflare-oauth-metadata.ts';
 import { startCloudflareTestIssuer } from './cloudflare-test-issuer.ts';

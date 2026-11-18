@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { Agent } from '@haus/api';
+
 import type { ReportedComputer } from './agent-creation-contract.ts';
 import { resolveAgentCreationDefaults } from './agent-creation-defaults.ts';
 

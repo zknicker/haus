@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { resolveHausServerOrigin } from './haus-server.tsx';
 
 describe('Haus Server origin', () => {

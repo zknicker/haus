@@ -1,5 +1,6 @@
 /** One run's upload queue: frames the Server has not stored yet, in sequence order. */
 import type { AgentExecutionJournalAck, AgentExecutionJournalRecordsFrame } from '@haus/api';
+
 import { frameSequence, type QueuedFrame } from './journal-upload-frames.ts';
 
 export interface RunUpload {

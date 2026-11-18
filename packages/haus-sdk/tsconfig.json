@@ -1,10 +1,10 @@
 {
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "allowImportingTsExtensions": true,
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "moduleResolution": "Bundler",
-    "types": ["bun-types"]
-  },
-  "include": ["src/**/*.ts"]
+    "extends": "../../tsconfig.base.json",
+    "compilerOptions": {
+        "allowImportingTsExtensions": true,
+        "lib": ["ES2022", "DOM", "DOM.Iterable"],
+        "moduleResolution": "Bundler",
+        "types": ["bun-types"]
+    },
+    "include": ["src/**/*.ts"]
 }

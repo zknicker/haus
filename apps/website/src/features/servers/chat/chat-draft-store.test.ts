@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
+
 import type { Mention } from '../../mentions/mention-types.ts';
 import {
     addChatDraftAttachments,

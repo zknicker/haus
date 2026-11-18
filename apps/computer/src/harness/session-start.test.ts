@@ -1,9 +1,11 @@
 import { afterEach, expect, test } from 'bun:test';
+
 import { makeTestRuntime } from '@haus/effect';
 import { TestClock } from 'effect';
+
 import { AgentTurnTimings } from '../agent-turn-timings.ts';
-import type { RuntimeSession } from '../runtime/driver.ts';
 import { isRetryableRuntimeFailure } from '../runtime-failure.ts';
+import type { RuntimeSession } from '../runtime/driver.ts';
 import { reportHarnessTurnFailure } from '../turn-failure-report.ts';
 import { HarnessSessionOwner } from './session-lifecycle.ts';
 import { type HarnessSessionStart, startHarnessSession } from './session-start.ts';

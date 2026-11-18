@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+
 import type { IconSvgElement } from '@hugeicons/react';
+
 import { type ChannelIconEntry, filterChannelIcons } from './channel-icon-catalog.ts';
 
 const glyph = [] as unknown as IconSvgElement;

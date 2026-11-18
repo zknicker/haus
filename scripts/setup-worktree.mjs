@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { hasHeroUiArtifacts, heroUiPackageRoot } from './heroui-artifacts.mjs';
 
 // Pinned so this resolves identically before node_modules exists.

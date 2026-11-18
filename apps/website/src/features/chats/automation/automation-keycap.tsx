@@ -1,5 +1,6 @@
 import type { MessageCause } from '@haus/api';
 import { FlashIcon } from '@hugeicons-pro/core-solid-rounded';
+
 import { identityMarkRadius } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 
@@ -23,7 +24,7 @@ export function AutomationKeycap({ mark, size }: { mark: AutomationKeycapMark; s
     return (
         <span
             aria-hidden="true"
-            className="bg-(image:--automation-keycap-face) flex shrink-0 flex-col overflow-hidden shadow-(--automation-keycap-shadow)"
+            className="flex shrink-0 flex-col overflow-hidden bg-(image:--automation-keycap-face) shadow-(--automation-keycap-shadow)"
             data-automation-keycap={mark.kind}
             style={{ borderRadius: identityMarkRadius(size), height: size, width: size }}
         >
@@ -43,11 +44,11 @@ export function AutomationKeycapFace({ mark, size }: { mark: AutomationKeycapMar
         return (
             <>
                 <span
-                    className="w-full shrink-0 bg-reminder-mark"
+                    className="bg-reminder-mark w-full shrink-0"
                     style={{ height: size * 0.275 }}
                 />
                 <span
-                    className="grid w-full flex-1 place-items-center font-bold text-foreground tabular-nums leading-none tracking-tight"
+                    className="text-foreground grid w-full flex-1 place-items-center leading-none font-bold tracking-tight tabular-nums"
                     style={{ ...inset, fontSize: size * 0.6 }}
                 >
                     {mark.hour}
@@ -58,7 +59,7 @@ export function AutomationKeycapFace({ mark, size }: { mark: AutomationKeycapMar
     const glyph = Math.round(size * 0.55);
     return (
         <span
-            className="grid w-full flex-1 place-items-center text-automation-keycap-ink-trigger"
+            className="text-automation-keycap-ink-trigger grid w-full flex-1 place-items-center"
             style={inset}
         >
             <Icon

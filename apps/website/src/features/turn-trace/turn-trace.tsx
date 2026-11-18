@@ -1,6 +1,7 @@
 import { Chip } from '@heroui/react';
 import { CancelCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import type { TurnJournalSnapshot } from '../../hooks/members/turn-journal-relay.ts';
 import { useTurnJournal } from '../../hooks/members/use-turn-journal.ts';
@@ -145,7 +146,7 @@ function TurnTraceError({ error }: { error: NonNullable<TurnTraceView['error']> 
     return (
         <div className="flex min-w-0 gap-2 px-2 text-sm">
             <span className="flex h-5 shrink-0 items-center">
-                <Icon className="size-3.5 text-danger" icon={CancelCircleIcon} />
+                <Icon className="text-danger size-3.5" icon={CancelCircleIcon} />
             </span>
             <TraceFailure failure={error} />
         </div>

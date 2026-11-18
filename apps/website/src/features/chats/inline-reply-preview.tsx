@@ -71,7 +71,7 @@ export function InlineReplyPreview({
                 aria-label={`Jump to ${author}'s message: ${excerpt}`}
                 className={cn(
                     turnContextLineContentClassName,
-                    'group w-full cursor-(--cursor-interactive) text-muted hover:text-foreground'
+                    'group text-muted hover:text-foreground w-full cursor-(--cursor-interactive)'
                 )}
                 data-inline-reply-preview=""
                 onClick={onPress}
@@ -84,7 +84,7 @@ export function InlineReplyPreview({
                 />
                 <span className="max-w-40 shrink-0 truncate font-medium">{author}</span>
                 <span
-                    className="min-w-0 truncate text-context-line-quiet group-hover:text-muted"
+                    className="text-context-line-quiet group-hover:text-muted min-w-0 truncate"
                     title={excerpt}
                 >
                     {excerpt}

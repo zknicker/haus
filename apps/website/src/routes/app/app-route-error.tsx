@@ -1,7 +1,8 @@
-import { Button } from '@heroui/react';
 import { EmptyState } from '@heroui-pro/react';
+import { Button } from '@heroui/react';
 import { Compass01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { isRouteErrorResponse, useNavigate, useRouteError } from 'react-router-dom';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { ServerErrorView } from './server-error-page.tsx';
 
@@ -16,7 +17,7 @@ export function AppRouteError() {
     const navigate = useNavigate();
     if (isRouteErrorResponse(error) && error.status === 404) {
         return (
-            <main className="flex min-h-dvh flex-1 items-center justify-center bg-background px-6 py-10">
+            <main className="bg-background flex min-h-dvh flex-1 items-center justify-center px-6 py-10">
                 <EmptyState>
                     <EmptyState.Header>
                         <EmptyState.Media variant="icon">

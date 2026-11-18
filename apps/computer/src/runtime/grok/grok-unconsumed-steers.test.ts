@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { drain, fakeGrok, update } from './fixtures/fake-grok.ts';
 
 /** A running turn whose prompt the test finishes, with Grok queueing every interjection. */

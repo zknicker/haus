@@ -1,6 +1,7 @@
 import type { TaskLabel } from '@haus/api';
 import { Button, Form, Input, Modal, TextField } from '@heroui/react';
 import * as React from 'react';
+
 import { useTaskLabelCreate } from '../../../hooks/servers/use-task-label-create.ts';
 import { useTaskLabelDelete } from '../../../hooks/servers/use-task-label-delete.ts';
 import { useTaskLabelUpdate } from '../../../hooks/servers/use-task-label-update.ts';
@@ -62,7 +63,7 @@ export function TaskLabelsDialog({
                             </Form>
                             <SettingsRowError>{create.error?.message}</SettingsRowError>
                             {labels.length === 0 ? (
-                                <p className="py-4 text-center text-muted text-sm">
+                                <p className="text-muted py-4 text-center text-sm">
                                     No task labels yet.
                                 </p>
                             ) : (
@@ -138,7 +139,7 @@ function TaskLabelRow({ label, serverId }: { label: TaskLabel; serverId: string 
                 Delete
             </Button>
             {update.error || remove.error ? (
-                <span className="basis-full text-danger text-sm" role="alert">
+                <span className="text-danger basis-full text-sm" role="alert">
                     {(update.error ?? remove.error)?.message}
                 </span>
             ) : null}

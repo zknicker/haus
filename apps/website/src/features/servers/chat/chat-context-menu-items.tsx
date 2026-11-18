@@ -1,6 +1,6 @@
 import type { Chat } from '@haus/api';
-import { Label } from '@heroui/react';
 import { ContextMenu } from '@heroui-pro/react';
+import { Label } from '@heroui/react';
 import {
     ArchiveIcon,
     ArchiveRestoreIcon,
@@ -10,6 +10,7 @@ import {
     UserCircleIcon,
     UserMultiple02Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 import { ChatContextSurfaceItems } from './chat-surface-items.tsx';
 import type { ChannelActions } from './use-channel-actions.tsx';
@@ -41,7 +42,7 @@ export function ChannelContextMenuItems({
             <ContextMenu.Item id="agents" isDisabled={archived} textValue="Agents">
                 <Icon aria-hidden="true" icon={UserMultiple02Icon} size={16} />
                 <Label>Agents</Label>
-                <span className="ms-auto shrink-0 text-muted text-xs tabular-nums">{count}</span>
+                <span className="text-muted ms-auto shrink-0 text-xs tabular-nums">{count}</span>
             </ContextMenu.Item>
             {actions.filesAvailable ? (
                 <>

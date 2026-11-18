@@ -1,7 +1,8 @@
 import { TRIGGER_HISTORY_RETENTION_DAYS, type TriggerHistoryEntry } from '@haus/api';
-import { Chip, Drawer } from '@heroui/react';
 import { DataGrid, type DataGridColumn } from '@heroui-pro/react';
+import { Chip, Drawer } from '@heroui/react';
 import { Link } from 'react-router-dom';
+
 import {
     TRIGGER_HISTORY_LIMIT,
     useAgentTriggerHistory,
@@ -43,7 +44,7 @@ export function TriggerHistoryDrawer({
                         read after the answer it qualifies. */}
                     <Drawer.Header>
                         <Drawer.Heading>History</Drawer.Heading>
-                        <p className="mt-1.5 text-muted text-sm leading-5">
+                        <p className="text-muted mt-1.5 text-sm leading-5">
                             {retentionNote(rows?.length ?? 0)}
                         </p>
                     </Drawer.Header>
@@ -55,7 +56,7 @@ export function TriggerHistoryDrawer({
                             getRowId={(entry) => entry.fireId}
                             renderEmptyState={() =>
                                 rows ? (
-                                    <p className="py-6 text-muted text-sm">No executions yet.</p>
+                                    <p className="text-muted py-6 text-sm">No executions yet.</p>
                                 ) : null
                             }
                         />
@@ -109,7 +110,7 @@ function executionColumns(
             cell: (entry) =>
                 entry.answer ? (
                     <Link
-                        className="font-medium text-accent"
+                        className="text-accent font-medium"
                         to={serverChatRoute(serverSlug, entry.answer.chatId)}
                     >
                         Open

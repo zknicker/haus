@@ -1,7 +1,8 @@
 import type { Agent } from '@haus/api';
-import { Button, Separator } from '@heroui/react';
 import { ItemCard } from '@heroui-pro/react';
+import { Button, Separator } from '@heroui/react';
 import * as React from 'react';
+
 import { useAgentActivityHistory } from '../../../hooks/members/use-agent-activity-history.ts';
 import { useAgentTurns } from '../../../hooks/members/use-agent-turns.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';

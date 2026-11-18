@@ -1,5 +1,6 @@
 import { Alert, Button, Card, Label, ListBox, Select } from '@heroui/react';
 import * as React from 'react';
+
 import { ActivationStep } from '../../components/activation/activation-shell.tsx';
 import { CodeSnippet } from '../../components/code-snippet.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
@@ -84,11 +85,11 @@ export function CoveMeetStep({
                         <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
                             <EntityAvatar name="Cove" size={72} src="/prototypes/cove-avatar.png" />
                             <div className="grid gap-0.5">
-                                <p className="font-semibold text-lg">Cove</p>
+                                <p className="text-lg font-semibold">Cove</p>
                                 <p className="text-muted text-sm">@cove</p>
                             </div>
                         </div>
-                        <div className="grid content-center gap-4 border-separator border-t p-6 md:border-t-0 md:border-l">
+                        <div className="border-separator grid content-center gap-4 border-t p-6 md:border-t-0 md:border-l">
                             <Select
                                 fullWidth
                                 isDisabled={view !== 'meet-cove'}
@@ -155,7 +156,7 @@ export function CoveMeetStep({
                     </Card.Content>
                 </Card>
                 {applying ? (
-                    <output aria-live="polite" className="text-center text-muted text-sm">
+                    <output aria-live="polite" className="text-muted text-center text-sm">
                         Getting Cove ready…
                     </output>
                 ) : null}

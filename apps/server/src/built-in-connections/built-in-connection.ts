@@ -1,4 +1,5 @@
 import type { McpPreset } from '@haus/api';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 
 /** An Agent to wake once the caller's transaction commits. */

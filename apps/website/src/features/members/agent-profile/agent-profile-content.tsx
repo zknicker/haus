@@ -1,4 +1,5 @@
 import type { Agent } from '@haus/api';
+
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { AgentUsageTile } from '../../usage/agent-usage-tile.tsx';
 import { AgentChats } from './agent-chats.tsx';

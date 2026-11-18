@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { writeHausWrapper } from './wrapper.ts';
 
 test('Haus invokes only its scoped Agent authority', async () => {

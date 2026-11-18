@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import {
     MessageScroller,
     MessageScrollerButton,
@@ -101,7 +102,7 @@ export function ChatDetailFrame({
                                     >
                                         {isInitialTranscriptPending ? null : error ? (
                                             <MessageScrollerContent className="w-full">
-                                                <div className="px-2 py-4 text-muted text-sm">
+                                                <div className="text-muted px-2 py-4 text-sm">
                                                     Unable to load this chat transcript right now.
                                                 </div>
                                             </MessageScrollerContent>

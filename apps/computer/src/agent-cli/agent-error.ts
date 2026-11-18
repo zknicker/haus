@@ -1,4 +1,5 @@
 import type { ClaimConflict } from '@haus/api';
+
 import { formatClaimConflict } from './agent-claim-conflict.ts';
 
 export type AgentCliErrorCode =

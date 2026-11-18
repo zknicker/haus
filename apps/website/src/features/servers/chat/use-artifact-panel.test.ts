@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { getArtifactPanelTargetKey } from '../../chats/haus-resource-link.ts';
 import { mergeArtifactTarget } from './use-artifact-panel.ts';
 

@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+
 import { AgentCliError } from './agent-error.ts';
 
 const tokenPattern = /^grta_[A-Za-z0-9_-]{43}$/u;
@@ -15,8 +16,8 @@ type AgentEnvironment = Record<string, string | undefined>;
 export function hasAgentIdentityEnvironment(environment: AgentEnvironment = process.env): boolean {
     return Boolean(
         environment.HAUS_AGENT_ID ||
-            environment.HAUS_SERVER_URL ||
-            environment.HAUS_AGENT_TOKEN_FILE
+        environment.HAUS_SERVER_URL ||
+        environment.HAUS_AGENT_TOKEN_FILE
     );
 }
 

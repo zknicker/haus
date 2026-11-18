@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { app, describeTabs, run, split } from './desktop-tabs-test-fixtures.ts';
 
 /** `[inbox a] | [tasks b]`, primary focused. */

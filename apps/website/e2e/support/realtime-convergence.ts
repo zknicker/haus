@@ -1,4 +1,5 @@
 import type { Page, Route } from '@playwright/test';
+
 import type { RealtimeProxy } from './realtime-proxy.ts';
 import { type createRealtimeScene, showTab, tabs, visibleSurface } from './realtime-scene.ts';
 import { expect } from './test.ts';

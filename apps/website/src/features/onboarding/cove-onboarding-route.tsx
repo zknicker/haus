@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Navigate, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+
 import { ActivationLoading } from '../../components/activation/activation-loading.tsx';
 import { ActivationShell, ActivationStep } from '../../components/activation/activation-shell.tsx';
 import { useServer } from '../../hooks/servers/use-server.ts';

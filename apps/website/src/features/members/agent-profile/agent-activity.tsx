@@ -1,7 +1,8 @@
 import type { Agent } from '@haus/api';
-import { Button } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Button } from '@heroui/react';
 import type * as React from 'react';
+
 import { CopyButton } from '../../../components/copy-button.tsx';
 import { useAgentActivityHistory } from '../../../hooks/members/use-agent-activity-history.ts';
 import { useAgentTurns } from '../../../hooks/members/use-agent-turns.ts';

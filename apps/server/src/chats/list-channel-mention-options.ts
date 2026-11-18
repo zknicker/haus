@@ -1,5 +1,6 @@
 import { formatChatReferenceTarget, type MentionOption } from '@haus/api';
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable } from '../postgres/schema.ts';
 import type { HausUser } from '../users/haus-user.ts';
@@ -37,16 +38,14 @@ export async function listChannelMentionOptions(
 
     return rows
         .filter((chat): chat is typeof chat & { name: string } => chat.name !== null)
-        .map(
-            (chat): MentionOption => ({
-                description: 'Channel',
-                id: formatChatReferenceTarget(chat.id),
-                insertText: `#${chat.name}`,
-                kind: 'chat',
-                label: chat.name,
-                metadata: { chatColor: chat.color, chatIcon: chat.icon },
-                projection: 'chat-reference',
-                sourceLabel: 'Channels',
-            })
-        );
+        .map((chat): MentionOption => ({
+            description: 'Channel',
+            id: formatChatReferenceTarget(chat.id),
+            insertText: `#${chat.name}`,
+            kind: 'chat',
+            label: chat.name,
+            metadata: { chatColor: chat.color, chatIcon: chat.icon },
+            projection: 'chat-reference',
+            sourceLabel: 'Channels',
+        }));
 }

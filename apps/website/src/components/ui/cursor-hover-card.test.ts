@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { getCursorHoverOffset } from './cursor-hover-card.tsx';
 
 const bounds = { height: 20, left: 100, top: 40, width: 100 };

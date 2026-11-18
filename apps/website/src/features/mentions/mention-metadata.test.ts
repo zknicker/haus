@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+
 import type { AgentMentionAppearance } from './mention-metadata.ts';
 import {
     applyAgentMentionAppearance,

@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { useDesktopPageOpeners } from '../../../hooks/desktop-tabs/use-desktop-page-openers.ts';
 import { setChatSidePane, useChatSidePane } from '../../../hooks/pane/use-chat-side-pane.ts';
 

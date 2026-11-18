@@ -1,14 +1,15 @@
 import { splitVisualFences } from '@haus/api/widgets/visual';
 import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
+
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
 import { useStreamingTextRanges } from './chat-streaming-text-ranges.ts';
+import { TranscriptMessageBlock } from './chat-transcript-message-block.tsx';
 import {
     ChatTranscriptMessageContent,
     getTranscriptMessageContent,
     type TranscriptMessage,
 } from './chat-transcript-message.tsx';
-import { TranscriptMessageBlock } from './chat-transcript-message-block.tsx';
 import { useTranscriptRenderContextOptional } from './chat-transcript-render-context.tsx';
 import { useRevealedText } from './use-revealed-text.ts';
 import { VisualCard } from './visual-card.tsx';

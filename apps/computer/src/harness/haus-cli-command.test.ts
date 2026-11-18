@@ -1,4 +1,5 @@
 import { afterAll, expect, test } from 'bun:test';
+
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { createComputerActivityProjector } from './activity-projector.ts';

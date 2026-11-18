@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import * as React from 'react';
 import type { Root } from 'react-dom/client';
+
 import { installFakeDom } from '../../test-support/fake-dom.ts';
 import { TurnTraceSteps } from './turn-trace-steps-view.tsx';
 import { call, journal } from './turn-trace-test-fixtures.ts';

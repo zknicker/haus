@@ -2,6 +2,7 @@ import type { TriggerFireErrorCode } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
 import { tracePromise } from '@haus/effect';
 import { and, eq, isNotNull, isNull, sql } from 'drizzle-orm';
+
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { ChatArchivedError, ChatNotFoundError, requireChatWritable } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';

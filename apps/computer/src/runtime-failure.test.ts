@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { AgentSessionResumeRejectedError } from './harness/resume-rejection.ts';
 import { RuntimeSessionFailureError } from './harness/runtime-session-failure.ts';
 import { HarnessStartupTimeoutError } from './harness/start-gate.ts';

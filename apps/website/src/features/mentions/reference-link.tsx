@@ -1,5 +1,6 @@
 import { cloudAgentPullRequestNumber } from '@haus/api';
 import * as React from 'react';
+
 import { MarkdownLink } from '../chats/chat-inline-markdown-link.tsx';
 import { useSharedArtifactTarget } from '../chats/shared-artifact-scope.tsx';
 import { connectionChipLink } from './connection-chip-views.tsx';

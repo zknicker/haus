@@ -1,4 +1,5 @@
 import { CheckListIcon } from '@hugeicons-pro/core-stroke-rounded';
+
 import type { AppCommandGroup } from './types.ts';
 
 /**

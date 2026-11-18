@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import { attestAgentEvents } from '../src/agent-api/inbox.ts';
 import { readAgentInboxCursor, recordExactMessagesServed } from '../src/agent-delivery/cursors.ts';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';

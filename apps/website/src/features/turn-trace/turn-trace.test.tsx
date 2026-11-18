@@ -1,14 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+
 import type { AgentExecutionJournal, AgentExecutionJournalTool } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { TurnTracePresentation } from './turn-trace.tsx';
+
 import { TurnTraceCallBody } from './turn-trace-call-body.tsx';
 import { complexTurn } from './turn-trace-claude-fixtures.ts';
 import { codexFailureTurn, imageTurn } from './turn-trace-codex-fixtures.ts';
 import { TurnTraceScopeProvider } from './turn-trace-scope.tsx';
 import { TurnTraceSteps } from './turn-trace-steps-view.tsx';
 import { buildTurnTraceView } from './turn-trace-view.ts';
+import { TurnTracePresentation } from './turn-trace.tsx';
 
 test('TurnTrace tells a member where execution detail lives', () => {
     const markup = render({ access: 'summary', presentation: null });

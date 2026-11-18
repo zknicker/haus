@@ -1,5 +1,6 @@
 import { Button } from '@heroui/react';
 import { Cancel01Icon, File01Icon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
 import { sidebarActionIconSize } from '../shell/section-header.tsx';
@@ -67,11 +68,11 @@ function ArtifactTab({
     path: string;
 }) {
     return (
-        <div className="relative flex h-8 min-w-0 max-w-40 shrink-0 items-center">
+        <div className="relative flex h-8 max-w-40 min-w-0 shrink-0 items-center">
             <button
                 aria-selected={active}
                 className={cn(
-                    'flex h-8 w-full min-w-0 items-center gap-1.5 rounded-lg py-0 pr-8 pl-2.5 text-sm outline-none transition-colors focus-visible:bg-surface-secondary',
+                    'focus-visible:bg-surface-secondary flex h-8 w-full min-w-0 items-center gap-1.5 rounded-lg py-0 pr-8 pl-2.5 text-sm transition-colors outline-none',
                     active
                         ? 'bg-surface-secondary text-foreground'
                         : 'text-muted hover:bg-background-hover hover:text-foreground'

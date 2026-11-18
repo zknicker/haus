@@ -1,5 +1,6 @@
 import type { ImageGenerationProvider } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
+
 import {
     readAttachmentBytes,
     requireVisibleAgentAttachment,

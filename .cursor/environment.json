@@ -1,11 +1,11 @@
 {
-  "name": "Haus",
-  "install": "bash .agents/cloud/bootstrap.sh cursor-install",
-  "start": "bash .agents/cloud/bootstrap.sh cursor",
-  "terminals": [
-    {
-      "name": "dev-stack",
-      "command": ". .agents/cloud/env.sh && bun run dev"
-    }
-  ]
+    "name": "Haus",
+    "install": "bash .agents/cloud/bootstrap.sh cursor-install",
+    "start": "bash .agents/cloud/bootstrap.sh cursor",
+    "terminals": [
+        {
+            "name": "dev-stack",
+            "command": ". .agents/cloud/env.sh && bun run dev"
+        }
+    ]
 }

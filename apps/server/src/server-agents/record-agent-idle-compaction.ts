@@ -1,4 +1,5 @@
 import { type AgentIdleCompactionReport, agentIdleCompactionReportSchema } from '@haus/api';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { recordAgentTurnSummary } from './record-agent-turn.ts';
 

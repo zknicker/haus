@@ -5,6 +5,7 @@ import {
     type MessageCause,
 } from '@haus/api';
 import { and, count, eq, lte } from 'drizzle-orm';
+
 import { requireChatAccess } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {

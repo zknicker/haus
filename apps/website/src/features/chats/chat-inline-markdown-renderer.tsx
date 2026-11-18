@@ -1,4 +1,5 @@
 import type * as React from 'react';
+
 import { MarkdownLink, matchBareUrl, matchMarkdownLink } from './chat-inline-markdown-link.tsx';
 import {
     type ChatTextAnimationRange,
@@ -77,7 +78,7 @@ export function renderInlineMarkdown(
                 flushBuffer();
                 nodes.push(
                     <code
-                        className="break-words rounded bg-surface-secondary px-1 py-0.5 font-mono text-[0.92em] [overflow-wrap:anywhere]"
+                        className="bg-surface-secondary rounded px-1 py-0.5 font-mono text-[0.92em] [overflow-wrap:anywhere] break-words"
                         key={`${keyPrefix}:code:${cursor}`}
                     >
                         {renderTextWithAnimatedRanges(

@@ -6,6 +6,7 @@ import {
     Notification01Icon,
     NotificationOff01Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { useSetTaskFollow } from '../../hooks/tasks/use-set-task-follow.ts';
 import { useTask } from '../../hooks/tasks/use-task.ts';
@@ -13,8 +14,8 @@ import { useServerContext } from '../servers/server-context.ts';
 import { copyTaskReference } from './copy-task-reference.ts';
 import { TaskDetails } from './details/task-details-card.tsx';
 import { TaskAssigneeSelect, TaskStateSelect } from './task-properties.tsx';
-import { taskStateLabels } from './task-state.ts';
 import { TaskStateDisc } from './task-state-disc.tsx';
+import { taskStateLabels } from './task-state.ts';
 import { showTaskUpdateError } from './task-update-error.ts';
 import { TaskWorkPanel } from './work/task-work-panel.tsx';
 

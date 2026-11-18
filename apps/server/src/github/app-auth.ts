@@ -1,4 +1,5 @@
 import { createPrivateKey } from 'node:crypto';
+
 import { importPKCS8, SignJWT } from 'jose';
 
 /** GitHub refuses an App JWT that lives longer than ten minutes. */

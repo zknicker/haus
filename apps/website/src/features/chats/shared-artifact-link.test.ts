@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { collectSharedArtifactLinks, parseSharedArtifactLink } from './shared-artifact-link.ts';
 
 const scope = { origins: ['https://app.haus.test'], slug: 'acme' };

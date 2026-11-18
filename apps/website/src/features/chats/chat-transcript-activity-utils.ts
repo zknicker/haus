@@ -1,4 +1,5 @@
 import { BrainIcon } from '@hugeicons-pro/core-stroke-rounded';
+
 import type { TranscriptItem, TranscriptRow } from './chat-transcript-model.ts';
 import { resolveToolStepIcon, type ToolStepIcon } from './tool-steps/tool-step-icons.ts';
 

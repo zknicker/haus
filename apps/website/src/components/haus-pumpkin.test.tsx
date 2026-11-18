@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'bun:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
-import { HausGhost } from './haus-ghost.tsx';
+
 import { EYES_PATH } from './haus-ghost-paths.ts';
-import { HausPumpkin } from './haus-pumpkin.tsx';
+import { HausGhost } from './haus-ghost.tsx';
 import { MARK_RIB, PUMPKIN_FORM, PUMPKIN_PATCHES } from './haus-pumpkin-form.ts';
 import { PUMPKIN_GLASS } from './haus-pumpkin-palette.ts';
 import {
@@ -12,6 +13,7 @@ import {
     PUMPKIN_EYES_SCALE,
     PUMPKIN_FRAME,
 } from './haus-pumpkin-paths.ts';
+import { HausPumpkin } from './haus-pumpkin.tsx';
 
 const iridescent = (props: { animated?: boolean } = {}) =>
     renderToStaticMarkup(<HausPumpkin fill="iridescent" {...props} />);

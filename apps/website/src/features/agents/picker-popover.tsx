@@ -1,6 +1,7 @@
 import { Button, Popover, SearchField } from '@heroui/react';
 import { Add01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import { Icon } from '../../components/ui/icon.tsx';
 
 export interface PickerPopoverItem {
@@ -53,10 +54,10 @@ export function PickerPopover<Item extends PickerPopoverItem>({
                 <Popover.Dialog>
                     <div className="w-[min(19rem,calc(100vw-2rem))] p-2">
                         {items.length === 0 ? (
-                            <p className="py-6 text-center text-muted text-sm">{emptyText}</p>
+                            <p className="text-muted py-6 text-center text-sm">{emptyText}</p>
                         ) : (
                             <>
-                                <div className="sticky top-0 z-10 bg-overlay pb-2">
+                                <div className="bg-overlay sticky top-0 z-10 pb-2">
                                     <SearchField
                                         aria-label={searchPlaceholder}
                                         fullWidth
@@ -73,12 +74,12 @@ export function PickerPopover<Item extends PickerPopoverItem>({
                                     </SearchField>
                                 </div>
                                 {visibleItems.length > 0 ? (
-                                    <ul className="max-h-[min(20rem,calc(100dvh-10rem))] divide-y divide-separator overflow-y-auto">
+                                    <ul className="divide-separator max-h-[min(20rem,calc(100dvh-10rem))] divide-y overflow-y-auto">
                                         {visibleItems.map((item) => (
                                             <li key={item.id}>
                                                 <button
                                                     aria-label={`Add ${item.name}`}
-                                                    className="flex min-h-10 w-full cursor-[var(--cursor-interactive)] items-center rounded-xl px-3 py-2 text-left outline-none hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-default disabled:opacity-64"
+                                                    className="hover:bg-surface-hover focus-visible:ring-focus flex min-h-10 w-full cursor-[var(--cursor-interactive)] items-center rounded-xl px-3 py-2 text-left outline-none focus-visible:ring-2 disabled:cursor-default disabled:opacity-64"
                                                     disabled={isPending}
                                                     onClick={() => {
                                                         setOpen(false);
@@ -86,7 +87,7 @@ export function PickerPopover<Item extends PickerPopoverItem>({
                                                     }}
                                                     type="button"
                                                 >
-                                                    <span className="truncate font-medium text-foreground text-sm">
+                                                    <span className="text-foreground truncate text-sm font-medium">
                                                         {item.name}
                                                     </span>
                                                 </button>
@@ -94,7 +95,7 @@ export function PickerPopover<Item extends PickerPopoverItem>({
                                         ))}
                                     </ul>
                                 ) : (
-                                    <p className="py-6 text-center text-muted text-sm">
+                                    <p className="text-muted py-6 text-center text-sm">
                                         No matches.
                                     </p>
                                 )}

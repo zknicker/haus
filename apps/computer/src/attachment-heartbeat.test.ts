@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
+
 import { startAttachmentHeartbeat } from './attachment-heartbeat.ts';
 import { type DaemonRuntime, makeDaemonRuntime } from './daemon-runtime.ts';
 

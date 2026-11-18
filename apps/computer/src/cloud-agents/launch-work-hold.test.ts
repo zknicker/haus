@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
+
 import { createFakeCloudAgentProvider } from './fake-provider.ts';
 import { startCloudAgentWork } from './launch-work.ts';
 import { setCloudAgentProvider } from './registry.ts';

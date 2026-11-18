@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import { attestAgentEvents } from '../src/agent-api/inbox.ts';
 import { subscribeToAgentThoughts } from '../src/agent-delivery/thought-events.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';

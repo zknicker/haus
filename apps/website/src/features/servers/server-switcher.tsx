@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import type { ServerSummary } from '../../lib/haus-server.tsx';
 import { cn } from '../../lib/utils.ts';
@@ -18,7 +19,7 @@ export function ServerSwitcher({
                 <NavLink
                     className={({ isActive }) =>
                         cn(
-                            'rounded-lg px-3 py-2 text-left text-foreground text-sm outline-none focus-visible:ring-2 focus-visible:ring-focus',
+                            'text-foreground focus-visible:ring-focus rounded-lg px-3 py-2 text-left text-sm outline-none focus-visible:ring-2',
                             isActive ? 'bg-surface-secondary' : 'hover:bg-surface-secondary'
                         )
                     }
@@ -30,7 +31,7 @@ export function ServerSwitcher({
                         <EntityAvatar name={server.displayName || server.slug} size="sm" />
                         <span className="min-w-0">
                             <span className="block truncate">{server.displayName}</span>
-                            <span className="block text-muted text-sm">/{server.slug}</span>
+                            <span className="text-muted block text-sm">/{server.slug}</span>
                         </span>
                     </div>
                 </NavLink>

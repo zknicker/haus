@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { AgentExecutionJournalResult } from '@haus/api';
+
 import { createTurnJournalRelay, type TurnJournalSnapshot } from './turn-journal-relay.ts';
 
 const available: AgentExecutionJournalResult = {

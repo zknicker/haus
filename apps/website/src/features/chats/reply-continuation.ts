@@ -44,14 +44,14 @@ function continuesReply(previous: MessageRow, next: MessageRow) {
 
     return Boolean(
         previousReply &&
-            nextReply &&
-            previousReply.parentMessageId === nextReply.parentMessageId &&
-            previous.actor &&
-            next.actor &&
-            previous.actor.kind === next.actor.kind &&
-            previous.actor.id === next.actor.id &&
-            !hasAttachedWork(previous) &&
-            withinGroupingWindow(previous.message.timestamp, next.message.timestamp)
+        nextReply &&
+        previousReply.parentMessageId === nextReply.parentMessageId &&
+        previous.actor &&
+        next.actor &&
+        previous.actor.kind === next.actor.kind &&
+        previous.actor.id === next.actor.id &&
+        !hasAttachedWork(previous) &&
+        withinGroupingWindow(previous.message.timestamp, next.message.timestamp)
     );
 }
 

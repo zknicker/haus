@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { pushNotificationPayloadSchema } from './push.ts';
 
 const payload = {

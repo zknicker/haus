@@ -1,7 +1,8 @@
 import type { ArtifactRecord } from '@haus/api';
-import { Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Separator } from '@heroui/react';
 import { Fragment } from 'react';
+
 import { SettingsFact } from '../settings/layout/settings-text.tsx';
 import { artifactKindLabel, formatArtifactBytes, formatArtifactDate } from './artifact-format.ts';
 import { ArtifactRevisions } from './artifact-revisions.tsx';

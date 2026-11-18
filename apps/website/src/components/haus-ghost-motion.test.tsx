@@ -1,7 +1,9 @@
 import { describe, expect, test } from 'bun:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
-import { HausGhost } from './haus-ghost.tsx';
+
 import { VIEWBOX_HEIGHT, VIEWBOX_WIDTH } from './haus-ghost-paths.ts';
+import { HausGhost } from './haus-ghost.tsx';
 
 /**
  * What the mark's motion has to keep being: visible at 22px, bounded to the

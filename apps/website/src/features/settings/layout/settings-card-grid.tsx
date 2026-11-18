@@ -1,7 +1,8 @@
-import { Button } from '@heroui/react';
 import { ItemCard, ItemCardGroup, PressableFeedback } from '@heroui-pro/react';
+import { Button } from '@heroui/react';
 import { Tick02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type React from 'react';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 
 /**
@@ -44,7 +45,7 @@ export function SettingsCardGrid({
                     {count === undefined ? null : (
                         // The leading space keeps "Installed 150" two words
                         // to assistive tech; the margin is the visual gap.
-                        <span className="ms-2 text-muted tabular-nums">
+                        <span className="text-muted ms-2 tabular-nums">
                             <span className="sr-only"> </span>
                             {count}
                         </span>
@@ -78,7 +79,7 @@ export function SettingsGridCard({
     return (
         <ItemCard<'button'>
             aria-label={label}
-            className="relative w-full min-w-0 cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            className="focus-visible:ring-focus relative w-full min-w-0 cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2"
             // The handler rides on ItemCard, not on the rendered button:
             // `render` spreads the component's own props last.
             onClick={onPress}

@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { slugifyServerName } from './server-slug.ts';
 
 describe('slugifyServerName', () => {

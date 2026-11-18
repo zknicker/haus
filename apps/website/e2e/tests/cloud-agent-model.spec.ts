@@ -1,4 +1,5 @@
 import type { CloudAgentModel } from '@haus/api';
+
 import { sendBootstrap, socketMessage, socketOpen } from '../support/computer-socket.ts';
 import { attachComputer, createTestServer, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';

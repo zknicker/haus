@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
-import coveAvatarPath from '../../../website/public/prototypes/cove-avatar.png' with {
-    type: 'file',
-};
+
+import coveAvatarPath from '../../../website/public/prototypes/cove-avatar.png' with { type: 'file' };
 import { createAvatarId } from '../avatars/avatar-bytes.ts';
 
 /** Builds the release-owned Cove avatar row shared by production onboarding and dev seeding. */

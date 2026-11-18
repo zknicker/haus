@@ -1,5 +1,6 @@
 import type { AttachmentMetadata } from '@haus/api';
 import { formatChatAttachmentSize } from '@heroui-pro/react';
+
 import type { AttachmentImageSource } from '../../../hooks/servers/use-attachment-image.ts';
 import {
     type ArtifactFileKind,

@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { buildTranscript, captureAgentDiagnostics } from './report.mjs';
 
 test('failure evidence preserves delivery state even when a turn query fails', async () => {

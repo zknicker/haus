@@ -1,9 +1,9 @@
 {
-  "description": "Control local Mac apps through Computer Use.",
-  "interface": {
-    "displayName": "Computer Use",
-    "shortDescription": "Control local Mac apps."
-  },
-  "name": "computer-use",
-  "version": "1.0.0"
+    "description": "Control local Mac apps through Computer Use.",
+    "interface": {
+        "displayName": "Computer Use",
+        "shortDescription": "Control local Mac apps."
+    },
+    "name": "computer-use",
+    "version": "1.0.0"
 }

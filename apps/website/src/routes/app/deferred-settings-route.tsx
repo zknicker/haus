@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useLocation } from 'react-router-dom';
+
 import { serverRouteModules } from './server-route-modules.ts';
 
 const SettingsSectionRoute = React.lazy(async () => ({

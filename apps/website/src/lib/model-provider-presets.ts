@@ -1,4 +1,5 @@
 import { Atom02Icon, ChatGptIcon, Globe02Icon } from '@hugeicons-pro/core-stroke-rounded';
+
 import type { ModelProviderConfig } from './model-provider-config.ts';
 import {
     anthropicProviderLogo,

@@ -1,11 +1,12 @@
 import type { ChatMessageReply, ChatMessageReplyReference, ChatSendInput } from '@haus/api';
 import { and, eq, ilike, inArray } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
+
 import { escapeLike } from '../agent-api/resolve-target.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { agentsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 import { serverMembershipsTable } from '../postgres/schema/server-memberships.ts';
 import { usersTable } from '../postgres/schema/users.ts';
-import { agentsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 import { readStoredAuthorProfile } from './message-shape.ts';
 
 const usersAlias = alias(usersTable, 'inline_reply_user');

@@ -1,7 +1,9 @@
 import { expect, test } from 'bun:test';
+
 import { makeTelemetryLayer, parseTraceCarrier } from '@haus/effect';
 import { InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { ManagedRuntime } from 'effect';
+
 import { parseStartCommand } from '../../computer/src/agent-command-frames.ts';
 import { traceAgentTurn } from '../../computer/src/agent-turn-telemetry.ts';
 import { startLoopbackProxy } from '../../computer/src/proxy.ts';

@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { Chat } from '@haus/api';
+
 import { chatsToWarm, createChatWarmer } from './use-idle-chat-warming.ts';
 
 test('warms unread Chats first, then the most recently active, without repeats', () => {

@@ -1,5 +1,6 @@
 import type { AgentAvatarGenerationInput } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
+
 import { AvatarDeniedError, AvatarOwnerNotFoundError } from '../avatars/avatar-errors.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';

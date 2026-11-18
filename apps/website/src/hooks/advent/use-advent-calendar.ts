@@ -1,4 +1,5 @@
 import type { AdventEntry } from '@haus/api';
+
 import { hausTrpc } from '../../lib/haus-server.tsx';
 
 /** The advent calendar read: `pending` until the first answer, then its entries or `error`. */

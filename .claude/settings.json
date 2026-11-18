@@ -1,29 +1,29 @@
 {
-  "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "startup|resume",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "[ \"${CLAUDE_CODE_REMOTE:-}\" = true ] || bun run setup:worktree",
-            "timeout": 900
-          },
-          {
-            "type": "command",
-            "command": "[ \"${CLAUDE_CODE_REMOTE:-}\" != true ] || bash \"$CLAUDE_PROJECT_DIR\"/.agents/cloud/bootstrap.sh claude",
-            "timeout": 900
-          }
+    "hooks": {
+        "SessionStart": [
+            {
+                "matcher": "startup|resume",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "[ \"${CLAUDE_CODE_REMOTE:-}\" = true ] || bun run setup:worktree",
+                        "timeout": 900
+                    },
+                    {
+                        "type": "command",
+                        "command": "[ \"${CLAUDE_CODE_REMOTE:-}\" != true ] || bash \"$CLAUDE_PROJECT_DIR\"/.agents/cloud/bootstrap.sh claude",
+                        "timeout": 900
+                    }
+                ]
+            },
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "node scripts/generate-claude-launch.mjs"
+                    }
+                ]
+            }
         ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node scripts/generate-claude-launch.mjs"
-          }
-        ]
-      }
-    ]
-  }
+    }
 }

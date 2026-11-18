@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import Fastify from 'fastify';
+
 import { telemetryProtobuf } from './telemetry-protobuf.ts';
 import { registerComputerTelemetryRoutes } from './telemetry-routes.ts';
 

@@ -1,5 +1,6 @@
 import type { AgentSelfProfileUpdateInput } from '@haus/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
+
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, serverMembershipsTable, usersTable } from '../postgres/schema.ts';

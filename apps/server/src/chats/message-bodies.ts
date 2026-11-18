@@ -1,4 +1,5 @@
 import type { MessageBody } from '@haus/api';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { readCreatedAgentsForMessages } from '../server-agents/agent-created-shape.ts';
 

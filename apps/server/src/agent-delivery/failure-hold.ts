@@ -1,4 +1,5 @@
 import { and, desc, eq } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentDeliveryTable, agentsTable, agentTurnsTable } from '../postgres/schema.ts';
 import { agentUpdatedTopic } from '../realtime/topics.ts';

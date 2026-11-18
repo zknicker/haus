@@ -21,6 +21,7 @@ import {
     taskLabelUpdatedEventSchema,
     taskUpdatedEventSchema,
 } from '@haus/api';
+
 import { createTopic } from './topic.ts';
 
 /**

@@ -27,7 +27,7 @@ export const mediaStripPlaceholderClassName =
 export function MessageMediaStrip({ children }: { children: React.ReactNode }) {
     return (
         <ScrollShadow
-            className="flex min-w-0 max-w-full snap-x snap-mandatory gap-2 overscroll-x-contain"
+            className="flex max-w-full min-w-0 snap-x snap-mandatory gap-2 overscroll-x-contain"
             data-slot="message-media-strip"
             hideScrollBar
             onKeyDown={walkTiles}

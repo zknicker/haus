@@ -11,6 +11,7 @@ import {
     useMemo,
     useState,
 } from 'react';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { springs } from '../../lib/springs.ts';
 import { cn } from '../../lib/utils.ts';
@@ -87,7 +88,7 @@ export function ThinkingStepsHeader({
             <Disclosure.Heading>
                 <Disclosure.Trigger
                     className={cn(
-                        'group flex w-auto items-center gap-1.5 rounded-md py-1 font-medium text-foreground leading-tight transition-colors hover:text-foreground',
+                        'group text-foreground hover:text-foreground flex w-auto items-center gap-1.5 rounded-md py-1 leading-tight font-medium transition-colors',
                         className
                     )}
                     {...props}
@@ -196,7 +197,7 @@ export function ThinkingStep({
                     <div className="flex w-4 shrink-0 flex-col items-center">
                         <div className="flex size-4 items-center justify-center">
                             {showIcon && icon ? (
-                                <Icon className="size-4 text-muted" icon={icon} strokeWidth={1.5} />
+                                <Icon className="text-muted size-4" icon={icon} strokeWidth={1.5} />
                             ) : (
                                 <div className="flex size-4 items-center justify-center">
                                     <Badge
@@ -215,20 +216,20 @@ export function ThinkingStep({
                                 </div>
                             )}
                         </div>
-                        {isLast ? null : <div className="mt-1 w-px flex-1 bg-separator" />}
+                        {isLast ? null : <div className="bg-separator mt-1 w-px flex-1" />}
                     </div>
 
                     <div className="flex min-w-0 flex-1 flex-col gap-1 text-sm">
                         <span
                             className={cn(
-                                'min-w-0 text-foreground leading-tight',
+                                'text-foreground min-w-0 leading-tight',
                                 isActive && 'thinking-indicator-text'
                             )}
                         >
                             {label}
                         </span>
                         {description ? (
-                            <span className="min-w-0 text-muted text-sm leading-snug">
+                            <span className="text-muted min-w-0 text-sm leading-snug">
                                 {description}
                             </span>
                         ) : null}
@@ -259,7 +260,7 @@ export function ThinkingStepDetails({
         <Disclosure className={cn('mt-1 -ml-3', className)} defaultExpanded={defaultOpen}>
             <div className="w-fit">
                 <Disclosure.Heading>
-                    <Disclosure.Trigger className="group flex w-auto items-center gap-1.5 rounded-md px-3 py-1 text-muted text-sm leading-tight hover:bg-surface-hover hover:text-foreground">
+                    <Disclosure.Trigger className="group text-muted hover:bg-surface-hover hover:text-foreground flex w-auto items-center gap-1.5 rounded-md px-3 py-1 text-sm leading-tight">
                         <span>{summary}</span>
                         <Disclosure.Indicator />
                     </Disclosure.Trigger>

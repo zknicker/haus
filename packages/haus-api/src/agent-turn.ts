@@ -1,7 +1,8 @@
 import * as z from 'zod';
-import { agentDetailInputSchema } from './agent.ts';
+
 import { agentTurnActivitySummarySchema } from './agent-activity.ts';
 import { agentTurnTriggerSchema } from './agent-turn-trigger.ts';
+import { agentDetailInputSchema } from './agent.ts';
 import { idSchema } from './chat.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });

@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { ARTIFACT_REVISION_RETENTION_DAYS, type ArtifactUpdatedEvent } from '@haus/api';
+
 import { moveArtifacts } from '../src/artifacts/move.ts';
 import { deleteExpiredArtifactRevisions } from '../src/artifacts/retention.ts';
 import { artifactUpdatedTopic } from '../src/realtime/topics.ts';

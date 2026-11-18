@@ -1,6 +1,7 @@
 'use client';
 
 import type React from 'react';
+
 import { cn } from '../../lib/utils.ts';
 
 /**
@@ -13,7 +14,7 @@ export function AppShell({ className, ...props }: React.ComponentProps<'div'>): 
     return (
         <div
             className={cn(
-                'app-shell group/app-shell relative flex min-h-screen flex-col overflow-hidden bg-(--app-shell-ground) text-foreground md:h-dvh md:min-h-0 md:overscroll-none',
+                'app-shell group/app-shell text-foreground relative flex min-h-screen flex-col overflow-hidden bg-(--app-shell-ground) md:h-dvh md:min-h-0 md:overscroll-none',
                 className
             )}
             data-slot="app-shell"

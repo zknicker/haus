@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { setChatSidePane, useChatSidePane } from '../../../hooks/pane/use-chat-side-pane.ts';
 import type { ChatArtifactPanelState } from '../../chats/chat-artifact-panel-state.ts';
 import {

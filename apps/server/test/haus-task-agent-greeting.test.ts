@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import { enqueueAgentGreeting } from '../src/agent-delivery/greeting.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { addChannel, offlineDelivery } from './agent-inbox-harness.ts';

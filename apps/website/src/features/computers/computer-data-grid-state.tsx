@@ -1,6 +1,7 @@
 import { Button, EmptyState, Spinner } from '@heroui/react';
-import type { IconSvgElement } from '@hugeicons/react';
 import { AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
+import type { IconSvgElement } from '@hugeicons/react';
+
 import { Icon } from '../../components/ui/icon.tsx';
 
 type ComputerDataGridStateProps =
@@ -18,7 +19,7 @@ export function ComputerDataGridState(props: ComputerDataGridStateProps) {
                 <Spinner aria-hidden="true" color="current" size="sm" />
             ) : (
                 <Icon
-                    className="size-6 text-muted"
+                    className="text-muted size-6"
                     icon={props.status === 'empty' ? props.icon : AlertCircleIcon}
                 />
             )}

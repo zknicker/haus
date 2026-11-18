@@ -1,5 +1,6 @@
 import type { AgentCommand, AgentTaskAssignmentNotice } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable } from '../postgres/schema.ts';
 import { chatIdsOf, maxDrainRows, noticeWindow } from './drain-selection.ts';

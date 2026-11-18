@@ -1,5 +1,6 @@
 import { ArrowRight01Icon, FileEditIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
 import { useTranscriptRenderContextOptional } from './chat-transcript-render-context.tsx';
@@ -23,20 +24,20 @@ export function WorkspaceChangesChip({ row }: { chatId?: string; row: ToolStepRo
                 className={cn(
                     // p-2 keeps the icon square evenly inset on every side; the
                     // trailing chevron gets a touch more room.
-                    'group/files-chip flex w-full min-w-0 cursor-default items-center gap-2.5 rounded-xl border border-separator bg-surface p-2 pr-3 text-left outline-none transition-colors',
-                    'hover:border-border hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-focus'
+                    'group/files-chip border-separator bg-surface flex w-full min-w-0 cursor-default items-center gap-2.5 rounded-xl border p-2 pr-3 text-left transition-colors outline-none',
+                    'hover:border-border hover:bg-surface-hover focus-visible:ring-focus focus-visible:ring-2'
                 )}
                 onClick={() => setOpen(true)}
                 type="button"
             >
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-separator bg-surface-secondary">
-                    <Icon className="size-4 text-muted" icon={FileEditIcon} strokeWidth={1.5} />
+                <span className="border-separator bg-surface-secondary flex size-7 shrink-0 items-center justify-center rounded-lg border">
+                    <Icon className="text-muted size-4" icon={FileEditIcon} strokeWidth={1.5} />
                 </span>
-                <span className="min-w-0 flex-1 truncate font-medium text-foreground text-sm">
+                <span className="text-foreground min-w-0 flex-1 truncate text-sm font-medium">
                     {label}
                 </span>
                 <Icon
-                    className="size-4 shrink-0 text-muted transition-[color,translate] group-hover/files-chip:translate-x-0.5 group-hover/files-chip:text-foreground"
+                    className="text-muted group-hover/files-chip:text-foreground size-4 shrink-0 transition-[color,translate] group-hover/files-chip:translate-x-0.5"
                     icon={ArrowRight01Icon}
                     strokeWidth={1.7}
                 />

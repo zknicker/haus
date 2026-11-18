@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { getManualTopic, manualTopics } from './index.ts';
 
 test('the tasks topic says what a Task is and when to start one (ADR 0053)', () => {

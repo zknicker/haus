@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { DesktopShellContext } from '../../features/shell/use-tab-navigator.ts';
 import {
     type ArtifactPageTarget,

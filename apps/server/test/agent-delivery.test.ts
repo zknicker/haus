@@ -1,7 +1,9 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
+
 import type { AgentCommand, AgentTurnSummary } from '@haus/api';
 import { and, eq, ne } from 'drizzle-orm';
+
 import { attestAgentEvents, pullAgentEvents } from '../src/agent-api/inbox.ts';
 import { advanceSeenCursor, markCursorSubsumedSeen } from '../src/agent-delivery/cursors.ts';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
@@ -1943,85 +1945,85 @@ test('defers a public Agent configuration change until the active run settles', 
     });
 });
 
-test.each([
-    'fake',
-    'grok-build',
-])('defers %s effort changes until settlement', async (runtimeId) => {
-    const seed = await seedAgent(runtimeId);
-    const expectedGeneration = runtimeId === 'grok-build' ? 2 : 1;
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+test.each(['fake', 'grok-build'])(
+    'defers %s effort changes until settlement',
+    async (runtimeId) => {
+        const seed = await seedAgent(runtimeId);
+        const expectedGeneration = runtimeId === 'grok-build' ? 2 : 1;
+        const transport = new FakeTransport();
+        transport.online.add(seed.computerId);
+        const delivery = new AgentDelivery(connection.db, transport);
 
-    await connection.db
-        .update(computersTable)
-        .set({
-            health: 'healthy',
-            reportedInventory: {
-                runtimes: [
-                    {
-                        id: runtimeId,
-                        label: 'Fake',
-                        models: [{ id: 'fake-model', label: 'Fake model' }],
-                    },
-                ],
-            },
-        })
-        .where(eq(computersTable.id, seed.computerId));
+        await connection.db
+            .update(computersTable)
+            .set({
+                health: 'healthy',
+                reportedInventory: {
+                    runtimes: [
+                        {
+                            id: runtimeId,
+                            label: 'Fake',
+                            models: [{ id: 'fake-model', label: 'Fake model' }],
+                        },
+                    ],
+                },
+            })
+            .where(eq(computersTable.id, seed.computerId));
 
-    await delivery.deliver({
-        agentId: seed.agentId,
-        chatId: seed.chatId,
-        content: 'finish this before changing effort',
-        dedupeKey: 'effort-switch-active-run',
-        serverId: seed.serverId,
-        source: 'onboarding',
-    });
-    const first = transport.framesOfType('start')[0];
-    if (!first) {
-        throw new Error('Expected the active run to start.');
-    }
-    await delivery.onAck({ agentId: seed.agentId, runId: first.runId });
-
-    const configured = await configureAgent(
-        connection.db,
-        {
-            subject: 'effort-switch-owner',
-            id: seed.userId,
-        },
-        {
+        await delivery.deliver({
             agentId: seed.agentId,
+            chatId: seed.chatId,
+            content: 'finish this before changing effort',
+            dedupeKey: 'effort-switch-active-run',
+            serverId: seed.serverId,
+            source: 'onboarding',
+        });
+        const first = transport.framesOfType('start')[0];
+        if (!first) {
+            throw new Error('Expected the active run to start.');
+        }
+        await delivery.onAck({ agentId: seed.agentId, runId: first.runId });
+
+        const configured = await configureAgent(
+            connection.db,
+            {
+                subject: 'effort-switch-owner',
+                id: seed.userId,
+            },
+            {
+                agentId: seed.agentId,
+                modelId: 'fake-model',
+                reasoningEffort: 'high',
+                runtimeId,
+                serverId: seed.serverId,
+            }
+        );
+        await delivery.applyAgentConfiguration(configured);
+
+        expect(configured.agent).toMatchObject({ desiredReasoningEffort: 'high' });
+        expect(transport.framesOfType('stop')).toEqual([]);
+        expect(transport.framesOfType('agent-configure')).toEqual([]);
+        expect(await readRotations(seed.agentId)).toEqual([]);
+
+        await delivery.onTurnSettled(
+            seed.computerId,
+            turnSummary(seed.agentId, first.runId, 'completed')
+        );
+
+        expect(transport.framesOfType('agent-configure')).toHaveLength(1);
+        expect(transport.framesOfType('agent-configure')[0]).toMatchObject({
             modelId: 'fake-model',
             reasoningEffort: 'high',
             runtimeId,
-            serverId: seed.serverId,
-        }
-    );
-    await delivery.applyAgentConfiguration(configured);
-
-    expect(configured.agent).toMatchObject({ desiredReasoningEffort: 'high' });
-    expect(transport.framesOfType('stop')).toEqual([]);
-    expect(transport.framesOfType('agent-configure')).toEqual([]);
-    expect(await readRotations(seed.agentId)).toEqual([]);
-
-    await delivery.onTurnSettled(
-        seed.computerId,
-        turnSummary(seed.agentId, first.runId, 'completed')
-    );
-
-    expect(transport.framesOfType('agent-configure')).toHaveLength(1);
-    expect(transport.framesOfType('agent-configure')[0]).toMatchObject({
-        modelId: 'fake-model',
-        reasoningEffort: 'high',
-        runtimeId,
-        sessionGeneration: expectedGeneration,
-    });
-    const [generationAfterSettlement] = await connection.db
-        .select({ sessionGeneration: agentsTable.sessionGeneration })
-        .from(agentsTable)
-        .where(eq(agentsTable.id, seed.agentId));
-    expect(generationAfterSettlement?.sessionGeneration).toBe(expectedGeneration);
-});
+            sessionGeneration: expectedGeneration,
+        });
+        const [generationAfterSettlement] = await connection.db
+            .select({ sessionGeneration: agentsTable.sessionGeneration })
+            .from(agentsTable)
+            .where(eq(agentsTable.id, seed.agentId));
+        expect(generationAfterSettlement?.sessionGeneration).toBe(expectedGeneration);
+    }
+);
 
 test('applies deferred configuration at Stop without auto-starting, then starts explicitly', async () => {
     const seed = await seedAgent();

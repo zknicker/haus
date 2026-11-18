@@ -4,6 +4,7 @@ import {
     parseHausRichReferences,
     parseUserReferenceTarget,
 } from '@haus/api/rich-references';
+
 import { normalizeMentions } from './mention-text.ts';
 import type { Mention } from './mention-types.ts';
 
@@ -41,14 +42,14 @@ const noMentions: readonly Mention[] = [];
 function isSameMention(previous: Mention, next: Mention | undefined) {
     return Boolean(
         next &&
-            previous.end === next.end &&
-            previous.id === next.id &&
-            previous.kind === next.kind &&
-            previous.label === next.label &&
-            previous.projection === next.projection &&
-            previous.start === next.start &&
-            previous.text === next.text &&
-            isSameMentionMetadata(previous.metadata, next.metadata)
+        previous.end === next.end &&
+        previous.id === next.id &&
+        previous.kind === next.kind &&
+        previous.label === next.label &&
+        previous.projection === next.projection &&
+        previous.start === next.start &&
+        previous.text === next.text &&
+        isSameMentionMetadata(previous.metadata, next.metadata)
     );
 }
 

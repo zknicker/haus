@@ -1,11 +1,12 @@
 import * as z from 'zod';
+
 import { agentInboxItemSchema, unreadElsewhereSchema } from './agent-inbox.ts';
 import {
     agentTaskAssignmentNoticeSchema,
     agentTaskAssignmentsSchema,
 } from './agent-task-assignment.ts';
-import { idSchema } from './chat.ts';
 import { timestampSchema } from './chat-contract-primitives.ts';
+import { idSchema } from './chat.ts';
 import { connectionChipKindSchema } from './connection-chips.ts';
 import { traceCarrierSchema } from './trace-context.ts';
 

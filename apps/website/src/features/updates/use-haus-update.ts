@@ -1,6 +1,7 @@
 import { hausReleaseDiscoverySchema } from '@haus/api';
 import { useQuery } from '@tanstack/react-query';
 import * as React from 'react';
+
 import { useDesktopUpdate } from '../../hooks/desktop/use-desktop-update.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { useWebsiteUpdate } from '../../hooks/updates/use-website-update.ts';

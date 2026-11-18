@@ -2,9 +2,11 @@ import { execFileSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+
 import { appProtocolHeaders, appProtocolVersion } from '@haus/api/app-protocol';
 import { expect, type Page } from '@playwright/test';
 import { createTRPCClient, httpLink } from '@trpc/client';
+
 import type { HausRouter } from '../../../server/src/haus-api/router.ts';
 import { type E2eIdentity, signInAsAppHuman } from './app-session.ts';
 import { type ServerState, serverStateFile } from './server-state.ts';

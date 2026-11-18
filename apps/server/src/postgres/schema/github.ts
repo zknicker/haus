@@ -19,6 +19,7 @@ import {
     unique,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
+
 import { bunJsonb } from './bun-jsonb.ts';
 import { mcpConnectionsTable } from './mcp.ts';
 import { serversTable } from './servers.ts';
@@ -112,7 +113,10 @@ export const githubTriggerConfigsTable = pgTable(
             .array()
             .notNull()
             .default(sql`'{}'::bigint[]`),
-        repositoryNames: text('repository_names').array().notNull().default(sql`'{}'::text[]`),
+        repositoryNames: text('repository_names')
+            .array()
+            .notNull()
+            .default(sql`'{}'::text[]`),
         repositoryScope: text('repository_scope')
             .notNull()
             .$type<'installation' | 'repositories'>(),

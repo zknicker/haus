@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import type { DesktopTabsState, PaneState } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import { desktopTabsReducer } from '../../hooks/desktop-tabs/desktop-tabs-reducer.ts';
 import { framePlacement, layerTabIds, placeTabs, viewableTabIds } from './desktop-tab-placement.ts';

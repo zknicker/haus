@@ -1,6 +1,8 @@
 import { expect, test } from 'bun:test';
+
 import { badgeVariants } from '@heroui/styles';
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { availabilityLabel } from '../computers/presentation.ts';
 import { AgentAvatar, availabilityBadgeColor } from './agent-avatar.tsx';
 

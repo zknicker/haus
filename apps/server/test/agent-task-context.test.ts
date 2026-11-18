@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import type { AgentInboxItem } from '@haus/api';
 import { eq } from 'drizzle-orm';
+
 import { readAgentSessionGeneration } from '../src/agent-delivery/cursors.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';

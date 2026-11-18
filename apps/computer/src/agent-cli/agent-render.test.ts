@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { agentChannelSchema, agentServerInfoSchema } from './agent-api-schemas.ts';
 import { renderChannelInfo, renderServerInfo } from './agent-render.ts';
 

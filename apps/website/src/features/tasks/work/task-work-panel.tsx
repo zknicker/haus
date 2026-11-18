@@ -1,4 +1,5 @@
 import type { TaskDetail } from '@haus/api';
+
 import { CloudAgentWorkCard } from '../../cloud-agents/cloud-agent-work-card.tsx';
 import { CloudAgentRunSummary } from './cloud-agent-run-summary.tsx';
 import { TaskPullRequestCard } from './task-pull-request-card.tsx';
@@ -28,7 +29,7 @@ export function TaskWorkPanel({
                 <TaskPullRequestCard key={reading.url} reading={reading} />
             ))}
             {reminders.length > 0 ? (
-                <ul aria-label="Reminders" className="flex flex-col gap-1 pt-1 text-muted text-sm">
+                <ul aria-label="Reminders" className="text-muted flex flex-col gap-1 pt-1 text-sm">
                     {reminders.map((reminder) => (
                         <li key={reminder.reminderId} title={reminder.title}>
                             {reminderLine(reminder.setBy.displayName, reminder.nextFireAt)}

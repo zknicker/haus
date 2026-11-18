@@ -1,4 +1,5 @@
 import type { GithubTriggerConfigInput } from '@haus/api';
+
 import { hausTrpc } from '../../lib/haus-server.tsx';
 
 /** Saves one Trigger and refreshes both its active row and history label. */

@@ -1,9 +1,11 @@
 import { afterAll, expect, test } from 'bun:test';
+
 import type { Client as MCPClient } from '@modelcontextprotocol/client';
 import * as Cause from 'effect/Cause';
 import * as Effect from 'effect/Effect';
 import * as Option from 'effect/Option';
 import * as Runtime from 'effect/Runtime';
+
 import { makeServerRuntime } from '../server-runtime.ts';
 import { McpClientCache } from './client-cache.ts';
 import { McpClientAcquireError } from './errors.ts';

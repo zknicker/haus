@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { computerDiskReportSchema, computerDiskSeverity } from './computer-disk.ts';
 
 const GiB = 1024 ** 3;

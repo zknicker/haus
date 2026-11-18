@@ -1,4 +1,5 @@
 import * as z from 'zod';
+
 import computerProtocol from '../computer-protocol.json' with { type: 'json' };
 
 export const computerBootstrapProtocolVersion = 1;

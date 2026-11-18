@@ -1,6 +1,8 @@
 import { expect, test } from 'bun:test';
+
 import type { AgentActivityEvent } from '@haus/api';
 import { projectAgentCurrentActivity } from '@haus/api/agent-activity';
+
 import {
     mergeCurrentAgentActivityLiveEvent,
     reconcileCurrentAgentActivity,

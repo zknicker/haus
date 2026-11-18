@@ -1,5 +1,6 @@
 import type { ServerMemberDirectory } from '@haus/api';
 import { and, asc, eq, isNull } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { serverMembershipsTable, usersTable } from '../postgres/schema.ts';
 import type { HausUser } from '../users/haus-user.ts';

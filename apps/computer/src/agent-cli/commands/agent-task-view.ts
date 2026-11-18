@@ -1,5 +1,6 @@
 import { formatTaskTarget, taskPriorities, taskStates } from '@haus/api';
 import * as z from 'zod';
+
 import { indentContinuationLines } from '../../inbox-header-format.ts';
 import type { AgentApiRequester } from '../agent-api-client.ts';
 import { formatUtcTime, shortMessageId } from '../agent-format.ts';

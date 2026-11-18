@@ -1,4 +1,5 @@
 import { CommandLineIcon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { hasErrorStatus } from '../../sessions/tools/tool-ui.ts';
 import { getToolFact, getToolTarget, InlineToolLabel, ToolTimelineStep } from './tool-summary.tsx';
 import type { ToolStepRendererProps, ToolStepRow } from './types.ts';

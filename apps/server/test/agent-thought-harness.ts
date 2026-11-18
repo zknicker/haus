@@ -1,4 +1,5 @@
 import type { AgentThoughtFrame } from '@haus/api';
+
 import type {
     ThoughtSource,
     ThoughtSummarizer,

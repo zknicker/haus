@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+
 import { harnessDirectories, mirrorDirectory, planBaseline } from './baseline.mjs';
 
 const sha = '0123456789abcdef0123456789abcdef01234567';

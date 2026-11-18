@@ -1,4 +1,5 @@
 import type { SQL } from 'drizzle-orm';
+
 import type { HausDatabase } from '../../postgres/connection.ts';
 
 export type AdventReader = Pick<HausDatabase, 'execute'>;

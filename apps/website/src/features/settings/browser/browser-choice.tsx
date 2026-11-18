@@ -1,5 +1,5 @@
-import { Description, Label, ListBox } from '@heroui/react';
 import { InlineSelect } from '@heroui-pro/react';
+import { Description, Label, ListBox } from '@heroui/react';
 
 /** The browser selectors share the same compact control and descriptive menu. */
 export function BrowserChoice({

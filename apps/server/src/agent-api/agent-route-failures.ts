@@ -1,4 +1,5 @@
 import type { AgentCreateAgentRequest } from '@haus/api';
+
 import type { AvatarImageService } from '../avatar-generation/service.ts';
 import { AvatarGenerationUnavailableError } from '../avatar-generation/service.ts';
 import { hashAvatarBytes } from '../avatars/avatar-bytes.ts';

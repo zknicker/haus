@@ -6,8 +6,8 @@
  */
 
 import type { FormPaint } from '../src/components/haus-ghost-figure.ts';
-import type { MeshBlob, RimStop } from './render-icon-mesh.ts';
 import { formDefs, formPaints } from './render-icon-mesh-form.ts';
+import type { MeshBlob, RimStop } from './render-icon-mesh.ts';
 
 /** Where the silhouette lands on the layer canvas, in pixels. */
 export interface MeshFootprint {

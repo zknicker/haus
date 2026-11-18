@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+
 import { mcpIconMaxBytes } from '@haus/api';
+
 import {
     iconRequestInit,
     type McpIconFetch,

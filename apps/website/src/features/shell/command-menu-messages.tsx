@@ -2,14 +2,15 @@ import type { Chat, ChatSearchResult } from '@haus/api';
 import { Command } from '@heroui-pro/react';
 import { ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useEffect, useMemo, useState } from 'react';
+
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useChatSearch } from '../../hooks/servers/use-chat-search.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { formatRelativeTime, truncate } from '../../lib/format.ts';
-import { messageAuthor } from '../servers/chat/chat-search.tsx';
 import { searchResultLabel } from '../servers/chat/chat-search-filters.tsx';
+import { messageAuthor } from '../servers/chat/chat-search.tsx';
 import { useCommandMenu } from './command-menu-provider.tsx';
 
 /** The palette previews the strongest matches; the Search page owns the rest. */
@@ -102,7 +103,7 @@ function MessageResult({
             <EntityAvatar name={author.name} size={20} src={author.avatarUrl} />
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="truncate font-medium">{truncate(result.content, 80)}</span>
-                <span className="truncate text-muted text-sm">
+                <span className="text-muted truncate text-sm">
                     {author.name}
                     {label ? ` · ${label}` : ''} · {formatRelativeTime(result.createdAt)}
                 </span>

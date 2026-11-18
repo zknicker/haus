@@ -1,4 +1,5 @@
 import * as z from 'zod';
+
 import { timestampSchema } from './chat-contract-primitives.ts';
 
 /**

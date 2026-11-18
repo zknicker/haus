@@ -1,6 +1,7 @@
 import type { Ref } from 'react';
-import type { ChatComposerHandle } from '../chat/chat-composer.tsx';
+
 import { ChatComposer } from '../chat/chat-composer-variants.tsx';
+import type { ChatComposerHandle } from '../chat/chat-composer.tsx';
 
 /** Where a card's reply goes, and whether it can go anywhere. */
 export type UnreadRowReply =

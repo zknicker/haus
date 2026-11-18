@@ -1,6 +1,8 @@
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
+
 import { seedCoveWorkspace } from '@haus/agent-workspace';
+
 import { readAgentSeedConfiguration, seedOrdinaryWorkspace } from './agent-configuration.ts';
 import { seedAgentManagedSkills } from './managed-skill-changes.ts';
 import {

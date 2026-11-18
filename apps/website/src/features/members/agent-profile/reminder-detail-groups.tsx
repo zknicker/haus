@@ -1,7 +1,8 @@
 import type { Reminder } from '@haus/api';
-import { Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Separator } from '@heroui/react';
 import { Link } from 'react-router-dom';
+
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { useViewerTimeZone } from '../../../hooks/members/use-viewer-time-zone.ts';
 import { useChats } from '../../../hooks/servers/use-chats.ts';
@@ -57,7 +58,7 @@ export function ReminderInstructionsGroup({ text }: { text: string }) {
                     <ItemCard.Content>
                         {/* The one place the full text reads, so it wraps. */}
                         <ItemCard.Description
-                            className="max-w-full whitespace-pre-wrap break-words"
+                            className="max-w-full break-words whitespace-pre-wrap"
                             data-selectable-text=""
                         >
                             {text}
@@ -95,7 +96,7 @@ export function ReminderContextGroup({
             <ItemCardGroup className="overflow-hidden">
                 <AutomationFactRow title="Set in">
                     <Link
-                        className="font-medium text-accent"
+                        className="text-accent font-medium"
                         to={serverChatRoute(serverSlug, reminder.anchorChatId)}
                     >
                         {/* Blank while chats load rather than flashing a fallback. */}

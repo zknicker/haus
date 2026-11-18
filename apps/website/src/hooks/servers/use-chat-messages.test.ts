@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { ChatMessage } from '@haus/api';
+
 import {
     appendToNewestPage,
     type TranscriptPage,

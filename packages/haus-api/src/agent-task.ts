@@ -1,13 +1,14 @@
 import * as z from 'zod';
+
+import { taskKeyPrefixSchema } from './task-key-ledger.ts';
+import { taskKeySchema } from './task-key.ts';
+import { taskStateSchema } from './task-state.ts';
 import {
     taskDescriptionSchema,
     taskDueOnSchema,
     taskPrioritySchema,
     taskTitleSchema,
 } from './task.ts';
-import { taskKeySchema } from './task-key.ts';
-import { taskKeyPrefixSchema } from './task-key-ledger.ts';
-import { taskStateSchema } from './task-state.ts';
 
 const expectedVersionSchema = z.number().int().positive();
 const labelNamesSchema = z.array(z.string().trim().min(1).max(80)).max(50);

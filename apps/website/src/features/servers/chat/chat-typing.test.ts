@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { ChatEngagement } from '@haus/api';
+
 import { formatChatTypingLabel, resolveChatTypists } from './chat-typing.ts';
 
 test.each([

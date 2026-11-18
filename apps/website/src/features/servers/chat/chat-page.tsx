@@ -1,8 +1,9 @@
 import { usePrefetchInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { useChat } from '../../../hooks/servers/use-chat.ts';
+
 import { chatMessagesQueryOptions } from '../../../hooks/servers/use-chat-messages.ts';
+import { useChat } from '../../../hooks/servers/use-chat.ts';
 import { useListedChat } from '../../../hooks/servers/use-chats.ts';
 import { hausTrpc, type ServerDetail } from '../../../lib/haus-server.tsx';
 import { redirectRetiredRoute } from '../retired-routes.ts';

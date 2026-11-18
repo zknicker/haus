@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { buildAvatarGenerationPrompt } from '@haus/api';
+
 import { AvatarGenerationUnavailableError, AvatarProviderError } from './errors.ts';
 import { OpenAiAvatarImageProvider } from './openai-provider.ts';
 

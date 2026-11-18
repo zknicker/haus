@@ -1,4 +1,5 @@
 import { z } from 'zod';
+
 import { idSchema } from './chat.ts';
 
 export const voiceCallInputSchema = z.object({ serverId: idSchema, chatId: idSchema }).strict();

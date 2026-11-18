@@ -3,6 +3,7 @@
 
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+
 import { agentTestsStateDirectory } from './state.mjs';
 
 export function createReportWriter({ repositoryRoot = process.cwd(), stamp }) {

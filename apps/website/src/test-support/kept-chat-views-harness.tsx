@@ -1,6 +1,8 @@
 import { afterAll, beforeAll } from 'bun:test';
+
 import * as React from 'react';
 import type { Root } from 'react-dom/client';
+
 import { KeptChatViews } from '../features/servers/chat/kept-chat-views.tsx';
 import { installFakeDom } from './fake-dom.ts';
 

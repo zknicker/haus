@@ -12,6 +12,7 @@ import {
     unique,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
+
 import { agentsTable } from './agents.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
 import { serversTable } from './servers.ts';
@@ -66,7 +67,9 @@ export const chatsTable = pgTable(
         uniqueIndex('chats_server_agent_dm_key')
             .on(table.serverId, table.dmMemberOneUserId, table.dmMemberOneStint, table.dmAgentId)
             .where(sql`${table.kind} = 'dm' and ${table.dmAgentId} is not null`),
-        uniqueIndex('chats_server_all_key').on(table.serverId).where(sql`${table.isAll} = true`),
+        uniqueIndex('chats_server_all_key')
+            .on(table.serverId)
+            .where(sql`${table.isAll} = true`),
         foreignKey({
             columns: [table.serverId, table.dmMemberOneUserId],
             foreignColumns: [serverMembershipsTable.serverId, serverMembershipsTable.userId],

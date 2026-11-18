@@ -1,5 +1,6 @@
-import { Button, Label } from '@heroui/react';
 import { EmojiPicker } from '@heroui-pro/react';
+import { Button, Label } from '@heroui/react';
+
 import { reactionEmojiCatalog } from '../chats/reactions/reaction-emoji-catalog.ts';
 import { ProfileFieldInfo } from './profile-text-field.tsx';
 

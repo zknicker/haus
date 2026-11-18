@@ -1,4 +1,5 @@
 import { PuzzleIcon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { workerKindConfig } from '../workers/config.ts';
 import type { ActivityItem } from './chat-transcript-activity-utils.ts';
 import type { TranscriptRow } from './chat-transcript-model.ts';
@@ -78,9 +79,9 @@ function WorkerStep({
             index={index}
             isLast={isLast}
             label={
-                <span className="inline-flex min-w-0 max-w-full items-baseline gap-1.5 text-left">
+                <span className="inline-flex max-w-full min-w-0 items-baseline gap-1.5 text-left">
                     <span className="shrink-0">{config.label}</span>
-                    <span className="truncate text-muted">{row.worker.title}</span>
+                    <span className="text-muted truncate">{row.worker.title}</span>
                 </span>
             }
             status={status}

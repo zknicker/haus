@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs/promises';
+
 import { agentImageGenerationModelsReceiptSchema } from '@haus/api';
+
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import {
     IMAGE_GENERATE_RECIPE,

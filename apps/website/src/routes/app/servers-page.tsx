@@ -1,8 +1,9 @@
 import { Navigate, useSearchParams } from 'react-router-dom';
+
 import { ActivationLoading } from '../../components/activation/activation-loading.tsx';
 import { ActivationShell, ActivationStep } from '../../components/activation/activation-shell.tsx';
-import { readLastServerSlug, resolveEntryServer } from '../../features/servers/server-choice.ts';
 import { ServerChoiceFlow } from '../../features/servers/server-choice-flow.tsx';
+import { readLastServerSlug, resolveEntryServer } from '../../features/servers/server-choice.ts';
 import { serverRoute } from '../../features/servers/server-routes.ts';
 import { useServerList } from '../../hooks/servers/use-server-list.ts';
 

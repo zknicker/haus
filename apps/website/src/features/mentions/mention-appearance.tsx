@@ -1,4 +1,3 @@
-import type { IconSvgElement } from '@hugeicons/react';
 import {
     ChromeIcon,
     CommandLineIcon,
@@ -14,6 +13,8 @@ import {
     UserIcon,
 } from '@hugeicons-pro/core-solid-rounded';
 import { GitPullRequestIcon, Globe02Icon } from '@hugeicons-pro/core-stroke-rounded';
+import type { IconSvgElement } from '@hugeicons/react';
+
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
@@ -149,7 +150,7 @@ export function MentionAppearanceIcon({
                 <Icon className="size-full" icon={mentionIconMap[icon]} />
                 <span
                     aria-hidden="true"
-                    className="absolute inset-0 size-full bg-center bg-contain bg-no-repeat"
+                    className="absolute inset-0 size-full bg-contain bg-center bg-no-repeat"
                     style={{ backgroundImage: `url("${iconDataUrl.replaceAll('"', '\\"')}")` }}
                 />
             </span>

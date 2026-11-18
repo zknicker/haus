@@ -1,9 +1,10 @@
 import type { ImageGeneration } from '@haus/api';
-import { Chip, Label, Skeleton, Tooltip } from '@heroui/react';
 import { ContextMenu, TextShimmer } from '@heroui-pro/react';
+import { Chip, Label, Skeleton, Tooltip } from '@heroui/react';
 import { Download04Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { motion, useReducedMotion } from 'motion/react';
 import * as React from 'react';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { useAttachmentImage } from '../../hooks/servers/use-attachment-image.ts';
 import { useImageGenerationDownload } from '../../hooks/servers/use-image-generation-download.ts';
@@ -52,14 +53,14 @@ export function ImageGenerationCard({
         <figure
             aria-label={imageGenerationLabel(generation)}
             className={cn(
-                'm-0 flex w-(--chat-media-tile-width) shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-border bg-nested-surface',
+                'border-border bg-nested-surface m-0 flex w-(--chat-media-tile-width) shrink-0 snap-start flex-col overflow-hidden rounded-xl border',
                 arrivedLive && 'image-generation-enter'
             )}
             data-slot="image-generation-card"
             data-state={state}
             style={arrivedLive ? imageGenerationEntranceDelay(index) : undefined}
         >
-            <div className="relative h-(--chat-media-tile-height) w-full overflow-hidden bg-surface-secondary">
+            <div className="bg-surface-secondary relative h-(--chat-media-tile-height) w-full overflow-hidden">
                 {shimmer ? <PendingPicture announce={live} /> : null}
                 <GenerationPicture
                     generation={generation}
@@ -136,7 +137,7 @@ function FailedPicture({ prompt, reason }: { prompt: string; reason: string }) {
                     <Chip color="danger" size="sm" variant="soft">
                         Failed
                     </Chip>
-                    <p className="mask-[linear-gradient(to_bottom,black_55%,transparent)] line-clamp-5 min-h-0 text-left text-muted text-xs italic">
+                    <p className="text-muted line-clamp-5 min-h-0 mask-[linear-gradient(to_bottom,black_55%,transparent)] text-left text-xs italic">
                         {prompt}
                     </p>
                 </div>
@@ -178,7 +179,7 @@ function ReadyPicture({
 
     if (loaded.failed) {
         return (
-            <p className="absolute inset-0 grid place-items-center p-2 text-center text-muted text-xs">
+            <p className="text-muted absolute inset-0 grid place-items-center p-2 text-center text-xs">
                 Image unavailable
             </p>
         );
@@ -215,7 +216,7 @@ function ReadyPicture({
                         isDisabled={download.isPending}
                         textValue="Save Image As"
                     >
-                        <Icon className="size-4 text-muted" icon={Download04Icon} />
+                        <Icon className="text-muted size-4" icon={Download04Icon} />
                         <Label>Save Image As…</Label>
                     </ContextMenu.Item>
                 </ContextMenu.Menu>
@@ -241,9 +242,9 @@ function LiveFooter({ generation }: { generation: ImageGeneration }) {
 
 function FooterLines({ footer }: { footer: ImageGenerationFooter }) {
     return (
-        <figcaption className="flex min-w-0 flex-col px-2.5 py-1.5 text-xs tabular-nums leading-snug">
-            <span className="truncate font-medium text-foreground">{footer.model}</span>
-            <span className="truncate text-muted">
+        <figcaption className="flex min-w-0 flex-col px-2.5 py-1.5 text-xs leading-snug tabular-nums">
+            <span className="text-foreground truncate font-medium">{footer.model}</span>
+            <span className="text-muted truncate">
                 {footer.status ? (
                     <>
                         <TextShimmer>{footer.status}</TextShimmer>

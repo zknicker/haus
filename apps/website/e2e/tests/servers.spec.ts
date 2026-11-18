@@ -4,8 +4,10 @@ import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@haus/api';
 import { WebSocket } from 'ws';
+
 import { watchActivationMark } from '../support/activation-mark.ts';
 import { createAppTestFixture, signInAsAppHuman } from '../support/app-session.ts';
 import { createClient, runAgentAction } from '../support/server.ts';

@@ -1,12 +1,5 @@
 import { expect, test } from 'bun:test';
-import {
-    channelCreateInputSchema,
-    channelUpdateInputSchema,
-    chatMessagePageSchema,
-    chatMessageSchema,
-    chatMessagesInputSchema,
-    chatSendInputSchema,
-} from './chat.ts';
+
 import {
     chatLifecycleEventSchema,
     chatReadEventSchema,
@@ -15,6 +8,14 @@ import {
 } from './chat-events.ts';
 import { chatMessageInputSchema, chatMessageReadSchema } from './chat-message-read.ts';
 import { chatMarkReadInputSchema } from './chat-read.ts';
+import {
+    channelCreateInputSchema,
+    channelUpdateInputSchema,
+    chatMessagePageSchema,
+    chatMessageSchema,
+    chatMessagesInputSchema,
+    chatSendInputSchema,
+} from './chat.ts';
 
 test('Chat sends accept only client intent and never an authoritative actor', () => {
     expect(

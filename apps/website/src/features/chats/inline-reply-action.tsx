@@ -1,6 +1,7 @@
 import { ChatMessage } from '@heroui-pro/react';
 import { ReplyIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { ActionTooltip } from './chat-action-tooltip.tsx';
 import type { TranscriptItem } from './chat-transcript-model.ts';

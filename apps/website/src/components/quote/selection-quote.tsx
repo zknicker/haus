@@ -1,5 +1,6 @@
 import { QuoteDownIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import { requestChatComposerFocus } from '../../commands/chat-composer-focus.ts';
 import {
     requestChatComposerInsert,
@@ -126,7 +127,7 @@ export function SelectionQuoteContainer({
             {children}
             {anchor && composerPresent ? (
                 <button
-                    className="card-shell absolute z-20 flex -translate-x-1/2 translate-y-[calc(-100%-6px)] items-center gap-1.5 whitespace-nowrap border border-border bg-overlay px-2.5 py-1 text-overlay-foreground text-sm shadow-overlay hover:bg-surface-hover"
+                    className="card-shell border-border bg-overlay text-overlay-foreground shadow-overlay hover:bg-surface-hover absolute z-20 flex -translate-x-1/2 translate-y-[calc(-100%-6px)] items-center gap-1.5 border px-2.5 py-1 text-sm whitespace-nowrap"
                     onClick={quoteSelection}
                     onMouseDown={(event) => event.preventDefault()}
                     style={{ left: anchor.x, top: Math.max(anchor.y, 30) }}

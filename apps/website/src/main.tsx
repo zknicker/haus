@@ -1,6 +1,7 @@
 import { Toast } from '@heroui/react';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+
 import App from './app.tsx';
 import { DevModeProvider } from './components/dev-mode-provider.tsx';
 import { ThemeProvider } from './components/theme-provider.tsx';
@@ -8,6 +9,7 @@ import { installStrayFileDropGuard } from './features/servers/chat/composer-file
 import { DesktopEditContextMenuProvider } from './features/shell/desktop-edit-context-menu.tsx';
 import { AppAuthProvider, seedDesktopAppSession } from './lib/app-auth.tsx';
 import { getDesktopBridge, isElectronDesktopApp } from './lib/desktop-bridge.ts';
+
 import './styles/global.css';
 
 const rootElement = document.getElementById('root');

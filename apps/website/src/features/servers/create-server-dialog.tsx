@@ -1,5 +1,6 @@
 import { Button, Form, Modal } from '@heroui/react';
 import { ServerStack01Icon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { CreateServerFields, useCreateServerForm } from './create-server-form.tsx';
 
@@ -24,7 +25,7 @@ export function CreateServerDialog({
                             <Icon className="size-5" icon={ServerStack01Icon} />
                         </Modal.Icon>
                         <Modal.Heading>Create a Server</Modal.Heading>
-                        <p className="mt-1.5 text-muted text-sm leading-5">
+                        <p className="text-muted mt-1.5 text-sm leading-5">
                             Start a new place for your people and Agents.
                         </p>
                     </Modal.Header>

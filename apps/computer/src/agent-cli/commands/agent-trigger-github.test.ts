@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
-import type { AgentApiRequest } from '../agent-api-client.ts';
-import { runTriggerCreate, runTriggerList, runTriggerShow } from './agent-trigger.ts';
 
+import type { AgentApiRequest } from '../agent-api-client.ts';
 import { args, githubTrigger, requester } from './agent-trigger-test-fixtures.ts';
+import { runTriggerCreate, runTriggerList, runTriggerShow } from './agent-trigger.ts';
 
 test('lists a GitHub Trigger with its scope, events, and suppressed count, no URL', async () => {
     const written: string[] = [];
@@ -157,25 +157,28 @@ test.each([
         { '--event': ['push'], '--org': ['acme'], '--repo': ['acme/api'] },
         'Use --repo or --org, not both.',
     ],
-] as [
-    Record<string, string[]>,
-    string,
-][])('refuses invalid github flags before creating: %o', async (lists, message) => {
-    const routes: string[] = [];
-    await expect(
-        runTriggerCreate(
-            args({ '--kind': 'github', '--message-id': 'deadbeef', '--title': 'CI failed' }, lists),
-            {
-                client: requester((route) => {
-                    routes.push(route);
-                    return {};
-                }),
-                write: () => undefined,
-            }
-        )
-    ).rejects.toThrow(message);
-    expect(routes).toEqual([]);
-});
+] as [Record<string, string[]>, string][])(
+    'refuses invalid github flags before creating: %o',
+    async (lists, message) => {
+        const routes: string[] = [];
+        await expect(
+            runTriggerCreate(
+                args(
+                    { '--kind': 'github', '--message-id': 'deadbeef', '--title': 'CI failed' },
+                    lists
+                ),
+                {
+                    client: requester((route) => {
+                        routes.push(route);
+                        return {};
+                    }),
+                    write: () => undefined,
+                }
+            )
+        ).rejects.toThrow(message);
+        expect(routes).toEqual([]);
+    }
+);
 
 test('a webhook create refuses github-only flags', async () => {
     await expect(

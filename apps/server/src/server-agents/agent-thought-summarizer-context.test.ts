@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+
 import { thoughtRequestMaxLength } from '@haus/api';
+
 import { createGeminiThoughtSummarizer } from './agent-thought-summarizer.ts';
 
 function fakeGemini(text: string) {

@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+
 import { fail, repoRoot } from './release-utils.mjs';
 
 export function assertNoTag(tagName) {

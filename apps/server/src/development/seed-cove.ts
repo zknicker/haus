@@ -1,4 +1,5 @@
 import { and, eq, isNull } from 'drizzle-orm';
+
 import type { ComputerConnections } from '../computers/connections.ts';
 import { createCoveAvatarRow } from '../onboarding/cove-avatar.ts';
 import { sendPendingCoveApplication } from '../onboarding/create-cove.ts';

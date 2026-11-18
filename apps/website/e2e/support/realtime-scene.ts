@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+
 import { cloudAgentObservationFrame, seedCloudAgentWork } from './agent-cloud-agent.ts';
 import { createChannelAgent } from './channel-agent.ts';
 import { sendBootstrap, socketMessage, socketOpen } from './computer-socket.ts';

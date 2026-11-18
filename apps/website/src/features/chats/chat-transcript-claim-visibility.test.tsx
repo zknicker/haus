@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+
 import { MemoryRouter } from 'react-router-dom';
+
 import {
     MessageScroller,
     MessageScrollerProvider,
@@ -9,9 +11,9 @@ import {
 import { DevModeProvider } from '../../components/dev-mode-provider.tsx';
 import { renderWithTrpc } from '../../test-support/trpc-test-provider.tsx';
 import { setShowClaimsInChat } from '../claims/show-claims-in-chat.ts';
-import { ChatTranscriptPresentation } from './chat-transcript.tsx';
 import type { TranscriptRow } from './chat-transcript-model.ts';
 import type { TranscriptRenderContextValue } from './chat-transcript-render-context.tsx';
+import { ChatTranscriptPresentation } from './chat-transcript.tsx';
 import type { TranscriptMessageRow } from './transcript-contract.ts';
 
 test('an Agent claim states nothing in Chat while the setting is off', () => {

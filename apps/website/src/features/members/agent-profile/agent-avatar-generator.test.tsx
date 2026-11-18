@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { AvatarConceptBar } from './agent-avatar-generation-dialog.tsx';
 import {
     type AvatarGenerationSession,

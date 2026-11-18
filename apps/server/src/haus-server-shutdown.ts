@@ -1,5 +1,6 @@
 import { Duration, Effect, type Exit, Option, Ref, Scope } from 'effect';
 import type { FastifyInstance } from 'fastify';
+
 import type { startComputerAttachmentSocket } from './computers/socket.ts';
 import type { startHausWebSocketServer } from './haus-api/ws.ts';
 import type { HausConnection } from './postgres/connection.ts';

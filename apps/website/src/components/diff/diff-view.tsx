@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+
 import { cn } from '../../lib/utils.ts';
 import { buildDiffHunks, type DiffHunk, type DiffLine } from './diff-hunks.ts';
 
@@ -38,7 +39,7 @@ export function DiffHunks({
     return (
         <div
             className={cn(
-                'card-shell overflow-hidden border border-separator bg-surface font-mono text-sm',
+                'card-shell border-separator bg-surface overflow-hidden border font-mono text-sm',
                 className
             )}
             data-selectable-text=""
@@ -46,7 +47,7 @@ export function DiffHunks({
             {hunks.map((hunk, hunkIndex) => (
                 <div key={hunk.header}>
                     {hunkIndex > 0 ? (
-                        <div className="border-separator border-t bg-default px-3 py-0.5 text-muted text-xs">
+                        <div className="border-separator bg-default text-muted border-t px-3 py-0.5 text-xs">
                             {hunk.header}
                         </div>
                     ) : null}
@@ -68,23 +69,23 @@ function DiffViewLine({ line }: { line: DiffLine }) {
                 line.kind === 'del' && 'bg-danger-soft'
             )}
         >
-            <span className="w-9 shrink-0 select-none pr-1.5 text-right text-muted tabular-nums">
+            <span className="text-muted w-9 shrink-0 pr-1.5 text-right tabular-nums select-none">
                 {line.oldLine ?? ''}
             </span>
-            <span className="w-9 shrink-0 select-none pr-1.5 text-right text-muted tabular-nums">
+            <span className="text-muted w-9 shrink-0 pr-1.5 text-right tabular-nums select-none">
                 {line.newLine ?? ''}
             </span>
             <span
                 aria-hidden
                 className={cn(
-                    'w-4 shrink-0 select-none text-center',
+                    'w-4 shrink-0 text-center select-none',
                     line.kind === 'add' && 'text-success',
                     line.kind === 'del' && 'text-danger'
                 )}
             >
                 {line.kind === 'add' ? '+' : line.kind === 'del' ? '−' : ''}
             </span>
-            <span className="min-w-0 flex-1 whitespace-pre-wrap break-all pr-3">{line.text}</span>
+            <span className="min-w-0 flex-1 pr-3 break-all whitespace-pre-wrap">{line.text}</span>
         </div>
     );
 }

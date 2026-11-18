@@ -1,1332 +1,1324 @@
 {
-  "asOf": "2026-09-15T08:32:39-07:00",
-  "timezone": "America/Los_Angeles",
-  "today": {
-    "date": "2026-09-15",
-    "revenue": 0,
-    "royalties": 0,
-    "sold": 0,
-    "returned": 0,
-    "cancelled": 0,
-    "net": 0,
-    "note": "not synced \u2014 last metadata sync was 2026-09-14T22:06:46 PT (10:06pm last night); today's feed has not landed yet"
-  },
-  "lastCompleteDay": {
-    "date": "2026-09-14",
-    "marketplace": "US",
-    "revenue": 750.49,
-    "royalties": 155.44,
-    "sold": 39,
-    "returned": 4,
-    "cancelled": 0,
-    "net": 35
-  },
-  "series30d": {
-    "rows": [
-      {
-        "date": "2026-08-17",
-        "revenue": 810.62,
-        "royalties": 165.59,
-        "sold": 42,
-        "returned": 4,
-        "cancelled": 0,
-        "net": 38
-      },
-      {
-        "date": "2026-08-18",
-        "revenue": 653.56,
-        "royalties": 127.68,
-        "sold": 36,
-        "returned": 6,
-        "cancelled": 0,
-        "net": 30
-      },
-      {
-        "date": "2026-08-19",
-        "revenue": 925.31,
-        "royalties": 181.21,
-        "sold": 51,
-        "returned": 3,
-        "cancelled": 0,
-        "net": 48
-      },
-      {
-        "date": "2026-08-20",
-        "revenue": 1085.86,
-        "royalties": 218.72,
-        "sold": 57,
-        "returned": 4,
-        "cancelled": 0,
-        "net": 53
-      },
-      {
-        "date": "2026-08-21",
-        "revenue": 1434.49,
-        "royalties": 283.09,
-        "sold": 79,
-        "returned": 4,
-        "cancelled": 0,
-        "net": 75
-      },
-      {
-        "date": "2026-08-22",
-        "revenue": 1280.95,
-        "royalties": 242.76,
-        "sold": 72,
-        "returned": 7,
-        "cancelled": 1,
-        "net": 64
-      },
-      {
-        "date": "2026-08-23",
-        "revenue": 873.4,
-        "royalties": 121.39,
-        "sold": 48,
-        "returned": 13,
-        "cancelled": 2,
-        "net": 33
-      },
-      {
-        "date": "2026-08-24",
-        "revenue": 921.74,
-        "royalties": 183.68,
-        "sold": 56,
-        "returned": 7,
-        "cancelled": 9,
-        "net": 40
-      },
-      {
-        "date": "2026-08-25",
-        "revenue": 991.41,
-        "royalties": 213.09,
-        "sold": 52,
-        "returned": 6,
-        "cancelled": 0,
-        "net": 46
-      },
-      {
-        "date": "2026-08-26",
-        "revenue": 704.14,
-        "royalties": 126.96,
-        "sold": 39,
-        "returned": 8,
-        "cancelled": 1,
-        "net": 30
-      },
-      {
-        "date": "2026-08-27",
-        "revenue": 855.79,
-        "royalties": 191.01,
-        "sold": 56,
-        "returned": 3,
-        "cancelled": 10,
-        "net": 43
-      },
-      {
-        "date": "2026-08-28",
-        "revenue": 1073.48,
-        "royalties": 205.96,
-        "sold": 61,
-        "returned": 8,
-        "cancelled": 4,
-        "net": 49
-      },
-      {
-        "date": "2026-08-29",
-        "revenue": 1049.26,
-        "royalties": 241.69,
-        "sold": 57,
-        "returned": 2,
-        "cancelled": 1,
-        "net": 54
-      },
-      {
-        "date": "2026-08-30",
-        "revenue": 1057.66,
-        "royalties": 219.6,
-        "sold": 56,
-        "returned": 4,
-        "cancelled": 1,
-        "net": 51
-      },
-      {
-        "date": "2026-08-31",
-        "revenue": 931.85,
-        "royalties": 196.75,
-        "sold": 54,
-        "returned": 2,
-        "cancelled": 3,
-        "net": 49
-      },
-      {
-        "date": "2026-09-01",
-        "revenue": 1161.85,
-        "royalties": 237.28,
-        "sold": 60,
-        "returned": 4,
-        "cancelled": 0,
-        "net": 56
-      },
-      {
-        "date": "2026-09-02",
-        "revenue": 857.52,
-        "royalties": 172.2,
-        "sold": 45,
-        "returned": 1,
-        "cancelled": 0,
-        "net": 44
-      },
-      {
-        "date": "2026-09-03",
-        "revenue": 983.42,
-        "royalties": 205.1,
-        "sold": 51,
-        "returned": 7,
-        "cancelled": 0,
-        "net": 44
-      },
-      {
-        "date": "2026-09-04",
-        "revenue": 741.35,
-        "royalties": 154.25,
-        "sold": 41,
-        "returned": 4,
-        "cancelled": 1,
-        "net": 36
-      },
-      {
-        "date": "2026-09-05",
-        "revenue": 731.89,
-        "royalties": 156.48,
-        "sold": 38,
-        "returned": 4,
-        "cancelled": 0,
-        "net": 34
-      },
-      {
-        "date": "2026-09-06",
-        "revenue": 1137.26,
-        "royalties": 240.58,
-        "sold": 61,
-        "returned": 3,
-        "cancelled": 1,
-        "net": 57
-      },
-      {
-        "date": "2026-09-07",
-        "revenue": 1061.19,
-        "royalties": 245.14,
-        "sold": 56,
-        "returned": 0,
-        "cancelled": 1,
-        "net": 55
-      },
-      {
-        "date": "2026-09-08",
-        "revenue": 1014.13,
-        "royalties": 227.56,
-        "sold": 52,
-        "returned": 3,
-        "cancelled": 1,
-        "net": 48
-      },
-      {
-        "date": "2026-09-09",
-        "revenue": 884.04,
-        "royalties": 189.96,
-        "sold": 48,
-        "returned": 3,
-        "cancelled": 1,
-        "net": 44
-      },
-      {
-        "date": "2026-09-10",
-        "revenue": 1014.78,
-        "royalties": 237.96,
-        "sold": 53,
-        "returned": 1,
-        "cancelled": 0,
-        "net": 52
-      },
-      {
-        "date": "2026-09-11",
-        "revenue": 866.27,
-        "royalties": 182.71,
-        "sold": 46,
-        "returned": 6,
-        "cancelled": 2,
-        "net": 38
-      },
-      {
-        "date": "2026-09-12",
-        "revenue": 937.86,
-        "royalties": 201.61,
-        "sold": 49,
-        "returned": 4,
-        "cancelled": 0,
-        "net": 45
-      },
-      {
-        "date": "2026-09-13",
-        "revenue": 1161.97,
-        "royalties": 265.77,
-        "sold": 63,
-        "returned": 3,
-        "cancelled": 3,
-        "net": 57
-      },
-      {
-        "date": "2026-09-14",
-        "revenue": 750.49,
-        "royalties": 155.44,
-        "sold": 39,
-        "returned": 4,
-        "cancelled": 0,
-        "net": 35
-      },
-      {
+    "asOf": "2026-09-15T08:32:39-07:00",
+    "timezone": "America/Los_Angeles",
+    "today": {
         "date": "2026-09-15",
         "revenue": 0,
         "royalties": 0,
         "sold": 0,
         "returned": 0,
         "cancelled": 0,
-        "net": 0
-      }
-    ],
-    "totals": {
-      "cancelled": 42,
-      "net": 1348,
-      "returned": 128,
-      "revenue": 27953.54,
-      "royalties": 5791.22,
-      "sold": 1518
-    }
-  },
-  "summary30d": [
-    {
-      "currencyCode": "EUR",
-      "unitsSold": 61,
-      "unitsCancelled": 1,
-      "unitsReturned": 8,
-      "netUnits": 52,
-      "revenue": 1058.42,
-      "royalties": 112.35
+        "net": 0,
+        "note": "not synced \u2014 last metadata sync was 2026-09-14T22:06:46 PT (10:06pm last night); today's feed has not landed yet"
     },
-    {
-      "currencyCode": "GBP",
-      "unitsSold": 55,
-      "unitsCancelled": 0,
-      "unitsReturned": 5,
-      "netUnits": 50,
-      "revenue": 866.05,
-      "royalties": 136.36
-    },
-    {
-      "currencyCode": "USD",
-      "unitsSold": 1518,
-      "unitsCancelled": 42,
-      "unitsReturned": 128,
-      "netUnits": 1348,
-      "revenue": 27953.54,
-      "royalties": 5791.22
-    }
-  ],
-  "byMarketplaceYesterday": [
-    {
-      "groupValue": "US",
-      "currencyCode": "USD",
-      "units": 39,
-      "netUnits": 35,
-      "revenue": 750.49,
-      "royalties": 155.44
-    },
-    {
-      "groupValue": "GB",
-      "currencyCode": "GBP",
-      "units": 2,
-      "netUnits": 2,
-      "revenue": 30.56,
-      "royalties": 4.22
-    },
-    {
-      "groupValue": "DE",
-      "currencyCode": "EUR",
-      "units": 2,
-      "netUnits": 2,
-      "revenue": 33.9,
-      "royalties": 4.08
-    }
-  ],
-  "byProductTypeYesterday": [
-    {
-      "groupValue": "HOUSE_BRAND",
-      "currencyCode": "USD",
-      "units": 38,
-      "netUnits": 34,
-      "revenue": 715.5,
-      "royalties": 147.69
-    },
-    {
-      "groupValue": "STANDARD_PULLOVER_HOODIE",
-      "currencyCode": "USD",
-      "units": 1,
-      "netUnits": 1,
-      "revenue": 34.99,
-      "royalties": 7.75
-    },
-    {
-      "groupValue": "HOUSE_BRAND",
-      "currencyCode": "GBP",
-      "units": 2,
-      "netUnits": 2,
-      "revenue": 30.56,
-      "royalties": 4.22
-    },
-    {
-      "groupValue": "HOUSE_BRAND",
-      "currencyCode": "EUR",
-      "units": 2,
-      "netUnits": 2,
-      "revenue": 33.9,
-      "royalties": 4.08
-    }
-  ],
-  "topAsins7d": [
-    {
-      "title": "That's My Grandson Out There Gift Women Baseball Grandma",
-      "asin": "B082Z184NZ",
-      "revenue": 233.87,
-      "royalties": 45.98,
-      "netUnits": 11
-    },
-    {
-      "title": "Mama Bee Shirt Family Bee Shirts First Bee Day Outfits",
-      "asin": "B08KCQL6VB",
-      "revenue": 199.9,
-      "royalties": 52.8,
-      "netUnits": 10
-    },
-    {
-      "title": "Family Bee Shirts Dad Daddy First Bee Day Outfit Birthday",
-      "asin": "B09BLS5NRG",
-      "revenue": 159.92,
-      "royalties": 42.24,
-      "netUnits": 8
-    },
-    {
-      "title": "Mermaid Security Shirt Men's Boys Swimmer Dad Merdad Trident",
-      "asin": "B081GHR7RC",
-      "revenue": 159.6,
-      "royalties": 42,
-      "netUnits": 8
-    },
-    {
-      "title": "Halloween Ghost Reading Read More Books Librarian Teacher",
-      "asin": "B0DDZPDF14",
-      "revenue": 91.91,
-      "royalties": 20.48,
-      "netUnits": 5
-    },
-    {
-      "title": "I Need Baseball And Jesus Sports Mom Gift Christian Cross",
-      "asin": "B082Z3P2V8",
-      "revenue": 84.75,
-      "royalties": 8.28,
-      "netUnits": 2
-    },
-    {
-      "title": "I'm Not Gay I'm Super Gay LGBT Pride Rainbow March Funny",
-      "asin": "B07XHVB7CH",
-      "revenue": 84.75,
-      "royalties": 8.15,
-      "netUnits": 4
-    },
-    {
-      "title": "Boss Of The Toss Funny Cornhole Gifts For Men Bean Bag Toss",
-      "asin": "B0DHLQ94MM",
-      "revenue": 80.97,
-      "royalties": 12.24,
-      "netUnits": 3
-    },
-    {
-      "title": "9 Years Old Corgi Dog Lover 9th Birthday Party Outfit Kid",
-      "asin": "B08NW6MKQV",
-      "revenue": 79.96,
-      "royalties": 21.12,
-      "netUnits": 4
-    },
-    {
-      "title": "Golden Retriever Grandma T-Shirt Women Mom Dog Owner",
-      "asin": "B07KWRMN3C",
-      "revenue": 79.92,
-      "royalties": 21.08,
-      "netUnits": 4
-    }
-  ],
-  "fxToUsd": {
-    "EUR": 1.08,
-    "GBP": 1.27,
-    "USD": 1
-  },
-  "dailyByMarketplace14d": {
-    "dates": [
-      "2026-09-02",
-      "2026-09-03",
-      "2026-09-04",
-      "2026-09-05",
-      "2026-09-06",
-      "2026-09-07",
-      "2026-09-08",
-      "2026-09-09",
-      "2026-09-10",
-      "2026-09-11",
-      "2026-09-12",
-      "2026-09-13",
-      "2026-09-14",
-      "2026-09-15"
-    ],
-    "end": "2026-09-15",
-    "series": [
-      {
-        "currencyCode": "USD",
-        "marketplace": "US",
-        "revenue": [
-          857.52, 983.42, 741.35, 731.89, 1137.26, 1061.19, 1014.13, 884.04,
-          1014.78, 866.27, 937.86, 1161.97, 750.49, 0
-        ],
-        "units": [45, 51, 41, 38, 61, 56, 52, 48, 53, 46, 49, 63, 39, 0]
-      },
-      {
-        "currencyCode": "GBP",
-        "marketplace": "GB",
-        "revenue": [
-          30.56, 45.84, 15.28, 30.56, 46.19, 31.12, 14.99, 30.56, 45.84, 30.98,
-          15.28, 31.44, 30.56, 0
-        ],
-        "units": [2, 3, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 2, 0]
-      },
-      {
-        "currencyCode": "EUR",
-        "marketplace": "DE",
-        "revenue": [
-          33.9, 34.12, 50.85, 16.95, 33.9, 51.2, 34.4, 33.9, 16.48, 50.85, 33.9,
-          34.62, 33.9, 0
-        ],
-        "units": [2, 2, 3, 1, 2, 3, 2, 2, 1, 3, 2, 2, 2, 0]
-      }
-    ],
-    "start": "2026-09-02"
-  },
-  "monthlyByMarketplace6m": {
-    "currencyCode": "USD",
-    "rows": [
-      {
-        "month": "2026-04",
-        "DE": 872.4,
-        "GB": 903.6,
-        "US": 24180.55
-      },
-      {
-        "month": "2026-05",
-        "DE": 941.8,
-        "GB": 1012.3,
-        "US": 25604.18
-      },
-      {
-        "month": "2026-06",
-        "DE": 1008.6,
-        "GB": 986.4,
-        "US": 26918.7
-      },
-      {
-        "month": "2026-07",
-        "DE": 1064.2,
-        "GB": 1058.7,
-        "US": 26310.44
-      },
-      {
-        "month": "2026-08",
-        "DE": 1121.5,
-        "GB": 1094.2,
-        "US": 29840.18
-      },
-      {
-        "month": "2026-09",
-        "DE": 531.54,
-        "GB": 545.21,
-        "US": 13304.02,
-        "partial": true
-      }
-    ]
-  },
-  "monthToDate": {
-    "byMarketplace": [
-      {
-        "currencyCode": "USD",
-        "marketplace": "US",
-        "revenue": 13304.02,
-        "revenueUsd": 13304.02,
-        "royalties": 2872.04,
-        "units": 702
-      },
-      {
-        "currencyCode": "GBP",
-        "marketplace": "GB",
-        "revenue": 429.3,
-        "revenueUsd": 545.21,
-        "royalties": 67.61,
-        "units": 28
-      },
-      {
-        "currencyCode": "EUR",
-        "marketplace": "DE",
-        "revenue": 492.17,
-        "revenueUsd": 531.54,
-        "royalties": 52.27,
-        "units": 29
-      }
-    ],
-    "daysElapsed": 15,
-    "daysInMonth": 30,
-    "month": "2026-09",
-    "revenueUsd": 14380.77,
-    "royaltiesUsd": 3014.36,
-    "through": "2026-09-15"
-  },
-  "monthlyGoal": {
-    "currencyCode": "USD",
-    "metric": "revenue",
-    "month": "2026-09",
-    "monthToDateRevenueUsd": 14380.77,
-    "target": 30000
-  },
-  "summary7d": {
-    "current": {
-      "netUnits": 319,
-      "revenue": 6629.54,
-      "royalties": 1461.01,
-      "unitsCancelled": 7,
-      "unitsReturned": 24,
-      "unitsSold": 350,
-      "end": "2026-09-14",
-      "start": "2026-09-08"
-    },
-    "prior": {
-      "netUnits": 326,
-      "revenue": 6674.48,
-      "royalties": 1411.03,
-      "unitsCancelled": 3,
-      "unitsReturned": 23,
-      "unitsSold": 352,
-      "end": "2026-09-07",
-      "start": "2026-09-01"
-    }
-  },
-  "netLast7d": {
-    "end": "2026-09-14",
-    "excludes": ["returned", "cancelled"],
-    "rows": [
-      {
-        "date": "2026-09-08",
-        "netRevenue": 936.12,
-        "netRoyalties": 210.06,
-        "netUnits": 48
-      },
-      {
-        "date": "2026-09-09",
-        "netRevenue": 810.37,
-        "netRoyalties": 174.13,
-        "netUnits": 44
-      },
-      {
-        "date": "2026-09-10",
-        "netRevenue": 995.63,
-        "netRoyalties": 233.47,
-        "netUnits": 52
-      },
-      {
-        "date": "2026-09-11",
-        "netRevenue": 715.61,
-        "netRoyalties": 150.93,
-        "netUnits": 38
-      },
-      {
-        "date": "2026-09-12",
-        "netRevenue": 861.3,
-        "netRoyalties": 185.15,
-        "netUnits": 45
-      },
-      {
-        "date": "2026-09-13",
-        "netRevenue": 1051.31,
-        "netRoyalties": 240.46,
-        "netUnits": 57
-      },
-      {
+    "lastCompleteDay": {
         "date": "2026-09-14",
-        "netRevenue": 673.52,
-        "netRoyalties": 139.5,
-        "netUnits": 35
-      }
-    ],
-    "start": "2026-09-08"
-  },
-  "designWeekOverWeek": {
-    "currencyCode": "USD",
-    "priorWeek": {
-      "end": "2026-09-07",
-      "start": "2026-09-01"
-    },
-    "rows": [
-      {
-        "asin": "B082Z184NZ",
-        "netUnits": 11,
-        "netUnitsPrior": 7,
-        "revenue": 233.87,
-        "revenueChange": 85,
-        "revenuePrior": 148.87,
-        "title": "That's My Grandson Out There Gift Women Baseball Grandma"
-      },
-      {
-        "asin": "B08KCQL6VB",
-        "netUnits": 10,
-        "netUnitsPrior": 12,
-        "revenue": 199.9,
-        "revenueChange": -39.98,
-        "revenuePrior": 239.88,
-        "title": "Mama Bee Shirt Family Bee Shirts First Bee Day Outfits"
-      },
-      {
-        "asin": "B09BLS5NRG",
-        "netUnits": 8,
-        "netUnitsPrior": 6,
-        "revenue": 159.92,
-        "revenueChange": 39.98,
-        "revenuePrior": 119.94,
-        "title": "Family Bee Shirts Dad Daddy First Bee Day Outfit Birthday"
-      },
-      {
-        "asin": "B081GHR7RC",
-        "netUnits": 8,
-        "netUnitsPrior": 13,
-        "revenue": 159.6,
-        "revenueChange": -99.75,
-        "revenuePrior": 259.35,
-        "title": "Mermaid Security Shirt Men's Boys Swimmer Dad Merdad Trident"
-      },
-      {
-        "asin": "B0DDZPDF14",
-        "netUnits": 5,
-        "netUnitsPrior": 2,
-        "revenue": 91.91,
-        "revenueChange": 55.15,
-        "revenuePrior": 36.76,
-        "title": "Halloween Ghost Reading Read More Books Librarian Teacher"
-      },
-      {
-        "asin": "B082Z3P2V8",
-        "netUnits": 2,
-        "netUnitsPrior": 3,
-        "revenue": 84.75,
-        "revenueChange": -42.38,
-        "revenuePrior": 127.13,
-        "title": "I Need Baseball And Jesus Sports Mom Gift Christian Cross"
-      },
-      {
-        "asin": "B07XHVB7CH",
-        "netUnits": 4,
-        "netUnitsPrior": 5,
-        "revenue": 84.75,
-        "revenueChange": -21.19,
-        "revenuePrior": 105.94,
-        "title": "I'm Not Gay I'm Super Gay LGBT Pride Rainbow March Funny"
-      },
-      {
-        "asin": "B0DHLQ94MM",
-        "netUnits": 3,
-        "netUnitsPrior": 1,
-        "revenue": 80.97,
-        "revenueChange": 53.98,
-        "revenuePrior": 26.99,
-        "title": "Boss Of The Toss Funny Cornhole Gifts For Men Bean Bag Toss"
-      },
-      {
-        "asin": "B08NW6MKQV",
-        "netUnits": 4,
-        "netUnitsPrior": 4,
-        "revenue": 79.96,
-        "revenueChange": 0,
-        "revenuePrior": 79.96,
-        "title": "9 Years Old Corgi Dog Lover 9th Birthday Party Outfit Kid"
-      },
-      {
-        "asin": "B07KWRMN3C",
-        "netUnits": 4,
-        "netUnitsPrior": 5,
-        "revenue": 79.92,
-        "revenueChange": -19.98,
-        "revenuePrior": 99.9,
-        "title": "Golden Retriever Grandma T-Shirt Women Mom Dog Owner"
-      }
-    ],
-    "thisWeek": {
-      "end": "2026-09-14",
-      "start": "2026-09-08"
-    }
-  },
-  "catalog30d": {
-    "currencyCode": "USD",
-    "rows": [
-      {
-        "asin": "B082Z184NZ",
-        "listPrice": 21.99,
-        "netUnits": 44,
-        "revenue": 967.56,
-        "royalties": 190.61,
-        "title": "That's My Grandson Out There Gift Women Baseball Grandma"
-      },
-      {
-        "asin": "B08KCQL6VB",
-        "listPrice": 19.99,
-        "netUnits": 41,
-        "revenue": 819.59,
-        "royalties": 216.37,
-        "title": "Mama Bee Shirt Family Bee Shirts First Bee Day Outfits"
-      },
-      {
-        "asin": "B09BLS5NRG",
-        "listPrice": 19.99,
-        "netUnits": 33,
-        "revenue": 659.67,
-        "royalties": 174.15,
-        "title": "Family Bee Shirts Dad Daddy First Bee Day Outfit Birthday"
-      },
-      {
-        "asin": "B081GHR7RC",
-        "listPrice": 19.95,
-        "netUnits": 31,
-        "revenue": 618.45,
-        "royalties": 162.65,
-        "title": "Mermaid Security Shirt Men's Boys Swimmer Dad Merdad Trident"
-      },
-      {
-        "asin": "B0DDZPDF14",
-        "listPrice": 18.38,
-        "netUnits": 19,
-        "revenue": 349.22,
-        "royalties": 77.88,
-        "title": "Halloween Ghost Reading Read More Books Librarian Teacher"
-      },
-      {
-        "asin": "B082Z3P2V8",
-        "listPrice": 28.25,
-        "netUnits": 9,
-        "revenue": 254.25,
-        "royalties": 24.92,
-        "title": "I Need Baseball And Jesus Sports Mom Gift Christian Cross"
-      },
-      {
-        "asin": "B07XHVB7CH",
-        "listPrice": 21.19,
-        "netUnits": 16,
-        "revenue": 339.04,
-        "royalties": 32.55,
-        "title": "I'm Not Gay I'm Super Gay LGBT Pride Rainbow March Funny"
-      },
-      {
-        "asin": "B0DHLQ94MM",
-        "listPrice": 26.99,
-        "netUnits": 12,
-        "revenue": 323.88,
-        "royalties": 48.91,
-        "title": "Boss Of The Toss Funny Cornhole Gifts For Men Bean Bag Toss"
-      },
-      {
-        "asin": "B08NW6MKQV",
-        "listPrice": 19.99,
-        "netUnits": 15,
-        "revenue": 299.85,
-        "royalties": 79.16,
-        "title": "9 Years Old Corgi Dog Lover 9th Birthday Party Outfit Kid"
-      },
-      {
-        "asin": "B07KWRMN3C",
-        "listPrice": 19.98,
-        "netUnits": 14,
-        "revenue": 279.72,
-        "royalties": 73.85,
-        "title": "Golden Retriever Grandma T-Shirt Women Mom Dog Owner"
-      },
-      {
-        "asin": "B08QJ7L2MD",
-        "listPrice": 22.99,
-        "netUnits": 27,
-        "revenue": 620.73,
-        "royalties": 131.59,
-        "title": "Retro Sunset Camping Crew Funny Campfire Gift Outdoors"
-      },
-      {
-        "asin": "B09TZ5K8WQ",
-        "listPrice": 21.99,
-        "netUnits": 24,
-        "revenue": 527.76,
-        "royalties": 106.08,
-        "title": "Pickleball Grandma Dink Queen Funny Paddle Gift Women"
-      },
-      {
-        "asin": "B07M6PQR3T",
-        "listPrice": 24.99,
-        "netUnits": 18,
-        "revenue": 449.82,
-        "royalties": 84.57,
-        "title": "Sourdough Starter Club Baking Mom Funny Bread Lover Gift"
-      },
-      {
-        "asin": "B0BXN4VY61",
-        "listPrice": 17.99,
-        "netUnits": 22,
-        "revenue": 395.78,
-        "royalties": 91.82,
-        "title": "Teacher Off Duty Summer Break Beach Vibes Funny Gift"
-      },
-      {
-        "asin": "B08HH9D2KC",
-        "listPrice": 15.99,
-        "netUnits": 13,
-        "revenue": 207.87,
-        "royalties": 36.59,
-        "title": "Vintage 1985 Birthday 41st Retro Sun Gift Men Women"
-      },
-      {
-        "asin": "B0CQ2M7JVL",
-        "listPrice": 18.99,
-        "netUnits": 26,
-        "revenue": 493.74,
-        "royalties": 118.99,
-        "title": "Axolotl Squad Cute Kawaii Pink Amphibian Kids Gift Tee"
-      },
-      {
-        "asin": "B09KKV4N8P",
-        "listPrice": 21.99,
-        "netUnits": 11,
-        "revenue": 241.89,
-        "royalties": 48.62,
-        "title": "Crochet Hooker Funny Yarn Craft Grandma Knitting Gift"
-      },
-      {
-        "asin": "B07PQ8TRB9",
-        "listPrice": 34.99,
-        "netUnits": 9,
-        "revenue": 314.91,
-        "royalties": 68.97,
-        "title": "Pullover Hoodie Mountain Sunrise Hiker Trail Lover Gift"
-      },
-      {
-        "asin": "B0D4LG6XYH",
-        "listPrice": 32.99,
-        "netUnits": 7,
-        "revenue": 230.93,
-        "royalties": 47.8,
-        "title": "Sweatshirt Coffee Then Chaos Funny Mom Crewneck Gift"
-      },
-      {
-        "asin": "B08ZR5FKQ2",
-        "listPrice": 20.99,
-        "netUnits": 6,
-        "revenue": 125.94,
-        "royalties": 24.94,
-        "title": "Tank Top Gym Rat Lift Heavy Eat Tacos Funny Workout"
-      }
-    ]
-  },
-  "unitsByCategory30d": {
-    "rows": [
-      {
-        "category": "Standard T-Shirt",
-        "share": 67.4,
-        "units": 1102
-      },
-      {
-        "category": "Premium T-Shirt",
-        "share": 13,
-        "units": 213
-      },
-      {
-        "category": "Pullover Hoodie",
-        "share": 10.3,
-        "units": 168
-      },
-      {
-        "category": "Sweatshirt",
-        "share": 5.9,
-        "units": 96
-      },
-      {
-        "category": "Tank Top",
-        "share": 3.4,
-        "units": 55
-      }
-    ],
-    "totalUnits": 1634
-  },
-  "health": {
-    "cancellations7d": 7,
-    "cancellationsPrior7d": 3,
-    "returnRate7d": 6.9,
-    "returnRatePrior7d": 6.5,
-    "returns7d": 24,
-    "returnsPrior7d": 23,
-    "syncs": [
-      {
-        "detail": "today's orders have not landed yet",
-        "job": "Sales feed",
-        "lastRunAt": "2026-09-14T22:06:46-07:00",
-        "status": "stale"
-      },
-      {
-        "detail": "30 days imported",
-        "job": "Royalty report",
-        "lastRunAt": "2026-09-15T06:15:00-07:00",
-        "status": "ok"
-      },
-      {
-        "detail": "stalled mid-pass, 412 listings unchecked",
-        "job": "Listing metadata",
-        "lastRunAt": "2026-09-14T22:06:46-07:00",
-        "status": "stale"
-      },
-      {
-        "detail": "synced",
-        "job": "Ads report",
-        "lastRunAt": "2026-09-15T07:51:00-07:00",
-        "status": "ok"
-      }
-    ]
-  },
-  "dailyByMarketplace91d": {
-    "start": "2026-06-16",
-    "end": "2026-09-14",
-    "note": "units are units sold; US rows from 2026-08-17 match series30d exactly",
-    "dates": [
-      "2026-06-16",
-      "2026-06-17",
-      "2026-06-18",
-      "2026-06-19",
-      "2026-06-20",
-      "2026-06-21",
-      "2026-06-22",
-      "2026-06-23",
-      "2026-06-24",
-      "2026-06-25",
-      "2026-06-26",
-      "2026-06-27",
-      "2026-06-28",
-      "2026-06-29",
-      "2026-06-30",
-      "2026-07-01",
-      "2026-07-02",
-      "2026-07-03",
-      "2026-07-04",
-      "2026-07-05",
-      "2026-07-06",
-      "2026-07-07",
-      "2026-07-08",
-      "2026-07-09",
-      "2026-07-10",
-      "2026-07-11",
-      "2026-07-12",
-      "2026-07-13",
-      "2026-07-14",
-      "2026-07-15",
-      "2026-07-16",
-      "2026-07-17",
-      "2026-07-18",
-      "2026-07-19",
-      "2026-07-20",
-      "2026-07-21",
-      "2026-07-22",
-      "2026-07-23",
-      "2026-07-24",
-      "2026-07-25",
-      "2026-07-26",
-      "2026-07-27",
-      "2026-07-28",
-      "2026-07-29",
-      "2026-07-30",
-      "2026-07-31",
-      "2026-08-01",
-      "2026-08-02",
-      "2026-08-03",
-      "2026-08-04",
-      "2026-08-05",
-      "2026-08-06",
-      "2026-08-07",
-      "2026-08-08",
-      "2026-08-09",
-      "2026-08-10",
-      "2026-08-11",
-      "2026-08-12",
-      "2026-08-13",
-      "2026-08-14",
-      "2026-08-15",
-      "2026-08-16",
-      "2026-08-17",
-      "2026-08-18",
-      "2026-08-19",
-      "2026-08-20",
-      "2026-08-21",
-      "2026-08-22",
-      "2026-08-23",
-      "2026-08-24",
-      "2026-08-25",
-      "2026-08-26",
-      "2026-08-27",
-      "2026-08-28",
-      "2026-08-29",
-      "2026-08-30",
-      "2026-08-31",
-      "2026-09-01",
-      "2026-09-02",
-      "2026-09-03",
-      "2026-09-04",
-      "2026-09-05",
-      "2026-09-06",
-      "2026-09-07",
-      "2026-09-08",
-      "2026-09-09",
-      "2026-09-10",
-      "2026-09-11",
-      "2026-09-12",
-      "2026-09-13",
-      "2026-09-14"
-    ],
-    "series": [
-      {
-        "currencyCode": "USD",
         "marketplace": "US",
-        "revenue": [
-          886.99, 784.29, 817.09, 885.81, 970.93, 930.3, 930.04, 727.48, 904.16,
-          891.61, 842.75, 883.57, 938.04, 868.84, 928.26, 751.68, 832.78,
-          870.71, 717.59, 866.18, 832.88, 1119.58, 1257.44, 1156.48, 1417.35,
-          1123.93, 1351.9, 1160.38, 777.4, 668.21, 885.62, 826.46, 921.12,
-          892.26, 744.71, 533.76, 598.58, 621.02, 527.72, 547.43, 689.68,
-          480.32, 735.23, 749.24, 789.39, 863.41, 1103.38, 1005.3, 809.25,
-          881.39, 880.73, 959.52, 1107.94, 856.2, 959.36, 865.16, 885.14,
-          988.42, 909.91, 941.35, 1091.75, 945.86, 810.62, 653.56, 925.31,
-          1085.86, 1434.49, 1280.95, 873.4, 921.74, 991.41, 704.14, 855.79,
-          1073.48, 1049.26, 1057.66, 931.85, 1161.85, 857.52, 983.42, 741.35,
-          731.89, 1137.26, 1061.19, 1014.13, 884.04, 1014.78, 866.27, 937.86,
-          1161.97, 750.49
+        "revenue": 750.49,
+        "royalties": 155.44,
+        "sold": 39,
+        "returned": 4,
+        "cancelled": 0,
+        "net": 35
+    },
+    "series30d": {
+        "rows": [
+            {
+                "date": "2026-08-17",
+                "revenue": 810.62,
+                "royalties": 165.59,
+                "sold": 42,
+                "returned": 4,
+                "cancelled": 0,
+                "net": 38
+            },
+            {
+                "date": "2026-08-18",
+                "revenue": 653.56,
+                "royalties": 127.68,
+                "sold": 36,
+                "returned": 6,
+                "cancelled": 0,
+                "net": 30
+            },
+            {
+                "date": "2026-08-19",
+                "revenue": 925.31,
+                "royalties": 181.21,
+                "sold": 51,
+                "returned": 3,
+                "cancelled": 0,
+                "net": 48
+            },
+            {
+                "date": "2026-08-20",
+                "revenue": 1085.86,
+                "royalties": 218.72,
+                "sold": 57,
+                "returned": 4,
+                "cancelled": 0,
+                "net": 53
+            },
+            {
+                "date": "2026-08-21",
+                "revenue": 1434.49,
+                "royalties": 283.09,
+                "sold": 79,
+                "returned": 4,
+                "cancelled": 0,
+                "net": 75
+            },
+            {
+                "date": "2026-08-22",
+                "revenue": 1280.95,
+                "royalties": 242.76,
+                "sold": 72,
+                "returned": 7,
+                "cancelled": 1,
+                "net": 64
+            },
+            {
+                "date": "2026-08-23",
+                "revenue": 873.4,
+                "royalties": 121.39,
+                "sold": 48,
+                "returned": 13,
+                "cancelled": 2,
+                "net": 33
+            },
+            {
+                "date": "2026-08-24",
+                "revenue": 921.74,
+                "royalties": 183.68,
+                "sold": 56,
+                "returned": 7,
+                "cancelled": 9,
+                "net": 40
+            },
+            {
+                "date": "2026-08-25",
+                "revenue": 991.41,
+                "royalties": 213.09,
+                "sold": 52,
+                "returned": 6,
+                "cancelled": 0,
+                "net": 46
+            },
+            {
+                "date": "2026-08-26",
+                "revenue": 704.14,
+                "royalties": 126.96,
+                "sold": 39,
+                "returned": 8,
+                "cancelled": 1,
+                "net": 30
+            },
+            {
+                "date": "2026-08-27",
+                "revenue": 855.79,
+                "royalties": 191.01,
+                "sold": 56,
+                "returned": 3,
+                "cancelled": 10,
+                "net": 43
+            },
+            {
+                "date": "2026-08-28",
+                "revenue": 1073.48,
+                "royalties": 205.96,
+                "sold": 61,
+                "returned": 8,
+                "cancelled": 4,
+                "net": 49
+            },
+            {
+                "date": "2026-08-29",
+                "revenue": 1049.26,
+                "royalties": 241.69,
+                "sold": 57,
+                "returned": 2,
+                "cancelled": 1,
+                "net": 54
+            },
+            {
+                "date": "2026-08-30",
+                "revenue": 1057.66,
+                "royalties": 219.6,
+                "sold": 56,
+                "returned": 4,
+                "cancelled": 1,
+                "net": 51
+            },
+            {
+                "date": "2026-08-31",
+                "revenue": 931.85,
+                "royalties": 196.75,
+                "sold": 54,
+                "returned": 2,
+                "cancelled": 3,
+                "net": 49
+            },
+            {
+                "date": "2026-09-01",
+                "revenue": 1161.85,
+                "royalties": 237.28,
+                "sold": 60,
+                "returned": 4,
+                "cancelled": 0,
+                "net": 56
+            },
+            {
+                "date": "2026-09-02",
+                "revenue": 857.52,
+                "royalties": 172.2,
+                "sold": 45,
+                "returned": 1,
+                "cancelled": 0,
+                "net": 44
+            },
+            {
+                "date": "2026-09-03",
+                "revenue": 983.42,
+                "royalties": 205.1,
+                "sold": 51,
+                "returned": 7,
+                "cancelled": 0,
+                "net": 44
+            },
+            {
+                "date": "2026-09-04",
+                "revenue": 741.35,
+                "royalties": 154.25,
+                "sold": 41,
+                "returned": 4,
+                "cancelled": 1,
+                "net": 36
+            },
+            {
+                "date": "2026-09-05",
+                "revenue": 731.89,
+                "royalties": 156.48,
+                "sold": 38,
+                "returned": 4,
+                "cancelled": 0,
+                "net": 34
+            },
+            {
+                "date": "2026-09-06",
+                "revenue": 1137.26,
+                "royalties": 240.58,
+                "sold": 61,
+                "returned": 3,
+                "cancelled": 1,
+                "net": 57
+            },
+            {
+                "date": "2026-09-07",
+                "revenue": 1061.19,
+                "royalties": 245.14,
+                "sold": 56,
+                "returned": 0,
+                "cancelled": 1,
+                "net": 55
+            },
+            {
+                "date": "2026-09-08",
+                "revenue": 1014.13,
+                "royalties": 227.56,
+                "sold": 52,
+                "returned": 3,
+                "cancelled": 1,
+                "net": 48
+            },
+            {
+                "date": "2026-09-09",
+                "revenue": 884.04,
+                "royalties": 189.96,
+                "sold": 48,
+                "returned": 3,
+                "cancelled": 1,
+                "net": 44
+            },
+            {
+                "date": "2026-09-10",
+                "revenue": 1014.78,
+                "royalties": 237.96,
+                "sold": 53,
+                "returned": 1,
+                "cancelled": 0,
+                "net": 52
+            },
+            {
+                "date": "2026-09-11",
+                "revenue": 866.27,
+                "royalties": 182.71,
+                "sold": 46,
+                "returned": 6,
+                "cancelled": 2,
+                "net": 38
+            },
+            {
+                "date": "2026-09-12",
+                "revenue": 937.86,
+                "royalties": 201.61,
+                "sold": 49,
+                "returned": 4,
+                "cancelled": 0,
+                "net": 45
+            },
+            {
+                "date": "2026-09-13",
+                "revenue": 1161.97,
+                "royalties": 265.77,
+                "sold": 63,
+                "returned": 3,
+                "cancelled": 3,
+                "net": 57
+            },
+            {
+                "date": "2026-09-14",
+                "revenue": 750.49,
+                "royalties": 155.44,
+                "sold": 39,
+                "returned": 4,
+                "cancelled": 0,
+                "net": 35
+            },
+            {
+                "date": "2026-09-15",
+                "revenue": 0,
+                "royalties": 0,
+                "sold": 0,
+                "returned": 0,
+                "cancelled": 0,
+                "net": 0
+            }
         ],
-        "royalties": [
-          186.65, 153.21, 178.98, 180.11, 189.36, 197.02, 179.11, 145.95,
-          199.42, 173.75, 162.3, 192.41, 187.77, 186.78, 182.72, 160.01, 163.23,
-          191.54, 139.49, 184.09, 168.51, 235.55, 261.57, 250.8, 311.22, 248.15,
-          290.32, 232.35, 171.33, 129.68, 171.19, 169.83, 195.5, 178.53, 145.93,
-          113.41, 128.15, 135.57, 110.07, 117.45, 136.63, 99.35, 154.44, 161.29,
-          173.57, 182.73, 241.47, 208.36, 171.87, 188.92, 194.04, 197.44,
-          231.18, 172.58, 190.49, 176.31, 171.77, 195.46, 192.3, 205.77, 239.76,
-          206.8, 165.59, 127.68, 181.21, 218.72, 283.09, 242.76, 121.39, 183.68,
-          213.09, 126.96, 191.01, 205.96, 241.69, 219.6, 196.75, 237.28, 172.2,
-          205.1, 154.25, 156.48, 240.58, 245.14, 227.56, 189.96, 237.96, 182.71,
-          201.61, 265.77, 155.44
+        "totals": {
+            "cancelled": 42,
+            "net": 1348,
+            "returned": 128,
+            "revenue": 27953.54,
+            "royalties": 5791.22,
+            "sold": 1518
+        }
+    },
+    "summary30d": [
+        {
+            "currencyCode": "EUR",
+            "unitsSold": 61,
+            "unitsCancelled": 1,
+            "unitsReturned": 8,
+            "netUnits": 52,
+            "revenue": 1058.42,
+            "royalties": 112.35
+        },
+        {
+            "currencyCode": "GBP",
+            "unitsSold": 55,
+            "unitsCancelled": 0,
+            "unitsReturned": 5,
+            "netUnits": 50,
+            "revenue": 866.05,
+            "royalties": 136.36
+        },
+        {
+            "currencyCode": "USD",
+            "unitsSold": 1518,
+            "unitsCancelled": 42,
+            "unitsReturned": 128,
+            "netUnits": 1348,
+            "revenue": 27953.54,
+            "royalties": 5791.22
+        }
+    ],
+    "byMarketplaceYesterday": [
+        {
+            "groupValue": "US",
+            "currencyCode": "USD",
+            "units": 39,
+            "netUnits": 35,
+            "revenue": 750.49,
+            "royalties": 155.44
+        },
+        {
+            "groupValue": "GB",
+            "currencyCode": "GBP",
+            "units": 2,
+            "netUnits": 2,
+            "revenue": 30.56,
+            "royalties": 4.22
+        },
+        {
+            "groupValue": "DE",
+            "currencyCode": "EUR",
+            "units": 2,
+            "netUnits": 2,
+            "revenue": 33.9,
+            "royalties": 4.08
+        }
+    ],
+    "byProductTypeYesterday": [
+        {
+            "groupValue": "HOUSE_BRAND",
+            "currencyCode": "USD",
+            "units": 38,
+            "netUnits": 34,
+            "revenue": 715.5,
+            "royalties": 147.69
+        },
+        {
+            "groupValue": "STANDARD_PULLOVER_HOODIE",
+            "currencyCode": "USD",
+            "units": 1,
+            "netUnits": 1,
+            "revenue": 34.99,
+            "royalties": 7.75
+        },
+        {
+            "groupValue": "HOUSE_BRAND",
+            "currencyCode": "GBP",
+            "units": 2,
+            "netUnits": 2,
+            "revenue": 30.56,
+            "royalties": 4.22
+        },
+        {
+            "groupValue": "HOUSE_BRAND",
+            "currencyCode": "EUR",
+            "units": 2,
+            "netUnits": 2,
+            "revenue": 33.9,
+            "royalties": 4.08
+        }
+    ],
+    "topAsins7d": [
+        {
+            "title": "That's My Grandson Out There Gift Women Baseball Grandma",
+            "asin": "B082Z184NZ",
+            "revenue": 233.87,
+            "royalties": 45.98,
+            "netUnits": 11
+        },
+        {
+            "title": "Mama Bee Shirt Family Bee Shirts First Bee Day Outfits",
+            "asin": "B08KCQL6VB",
+            "revenue": 199.9,
+            "royalties": 52.8,
+            "netUnits": 10
+        },
+        {
+            "title": "Family Bee Shirts Dad Daddy First Bee Day Outfit Birthday",
+            "asin": "B09BLS5NRG",
+            "revenue": 159.92,
+            "royalties": 42.24,
+            "netUnits": 8
+        },
+        {
+            "title": "Mermaid Security Shirt Men's Boys Swimmer Dad Merdad Trident",
+            "asin": "B081GHR7RC",
+            "revenue": 159.6,
+            "royalties": 42,
+            "netUnits": 8
+        },
+        {
+            "title": "Halloween Ghost Reading Read More Books Librarian Teacher",
+            "asin": "B0DDZPDF14",
+            "revenue": 91.91,
+            "royalties": 20.48,
+            "netUnits": 5
+        },
+        {
+            "title": "I Need Baseball And Jesus Sports Mom Gift Christian Cross",
+            "asin": "B082Z3P2V8",
+            "revenue": 84.75,
+            "royalties": 8.28,
+            "netUnits": 2
+        },
+        {
+            "title": "I'm Not Gay I'm Super Gay LGBT Pride Rainbow March Funny",
+            "asin": "B07XHVB7CH",
+            "revenue": 84.75,
+            "royalties": 8.15,
+            "netUnits": 4
+        },
+        {
+            "title": "Boss Of The Toss Funny Cornhole Gifts For Men Bean Bag Toss",
+            "asin": "B0DHLQ94MM",
+            "revenue": 80.97,
+            "royalties": 12.24,
+            "netUnits": 3
+        },
+        {
+            "title": "9 Years Old Corgi Dog Lover 9th Birthday Party Outfit Kid",
+            "asin": "B08NW6MKQV",
+            "revenue": 79.96,
+            "royalties": 21.12,
+            "netUnits": 4
+        },
+        {
+            "title": "Golden Retriever Grandma T-Shirt Women Mom Dog Owner",
+            "asin": "B07KWRMN3C",
+            "revenue": 79.92,
+            "royalties": 21.08,
+            "netUnits": 4
+        }
+    ],
+    "fxToUsd": {
+        "EUR": 1.08,
+        "GBP": 1.27,
+        "USD": 1
+    },
+    "dailyByMarketplace14d": {
+        "dates": [
+            "2026-09-02",
+            "2026-09-03",
+            "2026-09-04",
+            "2026-09-05",
+            "2026-09-06",
+            "2026-09-07",
+            "2026-09-08",
+            "2026-09-09",
+            "2026-09-10",
+            "2026-09-11",
+            "2026-09-12",
+            "2026-09-13",
+            "2026-09-14",
+            "2026-09-15"
         ],
-        "units": [
-          45, 40, 42, 46, 52, 49, 48, 37, 50, 48, 43, 48, 51, 46, 50, 40, 43,
-          45, 38, 46, 45, 59, 64, 61, 75, 60, 74, 63, 42, 34, 46, 43, 49, 48,
-          39, 28, 31, 34, 29, 29, 36, 26, 40, 39, 43, 46, 59, 52, 44, 46, 46,
-          50, 58, 46, 51, 44, 46, 51, 50, 51, 58, 51, 42, 36, 51, 57, 79, 72,
-          48, 56, 52, 39, 56, 61, 57, 56, 54, 60, 45, 51, 41, 38, 61, 56, 52,
-          48, 53, 46, 49, 63, 39
+        "end": "2026-09-15",
+        "series": [
+            {
+                "currencyCode": "USD",
+                "marketplace": "US",
+                "revenue": [
+                    857.52, 983.42, 741.35, 731.89, 1137.26, 1061.19, 1014.13, 884.04, 1014.78,
+                    866.27, 937.86, 1161.97, 750.49, 0
+                ],
+                "units": [45, 51, 41, 38, 61, 56, 52, 48, 53, 46, 49, 63, 39, 0]
+            },
+            {
+                "currencyCode": "GBP",
+                "marketplace": "GB",
+                "revenue": [
+                    30.56, 45.84, 15.28, 30.56, 46.19, 31.12, 14.99, 30.56, 45.84, 30.98, 15.28,
+                    31.44, 30.56, 0
+                ],
+                "units": [2, 3, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 2, 0]
+            },
+            {
+                "currencyCode": "EUR",
+                "marketplace": "DE",
+                "revenue": [
+                    33.9, 34.12, 50.85, 16.95, 33.9, 51.2, 34.4, 33.9, 16.48, 50.85, 33.9, 34.62,
+                    33.9, 0
+                ],
+                "units": [2, 2, 3, 1, 2, 3, 2, 2, 1, 3, 2, 2, 2, 0]
+            }
+        ],
+        "start": "2026-09-02"
+    },
+    "monthlyByMarketplace6m": {
+        "currencyCode": "USD",
+        "rows": [
+            {
+                "month": "2026-04",
+                "DE": 872.4,
+                "GB": 903.6,
+                "US": 24180.55
+            },
+            {
+                "month": "2026-05",
+                "DE": 941.8,
+                "GB": 1012.3,
+                "US": 25604.18
+            },
+            {
+                "month": "2026-06",
+                "DE": 1008.6,
+                "GB": 986.4,
+                "US": 26918.7
+            },
+            {
+                "month": "2026-07",
+                "DE": 1064.2,
+                "GB": 1058.7,
+                "US": 26310.44
+            },
+            {
+                "month": "2026-08",
+                "DE": 1121.5,
+                "GB": 1094.2,
+                "US": 29840.18
+            },
+            {
+                "month": "2026-09",
+                "DE": 531.54,
+                "GB": 545.21,
+                "US": 13304.02,
+                "partial": true
+            }
         ]
-      },
-      {
-        "currencyCode": "GBP",
-        "marketplace": "GB",
-        "revenue": [
-          15.73, 15.16, 31.23, 31.57, 30.83, 15.37, 30.31, 15.6, 15.38, 31.22,
-          31.71, 29.94, 31.21, 30.43, 32.66, 31.2, 31.06, 15.05, 31.6, 30.57,
-          30.76, 45.19, 46.91, 46.56, 47.24, 45.7, 31.42, 30.01, 31.5, 15.57,
-          30.47, 14.95, 31.3, 30.12, 15.34, 14.99, 15, 15.75, 15.81, 15.37,
-          15.79, 15.69, 15.63, 15.65, 30.77, 30.65, 15.76, 30.26, 31.36, 15.82,
-          30.73, 31.29, 30.48, 29.99, 31.59, 15.5, 15.04, 31.32, 29.92, 30.08,
-          30.17, 25.51, 31.18, 15.76, 15.56, 15.83, 30.11, 31.62, 30.66, 31.62,
-          30.05, 30.58, 30.36, 29.96, 31.62, 31.41, 50.43, 30.1, 30.56, 45.84,
-          15.28, 30.56, 46.19, 31.12, 14.99, 30.56, 45.84, 30.98, 15.28, 31.44,
-          30.56
+    },
+    "monthToDate": {
+        "byMarketplace": [
+            {
+                "currencyCode": "USD",
+                "marketplace": "US",
+                "revenue": 13304.02,
+                "revenueUsd": 13304.02,
+                "royalties": 2872.04,
+                "units": 702
+            },
+            {
+                "currencyCode": "GBP",
+                "marketplace": "GB",
+                "revenue": 429.3,
+                "revenueUsd": 545.21,
+                "royalties": 67.61,
+                "units": 28
+            },
+            {
+                "currencyCode": "EUR",
+                "marketplace": "DE",
+                "revenue": 492.17,
+                "revenueUsd": 531.54,
+                "royalties": 52.27,
+                "units": 29
+            }
         ],
-        "royalties": [
-          2.56, 2.5, 5.11, 4.89, 5.05, 2.51, 5.07, 2.53, 2.24, 5.08, 5.14, 4.34,
-          4.97, 4.6, 5, 5.05, 4.68, 2.32, 5.08, 4.44, 4.44, 7.49, 7.61, 6.84,
-          7.86, 6.67, 5.05, 4.29, 4.98, 2.51, 5, 2.44, 4.89, 4.75, 2.23, 2.24,
-          2.39, 2.31, 2.3, 2.55, 2.26, 2.32, 2.38, 2.3, 4.55, 5.04, 2.56, 4.65,
-          4.72, 2.46, 4.51, 4.69, 5.09, 4.61, 4.64, 2.36, 2.36, 5.06, 4.97,
-          4.54, 4.58, 4.09, 5.14, 2.47, 2.47, 2.46, 4.75, 4.54, 4.87, 4.92, 4.7,
-          4.93, 4.82, 4.59, 4.51, 4.71, 8.06, 4.49, 4.74, 7.11, 2.37, 4.74,
-          7.16, 4.82, 2.32, 4.74, 7.11, 4.8, 2.37, 4.87, 4.22
-        ],
-        "units": [
-          1, 1, 2, 2, 2, 1, 2, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 3, 3,
-          3, 3, 3, 2, 2, 2, 1, 2, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2,
-          1, 2, 2, 1, 2, 2, 2, 2, 2, 1, 1, 2, 2, 2, 2, 2, 2, 1, 1, 1, 2, 2, 2,
-          2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 1, 2, 3, 2, 1, 2, 3, 2, 1, 2, 2
-        ]
-      },
-      {
-        "currencyCode": "EUR",
-        "marketplace": "DE",
-        "revenue": [
-          16.81, 34.76, 33.19, 33.4, 32.81, 32.8, 32.85, 33.89, 16.69, 33.57,
-          34.71, 33.99, 34.44, 33.44, 29.59, 17.11, 33.74, 34.62, 33.64, 32.84,
-          33.94, 50.65, 50.3, 51.69, 34.7, 50.17, 49.4, 34.59, 34.53, 33.39,
-          33.11, 32.83, 33.44, 32.92, 33.48, 16.75, 17.33, 16.5, 17.03, 17.12,
-          17.15, 16.44, 33.16, 17.25, 34.36, 41.19, 33.53, 17.16, 17.25, 34.4,
-          33.7, 34.13, 34.5, 16.86, 33.99, 33.5, 33.98, 34.48, 34.05, 17.11,
-          32.89, 30.65, 33.11, 33.81, 34.66, 52.08, 33.28, 49.19, 34.27, 33.31,
-          33.26, 33.29, 32.9, 34.25, 33.92, 33.81, 61.11, 33.2, 33.9, 34.12,
-          50.85, 16.95, 33.9, 51.2, 34.4, 33.9, 16.48, 50.85, 33.9, 34.62, 33.9
-        ],
-        "royalties": [
-          1.91, 3.93, 4.13, 3.95, 4.14, 3.69, 3.89, 4.06, 2.08, 3.91, 4.29,
-          3.86, 4, 4.15, 3.7, 1.91, 4.05, 4.22, 4.34, 4.03, 4.29, 5.92, 6.35,
-          5.75, 4.45, 6.32, 6.34, 4.38, 4.27, 3.86, 3.89, 4.08, 4.06, 4.12,
-          4.32, 1.93, 1.97, 1.92, 2.16, 1.95, 2.16, 1.98, 4.03, 2.07, 4.26,
-          5.33, 4.28, 2.21, 2.21, 4.44, 3.78, 4.08, 3.81, 1.99, 3.84, 3.85,
-          3.82, 3.89, 3.99, 2.06, 3.76, 3.7, 4.27, 3.78, 4.32, 6.69, 4.05, 5.77,
-          4.22, 4.24, 4.2, 3.99, 3.73, 4.32, 3.82, 4.18, 7.41, 3.77, 4.07, 4.09,
-          6.1, 2.03, 4.07, 6.14, 4.13, 4.07, 1.98, 6.1, 4.07, 4.15, 4.08
-        ],
-        "units": [
-          1, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 3, 3,
-          3, 2, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, 2, 2,
-          2, 1, 1, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 3, 2, 3, 2,
-          2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 1, 2, 3, 2, 2, 1, 3, 2, 2, 2
-        ]
-      }
-    ]
-  },
-  "weeklyByMarketplace13w": {
-    "currencyCode": "USD",
-    "note": "rolling 7-day weeks ending on Mondays (same windows as summary7d); GB and DE converted at fxToUsd",
-    "rows": [
-      {
-        "start": "2026-06-16",
-        "end": "2026-06-22",
-        "US": 6205.45,
-        "GB": 216.15,
-        "DE": 233.95,
-        "totalUsd": 6655.55,
-        "units": 346
-      },
-      {
-        "start": "2026-06-23",
-        "end": "2026-06-29",
-        "US": 6056.45,
-        "GB": 235.57,
-        "DE": 238.39,
-        "totalUsd": 6530.41,
-        "units": 348
-      },
-      {
-        "start": "2026-06-30",
-        "end": "2026-07-06",
-        "US": 5800.08,
-        "GB": 257.68,
-        "DE": 232.72,
-        "totalUsd": 6290.48,
-        "units": 333
-      },
-      {
-        "start": "2026-07-07",
-        "end": "2026-07-13",
-        "US": 8587.06,
-        "GB": 372.15,
-        "DE": 347.22,
-        "totalUsd": 9306.43,
-        "units": 494
-      },
-      {
-        "start": "2026-07-14",
-        "end": "2026-07-20",
-        "US": 5715.78,
-        "GB": 214.95,
-        "DE": 252.4,
-        "totalUsd": 6183.13,
-        "units": 326
-      },
-      {
-        "start": "2026-07-21",
-        "end": "2026-07-27",
-        "US": 3998.51,
-        "GB": 137.67,
-        "DE": 127.79,
-        "totalUsd": 4263.97,
-        "units": 227
-      },
-      {
-        "start": "2026-07-28",
-        "end": "2026-08-03",
-        "US": 6055.2,
-        "GB": 216,
-        "DE": 209.41,
-        "totalUsd": 6480.61,
-        "units": 345
-      },
-      {
-        "start": "2026-08-04",
-        "end": "2026-08-10",
-        "US": 6510.3,
-        "GB": 235.46,
-        "DE": 238.77,
-        "totalUsd": 6984.53,
-        "units": 366
-      },
-      {
-        "start": "2026-08-11",
-        "end": "2026-08-17",
-        "US": 6573.05,
-        "GB": 245.39,
-        "DE": 233.57,
-        "totalUsd": 7052.01,
-        "units": 375
-      },
-      {
-        "start": "2026-08-18",
-        "end": "2026-08-24",
-        "US": 7175.31,
-        "GB": 217.37,
-        "DE": 292.25,
-        "totalUsd": 7684.93,
-        "units": 426
-      },
-      {
-        "start": "2026-08-25",
-        "end": "2026-08-31",
-        "US": 6663.59,
-        "GB": 297.7,
-        "DE": 283.54,
-        "totalUsd": 7244.83,
-        "units": 403
-      },
-      {
-        "start": "2026-09-01",
-        "end": "2026-09-07",
-        "US": 6674.48,
-        "GB": 291.66,
-        "DE": 274.45,
-        "totalUsd": 7240.59,
-        "units": 382
-      },
-      {
-        "start": "2026-09-08",
+        "daysElapsed": 15,
+        "daysInMonth": 30,
+        "month": "2026-09",
+        "revenueUsd": 14380.77,
+        "royaltiesUsd": 3014.36,
+        "through": "2026-09-15"
+    },
+    "monthlyGoal": {
+        "currencyCode": "USD",
+        "metric": "revenue",
+        "month": "2026-09",
+        "monthToDateRevenueUsd": 14380.77,
+        "target": 30000
+    },
+    "summary7d": {
+        "current": {
+            "netUnits": 319,
+            "revenue": 6629.54,
+            "royalties": 1461.01,
+            "unitsCancelled": 7,
+            "unitsReturned": 24,
+            "unitsSold": 350,
+            "end": "2026-09-14",
+            "start": "2026-09-08"
+        },
+        "prior": {
+            "netUnits": 326,
+            "revenue": 6674.48,
+            "royalties": 1411.03,
+            "unitsCancelled": 3,
+            "unitsReturned": 23,
+            "unitsSold": 352,
+            "end": "2026-09-07",
+            "start": "2026-09-01"
+        }
+    },
+    "netLast7d": {
         "end": "2026-09-14",
-        "US": 6629.54,
-        "GB": 253.56,
-        "DE": 257.09,
-        "totalUsd": 7140.19,
-        "units": 377
-      }
-    ]
-  }
+        "excludes": ["returned", "cancelled"],
+        "rows": [
+            {
+                "date": "2026-09-08",
+                "netRevenue": 936.12,
+                "netRoyalties": 210.06,
+                "netUnits": 48
+            },
+            {
+                "date": "2026-09-09",
+                "netRevenue": 810.37,
+                "netRoyalties": 174.13,
+                "netUnits": 44
+            },
+            {
+                "date": "2026-09-10",
+                "netRevenue": 995.63,
+                "netRoyalties": 233.47,
+                "netUnits": 52
+            },
+            {
+                "date": "2026-09-11",
+                "netRevenue": 715.61,
+                "netRoyalties": 150.93,
+                "netUnits": 38
+            },
+            {
+                "date": "2026-09-12",
+                "netRevenue": 861.3,
+                "netRoyalties": 185.15,
+                "netUnits": 45
+            },
+            {
+                "date": "2026-09-13",
+                "netRevenue": 1051.31,
+                "netRoyalties": 240.46,
+                "netUnits": 57
+            },
+            {
+                "date": "2026-09-14",
+                "netRevenue": 673.52,
+                "netRoyalties": 139.5,
+                "netUnits": 35
+            }
+        ],
+        "start": "2026-09-08"
+    },
+    "designWeekOverWeek": {
+        "currencyCode": "USD",
+        "priorWeek": {
+            "end": "2026-09-07",
+            "start": "2026-09-01"
+        },
+        "rows": [
+            {
+                "asin": "B082Z184NZ",
+                "netUnits": 11,
+                "netUnitsPrior": 7,
+                "revenue": 233.87,
+                "revenueChange": 85,
+                "revenuePrior": 148.87,
+                "title": "That's My Grandson Out There Gift Women Baseball Grandma"
+            },
+            {
+                "asin": "B08KCQL6VB",
+                "netUnits": 10,
+                "netUnitsPrior": 12,
+                "revenue": 199.9,
+                "revenueChange": -39.98,
+                "revenuePrior": 239.88,
+                "title": "Mama Bee Shirt Family Bee Shirts First Bee Day Outfits"
+            },
+            {
+                "asin": "B09BLS5NRG",
+                "netUnits": 8,
+                "netUnitsPrior": 6,
+                "revenue": 159.92,
+                "revenueChange": 39.98,
+                "revenuePrior": 119.94,
+                "title": "Family Bee Shirts Dad Daddy First Bee Day Outfit Birthday"
+            },
+            {
+                "asin": "B081GHR7RC",
+                "netUnits": 8,
+                "netUnitsPrior": 13,
+                "revenue": 159.6,
+                "revenueChange": -99.75,
+                "revenuePrior": 259.35,
+                "title": "Mermaid Security Shirt Men's Boys Swimmer Dad Merdad Trident"
+            },
+            {
+                "asin": "B0DDZPDF14",
+                "netUnits": 5,
+                "netUnitsPrior": 2,
+                "revenue": 91.91,
+                "revenueChange": 55.15,
+                "revenuePrior": 36.76,
+                "title": "Halloween Ghost Reading Read More Books Librarian Teacher"
+            },
+            {
+                "asin": "B082Z3P2V8",
+                "netUnits": 2,
+                "netUnitsPrior": 3,
+                "revenue": 84.75,
+                "revenueChange": -42.38,
+                "revenuePrior": 127.13,
+                "title": "I Need Baseball And Jesus Sports Mom Gift Christian Cross"
+            },
+            {
+                "asin": "B07XHVB7CH",
+                "netUnits": 4,
+                "netUnitsPrior": 5,
+                "revenue": 84.75,
+                "revenueChange": -21.19,
+                "revenuePrior": 105.94,
+                "title": "I'm Not Gay I'm Super Gay LGBT Pride Rainbow March Funny"
+            },
+            {
+                "asin": "B0DHLQ94MM",
+                "netUnits": 3,
+                "netUnitsPrior": 1,
+                "revenue": 80.97,
+                "revenueChange": 53.98,
+                "revenuePrior": 26.99,
+                "title": "Boss Of The Toss Funny Cornhole Gifts For Men Bean Bag Toss"
+            },
+            {
+                "asin": "B08NW6MKQV",
+                "netUnits": 4,
+                "netUnitsPrior": 4,
+                "revenue": 79.96,
+                "revenueChange": 0,
+                "revenuePrior": 79.96,
+                "title": "9 Years Old Corgi Dog Lover 9th Birthday Party Outfit Kid"
+            },
+            {
+                "asin": "B07KWRMN3C",
+                "netUnits": 4,
+                "netUnitsPrior": 5,
+                "revenue": 79.92,
+                "revenueChange": -19.98,
+                "revenuePrior": 99.9,
+                "title": "Golden Retriever Grandma T-Shirt Women Mom Dog Owner"
+            }
+        ],
+        "thisWeek": {
+            "end": "2026-09-14",
+            "start": "2026-09-08"
+        }
+    },
+    "catalog30d": {
+        "currencyCode": "USD",
+        "rows": [
+            {
+                "asin": "B082Z184NZ",
+                "listPrice": 21.99,
+                "netUnits": 44,
+                "revenue": 967.56,
+                "royalties": 190.61,
+                "title": "That's My Grandson Out There Gift Women Baseball Grandma"
+            },
+            {
+                "asin": "B08KCQL6VB",
+                "listPrice": 19.99,
+                "netUnits": 41,
+                "revenue": 819.59,
+                "royalties": 216.37,
+                "title": "Mama Bee Shirt Family Bee Shirts First Bee Day Outfits"
+            },
+            {
+                "asin": "B09BLS5NRG",
+                "listPrice": 19.99,
+                "netUnits": 33,
+                "revenue": 659.67,
+                "royalties": 174.15,
+                "title": "Family Bee Shirts Dad Daddy First Bee Day Outfit Birthday"
+            },
+            {
+                "asin": "B081GHR7RC",
+                "listPrice": 19.95,
+                "netUnits": 31,
+                "revenue": 618.45,
+                "royalties": 162.65,
+                "title": "Mermaid Security Shirt Men's Boys Swimmer Dad Merdad Trident"
+            },
+            {
+                "asin": "B0DDZPDF14",
+                "listPrice": 18.38,
+                "netUnits": 19,
+                "revenue": 349.22,
+                "royalties": 77.88,
+                "title": "Halloween Ghost Reading Read More Books Librarian Teacher"
+            },
+            {
+                "asin": "B082Z3P2V8",
+                "listPrice": 28.25,
+                "netUnits": 9,
+                "revenue": 254.25,
+                "royalties": 24.92,
+                "title": "I Need Baseball And Jesus Sports Mom Gift Christian Cross"
+            },
+            {
+                "asin": "B07XHVB7CH",
+                "listPrice": 21.19,
+                "netUnits": 16,
+                "revenue": 339.04,
+                "royalties": 32.55,
+                "title": "I'm Not Gay I'm Super Gay LGBT Pride Rainbow March Funny"
+            },
+            {
+                "asin": "B0DHLQ94MM",
+                "listPrice": 26.99,
+                "netUnits": 12,
+                "revenue": 323.88,
+                "royalties": 48.91,
+                "title": "Boss Of The Toss Funny Cornhole Gifts For Men Bean Bag Toss"
+            },
+            {
+                "asin": "B08NW6MKQV",
+                "listPrice": 19.99,
+                "netUnits": 15,
+                "revenue": 299.85,
+                "royalties": 79.16,
+                "title": "9 Years Old Corgi Dog Lover 9th Birthday Party Outfit Kid"
+            },
+            {
+                "asin": "B07KWRMN3C",
+                "listPrice": 19.98,
+                "netUnits": 14,
+                "revenue": 279.72,
+                "royalties": 73.85,
+                "title": "Golden Retriever Grandma T-Shirt Women Mom Dog Owner"
+            },
+            {
+                "asin": "B08QJ7L2MD",
+                "listPrice": 22.99,
+                "netUnits": 27,
+                "revenue": 620.73,
+                "royalties": 131.59,
+                "title": "Retro Sunset Camping Crew Funny Campfire Gift Outdoors"
+            },
+            {
+                "asin": "B09TZ5K8WQ",
+                "listPrice": 21.99,
+                "netUnits": 24,
+                "revenue": 527.76,
+                "royalties": 106.08,
+                "title": "Pickleball Grandma Dink Queen Funny Paddle Gift Women"
+            },
+            {
+                "asin": "B07M6PQR3T",
+                "listPrice": 24.99,
+                "netUnits": 18,
+                "revenue": 449.82,
+                "royalties": 84.57,
+                "title": "Sourdough Starter Club Baking Mom Funny Bread Lover Gift"
+            },
+            {
+                "asin": "B0BXN4VY61",
+                "listPrice": 17.99,
+                "netUnits": 22,
+                "revenue": 395.78,
+                "royalties": 91.82,
+                "title": "Teacher Off Duty Summer Break Beach Vibes Funny Gift"
+            },
+            {
+                "asin": "B08HH9D2KC",
+                "listPrice": 15.99,
+                "netUnits": 13,
+                "revenue": 207.87,
+                "royalties": 36.59,
+                "title": "Vintage 1985 Birthday 41st Retro Sun Gift Men Women"
+            },
+            {
+                "asin": "B0CQ2M7JVL",
+                "listPrice": 18.99,
+                "netUnits": 26,
+                "revenue": 493.74,
+                "royalties": 118.99,
+                "title": "Axolotl Squad Cute Kawaii Pink Amphibian Kids Gift Tee"
+            },
+            {
+                "asin": "B09KKV4N8P",
+                "listPrice": 21.99,
+                "netUnits": 11,
+                "revenue": 241.89,
+                "royalties": 48.62,
+                "title": "Crochet Hooker Funny Yarn Craft Grandma Knitting Gift"
+            },
+            {
+                "asin": "B07PQ8TRB9",
+                "listPrice": 34.99,
+                "netUnits": 9,
+                "revenue": 314.91,
+                "royalties": 68.97,
+                "title": "Pullover Hoodie Mountain Sunrise Hiker Trail Lover Gift"
+            },
+            {
+                "asin": "B0D4LG6XYH",
+                "listPrice": 32.99,
+                "netUnits": 7,
+                "revenue": 230.93,
+                "royalties": 47.8,
+                "title": "Sweatshirt Coffee Then Chaos Funny Mom Crewneck Gift"
+            },
+            {
+                "asin": "B08ZR5FKQ2",
+                "listPrice": 20.99,
+                "netUnits": 6,
+                "revenue": 125.94,
+                "royalties": 24.94,
+                "title": "Tank Top Gym Rat Lift Heavy Eat Tacos Funny Workout"
+            }
+        ]
+    },
+    "unitsByCategory30d": {
+        "rows": [
+            {
+                "category": "Standard T-Shirt",
+                "share": 67.4,
+                "units": 1102
+            },
+            {
+                "category": "Premium T-Shirt",
+                "share": 13,
+                "units": 213
+            },
+            {
+                "category": "Pullover Hoodie",
+                "share": 10.3,
+                "units": 168
+            },
+            {
+                "category": "Sweatshirt",
+                "share": 5.9,
+                "units": 96
+            },
+            {
+                "category": "Tank Top",
+                "share": 3.4,
+                "units": 55
+            }
+        ],
+        "totalUnits": 1634
+    },
+    "health": {
+        "cancellations7d": 7,
+        "cancellationsPrior7d": 3,
+        "returnRate7d": 6.9,
+        "returnRatePrior7d": 6.5,
+        "returns7d": 24,
+        "returnsPrior7d": 23,
+        "syncs": [
+            {
+                "detail": "today's orders have not landed yet",
+                "job": "Sales feed",
+                "lastRunAt": "2026-09-14T22:06:46-07:00",
+                "status": "stale"
+            },
+            {
+                "detail": "30 days imported",
+                "job": "Royalty report",
+                "lastRunAt": "2026-09-15T06:15:00-07:00",
+                "status": "ok"
+            },
+            {
+                "detail": "stalled mid-pass, 412 listings unchecked",
+                "job": "Listing metadata",
+                "lastRunAt": "2026-09-14T22:06:46-07:00",
+                "status": "stale"
+            },
+            {
+                "detail": "synced",
+                "job": "Ads report",
+                "lastRunAt": "2026-09-15T07:51:00-07:00",
+                "status": "ok"
+            }
+        ]
+    },
+    "dailyByMarketplace91d": {
+        "start": "2026-06-16",
+        "end": "2026-09-14",
+        "note": "units are units sold; US rows from 2026-08-17 match series30d exactly",
+        "dates": [
+            "2026-06-16",
+            "2026-06-17",
+            "2026-06-18",
+            "2026-06-19",
+            "2026-06-20",
+            "2026-06-21",
+            "2026-06-22",
+            "2026-06-23",
+            "2026-06-24",
+            "2026-06-25",
+            "2026-06-26",
+            "2026-06-27",
+            "2026-06-28",
+            "2026-06-29",
+            "2026-06-30",
+            "2026-07-01",
+            "2026-07-02",
+            "2026-07-03",
+            "2026-07-04",
+            "2026-07-05",
+            "2026-07-06",
+            "2026-07-07",
+            "2026-07-08",
+            "2026-07-09",
+            "2026-07-10",
+            "2026-07-11",
+            "2026-07-12",
+            "2026-07-13",
+            "2026-07-14",
+            "2026-07-15",
+            "2026-07-16",
+            "2026-07-17",
+            "2026-07-18",
+            "2026-07-19",
+            "2026-07-20",
+            "2026-07-21",
+            "2026-07-22",
+            "2026-07-23",
+            "2026-07-24",
+            "2026-07-25",
+            "2026-07-26",
+            "2026-07-27",
+            "2026-07-28",
+            "2026-07-29",
+            "2026-07-30",
+            "2026-07-31",
+            "2026-08-01",
+            "2026-08-02",
+            "2026-08-03",
+            "2026-08-04",
+            "2026-08-05",
+            "2026-08-06",
+            "2026-08-07",
+            "2026-08-08",
+            "2026-08-09",
+            "2026-08-10",
+            "2026-08-11",
+            "2026-08-12",
+            "2026-08-13",
+            "2026-08-14",
+            "2026-08-15",
+            "2026-08-16",
+            "2026-08-17",
+            "2026-08-18",
+            "2026-08-19",
+            "2026-08-20",
+            "2026-08-21",
+            "2026-08-22",
+            "2026-08-23",
+            "2026-08-24",
+            "2026-08-25",
+            "2026-08-26",
+            "2026-08-27",
+            "2026-08-28",
+            "2026-08-29",
+            "2026-08-30",
+            "2026-08-31",
+            "2026-09-01",
+            "2026-09-02",
+            "2026-09-03",
+            "2026-09-04",
+            "2026-09-05",
+            "2026-09-06",
+            "2026-09-07",
+            "2026-09-08",
+            "2026-09-09",
+            "2026-09-10",
+            "2026-09-11",
+            "2026-09-12",
+            "2026-09-13",
+            "2026-09-14"
+        ],
+        "series": [
+            {
+                "currencyCode": "USD",
+                "marketplace": "US",
+                "revenue": [
+                    886.99, 784.29, 817.09, 885.81, 970.93, 930.3, 930.04, 727.48, 904.16, 891.61,
+                    842.75, 883.57, 938.04, 868.84, 928.26, 751.68, 832.78, 870.71, 717.59, 866.18,
+                    832.88, 1119.58, 1257.44, 1156.48, 1417.35, 1123.93, 1351.9, 1160.38, 777.4,
+                    668.21, 885.62, 826.46, 921.12, 892.26, 744.71, 533.76, 598.58, 621.02, 527.72,
+                    547.43, 689.68, 480.32, 735.23, 749.24, 789.39, 863.41, 1103.38, 1005.3, 809.25,
+                    881.39, 880.73, 959.52, 1107.94, 856.2, 959.36, 865.16, 885.14, 988.42, 909.91,
+                    941.35, 1091.75, 945.86, 810.62, 653.56, 925.31, 1085.86, 1434.49, 1280.95,
+                    873.4, 921.74, 991.41, 704.14, 855.79, 1073.48, 1049.26, 1057.66, 931.85,
+                    1161.85, 857.52, 983.42, 741.35, 731.89, 1137.26, 1061.19, 1014.13, 884.04,
+                    1014.78, 866.27, 937.86, 1161.97, 750.49
+                ],
+                "royalties": [
+                    186.65, 153.21, 178.98, 180.11, 189.36, 197.02, 179.11, 145.95, 199.42, 173.75,
+                    162.3, 192.41, 187.77, 186.78, 182.72, 160.01, 163.23, 191.54, 139.49, 184.09,
+                    168.51, 235.55, 261.57, 250.8, 311.22, 248.15, 290.32, 232.35, 171.33, 129.68,
+                    171.19, 169.83, 195.5, 178.53, 145.93, 113.41, 128.15, 135.57, 110.07, 117.45,
+                    136.63, 99.35, 154.44, 161.29, 173.57, 182.73, 241.47, 208.36, 171.87, 188.92,
+                    194.04, 197.44, 231.18, 172.58, 190.49, 176.31, 171.77, 195.46, 192.3, 205.77,
+                    239.76, 206.8, 165.59, 127.68, 181.21, 218.72, 283.09, 242.76, 121.39, 183.68,
+                    213.09, 126.96, 191.01, 205.96, 241.69, 219.6, 196.75, 237.28, 172.2, 205.1,
+                    154.25, 156.48, 240.58, 245.14, 227.56, 189.96, 237.96, 182.71, 201.61, 265.77,
+                    155.44
+                ],
+                "units": [
+                    45, 40, 42, 46, 52, 49, 48, 37, 50, 48, 43, 48, 51, 46, 50, 40, 43, 45, 38, 46,
+                    45, 59, 64, 61, 75, 60, 74, 63, 42, 34, 46, 43, 49, 48, 39, 28, 31, 34, 29, 29,
+                    36, 26, 40, 39, 43, 46, 59, 52, 44, 46, 46, 50, 58, 46, 51, 44, 46, 51, 50, 51,
+                    58, 51, 42, 36, 51, 57, 79, 72, 48, 56, 52, 39, 56, 61, 57, 56, 54, 60, 45, 51,
+                    41, 38, 61, 56, 52, 48, 53, 46, 49, 63, 39
+                ]
+            },
+            {
+                "currencyCode": "GBP",
+                "marketplace": "GB",
+                "revenue": [
+                    15.73, 15.16, 31.23, 31.57, 30.83, 15.37, 30.31, 15.6, 15.38, 31.22, 31.71,
+                    29.94, 31.21, 30.43, 32.66, 31.2, 31.06, 15.05, 31.6, 30.57, 30.76, 45.19,
+                    46.91, 46.56, 47.24, 45.7, 31.42, 30.01, 31.5, 15.57, 30.47, 14.95, 31.3, 30.12,
+                    15.34, 14.99, 15, 15.75, 15.81, 15.37, 15.79, 15.69, 15.63, 15.65, 30.77, 30.65,
+                    15.76, 30.26, 31.36, 15.82, 30.73, 31.29, 30.48, 29.99, 31.59, 15.5, 15.04,
+                    31.32, 29.92, 30.08, 30.17, 25.51, 31.18, 15.76, 15.56, 15.83, 30.11, 31.62,
+                    30.66, 31.62, 30.05, 30.58, 30.36, 29.96, 31.62, 31.41, 50.43, 30.1, 30.56,
+                    45.84, 15.28, 30.56, 46.19, 31.12, 14.99, 30.56, 45.84, 30.98, 15.28, 31.44,
+                    30.56
+                ],
+                "royalties": [
+                    2.56, 2.5, 5.11, 4.89, 5.05, 2.51, 5.07, 2.53, 2.24, 5.08, 5.14, 4.34, 4.97,
+                    4.6, 5, 5.05, 4.68, 2.32, 5.08, 4.44, 4.44, 7.49, 7.61, 6.84, 7.86, 6.67, 5.05,
+                    4.29, 4.98, 2.51, 5, 2.44, 4.89, 4.75, 2.23, 2.24, 2.39, 2.31, 2.3, 2.55, 2.26,
+                    2.32, 2.38, 2.3, 4.55, 5.04, 2.56, 4.65, 4.72, 2.46, 4.51, 4.69, 5.09, 4.61,
+                    4.64, 2.36, 2.36, 5.06, 4.97, 4.54, 4.58, 4.09, 5.14, 2.47, 2.47, 2.46, 4.75,
+                    4.54, 4.87, 4.92, 4.7, 4.93, 4.82, 4.59, 4.51, 4.71, 8.06, 4.49, 4.74, 7.11,
+                    2.37, 4.74, 7.16, 4.82, 2.32, 4.74, 7.11, 4.8, 2.37, 4.87, 4.22
+                ],
+                "units": [
+                    1, 1, 2, 2, 2, 1, 2, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 3, 3, 3, 3, 3, 2,
+                    2, 2, 1, 2, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 1, 2, 2, 1, 2, 2, 2, 2,
+                    2, 1, 1, 2, 2, 2, 2, 2, 2, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 1,
+                    2, 3, 2, 1, 2, 3, 2, 1, 2, 2
+                ]
+            },
+            {
+                "currencyCode": "EUR",
+                "marketplace": "DE",
+                "revenue": [
+                    16.81, 34.76, 33.19, 33.4, 32.81, 32.8, 32.85, 33.89, 16.69, 33.57, 34.71,
+                    33.99, 34.44, 33.44, 29.59, 17.11, 33.74, 34.62, 33.64, 32.84, 33.94, 50.65,
+                    50.3, 51.69, 34.7, 50.17, 49.4, 34.59, 34.53, 33.39, 33.11, 32.83, 33.44, 32.92,
+                    33.48, 16.75, 17.33, 16.5, 17.03, 17.12, 17.15, 16.44, 33.16, 17.25, 34.36,
+                    41.19, 33.53, 17.16, 17.25, 34.4, 33.7, 34.13, 34.5, 16.86, 33.99, 33.5, 33.98,
+                    34.48, 34.05, 17.11, 32.89, 30.65, 33.11, 33.81, 34.66, 52.08, 33.28, 49.19,
+                    34.27, 33.31, 33.26, 33.29, 32.9, 34.25, 33.92, 33.81, 61.11, 33.2, 33.9, 34.12,
+                    50.85, 16.95, 33.9, 51.2, 34.4, 33.9, 16.48, 50.85, 33.9, 34.62, 33.9
+                ],
+                "royalties": [
+                    1.91, 3.93, 4.13, 3.95, 4.14, 3.69, 3.89, 4.06, 2.08, 3.91, 4.29, 3.86, 4, 4.15,
+                    3.7, 1.91, 4.05, 4.22, 4.34, 4.03, 4.29, 5.92, 6.35, 5.75, 4.45, 6.32, 6.34,
+                    4.38, 4.27, 3.86, 3.89, 4.08, 4.06, 4.12, 4.32, 1.93, 1.97, 1.92, 2.16, 1.95,
+                    2.16, 1.98, 4.03, 2.07, 4.26, 5.33, 4.28, 2.21, 2.21, 4.44, 3.78, 4.08, 3.81,
+                    1.99, 3.84, 3.85, 3.82, 3.89, 3.99, 2.06, 3.76, 3.7, 4.27, 3.78, 4.32, 6.69,
+                    4.05, 5.77, 4.22, 4.24, 4.2, 3.99, 3.73, 4.32, 3.82, 4.18, 7.41, 3.77, 4.07,
+                    4.09, 6.1, 2.03, 4.07, 6.14, 4.13, 4.07, 1.98, 6.1, 4.07, 4.15, 4.08
+                ],
+                "units": [
+                    1, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 3, 3, 3, 2, 3, 3,
+                    2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, 2, 2, 2, 1, 1, 2, 2, 2, 2, 1,
+                    2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 3, 2, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3,
+                    1, 2, 3, 2, 2, 1, 3, 2, 2, 2
+                ]
+            }
+        ]
+    },
+    "weeklyByMarketplace13w": {
+        "currencyCode": "USD",
+        "note": "rolling 7-day weeks ending on Mondays (same windows as summary7d); GB and DE converted at fxToUsd",
+        "rows": [
+            {
+                "start": "2026-06-16",
+                "end": "2026-06-22",
+                "US": 6205.45,
+                "GB": 216.15,
+                "DE": 233.95,
+                "totalUsd": 6655.55,
+                "units": 346
+            },
+            {
+                "start": "2026-06-23",
+                "end": "2026-06-29",
+                "US": 6056.45,
+                "GB": 235.57,
+                "DE": 238.39,
+                "totalUsd": 6530.41,
+                "units": 348
+            },
+            {
+                "start": "2026-06-30",
+                "end": "2026-07-06",
+                "US": 5800.08,
+                "GB": 257.68,
+                "DE": 232.72,
+                "totalUsd": 6290.48,
+                "units": 333
+            },
+            {
+                "start": "2026-07-07",
+                "end": "2026-07-13",
+                "US": 8587.06,
+                "GB": 372.15,
+                "DE": 347.22,
+                "totalUsd": 9306.43,
+                "units": 494
+            },
+            {
+                "start": "2026-07-14",
+                "end": "2026-07-20",
+                "US": 5715.78,
+                "GB": 214.95,
+                "DE": 252.4,
+                "totalUsd": 6183.13,
+                "units": 326
+            },
+            {
+                "start": "2026-07-21",
+                "end": "2026-07-27",
+                "US": 3998.51,
+                "GB": 137.67,
+                "DE": 127.79,
+                "totalUsd": 4263.97,
+                "units": 227
+            },
+            {
+                "start": "2026-07-28",
+                "end": "2026-08-03",
+                "US": 6055.2,
+                "GB": 216,
+                "DE": 209.41,
+                "totalUsd": 6480.61,
+                "units": 345
+            },
+            {
+                "start": "2026-08-04",
+                "end": "2026-08-10",
+                "US": 6510.3,
+                "GB": 235.46,
+                "DE": 238.77,
+                "totalUsd": 6984.53,
+                "units": 366
+            },
+            {
+                "start": "2026-08-11",
+                "end": "2026-08-17",
+                "US": 6573.05,
+                "GB": 245.39,
+                "DE": 233.57,
+                "totalUsd": 7052.01,
+                "units": 375
+            },
+            {
+                "start": "2026-08-18",
+                "end": "2026-08-24",
+                "US": 7175.31,
+                "GB": 217.37,
+                "DE": 292.25,
+                "totalUsd": 7684.93,
+                "units": 426
+            },
+            {
+                "start": "2026-08-25",
+                "end": "2026-08-31",
+                "US": 6663.59,
+                "GB": 297.7,
+                "DE": 283.54,
+                "totalUsd": 7244.83,
+                "units": 403
+            },
+            {
+                "start": "2026-09-01",
+                "end": "2026-09-07",
+                "US": 6674.48,
+                "GB": 291.66,
+                "DE": 274.45,
+                "totalUsd": 7240.59,
+                "units": 382
+            },
+            {
+                "start": "2026-09-08",
+                "end": "2026-09-14",
+                "US": 6629.54,
+                "GB": 253.56,
+                "DE": 257.09,
+                "totalUsd": 7140.19,
+                "units": 377
+            }
+        ]
+    }
 }

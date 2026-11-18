@@ -1,11 +1,12 @@
 import { Button } from '@heroui/react';
+
 import { useOptionalCurrentAgentActivity } from '../../../hooks/agents/use-current-agent-activity.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useServerTurns } from '../../../hooks/members/use-server-turns.ts';
-import { ActivityNote } from '../../members/agent-profile/agent-activity.tsx';
-import { ActivityLog } from '../../members/agent-profile/agent-activity-log.tsx';
 import { useLogEntries } from '../../members/agent-profile/agent-activity-log-entries.ts';
+import { ActivityLog } from '../../members/agent-profile/agent-activity-log.tsx';
 import { getTurnDetailAccess } from '../../members/agent-profile/agent-activity-model.ts';
+import { ActivityNote } from '../../members/agent-profile/agent-activity.tsx';
 import { useServerContext } from '../server-context.ts';
 import { ActivityAgentFilter, useActivityAgentFilter } from './server-activity-filter.tsx';
 import { readServerActivityGroups } from './server-activity-turns.ts';

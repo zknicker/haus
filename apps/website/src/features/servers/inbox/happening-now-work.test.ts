@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { ActiveCloudAgentWork, Agent } from '@haus/api';
+
 import { activeWorkLocations } from '../../../../../../packages/haus-api/src/cloud-agent-work-fixture.ts';
 import {
     cloudAgentRunFixture,

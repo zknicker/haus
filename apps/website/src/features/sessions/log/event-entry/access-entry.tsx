@@ -5,23 +5,23 @@ type AccessEventRow = Extract<TranscriptSystemRow, { systemKind: 'accessEvent' }
 
 export function AccessEventLogEntry({ entry }: { entry: AccessEventRow }) {
     return (
-        <div className="card-shell border border-warning-soft bg-warning-soft px-3 py-1.5">
+        <div className="card-shell border-warning-soft bg-warning-soft border px-3 py-1.5">
             <div className="flex items-center gap-2">
-                <span className="font-medium text-warning text-xs uppercase tracking-[0.16em]">
+                <span className="text-warning text-xs font-medium tracking-[0.16em] uppercase">
                     Access {entry.accessEvent.status}
                 </span>
-                <span className="font-mono text-muted text-xs tabular-nums">
+                <span className="text-muted font-mono text-xs tabular-nums">
                     {formatShortTime(entry.timestamp)}
                 </span>
             </div>
-            <p className="mt-1 text-foreground text-sm">
+            <p className="text-foreground mt-1 text-sm">
                 {entry.accessEvent.toolName ?? 'session access'}
                 {entry.accessEvent.targetSessionKey
                     ? ` → ${entry.accessEvent.targetSessionKey}`
                     : null}
             </p>
             {entry.accessEvent.errorMessage ? (
-                <p className="mt-0.5 line-clamp-2 whitespace-pre-wrap break-words text-sm text-warning">
+                <p className="text-warning mt-0.5 line-clamp-2 text-sm break-words whitespace-pre-wrap">
                     {entry.accessEvent.errorMessage}
                 </p>
             ) : null}

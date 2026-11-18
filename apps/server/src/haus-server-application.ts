@@ -2,6 +2,7 @@ import cors from '@fastify/cors';
 import { settle, tracePromise } from '@haus/effect';
 import { Exit, Scope } from 'effect';
 import Fastify, { type FastifyInstance } from 'fastify';
+
 import { AgentDelivery } from './agent-delivery/delivery.ts';
 import { openArtifactStorage } from './artifacts/startup.ts';
 import { openAttachmentRoot } from './attachments/attachment-root.ts';

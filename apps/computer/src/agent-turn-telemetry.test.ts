@@ -1,7 +1,9 @@
 import { expect, test } from 'bun:test';
+
 import { makeTelemetryLayer, tracePromise } from '@haus/effect';
 import { InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { Layer, ManagedRuntime } from 'effect';
+
 import { traceAgentTurn } from './agent-turn-telemetry.ts';
 
 test('continues the Server dispatch trace across the Computer turn boundary', async () => {

@@ -1,5 +1,6 @@
 import type { UnreadElsewhere } from '@haus/api';
 import { and, isNotNull, notInArray, sql } from 'drizzle-orm';
+
 import { targetForChat as targetForAgentChat } from '../agent-api/message-view.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable } from '../postgres/schema.ts';

@@ -1,7 +1,9 @@
 import { randomBytes } from 'node:crypto';
+
 import { lt } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
+
 import { browserAuthIntentsTable, nativeAuthIntentsTable } from '../postgres/schema.ts';
 import {
     type AuthRouteDependencies,

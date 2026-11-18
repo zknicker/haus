@@ -1,4 +1,5 @@
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
+
 import { AgentLoading } from '../../features/members/agent-profile/agent-loading.tsx';
 import { AgentProfileView } from '../../features/members/agent-profile/agent-profile-view.tsx';
 import { resolveAgentSectionParamForRole } from '../../features/members/agent-profile/agent-section-route.ts';

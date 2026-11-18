@@ -9,6 +9,7 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
 import { useParams } from 'react-router-dom';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { writeClipboardText } from '../../lib/clipboard.ts';

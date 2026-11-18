@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { cacheAnonymousMcpIcons } from './icon-cache.ts';
 
 const input = {

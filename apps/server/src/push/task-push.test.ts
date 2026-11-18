@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { TaskAssignedEvent } from '@haus/api';
+
 import { createPushQueue } from './push-queue.ts';
 import { createTaskPushWindow } from './task-push.ts';
 

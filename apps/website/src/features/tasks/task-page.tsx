@@ -1,9 +1,10 @@
 import type { TaskDetail } from '@haus/api';
-import { Button } from '@heroui/react';
 import { EmptyState } from '@heroui-pro/react';
+import { Button } from '@heroui/react';
 import { Alert02Icon, Task01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { useTask } from '../../hooks/tasks/use-task.ts';
 import { DockedCloudAgentWorkProvider } from '../cloud-agents/docked-cloud-agent-work.tsx';

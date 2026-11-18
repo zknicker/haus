@@ -1,7 +1,8 @@
 import type { Agent } from '@haus/api';
-import { Separator, Switch } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Separator, Switch } from '@heroui/react';
 import { Fragment } from 'react';
+
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { useAgentGrant } from '../../../hooks/members/use-agent-grant.ts';
 import { useAgents } from '../../../hooks/members/use-agents.ts';

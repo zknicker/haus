@@ -14,6 +14,7 @@
 import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { models } from './models.mjs';
 
 export const variantsDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'skills');

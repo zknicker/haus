@@ -1,6 +1,6 @@
 import { computerVersion } from './build-identity.ts';
-import { progress, readUpdateProgress, writeUpdateProgress } from './update.ts';
 import type { ComputerUpdateProgress } from './update-contract.ts';
+import { progress, readUpdateProgress, writeUpdateProgress } from './update.ts';
 
 /**
  * Any process that starts after an update restart settles it, so the Server sees the outcome

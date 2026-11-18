@@ -1,6 +1,7 @@
 import { EmptyState } from '@heroui-pro/react';
 import { Message01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Navigate, useNavigate } from 'react-router-dom';
+
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useOptionalDesktopTabs } from '../../../hooks/desktop-tabs/desktop-tabs-context.ts';

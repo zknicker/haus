@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { tabLink } from './tab-link.ts';
 
 test('a web tab copies its page address', () => {

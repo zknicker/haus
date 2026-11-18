@@ -1,4 +1,5 @@
 import { type Agent, type Chat, parseTaskKey } from '@haus/api';
+
 import type { TabLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import type { BrowserTab } from '../../lib/desktop-browser.ts';
 import { parseArtifactPageKey } from '../../routes/app/desktop-page-paths.ts';

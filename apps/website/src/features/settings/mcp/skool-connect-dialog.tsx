@@ -1,4 +1,5 @@
 import { Button, Modal } from '@heroui/react';
+
 import { getDesktopBridge, isElectronDesktopApp } from '../../../lib/desktop-bridge.ts';
 
 export function SkoolConnectDialog({

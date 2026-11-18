@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { ComputerAgentGrid } from './computer-agents.tsx';
 
 test('Computer Agents render as a HeroUI Pro data grid', () => {

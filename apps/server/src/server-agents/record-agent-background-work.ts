@@ -1,5 +1,6 @@
 import type { AgentBackgroundWorkReport } from '@haus/api';
 import { and, eq, ne } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
 

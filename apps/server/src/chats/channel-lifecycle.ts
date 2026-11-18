@@ -1,5 +1,6 @@
 import type { ChannelDeleteReceipt, ChannelLifecycleReceipt } from '@haus/api';
 import { and, eq, inArray, isNull, or } from 'drizzle-orm';
+
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import {
     prepareLinkedWorkEvents,

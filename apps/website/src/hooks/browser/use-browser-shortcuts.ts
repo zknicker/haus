@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import type { BrowserCommand, BrowserTab } from '../../lib/desktop-browser.ts';
 import {

@@ -13,6 +13,7 @@ export {
 } from './telemetry-attributes.ts';
 
 import { randomUUID } from 'node:crypto';
+
 import * as OtelMetrics from '@effect/opentelemetry/Metrics';
 import * as OtelNodeSdk from '@effect/opentelemetry/NodeSdk';
 import * as OtelResource from '@effect/opentelemetry/Resource';
@@ -29,6 +30,7 @@ import {
 } from '@opentelemetry/semantic-conventions';
 import { Clock, Data, Effect, Layer } from 'effect';
 import type { DurationInput } from 'effect/Duration';
+
 import type { EffectRuntime } from './boundary.ts';
 import { settle } from './boundary.ts';
 import {
@@ -189,12 +191,10 @@ export function withTelemetrySpan<A>(
     return <E, R>(effect: Effect.Effect<A, E, R>) => {
         const operation = String(attributes['haus.operation'] ?? name);
         const observed = effect.pipe(
-            Effect.map(
-                (value): ObservedTelemetryResult<A> => [
-                    value,
-                    safeOutcomeFromResult(value, outcomeFromResult),
-                ]
-            ),
+            Effect.map((value): ObservedTelemetryResult<A> => [
+                value,
+                safeOutcomeFromResult(value, outcomeFromResult),
+            ]),
             (operationEffect) =>
                 instrumentOperation(operationEffect, operation, (result) => result[1])
         );

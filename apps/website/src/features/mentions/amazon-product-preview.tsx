@@ -1,4 +1,5 @@
 import type { AmazonProductSummary } from '@haus/api';
+
 import type { AmazonProductLookup } from './amazon-product-lookup.ts';
 
 export function AmazonProductPreview({
@@ -14,21 +15,21 @@ export function AmazonProductPreview({
     return (
         <div className="grid grid-cols-[minmax(0,1fr)_5rem] items-center gap-2">
             <div className="hover-card__content haus-hover-card dark flex min-w-0 flex-col gap-0.5">
-                <code className="truncate font-mono text-muted text-xs">{asin}</code>
+                <code className="text-muted truncate font-mono text-xs">{asin}</code>
                 <div
                     aria-busy={lookupInProgress(lookup) || undefined}
                     className="flex min-w-0 flex-col gap-0.5"
                 >
                     {product?.title ? (
-                        <strong className="line-clamp-2 font-semibold text-foreground text-sm leading-snug">
+                        <strong className="text-foreground line-clamp-2 text-sm leading-snug font-semibold">
                             {product.title}
                         </strong>
                     ) : null}
                     {product?.brand ? (
-                        <span className="truncate text-muted text-xs">{product.brand}</span>
+                        <span className="text-muted truncate text-xs">{product.brand}</span>
                     ) : null}
                     {product?.price ? (
-                        <strong className="font-semibold text-base text-foreground leading-snug">
+                        <strong className="text-foreground text-base leading-snug font-semibold">
                             {new Intl.NumberFormat('en-US', {
                                 style: 'currency',
                                 currency: product.price.currencyCode,

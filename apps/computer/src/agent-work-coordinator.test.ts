@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { Runtime } from 'effect';
+
 import { AgentWorkCoordinator } from './agent-work-coordinator.ts';
 import { closeDaemonCoordination, makeDaemonRuntime } from './daemon-runtime.ts';
 

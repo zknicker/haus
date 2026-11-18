@@ -1,4 +1,5 @@
 import type { MessageCause, MessageCauseLive } from '@haus/api';
+
 import { formatRelativeTime } from '../../../lib/format.ts';
 
 /**

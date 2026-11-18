@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import { and, eq } from 'drizzle-orm';
+
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { chatMessagesTable } from '../src/postgres/schema.ts';
 import { messageCreatedTopic } from '../src/realtime/topics.ts';

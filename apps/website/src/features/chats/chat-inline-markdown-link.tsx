@@ -1,4 +1,5 @@
 import type * as React from 'react';
+
 import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useArtifactPanelOpen } from './artifact-panel-context.tsx';
 import { parseHausResourceLink } from './haus-resource-link.ts';
@@ -22,7 +23,7 @@ export function MarkdownLink({ children, href }: { children: React.ReactNode; hr
     if (hausTarget && openArtifactPanel) {
         return (
             <a
-                className="cursor-pointer text-accent underline underline-offset-2 hover:text-accent-hover"
+                className="text-accent hover:text-accent-hover cursor-pointer underline underline-offset-2"
                 href={href}
                 onClick={(event) => {
                     event.preventDefault();
@@ -37,7 +38,7 @@ export function MarkdownLink({ children, href }: { children: React.ReactNode; hr
 
     return (
         <a
-            className="text-accent underline underline-offset-2 hover:text-accent-hover"
+            className="text-accent hover:text-accent-hover underline underline-offset-2"
             href={href}
             rel="noreferrer"
             target="_blank"

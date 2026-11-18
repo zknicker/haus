@@ -1,4 +1,5 @@
 import type { ChatMessage } from '@haus/api';
+
 import type { HausOutputs } from '../../lib/haus-server.tsx';
 
 /**

@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { redirectRetiredRoute } from './retired-routes.ts';
 
 const at = (path: string) => {

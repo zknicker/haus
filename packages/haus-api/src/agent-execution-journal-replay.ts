@@ -4,7 +4,6 @@
  * appliers, so every reader reproduces the document the turn held.
  */
 
-import { EXECUTION_JOURNAL_REASONING_MAX_BLOCKS } from './agent-execution-journal.ts';
 import type {
     ExecutionJournalDocument,
     ExecutionJournalInterruptReason,
@@ -12,6 +11,7 @@ import type {
     ExecutionJournalStatus,
     ExecutionJournalTool,
 } from './agent-execution-journal-document.ts';
+import { EXECUTION_JOURNAL_REASONING_MAX_BLOCKS } from './agent-execution-journal.ts';
 
 type Mutation<Type extends ExecutionJournalMutation['type']> = Extract<
     ExecutionJournalMutation,

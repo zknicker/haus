@@ -2,7 +2,9 @@ import { afterAll, expect, mock, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import type { AgentExecutionJournalRecordsFrame } from '@haus/api';
+
 import { createComputerExecutionJournal } from '../harness/execution-journal.ts';
 
 // The sync mark lands late, as on a slow disk, so a backfill pass lists the run before it.

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
+
 import { browserViewsCovered } from '../../lib/desktop-browser.ts';
 import { beginDesktopPointerDrag } from './desktop-pane-drag.ts';
 

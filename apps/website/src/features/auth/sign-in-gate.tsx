@@ -1,9 +1,10 @@
 import { Button, Spinner } from '@heroui/react';
 import { Fragment, type ReactNode, useState } from 'react';
+
 import { ActivationLoading } from '../../components/activation/activation-loading.tsx';
 import { ActivationShell, ActivationStep } from '../../components/activation/activation-shell.tsx';
-import { useAppAuth } from '../../lib/app-auth.tsx';
 import type { AppAuthSnapshot } from '../../lib/app-auth-session.ts';
+import { useAppAuth } from '../../lib/app-auth.tsx';
 import { getDesktopBridge, isElectronDesktopApp } from '../../lib/desktop-bridge.ts';
 
 /** Every product route uses a current, Server-issued App session. */
@@ -111,7 +112,7 @@ function BrowserGoogleSignIn() {
             >
                 Continue with Google
             </Button>
-            {error ? <p className="max-w-sm text-center text-danger text-sm">{error}</p> : null}
+            {error ? <p className="text-danger max-w-sm text-center text-sm">{error}</p> : null}
         </div>
     );
 }
@@ -150,7 +151,7 @@ function DesktopGoogleSignIn() {
                     </Button>
                 ) : null}
             </div>
-            {error ? <p className="max-w-sm text-center text-danger text-sm">{error}</p> : null}
+            {error ? <p className="text-danger max-w-sm text-center text-sm">{error}</p> : null}
         </div>
     );
 }

@@ -1,6 +1,7 @@
 import { EmptyState } from '@heroui-pro/react';
 import { File01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type { ReactNode } from 'react';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { codeLanguageForPath, countCodeLines } from '../../lib/code-language.ts';
 import {
@@ -63,7 +64,7 @@ export function WorkspaceArtifactContent({
         <div className="flex h-full min-h-0 flex-col">
             {controls}
             {file.truncated ? (
-                <div className="shrink-0 border-separator border-b bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
+                <div className="border-separator bg-warning-soft text-warning-soft-foreground shrink-0 border-b px-3 py-2 text-sm">
                     Preview truncated. This file is {formatWorkspaceFileBytes(file.sizeBytes)}.
                 </div>
             ) : null}
@@ -81,13 +82,13 @@ export function WorkspaceArtifactContent({
                 the band's px-3 chrome gutter. Language sits trailing,
                 editor-status-bar style. */}
             <div className="workspace-file-footer flex shrink-0 items-center justify-between gap-3 px-3 py-1.5">
-                <span className="min-w-0 truncate text-muted text-xs tabular-nums">
+                <span className="text-muted min-w-0 truncate text-xs tabular-nums">
                     {formatWorkspaceFileMetadata(file.sizeBytes, file.updatedAt, {
                         lineCount: codeView ? countCodeLines(file.content) : null,
                     })}
                 </span>
                 {sourceFile ? (
-                    <span className="shrink-0 text-muted text-xs">
+                    <span className="text-muted shrink-0 text-xs">
                         {codeLanguageForPath(target.path).label}
                     </span>
                 ) : null}
@@ -111,10 +112,10 @@ function WorkspaceFilePreview({
 }) {
     if (mediaType.startsWith('image/')) {
         return (
-            <div className="grid h-full min-h-0 place-items-center overflow-auto bg-surface-secondary p-6">
+            <div className="bg-surface-secondary grid h-full min-h-0 place-items-center overflow-auto p-6">
                 <img
                     alt={path}
-                    className="h-auto max-h-full w-auto max-w-full rounded-md border border-separator bg-background object-contain"
+                    className="border-separator bg-background h-auto max-h-full w-auto max-w-full rounded-md border object-contain"
                     height={768}
                     src={`data:${mediaType};base64,${content}`}
                     width={1024}

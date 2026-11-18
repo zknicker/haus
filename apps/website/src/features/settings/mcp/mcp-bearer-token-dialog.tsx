@@ -11,6 +11,7 @@ import {
     toast,
 } from '@heroui/react';
 import { useState } from 'react';
+
 import { openSystemBrowserLink } from '../../../lib/open-external-link.ts';
 import { ConnectionGlyph } from './connection-mark.tsx';
 
@@ -112,7 +113,7 @@ function BearerTokenForm({
     return (
         <>
             <Modal.Header>
-                <Modal.Icon className="overflow-hidden bg-default text-foreground">
+                <Modal.Icon className="bg-default text-foreground overflow-hidden">
                     <ConnectionGlyph
                         connection={{
                             icon: mcpPresetIcons[preset] ?? null,
@@ -122,7 +123,7 @@ function BearerTokenForm({
                     />
                 </Modal.Icon>
                 <Modal.Heading>{heading}</Modal.Heading>
-                <p className="mt-1.5 text-muted text-sm leading-5">{guide.summary}</p>
+                <p className="text-muted mt-1.5 text-sm leading-5">{guide.summary}</p>
             </Modal.Header>
             <Modal.Body>
                 <Form

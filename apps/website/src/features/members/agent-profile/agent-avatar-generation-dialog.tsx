@@ -1,6 +1,7 @@
 import { avatarGenerationConceptMaxLength } from '@haus/api/avatar-generation';
 import { Button, Form, InputGroup, Modal, Spinner, TextField, Tooltip } from '@heroui/react';
 import { AiMagicIcon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 import {
     type AvatarGenerationSession,
@@ -70,7 +71,7 @@ export function AvatarGenerationDialog({
                     </Modal.Body>
                     <Modal.Footer>
                         <p
-                            className="line-clamp-2 min-w-0 flex-1 text-danger text-xs leading-4"
+                            className="text-danger line-clamp-2 min-w-0 flex-1 text-xs leading-4"
                             role="alert"
                             title={session.saveError ?? undefined}
                         >

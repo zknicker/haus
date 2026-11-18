@@ -1,7 +1,8 @@
 import type { AgentSkillImportRecord, AgentSkillMetadata, ImportableSkill } from '@haus/api';
-import { Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Separator } from '@heroui/react';
 import * as React from 'react';
+
 import { PickerPopover } from '../../agents/picker-popover.tsx';
 import { SkillMark } from '../../skills/skill-mark.tsx';
 import { formatSkillName } from '../../skills/skill-name-format.ts';
@@ -33,7 +34,7 @@ export function SkillList({
             <ItemCardGroup.Header className="flex items-center justify-between gap-3">
                 <ItemCardGroup.Title>
                     Skills
-                    <span className="ms-2 text-muted tabular-nums">{skills.length}</span>
+                    <span className="text-muted ms-2 tabular-nums">{skills.length}</span>
                 </ItemCardGroup.Title>
                 {canEdit ? (
                     <PickerPopover
@@ -71,7 +72,7 @@ export function SkillList({
                                     <ItemCard.Title>
                                         {canEdit ? (
                                             <button
-                                                className="cursor-(--cursor-interactive) rounded-sm text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-focus"
+                                                className="focus-visible:ring-focus cursor-(--cursor-interactive) rounded-sm text-left outline-none hover:underline focus-visible:ring-2"
                                                 onClick={() => onSelectSkill(skill)}
                                                 type="button"
                                             >
@@ -99,7 +100,7 @@ export function SkillList({
                     ))
                 )}
             </ItemCardGroup>
-            {importError ? <p className="px-4 text-danger text-sm">{importError}</p> : null}
+            {importError ? <p className="text-danger px-4 text-sm">{importError}</p> : null}
             {imports.map((record) => {
                 const sourceName = skillSources.find(
                     (candidate) => candidate.id === record.sourceId
@@ -108,8 +109,8 @@ export function SkillList({
                     <p
                         className={
                             record.status === 'failed'
-                                ? 'px-4 text-danger text-sm'
-                                : 'px-4 text-muted text-sm'
+                                ? 'text-danger px-4 text-sm'
+                                : 'text-muted px-4 text-sm'
                         }
                         key={record.requestId}
                     >

@@ -1,7 +1,8 @@
 import { type Agent, type Trigger, triggerTitleMaxLength } from '@haus/api';
-import { Alert, Button, FieldError, Form, Input, Label, TextArea, TextField } from '@heroui/react';
 import { Sheet } from '@heroui-pro/react';
+import { Alert, Button, FieldError, Form, Input, Label, TextArea, TextField } from '@heroui/react';
 import * as React from 'react';
+
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { useServerGithubInstallations } from '../../../hooks/github/use-server-github-installations.ts';
 import { useTriggerCreate } from '../../../hooks/members/use-trigger-create.ts';
@@ -99,7 +100,7 @@ export function TriggerCreatePanel({
         <>
             <Sheet.Header>
                 <Sheet.Heading>New trigger</Sheet.Heading>
-                <p className="mt-1.5 text-muted text-sm leading-5">
+                <p className="text-muted mt-1.5 text-sm leading-5">
                     Wake {agent.displayName} when something outside Haus happens.
                 </p>
             </Sheet.Header>

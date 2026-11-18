@@ -1,6 +1,8 @@
 import { afterAll, expect, test } from 'bun:test';
+
 import type { AgentCommand, ComputerSecretsStatus } from '@haus/api';
 import { makeTestRuntime } from '@haus/effect';
+
 import { SecretsReplyOffice } from './secrets-reply-office.ts';
 
 const computerId = 'cmp_1234567890123456';

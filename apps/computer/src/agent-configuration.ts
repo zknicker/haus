@@ -1,5 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+
 import { seedAgentWorkspace } from '@haus/agent-workspace';
 import {
     type AgentConfigureCommand,
@@ -9,6 +10,7 @@ import {
     type ComputerInventory,
     type CoveApplyCommand,
 } from '@haus/api';
+
 import { seedAgentManagedSkills } from './managed-skill-changes.ts';
 
 export interface AppliedAgentConfiguration {

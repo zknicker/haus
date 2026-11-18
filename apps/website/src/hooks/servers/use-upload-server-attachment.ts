@@ -1,5 +1,6 @@
 import type { AttachmentUploadResult } from '@haus/api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+
 import { getAppSessionAccessToken } from '../../lib/app-auth.tsx';
 import { getHausServerOrigin, hausTrpc } from '../../lib/haus-server.tsx';
 import { seedHostedAttachmentImage } from './attachment-image.ts';

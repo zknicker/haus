@@ -1,4 +1,5 @@
 import type { AgentTurnSummary } from '@haus/api';
+
 import type { Seed } from './agent-inbox-harness.ts';
 
 export function settledTurn(

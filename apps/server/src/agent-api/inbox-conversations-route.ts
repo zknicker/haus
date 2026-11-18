@@ -1,5 +1,6 @@
 import { agentInboxConversationsResponseSchema, agentInboxViews } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 import { decodeInboxActivityKey } from './inbox-activity-key.ts';

@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { chatFooterClearanceClassName } from '../../chats/chat-footer-surface.tsx';
 import { ChatTypingStrip } from './chat-typing-indicator.tsx';
 import {

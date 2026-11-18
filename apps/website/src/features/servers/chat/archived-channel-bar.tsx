@@ -1,12 +1,13 @@
 import type { Chat } from '@haus/api';
 import { Button, toast } from '@heroui/react';
+
 import { useChannelUnarchive } from '../../../hooks/servers/use-channel-lifecycle.ts';
 
 export function ArchivedChannelBar({ canManage, chat }: { canManage: boolean; chat: Chat }) {
     const unarchive = useChannelUnarchive();
 
     return (
-        <div className="mx-auto flex w-full items-center justify-between gap-4 px-9 pb-4 text-muted text-sm">
+        <div className="text-muted mx-auto flex w-full items-center justify-between gap-4 px-9 pb-4 text-sm">
             <p>This channel is archived. Its history is read-only.</p>
             {canManage ? (
                 <Button

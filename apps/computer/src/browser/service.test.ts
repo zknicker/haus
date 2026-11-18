@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { BrowserServiceCoordinator } from './service.ts';
 

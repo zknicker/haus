@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import {
     type BrowserPageSnapshot,
     useBrowserViewBounds,
@@ -18,7 +19,7 @@ export function BrowserPage({ className, tab }: { className?: string; tab: Brows
     return (
         <section
             aria-label={`Browser: ${tab.title}`}
-            className={cn('flex min-h-0 flex-col bg-background', className)}
+            className={cn('bg-background flex min-h-0 flex-col', className)}
         >
             <BrowserWorkspaceToolbar tab={tab} />
             <BrowserFindBar tab={tab} />
@@ -29,7 +30,7 @@ export function BrowserPage({ className, tab }: { className?: string; tab: Brows
             >
                 {snapshot ? <BrowserSnapshot snapshot={snapshot} /> : null}
                 {tab.error ? (
-                    <p className="p-6 text-muted text-sm" role="alert">
+                    <p className="text-muted p-6 text-sm" role="alert">
                         {tab.error}. Reload or open this page in your default browser.
                     </p>
                 ) : null}

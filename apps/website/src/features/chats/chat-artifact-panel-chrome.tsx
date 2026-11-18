@@ -5,6 +5,7 @@ import {
     MoreHorizontalIcon,
     PlusSignIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
 import { shellBandIconSize } from '../shell/section-header.tsx';

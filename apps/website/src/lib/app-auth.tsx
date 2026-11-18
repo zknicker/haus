@@ -1,5 +1,6 @@
 import { type AppSession, appSessionSchema } from '@haus/api/app-session';
 import * as React from 'react';
+
 import {
     isLocalDevFixtureEnabled,
     parseDesktopSession,

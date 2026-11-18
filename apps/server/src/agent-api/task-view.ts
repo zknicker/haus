@@ -1,5 +1,6 @@
 import type { HausApiSchema, Task, TaskActor, TaskDetail } from '@haus/api';
 import { and, eq, inArray } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,

@@ -1,6 +1,7 @@
 import { artifactPathBasename, artifactPathKey, artifactPathParent } from '@haus/api';
 import { Breadcrumbs, Button, Label, ListBox, Modal } from '@heroui/react';
 import * as React from 'react';
+
 import { useArtifactFolders } from '../../hooks/artifacts/use-artifact-folders.ts';
 import { useArtifactMoveMany } from '../../hooks/artifacts/use-artifact-move-many.ts';
 import type { ArtifactRenameTarget } from './artifact-rename.ts';

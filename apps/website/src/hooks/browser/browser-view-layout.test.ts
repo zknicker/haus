@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import type { BrowserViewPlacement } from '../../lib/desktop-browser.ts';
 import { createBrowserViewLayout } from './browser-view-layout.ts';
 

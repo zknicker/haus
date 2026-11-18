@@ -2,12 +2,13 @@ import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
+import { classifyRuntimeFailure } from '../runtime-failure.ts';
 import type { RuntimeResumeState } from '../runtime/resume-state.ts';
 import { fakeRuntimeDriver, finishedTurn } from '../runtime/testing/fake-runtime-driver.ts';
 import type { TurnEvent } from '../runtime/turn-event.ts';
-import { classifyRuntimeFailure } from '../runtime-failure.ts';
 import {
     HarnessTurnFailedError,
     type HarnessTurnInput,

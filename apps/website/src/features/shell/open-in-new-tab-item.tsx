@@ -1,6 +1,7 @@
-import { Label } from '@heroui/react';
 import { ContextMenu } from '@heroui-pro/react';
+import { Label } from '@heroui/react';
 import { LayoutRightIcon, PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import {
     type DesktopTabCommands,

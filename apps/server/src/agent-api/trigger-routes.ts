@@ -7,6 +7,7 @@ import {
 } from '@haus/api';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import * as z from 'zod';
+
 import { ChatArchivedError, ChatNotFoundError } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {

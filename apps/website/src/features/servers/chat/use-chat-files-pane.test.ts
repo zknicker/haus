@@ -1,4 +1,5 @@
 import { expect, mock, test } from 'bun:test';
+
 import { routeChatFilesOpen } from './use-chat-files-pane.ts';
 
 test('desktop opens a chat Attachments tab instead of the chat side panel', () => {

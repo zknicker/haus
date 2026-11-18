@@ -1,4 +1,3 @@
-import type { HugeiconsIconProps } from '@hugeicons/react';
 import {
     AiMagicIcon,
     BrowserIcon,
@@ -9,6 +8,7 @@ import {
     GlobalSearchIcon,
     ToolsIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
+import type { HugeiconsIconProps } from '@hugeicons/react';
 
 export type ToolStepIcon = HugeiconsIconProps['icon'];
 

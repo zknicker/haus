@@ -1,5 +1,6 @@
 import { ItemCard } from '@heroui-pro/react';
 import type * as React from 'react';
+
 import { SettingsFact } from '../../settings/layout/settings-text.tsx';
 
 /**

@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import { createAgentClaims } from '../src/agent-api/claim-create.ts';
 import { AgentClaimNonceReusedError } from '../src/agent-api/claim-error.ts';
 import { scheduleAgentReminder } from '../src/agent-api/reminders.ts';

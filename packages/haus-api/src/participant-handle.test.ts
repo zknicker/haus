@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { participantHandleSchema, suggestParticipantHandle } from './participant-handle.ts';
 
 describe('participant handles', () => {

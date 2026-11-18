@@ -1,6 +1,7 @@
 import type { ChatEngagement } from '@haus/api';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import * as React from 'react';
+
 import { useChatThoughtListener } from '../../../hooks/servers/use-chat-thought-listener.ts';
 import {
     type ChatTypingThought,
@@ -205,7 +206,7 @@ function ThoughtBubble({
             }
         >
             <span className="relative block" style={{ filter: silhouette }}>
-                <span className="block rounded-[12px] bg-thought-bubble px-[11px] py-[7px] text-[13px] text-foreground leading-[18px]">
+                <span className="bg-thought-bubble text-foreground block rounded-[12px] px-[11px] py-[7px] text-[13px] leading-[18px]">
                     <motion.span
                         animate={{ opacity: 1, y: 0 }}
                         className="line-clamp-2"
@@ -217,7 +218,7 @@ function ThoughtBubble({
                 </span>
                 <svg
                     aria-hidden="true"
-                    className="absolute top-[calc(100%-1px)] block h-[7px] fill-thought-bubble"
+                    className="fill-thought-bubble absolute top-[calc(100%-1px)] block h-[7px]"
                     style={{ left: tailInset - tailWidth / 2, width: tailWidth }}
                     viewBox="0 0 16 7"
                 >

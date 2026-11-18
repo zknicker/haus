@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { CloudAgentModelCatalog, CloudAgentModelFamily } from '@haus/api';
+
 import { autoModelKey, cloudAgentModelView, modelSettingForKey } from './cloud-agent-model.ts';
 
 const catalog: CloudAgentModelCatalog = {

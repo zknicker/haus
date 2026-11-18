@@ -1,6 +1,7 @@
 import { FieldError, Input, Label, TextField } from '@heroui/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { useCreateServer } from '../../hooks/servers/use-create-server.ts';
 import { serverRoute } from './server-routes.ts';
 import { slugifyServerName } from './server-slug.ts';

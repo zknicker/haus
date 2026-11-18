@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import type { BrowserHistoryEntry } from '../../hooks/browser/use-browser-history.ts';
 import { selectRecentSites } from './browser-recent-sites.ts';
 

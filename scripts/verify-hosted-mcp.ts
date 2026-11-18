@@ -1,4 +1,5 @@
 import { resolve } from 'node:path';
+
 import { verifyHostedMcp } from '../apps/server/src/hosted-mcp/verify-package.ts';
 
 if (!process.argv[2]) {

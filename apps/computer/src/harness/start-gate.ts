@@ -1,5 +1,6 @@
 import { settle } from '@haus/effect';
 import { Data, Duration, Effect } from 'effect';
+
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 
 /** Machine-wide cap on concurrent runtime starts, so a reconnect cannot launch every Agent at once. */

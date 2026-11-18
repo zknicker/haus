@@ -1,6 +1,7 @@
-import { AvatarGroup, Button, Disclosure, Modal, Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { AvatarGroup, Button, Disclosure, Modal, Separator } from '@heroui/react';
 import type React from 'react';
+
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { SettingsFact } from '../settings/layout/settings-text.tsx';
 import type { HostSkill } from './host-skill-catalog.ts';
@@ -49,13 +50,13 @@ export function HostSkillDialog({
                                 </Modal.Icon>
                                 <Modal.Heading>
                                     {formatSkillName(entry.skill.name)}
-                                    <span className="ms-2 font-normal text-muted">Skill</span>
+                                    <span className="text-muted ms-2 font-normal">Skill</span>
                                 </Modal.Heading>
                             </Modal.Header>
                             <Modal.Body>
                                 <div className="flex flex-col gap-4">
                                     {entry.skill.description ? (
-                                        <p className="text-base text-foreground">
+                                        <p className="text-foreground text-base">
                                             {entry.skill.description}
                                         </p>
                                     ) : null}
@@ -137,7 +138,7 @@ function HostSkillUsedBy({
 
     // `me-auto` holds the line at the footer's leading edge, across from Done.
     return (
-        <p className="me-auto flex min-w-0 items-center gap-2 text-muted text-sm">
+        <p className="text-muted me-auto flex min-w-0 items-center gap-2 text-sm">
             {users.length > 0 ? (
                 <>
                     <AvatarGroup aria-hidden="true" size="sm">

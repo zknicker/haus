@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+
 import type { Chat, ChatMessage } from '@haus/api';
+
 import {
     earlierUnread,
     initialUnreadSelection,

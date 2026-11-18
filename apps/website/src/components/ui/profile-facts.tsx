@@ -1,4 +1,5 @@
 import type React from 'react';
+
 import { cn } from '../../lib/utils.ts';
 
 /**
@@ -40,10 +41,10 @@ export function ProfileFact({
         // `gap-y` between two stacked rows of them — the caption read as a
         // separate line rather than as this value's label.
         <div className="flex min-w-0 flex-col items-start gap-0.5 text-start leading-5">
-            <dt className="order-2 truncate font-medium text-muted">{label}</dt>
+            <dt className="text-muted order-2 truncate font-medium">{label}</dt>
             <dd
                 className={cn(
-                    'order-1 flex min-w-0 items-center truncate font-semibold text-foreground',
+                    'text-foreground order-1 flex min-w-0 items-center truncate font-semibold',
                     className
                 )}
             >

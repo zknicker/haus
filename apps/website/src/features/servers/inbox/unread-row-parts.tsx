@@ -1,6 +1,7 @@
 import type { Agent, Chat } from '@haus/api';
 import { Button, Tooltip } from '@heroui/react';
 import { MailOpen01Icon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { ChannelIconBox } from '../../../components/chats/channel-icon-box.tsx';
 import { RelativeTime } from '../../../components/time/relative-time.tsx';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';

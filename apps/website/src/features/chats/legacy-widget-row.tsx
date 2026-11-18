@@ -1,4 +1,5 @@
 import { type WidgetRenderInput, widgetRenderInputSchema } from '@haus/api/widgets';
+
 import { cn } from '../../lib/utils.ts';
 import { WidgetArtifactCard } from './artifact-card.tsx';
 import type { TranscriptWidgetRow } from './transcript-contract.ts';
@@ -57,18 +58,18 @@ function WidgetFallback({ error, text }: { error: string | null; text: string })
     return (
         <div
             className={cn(
-                'card-shell max-w-[42rem] border border-border bg-surface-secondary/70 px-3 py-2.5',
+                'card-shell border-border bg-surface-secondary/70 max-w-[42rem] border px-3 py-2.5',
                 'text-sm leading-5'
             )}
             role="note"
         >
             <p
-                className="whitespace-pre-wrap break-words text-foreground [overflow-wrap:anywhere]"
+                className="text-foreground [overflow-wrap:anywhere] break-words whitespace-pre-wrap"
                 data-selectable-text=""
             >
                 {text}
             </p>
-            {error ? <p className="mt-1 text-muted text-sm">Widget unavailable.</p> : null}
+            {error ? <p className="text-muted mt-1 text-sm">Widget unavailable.</p> : null}
         </div>
     );
 }

@@ -1,7 +1,9 @@
 import { expect, test } from 'bun:test';
+
 import type { AgentReasoningEffort } from '@haus/api';
 import { LowSignalIcon, MediumSignalIcon, SignalFull02Icon } from '@hugeicons/core-free-icons';
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { AgentExecutionChips } from './agent-execution-chips.tsx';
 import { testAgent } from './agent-fixtures.ts';

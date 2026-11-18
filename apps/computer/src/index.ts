@@ -3,7 +3,9 @@ import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
+
 import type { AgentSkillImportCommand, AgentSkillImportRecord } from '@haus/api';
+
 import { handleBackgroundFrame } from './agent-background-frames.ts';
 import * as commandFrames from './agent-command-frames.ts';
 import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
@@ -67,8 +69,8 @@ import { startCloudAgentModelCatalogRefresh } from './cloud-agents/model-catalog
 import { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import { sendComputerDiskReport } from './computer-disk.ts';
 import { readComputerName } from './computer-name.ts';
-import { createComputerReporter, reportStateError } from './computer-report.ts';
 import { startComputerReportSchedule } from './computer-report-schedule.ts';
+import { createComputerReporter, reportStateError } from './computer-report.ts';
 import { applyCoveConfiguration, parseCoveApplyCommand } from './cove-configuration.ts';
 import { type DaemonRuntime, withDaemonRuntime } from './daemon-runtime.ts';
 import { decideStart, readRunMarker, writeRunMarker } from './delivery.ts';
@@ -96,15 +98,15 @@ import {
     replacePendingInbox,
 } from './inbox-store.ts';
 import { runInternalCommand } from './internal-commands.ts';
-import { detectInventory } from './inventory.ts';
 import { handleInventoryRefresh } from './inventory-refresh.ts';
+import { detectInventory } from './inventory.ts';
+import { tracedCrashTurn } from './launch-crash-turn.ts';
 import {
     type AgentStartCommand,
     type AgentTurnFrame,
     type Attachment,
     runAgentLaunch,
 } from './launch.ts';
-import { tracedCrashTurn } from './launch-crash-turn.ts';
 import {
     computerServiceLabel,
     replaceLaunchdService,
@@ -120,18 +122,10 @@ import {
     runComputerLogin,
 } from './login.ts';
 import { parseReminderScriptCommand, runReminderScript } from './reminder-script.ts';
-import { createRuntimePrewarmer } from './runtime/runtime-prewarm.ts';
 import { runtimeSearchPath } from './runtime-discovery.ts';
+import { createRuntimePrewarmer } from './runtime/runtime-prewarm.ts';
 import { handleComputerSecretsRequest } from './secrets/requests.ts';
 import { deleteServerPartition } from './server-partition-purge.ts';
-import {
-    admitActiveRun,
-    isNewerVersion,
-    readProductionRelease,
-    readUpdateProgress,
-    rollbackComputer,
-    runSignedUpdate,
-} from './update.ts';
 import {
     computerBootstrapProtocolVersion,
     computerProtocolVersion,
@@ -141,6 +135,14 @@ import {
     parseComputerUpdateCommand,
 } from './update-contract.ts';
 import { finishRestart, recoverInterruptedUpdate } from './update-recovery.ts';
+import {
+    admitActiveRun,
+    isNewerVersion,
+    readProductionRelease,
+    readUpdateProgress,
+    rollbackComputer,
+    runSignedUpdate,
+} from './update.ts';
 import { createUpgradeRenderer, describeConcurrentUpdate } from './upgrade-render.ts';
 import { saveOpenRouterManagementKey } from './usage/openrouter-settings.ts';
 import { createUsageReporter } from './usage/report.ts';

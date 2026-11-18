@@ -1,5 +1,6 @@
 import type { ChatReadEvent, MessageCreatedEvent, MessageNotificationReason } from '@haus/api';
 import * as React from 'react';
+
 import {
     type MessageNotificationNames,
     messageNotificationText,

@@ -1,5 +1,6 @@
 import type { Chat } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
+
 import { listChats } from '../chats/list-chats.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { channelAgentParticipantsTable } from '../postgres/schema.ts';

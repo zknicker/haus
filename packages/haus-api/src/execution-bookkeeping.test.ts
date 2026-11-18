@@ -1,10 +1,11 @@
 import { expect, test } from 'bun:test';
+
+import { executionBookkeepingCases } from './execution-bookkeeping-fixtures.ts';
 import {
     isExecutionBookkeeping,
     isHausOnlyShellScript,
     relativizeWorkspacePath,
 } from './execution-bookkeeping.ts';
-import { executionBookkeepingCases } from './execution-bookkeeping-fixtures.ts';
 import { unwrapShellCommand } from './execution-shell-script.ts';
 
 for (const fixture of executionBookkeepingCases) {

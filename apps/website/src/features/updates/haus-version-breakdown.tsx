@@ -8,15 +8,15 @@ export function HausVersionBreakdown({ facts }: { facts: readonly HausComponentF
                 return (
                     <div className="grid gap-1" key={fact.id}>
                         <div className="flex items-baseline justify-between gap-8">
-                            <dt className="min-w-0 truncate text-muted">{fact.label}</dt>
+                            <dt className="text-muted min-w-0 truncate">{fact.label}</dt>
                             <dd
-                                className={`${display.tone} whitespace-nowrap text-right font-mono tabular-nums`}
+                                className={`${display.tone} text-right font-mono whitespace-nowrap tabular-nums`}
                             >
                                 {display.value}
                             </dd>
                         </div>
                         {fact.status === 'failed' ? (
-                            <dd className="grid gap-0.5 text-danger">
+                            <dd className="text-danger grid gap-0.5">
                                 <span>{fact.detail ?? `${fact.label} could not update.`}</span>
                                 {fact.remedy ? (
                                     <span className="text-foreground">{fact.remedy}</span>

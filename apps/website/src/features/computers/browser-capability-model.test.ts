@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { AgentRuntimeBrowserSettings } from '@haus/api';
+
 import { browserCapabilityView } from './browser-capability-model.ts';
 
 const settings: AgentRuntimeBrowserSettings = {

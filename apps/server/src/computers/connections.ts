@@ -14,6 +14,7 @@ import type {
     SignedComputerRelease,
 } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
+
 import type { DeliveryTransport } from '../agent-delivery/delivery.ts';
 import { AgentReplyOffice } from './agent-reply-office.ts';
 import { BrowserReplyOffice } from './browser-reply-office.ts';
@@ -131,7 +132,7 @@ export class ComputerConnections implements DeliveryTransport {
         const computer = this.live(computerId);
         return Boolean(
             computer?.ordinary &&
-                !['waiting-for-agents', 'installing', 'restarting'].includes(computer.updatePhase)
+            !['waiting-for-agents', 'installing', 'restarting'].includes(computer.updatePhase)
         );
     }
 

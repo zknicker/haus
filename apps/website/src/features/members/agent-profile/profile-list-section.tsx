@@ -27,7 +27,7 @@ export function ProfileListSection({
                 <ItemCardGroup.Title>
                     {title}
                     {count === undefined ? null : (
-                        <span className="ms-2 text-muted tabular-nums">{count}</span>
+                        <span className="text-muted ms-2 tabular-nums">{count}</span>
                     )}
                 </ItemCardGroup.Title>
                 {action}

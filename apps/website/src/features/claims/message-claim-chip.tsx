@@ -35,7 +35,7 @@ export function MessageClaimChip({
         <span
             // Annotation scale, matching the author line — without an explicit
             // size it inherits the message container and outgrows the body text.
-            className="inline-flex min-w-0 max-w-full items-center gap-1.5 font-semibold text-muted text-sm"
+            className="text-muted inline-flex max-w-full min-w-0 items-center gap-1.5 text-sm font-semibold"
             data-testid="message-claim-chip"
         >
             <span className="shrink-0 tabular-nums">Claim {formatClaimNumber(claim)}</span>

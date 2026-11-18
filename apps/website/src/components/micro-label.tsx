@@ -8,6 +8,6 @@ import type * as React from 'react';
  */
 export function MicroLabel({ children }: { children: React.ReactNode }) {
     return (
-        <span className="font-medium text-muted text-xs uppercase tracking-wide">{children}</span>
+        <span className="text-muted text-xs font-medium tracking-wide uppercase">{children}</span>
     );
 }

@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { readComputerUpdateStatus } from './update-check.ts';
 
 const revision = 'a'.repeat(40);

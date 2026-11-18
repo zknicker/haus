@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { matchChatComposerMentionRequest } from './chat-composer-mention.ts';
 
 test('mention requests are consumed only by their owning composer', () => {

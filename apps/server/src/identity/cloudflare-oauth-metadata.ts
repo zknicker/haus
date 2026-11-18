@@ -1,4 +1,5 @@
 import * as z from 'zod';
+
 import { cloudflareAccessIssuer } from './cloudflare-access.ts';
 
 const metadataSchema = z

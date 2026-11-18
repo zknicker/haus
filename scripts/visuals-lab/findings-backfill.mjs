@@ -10,6 +10,7 @@
 import { existsSync } from 'node:fs';
 import { readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+
 import { fenceFilesFor, findingsFileFor } from './engine/findings.mjs';
 import { createVisualRenderer } from './engine/render.mjs';
 

@@ -1,5 +1,6 @@
 import type { ArtifactMetadata } from '@haus/api';
 import { Button } from '@heroui/react';
+
 import { useArtifactSave } from '../../hooks/artifacts/use-artifact-save.ts';
 import { artifactKindLabel, formatArtifactBytes } from './artifact-format.ts';
 import { ArtifactFileIcon } from './icons/artifact-file-icon.tsx';
@@ -26,7 +27,7 @@ export function ArtifactFileCard({
             <div className="flex flex-col items-center gap-4 text-center">
                 <ArtifactFileIcon kind={kind} size={96} />
                 <div className="flex flex-col gap-1">
-                    <p className="break-all font-medium text-foreground text-sm">
+                    <p className="text-foreground text-sm font-medium break-all">
                         {artifact.filename}
                     </p>
                     <p className="text-muted text-sm">

@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Outlet, useParams } from 'react-router-dom';
+
 import { ConnectionNotice } from '../../features/servers/connection-notice.tsx';
 import { CommandMenuProvider } from '../../features/shell/command-menu-provider.tsx';
 import { ShellFrame, SidePaneProvider } from '../../features/shell/shell-side-pane.tsx';
@@ -50,8 +51,8 @@ export function ServerLayout() {
     if (server.error && !server.data) {
         return (
             <main className="flex h-dvh flex-col items-center justify-center gap-2 px-6 text-center">
-                <h1 className="font-semibold text-foreground text-lg">Server unavailable</h1>
-                <p className="max-w-sm text-muted text-sm">{server.error.message}</p>
+                <h1 className="text-foreground text-lg font-semibold">Server unavailable</h1>
+                <p className="text-muted max-w-sm text-sm">{server.error.message}</p>
             </main>
         );
     }

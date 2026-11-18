@@ -1,4 +1,5 @@
 import type { AgentActivityEvent, AgentExecutionJournalReasoning } from '@haus/api';
+
 import type { TurnTraceLane, TurnTraceTiming } from './turn-trace-timing.ts';
 import type { TurnTraceStatus, TurnTraceTool, TurnTraceToolKind } from './turn-trace-tool-model.ts';
 

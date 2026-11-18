@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { CloudAgentAutomation } from '@haus/api';
+
 import { cloudAgentWorkFixture } from '../../cloud-agents/cloud-agent-work-fixture.ts';
 import { cloudAutomationPresentation } from './cloud-automation-model.ts';
 

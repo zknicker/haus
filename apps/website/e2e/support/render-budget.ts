@@ -1,6 +1,8 @@
 import { appendFileSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+
 import { expect, type Page, type TestInfo } from '@playwright/test';
+
 import { recordAppTraffic } from './app-traffic.ts';
 import {
     installRenderCounter,

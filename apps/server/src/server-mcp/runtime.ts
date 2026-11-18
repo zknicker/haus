@@ -3,6 +3,7 @@ import type { EffectRuntime, TraceCarrier } from '@haus/effect';
 import type { Client as MCPClient } from '@modelcontextprotocol/client';
 import { eq } from 'drizzle-orm';
 import { Effect, type Scope } from 'effect';
+
 import { clearAmazonProductCache } from '../amazon-products/read-products.ts';
 import { readAgentDisplayName, signGithubToolCall } from '../github/agent-signature.ts';
 import type { GithubBot } from '../github/github-bot.ts';

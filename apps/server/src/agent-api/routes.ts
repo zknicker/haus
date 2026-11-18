@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
+
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { AvatarImageService } from '../avatar-generation/service.ts';
 import { setAgentInlineReplyFollow } from '../chats/reply-follow-route.ts';

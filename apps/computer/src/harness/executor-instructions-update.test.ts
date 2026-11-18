@@ -2,15 +2,12 @@ import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { hausAgentVersion } from '@haus/api';
+
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { fakeRuntimeDriver, finishedTurn } from '../runtime/testing/fake-runtime-driver.ts';
 import type { TurnEvent } from '../runtime/turn-event.ts';
-import {
-    type HarnessTurnInput,
-    runHarnessTurn,
-    setRuntimeDriverFactoryForTesting,
-} from './executor.ts';
 import {
     instructionsTurnInput,
     instructionsWakeInput,
@@ -20,6 +17,11 @@ import {
     updateTag,
     writeSessionFile,
 } from './executor-instructions-fixtures.ts';
+import {
+    type HarnessTurnInput,
+    runHarnessTurn,
+    setRuntimeDriverFactoryForTesting,
+} from './executor.ts';
 import { harnessSessionOwner } from './session-lifecycle.ts';
 import type { AgentSessionState } from './session-store.ts';
 

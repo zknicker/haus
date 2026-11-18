@@ -2,7 +2,9 @@ import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { makeTestRuntime } from '@haus/effect';
+
 import { detectFullInventory } from '../inventory.ts';
 import {
     parseCloudAgentCapabilityRequest,
@@ -15,8 +17,8 @@ import {
     recordedModels,
 } from './cursor/recorded-transport.ts';
 import { mapCloudAgentModelCatalog } from './model-catalog-mapping.ts';
-import { unavailableCloudAgentProvider } from './provider.ts';
 import { closeProviderSignIns } from './provider-sign-in.ts';
+import { unavailableCloudAgentProvider } from './provider.ts';
 import { setCloudAgentProvider } from './registry.ts';
 import { readDefaultCloudAgentProvider } from './settings.ts';
 

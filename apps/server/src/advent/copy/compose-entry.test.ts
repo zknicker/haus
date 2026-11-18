@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+
 import { adventEntrySchema, adventFacts } from '@haus/api';
+
 import type { AdventCountedFact } from '../fact-stats.ts';
 import {
     type AdventRecapStats,

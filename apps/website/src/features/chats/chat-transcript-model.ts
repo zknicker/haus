@@ -538,9 +538,9 @@ export function isStreamingPostMessageRow(row: Extract<TranscriptRow, { kind: 'm
 
     return Boolean(
         runtime &&
-            typeof runtime === 'object' &&
-            !Array.isArray(runtime) &&
-            (runtime as Record<string, unknown>).streaming === true
+        typeof runtime === 'object' &&
+        !Array.isArray(runtime) &&
+        (runtime as Record<string, unknown>).streaming === true
     );
 }
 

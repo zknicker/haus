@@ -1,5 +1,6 @@
 import { ItemCard, PressableFeedback } from '@heroui-pro/react';
 import type { ReactNode } from 'react';
+
 import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { cn } from '../../../lib/utils.ts';
 
@@ -35,7 +36,7 @@ export function InboxListRow({
         <ItemCard<'button'>
             aria-label={label}
             className={cn(
-                'relative w-full cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset',
+                'focus-visible:ring-focus relative w-full cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2 focus-visible:ring-inset',
                 tone === 'warning' && 'item-card--inbox-warning'
             )}
             onClick={onOpen}

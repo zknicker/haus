@@ -1,4 +1,5 @@
 import { Sidebar } from '@heroui-pro/react';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { SettingsComputersGroup } from '../computers/settings-computers-group.tsx';
 import { serverSettingsSectionRoute } from '../servers/server-routes.ts';

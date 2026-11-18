@@ -1,8 +1,9 @@
 import type { GithubInstallation, GithubInstallCandidate } from '@haus/api';
-import { Button, Chip, Dropdown, Label, Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Button, Chip, Dropdown, Label, Separator } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Fragment, useState } from 'react';
+
 import { EntityAvatar } from '../../../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../../../components/ui/icon.tsx';
 import { useGithubBindInstallation } from '../../../../../hooks/github/use-github-bind-installation.ts';

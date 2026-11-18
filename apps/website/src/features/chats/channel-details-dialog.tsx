@@ -11,6 +11,7 @@ import {
     toast,
 } from '@heroui/react';
 import * as React from 'react';
+
 import { useChannelUpdate } from '../../hooks/servers/use-channel-update.ts';
 import { ChannelDialogError } from './channel-dialog-error.tsx';
 import { channelHandleIssue } from './channel-handle.ts';

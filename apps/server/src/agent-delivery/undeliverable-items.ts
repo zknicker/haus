@@ -1,5 +1,6 @@
 import { type AgentTurnRejectedItem, isChatlessInboxSource } from '@haus/api';
 import { and, asc, eq, inArray, ne } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';

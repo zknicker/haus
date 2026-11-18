@@ -1,7 +1,8 @@
-import { Label } from '@heroui/react';
 import { ChatAttachment, ContextMenu } from '@heroui-pro/react';
+import { Label } from '@heroui/react';
 import { Download04Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAttachmentImage } from '../../../hooks/servers/use-attachment-image.ts';
 import {
@@ -89,7 +90,7 @@ export function AttachmentImageTile({
                         isDisabled={downloadDisabled}
                         textValue="Save Image As"
                     >
-                        <Icon className="size-4 text-muted" icon={Download04Icon} />
+                        <Icon className="text-muted size-4" icon={Download04Icon} />
                         <Label>Save Image As…</Label>
                     </ContextMenu.Item>
                 </ContextMenu.Menu>

@@ -1,4 +1,5 @@
 import { beforeAll, expect, test } from 'bun:test';
+
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 
 // No MessageRouter: the Server runs without a TypeSafe credential.

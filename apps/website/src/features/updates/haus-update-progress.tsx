@@ -1,4 +1,5 @@
 import { Label, ProgressBar } from '@heroui/react';
+
 import { computerUpdatePhaseLabel } from '../computers/computer-update-model.ts';
 import type { HausUpdateStep } from './haus-update-model.ts';
 import { isActiveUpdateStep } from './haus-update-model.ts';
@@ -15,8 +16,8 @@ export function HausUpdateProgress({ steps }: { steps: readonly HausUpdateStep[]
             {activeSteps.map((step) => (
                 <div className="grid gap-1.5" key={step.id}>
                     <div className="flex items-baseline justify-between gap-8 text-sm">
-                        <p className="min-w-0 truncate text-foreground">{step.label}</p>
-                        <p className="whitespace-nowrap font-mono text-muted tabular-nums">
+                        <p className="text-foreground min-w-0 truncate">{step.label}</p>
+                        <p className="text-muted font-mono whitespace-nowrap tabular-nums">
                             {step.currentVersion ?? 'Unknown'} → {step.targetVersion}
                         </p>
                     </div>

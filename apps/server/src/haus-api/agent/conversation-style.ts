@@ -1,5 +1,6 @@
 import { agentConversationStyleSchema, agentDetailInputSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
+
 import { AgentConfigDeniedError } from '../../server-agents/agent-config-errors.ts';
 import { readAgentConversationStyle } from '../../server-agents/agent-conversation-style.ts';
 import { memberProcedure } from '../server/procedure.ts';

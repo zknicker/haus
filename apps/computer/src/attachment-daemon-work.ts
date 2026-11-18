@@ -1,6 +1,8 @@
 import { join } from 'node:path';
+
 import { settle } from '@haus/effect';
 import { Data, Effect } from 'effect';
+
 import { holdAgentLaunchHostForWake } from './agent-launch-host.ts';
 import { AgentWorkCoordinator } from './agent-work-coordinator.ts';
 import {

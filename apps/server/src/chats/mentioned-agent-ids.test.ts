@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { formatAgentReferenceTarget, formatCloudAgentWorkLink } from '@haus/api';
+
 import { mentionedAgentIds } from './reply-subscriptions.ts';
 
 const agents = [

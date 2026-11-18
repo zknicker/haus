@@ -1,4 +1,5 @@
 import type { GithubTriggerEventName } from '@haus/api';
+
 import type { TriggerSourceLines } from '../triggers/trigger-envelope.ts';
 import { count, field, type Payload, text } from './event-projection/payload.ts';
 

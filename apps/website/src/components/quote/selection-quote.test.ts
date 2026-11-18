@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { appendComposerInsert } from '../../commands/chat-composer-insert.ts';
 import { buildQuoteInsert } from './selection-quote.tsx';
 

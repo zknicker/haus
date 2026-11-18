@@ -1,5 +1,6 @@
 import { Button, Toolbar, Tooltip } from '@heroui/react';
 import { Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import type { ArtifactAction, SelectionActionId } from './artifact-actions.ts';
 
@@ -24,7 +25,7 @@ export function ArtifactSelectionBar({
 }) {
     return (
         <Toolbar aria-label="Selected items">
-            <span aria-live="polite" className="whitespace-nowrap text-muted text-sm tabular-nums">
+            <span aria-live="polite" className="text-muted text-sm whitespace-nowrap tabular-nums">
                 {summary}
             </span>
             {actions.map((action) => (
@@ -36,7 +37,7 @@ export function ArtifactSelectionBar({
                         variant={action.danger ? 'danger-soft' : 'ghost'}
                     >
                         <Icon aria-hidden="true" icon={action.icon} size={16} />
-                        <span className="@min-[58rem]/band:inline hidden">{action.label}</span>
+                        <span className="hidden @min-[58rem]/band:inline">{action.label}</span>
                     </Button>
                     <Tooltip.Content>{action.label}</Tooltip.Content>
                 </Tooltip>

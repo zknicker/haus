@@ -10,6 +10,7 @@ import {
     isExecutionBookkeeping,
     readExecutionToolKind,
 } from '@haus/api';
+
 import {
     type ComputerToolClassification,
     computerNativeToolActivityFixtures,
@@ -18,8 +19,8 @@ import {
     knownToolCategory,
 } from './harness/activity-tool-fixtures.ts';
 import { classifyShellCall, readShellCommand, unwrapShell } from './harness/haus-cli-command.ts';
-import { describeToolAction } from './harness/thought-action.ts';
 import { scrubCommandLine, scrubPhrase } from './harness/thought-action-scrub.ts';
+import { describeToolAction } from './harness/thought-action.ts';
 
 const maxDepth = 16;
 
@@ -34,17 +35,15 @@ export function outlineExecutionJournal(document: ExecutionJournalDocument): Age
     const tree = readTree(document.tools);
     const drafts = [
         ...document.tools.map((tool) => draftTool(tool, tree)),
-        ...(document.reasoning ?? []).map(
-            (block): Draft => ({
-                depth: 0,
-                endMs: readTime(block.endedAt),
-                id: block.id,
-                kind: 'reasoning',
-                label: 'Reasoning',
-                startMs: readTime(block.startedAt) ?? Number.NaN,
-                status: block.endedAt ? 'completed' : document.status,
-            })
-        ),
+        ...(document.reasoning ?? []).map((block): Draft => ({
+            depth: 0,
+            endMs: readTime(block.endedAt),
+            id: block.id,
+            kind: 'reasoning',
+            label: 'Reasoning',
+            startMs: readTime(block.startedAt) ?? Number.NaN,
+            status: block.endedAt ? 'completed' : document.status,
+        })),
     ].filter((draft) => Number.isFinite(draft.startMs));
     const origin = Math.min(readTime(document.startedAt) ?? Number.NaN, ...drafts.map(startOf));
     const runStart = Number.isFinite(origin) ? origin : Date.parse(document.startedAt);

@@ -1,6 +1,7 @@
 import { Button, ScrollShadow } from '@heroui/react';
 import { useVirtualizer, type Virtualizer } from '@tanstack/react-virtual';
 import * as React from 'react';
+
 import { getChannelColorStyle } from '../../components/chats/channel-color-options.ts';
 import {
     type ChannelIconCatalog,
@@ -125,7 +126,7 @@ function ChannelIconCatalogGrid({
             style={getChannelColorStyle(color)}
         >
             {rows.length === 0 ? (
-                <p className="p-2 text-muted text-sm">No icons match.</p>
+                <p className="text-muted p-2 text-sm">No icons match.</p>
             ) : (
                 <div className="relative" style={{ height: virtualizer.getTotalSize() }}>
                     {virtualizer.getVirtualItems().map((item) => (
@@ -162,7 +163,7 @@ function ChannelIconGridRow({
     selectedIcon: string | null;
 }) {
     if (row.kind === 'header') {
-        return <h4 className="px-1 pt-2 pb-1 font-medium text-muted text-xs">{row.group}</h4>;
+        return <h4 className="text-muted px-1 pt-2 pb-1 text-xs font-medium">{row.group}</h4>;
     }
 
     return (

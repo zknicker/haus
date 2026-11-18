@@ -1,4 +1,5 @@
 import { Chip } from '@heroui/react';
+
 import { requestChatComposerMention } from '../../commands/chat-composer-mention.ts';
 import { formatShortTime } from '../../lib/format.ts';
 import { cn } from '../../lib/utils.ts';
@@ -40,7 +41,7 @@ export function TurnHeader({
                 </Chip>
             ) : null}
             {timestamp ? (
-                <time className="shrink-0 text-muted text-xs tabular-nums" dateTime={timestamp}>
+                <time className="text-muted shrink-0 text-xs tabular-nums" dateTime={timestamp}>
                     {formatShortTime(timestamp)}
                 </time>
             ) : null}

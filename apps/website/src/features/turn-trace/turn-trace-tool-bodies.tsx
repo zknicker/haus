@@ -1,5 +1,6 @@
 import { ChatSource, ChatSources } from '@heroui-pro/react';
 import type { ReactNode } from 'react';
+
 import { buildDiffHunks, countDiffStats } from '../../components/diff/diff-hunks.ts';
 import { DiffStatBadge, DiffView } from '../../components/diff/diff-view.tsx';
 import { codeLanguageForPath } from '../../lib/code-language.ts';
@@ -237,7 +238,7 @@ function ImageBody({ tool }: { tool: TurnTraceTool }) {
             ) : null}
             {prompt ? (
                 <TraceSection copy={prompt} label="Prompt">
-                    <p className="whitespace-pre-wrap break-words text-foreground text-sm">
+                    <p className="text-foreground text-sm break-words whitespace-pre-wrap">
                         {prompt}
                     </p>
                 </TraceSection>

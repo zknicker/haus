@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { AgentTaskAssignment } from '@haus/api';
+
 import { noticeReceipt, parseNoticeCommand, parseStartCommand } from '../agent-command-frames.ts';
 import { composeInboxNotice } from '../inbox-format.ts';
 import { composeTaskAssignmentInput } from '../inbox-task-assignment-format.ts';

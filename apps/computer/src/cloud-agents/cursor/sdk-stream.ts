@@ -1,4 +1,5 @@
 import type { Run, SDKMessage } from '@cursor/sdk';
+
 import { type CursorRunEvent, isCursorRunStatus } from './transport.ts';
 
 /**

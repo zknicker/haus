@@ -1,5 +1,6 @@
 import { artifactPathBasename } from '@haus/api';
 import { Alert, AlertDialog, Button, CloseButton, Label, ProgressBar } from '@heroui/react';
+
 import type { ArtifactUploadState } from '../../hooks/artifacts/use-artifact-upload.ts';
 import { formatArtifactBytes } from './artifact-format.ts';
 import type { UploadPlan } from './upload-plan.ts';

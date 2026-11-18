@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest';
+
 import { isSelectAllShortcut } from './select-all.ts';
 
 test('recognizes platform select-all shortcuts without extra modifiers', () => {

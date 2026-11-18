@@ -1,5 +1,6 @@
-import { Chip } from '@heroui/react';
 import { ItemCard, PressableFeedback } from '@heroui-pro/react';
+import { Chip } from '@heroui/react';
+
 import {
     AutomationKeycapFace,
     type AutomationKeycapMark,
@@ -59,7 +60,7 @@ export function AutomationRow({
 
     return (
         <ItemCard<'button'>
-            className="relative w-full cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            className="focus-visible:ring-focus relative w-full cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2"
             onClick={onPress}
             render={(props) => <button type="button" {...props} />}
         >

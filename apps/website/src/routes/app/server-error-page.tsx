@@ -1,7 +1,8 @@
-import { Button, Disclosure, Surface } from '@heroui/react';
 import { EmptyState } from '@heroui-pro/react';
+import { Button, Disclosure, Surface } from '@heroui/react';
 import { AlertCircleIcon } from '@hugeicons/core-free-icons';
 import { isRouteErrorResponse, useNavigate, useParams, useRouteError } from 'react-router-dom';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { serverRoute } from '../../features/servers/server-routes.ts';
 
@@ -49,7 +50,7 @@ export function ServerErrorView({ error, onBack }: { error: unknown; onBack: () 
                     <Disclosure.Content>
                         <Disclosure.Body className="pt-2">
                             <Surface className="rounded-2xl p-4" variant="secondary">
-                                <pre className="whitespace-pre-wrap break-words font-mono text-muted text-xs">
+                                <pre className="text-muted font-mono text-xs break-words whitespace-pre-wrap">
                                     {describeRouteError(error)}
                                 </pre>
                             </Surface>

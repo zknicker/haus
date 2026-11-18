@@ -15,7 +15,7 @@ export function UpdateStatusMessage({
     return (
         <p
             className={cn(
-                'mt-1 font-medium text-sm',
+                'mt-1 text-sm font-medium',
                 tone === 'success' && 'text-success',
                 tone === 'error' && 'text-danger',
                 tone === 'neutral' && 'text-muted'

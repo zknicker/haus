@@ -1,9 +1,9 @@
 {
-  "description": "Open, inspect, navigate, and test local web targets.",
-  "interface": {
-    "displayName": "Browser",
-    "shortDescription": "Inspect local web targets."
-  },
-  "name": "browser",
-  "version": "0.1.0"
+    "description": "Open, inspect, navigate, and test local web targets.",
+    "interface": {
+        "displayName": "Browser",
+        "shortDescription": "Inspect local web targets."
+    },
+    "name": "browser",
+    "version": "0.1.0"
 }

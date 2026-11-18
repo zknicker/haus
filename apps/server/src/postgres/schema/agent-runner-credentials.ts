@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { check, foreignKey, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+
 import { agentsTable } from './agents.ts';
 import { chatsTable } from './chats.ts';
 import { computersTable } from './computers.ts';
@@ -17,7 +18,10 @@ export const agentRunnerCredentialsTable = pgTable(
         agentId: text('agent_id').notNull(),
         /** The launch Chat; null for a chatless run, which has none. */
         chatId: text('chat_id'),
-        capabilities: text('capabilities').array().notNull().default(sql`ARRAY['manual']::text[]`),
+        capabilities: text('capabilities')
+            .array()
+            .notNull()
+            .default(sql`ARRAY['manual']::text[]`),
         computerId: text('computer_id').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         expiresAt: timestamp('expires_at', { withTimezone: true })

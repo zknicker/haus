@@ -2,8 +2,9 @@ import { expect, test } from 'bun:test';
 import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { detectInventory } from './inventory.ts';
+
 import { refreshRuntimeInventory } from './inventory-refresh.ts';
+import { detectInventory } from './inventory.ts';
 
 test('manual refresh discovers a runtime installed after the initial inventory', async () => {
     const root = await mkdtemp(join(tmpdir(), 'haus-inventory-refresh-'));

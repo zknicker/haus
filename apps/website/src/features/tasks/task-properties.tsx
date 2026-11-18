@@ -1,13 +1,14 @@
 import type { Task, TaskState } from '@haus/api';
-import { Label, ListBox } from '@heroui/react';
 import { InlineSelect } from '@heroui-pro/react/inline-select';
+import { Label, ListBox } from '@heroui/react';
+
 import { EntityName } from '../../components/ui/entity-name.tsx';
 import { useAssignTask } from '../../hooks/tasks/use-assign-task.ts';
 import { useSetTaskState } from '../../hooks/tasks/use-set-task-state.ts';
 import { assigneeFromKey, assigneeKey, unassignedKey } from './task-assignee.ts';
 import { PersonListBox } from './task-pickers.tsx';
-import { isTaskState, taskStateLabels, taskStateOrder } from './task-state.ts';
 import { TaskStateDisc } from './task-state-disc.tsx';
+import { isTaskState, taskStateLabels, taskStateOrder } from './task-state.ts';
 import { showTaskUpdateError } from './task-update-error.ts';
 import { useTaskActor, useTaskPeople } from './use-task-people.ts';
 

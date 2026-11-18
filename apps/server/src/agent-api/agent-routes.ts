@@ -4,6 +4,7 @@ import {
     agentUpdateAgentInputSchema,
 } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
+
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { AvatarImageService } from '../avatar-generation/service.ts';
 import type { HausDatabase } from '../postgres/connection.ts';

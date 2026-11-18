@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, expect, mock, test } from 'bun:test';
+
 import { clockStart, type FrameMode, frameMs, startFrameLoop } from './frame-loop.ts';
 
 // The loop's contract, driven against fake browser globals: it draws only

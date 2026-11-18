@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { gatherOffsets } from './use-row-flip.ts';
 
 test('selected tabs gather toward the pressed tab, which keeps the pointer travel', () => {

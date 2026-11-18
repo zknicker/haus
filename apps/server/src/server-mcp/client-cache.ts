@@ -3,6 +3,7 @@ import type { Client as MCPClient } from '@modelcontextprotocol/client';
 import * as Effect from 'effect/Effect';
 import * as Exit from 'effect/Exit';
 import * as Scope from 'effect/Scope';
+
 import { classifyMcpClientFailure } from './client-failure.ts';
 import { McpClientAcquireError, McpClientRetiredError } from './errors.ts';
 

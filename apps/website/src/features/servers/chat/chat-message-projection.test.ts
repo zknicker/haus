@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+
 import type { ChatMessage, TaskPreview } from '@haus/api';
+
 import {
     type ChatMessageLayout,
     toChatMessageLayout,

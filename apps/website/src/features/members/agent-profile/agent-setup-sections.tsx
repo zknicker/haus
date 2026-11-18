@@ -1,8 +1,9 @@
 import type { Agent } from '@haus/api';
-import { Button, Chip } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Button, Chip } from '@heroui/react';
 import type * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import { useConnections } from '../../../hooks/servers/use-connections.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
@@ -165,7 +166,7 @@ function SectionShell({ children, title }: { children: React.ReactNode; title: s
 
 function SectionError({ message }: { message: string }) {
     return (
-        <p className="px-4 py-3 text-danger text-sm" role="alert">
+        <p className="text-danger px-4 py-3 text-sm" role="alert">
             {message}
         </p>
     );

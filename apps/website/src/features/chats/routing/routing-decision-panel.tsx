@@ -1,5 +1,6 @@
 import type { MessageRoutingAudit, MessageRoutingDebug } from '@haus/api';
 import { Chip, Popover } from '@heroui/react';
+
 import {
     isMentionScopeJudgment,
     mentionScopeChoiceLabel,
@@ -35,7 +36,7 @@ export function RoutingDecisionPanel({
                 </Chip>
             </div>
             <div className="flex flex-col gap-2">
-                <p className="text-base text-muted">Inbox recipients</p>
+                <p className="text-muted text-base">Inbox recipients</p>
                 <div className="flex flex-wrap gap-1.5">
                     {audit.recipientAgentIds.length ? (
                         audit.recipientAgentIds.map((id) => (
@@ -47,19 +48,19 @@ export function RoutingDecisionPanel({
                         <span className="text-base">None</span>
                     )}
                 </div>
-                <p className="text-base text-muted">{routingExplanation(audit)}</p>
+                <p className="text-muted text-base">{routingExplanation(audit)}</p>
             </div>
             {audit.model ? (
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <p className="text-base text-muted">Confidence</p>
-                        <p className="font-medium text-base tabular-nums">
+                        <p className="text-muted text-base">Confidence</p>
+                        <p className="text-base font-medium tabular-nums">
                             {percent(audit.confidence)}
                         </p>
                     </div>
                     <div>
-                        <p className="text-base text-muted">Probability</p>
-                        <p className="font-medium text-base tabular-nums">
+                        <p className="text-muted text-base">Probability</p>
+                        <p className="text-base font-medium tabular-nums">
                             {percent(audit.probability)}
                         </p>
                     </div>
@@ -67,13 +68,13 @@ export function RoutingDecisionPanel({
             ) : null}
             <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-base">
                 <dt className="text-muted">{audit.model ? 'Candidates' : 'Eligible agents'}</dt>
-                <dd className="break-words text-right">{names(audit.candidateAgentIds)}</dd>
+                <dd className="text-right break-words">{names(audit.candidateAgentIds)}</dd>
                 <dt className="text-muted">Excluded by Jev</dt>
-                <dd className="break-words text-right">{names(excluded)}</dd>
+                <dd className="text-right break-words">{names(excluded)}</dd>
                 {audit.model ? (
                     <>
                         <dt className="text-muted">Model choice</dt>
-                        <dd className="break-words text-right">{choiceLabel(audit, name)}</dd>
+                        <dd className="text-right break-words">{choiceLabel(audit, name)}</dd>
                         <dt className="text-muted">Threshold</dt>
                         <dd className="text-right tabular-nums">
                             {percent(audit.threshold)} confidence
@@ -96,7 +97,7 @@ export function RoutingDecisionPanel({
                     </>
                 )}
             </dl>
-            <p className="text-base text-muted">
+            <p className="text-muted text-base">
                 Inbox delivery only. Reading and agent activity are tracked separately.
             </p>
         </div>

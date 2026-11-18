@@ -1,7 +1,8 @@
-import { Disclosure } from '@heroui/react';
 import { TextShimmer } from '@heroui-pro/react';
+import { Disclosure } from '@heroui/react';
 import type { IconSvgElement } from '@hugeicons/react';
 import * as React from 'react';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
 import { useTraceDepthStyle } from './turn-trace-depth.tsx';
@@ -120,12 +121,12 @@ export function TraceLine({
             <Icon className={cn('size-3.5 shrink-0', iconInk(tone))} icon={icon} />
             {isRunning ? <TextShimmer className="min-w-0 truncate">{text}</TextShimmer> : text}
             {detail ? (
-                <span className="min-w-0 shrink-[4] truncate text-muted">{detail}</span>
+                <span className="text-muted min-w-0 shrink-[4] truncate">{detail}</span>
             ) : null}
             {meta ? (
-                <span className="min-w-0 shrink-[8] truncate text-muted tabular-nums">{meta}</span>
+                <span className="text-muted min-w-0 shrink-[8] truncate tabular-nums">{meta}</span>
             ) : null}
-            {alert ? <span className="shrink-0 text-danger tabular-nums">{alert}</span> : null}
+            {alert ? <span className="text-danger shrink-0 tabular-nums">{alert}</span> : null}
         </>
     );
 }

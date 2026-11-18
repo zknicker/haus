@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import { formatImageGenerationLink } from '@haus/api';
+
 import { readTargetAsAgent } from './agent-read-target.ts';
 import type { HausClient } from './haus-client.ts';
 import { imageGenerationFixture } from './image-generation-fixture.ts';

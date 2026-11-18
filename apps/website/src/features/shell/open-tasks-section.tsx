@@ -1,4 +1,5 @@
 import { Sidebar } from '@heroui-pro/react';
+
 import { useOpenTaskIds } from '../../hooks/tasks/use-open-tasks.ts';
 import { ChatGroup } from './chat-navigation-group.tsx';
 import { OpenTaskRow } from './open-task-row.tsx';

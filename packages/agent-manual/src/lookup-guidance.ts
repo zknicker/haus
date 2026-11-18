@@ -1,5 +1,5 @@
-import type { ManualSearchScope } from './lookup.ts';
 import { normalizeLookup } from './lookup-text.ts';
+import type { ManualSearchScope } from './lookup.ts';
 import { nearestManualTopics } from './search.ts';
 
 /**

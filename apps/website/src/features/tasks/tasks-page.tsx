@@ -3,6 +3,7 @@ import { EmptyState, ListView } from '@heroui-pro/react';
 import { Alert02Icon, Task01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { useTaskList } from '../../hooks/tasks/use-task-list.ts';
 import { useServerContext } from '../servers/server-context.ts';
@@ -10,8 +11,8 @@ import { PageColumn } from '../shell/page-column.tsx';
 import { TaskAssigneeMark, TaskDueDate, TaskLabelChips } from './task-facts.tsx';
 import { TaskPriorityIcon } from './task-priority-icon.tsx';
 import { TaskRowMenu } from './task-row-menu.tsx';
-import { taskStateLabels } from './task-state.ts';
 import { TaskStateDisc } from './task-state-disc.tsx';
+import { taskStateLabels } from './task-state.ts';
 import {
     isFiltered,
     orderTasksForPage,
@@ -71,7 +72,7 @@ function TaskRows({ tasks }: { tasks: readonly Task[] }) {
                         <span aria-label={taskStateLabels[task.state]} role="img">
                             <TaskStateDisc state={task.state} />
                         </span>
-                        <span className="w-16 shrink-0 text-muted text-sm tabular-nums">
+                        <span className="text-muted w-16 shrink-0 text-sm tabular-nums">
                             {task.key}
                         </span>
                         <TaskPriorityIcon className="text-muted" priority={task.priority} />

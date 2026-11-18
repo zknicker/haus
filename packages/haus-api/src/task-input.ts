@@ -1,5 +1,8 @@
 import * as z from 'zod';
+
 import { idSchema } from './chat-contract-primitives.ts';
+import { taskKeySchema } from './task-key.ts';
+import { taskStateSchema } from './task-state.ts';
 import {
     taskAssigneeSchema,
     taskDescriptionSchema,
@@ -7,8 +10,6 @@ import {
     taskPrioritySchema,
     taskTitleSchema,
 } from './task.ts';
-import { taskKeySchema } from './task-key.ts';
-import { taskStateSchema } from './task-state.ts';
 
 const expectedVersionSchema = z.number().int().positive();
 

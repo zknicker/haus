@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { useViewShown, useViewShownChange } from '../../hooks/desktop-tabs/view-shown.ts';
 import { cn } from '../../lib/utils.ts';
@@ -104,7 +105,7 @@ export function WorkingLog({
                     aria-controls={panelId}
                     className={
                         groupMode
-                            ? 'relative z-10 w-full py-1.5 pr-2 pl-3 font-normal text-muted text-sm outline-none transition-none hover:bg-surface-hover hover:text-muted focus-visible:bg-surface-hover focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-inset'
+                            ? 'text-muted hover:bg-surface-hover hover:text-muted focus-visible:bg-surface-hover focus-visible:ring-focus relative z-10 w-full py-1.5 pr-2 pl-3 text-sm font-normal transition-none outline-none focus-visible:ring-2 focus-visible:ring-inset'
                             : undefined
                     }
                     onFocus={groupMode ? rowHover.clearActiveItem : undefined}
@@ -116,7 +117,7 @@ export function WorkingLog({
                             {groupIcon ? (
                                 <span className="-ml-1 flex size-4 shrink-0 items-center justify-center">
                                     <Icon
-                                        className="size-4 text-muted"
+                                        className="text-muted size-4"
                                         icon={groupIcon}
                                         strokeWidth={1.5}
                                     />

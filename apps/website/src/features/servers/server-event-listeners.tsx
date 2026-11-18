@@ -1,11 +1,12 @@
 import { useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import { useLocation } from 'react-router-dom';
+
 import { useMemberUpdateStream } from '../../hooks/realtime/use-member-update-stream.ts';
 import { useServerUpdateStream } from '../../hooks/realtime/use-server-update-stream.ts';
 import { forgiveRelistedServers } from '../../hooks/servers/server-loss.ts';
-import { useServer } from '../../hooks/servers/use-server.ts';
 import { useServerList } from '../../hooks/servers/use-server-list.ts';
+import { useServer } from '../../hooks/servers/use-server.ts';
 import {
     type ServerEventTarget,
     serverEventTargets,

@@ -41,7 +41,7 @@ export function renderSnippet(content: string, query: string): React.ReactNode {
         }
         nodes.push(
             <mark
-                className="rounded-sm bg-accent/15 px-0.5 font-medium text-accent"
+                className="bg-accent/15 text-accent rounded-sm px-0.5 font-medium"
                 key={start + run.start}
             >
                 {window.slice(run.start, run.end)}

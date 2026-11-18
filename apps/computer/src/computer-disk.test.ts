@@ -1,7 +1,9 @@
 import { expect, test } from 'bun:test';
 import { statfs } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
+
 import { computerDiskReportSchema } from '@haus/api';
+
 import { sendComputerDiskReport } from './computer-disk.ts';
 
 test('Computer reports real host capacity and clears an unavailable measurement', async () => {

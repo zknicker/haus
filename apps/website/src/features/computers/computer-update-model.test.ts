@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { ComputerUpdatePhase } from '@haus/api';
+
 import { computerUpdateView } from './computer-update-model.ts';
 
 test('presents every Computer update phase', () => {

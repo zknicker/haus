@@ -1,5 +1,6 @@
 import type { Task } from '@haus/api';
 import { getLocalTimeZone, today } from '@internationalized/date';
+
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useTaskLabels } from '../../hooks/servers/use-task-labels.ts';
 import { cn } from '../../lib/utils.ts';
@@ -20,7 +21,7 @@ export function TaskAssigneeMark({ assignee }: { assignee: Task['assignee'] }) {
         return (
             <span
                 aria-hidden="true"
-                className="block size-[18px] shrink-0 rounded-full border border-separator border-dashed"
+                className="border-separator block size-[18px] shrink-0 rounded-full border border-dashed"
                 title="Unassigned"
             />
         );

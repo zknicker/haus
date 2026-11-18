@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { createRequire } from 'node:module';
+
 import { appShortcut, parseBrowserShortcut } from './browser-shortcut-keys.ts';
 
 const require = createRequire(import.meta.url);
@@ -32,31 +33,35 @@ const keys: [key: string, code: string][] = [
 test.each([
     ['darwin', true],
     ['linux', false],
-] as const)('App-focused shortcuts match page-focused ones on %s, minus App menu keys', (platform, isMac) => {
-    for (const [key, code] of keys) {
-        for (let flags = 0; flags < 16; flags++) {
-            const [metaKey, ctrlKey, shiftKey, altKey] = [1, 2, 4, 8].map((bit) =>
-                Boolean(flags & bit)
-            );
-            const input = {
-                type: 'keyDown',
-                key: shiftKey && key.length === 1 ? key.toUpperCase() : key,
-                code,
-                meta: metaKey,
-                control: ctrlKey,
-                shift: shiftKey,
-                alt: altKey,
-            };
-            const fromPage = main.browserShortcut(input, platform);
-            const expected = fromPage && main.isAppMenuShortcut(fromPage, input) ? null : fromPage;
-            const fromApp: string | null = appShortcut(
-                { altKey, code, ctrlKey, key: input.key, metaKey, shiftKey },
-                isMac
-            );
-            expect({ input, shortcut: fromApp }).toEqual({ input, shortcut: expected });
+] as const)(
+    'App-focused shortcuts match page-focused ones on %s, minus App menu keys',
+    (platform, isMac) => {
+        for (const [key, code] of keys) {
+            for (let flags = 0; flags < 16; flags++) {
+                const [metaKey, ctrlKey, shiftKey, altKey] = [1, 2, 4, 8].map((bit) =>
+                    Boolean(flags & bit)
+                );
+                const input = {
+                    type: 'keyDown',
+                    key: shiftKey && key.length === 1 ? key.toUpperCase() : key,
+                    code,
+                    meta: metaKey,
+                    control: ctrlKey,
+                    shift: shiftKey,
+                    alt: altKey,
+                };
+                const fromPage = main.browserShortcut(input, platform);
+                const expected =
+                    fromPage && main.isAppMenuShortcut(fromPage, input) ? null : fromPage;
+                const fromApp: string | null = appShortcut(
+                    { altKey, code, ctrlKey, key: input.key, metaKey, shiftKey },
+                    isMac
+                );
+                expect({ input, shortcut: fromApp }).toEqual({ input, shortcut: expected });
+            }
         }
     }
-});
+);
 
 test('Control is the command key off macOS only', () => {
     const press = (

@@ -2,8 +2,9 @@ import { expect, test } from 'bun:test';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { AgentStartCommand } from './launch.ts';
+
 import { launchCrashTurn, traceLaunchCrash } from './launch-crash-turn.ts';
+import type { AgentStartCommand } from './launch.ts';
 
 const command = {
     agentId: 'agt_crash',

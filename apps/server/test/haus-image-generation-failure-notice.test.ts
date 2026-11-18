@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import { agentImageGenerationCreateInputSchema, formatImageGenerationLink } from '@haus/api';
+
 import type { AttachmentRoot } from '../src/attachments/attachment-root.ts';
 import {
     enqueueImageGenerationFailureNotice,

@@ -1,9 +1,11 @@
 import { expect, test } from 'bun:test';
+
 import type { AppSession } from '@haus/api/app-session';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { AppAuthProvider, useAppAuth } from './app-auth.tsx';
+
 import { appAuthStore } from './app-auth-session.ts';
+import { AppAuthProvider, useAppAuth } from './app-auth.tsx';
 
 test('web development sign-in refreshes the fixture and account switch logs out before restart', async () => {
     const priorDev = process.env.DEV;

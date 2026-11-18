@@ -1,4 +1,5 @@
 import { toast } from '@heroui/react';
+
 import { useArtifactPublicLinkMutations } from '../../hooks/artifacts/use-artifact-public-link.ts';
 import { copyArtifactLink } from './artifact-link.ts';
 

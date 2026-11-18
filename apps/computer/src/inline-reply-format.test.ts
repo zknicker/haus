@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { ChatMessageReply } from '@haus/api';
+
 import { parseInbox } from './agent-inbox-input.ts';
 import type { AgentInboxItem } from './agent-inbox-item.ts';
 import { composeInboxDrain, composeInboxNotice } from './inbox-format.ts';

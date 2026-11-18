@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { Outlet } from 'react-router-dom';
+
 import { HausServerProvider, hausTrpc } from '../../lib/haus-server.tsx';
 import { SignInGate } from '../auth/sign-in-gate.tsx';
 import { ServerEventListeners } from './server-event-listeners.tsx';

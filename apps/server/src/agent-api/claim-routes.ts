@@ -1,6 +1,7 @@
 import { agentClaimCreateInputSchema } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
+
 import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { HausDatabase } from '../postgres/connection.ts';

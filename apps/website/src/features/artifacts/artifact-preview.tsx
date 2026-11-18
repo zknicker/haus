@@ -1,12 +1,13 @@
 import type { ArtifactRecord } from '@haus/api';
 import { useState } from 'react';
+
 import { ImageLightbox } from '../../components/chats/image-lightbox.tsx';
 import { useArtifactDownload } from '../../hooks/artifacts/use-artifact-download.ts';
 import { useArtifactSave } from '../../hooks/artifacts/use-artifact-save.ts';
 import { ArtifactFileCard } from './artifact-file-card.tsx';
 import { isPreviewImage } from './artifact-format.ts';
-import { artifactTextRenderer } from './artifact-text.ts';
 import { ArtifactTextPreview } from './artifact-text-preview.tsx';
+import { artifactTextRenderer } from './artifact-text.ts';
 import type { ViewerStepper } from './artifact-viewer-header.tsx';
 
 const playableVideo = ['video/mp4', 'video/webm'];

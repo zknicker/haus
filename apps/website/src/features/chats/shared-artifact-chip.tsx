@@ -1,5 +1,6 @@
 import { Chip } from '@heroui/react';
 import type * as React from 'react';
+
 import { useArtifact } from '../../hooks/artifacts/use-artifact.ts';
 import { ArtifactFileIcon } from '../artifacts/icons/artifact-file-icon.tsx';
 import { artifactFileKind } from '../artifacts/icons/artifact-file-kind.ts';
@@ -29,7 +30,7 @@ export function SharedArtifactChip({
     if (!artifact) {
         return (
             <a
-                className="text-accent underline underline-offset-2 hover:text-accent-hover"
+                className="text-accent hover:text-accent-hover underline underline-offset-2"
                 {...open}
             >
                 {children}
@@ -41,12 +42,12 @@ export function SharedArtifactChip({
         <a
             {...open}
             aria-label={`Open ${artifact.title}`}
-            className="reference-chip-trigger inline-flex max-w-full rounded-lg align-middle no-underline outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            className="reference-chip-trigger focus-visible:ring-focus inline-flex max-w-full rounded-lg align-middle no-underline outline-none focus-visible:ring-2"
             data-testid="shared-artifact-chip"
             href={open.href}
         >
             <Chip
-                className="reference-chip reference-chip--artifact max-w-80 whitespace-nowrap align-middle"
+                className="reference-chip reference-chip--artifact max-w-80 align-middle whitespace-nowrap"
                 size="md"
                 title={artifact.title}
                 variant="tertiary"

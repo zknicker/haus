@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
+
 import { visibilityReceipt } from './visibility-receipt.ts';
 
 let server: ReturnType<typeof Bun.serve> | undefined;

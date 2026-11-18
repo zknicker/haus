@@ -2,6 +2,7 @@ import type { Chat } from '@haus/api';
 import { Button, Chip, Tooltip } from '@heroui/react';
 import { SidebarRightIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
+
 import { ChannelIconBox } from '../../../components/chats/channel-icon-box.tsx';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
@@ -97,7 +98,7 @@ export function ChatTopbarIdentity({ mark, name }: { mark: React.ReactNode; name
     return (
         <div className="flex min-w-0 items-center gap-2">
             {mark}
-            <h1 className="min-w-0 truncate font-semibold text-sm">{name}</h1>
+            <h1 className="min-w-0 truncate text-sm font-semibold">{name}</h1>
         </div>
     );
 }

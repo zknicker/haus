@@ -1,4 +1,5 @@
 import { type GithubTriggerView, githubTriggerEventsSchema } from '@haus/api';
+
 import type { githubTriggerConfigsTable } from '../postgres/schema.ts';
 
 /** A `github` Trigger's stored configuration and the login of its installation. */

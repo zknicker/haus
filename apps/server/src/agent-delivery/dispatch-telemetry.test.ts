@@ -1,6 +1,8 @@
 import { afterAll, expect, test } from 'bun:test';
+
 import type { AgentCommand } from '@haus/api';
 import { makeTestRuntime } from '@haus/effect';
+
 import { traceAgentDispatch } from './dispatch-telemetry.ts';
 
 const runtime = makeTestRuntime();

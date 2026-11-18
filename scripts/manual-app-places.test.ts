@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { existsSync, readFileSync } from 'node:fs';
+
 import { agentSectionLabels } from '../apps/website/src/features/members/agent-profile/agent-sections.ts';
 import { settingsNavItems } from '../apps/website/src/features/settings/layout/navigation.ts';
 import { serverPageRoutes } from '../apps/website/src/routes/app/server-page-routes.tsx';

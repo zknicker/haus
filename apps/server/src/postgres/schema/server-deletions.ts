@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { check, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+
 import { usersTable } from './users.ts';
 
 export const serverDeletionsTable = pgTable(

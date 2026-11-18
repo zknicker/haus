@@ -1,6 +1,8 @@
 import { expect, test } from 'bun:test';
+
 import type { AgentExecutionOutlineEntry } from '@haus/api';
 import { QueryClient } from '@tanstack/react-query';
+
 import {
     createReadGate,
     isSettledOutlineEntry,

@@ -2,14 +2,16 @@ import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { Cause, Effect, Runtime } from 'effect';
+
 import { makeDaemonRuntime } from './daemon-runtime.ts';
+import { ReminderScriptExecutionFailure } from './reminder-script-execution.ts';
 import {
     parseReminderScriptCommand,
     runReminderScript,
     runReminderScriptWithExecution,
 } from './reminder-script.ts';
-import { ReminderScriptExecutionFailure } from './reminder-script-execution.ts';
 import { secretsPaths } from './secrets/store.ts';
 
 let dataRoot: string;

@@ -1,6 +1,7 @@
 import type { ComputerRuntimeId } from '@haus/api';
-import { Chip } from '@heroui/react';
 import { ItemCardGroup } from '@heroui-pro/react';
+import { Chip } from '@heroui/react';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { ProfileFact, ProfileFacts } from '../../components/ui/profile-facts.tsx';
 import { useComputers } from '../../hooks/servers/use-computers.ts';

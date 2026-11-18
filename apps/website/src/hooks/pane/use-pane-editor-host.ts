@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import {
     clearPaneEditorDraft,
     readPaneEditorDraft,
@@ -273,7 +274,7 @@ export function usePaneEditorHost<Document>(adapter: PaneEditorTargetAdapter<Doc
         dirty: targetChangedDuringRender
             ? Boolean(
                   pendingTargetDraft &&
-                      pendingTargetDraft.content !== pendingTargetDraft.snapshot.content
+                  pendingTargetDraft.content !== pendingTargetDraft.snapshot.content
               )
             : dirty,
         draft: targetChangedDuringRender

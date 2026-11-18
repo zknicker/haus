@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useChatMessage } from '../../../hooks/servers/use-chat-message.ts';
+
 import type { ChatMessageJumpTarget } from '../../../hooks/servers/use-chat-message-navigation.ts';
+import { useChatMessage } from '../../../hooks/servers/use-chat-message.ts';
 import {
     requestMessageReveal,
     usePendingMessageReveal,

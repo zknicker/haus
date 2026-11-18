@@ -1,7 +1,9 @@
 import { expect, test } from 'bun:test';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpBatchLink } from '@trpc/client';
 import * as React from 'react';
+
 import { requestChatComposerInsert } from '../../../commands/chat-composer-insert.ts';
 import {
     requestMessageReveal,

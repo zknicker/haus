@@ -1,5 +1,4 @@
 import type { ChatMessage } from './chat.ts';
-import type { ActiveCloudAgentWorkLocation } from './cloud-agent.ts';
 import { work } from './cloud-agent-fixture.ts';
 import {
     type CloudAgentWork,
@@ -7,6 +6,7 @@ import {
     cloudAgentWorkSchema,
 } from './cloud-agent-shared.ts';
 import { formatCloudAgentWorkLink } from './cloud-agent-work-link.ts';
+import type { ActiveCloudAgentWorkLocation } from './cloud-agent.ts';
 
 /**
  * Shared Cloud Agent work link fixtures (ADR 0044). Server, App, and Computer

@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { isAllowedAppOrigin } from './origin.ts';
 
 describe('isAllowedAppOrigin', () => {

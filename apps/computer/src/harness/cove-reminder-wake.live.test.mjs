@@ -67,15 +67,12 @@ for (const { quiet, refresh, ordinary } of [
                         }
                     );
                     expect(response.status).toBe(200);
-                    const { connectHausDatabase } = await import(
-                        '../../../server/src/postgres/connection.ts'
-                    );
-                    const { tickReminders } = await import(
-                        '../../../server/src/reminders/scheduler.ts'
-                    );
-                    const { AgentDelivery } = await import(
-                        '../../../server/src/agent-delivery/delivery.ts'
-                    );
+                    const { connectHausDatabase } =
+                        await import('../../../server/src/postgres/connection.ts');
+                    const { tickReminders } =
+                        await import('../../../server/src/reminders/scheduler.ts');
+                    const { AgentDelivery } =
+                        await import('../../../server/src/agent-delivery/delivery.ts');
                     const connection = await connectHausDatabase(fixture.harness.databaseUrl);
                     const frames = [];
                     const delivery = new AgentDelivery(connection.db, {

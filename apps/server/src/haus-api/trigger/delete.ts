@@ -1,4 +1,5 @@
 import { triggerDeleteInputSchema, triggerDeleteResultSchema } from '@haus/api';
+
 import { deleteOperatorTrigger } from '../../triggers/operator-triggers.ts';
 import { triggerClock, triggerProcedure } from './procedure.ts';
 

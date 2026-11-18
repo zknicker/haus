@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';
 import type { MentionAppearance } from './mention-appearance.tsx';
 import {
@@ -135,7 +136,7 @@ export function SkillHoverCardContent({
             mark={
                 <ReferencePreviewMark
                     appearance={appearance}
-                    className="size-[16px] text-skill-reference"
+                    className="text-skill-reference size-[16px]"
                 />
             }
             meta="Skill"

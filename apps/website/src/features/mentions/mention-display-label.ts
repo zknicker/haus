@@ -1,4 +1,5 @@
 import { parseChatMessageReferenceTarget } from '@haus/api';
+
 import { formatSkillName } from '../skills/skill-name-format.ts';
 import { getMentionAppearance } from './mention-appearance.tsx';
 

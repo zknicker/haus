@@ -47,13 +47,13 @@ export function MemberProfileHeader({
                             same as `SettingsPageHeader`. At `text-xl` it
                             sat between the section headings below it and
                             the title every sibling settings page uses. */}
-                        <Heading className="min-w-0 truncate font-semibold text-2xl text-foreground tracking-tight">
+                        <Heading className="text-foreground min-w-0 truncate text-2xl font-semibold tracking-tight">
                             {name}
                         </Heading>
                         {badges}
                     </div>
                     {subtitle || description ? (
-                        <p className="min-w-0 truncate text-muted text-sm">
+                        <p className="text-muted min-w-0 truncate text-sm">
                             {subtitle}
                             {subtitle && description ? ' · ' : null}
                             {description}

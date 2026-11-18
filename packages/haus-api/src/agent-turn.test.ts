@@ -1,7 +1,8 @@
 import { expect, test } from 'bun:test';
+
 import { agentExecutionJournalSchema } from './agent-execution-journal.ts';
-import { agentTurnSchema, serverTurnsInputSchema } from './agent-turn.ts';
 import { agentTurnTriggerSchema } from './agent-turn-trigger.ts';
+import { agentTurnSchema, serverTurnsInputSchema } from './agent-turn.ts';
 
 test('a message trigger quotes its message; typed work carries ids only', () => {
     expect(

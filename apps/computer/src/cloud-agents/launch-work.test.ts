@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
+
 import { createFakeCloudAgentProvider } from './fake-provider.ts';
-import { startCloudAgentWork } from './launch-work.ts';
 import {
     receipt,
     registerLaunchWorkFixture,
@@ -8,6 +8,7 @@ import {
     runId,
     workId,
 } from './launch-work-fixture.ts';
+import { startCloudAgentWork } from './launch-work.ts';
 import { CloudAgentProviderUnavailableError } from './provider.ts';
 
 const fixture = registerLaunchWorkFixture();

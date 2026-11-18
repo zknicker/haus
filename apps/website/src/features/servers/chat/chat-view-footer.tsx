@@ -1,4 +1,5 @@
 import type { Chat } from '@haus/api';
+
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { canRunAgentActions } from '../../members/agent-profile/agent-actions-model.ts';
 import { ArchivedChannelBar } from './archived-channel-bar.tsx';
@@ -29,7 +30,7 @@ export function ChatViewFooter({
     return (
         <>
             {ensureDmError && !peerRetired ? (
-                <p className="px-9 text-danger text-sm">{ensureDmError.message}</p>
+                <p className="text-danger px-9 text-sm">{ensureDmError.message}</p>
             ) : null}
             {chat.archivedAt ? (
                 <ArchivedChannelBar
@@ -37,7 +38,7 @@ export function ChatViewFooter({
                     chat={chat}
                 />
             ) : peerRetired ? (
-                <p className="mx-auto w-full max-w-none px-9 pb-4 text-muted text-sm">
+                <p className="text-muted mx-auto w-full max-w-none px-9 pb-4 text-sm">
                     {chatName} has been retired. You can read this conversation, but you can’t send
                     new messages.
                 </p>

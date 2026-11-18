@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+
 import { getMessageDisplay } from './message-display.ts';
 
 test('getMessageDisplay keeps agent tool-call headers visible', () => {

@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { composeAgentInstructions } from './instructions.ts';
 
 // The smallest guard on the ported system prompt: every real Computer Agent must

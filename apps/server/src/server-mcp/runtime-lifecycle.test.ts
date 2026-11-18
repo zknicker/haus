@@ -1,8 +1,8 @@
 import { afterAll, expect, test } from 'bun:test';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { makeServerRuntime } from '../server-runtime.ts';
 import { McpUpstreamError } from './errors.ts';
-import { McpRuntime } from './runtime.ts';
 import {
     fakeQuery,
     fakeUpdate,
@@ -11,6 +11,7 @@ import {
     makeClient,
     tick,
 } from './runtime-test-fixtures.ts';
+import { McpRuntime } from './runtime.ts';
 import { modelToolName } from './tool-catalog.ts';
 
 const effectRuntime = makeServerRuntime();

@@ -2,6 +2,7 @@ import { CodeBlock } from '@heroui-pro/react/code-block';
 import { ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Button, type Key, Tree, TreeItem, TreeItemContent } from 'react-aria-components';
+
 import { MicroLabel } from '../../components/micro-label.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
@@ -101,7 +102,7 @@ function TraceJsonRow({
                     >
                         {isContainer ? (
                             <Button
-                                className="flex h-[1.5em] w-4 shrink-0 items-center justify-center text-muted outline-none"
+                                className="text-muted flex h-[1.5em] w-4 shrink-0 items-center justify-center outline-none"
                                 slot="chevron"
                             >
                                 <Icon
@@ -116,7 +117,7 @@ function TraceJsonRow({
                             <span aria-hidden className="w-4 shrink-0" />
                         )}
                         <span
-                            className="min-w-0 flex-1 whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
+                            className="min-w-0 flex-1 [overflow-wrap:anywhere] break-words whitespace-pre-wrap"
                             data-selectable-text=""
                         >
                             <TraceJsonKey node={node} />

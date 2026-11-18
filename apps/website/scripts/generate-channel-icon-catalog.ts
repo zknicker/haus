@@ -11,6 +11,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { emojiIconMap } from './emoji-icon-map.ts';
 
 const websiteRoot = join(dirname(fileURLToPath(import.meta.url)), '..');

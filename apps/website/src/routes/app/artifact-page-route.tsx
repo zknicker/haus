@@ -1,5 +1,6 @@
 import { Toolbar } from '@heroui/react';
 import { useParams } from 'react-router-dom';
+
 import { ArtifactOptionsMenu } from '../../features/chats/chat-artifact-panel-chrome.tsx';
 import { WorkspaceBrowserContent } from '../../features/chats/chat-artifact-workspace-content.tsx';
 import {
@@ -33,7 +34,7 @@ export function ArtifactPageRoute() {
         );
     }
     return (
-        <section aria-label="Workspace" className="flex min-h-0 flex-1 flex-col bg-background">
+        <section aria-label="Workspace" className="bg-background flex min-h-0 flex-1 flex-col">
             {target.kind === 'workspaceFile' ? (
                 <ArtifactFile agentId={target.agentId} serverId={server.id} target={target} />
             ) : (
@@ -70,7 +71,7 @@ function ArtifactFile({
     return (
         <>
             <PageToolbar>
-                <p className="min-w-0 flex-1 truncate ps-2 text-muted text-sm">{target.path}</p>
+                <p className="text-muted min-w-0 flex-1 truncate ps-2 text-sm">{target.path}</p>
                 <Toolbar aria-label="File actions" className="shrink-0">
                     <WorkspaceArtifactControls artifact={artifact} />
                     <ArtifactOptionsMenu target={target} />

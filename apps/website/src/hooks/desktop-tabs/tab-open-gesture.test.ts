@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { currentOpenGesture, openIntentFromEvent, trackOpenGestures } from './tab-open-gesture.ts';
 
 const mac = /Mac/u.test(navigator.platform);

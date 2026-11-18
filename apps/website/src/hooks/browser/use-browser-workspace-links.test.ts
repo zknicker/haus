@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+
 import { webLinkOpen } from './use-browser-workspace-links.ts';
 
 const base = 'http://localhost:43444/#/s/acme/inbox';

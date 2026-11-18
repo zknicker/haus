@@ -1,5 +1,6 @@
 import { agentSendInputSchema } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
+
 import { publishCommittedAgentActivity } from '../agent-delivery/activity-events.ts';
 import {
     announceRunEngagements,
@@ -10,11 +11,11 @@ import { resolveAgentMessageCause } from '../automations/infer-message-cause.ts'
 import { MessageCauseError } from '../automations/message-cause.ts';
 import { ChatArchivedError } from '../chats/chat-access.ts';
 import { InvalidInlineReplyError } from '../chats/reply-context.ts';
-import { sendAgentMessage } from '../chats/send-agent-message.ts';
 import {
     AgentMessageContentTooLongError,
     AgentSendConflictError,
 } from '../chats/send-agent-message-errors.ts';
+import { sendAgentMessage } from '../chats/send-agent-message.ts';
 import { readFailedImageGenerations } from '../image-generation/linked-image-generations.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { publishRealtime } from '../realtime/topic.ts';

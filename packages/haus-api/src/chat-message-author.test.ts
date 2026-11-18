@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { chatMessageSchema } from './chat.ts';
 
 test('Server message history can preserve a deleted author profile', () => {

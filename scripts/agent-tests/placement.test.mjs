@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
-import { classifyPlacement, journalCommands, parseDoneSends, refersTo } from './placement.mjs';
+
 import { namesKitRules, refersToKit, starterKit } from './placement-kit.mjs';
+import { classifyPlacement, journalCommands, parseDoneSends, refersTo } from './placement.mjs';
 
 test('parses --done anywhere in the invocation, with every target spelling', () => {
     const sends = parseDoneSends([

@@ -1,6 +1,8 @@
 import { createHash } from 'node:crypto';
 import type { FileHandle } from 'node:fs/promises';
+
 import { and, eq, inArray, isNull } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { attachmentsTable } from '../postgres/schema.ts';
 import type { AttachmentRoot } from './attachment-root.ts';

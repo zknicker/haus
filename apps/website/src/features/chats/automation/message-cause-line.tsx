@@ -1,4 +1,5 @@
 import type { MessageCause } from '@haus/api';
+
 import { CursorHoverCard } from '../../../components/ui/cursor-hover-card.tsx';
 import { cn } from '../../../lib/utils.ts';
 import { AgentProfileLink } from '../../members/agent-profile-link.tsx';
@@ -43,8 +44,8 @@ export function MessageCauseLine({ cause }: { cause: MessageCause }) {
     const content = (
         <>
             <AutomationKeycap mark={causeKeycapMark(cause)} size={turnContextMarkSize} />
-            <span className="min-w-0 truncate font-medium text-muted">{cause.title}</span>
-            <span className="min-w-0 shrink-[4] truncate text-context-line-quiet">
+            <span className="text-muted min-w-0 truncate font-medium">{cause.title}</span>
+            <span className="text-context-line-quiet min-w-0 shrink-[4] truncate">
                 {cause.summary}
             </span>
         </>

@@ -1,5 +1,6 @@
 import type { Agent } from '@haus/api';
 import * as React from 'react';
+
 import { type ActiveAgent, busiestWeek, weekShare } from './active-agents.ts';
 import { InboxAgentsRow } from './inbox-agents-row.tsx';
 import { InboxRowList } from './inbox-section-rows.tsx';

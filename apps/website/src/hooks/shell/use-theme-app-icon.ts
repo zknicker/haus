@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+
 import type { AppIcon } from '../../lib/color-themes.ts';
 import { getDesktopBridge, type HausDesktopBridge } from '../../lib/desktop-bridge.ts';
 import { useColorThemeDefinition } from './use-color-theme.ts';

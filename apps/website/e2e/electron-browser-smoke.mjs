@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
+
 import { _electron, expect } from '@playwright/test';
 
 const websiteRoot = fileURLToPath(new URL('../', import.meta.url));

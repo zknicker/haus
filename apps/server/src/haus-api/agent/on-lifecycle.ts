@@ -1,4 +1,5 @@
 import { agentLifecycleEventSchema, agentLifecycleSubscriptionInputSchema } from '@haus/api';
+
 import { subscribeToAgentLifecycle } from '../../agent-delivery/lifecycle.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
 import { memberProcedure } from '../server/procedure.ts';

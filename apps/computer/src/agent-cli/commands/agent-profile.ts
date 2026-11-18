@@ -5,6 +5,7 @@ import {
     agentSelfProfileUpdateInputSchema,
 } from '@haus/api';
 import type * as z from 'zod';
+
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { agentProfileResponseSchema } from '../agent-api-schemas.ts';
 import { AgentCliError } from '../agent-error.ts';

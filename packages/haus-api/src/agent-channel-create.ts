@@ -1,4 +1,5 @@
 import * as z from 'zod';
+
 import { channelTargetSchema } from './agent-creation.ts';
 import { channelDescriptionMaxLength, channelDescriptionSchema } from './channel-description.ts';
 import { participantHandleSchema } from './participant-handle.ts';

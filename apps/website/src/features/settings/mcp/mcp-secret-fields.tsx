@@ -1,5 +1,6 @@
 import { Button, Description, Fieldset, Input, TextField, Tooltip } from '@heroui/react';
 import { Cancel01Icon } from '@hugeicons/core-free-icons';
+
 import { Icon } from '../../../components/ui/icon.tsx';
 import { createSecretDraftEntry, type SecretDraftEntry } from './mcp-server-shared.ts';
 

@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { useResizablePaneWidth } from '../../components/ui/resizable-pane-rail.tsx';
 import { WorkspaceBrowserRail } from './chat-artifact-workspace-browser-rail.tsx';
 import {

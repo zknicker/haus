@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+
 import { callMcpTool } from './tool-catalog.ts';
 
 /**

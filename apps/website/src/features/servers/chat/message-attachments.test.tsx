@@ -1,7 +1,9 @@
 import { expect, test } from 'bun:test';
+
 import type { AttachmentMetadata } from '@haus/api';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
+
 import { attachmentImageKeys } from '../../../hooks/servers/attachment-image.ts';
 import {
     describeAttachment,

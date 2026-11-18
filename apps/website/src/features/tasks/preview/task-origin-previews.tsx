@@ -1,5 +1,6 @@
 import type { TaskPreview, TaskReplyPreview } from '@haus/api';
 import { ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
+
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
@@ -10,8 +11,8 @@ import { cn } from '../../../lib/utils.ts';
 import type { TranscriptActor } from '../../chats/chat-transcript-model.ts';
 import { useTranscriptRenderContextOptional } from '../../chats/chat-transcript-render-context.tsx';
 import { messagePreviewLine } from '../../chats/message-preview-line.ts';
-import { taskStateLabels } from '../task-state.ts';
 import { TaskStateDisc } from '../task-state-disc.tsx';
+import { taskStateLabels } from '../task-state.ts';
 import { taskPreviewCounts, taskPreviewLabel } from './task-preview-model.ts';
 
 export function TaskOriginPreviews({
@@ -52,10 +53,10 @@ function TaskPreviewBlock({ onOpen, preview }: { onOpen: () => void; preview: Ta
     const counts = taskPreviewCounts(preview);
     const now = useRelativeNow();
     return (
-        <div className="group/task card-shell relative mt-1.5 flex w-full min-w-0 max-w-(--chat-card-width) flex-col gap-1 bg-nested-surface px-2.5 py-2 shadow-(--nested-surface-ring) hover:bg-nested-surface-hover">
+        <div className="group/task card-shell bg-nested-surface hover:bg-nested-surface-hover relative mt-1.5 flex w-full max-w-(--chat-card-width) min-w-0 flex-col gap-1 px-2.5 py-2 shadow-(--nested-surface-ring)">
             <button
                 aria-label={taskPreviewLabel(preview)}
-                className="card-shell absolute inset-0 cursor-[var(--cursor-interactive)] outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                className="card-shell focus-visible:ring-focus absolute inset-0 cursor-[var(--cursor-interactive)] outline-none focus-visible:ring-2"
                 onClick={onOpen}
                 type="button"
                 {...opensPlace}
@@ -65,10 +66,10 @@ function TaskPreviewBlock({ onOpen, preview }: { onOpen: () => void; preview: Ta
                     <span aria-label={taskStateLabels[preview.state]} role="img">
                         <TaskStateDisc state={preview.state} />
                     </span>
-                    <span className="shrink-0 text-muted tabular-nums">{preview.key}</span>
+                    <span className="text-muted shrink-0 tabular-nums">{preview.key}</span>
                     <span className="truncate font-medium">{preview.title}</span>
                 </span>
-                <span className="flex shrink-0 items-center gap-1 font-semibold text-muted text-xs group-hover/task:text-foreground">
+                <span className="text-muted group-hover/task:text-foreground flex shrink-0 items-center gap-1 text-xs font-semibold">
                     {counts.messages}
                     {counts.messages && counts.unread ? <span aria-hidden>·</span> : null}
                     {counts.unread ? <span className="text-accent">{counts.unread}</span> : null}
@@ -101,10 +102,10 @@ function TaskPreviewMessage({ message, now }: { message: TaskReplyPreview; now: 
                 <EntityAvatar name={name} size={20} src={profile?.avatarUrl} />
             </span>
             <span className="shrink-0 font-semibold">{name}</span>
-            <span className="min-w-0 flex-1 truncate text-muted">
+            <span className="text-muted min-w-0 flex-1 truncate">
                 {messagePreviewLine(message.content)}
             </span>
-            <span className="shrink-0 text-muted text-xs tabular-nums">
+            <span className="text-muted shrink-0 text-xs tabular-nums">
                 {formatRelativeTime(message.createdAt, now)}
             </span>
         </span>

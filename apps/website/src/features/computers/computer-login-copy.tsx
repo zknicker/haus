@@ -1,4 +1,5 @@
 import type * as React from 'react';
+
 import type { ComputerLoginStatus } from './computer-login-view.tsx';
 
 export function loginTitle(status: ComputerLoginStatus | undefined, setupFlow: boolean) {
@@ -66,5 +67,5 @@ export function loginDescription(
 }
 
 function LoginCommand() {
-    return <code className="font-mono text-foreground">haus-computer login</code>;
+    return <code className="text-foreground font-mono">haus-computer login</code>;
 }

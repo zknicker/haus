@@ -5,7 +5,7 @@ export function AdventLine({ runs }: { runs: readonly AdventLineRun[] }) {
     return runs.map((run, index) =>
         run.strong ? (
             // Runs never reorder; their position is their identity.
-            <strong className="font-semibold text-foreground" key={index}>
+            <strong className="text-foreground font-semibold" key={index}>
                 {run.text}
             </strong>
         ) : (

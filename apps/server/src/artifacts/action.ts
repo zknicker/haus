@@ -1,4 +1,5 @@
 import { type ArtifactListFilters, artifactListInputSchema } from '@haus/api';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ArtifactActor } from './access.ts';
 import { deleteArtifact } from './delete.ts';

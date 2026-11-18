@@ -1,7 +1,8 @@
 import type { TriggerFire } from '@haus/api';
-import { Separator } from '@heroui/react';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Separator } from '@heroui/react';
 import { Fragment } from 'react';
+
 import { useViewerTimeZone } from '../../../hooks/members/use-viewer-time-zone.ts';
 import { SettingsFact } from '../../settings/layout/settings-text.tsx';
 import { formatTriggerFireDetail, formatTriggerFireTime } from './agent-trigger-model.ts';

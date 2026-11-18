@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { expect, test } from 'vitest';
+
 import { WindowBand } from './window-band.tsx';
 
 test('the window band leads with a sidebar-width traffic-light segment, then the topbar', () => {

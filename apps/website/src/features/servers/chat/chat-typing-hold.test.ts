@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { ChatEngagement } from '@haus/api';
+
 import {
     type ChatEngagementEnd,
     chatTypingReplyHoldMs,

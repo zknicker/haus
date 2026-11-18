@@ -1,7 +1,9 @@
 import { afterAll, expect, test } from 'bun:test';
+
 import { makeTestRuntime } from '@haus/effect';
 import type { Tool } from '@modelcontextprotocol/client';
 import { TestClock } from 'effect';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { makeServerRuntime } from '../server-runtime.ts';
 import { McpInventory } from './inventory.ts';

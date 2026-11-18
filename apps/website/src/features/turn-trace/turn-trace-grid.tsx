@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { cn } from '../../lib/utils.ts';
 import { tracePad, useTraceDepthStyle } from './turn-trace-depth.tsx';
 import { formatTraceDuration } from './turn-trace-duration.ts';
@@ -93,7 +94,7 @@ export function traceRowClass(
         layout === 'log' ? 'px-(--trace-pad)' : 'rounded-lg px-2',
         tone === 'danger'
             ? // Opaque, so it re-paints the turn's lift the turn painted beneath it.
-              'bg-[linear-gradient(var(--trace-row-lift),var(--trace-row-lift)),linear-gradient(var(--trace-turn-lift),var(--trace-turn-lift))] bg-trace-row-danger [--trace-ring:var(--trace-row-danger)]'
+              'bg-trace-row-danger bg-[linear-gradient(var(--trace-row-lift),var(--trace-row-lift)),linear-gradient(var(--trace-turn-lift),var(--trace-turn-lift))] [--trace-ring:var(--trace-row-danger)]'
             : 'bg-[linear-gradient(var(--trace-row-lift),var(--trace-row-lift))]'
     );
 }
@@ -161,7 +162,7 @@ export function TraceBody({ children }: { children: React.ReactNode }) {
         <div className={cn(traceLogGridClass, 'px-(--trace-pad)')} data-trace-body style={style}>
             <div
                 // The padding lives on the cell, not the grid, so the lane stretches the body's full height.
-                className="@max-2xl/activity-log:col-span-full col-span-2 grid min-w-0 gap-2 pe-2 pt-1 pb-2"
+                className="col-span-2 grid min-w-0 gap-2 pe-2 pt-1 pb-2 @max-2xl/activity-log:col-span-full"
                 style={{ paddingInlineStart: traceLogTextInset }}
             >
                 {children}
@@ -205,7 +206,7 @@ function TraceLeader({ layout, tone }: { layout: TraceLayout; tone: TraceRowTone
 function TraceTime({ timing }: { timing: TurnTraceTiming | null }) {
     return (
         <span
-            className="whitespace-nowrap text-muted text-sm tabular-nums"
+            className="text-muted text-sm whitespace-nowrap tabular-nums"
             data-duration-ms={timing?.durationMs ?? undefined}
             data-offset-ms={timing?.offsetMs}
             data-trace-cell="time"
@@ -235,7 +236,7 @@ function TraceDuration({ timing }: { timing: TurnTraceTiming | null }) {
         : null;
     return (
         <span
-            className="whitespace-nowrap text-end text-muted text-sm tabular-nums"
+            className="text-muted text-end text-sm whitespace-nowrap tabular-nums"
             data-trace-cell="duration"
         >
             {duration}

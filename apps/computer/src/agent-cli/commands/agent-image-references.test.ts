@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { runImageGenerate } from '../image-generate.ts';
 import { args, harness, ready } from './agent-image-test-fixtures.ts';
 

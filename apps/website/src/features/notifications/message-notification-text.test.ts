@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { Chat } from '@haus/api';
+
 import { humanDirectory } from '../servers/human-identity.ts';
 import { messageNotificationText } from './message-notification-text.ts';
 

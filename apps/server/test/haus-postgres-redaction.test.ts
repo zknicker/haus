@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { connectHausDatabase } from '../src/postgres/connection.ts';
 
 const secret = 'sup3rsecret';

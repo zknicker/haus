@@ -1,4 +1,5 @@
 import type { WebSocket } from 'ws';
+
 import type { ArtifactR2Config, ArtifactStorage } from './artifacts/storage.ts';
 import type { AvatarGenerationLogger, AvatarImageProvider } from './avatar-generation/index.ts';
 import type { SweepTimers } from './boot-sweep.ts';

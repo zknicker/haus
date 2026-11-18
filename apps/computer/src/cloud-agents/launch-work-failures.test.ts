@@ -1,7 +1,8 @@
 import { expect, spyOn, test } from 'bun:test';
+
 import { createFakeCloudAgentProvider } from './fake-provider.ts';
-import { CloudAgentLaunchFailedError, startCloudAgentWork } from './launch-work.ts';
 import { receipt, registerLaunchWorkFixture, runId, workId } from './launch-work-fixture.ts';
+import { CloudAgentLaunchFailedError, startCloudAgentWork } from './launch-work.ts';
 
 const fixture = registerLaunchWorkFixture();
 

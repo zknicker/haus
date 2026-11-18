@@ -1,4 +1,5 @@
 import { and, eq } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentMcpConnectionGrantsTable, mcpConnectionsTable } from '../postgres/schema.ts';
 import { McpDeniedError } from './errors.ts';

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
+
 import { decodeAttachmentImage } from './attachment-image.ts';
 
 let onDecode: () => void = () => undefined;

@@ -44,7 +44,7 @@ export function InboxHeader() {
         // Positioned for the sleigh ride, which flies the air above the greeting.
         <header className="relative flex flex-col gap-1.5">
             <SleighRide />
-            <h1 className="min-h-[1lh] font-semibold text-2xl text-foreground tracking-tight">
+            <h1 className="text-foreground min-h-[1lh] text-2xl font-semibold tracking-tight">
                 {viewerUserId ? greetingLine(now, humans.name(viewerUserId), greetings) : null}
             </h1>
             {/* The advent chip is the line's own height, so the date line never grows. */}

@@ -1,4 +1,5 @@
 import { artifactCreatorsInputSchema, artifactCreatorsResultSchema } from '@haus/api';
+
 import { listArtifactCreators } from '../../artifacts/creators.ts';
 import { artifactProcedure } from './procedure.ts';
 

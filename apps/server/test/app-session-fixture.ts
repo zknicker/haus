@@ -1,6 +1,7 @@
 import { runtimeUserIdSchema } from '@haus/api';
 import type { AppSession } from '@haus/api/app-session';
 import { eq } from 'drizzle-orm';
+
 import { createHausSessions } from '../src/identity/haus-sessions.ts';
 import { connectHausDatabase } from '../src/postgres/connection.ts';
 import { usersTable, userVerifiedEmailsTable } from '../src/postgres/schema.ts';

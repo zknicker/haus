@@ -60,7 +60,7 @@ function FolderLink({ folder }: { folder: NonNullable<ArtifactRowFacts['folder']
     const stop = (event: React.SyntheticEvent) => event.stopPropagation();
     return (
         <Link
-            className="text-muted underline decoration-dotted underline-offset-2 hover:text-foreground"
+            className="text-muted hover:text-foreground underline decoration-dotted underline-offset-2"
             onClick={(event) => {
                 stop(event);
                 folder.onOpen();

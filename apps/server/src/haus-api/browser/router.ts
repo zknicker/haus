@@ -1,5 +1,6 @@
 import type { BrowserRequest } from '@haus/api';
 import { TRPCError } from '@trpc/server';
+
 import { BrowserDeniedError, requestBrowser } from '../../server-browser/browser.ts';
 import type { HausUser } from '../../users/haus-user.ts';
 import type { HausContext } from '../context.ts';

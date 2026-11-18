@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { getManualTopic, searchManualTopics } from './index.ts';
 
 test('the channel topic teaches Agents to create a channel instead of asking a human to', () => {

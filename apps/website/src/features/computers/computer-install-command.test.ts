@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { buildComputerSetupCommands } from './computer-install-command.ts';
 
 test('builds separate install and Server setup commands', () => {

@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import { join } from 'node:path';
+
 import { withPidLock } from '../pid-lock.ts';
 
 export async function withArtifactCacheLock<T>(

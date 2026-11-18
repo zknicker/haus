@@ -1,8 +1,10 @@
 import { expect, test } from 'bun:test';
+
 import type { Chat } from '@haus/api';
 import { QueryClient } from '@tanstack/react-query';
 import { httpLink } from '@trpc/client';
 import { createTRPCQueryUtils } from '@trpc/react-query';
+
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryClientDefaultOptions } from '../../lib/query-policy.ts';
 import {

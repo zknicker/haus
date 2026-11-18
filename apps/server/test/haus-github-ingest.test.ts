@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomUUID } from 'node:crypto';
+
 import { makeTestRuntime } from '@haus/effect';
+
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import {
     type GithubIngestDependencies,

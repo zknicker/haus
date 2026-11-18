@@ -1,6 +1,7 @@
 import type { Agent } from '@haus/api';
 import { Separator } from '@heroui/react';
 import * as React from 'react';
+
 import { availabilityLabel } from '../computers/presentation.ts';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { AgentProfileLink } from '../members/agent-profile-link.tsx';
@@ -22,16 +23,16 @@ export function ServerAgentList({ agents }: { agents: Agent[] }) {
                     {index > 0 ? <Separator /> : null}
                     <AgentProfileLink
                         agentId={agent.id}
-                        className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 outline-none hover:bg-default/40 focus-visible:ring-2 focus-visible:ring-focus"
+                        className="hover:bg-default/40 focus-visible:ring-focus flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 outline-none focus-visible:ring-2"
                     >
                         <span className="flex min-w-0 items-center gap-2.5">
                             <AgentAvatar agent={agent} size={24} />
-                            <span className="min-w-0 truncate font-medium text-foreground text-sm">
+                            <span className="text-foreground min-w-0 truncate text-sm font-medium">
                                 {agent.displayName}
                             </span>
-                            <span className="truncate text-muted text-sm">@{agent.handle}</span>
+                            <span className="text-muted truncate text-sm">@{agent.handle}</span>
                         </span>
-                        <span className="shrink-0 text-muted text-sm">
+                        <span className="text-muted shrink-0 text-sm">
                             {availabilityLabel(agent)}
                         </span>
                     </AgentProfileLink>

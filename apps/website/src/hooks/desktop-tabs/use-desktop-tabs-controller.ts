@@ -1,4 +1,5 @@
 import * as React from 'react';
+
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import type { DesktopTabCommands } from './desktop-tabs-context.ts';
 import type { DesktopTabsState, TabLocation } from './desktop-tabs-model.ts';

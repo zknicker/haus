@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+
 import { publishHausSnapshotInOrder } from './publish-haus-snapshot.mjs';
 import { hausSnapshotKeys } from './release-snapshot.mjs';
 

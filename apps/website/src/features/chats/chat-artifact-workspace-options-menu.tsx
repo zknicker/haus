@@ -1,6 +1,7 @@
 import { Button, Dropdown, Label, type Selection, Separator, Tooltip } from '@heroui/react';
 import { File01Icon, Link01Icon, MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type { ReactNode } from 'react';
+
 import { Icon } from '../../components/ui/icon.tsx';
 import { writeClipboardText } from '../../lib/clipboard.ts';
 import { formatHausResourceLink } from './haus-resource-link.ts';

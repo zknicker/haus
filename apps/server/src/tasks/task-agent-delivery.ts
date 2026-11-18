@@ -1,10 +1,11 @@
 import { and, eq, sql } from 'drizzle-orm';
+
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { queuedFor, retireQueuedItemsByDedupeKeys } from '../agent-delivery/store.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable, agentsTable, serverMembershipsTable } from '../postgres/schema.ts';
-import type { TaskAssignmentChange } from './task-assignment.ts';
 import { encodeTaskAssignment, taskAssignmentKey } from './task-assignment-envelope.ts';
+import type { TaskAssignmentChange } from './task-assignment.ts';
 
 type Tx = Parameters<Parameters<HausDatabase['transaction']>[0]>[0];
 

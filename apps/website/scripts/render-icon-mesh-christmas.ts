@@ -25,13 +25,15 @@
 import { copyFile, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { chromium } from '@playwright/test';
+
 import type { GlassPiece } from '../src/components/haus-ghost-figure.ts';
 import { BODY_PATH } from '../src/components/haus-ghost-paths.ts';
 import { SANTA_PIECES } from '../src/components/haus-santa-ghost-palette.ts';
-import { GHOST_FOOTPRINT, renderIconMesh } from './render-icon-mesh.ts';
 import type { MeshFootprint } from './render-icon-mesh-figure.ts';
 import { nightcapProfile } from './render-icon-mesh-nightcap.ts';
+import { GHOST_FOOTPRINT, renderIconMesh } from './render-icon-mesh.ts';
 
 /** The ghost's layers, copied as they are: the standard icon owns them. */
 const GHOST_LAYERS: readonly { from: string; to: string }[] = [

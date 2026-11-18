@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { resolveManualTopic, searchManualTopics } from './index.ts';
 
 test('the connection topic turns MCP_DENIED into an ask and teaches the connection admin commands', () => {

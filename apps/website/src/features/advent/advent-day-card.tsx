@@ -1,6 +1,7 @@
 import type { AdventEntry } from '@haus/api';
 import { Button } from '@heroui/react';
 import { motion, useReducedMotion } from 'motion/react';
+
 import { AdventLine, adventFallbackLine } from './advent-line.tsx';
 import { dayOrnament, ornamentArt } from './ornaments.ts';
 
@@ -44,7 +45,7 @@ export function AdventDayCard({
                 <div className="flex items-start gap-4">
                     <CardOrnament day={day} size={96} />
                     <div className="min-w-0 flex-1 pt-2">
-                        <p className="font-medium text-muted text-xs">{dayLabel(day)}</p>
+                        <p className="text-muted text-xs font-medium">{dayLabel(day)}</p>
                         <FactText text={text} />
                         <div className="mt-4">
                             <SeeAllDays onBack={onBack} />
@@ -71,12 +72,12 @@ function FactText({ text }: { text: AdventDayText }) {
         return null;
     }
     if (text.kind === 'failed') {
-        return <p className="mt-2 text-muted text-sm leading-relaxed">{adventFallbackLine}</p>;
+        return <p className="text-muted mt-2 text-sm leading-relaxed">{adventFallbackLine}</p>;
     }
     const { entry } = text;
     return (
         <>
-            <h3 className="mt-0.5 mb-2 font-semibold text-foreground text-lg leading-snug tracking-tight">
+            <h3 className="text-foreground mt-0.5 mb-2 text-lg leading-snug font-semibold tracking-tight">
                 {entry.title}
             </h3>
             <p className="text-muted text-sm leading-relaxed" data-selectable-text>
@@ -100,8 +101,8 @@ function RecapBody({
             <div className="flex items-center gap-3">
                 <CardOrnament day={day} size={56} />
                 <div className="min-w-0">
-                    <p className="font-medium text-muted text-xs">{`Day ${day} · Christmas Eve`}</p>
-                    <h3 className="font-semibold text-foreground text-lg leading-snug tracking-tight">
+                    <p className="text-muted text-xs font-medium">{`Day ${day} · Christmas Eve`}</p>
+                    <h3 className="text-foreground text-lg leading-snug font-semibold tracking-tight">
                         {entry.title}
                     </h3>
                 </div>
@@ -110,7 +111,7 @@ function RecapBody({
                 {entry.stats.map((stat) => (
                     <div className="flex min-w-0 flex-col-reverse" key={stat.label}>
                         <dt className="text-muted text-xs leading-tight">{stat.label}</dt>
-                        <dd className="truncate font-semibold text-base text-foreground tracking-tight">
+                        <dd className="text-foreground truncate text-base font-semibold tracking-tight">
                             {stat.value}
                         </dd>
                     </div>

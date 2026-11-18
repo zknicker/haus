@@ -1,4 +1,5 @@
 import type { GithubTriggerConfigInput, Trigger, TriggerSecretResult } from '@haus/api';
+
 import { hausTrpc } from '../../lib/haus-server.tsx';
 
 /**

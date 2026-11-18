@@ -1,5 +1,6 @@
 import type * as React from 'react';
 import { createPortal } from 'react-dom';
+
 import { cn } from '../../lib/utils.ts';
 import { useActivationSlots } from './activation-frame.tsx';
 
@@ -54,11 +55,11 @@ export function ActivationStep({
     return (
         <section className={cn('activation-step', className)}>
             <header className="activation-step__heading">
-                <h1 className="text-balance font-semibold text-2xl text-foreground tracking-tight">
+                <h1 className="text-foreground text-2xl font-semibold tracking-tight text-balance">
                     {title}
                 </h1>
                 {description ? (
-                    <p className="mx-auto max-w-sm text-pretty text-muted text-sm">{description}</p>
+                    <p className="text-muted mx-auto max-w-sm text-sm text-pretty">{description}</p>
                 ) : null}
             </header>
             {children ? <div className="activation-step__content">{children}</div> : null}

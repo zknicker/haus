@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { artifactFileKind } from './artifact-file-kind.ts';
 
 const kind = (content_type: string, filename: string) =>

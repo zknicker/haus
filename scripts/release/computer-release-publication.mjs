@@ -2,6 +2,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+
 import {
     archiveComputerArtifact,
     computerReleaseRoot,
@@ -83,8 +84,8 @@ export function publishedComputerReleaseMatchesSource(production, candidate) {
     const release = production?.release;
     return Boolean(
         release &&
-            release.version === candidate.version &&
-            release.sourceRevision === candidate.sourceRevision
+        release.version === candidate.version &&
+        release.sourceRevision === candidate.sourceRevision
     );
 }
 

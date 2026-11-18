@@ -4,6 +4,7 @@ import {
     type ImageGenerationResult,
     imageGenerationSchema,
 } from '@haus/api';
+
 import type { imageGenerationsTable } from '../postgres/schema.ts';
 
 export type ImageGenerationRow = typeof imageGenerationsTable.$inferSelect;

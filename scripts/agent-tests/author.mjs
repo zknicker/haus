@@ -6,6 +6,7 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+
 import { createDevStackStatePaths } from '../dev-stack-shared.mjs';
 
 export function createAgentAuthor({ repositoryRoot = process.cwd(), serverId, serverUrl, stamp }) {

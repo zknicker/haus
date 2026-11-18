@@ -30,7 +30,7 @@ export function SessionLinkButton({
             {label ? (
                 <span
                     className={cn(
-                        'font-medium text-xs uppercase tracking-[0.16em]',
+                        'text-xs font-medium tracking-[0.16em] uppercase',
                         tone === 'amber'
                             ? 'text-warning'
                             : tone === 'sky'
@@ -41,7 +41,7 @@ export function SessionLinkButton({
                     {label}
                 </span>
             ) : null}
-            <span className="min-w-0 truncate text-foreground text-sm">{title}</span>
+            <span className="text-foreground min-w-0 truncate text-sm">{title}</span>
             {subtitle ? (
                 <span
                     className={cn(
@@ -56,7 +56,7 @@ export function SessionLinkButton({
                     {subtitle}
                 </span>
             ) : null}
-            <span className="min-w-0 truncate font-mono text-muted text-xs">{sessionKey}</span>
+            <span className="text-muted min-w-0 truncate font-mono text-xs">{sessionKey}</span>
         </div>
     );
 }

@@ -1,5 +1,6 @@
 import type { ChatMessageReactionInput, ChatMessageReactionReceipt } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
+
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';

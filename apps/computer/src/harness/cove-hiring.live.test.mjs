@@ -21,9 +21,8 @@ for (const legacy of [false, true]) {
                     await fixture.harness
                         .sql`update agents set retired_at=now() where server_id=${fixture.serverId} and created_by_agent_id=${fixture.coveAgentId}`;
                     if (legacy) {
-                        const { legacyCreationRefusals } = await import(
-                            './cove-legacy-cli-probe.mjs'
-                        );
+                        const { legacyCreationRefusals } =
+                            await import('./cove-legacy-cli-probe.mjs');
                         const refusals = await legacyCreationRefusals(fixture, legacyRepo);
                         driver.evidence.legacyCliRefusals = refusals;
                         expect(refusals[0].stderr).toContain('Code: INVALID_ARG');

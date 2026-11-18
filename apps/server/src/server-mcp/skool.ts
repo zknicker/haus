@@ -1,10 +1,12 @@
 import { randomUUID } from 'node:crypto';
+
 import {
     mcpBearerTokenSchema,
     mcpConnectionCreateSchema,
     type skoolConnectSchema,
 } from '@haus/api';
 import * as z from 'zod';
+
 import { skoolHostedUrl } from '../hosted-mcp/catalog.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { HausUser } from '../users/haus-user.ts';

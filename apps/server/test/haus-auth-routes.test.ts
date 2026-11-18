@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+
 import { resumeCookieName, stateCookieName } from '../src/identity/auth-http.ts';
 import {
     cloudflareAuthResource,

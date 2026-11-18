@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
+
 import type { ComputerInventory } from '@haus/api';
+
 import { assertRuntimeModelReported } from './agent-inventory.ts';
 
 const inventory: ComputerInventory = {

@@ -1,4 +1,5 @@
 import { afterEach, expect, spyOn, test } from 'bun:test';
+
 import { McpUpstreamError } from '../server-mcp/errors.ts';
 import { lookupProductSummary, type RankWranglerRead } from './lookup-products.ts';
 

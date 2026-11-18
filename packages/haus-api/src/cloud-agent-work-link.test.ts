@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
+
 import { chatMessageSchema, chatSendInputSchema } from './chat.ts';
-import { activeCloudAgentWorkLocationSchema, activeCloudAgentWorkSchema } from './cloud-agent.ts';
 import { cloudAgentTitleMaxLength } from './cloud-agent-shared.ts';
 import {
     activeWorkLocations,
@@ -17,6 +17,7 @@ import {
     cloudAgentWorkLinkSuffixMaxLength,
     formatCloudAgentWorkLink,
 } from './cloud-agent-work-link.ts';
+import { activeCloudAgentWorkLocationSchema, activeCloudAgentWorkSchema } from './cloud-agent.ts';
 import {
     formatCloudAgentWorkReferenceTarget,
     parseCloudAgentWorkReferenceTarget,

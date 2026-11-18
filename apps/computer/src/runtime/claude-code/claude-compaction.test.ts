@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import { ONE_HOUR_CACHE_MS } from '../idle-compaction.ts';
 import { cumulativeDifference } from './claude-idle-activity.ts';
 import { ClaudeTurn } from './claude-turn.ts';

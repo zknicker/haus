@@ -1,4 +1,5 @@
 import { join } from 'node:path';
+
 import {
     type EffectRuntime,
     instrumentOperation,
@@ -7,6 +8,7 @@ import {
     withTelemetrySpan,
 } from '@haus/effect';
 import { Data, Deferred, Effect, Schedule, type Scope } from 'effect';
+
 import type { HostedMcpDefinition } from './catalog.ts';
 import { type HostedMcpProcess, openHostedMcpProcess } from './process.ts';
 

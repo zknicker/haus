@@ -1,5 +1,7 @@
 import { expect, spyOn, test } from 'bun:test';
+
 import { Agent, AgentBusyError } from '@cursor/sdk';
+
 import { createCursorSdkTransport } from './sdk-transport.ts';
 
 test('SDK follow-up resumes the existing Agent, forwards idempotency, and disposes on refusal', async () => {

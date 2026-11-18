@@ -1,5 +1,5 @@
-import type { RuntimeDriverFactory } from '../runtime/driver.ts';
 import { createRuntimeDriver } from '../runtime/driver-factory.ts';
+import type { RuntimeDriverFactory } from '../runtime/driver.ts';
 import type { HarnessTurnInput } from './executor.ts';
 
 // Tests inject a fake driver at this construction seam.
