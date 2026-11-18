@@ -2,12 +2,14 @@ import { type AgentReasoningEffort, hausAgentVersion } from '@haus/api';
 import type { RuntimeResumeState } from '../runtime/resume-state.ts';
 import type { ComposedInstructions } from './instructions.ts';
 import { deliveredInstructionReceipt, type InstructionsUpdatePlan } from './instructions-update.ts';
+import { type MemoryDelivery, memoryReceiptAfterTurn } from './memory-delivery.ts';
 import type { AgentSessionState } from './session-store.ts';
 
 /** What every ending of a turn on a live session records. */
 export interface TurnSessionFacts {
     composed: Pick<ComposedInstructions, 'fingerprint' | 'stableFingerprint'>;
     instructionsUpdate: InstructionsUpdatePlan;
+    memory: MemoryDelivery;
     reasoningEffort: AgentReasoningEffort;
     runtimeSessionId: string;
 }
@@ -23,6 +25,8 @@ export interface CompletedTurnFacts {
     bootstrapFingerprint: string | null;
     /** False when a Cove factory-guidance conflict keeps the version unapplied. */
     coveGuidanceCanApply: boolean;
+    /** The digest of MEMORY.md at turn end; null when the file is missing. */
+    memoryDigest: string | null;
     modelId: string;
     runtimeId: string;
 }
@@ -41,6 +45,7 @@ export function turnSessionRecord(session: AgentSessionState, facts: TurnSession
         stopped: (resumeState: RuntimeResumeState): AgentSessionState => ({
             ...session,
             ...receipt({ compacted: false, completed: false }),
+            deliveredMemoryDigest: facts.memory.priorReceipt,
             resumeState,
             runtimeSessionId: facts.runtimeSessionId,
         }),
@@ -51,6 +56,11 @@ export function turnSessionRecord(session: AgentSessionState, facts: TurnSession
         interrupted: ({ compacted, resumeState }: EndedTurn): AgentSessionState => ({
             ...session,
             ...receipt({ compacted, completed: false }),
+            deliveredMemoryDigest: memoryReceiptAfterTurn(facts.memory, {
+                compacted,
+                completed: false,
+                endDigest: null,
+            }),
             effectiveReasoningEffort: facts.reasoningEffort,
             hausAgentStatus:
                 session.hausAgentVersion === hausAgentVersion ? session.hausAgentStatus : 'failed',
@@ -73,6 +83,11 @@ export function turnSessionRecord(session: AgentSessionState, facts: TurnSession
             return {
                 ...receipt({ compacted, completed: true }),
                 bootstrapFingerprint: run.bootstrapFingerprint,
+                deliveredMemoryDigest: memoryReceiptAfterTurn(facts.memory, {
+                    compacted,
+                    completed: true,
+                    endDigest: run.memoryDigest,
+                }),
                 effectiveModel: { modelId: run.modelId, runtimeId: run.runtimeId },
                 effectiveReasoningEffort: facts.reasoningEffort,
                 generation: session.generation,

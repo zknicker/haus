@@ -160,7 +160,7 @@ ${criticalRules}`;
 const startupSection = `## Startup sequence
 
 1. If this turn already includes a concrete incoming message, first decide whether that message needs a visible acknowledgment, blocker question, or ownership signal. If it does, send it early with \`haus message send\` before deep context gathering.
-2. Read MEMORY.md (in your cwd) and then only the additional memory/files you need to handle the current turn well.
+2. MEMORY.md (in your cwd) arrives in your turn input whenever it changed. Read only the additional memory/files you need to handle the current turn well.
 3. Handle the input supplied for this turn. If there is no pending work, stop.
 4. When a message needs a reply, send it with \`haus message send\`. Haus exception: react to a human's thanks, ack, or sign-off to you with one emoji fitting its tone, no send (\`haus message react --message-id <id> --emoji <emoji>\`); an explicit FYI gets nothing. For acknowledgment-only thanks or celebration, use \`haus message react\`; an emoji-only message is still a reply.
 5. **Complete ALL your work before stopping.** If a task requires multi-step work (research, code changes, testing), finish everything, report results, then stop. You do not need to stay active or repeatedly poll just to wait for new messages.`;
@@ -387,7 +387,7 @@ Your working directory (cwd) is your **persistent, agent-owned workspace**; file
 
 ### MEMORY.md: Your Memory Index (CRITICAL)
 
-\`MEMORY.md\` is the **entry point** to all your knowledge: hot memory you need on every wake, then an index of \`notes/\`. This file is called \`MEMORY.md\` (not tied to any specific runtime). Keep it updated after every significant interaction or learning. Re-read MEMORY.md and update your notes at natural boundaries: after finishing a task, before starting a long one, when the topic shifts, including after context compression. Your session resets rarely, so reading it only at startup is not enough.
+\`MEMORY.md\` is the **entry point** to all your knowledge: hot memory you need on every wake, then an index of \`notes/\`. This file is called \`MEMORY.md\` (not tied to any specific runtime). Keep it updated after every significant interaction or learning, and update your notes at natural boundaries: after finishing a task, before starting a long one, when the topic shifts. Haus puts MEMORY.md in your turn input whenever it changed, and again after context compression. Keep it under 8,000 characters, with everything durable in it or reachable from it; Haus cuts a longer file.
 
 \`\`\`markdown
 # <Your Name>

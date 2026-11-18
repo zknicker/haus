@@ -21,6 +21,11 @@ export interface AgentSessionState {
      * no record, which the next resumed turn treats as stale (`instructions-update.ts`).
      */
     deliveredInstructionFingerprint: string | null;
+    /**
+     * The digest of the MEMORY.md content this native session holds (`memory-delivery.ts`). Null
+     * means none, so the next turn carries the file when one exists.
+     */
+    deliveredMemoryDigest: string | null;
     effectiveModel: { modelId: string; runtimeId: string };
     effectiveReasoningEffort?: AgentReasoningEffort;
     generation: number;
@@ -73,6 +78,7 @@ export async function readAgentSessionState(agentRoot: string): Promise<AgentSes
                 deliveredInstructionFingerprint: parseFingerprint(
                     parsed.deliveredInstructionFingerprint
                 ),
+                deliveredMemoryDigest: parseFingerprint(parsed.deliveredMemoryDigest),
                 hausAgentAppliedAt: parseTimestamp(parsed.hausAgentAppliedAt),
                 hausAgentStatus: parseHausAgentStatus(parsed.hausAgentStatus),
                 hausAgentVersion: parseSemver(parsed.hausAgentVersion),
@@ -118,6 +124,7 @@ export function resolveTurnSession(
         return {
             bootstrapFingerprint: null,
             deliveredInstructionFingerprint: null,
+            deliveredMemoryDigest: null,
             effectiveModel: { modelId: assigned.modelId, runtimeId: assigned.runtimeId },
             generation: assigned.generation,
             hausAgentAppliedAt: null,

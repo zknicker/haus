@@ -33,6 +33,7 @@ import { startInstructionRefreshActivity } from './instruction-refresh-activity.
 import { composeAgentInstructions } from './instructions.ts';
 import { planInstructionsUpdate, withInstructionsUpdate } from './instructions-update.ts';
 import { journalError, journalOutcome } from './journal-outcome.ts';
+import { planMemoryDelivery, readMemoryDigest, withMemory } from './memory-delivery.ts';
 import { AgentSessionResumeRejectedError } from './resume-rejection.ts';
 import { projectMessageForAgent } from './rich-reference-projection.ts';
 import { type HarnessSessionLease, harnessSessionOwner } from './session-lifecycle.ts';
@@ -220,9 +221,16 @@ async function executeHarnessTurn(
         });
         await phase('session ready');
         const instructionsUpdate = updateFor(live.isResume);
+        const memory = await planMemoryDelivery({
+            isResume: live.isResume,
+            receipt: session.deliveredMemoryDigest,
+            wake,
+            workspaceDir: input.workspaceDir,
+        });
         const record = turnSessionRecord(session, {
             composed,
             instructionsUpdate,
+            memory,
             reasoningEffort: input.reasoningEffort,
             runtimeSessionId: live.sessionId,
         });
@@ -242,15 +250,18 @@ async function executeHarnessTurn(
         const noProgress = new AbortController();
         const turnSignal = AbortSignal.any([noProgress.signal, input.signal ?? noProgress.signal]);
         const turn = await live.startTurn({
-            // The update leads, outside the projection: its text is instructions, not a message.
+            // The update and memory lead, outside the projection: neither is a message.
             prompt: withInstructionsUpdate(
                 instructionsUpdate,
-                projectMessageForAgent({
-                    content: [coveGuidance.notice, turnContent, skillNotice?.text]
-                        .filter(Boolean)
-                        .join('\n\n'),
-                    enabledSkillIds: skillNames,
-                })
+                withMemory(
+                    memory,
+                    projectMessageForAgent({
+                        content: [coveGuidance.notice, turnContent, skillNotice?.text]
+                            .filter(Boolean)
+                            .join('\n\n'),
+                        enabledSkillIds: skillNames,
+                    })
+                )
             ),
             signal: turnSignal,
             wake,
@@ -327,6 +338,7 @@ async function executeHarnessTurn(
             record.completed(ended, {
                 bootstrapFingerprint,
                 coveGuidanceCanApply: coveGuidance.versionCanApply,
+                memoryDigest: await readMemoryDigest(input.workspaceDir),
                 modelId: input.modelId,
                 runtimeId: input.runtimeId,
             })
