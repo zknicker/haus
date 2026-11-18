@@ -47,7 +47,7 @@ export const cloudAgentPullRequestReviewStates = [
 
 /**
  * The Server's live reading of a pull request some Cloud Agent work reported
- * (ADR 0052 decision 6). It stays evidence: Haus never acts on the pull
+ * (ADR 0053 decision 6). It stays evidence: Haus never acts on the pull
  * request. A `computer` reading is the Run's snapshot, frozen once the Run
  * settled; a `github` one is kept current by webhooks.
  */

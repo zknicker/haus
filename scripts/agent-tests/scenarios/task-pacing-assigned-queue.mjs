@@ -1,6 +1,6 @@
 // Three Tasks a person assigns to one Agent are a queue, not three requests: it works them one
 // at a time, most urgent first, setting each `open` and then `done` while the rest wait in
-// `todo` (ADR 0052, operator decision 2026-11-18). A lead Agent starts the Tasks in `todo` from
+// `todo` (ADR 0053, operator decision 2026-11-18). A lead Agent starts the Tasks in `todo` from
 // the person's message with both Agents stopped; the person then assigns them to the worker, and
 // only the worker is restarted, so one run carries all three assignments.
 

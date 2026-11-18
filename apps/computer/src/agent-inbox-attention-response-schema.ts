@@ -11,7 +11,7 @@ import { cloudAgentBranchResponseSchema } from './agent-cli/cloud-agent-work-res
 
 /**
  * A pull request change: on a Run's `pull_request` attention, or alone as the
- * `pullRequestNotice` for a Task no cloud work reports to (ADR 0052 decision 6).
+ * `pullRequestNotice` for a Task no cloud work reports to (ADR 0053 decision 6).
  */
 export const pullRequestChangeResponseSchema = z.looseObject(
     cloudAgentPullRequestChangeSchema.shape

@@ -42,7 +42,7 @@ export const chatUnreadPreviewSchema = z
         earlierUnreadCount: z.number().int().nonnegative(),
         messages: z.array(chatMessageSchema).min(1).max(unreadPreviewMessageLimit),
         /**
-         * Set on a followed Task's row (ADR 0052 decision 9): `chatId` is then the
+         * Set on a followed Task's row (ADR 0053 decision 9): `chatId` is then the
          * Task's own Chat, and the row names the Task by key and title. Null for a
          * Channel or DM row.
          */

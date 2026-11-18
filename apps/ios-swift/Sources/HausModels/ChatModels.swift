@@ -1,7 +1,7 @@
 import Foundation
 
 /// What kind of place a Chat is. Channels and DMs are conversations the Chat
-/// list shows; a `task` Chat is a Task's own conversation (ADR 0052), opened
+/// list shows; a `task` Chat is a Task's own conversation (ADR 0053), opened
 /// as a Task and never listed as a Channel or DM. A kind this build does not
 /// know decodes as `unknown` rather than failing the whole Chat list, so a
 /// newer Server never costs the reader every Chat.

@@ -7,7 +7,7 @@ import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { startPostgresCluster } from './postgres-cluster.ts';
 
 /**
- * ADR 0052 decisions 6 and 16 over rows 0122 left: a reminder's anchor Message
+ * ADR 0053 decisions 6 and 16 over rows 0122 left: a reminder's anchor Message
  * key no longer names its anchor Chat, so a reminder on a Task with no posts
  * anchors on the origin Message in the Channel above it; and a `pull_request`
  * notice may wake a Task's assignee without any cloud agent Run.

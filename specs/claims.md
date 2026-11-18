@@ -4,7 +4,7 @@ Chat-first claims implement D8 from `specs/raft-alignment/README.md`, where they
 [ADR 0051](../docs/adr/0051-tasks-are-boards-and-claims-are-the-lock.md) renamed them to claims so
 the Tasks product can own the word *task*. A claim is one canonical hosted message plus
 Server-owned lifecycle metadata: the hidden, Agent-only lock on a Message. A Task does not mark
-ownership; the claim does ([ADR 0052](../docs/adr/0052-channels-and-tasks-are-the-only-places.md)
+ownership; the claim does ([ADR 0053](../docs/adr/0053-channels-and-tasks-are-the-only-places.md)
 decision 5). Conversation continues inline in its Channel or DM. All claim views project the
 canonical message and metadata.
 

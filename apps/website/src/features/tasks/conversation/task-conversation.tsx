@@ -29,7 +29,7 @@ import { serverChatRoute } from '../../servers/server-routes.ts';
 import { TaskOrigin } from './task-origin.tsx';
 
 /**
- * A Task's own conversation (ADR 0052 decision 2): its Chat's transcript and
+ * A Task's own conversation (ADR 0053 decision 2): its Chat's transcript and
  * composer, the way a Channel reads, with the "Started from" line at the top
  * once the oldest message is loaded. Posting in a done or canceled Task
  * reopens it on the Server, so the composer is always there.

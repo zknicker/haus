@@ -251,7 +251,7 @@ _Avoid_: card record, Chat entry, Widget, artifact
 **Unread**:
 The Inbox section listing every Channel, DM, and followed Task with something one human has not
 read, newest activity first. Each counts only its own messages, and a Task counts only for its
-followers (ADR 0052). Viewing a Chat while Haus is in view clears it; **Mark read** clears it without opening it. There is no attention tier above
+followers (ADR 0053). Viewing a Chat while Haus is in view clears it; **Mark read** clears it without opening it. There is no attention tier above
 unread (ADR 0038).
 _Avoid_: Needs you, attention, Done, notification center
 
@@ -278,7 +278,7 @@ _Avoid_: Task, message task
 **Task**:
 A place for one piece of work: a Chat of kind `task`, started by an Agent from an origin Message in
 a Channel, with its own conversation, a state (`todo`, `open`, `done`, `canceled`), at most one
-assignee, and attached cloud agents and pull requests (ADR 0052). Only Agents start Tasks; a human
+assignee, and attached cloud agents and pull requests (ADR 0053). Only Agents start Tasks; a human
 asks one. It ends when an Agent or a person marks it done or canceled, never by deletion, and
 posting in it reopens it.
 _Avoid_: Claim, issue, ticket, Thread, work Thread, board card
@@ -323,7 +323,7 @@ _Avoid_: avatar repository, automatic profile update, transient avatar file
 
 **Cloud Agent work**:
 Durable provider-hosted work delegated by a Haus Agent for a Task. It is a standalone Agent-owned
-record attached to that Task (ADR 0044, ADR 0052): it owns its delegating Agent, one or more
+record attached to that Task (ADR 0044, ADR 0053): it owns its delegating Agent, one or more
 provider Runs, and its mutable lifecycle, and it survives deletion of the Chat that asked for it.
 Results reach the Task as ordinary Messages, references, attachments, and artifacts composed by the
 delegating Agent, which owns follow-up after terminal completion reaches its inbox.

@@ -226,7 +226,7 @@ async function mintRunnerFor(agentId: string, chatId: string, runId: string) {
     return { runId, token: runnerToken };
 }
 
-/** A Task started in that Channel; cloud work launches on a Task (ADR 0052). */
+/** A Task started in that Channel; cloud work launches on a Task (ADR 0053). */
 async function taskIn(channelId: string) {
     const task = await startTestTask(fixture.harness, fixture.owner, {
         channelId,

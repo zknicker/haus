@@ -9,7 +9,7 @@ public struct ChatMessagePage: Codable, Sendable, Equatable {
     /// resumes here rather than after the last message it returned.
     public let scannedThroughSequence: Int
     /// Tasks started from messages on this page, each under its origin
-    /// (ADR 0052 decision 7). A Server that predates Tasks omits it.
+    /// (ADR 0053 decision 7). A Server that predates Tasks omits it.
     public let tasks: [TaskPreview]
 
     /// A page built locally (a merge or a fixture) scanned through its newest
@@ -47,7 +47,7 @@ public struct ChatMessagePage: Codable, Sendable, Equatable {
 /// read answers null when the id no longer resolves in the Chat.
 public struct ChatMessageEntity: Codable, Sendable, Equatable {
     public let message: ChatMessage
-    /// The Tasks started from this message (ADR 0052 decision 7), from its
+    /// The Tasks started from this message (ADR 0053 decision 7), from its
     /// page or from `chat.message`'s own `tasks`. Nil when the read carried no
     /// `tasks` key (a Server that predates it), which keeps whatever a page
     /// read last said rather than clearing it. A preview this build cannot

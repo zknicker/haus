@@ -3,7 +3,7 @@ import { idSchema } from './chat-contract-primitives.ts';
 
 /**
  * The task label and priority vocabulary. Claims carry it today; the Tasks
- * product owns it (ADR 0052), so it keeps the `task` name.
+ * product owns it (ADR 0053), so it keeps the `task` name.
  */
 export const taskPriorities = ['none', 'urgent', 'high', 'medium', 'low'] as const;
 export const taskLabelColors = [

@@ -17,7 +17,7 @@ test('a cloud agent works for a Task, and the launch names it', () => {
     expect(section).toContain(
         'A cloud agent works for a Task: start the Task first, then `haus cloud-agent start --task <KEY-n>`.'
     );
-    // ADR 0052 deleted the launch placement rule: the card is not an inline reply with a work thread.
+    // ADR 0053 deleted the launch placement rule: the card is not an inline reply with a work thread.
     expect(section).not.toContain('launch card');
     expect(section).not.toContain('work thread');
     expect(section).not.toContain('a launch never opens a new thread');

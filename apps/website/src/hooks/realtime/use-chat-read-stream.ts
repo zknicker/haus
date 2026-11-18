@@ -68,7 +68,7 @@ export function applyChatRead({
 }) {
     const { chatId, serverId } = event;
     // A Task's Chat is in no Chat list: its unread lives on its detail, its origin
-    // preview, and its Inbox row (ADR 0052 decision 9).
+    // preview, and its Inbox row (ADR 0053 decision 9).
     if (event.taskId) {
         refreshTaskReads(coalescer, queryClient, { serverId, taskId: event.taskId });
         coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.chat.unreadPreviews, { serverId }) });

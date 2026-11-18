@@ -1,7 +1,7 @@
 import HausModels
 import SwiftUI
 
-/// The band under a Task's navigation bar (ADR 0052 decision 15): the Task's
+/// The band under a Task's navigation bar (ADR 0053 decision 15): the Task's
 /// title and state, then the work attached to it — each cloud agent with its
 /// newest Run's status and summary, and each pull request no cloud agent
 /// already shows. It sits in the layout above the transcript, never over it,

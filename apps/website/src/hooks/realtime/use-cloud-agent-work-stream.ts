@@ -48,7 +48,7 @@ export function applyCloudAgentWorkUpdate(
     event: CloudAgentWorkUpdatedEvent
 ) {
     const { chatId, messageId, serverId, taskId } = event;
-    // The Task page's attached-work panel states the work too (ADR 0052 decision 12).
+    // The Task page's attached-work panel states the work too (ADR 0053 decision 12).
     if (taskId) {
         refreshTaskReads(coalescer, queryClient, { serverId, taskId });
     }

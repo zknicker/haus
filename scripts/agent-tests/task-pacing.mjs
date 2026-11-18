@@ -1,4 +1,4 @@
-// Evidence for Task pacing (ADR 0052, operator decision 2026-11-18): an Agent works Tasks others
+// Evidence for Task pacing (ADR 0053, operator decision 2026-11-18): an Agent works Tasks others
 // assign it one at a time, by priority then age, setting the one it takes `open` and leaving the
 // rest `todo`; Tasks it started itself may run side by side. The Server keeps where each Task
 // ended up, not the order it got there, so the order comes from the execution journal.

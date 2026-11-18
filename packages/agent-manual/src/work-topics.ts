@@ -1,7 +1,7 @@
 import type { ManualNavigationTopic } from './types.ts';
 
 /**
- * Work that takes longer than a reply: Tasks and the cloud agents that work for them (ADR 0052).
+ * Work that takes longer than a reply: Tasks and the cloud agents that work for them (ADR 0053).
  * The managed prompt says what a Task is; these topics carry the commands and edge cases.
  */
 export const workTopics: readonly ManualNavigationTopic[] = [

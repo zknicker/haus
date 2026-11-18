@@ -5,7 +5,7 @@ import type { FollowedTaskPreview } from './unread-rows.ts';
 import { type UnreadRowTriage, UnreadTriageRow } from './unread-triage-row.tsx';
 
 /**
- * A followed Task with unread messages as a card in the Unread feed (ADR 0052
+ * A followed Task with unread messages as a card in the Unread feed (ADR 0053
  * decision 9), the way an unread Channel reads: its state mark, its key and
  * title, the Channel it started from, its waiting messages, and a composer that
  * posts into the Task's own Chat. The name opens the Task page.

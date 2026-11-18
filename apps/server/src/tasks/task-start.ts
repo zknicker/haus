@@ -34,7 +34,7 @@ export interface StartTaskInput {
 }
 
 /**
- * Starts a Task from a Message in a Channel (ADR 0052 decisions 3, 4, 11): an
+ * Starts a Task from a Message in a Channel (ADR 0053 decisions 3, 4, 11): an
  * Agent only. The Task takes the Channel's key and that key's next number, gets
  * its own `task` Chat under the origin Channel and Message, and starts with its
  * followers seeded. One Message can carry several Tasks.

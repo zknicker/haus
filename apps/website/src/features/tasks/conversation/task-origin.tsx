@@ -11,7 +11,7 @@ import { useServerContext } from '../../servers/server-context.ts';
 import { serverChatRoute } from '../../servers/server-routes.ts';
 
 /**
- * The quiet "Started from" line at the top of a Task's conversation (ADR 0052
+ * The quiet "Started from" line at the top of a Task's conversation (ADR 0053
  * decision 3): the Channel, the origin Message's author, and its first line.
  * It opens the Channel scrolled to that Message. Blank until the Message
  * resolves; nothing once it no longer does.

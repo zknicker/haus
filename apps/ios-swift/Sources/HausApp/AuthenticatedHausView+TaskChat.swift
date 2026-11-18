@@ -2,7 +2,7 @@ import HausModels
 import HausUI
 import SwiftUI
 
-/// The pushed Task route (ADR 0052 decision 15). A Task with a Chat opens as
+/// The pushed Task route (ADR 0053 decision 15). A Task with a Chat opens as
 /// a chat with its attached-work header; a Task from before Tasks were places
 /// has no Chat and opens a read-only details screen with no composer. Until
 /// the Store knows which, the screen is blank rather than guessing.

@@ -77,7 +77,7 @@ export const pushNotificationConversationSchema = z.discriminatedUnion('kind', [
  * Notification from `sender` and `conversation`; the plain alert is the
  * fallback when it cannot. `taskId` and
  * `taskKey` are non-null exactly when the message is in a Task's own Chat
- * (ADR 0052), which is then `chatId` under its origin Channel
+ * (ADR 0053), which is then `chatId` under its origin Channel
  * `conversationChatId`, so a tap opens the Task. `reason` is
  * why the message notifies the human (`messageNotificationReason`); the
  * extension maps it to Focus donation metadata (`mention`, `reply`).

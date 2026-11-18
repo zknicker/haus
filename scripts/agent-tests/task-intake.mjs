@@ -3,7 +3,7 @@
 // whole of the work (more steps, more time, or a cloud agent), and otherwise just replies; a
 // claim, not a Task, marks who owns a message. The source of the work does not change that.
 //
-// A Task is a place (ADR 0052): its `origin` names the Channel Message it started from, its
+// A Task is a place (ADR 0053): its `origin` names the Channel Message it started from, its
 // `chatId` is its own conversation, where work done for it is reported, and cloud work
 // launched for it is listed in the Task's `attachedWork`.
 

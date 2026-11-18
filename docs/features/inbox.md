@@ -251,7 +251,7 @@ work row's trailing status disc is 16px, the app's icon size.
 ### Task cards
 
 A followed Task with unread messages is a card in the same feed and reads the way an unread
-Channel does ([ADR 0052](../adr/0052-channels-and-tasks-are-the-only-places.md) decision 9,
+Channel does ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md) decision 9,
 [`unread-task-chat-row.tsx`](../../apps/website/src/features/servers/inbox/unread-task-chat-row.tsx)):
 its state mark, its key and title, the Channel it started from as the note, its waiting
 messages, and a composer that posts into the Task. Its name opens the Task page. Being assigned a

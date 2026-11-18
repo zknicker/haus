@@ -86,7 +86,7 @@ function isFireIdentity(dedupeKey: string): boolean {
 }
 
 /**
- * The anchor Chats a message here answers for. A Task (ADR 0052) answers for
+ * The anchor Chats a message here answers for. A Task (ADR 0053) answers for
  * itself, so a fire anchored on the Task
  * keeps the Task as its place, and for the Channel it started in, where a fire
  * that turned up real work started it. Every other Chat answers for itself.

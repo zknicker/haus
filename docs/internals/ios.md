@@ -925,7 +925,7 @@ Owners/Admins, Cancel run. Missing diff evidence stays absent, not zero.
 `cloudAgentWork.updated`, sent once per linking Message, refreshes that Message through the normal durable event/reconnect path; a deleted Chat reloads the active work
 list, since linked work outlives it. Cards scroll with their Messages and follow-ups update the same card.
 
-There are no Threads ([ADR 0052](../adr/0052-channels-and-tasks-are-the-only-places.md)): a side
+There are no Threads ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md)): a side
 conversation is inline replies in its Channel or DM, and work lives in Tasks. A message row offers no
 way into a side conversation and the drawer's only reply action is the inline **Reply**.
 
@@ -938,7 +938,7 @@ composed or converted always states itself. The preference is per device, like a
 claims in chat** is the switch. A stopped claim opened from an Agent profile opens its message in the
 Channel or DM that numbers it (`claim.chatID`, revealing `claim.messageID`).
 
-A Task is a place ([ADR 0052](../adr/0052-channels-and-tasks-are-the-only-places.md)): a Channel
+A Task is a place ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md)): a Channel
 for one piece of work, started by an Agent from a Message in a Channel, with a state (todo, open,
 done, canceled) and its own `task` Chat. There are no boards or columns, and the phone has no Tasks
 page, no create, and no state or assignee controls (decision 15). The phone holds Tasks apart from
@@ -1015,7 +1015,7 @@ and the edge pan are the same ones. `showsInbox` is App-owned state (`Authentica
 the shell clears it whenever a Chat is selected; the sidebar's Inbox row sets it back. The last-open
 Chat is still restored for the drawer's selection, and selecting one swaps the canvas the way it
 always did. `HausRootRoute` therefore carries only `.task`. A Cloud Agent work row attached to a
-Task (`taskId`, ADR 0052 decision 6) opens that Task. Older work opens the row's `location`, the
+Task (`taskId`, ADR 0053 decision 6) opens that Task. Older work opens the row's `location`, the
 newest visible linking Message, revealed in its Channel or DM. A location kind the phone does not
 know (an older Server's `work-thread`) skips that row; an Unread row opens its DM, Channel, or Task.
 Unread and **Happening now** rows share one Messages-style row (`InboxRowView`): a 44pt mark, the
@@ -1079,7 +1079,7 @@ counts Chat rows and Task rows alike, matching the icon badge (`chat.unreadChatC
 There is no question screen, card, or marker — the mention chip in the transcript is the whole
 presentation of a question ([Inbox](../features/inbox.md#notifications)).
 
-A Task is unread only for its followers (ADR 0052 decision 9), and being assigned a Task makes the
+A Task is unread only for its followers (ADR 0053 decision 9), and being assigned a Task makes the
 assignee a follower, so an assigned Task simply shows as unread; there is no separate assignment
 item. Each followed Task with messages waiting is its own Unread row (`InboxUnreadTaskChat`), never
 bundled, merged by activity and wearing its origin Channel's mark. Opening it pushes the Task; Mark
@@ -1091,7 +1091,7 @@ not know are ignored, and its `route` is the whole decision. A push for a Messag
 carries `taskId` and `taskKey`, routes to `.task`, and pushes the Task over whatever is showing,
 whatever its conversation ids say; one without opens its conversation, the Channel or DM, on the canvas.
 The rule is one pure function, `PushNotificationRoute.opening(chatID:conversationChatID:taskID:)`:
-a push sent before ADR 0052 that names a side conversation's own Chat as `chatId` beside its parent
+a push sent before ADR 0053 that names a side conversation's own Chat as `chatId` beside its parent
 `conversationChatId` opens the parent Channel, where those messages now live as inline replies, and
 the payload reads its `chatId` as that parent so a reader already on it is not bannered. A push for another Server opens nothing, and a malformed one (or a retired
 `task_assignment` push, which names no message) decodes to nil. A Task push arriving while its Task
@@ -1139,7 +1139,7 @@ user and to the App protocol (`HausAppProtocol.version`) of the build that wrote
 format-version, protocol, user, or decode mismatch, cleared on sign-out, and replaced by the live
 load. The protocol scope is the only on-device state a contract change has to clear: transcripts,
 read positions (`ChatReadLedger`), and composer drafts live in memory, and the last-open destination
-is a Channel or DM id that a deleted Chat simply fails to restore. Protocol 13 ships with ADR 0052's
+is a Channel or DM id that a deleted Chat simply fails to restore. Protocol 13 ships with ADR 0053's
 one-time migration, which moved side conversations into their parent Channels as inline replies,
 renumbered those Channels' sequences, and marked them read; a snapshot from protocol 12 holds pages,
 sequences, and unread counts that are no longer true and would report stale visible sequences to the
@@ -1556,7 +1556,7 @@ route, described with pages above) (any other query on `chat://` is no reference
 as in the shared parser). It wears the message glyph, keeps the link's own words, and keeps that wire
 target as its `.link`; the coordinator asks `InAppReferenceRoutes` before handing any URL to the
 system, and the App's installed route opens the Channel or DM on the canvas, revealing the Message,
-where that conversation now lives as inline replies (ADR 0052). A table cell is SwiftUI
+where that conversation now lives as inline replies (ADR 0053). A table cell is SwiftUI
 `Text` rather than the text view, and a `Text` link inside a hosted transcript row never receives its
 tap. So a cell carrying exactly one link is that link as a whole: it drops the dead `.link`, takes a
 tap gesture that calls `openURL`, and gives up text selection, which would take the tap.
@@ -1726,7 +1726,7 @@ own surfaces and portal keep their measured corners for now.
 Settings stay inside one native sheet and `NavigationStack`. Settings is entered from the sidebar's
 floating gear control, pinned bottom-trailing over the scrolling chat list. The sidebar navigation
 carries the App's own order: the Inbox row first, then Channels, then DMs. The phone has no Tasks
-page ([ADR 0052](../adr/0052-channels-and-tasks-are-the-only-places.md) decision 15): a Task opens
+page ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md) decision 15): a Task opens
 from its origin preview, a chip, its Unread row, or a push. The sidebar's
 Server header is the Server menu; archived chats open from there
 rather than spending a navigation row. That header carries the Server's name and nothing else —

@@ -6,7 +6,7 @@ import {
 } from '../servers/chat-message-entities.ts';
 
 /**
- * The Task previews under one origin Message (ADR 0052 decision 7) have one
+ * The Task previews under one origin Message (ADR 0053 decision 7) have one
  * owner: the Message's `chat.message` entity. `chat.messages` pages and
  * `chat.message` reads carry `tasks`, and every read seeds each entity with
  * the Tasks started from it (`chat-message-entities.ts`); the entity's

@@ -16,7 +16,7 @@ import { TaskWorkPanel } from './work/task-work-panel.tsx';
 export { TaskBandControls } from './task-band-controls.tsx';
 
 /**
- * One Task as a page (ADR 0052 decision 12): its conversation on the left and,
+ * One Task as a page (ADR 0053 decision 12): its conversation on the left and,
  * on a pane wide enough, a right-hand panel of its Details and attached work,
  * on the page background with a gutter and no dividing border. Narrower, the
  * band's Details control carries the Details. A Task from before Tasks were

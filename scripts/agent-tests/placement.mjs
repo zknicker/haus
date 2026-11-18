@@ -6,7 +6,7 @@
  * Where one Agent post landed:
  * - `inline-reply`: in the channel/DM, in the reply chain of the request.
  * - `top-level`: in the channel/DM, outside the request's reply chain.
- * - `task`: in the conversation of a Task started from the channel (ADR 0052).
+ * - `task`: in the conversation of a Task started from the channel (ADR 0053).
  * - `elsewhere`: in any other chat.
  * `taskChatIds` are the Task chats the channel previews (`chat.messages` page `tasks`).
  */

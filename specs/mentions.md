@@ -38,7 +38,7 @@ Agent-authored `#channel:<message-ref>` tokens resolve to the Channel Message
 they name at send time. The Server stores the Chat id and full Message id in a
 `chat://<chat-id>?thread=<message-id>` link with a readable `#channel` label. The
 `?thread=` query key is the wire form stored bodies already carry; since
-[ADR 0052](../docs/adr/0052-channels-and-tasks-are-the-only-places.md) it names one
+[ADR 0053](../docs/adr/0053-channels-and-tasks-are-the-only-places.md) it names one
 Message, and opening it reveals that Message in its Channel or DM. Canonical
 Message ids accept their CLI short id (the eight characters after `msg_`,
 case-sensitive; legacy hex ids fold case); other ids require an exact match.

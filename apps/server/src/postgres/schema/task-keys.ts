@@ -3,7 +3,7 @@ import { check, integer, pgTable, text, timestamp, unique, uniqueIndex } from 'd
 import { serversTable } from './servers.ts';
 
 /**
- * The Server's ledger of Task keys (ADR 0052 decision 11). Each entry numbers
+ * The Server's ledger of Task keys (ADR 0053 decision 11). Each entry numbers
  * its own Tasks through `next_number`, allocated under this row's lock. A key
  * stays unique per Server and is never reused. Migration 0122 copied every
  * board into this ledger with the board's id, key, and counter.

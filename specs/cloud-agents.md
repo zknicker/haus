@@ -21,7 +21,7 @@ read_when:
 Cloud Agents let any Haus Agent delegate bounded development work to a provider-hosted agent.
 The delegating Agent starts the work on a Task, receives completion through its inbox, inspects
 the result, and reports in the Task. Cursor and Claude are the providers.
-[ADR 0052](../docs/adr/0052-channels-and-tasks-are-the-only-places.md) decides where the work
+[ADR 0053](../docs/adr/0053-channels-and-tasks-are-the-only-places.md) decides where the work
 lives; [Tasks](tasks.md) owns the Task side.
 
 ## Product contract
@@ -279,7 +279,7 @@ type CloudAgentWork = {
     id: string;
     messageId: string; // the launch Message: a historical pointer, stored as `launch_message_id`
     chatId: string; // the requesting Chat: a historical pointer, no foreign key
-    taskId: string | null; // the Task it reports to; null only for work from before ADR 0052
+    taskId: string | null; // the Task it reports to; null only for work from before ADR 0053
     agentId: string;
     computerId: string;
     provider: 'cursor' | 'claude';
@@ -1016,7 +1016,7 @@ administrative integration and is outside this Computer capability.
    the deterministic lanes run against recorded provider responses; one opt-in live lane
    (`HAUS_RUN_LIVE_CURSOR_TEST=1` with `HAUS_LIVE_CURSOR_REPOSITORY=owner/name`) proves the
    recordings still describe Cursor.
-8. **Landed with ADR 0052.** Work attaches to a Task; the card lives in the Task page's
+8. **Landed with ADR 0053.** Work attaches to a Task; the card lives in the Task page's
    attached-work panel with the newest Run's summary; pull requests attach to Tasks and their
    changes wake the Agent; the Inbox's "Happening now" section over `cloudAgentWork.listActive`
    opens the work's Task. iPhone shows the attached-work header on a Task chat, PR and provider

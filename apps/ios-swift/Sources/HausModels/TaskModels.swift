@@ -48,7 +48,7 @@ public enum TaskActor: Codable, Hashable, Sendable {
     }
 }
 
-/// One Task as `task.get` names it (ADR 0052): a place for one piece of work,
+/// One Task as `task.get` names it (ADR 0053): a place for one piece of work,
 /// with its own Chat and a state. Named `TaskRecord` because `Task` is Swift
 /// Concurrency's.
 ///
@@ -64,7 +64,7 @@ public struct TaskRecord: Decodable, Identifiable, Hashable, Sendable {
     /// The Task's own conversation, a `task` Chat. Nil for a Task from before
     /// Tasks were places: read-only history with no composer.
     public let chatID: String?
-    /// The Channel Message it started from; nil for a Task from before ADR 0052.
+    /// The Channel Message it started from; nil for a Task from before ADR 0053.
     public let origin: TaskOrigin?
     public let serverID: String
     public let version: Int

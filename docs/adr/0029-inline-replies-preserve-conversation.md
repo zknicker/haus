@@ -9,7 +9,7 @@ read_when:
 
 ## Status
 
-Amended 2026-11-17 by [ADR 0052](0052-channels-and-tasks-are-the-only-places.md): Thread placement text no longer applies; work goes to a Task.
+Amended 2026-11-17 by [ADR 0053](0053-channels-and-tasks-are-the-only-places.md): Thread placement text no longer applies; work goes to a Task.
 
 Accepted, 2026-09-16; amended 2026-10-02 (progress threads), 2026-10-06 (pickup acknowledgment), and 2026-10-14 (placement as visibility), below. Implemented in the worktree; release remains gated by
 [the implementation plan](../plans/inline-replies.md).

@@ -77,7 +77,7 @@ test('a top-level receipt names who sees it and suggests no other place', () => 
     expect(sendPlacement('dm:@zach', sent(), {})).toBe(
         'Posted at the top of dm:@zach; @zach sees it in the DM.'
     );
-    // ADR 0052: there are no Threads, so no receipt names one.
+    // ADR 0053: there are no Threads, so no receipt names one.
     expect(renderSentReceipt('#general', sentResponse(), {}).toLowerCase()).not.toContain('thread');
 });
 

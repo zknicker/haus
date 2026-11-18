@@ -8,7 +8,7 @@ import { queryPolicy } from '../../lib/query-policy.ts';
 
 /**
  * How many rows the Inbox lists as Unread — Chats and followed Tasks with
- * unread messages (ADR 0052) — for surfaces that badge the Inbox instead of
+ * unread messages (ADR 0053) — for surfaces that badge the Inbox instead of
  * opening it. It counts the same `chat.list` and `chat.unreadPreviews` the
  * section renders, with the section's own rule (`selectUnreadRows`), so the
  * badge and the section never disagree, and it reports zero until both reads

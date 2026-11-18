@@ -10,7 +10,7 @@ extension AuthenticatedHausView {
     func taskRouteDestination(_ route: HausRootRoute) -> some View {
         switch route {
         case .task(let taskID):
-            // A Task opens as a chat once it is a place (ADR 0052).
+            // A Task opens as a chat once it is a place (ADR 0053).
             taskDestination(taskID)
         }
     }
@@ -28,7 +28,7 @@ extension AuthenticatedHausView {
 
     /// A Reminder answers where it is anchored: a Channel or DM, or a Task.
     func openTaskReminder(_ reminder: TaskReminderRef) {
-        // A Reminder set on a Task anchors in the Task's own Chat (ADR 0052
+        // A Reminder set on a Task anchors in the Task's own Chat (ADR 0053
         // decision 16), which opens as its Task.
         if store.chatsByID[reminder.anchorChatID] == nil,
            let taskID = store.taskID(forChatID: reminder.anchorChatID) {

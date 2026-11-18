@@ -12,7 +12,7 @@ import { chatsTable } from './chats.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
 
 /**
- * One person following, or explicitly unfollowing, one Task's Chat (ADR 0052
+ * One person following, or explicitly unfollowing, one Task's Chat (ADR 0053
  * decision 9). A Task is unread only for its followers.
  */
 export const taskFollowsTable = pgTable(

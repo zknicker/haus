@@ -12,7 +12,7 @@ import {
 } from './thread-migration-unread.ts';
 
 /**
- * Read-only checker for migration 0124 (ADR 0052 decision 14).
+ * Read-only checker for migration 0124 (ADR 0053 decision 14).
  *
  *   bun scripts/verify-thread-migration.ts --database-url <url> --before <file>
  *     Before migrating: prints the structure and writes the unread snapshot.

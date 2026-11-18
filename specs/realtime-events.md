@@ -23,7 +23,7 @@ application rollback after migration 0072; recovery uses a forward fix on the ne
 The principles, subscription tables, cache rules, refusals, and recovery are current. The
 Transcript reshaping, Reverting pushed snapshots, iPhone impact, Test plan, Slice file map, and
 Review log sections record that cutover as it landed; their Thread surfaces were removed later by
-[ADR 0052](../docs/adr/0052-channels-and-tasks-are-the-only-places.md).
+[ADR 0053](../docs/adr/0053-channels-and-tasks-are-the-only-places.md).
 
 ## Why
 
@@ -93,7 +93,7 @@ message, read, follow, or state change recovers that one Channel's loaded pages
 
 ### Task streams
 
-Tasks ([ADR 0052](../docs/adr/0052-channels-and-tasks-are-the-only-places.md)). Payloads carry
+Tasks ([ADR 0053](../docs/adr/0053-channels-and-tasks-are-the-only-places.md)). Payloads carry
 ids and the new version; React Query owns the reads.
 
 | Procedure | Payload schema (file) | Payload fields | Audience | App response |
@@ -170,7 +170,7 @@ contract would not change.
 `chatEventSubscriptionInputSchema`, `reminderChangesInputSchema`, `reminderChangesSchema`,
 `reminderEventSubscriptionInputSchema`, `reminderChangedEventSchema`, `threadActivitySchema`;
 every `eventCursor` field (`chat.send`, `chat.react`, claim and task-label mutations). With the
-Thread removal ([ADR 0052](../docs/adr/0052-channels-and-tasks-are-the-only-places.md)), every
+Thread removal ([ADR 0053](../docs/adr/0053-channels-and-tasks-are-the-only-places.md)), every
 `thread.*` procedure and stream (`thread.onFollowUpdated`, `thread.onClosedUpdated`), and the
 board and task-inbox streams (`board.onUpdated`, `taskInbox.onChanged`), are gone. `chat.markRead`'s receipt replaces the nullable `eventCursor` with `advanced: boolean`
 (false: the marker was already there and no `chat.onRead` follows).

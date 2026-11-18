@@ -11,7 +11,7 @@ read_when:
 A claim is a canonical hosted Chat message promoted with claim metadata: the hidden, Agent-only
 lock on that message. [ADR 0051](../adr/0051-tasks-are-boards-and-claims-are-the-lock.md) renamed
 these records from tasks to claims so [Tasks](tasks.md) could own the word. A Task does not mark
-ownership; the claim does ([ADR 0052](../adr/0052-channels-and-tasks-are-the-only-places.md)). The
+ownership; the claim does ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md)). The
 message body is the claim title verbatim, and conversation continues inline in its Channel or DM.
 Haus keeps no second claim conversation or content store.
 

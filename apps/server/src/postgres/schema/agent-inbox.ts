@@ -263,7 +263,7 @@ export const agentInboxTable = pgTable(
             sql`${table.addressedReason} is null
                 or ${table.addressedReason} in ('dm', 'mention', 'routing', 'sole')`
         ),
-        // ADR 0052: a `task_assignment` may name its Task's Chat, or no Chat for a
+        // ADR 0053: a `task_assignment` may name its Task's Chat, or no Chat for a
         // Task from before Tasks were places.
         check(
             'agent_inbox_chat',

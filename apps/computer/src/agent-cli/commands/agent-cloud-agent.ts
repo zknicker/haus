@@ -27,7 +27,7 @@ const START_RECIPE = `haus cloud-agent start --task SEC-12 --repo haus/haus --re
 Reproduce apps/server/test/agent-delivery.test.ts locally, find the race, and open a pull request.
 HAUSMSG`;
 
-/** Cloud work attaches to a Task and reports there (ADR 0052 decision 6). */
+/** Cloud work attaches to a Task and reports there (ADR 0053 decision 6). */
 const TASK_REQUIRED_NEXT_ACTION =
     'Start a Task for this work first (haus task start --target <#channel> --from <messageId> --title <text>), then launch with --task <KEY-n>.';
 

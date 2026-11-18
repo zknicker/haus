@@ -1,7 +1,7 @@
 import { serverChatMessageRoute } from './server-routes.ts';
 
 /**
- * Addresses saved before ADR 0052 deleted Threads — a deep link, a
+ * Addresses saved before ADR 0053 deleted Threads — a deep link, a
  * notification, a persisted desktop tab — still resolve. A Thread page
  * (`/s/:slug/threads/:chatId/:anchorMessageId`) or a Chat's `?thread=` or
  * `?claim=` param becomes its parent Channel or DM revealing the Message: the

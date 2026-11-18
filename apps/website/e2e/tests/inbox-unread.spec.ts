@@ -72,7 +72,7 @@ test('a followed Task is a queue item among Chats: J reaches it, Return opens th
         token: session.accessToken,
     });
     const from = await agent.send('The vault audit is due.', 'tasks-origin');
-    // Assigned, so Ada follows it; its first message is unread for her (ADR 0052).
+    // Assigned, so Ada follows it; its first message is unread for her (ADR 0053).
     const { key, target } = await agent.startTask({
         assignee: 'ada',
         from,
@@ -129,7 +129,7 @@ test('Unread is a feed of open cards: one selected, moved by keys and pressing, 
         token: session.accessToken,
     });
     const from = await agent.send('Can someone check the flaky deploy?', 'triage-origin');
-    // Assigned, so Ada follows the Task and its message is unread for her (ADR 0052).
+    // Assigned, so Ada follows the Task and its message is unread for her (ADR 0053).
     const { key, target } = await agent.startTask({
         assignee: 'ada',
         from,

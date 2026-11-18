@@ -42,7 +42,7 @@ signature-emoji reaction on the request and, when it takes several steps, a one-
 with no plan. A question answerable from what the Agent has or one quick look-up is simply
 answered, with no reaction first. A side conversation stays in its channel as inline replies.
 Progress, questions, and the result of work done for a Task go in that Task, which whoever asked
-follows ([ADR 0052](../adr/0052-channels-and-tasks-are-the-only-places.md)). When done, the Agent answers what was asked and stops: no obligatory summary or closing offer.
+follows ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md)). When done, the Agent answers what was asked and stops: no obligatory summary or closing offer.
 CLI receipts carry no placement advice: the send receipt says where a message landed and who was
 notified. The description is paired with a command-shaped mechanics paragraph (`--reply-to` and
 `--done` on the answer, `--target task:<KEY-n>` for Task work), because the 2026-10-15 live gate
@@ -222,7 +222,7 @@ Tasks others assign are worked one at a time: by priority, then age, with that o
 rest `todo` until it is done or blocked. Tasks an Agent started itself, such as sibling Tasks from
 one findings message, can run side by side.
 
-- Owner: [ADR 0052](../adr/0052-channels-and-tasks-are-the-only-places.md); `tasksSection` and
+- Owner: [ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md); `tasksSection` and
   `splittingWorkSection` in `apps/computer/src/harness/task-instructions.ts`; the fire-to-Task
   sentences in `apps/computer/src/harness/automation-instructions.ts`; the `tasks` and
   `cloud-agents` Manual topics in `packages/agent-manual/src/work-topics.ts`.

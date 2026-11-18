@@ -17,7 +17,7 @@ const noWork: readonly CloudAgentWork[] = [];
 /**
  * What hangs under one Message's body: its reactions, its claim chip, one card
  * per linked Cloud Agent work (ADR 0044), and the previews of the Tasks
- * started from it (ADR 0052 decision 7).
+ * started from it (ADR 0053 decision 7).
  */
 export function MessageSurface({
     children,

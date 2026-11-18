@@ -18,7 +18,7 @@ import {
 } from './thread-migration-dataset.ts';
 
 /**
- * ADR 0052 decision 14 on a production-shaped dataset: 0124 turns every Thread
+ * ADR 0053 decision 14 on a production-shaped dataset: 0124 turns every Thread
  * into inline replies on its anchor, the verifier's invariants hold, every
  * affected Chat reads clean while every other Chat keeps its unread, Task
  * Chats are untouched, and the dev reverse script

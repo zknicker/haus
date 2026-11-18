@@ -1,7 +1,7 @@
 import Foundation
 import HausModels
 
-/// One followed Task with messages waiting (ADR 0052 decision 9), as the
+/// One followed Task with messages waiting (ADR 0053 decision 9), as the
 /// Unread section reads it: an Unread row like a Channel's, wearing its origin
 /// Channel's mark. Like every Unread row it carries no count; being in the
 /// section is the dot.

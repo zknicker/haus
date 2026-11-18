@@ -12,7 +12,7 @@ import { readMessagesById } from './read-messages-by-id.ts';
 /**
  * The waiting messages behind every unread Inbox row, in one read: each
  * unread Channel or DM (`listedChats` with an `unreadCount`) and each followed
- * unread Task (`unreadTasks`, ADR 0052), with its newest counted messages
+ * unread Task (`unreadTasks`, ADR 0053), with its newest counted messages
  * projected the way the transcript projects them. The row predicates are the
  * ones `chat.list` and the badge use, so a preview exists for exactly the rows
  * the Inbox shows.

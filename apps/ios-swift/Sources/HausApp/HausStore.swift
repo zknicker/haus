@@ -217,7 +217,7 @@ final class HausStore {
         }
     }
 
-    /// The Channels and DMs the shell lists. A Task Chat (ADR 0052), or a kind
+    /// The Channels and DMs the shell lists. A Task Chat (ADR 0053), or a kind
     /// this build does not know, is never listed as a Channel or DM: a Task
     /// opens as a Task, from its preview, its chip, or its Unread row.
     var chats: [ChatSummary] {

@@ -39,7 +39,7 @@ export function activityRoute(slug: string) {
     return `${serverRoute(slug)}/activity`;
 }
 
-/** The one flat Tasks page (ADR 0052 decision 10). */
+/** The one flat Tasks page (ADR 0053 decision 10). */
 export function tasksRoute(slug: string) {
     return `${serverRoute(slug)}/tasks`;
 }

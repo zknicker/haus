@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { composeAgentInstructions } from './instructions.ts';
 
-test('Sending teaches placement as what a reader sees, with no Threads (ADR 0052)', () => {
+test('Sending teaches placement as what a reader sees, with no Threads (ADR 0053)', () => {
     const { instructions } = composeAgentInstructions({
         agentId: 'agt_test',
         agentName: 'Test',

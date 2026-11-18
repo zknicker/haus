@@ -24,7 +24,7 @@ import { useOpenTask } from './use-open-task.ts';
 export { TasksBandControls } from './tasks-band-controls.tsx';
 
 /**
- * The one Tasks page (ADR 0052 decision 10): every Task on the Server in one
+ * The one Tasks page (ADR 0053 decision 10): every Task on the Server in one
  * flat list, narrowed by state, key, assignee, and label in the URL. No boards, no
  * columns, and no create: a human asks an Agent for a Task. Blank until the
  * list answers; the empty state only for a real empty answer.

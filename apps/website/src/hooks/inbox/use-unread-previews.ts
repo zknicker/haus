@@ -81,7 +81,7 @@ export function findUnreadPreview(
 }
 
 /**
- * The followed Tasks with unread messages (ADR 0052 decision 9): previews whose
+ * The followed Tasks with unread messages (ADR 0053 decision 9): previews whose
  * row names a Task. No Chat list holds a Task's Chat, so these previews are
  * the rows themselves. Undefined until the read settles.
  */

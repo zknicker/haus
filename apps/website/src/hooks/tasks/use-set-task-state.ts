@@ -3,7 +3,7 @@ import { hausTrpc } from '../../lib/haus-server.tsx';
 import { writeTaskResult } from './task-cache.ts';
 
 /**
- * Moves a Task to `todo`, `open`, `done`, or `canceled` (ADR 0052 decision 13).
+ * Moves a Task to `todo`, `open`, `done`, or `canceled` (ADR 0053 decision 13).
  * The ack writes the record into every cached read; which lists hold it (the
  * sidebar drops a closed Task) stays with `task.onUpdated`.
  */

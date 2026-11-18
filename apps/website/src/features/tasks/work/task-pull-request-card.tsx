@@ -8,7 +8,7 @@ import { pullRequestFacts, pullRequestStateChip } from './task-work-model.ts';
 
 /**
  * A pull request attached to the Task with no Cloud Agent card already naming
- * it (ADR 0052 decision 6): its title, its own state, where it lives, its
+ * it (ADR 0053 decision 6): its title, its own state, where it lives, its
  * checks and review as the Server last read them, and View PR.
  */
 export function TaskPullRequestCard({ reading }: { reading: CloudAgentPullRequestReading }) {

@@ -10,7 +10,7 @@ read_when:
   - changing the Agent prompt's placement text
 ---
 
-# ADR 0052: Channels and Tasks Are the Only Places
+# ADR 0053: Channels and Tasks Are the Only Places
 
 ## Status
 

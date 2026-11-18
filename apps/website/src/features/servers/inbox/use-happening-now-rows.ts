@@ -50,7 +50,7 @@ export function useHappeningNowRows(): HappeningNowRow[] | null {
 }
 
 /**
- * Opening a row: Cloud Agent work on a Task opens that Task's page (ADR 0052),
+ * Opening a row: Cloud Agent work on a Task opens that Task's page (ADR 0053),
  * other work opens its own place (`useOpenCloudAgentWork`), and an Agent in a
  * turn opens its profile.
  */

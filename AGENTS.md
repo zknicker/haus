@@ -27,7 +27,7 @@ Use product nouns directly:
 - A `chat` is the durable conversation container.
 - Channels and DMs hold conversation; a `task` is the place for one piece of work, a child chat
   an Agent starts from a Channel message. There are no Threads; side conversation is inline
-  replies (docs/adr/0052-channels-and-tasks-are-the-only-places.md).
+  replies (docs/adr/0053-channels-and-tasks-are-the-only-places.md).
 - A `session` is one agent's single ongoing global execution context spanning
   every chat it participates in (specs/sessions.md).
 - A `turn` is one execution inside a session.

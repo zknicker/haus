@@ -11,7 +11,7 @@ read_when:
 
 # Tasks
 
-[ADR 0052](../docs/adr/0052-channels-and-tasks-are-the-only-places.md) is the product contract:
+[ADR 0053](../docs/adr/0053-channels-and-tasks-are-the-only-places.md) is the product contract:
 Haus has two kinds of place, Channels (and DMs) for conversation and Tasks for work. A **Task** is
 a Channel for one piece of work. A **claim** is still the Agent-only lock on a Message
 ([claims.md](claims.md)); a Task does not mark ownership. Wire shapes live in
@@ -47,7 +47,7 @@ The tRPC surface is [docs/api/tasks.md](../docs/api/tasks.md); the Agent routes 
   starts the Task from it. A request made in a DM gets a reply carrying the Task chip.
 - An Agent starts a Task when its reply will not finish the work: more steps, more time, or a
   cloud agent. A reply that is the whole of the work stays a reply. The Agent prompt's Tasks
-  section teaches this ([ADR 0052](../docs/adr/0052-channels-and-tasks-are-the-only-places.md)
+  section teaches this ([ADR 0053](../docs/adr/0053-channels-and-tasks-are-the-only-places.md)
   decision 5).
 - `task:KEY-n` is a Task's target. `haus message send --target task:SEC-12` posts in it,
   `haus message read --target task:SEC-12` reads it, and an Agent reaches it only when it has

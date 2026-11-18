@@ -21,7 +21,7 @@ export type ChatMessageInput = z.infer<typeof chatMessageInputSchema>;
 
 /**
  * The message exactly as `chat.messages` projects it, with the previews of the
- * Tasks started from it, as a `chat.messages` page carries them (ADR 0052
+ * Tasks started from it, as a `chat.messages` page carries them (ADR 0053
  * decision 7). Null when the id no longer resolves in `chatId`.
  */
 export const chatMessageEntitySchema = z

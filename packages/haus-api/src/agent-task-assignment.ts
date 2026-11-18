@@ -7,7 +7,7 @@ import { taskKeySchema } from './task-key.ts';
 export const agentTaskAssignmentBatchLimit = 50;
 
 /**
- * One Task assigned to the Agent (ADR 0052), as it stood when assigned. `id` is its inbox
+ * One Task assigned to the Agent (ADR 0053), as it stood when assigned. `id` is its inbox
  * identity (`task-assign:<taskId>:<version>`). `assignedBy` is the assigner's handle, null for a
  * member who has not claimed one. `assignedByAgent` marks Agent-authored work, which spends the
  * automation chain the way an Agent's message does; a person's assignment resets it.

@@ -16,7 +16,7 @@ public enum TaskStateLabel {
     }
 }
 
-/// One Task as its origin Message previews it in a Channel (ADR 0052 decision
+/// One Task as its origin Message previews it in a Channel (ADR 0053 decision
 /// 7): its state, key, and title, how much it holds, and its newest messages.
 public struct TaskPreviewPresentation: Identifiable, Hashable, Sendable {
     public let taskID: String

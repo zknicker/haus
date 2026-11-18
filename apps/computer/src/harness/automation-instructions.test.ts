@@ -13,7 +13,7 @@ test('a fire whose reply is the whole of the work still answers top-level with -
     );
 });
 
-test('a fire that turns up real work makes its top-level answer the origin of a Task (ADR 0052)', () => {
+test('a fire that turns up real work makes its top-level answer the origin of a Task (ADR 0053)', () => {
     expect(remindersSection).toContain(fireToTask);
     expect(triggersSection).toContain(fireToTask);
 });

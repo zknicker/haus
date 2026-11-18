@@ -84,7 +84,7 @@ final class PushNotificationModelsTests: XCTestCase {
         XCTAssertNil(PushNotificationPayload(userInfo: ["aps": ["alert": "hi"]]))
     }
 
-    /// A push sent before side conversations were deleted (ADR 0052) names
+    /// A push sent before side conversations were deleted (ADR 0053) names
     /// that conversation's own Chat beside its parent. The Chat is gone and its
     /// messages are inline replies in the parent, so the parent opens, and a
     /// reader on the parent has already seen it.

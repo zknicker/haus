@@ -17,7 +17,7 @@ export function parseTaskTarget(target: string): string | null {
 }
 
 /**
- * The Chat of the Task a `task:SEC-12` target names (ADR 0052), when the Agent
+ * The Chat of the Task a `task:SEC-12` target names (ADR 0053), when the Agent
  * has joined the Channel the Task started in; null otherwise. A Task's key is
  * its ledger entry's key and its number, unique per Server.
  */

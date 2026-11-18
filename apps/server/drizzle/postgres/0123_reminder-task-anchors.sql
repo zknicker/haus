@@ -9,7 +9,7 @@ ALTER TABLE "agent_inbox" ADD CONSTRAINT "agent_inbox_cloud_agent_notice" CHECK 
                 and ("agent_inbox"."cloud_agent_run_id" is not null
                     or "agent_inbox"."cloud_agent_notice" is null
                     or "agent_inbox"."cloud_agent_notice" = 'pull_request'));--> statement-breakpoint
--- ADR 0052 decision 16: a reminder on a Task with no posts anchors on the
+-- ADR 0053 decision 16: a reminder on a Task with no posts anchors on the
 -- Task's origin Message, which lives in the parent Channel, so the anchor
 -- Message key no longer names the anchor Chat. Server purge still removes
 -- both together, so the key stays checked at commit (0002's rule).

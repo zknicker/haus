@@ -33,7 +33,7 @@ public struct ChatRealtimeEffects: Sendable, Equatable {
     public private(set) var changedLabelIDs: Set<String> = []
     /// Tasks whose open detail reads again.
     public private(set) var changedTaskIDs: Set<String> = []
-    /// Tasks whose preview under their origin Message moved (ADR 0052): a new
+    /// Tasks whose preview under their origin Message moved (ADR 0053): a new
     /// message, a read, a state or title change, or a follow. Only an origin a
     /// loaded transcript holds reads again.
     public private(set) var taskIDsToRefreshPreview: Set<String> = []

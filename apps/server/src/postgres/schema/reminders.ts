@@ -76,7 +76,7 @@ export const remindersTable = pgTable(
         }),
         // The anchor Message need not sit in `anchor_chat_id`: a reminder on a
         // Task with no posts anchors on the Task's origin Message, in the
-        // Channel above it (ADR 0052 decision 16). Reminder writes check that
+        // Channel above it (ADR 0053 decision 16). Reminder writes check that
         // pairing; the key only proves the Message exists.
         foreignKey({
             columns: [table.serverId, table.anchorMessageId],

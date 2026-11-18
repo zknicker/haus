@@ -2,7 +2,7 @@ import Foundation
 import HausModels
 import HausUI
 
-/// What a Task screen reads from the Store (ADR 0052 decision 15). Each answer
+/// What a Task screen reads from the Store (ADR 0053 decision 15). Each answer
 /// comes from the best record held: the Task's own read, else the preview its
 /// origin Channel carried, else its Unread row, so a Task opened from any of
 /// them names itself before `task.get` lands.

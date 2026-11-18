@@ -906,7 +906,7 @@ export interface paths {
         put?: never;
         /**
          * Start a Task from a Message in a Channel.
-         * @description Starts a Task, a place for one piece of work, from an origin Message in a Channel (ADR 0052). The Task takes the Channel's key. Refuses with `TASK_ORIGIN_DM` when the origin Message is in a DM.
+         * @description Starts a Task, a place for one piece of work, from an origin Message in a Channel (ADR 0053). The Task takes the Channel's key. Refuses with `TASK_ORIGIN_DM` when the origin Message is in a DM.
          */
         post: operations["startAgentTask"];
         delete?: never;
@@ -1986,7 +1986,7 @@ export interface components {
         /** @description A Task key, its ledger key and number, like SEC-12. */
         AgentTaskKey: string;
         /**
-         * @description A Task's state (ADR 0052); done and canceled end it.
+         * @description A Task's state (ADR 0053); done and canceled end it.
          * @enum {string}
          */
         AgentTaskState: "todo" | "open" | "done" | "canceled";

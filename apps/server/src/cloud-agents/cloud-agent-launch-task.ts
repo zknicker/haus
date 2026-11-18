@@ -14,7 +14,7 @@ export interface CloudAgentLaunchTask {
 }
 
 /**
- * Cloud work attaches to a Task and reports to it (ADR 0052 decision 6): the
+ * Cloud work attaches to a Task and reports to it (ADR 0053 decision 6): the
  * launch Message posts into the Task's Chat, and Run notices land there. A
  * launch naming no Task, or one the Agent cannot reach, is refused.
  */

@@ -20,7 +20,7 @@ export interface ChatReferenceTarget {
 /**
  * The targets an edited Message already carries, so re-canonicalizing keeps
  * them. A Message link's label is `#channel message`, or `#channel thread` in
- * bodies written before ADR 0052; either names the Channel.
+ * bodies written before ADR 0053; either names the Channel.
  */
 export function readExistingReferenceTargets(content: string | undefined) {
     const references = parseHausRichReferences(content ?? '');

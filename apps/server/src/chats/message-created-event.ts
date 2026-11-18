@@ -28,7 +28,7 @@ export async function prepareMessageCreatedEvent(
         chatId: message.chatId,
         serverId: message.serverId,
     });
-    // Only a child Chat can be a Task's (ADR 0052).
+    // Only a child Chat can be a Task's (ADR 0053).
     const task = conversation.inTask
         ? await findTaskByChatId(db, { chatId: message.chatId, serverId: message.serverId })
         : null;

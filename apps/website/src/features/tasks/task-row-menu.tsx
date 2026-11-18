@@ -14,7 +14,7 @@ import { showTaskUpdateError } from './task-update-error.ts';
 import { useTaskPeople } from './use-task-people.ts';
 
 /**
- * A Tasks page row's menu (ADR 0052 decision 10): its state and its assignee,
+ * A Tasks page row's menu (ADR 0053 decision 10): its state and its assignee,
  * each a single choice, then Copy reference. There is no create and no delete.
  * A chatless Task is read-only history: its state and assignee show, disabled.
  */

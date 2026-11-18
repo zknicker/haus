@@ -5,7 +5,7 @@ import type { ParsedArgs } from '../parse.ts';
 import { runClaim } from './agent-claim-actions.ts';
 import { runSend } from './agent-message-send.ts';
 
-// ADR 0052: there are no Threads. A `<target>:<shortId>` target is refused before any request,
+// ADR 0053: there are no Threads. A `<target>:<shortId>` target is refused before any request,
 // with a receipt naming what replaces it: an inline reply, or a Task for work.
 
 const neverAsked = (calls: string[]): AgentApiRequester => ({

@@ -29,7 +29,7 @@ test('inline reply guidance is discoverable and separates attention from ownersh
     expect(topic?.body).toContain('In a DM every message notifies the other person.');
     expect(topic?.body).not.toContain('nobody is notified');
     expect(topic?.body).not.toContain('bother nobody');
-    // ADR 0052: there are no Threads; work that outlasts a reply goes in a Task.
+    // ADR 0053: there are no Threads; work that outlasts a reply goes in a Task.
     expect(topic?.body).toContain(
         'There are no threads: a `<target>:<shortId>` target is refused.'
     );
@@ -59,7 +59,7 @@ test('inline reply guidance is discoverable and separates attention from ownersh
 test('cloud work keeps review rounds and requester outcomes in its Task', () => {
     const body = getManualTopic('cloud-agents')?.body;
     expect(body).toContain('`haus cloud-agent send --work <workId>`');
-    // Review loops stay in the Task, and the requester hears only real state changes (ADR 0052).
+    // Review loops stay in the Task, and the requester hears only real state changes (ADR 0053).
     expect(body).toContain(
         'keep review rounds, revision requests, and progress in the Task, and @mention the requester there only for a real state change'
     );
@@ -218,7 +218,7 @@ test('publishes the claims topic the prompt points to for claim mechanics', () =
     );
     expect(claims?.body).toContain('The receipt is not a second claim.');
     expect(claims?.body).toContain('claim that message instead of creating a new one');
-    // ADR 0052: there are no Threads, so no thread claim survives.
+    // ADR 0053: there are no Threads, so no thread claim survives.
     expect(claims?.body).not.toContain('Messages inside threads are discussion context');
     expect(claims?.body.toLowerCase()).not.toContain('thread');
     expect(claims?.body).toContain(
@@ -235,7 +235,7 @@ test('publishes the claims topic the prompt points to for claim mechanics', () =
     ).toContain('claims');
 });
 
-// ADR 0052: there are no Threads, so the Manual never routes Agent progress, receipts,
+// ADR 0053: there are no Threads, so the Manual never routes Agent progress, receipts,
 // questions, or handoffs into a claim's or task's thread.
 test('no Manual text sends Agent posts into the claim thread', () => {
     const taskThreadPost =

@@ -51,7 +51,7 @@ public struct TaskReminderRef: Codable, Identifiable, Hashable, Sendable {
 }
 
 /// `task.get`: the Task's fields flat beside `mentions`, `reminders`, and what
-/// ADR 0052 attaches to a Task as a place.
+/// ADR 0053 attaches to a Task as a place.
 public struct TaskDetail: Decodable, Identifiable, Hashable, Sendable {
     public let task: TaskRecord
     /// The description as it renders, resolved by the Server when read: the
@@ -63,7 +63,7 @@ public struct TaskDetail: Decodable, Identifiable, Hashable, Sendable {
     public let descriptionTaskLinks: [TaskLink]
     public let mentions: [TaskMention]
     public let reminders: [TaskReminderRef]
-    /// Cloud Agent work attached to the Task, newest first (ADR 0052 decision 6).
+    /// Cloud Agent work attached to the Task, newest first (ADR 0053 decision 6).
     /// A work this build cannot read drops itself rather than the Task.
     public let attachedWork: [CloudAgentWork]
     /// Pull requests attached to the Task, as the Server last read them.

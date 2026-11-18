@@ -78,7 +78,7 @@ test('listActive shows queued and running work to members with Chat access only'
         chatKind: 'channel',
         chatName: 'product',
         chatPeerUserId: null,
-        // A Task is its own conversation, named by its Channel (ADR 0052).
+        // A Task is its own conversation, named by its Channel (ADR 0053).
         conversationChatId: fixture.task.chatId,
         location: {
             chatId: fixture.task.chatId,

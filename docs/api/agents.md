@@ -331,7 +331,7 @@ adds the description, Mentioned in, and Reminders. `POST /api/agent/tasks/start`
 a Channel Message (`{ target, from, title, description?, assignee?, state?, priority?, dueOn? }`;
 a DM origin is `TASK_ORIGIN_DM`), and `/state`, `/update`, `/assign`, and `/attach-pr` address
 Tasks by key. `/attach-pr` takes `{ key, url }` and answers `{ task, pullRequest }`;
-`/unfollow` takes a `task:KEY-n` target. Only Agents start Tasks (ADR 0052). Inputs are in
+`/unfollow` takes a `task:KEY-n` target. Only Agents start Tasks (ADR 0053). Inputs are in
 `packages/haus-api/src/agent-task.ts` and `task-input.ts`; refusal codes in
 `agent-task-refusals.ts`.
 

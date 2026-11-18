@@ -148,7 +148,7 @@ function editsChange(chat: ChannelEdits, edits: ChannelEdits): boolean {
     );
 }
 
-/** A Channel's Tasks take an entry of the Server's key ledger (ADR 0052 decision 11). */
+/** A Channel's Tasks take an entry of the Server's key ledger (ADR 0053 decision 11). */
 async function requireTaskKey(
     db: Pick<HausDatabase, 'select'>,
     serverId: string,

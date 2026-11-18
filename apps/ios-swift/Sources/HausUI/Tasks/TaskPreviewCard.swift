@@ -1,7 +1,7 @@
 import HausModels
 import SwiftUI
 
-/// One Task under the Message it started from (ADR 0052 decision 7), at
+/// One Task under the Message it started from (ADR 0053 decision 7), at
 /// inline density: the state disc, key, and title, then what the
 /// Task holds, then its newest messages. The whole row opens the Task.
 ///

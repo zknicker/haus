@@ -4,7 +4,7 @@ import HausModels
 import Testing
 
 /// A stored link that still names a side conversation by its anchor opens
-/// that Message in its Channel (ADR 0052).
+/// that Message in its Channel (ADR 0053).
 @MainActor
 struct MessageReferenceTargetTests {
     private let wire = "chat://cht_product\(MessageReferenceTarget.legacyMessageParameter)msg_anchor"

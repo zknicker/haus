@@ -50,7 +50,7 @@ export function standalonePullRequests(
     return pullRequests.filter((reading) => !shown.has(reading.url));
 }
 
-/** The Task's pending one-time reminders, soonest first (ADR 0052 decision 16). */
+/** The Task's pending one-time reminders, soonest first (ADR 0053 decision 16). */
 export function pendingTaskReminders(
     reminders: readonly TaskReminderRef[]
 ): (TaskReminderRef & { nextFireAt: string })[] {

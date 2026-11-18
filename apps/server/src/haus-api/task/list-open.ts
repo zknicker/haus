@@ -3,7 +3,7 @@ import { memberTaskActor } from '../../tasks/task-actor.ts';
 import { listOpenTasks } from '../../tasks/task-list.ts';
 import { taskProcedure } from './procedure.ts';
 
-/** The sidebar: every `open` Task whose origin Channel the viewer can see (ADR 0052 decision 8). */
+/** The sidebar: every `open` Task whose origin Channel the viewer can see (ADR 0053 decision 8). */
 export const listOpenTasksProcedure = taskProcedure
     .input(taskListOpenInputSchema)
     .output(taskListSchema)

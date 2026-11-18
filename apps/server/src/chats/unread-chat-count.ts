@@ -7,7 +7,7 @@ import { chatUnreadCount, listedChats } from './chat-unread.ts';
 /**
  * How many unread Inbox rows a human has across every live Server they
  * currently belong to: Channels and DMs with anything unread, and followed
- * Tasks with anything unread (ADR 0052). Each part is one query built from the
+ * Tasks with anything unread (ADR 0053). Each part is one query built from the
  * predicate its list uses — `chat.list`'s `listedChats` and `chatUnreadCount`,
  * and `unreadTasks` — so it equals those rows summed over Servers, and the
  * iPhone badge and the Inbox never disagree. Membership is a join, not a

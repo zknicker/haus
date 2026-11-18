@@ -61,7 +61,7 @@ struct LaunchSnapshotTests {
         #expect(!FileManager.default.fileExists(atPath: url.path))
     }
 
-    /// A protocol bump can ship with a one-time Server migration (ADR 0052
+    /// A protocol bump can ship with a one-time Server migration (ADR 0053
     /// folded every side conversation into its parent Channel and renumbered sequences),
     /// so a page or unread count from the old protocol must never paint.
     @Test("A snapshot written under another App protocol is discarded, and is deleted")

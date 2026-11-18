@@ -140,7 +140,7 @@ export async function writeAgentAuthoredMessage(
         })
         .returning();
 
-    // Posting in a Task (ADR 0052) follows it, along with the people the
+    // Posting in a Task (ADR 0053) follows it, along with the people the
     // message mentions, and reopens a done or canceled Task (decision 13).
     const reopened =
         plan.chat.kind === 'task'

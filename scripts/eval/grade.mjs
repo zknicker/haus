@@ -133,7 +133,7 @@ export function gradeScenario({ entry, evidence, profile, stamp }) {
     const check = (name, ok) => grade.checks.push({ name, ok });
     const [min, max] = profile.channel;
     check(`channel posts ${min}-${max}`, channelPosts.length >= min && channelPosts.length <= max);
-    // An answer belongs inline in the channel or in a Task started from it (ADR 0052).
+    // An answer belongs inline in the channel or in a Task started from it (ADR 0053).
     check('no post in another chat', !posts.some((post) => post.label === 'elsewhere'));
     grade.tails = authored.flatMap((message) =>
         tailPhrases.filter((phrase) => message.content.toLowerCase().includes(phrase))

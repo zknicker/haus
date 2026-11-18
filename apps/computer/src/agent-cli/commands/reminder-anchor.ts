@@ -5,7 +5,7 @@ import { taskKeyArgument } from './agent-command-utils.ts';
 
 /**
  * Where a reminder anchors: a message (`--message-id`), or a Task (`--target task:SEC-12`,
- * ADR 0052 decision 16). Exactly one. A Task holds only one-time reminders; a recurring one
+ * ADR 0053 decision 16). Exactly one. A Task holds only one-time reminders; a recurring one
  * belongs on a Channel, and a fire that finds real work starts a Task there.
  */
 export const reminderAnchorFlags: CliFlag[] = [

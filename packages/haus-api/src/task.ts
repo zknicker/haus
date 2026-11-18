@@ -26,7 +26,7 @@ export const taskAssigneeSchema = taskActorSchema;
 export type TaskActor = z.infer<typeof taskActorSchema>;
 export type TaskAssignee = z.infer<typeof taskAssigneeSchema>;
 
-/** The Channel Message a Task started from (ADR 0052 decision 3). */
+/** The Channel Message a Task started from (ADR 0053 decision 3). */
 export const taskOriginSchema = z.object({ chatId: idSchema, messageId: idSchema }).strict();
 
 export type TaskOrigin = z.infer<typeof taskOriginSchema>;
@@ -34,7 +34,7 @@ export type TaskOrigin = z.infer<typeof taskOriginSchema>;
 const taskFields = {
     assignee: taskAssigneeSchema.nullable(),
     /**
-     * The Task's own conversation: a `task` Chat (ADR 0052). Null for a Task
+     * The Task's own conversation: a `task` Chat (ADR 0053). Null for a Task
      * from before Tasks were places, kept as read-only history.
      */
     chatId: idSchema.nullable(),
@@ -50,7 +50,7 @@ const taskFields = {
     keyId: idSchema,
     labelIds: z.array(idSchema),
     number: z.number().int().positive(),
-    /** The Channel Message it started from; null for a Task from before ADR 0052. */
+    /** The Channel Message it started from; null for a Task from before ADR 0053. */
     origin: taskOriginSchema.nullable(),
     priority: taskPrioritySchema,
     serverId: idSchema,
@@ -99,7 +99,7 @@ export const taskMentionSchema = z
     .strict();
 
 /**
- * A Reminder on the Task: set on it (anchored in its own Chat, ADR 0052
+ * A Reminder on the Task: set on it (anchored in its own Chat, ADR 0053
  * decision 16) or one whose description references it. Its **Reminders**.
  */
 export const taskReminderRefSchema = z
@@ -118,7 +118,7 @@ export const taskReminderRefSchema = z
 export const taskDetailSchema = z
     .object({
         ...taskFields,
-        /** Cloud Agent work attached to this Task, newest first (ADR 0052 decision 6). */
+        /** Cloud Agent work attached to this Task, newest first (ADR 0053 decision 6). */
         attachedWork: z.array(cloudAgentWorkSchema),
         /**
          * The description as clients render it, resolved when read: the bare

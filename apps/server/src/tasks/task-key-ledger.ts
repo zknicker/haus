@@ -8,7 +8,7 @@ type Reader = Pick<HausDatabase, 'select'>;
 type Writer = Pick<HausDatabase, 'select' | 'update'>;
 
 /**
- * The key ledger (ADR 0052 decision 11): each entry numbers its own Tasks, and
+ * The key ledger (ADR 0053 decision 11): each entry numbers its own Tasks, and
  * `tasks_key_number_key` keeps those numbers unique. Returns the new entry's id.
  */
 export async function insertTaskKeyEntry(

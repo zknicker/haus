@@ -1,7 +1,7 @@
 import * as z from 'zod';
 
 /**
- * Agent API refusal codes for Tasks as places (ADR 0052). Each rides an
+ * Agent API refusal codes for Tasks as places (ADR 0053). Each rides an
  * `AgentApiError` `code` and carries a message saying why and what to do.
  *
  * - `CLOUD_AGENT_TASK_REQUIRED`: `haus cloud-agent start` named no Task; cloud

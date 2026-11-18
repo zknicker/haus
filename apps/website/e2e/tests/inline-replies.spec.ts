@@ -173,7 +173,7 @@ test('a saved claim link lands on its Chat at the claimed Message', async ({ pag
         replyToMessageId: root.message.id,
     });
     await signInAsAppHuman(page);
-    // A claim link saved before ADR 0052 still resolves: it reveals the Message.
+    // A claim link saved before ADR 0053 still resolves: it reveals the Message.
     await page.goto(`/s/reply-claim/chats/${chatId}?claim=${root.message.id}`);
     await expect(page).toHaveURL(new RegExp(`/chats/${chatId}$`, 'u'));
     const transcript = page.getByLabel('Messages', { exact: true });

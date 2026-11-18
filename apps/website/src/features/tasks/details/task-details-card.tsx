@@ -22,7 +22,7 @@ export function TaskDetailsCard({ task }: { task: TaskDetail }) {
 }
 
 /**
- * The Task's own facts (ADR 0052 decision 2 keeps them): priority, due date,
+ * The Task's own facts (ADR 0053 decision 2 keeps them): priority, due date,
  * and labels as rows of inline controls sharing one left edge, then the
  * description, collapsed until opened. The card shows them beside the
  * conversation; the band's Details popover shows them bare on a narrow pane.

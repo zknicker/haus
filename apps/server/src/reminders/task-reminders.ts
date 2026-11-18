@@ -4,7 +4,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 
 /**
- * A Task holds only one-time reminders (ADR 0052 decision 16). A recurring
+ * A Task holds only one-time reminders (ADR 0053 decision 16). A recurring
  * reminder anchors on a Channel, and a fire that turns up real work starts a
  * Task there.
  */

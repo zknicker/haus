@@ -1,7 +1,7 @@
 import type { SQL } from 'bun';
 
 /**
- * Unread sets for the Thread → inline-reply migration (ADR 0052 decision 14),
+ * Unread sets for the Thread → inline-reply migration (ADR 0053 decision 14),
  * keyed `user|server|reader|chat` or `agent|server|reader|chat`, under the
  * Channel and DM rule: someone else wrote it, past the reader's position.
  *

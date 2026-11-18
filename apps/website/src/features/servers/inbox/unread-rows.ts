@@ -1,11 +1,11 @@
 import type { Chat, ChatUnreadPreview, ChatUnreadPreviewTask } from '@haus/api';
 
-/** A followed Task's unread preview: its row names the Task (ADR 0052 decision 9). */
+/** A followed Task's unread preview: its row names the Task (ADR 0053 decision 9). */
 export type FollowedTaskPreview = ChatUnreadPreview & { task: ChatUnreadPreviewTask };
 
 /**
  * One Unread row: a Channel or DM with its own unread messages, or a followed
- * Task with unread messages, which reads like an unread Channel (ADR 0052
+ * Task with unread messages, which reads like an unread Channel (ADR 0053
  * decision 9). Being assigned a Task makes you a follower; there is no
  * separate assignment row.
  */

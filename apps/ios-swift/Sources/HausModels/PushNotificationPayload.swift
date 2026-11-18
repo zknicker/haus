@@ -10,7 +10,7 @@ public struct PushNotificationPayload: Sendable, Equatable {
     /// The Channel or DM the conversation belongs to.
     public let conversationChatID: String
     public let messageID: String
-    /// The Task whose Chat the message is in (ADR 0052); nil for a Channel or
+    /// The Task whose Chat the message is in (ADR 0053); nil for a Channel or
     /// DM message.
     public let taskID: String?
     /// That Task's key, such as `SEC-12`, as it read when the push was sent.
@@ -36,7 +36,7 @@ public struct PushNotificationPayload: Sendable, Equatable {
     /// ignored. Nil when a required key is missing, so a malformed push opens
     /// nothing rather than the wrong conversation.
     ///
-    /// A push sent before side conversations were deleted (ADR 0052) names a
+    /// A push sent before side conversations were deleted (ADR 0053) names a
     /// side conversation's own Chat as `chatId` beside its parent
     /// `conversationChatId`. That Chat is
     /// gone and its messages are inline replies in the parent, so the payload
@@ -84,7 +84,7 @@ public enum PushNotificationRoute: Sendable, Equatable {
     /// The one rule from a push's ids to a screen. A Task opens as its Task.
     /// Anything else opens its conversation, the Channel or DM: for an
     /// ordinary message that is its own Chat, and for one that names a side
-    /// conversation's Chat (a push from before ADR 0052) it is the parent the
+    /// conversation's Chat (a push from before ADR 0053) it is the parent the
     /// conversation now lives in as inline replies.
     public static func opening(chatID: String, conversationChatID: String, taskID: String?) -> Self {
         if let taskID { return .task(taskID: taskID, chatID: chatID) }

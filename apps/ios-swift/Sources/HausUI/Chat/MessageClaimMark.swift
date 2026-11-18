@@ -3,7 +3,7 @@ import SwiftUI
 
 /// The claim a message carries, stated under that message.
 ///
-/// The claim is the Agent's lock on a message (ADR 0052 decision 5), not a
+/// The claim is the Agent's lock on a message (ADR 0053 decision 5), not a
 /// place, so its mark says only which claim and where it stands. An Agent's
 /// claim stays hidden until the reader asks to see claims in Chat; a claim a
 /// human made always shows.

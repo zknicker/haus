@@ -130,7 +130,7 @@ async function advanceReadMarker(
         return { event: null, sequence: current.sequence };
     }
 
-    // Only a child Chat can be a Task's (ADR 0052).
+    // Only a child Chat can be a Task's (ADR 0053).
     const task = input.parentChatId
         ? await findTaskByChatId(tx, { chatId: input.chatId, serverId: input.serverId })
         : null;

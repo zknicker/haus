@@ -4,7 +4,7 @@ import { type HausServerHarness, startHausServerHarness } from './haus-server-ha
 import { startTestTask, type TestTask } from './task-place-fixture.ts';
 
 /**
- * ADR 0052 decision 7: a Channel previews the Tasks started from its messages,
+ * ADR 0053 decision 7: a Channel previews the Tasks started from its messages,
  * on a `chat.messages` page and on the single-message `chat.message` read alike,
  * and a Task with nothing posted yet still previews its state and title.
  */

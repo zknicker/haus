@@ -37,7 +37,7 @@ export async function readChatMessage(
     }
     return {
         message,
-        // ADR 0052: the Tasks started from this message, as its Channel page previews them.
+        // ADR 0053: the Tasks started from this message, as its Channel page previews them.
         tasks: member
             ? await listTaskPreviews(db, member.id, {
                   channelId: input.chatId,

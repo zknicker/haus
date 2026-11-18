@@ -24,7 +24,7 @@ export const messageCreatedEventSchema = z
         replyToAuthorUserId: idSchema.nullable(),
         sequence: z.number().int().positive(),
         serverId: idSchema,
-        /** The Task whose Chat this message is in (ADR 0052); null outside a Task. */
+        /** The Task whose Chat this message is in (ADR 0053); null outside a Task. */
         taskId: idSchema.nullable(),
     })
     .strict();
@@ -48,7 +48,7 @@ export const chatReadEventSchema = z
         chatId: idSchema,
         sequence: z.number().int().nonnegative(),
         serverId: idSchema,
-        /** The Task whose Chat was read (ADR 0052); null outside a Task. */
+        /** The Task whose Chat was read (ADR 0053); null outside a Task. */
         taskId: idSchema.nullable(),
     })
     .strict();

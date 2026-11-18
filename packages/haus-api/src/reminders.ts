@@ -180,7 +180,7 @@ export const agentReminderScheduleInputSchema = z
         repeat: z.string().min(1).optional(),
         script: z.string().min(1).optional(),
         /**
-         * `task:SEC-12`: anchor on a Task (ADR 0052 decision 16), one-time only. The
+         * `task:SEC-12`: anchor on a Task (ADR 0053 decision 16), one-time only. The
          * reminder anchors on the Task's newest message.
          */
         target: z.string().regex(TASK_TARGET_PATTERN).optional(),

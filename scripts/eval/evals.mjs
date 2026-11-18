@@ -91,7 +91,7 @@ export const evals = {
     },
     // Task or reply: an Agent creates a Task when its reply will not be the whole of the work,
     // whatever the source (human, Reminder, Trigger, its own finding), and a claim, not a
-    // Task, marks ownership (ADR 0052). Gates read the Task's `origin`, its own conversation,
+    // Task, marks ownership (ADR 0053). Gates read the Task's `origin`, its own conversation,
     // and its `attachedWork`. Serial: the Trigger scenarios share the seeded `acme`
     // installation. The two cloud scenarios are opt-in: they spend real Cursor runs.
     'task-intake': {

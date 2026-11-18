@@ -51,7 +51,7 @@ export const cloudAgentWorkTable = pgTable(
         startedAt: timestamp('started_at', { withTimezone: true }),
         startingRef: text('starting_ref'),
         status: text('status').notNull().default('queued').$type<CloudAgentStatus>(),
-        /** The Task this work attaches to and reports to (ADR 0052); null before Tasks. */
+        /** The Task this work attaches to and reports to (ADR 0053); null before Tasks. */
         taskId: text('task_id'),
         terminalAt: timestamp('terminal_at', { withTimezone: true }),
         title: text('title').notNull(),

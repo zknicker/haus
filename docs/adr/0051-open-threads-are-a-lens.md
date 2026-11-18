@@ -17,7 +17,7 @@ and [ADR 0044](0044-cloud-agent-work-is-referenced-not-embedded.md), and qualifi
 [ADR 0038](0038-inbox-is-unread-not-attention.md). [Open Threads](../../specs/open-threads.md) carries
 the full contract.
 
-Superseded 2026-11-17 by [ADR 0052](0052-channels-and-tasks-are-the-only-places.md) before acceptance.
+Superseded 2026-11-17 by [ADR 0053](0053-channels-and-tasks-are-the-only-places.md) before acceptance.
 
 ## Context
 

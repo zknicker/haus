@@ -14,7 +14,7 @@ const prompt = renderAgentInstructions({
 
 const tasks = prompt.split('### Tasks\n')[1]?.split('## Working through sub-agents')[0] ?? '';
 
-test('a Task is described by what people see, not by a placement ladder (ADR 0052)', () => {
+test('a Task is described by what people see, not by a placement ladder (ADR 0053)', () => {
     expect(tasks).toContain(
         'A Task is how people follow work that takes longer than a reply. While it is open it sits in their sidebar with its state. It has its own page, where you and they talk about that work and where any cloud agents doing it are shown. When it is done, it leaves.'
     );

@@ -39,7 +39,7 @@ does not reply to an earlier fire's answer to answer a later fire. A fire whose
 reply is the whole of the work answers top-level in the anchor Channel. A fire
 that turns up real work gets an origin Message there and a Task started from it,
 and the Agent reports in the Task
-([ADR 0052](../docs/adr/0052-channels-and-tasks-are-the-only-places.md) decision 4).
+([ADR 0053](../docs/adr/0053-channels-and-tasks-are-the-only-places.md) decision 4).
 
 ## Explicit and inferred attribution
 
@@ -155,7 +155,7 @@ Trigger, or the anchoring note for a reminder — `Anchored on: “<excerpt>”`
 the only surface that quotes the message a reminder was set from — and the same
 **Manage in Automations** link. The card renders nothing until the read
 resolves; it never flashes an empty state. Its host was the Thread opened on a
-caused message; with Threads gone ([ADR 0052](../docs/adr/0052-channels-and-tasks-are-the-only-places.md)),
+caused message; with Threads gone ([ADR 0053](../docs/adr/0053-channels-and-tasks-are-the-only-places.md)),
 no surface mounts it yet.
 
 ## What stays invisible

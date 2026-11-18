@@ -2,7 +2,7 @@ import Foundation
 import HausModels
 import HausUI
 
-/// Tasks as places (ADR 0052): the followed Tasks waiting in the Inbox, the
+/// Tasks as places (ADR 0053): the followed Tasks waiting in the Inbox, the
 /// previews under their origin Messages, and what a Task screen reads. A Task
 /// Chat is opened as a Task, never as a Channel or DM.
 extension HausStore {

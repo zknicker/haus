@@ -34,7 +34,7 @@ export async function listChatMessages(
         // head; a filtered read can scan past its last match (inline replies).
         scannedThroughSequence:
             page.nextAfterSequence === null ? Math.max(chatSequence, lastSequence) : lastSequence,
-        // ADR 0052: a Channel previews the Tasks started from its messages on this page.
+        // ADR 0053: a Channel previews the Tasks started from its messages on this page.
         tasks:
             chatKind === 'channel' && member
                 ? await listTaskPreviews(db, member.id, {

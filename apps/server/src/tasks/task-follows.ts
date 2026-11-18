@@ -17,7 +17,7 @@ import {
 type Writer = Pick<HausDatabase, 'execute' | 'insert' | 'select'>;
 
 /**
- * Task followers (ADR 0052 decision 9): a person in `task_follows`, an Agent
+ * Task followers (ADR 0053 decision 9): a person in `task_follows`, an Agent
  * in `agent_task_follows`. Followers are the origin Message's author, anyone it
  * mentions, the assignee, and anyone who posts in the Task.
  */

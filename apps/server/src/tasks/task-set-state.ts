@@ -11,7 +11,7 @@ import { prepareTaskUpdatedEvent } from './task-events.ts';
 import { lockTask, readTask } from './task-read.ts';
 
 /**
- * `task.setState` and the Agent's `tasks/state` (ADR 0052 decisions 2 and 13).
+ * `task.setState` and the Agent's `tasks/state` (ADR 0053 decisions 2 and 13).
  * `tasks.state` is the truth, and `completedAt` is set exactly while the Task
  * is closed. A chatless Task from before Tasks were places is read-only
  * history and refuses the change. Closing cancels

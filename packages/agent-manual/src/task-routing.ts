@@ -1,5 +1,5 @@
 // Haus routes Agent posts where the request arrived, and work that outlasts a
-// reply into its Task (ADR 0029, ADR 0052). Each row swaps one captured Raft
+// reply into its Task (ADR 0029, ADR 0053). Each row swaps one captured Raft
 // line for its Haus routing; the rest of the card stays verbatim. The left side
 // quotes the captured source, whose tasks owned a thread.
 export const taskRouting = new Map<string, ReadonlyArray<readonly [string, string]>>([

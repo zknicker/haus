@@ -1,5 +1,5 @@
 // Exact-set eval chat cleanup: the chats a scenario registered, and nothing
-// else. There are no Threads to expand to (ADR 0052); a Task's Chat is
+// else. There are no Threads to expand to (ADR 0053); a Task's Chat is
 // registered by the scenario that starts it.
 
 const chunkSize = 20;

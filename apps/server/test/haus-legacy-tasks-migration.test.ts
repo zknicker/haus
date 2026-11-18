@@ -8,7 +8,7 @@ import { seedLegacyTasks } from './legacy-tasks-seed.ts';
 import { startPostgresCluster } from './postgres-cluster.ts';
 
 /**
- * ADR 0052 over rows 0124 left: a legacy Task an Agent is working becomes a
+ * ADR 0053 over rows 0124 left: a legacy Task an Agent is working becomes a
  * place (its earliest linking Channel Message, else a "Tracking" post in
  * `#all`), every other unfinished legacy Task is canceled into history, closed
  * ones stay as they are, and boards, columns, and the Task Inbox are gone.

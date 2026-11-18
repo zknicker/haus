@@ -7,7 +7,7 @@ import { retireQueuedReminderFires } from '../reminders/retire-fires.ts';
 
 /**
  * Closing a Task, done or canceled, cancels its pending one-time reminders: the
- * scheduled, non-repeating ones anchored in the Task's Chat (ADR 0052 decision
+ * scheduled, non-repeating ones anchored in the Task's Chat (ADR 0053 decision
  * 16). Reopening never restores them. The only Task code that writes reminders.
  */
 export async function cancelTaskReminders(

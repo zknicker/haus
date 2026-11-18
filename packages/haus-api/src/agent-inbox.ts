@@ -13,7 +13,7 @@ import { humanTimezoneSchema } from './membership.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
 
-/** What a pull request did after its Run settled, on a `pull_request` notice (ADR 0052). */
+/** What a pull request did after its Run settled, on a `pull_request` notice (ADR 0053). */
 export const cloudAgentPullRequestChangeSchema = z
     .object({
         change: z.enum(['ready_for_review', 'checks_passing', 'checks_failing']),
@@ -43,7 +43,7 @@ export const cloudAgentWorkAttentionSchema = z
         hasFullReport: z.boolean().optional(),
         /**
          * Why this Run reached the Agent: it settled, it is stuck and still live,
-         * or its pull request changed after it settled (ADR 0052 decision 6).
+         * or its pull request changed after it settled (ADR 0053 decision 6).
          */
         notice: z.enum(['settled', 'stall', 'pull_request']),
         providerUrl: z.url().max(2000).nullable(),
@@ -136,7 +136,7 @@ export const agentInboxItemSchema = z
         mentioned: z.boolean().optional(),
         /**
          * Typed Server attention for a pull request attached to a Task no cloud
-         * work reports to (ADR 0052 decision 6): what changed, with no Run behind
+         * work reports to (ADR 0053 decision 6): what changed, with no Run behind
          * it. `content` carries the same change as one sentence. Never set with
          * `cloudAgentWork`, which names the change itself when a Run backs it.
          */

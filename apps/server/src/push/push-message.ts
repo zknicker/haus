@@ -16,7 +16,7 @@ export interface PushMessage extends StoredChatMessageAuthorRow {
     /** The DM's human members; empty outside a DM. */
     dmMemberUserIds: string[];
     messageId: string;
-    /** The Task whose own Chat the message is in (ADR 0052); null elsewhere. */
+    /** The Task whose own Chat the message is in (ADR 0053); null elsewhere. */
     taskId: string | null;
     /** That Task's key, `SEC-12`; null exactly when `taskId` is. */
     taskKey: string | null;

@@ -4,9 +4,9 @@ import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
 
 /**
  * Inbox sources with no Chat: the sub-agent wake and a Task assigned to the Agent
- * (ADR 0052). Each leads its own chatless run, and the Server schema's chat checks
+ * (ADR 0053). Each leads its own chatless run, and the Server schema's chat checks
  * name exactly these sources, except that migration 0122 already lets a
- * `task_assignment` name its Task's Chat (ADR 0052).
+ * `task_assignment` name its Task's Chat (ADR 0053).
  */
 export const chatlessInboxSources = ['subagent', 'task_assignment'] as const;
 

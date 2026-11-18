@@ -11,7 +11,7 @@ public struct MessageCreatedEvent: Decodable, Sendable, Equatable {
     public let chatID: String
     public let messageID: String
     public let sequence: Int
-    /// The Task whose Chat this message is in (ADR 0052); nil outside a Task
+    /// The Task whose Chat this message is in (ADR 0053); nil outside a Task
     /// and from a Server that predates Tasks.
     public let taskID: String?
 
@@ -56,7 +56,7 @@ public struct ChatReadEvent: Decodable, Sendable, Equatable {
     public let serverID: String
     public let chatID: String
     public let sequence: Int
-    /// The Task whose Chat was read (ADR 0052); nil outside a Task.
+    /// The Task whose Chat was read (ADR 0053); nil outside a Task.
     public let taskID: String?
 
     public init(serverID: String, chatID: String, sequence: Int, taskID: String? = nil) {

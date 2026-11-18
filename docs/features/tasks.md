@@ -10,7 +10,7 @@ read_when:
 
 # Tasks
 
-[ADR 0052](../adr/0052-channels-and-tasks-are-the-only-places.md) is the decision and
+[ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md) is the decision and
 [specs/tasks.md](../../specs/tasks.md) the rules the Server enforces. This page is what a person
 sees. Haus has two kinds of place: Channels and DMs for conversation, and Tasks for work. A claim
 is a different thing: an Agent's lock on a message ([Claims](claims.md)).

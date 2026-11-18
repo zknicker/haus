@@ -113,7 +113,7 @@ export async function insertChannel(
             kind: 'channel',
             name: input.name,
             serverId: input.serverId,
-            // A new Channel's Tasks take the Server's General key (ADR 0052 decision 11).
+            // A new Channel's Tasks take the Server's General key (ADR 0053 decision 11).
             taskKeyId: await findGeneralTaskKeyId(tx, input.serverId),
         });
     } catch (error) {

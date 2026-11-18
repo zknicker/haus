@@ -151,7 +151,7 @@ the sequence and rollback order are not replaced by ordinary target selection.
 
 The Channels-and-Tasks release (Computer protocol 37, App protocol 13, the Thread migration) has
 its own operator order: see
-[Shipping Channels and Tasks](haus-server-deploy.md#shipping-channels-and-tasks-adr-0052).
+[Shipping Channels and Tasks](haus-server-deploy.md#shipping-channels-and-tasks-adr-0053).
 
 Use [iOS TestFlight](ios-testflight.md) for App Store Connect setup, build-number continuity,
 processing, automatic internal distribution, and real-device smoke. The release workflow records

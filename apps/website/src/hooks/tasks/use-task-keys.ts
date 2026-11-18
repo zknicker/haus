@@ -1,7 +1,7 @@
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
-/** The Server's Task key ledger (`taskKey.list`, ADR 0052 decision 11), by key. */
+/** The Server's Task key ledger (`taskKey.list`, ADR 0053 decision 11), by key. */
 export function useTaskKeys(serverId: string) {
     const { data, error, isPending } = hausTrpc.taskKey.list.useQuery(
         { serverId },

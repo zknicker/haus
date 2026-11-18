@@ -7,7 +7,7 @@ import { taskKeyArgument } from './agent-command-utils.ts';
 
 /**
  * `haus task unfollow`: stop following a Task, so its ordinary messages no longer wake the Agent
- * (ADR 0052 decision 9: anyone can follow or unfollow by hand). Direct @mentions still reach it.
+ * (ADR 0053 decision 9: anyone can follow or unfollow by hand). Direct @mentions still reach it.
  */
 export const TASK_UNFOLLOW_SUBCOMMAND: SubCommand = {
     examples: ['haus task unfollow --target task:SEC-12'],

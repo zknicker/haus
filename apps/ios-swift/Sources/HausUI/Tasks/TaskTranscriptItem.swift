@@ -1,7 +1,7 @@
 import Foundation
 
 /// One row of a Task's transcript: a Task is a Channel for one piece of work
-/// (ADR 0052), so its rows are the Chat timeline's own, under one quiet row
+/// (ADR 0053), so its rows are the Chat timeline's own, under one quiet row
 /// that points back at the Message the Task started from.
 enum TaskTranscriptItem: Identifiable, Equatable {
     case startedFrom(TaskStartedFromPresentation)

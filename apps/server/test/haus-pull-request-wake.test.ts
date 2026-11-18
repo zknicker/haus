@@ -15,7 +15,7 @@ import { type PullRequestWakeReading, respondAsGithub } from './pull-request-wak
 import { startTestTask, type TestTask } from './task-place-fixture.ts';
 
 /**
- * ADR 0052 decision 6: a pull request becoming ready, or its checks finishing,
+ * ADR 0053 decision 6: a pull request becoming ready, or its checks finishing,
  * after its cloud work's newest Run settled wakes the delegating Agent in the
  * Task, once per transition and head. `tasks/attach-pr` seeds the reading.
  */

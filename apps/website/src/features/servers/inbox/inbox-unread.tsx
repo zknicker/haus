@@ -30,7 +30,7 @@ import { type UnreadTriageCommand, useUnreadTriageKeys } from './use-unread-tria
 
 /**
  * Every Chat and followed Task with something unread, newest first, as one
- * feed of open cards (ADR 0038, ADR 0050, ADR 0052): each shows what is
+ * feed of open cards (ADR 0038, ADR 0050, ADR 0053): each shows what is
  * waiting and a composer, and exactly one is selected. The cards are the
  * existing unread state, which this page only reads: seeing a card never reads
  * it. Mark read (E) or a reply from a card reads it and selects the next;

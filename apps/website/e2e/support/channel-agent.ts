@@ -100,7 +100,7 @@ export async function createChannelAgent(input: {
         },
         /**
          * Starts a Task as the Agent from one of its Channel's Messages (ADR
-         * 0052 decision 4): only Agents create Tasks. `target` defaults to the
+         * 0053 decision 4): only Agents create Tasks. `target` defaults to the
          * Agent's own Channel; `assignee` is `me` or an @handle.
          */
         startTask: async (task: {

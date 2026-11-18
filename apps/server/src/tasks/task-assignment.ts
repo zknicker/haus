@@ -46,7 +46,7 @@ export interface TaskAssignmentEffects {
  *
  * - **Person:** assigning someone other than yourself announces `task.assigned`,
  *   which iPhone push acts on after commit. The person follows the Task
- *   (ADR 0052 decision 9, done by the caller); the assignment posts nothing.
+ *   (ADR 0053 decision 9, done by the caller); the assignment posts nothing.
  * - **Agent:** assigning another Agent enqueues a `task_assignment` inbox item and
  *   a wake; reassigning away withdraws any item still queued.
  */

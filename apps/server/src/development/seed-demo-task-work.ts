@@ -20,7 +20,7 @@ const pullRequestNumber = 512;
 const title = 'Avatar upload: crop, resize, and save';
 
 /**
- * The open demo Task's attached work (ADR 0052 decision 6): the Agent's launch
+ * The open demo Task's attached work (ADR 0053 decision 6): the Agent's launch
  * Message in the Task, a settled cloud agent whose Run opened a pull request,
  * the live reading of that pull request, and its attachment to the Task. These
  * are static samples: no provider job or GitHub call stands behind them.

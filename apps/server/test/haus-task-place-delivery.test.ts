@@ -11,7 +11,7 @@ import { cloudAgentLinkHelpers } from './cloud-agent-link-helpers.ts';
 import { startTestTask } from './task-place-fixture.ts';
 
 /**
- * ADR 0052 delivery: a Task's Chat is a `task:KEY-n` target for sends and
+ * ADR 0053 delivery: a Task's Chat is a `task:KEY-n` target for sends and
  * reads, delivers to its followers and mentions, and a fire anchored
  * in it reports to the Task, not to the Channel above it.
  */

@@ -8,7 +8,7 @@ import {
     seededRandom,
 } from './thread-migration-rows.ts';
 
-/** Production's shape when the Thread migration was planned (ADR 0052 decision 14). */
+/** Production's shape when the Thread migration was planned (ADR 0053 decision 14). */
 export const productionShape = {
     cloudWorkThreads: 25,
     taskChats: 10,

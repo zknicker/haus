@@ -53,7 +53,7 @@ export function applyMessageCreated(
     event: MessageCreatedEvent
 ) {
     coalescer.noteMessageCreated(event);
-    // A Task message moves its origin preview, its detail, and maybe its state (ADR 0052).
+    // A Task message moves its origin preview, its detail, and maybe its state (ADR 0053).
     if (event.taskId) {
         refreshTaskReads(coalescer, queryClient, {
             serverId: event.serverId,

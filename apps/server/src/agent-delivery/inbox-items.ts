@@ -167,7 +167,7 @@ function requireAttention(
     if (row.cloudAgentNotice !== 'pull_request') {
         return { ...attention, notice: row.cloudAgentNotice };
     }
-    // The wake's dedupe key names the change (ADR 0052 decision 6).
+    // The wake's dedupe key names the change (ADR 0053 decision 6).
     const change = parsePullRequestChangeKey(row.dedupeKey);
     if (!change) {
         throw new CloudAgentAttentionMissingError(row.dedupeKey);
@@ -176,7 +176,7 @@ function requireAttention(
 }
 
 /**
- * A `pull_request` notice for a Task no cloud work reports to (ADR 0052
+ * A `pull_request` notice for a Task no cloud work reports to (ADR 0053
  * decision 6): no Run backs it, so the change its dedupe key names is all of it.
  */
 function requirePullRequestNotice(row: store.InboxItemRow): CloudAgentPullRequestChange {

@@ -29,7 +29,7 @@ export function optionalInteger(
     return parsed;
 }
 
-/** A Channel, a DM, or a Task (`task:SEC-12`). There are no Threads (ADR 0052). */
+/** A Channel, a DM, or a Task (`task:SEC-12`). There are no Threads (ADR 0053). */
 export function assertAgentTarget(target: string): void {
     refuseRemovedThreadTarget(target);
     const channel = /^#[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/u;
@@ -42,7 +42,7 @@ export function assertAgentTarget(target: string): void {
 }
 
 /**
- * Threads are gone (ADR 0052), and the Server refuses a `<target>:<shortId>` target. Refuse it
+ * Threads are gone (ADR 0053), and the Server refuses a `<target>:<shortId>` target. Refuse it
  * here first, with what replaces it: an inline reply to that message, or a Task for the work.
  */
 export function refuseRemovedThreadTarget(target: string): void {

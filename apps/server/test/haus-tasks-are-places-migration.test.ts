@@ -7,7 +7,7 @@ import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { startPostgresCluster } from './postgres-cluster.ts';
 
 /**
- * ADR 0052 over rows 0121 left: boards become key-ledger entries with the same
+ * ADR 0053 over rows 0121 left: boards become key-ledger entries with the same
  * ids and counters, Tasks take their board's key and a state from their column,
  * Channels take the General board's key, and a `task` Chat may hang off a
  * Channel Message beside others on the same anchor.

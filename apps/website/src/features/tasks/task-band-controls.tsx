@@ -90,7 +90,7 @@ function DetailsButton({ task }: { task: TaskDetail }) {
     );
 }
 
-/** A follower sees the Task unread and in their Inbox (ADR 0052 decision 9). */
+/** A follower sees the Task unread and in their Inbox (ADR 0053 decision 9). */
 function FollowButton({ task }: { task: Pick<TaskDetail, 'followed' | 'id' | 'serverId'> }) {
     const follow = useSetTaskFollow();
     const label = task.followed ? 'Stop following' : 'Follow';

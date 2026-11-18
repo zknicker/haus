@@ -13,7 +13,7 @@ read_when:
 
 ## Status
 
-Accepted 2026-10-09. Amended 2026-11-17 by [ADR 0052](0052-channels-and-tasks-are-the-only-places.md): the card lives on the Task page, and the Runs list gives way to the newest Run's summary.
+Accepted 2026-10-09. Amended 2026-11-17 by [ADR 0053](0053-channels-and-tasks-are-the-only-places.md): the card lives on the Task page, and the Runs list gives way to the newest Run's summary.
 
 ## Context
 

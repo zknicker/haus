@@ -138,7 +138,7 @@ export const chatSchema = z
         peerUserId: idSchema.nullable(),
         serverId: idSchema,
         /**
-         * The key-ledger entry a Channel's Tasks take (ADR 0052 decision 11).
+         * The key-ledger entry a Channel's Tasks take (ADR 0053 decision 11).
          * Null for a DM, and for a Channel not yet configured with one.
          */
         taskKeyId: idSchema.nullable().default(null),
@@ -247,7 +247,7 @@ export const chatMessagePageSchema = z
          * starts here instead of rescanning (specs/realtime-events.md).
          */
         scannedThroughSequence: z.number().int().nonnegative(),
-        /** Tasks started from messages on this page, each under its origin (ADR 0052 decision 7). */
+        /** Tasks started from messages on this page, each under its origin (ADR 0053 decision 7). */
         tasks: z.array(taskPreviewSchema).default([]),
     })
     .strict();

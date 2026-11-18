@@ -4,7 +4,7 @@ import { hausTrpc } from '../../lib/haus-server.tsx';
 import { taskDetailKeys } from './task-cache.ts';
 
 /**
- * Follows or unfollows a Task by hand (ADR 0052 decision 9). The receipt
+ * Follows or unfollows a Task by hand (ADR 0053 decision 9). The receipt
  * writes `followed` into the Task's cached detail so the control settles at
  * once; unread and the Inbox move with `task.onFollowUpdated`.
  */

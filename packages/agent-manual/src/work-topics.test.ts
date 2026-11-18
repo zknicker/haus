@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { getManualTopic, manualTopics } from './index.ts';
 
-test('the tasks topic says what a Task is and when to start one (ADR 0052)', () => {
+test('the tasks topic says what a Task is and when to start one (ADR 0053)', () => {
     const body = getManualTopic('tasks')?.body ?? '';
     expect(body).toContain('A Task is how people follow work that takes longer than a reply');
     expect(body).toContain('When your reply is the whole of the work, just reply.');
@@ -51,7 +51,7 @@ test('the result stays in the Task, and only Tasks others assign are paced one a
 
 test('no Manual topic teaches boards, columns, pickup-note threads, or work threads', () => {
     expect(getManualTopic('boards')).toBeNull();
-    // ADR 0052: there are no Threads, so there is no thread topic or `haus thread` family.
+    // ADR 0053: there are no Threads, so there is no thread topic or `haus thread` family.
     expect(getManualTopic('thread')).toBeNull();
     for (const topic of manualTopics) {
         expect(topic.body).not.toContain('haus thread');

@@ -83,7 +83,7 @@ async function readAgentAnchorAccess(db: Pick<HausDatabase, 'select'>, input: Ag
 }
 
 /**
- * The anchor Message in the anchor Chat. A Task's Chat (ADR 0052 decision 16)
+ * The anchor Message in the anchor Chat. A Task's Chat (ADR 0053 decision 16)
  * may also anchor on its origin Message, which sits in the Channel above it.
  */
 async function readMessageAnchor(

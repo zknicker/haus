@@ -10,7 +10,7 @@ import Foundation
 ///
 /// The protocol scope is what keeps a contract change from painting state the
 /// Server no longer has. A protocol bump can come with a one-time Server
-/// migration — ADR 0052's moved every side conversation into its parent
+/// migration — ADR 0053's moved every side conversation into its parent
 /// Channel as inline replies, renumbered those Channels' sequences, and marked
 /// them read — so a page or a Chat list from before it holds conversations,
 /// sequences, and unread counts that are no longer true. Painted, its rows

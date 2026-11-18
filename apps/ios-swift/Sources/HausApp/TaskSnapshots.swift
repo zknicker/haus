@@ -15,7 +15,7 @@ import OSLog
 final class TaskSnapshots {
     var detailsByID: [String: TaskDetail] = [:]
     var labels: [TaskLabel]?
-    /// The followed Tasks with messages waiting (ADR 0052 decision 9), from
+    /// The followed Tasks with messages waiting (ADR 0053 decision 9), from
     /// `chat.unreadPreviews`; nil until first read (`HausStoreTaskPlaces.swift`).
     var unreadTasks: [ChatUnreadPreview]?
     /// The newest read started per Task, so an older answer writes nothing.

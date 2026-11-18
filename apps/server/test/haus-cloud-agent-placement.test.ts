@@ -10,7 +10,7 @@ const fixture = cloudAgentFixture();
 const links = cloudAgentLinkHelpers(fixture);
 
 /**
- * ADR 0052 decision 6: cloud work attaches to a Task and reports to it. The
+ * ADR 0053 decision 6: cloud work attaches to a Task and reports to it. The
  * launch Message posts in the Task's Chat, opens no child Chat, and every Run
  * notice lands in the Task. A launch with no Task is refused and writes nothing.
  */

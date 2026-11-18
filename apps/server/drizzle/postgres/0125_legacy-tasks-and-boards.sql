@@ -1,4 +1,4 @@
--- ADR 0052 decisions 2, 4, 10, and 11: boards, columns, and the Task Inbox go,
+-- ADR 0053 decisions 2, 4, 10, and 11: boards, columns, and the Task Inbox go,
 -- `tasks.state` is the only state, and every Task is numbered by its key-ledger
 -- entry. Legacy Tasks (no origin Message, no Chat) become places when an Agent
 -- is working them and read-only history otherwise (product decision

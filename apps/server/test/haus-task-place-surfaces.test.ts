@@ -7,7 +7,7 @@ import { captureTopic, type TopicCapture } from './realtime-capture.ts';
 import { startTestTask } from './task-place-fixture.ts';
 
 /**
- * ADR 0052 surfaces the App and the Agent CLI read: the Agent Task list by
+ * ADR 0053 surfaces the App and the Agent CLI read: the Agent Task list by
  * state and key, who set a Task's reminder, the Task a cloud work event and an
  * active work row name, and `task.updated` when work or a pull request attaches.
  */

@@ -1,4 +1,4 @@
--- ADR 0052 decision 14: every Thread becomes inline replies on its anchor
+-- ADR 0053 decision 14: every Thread becomes inline replies on its anchor
 -- Message in the parent Channel or DM, then the Thread Chats are deleted.
 -- The audit tables keep everything needed to check and (on a dev database)
 -- replay the move backwards: `thread_migration_map` holds every renumbered

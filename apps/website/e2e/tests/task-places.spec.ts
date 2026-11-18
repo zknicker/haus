@@ -6,7 +6,7 @@ const title = 'Rotate the webhook signing secret';
 const originLine = 'The webhook secret leaked into a log. Rotating it now.';
 
 /**
- * A Task is a place (ADR 0052): an Agent starts it from a Channel Message,
+ * A Task is a place (ADR 0053): an Agent starts it from a Channel Message,
  * the Channel previews it under that Message, the sidebar lists it while it
  * is open, and its page holds the conversation beside its Details.
  */

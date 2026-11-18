@@ -2,7 +2,7 @@ import Foundation
 import XCTest
 @testable import HausModels
 
-/// Tasks as places (ADR 0052) decode from the Server's wire shapes
+/// Tasks as places (ADR 0053) decode from the Server's wire shapes
 /// (`packages/haus-api/src/{task,task-preview,chat,chat-unread-preview,chat-events}.ts`),
 /// and a newer Server's additive fields and kinds never fail a read.
 final class TaskPlaceModelsTests: XCTestCase {

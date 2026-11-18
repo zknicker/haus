@@ -14,7 +14,7 @@ import {
 } from './agent-task-view.ts';
 
 /**
- * The verbs that make a Task a place (ADR 0052): start one from a Message in a Channel, set its
+ * The verbs that make a Task a place (ADR 0053): start one from a Message in a Channel, set its
  * state, and attach a pull request. Each receipt names the Task's target, `task:<key>`.
  */
 

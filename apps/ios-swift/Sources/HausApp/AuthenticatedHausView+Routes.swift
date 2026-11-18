@@ -63,7 +63,7 @@ extension AuthenticatedHausView {
     }
 
     /// Opens one "Happening now" work: its Task when it reports to one (ADR
-    /// 0052 decision 6), else the newest visible linking Message, revealed in
+    /// 0053 decision 6), else the newest visible linking Message, revealed in
     /// its Channel or DM.
     private func openCloudAgentWork(_ work: ActiveCloudAgentWork) {
         if let taskID = work.taskID {
@@ -119,7 +119,7 @@ extension AuthenticatedHausView {
 
     /// A stopped claim opens from an Agent profile at its message, in the
     /// Channel or DM that numbers it. A claim is a lock on a message, not a
-    /// place (ADR 0052).
+    /// place (ADR 0053).
     func openClaim(_ item: ClaimListItem) {
         openCanvasChat(.chat(item.claim.chatID), revealing: item.claim.messageID)
     }

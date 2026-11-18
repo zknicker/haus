@@ -23,7 +23,7 @@ const lineFrameChars = 80;
 const blockFrameChars = 260;
 
 /**
- * Raft's join context, for a Task (ADR 0052): for the first human item in each
+ * Raft's join context, for a Task (ADR 0053): for the first human item in each
  * Task that @mentions this Agent, its origin Message and the messages before
  * the mention, bounded. Keyed by inbox row id. Visibility is not consulted here, so
  * a drain budget built from these sizes is the same on every resend.

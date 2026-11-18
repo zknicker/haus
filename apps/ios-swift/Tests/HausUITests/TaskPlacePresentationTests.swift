@@ -3,7 +3,7 @@ import HausModels
 @testable import HausUI
 import Testing
 
-/// How a Task reads on iPhone (ADR 0052 decision 15): its preview under the
+/// How a Task reads on iPhone (ADR 0053 decision 15): its preview under the
 /// origin Message, its screen's header and transcript, and its Unread row.
 struct TaskPlacePresentationTests {
     // MARK: - Status words

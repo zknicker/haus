@@ -12,7 +12,7 @@ import {
 import { tasksTable } from './tasks.ts';
 
 /**
- * A GitHub pull request attached to a Task (ADR 0052 decision 6). Its card and
+ * A GitHub pull request attached to a Task (ADR 0053 decision 6). Its card and
  * the ready-after-settle wake read the stored pull request readings by
  * `repository` and `number`; this row only says which Task it reports to.
  */

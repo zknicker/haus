@@ -1,4 +1,4 @@
--- ADR 0052 decisions 1 and 14: after 0124 folded every Thread into inline
+-- ADR 0053 decisions 1 and 14: after 0124 folded every Thread into inline
 -- replies, nothing Thread-shaped remains in the schema. Task follows keep their
 -- rows under Task names, Open Threads closures go, and a claim's Message always
 -- sits in the claim's own Chat. 0124's audit tables stay.

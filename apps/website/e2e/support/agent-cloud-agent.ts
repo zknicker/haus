@@ -5,7 +5,7 @@ export interface SeededCloudAgentWork {
     agentId: string;
     chatId: string;
     computerId: string;
-    /** The launch Message, in the Task's own Chat (ADR 0052 decision 6). */
+    /** The launch Message, in the Task's own Chat (ADR 0053 decision 6). */
     messageId: string;
     runId: string;
     /** The Task the work is attached to, started from a Message in the Channel. */
@@ -91,7 +91,7 @@ export async function seedCloudAgentWork(input: {
 
 /**
  * One more work from an Agent that already exists. Cloud work attaches to a
- * Task and the Server refuses a launch without one (ADR 0052 decision 6), so,
+ * Task and the Server refuses a launch without one (ADR 0053 decision 6), so,
  * like an Agent, the fixture first posts an origin Message in Channel `target`
  * and starts a Task from it, then launches on that Task.
  */

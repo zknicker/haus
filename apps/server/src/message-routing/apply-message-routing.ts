@@ -174,7 +174,7 @@ function bypassReason(input: RoutingCommit, reason: RoutingBypassReason): Routin
     if (input.chatKind === 'dm') {
         return 'direct-message';
     }
-    // ADR 0052: a Task's Chat delivers to its followers and mentions, unjudged.
+    // ADR 0053: a Task's Chat delivers to its followers and mentions, unjudged.
     if (input.chatKind === 'task') {
         return 'task';
     }

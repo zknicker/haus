@@ -9,7 +9,7 @@ export const taskPreviewRecentMessageLimit = 3;
 
 /**
  * A Task as its origin Channel previews it under the Message it started from
- * (ADR 0052 decision 7): its newest messages and the Task's state.
+ * (ADR 0053 decision 7): its newest messages and the Task's state.
  * One origin Message can carry several. Rides `chat.messages` pages as `tasks`.
  */
 export const taskPreviewSchema = z

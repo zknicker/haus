@@ -86,7 +86,7 @@
 ### server / user / channel / thread
 
 > Historical CLI research snapshot. Current Raft 1.0.16 and Haus restore an explicitly
-> unfollowed Thread on a later direct mention. Haus has no Threads since ADR 0052; it restores an
+> unfollowed Thread on a later direct mention. Haus has no Threads since ADR 0053; it restores an
 > unfollowed Task the same way (`specs/inbox.md`).
 - `server info [--full] [--channels --agents --humans --joined --query --limit --offset]` —
   bounded server facts incl. own computer identity; `update` (admin).

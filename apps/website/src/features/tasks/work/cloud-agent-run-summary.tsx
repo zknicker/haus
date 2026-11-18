@@ -6,7 +6,7 @@ import {
 } from '../../cloud-agents/cloud-agent-presentation.ts';
 
 /**
- * The newest Run's report in full under its card (ADR 0052 decision 12): what
+ * The newest Run's report in full under its card (ADR 0053 decision 12): what
  * the Run is doing as a person reads it, then the provider's summary. Older
  * Runs are history the conversation already carries, so there is no Runs list.
  */

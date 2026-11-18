@@ -17,7 +17,7 @@ const reminder = {
     version: 3,
 };
 
-test('a reminder on a Task sends its task: target and no message id (ADR 0052)', async () => {
+test('a reminder on a Task sends its task: target and no message id (ADR 0053)', async () => {
     const requests: AgentApiRequest[] = [];
     const client = requester((_route, input) => {
         requests.push(input);

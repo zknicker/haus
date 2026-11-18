@@ -57,7 +57,7 @@ export async function assignTask(
             .where(and(eq(tasksTable.serverId, input.serverId), eq(tasksTable.id, current.id)));
         const followEvents: PreparedRealtimeEvent[] = [];
         if (input.assignee) {
-            // Being assigned makes you a follower (ADR 0052 decision 9).
+            // Being assigned makes you a follower (ADR 0053 decision 9).
             const follow = { chatId: current.chatId, serverId: input.serverId };
             await followTask(tx, { ...follow, actor: input.assignee });
             if (input.assignee.kind === 'user') {

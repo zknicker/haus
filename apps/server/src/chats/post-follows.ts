@@ -16,7 +16,7 @@ type PostAuthor = { kind: 'agent'; agentId: string } | { kind: 'user'; userId: s
 
 /**
  * What posting does to the place a message lands in, for human and Agent sends
- * alike, inside the send's transaction. In a Task (ADR 0052) the author and
+ * alike, inside the send's transaction. In a Task (ADR 0053) the author and
  * mentioned people follow it, and posting in a done or canceled Task reopens
  * it. Returns `task.updated` for a reopen. Channels and DMs have no follows.
  */

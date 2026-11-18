@@ -178,7 +178,7 @@ export function conversationsSql(runner: ResolvedRunner) {
           and (parent.id is null or parent.deleted_at is null)
           and ${visibleChatSql(runner)}
           and (
-              -- Tasks list only for Agents following them (ADR 0052).
+              -- Tasks list only for Agents following them (ADR 0053).
               chats.kind <> 'task'
               or exists (
                   select 1 from agent_task_follows follow

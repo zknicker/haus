@@ -26,7 +26,7 @@ export interface AttachedTaskPullRequest {
 }
 
 /**
- * Attaches a GitHub pull request to a Task (ADR 0052 decision 6). The pull
+ * Attaches a GitHub pull request to a Task (ADR 0053 decision 6). The pull
  * request card and the ready-after-settle wake read the stored readings, and
  * the refresher only updates readings that exist, so a pull request no reading
  * covers yet gets one synchronous GitHub read here. Without a GitHub App or an

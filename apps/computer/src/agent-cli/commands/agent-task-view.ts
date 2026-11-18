@@ -12,7 +12,7 @@ export interface TaskDeps {
 }
 
 // The Task rows the Agent API returns, and how the CLI prints them. A Task is a place for one
-// piece of work (ADR 0052): its state is what the CLI reads, and `task:<key>` is where it lives.
+// piece of work (ADR 0053): its state is what the CLI reads, and `task:<key>` is where it lives.
 
 const actorSchema = z.object({
     handle: z.string().nullable(),

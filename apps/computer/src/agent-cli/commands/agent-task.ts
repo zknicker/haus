@@ -34,7 +34,7 @@ const priorityFlag = {
 };
 
 /**
- * Tasks (ADR 0052): a place for one piece of work, with a key like SEC-12 and its own
+ * Tasks (ADR 0053): a place for one piece of work, with a key like SEC-12 and its own
  * conversation at `task:SEC-12`. Separate from `haus claim`, the lock on a message.
  */
 export const TASK_SUBCOMMANDS: SubCommand[] = [

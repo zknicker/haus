@@ -94,7 +94,7 @@ async function readTaskKeys(
 }
 
 /**
- * The Channel or DM a link's row names. A Task's Chat (ADR 0052) takes its
+ * The Channel or DM a link's row names. A Task's Chat (ADR 0053) takes its
  * Channel's kind and name; a Task stays its own conversation.
  */
 function conversationFacts(link: VisibleWorkLink, viewerUserId: string) {

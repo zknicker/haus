@@ -2,7 +2,7 @@ import * as z from 'zod';
 import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
 
 /**
- * The Server's ledger of Task keys (ADR 0052 decision 11). Each entry is a
+ * The Server's ledger of Task keys (ADR 0053 decision 11). Each entry is a
  * prefix like `SEC`, numbered on its own. A Channel is configured with one
  * entry (`Chat.taskKeyId`); Channels may share one. A Task takes the entry of
  * the Channel its origin Message is in, and keeps it.

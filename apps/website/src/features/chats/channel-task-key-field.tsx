@@ -15,7 +15,7 @@ import { useCreateTaskKey, useTaskKeys } from '../../hooks/tasks/use-task-keys.t
 const newKeyOption = 'new-key';
 
 /**
- * The key a Channel's Tasks take (ADR 0052 decision 11): one entry of the
+ * The key a Channel's Tasks take (ADR 0053 decision 11): one entry of the
  * Server's ledger, shared with any other Channel that picks it, or a new one
  * added here. A key is never renamed or reused, so a new one is final.
  */

@@ -17,7 +17,7 @@ import { agentActor, resolveTaskAssignee } from './task-refs.ts';
 import { agentTaskWrite, withImplicitVersion } from './task-route-shell.ts';
 
 /**
- * The Agent routes for Tasks as places (ADR 0052): `tasks/start` starts a Task
+ * The Agent routes for Tasks as places (ADR 0053): `tasks/start` starts a Task
  * from a Message in a Channel, and `tasks/state` moves it between todo, open,
  * done, and canceled. `commit` publishes, wakes, and shapes the Task row.
  */

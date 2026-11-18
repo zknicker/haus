@@ -3,7 +3,7 @@ import { chatsTable } from '../postgres/schema.ts';
 
 /**
  * The canonical DM-pair-or-Channel-participant visibility rule. A Task's Chat
- * (ADR 0052) is visible exactly when its origin Channel is.
+ * (ADR 0053) is visible exactly when its origin Channel is.
  */
 export function visibleChats(userId: string): SQL {
     return sql`(

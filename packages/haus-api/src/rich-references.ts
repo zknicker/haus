@@ -47,7 +47,7 @@ export function formatChatReferenceTarget(chatId: string) {
 /**
  * `chat://<chatId>?thread=<messageId>`: one Message in a Channel or DM. The
  * query key is the wire form stored bodies already carry from when the link
- * opened a side conversation on that Message (ADR 0052 folded those into
+ * opened a side conversation on that Message (ADR 0053 folded those into
  * inline replies under it), so every stored link keeps opening its Message.
  */
 export function formatChatMessageReferenceTarget(chatId: string, messageId: string) {
@@ -68,7 +68,7 @@ export function formatSkillReferenceTarget(skillId: string) {
     return `skill://${encodeReferenceId(skillId)}`;
 }
 
-/** `task://<taskId>`: a Task (ADR 0052). Agents write bare keys like `SEC-12` instead. */
+/** `task://<taskId>`: a Task (ADR 0053). Agents write bare keys like `SEC-12` instead. */
 export function formatTaskReferenceTarget(taskId: string) {
     return `task://${encodeReferenceId(taskId)}`;
 }

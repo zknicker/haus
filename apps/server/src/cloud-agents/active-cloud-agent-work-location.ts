@@ -95,7 +95,7 @@ export function chooseWorkLocation(
     };
 }
 
-/** The conversation a link opens: its own Chat, a Task's included (ADR 0052). */
+/** The conversation a link opens: its own Chat, a Task's included (ADR 0053). */
 export function conversationChatIdOf(link: VisibleWorkLink): string {
     return link.chatId;
 }

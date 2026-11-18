@@ -13,7 +13,7 @@ import { useTaskActor, useTaskPeople } from './use-task-people.ts';
 
 type TaskVersion = Pick<Task, 'assignee' | 'id' | 'serverId' | 'state' | 'version'>;
 
-/** The Task's state as a quiet select: todo, open, done, or canceled (ADR 0052 decision 13). */
+/** The Task's state as a quiet select: todo, open, done, or canceled (ADR 0053 decision 13). */
 export function TaskStateSelect({ task }: { task: TaskVersion }) {
     const setState = useSetTaskState();
     return (

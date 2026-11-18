@@ -1,7 +1,7 @@
 import * as z from 'zod';
 
 /**
- * A Task's state (ADR 0052 decision 2). `todo` is not started, `open` is being
+ * A Task's state (ADR 0053 decision 2). `todo` is not started, `open` is being
  * worked, and `done` or `canceled` ends it. Posting in an ended Task reopens it.
  */
 export const taskStates = ['todo', 'open', 'done', 'canceled'] as const;

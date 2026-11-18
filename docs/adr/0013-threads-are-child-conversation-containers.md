@@ -10,7 +10,7 @@ read_when:
 
 ## Status
 
-Superseded 2026-11-17 by [ADR 0052](0052-channels-and-tasks-are-the-only-places.md): Threads are migrated into inline replies and deleted.
+Superseded 2026-11-17 by [ADR 0053](0053-channels-and-tasks-are-the-only-places.md): Threads are migrated into inline replies and deleted.
 
 Accepted. Part of the Raft-alignment program (`specs/raft-alignment/README.md`,
 decisions T1/T2/T3/U5). Normative contract: `specs/threads.md`.

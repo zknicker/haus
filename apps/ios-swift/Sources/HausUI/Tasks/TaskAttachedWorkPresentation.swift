@@ -26,7 +26,7 @@ extension CloudAgentPresentation {
         Self.runStatusLabel(newestRun?.status ?? work.status)
     }
 
-    /// The newest Run's own summary, in full (ADR 0052 decision 12), as plain
+    /// The newest Run's own summary, in full (ADR 0053 decision 12), as plain
     /// text. Nil until a Run has reported one.
     public var newestRunSummary: String? {
         guard let summary = newestRun?.summary else { return nil }
@@ -130,7 +130,7 @@ public struct TaskChatHeaderPresentation: Hashable, Sendable {
 }
 
 /// The quiet row at the top of a Task's transcript that points at the Channel
-/// Message it started from (ADR 0052 decision 3).
+/// Message it started from (ADR 0053 decision 3).
 public struct TaskStartedFromPresentation: Hashable, Sendable {
     /// Where the origin is: `#security`.
     public let placeLabel: String

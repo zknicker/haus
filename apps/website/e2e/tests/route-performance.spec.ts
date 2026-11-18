@@ -41,7 +41,7 @@ test('cold Tasks navigation paints its shell before the Tasks module arrives', a
         release();
     }
     await expect(page.getByRole('toolbar', { name: 'Task filters' })).toBeVisible();
-    // No create: a human asks an Agent for a Task (ADR 0052 decision 4).
+    // No create: a human asks an Agent for a Task (ADR 0053 decision 4).
     await expect(page.getByRole('button', { name: 'New task', exact: true })).toHaveCount(0);
 });
 

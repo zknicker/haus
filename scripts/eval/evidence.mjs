@@ -63,7 +63,7 @@ export function evidenceMessages(evidence) {
     return [...new Map(all.map((message) => [message.id, message])).values()].sort(byTime);
 }
 
-/** The chats of the Tasks started from the evidence chats' messages (ADR 0052). */
+/** The chats of the Tasks started from the evidence chats' messages (ADR 0053). */
 export function evidenceTaskChatIds(evidence) {
     return evidence.chats.flatMap((chat) => (chat.tasks ?? []).map((task) => task.chatId));
 }

@@ -13,7 +13,7 @@ import { startTestTask } from './task-place-fixture.ts';
 
 /**
  * Task assignment push: the assignee's devices, when someone else assigned. The
- * person also follows the Task (ADR 0052 decision 9); no Inbox item is made.
+ * person also follows the Task (ADR 0053 decision 9); no Inbox item is made.
  */
 const sender = new FakePushSender();
 const adaToken = deviceToken('a4');

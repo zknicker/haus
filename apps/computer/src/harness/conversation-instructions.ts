@@ -1,6 +1,6 @@
 /**
  * The conversation sections of the managed prompt: message headers, where a message lands and
- * who it reaches, discovery, channel awareness, and history. Haus has no Threads (ADR 0052), so
+ * who it reaches, discovery, channel awareness, and history. Haus has no Threads (ADR 0053), so
  * Raft's Threads section and thread facts are omitted. `renderAgentInstructions` renders them in
  * the order the register lists them (specs/raft-alignment/prompt-divergences.md).
  */

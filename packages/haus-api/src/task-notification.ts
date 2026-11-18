@@ -5,7 +5,7 @@ import { type TaskActor, taskActorSchema } from './task.ts';
 /**
  * Who a Task assignment notifies, the sibling of the message rule in
  * `message-notification.ts`: the Server's iPhone push reads it. The person also
- * follows the Task (ADR 0052 decision 9); there is no separate Inbox item.
+ * follows the Task (ADR 0053 decision 9); there is no separate Inbox item.
  *
  * Only a person is notified, and only about work someone else handed them: an
  * Agent hears through its inbox, and assigning yourself tells you nothing new.

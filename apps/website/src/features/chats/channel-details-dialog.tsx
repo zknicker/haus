@@ -18,7 +18,7 @@ import { ChannelTaskKeyField } from './channel-task-key-field.tsx';
 
 /**
  * Edit a channel's name (its handle), the description Agents read to learn its
- * purpose, and the key its Tasks take (ADR 0052 decision 11).
+ * purpose, and the key its Tasks take (ADR 0053 decision 11).
  */
 export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: () => void }) {
     const updateChannel = useChannelUpdate();

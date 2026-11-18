@@ -42,7 +42,7 @@ test('composes the CLI-only Haus collaboration contract', () => {
         'A failed claim is a concurrency lock, not a ruling on lane ownership'
     );
     expect(instructions).toContain('correct the routing in the original conversation');
-    // ADR 0052: there are no Threads, so neither Raft's top-level-only sentence nor the Haus
+    // ADR 0053: there are no Threads, so neither Raft's top-level-only sentence nor the Haus
     // thread claim that replaced it survives.
     expect(instructions).not.toContain('claimed in that thread');
     expect(instructions).not.toContain('Only top-level channel / DM messages can become tasks');

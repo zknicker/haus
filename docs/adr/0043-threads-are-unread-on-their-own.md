@@ -11,7 +11,7 @@ read_when:
 
 ## Status
 
-Superseded 2026-11-17 by [ADR 0052](0052-channels-and-tasks-are-the-only-places.md): Threads are deleted; Task unread replaces Thread unread.
+Superseded 2026-11-17 by [ADR 0053](0053-channels-and-tasks-are-the-only-places.md): Threads are deleted; Task unread replaces Thread unread.
 
 Accepted 2026-10-11. Amends [ADR 0013](0013-threads-are-child-conversation-containers.md)
 (followed-Thread unreads no longer fold into the parent's count) and

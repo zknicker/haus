@@ -7,7 +7,7 @@ import { type HausServerHarness, startHausServerHarness } from './haus-server-ha
 import { startTestTask } from './task-place-fixture.ts';
 
 /**
- * ADR 0052's shared seam: a Task's conversation is a `task` Chat under its origin
+ * ADR 0053's shared seam: a Task's conversation is a `task` Chat under its origin
  * Channel and Message, joined 1:1 by `tasks.chat_id`, and several Tasks can
  * share one origin Message.
  */

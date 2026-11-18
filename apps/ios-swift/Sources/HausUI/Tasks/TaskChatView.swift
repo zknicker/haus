@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A Task opened on iPhone (ADR 0052 decision 15): its conversation as a chat
+/// A Task opened on iPhone (ADR 0053 decision 15): its conversation as a chat
 /// — the Chat timeline's rows and the iPhone composer, unchanged — under a
 /// simple header naming the Task, its state, and the work attached to it. A
 /// quiet "Started from" row heads the transcript and opens the origin Message.

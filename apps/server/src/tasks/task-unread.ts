@@ -4,7 +4,7 @@ import { chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 
 /**
  * Task unread state, as SQL correlated against a Task's `chats` row. A Task is
- * unread only for its followers (ADR 0052 decision 9): a message counts for
+ * unread only for its followers (ADR 0053 decision 9): a message counts for
  * `userId` when someone else wrote it, it sits past their read marker in the
  * Task, and they follow the Task or the message @mentions them. Mentions read
  * `chat_messages.mentioned_user_ids`, filled on every send path.

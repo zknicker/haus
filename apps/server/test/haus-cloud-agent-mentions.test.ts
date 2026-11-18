@@ -20,7 +20,7 @@ beforeAll(async () => {
         insert into channel_agent_participants (server_id, chat_id, agent_id)
         values (${fixture.serverId}, ${fixture.channelId}, ${forgeAgentId})
     `;
-    // A Task delivers to its followers (ADR 0052), so Forge follows the launch Task.
+    // A Task delivers to its followers (ADR 0053), so Forge follows the launch Task.
     await fixture.harness.sql`
         insert into agent_task_follows (server_id, agent_id, task_chat_id, task_chat_kind)
         values (${fixture.serverId}, ${forgeAgentId}, ${fixture.task.chatId}, 'task')

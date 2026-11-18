@@ -9,7 +9,7 @@ type Reader = Pick<HausDatabase, 'select'>;
 
 /**
  * The Tasks started from `originMessageIds` in Channel `channelId`, as the
- * Channel previews them under each origin (ADR 0052 decision 7): state, the
+ * Channel previews them under each origin (ADR 0053 decision 7): state, the
  * viewer's follow and unread, and the newest few messages. Rides
  * `chat.messages` pages, so the viewer's Channel access is already checked.
  */

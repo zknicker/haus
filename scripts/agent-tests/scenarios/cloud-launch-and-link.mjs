@@ -1,5 +1,5 @@
 // A natural cloud review request starts one Task from a message in the requesting channel and
-// launches exactly one real cloud agent on it (ADR 0052 decision 6: cloud work attaches to a
+// launches exactly one real cloud agent on it (ADR 0053 decision 6: cloud work attaches to a
 // Task, and the CLI refuses a launch without one). The work is then cancelled; the provider
 // round trip and the completion wake are Server plumbing, not judgment. Asked from a second
 // channel, the Agent links the same work there (ADR 0044): its Message carries the printed

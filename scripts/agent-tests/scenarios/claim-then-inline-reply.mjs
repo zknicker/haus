@@ -1,5 +1,5 @@
 // An explicitly created claim is claimed before the Agent replies, and the reply
-// lands inline in the channel where the request arrived (ADR 0029, ADR 0052).
+// lands inline in the channel where the request arrived (ADR 0029, ADR 0053).
 
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';

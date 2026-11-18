@@ -2,7 +2,7 @@
 // a finance channel when a human pulls the Agent into an unrelated code review,
 // then keeps following up through findings, a fix, and a second pass while the
 // finance talk carries on around it. Each write-up must be substantial and
-// reach the human. There are no Threads (ADR 0052): work that outlasts a reply
+// reach the human. There are no Threads (ADR 0053): work that outlasts a reply
 // goes in a Task started from a channel message, which the asker follows. The
 // measured behavior is the review leaving the channel for that Task: at most two
 // Agent posts in the channel across three rounds. Placement is the Agent's

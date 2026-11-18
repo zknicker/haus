@@ -17,12 +17,12 @@ type Tx = Pick<HausDatabase, 'insert' | 'select' | 'update'>;
 
 interface DemoTask {
     assignee: TaskActor;
-    /** The Task's own conversation, oldest first (ADR 0052 decision 2). */
+    /** The Task's own conversation, oldest first (ADR 0053 decision 2). */
     conversation?: readonly { author: TaskActor; content: string }[];
     createdBy: TaskActor;
     /** The Message that mentions the Task, shown in the Task's Mentioned in. */
     messageId: string;
-    /** The Channel Message the Task started from (ADR 0052 decision 3). */
+    /** The Channel Message the Task started from (ADR 0053 decision 3). */
     origin: { chatId: string; messageId: string };
     priority: 'high' | 'medium';
     state: 'done' | 'open' | 'todo';
@@ -232,7 +232,7 @@ export async function seedDemoTasks(
     }));
 }
 
-/** The assignee and everyone who posted follow each Task (ADR 0052 decision 9). */
+/** The assignee and everyone who posted follow each Task (ADR 0053 decision 9). */
 async function seedFollows(
     tx: Tx,
     serverId: string,

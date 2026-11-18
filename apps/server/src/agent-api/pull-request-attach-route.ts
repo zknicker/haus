@@ -24,7 +24,7 @@ const attachInputSchema = z
     .strict();
 
 /**
- * `haus task attach-pr` (ADR 0052 decision 6): attaches a GitHub pull request
+ * `haus task attach-pr` (ADR 0053 decision 6): attaches a GitHub pull request
  * to a Task, so its card and the ready-after-settle wake follow it.
  */
 export function registerAgentPullRequestAttachRoute(

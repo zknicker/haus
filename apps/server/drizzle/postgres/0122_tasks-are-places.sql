@@ -125,7 +125,7 @@ ALTER TABLE "chats" ADD CONSTRAINT "chats_shape" CHECK ((
             ));--> statement-breakpoint
 ALTER TABLE "thread_follows" ADD CONSTRAINT "thread_follows_kind" CHECK ("thread_follows"."thread_chat_kind" in ('thread', 'task'));--> statement-breakpoint
 ALTER TABLE "tasks" ADD CONSTRAINT "tasks_state" CHECK ("tasks"."state" in ('todo', 'open', 'done', 'canceled'));--> statement-breakpoint
--- ADR 0052: Tasks are places. Server purge cascades through these tables
+-- ADR 0053: Tasks are places. Server purge cascades through these tables
 -- together, so every new internal link that does not cascade itself is checked
 -- at commit (0002's rule).
 ALTER TABLE "chats" ALTER CONSTRAINT "chats_task_key_fk" DEFERRABLE INITIALLY DEFERRED;--> statement-breakpoint

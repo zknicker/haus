@@ -108,7 +108,7 @@ export function useChatMessageEntityProjector(agents: readonly Agent[]) {
 }
 
 /**
- * One entity's row. The entity owns its Task previews (ADR 0052 decision 7);
+ * One entity's row. The entity owns its Task previews (ADR 0053 decision 7);
  * the row only carries them to the preview under the Message.
  */
 export function projectChatMessageEntity(

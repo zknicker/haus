@@ -1,6 +1,6 @@
 import { type CloudAgentPullRequestChange, cloudAgentPullRequestChangeSchema } from '@haus/api';
 
-/** A change in a pull request that wakes its delegating Agent (ADR 0052 decision 6). */
+/** A change in a pull request that wakes its delegating Agent (ADR 0053 decision 6). */
 export type PullRequestTransition = CloudAgentPullRequestChange['change'];
 
 const changeKeyPattern = /^([^#\s]+\/[^#\s]+)#([1-9][0-9]*):([a-z_]+):([^:\s]+)$/u;

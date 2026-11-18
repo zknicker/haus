@@ -37,7 +37,7 @@ test('Cloud Agent work reads as one card in the Chat and the Inbox', async ({ pa
     await expect(inboxRow).toContainText('#all');
     await expect(inboxRow).toContainText('Orbit');
 
-    // The launch Message posts in the Task the work is attached to (ADR 0052
+    // The launch Message posts in the Task the work is attached to (ADR 0053
     // decision 6), and carries the work card column-wide with its actions
     // inline: no detached overflow menu beside it.
     await page.goto(`/s/cloud-agent-work/tasks/${seeded.taskKey}`);

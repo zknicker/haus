@@ -9,7 +9,7 @@ import { indentContinuationLines } from './inbox-header-format.ts';
  * A Cloud Agent Run's attention for the Agent that delegated it, with everything it needs to
  * inspect the result and decide what to post. Results are ordinary Messages; nothing here
  * reaches a human until the Agent writes one. Work attached to a Task wakes the Agent on that
- * Task (ADR 0052 decision 6), so its target is `task:<key>` and the attention names the Task.
+ * Task (ADR 0053 decision 6), so its target is `task:<key>` and the attention names the Task.
  */
 export function formatCloudAgentWorkAttention(
     work: AgentCloudAgentWorkAttention,
@@ -38,7 +38,7 @@ export function formatCloudAgentWorkAttention(
 }
 
 /**
- * A pull request attached to a Task changed, with no cloud work behind it (ADR 0052 decision 6).
+ * A pull request attached to a Task changed, with no cloud work behind it (ADR 0053 decision 6).
  * Same shape as a Run's `pull_request` attention: a header naming the change and target, the
  * change in plain words with its URL, then where to report.
  */

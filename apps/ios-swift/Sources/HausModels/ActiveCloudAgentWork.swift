@@ -15,7 +15,7 @@ public struct ActiveCloudAgentWork: Decodable, Identifiable, Sendable, Equatable
     /// Where opening this row goes.
     public let location: ActiveCloudAgentWorkLocation
     public let work: CloudAgentWork
-    /// The Task the work reports to (ADR 0052 decision 6), which opening the
+    /// The Task the work reports to (ADR 0053 decision 6), which opening the
     /// row opens; nil for older work.
     public var taskID: String? = nil
     /// That Task's key, such as `SEC-12`.

@@ -15,7 +15,7 @@ afterAll(async () => {
 /**
  * The Inbox's Mark read reuses `chat.markRead`. A Channel row counts its inline
  * replies and clears them with its own read; a followed Task under it is its
- * own row (ADR 0052) and stays unread until the Task itself is read.
+ * own row (ADR 0053) and stays unread until the Task itself is read.
  */
 test('Mark read clears a Channel row with its inline replies and leaves its Task row', async () => {
     const { createChannel, harness, owner, ownerUserId, peer, serverId } = fixture;

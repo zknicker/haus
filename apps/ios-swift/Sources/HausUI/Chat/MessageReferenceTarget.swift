@@ -3,7 +3,7 @@ import Foundation
 /// A reference to one Message in a Channel or DM, read from the legacy wire
 /// form `chat://<chatId>?thread=<messageId>` the Server once wrote for an
 /// Agent's mention of a side conversation. There are no side conversations any
-/// more (ADR 0052): the Message they hung off is still in its Channel, with
+/// more (ADR 0053): the Message they hung off is still in its Channel, with
 /// the conversation as inline replies under it, so the chip opens there and
 /// keeps the link's own words. The reference's id stays the wire target, so it
 /// carries both ids through every surface that only has room for one string.

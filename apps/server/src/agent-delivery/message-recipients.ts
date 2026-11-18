@@ -60,7 +60,7 @@ export async function planAgentMessageRecipients(
             : [];
     }
 
-    // A Task's Chat delivers to its followers and mentions (ADR 0052).
+    // A Task's Chat delivers to its followers and mentions (ADR 0053).
     const followerGated = isFollowedChatKind(chat.kind);
     const parentChatId = followerGated ? chat.parentChatId : input.chatId;
     if (!parentChatId) {

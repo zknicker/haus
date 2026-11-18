@@ -36,7 +36,7 @@ export class TaskInvariantError extends Error {
 
 /**
  * A Task named an origin Message in a DM. Tasks start from a Message in a
- * Channel; a DM request gets a reply carrying the Task chip (ADR 0052 decision 4).
+ * Channel; a DM request gets a reply carrying the Task chip (ADR 0053 decision 4).
  */
 export class TaskOriginDmError extends Error {
     constructor() {

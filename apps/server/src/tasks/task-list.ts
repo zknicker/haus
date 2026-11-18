@@ -36,7 +36,7 @@ export async function listTasks(
 }
 
 /**
- * `task.listOpen`, the sidebar (ADR 0052 decision 8): every `open` Task whose
+ * `task.listOpen`, the sidebar (ADR 0053 decision 8): every `open` Task whose
  * origin Channel the actor can see. Todo, done, and canceled Tasks, and older
  * Tasks with no Chat of their own, are not listed.
  */

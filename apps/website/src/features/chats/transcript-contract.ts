@@ -134,7 +134,7 @@ export interface TranscriptMessageRow {
     responseId?: string;
     runId?: string | null;
     /**
-     * The Tasks started from this Message (ADR 0052 decision 7), read off its
+     * The Tasks started from this Message (ADR 0053 decision 7), read off its
      * `chat.message` entity, which owns them; empty for most Messages.
      */
     taskPreviews?: readonly TaskPreview[];

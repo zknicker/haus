@@ -12,7 +12,7 @@ const TasksBandControls = React.lazy(async () => ({
 
 /**
  * The Tasks frame: "Haus › Tasks" with its rare actions at the band's end,
- * then the one flat list (ADR 0052 decision 10).
+ * then the one flat list (ADR 0053 decision 10).
  */
 export function TasksPageRoute() {
     useWindowTitle('Tasks');

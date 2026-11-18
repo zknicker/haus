@@ -1,6 +1,6 @@
 import Foundation
 
-/// A Task's state (ADR 0052 decision 2): `todo` is not started, `open` is being
+/// A Task's state (ADR 0053 decision 2): `todo` is not started, `open` is being
 /// worked, and `done` or `canceled` ends it. A state this build does not know
 /// decodes as `unknown`, so a newer Server never fails a page or a Task read.
 public enum TaskState: String, Codable, Hashable, Sendable {
@@ -19,7 +19,7 @@ public enum TaskState: String, Codable, Hashable, Sendable {
     public var isClosed: Bool { self == .done || self == .canceled }
 }
 
-/// The Channel Message a Task started from (ADR 0052 decision 3).
+/// The Channel Message a Task started from (ADR 0053 decision 3).
 public struct TaskOrigin: Codable, Hashable, Sendable {
     public let chatID: String
     public let messageID: String
@@ -36,7 +36,7 @@ public struct TaskOrigin: Codable, Hashable, Sendable {
 }
 
 /// A Task as its origin Channel previews it under the Message it started from
-/// (ADR 0052 decision 7), its recent conversation plus its state.
+/// (ADR 0053 decision 7), its recent conversation plus its state.
 /// One origin Message can carry several. Rides `chat.messages` pages as `tasks`.
 public struct TaskPreview: Codable, Identifiable, Equatable, Sendable {
     public let taskID: String

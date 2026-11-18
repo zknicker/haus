@@ -6,7 +6,7 @@ export const taskAssignmentNoticeGuidance =
 
 /**
  * The command shapes ride the event; the standing Task principles stay in the prompt. Each
- * assigned Task is a place (ADR 0052), so the guidance names how to read and work it there.
+ * assigned Task is a place (ADR 0053), so the guidance names how to read and work it there.
  */
 const taskAssignmentGuidance =
     '`haus task show <key>` prints a Task and `haus message read --target task:<key>` its conversation. Take them one at a time, by priority then age: set the one you start open with `haus task state <key> open` and work it there, leaving the rest in todo; skip any blocked on a person.';

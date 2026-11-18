@@ -1,5 +1,5 @@
 // Haus has two kinds of place: Channels and DMs for conversation, and Tasks for work. There are
-// no Threads (ADR 0052): a side conversation stays inline, and work that outlasts a reply goes in
+// no Threads (ADR 0053): a side conversation stays inline, and work that outlasts a reply goes in
 // a Task. Each row swaps one captured Raft phrase that names a thread as a place for the Haus
 // place it means; the rest of the card stays verbatim. The left side quotes the captured source.
 export const placeAdaptations = new Map<string, ReadonlyArray<readonly [string, string]>>([

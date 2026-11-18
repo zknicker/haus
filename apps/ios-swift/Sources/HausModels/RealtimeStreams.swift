@@ -96,7 +96,7 @@ public enum RealtimeProjection: Hashable, Sendable, CaseIterable {
     case taskDetails
     /// `taskLabel.list`, once loaded.
     case taskLabels
-    /// `chat.unreadPreviews`' followed unread Tasks (ADR 0052 decision 9).
+    /// `chat.unreadPreviews`' followed unread Tasks (ADR 0053 decision 9).
     case unreadTasks
     case activeCloudAgentWork
     case agentAvailability

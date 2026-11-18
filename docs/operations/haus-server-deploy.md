@@ -280,9 +280,9 @@ recovery is a forward fix. Take a manual `pg_dump` right before merging the rele
 scheduled backup exists. Computer must publish and verify first, and any Computer below protocol
 36 stays idle until upgraded, so upgrade the Mac mini right after the deploy.
 
-### Shipping Channels and Tasks (ADR 0052)
+### Shipping Channels and Tasks (ADR 0053)
 
-The Channels-and-Tasks release ([ADR 0052](../adr/0052-channels-and-tasks-are-the-only-places.md))
+The Channels-and-Tasks release ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md))
 runs migrations 0122–0126 and raises Computer protocol to 37 and App protocol to 13. Migration
 0124 moves every Thread's Messages into inline replies on its anchor and deletes the Threads;
 0125 converts legacy Tasks and drops boards; 0126 removes the Thread schema. It is forward-only:

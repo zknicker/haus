@@ -1,7 +1,7 @@
 import { type TaskState, taskStates } from '@haus/api';
 import type { ClaimStatus } from '../claims/claim-presentation.ts';
 
-/** The four states in the order a menu or filter lists them (ADR 0052 decision 2). */
+/** The four states in the order a menu or filter lists them (ADR 0053 decision 2). */
 export const taskStateOrder: readonly TaskState[] = taskStates;
 
 export const taskStateLabels: Record<TaskState, string> = {

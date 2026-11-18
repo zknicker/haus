@@ -239,7 +239,7 @@ test('parseInbox tolerates an inline reply and cloud agent attention carrying fi
     expect(parsed?.cloudAgentWork?.branches[0]?.pullRequest?.number).toBe(42);
 });
 
-test('parseInbox keeps the change a pull request notice names (ADR 0052)', () => {
+test('parseInbox keeps the change a pull request notice names (ADR 0053)', () => {
     const item = inboxItemWithUnknownNestedFields();
     const pullRequestChange = {
         change: 'checks_failing' as const,

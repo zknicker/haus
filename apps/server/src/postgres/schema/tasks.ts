@@ -21,7 +21,7 @@ import { taskKeysTable } from './task-keys.ts';
 import { taskLabelsTable } from './task-labels.ts';
 
 /**
- * A Task (ADR 0052): a place for one piece of work. Its key (`SEC-12`) is its
+ * A Task (ADR 0053): a place for one piece of work. Its key (`SEC-12`) is its
  * key-ledger entry's key and `number`, derived when read and never stored.
  * There is no deletion; `completed_at` is set exactly while `state` is `done`
  * or `canceled`.
@@ -32,7 +32,7 @@ export const tasksTable = pgTable(
         assigneeAgentId: text('assignee_agent_id'),
         assigneeUserId: text('assignee_user_id'),
         /**
-         * The Task's own `task` Chat (ADR 0052), one per Task. Null for a Task
+         * The Task's own `task` Chat (ADR 0053), one per Task. Null for a Task
          * from before Tasks were places that 0125 archived as read-only history.
          */
         chatId: text('chat_id'),
@@ -54,7 +54,7 @@ export const tasksTable = pgTable(
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),
-        /** ADR 0052's Task state, the only source of truth for it. */
+        /** ADR 0053's Task state, the only source of truth for it. */
         state: text('state').notNull().default('todo').$type<TaskState>(),
         title: text('title').notNull(),
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

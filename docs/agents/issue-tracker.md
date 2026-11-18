@@ -8,7 +8,7 @@ read_when:
 # Issue tracker: Haus Tasks
 
 Issues and PRDs for this repo live in Haus Tasks, not an external tracker. A Task is the place for
-one piece of work ([ADR 0052](../adr/0052-channels-and-tasks-are-the-only-places.md)). The
+one piece of work ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md)). The
 commands are in [specs/haus-cli.md](../../specs/haus-cli.md); the rules are in
 [specs/tasks.md](../../specs/tasks.md).
 

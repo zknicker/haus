@@ -27,7 +27,7 @@ export const taskListAssigneeFilterSchema = z.union([
 export const taskListInputSchema = z
     .object({
         assignee: taskListAssigneeFilterSchema.optional(),
-        /** Tasks numbered by this key-ledger entry (ADR 0052 decision 11). */
+        /** Tasks numbered by this key-ledger entry (ADR 0053 decision 11). */
         keyId: idSchema.optional(),
         serverId: idSchema,
         /** Tasks in any of these states; the Tasks page reads all four. */
@@ -108,7 +108,7 @@ export const taskAssignInputSchema = z
 
 /**
  * `POST /api/agent/tasks/start` (openapi `AgentTaskStartRequest`): an Agent
- * starts a Task from Message `from` in Channel `target` (ADR 0052 decision 4).
+ * starts a Task from Message `from` in Channel `target` (ADR 0053 decision 4).
  */
 export const agentTaskStartInputSchema = z
     .object({

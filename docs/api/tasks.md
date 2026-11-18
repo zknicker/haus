@@ -1,5 +1,5 @@
 ---
-summary: The Task and Task key tRPC procedures (`task.*`, `taskKey.*`), their inputs, results, refusal codes, and realtime events. Boards, columns, Convert to Task, and the Task Inbox are gone (ADR 0052).
+summary: The Task and Task key tRPC procedures (`task.*`, `taskKey.*`), their inputs, results, refusal codes, and realtime events. Boards, columns, Convert to Task, and the Task Inbox are gone (ADR 0053).
 read_when:
   - calling or changing `task.list`, `task.listOpen`, `task.get`, `task.update`, `task.setState`, `task.assign`, or `task.setFollow`
   - calling or changing `taskKey.list` or `taskKey.create`
@@ -8,7 +8,7 @@ read_when:
 
 # Tasks API
 
-Tasks ([ADR 0052](../adr/0052-channels-and-tasks-are-the-only-places.md)) on the App's tRPC
+Tasks ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md)) on the App's tRPC
 surface. Every procedure runs for an active member of `serverId`; every member reads every Task.
 Only Agents start Tasks (`POST /api/agent/tasks/start`, [agents.md](agents.md)); there is no
 human create. Inputs and results are the schemas in `packages/haus-api/src/task.ts`,

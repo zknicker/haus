@@ -11,7 +11,7 @@ type ClaimRecord = typeof messageClaimsTable.$inferSelect;
 /**
  * Turns a message the Agent claimed by id into its claim, numbered and owned
  * by the Chat the message sits in: a Channel, a DM, or a Task's own Chat
- * (ADR 0052), which numbers its claims as a Channel does.
+ * (ADR 0053), which numbers its claims as a Channel does.
  */
 export async function promoteAgentMessageClaim(
     tx: HausDatabase,

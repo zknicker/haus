@@ -8,7 +8,7 @@ import { openTaskIds } from './open-task-order.ts';
 export type OpenTaskEntry = Pick<Task, 'chatId' | 'id' | 'key' | 'state' | 'title'>;
 
 /**
- * The sidebar's open Tasks (`task.listOpen`, ADR 0052 decision 8), as ids in
+ * The sidebar's open Tasks (`task.listOpen`, ADR 0053 decision 8), as ids in
  * row order; undefined until the read settles. Each row reads its own entry,
  * so a retitle re-renders one row, not the section. `task.onUpdated`
  * invalidates the read, which is how a closed Task leaves.

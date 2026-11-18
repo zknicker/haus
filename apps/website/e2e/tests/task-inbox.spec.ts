@@ -8,7 +8,7 @@ const title = 'Renew the Tailscale auth key';
 /**
  * A Server where the Agent started a Task assigned to the viewer from a
  * message in #all, then posted in it. Being assigned makes the viewer a
- * follower, so the Task's message is unread for them (ADR 0052 decision 9).
+ * follower, so the Task's message is unread for them (ADR 0053 decision 9).
  */
 async function followedTask(page: Page, slug: string) {
     const { client, server, session } = await createTestServer(page, {

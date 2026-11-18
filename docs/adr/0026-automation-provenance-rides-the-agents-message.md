@@ -11,7 +11,7 @@ read_when:
 
 ## Status
 
-Amended 2026-11-17 by [ADR 0052](0052-channels-and-tasks-are-the-only-places.md): a fire that starts real work creates a Task and reports there.
+Amended 2026-11-17 by [ADR 0053](0053-channels-and-tasks-are-the-only-places.md): a fire that starts real work creates a Task and reports there.
 
 Accepted 2026-09-03 as the automation-receipt decision, widened 2026-09-04 to
 the transcript and inbox contract below, amended 2026-10-05 (cause line, below).

@@ -40,7 +40,7 @@ export type CreateCloudAgentWorkResult =
     | { held: AgentCloudAgentHeld; kind: 'held' };
 
 /**
- * Writes one Cloud Agent work on a Task (ADR 0052 decision 6): an ordinary
+ * Writes one Cloud Agent work on a Task (ADR 0053 decision 6): an ordinary
  * text Message in the Task's Chat holding the Agent's own words plus a
  * Server-trusted link to the new work (ADR 0044), the work record attached to
  * the Task and reporting to its Chat, its first Run in `queued`, the Message's

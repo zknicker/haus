@@ -25,6 +25,6 @@ export const channelEditInputFields = {
     color: channelColorSchema.nullable().optional(),
     description: channelDescriptionInputSchema,
     icon: channelIconSchema.nullable().optional(),
-    /** The key-ledger entry this Channel's Tasks take (ADR 0052). `undefined` keeps it. */
+    /** The key-ledger entry this Channel's Tasks take (ADR 0053). `undefined` keeps it. */
     taskKeyId: idSchema.optional(),
 };

@@ -158,7 +158,7 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     public let artifacts: [ArtifactSegment]
     /// The Reminder or Trigger fire this message answers, when it answers one.
     public let cause: MessageCausePresentation?
-    /// The Tasks started from this message, each previewed under it (ADR 0052
+    /// The Tasks started from this message, each previewed under it (ADR 0053
     /// decision 7). Only a Channel message carries any.
     public let tasks: [TaskPreviewPresentation]
 

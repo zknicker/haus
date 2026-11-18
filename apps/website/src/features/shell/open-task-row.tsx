@@ -10,7 +10,7 @@ import { taskStateLabels } from '../tasks/task-state.ts';
 import { TaskStateDisc } from '../tasks/task-state-disc.tsx';
 
 /**
- * One open Task at channel-row density (ADR 0052 decision 8): its state mark,
+ * One open Task at channel-row density (ADR 0053 decision 8): its state mark,
  * its key and title on one line, and an unread count only while the viewer
  * follows it and has something waiting there (decision 9). Everyone else sees
  * a quiet row.

@@ -15,7 +15,7 @@ import { taskUnreadCount } from './task-unread.ts';
 type Reader = Pick<HausDatabase, 'select'>;
 
 /**
- * What `task.get` adds for a Task as a place (ADR 0052 decisions 6 and 9): the
+ * What `task.get` adds for a Task as a place (ADR 0053 decisions 6 and 9): the
  * cloud agents and pull requests attached to it, and whether the viewer
  * follows it and how much is unread for them. A Task without its own Chat has
  * no followers and nothing unread.

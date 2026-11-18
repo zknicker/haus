@@ -9,7 +9,7 @@ export interface UnworkedTaskWake {
 }
 
 /**
- * Tasks the pull request is attached to with no cloud work at all (ADR 0052
+ * Tasks the pull request is attached to with no cloud work at all (ADR 0053
  * decision 6): the pull request change wakes the Task's assignee Agent in the
  * Task, with no Run behind the notice. A Task with cloud work wakes through
  * that work instead, once its newest Run settled. Only todo and open Tasks

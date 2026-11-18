@@ -78,7 +78,7 @@ export function cloudAgentFixture() {
         insert into channel_participants (server_id, chat_id, user_id)
         values (${serverId}, ${channelId}, ${peerUserId})
     `;
-        // Cloud work attaches to a Task (ADR 0052): launches default to this one.
+        // Cloud work attaches to a Task (ADR 0053): launches default to this one.
         task = await startTestTask(harness, owner, {
             channelId,
             serverId,
