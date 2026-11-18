@@ -92,13 +92,13 @@ final class HausModelsTests: XCTestCase {
         XCTAssertEqual(lifecycle.outcome, .completed)
         XCTAssertTrue(lifecycle.id.hasPrefix("run_1:settled:"))
 
-        // A dream run has no Chat, so its lifecycle carries a null chatId.
-        let dreamJSON = """
+        // A sub-agent or Task run has no Chat, so its lifecycle carries a null chatId.
+        let chatlessJSON = """
         {"agentId":"agent_1","chatId":null,"emittedAt":"2026-08-15T14:00:00.000Z","runId":"run_2","serverId":"server_1","phase":"settled","outcome":"completed"}
         """
-        let dream = try HausJSON.decoder().decode(AgentLifecycleEvent.self, from: Data(dreamJSON.utf8))
-        XCTAssertNil(dream.chatID)
-        XCTAssertEqual(dream.phase, .settled)
+        let chatless = try HausJSON.decoder().decode(AgentLifecycleEvent.self, from: Data(chatlessJSON.utf8))
+        XCTAssertNil(chatless.chatID)
+        XCTAssertEqual(chatless.phase, .settled)
     }
     func testDecodesServerComputerSnapshot() throws {
         let json = """

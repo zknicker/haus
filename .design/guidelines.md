@@ -365,16 +365,6 @@ fill (21%, a step above the card) rather than by shadow. See "Shell variants" in
 | `warning-soft-foreground` | `#855F2E` | `#F9CB86` | `Light: warning / 80% + foreground / 70%; Dark: warning / 80% + foreground / 30%` | `--warning-soft-foreground` | Prefer the HeroUI token for warning-soft-foreground. | Text color on warning-soft backgrounds. |
 | `warning-soft-hover` | `rgba(245, 165, 36, 0.2)` | `rgba(247, 183, 80, 0.16)` | `Light: warning / 20% + transparent; Dark: warning / 16% + transparent` | `--warning-soft-hover` | Prefer the HeroUI token for warning-soft-hover. | Hover state for warning-soft backgrounds. |
 
-### Dream token
-
-`--dream` is the violet of a nightly dream, a kind of run rather than a status: it never
-reads as success, caution, or failure, and stays apart from `accent` (heartbeats) and
-`--trace-thinking` (a step kind). Dark / light: `oklch(0.72 0.13 295)` / `oklch(0.58 0.15 295)`.
-`--dream-soft` (a translucent mix of it) is the wash of the Activity Log's Dream badge, and
-`--dream-soft-foreground` inks it (`oklch(0.84 0.09 295)` / `oklch(0.46 0.15 295)`). The tokens
-live in `styles/product-tokens.css`; the badge's wash is the `.chip.chip--soft.chip--dream`
-override in `default-theme.css`, on a stock soft `Chip`.
-
 ### Artifact icon tokens
 
 The Files library draws files and folders as small illustrated icons

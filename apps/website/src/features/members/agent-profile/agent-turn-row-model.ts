@@ -1,7 +1,6 @@
 import type { AgentTurnTrigger, Chat } from '@haus/api';
 import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 import { chatPlace } from '../../shell/tab-identity.ts';
-import { resolveRunMark, type TurnRunMark } from './agent-run-mark.ts';
 import type { RecentActivityRow } from './recent-activity-rows.ts';
 
 /**
@@ -14,39 +13,17 @@ import type { RecentActivityRow } from './recent-activity-rows.ts';
 export type TurnRowTitle =
     | { readonly kind: 'none' }
     | { readonly kind: 'pending'; readonly place: string | null }
-    | {
-          readonly kind: 'text';
-          readonly place: string | null;
-          /** Background check-ins read muted, so they never outweigh real work. */
-          readonly quiet?: boolean;
-          /** A heartbeat or dream run: the Log's badge and outcome line. */
-          readonly run?: TurnRunMark;
-          readonly text: string;
-      };
+    | { readonly kind: 'text'; readonly place: string | null; readonly text: string };
 
-/**
- * A message or claim trigger quotes its message (`preview`), so a title is never
- * a second read. `live` is a run still working: a heartbeat then reads
- * `Checking in` and a dream `Dreaming`; settled, `Checked in` (muted when it
- * had nothing to report) and `Dreamed`.
- */
+/** A message or claim trigger quotes its message (`preview`), so a title is never a second read. */
 export function resolveTurnRowTitle(
     trigger: AgentTurnTrigger | null,
-    chats: ReadonlyMap<string, Pick<Chat, 'kind' | 'name'>>,
-    live = false
+    chats: ReadonlyMap<string, Pick<Chat, 'kind' | 'name'>>
 ): TurnRowTitle {
     if (!trigger || trigger.kind === 'private') {
         return { kind: 'none' };
     }
-    // The nightly dream, heartbeats, their reports, and a sub-agent wake have no Chat, so
-    // they have no place.
-    if (
-        trigger.kind === 'dream' ||
-        trigger.kind === 'heartbeat' ||
-        trigger.kind === 'heartbeat_report'
-    ) {
-        return resolveRunTitle(trigger, chats, live);
-    }
+    // A sub-agent wake has no Chat, so it has no place.
     if (trigger.kind === 'subagent') {
         return { kind: 'text', place: null, text: 'Sub-agent finished' };
     }
@@ -55,8 +32,6 @@ export function resolveTurnRowTitle(
     if (trigger.kind === 'task') {
         return { kind: 'text', place: null, text: `Task ${trigger.key} · ${trigger.title}` };
     }
-    const chat = chats.get(trigger.chatId);
-    const place = chat ? chatPlace(chat) : null;
     if (trigger.kind === 'message' || trigger.kind === 'claim') {
         const { preview } = trigger;
         if (!preview) {
@@ -65,36 +40,18 @@ export function resolveTurnRowTitle(
         const text =
             messagePreviewLine(preview.content) ||
             (preview.attachmentCount > 0 ? 'Attachment' : '');
-        return text ? { kind: 'text', place, text } : { kind: 'none' };
+        return text
+            ? { kind: 'text', place: placeOf(trigger.chatId, chats), text }
+            : { kind: 'none' };
     }
-    const title = workTitles[trigger.kind];
-    return { kind: 'text', place, text: title };
-}
-
-/** A dream, heartbeat, or heartbeat report: no Chat, so no place, but a badge and an outcome. */
-function resolveRunTitle(
-    trigger: Extract<AgentTurnTrigger, { kind: 'dream' | 'heartbeat' | 'heartbeat_report' }>,
-    chats: ReadonlyMap<string, Pick<Chat, 'kind' | 'name'>>,
-    live: boolean
-): TurnRowTitle {
-    const run = resolveRunMark(trigger, chats, live) ?? undefined;
-    switch (trigger.kind) {
-        case 'dream':
-            return { kind: 'text', place: null, run, text: live ? 'Dreaming' : 'Dreamed' };
-        case 'heartbeat': {
-            // A heartbeat that sent a report is news, so it reads at normal emphasis.
-            const quiet = live || (trigger.report === null && !trigger.yielded);
-            return {
-                kind: 'text',
-                place: null,
-                quiet,
-                run,
-                text: live ? 'Checking in' : 'Checked in',
-            };
-        }
-        case 'heartbeat_report':
-            return { kind: 'text', place: null, run, text: 'Heartbeat report' };
+    if (isWorkTrigger(trigger)) {
+        return {
+            kind: 'text',
+            place: placeOf(trigger.chatId, chats),
+            text: workTitles[trigger.kind],
+        };
     }
+    return { kind: 'none' };
 }
 
 /**
@@ -204,3 +161,14 @@ const workTitles: Record<
     reminder: 'Reminder',
     trigger: 'Trigger',
 };
+
+type WorkTrigger = Extract<AgentTurnTrigger, { kind: keyof typeof workTitles }>;
+
+function isWorkTrigger(trigger: AgentTurnTrigger): trigger is WorkTrigger {
+    return Object.hasOwn(workTitles, trigger.kind);
+}
+
+function placeOf(chatId: string, chats: ReadonlyMap<string, Pick<Chat, 'kind' | 'name'>>) {
+    const chat = chats.get(chatId);
+    return chat ? chatPlace(chat) : null;
+}

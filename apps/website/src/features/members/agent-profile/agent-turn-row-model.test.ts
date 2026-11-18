@@ -16,7 +16,6 @@ const chats = new Map([
     ['cht_dm', { kind: 'dm' as const, name: 'Tiny' }],
     ['cht_product', { kind: 'channel' as const, name: 'product' }],
 ]);
-const dream = { added: 0, kind: 'dream', learned: null, removed: 0 } as const;
 const dmMessage = {
     author: 'human',
     chatId: 'cht_dm',
@@ -54,13 +53,7 @@ test('a message that is gone leaves the title absent', () => {
 test('private and unrecorded triggers show nothing; typed work names itself', () => {
     expect(resolveTurnRowTitle({ kind: 'private' }, chats)).toEqual({ kind: 'none' });
     expect(resolveTurnRowTitle(null, chats)).toEqual({ kind: 'none' });
-    // The nightly dream has no Chat, so it names itself without a place.
-    expect(resolveTurnRowTitle(dream, chats)).toMatchObject({
-        kind: 'text',
-        place: null,
-        text: 'Dreamed',
-    });
-    // Neither does the wake for a background sub-agent that finished.
+    // The wake for a background sub-agent that finished has no Chat, so no place.
     expect(resolveTurnRowTitle({ kind: 'subagent' }, chats)).toEqual({
         kind: 'text',
         place: null,
