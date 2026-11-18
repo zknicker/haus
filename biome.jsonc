@@ -6,7 +6,9 @@
   "plugins": [
     "./apps/website/lint/heroui-compound-children.grit",
     "./apps/website/lint/heroui-dialog-form.grit",
-    "./apps/server/lint/cloud-agent-status-writes.grit"
+    "./apps/server/lint/cloud-agent-status-writes.grit",
+    "./apps/server/lint/config-env-loader.grit",
+    "./apps/server/lint/update-required-code.grit"
   ],
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "files": {

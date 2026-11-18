@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
 import { getDefaultAppOrigin, parseEnvironment } from '../src/config/env.ts';
 
 test('getDefaultAppOrigin uses the Haus website port when present', () => {
@@ -50,18 +48,6 @@ test('Haus auth uses the configured Cloudflare audience in production and offlin
 
     assert.equal(parseEnvironment(production).HAUS_CF_ACCESS_AUDIENCE, 'haus-production-audience');
     assert.throws(() => parseEnvironment({ ...production, HAUS_CF_ACCESS_AUDIENCE: '' }));
-});
-
-test('the Server config module never loads an env file of its own', () => {
-    const source = readFileSync(
-        fileURLToPath(new URL('../src/config/env.ts', import.meta.url)),
-        'utf8'
-    );
-
-    // Varlock is the only loader. A second one would silently outrank the
-    // committed contract, and a `$` in any stray file would corrupt delivery.
-    assert.doesNotMatch(source, /from 'node:fs'/u);
-    assert.doesNotMatch(source, /dotenv/u);
 });
 
 function restoreEnvironmentVariable(key: string, value: string | undefined) {
