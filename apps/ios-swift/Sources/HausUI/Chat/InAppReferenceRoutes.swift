@@ -10,12 +10,12 @@ import SwiftUI
 /// UIKit's. So the App installs its routes here once, at its root, and the text
 /// view's link coordinator asks this table before it hands a URL to the system.
 /// SwiftUI `Text` links (table cells) reach it through `inAppReferenceRoutes()`,
-/// because a hosted cell's default `openURL` would hand a Thread link to the
+/// because a hosted cell's default `openURL` would hand a Message link to the
 /// system, which has no app for it. Nothing installed (previews, tests) means the tap does nothing.
 @MainActor
 public enum InAppReferenceRoutes {
-    /// Opens a Thread from a Thread reference chip.
-    public static var openThread: ((ThreadReferenceTarget) -> Void)?
+    /// Opens a Message in its Channel or DM from a Message reference chip.
+    public static var openMessage: ((MessageReferenceTarget) -> Void)?
     /// Opens a Task from a Task reference chip.
     public static var openTask: ((TaskReferenceTarget) -> Void)?
 
@@ -28,8 +28,8 @@ public enum InAppReferenceRoutes {
         if let task = TaskReferenceTarget(url: url) {
             return { openTask?(task) }
         }
-        guard let thread = ThreadReferenceTarget(url: url) else { return nil }
-        return { openThread?(thread) }
+        guard let message = MessageReferenceTarget(url: url) else { return nil }
+        return { openMessage?(message) }
     }
 
     /// Runs the in-app action a link stands for. False when the system should

@@ -18,14 +18,14 @@ struct ChatReadLedgerTests {
             visibleMessageIDs: ["m3", "m1", "m2"],
             sequenceByMessageID: sequences
         ) == 9)
-        // A Thread's anchor, its claim metadata, and an optimistic send are rows
-        // the loaded page cannot name.
+        // A Task's "Started from" row, a day divider, and an optimistic send
+        // are rows the loaded page cannot name.
         #expect(ChatReadVisibility.highestVisibleSequence(
-            visibleMessageIDs: ["thread-anchor-m9", "m1", "thread-pending-send"],
+            visibleMessageIDs: ["task-started-from", "m1", "pending-send"],
             sequenceByMessageID: sequences
         ) == 4)
         #expect(ChatReadVisibility.highestVisibleSequence(
-            visibleMessageIDs: ["thread-anchor-m9"],
+            visibleMessageIDs: ["task-started-from"],
             sequenceByMessageID: sequences
         ) == nil)
         #expect(ChatReadVisibility.highestVisibleSequence(

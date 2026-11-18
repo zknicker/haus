@@ -11,10 +11,4 @@ extension ChatMessage {
             backedWorkIDs: Set(cloudAgentWork.map(\.id))
         )
     }
-
-    /// The first linked work's title, which names this Message wherever a
-    /// one-line title stands for it (a Thread reference chip).
-    public var linkedCloudAgentWorkTitle: String? {
-        cloudAgentWork.first?.title
-    }
 }

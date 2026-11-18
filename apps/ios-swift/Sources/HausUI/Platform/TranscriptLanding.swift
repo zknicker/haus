@@ -1,7 +1,7 @@
 import CoreGraphics
 
-/// Where a transcript lands to open on a first unread reply, the web App's
-/// `threadLandingScrollTop` on the flipped table: newest at the table's top,
+/// Where a transcript lands to open on a first unread message, the web App's
+/// unread landing on the flipped table: newest at the table's top,
 /// so a row's visual top is its `maxY`, the table's top inset is the visual
 /// bottom clearance (the composer), and its bottom inset the visual top
 /// clearance (the navigation bar).

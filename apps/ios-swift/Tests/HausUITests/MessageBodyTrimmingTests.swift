@@ -6,7 +6,7 @@ import Testing
 /// A stored body's edge whitespace is never layout. Agent replies routinely end
 /// in a newline, and a `Text` that keeps it paints a blank line under the
 /// message — an extra text line of gap before the next row and before the
-/// thread card. The presentation boundary trims it once; the stored Markdown is
+/// cards under it. The presentation boundary trims it once; the stored Markdown is
 /// untouched.
 struct MessageBodyTrimmingTests {
     @Test func trimsEdgeWhitespaceFromTheBodyAndItsSegments() {

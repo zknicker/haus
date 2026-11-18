@@ -101,12 +101,12 @@ struct OpenChatPagesTests {
         )
     }
 
-    @Test func refreshesTheCoveredParentBehindAnOpenThread() {
-        // The Thread is on screen, so it refreshes first; the parent Chat is
+    @Test func refreshesTheCoveredCanvasBehindAnOpenTask() {
+        // The Task is on screen, so it refreshes first; the canvas Chat is
         // covered but is what the pop reveals, so it refreshes too.
         #expect(
-            OpenChatPages.toRefresh(focusedChatID: "thread-c1", canvasChatID: "c1")
-                == ["thread-c1", "c1"]
+            OpenChatPages.toRefresh(focusedChatID: "task-c1", canvasChatID: "c1")
+                == ["task-c1", "c1"]
         )
     }
 

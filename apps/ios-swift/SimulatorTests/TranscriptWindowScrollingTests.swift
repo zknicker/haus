@@ -85,8 +85,8 @@ final class TranscriptWindowScrollingTests: XCTestCase {
         XCTAssertLessThan(abs(newOffset - oldOffset), 1.5)
     }
 
-    func testThreadPrefixAndShiftedReplyWindowKeepTheVisibleReply() throws {
-        let prefix = [WindowItem(id: "thread-anchor", body: "Original thread message")]
+    func testFixedPrefixAndShiftedWindowKeepTheVisibleMessage() throws {
+        let prefix = [WindowItem(id: "task-started-from", body: "Started from a message")]
         try assertStableAnchor(
             old: prefix + items(start: 0, count: 200),
             new: prefix + items(start: 50, count: 200),

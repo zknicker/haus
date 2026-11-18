@@ -1,8 +1,23 @@
 import Foundation
 
+/// What kind of place a Chat is. Channels and DMs are conversations the Chat
+/// list shows; a `task` Chat is a Task's own conversation (ADR 0052), opened
+/// as a Task and never listed as a Channel or DM. A kind this build does not
+/// know decodes as `unknown` rather than failing the whole Chat list, so a
+/// newer Server never costs the reader every Chat.
 public enum ChatKind: String, Codable, Sendable {
     case channel
     case dm
+    case task
+    case unknown
+
+    public init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = ChatKind(rawValue: raw) ?? .unknown
+    }
+
+    /// Whether the Chat list and sidebar show this Chat as a Channel or DM.
+    public var isListedConversation: Bool { self == .channel || self == .dm }
 }
 
 /// The newest top-level message of a Chat, as the line a list row quotes
@@ -145,7 +160,9 @@ public struct ChatMessage: Codable, Identifiable, Sendable, Equatable {
     }
 }
 
-public struct ThreadReplyPreview: Codable, Identifiable, Sendable, Equatable {
+/// One message as a Task preview quotes it. Authors stay as ids so every
+/// surface names them through the Agent list and member directory.
+public struct TaskMessagePreview: Codable, Identifiable, Sendable, Equatable {
     public let authorAgentID: String?
     public let authorUserID: String?
     public let content: String
@@ -159,26 +176,4 @@ public struct ThreadReplyPreview: Codable, Identifiable, Sendable, Equatable {
         case createdAt
         case id
     }
-}
-
-public struct ThreadSummary: Codable, Identifiable, Sendable, Equatable {
-    public let anchorMessageID: String
-    public let followed: Bool
-    public let latestReplyAt: Date?
-    public let recentReplies: [ThreadReplyPreview]
-    public let replyCount: Int
-    public let threadChatID: String
-    public let unreadCount: Int
-
-    enum CodingKeys: String, CodingKey {
-        case anchorMessageID = "anchorMessageId"
-        case followed
-        case latestReplyAt
-        case recentReplies
-        case replyCount
-        case threadChatID = "threadChatId"
-        case unreadCount
-    }
-
-    public var id: String { threadChatID }
 }

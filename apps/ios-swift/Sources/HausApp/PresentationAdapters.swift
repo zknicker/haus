@@ -65,31 +65,20 @@ extension HausStore {
         trackProjectionDirectory()
         let page = messagesByChatID[chatID]
         let pending = pendingMessagesByChatID[chatID] ?? []
-        let cloudAgentWork = cloudAgentWorkByChatID[chatID] ?? []
         if let cached = projections.messagePresentationsByChatID[chatID] { return cached }
 
-        let rows = durableMessagePresentations(page, cloudAgentWork: cloudAgentWork) + pendingMessagePresentations(pending, page: page)
+        let rows = durableMessagePresentations(page) + pendingMessagePresentations(pending, page: page)
         projections.messagePresentationsByChatID[chatID] = rows
         return rows
     }
 
-    func durableMessagePresentations(
-        _ page: ChatMessagePage?, cloudAgentWork: [ThreadCloudAgentWork]
-    ) -> [MessagePresentation] {
+    func durableMessagePresentations(_ page: ChatMessagePage?) -> [MessagePresentation] {
         guard let page else { return [] }
-        let threadByAnchor = Dictionary(
-            page.threads.map { ($0.anchorMessageID, $0) },
-            uniquingKeysWith: { first, _ in first }
-        )
+        let tasksByOrigin = TaskPreviewProjection.presentations(page.tasks) { message in
+            actorPresentation(agentID: message.authorAgentID, userID: message.authorUserID)
+        }
         return page.messages.compactMap { message in
             guard let author = authorPresentation(message.author) else { return nil }
-            // A top-level claim names the Thread anchored on it before the
-            // first reply; ordinary messages only gain a child id once a Thread
-            // exists, and a claim inside a Thread has no Thread of its own.
-            let thread = threadByAnchor[message.id].map(threadPresentation)
-                ?? message.claim.flatMap { claim in
-                    ThreadPreviewProjection.claimThread(claim, messageChatID: message.chatID)
-                }
             // Resolved here so the body goes through the parser that knows the
             // Server's Agents and members, and the trimmed string and its
             // segments always describe each other.
@@ -111,16 +100,13 @@ extension HausStore {
                 inlineReply: message.reply.flatMap { reply in
                     replyReferencePresentation(reply.parent)
                 },
-                thread: thread,
                 claim: message.claim.map(claimPresentation),
                 cloudAgents: linkedWork.map { cloudAgentPresentation($0, presentingChatID: message.chatID) },
-                threadCloudAgents: CloudAgentPresentation.threadPreviewWork(
-                    cloudAgentWork, anchorMessageID: message.id, ownWorkIDs: Set(linkedWork.map(\.id))
-                ).map { cloudAgentPresentation($0, presentingChatID: message.chatID) },
                 reactions: reactionPresentations(message.reactions),
                 richBlocks: parsed.richBlocks,
                 visualBody: parsed.visuals,
-                cause: message.cause.flatMap(MessageCausePresentation.init)
+                cause: message.cause.flatMap(MessageCausePresentation.init),
+                tasks: tasksByOrigin[message.id] ?? []
             )
         }
     }
@@ -163,12 +149,6 @@ extension HausStore {
             mediaType: attachment.mediaType,
             sizeBytes: attachment.sizeBytes
         )
-    }
-
-    func threadPresentation(_ thread: ThreadSummary) -> ThreadPreviewPresentation {
-        ThreadPreviewProjection.presentation(for: thread) { reply in
-            actorPresentation(agentID: reply.authorAgentID, userID: reply.authorUserID)
-        }
     }
 
     func claimPresentation(_ claim: MessageClaim) -> ClaimPresentation {

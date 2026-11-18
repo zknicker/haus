@@ -43,7 +43,7 @@ final class PushNotificationCommunicationTests: XCTestCase {
     }
 
     func testUnknownKindsAreNil() {
-        XCTAssertNil(PushNotificationCommunication(userInfo: userInfo(conversation: ["kind": "thread"])))
+        XCTAssertNil(PushNotificationCommunication(userInfo: userInfo(conversation: ["kind": "elsewhere"])))
         XCTAssertNil(PushNotificationCommunication(
             userInfo: userInfo(sender: ["id": "x", "kind": "bot", "name": "X"])
         ))

@@ -28,23 +28,4 @@ struct CloudAgentWorkReferenceTests {
         #expect(reference.activationURL == nil)
     }
 
-    @Test func aThreadChipNamesItsAnchorByTheFirstLinkedWork() {
-        #expect(ThreadReferenceTarget.title(anchorContent: "On it.\n\n[x](cloud-agent://caw_1)", workTitle: "Fix the flaky test")
-            == "Fix the flaky test")
-        #expect(ThreadReferenceTarget.title(anchorContent: "On it.", workTitle: nil) == "On it.")
-    }
-
-    @Test func aMessageCardListsEveryLinkedWorkOnceAboveTheThreadPreview() throws {
-        let own = try CloudAgentWorkFixture.work(id: "work-1").work
-        let encoded = String(decoding: try HausJSON.encoder().encode(own), as: UTF8.self)
-        let second = encoded.replacingOccurrences(of: #""id":"work-1""#, with: #""id":"work-2""#)
-        let third = encoded.replacingOccurrences(of: #""id":"work-1""#, with: #""id":"work-3""#)
-        let rows = try HausJSON.decoder().decode([ThreadCloudAgentWork].self, from: Data("""
-        [{"anchorMessageId":"m_1","work":\(encoded)},
-         {"anchorMessageId":"m_1","work":\(second)},
-         {"anchorMessageId":"m_1","work":\(third)}]
-        """.utf8))
-        let listed = CloudAgentPresentation.threadPreviewWork(rows, anchorMessageID: "m_1", ownWorkIDs: ["work-1", "work-2"])
-        #expect(listed.map(\.id) == ["work-3"])
-    }
 }

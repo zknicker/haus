@@ -4,9 +4,11 @@ import Testing
 
 @Suite("Launch snapshot")
 struct LaunchSnapshotTests {
+    private let protocolVersion = 13
+
     @Test("A saved snapshot reads back identically for the same user")
     func roundTrip() async throws {
-        let store = LaunchSnapshotStore(fileURL: temporaryFile())
+        let store = LaunchSnapshotStore(fileURL: temporaryFile(), appProtocolVersion: protocolVersion)
         let snapshot = fixtureSnapshot(userID: "user_preview")
 
         try await store.save(snapshot)
@@ -19,7 +21,7 @@ struct LaunchSnapshotTests {
     @Test("A snapshot written before usage was carried still paints, without the strip")
     func usageIsOptional() async throws {
         let url = temporaryFile()
-        let store = LaunchSnapshotStore(fileURL: url)
+        let store = LaunchSnapshotStore(fileURL: url, appProtocolVersion: protocolVersion)
         try await store.save(fixtureSnapshot(userID: "user_preview"))
         let data = try Data(contentsOf: url)
         var object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
@@ -34,7 +36,7 @@ struct LaunchSnapshotTests {
     @Test("Another user's snapshot is never painted, and is deleted")
     func otherUserIsDiscarded() async throws {
         let url = temporaryFile()
-        let store = LaunchSnapshotStore(fileURL: url)
+        let store = LaunchSnapshotStore(fileURL: url, appProtocolVersion: protocolVersion)
         try await store.save(fixtureSnapshot(userID: "user_a"))
 
         #expect(await store.load(userID: "user_b") == nil)
@@ -44,7 +46,7 @@ struct LaunchSnapshotTests {
     @Test("A different format version or a corrupt file is discarded")
     func versionMismatchIsDiscarded() async throws {
         let url = temporaryFile()
-        let store = LaunchSnapshotStore(fileURL: url)
+        let store = LaunchSnapshotStore(fileURL: url, appProtocolVersion: protocolVersion)
         try await store.save(fixtureSnapshot(userID: "user_preview"))
         let data = try Data(contentsOf: url)
         var object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
@@ -59,10 +61,46 @@ struct LaunchSnapshotTests {
         #expect(!FileManager.default.fileExists(atPath: url.path))
     }
 
+    /// A protocol bump can ship with a one-time Server migration (ADR 0052
+    /// folded every side conversation into its parent Channel and renumbered sequences),
+    /// so a page or unread count from the old protocol must never paint.
+    @Test("A snapshot written under another App protocol is discarded, and is deleted")
+    func protocolMismatchIsDiscarded() async throws {
+        let url = temporaryFile()
+        let older = LaunchSnapshotStore(fileURL: url, appProtocolVersion: protocolVersion - 1)
+        try await older.save(LaunchSnapshot(
+            appProtocolVersion: protocolVersion - 1,
+            userID: "user_preview",
+            servers: [HausPreviewFixtures.server],
+            chats: HausPreviewFixtures.chats,
+            agents: [],
+            members: nil,
+            pagesByChatID: ["chat_cove": ChatMessagePage(messages: HausPreviewFixtures.messages, nextBeforeSequence: nil)]
+        ))
+
+        let current = LaunchSnapshotStore(fileURL: url, appProtocolVersion: protocolVersion)
+        #expect(await current.load(userID: "user_preview") == nil)
+        #expect(!FileManager.default.fileExists(atPath: url.path))
+    }
+
+    @Test("A snapshot from before the protocol scope existed is discarded")
+    func unscopedSnapshotIsDiscarded() async throws {
+        let url = temporaryFile()
+        let store = LaunchSnapshotStore(fileURL: url, appProtocolVersion: protocolVersion)
+        try await store.save(fixtureSnapshot(userID: "user_preview"))
+        let data = try Data(contentsOf: url)
+        var object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        object.removeValue(forKey: "appProtocolVersion")
+        try JSONSerialization.data(withJSONObject: object).write(to: url)
+
+        #expect(await store.load(userID: "user_preview") == nil)
+        #expect(!FileManager.default.fileExists(atPath: url.path))
+    }
+
     @Test("The snapshot directory is excluded from device backups")
     func excludedFromBackup() async throws {
         let url = temporaryFile()
-        let store = LaunchSnapshotStore(fileURL: url)
+        let store = LaunchSnapshotStore(fileURL: url, appProtocolVersion: protocolVersion)
         try await store.save(fixtureSnapshot(userID: "user_preview"))
         try await store.save(fixtureSnapshot(userID: "user_preview"))
 
@@ -72,7 +110,7 @@ struct LaunchSnapshotTests {
 
     @Test("Clearing on sign-out leaves nothing to paint")
     func clearRemovesTheSnapshot() async throws {
-        let store = LaunchSnapshotStore(fileURL: temporaryFile())
+        let store = LaunchSnapshotStore(fileURL: temporaryFile(), appProtocolVersion: protocolVersion)
         try await store.save(fixtureSnapshot(userID: "user_preview"))
 
         await store.clear()
@@ -82,9 +120,9 @@ struct LaunchSnapshotTests {
 
     @Test("Only bounded pages at the latest messages are carried, in priority order")
     func pageSelection() {
-        let latest = ChatMessagePage(messages: HausPreviewFixtures.messages, nextBeforeSequence: nil, threads: [])
+        let latest = ChatMessagePage(messages: HausPreviewFixtures.messages, nextBeforeSequence: nil)
         let scrolledAway = ChatMessagePage(
-            messages: HausPreviewFixtures.messages, nextBeforeSequence: nil, nextAfterSequence: 9, threads: []
+            messages: HausPreviewFixtures.messages, nextBeforeSequence: nil, nextAfterSequence: 9
         )
         let pages = ["a": latest, "b": scrolledAway, "c": latest, "d": latest, "e": latest]
 
@@ -95,6 +133,7 @@ struct LaunchSnapshotTests {
 
     private func fixtureSnapshot(userID: String) -> LaunchSnapshot {
         LaunchSnapshot(
+            appProtocolVersion: protocolVersion,
             userID: userID,
             servers: [HausPreviewFixtures.server],
             chats: HausPreviewFixtures.chats,
@@ -104,7 +143,6 @@ struct LaunchSnapshotTests {
                 "chat_cove": ChatMessagePage(
                     messages: HausPreviewFixtures.messages,
                     nextBeforeSequence: nil,
-                    threads: []
                 ),
             ],
             serverUsage: ServerUsageSnapshot(tokenUsage: ServerTokenUsage(breakdown: [

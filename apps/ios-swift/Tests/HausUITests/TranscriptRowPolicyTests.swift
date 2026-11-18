@@ -3,7 +3,7 @@ import Foundation
 import Testing
 
 /// Which rows an update re-hosts, what VoiceOver reads and offers for a
-/// message, and what a Thread screen calls itself.
+/// message.
 struct TranscriptRowPolicyTests {
     @Test func anInsetOnlyUpdateReHostsNothing() {
         let rows = TranscriptRowReconfiguration.rows(
@@ -73,13 +73,11 @@ struct TranscriptRowPolicyTests {
         let actions = MessageRowAccessibilityActions.forMessage(
             message,
             canReplyInline: true,
-            canOpenThread: true,
             onReact: {},
-            onReply: {},
-            onOpenThread: {}
+            onReply: {}
         )
         #expect(actions.onReact != nil)
-        #expect(actions.actions == [.reply, .replyInThread, .copyText])
+        #expect(actions.actions == [.reply, .copyText])
     }
 
     @Test func aPendingMessageOffersNoActions() {
@@ -93,10 +91,8 @@ struct TranscriptRowPolicyTests {
         let actions = MessageRowAccessibilityActions.forMessage(
             message,
             canReplyInline: true,
-            canOpenThread: true,
             onReact: {},
-            onReply: {},
-            onOpenThread: {}
+            onReply: {}
         )
         #expect(actions.onReact == nil)
         #expect(actions.actions.isEmpty)
@@ -110,12 +106,5 @@ struct TranscriptRowPolicyTests {
         let widest = RichMessageListView.widestMarkers(items)
 
         #expect(widest == [0: "10.", 1: "\u{2022}"])
-    }
-
-    @Test func aClaimThreadIsNamedForItsClaim() {
-        #expect(ThreadOpening.title(anchor: ChatFixtures.messages[1]) == "Thread")
-        if let claim = ChatFixtures.messages[2].claim {
-            #expect(ThreadOpening.title(anchor: ChatFixtures.messages[2]) == "Claim #\(claim.number)")
-        }
     }
 }

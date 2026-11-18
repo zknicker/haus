@@ -18,26 +18,16 @@ struct MessageRowAccessibilityActions {
     static func forMessage(
         _ message: MessagePresentation,
         canReplyInline: Bool,
-        canOpenThread: Bool,
         onReact: @escaping () -> Void,
-        onReply: @escaping () -> Void,
-        onOpenThread: @escaping () -> Void,
-        onConvertToTask: (() -> Void)? = nil
+        onReply: @escaping () -> Void
     ) -> Self {
         guard !message.isPending else { return .none }
         return MessageRowAccessibilityActions(
             onReact: onReact,
-            actions: MessageActionMenu.groups(
-                for: message,
-                canReplyInline: canReplyInline,
-                canOpenThread: canOpenThread,
-                canConvertToTask: onConvertToTask != nil
-            ).flatMap(\.self),
+            actions: MessageActionMenu.groups(for: message, canReplyInline: canReplyInline).flatMap(\.self),
             perform: { action in
                 switch action {
                 case .reply: onReply()
-                case .replyInThread, .openThread: onOpenThread()
-                case .convertToTask: onConvertToTask?()
                 case .copyText: MessageClipboard.copy(message)
                 }
             }

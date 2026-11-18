@@ -18,18 +18,18 @@ public enum MentionPresentationKind: CaseIterable, Hashable, Sendable {
     case directory
     case file
     case human
+    /// A Message in its Channel or DM, by the legacy wire form; see
+    /// `MessageReferenceTarget`.
+    case message
     case plugin
     case pullRequest
     /// A shared-library artifact on the active Server, by its
     /// `SharedArtifactLinkTarget.key`; see `SharedArtifactLinkTarget`.
     case sharedArtifact
     case skill
-    /// A board Task, by its id (`task://<taskId>`), or a bare key the Server
+    /// A Task, by its id (`task://<taskId>`), or a bare key the Server
     /// resolved when the Message was written; see `TaskLinkChips`.
     case task
-    /// A Thread, by its parent Chat and anchor Message
-    /// (`chat://<chatId>?thread=<anchorMessageId>`); see `ThreadReferenceTarget`.
-    case thread
     case website
 }
 
@@ -178,8 +178,8 @@ public struct RichReferencePresentation: Hashable, Sendable {
         switch kind {
         case .pullRequest, .website: RichReferenceWireForm.activationURL(for: id)
         // An in-app address: the text view's link coordinator routes it to the
-        // Thread instead of handing it to the system (`InAppReferenceRoutes`).
-        case .thread: ThreadReferenceTarget(wireTarget: id).flatMap { _ in URL(string: id) }
+        // Message instead of handing it to the system (`InAppReferenceRoutes`).
+        case .message: MessageReferenceTarget(wireTarget: id).flatMap { _ in URL(string: id) }
         // In-app too: `InAppReferenceRoutes` opens the artifact viewer.
         case .sharedArtifact: SharedArtifactLinkTarget(key: id)?.inAppURL
         // In-app too: `InAppReferenceRoutes` pushes the Task.
@@ -203,7 +203,7 @@ public struct RichReferencePresentation: Hashable, Sendable {
         case .sharedArtifact: .glyph(fileGlyph ?? .document)
         case .skill: overrideMark ?? .glyph(.skill)
         case .task: .glyph(.tasks)
-        case .thread: .glyph(.thread)
+        case .message: .glyph(.message)
         case .website: .glyph(.website)
         }
     }

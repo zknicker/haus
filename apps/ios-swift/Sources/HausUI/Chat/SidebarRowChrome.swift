@@ -1,16 +1,15 @@
 import SwiftUI
 
 /// What the sidebar marks as the screen on display. Only one row at a time
-/// wears the selection capsule, and it follows the reader to the Inbox and to
-/// Tasks rather than staying on the last Chat they opened.
+/// wears the selection capsule, and it follows the reader to the Inbox rather
+/// than staying on the last Chat they opened.
 public enum SidebarSelection: Hashable, Sendable {
     case inbox
-    case tasks
     case chat(ChatDestination.ID)
 }
 
 /// The geometry every sidebar row shares, scaled with Dynamic Type by the
-/// sidebar that owns it, so the Inbox, Tasks, and Chat rows grow together.
+/// sidebar that owns it, so the Inbox and Chat rows grow together.
 struct SidebarRowMetrics {
     /// The common glyph column every row leads with.
     var glyph: CGFloat

@@ -44,7 +44,7 @@ final class TranscriptRenderingPerformanceTests: XCTestCase {
     }
 
     private func timeline(chat: Int) -> some View {
-        MessageTimelineView(messages: Self.messages, onOpenThread: { _ in })
+        MessageTimelineView(messages: Self.messages)
             .id(chat)
     }
 

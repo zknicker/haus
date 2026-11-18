@@ -32,7 +32,7 @@ where Item.ID == String {
     let onAppend: (_ previousItems: [Item], _ items: [Item], _ isNearNewest: Bool) -> TranscriptAppendBehavior
     let reveal: TranscriptReveal?
     @Binding var isNearNewest: Bool
-    /// Called for a tap that lands on the transcript itself; the Thread uses
+    /// Called for a tap that lands on the transcript itself; a screen uses
     /// it to put the keyboard away. Scrolls and row controls are unaffected.
     var onContentTap: (() -> Void)? = nil
     /// The ids of the rows currently in the viewport, newest first, published

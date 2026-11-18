@@ -9,67 +9,23 @@ struct MessageActionMenuTests {
     private let blippy = ReactorPresentation(id: "agent_blippy", name: "Blippy")
     private let cove = ReactorPresentation(id: "agent_cove", name: "Cove")
 
-    private func message(_ content: String = "Ship it", thread: ThreadPreviewPresentation? = nil) -> MessagePresentation {
-        MessagePresentation(id: "m1", author: author, content: content, createdAt: .now, thread: thread)
+    private func message(_ content: String = "Ship it") -> MessagePresentation {
+        MessagePresentation(id: "m1", author: author, content: content, createdAt: .now)
     }
 
-    @Test func chatWithInlineRepliesOffersReplyThreadThenCopy() {
-        let groups = MessageActionMenu.groups(for: message(), canReplyInline: true, canOpenThread: true)
-        #expect(groups == [[.reply, .replyInThread], [.copyText]])
+    /// Inline reply is the only reply (ADR 0052).
+    @Test func chatWithInlineRepliesOffersReplyThenCopy() {
+        let groups = MessageActionMenu.groups(for: message(), canReplyInline: true)
+        #expect(groups == [[.reply], [.copyText]])
     }
 
-    @Test func convertToTaskJoinsTheConversationActions() {
-        let groups = MessageActionMenu.groups(
-            for: message(),
-            canReplyInline: true,
-            canOpenThread: true,
-            canConvertToTask: true
-        )
-        #expect(groups == [[.reply, .replyInThread, .convertToTask], [.copyText]])
-    }
-
-    /// A Thread keeps no reply actions, but any readable message converts.
-    @Test func aThreadReplyConverts() {
-        let groups = MessageActionMenu.groups(
-            for: message(),
-            canReplyInline: false,
-            canOpenThread: false,
-            canConvertToTask: true
-        )
-        #expect(groups == [[.convertToTask], [.copyText]])
-    }
-
-    /// `sourceMessageId` has nothing to name until the Server has the message.
-    @Test func aPendingMessageCannotConvert() {
-        let pending = MessagePresentation(
-            id: "m1",
-            author: MessageAuthorPresentation(id: "a1", name: "Ada", avatarURL: nil),
-            content: "Hello",
-            createdAt: .now,
-            isPending: true
-        )
-        let groups = MessageActionMenu.groups(
-            for: pending,
-            canReplyInline: false,
-            canOpenThread: false,
-            canConvertToTask: true
-        )
-        #expect(groups == [[.copyText]])
-    }
-
-    @Test func aMessageWithAThreadOpensIt() {
-        let thread = ThreadPreviewPresentation(threadChatID: "t1", replyCount: 2, unreadCount: 0, recentReplies: [])
-        let groups = MessageActionMenu.groups(for: message(thread: thread), canReplyInline: false, canOpenThread: true)
-        #expect(groups == [[.openThread], [.copyText]])
-    }
-
-    @Test func theThreadKeepsOnlyCopying() {
-        #expect(MessageActionMenu.groups(for: message(), canReplyInline: false, canOpenThread: false) == [[.copyText]])
+    @Test func aScreenWithoutInlineRepliesKeepsOnlyCopying() {
+        #expect(MessageActionMenu.groups(for: message(), canReplyInline: false) == [[.copyText]])
     }
 
     @Test func anAttachmentOnlyMessageHasNothingToCopy() {
-        let groups = MessageActionMenu.groups(for: message(""), canReplyInline: false, canOpenThread: true)
-        #expect(groups == [[.replyInThread]])
+        #expect(MessageActionMenu.groups(for: message(""), canReplyInline: true) == [[.reply]])
+        #expect(MessageActionMenu.groups(for: message(""), canReplyInline: false) == [])
     }
 
     @Test func quickTilesAreTheHeadOfFrequentlyUsed() {

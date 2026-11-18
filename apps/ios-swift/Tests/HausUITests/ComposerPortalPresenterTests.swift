@@ -14,20 +14,20 @@ final class ComposerPortalPresenterTests: XCTestCase {
         XCTAssertTrue(ComposerPortalWindowRule.ownsTheScreen(overlay: .camera))
     }
 
-    /// A Thread pushed over a Chat appears before the Chat behind it disappears, so the leaving
+    /// A Task pushed over a Chat appears before the Chat behind it disappears, so the leaving
     /// screen must not take the arriving screen's portal with it.
     func testALeavingScreenNeverClearsTheScreenThatReplacedIt() {
         let presenter = ComposerPortalPresenter()
         let chat = host()
-        let thread = host()
+        let task = host()
 
         presenter.present(chat)
-        presenter.present(thread)
+        presenter.present(task)
         presenter.resign(chat.id)
 
-        XCTAssertEqual(presenter.host?.id, thread.id)
+        XCTAssertEqual(presenter.host?.id, task.id)
 
-        presenter.resign(thread.id)
+        presenter.resign(task.id)
 
         XCTAssertNil(presenter.host)
     }

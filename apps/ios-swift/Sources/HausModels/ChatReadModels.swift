@@ -1,22 +1,16 @@
 public struct ChatReadInput: Encodable, Sendable, Equatable {
     public let chatID: String
-    /// Inbox Mark read on a Channel or DM also reads every Thread under it, so
-    /// that Chat's Thread rows leave with it; opening a Chat or marking a
-    /// Thread row read must not, so they leave this nil.
-    public let includeThreads: Bool?
     public let sequence: Int
     public let serverID: String
 
-    public init(chatID: String, sequence: Int, serverID: String, includeThreads: Bool? = nil) {
+    public init(chatID: String, sequence: Int, serverID: String) {
         self.chatID = chatID
-        self.includeThreads = includeThreads
         self.sequence = sequence
         self.serverID = serverID
     }
 
     private enum CodingKeys: String, CodingKey {
         case chatID = "chatId"
-        case includeThreads
         case sequence
         case serverID = "serverId"
     }
@@ -38,9 +32,9 @@ public struct ChatReadReceipt: Codable, Sendable, Equatable {
     }
 }
 
-/// `chat.unreadChatCount`: the reader's unread Channels and DMs plus unread
-/// Threads across every Server they belong to — the same number push sets as
-/// the app icon badge (ADR 0043).
+/// `chat.unreadChatCount`: the reader's unread Channels, DMs, and followed
+/// Tasks across every Server they belong to — the same number push sets as
+/// the app icon badge.
 public struct UnreadChatCount: Decodable, Sendable, Equatable {
     public let count: Int
 

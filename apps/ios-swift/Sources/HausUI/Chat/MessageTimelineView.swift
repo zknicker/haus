@@ -8,7 +8,6 @@ public struct MessageTimelineView: View {
     let messages: [MessagePresentation]
     let isMessageHistoryLoaded: Bool
     private let emptyStateDescription: String
-    let onOpenThread: (MessagePresentation) -> Void
     /// A tap on the transcript itself, not on a row control; the screen puts the keyboard away.
     private let onContentTap: () -> Void
     let allowsInlineReplies: Bool
@@ -57,7 +56,6 @@ public struct MessageTimelineView: View {
         messages: [MessagePresentation],
         isMessageHistoryLoaded: Bool = true,
         emptyStateDescription: String = "Send a message to start the conversation.",
-        onOpenThread: @escaping (MessagePresentation) -> Void,
         onContentTap: @escaping () -> Void = {},
         allowsInlineReplies: Bool = false,
         onSelectInlineReply: @escaping (MessagePresentation) -> Void = { _ in },
@@ -75,7 +73,6 @@ public struct MessageTimelineView: View {
         self.messages = messages
         self.isMessageHistoryLoaded = isMessageHistoryLoaded
         self.emptyStateDescription = emptyStateDescription
-        self.onOpenThread = onOpenThread
         self.onContentTap = onContentTap
         self.allowsInlineReplies = allowsInlineReplies
         self.onSelectInlineReply = onSelectInlineReply
@@ -178,8 +175,7 @@ public struct MessageTimelineView: View {
         .messageActionDrawer(
             for: $actionMessage,
             board: reactionBoard,
-            onReply: allowsInlineReplies ? onSelectInlineReply : nil,
-            onOpenThread: onOpenThread
+            onReply: allowsInlineReplies ? onSelectInlineReply : nil
         )
         .alert("Message unavailable", isPresented: historyRevealErrorPresented) {
             Button("Retry") {
@@ -273,7 +269,6 @@ public struct MessageTimelineView: View {
                 attachmentTiles: attachmentTiles,
                 visualHeights: visualHeights,
                 reactionBoard: reactionBoard,
-                onOpenThread: { onOpenThread(message) },
                 onOpenInlineReply: requestInlineReply,
                 onOpenAttachment: onOpenAttachment,
                 accessibilityActions: rowAccessibilityActions(for: message)

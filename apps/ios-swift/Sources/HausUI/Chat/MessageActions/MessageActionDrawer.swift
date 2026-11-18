@@ -12,16 +12,10 @@ extension View {
     func messageActionDrawer(
         for message: Binding<MessagePresentation?>,
         board: ReactionStickerBoard?,
-        onReply: ((MessagePresentation) -> Void)? = nil,
-        onOpenThread: ((MessagePresentation) -> Void)? = nil
+        onReply: ((MessagePresentation) -> Void)? = nil
     ) -> some View {
         #if os(iOS)
-        modifier(MessageActionDrawerPresenter(
-            message: message,
-            board: board,
-            onReply: onReply,
-            onOpenThread: onOpenThread
-        ))
+        modifier(MessageActionDrawerPresenter(message: message, board: board, onReply: onReply))
         #else
         self
         #endif
@@ -36,7 +30,6 @@ private struct MessageActionDrawerPresenter: ViewModifier {
     @Binding var message: MessagePresentation?
     let board: ReactionStickerBoard?
     let onReply: ((MessagePresentation) -> Void)?
-    let onOpenThread: ((MessagePresentation) -> Void)?
     @State private var afterDismiss: (() -> Void)?
 
     func body(content: Content) -> some View {
@@ -50,12 +43,7 @@ private struct MessageActionDrawerPresenter: ViewModifier {
                 MessageActionDrawer(
                     message: target,
                     board: board,
-                    groups: MessageActionMenu.groups(
-                        for: target,
-                        canReplyInline: onReply != nil,
-                        canOpenThread: onOpenThread != nil,
-                        canConvertToTask: MessageActionRoutes.convertToTask != nil
-                    ),
+                    groups: MessageActionMenu.groups(for: target, canReplyInline: onReply != nil),
                     onAction: { action in perform(action, on: target) },
                     onReact: { emoji, remove in react(emoji, remove: remove, on: target) }
                 )
@@ -65,8 +53,6 @@ private struct MessageActionDrawerPresenter: ViewModifier {
     private func perform(_ action: MessageAction, on target: MessagePresentation) {
         switch action {
         case .reply: afterDismiss = { onReply?(target) }
-        case .replyInThread, .openThread: afterDismiss = { onOpenThread?(target) }
-        case .convertToTask: afterDismiss = { MessageActionRoutes.convertToTask?(target) }
         case .copyText:
             UIPasteboard.general.string = target.prose
         }

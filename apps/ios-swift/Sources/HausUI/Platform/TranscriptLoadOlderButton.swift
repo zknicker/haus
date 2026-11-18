@@ -2,8 +2,8 @@ import SwiftUI
 
 /// The transcript accessory that pages older history in.
 ///
-/// Both transcripts hold one — the Chat timeline for older Messages, a Thread
-/// for older replies — and they differ only in the word for what they page.
+/// Both transcripts hold one — the Chat timeline and a Task, each for older
+/// Messages.
 /// It sits above the oldest loaded row, so it is the flipped table's accessory
 /// rather than a row. The screen owns the fetch and tells the button whether
 /// one is already running; a fetch the reader asked for that fails says so

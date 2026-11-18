@@ -45,7 +45,7 @@ final class CodeBlockRowLayoutTests: XCTestCase {
         init(messages: [MessagePresentation]) {
             window.overrideUserInterfaceStyle = .light
             host = UIHostingController(
-                rootView: MessageTimelineView(messages: messages, onOpenThread: { _ in })
+                rootView: MessageTimelineView(messages: messages)
             )
             window.rootViewController = host
             window.makeKeyAndVisible()
@@ -53,7 +53,7 @@ final class CodeBlockRowLayoutTests: XCTestCase {
         }
 
         func show(_ messages: [MessagePresentation]) {
-            host.rootView = MessageTimelineView(messages: messages, onOpenThread: { _ in })
+            host.rootView = MessageTimelineView(messages: messages)
             pump()
         }
 

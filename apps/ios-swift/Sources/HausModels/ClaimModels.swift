@@ -3,14 +3,13 @@ import Foundation
 /// The exact row returned by `claim.list`.
 ///
 /// Claims remain promoted Chat messages. This projection keeps the canonical
-/// message, claim metadata, and the claim's existing Thread summary together so
-/// a native row can open the same Thread route as Chat.
+/// message and claim metadata together so a native row can open the message in
+/// its Channel or DM.
 public struct ClaimListItem: Decodable, Identifiable, Sendable, Equatable {
     public let chatKind: ChatKind
     public let chatName: String?
     public let message: ChatMessage
     public let claim: MessageClaim
-    public let threadSummary: ThreadSummary
 
     public var id: String { message.id }
 }

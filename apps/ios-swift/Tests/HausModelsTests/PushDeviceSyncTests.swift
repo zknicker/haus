@@ -49,14 +49,14 @@ final class PushDeviceSyncTests: XCTestCase {
 
     // MARK: - Delivered cleanup
 
-    func testOpeningAConversationClearsItsGroupAndThreads() {
+    func testOpeningAConversationClearsItsGroupAndATaskItsOwn() {
         let delivered = [
             delivered("1", conversation: "chan", chat: "chan"),
-            delivered("2", conversation: "chan", chat: "thread"),
+            delivered("2", conversation: "chan", chat: "task_chat", taskID: "task_1"),
             delivered("3", conversation: "dm", chat: "dm"),
         ]
         XCTAssertEqual(DeliveredPushCleanup.identifiers(delivered, openedChatID: "chan"), ["1", "2"])
-        XCTAssertEqual(DeliveredPushCleanup.identifiers(delivered, openedChatID: "thread"), ["2"])
+        XCTAssertEqual(DeliveredPushCleanup.identifiers(delivered, openedChatID: "task_chat"), ["2"])
         XCTAssertEqual(DeliveredPushCleanup.identifiers(delivered, openedChatID: "other"), [])
         XCTAssertEqual(DeliveredPushCleanup.identifiers(delivered, openedChatID: nil), [])
     }
@@ -65,16 +65,16 @@ final class PushDeviceSyncTests: XCTestCase {
         PushDeviceSync.action(isOn: isOn, pendingUnregister: pending, token: token, registeredToken: registered)
     }
 
-    private func delivered(_ id: String, conversation: String, chat: String) -> DeliveredPushCleanup.Delivered {
+    private func delivered(_ id: String, conversation: String, chat: String, taskID: String? = nil) -> DeliveredPushCleanup.Delivered {
         DeliveredPushCleanup.Delivered(
             identifier: id,
-            threadID: conversation,
+            groupID: conversation,
             payload: PushNotificationPayload(
                 serverID: "srv",
                 chatID: chat,
                 conversationChatID: conversation,
-                threadAnchorMessageID: chat == conversation ? nil : "anchor",
-                messageID: "msg-\(id)"
+                messageID: "msg-\(id)",
+                taskID: taskID
             )
         )
     }

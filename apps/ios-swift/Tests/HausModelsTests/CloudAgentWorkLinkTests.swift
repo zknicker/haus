@@ -100,14 +100,12 @@ struct ChatMessageCloudAgentWorkTests {
         )
         #expect(message.cloudAgentWork.map(\.id) == ["caw_2", "caw_1"])
         #expect(message.displayContent == "On it.")
-        #expect(message.linkedCloudAgentWorkTitle == "Work caw_2")
     }
 
     @Test func aServerWithoutLinksDecodesAnEmptyAnnotation() throws {
         let message = try CloudAgentWorkFixture.message(content: "[Forged](cloud-agent://caw_1)", annotation: nil)
         #expect(message.cloudAgentWork.isEmpty)
         #expect(message.displayContent == "[Forged](cloud-agent://caw_1)")
-        #expect(message.linkedCloudAgentWorkTitle == nil)
     }
 
     @Test func aRetiredWorkBodyIsUnsupportedAndDrawsNoCard() throws {
@@ -140,16 +138,6 @@ struct ChatMessageCloudAgentWorkTests {
             EntityRefresh(chatID: "cht_tech", messageID: "m_link"),
         ])
         #expect(store.refreshes(carryingCloudAgentWork: []).isEmpty)
-        #expect(store.cloudAgentWorkIDs(linkedIn: "cht_joy") == ["caw_1"])
-        #expect(store.cloudAgentWorkIDs(linkedIn: "cht_none").isEmpty)
-    }
-
-    @Test func workListsNamingAWorkAreFoundInEveryChat() throws {
-        let row = ThreadCloudAgentWork(anchorMessageId: "m_1", work: try CloudAgentWorkFixture.work("caw_1"))
-        let other = ThreadCloudAgentWork(anchorMessageId: "m_2", work: try CloudAgentWorkFixture.work("caw_2"))
-        let lists = ["cht_joy": [row], "cht_tech": [other, row], "cht_ops": [other]]
-        #expect(ThreadCloudAgentWork.chatIDs(listing: ["caw_1"], in: lists) == ["cht_joy", "cht_tech"])
-        #expect(ThreadCloudAgentWork.chatIDs(listing: [], in: lists).isEmpty)
     }
 }
 
@@ -161,15 +149,15 @@ struct CloudAgentWorkRealtimeEffectsTests {
                 serverID: "srv", chatID: "cht_tech", messageID: "m_link", workID: "caw_1"
             )),
             .cloudAgentWorkUpdated(CloudAgentWorkUpdatedEvent(
-                serverID: "srv", chatID: "thr_1", parentChatID: "cht_joy", messageID: "m_reply", workID: "caw_1"
+                serverID: "srv", chatID: "cht_joy", messageID: "m_reply", workID: "caw_1"
             )),
         ], serverID: "srv")
 
         #expect(effects.cloudAgentWorkIDs == ["caw_1"])
-        #expect(effects.cloudAgentWorkChatIDs == ["cht_tech", "thr_1", "cht_joy"])
+        #expect(effects.cloudAgentWorkChatIDs == ["cht_tech", "cht_joy"])
         #expect(effects.entityRefreshes == [
             EntityRefresh(chatID: "cht_tech", messageID: "m_link"),
-            EntityRefresh(chatID: "thr_1", messageID: "m_reply"),
+            EntityRefresh(chatID: "cht_joy", messageID: "m_reply"),
         ])
         #expect(effects.reloadsActiveCloudAgentWork)
     }

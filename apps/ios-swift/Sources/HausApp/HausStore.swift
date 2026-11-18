@@ -55,9 +55,6 @@ final class HausStore {
     /// the ordinary Chat history page they came from.
     private(set) var inlineReplyPagesByRootID: [String: ChatMessagePage] = [:]
     var inlineReplyChatIDByRootID: [String: String] = [:]
-    /// The viewer's follow presses not yet settled, by Thread Chat id. An
-    /// app-local overlay: the anchor entity is only ever written by a read.
-    var threadFollowOverlay: [String: Bool] = [:]
     var inlineReplyCacheGeneration = 0
     var inlineReplyLoadsInFlight: Set<String> = []
     // MARK: - Inbox snapshots
@@ -72,28 +69,14 @@ final class HausStore {
     /// Whether the Chat list has landed once, so the unread count stays silent
     /// until it can answer honestly.
     private(set) var hasLoadedChats = false
-    /// The app icon badge: unread Chats and Threads across every Server, as
-    /// the Server counts them for push. Nil until first read
+    /// The app icon badge: unread Chats and followed Tasks across every
+    /// Server, as the Server counts them for push. Nil until first read
     /// (`HausStoreIconBadge.swift`).
     var iconBadgeCount: Int?
-    /// The active Server's unread Threads (`thread.listUnread`), read beside
-    /// every Chat list read. Nil until first read (`HausStoreUnreadThreads.swift`).
-    var unreadThreads: [UnreadThread]?
-    /// The newest `thread.listUnread` read started, so an older answer that
-    /// lands late writes nothing.
-    var unreadThreadsReadToken = 0
-    /// Boards, their Tasks, and the reader's Task Inbox items (`HausStoreTasks.swift`).
+    /// Opened Tasks, the label catalog, and the followed unread Tasks (`HausStoreTasks.swift`).
     let taskSnapshots = TaskSnapshots()
     var activeCloudAgentWork: [ActiveCloudAgentWork]?
     var serverUsage: ServerUsageSnapshot?
-    /// Provisional send keys (a first Thread reply's) and the Chat Server put them in.
-    var adoptedChatIDs: [String: String] = [:]
-    var cloudAgentWorkByChatID: [String: [ThreadCloudAgentWork]] = [:] {
-        didSet {
-            guard oldValue != cloudAgentWorkByChatID else { return }
-            projections.retireMessages(chatIDs: KeyedChanges.between(oldValue, cloudAgentWorkByChatID))
-        }
-    }
     private var storedPendingMessagesByChatID: [String: [PendingChatMessage]] = [:]
     private var storedLifecycleAvailability: [String: AgentAvailability] = [:]
     /// The sidebar's row order, frozen while the drawer is open so a new
@@ -105,7 +88,6 @@ final class HausStore {
         }
     }
     @ObservationIgnored lazy var reactionStickers = Self.makeReactionStickerBoard { [weak self] in self }
-    @ObservationIgnored let cloudAgentStackExpansion = ThreadCloudAgentStackExpansion()
     // Realtime streams (`HausStoreEventStreams.swift`).
     @ObservationIgnored var realtimeServerID: String?
     @ObservationIgnored var streamRestarts = RealtimeStreamRestarts()
@@ -123,7 +105,7 @@ final class HausStore {
     @ObservationIgnored var hasLiveServerState = false
     @ObservationIgnored var launchRetry: Task<Void, Never>?
     @ObservationIgnored var launchSnapshotWrite: Task<Void, Never>?
-    let launchSnapshots = LaunchSnapshotStore.applicationSupport()
+    let launchSnapshots = LaunchSnapshotStore.applicationSupport(appProtocolVersion: HausAppProtocol.version)
     @ObservationIgnored var chatListRefreshAgain = false
     /// The deepest Chat surface on the user's stack, and the only Chat that
     /// acknowledges reads: it is what the user is actually looking at.
@@ -235,10 +217,14 @@ final class HausStore {
         }
     }
 
+    /// The Channels and DMs the shell lists. A Task Chat (ADR 0052), or a kind
+    /// this build does not know, is never listed as a Channel or DM: a Task
+    /// opens as a Task, from its preview, its chip, or its Unread row.
     var chats: [ChatSummary] {
         get { storedChats }
         set {
             if !hasLoadedChats { hasLoadedChats = true }
+            let newValue = newValue.filter(\.kind.isListedConversation)
             guard storedChats != newValue else { return }
             storedChats = newValue
             scheduleLaunchSnapshotWrite()
@@ -266,12 +252,7 @@ final class HausStore {
         guard !changed.isEmpty else { return }
         storedMessagesByChatID = newValue
         scheduleLaunchSnapshotWrite()
-        // A Thread's rows resolve cloud-agent conversation links through
-        // its parent's page, so loaded Threads (pages the Chat list does
-        // not name) follow any page write.
-        let listedChatIDs = Set(storedChats.map(\.id))
-        let threadChatIDs = newValue.keys.filter { !listedChatIDs.contains($0) }
-        projections.retireMessages(chatIDs: changed.union(threadChatIDs))
+        projections.retireMessages(chatIDs: changed)
     }
 
     var pendingMessagesByChatID: [String: [PendingChatMessage]] {

@@ -10,9 +10,9 @@ final class RealtimeStreamRestartsTests: XCTestCase {
     func testTheIPhoneSubscribesToEveryFocusedChatStream() {
         XCTAssertEqual(Set(RealtimeStream.allCases.map(\.path)), [
             "chat.onMessageCreated", "chat.onMessageReactionUpdated", "chat.onRead",
-            "thread.onFollowUpdated", "chat.onLifecycle", "cloudAgentWork.onUpdated",
-            "claim.onChanged", "taskLabel.onUpdated", "board.onUpdated", "task.onCreated",
-            "task.onUpdated", "taskInbox.onChanged", "agent.onLifecycle", "agent.onActivity",
+            "chat.onLifecycle", "cloudAgentWork.onUpdated",
+            "claim.onChanged", "taskLabel.onUpdated", "task.onCreated",
+            "task.onUpdated", "task.onFollowUpdated", "agent.onLifecycle", "agent.onActivity",
             "computer.onUpdated", "server.onUpdated",
         ])
     }
@@ -95,10 +95,10 @@ final class RealtimeStreamRestartsTests: XCTestCase {
     /// restart of it reloads transcripts in bulk.
     func testTheMessageStreamTailsOnEveryStartAndReloadsInBulkOnlyOnRestart() {
         XCTAssertEqual(Set(RealtimeStream.allCases.filter(\.tailsLoadedListsOnStart)), [.messageCreated])
-        XCTAssertEqual(RealtimeStream.messageCreated.startReconciliation(isRestart: false), [.chatList])
+        XCTAssertEqual(RealtimeStream.messageCreated.startReconciliation(isRestart: false), [.chatList, .unreadTasks])
         XCTAssertEqual(
             RealtimeStream.messageCreated.startReconciliation(isRestart: true),
-            [.openTranscripts, .chatList]
+            [.openTranscripts, .chatList, .unreadTasks]
         )
     }
 
@@ -143,16 +143,16 @@ final class RealtimeStreamRestartsTests: XCTestCase {
 
     /// A restart reloads only what that stream keeps fresh.
     func testEachStreamReloadsOnlyItsOwnProjections() {
-        let transcriptStreams: [RealtimeStream] = [.messageCreated, .messageReactionUpdated, .chatRead, .threadFollowUpdated]
-        for stream in transcriptStreams {
-            XCTAssertEqual(stream.ownedProjections, [.openTranscripts, .chatList], stream.path)
+        // A Task message or read also moves a followed Task's Unread row (ADR 0052).
+        for stream in [RealtimeStream.messageCreated, .chatRead] {
+            XCTAssertEqual(stream.ownedProjections, [.openTranscripts, .chatList, .unreadTasks], stream.path)
         }
+        XCTAssertEqual(RealtimeStream.messageReactionUpdated.ownedProjections, [.openTranscripts, .chatList])
         XCTAssertEqual(RealtimeStream.claimChanged.ownedProjections, [.openTranscripts, .chatList])
         XCTAssertEqual(RealtimeStream.taskLabelUpdated.ownedProjections, [.taskLabels])
-        XCTAssertEqual(RealtimeStream.boardUpdated.ownedProjections, [.boards, .boardTasks])
-        XCTAssertEqual(RealtimeStream.taskCreated.ownedProjections, [.boards, .boardTasks, .taskInbox])
-        XCTAssertEqual(RealtimeStream.taskUpdated.ownedProjections, [.boards, .boardTasks, .taskInbox])
-        XCTAssertEqual(RealtimeStream.taskInboxChanged.ownedProjections, [.taskInbox])
+        XCTAssertEqual(RealtimeStream.taskCreated.ownedProjections, [.taskDetails, .unreadTasks])
+        XCTAssertEqual(RealtimeStream.taskUpdated.ownedProjections, [.taskDetails, .unreadTasks])
+        XCTAssertEqual(RealtimeStream.taskFollowUpdated.ownedProjections, [.unreadTasks])
         XCTAssertEqual(
             RealtimeStream.cloudAgentWorkUpdated.ownedProjections,
             [.openTranscripts, .chatList, .activeCloudAgentWork]

@@ -21,30 +21,13 @@ extension HausStore {
         )
     }
 
-    func loadCloudAgentWork(serverID: String, chatID: String) async {
-        do {
-            let rows: [ThreadCloudAgentWork] = try await client.query(
-                "cloudAgentWork.listForChat",
-                input: CloudAgentChatInput(serverId: serverID, chatId: chatID)
-            )
-            guard activeServer?.id == serverID else { return }
-            if cloudAgentWorkByChatID[chatID] != rows { cloudAgentWorkByChatID[chatID] = rows }
-        } catch {
-            Self.logger.error("Loading cloud agents failed: \(error.localizedDescription, privacy: .public)")
-        }
-    }
-
     /// The App link Copy link shares, matching the web card: the
-    /// conversation presenting the card, which for a card inside a Thread is
-    /// the Thread's parent Chat. The production Server origin is the App
-    /// origin; a Debug build points at the local Server instead.
+    /// conversation presenting the card. The production Server origin is the
+    /// App origin; a Debug build points at the local Server instead.
     private func cloudAgentConversationLink(presentingChatID chatID: String) -> URL? {
-        guard let slug = activeServer?.slug else { return nil }
-        let conversationChatID = chatsByID[chatID] != nil ? chatID
-            : messagesByChatID.first { $0.value.threads.contains { $0.threadChatID == chatID } }?.key
-        guard let conversationChatID else { return nil }
+        guard let slug = activeServer?.slug, chatsByID[chatID] != nil else { return nil }
         var components = URLComponents(url: HausRuntimeConfiguration.serverOrigin, resolvingAgainstBaseURL: false)
-        components?.path = "/s/\(slug)/chats/\(conversationChatID)"
+        components?.path = "/s/\(slug)/chats/\(chatID)"
         return components?.url
     }
 
@@ -77,11 +60,6 @@ extension HausStore {
             }
         )
     }
-}
-
-private struct CloudAgentChatInput: Encodable {
-    let serverId: String
-    let chatId: String
 }
 
 private struct CloudAgentCancelInput: Encodable {

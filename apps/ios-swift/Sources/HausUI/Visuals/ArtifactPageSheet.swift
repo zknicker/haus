@@ -92,7 +92,7 @@ import UIKit
 ///
 /// Transcript rows live in `UIHostingConfiguration` cells, which own no view
 /// controller to present from, so the sheet is presented by the frontmost
-/// controller of the active window — above the Chat or Thread, never inside
+/// controller of the active window — above the Chat or Task, never inside
 /// the row.
 @MainActor
 enum ArtifactPagePresenter {

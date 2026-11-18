@@ -1,7 +1,7 @@
 import Foundation
 @testable import HausModels
 
-/// Messages, Thread summaries, and pages for the transcript cache tests.
+/// Messages, Task previews, and pages for the transcript cache tests.
 enum TranscriptFixture {
     static func message(
         _ id: String,
@@ -23,14 +23,15 @@ enum TranscriptFixture {
         return try! HausJSON.decoder().decode(ChatMessage.self, from: Data(json.utf8))
     }
 
-    static func thread(anchor: String, replyCount: Int = 1, unreadCount: Int = 0, followed: Bool = false) -> ThreadSummary {
-        ThreadSummary(
-            anchorMessageID: anchor,
-            followed: followed,
-            latestReplyAt: nil,
-            recentReplies: [],
-            replyCount: replyCount,
-            threadChatID: "thread_\(anchor)",
+    static func task(origin: String, messageCount: Int = 1, unreadCount: Int = 0) -> TaskPreview {
+        TaskPreview(
+            taskID: "task_\(origin)",
+            chatID: "chat_task_\(origin)",
+            key: "SEC-1",
+            title: "Task",
+            state: .open,
+            originMessageID: origin,
+            messageCount: messageCount,
             unreadCount: unreadCount
         )
     }
@@ -40,14 +41,14 @@ enum TranscriptFixture {
         nextBefore: Int? = nil,
         nextAfter: Int? = nil,
         scannedThrough: Int? = nil,
-        threads: [ThreadSummary] = []
+        tasks: [TaskPreview] = []
     ) -> ChatMessagePage {
         ChatMessagePage(
             messages: messages,
             nextBeforeSequence: nextBefore,
             nextAfterSequence: nextAfter,
             scannedThroughSequence: scannedThrough,
-            threads: threads
+            tasks: tasks
         )
     }
 

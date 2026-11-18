@@ -58,7 +58,7 @@ final class HausAppDelegate: NSObject, UIApplicationDelegate, UNUserNotification
         withCompletionHandler completionHandler: @escaping @Sendable () -> Void
     ) {
         let request = response.actionIdentifier == UNNotificationDefaultActionIdentifier
-            ? PushOpenRequest(userInfo: response.notification.request.content.userInfo)
+            ? PushNotificationPayload(userInfo: response.notification.request.content.userInfo)
             : nil
         Task { @MainActor in
             if let request {

@@ -12,10 +12,6 @@ import Foundation
 /// would otherwise read as belonging to the message above. A plain message
 /// never joins a reply's block for the same reason, and no block runs across a
 /// day divider.
-///
-/// A Thread passes its anchor as `implicitReplyID`: a reply to the anchor is
-/// already in the anchor's conversation, so its reference is implied rather
-/// than stated, and the row groups as a plain message.
 struct TranscriptRowGrouping: Equatable {
     let isContinuation: Bool
     let showsReplyReference: Bool
@@ -27,11 +23,10 @@ struct TranscriptRowGrouping: Equatable {
     init(
         _ message: MessagePresentation,
         after previous: MessagePresentation?,
-        implicitReplyID: String? = nil,
         calendar: Calendar = .current
     ) {
-        let parentID = Self.statedParent(message, implicitReplyID: implicitReplyID)
-        let previousParentID = previous.flatMap { Self.statedParent($0, implicitReplyID: implicitReplyID) }
+        let parentID = message.inlineReply?.id
+        let previousParentID = previous?.inlineReply?.id
         let repeatsReference = previous.map {
             parentID != nil && parentID == previousParentID && $0.author.id == message.author.id
         } ?? false
@@ -53,11 +48,5 @@ struct TranscriptRowGrouping: Equatable {
         }
         let neitherReplies = parentID == nil && previousParentID == nil
         isContinuation = neitherReplies || repeatsReference
-    }
-
-    /// The message a row's reference names, unless the surface already implies it.
-    private static func statedParent(_ message: MessagePresentation, implicitReplyID: String?) -> String? {
-        guard let parentID = message.inlineReply?.id, parentID != implicitReplyID else { return nil }
-        return parentID
     }
 }

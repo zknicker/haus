@@ -141,7 +141,7 @@ extension HausStore {
 
     // MARK: - Per-message refresh
 
-    /// A changed annotation (reaction, Thread summary, claim, Cloud Agent work):
+    /// A changed annotation (reaction, Task preview, claim, Cloud Agent work):
     /// mark it dirty for list reads in flight, cancel any older read of it,
     /// and read it again if a view shows it.
     func refreshEntity(_ refresh: EntityRefresh) {
@@ -203,7 +203,7 @@ extension HausStore {
     // MARK: - Bulk recovery
 
     /// Reloads the loaded pages of every open transcript (never per entity),
-    /// which rewrites their entities and parent Thread anchors, then reads
+    /// which rewrites their entities and Task previews, then reads
     /// each tail. Lists off screen are marked to reload when shown.
     func recoverOpenTranscripts() async {
         let readStart = realtimeReconciliation.beginRead()
@@ -272,7 +272,6 @@ extension HausStore {
         publishTranscripts(transcripts.removeLists { $0.chatID == chatID })
         inlineReplyChatIDByRootID = inlineReplyChatIDByRootID.filter { $0.value != chatID }
         pendingMessagesByChatID.removeValue(forKey: chatID)
-        cloudAgentWorkByChatID.removeValue(forKey: chatID)
         historyNavigation.followingLatest.removeValue(forKey: chatID)
         historyNavigation.visibleSequences.removeValue(forKey: chatID)
     }
@@ -290,7 +289,6 @@ extension HausStore {
         staleEntities = []
         staleTranscriptChatIDs = []
         deletedChatIDs = []
-        threadFollowOverlay = [:]
         publishTranscripts(transcripts.removeLists { _ in true })
     }
 }

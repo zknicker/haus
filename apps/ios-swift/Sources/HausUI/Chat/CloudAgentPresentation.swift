@@ -119,15 +119,6 @@ public struct CloudAgentPresentation: Identifiable, Hashable, Sendable {
         duration(seconds: Int(end.timeIntervalSince(start).rounded(.down)))
     }
 
-    /// The work a Message's Thread preview lists: everything linked inside
-    /// its Thread, never work the Message links itself, whose cards sit above
-    /// the preview. The conversation read keys parent-Chat work by its own Message.
-    public static func threadPreviewWork(
-        _ rows: [ThreadCloudAgentWork], anchorMessageID: String, ownWorkIDs: Set<String>
-    ) -> [CloudAgentWork] {
-        rows.filter { $0.anchorMessageId == anchorMessageID && !ownWorkIDs.contains($0.work.id) }.map(\.work)
-    }
-
     public static func externalURL(_ value: String?) -> URL? {
         guard let value, let url = URL(string: value),
               ["https", "http"].contains(url.scheme?.lowercased()), url.host != nil else { return nil }

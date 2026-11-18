@@ -12,14 +12,9 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
     /// the shell owns where it sits, what slides over it, and the drawer toggle
     /// it is handed — the drawer is the canvas's, not the page's.
     @ViewBuilder let inboxCanvas: (EdgeInsets, @escaping () -> Void) -> InboxCanvas
-    let onOpenTasks: () -> Void
     let onOpenInbox: () -> Void
-    /// Whether Tasks is the screen on top, so the sidebar marks it rather than
-    /// the Chat behind it.
-    private let showsTasks: Bool
     private let inboxHasUnread: Bool
     private let ghostTempo: HausGhostTempo
-    let onOpenThread: (ChatPresentation, MessagePresentation) -> Void
     let onSend: (ChatDestination, String, [ComposerAttachment]) async -> Bool
     let onSendInlineReply:
         ((ChatDestination, String, [ComposerAttachment], MessageReplyReferencePresentation) async -> Bool)?
@@ -91,12 +86,9 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         isConnected: Bool,
         @ViewBuilder settingsContent: @escaping ([SettingsRoute]) -> SettingsContent,
         @ViewBuilder inboxCanvas: @escaping (EdgeInsets, @escaping () -> Void) -> InboxCanvas,
-        onOpenTasks: @escaping () -> Void = {},
         onOpenInbox: @escaping () -> Void = {},
-        showsTasks: Bool = false,
         inboxHasUnread: Bool = false,
         ghostTempo: HausGhostTempo = .calm,
-        onOpenThread: @escaping (ChatPresentation, MessagePresentation) -> Void = { _, _ in },
         onSend: @escaping (ChatDestination, String, [ComposerAttachment]) async -> Bool,
         onSendInlineReply: ((ChatDestination, String, [ComposerAttachment], MessageReplyReferencePresentation) async -> Bool)? = nil,
         onOpenAttachment: @escaping (MessageAttachmentPresentation) async throws -> URL = { attachment in
@@ -134,12 +126,9 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         self.isConnected = isConnected
         self.settingsContent = settingsContent
         self.inboxCanvas = inboxCanvas
-        self.onOpenTasks = onOpenTasks
         self.onOpenInbox = onOpenInbox
-        self.showsTasks = showsTasks
         self.inboxHasUnread = inboxHasUnread
         self.ghostTempo = ghostTempo
-        self.onOpenThread = onOpenThread
         self.onSend = onSend
         self.onSendInlineReply = onSendInlineReply
         self.onOpenAttachment = onOpenAttachment
@@ -175,7 +164,6 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
                     onOpenInbox: openInboxCanvas,
                     inboxHasUnread: inboxHasUnread,
                     ghostTempo: ghostTempo,
-                    onOpenTasks: openTasks,
                     onOpenArchived: { activeChatSheet = .archived },
                     onOpenNewChannel: { activeChatSheet = .newChannel },
                     onMarkRead: onMarkRead,
@@ -233,10 +221,9 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         .onChange(of: canvasRouteRevision) { drawer.closeForCanvasRoute() }
     }
 
-    /// The sidebar marks what is on screen: Tasks over everything, then the
-    /// Inbox canvas, then the Chat it would otherwise be showing.
+    /// The sidebar marks what is on screen: the Inbox canvas, else the Chat
+    /// it would otherwise be showing.
     private var sidebarSelection: SidebarSelection? {
-        if showsTasks { return .tasks }
         if showsInbox { return .inbox }
         return selectedDestination.map { .chat($0.id) }
     }

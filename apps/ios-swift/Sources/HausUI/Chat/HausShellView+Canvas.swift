@@ -81,10 +81,6 @@ extension HausShellView {
             onOpenSidebar: { [drawer] in drawer.toggle() },
             onOpenChatDetails: { activeChatSheet = .details(destination) },
             onOpenSearch: { activeChatSheet = .search(scope: destination.durableChat) },
-            onOpenThread: { message in
-                guard let chat = destination.durableChat else { return }
-                onOpenThread(chat, message)
-            },
             onSend: { await onSend(destination, $0, $1) },
             onSendInlineReply: inlineReplySender(for: destination),
             onOpenAttachment: onOpenAttachment,

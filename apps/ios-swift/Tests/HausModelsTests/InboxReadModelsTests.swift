@@ -4,7 +4,7 @@ import XCTest
 
 private let workJSON = """
 {"activity":{"at":"2026-09-11T09:05:00.000Z","summary":"Reading the diff"},
- "agentId":"agent_1","cancelRequestedAt":null,"chatId":"chat_thread",
+ "agentId":"agent_1","cancelRequestedAt":null,"chatId":"chat_1",
  "createdAt":"2026-09-11T09:00:00.000Z","id":"work_1","messageId":"message_work",
  "job":{"followUp":null,"startedAt":"2026-09-11T09:01:00.000Z","state":"working"},
  "provider":"cursor","providerUrl":"https://cursor.com/work_1","repository":"zknicker/haus",
@@ -51,12 +51,12 @@ final class InboxReadModelsTests: XCTestCase {
         XCTAssertNil(chat.lastMessage)
     }
 
-    /// `activeWorkLocations.workThread` in `cloud-agent-work-fixture.ts`.
+    /// `activeWorkLocations.message` in `cloud-agent-work-fixture.ts`.
     func testDecodesServerWideActiveCloudAgentWork() throws {
         let json = """
         [{"agentName":"Blippy","chatKind":"dm","chatName":null,"chatPeerUserId":"user_2",
           "conversationChatId":"chat_1",
-          "location":{"anchorMessageId":"message_work","kind":"work-thread","threadChatId":"cht_work_thread"},
+          "location":{"chatId":"chat_1","kind":"message","messageId":"message_work"},
           "work":\(workJSON)}]
         """
 
@@ -70,14 +70,14 @@ final class InboxReadModelsTests: XCTestCase {
         XCTAssertEqual(row.conversationChatID, "chat_1")
         XCTAssertEqual(row.chatKind, .dm)
         XCTAssertEqual(row.chatPeerUserID, "user_2")
-        XCTAssertEqual(row.location, .workThread(threadChatID: "cht_work_thread", anchorMessageID: "message_work"))
+        XCTAssertEqual(row.location, .message(chatID: "chat_1", messageID: "message_work"))
     }
 
     /// `location` is the only way a row says where it opens.
     func testRejectsARowWithoutALocation() {
         let json = """
         {"agentName":"Blippy","chatKind":"channel","chatName":"product","chatPeerUserId":null,
-         "conversationChatId":"chat_1","threadChatId":"chat_thread","work":\(workJSON)}
+         "conversationChatId":"chat_1","work":\(workJSON)}
         """
 
         XCTAssertThrowsError(try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8)))
@@ -89,7 +89,7 @@ final class InboxReadModelsTests: XCTestCase {
         let json = """
         {"agentName":"Blippy","chatKind":"channel","chatName":"tech-ops","chatPeerUserId":null,
          "conversationChatId":"cht_tech_ops",
-         "location":{"chatId":"cht_tech_ops","kind":"message","messageId":"msg_linking_elsewhere","threadChatId":null},
+         "location":{"chatId":"cht_tech_ops","kind":"message","messageId":"msg_linking_elsewhere"},
          "work":\(workJSON)}
         """
 
@@ -97,7 +97,7 @@ final class InboxReadModelsTests: XCTestCase {
 
         XCTAssertEqual(
             row.location,
-            .message(chatID: "cht_tech_ops", messageID: "msg_linking_elsewhere", threadChatID: nil)
+            .message(chatID: "cht_tech_ops", messageID: "msg_linking_elsewhere")
         )
     }
 
@@ -112,24 +112,6 @@ final class InboxReadModelsTests: XCTestCase {
         }
     }
 
-    /// A Message in a Thread names its Channel as `chatId` and the Thread as
-    /// `threadChatId`; the row decodes both as sent.
-    func testMessageLocationInAThreadKeepsTheChannelAndThread() throws {
-        let json = """
-        {"agentName":"Blippy","chatKind":"channel","chatName":"tech-ops","chatPeerUserId":null,
-         "conversationChatId":"cht_tech_ops",
-         "location":{"chatId":"cht_tech_ops","kind":"message","messageId":"msg_reply","threadChatId":"cht_reply_thread"},
-         "work":\(workJSON)}
-        """
-
-        let row = try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8))
-
-        XCTAssertEqual(
-            row.location,
-            .message(chatID: "cht_tech_ops", messageID: "msg_reply", threadChatID: "cht_reply_thread")
-        )
-    }
-
     /// A newer location kind skips only its own row; "Happening now" keeps the rest.
     func testListSkipsARowWithAnUnknownLocationKind() throws {
         let unknown = """
@@ -139,7 +121,7 @@ final class InboxReadModelsTests: XCTestCase {
         let known = """
         {"agentName":"Blippy","chatKind":"channel","chatName":"tech-ops","chatPeerUserId":null,
          "conversationChatId":"cht_tech_ops",
-         "location":{"chatId":"cht_tech_ops","kind":"message","messageId":"msg_linking_elsewhere","threadChatId":null},
+         "location":{"chatId":"cht_tech_ops","kind":"message","messageId":"msg_linking_elsewhere"},
          "work":\(workJSON)}
         """
 

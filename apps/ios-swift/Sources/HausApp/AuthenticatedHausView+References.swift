@@ -2,20 +2,18 @@ import HausModels
 import HausUI
 import SwiftUI
 
-/// What a transcript row reaches beyond itself: a tapped Thread chip, an
-/// opened artifact page or shared artifact, and Try Again or Delete on a failed send. Rows live in hosted cells with no environment, so the
-/// App installs these once at its root (`InAppReferenceRoutes`,
+/// What a transcript row reaches beyond itself: a tapped Message or Task chip,
+/// an opened artifact page or shared artifact, and Try Again or Delete on a
+/// failed send. Rows live in hosted cells with no environment, so the App
+/// installs these once at its root (`InAppReferenceRoutes`,
 /// `ArtifactPageReader`, `SharedArtifactReader`).
 extension AuthenticatedHausView {
     func installTranscriptRoutes() {
-        InAppReferenceRoutes.openThread = { reference in
-            openReferencedThread(reference)
+        InAppReferenceRoutes.openMessage = { reference in
+            openCanvasChat(.chat(reference.chatID), revealing: reference.messageID)
         }
         InAppReferenceRoutes.openTask = { reference in
             openTask(reference.taskID)
-        }
-        MessageActionRoutes.convertToTask = { message in
-            convertingMessage = message
         }
         ArtifactPageReader.read = { [store] agentID, path in
             try await store.readArtifactPage(agentID: agentID, path: path)
@@ -26,16 +24,6 @@ extension AuthenticatedHausView {
         }
         FailedSendRoutes.delete = { [store] messageID in
             store.deleteFailedSend(messageID: messageID)
-        }
-    }
-
-    /// A Thread chip opens its Thread over its parent Chat, the way the
-    /// Thread's own preview card does, so Back lands in the conversation the
-    /// Thread belongs to.
-    func openReferencedThread(_ reference: ThreadReferenceTarget) {
-        Task {
-            guard let selection = await store.threadSelection(for: reference) else { return }
-            pushThread(selection, selectingParent: reference.chatID)
         }
     }
 }

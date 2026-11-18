@@ -5,24 +5,21 @@ import SwiftUI
 import UIKit
 #endif
 
-/// One Task: what it is, its properties, and where it is being talked about.
-///
-/// A Task has no comments. Discussion lives in Channels and Threads, and the
-/// messages that reference it are its **Mentioned in**, so this screen only ever
-/// leads out to them.
+/// A Task from before Tasks were places: one with no Chat of its own (ADR
+/// 0052). It is read-only history, so the screen states what the Task is and
+/// where it was talked about, with no composer and no control that writes.
+/// A Task with a Chat never lands here; it opens as a chat (`TaskChatView`).
 public struct TaskDetailView: View {
     private let taskID: String
-    private let source: TaskBoardSource
+    private let source: TaskDetailSource
     private let onOpenMention: (TaskMention) -> Void
     private let onOpenReminder: (TaskReminderRef) -> Void
 
     @State private var failure: String?
-    @State private var errorMessage: String?
-    @State private var showsEditor = false
 
     public init(
         taskID: String,
-        source: TaskBoardSource,
+        source: TaskDetailSource,
         onOpenMention: @escaping (TaskMention) -> Void,
         onOpenReminder: @escaping (TaskReminderRef) -> Void
     ) {
@@ -39,20 +36,10 @@ public struct TaskDetailView: View {
             .toolbar { toolbar }
             .task { await load() }
             .refreshable { await load() }
-            .sheet(isPresented: $showsEditor) {
-                if let task = detail?.task {
-                    TaskEditorSheet(task: task, source: source)
-                }
-            }
     }
 
-    private var detail: BoardTaskDetail? {
+    private var detail: TaskDetail? {
         source.detail(taskID)
-    }
-
-    private var board: Board? {
-        guard let task = detail?.task else { return nil }
-        return source.boards()?.first { $0.id == task.boardID }
     }
 
     @ViewBuilder
@@ -76,20 +63,9 @@ public struct TaskDetailView: View {
         }
     }
 
-    private func list(_ detail: BoardTaskDetail) -> some View {
+    private func list(_ detail: TaskDetail) -> some View {
         List {
             header(detail)
-            if let errorMessage {
-                Label(errorMessage, systemImage: "exclamationmark.triangle")
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-            }
-            TaskPropertiesSection(
-                task: detail.task,
-                columns: board?.columns ?? [],
-                source: source,
-                onFailure: { errorMessage = $0 }
-            )
             facts(detail.task)
             TaskMentionsSection(
                 mentions: detail.mentions,
@@ -106,21 +82,17 @@ public struct TaskDetailView: View {
         #endif
     }
 
-    /// The title and the description read as the Task's own words, not as form
-    /// fields, so editing them is a deliberate step into a sheet. The
+    /// The title and the description read as the Task's own words. The
     /// description draws like a message body, so its references are the same
     /// chips a Channel shows and open the same way.
-    private func header(_ detail: BoardTaskDetail) -> some View {
+    private func header(_ detail: TaskDetail) -> some View {
         Section {
             VStack(alignment: .leading, spacing: 10) {
                 Text(detail.task.title)
                     .font(.title3.weight(.semibold))
+                    .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                if detail.task.description.isEmpty {
-                    Button("Add a description") { showsEditor = true }
-                        .buttonStyle(.borderless)
-                        .font(.subheadline)
-                } else {
+                if !detail.descriptionContent.isEmpty {
                     RichMessageContentView(
                         blocks: source.descriptionBlocks(detail),
                         textStyle: .subheadline
@@ -128,17 +100,35 @@ public struct TaskDetailView: View {
                 }
             }
             .padding(.vertical, 4)
+        } footer: {
+            Text("This Task is from before Tasks had their own conversation, so it's read-only.")
         }
     }
 
-    private func facts(_ task: BoardTask) -> some View {
+    /// Native settings rows: a short title and a one-line value each. Two
+    /// rows for the creator and the day, because one `Blippy · Nov 5, 2026`
+    /// value wraps mid-date at accessibility sizes.
+    private func facts(_ task: TaskRecord) -> some View {
         Section {
-            if let board {
-                LabeledContent("Board", value: board.name)
+            LabeledContent("State") {
+                HStack(spacing: 6) {
+                    TaskStateDisc(state: task.state, size: 15)
+                    Text(TaskStateLabel.text(task.state))
+                }
             }
-            // Two rows, because one `Blippy · Nov 5, 2026` value wraps mid-date
-            // at accessibility sizes.
-            if let creator = source.actor(task.createdBy)?.name {
+            if let assignee = task.assignee.flatMap(source.actor)?.name {
+                LabeledContent("Assignee", value: assignee)
+            }
+            if task.priority != .none {
+                LabeledContent("Priority", value: task.priority.displayName)
+            }
+            if let due = task.dueOn.flatMap({ TaskDueDate.label($0) }) {
+                LabeledContent("Due", value: due)
+            }
+            if let labels = labelSummary(task) {
+                LabeledContent("Labels", value: labels)
+            }
+            if let creator = task.createdBy.flatMap(source.actor)?.name {
                 LabeledContent("Created by", value: creator)
             }
             LabeledContent("Created") {
@@ -150,13 +140,22 @@ public struct TaskDetailView: View {
         }
     }
 
+    /// One short value whatever the Task carries: a value that wraps or
+    /// truncates in a settings row reads as broken.
+    private func labelSummary(_ task: TaskRecord) -> String? {
+        let names = source.labels().filter { task.labelIDs.contains($0.id) }.map(\.name)
+        switch names.count {
+        case 0: return nil
+        case 1 where names[0].count <= 20: return names[0]
+        case 1: return "1 label"
+        default: return "\(names.count) labels"
+        }
+    }
+
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
             Menu {
-                Button { showsEditor = true } label: {
-                    Label("Edit", systemImage: "pencil")
-                }
                 Button { copyReference() } label: {
                     Label("Copy reference", systemImage: "doc.on.doc")
                 }
@@ -174,28 +173,23 @@ public struct TaskDetailView: View {
     }
 
     /// The Task opens with what the rest of the screen stands on. A failure
-    /// after the Task has landed is a note on it, not the loss of the screen.
+    /// after the Task has landed keeps the screen; the next read repairs it.
     private func load() async {
         do {
             async let detail: Void = source.loadDetail(taskID)
-            async let boards: Void = source.loadBoards()
             async let labels: Void = source.loadLabels()
-            _ = try await (detail, boards, labels)
+            _ = try await (detail, labels)
             failure = nil
         } catch is CancellationError {
             return
         } catch {
-            guard !Task.isCancelled else { return }
-            if detail == nil {
-                failure = error.localizedDescription
-            } else {
-                errorMessage = error.localizedDescription
-            }
+            guard !Task.isCancelled, detail == nil else { return }
+            failure = error.localizedDescription
         }
     }
 }
 
-#Preview("Task") {
+#Preview("Read-only Task") {
     NavigationStack {
         TaskDetailView(
             taskID: "task_12",

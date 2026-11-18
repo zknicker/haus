@@ -74,7 +74,6 @@ public struct MessageClaim: Codable, Identifiable, Sendable, Equatable {
     public let number: Int
     public let origin: ClaimOrigin
     public let status: ClaimStatus
-    public let threadChatID: String
     public let tier: ClaimTier
     public let updatedAt: Date
     public let version: Int
@@ -93,7 +92,6 @@ public struct MessageClaim: Codable, Identifiable, Sendable, Equatable {
         case number
         case origin
         case status
-        case threadChatID = "threadChatId"
         case tier
         case updatedAt
         case version

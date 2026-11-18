@@ -38,120 +38,14 @@ extension HausStore {
         )
     }
 
-    /// Every unread Chat and Thread and every assigned Task, newest first, less
-    /// any Mark read still settling. Nil until the Chat list has landed.
+    /// Every unread Chat and followed Task, newest first, less any Mark read
+    /// still settling. Nil until the Chat list has landed.
     var inboxUnreadRows: [InboxUnreadRow]? {
         guard let unreadChats else { return nil }
         return InboxUnreadRows.rows(
             unreadChats.map(inboxUnreadChat),
-            threads: visibleUnreadThreads.compactMap(inboxUnreadThread),
-            tasks: visibleTaskInboxItems.map(inboxTaskItem),
+            taskChats: inboxUnreadTaskChats,
             viewerDisplayName: inboxGreetingName
-        )
-    }
-
-    private func inboxTaskItem(_ item: TaskInboxItem) -> InboxTaskItem {
-        let assigner = actorPresentation(
-            agentID: item.assignedBy.kind == .agent ? item.assignedBy.id : nil,
-            userID: item.assignedBy.kind == .user ? item.assignedBy.id : nil
-        )
-        return InboxTaskItem(
-            id: item.task.id,
-            key: item.task.key,
-            title: item.task.title,
-            boardName: item.boardName,
-            // The Server resolved this name; the directory only adds the face.
-            assignerName: item.assignedBy.label,
-            assignerAvatarURL: assigner?.avatarURL,
-            assignedAt: item.assignedAt,
-            priority: item.task.priority,
-            dueOn: item.task.dueOn,
-            columnID: item.task.columnID,
-            category: item.task.category,
-            columns: taskSnapshots.boards?.first { $0.id == item.task.boardID }?.columns ?? [],
-            context: inboxTaskContext(item)
-        )
-    }
-
-    private func inboxTaskContext(_ item: TaskInboxItem) -> InboxTaskContext? {
-        guard let message = item.contextMessage,
-              let place = item.contextPlace,
-              let author = authorPresentation(message.author)
-        else { return nil }
-        return InboxTaskContext(
-            authorName: author.name,
-            authorAvatarURL: author.avatarURL,
-            place: place.label,
-            createdAt: message.createdAt,
-            content: message.displayContent,
-            acceptsReplies: chatsByID[place.chatID]?.isReadOnly != true
-        )
-    }
-
-    /// What the Inbox does to a Task item, stated back as the line it shows.
-    var inboxTaskActions: InboxTaskActions {
-        InboxTaskActions(
-            move: { [weak self] item, column in
-                guard let self else { return InboxTaskNotice(message: "That didn't go through.") }
-                return await resolveInboxTask(item, column: column)
-            },
-            markRead: { [weak self] item in
-                guard let self else { return InboxTaskNotice(message: "That didn't go through.") }
-                return await markInboxTaskRead(item)
-            },
-            undo: { [weak self] undo in await self?.undoInboxTask(undo) },
-            reply: { [weak self] item, content in
-                await self?.replyToTaskInboxItem(taskID: item.id, content: content) ?? false
-            }
-        )
-    }
-
-    private func resolveInboxTask(_ item: InboxTaskItem, column: BoardColumn) async -> InboxTaskNotice {
-        do {
-            let moved = try await moveTaskInboxItem(taskID: item.id, toColumnID: column.id)
-            return InboxTaskNotice(
-                message: "\(item.key) moved to \(column.name).",
-                undo: InboxTaskUndo(taskID: item.id, moved: moved, previousColumnID: item.columnID)
-            )
-        } catch {
-            return InboxTaskNotice(message: error.localizedDescription)
-        }
-    }
-
-    private func markInboxTaskRead(_ item: InboxTaskItem) async -> InboxTaskNotice {
-        do {
-            try await clearTaskInboxItem(taskID: item.id)
-            return InboxTaskNotice(message: "\(item.key) marked read.", undo: InboxTaskUndo(taskID: item.id))
-        } catch {
-            return InboxTaskNotice(message: error.localizedDescription)
-        }
-    }
-
-    /// An Undo that worked says nothing: the item coming back is the answer.
-    private func undoInboxTask(_ undo: InboxTaskUndo) async -> InboxTaskNotice? {
-        do {
-            try await undoTaskInboxClear(
-                taskID: undo.taskID,
-                moved: undo.moved,
-                previousColumnID: undo.previousColumnID
-            )
-            return nil
-        } catch {
-            return InboxTaskNotice(message: error.localizedDescription)
-        }
-    }
-
-    /// A Thread row names and wears its parent; `visibleUnreadThreads` only
-    /// holds Threads whose parent is listed.
-    private func inboxUnreadThread(_ thread: UnreadThread) -> InboxUnreadThread? {
-        guard let parent = chatsByID[thread.parentChatID] else { return nil }
-        let parentRow = inboxUnreadChat(parent)
-        return InboxUnreadThread(
-            id: thread.threadChatID,
-            channelName: parentRow.isChannel ? parentRow.name : nil,
-            mark: parentRow.mark,
-            lastActivityAt: thread.lastActivityAt,
-            latestReply: thread.latestReply
         )
     }
 
@@ -186,6 +80,10 @@ extension HausStore {
                 avatarURL: actor?.avatarURL,
                 presence: actor?.presence
             )
+        case .task, .unknown:
+            // The Chat list holds neither; Task rows come from `unreadTaskRows`.
+            name = chat.name ?? "Task"
+            mark = .channel(ChannelAppearance(icon: nil, color: nil))
         }
         return InboxUnreadChat(
             id: chat.id,

@@ -7,14 +7,12 @@ final class ChatHistoryWindowTests: XCTestCase {
         let older = ChatMessagePage(
             messages: [try message(id: "one", sequence: 1)],
             nextBeforeSequence: nil,
-            nextAfterSequence: 1,
-            threads: []
+            nextAfterSequence: 1
         )
         let newer = ChatMessagePage(
             messages: [try message(id: "two", sequence: 2)],
             nextBeforeSequence: 1,
-            nextAfterSequence: nil,
-            threads: []
+            nextAfterSequence: nil
         )
 
         var window = ChatHistoryWindow(page: newer)
@@ -32,23 +30,20 @@ final class ChatHistoryWindowTests: XCTestCase {
                 try message(id: "one", sequence: 1),
                 try message(id: "old-three", sequence: 3, content: "stale")
             ],
-            nextBeforeSequence: nil,
-            threads: [thread(anchor: "three"), thread(anchor: "missing")]
+            nextBeforeSequence: nil
         )
 
         let window = ChatHistoryWindow(page: page, capacity: 200)
 
         XCTAssertEqual(window.page.messages.map(\.id), ["one", "three"])
         XCTAssertEqual(window.page.messages.last?.content, "fresh")
-        XCTAssertEqual(window.page.threads.map(\.anchorMessageID), ["three"])
     }
 
     func testPrependingAndAppendingEvictTheOppositeEdgeAndRebindCursors() throws {
         let current = ChatMessagePage(
             messages: try (251...400).map { try message(id: "message-\($0)", sequence: $0) },
             nextBeforeSequence: 250,
-            nextAfterSequence: 400,
-            threads: []
+            nextAfterSequence: 400
         )
 
         var olderWindow = ChatHistoryWindow(page: current)
@@ -56,8 +51,7 @@ final class ChatHistoryWindowTests: XCTestCase {
             ChatMessagePage(
                 messages: try (1...250).map { try message(id: "message-\($0)", sequence: $0) },
                 nextBeforeSequence: nil,
-                nextAfterSequence: 250,
-                threads: []
+                nextAfterSequence: 250
             )
         )
         XCTAssertEqual(olderWindow.page.messages.map(\.sequence), Array(1...200))
@@ -69,8 +63,7 @@ final class ChatHistoryWindowTests: XCTestCase {
             ChatMessagePage(
                 messages: try (401...650).map { try message(id: "message-\($0)", sequence: $0) },
                 nextBeforeSequence: 400,
-                nextAfterSequence: nil,
-                threads: []
+                nextAfterSequence: nil
             )
         )
         XCTAssertEqual(newerWindow.page.messages.map(\.sequence), Array(451...650))
@@ -83,8 +76,7 @@ final class ChatHistoryWindowTests: XCTestCase {
             page: ChatMessagePage(
                 messages: try (951...1000).map { try message(id: "message-\($0)", sequence: $0) },
                 nextBeforeSequence: 950,
-                nextAfterSequence: nil,
-                threads: []
+                nextAfterSequence: nil
             )
         )
 
@@ -96,8 +88,7 @@ final class ChatHistoryWindowTests: XCTestCase {
                         try message(id: "message-\($0)", sequence: $0)
                     },
                     nextBeforeSequence: lowerBound == 1 ? nil : lowerBound - 1,
-                    nextAfterSequence: upperBound,
-                    threads: []
+                    nextAfterSequence: upperBound
                 )
             )
             XCTAssertLessThanOrEqual(window.page.messages.count, ChatHistoryWindow.defaultCapacity)
@@ -115,8 +106,7 @@ final class ChatHistoryWindowTests: XCTestCase {
                         try message(id: "message-\($0)", sequence: $0)
                     },
                     nextBeforeSequence: lowerBound == 201 ? nil : lowerBound - 1,
-                    nextAfterSequence: upperBound == 1000 ? nil : upperBound,
-                    threads: []
+                    nextAfterSequence: upperBound == 1000 ? nil : upperBound
                 )
             )
             XCTAssertLessThanOrEqual(window.page.messages.count, ChatHistoryWindow.defaultCapacity)
@@ -133,8 +123,7 @@ final class ChatHistoryWindowTests: XCTestCase {
             page: ChatMessagePage(
                 messages: try (101...200).map { try message(id: "message-\($0)", sequence: $0) },
                 nextBeforeSequence: 100,
-                nextAfterSequence: nil,
-                threads: [thread(anchor: "message-150")]
+                nextAfterSequence: nil
             )
         )
 
@@ -145,8 +134,7 @@ final class ChatHistoryWindowTests: XCTestCase {
                     try message(id: "message-220", sequence: 220)
                 ],
                 nextBeforeSequence: 219,
-                nextAfterSequence: nil,
-                threads: [thread(anchor: "message-150"), thread(anchor: "message-220")]
+                nextAfterSequence: nil
             ),
             followingLatest: false
         )
@@ -157,7 +145,6 @@ final class ChatHistoryWindowTests: XCTestCase {
         XCTAssertEqual(window.page.messages.first { $0.sequence == 150 }?.content, "edited")
         XCTAssertEqual(window.page.nextBeforeSequence, 100)
         XCTAssertEqual(window.page.nextAfterSequence, 200)
-        XCTAssertEqual(window.page.threads.map(\.anchorMessageID), ["message-150"])
     }
 
     func testTailRefreshAppendsContiguousRowsAndReplacesASeparatedNewestPage() throws {
@@ -165,16 +152,14 @@ final class ChatHistoryWindowTests: XCTestCase {
             page: ChatMessagePage(
                 messages: try (101...200).map { try message(id: "message-\($0)", sequence: $0) },
                 nextBeforeSequence: nil,
-                nextAfterSequence: 200,
-                threads: []
+                nextAfterSequence: 200
             )
         )
         contiguous.refresh(
             latest: ChatMessagePage(
                 messages: try (201...250).map { try message(id: "message-\($0)", sequence: $0) },
                 nextBeforeSequence: 200,
-                nextAfterSequence: nil,
-                threads: []
+                nextAfterSequence: nil
             ),
             followingLatest: true
         )
@@ -186,16 +171,14 @@ final class ChatHistoryWindowTests: XCTestCase {
             page: ChatMessagePage(
                 messages: try (101...200).map { try message(id: "message-\($0)", sequence: $0) },
                 nextBeforeSequence: nil,
-                nextAfterSequence: 200,
-                threads: []
+                nextAfterSequence: 200
             )
         )
         separated.refresh(
             latest: ChatMessagePage(
                 messages: try (251...300).map { try message(id: "message-\($0)", sequence: $0) },
                 nextBeforeSequence: 250,
-                nextAfterSequence: nil,
-                threads: []
+                nextAfterSequence: nil
             ),
             followingLatest: true
         )
@@ -209,8 +192,7 @@ final class ChatHistoryWindowTests: XCTestCase {
             page: ChatMessagePage(
                 messages: try (1...50).map { try message(id: "message-\($0)", sequence: $0) },
                 nextBeforeSequence: nil,
-                nextAfterSequence: 50,
-                threads: []
+                nextAfterSequence: 50
             )
         )
 
@@ -218,8 +200,7 @@ final class ChatHistoryWindowTests: XCTestCase {
             with: ChatMessagePage(
                 messages: try (501...550).map { try message(id: "message-\($0)", sequence: $0) },
                 nextBeforeSequence: 500,
-                nextAfterSequence: 550,
-                threads: []
+                nextAfterSequence: 550
             )
         )
 
@@ -244,17 +225,5 @@ final class ChatHistoryWindowTests: XCTestCase {
         }
         """
         return try HausJSON.decoder().decode(ChatMessage.self, from: Data(json.utf8))
-    }
-
-    private func thread(anchor: String) -> ThreadSummary {
-        ThreadSummary(
-            anchorMessageID: anchor,
-            followed: false,
-            latestReplyAt: nil,
-            recentReplies: [],
-            replyCount: 0,
-            threadChatID: "thread-\(anchor)",
-            unreadCount: 0
-        )
     }
 }

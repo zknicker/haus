@@ -111,20 +111,6 @@ private typealias Job = CloudAgentWorkFixture.Job
         #expect(unparsed.pullRequestURL != nil)
     }
 
-    @Test func threadPreviewNeverRepeatsTheAnchorsOwnWork() throws {
-        let own = try Fixture.work(id: "work-1").work
-        let encoded = String(decoding: try HausJSON.encoder().encode(own), as: UTF8.self)
-        let inner = encoded.replacingOccurrences(of: #""id":"work-1""#, with: #""id":"work-2""#)
-        let rows = try HausJSON.decoder().decode([ThreadCloudAgentWork].self, from: Data("""
-        [{"anchorMessageId":"delegation-1","work":\(encoded)},
-         {"anchorMessageId":"delegation-1","work":\(inner)},
-         {"anchorMessageId":"other-anchor","work":\(inner)}]
-        """.utf8))
-        let listed = CloudAgentPresentation.threadPreviewWork(rows, anchorMessageID: "delegation-1", ownWorkIDs: [own.id])
-        #expect(listed.map(\.id) == ["work-2"])
-        #expect(CloudAgentPresentation.threadPreviewWork(rows, anchorMessageID: "delegation-1", ownWorkIDs: []).count == 2)
-    }
-
     @Test func onlyWebDestinationsCanBeOpened() {
         #expect(CloudAgentPresentation.externalURL("https://github.com/zknicker/haus/pull/112") != nil)
         #expect(CloudAgentPresentation.externalURL("javascript:alert(1)") == nil)

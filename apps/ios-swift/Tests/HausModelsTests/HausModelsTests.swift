@@ -49,7 +49,7 @@ final class HausModelsTests: XCTestCase {
         XCTAssertEqual(directory.viewerRole, .owner)
     }
 
-    func testDecodesMessagePageAuthorsThreadsAndClaims() throws {
+    func testDecodesMessagePageAuthorsAndClaims() throws {
         let json = """
         {
           "messages": [
@@ -57,12 +57,11 @@ final class HausModelsTests: XCTestCase {
               "attachments": [{"filename":"brief.pdf","id":"attachment_1","mediaType":"application/pdf","sizeBytes":42}],
               "author": {"kind":"human","userId":"user_1","profile":{"avatarUrl":null,"deleted":false,"description":null,"displayName":"Zach"}},
               "chatId":"chat_1","content":"Please review this.","createdAt":"2026-08-15T14:00:00Z","id":"message_1","nonce":"nonce_1","runId":null,"sequence":1,"serverId":"server_1",
-              "claim": {"assigneeAgentId":"agent_1","chatId":"chat_1","claimedAt":null,"createdAt":"2026-08-15T14:00:00Z","createdByAgentId":null,"createdByUserId":"user_1","live":false,"messageId":"message_1","number":1,"origin":"converted","status":"todo","threadChatId":"thread_1","tier":"tracked","updatedAt":"2026-08-15T14:00:00Z","version":1}
+              "claim": {"assigneeAgentId":"agent_1","chatId":"chat_1","claimedAt":null,"createdAt":"2026-08-15T14:00:00Z","createdByAgentId":null,"createdByUserId":"user_1","live":false,"messageId":"message_1","number":1,"origin":"converted","status":"todo","tier":"tracked","updatedAt":"2026-08-15T14:00:00Z","version":1}
             }
           ],
           "nextBeforeSequence": null,
-          "scannedThroughSequence": 1,
-          "threads": [{"anchorMessageId":"message_1","followed":true,"latestReplyAt":"2026-08-15T14:01:00Z","recentReplies":[],"replyCount":1,"threadChatId":"thread_1","unreadCount":1}]
+          "scannedThroughSequence": 1
         }
         """
 
@@ -71,7 +70,6 @@ final class HausModelsTests: XCTestCase {
         XCTAssertEqual(page.messages.count, 1)
         XCTAssertEqual(page.messages[0].attachments[0].mediaType, "application/pdf")
         XCTAssertEqual(page.messages[0].claim?.status, .todo)
-        XCTAssertEqual(page.threads[0].replyCount, 1)
 
         if case let .human(_, userID) = page.messages[0].author {
             XCTAssertEqual(userID, "user_1")
@@ -219,8 +217,7 @@ final class HausModelsTests: XCTestCase {
             {"attachments":[],"author":{"agentId":"agent_1","kind":"agent"},"chatId":"chat_1","content":"Reviewed.","createdAt":"2026-08-15T14:00:02Z","id":"message_2","nonce":"nonce_2","runId":"run_1","sequence":2,"serverId":"server_1","sessionGeneration":7}
           ],
           "nextBeforeSequence": null,
-          "scannedThroughSequence": 1,
-          "threads": []
+          "scannedThroughSequence": 1
         }
         """
 

@@ -4,8 +4,8 @@ import Foundation
 ///
 /// Pages are immutable Server snapshots. The window makes page direction
 /// explicit so loading older history keeps the old edge visible while loading
-/// newer history keeps the new edge visible. Message and Thread rows from the
-/// incoming page win when records overlap.
+/// newer history keeps the new edge visible. Messages from the incoming page
+/// win when records overlap.
 public struct ChatHistoryWindow: Equatable, Sendable {
     public static let defaultCapacity = 200
     public static let defaultPageSize = 50
@@ -88,19 +88,11 @@ public struct ChatHistoryWindow: Equatable, Sendable {
             current: page.messages,
             incoming: overlappingMessages
         )
-        let refreshedThreads = Self.mergedThreads(
-            current: page.threads,
-            incoming: latestPage.threads.filter { thread in
-                page.messages.contains { $0.id == thread.anchorMessageID }
-            },
-            retainedMessages: refreshedMessages
-        )
         let newerAvailable = latestLast > currentLast
         page = ChatMessagePage(
             messages: Self.sortedMessages(refreshedMessages),
             nextBeforeSequence: page.nextBeforeSequence,
-            nextAfterSequence: newerAvailable ? currentLast : page.nextAfterSequence,
-            threads: refreshedThreads
+            nextAfterSequence: newerAvailable ? currentLast : page.nextAfterSequence
         )
     }
 
@@ -118,12 +110,7 @@ public struct ChatHistoryWindow: Equatable, Sendable {
             return ChatMessagePage(
                 messages: messages,
                 nextBeforeSequence: replacement.nextBeforeSequence,
-                nextAfterSequence: replacement.nextAfterSequence,
-                threads: mergedThreads(
-                    current: [],
-                    incoming: replacement.threads,
-                    retainedMessages: messages
-                )
+                nextAfterSequence: replacement.nextAfterSequence
             )
         }
 
@@ -131,12 +118,7 @@ public struct ChatHistoryWindow: Equatable, Sendable {
         return ChatMessagePage(
             messages: retained,
             nextBeforeSequence: retained.first?.sequence,
-            nextAfterSequence: replacement.nextAfterSequence,
-            threads: mergedThreads(
-                current: [],
-                incoming: replacement.threads,
-                retainedMessages: retained
-            )
+            nextAfterSequence: replacement.nextAfterSequence
         )
     }
 
@@ -179,12 +161,7 @@ public struct ChatHistoryWindow: Equatable, Sendable {
         return ChatMessagePage(
             messages: retained,
             nextBeforeSequence: nextBeforeSequence,
-            nextAfterSequence: nextAfterSequence,
-            threads: mergedThreads(
-                current: current.threads,
-                incoming: incoming.threads,
-                retainedMessages: retained
-            )
+            nextAfterSequence: nextAfterSequence
         )
     }
 
@@ -216,25 +193,6 @@ public struct ChatHistoryWindow: Equatable, Sendable {
             }
         }
         return Array(bySequence.values)
-    }
-
-    private static func mergedThreads(
-        current: [ThreadSummary],
-        incoming: [ThreadSummary],
-        retainedMessages: [ChatMessage]
-    ) -> [ThreadSummary] {
-        var byAnchorID: [String: ThreadSummary] = [:]
-        for thread in current {
-            byAnchorID[thread.anchorMessageID] = thread
-        }
-        for thread in incoming {
-            byAnchorID[thread.anchorMessageID] = thread
-        }
-
-        let retainedIDs = Set(retainedMessages.map(\.id))
-        return byAnchorID.values
-            .filter { retainedIDs.contains($0.anchorMessageID) }
-            .sorted { $0.anchorMessageID < $1.anchorMessageID }
     }
 
     private static func overlappingMessages(

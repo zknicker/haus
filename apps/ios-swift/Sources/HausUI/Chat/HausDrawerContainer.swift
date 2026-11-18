@@ -52,7 +52,6 @@ struct HausDrawerEnvironment: ViewModifier {
     private let opensWithEntrance: Bool
     private let reactionStickers: ReactionStickerBoard?
     private let cloudAgentCancel: CloudAgentCancelAction?
-    private let cloudAgentStackExpansion: ThreadCloudAgentStackExpansion?
     private let chatEngagementSource: ChatEngagementSource?
     private let stoppedAgentSource: StoppedAgentSource?
 
@@ -61,7 +60,6 @@ struct HausDrawerEnvironment: ViewModifier {
         opensWithEntrance = values.opensWithEntrance
         reactionStickers = values.reactionStickers
         cloudAgentCancel = values.cloudAgentCancel
-        cloudAgentStackExpansion = values.threadCloudAgentStackExpansion
         chatEngagementSource = values.chatEngagementSource
         stoppedAgentSource = values.stoppedAgentSource
     }
@@ -72,7 +70,6 @@ struct HausDrawerEnvironment: ViewModifier {
             .environment(\.opensWithEntrance, opensWithEntrance)
             .environment(\.reactionStickers, reactionStickers)
             .environment(\.cloudAgentCancel, cloudAgentCancel)
-            .environment(\.threadCloudAgentStackExpansion, cloudAgentStackExpansion)
             .environment(\.chatEngagementSource, chatEngagementSource)
             .environment(\.stoppedAgentSource, stoppedAgentSource)
     }

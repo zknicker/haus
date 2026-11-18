@@ -94,10 +94,6 @@ struct ChatMessagesInput: Encodable, Sendable {
     }
 }
 
-struct ChatThreadInput: Encodable, Sendable {
-    let anchorMessageId: String
-}
-
 struct ChatSendInput: Encodable, Sendable {
     let serverId: String
     let chatId: String
@@ -105,7 +101,6 @@ struct ChatSendInput: Encodable, Sendable {
     let nonce: String
     let attachmentIds: [String]
     let replyToMessageId: String?
-    let thread: ChatThreadInput?
 
     private enum CodingKeys: String, CodingKey {
         case attachmentIds
@@ -114,7 +109,6 @@ struct ChatSendInput: Encodable, Sendable {
         case nonce
         case replyToMessageId
         case serverId
-        case thread
     }
 
     func encode(to encoder: Encoder) throws {
@@ -125,7 +119,6 @@ struct ChatSendInput: Encodable, Sendable {
         try container.encode(nonce, forKey: .nonce)
         try container.encodeIfPresent(replyToMessageId, forKey: .replyToMessageId)
         try container.encode(serverId, forKey: .serverId)
-        try container.encodeIfPresent(thread, forKey: .thread)
     }
 }
 
@@ -181,8 +174,6 @@ struct ChatProjectionCaches {
     var messagePresentationsByChatID: [String: [MessagePresentation]] = [:]
     var chatDestinations: [ChatDestination]?
     var bodies = MessageBodyMemo<ParsedMessageBody>()
-    /// Chats whose rows draw Thread chips resolved from another Chat's page.
-    var threadChipReferrers = ReferenceReferrers()
     /// Bumped whenever a reference chip could resolve differently, which is
     /// what retires a parsed body that did not itself change.
     private(set) var referenceRevision = 0
@@ -228,10 +219,8 @@ struct ChatProjectionCaches {
     }
 
     /// A page, optimistic-row, or cloud-work write reaches its own transcript.
-    /// It also reaches every transcript drawing a Thread chip named from it.
     mutating func retireMessages(chatIDs: Set<String>) {
-        let retired = chatIDs.union(threadChipReferrers.takeReferrers(of: chatIDs))
-        for chatID in retired { messagePresentationsByChatID.removeValue(forKey: chatID) }
+        for chatID in chatIDs { messagePresentationsByChatID.removeValue(forKey: chatID) }
     }
 
     mutating func retireAllMessages() {
@@ -245,7 +234,6 @@ struct ChatProjectionCaches {
 
     private mutating func retireAllRows() {
         messagePresentationsByChatID.removeAll()
-        threadChipReferrers.removeAll()
     }
 }
 
@@ -255,10 +243,6 @@ struct ParsedMessageBody {
     let body: String
     let visuals: VisualMessageBody
     let richBlocks: [RichMessageBlock]
-    /// Each Thread chip's wire target and the label it resolved to (nil while
-    /// the anchor was not loaded). A Thread chip reads another page rather
-    /// than the reference directory, so the memo checks these on reuse.
-    var threadChips: [String: String?] = [:]
     /// The Message's Task links this body chipped.
     var taskLinks: [TaskLink] = []
 }

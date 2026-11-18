@@ -23,7 +23,7 @@ public enum ChatSelection {
 
 /// Which Chat the shell canvas is responsible for opening on the Server.
 ///
-/// A pushed route — a Thread or the Tasks list — covers the canvas and owns the
+/// A pushed route — a Task — covers the canvas and owns the
 /// open Chat while it is on screen, so the canvas stands down entirely rather
 /// than loading and acknowledging reads for a Chat nobody is looking at. When
 /// the stack empties the canvas is the visible surface again and re-opens
@@ -45,8 +45,8 @@ public enum ChatCanvasOpen {
 /// Which Chat pages have to be refetched when the app returns to the
 /// foreground.
 ///
-/// The focused Chat is the deepest surface on the stack — a pushed Thread's
-/// child Chat, or the canvas when nothing covers it — and it alone acknowledges
+/// The focused Chat is the deepest surface on the stack — a pushed Task's
+/// own Chat, or the canvas when nothing covers it — and it alone acknowledges
 /// reads, because it is the only one the user is actually looking at. The
 /// canvas Chat underneath is off screen, but it is the surface a pop returns
 /// to, so its page has to be fresh *before* the pop rather than one round trip

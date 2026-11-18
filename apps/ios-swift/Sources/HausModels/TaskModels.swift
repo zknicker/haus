@@ -1,6 +1,6 @@
 import Foundation
 
-/// A person or an Agent of the Server: a Task's creator, assignee, or assigner.
+/// A person or an Agent of the Server: a Task's creator or assignee.
 public enum TaskActor: Codable, Hashable, Sendable {
     case user(userID: String)
     case agent(agentID: String)
@@ -48,118 +48,114 @@ public enum TaskActor: Codable, Hashable, Sendable {
     }
 }
 
-/// A standalone work item on a board (ADR 0051), distinct from a claim, which
-/// is the Agent-only lock on a message. Named `BoardTask` because `Task` is
-/// Swift Concurrency's.
-public struct BoardTask: Codable, Identifiable, Hashable, Sendable {
-    public let assignee: TaskActor?
-    public let boardID: String
-    /// The category of `columnID`'s column, derived when read.
-    public let category: ColumnCategory
-    public let columnID: String
-    /// Set while the Task sits in a `done` or `canceled` column.
-    public let completedAt: Date?
-    public let createdAt: Date
-    public let createdBy: TaskActor
-    public let description: String
-    /// `YYYY-MM-DD`, a calendar day: display only, it sorts and badges and
-    /// wakes nothing. See `TaskDueDate`.
-    public let dueOn: String?
+/// One Task as `task.get` names it (ADR 0052): a place for one piece of work,
+/// with its own Chat and a state. Named `TaskRecord` because `Task` is Swift
+/// Concurrency's.
+///
+/// Only what identifies a Task and its state is required. Everything else
+/// decodes leniently, so a Server that drops or adds a field never costs the
+/// Task its screen.
+public struct TaskRecord: Decodable, Identifiable, Hashable, Sendable {
     public let id: String
-    /// `SEC-12`, derived when read, so re-keying a board re-keys its Tasks.
+    /// `SEC-12`.
     public let key: String
-    public let labelIDs: [String]
-    public let number: Int
-    public let priority: TaskPriority
-    public let serverID: String
     public let title: String
-    public let updatedAt: Date
+    public let state: TaskState
+    /// The Task's own conversation, a `task` Chat. Nil for a Task from before
+    /// Tasks were places: read-only history with no composer.
+    public let chatID: String?
+    /// The Channel Message it started from; nil for a Task from before ADR 0052.
+    public let origin: TaskOrigin?
+    public let serverID: String
     public let version: Int
+    public let createdAt: Date
+    public let updatedAt: Date
+    public let completedAt: Date?
+    public let description: String
+    public let createdBy: TaskActor?
+    public let assignee: TaskActor?
+    public let priority: TaskPriority
+    /// `YYYY-MM-DD`, a calendar day: display only. See `TaskDueDate`.
+    public let dueOn: String?
+    public let labelIDs: [String]
 
     public init(
-        assignee: TaskActor?,
-        boardID: String,
-        category: ColumnCategory,
-        columnID: String,
-        completedAt: Date?,
-        createdAt: Date,
-        createdBy: TaskActor,
-        description: String,
-        dueOn: String?,
         id: String,
         key: String,
-        labelIDs: [String],
-        number: Int,
-        priority: TaskPriority,
-        serverID: String,
         title: String,
+        state: TaskState,
+        chatID: String? = nil,
+        origin: TaskOrigin? = nil,
+        serverID: String,
+        version: Int,
+        createdAt: Date,
         updatedAt: Date,
-        version: Int
+        completedAt: Date? = nil,
+        description: String = "",
+        createdBy: TaskActor? = nil,
+        assignee: TaskActor? = nil,
+        priority: TaskPriority = .none,
+        dueOn: String? = nil,
+        labelIDs: [String] = []
     ) {
-        self.assignee = assignee
-        self.boardID = boardID
-        self.category = category
-        self.columnID = columnID
-        self.completedAt = completedAt
-        self.createdAt = createdAt
-        self.createdBy = createdBy
-        self.description = description
-        self.dueOn = dueOn
         self.id = id
         self.key = key
-        self.labelIDs = labelIDs
-        self.number = number
-        self.priority = priority
-        self.serverID = serverID
         self.title = title
-        self.updatedAt = updatedAt
+        self.state = state
+        self.chatID = chatID
+        self.origin = origin
+        self.serverID = serverID
         self.version = version
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.completedAt = completedAt
+        self.description = description
+        self.createdBy = createdBy
+        self.assignee = assignee
+        self.priority = priority
+        self.dueOn = dueOn
+        self.labelIDs = labelIDs
     }
 
     enum CodingKeys: String, CodingKey {
-        case assignee
-        case boardID = "boardId"
-        case category
-        case columnID = "columnId"
-        case completedAt
-        case createdAt
-        case createdBy
-        case description
-        case dueOn
         case id
         case key
-        case labelIDs = "labelIds"
-        case number
-        case priority
-        case serverID = "serverId"
         case title
-        case updatedAt
+        case state
+        case chatID = "chatId"
+        case origin
+        case serverID = "serverId"
         case version
+        case createdAt
+        case updatedAt
+        case completedAt
+        case description
+        case createdBy
+        case assignee
+        case priority
+        case dueOn
+        case labelIDs = "labelIds"
     }
 
-    /// The same Task shown in another column while a move settles. App-local:
-    /// `version` stays the Server's, and the receipt replaces this value.
-    public func moved(to column: BoardColumn) -> BoardTask {
-        BoardTask(
-            assignee: assignee,
-            boardID: boardID,
-            category: column.category,
-            columnID: column.id,
-            completedAt: column.category.isClosed ? completedAt ?? updatedAt : nil,
-            createdAt: createdAt,
-            createdBy: createdBy,
-            description: description,
-            dueOn: dueOn,
-            id: id,
-            key: key,
-            labelIDs: labelIDs,
-            number: number,
-            priority: priority,
-            serverID: serverID,
-            title: title,
-            updatedAt: updatedAt,
-            version: version
-        )
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        key = try container.decode(String.self, forKey: .key)
+        title = try container.decode(String.self, forKey: .title)
+        state = try container.decode(TaskState.self, forKey: .state)
+        chatID = try container.decodeIfPresent(String.self, forKey: .chatID)
+        origin = try? container.decodeIfPresent(TaskOrigin.self, forKey: .origin)
+        serverID = try container.decode(String.self, forKey: .serverID)
+        version = try container.decode(Int.self, forKey: .version)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        completedAt = try container.decodeIfPresent(Date.self, forKey: .completedAt)
+        description = try container.decodeIfPresent(String.self, forKey: .description) ?? ""
+        createdBy = try? container.decodeIfPresent(TaskActor.self, forKey: .createdBy)
+        assignee = try? container.decodeIfPresent(TaskActor.self, forKey: .assignee)
+        priority = (try? container.decodeIfPresent(TaskPriority.self, forKey: .priority)) ?? TaskPriority.none
+        dueOn = try container.decodeIfPresent(String.self, forKey: .dueOn)
+        labelIDs = (try? container.decodeIfPresent([String].self, forKey: .labelIDs)) ?? []
     }
 }
 
@@ -185,9 +181,6 @@ public struct TaskLink: Codable, Hashable, Sendable {
 }
 
 public extension TaskPriority {
-    /// Most pressing first, the order a person picks from and a board sorts by.
-    static let ordered: [TaskPriority] = [.urgent, .high, .medium, .low, .none]
-
     var displayName: String {
         switch self {
         case .none: "No priority"
@@ -195,18 +188,6 @@ public extension TaskPriority {
         case .high: "High"
         case .medium: "Medium"
         case .low: "Low"
-        }
-    }
-
-    /// Sorts `none` after `low`: an unset priority is not a low one, but it
-    /// is the least known about.
-    var sortRank: Int {
-        switch self {
-        case .urgent: 0
-        case .high: 1
-        case .medium: 2
-        case .low: 3
-        case .none: 4
         }
     }
 }

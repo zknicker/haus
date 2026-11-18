@@ -3,7 +3,7 @@ import Foundation
 /// A message that references the Task: its **Mentioned in**, newest first.
 public struct TaskMention: Codable, Identifiable, Hashable, Sendable {
     public let authorLabel: String
-    /// The message's own Chat: a Thread's Chat for a Thread reply.
+    /// The message's own Chat.
     public let chatID: String
     public let createdAt: Date
     public let excerpt: String
@@ -35,6 +35,8 @@ public struct TaskReminderRef: Codable, Identifiable, Hashable, Sendable {
     public let nextFireAt: Date?
     public let reminderID: String
     public let title: String
+    /// The Agent that set it. Nil from a Server that predates the field.
+    public var setBy: TaskReminderSetter? = nil
 
     public var id: String { reminderID }
 
@@ -44,46 +46,55 @@ public struct TaskReminderRef: Codable, Identifiable, Hashable, Sendable {
         case nextFireAt
         case reminderID = "reminderId"
         case title
+        case setBy
     }
 }
 
-/// `task.get`: the Task's fields flat beside `mentions` and `reminders`.
-public struct BoardTaskDetail: Decodable, Identifiable, Hashable, Sendable {
-    public var task: BoardTask
+/// `task.get`: the Task's fields flat beside `mentions`, `reminders`, and what
+/// ADR 0052 attaches to a Task as a place.
+public struct TaskDetail: Decodable, Identifiable, Hashable, Sendable {
+    public let task: TaskRecord
     /// The description as it renders, resolved by the Server when read: the
     /// bare `@handle`, `#channel`, and `#channel:shortid` tokens an Agent's
     /// Message has rewritten into references, rewritten the same way. A Server
     /// that predates it reads as the description itself.
-    public private(set) var descriptionContent: String
+    public let descriptionContent: String
     /// The Task references in `descriptionContent`, like a Message's `taskLinks`.
     public let descriptionTaskLinks: [TaskLink]
     public let mentions: [TaskMention]
     public let reminders: [TaskReminderRef]
+    /// Cloud Agent work attached to the Task, newest first (ADR 0052 decision 6).
+    /// A work this build cannot read drops itself rather than the Task.
+    public let attachedWork: [CloudAgentWork]
+    /// Pull requests attached to the Task, as the Server last read them.
+    public let pullRequests: [CloudAgentPullRequestReading]
+    /// Whether the viewer follows the Task, so it can be unread for them.
+    public let followed: Bool
+    /// The viewer's unread messages in the Task's Chat; zero unless followed.
+    public let unreadCount: Int
 
     public var id: String { task.id }
 
     public init(
-        task: BoardTask,
+        task: TaskRecord,
         descriptionContent: String? = nil,
         descriptionTaskLinks: [TaskLink] = [],
         mentions: [TaskMention],
-        reminders: [TaskReminderRef]
+        reminders: [TaskReminderRef],
+        attachedWork: [CloudAgentWork] = [],
+        pullRequests: [CloudAgentPullRequestReading] = [],
+        followed: Bool = false,
+        unreadCount: Int = 0
     ) {
         self.task = task
         self.descriptionContent = descriptionContent ?? task.description
         self.descriptionTaskLinks = descriptionTaskLinks
         self.mentions = mentions
         self.reminders = reminders
-    }
-
-    /// The detail with a Task the Server just answered with. Its resolved
-    /// description was read for the old text, so an edited one renders its own
-    /// source until the next read; the Task links stay, since they match by text.
-    public func landing(_ landed: BoardTask) -> BoardTaskDetail {
-        var detail = self
-        if landed.description != task.description { detail.descriptionContent = landed.description }
-        detail.task = landed
-        return detail
+        self.attachedWork = attachedWork
+        self.pullRequests = pullRequests
+        self.followed = followed
+        self.unreadCount = unreadCount
     }
 
     enum CodingKeys: String, CodingKey {
@@ -91,16 +102,23 @@ public struct BoardTaskDetail: Decodable, Identifiable, Hashable, Sendable {
         case descriptionTaskLinks
         case mentions
         case reminders
+        case attachedWork
+        case pullRequests
+        case followed
+        case unreadCount
     }
 
     public init(from decoder: Decoder) throws {
-        task = try BoardTask(from: decoder)
+        task = try TaskRecord(from: decoder)
         let container = try decoder.container(keyedBy: CodingKeys.self)
         descriptionContent = try container.decodeIfPresent(String.self, forKey: .descriptionContent)
             ?? task.description
-        descriptionTaskLinks = try container.decodeIfPresent([TaskLink].self, forKey: .descriptionTaskLinks)
-            ?? []
-        mentions = try container.decode([TaskMention].self, forKey: .mentions)
-        reminders = try container.decode([TaskReminderRef].self, forKey: .reminders)
+        descriptionTaskLinks = try container.decodeLossyArray(TaskLink.self, forKey: .descriptionTaskLinks)
+        mentions = try container.decodeLossyArray(TaskMention.self, forKey: .mentions)
+        reminders = try container.decodeLossyArray(TaskReminderRef.self, forKey: .reminders)
+        attachedWork = try container.decodeLossyArray(CloudAgentWork.self, forKey: .attachedWork)
+        pullRequests = try container.decodeLossyArray(CloudAgentPullRequestReading.self, forKey: .pullRequests)
+        followed = try container.decodeIfPresent(Bool.self, forKey: .followed) ?? false
+        unreadCount = try container.decodeIfPresent(Int.self, forKey: .unreadCount) ?? 0
     }
 }

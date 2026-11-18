@@ -5,39 +5,30 @@ import Foundation
 // ids and small facts, never rows. The Store answers each one with a read, so
 // a duplicate, late, or reordered event converges on the Server's answer.
 
-/// `chat.onMessageCreated`: a message committed. A Thread reply names both its
-/// parent Chat and the parent's anchor; other messages name neither.
+/// `chat.onMessageCreated`: a message committed.
 public struct MessageCreatedEvent: Decodable, Sendable, Equatable {
     public let serverID: String
     public let chatID: String
-    public let parentChatID: String?
     public let messageID: String
     public let sequence: Int
-    public let threadAnchorMessageID: String?
+    /// The Task whose Chat this message is in (ADR 0052); nil outside a Task
+    /// and from a Server that predates Tasks.
+    public let taskID: String?
 
-    public init(
-        serverID: String,
-        chatID: String,
-        parentChatID: String? = nil,
-        messageID: String,
-        sequence: Int,
-        threadAnchorMessageID: String? = nil
-    ) {
+    public init(serverID: String, chatID: String, messageID: String, sequence: Int, taskID: String? = nil) {
         self.serverID = serverID
         self.chatID = chatID
-        self.parentChatID = parentChatID
         self.messageID = messageID
         self.sequence = sequence
-        self.threadAnchorMessageID = threadAnchorMessageID
+        self.taskID = taskID
     }
 
     enum CodingKeys: String, CodingKey {
         case serverID = "serverId"
         case chatID = "chatId"
-        case parentChatID = "parentChatId"
         case messageID = "messageId"
         case sequence
-        case threadAnchorMessageID = "threadAnchorMessageId"
+        case taskID = "taskId"
     }
 }
 
@@ -45,84 +36,41 @@ public struct MessageCreatedEvent: Decodable, Sendable, Equatable {
 public struct MessageReactionUpdatedEvent: Decodable, Sendable, Equatable {
     public let serverID: String
     public let chatID: String
-    public let parentChatID: String?
     public let messageID: String
 
-    public init(serverID: String, chatID: String, parentChatID: String? = nil, messageID: String) {
+    public init(serverID: String, chatID: String, messageID: String) {
         self.serverID = serverID
         self.chatID = chatID
-        self.parentChatID = parentChatID
         self.messageID = messageID
     }
 
     enum CodingKeys: String, CodingKey {
         case serverID = "serverId"
         case chatID = "chatId"
-        case parentChatID = "parentChatId"
         case messageID = "messageId"
     }
 }
 
-/// `chat.onRead`: the viewer's own read marker moved. A Thread read names its
-/// parent Chat and the parent's anchor, whose summary carries the unread count.
+/// `chat.onRead`: the viewer's own read marker moved.
 public struct ChatReadEvent: Decodable, Sendable, Equatable {
     public let serverID: String
     public let chatID: String
-    public let parentChatID: String?
     public let sequence: Int
-    public let threadAnchorMessageID: String?
+    /// The Task whose Chat was read (ADR 0052); nil outside a Task.
+    public let taskID: String?
 
-    public init(
-        serverID: String,
-        chatID: String,
-        parentChatID: String? = nil,
-        sequence: Int,
-        threadAnchorMessageID: String? = nil
-    ) {
+    public init(serverID: String, chatID: String, sequence: Int, taskID: String? = nil) {
         self.serverID = serverID
         self.chatID = chatID
-        self.parentChatID = parentChatID
         self.sequence = sequence
-        self.threadAnchorMessageID = threadAnchorMessageID
+        self.taskID = taskID
     }
 
     enum CodingKeys: String, CodingKey {
         case serverID = "serverId"
         case chatID = "chatId"
-        case parentChatID = "parentChatId"
         case sequence
-        case threadAnchorMessageID = "threadAnchorMessageId"
-    }
-}
-
-/// `thread.onFollowUpdated`: the viewer followed or unfollowed a Thread.
-public struct ThreadFollowUpdatedEvent: Decodable, Sendable, Equatable {
-    public let serverID: String
-    public let threadChatID: String
-    public let parentChatID: String
-    public let anchorMessageID: String
-    public let followed: Bool
-
-    public init(
-        serverID: String,
-        threadChatID: String,
-        parentChatID: String,
-        anchorMessageID: String,
-        followed: Bool
-    ) {
-        self.serverID = serverID
-        self.threadChatID = threadChatID
-        self.parentChatID = parentChatID
-        self.anchorMessageID = anchorMessageID
-        self.followed = followed
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case serverID = "serverId"
-        case threadChatID = "threadChatId"
-        case parentChatID = "parentChatId"
-        case anchorMessageID = "anchorMessageId"
-        case followed
+        case taskID = "taskId"
     }
 }
 
@@ -159,20 +107,12 @@ public struct ChatLifecycleEvent: Decodable, Sendable, Equatable {
 public struct CloudAgentWorkUpdatedEvent: Decodable, Sendable, Equatable {
     public let serverID: String
     public let chatID: String
-    public let parentChatID: String?
     public let messageID: String
     public let workID: String
 
-    public init(
-        serverID: String,
-        chatID: String,
-        parentChatID: String? = nil,
-        messageID: String,
-        workID: String
-    ) {
+    public init(serverID: String, chatID: String, messageID: String, workID: String) {
         self.serverID = serverID
         self.chatID = chatID
-        self.parentChatID = parentChatID
         self.messageID = messageID
         self.workID = workID
     }
@@ -180,7 +120,6 @@ public struct CloudAgentWorkUpdatedEvent: Decodable, Sendable, Equatable {
     enum CodingKeys: String, CodingKey {
         case serverID = "serverId"
         case chatID = "chatId"
-        case parentChatID = "parentChatId"
         case messageID = "messageId"
         case workID = "workId"
     }
@@ -191,28 +130,24 @@ public enum ChatRealtimeEvent: Sendable, Equatable {
     case messageCreated(MessageCreatedEvent)
     case reactionUpdated(MessageReactionUpdatedEvent)
     case read(ChatReadEvent)
-    case threadFollowUpdated(ThreadFollowUpdatedEvent)
     case lifecycle(ChatLifecycleEvent)
     case claimChanged(ClaimChangedEvent)
     case taskLabelUpdated(TaskLabelUpdatedEvent)
     case cloudAgentWorkUpdated(CloudAgentWorkUpdatedEvent)
-    case boardUpdated(BoardUpdatedEvent)
     case taskChanged(TaskChangedEvent)
-    case taskInboxChanged(TaskInboxChangedEvent)
+    case taskFollowUpdated(TaskFollowUpdatedEvent)
 
     public var serverID: String {
         switch self {
         case let .messageCreated(event): event.serverID
         case let .reactionUpdated(event): event.serverID
         case let .read(event): event.serverID
-        case let .threadFollowUpdated(event): event.serverID
         case let .lifecycle(event): event.serverID
         case let .claimChanged(event): event.serverID
         case let .taskLabelUpdated(event): event.serverID
         case let .cloudAgentWorkUpdated(event): event.serverID
-        case let .boardUpdated(event): event.serverID
         case let .taskChanged(event): event.serverID
-        case let .taskInboxChanged(event): event.serverID
+        case let .taskFollowUpdated(event): event.serverID
         }
     }
 }

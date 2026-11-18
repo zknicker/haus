@@ -2,7 +2,7 @@ import SwiftUI
 
 /// The screen currently entitled to draw an attachment portal.
 ///
-/// Only one exists at a time. Chat and Thread both host portals, and a Thread pushed over a Chat
+/// Only one exists at a time. Chat and Task both host portals, and a Task pushed over a Chat
 /// appears before the Chat behind it disappears, so the identity is what decides: a screen leaving
 /// only clears the presenter if the registration still belongs to it.
 struct ComposerPortalHost: Identifiable {

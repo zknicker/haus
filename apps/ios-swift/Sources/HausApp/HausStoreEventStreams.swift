@@ -47,10 +47,6 @@ extension HausStore {
             streamTask(stream, serverID: serverID) { (store, event: ChatReadEvent) in
                 await store.receive(.read(event), serverID: serverID)
             }
-        case .threadFollowUpdated:
-            streamTask(stream, serverID: serverID) { (store, event: ThreadFollowUpdatedEvent) in
-                await store.receive(.threadFollowUpdated(event), serverID: serverID)
-            }
         case .chatLifecycle:
             streamTask(stream, serverID: serverID) { (store, event: ChatLifecycleEvent) in
                 await store.receive(.lifecycle(event), serverID: serverID)
@@ -67,17 +63,13 @@ extension HausStore {
             streamTask(stream, serverID: serverID) { (store, event: TaskLabelUpdatedEvent) in
                 await store.receive(.taskLabelUpdated(event), serverID: serverID)
             }
-        case .boardUpdated:
-            streamTask(stream, serverID: serverID) { (store, event: BoardUpdatedEvent) in
-                await store.receive(.boardUpdated(event), serverID: serverID)
-            }
         case .taskCreated, .taskUpdated:
             streamTask(stream, serverID: serverID) { (store, event: TaskChangedEvent) in
                 await store.receive(.taskChanged(event), serverID: serverID)
             }
-        case .taskInboxChanged:
-            streamTask(stream, serverID: serverID) { (store, event: TaskInboxChangedEvent) in
-                await store.receive(.taskInboxChanged(event), serverID: serverID)
+        case .taskFollowUpdated:
+            streamTask(stream, serverID: serverID) { (store, event: TaskFollowUpdatedEvent) in
+                await store.receive(.taskFollowUpdated(event), serverID: serverID)
             }
         case .agentLifecycle:
             streamTask(stream, serverID: serverID) { (store, event: AgentLifecycleEvent) in

@@ -28,7 +28,7 @@ extension HausStore {
     /// sequences are Server's, and live on the loaded page here.
     ///
     /// Every mounted transcript reports, including a canvas Chat a pushed
-    /// Thread is covering — its rows are still what a pop returns to. Only the
+    /// Task is covering — its rows are still what a pop returns to. Only the
     /// deepest surface acknowledges, which is the gate in
     /// `markChatReadIfNeeded`.
     func reportVisibleMessages(chatID: String, messageIDs: [String]) {
@@ -112,7 +112,7 @@ extension HausStore {
     }
 
     /// The highest Server sequence among the reported rows. Rows the loaded
-    /// page cannot name — a Thread's anchor, claim metadata, an optimistic send
+    /// page cannot name — a day divider, an optimistic send
     /// — carry no sequence and are simply absent from the map.
     private func highestVisibleSequence(chatID: String, messageIDs: [String]) -> Int? {
         guard !messageIDs.isEmpty, let page = messagesByChatID[chatID] else { return nil }

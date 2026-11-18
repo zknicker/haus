@@ -6,15 +6,13 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
     case messageCreated = "chat.onMessageCreated"
     case messageReactionUpdated = "chat.onMessageReactionUpdated"
     case chatRead = "chat.onRead"
-    case threadFollowUpdated = "thread.onFollowUpdated"
     case chatLifecycle = "chat.onLifecycle"
     case cloudAgentWorkUpdated = "cloudAgentWork.onUpdated"
     case claimChanged = "claim.onChanged"
     case taskLabelUpdated = "taskLabel.onUpdated"
-    case boardUpdated = "board.onUpdated"
     case taskCreated = "task.onCreated"
     case taskUpdated = "task.onUpdated"
-    case taskInboxChanged = "taskInbox.onChanged"
+    case taskFollowUpdated = "task.onFollowUpdated"
     case agentLifecycle = "agent.onLifecycle"
     case agentActivity = "agent.onActivity"
     /// Attachment, inventory, or update progress. A Computer attaching is
@@ -39,7 +37,10 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
     /// reconcile (only those the iPhone has loaded).
     public var ownedProjections: Set<RealtimeProjection> {
         switch self {
-        case .messageCreated, .messageReactionUpdated, .chatRead, .threadFollowUpdated:
+        case .messageCreated, .chatRead:
+            // A Task message or read moves a followed Task's Unread row.
+            [.openTranscripts, .chatList, .unreadTasks]
+        case .messageReactionUpdated:
             [.openTranscripts, .chatList]
         case .claimChanged:
             [.openTranscripts, .chatList]
@@ -49,15 +50,12 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
             [.chatList]
         case .taskLabelUpdated:
             [.taskLabels]
-        case .boardUpdated:
-            // A re-key re-keys every Task on the board.
-            [.boards, .boardTasks]
         case .taskCreated, .taskUpdated:
-            // A Task moves its board's open count as well as its list, and an
-            // Inbox item carries a copy of it.
-            [.boards, .boardTasks, .taskInbox]
-        case .taskInboxChanged:
-            [.taskInbox]
+            // A Task's state or title shows on its screen and its Unread row.
+            [.taskDetails, .unreadTasks]
+        case .taskFollowUpdated:
+            // Following decides whether a Task can be unread at all.
+            [.unreadTasks]
         case .agentLifecycle:
             // A settled turn moves the usage the Inbox strip ranks.
             [.agentAvailability, .serverUsage]
@@ -79,8 +77,8 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
     /// subscription start, so every start reconciles, the first included. The
     /// message stream's first start leaves the bulk transcript reload to its
     /// tail reads and to the annotation streams starting beside it; a restart
-    /// of it alone reloads in bulk, which also repairs a Thread anchor whose
-    /// reply event it missed.
+    /// of it alone reloads in bulk, which also repairs a Task preview whose
+    /// message event it missed.
     public func startReconciliation(isRestart: Bool) -> Set<RealtimeProjection> {
         guard self == .messageCreated, !isRestart else { return ownedProjections }
         return ownedProjections.subtracting([.openTranscripts])
@@ -94,14 +92,12 @@ public enum RealtimeProjection: Hashable, Sendable, CaseIterable {
     case chatList
     /// `server.list`: the active Server's name and the viewer's Servers.
     case serverList
-    /// `board.list`, once loaded.
-    case boards
-    /// Every loaded board's Tasks and every loaded Task detail.
-    case boardTasks
+    /// Every loaded Task detail (`task.get`).
+    case taskDetails
     /// `taskLabel.list`, once loaded.
     case taskLabels
-    /// `taskInbox.list`. Shell state like the Chat list: the Inbox dot counts it.
-    case taskInbox
+    /// `chat.unreadPreviews`' followed unread Tasks (ADR 0052 decision 9).
+    case unreadTasks
     case activeCloudAgentWork
     case agentAvailability
     case agentActivity

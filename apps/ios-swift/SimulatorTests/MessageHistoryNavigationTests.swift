@@ -65,7 +65,6 @@ private struct HistoryTimeline: View {
     var body: some View {
         MessageTimelineView(
             messages: source.messages,
-            onOpenThread: { _ in },
             history: MessageHistoryNavigation(hasOlder: true, hasNewer: true, loadAround: source.loadAround),
             scrollTargetMessageID: $source.target
         )

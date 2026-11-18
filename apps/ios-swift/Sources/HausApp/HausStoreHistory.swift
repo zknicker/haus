@@ -36,13 +36,8 @@ extension HausStore {
     }
 
     func loadMessages(chatID: String) async {
-        guard let serverID = activeServer?.id else { return }
-        async let work: Void = loadCloudAgentWork(serverID: serverID, chatID: chatID)
+        guard activeServer?.id != nil else { return }
         await loadHistory(chatID: chatID, direction: .refresh)
-        await work
-        if messagesByChatID[chatID] == nil, openChatID != chatID, canvasChatID != chatID {
-            cloudAgentWorkByChatID.removeValue(forKey: chatID)
-        }
     }
 
     @discardableResult
@@ -138,7 +133,6 @@ extension HausStore {
         )
         guard !evictions.isEmpty else { return }
         for chatID in evictions {
-            cloudAgentWorkByChatID.removeValue(forKey: chatID)
             historyNavigation.followingLatest.removeValue(forKey: chatID)
             historyNavigation.visibleSequences.removeValue(forKey: chatID)
             staleTranscriptChatIDs.remove(chatID)

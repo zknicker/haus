@@ -76,6 +76,7 @@ extension HausStore {
         let priority = [canvasChatID, openChatID, preferredInitialChatID].compactMap { $0 }
             + historyNavigation.retention.orderedChatIDs.reversed()
         return LaunchSnapshot(
+            appProtocolVersion: launchSnapshots.appProtocolVersion,
             userID: viewer.id,
             servers: servers,
             chats: chats,

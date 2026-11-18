@@ -1,6 +1,6 @@
 import Foundation
 
-// Focused realtime payloads for claims, labels, boards, and Tasks
+// Focused realtime payloads for claims, labels, and Tasks
 // (specs/realtime-events.md). Ids and small facts only, like the Chat family's.
 
 public enum ClaimChangeKind: String, Decodable, Sendable, Equatable {
@@ -46,62 +46,49 @@ public struct TaskLabelUpdatedEvent: Decodable, Sendable, Equatable {
     }
 }
 
-/// `board.onUpdated`: a board was created, renamed, re-keyed, archived, or had
-/// its columns set.
-public struct BoardUpdatedEvent: Decodable, Sendable, Equatable {
-    public let boardID: String
-    public let serverID: String
-    public let version: Int
-
-    public init(boardID: String, serverID: String, version: Int) {
-        self.boardID = boardID
-        self.serverID = serverID
-        self.version = version
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case boardID = "boardId"
-        case serverID = "serverId"
-        case version
-    }
-}
-
 /// `task.onCreated` and `task.onUpdated` share one payload: a Task was created,
-/// or edited, moved, assigned, or gained a reference. Ids only.
+/// or edited, changed state, was assigned, or gained a reference. Ids only.
 public struct TaskChangedEvent: Decodable, Sendable, Equatable {
-    public let boardID: String
     public let serverID: String
     public let taskID: String
+    /// The Task's own Chat; nil for a Task from before Tasks were places.
+    public let chatID: String?
     public let version: Int
 
-    public init(boardID: String, serverID: String, taskID: String, version: Int) {
-        self.boardID = boardID
+    public init(serverID: String, taskID: String, chatID: String? = nil, version: Int) {
         self.serverID = serverID
         self.taskID = taskID
+        self.chatID = chatID
         self.version = version
     }
 
     enum CodingKeys: String, CodingKey {
-        case boardID = "boardId"
         case serverID = "serverId"
         case taskID = "taskId"
+        case chatID = "chatId"
         case version
     }
 }
 
-/// `taskInbox.onChanged`: the reader's Task items changed. Delivered only to
-/// `userID`.
-public struct TaskInboxChangedEvent: Decodable, Sendable, Equatable {
+/// `task.onFollowUpdated`: the viewer followed or unfollowed a Task. Reader
+/// only. Names the Task's Chat, whose unread it moves.
+public struct TaskFollowUpdatedEvent: Decodable, Sendable, Equatable {
     public let serverID: String
-    public let userID: String
+    public let taskID: String
+    public let chatID: String
+    public let followed: Bool
 
-    public init(serverID: String, userID: String) {
+    public init(serverID: String, taskID: String, chatID: String, followed: Bool) {
         self.serverID = serverID
-        self.userID = userID
+        self.taskID = taskID
+        self.chatID = chatID
+        self.followed = followed
     }
 
     enum CodingKeys: String, CodingKey {
         case serverID = "serverId"
-        case userID = "userId"
+        case taskID = "taskId"
+        case chatID = "chatId"
+        case followed
     }
 }

@@ -5,11 +5,7 @@ import SwiftUI
 
 struct AuthenticatedHausView: View {
     @State var store: HausStore
-    /// The mutable mirror of the pushed Thread route. The route value itself
-    /// stays stable so adopting a Server child Chat id cannot remount the
-    /// screen mid-conversation.
-    @State var selectedThread: ThreadSelection?
-    /// The App owns the open Chat so the shell canvas, the pushed Thread, and
+    /// The App owns the open Chat so the shell canvas, a pushed Task, and
     /// the Store's read acknowledgements always name the same Chat.
     @State var selectedDestinationID: ChatDestination.ID?
     @State var canvasScrollTarget: MessageScrollTarget?
@@ -18,9 +14,6 @@ struct AuthenticatedHausView: View {
     @State var canvasRouteRevision = 0
     @State var path: [HausRootRoute] = []
     @State var agentCall: AgentCallRequest?
-    /// The message a drawer's Convert to Task is converting.
-    @State var convertingMessage: MessagePresentation?
-    @State var failedWorkOpenID: String?
     /// A cold start lands on the Inbox, which is the canvas itself rather than
     /// a screen over it; see `AuthenticatedHausView+Routes`.
     @State var showsInboxCanvas = true
@@ -71,7 +64,6 @@ struct AuthenticatedHausView: View {
                     .environment(\.opensWithEntrance, !openingEntranceFinished)
                     .environment(\.reactionStickers, store.reactionStickers)
                     .environment(\.cloudAgentCancel, cloudAgentCancel)
-                    .environment(\.threadCloudAgentStackExpansion, store.cloudAgentStackExpansion)
                     .environment(\.chatEngagementSource, store.chatEngagementSource)
                     .environment(\.stoppedAgentSource, store.stoppedAgentSource)
                     .task {
@@ -84,7 +76,6 @@ struct AuthenticatedHausView: View {
         .task { await store.start() }
         .onAppear(perform: installTranscriptRoutes)
         .sheet(item: $agentCall) { request in AgentCallView(request: request, client: store.client) }
-        .convertToTask($convertingMessage, source: store.taskBoardSource, onOpenTask: openTask)
         .onChange(of: selectedDestinationID) { previous, current in
             // The first selection lands from the shell's own sync; a change
             // from one destination to another is the user navigating, and a
@@ -155,12 +146,9 @@ struct AuthenticatedHausView: View {
                         }
                     },
                     inboxCanvas: inboxCanvas(contentInsets:onOpenSidebar:),
-                    onOpenTasks: { path.append(.tasks) },
                     onOpenInbox: openInbox,
-                    showsTasks: path.last?.isTasksRoute == true,
                     inboxHasUnread: (store.unreadChatCount ?? 0) > 0,
                     ghostTempo: store.agentActivityGhostTempo,
-                    onOpenThread: openThread,
                     onSend: { destination, content, attachments in
                         switch destination {
                         case .durableChat(let chat):
@@ -231,10 +219,6 @@ struct AuthenticatedHausView: View {
                 .navigationDestination(for: HausRootRoute.self) { route in
                     taskRouteDestination(route)
                 }
-                .onChange(of: path) { _, current in
-                    guard !current.carriesThread else { return }
-                    selectedThread = nil
-                }
                 // One load at a time: selecting another Chat cancels the load
                 // the previous selection started, so a slow `chat.list` behind a
                 // stale read acknowledgement cannot land after a newer one.
@@ -263,7 +247,7 @@ struct AuthenticatedHausView: View {
                 }
                 .task { await push.attach(store) }
                 // Consumed outside the change handler: clearing the value a
-                // `task(id:)` keys on would cancel the Thread anchor read.
+                // `task(id:)` keys on would cancel the open it starts.
                 .onChange(of: push.pendingOpen, initial: true) { _, request in
                     guard let request else { return }
                     push.pendingOpen = nil

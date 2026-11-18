@@ -275,12 +275,12 @@ extension MentionPresentationKind {
         case .directory: "Directory"
         case .file: "File"
         case .human: "Human"
+        case .message: "Message"
         case .plugin: "Plugin"
         case .pullRequest: "Pull request"
         case .sharedArtifact: "File"
         case .skill: "Skill"
         case .task: "Task"
-        case .thread: "Thread"
         case .website: "Website"
         }
     }

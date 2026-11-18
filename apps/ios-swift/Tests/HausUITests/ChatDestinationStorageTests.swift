@@ -12,6 +12,6 @@ import Testing
     @Test func rejectsUnrecognizedStorageValues() {
         #expect(ChatDestination.ID(storageValue: "") == nil)
         #expect(ChatDestination.ID(storageValue: "cht_123") == nil)
-        #expect(ChatDestination.ID(storageValue: "thread:cht_123") == nil)
+        #expect(ChatDestination.ID(storageValue: "side:cht_123") == nil)
     }
 }

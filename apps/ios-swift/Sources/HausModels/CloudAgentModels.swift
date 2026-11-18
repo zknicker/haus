@@ -66,23 +66,6 @@ public struct CloudAgentPullRequest: Codable, Hashable, Sendable {
     public let observedAt: Date
 }
 
-public struct ThreadCloudAgentWork: Codable, Hashable, Sendable {
-    public let anchorMessageId: String
-    public let work: CloudAgentWork
-
-    /// The Chats whose loaded work list names any of the work, so a change
-    /// reaches every Chat that links it rather than only the one an event named.
-    public static func chatIDs(
-        listing workIDs: Set<String>,
-        in lists: [String: [ThreadCloudAgentWork]]
-    ) -> Set<String> {
-        guard !workIDs.isEmpty else { return [] }
-        return Set(lists.compactMap { chatID, rows in
-            rows.contains { workIDs.contains($0.work.id) } ? chatID : nil
-        })
-    }
-}
-
 public struct CloudAgentCapability: Codable, Hashable, Sendable {
     public let ready: Bool
     public let accountEmail: String?

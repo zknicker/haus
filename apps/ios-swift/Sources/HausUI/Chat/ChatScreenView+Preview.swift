@@ -13,7 +13,6 @@ import SwiftUI
         onOpenSidebar: {},
         onOpenChatDetails: {},
         onOpenSearch: {},
-        onOpenThread: { _ in },
         onSend: { _, _ in true }
     )
 }
@@ -31,7 +30,6 @@ import SwiftUI
         onOpenSidebar: {},
         onOpenChatDetails: {},
         onOpenSearch: {},
-        onOpenThread: { _ in },
         onSend: { _, _ in true }
     )
 }

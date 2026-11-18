@@ -12,9 +12,9 @@ struct OptimisticSendStateTests {
 
     @Test("A failed send keeps its row, marked failed, under whatever key holds it")
     func failureKeepsTheRow() {
-        var rows = ["cht_1": [Row(nonce: "a")], "thread-pending:m": [Row(nonce: "b")]]
+        var rows = ["cht_1": [Row(nonce: "a")], "agent-dm-pending:m": [Row(nonce: "b")]]
         #expect(OptimisticMessageRow.markFailed(nonce: "b", in: &rows))
-        #expect(rows["thread-pending:m"] == [Row(nonce: "b", sendState: .failed)])
+        #expect(rows["agent-dm-pending:m"] == [Row(nonce: "b", sendState: .failed)])
         #expect(rows["cht_1"] == [Row(nonce: "a")])
         #expect(!OptimisticMessageRow.markFailed(nonce: "gone", in: &rows))
     }

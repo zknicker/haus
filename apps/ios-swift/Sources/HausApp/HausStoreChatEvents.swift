@@ -43,12 +43,6 @@ extension HausStore {
         let effects = ChatRealtimeEffects(events, serverID: serverID)
         guard !effects.isEmpty else { return }
 
-        // Work a deleted Chat linked may still be listed elsewhere; read before
-        // the purge forgets which work that was.
-        let workLinkedInDeletedChats = effects.deletedChatIDs.reduce(into: Set<String>()) { ids, chatID in
-            ids.formUnion(transcripts.cloudAgentWorkIDs(linkedIn: chatID))
-            ids.formUnion((cloudAgentWorkByChatID[chatID] ?? []).map(\.work.id))
-        }
         effects.deletedChatIDs.forEach(purgeChat)
         for (chatID, sequence) in effects.tailSequenceByChatID where !deletedChatIDs.contains(chatID) {
             requestTail(chatID: chatID, through: sequence)
@@ -63,26 +57,16 @@ extension HausStore {
         for messageID in effects.liveReactionMessageIDs {
             reactionStickers.noteLive(messageID: messageID, eventAt: .now)
         }
-        let workListChatIDs = effects.cloudAgentWorkChatIDs.union(ThreadCloudAgentWork.chatIDs(
-            listing: effects.cloudAgentWorkIDs.union(workLinkedInDeletedChats),
-            in: cloudAgentWorkByChatID
-        ))
-        for chatID in workListChatIDs where cloudAgentWorkByChatID[chatID] != nil {
-            Task { await self.loadCloudAgentWork(serverID: serverID, chatID: chatID) }
-        }
-
         let unreadByChatID = Dictionary(chats.map { ($0.id, $0.unreadCount) }, uniquingKeysWith: max)
         let readsChatList = effects.needsChatListRead { unreadByChatID[$0] }
         // Inbox snapshots refresh only when this client already holds them:
         // an event must not start a Server-wide read nobody has opened.
         let readsWork = effects.reloadsActiveCloudAgentWork && activeCloudAgentWork != nil
-        // A Chat list read already reads the unread Threads and the badge.
-        let readsThreads = effects.reloadsUnreadThreads && !readsChatList
         await withTaskGroup(of: Void.self) { group in
             if readsChatList { group.addTask { await self.refreshChatList(serverID: serverID) } }
-            if readsThreads { group.addTask { await self.refreshUnreadThreadsAndBadge() } }
             if readsWork { group.addTask { await self.loadActiveCloudAgentWork() } }
             group.addTask { await self.applyTaskEffects(effects) }
+            group.addTask { await self.applyTaskPlaceEffects(effects) }
         }
         // Mounted search reruns on new messages, after the Chat list it maps
         // results against is current.
@@ -143,13 +127,11 @@ extension HausStore {
                 group.addTask { await self.reloadServerList(serverID: serverID) }
             }
             group.addTask { await self.recoverTaskProjections(projections) }
-            if projections.contains(.activeCloudAgentWork) {
-                if activeCloudAgentWork != nil {
-                    group.addTask { await self.loadActiveCloudAgentWork() }
-                }
-                for chatID in OpenChatPages.toRefresh(focusedChatID: openChatID, canvasChatID: canvasChatID) {
-                    group.addTask { await self.loadCloudAgentWork(serverID: serverID, chatID: chatID) }
-                }
+            if projections.contains(.unreadTasks), taskSnapshots.unreadTasks != nil {
+                group.addTask { await self.loadUnreadTasks() }
+            }
+            if projections.contains(.activeCloudAgentWork), activeCloudAgentWork != nil {
+                group.addTask { await self.loadActiveCloudAgentWork() }
             }
             if projections.contains(.agentAvailability) {
                 group.addTask { await self.reloadAgentAvailability(serverID: serverID) }

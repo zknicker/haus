@@ -7,7 +7,7 @@ API intact. It does not introduce a mobile backend.
 The prototype currently proves native Google sign-in through Cloudflare Access,
 Haus AppSession renewal, Server discovery,
 channels and Agent DMs, real message history, live Chat event refresh, Agent
-lifecycle presence, optimistic Chat and Thread sends with draft recovery,
+lifecycle presence, optimistic Chat and Task sends with draft recovery,
 bounded bidirectional history loading, foreground snapshot recovery, Server-backed
 People and Computers, the native sidebar and composer, and one sheet-local
 settings navigation stack backed by Server profile data.

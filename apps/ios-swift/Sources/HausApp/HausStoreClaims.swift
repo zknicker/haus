@@ -25,20 +25,4 @@ extension HausStore {
         )
         return StoppedClaims.held(by: agentID, in: list.claims)
     }
-
-    /// Projects a claim row into the shared message presentation the Thread
-    /// route uses. Claims are canonical messages, so this must not invent a
-    /// second Thread presentation.
-    func claimMessagePresentation(_ item: ClaimListItem) -> MessagePresentation? {
-        guard let author = authorPresentation(item.message.author) else { return nil }
-        return MessagePresentation(
-            id: item.message.id,
-            author: author,
-            content: item.message.content,
-            createdAt: item.message.createdAt,
-            sequence: item.message.sequence,
-            thread: threadPresentation(item.threadSummary),
-            claim: claimPresentation(item.claim)
-        )
-    }
 }

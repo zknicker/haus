@@ -6,7 +6,7 @@ import SwiftUI
 public struct AgentStoppedClaimsActions: Sendable {
     /// One `claim.list`, sliced to this Agent.
     public let load: @MainActor @Sendable (_ agentID: String) async throws -> [ClaimListItem]
-    /// Opens the claim's Thread. The profile's sheet closes as it does.
+    /// Opens the claim's message in its Channel or DM. The profile's sheet closes as it does.
     public let open: @MainActor @Sendable (ClaimListItem) -> Void
 
     public init(
@@ -71,6 +71,8 @@ extension ClaimListItem {
         let place = switch chatKind {
         case .channel: "#\(chatName ?? "channel")"
         case .dm: "DM"
+        case .task: "Task"
+        case .unknown: "Chat"
         }
         return "\(place) · \(HausCompactRelativeTime.label(for: claim.updatedAt, now: now))"
     }

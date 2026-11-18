@@ -71,48 +71,124 @@ final class PushNotificationModelsTests: XCTestCase {
     // MARK: - Payload and route
 
     func testTopLevelPayloadRoutesToItsChat() throws {
-        let payload = try XCTUnwrap(PushNotificationPayload(userInfo: userInfo(anchor: nil)))
+        let payload = try XCTUnwrap(PushNotificationPayload(userInfo: userInfo()))
         XCTAssertEqual(payload.serverID, "server_1")
         XCTAssertEqual(payload.messageID, "message_9")
         XCTAssertEqual(payload.route, .chat(chatID: "chat_dm"))
     }
 
-    func testThreadPayloadRoutesToItsThread() throws {
-        var info = userInfo(anchor: "message_anchor")
-        info["chatId"] = "chat_thread"
-        info["conversationChatId"] = "chat_channel"
-        let payload = try XCTUnwrap(PushNotificationPayload(userInfo: info))
-        XCTAssertEqual(
-            payload.route,
-            .thread(conversationChatID: "chat_channel", threadChatID: "chat_thread", anchorMessageID: "message_anchor")
-        )
-    }
-
-    func testNullAnchorFromJSONIsTopLevel() throws {
-        var info = userInfo(anchor: nil)
-        info["threadAnchorMessageId"] = NSNull()
-        XCTAssertEqual(PushNotificationPayload(userInfo: info)?.route, .chat(chatID: "chat_dm"))
-    }
-
     func testMissingKeysParseToNothing() {
-        var info = userInfo(anchor: nil)
+        var info = userInfo()
         info["serverId"] = nil
         XCTAssertNil(PushNotificationPayload(userInfo: info))
         XCTAssertNil(PushNotificationPayload(userInfo: ["aps": ["alert": "hi"]]))
     }
 
-    func testInconsistentThreadShapeParsesToNothing() {
-        // An anchor on a top-level Chat, or a Thread Chat with no anchor.
-        XCTAssertNil(PushNotificationPayload(userInfo: userInfo(anchor: "message_anchor")))
-        var info = userInfo(anchor: nil)
-        info["chatId"] = "chat_thread"
-        XCTAssertNil(PushNotificationPayload(userInfo: info))
+    /// A push sent before side conversations were deleted (ADR 0052) names
+    /// that conversation's own Chat beside its parent. The Chat is gone and its
+    /// messages are inline replies in the parent, so the parent opens, and a
+    /// reader on the parent has already seen it.
+    func testAPushNamingASideConversationOpensItsParentChannel() throws {
+        var info = userInfo()
+        info["chatId"] = "chat_side"
+        info["conversationChatId"] = "chat_channel"
+        info["futureField"] = "x"
+        let payload = try XCTUnwrap(PushNotificationPayload(userInfo: info))
+        XCTAssertEqual(payload.route, .chat(chatID: "chat_channel"))
+        XCTAssertEqual(payload.chatID, "chat_channel")
+        XCTAssertEqual(
+            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatID: "chat_channel"),
+            .suppress
+        )
+    }
+
+    /// The pure rule every push and deep link goes through.
+    func testRouteOpeningRule() {
+        XCTAssertEqual(
+            PushNotificationRoute.opening(chatID: "chat_dm", conversationChatID: "chat_dm", taskID: nil),
+            .chat(chatID: "chat_dm")
+        )
+        XCTAssertEqual(
+            PushNotificationRoute.opening(chatID: "chat_side", conversationChatID: "chat_channel", taskID: nil),
+            .chat(chatID: "chat_channel")
+        )
+        XCTAssertEqual(
+            PushNotificationRoute.opening(chatID: "chat_task_12", conversationChatID: "chat_channel", taskID: "task_12"),
+            .task(taskID: "task_12", chatID: "chat_task_12")
+        )
+    }
+
+    /// A message in a Task names the Task, and the Task screen is what opens.
+    /// Keys this build does not know ride along without changing the route.
+    func testATaskPayloadRoutesToItsTaskWhateverElseItCarries() throws {
+        var info = userInfo()
+        info["chatId"] = "chat_task_12"
+        info["conversationChatId"] = "chat_task_12"
+        info["taskId"] = "task_12"
+        info["taskKey"] = "SEC-12"
+        info["reason"] = "follow"
+        info["conversation"] = ["kind": "task", "name": "SEC-12"]
+        info["futureField"] = ["nested": true]
+        let payload = try XCTUnwrap(PushNotificationPayload(userInfo: info))
+        XCTAssertEqual(payload.taskID, "task_12")
+        XCTAssertEqual(payload.taskKey, "SEC-12")
+        XCTAssertEqual(payload.route, .task(taskID: "task_12", chatID: "chat_task_12"))
+    }
+
+    /// The Task decides the route even when the conversation id is left out.
+    func testATaskPayloadNeedsNoConversationShape() throws {
+        var info = userInfo()
+        info["chatId"] = "chat_task_12"
+        info["conversationChatId"] = nil
+        info["taskId"] = "task_12"
+        let payload = try XCTUnwrap(PushNotificationPayload(userInfo: info))
+        XCTAssertNil(payload.taskKey)
+        XCTAssertEqual(payload.route, .task(taskID: "task_12", chatID: "chat_task_12"))
+    }
+
+    /// Without a Task the route is the conversation's: an empty `taskId` is no
+    /// Task, and unknown keys change nothing.
+    func testAPayloadWithoutATaskKeepsItsConversationRoute() throws {
+        var info = userInfo()
+        info["taskId"] = ""
+        info["futureField"] = 42
+        XCTAssertEqual(PushNotificationPayload(userInfo: info)?.route, .chat(chatID: "chat_dm"))
+    }
+
+    /// A Chat-only push with no conversation id is its own conversation.
+    func testAPayloadWithoutAConversationIDOpensItsChat() {
+        var info = userInfo()
+        info["conversationChatId"] = nil
+        XCTAssertEqual(PushNotificationPayload(userInfo: info)?.route, .chat(chatID: "chat_dm"))
+    }
+
+    /// The retired assignment pushes name no message, so they open nothing.
+    func testARetiredAssignmentPushOpensNothing() {
+        XCTAssertNil(PushNotificationPayload(userInfo: [
+            "kind": "task_assignment", "serverId": "server_1", "taskId": "task_1", "key": "SEC-1",
+        ]))
+    }
+
+    func testATaskPushSuppressesOnlyWhileItsTaskChatIsOnScreen() {
+        var info = userInfo()
+        info["chatId"] = "chat_task_12"
+        info["conversationChatId"] = "chat_task_12"
+        info["taskId"] = "task_12"
+        let payload = PushNotificationPayload(userInfo: info)
+        XCTAssertEqual(
+            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatID: "chat_task_12"),
+            .suppress
+        )
+        XCTAssertEqual(
+            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatID: "chat_security"),
+            .banner
+        )
     }
 
     // MARK: - Foreground presentation
 
     func testSuppressesWhileViewingThatChat() {
-        let payload = PushNotificationPayload(userInfo: userInfo(anchor: nil))
+        let payload = PushNotificationPayload(userInfo: userInfo())
         XCTAssertEqual(
             PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatID: "chat_dm"),
             .suppress
@@ -120,7 +196,7 @@ final class PushNotificationModelsTests: XCTestCase {
     }
 
     func testBannersForAnotherChatServerOrNoChat() {
-        let payload = PushNotificationPayload(userInfo: userInfo(anchor: nil))
+        let payload = PushNotificationPayload(userInfo: userInfo())
         XCTAssertEqual(
             PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatID: "chat_other"),
             .banner
@@ -139,33 +215,16 @@ final class PushNotificationModelsTests: XCTestCase {
         )
     }
 
-    func testThreadPushBannersOverItsParentChannel() {
-        var info = userInfo(anchor: "message_anchor")
-        info["chatId"] = "chat_thread"
-        info["conversationChatId"] = "chat_channel"
-        let payload = PushNotificationPayload(userInfo: info)
-        XCTAssertEqual(
-            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatID: "chat_channel"),
-            .banner
-        )
-        XCTAssertEqual(
-            PushForegroundPresentation.decide(payload, viewingServerID: "server_1", viewingChatID: "chat_thread"),
-            .suppress
-        )
-    }
-
     // MARK: - Fixtures
 
-    private func userInfo(anchor: String?) -> [AnyHashable: Any] {
-        var info: [AnyHashable: Any] = [
+    private func userInfo() -> [AnyHashable: Any] {
+        [
             "aps": ["alert": ["title": "Blippy", "body": "Can you look?"], "sound": "default"],
             "serverId": "server_1",
             "chatId": "chat_dm",
             "conversationChatId": "chat_dm",
             "messageId": "message_9",
         ]
-        if let anchor { info["threadAnchorMessageId"] = anchor }
-        return info
     }
 
     private func profilePlist(aps: String?) -> Data {

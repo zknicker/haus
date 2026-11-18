@@ -10,16 +10,14 @@ final class ChatHistoryMergeTests: XCTestCase {
                 try message(id: "message_2", sequence: 2, content: "two"),
                 try message(id: "message_3", sequence: 3, content: "stale overlap"),
             ],
-            nextBeforeSequence: 1,
-            threads: []
+            nextBeforeSequence: 1
         )
         let newest = ChatMessagePage(
             messages: [
                 try message(id: "message_3", sequence: 3, content: "authoritative overlap"),
                 try message(id: "message_4", sequence: 4, content: "four"),
             ],
-            nextBeforeSequence: 3,
-            threads: []
+            nextBeforeSequence: 3
         )
 
         var window = ChatHistoryWindow(page: older)

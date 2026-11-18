@@ -29,7 +29,6 @@ public struct ChatSidebarView: View {
     /// How fast the Inbox mark's mesh drifts: `lively` only while an Agent on
     /// this Server is working.
     private let ghostTempo: HausGhostTempo
-    private let onOpenTasks: () -> Void
     private let onOpenArchived: () -> Void
     private let onOpenNewChannel: () -> Void
     private let onMarkRead: ((ChatPresentation) -> Void)?
@@ -53,7 +52,6 @@ public struct ChatSidebarView: View {
         onOpenInbox: @escaping () -> Void = {},
         inboxHasUnread: Bool = false,
         ghostTempo: HausGhostTempo = .calm,
-        onOpenTasks: @escaping () -> Void = {},
         onOpenArchived: @escaping () -> Void = {},
         onOpenNewChannel: @escaping () -> Void = {},
         onMarkRead: ((ChatPresentation) -> Void)? = nil,
@@ -68,7 +66,6 @@ public struct ChatSidebarView: View {
         self.onOpenInbox = onOpenInbox
         self.inboxHasUnread = inboxHasUnread
         self.ghostTempo = ghostTempo
-        self.onOpenTasks = onOpenTasks
         self.onOpenArchived = onOpenArchived
         self.onOpenNewChannel = onOpenNewChannel
         self.onMarkRead = onMarkRead
@@ -92,14 +89,6 @@ public struct ChatSidebarView: View {
                             metrics: metrics,
                             isSelected: selection == .inbox,
                             onOpen: onOpenInbox
-                        )
-
-                        SidebarUtilityRow(
-                            title: "Tasks",
-                            icon: .tasks,
-                            metrics: metrics,
-                            isSelected: selection == .tasks,
-                            action: onOpenTasks
                         )
 
                         sectionHeader("Channels", trailingAction: onOpenNewChannel)

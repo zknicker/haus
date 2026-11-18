@@ -2,36 +2,16 @@ import HausModels
 import HausUI
 import SwiftUI
 
-/// The Tasks routes. Boards and Tasks are pushes on the root stack, like a
-/// Thread, so Back walks Task → board → boards → whichever canvas is showing.
-/// None of them selects a Chat: a Task has no Chat of its own.
+/// The root stack's routes. A Task is a push on the root stack, so Back
+/// returns to whichever canvas is showing. It never selects the canvas Chat; a
+/// Task that is a place opens its own.
 extension AuthenticatedHausView {
     @ViewBuilder
     func taskRouteDestination(_ route: HausRootRoute) -> some View {
         switch route {
-        case .tasks:
-            TaskBoardPickerView(source: store.taskBoardSource) { boardID in
-                path.append(.board(boardID: boardID))
-            }
-        case .board(let boardID):
-            TaskBoardView(boardID: boardID, source: store.taskBoardSource) { taskID in
-                path.append(.task(taskID: taskID))
-            }
         case .task(let taskID):
-            TaskDetailView(
-                taskID: taskID,
-                source: store.taskBoardSource,
-                onOpenMention: openTaskMention,
-                onOpenReminder: openTaskReminder
-            )
-            // Opening the Task answers its Inbox item and its notification,
-            // from whichever surface opened it. Being seen in a list never does.
-            .task {
-                await store.clearTaskInboxItemOnOpen(taskID: taskID)
-                await push.clearDelivered(openedChatID: taskID)
-            }
-        case .thread(let thread):
-            threadDestination(thread)
+            // A Task opens as a chat once it is a place (ADR 0052).
+            taskDestination(taskID)
         }
     }
 
@@ -41,37 +21,26 @@ extension AuthenticatedHausView {
         path.append(.task(taskID: taskID))
     }
 
-    /// A message in a Thread opens that Thread; any other opens its Chat, at
-    /// the message. The mention names the Thread's parent and anchor, so only
-    /// an anchor the parent page does not hold costs a read.
-    private func openTaskMention(_ mention: TaskMention) {
-        guard let anchorMessageID = mention.place.threadAnchorMessageID else {
-            openCanvasChat(.chat(mention.chatID), revealing: mention.messageID)
-            return
-        }
-        Task {
-            guard let selection = await store.threadSelection(
-                conversationChatID: mention.place.chatID,
-                threadChatID: mention.chatID,
-                anchorMessageID: anchorMessageID
-            ) else { return }
-            pushThread(selection, selectingParent: nil)
-        }
+    /// A mention opens its Channel or DM at the message.
+    func openTaskMention(_ mention: TaskMention) {
+        openCanvasChat(.chat(mention.place.chatID), revealing: mention.messageID)
     }
 
-    /// A Reminder answers where it is anchored: a Channel, a DM, or a Thread.
-    private func openTaskReminder(_ reminder: TaskReminderRef) {
-        guard store.chatsByID[reminder.anchorChatID] == nil else {
-            openCanvasChat(.chat(reminder.anchorChatID))
+    /// A Reminder answers where it is anchored: a Channel or DM, or a Task.
+    func openTaskReminder(_ reminder: TaskReminderRef) {
+        // A Reminder set on a Task anchors in the Task's own Chat (ADR 0052
+        // decision 16), which opens as its Task.
+        if store.chatsByID[reminder.anchorChatID] == nil,
+           let taskID = store.taskID(forChatID: reminder.anchorChatID) {
+            openTask(taskID)
             return
         }
-        pushThread(threadChatID: reminder.anchorChatID)
+        openCanvasChat(.chat(reminder.anchorChatID))
     }
 
-    private func pushThread(threadChatID: String) {
-        Task {
-            guard let selection = await store.threadSelection(threadChatID: threadChatID) else { return }
-            pushThread(selection, selectingParent: nil)
-        }
+    /// Owners and Admins may cancel a live Cloud Agent run from its card.
+    var cloudAgentCancel: CloudAgentCancelAction? {
+        guard store.canManageServer else { return nil }
+        return CloudAgentCancelAction { [store] workID in try await store.cancelCloudAgent(workID: workID) }
     }
 }

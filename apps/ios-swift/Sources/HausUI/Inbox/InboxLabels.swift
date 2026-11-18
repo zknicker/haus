@@ -11,6 +11,9 @@ public enum InboxConversationLabel {
         switch kind {
         case .channel: "#\(name ?? "channel")"
         case .dm: "DM"
+        // A Task Chat is named by its key and title, never as a Channel.
+        case .task: "Task"
+        case .unknown: "Chat"
         }
     }
 }

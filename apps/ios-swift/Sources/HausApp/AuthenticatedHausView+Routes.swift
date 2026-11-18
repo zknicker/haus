@@ -9,7 +9,7 @@ import SwiftUI
 /// somewhere behind it, and on a cold start there is not. The Chat canvas and
 /// the Inbox therefore take turns in the one canvas slot, and the drawer —
 /// its toggle, its veil, its pan — belongs to the slot rather than to either
-/// of them. Tasks and Threads stay pushes over whichever is showing.
+/// of them. Tasks stay pushes over whichever is showing.
 extension AuthenticatedHausView {
     /// The Inbox page. Every section reads a Store snapshot, so the page adds
     /// no load of its own beyond the gathered refresh it asks for on arrival
@@ -32,53 +32,28 @@ extension AuthenticatedHausView {
             onMarkRead: { rowID in
                 Task { await store.markInboxRowRead(id: rowID) }
             },
-            taskActions: store.inboxTaskActions,
             onRefresh: { await store.loadInbox() },
             onOpenSidebar: onOpenSidebar,
             contentInsets: contentInsets
         )
-        .alert(
-            "Couldn’t open that thread",
-            isPresented: Binding(
-                get: { failedWorkOpenID != nil },
-                set: { if !$0 { failedWorkOpenID = nil } }
-            ),
-            presenting: failedWorkOpenID
-        ) { workID in
-            Button("Retry") { openInboxRequest(.cloudAgentWork(workID: workID)) }
-            Button("Cancel", role: .cancel) {}
-        } message: { _ in
-            Text("Check your connection and try again.")
-        }
     }
 
     /// The sidebar's Inbox row: the canvas goes back to the Inbox, and anything
     /// pushed over it comes off.
     func openInbox() {
         path.removeAll()
-        selectedThread = nil
         showsInboxCanvas = true
     }
 
-    /// A row states a record and opens it where that record is fully readable.
-    ///
-    /// An Unread row opens its DM or Channel, or its Thread, which lands on
-    /// the first unread reply (`unreadThreadLanding`). A Cloud Agent work
-    /// opens the Thread it hangs off, which is the same pair a Thread composer
-    /// sends to: the conversation's Chat and the anchor Message.
+    /// A row states a record and opens it where that record is fully readable:
+    /// an Unread row its DM, Channel, or Task, and a Cloud Agent work its Task
+    /// or the Message that links it.
     func openInboxRequest(_ request: InboxOpenRequest) {
         switch request {
         case .agent(let agentID):
             openAgentDM(agentID)
         case .chat(let chatID):
             openCanvasChat(.chat(chatID))
-        case .thread(let threadChatID):
-            Task {
-                guard let selection = await store.inboxThreadSelection(threadChatID: threadChatID) else {
-                    return
-                }
-                pushConversationThread(selection)
-            }
         case .cloudAgentWork(let workID):
             guard let work = store.activeCloudAgentWork?.first(where: { $0.work.id == workID }) else { return }
             openCloudAgentWork(work)
@@ -87,83 +62,25 @@ extension AuthenticatedHausView {
         }
     }
 
-    /// Opens one "Happening now" work where its `location` says (ADR 0044,
-    /// Q4): the launch work Thread, or the newest visible linking Message —
-    /// its existing Thread when it has one, else revealed in its Chat.
-    /// Opening never creates or follows a Thread.
+    /// Opens one "Happening now" work: its Task when it reports to one (ADR
+    /// 0052 decision 6), else the newest visible linking Message, revealed in
+    /// its Channel or DM.
     private func openCloudAgentWork(_ work: ActiveCloudAgentWork) {
+        if let taskID = work.taskID {
+            openTask(taskID)
+            return
+        }
         switch work.location {
-        case .workThread(let threadChatID, let anchorMessageID):
-            openWorkThread(work, threadChatID: threadChatID, anchorMessageID: anchorMessageID)
-        case .message(let chatID, let messageID, let threadChatID):
-            // `chatID` is always the Channel or DM. A Message in or anchoring
-            // a Thread opens that Thread, whose anchor `thread.get` names.
-            guard let threadChatID else {
-                openCanvasChat(.chat(chatID), revealing: messageID)
-                return
-            }
-            let serverID = store.activeServer?.id
-            Task {
-                guard let selection = await store.threadSelection(threadChatID: threadChatID) else {
-                    reportWorkOpenFailure(work, on: serverID)
-                    return
-                }
-                pushConversationThread(selection)
-            }
+        case .message(let chatID, let messageID):
+            openCanvasChat(.chat(chatID), revealing: messageID)
         }
     }
 
-    /// A Thread that could not be read says so, as the App's toast does. One
-    /// the viewer left by switching Servers is no longer theirs to retry.
-    private func reportWorkOpenFailure(_ work: ActiveCloudAgentWork, on serverID: String?) {
-        guard store.activeServer?.id == serverID else { return }
-        failedWorkOpenID = work.id
-    }
-
-    private func openWorkThread(_ work: ActiveCloudAgentWork, threadChatID: String, anchorMessageID: String) {
-        let serverID = store.activeServer?.id
-        Task {
-            guard var selection = await store.threadSelection(
-                conversationChatID: work.conversationChatID,
-                threadChatID: threadChatID,
-                anchorMessageID: anchorMessageID
-            ) else {
-                reportWorkOpenFailure(work, on: serverID)
-                return
-            }
-            let title = work.work.title.trimmingCharacters(in: .whitespacesAndNewlines)
-            selection.title = title.isEmpty ? nil : title
-            pushConversationThread(selection)
-        }
-    }
-
-    /// A tapped notification opens what it names: a conversation, an assigned
-    /// Task pushed over whatever is showing, or the Inbox for several at once.
-    func openPushNotification(_ request: PushOpenRequest) async {
-        switch request {
-        case .message(let payload):
-            await openPushNotification(payload)
-        case .task(let payload):
-            guard payload.serverID == store.activeServer?.id else {
-                PushNotifications.logger.notice("Ignoring a notification for another Server.")
-                return
-            }
-            path.removeAll()
-            openTask(payload.taskID)
-        case .taskBurst(let payload):
-            guard payload.serverID == store.activeServer?.id else {
-                PushNotifications.logger.notice("Ignoring a notification for another Server.")
-                return
-            }
-            openInbox()
-            canvasRouteRevision += 1
-        }
-    }
-
-    /// A message push opens its conversation: a DM or Channel on the canvas, or
-    /// its Thread pushed over whatever is showing. A push for another Server
-    /// opens nothing — this app shows one Server.
-    private func openPushNotification(_ payload: PushNotificationPayload) async {
+    /// A message push or deep link opens its place: a DM or Channel on the
+    /// canvas, or its Task pushed over whatever is showing
+    /// (`PushNotificationRoute.opening`). A push for another Server opens
+    /// nothing — this app shows one Server.
+    func openPushNotification(_ payload: PushNotificationPayload) async {
         guard payload.serverID == store.activeServer?.id else {
             PushNotifications.logger.notice("Ignoring a notification for another Server.")
             return
@@ -171,28 +88,10 @@ extension AuthenticatedHausView {
         switch payload.route {
         case .chat(let chatID):
             openCanvasChat(.chat(chatID))
-        case .thread(let conversationChatID, let threadChatID, let anchorMessageID):
-            guard let selection = await store.threadSelection(
-                conversationChatID: conversationChatID,
-                threadChatID: threadChatID,
-                anchorMessageID: anchorMessageID
-            ) else { return }
+        case .task(let taskID, _):
             path.removeAll()
-            pushConversationThread(selection)
+            openTask(taskID)
         }
-    }
-
-    /// A Thread opened from the Inbox pops back to the Inbox, and its parent
-    /// Chat may be one the user has never visited — selecting it would mark it
-    /// read on the way back out. The route carries the parent Chat id and the
-    /// row or work carries the child Chat id, so it needs no selection.
-    ///
-    /// The Store projects the anchor, because the Inbox is the one surface that
-    /// opens a Thread over a Chat page this client has not loaded: the Thread
-    /// screen has nothing to fall back to, so what the row hands it is all it
-    /// will ever have.
-    private func pushConversationThread(_ selection: ThreadSelection) {
-        pushThread(selection, selectingParent: nil)
     }
 
     /// An Agent's own Chat is where a person talks to it, so an Agent row lands
@@ -208,7 +107,6 @@ extension AuthenticatedHausView {
     /// canvas comes off, and the Inbox stops being what it shows.
     func openCanvasChat(_ id: ChatDestination.ID, revealing messageID: String? = nil) {
         path.removeAll()
-        selectedThread = nil
         showsInboxCanvas = false
         canvasScrollTarget = if case .chat(let chatID) = id, let messageID {
             MessageScrollTarget(chatID: chatID, messageID: messageID)
@@ -219,52 +117,10 @@ extension AuthenticatedHausView {
         canvasRouteRevision += 1
     }
 
-    /// A Thread opened from the canvas pops back to the canvas, so the canvas
-    /// underneath has to be its parent Chat.
-    func openThread(_ chat: ChatPresentation, _ anchor: MessagePresentation) {
-        pushThread(
-            ThreadSelection(
-                parentChatID: chat.id,
-                threadChatID: anchor.thread?.threadChatID,
-                anchor: anchor
-            ),
-            selectingParent: chat.id
-        )
-    }
-
-    /// A stopped claim opens from an Agent profile, and its parent Chat may be
-    /// one the user has never visited. Selecting it would mark it read on the
-    /// way back out, so this route leaves the canvas selection alone. The
-    /// Thread needs no selection of its own: its route carries the parent Chat
-    /// id and the claim carries the child Chat id.
-    ///
-    /// A claim on a Thread message works in the Thread it sits in, so it opens
-    /// that Thread on its own anchor, which `thread.get` names, and lands on
-    /// the claim message. It never opens a Thread anchored on the claim message.
+    /// A stopped claim opens from an Agent profile at its message, in the
+    /// Channel or DM that numbers it. A claim is a lock on a message, not a
+    /// place (ADR 0052).
     func openClaim(_ item: ClaimListItem) {
-        switch ClaimOpening(item) {
-        case .anchoredThread(let parentChatID, let threadChatID):
-            guard let anchor = store.claimMessagePresentation(item) else { return }
-            pushThread(
-                ThreadSelection(parentChatID: parentChatID, threadChatID: threadChatID, anchor: anchor),
-                selectingParent: nil
-            )
-        case .containingThread(_, let threadChatID, let landingMessageID):
-            Task {
-                guard var selection = await store.threadSelection(threadChatID: threadChatID) else { return }
-                selection.claimMessageID = landingMessageID
-                pushThread(selection, selectingParent: nil)
-            }
-        }
-    }
-
-    /// Every Thread push, whichever row opened it. Nothing but the route is
-    /// needed to open one.
-    func pushThread(_ thread: ThreadSelection, selectingParent parentChatID: String?) {
-        if let parentChatID {
-            selectedDestinationID = .chat(parentChatID)
-        }
-        selectedThread = thread
-        path.append(.thread(thread))
+        openCanvasChat(.chat(item.claim.chatID), revealing: item.claim.messageID)
     }
 }

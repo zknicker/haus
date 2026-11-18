@@ -5,23 +5,6 @@ import HausUI
 import OSLog
 
 extension HausStore {
-    /// The anchor's child Chat: from the parent page's Thread summary, or, for a
-    /// first reply whose parent page has not refetched yet, the Chat Server
-    /// moved the optimistic row into. Without the second, the open Thread read
-    /// its emptied provisional key for a beat and jumped back to the anchor.
-    func threadChatID(parentChatID: String, anchorMessageID: String) -> String? {
-        messagesByChatID[parentChatID]?.threads.first {
-            $0.anchorMessageID == anchorMessageID
-        }?.threadChatID
-            ?? adoptedChatIDs[pendingThreadChatID(anchorMessageID: anchorMessageID)]
-    }
-
-    /// Local-only key for optimistic replies before Server creates the child
-    /// Chat. This value must never be sent to a Server procedure.
-    func pendingThreadChatID(anchorMessageID: String) -> String {
-        "thread-pending:\(anchorMessageID)"
-    }
-
     /// True once the message is the viewer's row in the transcript — sent, in
     /// flight, or kept as a failed row to retry. False only when nothing left
     /// the composer (no Server, nothing to send), so the composer keeps it.
@@ -31,67 +14,20 @@ extension HausStore {
         to chatID: String,
         attachments: [ComposerAttachment] = [],
         replyToMessageID: String? = nil,
-        replyPreview: MessageReplyReferencePresentation? = nil,
-        threadAnchorMessageID: String? = nil,
-        pendingChatID: String? = nil
+        replyPreview: MessageReplyReferencePresentation? = nil
     ) async -> Bool {
-        await sendOutcome(
-            content,
-            to: chatID,
-            attachments: attachments,
-            replyToMessageID: replyToMessageID,
-            replyPreview: replyPreview,
-            threadAnchorMessageID: threadAnchorMessageID,
-            pendingChatID: pendingChatID
-        ) != .rejected
-    }
-
-    /// Sends a Thread reply through the parent Chat. A sent reply carries the
-    /// canonical child Chat id Server created (or found): the iPhone client
-    /// must never derive or invent one while the first reply is in flight.
-    func sendThreadReply(
-        _ content: String,
-        to parentChatID: String,
-        anchorMessageID: String,
-        pendingChatID: String? = nil,
-        attachments: [ComposerAttachment] = []
-    ) async -> SendOutcome {
-        await sendOutcome(
-            content,
-            to: parentChatID,
-            attachments: attachments,
-            replyToMessageID: nil,
-            replyPreview: nil,
-            threadAnchorMessageID: anchorMessageID,
-            pendingChatID: pendingChatID
-        )
-    }
-
-    private func sendOutcome(
-        _ content: String,
-        to chatID: String,
-        attachments: [ComposerAttachment],
-        replyToMessageID: String?,
-        replyPreview: MessageReplyReferencePresentation?,
-        threadAnchorMessageID: String?,
-        pendingChatID: String?
-    ) async -> SendOutcome {
-        guard activeServer?.id != nil else { return .rejected }
+        guard activeServer?.id != nil else { return false }
         let content = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !content.isEmpty || !attachments.isEmpty else { return .rejected }
+        guard !content.isEmpty || !attachments.isEmpty else { return false }
 
         let row = PendingChatMessage(
             attachments: attachments,
-            chatID: pendingChatID ?? chatID,
+            chatID: chatID,
             content: content,
             createdAt: .now,
             nonce: UUID().uuidString.lowercased(),
             inlineReply: replyPreview,
-            target: .chat(
-                chatID: chatID,
-                replyToMessageID: replyToMessageID,
-                threadAnchorMessageID: threadAnchorMessageID
-            )
+            target: .chat(chatID: chatID, replyToMessageID: replyToMessageID)
         )
         // A page scrolled away from the latest messages would put the new row
         // mid-history, so the latest page loads first.
@@ -99,11 +35,11 @@ extension HausStore {
            !(await loadHistory(chatID: row.chatID, direction: .latest)) {
             pendingMessagesByChatID[row.chatID, default: []].append(row)
             failSend(nonce: row.nonce, reason: "the latest page did not load")
-            return .failed
+            return true
         }
         historyNavigation.followingLatest[row.chatID] = true
         pendingMessagesByChatID[row.chatID, default: []].append(row)
-        return await deliver(row)
+        return await deliver(row) != .rejected
     }
 
     /// Resolves an attachment to a readable file, downloading it at most once.
@@ -164,16 +100,16 @@ extension HausStore {
     }
 
     func reloadChats(serverID: String) async throws {
-        // The unread Threads ride every Chat list read: a Thread's parent
-        // listing, a reply, a follow, and a lifecycle change all move both.
         async let iconBadge: Void = refreshIconBadge()
-        async let threads: Void = loadUnreadThreads()
+        // Followed unread Tasks read once here, for the Inbox dot; events and
+        // stream starts keep them current after that.
+        async let tasks: Void = taskSnapshots.unreadTasks == nil ? loadUnreadTasks() : ()
         let readStart = realtimeReconciliation.beginRead()
         let refreshed: [ChatSummary] = try await client.query(
             "chat.list",
             input: ServerScopedInput(serverId: serverID)
         )
-        _ = await (iconBadge, threads)
+        _ = await (iconBadge, tasks)
         // An answer older than one already applied writes nothing.
         guard activeServer?.id == serverID,
               realtimeReconciliation.landed(.chatList, readStartedAt: readStart)

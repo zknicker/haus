@@ -3,12 +3,13 @@ import XCTest
 @testable import HausModels
 
 final class ClaimModelsTests: XCTestCase {
-    func testDecodesClaimListProjectionWithCanonicalMessageAndThread() throws {
+    func testDecodesClaimListProjectionWithCanonicalMessage() throws {
         let item = try decodeItem(number: 4, status: "in_review")
 
         XCTAssertEqual(item.id, "message_4")
         XCTAssertEqual(item.claim.status, .inReview)
-        XCTAssertEqual(item.threadSummary.replyCount, 2)
+        XCTAssertEqual(item.claim.chatID, "chat_1")
+        XCTAssertEqual(item.claim.messageID, "message_4")
         XCTAssertEqual(item.chatKind, .channel)
         XCTAssertEqual(item.chatName, "product")
     }
@@ -80,8 +81,7 @@ final class ClaimModelsTests: XCTestCase {
         """
         {"chatKind":"channel","chatName":"product","chatPeerUserId":null,
          "message":{"attachments":[],"author":{"kind":"human","userId":"user_1","profile":null},"chatId":"chat_1","content":"Review the mobile release","createdAt":"2026-09-10T17:00:00Z","id":"message_\(number)","nonce":"nonce_1","runId":null,"sequence":8,"serverId":"server_1","claim":null},
-         "claim":{"assigneeAgentId":"\(assignee)","chatId":"chat_1","claimedAt":"2026-09-10T18:00:00.000Z","createdAt":"2026-09-10T17:59:00.000Z","createdByAgentId":"agent_1","createdByUserId":null,"live":\(live),"messageId":"message_\(number)","number":\(number),"origin":"\(origin)","status":"\(status)","threadChatId":"thread_1","tier":"\(tier)","updatedAt":"\(updatedAt)","version":2},
-         "threadSummary":{"anchorMessageId":"message_\(number)","followed":true,"latestReplyAt":"2026-09-10T18:02:00Z","recentReplies":[],"replyCount":2,"threadChatId":"thread_1","unreadCount":1}}
+         "claim":{"assigneeAgentId":"\(assignee)","chatId":"chat_1","claimedAt":"2026-09-10T18:00:00.000Z","createdAt":"2026-09-10T17:59:00.000Z","createdByAgentId":"agent_1","createdByUserId":null,"live":\(live),"messageId":"message_\(number)","number":\(number),"origin":"\(origin)","status":"\(status)","tier":"\(tier)","updatedAt":"\(updatedAt)","version":2}}
         """
     }
 }

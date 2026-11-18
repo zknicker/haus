@@ -8,13 +8,13 @@ final class TranscriptStoreTests: XCTestCase {
 
     func testAPageSeedsOneEntityPerMessageAndRendersBack() {
         var store = TranscriptStore()
-        let page = F.page(F.messages(1...3), threads: [F.thread(anchor: "m2")])
+        let page = F.page(F.messages(1...3), tasks: [F.task(origin: "m2")])
 
         XCTAssertEqual(store.write(page, to: chat, as: .refresh(followingLatest: true)), [chat])
 
         XCTAssertEqual(store.lists[chat]?.messageIDs, ["m1", "m2", "m3"])
-        XCTAssertEqual(store.entities["m2"]?.thread?.anchorMessageID, "m2")
-        XCTAssertNil(store.entities["m1"]?.thread)
+        XCTAssertEqual(store.entities["m2"]?.tasks?.first?.originMessageID, "m2")
+        XCTAssertEqual(store.entities["m1"]?.tasks, [])
         XCTAssertEqual(store.page(chat), page)
     }
 
@@ -72,35 +72,35 @@ final class TranscriptStoreTests: XCTestCase {
         store.write(F.page(F.messages(1...3)), to: chat, as: .refresh(followingLatest: true))
         store.write(F.page([F.message("m1", sequence: 1), F.message("m3", sequence: 3)]), to: chain, as: .replace)
 
-        let changed = store.setEntity(ChatMessageEntity(message: F.message("m3", sequence: 3, reaction: "👍"), thread: nil))
+        let changed = store.setEntity(ChatMessageEntity(message: F.message("m3", sequence: 3, reaction: "👍")))
 
         XCTAssertEqual(changed, [chat, chain])
         XCTAssertEqual(store.page(chat)?.messages.last?.reactions.first?.emoji, "👍")
         XCTAssertEqual(store.page(chain)?.messages.last?.reactions.first?.emoji, "👍")
         // An unchanged answer touches nothing.
-        XCTAssertEqual(store.setEntity(ChatMessageEntity(message: F.message("m3", sequence: 3, reaction: "👍"), thread: nil)), [])
+        XCTAssertEqual(store.setEntity(ChatMessageEntity(message: F.message("m3", sequence: 3, reaction: "👍"))), [])
     }
 
     func testAnEntityNoListNamesIsNotKept() {
         var store = TranscriptStore()
-        XCTAssertEqual(store.setEntity(ChatMessageEntity(message: F.message("m9", sequence: 9), thread: nil)), [])
+        XCTAssertEqual(store.setEntity(ChatMessageEntity(message: F.message("m9", sequence: 9))), [])
         XCTAssertNil(store.entities["m9"])
     }
 
-    /// A missed Thread reply heals through the bulk reload: the reseeded page
-    /// carries the anchor's new summary, and the list's ids and paging stay.
-    func testAReseedRewritesTheParentAnchorSummaryAndKeepsPaging() {
+    /// A missed Task message heals through the bulk reload: the reseeded page
+    /// carries the origin's new preview, and the list's ids and paging stay.
+    func testAReseedRewritesTheOriginTaskPreviewAndKeepsPaging() {
         var store = TranscriptStore()
-        store.write(F.page(F.messages(1...3), nextBefore: 1, threads: [F.thread(anchor: "m2", replyCount: 1)]),
+        store.write(F.page(F.messages(1...3), nextBefore: 1, tasks: [F.task(origin: "m2", messageCount: 1)]),
                     to: chat, as: .refresh(followingLatest: true))
 
         let changed = store.write(
-            F.page(F.messages(2...3), nextAfter: 3, threads: [F.thread(anchor: "m2", replyCount: 2, unreadCount: 1)]),
+            F.page(F.messages(2...3), nextAfter: 3, tasks: [F.task(origin: "m2", messageCount: 2, unreadCount: 1)]),
             to: chat, as: .reseed
         )
 
         XCTAssertEqual(changed, [chat])
-        XCTAssertEqual(store.entities["m2"]?.thread?.replyCount, 2)
+        XCTAssertEqual(store.entities["m2"]?.tasks?.first?.messageCount, 2)
         XCTAssertEqual(store.lists[chat]?.messageIDs, ["m1", "m2", "m3"])
         XCTAssertEqual(store.lists[chat]?.nextBeforeSequence, 1)
         XCTAssertNil(store.lists[chat]?.nextAfterSequence)

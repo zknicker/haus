@@ -53,7 +53,7 @@ final class LongTranscriptPerformanceTests: XCTestCase {
     }
 
     private func timeline(history: [MessagePresentation], start: Int, chat: Int) -> some View {
-        MessageTimelineView(messages: Array(history[start..<start + 200]), onOpenThread: { _ in })
+        MessageTimelineView(messages: Array(history[start..<start + 200]))
             .id(chat)
     }
 

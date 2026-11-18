@@ -43,14 +43,15 @@ struct RichReferenceParityTests {
             label: "Product",
             mark: .channel(.default)
         ),
-        // The Server's rewritten Thread mention: the Chat scheme with the
-        // anchor in the query. The id keeps the whole target so both ids ride.
+        // The legacy wire form of a mention of one Message: the Chat scheme
+        // with the Message in the query. The id keeps the whole target so
+        // both ids ride.
         Row(
-            markdown: "[#launch plan](chat://cht_product?thread=msg_anchor)",
-            kind: .thread,
-            id: "chat://cht_product?thread=msg_anchor",
+            markdown: "[#launch plan](chat://cht_product\(MessageReferenceTarget.legacyMessageParameter)msg_anchor)",
+            kind: .message,
+            id: "chat://cht_product\(MessageReferenceTarget.legacyMessageParameter)msg_anchor",
             label: "launch plan",
-            mark: .glyph(.thread)
+            mark: .glyph(.message)
         ),
         Row(
             markdown: "[$ui](skill://ui)",

@@ -29,9 +29,9 @@ struct TaskLinkChipsTests {
         #expect(opened?.taskID == "task_1")
     }
 
-    @Test func aTaskLinkIsNotAThreadOrAnAddress() throws {
+    @Test func aTaskLinkIsNotAMessageOrAnAddress() throws {
         let url = try #require(URL(string: "task://task_1"))
-        #expect(ThreadReferenceTarget(url: url) == nil)
+        #expect(MessageReferenceTarget(url: url) == nil)
         #expect(RichReferenceWireForm.activationURL(for: "task://task_1") == nil)
     }
 
@@ -58,7 +58,7 @@ struct TaskLinkChipsTests {
         #expect(references.count == 2)
     }
 
-    /// A re-keyed board re-keys its Tasks; the Message keeps its words.
+    /// A re-keyed Task reads its new key; the Message keeps its words.
     @Test func aChipReadsTheCurrentKey() {
         let rekeyed = TaskLink(key: "SAFE-12", taskID: "task_1", text: "SEC-12")
         let blocks = TaskLinkChips.apply(
@@ -102,23 +102,23 @@ struct TaskLinkChipsTests {
     }
 
     /// A Task description draws through the message body path: the Server's
-    /// resolved Channel and Thread references and its resolved key are chips,
+    /// resolved Channel and Message references and its resolved key are chips,
     /// and code and a PR mentioned in words stay text.
     @Test func aTaskDescriptionDrawsLikeAMessage() throws {
         let content = """
-        From [#joy-haus-ops thread](chat://chat_ops?thread=msg_wHjAXiaR0000) and [#joy-haus-ops](chat://chat_ops) wHjAXiaR.
+        From [#joy-haus-ops message](chat://chat_ops\(MessageReferenceTarget.legacyMessageParameter)msg_wHjAXiaR0000) and [#joy-haus-ops](chat://chat_ops) wHjAXiaR.
         Blocked on OPS-26 and merchbase-fulfillment PR 29 (d66f487), not `OPS-26`.
         """
-        let detail = BoardTaskDetail(
+        let detail = TaskDetail(
             task: TaskPreviewFixtures.detail.task,
             descriptionContent: content,
             descriptionTaskLinks: [TaskLink(key: "OPS-26", taskID: "task_26", text: "OPS-26")],
             mentions: [],
             reminders: []
         )
-        let segments = TaskBoardSource.preview.descriptionBlocks(detail).flatMap(\.segments)
+        let segments = TaskDetailSource.preview.descriptionBlocks(detail).flatMap(\.segments)
 
-        #expect(chips(segments).map(\.kind) == [.thread, .channel, .task])
+        #expect(chips(segments).map(\.kind) == [.message, .channel, .task])
         #expect(chips(segments).last?.id == "task_26")
         let words = segments.compactMap { segment -> String? in
             if case .text(let text, _) = segment { text } else { nil }

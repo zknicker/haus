@@ -1,14 +1,13 @@
 import SwiftUI
 
 #Preview {
-    MessageTimelineView(messages: ChatFixtures.messages, onOpenThread: { _ in })
+    MessageTimelineView(messages: ChatFixtures.messages)
 }
 
 #Preview("Empty") {
     MessageTimelineView(
         messages: [],
-        emptyStateDescription: "Start the conversation in #product.",
-        onOpenThread: { _ in }
+        emptyStateDescription: "Start the conversation in #product."
     )
 }
 

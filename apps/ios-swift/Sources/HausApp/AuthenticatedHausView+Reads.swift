@@ -9,24 +9,22 @@ import SwiftUI
 /// three hooks are the whole seam between them.
 extension AuthenticatedHausView {
     /// The Chat the canvas has to have open, and the only one that
-    /// acknowledges: a pushed Thread or the Tasks list covers the canvas and
-    /// owns the open Chat while it is on screen.
+    /// acknowledges: a pushed Task covers the canvas and owns the open Chat
+    /// while it is on screen.
     var canvasOpenChatID: String? {
         ChatCanvasOpen.chatID(
             selectedID: selectedDestinationID,
-            isCovered: showsInboxCanvas || !path.isEmpty || selectedThread != nil
+            isCovered: showsInboxCanvas || !path.isEmpty
         )
     }
 
     /// The Chat on screen right now, for deciding whether a foreground push
-    /// would only repeat it: a pushed Thread's own Chat, the uncovered canvas
-    /// Chat, or nothing while the Inbox or the Task list shows.
+    /// would only repeat it: a pushed Task's own Chat, the uncovered canvas
+    /// Chat, or nothing while the Inbox or a read-only Task shows.
     var viewingChatID: String? {
         switch path.last {
-        case .thread:
-            selectedThread?.resolvedChatID(selectedThread: selectedThread, store: store)
-        case .tasks, .board, .task:
-            nil
+        case .task(let taskID):
+            viewingTaskChatID(taskID)
         case nil:
             canvasOpenChatID
         }
@@ -43,13 +41,6 @@ extension AuthenticatedHausView {
     /// over it — the covering rule is structural, not a guard.
     func reportVisibleMessages(_ destination: ChatDestination, _ messageIDs: [String]) {
         guard case .chat(let chatID) = destination.id else { return }
-        store.reportVisibleMessages(chatID: chatID, messageIDs: messageIDs)
-    }
-
-    /// A pushed Thread's viewport. Its anchor and claim rows carry no Server
-    /// sequence, so the Store simply cannot resolve them.
-    func reportVisibleReplies(_ messageIDs: [String], in thread: ThreadSelection) {
-        guard let chatID = resolvedThreadChatID(for: thread) else { return }
         store.reportVisibleMessages(chatID: chatID, messageIDs: messageIDs)
     }
 

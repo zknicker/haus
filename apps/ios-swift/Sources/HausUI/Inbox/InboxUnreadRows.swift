@@ -39,17 +39,15 @@ public struct InboxUnreadChat: Identifiable, Equatable, Sendable {
     }
 }
 
-/// Every unread Chat and Thread and every assigned Task, newest activity first,
-/// one row each. A Thread is its own row, never folded into its parent
-/// (ADR 0043), and a Task is its own row, never bundled with another (ADR 0051).
+/// Every unread Chat and followed Task, newest activity first, one row each.
+/// A Task is its own row, never bundled with another (ADR 0052).
 public enum InboxUnreadRows {
     /// What a Chat holding no message yet says instead of a quote.
     public static let noActivityPreview = "no activity yet"
 
     public static func rows(
         _ chats: [InboxUnreadChat],
-        threads: [InboxUnreadThread] = [],
-        tasks: [InboxTaskItem] = [],
+        taskChats: [InboxUnreadTaskChat] = [],
         viewerDisplayName: String?
     ) -> [InboxUnreadRow] {
         let chatRows = chats
@@ -68,8 +66,8 @@ public enum InboxUnreadRows {
                     open: .chat(chat.id)
                 )
             }
-        let threadRows = threads.map { $0.row(viewerDisplayName: viewerDisplayName) }
-        return (chatRows + threadRows + tasks.map(\.row)).sorted { left, right in
+        let taskRows = taskChats.map { $0.row(viewerDisplayName: viewerDisplayName) }
+        return (chatRows + taskRows).sorted { left, right in
             let leftAt = left.lastActivityAt ?? .distantPast
             let rightAt = right.lastActivityAt ?? .distantPast
             if leftAt != rightAt { return leftAt > rightAt }

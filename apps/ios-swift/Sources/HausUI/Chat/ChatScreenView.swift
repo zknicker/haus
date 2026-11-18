@@ -8,7 +8,6 @@ public struct ChatScreenView: View {
     private let onOpenSidebar: () -> Void
     private let onOpenChatDetails: () -> Void
     private let onOpenSearch: () -> Void
-    private let onOpenThread: (MessagePresentation) -> Void
     private let onSend: (String, [ComposerAttachment]) async -> Bool
     private let onSendInlineReply:
         ((String, [ComposerAttachment], MessageReplyReferencePresentation) async -> Bool)?
@@ -48,7 +47,6 @@ public struct ChatScreenView: View {
         onOpenSidebar: @escaping () -> Void,
         onOpenChatDetails: @escaping () -> Void,
         onOpenSearch: @escaping () -> Void,
-        onOpenThread: @escaping (MessagePresentation) -> Void,
         onSend: @escaping (String, [ComposerAttachment]) async -> Bool,
         onSendInlineReply: ((String, [ComposerAttachment], MessageReplyReferencePresentation) async -> Bool)? = nil,
         onOpenAttachment: @escaping (MessageAttachmentPresentation) async throws -> URL = { attachment in
@@ -75,7 +73,6 @@ public struct ChatScreenView: View {
         self.onOpenSidebar = onOpenSidebar
         self.onOpenChatDetails = onOpenChatDetails
         self.onOpenSearch = onOpenSearch
-        self.onOpenThread = onOpenThread
         self.onSend = onSend
         self.onSendInlineReply = onSendInlineReply
         self.onOpenAttachment = onOpenAttachment
@@ -155,7 +152,7 @@ public struct ChatScreenView: View {
                 }
             }
             // The keyboard leaves before anything covers the composer — the drawer, a pushed
-            // Thread — and nothing raises it again when that surface goes away.
+            // Task — and nothing raises it again when that surface goes away.
             .onChange(of: isDrawerEngaged) { _, engaged in
                 if engaged { isComposerFocused = false }
             }
@@ -182,10 +179,6 @@ public struct ChatScreenView: View {
             messages: messages,
             isMessageHistoryLoaded: isMessageHistoryLoaded,
             emptyStateDescription: emptyStateDescription,
-            onOpenThread: { message in
-                isComposerFocused = false
-                onOpenThread(message)
-            },
             onContentTap: { isComposerFocused = false },
             allowsInlineReplies: chat.durableChat != nil && onSendInlineReply != nil,
             onSelectInlineReply: selectInlineReply,

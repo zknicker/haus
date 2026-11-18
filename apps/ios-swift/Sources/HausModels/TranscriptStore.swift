@@ -1,6 +1,6 @@
 import Foundation
 
-/// One open transcript: a Chat's (or Thread's) history, or the filtered chain
+/// One open transcript: a Chat's history, or the filtered chain
 /// of inline replies under one root message.
 public enum TranscriptKey: Hashable, Sendable {
     case chat(String)
@@ -83,7 +83,7 @@ public struct TranscriptStore: Equatable, Sendable {
             nextBeforeSequence: list.nextBeforeSequence,
             nextAfterSequence: list.nextAfterSequence,
             scannedThroughSequence: list.scannedThroughSequence,
-            threads: rows.compactMap(\.thread)
+            tasks: rows.flatMap { $0.tasks ?? [] }
         )
     }
 
@@ -107,11 +107,30 @@ public struct TranscriptStore: Equatable, Sendable {
         }
     }
 
-    /// The work every cached Message of `chatID` links.
-    public func cloudAgentWorkIDs(linkedIn chatID: String) -> Set<String> {
-        Set(entities.values.lazy
-            .filter { $0.message.chatID == chatID }
-            .flatMap { $0.message.cloudAgentWork.map(\.id) })
+    /// The cached origin Messages previewing any of the Tasks, in whichever
+    /// Channel, so a change to a Task re-reads exactly the previews it moved.
+    public func refreshes(previewingTasks taskIDs: Set<String>) -> [EntityRefresh] {
+        guard !taskIDs.isEmpty else { return [] }
+        return entities.values.compactMap { entity in
+            guard entity.tasks?.contains(where: { taskIDs.contains($0.taskID) }) == true else { return nil }
+            return EntityRefresh(chatID: entity.message.chatID, messageID: entity.message.id)
+        }
+    }
+
+    /// The newest cached preview of a Task, wherever its origin is loaded.
+    public func taskPreview(taskID: String) -> TaskPreview? {
+        for entity in entities.values {
+            if let preview = entity.tasks?.first(where: { $0.taskID == taskID }) { return preview }
+        }
+        return nil
+    }
+
+    /// The newest cached preview of the Task whose own Chat this is.
+    public func taskPreview(chatID: String) -> TaskPreview? {
+        for entity in entities.values {
+            if let preview = entity.tasks?.first(where: { $0.chatID == chatID }) { return preview }
+        }
+        return nil
     }
 
     /// Lands a page read on its list and seeds the entities it carries.
@@ -157,8 +176,11 @@ public struct TranscriptStore: Equatable, Sendable {
     /// Writes one `chat.message` answer. An id no list names is not kept: the
     /// next list read seeds it.
     @discardableResult
-    public mutating func setEntity(_ entity: ChatMessageEntity) -> Set<TranscriptKey> {
-        let id = entity.message.id
+    public mutating func setEntity(_ incoming: ChatMessageEntity) -> Set<TranscriptKey> {
+        let id = incoming.message.id
+        // A `chat.message` answer with `tasks` replaces the previews; one
+        // without (an older Server) keeps the page read's.
+        let entity = incoming.keepingTasks(of: entities[id])
         guard isListed(id), entities[id] != entity else { return [] }
         entities[id] = entity
         return keys(listing: id)
@@ -173,16 +195,18 @@ public struct TranscriptStore: Equatable, Sendable {
         return removed
     }
 
-    /// Writes the page's messages (with their Thread summaries, or none) as
+    /// Writes the page's messages (with their Task previews, or none) as
     /// entities when a list names them. Returns the ids whose entity changed.
     private mutating func seed(_ incoming: ChatMessagePage, keeping newlyListed: Set<String>) -> Set<String> {
-        let threadByAnchor = Dictionary(
-            incoming.threads.map { ($0.anchorMessageID, $0) },
-            uniquingKeysWith: { first, _ in first }
-        )
+        let tasksByOrigin = TaskPreview.byOriginMessageID(incoming.tasks)
         var changed: Set<String> = []
         for message in incoming.messages where newlyListed.contains(message.id) || isListed(message.id) {
-            let entity = ChatMessageEntity(message: message, thread: threadByAnchor[message.id])
+            // A page states every Task under each of its messages, so a message
+            // with none on the page has none.
+            let entity = ChatMessageEntity(
+                message: message,
+                tasks: tasksByOrigin[message.id] ?? []
+            )
             if entities.updateValue(entity, forKey: message.id) != entity {
                 changed.insert(message.id)
             }

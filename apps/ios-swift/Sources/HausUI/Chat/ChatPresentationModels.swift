@@ -138,14 +138,12 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     /// The direct parent context for an inline reply, when this message was
     /// posted in a Channel or DM as a reply to another message.
     public let inlineReply: MessageReplyReferencePresentation?
-    public let thread: ThreadPreviewPresentation?
     public let claim: ClaimPresentation?
     public let isPending: Bool
     /// A pending row whose send did not reach Server: the viewer's own row,
     /// marked "Not sent", until they retry or delete it.
     public let isSendFailed: Bool
     public let cloudAgents: [CloudAgentPresentation]
-    public let threadCloudAgents: [CloudAgentPresentation]
     /// Grouped emoji reactions in the Server's order, reactors resolved.
     public let reactions: [MessageReactionPresentation]
     /// What the row draws: the prose read as Markdown blocks.
@@ -160,6 +158,9 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     public let artifacts: [ArtifactSegment]
     /// The Reminder or Trigger fire this message answers, when it answers one.
     public let cause: MessageCausePresentation?
+    /// The Tasks started from this message, each previewed under it (ADR 0052
+    /// decision 7). Only a Channel message carries any.
+    public let tasks: [TaskPreviewPresentation]
 
     public init(
         id: String,
@@ -169,18 +170,18 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         attachments: [MessageAttachmentPresentation] = [],
         sequence: Int? = nil,
         inlineReply: MessageReplyReferencePresentation? = nil,
-        thread: ThreadPreviewPresentation? = nil,
         claim: ClaimPresentation? = nil,
         isPending: Bool = false,
         isSendFailed: Bool = false,
         cloudAgents: [CloudAgentPresentation] = [],
-        threadCloudAgents: [CloudAgentPresentation] = [],
         reactions: [MessageReactionPresentation] = [],
         richBlocks: [RichMessageBlock]? = nil,
         visualBody: VisualMessageBody? = nil,
-        cause: MessageCausePresentation? = nil
+        cause: MessageCausePresentation? = nil,
+        tasks: [TaskPreviewPresentation] = []
     ) {
-        // Trim consistently for Chat and Thread bodies.
+        self.tasks = tasks
+        // Trim consistently for Chat and Task bodies.
         let body = Self.body(content: content)
         // Fences are split off the resolved body before anything renders it:
         // the message content IS the visual, and the prose above the cards is
@@ -195,12 +196,10 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         self.attachments = attachments
         self.sequence = sequence
         self.inlineReply = inlineReply
-        self.thread = thread
         self.claim = claim
         self.isPending = isPending
         self.isSendFailed = isPending && isSendFailed
         self.cloudAgents = cloudAgents
-        self.threadCloudAgents = threadCloudAgents
         self.reactions = reactions
         // Blocks handed in were parsed from whatever body the caller resolved,
         // so they are trusted when they describe this one; a trim that changes
@@ -230,36 +229,15 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     /// Edge whitespace is never layout. An Agent's reply routinely ends in a
     /// newline, and a `Text` that keeps it paints a blank line under the body —
     /// a whole text line of phantom gap before the next row and before the
-    /// thread card. Trimming here is presentation only; the stored Markdown is
+    /// cards under it. Trimming here is presentation only; the stored Markdown is
     /// untouched, and interior blank lines stay as they were written.
     public static func body(content: String) -> String {
         content.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 
-public struct ThreadPreviewPresentation: Hashable, Sendable {
-    public let threadChatID: String
-    public let replyCount: Int
-    public let unreadCount: Int
-    /// The Server's own recent replies, oldest first and already capped by it.
-    public let recentReplies: [ThreadReplyPresentation]
-
-    public var latestReply: ThreadReplyPresentation? { recentReplies.last }
-
-    public init(
-        threadChatID: String,
-        replyCount: Int,
-        unreadCount: Int,
-        recentReplies: [ThreadReplyPresentation]
-    ) {
-        self.threadChatID = threadChatID
-        self.replyCount = replyCount
-        self.unreadCount = unreadCount
-        self.recentReplies = recentReplies
-    }
-}
-
-public struct ThreadReplyPresentation: Identifiable, Hashable, Sendable {
+/// One message as a Task preview quotes it, its author resolved.
+public struct TaskMessagePreviewPresentation: Identifiable, Hashable, Sendable {
     public let id: String
     public let author: MessageAuthorPresentation
     public let content: String

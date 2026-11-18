@@ -26,7 +26,7 @@ struct KeyboardInsetSampleTests {
         #expect(belowScreen == homeIndicator)
     }
 
-    /// After a cancelled back swipe out of a Thread, UIKit kept reporting a 233-point keyboard that
+    /// After a cancelled back swipe out of a Task, UIKit kept reporting a 233-point keyboard that
     /// was not on screen; with nothing editing, no keyboard frame may lift the composer.
     @Test func aKeyboardFrameWithNothingEditingIsIgnored() {
         let inset = KeyboardInsetSample.inset(

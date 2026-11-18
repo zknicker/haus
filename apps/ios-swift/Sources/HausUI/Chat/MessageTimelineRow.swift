@@ -1,21 +1,6 @@
 import SwiftUI
 
-/// What a message row states about Threads below its own content. A Thread
-/// draws its rows through the same `MessageTimelineRow` as the Chat, so this
-/// is the one place the two transcripts differ.
-enum MessageRowThreadMark: Equatable {
-    /// The Chat transcript: the way into the message's Thread
-    /// (`ThreadPreviewCard`), when it has one.
-    case ingress
-    /// A reply inside a Thread states its own claim (`ThreadClaimMark`) and
-    /// never offers a way into the Thread it already sits in.
-    case claim(isOpenedClaim: Bool)
-    /// Inside a Thread, a row that states neither: the anchor, whose claim the
-    /// metadata card states, and the parent Chat's inline replies.
-    case hidden
-}
-
-/// One message in a Chat or Thread transcript: identity, what it says, the visuals it
+/// One message in a Chat or Task transcript: identity, what it says, the visuals it
 /// drew, its attachments, and the cards that hang off it.
 ///
 /// Split out of `MessageTimelineView` so the screen keeps only the list, the
@@ -32,15 +17,10 @@ struct MessageTimelineRow: View {
     let attachmentTiles: AttachmentImageTileRegistry
     let visualHeights: VisualHeightRegistry
     let reactionBoard: ReactionStickerBoard?
-    let onOpenThread: () -> Void
     let onOpenInlineReply: (MessageReplyReferencePresentation) -> Void
     let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
     /// The drawer's actions, for VoiceOver.
     var accessibilityActions: MessageRowAccessibilityActions = .none
-    /// What the row says about Threads under its content; the Chat's ingress
-    /// unless a Thread transcript is drawing it.
-    var threadMark: MessageRowThreadMark = .ingress
-    @AppStorage(ShowClaimsInChat.storageKey) private var showClaimsInChat = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -129,43 +109,15 @@ struct MessageTimelineRow: View {
                     NotSentCaption()
                 }
 
-                switch threadMark {
-                case .ingress:
-                    if ThreadPreviewProjection.showsIngress(
-                        replyCount: message.thread?.replyCount ?? 0,
-                        claim: ingressClaim
-                    ) {
-                        ThreadPreviewCard(
-                            anchorMessageID: message.id,
-                            thread: message.thread,
-                            claim: ingressClaim,
-                            cloudAgents: message.threadCloudAgents,
-                            onOpen: onOpenThread
-                        )
-                        .id(message.id)
-                    }
-                case .claim(let isOpenedClaim):
-                    ThreadClaimMark(claim: message.claim, isOpenedClaim: isOpenedClaim)
-                case .hidden:
-                    EmptyView()
+                MessageClaimMark(claim: message.claim)
+
+                // The Tasks this message started, below everything it says
+                // (ADR 0052 decision 7). Only a Channel message carries any.
+                if !message.tasks.isEmpty {
+                    TaskPreviewStack(tasks: message.tasks)
                 }
             }
         }
-        // The connector draws in this block's coordinates, below any reference.
-        .overlayPreferenceValue(ThreadIngressAnchor.self) { anchors in
-            ThreadIngressConnector(anchors: anchors, isContinuation: isContinuation)
-        }
-    }
-
-    /// The claim this row states, or nil for a claim the reader has not asked
-    /// to see and nobody has replied to. Chat's own preference, per device,
-    /// like appearance.
-    private var ingressClaim: ClaimPresentation? {
-        ThreadPreviewProjection.ingressClaim(
-            message.claim,
-            hasReplies: (message.thread?.replyCount ?? 0) > 0,
-            showClaimsInChat: showClaimsInChat
-        )
     }
 
     /// Whether anything the message itself says sits above the cards below it.

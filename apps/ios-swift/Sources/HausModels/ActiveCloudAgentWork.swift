@@ -2,8 +2,8 @@ import Foundation
 
 /// One queued or running Cloud Agent work visible to the viewer, with
 /// everything the Inbox's "Happening now" section needs to name it and open its
-/// conversation. Like `OpenAsk`, the Chat facts always name the Channel or DM,
-/// never a Thread. Server membership and Chat access gate the read, so work the
+/// conversation. Like `OpenAsk`, the Chat facts always name the Channel or DM.
+/// Server membership and Chat access gate the read, so work the
 /// viewer cannot see never arrives and no client-side filtering is needed.
 public struct ActiveCloudAgentWork: Decodable, Identifiable, Sendable, Equatable {
     /// The delegating Agent's stored display name; a retired Agent keeps it.
@@ -15,6 +15,11 @@ public struct ActiveCloudAgentWork: Decodable, Identifiable, Sendable, Equatable
     /// Where opening this row goes.
     public let location: ActiveCloudAgentWorkLocation
     public let work: CloudAgentWork
+    /// The Task the work reports to (ADR 0052 decision 6), which opening the
+    /// row opens; nil for older work.
+    public var taskID: String? = nil
+    /// That Task's key, such as `SEC-12`.
+    public var taskKey: String? = nil
 
     public var id: String { work.id }
 
@@ -26,46 +31,32 @@ public struct ActiveCloudAgentWork: Decodable, Identifiable, Sendable, Equatable
         case conversationChatID = "conversationChatId"
         case location
         case work
+        case taskID = "taskId"
+        case taskKey
     }
 }
 
-/// Where "Happening now" opens one work (ADR 0044, Q4).
+/// Where "Happening now" opens one work without a Task (ADR 0044, Q4).
 public enum ActiveCloudAgentWorkLocation: Hashable, Sendable {
-    /// The launch work Thread, which the viewer can read.
-    case workThread(threadChatID: String, anchorMessageID: String)
-    /// The newest visible linking Message. `chatID` is always the Channel or
-    /// DM; `threadChatID` is the Thread the Message sits in or anchors, which
-    /// opens when set. Opening never creates or follows a Thread.
-    case message(chatID: String, messageID: String, threadChatID: String?)
+    /// The newest visible linking Message, revealed in its Channel or DM.
+    case message(chatID: String, messageID: String)
 }
 
 extension ActiveCloudAgentWorkLocation: Decodable {
     private enum CodingKeys: String, CodingKey {
-        case anchorMessageID = "anchorMessageId"
         case chatID = "chatId"
         case kind
         case messageID = "messageId"
-        case threadChatID = "threadChatId"
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(String.self, forKey: .kind)
-        switch kind {
-        case "work-thread":
-            self = .workThread(
-                threadChatID: try container.decode(String.self, forKey: .threadChatID),
-                anchorMessageID: try container.decode(String.self, forKey: .anchorMessageID)
-            )
-        case "message":
-            self = .message(
-                chatID: try container.decode(String.self, forKey: .chatID),
-                messageID: try container.decode(String.self, forKey: .messageID),
-                threadChatID: try container.decodeIfPresent(String.self, forKey: .threadChatID)
-            )
-        default:
-            throw UnknownKind(kind: kind)
-        }
+        guard kind == "message" else { throw UnknownKind(kind: kind) }
+        self = .message(
+            chatID: try container.decode(String.self, forKey: .chatID),
+            messageID: try container.decode(String.self, forKey: .messageID)
+        )
     }
 
     /// A location kind this build does not know. The list read skips that

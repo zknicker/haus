@@ -39,9 +39,9 @@ enum InboxFixtures {
             """
             {"agentName":\(quoted(agentName)),"chatKind":"channel","chatName":"all","chatPeerUserId":null,
              "conversationChatId":"chat_1",
-             "location":{"anchorMessageId":"message_work","kind":"work-thread","threadChatId":"chat_thread"},
+             "location":{"chatId":"chat_1","kind":"message","messageId":"message_work"},
              "work":{"activity":null,"agentId":\(quoted(agentID)),"cancelRequestedAt":null,
-               "chatId":"chat_thread","createdAt":"2026-09-11T09:00:00.000Z","id":"work_1",
+               "chatId":"chat_1","createdAt":"2026-09-11T09:00:00.000Z","id":"work_1",
                "messageId":"message_work","provider":"cursor","providerUrl":null,
                "job":\(job),"repository":"zknicker/haus","runs":[],
                "startedAt":\(started),

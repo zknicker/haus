@@ -13,35 +13,21 @@ extension HausStore {
         chatID: String,
         taskLinks: [TaskLink] = []
     ) -> ParsedMessageBody {
-        let parsed = memoizedBody(id: id, content: content, taskLinks: taskLinks)
-        if !parsed.threadChips.isEmpty {
-            projections.threadChipReferrers.record(
-                referrer: chatID,
-                references: parsed.threadChips.keys.compactMap { ThreadReferenceTarget(wireTarget: $0)?.chatID }
-            )
-        }
-        return parsed
-    }
-
-    private func memoizedBody(id: String, content: String, taskLinks: [TaskLink]) -> ParsedMessageBody {
         let revision = projections.referenceRevision
         // Task links ride the Message rather than the reference directory: a
-        // re-keyed board changes them without changing the content.
+        // re-keyed Task changes them without changing the content.
         if let cached = projections.bodies.cached(id: id, content: content, revision: revision),
-           cached.taskLinks == taskLinks,
-           cached.threadChips.allSatisfy({ threadReferencePresentation(wireTarget: $0.key)?.label == $0.value }) {
+           cached.taskLinks == taskLinks {
             return cached
         }
         let (body, visuals) = MessagePresentation.resolvedBody(content: content)
-        var threadChips: [String: String?] = [:]
         let blocks = SharedArtifactLinkScope.$current.withValue(projections.sharedArtifacts.scope) {
-            richMessageBlocks(visuals.prose) { target, label in threadChips.updateValue(label, forKey: target) }
+            richMessageBlocks(visuals.prose)
         }
         let parsed = ParsedMessageBody(
             body: body,
             visuals: visuals,
             richBlocks: TaskLinkChips.apply(taskLinks, to: blocks),
-            threadChips: threadChips,
             taskLinks: taskLinks
         )
         projections.bodies.remember(parsed, id: id, content: content, revision: revision)
@@ -51,17 +37,14 @@ extension HausStore {
     /// A Task description drawn the way a message body is: the Server's
     /// resolved description through the same reference resolver, with its
     /// Task keys chipped from the links the Server resolved for it.
-    func taskDescriptionBlocks(_ detail: BoardTaskDetail) -> [RichMessageBlock] {
+    func taskDescriptionBlocks(_ detail: TaskDetail) -> [RichMessageBlock] {
         TaskLinkChips.apply(
             detail.descriptionTaskLinks,
-            to: richMessageBlocks(detail.descriptionContent) { _, _ in }
+            to: richMessageBlocks(detail.descriptionContent)
         )
     }
 
-    private func richMessageBlocks(
-        _ content: String,
-        onThreadChip: (_ wireTarget: String, _ label: String?) -> Void
-    ) -> [RichMessageBlock] {
+    private func richMessageBlocks(_ content: String) -> [RichMessageBlock] {
         RichMessageBlockParser.blocks(content) { kind, id, fallback in
             switch kind {
             case .agent:
@@ -88,10 +71,6 @@ extension HausStore {
                     avatarURL: nil,
                     channelAppearance: ChannelAppearance(icon: chat.icon, color: chat.color)
                 )
-            case .thread:
-                let chip = threadReferencePresentation(wireTarget: id)
-                onThreadChip(id, chip?.label)
-                return chip
             case .sharedArtifact:
                 return sharedArtifactReference(key: id)
             // No other kind names Server state, so the parser's own chip stands.

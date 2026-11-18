@@ -29,10 +29,6 @@ extension HausShellView {
         settingsRequest = SettingsPresentationRequest(path: [])
     }
 
-    func openTasks() {
-        onOpenTasks()
-    }
-
     /// Escalation only. Inspecting an Agent is a push inside the details
     /// sheet's own stack; this is the deliberate hop to Settings for editing,
     /// which the profile's "Manage in Settings" row asks for by name.
