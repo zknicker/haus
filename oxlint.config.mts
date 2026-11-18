@@ -28,8 +28,10 @@ export default defineConfig({
         ...landminesRules,
         // The repo's own rules (scripts/lint/haus-rules).
         'haus/cloud-agent-status-writes': 'error',
+        'haus/config-env-loader': 'error',
         'haus/heroui-compound-children': 'error',
         'haus/heroui-dialog-form': 'error',
+        'haus/update-required-code': 'error',
 
         // Turned off by the repo's previous lint config too.
         'default-case': 'off',
