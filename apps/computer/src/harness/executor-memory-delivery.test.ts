@@ -1,8 +1,9 @@
 import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
+import { createIdleCompactionReporter } from '../idle-compaction-reporter.ts';
 import { fakeRuntimeDriver, finishedTurn } from '../runtime/testing/fake-runtime-driver.ts';
 import { compactionToolName, type TurnEvent } from '../runtime/turn-event.ts';
 import {
@@ -89,6 +90,38 @@ test('a compacted turn resets the receipt, so the next turn carries the file aga
     expect(fake.record.prompts[1]).not.toContain(memoryTag);
     expect(fake.record.prompts[2]).toContain(memoryTag);
     expect(fake.record.prompts[3]).not.toContain(memoryTag);
+});
+
+test('an idle compaction between turns resets the receipt, so the next turn carries the file again', async () => {
+    await writeMemory('# Cove\n');
+    await turn();
+    const hooks = createIdleCompactionReporter({
+        agentBusy: () => false,
+        agentsDir: dirname(agentRoot),
+        journalSink: () => Promise.resolve(undefined),
+        runtime,
+        send: () => true,
+        serverId: 'srv_test',
+    });
+    await hooks.report(
+        agentRoot,
+        { launchKey: 'launch', nativeSessionId: 'session', runtimeId: 'claude-code' },
+        {
+            costUsd: null,
+            endedAt: new Date('2026-11-18T10:01:00.000Z'),
+            modelId: 'claude-opus-5-5',
+            startedAt: new Date('2026-11-18T10:00:00.000Z'),
+            summary: 'Compacted.',
+            tokensAfter: 1000,
+            tokensBefore: 900_000,
+            usage: null,
+        }
+    );
+    await turn();
+    await turn();
+
+    expect(fake.record.prompts[1]).toContain(memoryTag);
+    expect(fake.record.prompts[2]).not.toContain(memoryTag);
 });
 
 test('a fresh session generation carries the file again', async () => {

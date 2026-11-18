@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -85,6 +85,27 @@ test('a file over the cap is cut at a line boundary with a notice naming its siz
     expect(block).toContain(
         '[MEMORY.md is 9,999 characters, over the 8,000-character cap, so Haus cut it at the last full line above. Tighten MEMORY.md under 8,000 characters'
     );
+});
+
+test('a line ending exactly at the cap is kept whole', () => {
+    const block = formatMemoryBlock(
+        `${'x'.repeat(3999)}\n${'y'.repeat(4000)}\n${'z'.repeat(10)}\n`
+    );
+    expect(block).toContain('y'.repeat(4000));
+    expect(block).not.toContain('zzz');
+    expect(block).toContain('-character cap');
+});
+
+test('an unreadable MEMORY.md is treated as missing', async () => {
+    await mkdir(join(workspaceDir, 'MEMORY.md'));
+    const plan = await planMemoryDelivery({
+        isResume: true,
+        receipt: 'older',
+        wake: false,
+        workspaceDir,
+    });
+    expect(plan.block).toBeNull();
+    expect(await readMemoryDigest(workspaceDir)).toBeNull();
 });
 
 test('a file within the cap is delivered whole with no notice', () => {

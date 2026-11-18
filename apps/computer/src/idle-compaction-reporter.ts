@@ -8,6 +8,7 @@ import {
     createComputerExecutionJournal,
     type ExecutionJournalSink,
 } from './harness/execution-journal.ts';
+import { clearDeliveredMemoryDigest } from './harness/session-store.ts';
 import type { IdleCompactionResult } from './runtime/idle-compaction.ts';
 import type { IdleCompactionHooks } from './runtime/idle-compaction-scheduler.ts';
 import type { WarmIdentity } from './runtime/warm-pool.ts';
@@ -65,6 +66,20 @@ export function createIdleCompactionReporter(
                 return;
             }
             const report = idleCompactionReport(agentId, identity, result);
+            try {
+                // The compaction may have summarized MEMORY.md away; the next turn carries it.
+                await clearDeliveredMemoryDigest(key);
+            } catch (error) {
+                log(
+                    'An idle compaction did not reset the memory receipt.',
+                    {
+                        agentId,
+                        error: error instanceof Error ? error.message : String(error),
+                        event: 'runtime-idle-compaction-memory-reset-failed',
+                    },
+                    'warning'
+                );
+            }
             try {
                 await journalIdleCompaction({
                     agentId,
