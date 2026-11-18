@@ -19,12 +19,6 @@ const repository = 'zknicker/haus';
 const pullRequestNumber = 512;
 const title = 'Avatar upload: crop, resize, and save';
 
-/**
- * The open demo Task's attached work (ADR 0053 decision 6): the Agent's launch
- * Message in the Task, a settled cloud agent whose Run opened a pull request,
- * the live reading of that pull request, and its attachment to the Task. These
- * are static samples: no provider job or GitHub call stands behind them.
- */
 export async function seedDemoTaskWork(
     tx: Tx,
     input: { agentId: string; computerId: string; serverId: string; task: SeededDemoTask }
@@ -49,8 +43,6 @@ export async function seedDemoTaskWork(
         .update(chatsTable)
         .set({ lastActivityAt: now, lastMessageSequence: sequence })
         .where(and(eq(chatsTable.serverId, serverId), eq(chatsTable.id, task.chatId)));
-    // Settled, never running: the dev Computer would otherwise reconcile a fake
-    // Run against the provider every minute.
     await tx.insert(cloudAgentWorkTable).values({
         activityAt: now,
         activitySummary: 'Opened a draft pull request with the crop step',

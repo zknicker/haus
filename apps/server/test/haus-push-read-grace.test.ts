@@ -103,7 +103,6 @@ test('a Task message is skipped only when the Task itself was read', async () =>
         select sequence from chat_messages where id = ${task.originMessageId}
     `) as { sequence: number }[];
 
-    // Reading the Channel does not read its Tasks: the mention still pushes.
     const first = await peer.trpc.chat.send.mutate({
         chatId: task.chatId,
         content: `[@Ada](user://${ownerUserId}) us-east.`,
@@ -119,7 +118,6 @@ test('a Task message is skipped only when the Task itself was read', async () =>
     expect(firstPushes.map((push) => push.device.token)).toEqual([adaToken]);
     expect(firstPushes[0]?.payload).toMatchObject({ reason: 'mention', taskId: task.id });
 
-    // Reading the open Task through the message does.
     const second = await peer.trpc.chat.send.mutate({
         chatId: task.chatId,
         content: `[@Ada](user://${ownerUserId}) then eu-west.`,
@@ -140,7 +138,6 @@ async function settledPushes(messageId: string) {
     return await sender.sentFor(messageId, 0);
 }
 
-/** What the badge means: the Inbox's unread rows (Chats and followed Tasks), summed over Servers. */
 async function unreadChatCount(client: HausClient, serverIds: readonly string[]) {
     let count = 0;
     for (const serverId of serverIds) {

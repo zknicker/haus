@@ -14,11 +14,6 @@ import { type HausServerHarness, startHausServerHarness } from './haus-server-ha
 import { type PullRequestWakeReading, respondAsGithub } from './pull-request-wake-github.ts';
 import { startTestTask, type TestTask } from './task-place-fixture.ts';
 
-/**
- * ADR 0053 decision 6: a pull request becoming ready, or its checks finishing,
- * after its cloud work's newest Run settled wakes the delegating Agent in the
- * Task, once per transition and head. `tasks/attach-pr` seeds the reading.
- */
 const url = 'https://github.com/Acme/Api/pull/1423';
 const headSha = 'ec26c3e57ca3a959ca5aad62de7213c562f8c821';
 const pull: PullRequestWakeReading = { checks: 'pending', draft: false };
@@ -87,7 +82,6 @@ test('nothing wakes while the newest Run is still working', async () => {
     await refresh();
     expect(await notices()).toEqual([]);
     expect(wakes).toEqual([]);
-    // Put the draft back so the settled case sees the same transition.
     await harness.sql`
         update cloud_agent_pull_requests set state = 'draft', checks = 'pending', refresh_requested_at = now()
     `;
@@ -100,7 +94,6 @@ test('a draft turning ready after settlement wakes the Agent in the Task, once',
         { chat_id: task.chatId, dedupe_key: `acme/api#1423:ready_for_review:${headSha}` },
     ]);
     expect(wakes).toEqual([{ agentId: world.agentId, serverId: world.serverId }]);
-    // The attention targets the Task and says what changed.
     const rows = await listInboxItemsByDedupeKeys(connection.db, {
         agentId: world.agentId,
         dedupeKeys: [`acme/api#1423:ready_for_review:${headSha}`],
@@ -166,7 +159,6 @@ test('attaching an unread pull request seeds its reading with one GitHub read', 
         reading: { headSha, source: 'github', state: 'open' },
         repository: 'acme/api',
     });
-    // Attaching again keeps one link and reads nothing new.
     await attachPullRequestToTask(
         { app, db: connection.db },
         { serverId: world.serverId, taskId: task.id, url: 'https://github.com/acme/api/pull/78' }
@@ -214,7 +206,6 @@ test('a pull request on a Task with no cloud work wakes its assignee Agent, with
     });
     expect(item?.cloudAgentWork).toBeUndefined();
 
-    // The same change at the same head never wakes twice.
     await markAndRefresh();
     expect(
         await harness.sql`select count(*)::int as count from agent_inbox where dedupe_key = ${key}`

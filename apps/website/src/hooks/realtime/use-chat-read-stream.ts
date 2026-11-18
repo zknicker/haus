@@ -13,12 +13,6 @@ import { useSubscriptionRestart } from './use-subscription-restart.ts';
 
 type ReadUtils = Pick<ReturnType<typeof hausTrpc.useUtils>, 'chat'>;
 
-/**
- * `chat.onRead` (the viewer's own reads). A Channel or DM read refreshes
- * `chat.list`, skipped when its settled row already shows the read; a Task
- * read refreshes its Task's reads. Either refreshes the Inbox's unread
- * previews. `onEvent` hears each live read (message notifications).
- */
 export function useChatReadStream(
     serverId: string | undefined,
     onEvent?: (event: ChatReadEvent) => void
@@ -67,8 +61,6 @@ export function applyChatRead({
     utils: ReadUtils;
 }) {
     const { chatId, serverId } = event;
-    // A Task's Chat is in no Chat list: its unread lives on its detail, its origin
-    // preview, and its Inbox row (ADR 0053 decision 9).
     if (event.taskId) {
         refreshTaskReads(coalescer, queryClient, { serverId, taskId: event.taskId });
         coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.chat.unreadPreviews, { serverId }) });

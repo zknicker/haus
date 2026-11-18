@@ -890,7 +890,6 @@ test('attests a multi-message Computer-local pull without wedging the transactio
         insertHumanMessage(seed, 'claim anchor one', 1),
         insertHumanMessage(seed, 'claim anchor two', 2),
     ]);
-    // The third message sits in a Task's Chat, under a Channel the Agent joined.
     const channelId = createOpaqueId('cht');
     await connection.db.insert(chatsTable).values({
         id: channelId,

@@ -5,7 +5,6 @@ const serverId = 'srv_mig';
 const agents = ['agt_0', 'agt_1', 'agt_2', 'agt_3'];
 const at = new Date('2026-03-01T12:00:00.000Z');
 
-/** Work, claims, reminders, triggers, attachments, and run records anchored in Threads. */
 export function addDatasetRecords(
     tables: DatasetTables,
     chats: { tasks: DatasetChat[]; threads: DatasetChat[] }
@@ -21,7 +20,6 @@ export function addDatasetRecords(
     );
 }
 
-/** Cloud agent work on 25 Threads, image generations, and claims on Thread Messages. */
 function addWork(tables: DatasetTables, threads: DatasetChat[]) {
     const claimNumbers = new Map<string, number>();
     threads.forEach((chat, index) => {
@@ -150,7 +148,6 @@ function addAnchoredRecords(tables: DatasetTables, threads: DatasetChat[]) {
     });
 }
 
-/** An Agent mid-run in a Thread: its delivery row and runner credential name the Thread. */
 function addLiveRun(tables: DatasetTables, live: DatasetChat) {
     addRows(tables, 'agent_runner_credentials', {
         agent_id: 'agt_3',

@@ -29,13 +29,6 @@ export class ServerSlugTakenError extends Error {
     }
 }
 
-/**
- * One transaction commits the whole Server: its opaque id, immutable slug and
- * editable display name, the first
- * human Owner membership, `#all` with that Owner participating, and the General
- * Task key (ADR 0053). It creates
- * no Computer, Agent, or execution configuration.
- */
 export async function createServer(
     db: HausDatabase,
     input: CreateServerInput

@@ -51,7 +51,6 @@ export default defineScenario({
     },
 });
 
-/** Everything the worker wrote in the channel and its Owner DM. */
 async function everyAgentMessage(kit, worker, channelId) {
     const chatIds = [channelId, ...(worker.dmChatId ? [worker.dmChatId] : [])];
     const written = [];

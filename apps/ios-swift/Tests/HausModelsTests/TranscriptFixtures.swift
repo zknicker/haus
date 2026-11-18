@@ -1,7 +1,6 @@
 import Foundation
 @testable import HausModels
 
-/// Messages, Task previews, and pages for the transcript cache tests.
 enum TranscriptFixture {
     static func message(
         _ id: String,

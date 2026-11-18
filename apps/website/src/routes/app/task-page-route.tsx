@@ -16,17 +16,8 @@ const TaskBandControls = React.lazy(async () => ({
     default: (await serverRouteModules.task()).TaskBandControls,
 }));
 
-/** The right-hand panel needs room beside a readable transcript: the pane's width, not the window's. */
 const taskPanelMinWidth = 900;
 
-/**
- * A Task's frame: "Haus › Tasks › SEC-12 Title", its state, assignee, and
- * follow controls in the band, then the conversation and its right-hand
- * panel. The frame measures the pane once: wide enough, the page shows the
- * panel; narrower, the band carries a Details control instead. The band is
- * the page's one header; the transcript starts right under it. An address no
- * key can parse goes to `/tasks`.
- */
 export function TaskPageRoute() {
     const { taskKey: param = '' } = useParams();
     const { server } = useServerContext();

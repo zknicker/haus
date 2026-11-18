@@ -38,7 +38,6 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
     public var ownedProjections: Set<RealtimeProjection> {
         switch self {
         case .messageCreated, .chatRead:
-            // A Task message or read moves a followed Task's Unread row.
             [.openTranscripts, .chatList, .unreadTasks]
         case .messageReactionUpdated:
             [.openTranscripts, .chatList]
@@ -51,10 +50,8 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
         case .taskLabelUpdated:
             [.taskLabels]
         case .taskCreated, .taskUpdated:
-            // A Task's state or title shows on its screen and its Unread row.
             [.taskDetails, .unreadTasks]
         case .taskFollowUpdated:
-            // Following decides whether a Task can be unread at all.
             [.unreadTasks]
         case .agentLifecycle:
             // A settled turn moves the usage the Inbox strip ranks.
@@ -77,8 +74,6 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
     /// subscription start, so every start reconciles, the first included. The
     /// message stream's first start leaves the bulk transcript reload to its
     /// tail reads and to the annotation streams starting beside it; a restart
-    /// of it alone reloads in bulk, which also repairs a Task preview whose
-    /// message event it missed.
     public func startReconciliation(isRestart: Bool) -> Set<RealtimeProjection> {
         guard self == .messageCreated, !isRestart else { return ownedProjections }
         return ownedProjections.subtracting([.openTranscripts])
@@ -92,11 +87,9 @@ public enum RealtimeProjection: Hashable, Sendable, CaseIterable {
     case chatList
     /// `server.list`: the active Server's name and the viewer's Servers.
     case serverList
-    /// Every loaded Task detail (`task.get`).
     case taskDetails
     /// `taskLabel.list`, once loaded.
     case taskLabels
-    /// `chat.unreadPreviews`' followed unread Tasks (ADR 0053 decision 9).
     case unreadTasks
     case activeCloudAgentWork
     case agentAvailability

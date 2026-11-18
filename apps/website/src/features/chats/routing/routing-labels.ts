@@ -3,7 +3,6 @@ import type { MessageRoutingAudit, RoutingBypassReason } from '@haus/api';
 const bypassLabels: Record<RoutingBypassReason, string> = {
     disabled: 'routing off',
     'direct-message': 'direct message',
-    // Stored audits from before ADR 0053 name a Thread reply's bypass `thread`.
     thread: 'thread',
     task: 'task',
     reply: 'explicit reply',

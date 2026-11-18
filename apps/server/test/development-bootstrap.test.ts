@@ -69,8 +69,6 @@ test('creates one idempotent Server-owned demo workspace', async () => {
     expect(await connection.db.select().from(computersTable)).toHaveLength(2);
     const agents = await connection.db.select().from(agentsTable);
     expect(agents).toHaveLength(3);
-    // Base workspace, #ui-gallery, #automations, and the five demo Tasks' own Chats;
-    // conversations are inline replies.
     expect(await connection.db.select().from(chatsTable)).toHaveLength(13);
     expect(await connection.db.select().from(serverOnboardingTable)).toMatchObject([
         {
@@ -81,8 +79,6 @@ test('creates one idempotent Server-owned demo workspace', async () => {
             serverId: first.id,
         },
     ]);
-    // Gallery follow-ups (3), pending input (1), Claude samples (5), inline mentions (6),
-    // the demo Tasks' conversations (8), and a cloud agent launch (1).
     expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(91);
     const [seededAttachment] = await connection.db.select().from(attachmentsTable);
     expect(seededAttachment).toMatchObject({
@@ -188,7 +184,6 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     const allChannelId = (await connection.db.select().from(chatsTable)).find(
         (chat) => chat.isAll
     )?.id;
-    // Side conversations are inline replies: the plan in #all carries three.
     const messages = await connection.db.select().from(chatMessagesTable);
     const planReplies = messages.filter(
         (message) => message.chatId === allChannelId && message.replyToMessageId !== null
@@ -196,8 +191,6 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     expect(planReplies).toHaveLength(3);
     expect(new Set(planReplies.map((message) => message.replyRootMessageId)).size).toBe(1);
     const follows = await connection.db.select().from(taskFollowsTable);
-    // The GEN demo Tasks are places, each mentioned by the message it came from; the owner
-    // follows the two handed to them and the three they posted in. The key's counter is past.
     const tasks = await connection.db.select().from(tasksTable);
     const links = await connection.db.select().from(taskMessageLinksTable);
     const states = byNumber(tasks).map((task) => `${task.number}:${task.state}`);
@@ -212,7 +205,6 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     const followed = new Set(follows.map((follow) => follow.taskChatId));
     const followedNumbers = tasks.filter((task) => followed.has(task.chatId ?? ''));
     expect(followedNumbers.map((task) => task.number).sort()).toEqual([1, 3, 4, 5]);
-    // The open Task holds a conversation, settled cloud work, and its pull request.
     const [open] = byNumber(tasks);
     expect(messages.filter((message) => message.chatId === open?.chatId)).toHaveLength(4);
     const works = await connection.db.select().from(cloudAgentWorkTable);
@@ -221,7 +213,6 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     expect(await connection.db.select().from(taskPullRequestsTable)).toMatchObject([
         { number: 512, repository: 'zknicker/haus', taskId: open?.id },
     ]);
-    // GEN-3 and GEN-4 are named in Channel messages that say their keys.
     const named = links
         .filter((link) => /GEN-[34]/u.test(link.text))
         .map((link) => messages.find((message) => message.id === link.messageId));

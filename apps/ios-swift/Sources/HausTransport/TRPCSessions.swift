@@ -14,7 +14,6 @@ public enum TRPCSessions {
     /// Chat-scoped streams per open Chat header: `chat.onEngagement` and
     /// `chat.onThought`.
     static let streamsPerOpenChat = 2
-    /// Chat headers that can be alive at once (a pushed Task over its Chat,
     /// a transition overlapping the next Chat).
     static let openChatAllowance = 4
     /// Room for a restart overlapping its predecessor's teardown.

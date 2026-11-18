@@ -41,7 +41,6 @@ test('deleting a legacy creation announcement detaches its link and preserves th
     const before = await fixture.readAgentRow(agentId);
     expect(before?.creation_message_id).toBeTruthy();
 
-    // Eval cleanup names every chat it opened, Task Chats included.
     const children = (await fixture.harness.sql`
         select id from chats
         where server_id = ${fixture.serverId} and parent_chat_id = ${fixture.channelId}

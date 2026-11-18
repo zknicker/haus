@@ -1,17 +1,9 @@
 import HausModels
 import SwiftUI
 
-/// The band under a Task's navigation bar (ADR 0053 decision 15): the Task's
-/// title and state, then the work attached to it — each cloud agent with its
-/// newest Run's status and summary, and each pull request no cloud agent
-/// already shows. It sits in the layout above the transcript, never over it,
-/// so nothing it does moves a message. At large text sizes it stops growing at
-/// a fraction of the screen and scrolls inside itself, so the conversation
-/// always keeps most of the screen.
 struct TaskChatHeader: View {
     let header: TaskChatHeaderPresentation
     let maxHeight: CGFloat
-    /// The cloud agent whose full card is open; one at a time.
     @State private var expandedAgentID: String?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -29,7 +21,6 @@ struct TaskChatHeader: View {
     private var content: some View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 4) {
-                // Wraps rather than truncating at every text size.
                 Text(header.title)
                     .font(.headline)
                     .fixedSize(horizontal: false, vertical: true)
@@ -68,9 +59,6 @@ struct TaskChatHeader: View {
     }
 }
 
-/// One attached cloud agent: its mark and title, the newest Run's status in a
-/// person's words, and that Run's summary. Tapping opens the full card — the
-/// same `CloudAgentCard` the Chat draws, with its pull request and actions.
 private struct TaskCloudAgentRow: View {
     let agent: CloudAgentPresentation
     let isExpanded: Bool
@@ -116,7 +104,6 @@ private struct TaskCloudAgentRow: View {
         }
     }
 
-    /// The one point of color: a Run waiting on someone, or one that failed.
     private var statusColor: Color {
         switch agent.newestRun?.status ?? agent.work.status {
         case .pendingInput: CloudAgentTone.warning
@@ -127,7 +114,6 @@ private struct TaskCloudAgentRow: View {
     }
 }
 
-/// One attached pull request no cloud agent card already shows, opening on GitHub.
 private struct TaskPullRequestRow: View {
     let pullRequest: TaskPullRequestPresentation
 

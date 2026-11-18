@@ -10,11 +10,6 @@ import { cloudAgentFixture } from './cloud-agent-fixture.ts';
 import { cloudAgentLinkHelpers } from './cloud-agent-link-helpers.ts';
 import { startTestTask } from './task-place-fixture.ts';
 
-/**
- * ADR 0053 delivery: a Task's Chat is a `task:KEY-n` target for sends and
- * reads, delivers to its followers and mentions, and a fire anchored
- * in it reports to the Task, not to the Channel above it.
- */
 const fixture = cloudAgentFixture();
 const { agentPost } = cloudAgentLinkHelpers(fixture);
 let connection: HausConnection;
@@ -90,7 +85,6 @@ test('a Task delivers to its followers and mentions', async () => {
 
     expect((await send('Retry path fixed.', 'task-followed')).status).toBe(200);
     expect(await novaItems()).toHaveLength(2);
-    // Every item from the Task names it as `task:KEY-n`.
     expect(await itemTargets(novaId, 'run_task_nova')).toEqual([target, target]);
 });
 
@@ -120,7 +114,6 @@ test('a reminder set on a Task anchors on its newest message and reports to the 
     `) as { chat_id: string; dedupe_key: string }[];
     expect(fire?.chat_id).toBe(fixture.task.chatId);
 
-    // Served alone to a run, the fire is the cause of a plain send in the Task.
     await fixture.harness.sql`
         update agent_inbox set served_at = now(), run_id = 'run_task_fire'
         where dedupe_key = ${fire?.dedupe_key ?? ''}
@@ -259,7 +252,6 @@ test('a Task takes inline replies from Agents and people, like a Channel', async
     ]);
 });
 
-/** The targets the Agent's inbox items from this run present. */
 async function itemTargets(agentId: string, runId: string) {
     const rows = (await fixture.harness.sql`
         update agent_inbox set run_id = ${runId}

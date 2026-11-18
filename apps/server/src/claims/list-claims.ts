@@ -61,7 +61,6 @@ export async function listClaims(
         .where(and(...predicates))
         .orderBy(desc(messageClaimsTable.updatedAt));
 
-    // The Board and List show Channel and DM claims; a Task's Chat is its own place.
     const visible = rows.filter((row) => row.chatKind === 'channel' || row.chatKind === 'dm');
     const messageIds = visible.map((row) => row.claim.messageId);
     const [projected, bodies, works, images, reactions, taskLinks] = await Promise.all([

@@ -241,7 +241,6 @@ export async function seedDevelopmentServer(
             }),
         ]);
 
-        // The plan message's discussion is inline replies under it in #all.
         const planReply = { replyRootMessageId: planMessageId, replyToMessageId: planMessageId };
         await tx.insert(chatMessagesTable).values([
             {

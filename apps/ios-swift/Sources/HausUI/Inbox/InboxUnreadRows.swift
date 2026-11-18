@@ -39,8 +39,6 @@ public struct InboxUnreadChat: Identifiable, Equatable, Sendable {
     }
 }
 
-/// Every unread Chat and followed Task, newest activity first, one row each.
-/// A Task is its own row, never bundled with another (ADR 0053).
 public enum InboxUnreadRows {
     /// What a Chat holding no message yet says instead of a quote.
     public static let noActivityPreview = "no activity yet"

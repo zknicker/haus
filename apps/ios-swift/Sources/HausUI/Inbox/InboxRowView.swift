@@ -13,18 +13,12 @@ import SwiftUI
 /// leading swipe reveals the system's icon-only circle, which only reads as
 /// Messages' when the row is tall enough to center it with room around it.
 ///
-/// A Task row is the one row with a third line. A Task's title is the work's
-/// name, often a sentence, so it is never cut: it wraps at word boundaries at
-/// every text size, and the facts a person scans for — the key and the state,
-/// `SEC-12 · Open` — take their own secondary line under it rather than
-/// competing with it for one.
 ///
 /// The whole row is the press target and carries no nested control.
 struct InboxRowView: View {
     let mark: InboxMark
     let title: String
     let trailing: String?
-    /// A Task's key and state, between title and quote; nil for a conversation.
     var facts: String? = nil
     let detail: String
     let onOpen: () -> Void
@@ -55,8 +49,6 @@ struct InboxRowView: View {
                         }
                     }
                     if let facts {
-                        // Short by construction; at the largest sizes it
-                        // wraps rather than losing the state.
                         Text(facts)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
@@ -87,8 +79,6 @@ struct InboxRowView: View {
 
     private var isStacked: Bool { dynamicTypeSize.isAccessibilitySize }
 
-    /// A Task's title wraps in full; a conversation's name keeps the Messages
-    /// row's single line.
     private var wrapsTitle: Bool { facts != nil }
 
     /// The mark grows with text size so it keeps pace with two taller lines,
@@ -103,7 +93,6 @@ struct InboxRowView: View {
         Text(title)
             .font(.headline)
             .truncationMode(.tail)
-            // A wrapping title must claim its height in a List cell.
             .fixedSize(horizontal: false, vertical: wrapsTitle)
     }
 

@@ -21,7 +21,6 @@ export const taskKeyLedgerEntrySchema = z
         createdAt: timestampSchema,
         id: idSchema,
         key: taskKeyPrefixSchema,
-        /** The number the next Task with this key takes. */
         nextNumber: z.number().int().positive(),
         serverId: idSchema,
     })

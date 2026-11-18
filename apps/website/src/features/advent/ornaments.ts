@@ -78,7 +78,7 @@ export const factOrnament: Readonly<Record<AdventFact, Ornament>> = {
     'tasks-closed': 'present-red', // wrapped up
     'new-channels': 'tree', // something planted
     'quiet-month': 'snowflake', // a quiet snowfall
-    'conversations-started': 'wreath', // a loop begun
+    'conversations-started': 'wreath',
     'favorite-reaction': 'snowman', // a face
     'hardest-worker': 'bauble', // the centrepiece
     'in-demand': 'bauble-striped', // everyone's eye on it

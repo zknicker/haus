@@ -125,10 +125,6 @@ export async function pushTaskAssignments(
     }
 }
 
-/**
- * The assignments still news after the grace: the Task is still the person's.
- * A reassignment away drops it; one assignment per Task pushes.
- */
 async function readStillNews(
     db: HausDatabase,
     events: readonly TaskAssignedEvent[],

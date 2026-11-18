@@ -1,6 +1,4 @@
 // Shared moves for the room scenarios that place a reminder answer and draw a
-// visual: Owner sends, turn gates, every post an Agent made in a channel, and
-// journaled `haus message send` commands.
 
 /** Owner send through the same hosted contract the App composer uses. */
 export function ownerSend(kit, chatId, content, { replyToMessageId } = {}) {
@@ -19,7 +17,6 @@ export function expectSettled(expect, turn, label) {
     expect(turn.failureKind ?? 'none', `${label} failure kind`).toBe('none');
 }
 
-/** An Agent's posts in a fresh channel after `head`, top level and inline. */
 export async function postsAcrossChannel(kit, channelId, agentId, head = 0) {
     const own = (message) => message.author.kind === 'agent' && message.author.agentId === agentId;
     return (await kit.readMessages(channelId)).filter(

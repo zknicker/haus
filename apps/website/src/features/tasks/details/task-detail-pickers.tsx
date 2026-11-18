@@ -21,7 +21,6 @@ interface TaskPatch {
     priority?: Task['priority'];
 }
 
-/** The Task's priority as a quiet select. */
 export function TaskPrioritySelect({ task }: { task: TaskFields }) {
     const patch = useTaskPatch(task);
     return (
@@ -46,10 +45,6 @@ export function TaskPrioritySelect({ task }: { task: TaskFields }) {
     );
 }
 
-/**
- * The display-only due date. A calendar and not a text field: a typed year
- * would save at every digit, and this date wakes nothing.
- */
 export function TaskDuePicker({ task }: { task: TaskFields }) {
     const patch = useTaskPatch(task);
     return (
@@ -97,7 +92,6 @@ export function TaskDuePicker({ task }: { task: TaskFields }) {
     );
 }
 
-/** The Task's labels, read as chips; the same press opens the catalog to change them. */
 export function TaskLabelsPicker({ task }: { task: TaskFields }) {
     const labels = useTaskLabels(task.serverId).data ?? [];
     const patch = useTaskPatch(task);
@@ -137,7 +131,6 @@ export function TaskLabelsPicker({ task }: { task: TaskFields }) {
     );
 }
 
-/** One `task.update` at the version the reader saw; a refusal is a toast. */
 function useTaskPatch(task: TaskFields) {
     const update = useUpdateTask();
     return (patch: TaskPatch) =>

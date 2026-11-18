@@ -31,7 +31,6 @@ test('chat.unreadPreviews previews exactly the unread Inbox rows with their coun
     const previews = async () =>
         (await owner.trpc.chat.unreadPreviews.query({ serverId })).previews;
 
-    // The reader's own message never counts; an inline reply to it counts on the Channel.
     const anchor = await owner.trpc.chat.send.mutate({
         chatId: channelId,
         content: 'Ship Friday?',
@@ -43,7 +42,6 @@ test('chat.unreadPreviews previews exactly the unread Inbox rows with their coun
     await peerSend('Three.', 'up-3');
     await peerSend('Four.', 'up-4');
     const reply = await peerSend('Friday works.', 'up-reply', anchor.message.id);
-    // A Task the reader follows (they posted in it) is a row of its own.
     const task = await startTestTask(harness, owner, {
         channelId,
         originMessageId: anchor.message.id,
@@ -89,7 +87,6 @@ test('chat.unreadPreviews previews exactly the unread Inbox rows with their coun
         .map((chat) => chat.id);
     expect([...byChat.keys()].sort()).toEqual([...unreadChatIds, task.chatId].sort());
 
-    // Mark read on the Channel row clears it and its inline replies; the Task row stays.
     const channel = (await owner.trpc.chat.list.query({ serverId })).find(
         (chat) => chat.id === channelId
     );

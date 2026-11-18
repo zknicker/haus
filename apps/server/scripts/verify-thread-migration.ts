@@ -11,19 +11,6 @@ import {
     unreadHolds,
 } from './thread-migration-unread.ts';
 
-/**
- * Read-only checker for migration 0126 (ADR 0053 decision 14).
- *
- *   bun scripts/verify-thread-migration.ts --database-url <url> --before <file>
- *     Before migrating: prints the structure and writes the unread snapshot.
- *   bun scripts/verify-thread-migration.ts --database-url <url> --after <file>
- *     After migrating: judges the invariants against that snapshot and the
- *     read rule: zero unread in every affected Chat, unchanged unread in every
- *     other Chat, and no queued inbox item naming moved or affected-Chat
- *     Messages. Exits 1 on any failure.
- *   bun scripts/verify-thread-migration.ts --database-url <url>
- *     Judges the invariants with no baseline.
- */
 export interface ThreadMigrationSnapshot {
     structure: Structure;
     unread: UnreadSnapshot;
@@ -80,7 +67,6 @@ async function main() {
     if (values.before) {
         const snapshot = await takeThreadMigrationSnapshot(databaseUrl);
         await writeFile(values.before, JSON.stringify(snapshot));
-        // Before the migration Threads still exist; every other line is the baseline.
         printResults(
             judgeStructure(snapshot.structure).filter(
                 (result) => result.name !== 'zero thread chats'

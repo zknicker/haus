@@ -11,10 +11,6 @@ import { type NotificationFixture, startNotificationFixture } from './notificati
 import { deviceToken, FakePushSender } from './push-fake-sender.ts';
 import { startTestTask } from './task-place-fixture.ts';
 
-/**
- * Task assignment push: the assignee's devices, when someone else assigned. The
- * person also follows the Task (ADR 0053 decision 9); no Inbox item is made.
- */
 const sender = new FakePushSender();
 const adaToken = deviceToken('a4');
 const boToken = deviceToken('b5');
@@ -46,7 +42,6 @@ afterAll(async () => {
     await fixture.close();
 });
 
-/** A new Task the owner assigns: version 1 started, version 2 assigned. */
 async function assignNew(title: string, assignee: Parameters<typeof assignTask>[3]['assignee']) {
     const { owner, serverId } = fixture;
     const task = await startTestTask(fixture.harness, owner, { channelId, serverId, title });

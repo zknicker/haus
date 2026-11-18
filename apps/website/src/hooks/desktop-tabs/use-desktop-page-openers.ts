@@ -20,13 +20,6 @@ export interface DesktopPageOpeners {
     openPage: (path: string, gesture?: OpenGesture) => void;
 }
 
-/**
- * Desktop's Open verb for code that opens a page without a router push: a chat's
- * Attachments, an artifact, or any path (ADR 0039). A plain open lands in the right pane (from its
- * tab, or with no source from window chrome: a sidebar row's menu); a modified click opens a
- * tab beside the source (`openWithGesture`). Null on the web, where the chat side pane hosts
- * Attachments and artifacts.
- */
 export function useDesktopPageOpeners(): DesktopPageOpeners | null {
     const tabs = useOptionalDesktopTabs();
     const slug = React.use(DesktopShellContext)?.server.slug;

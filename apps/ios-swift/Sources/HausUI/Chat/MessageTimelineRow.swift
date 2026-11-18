@@ -1,6 +1,5 @@
 import SwiftUI
 
-/// One message in a Chat or Task transcript: identity, what it says, the visuals it
 /// drew, its attachments, and the cards that hang off it.
 ///
 /// Split out of `MessageTimelineView` so the screen keeps only the list, the
@@ -111,8 +110,6 @@ struct MessageTimelineRow: View {
 
                 MessageClaimMark(claim: message.claim)
 
-                // The Tasks this message started, below everything it says
-                // (ADR 0053 decision 7). Only a Channel message carries any.
                 if !message.tasks.isEmpty {
                     TaskPreviewStack(tasks: message.tasks)
                 }

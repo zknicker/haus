@@ -4,7 +4,6 @@ import { idSchema } from './chat-contract-primitives.ts';
 export const routingBypassReasonSchema = z.enum([
     'disabled',
     'direct-message',
-    // Stored audits from before ADR 0053 name a Thread reply's bypass `thread`.
     'thread',
     'task',
     'reply',

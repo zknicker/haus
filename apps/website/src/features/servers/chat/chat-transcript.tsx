@@ -21,7 +21,6 @@ export function ChatTranscript({
     scrollContentRef,
     ...input
 }: ChatTranscriptInput & {
-    /** Above the first row, once the oldest message is loaded (a Task's origin). */
     leadingContent?: React.ReactNode;
     onVisibleSequenceChange?: (sequence: number | undefined) => void;
     renderWindowRef?: React.RefObject<TranscriptRenderWindowHandle | null>;

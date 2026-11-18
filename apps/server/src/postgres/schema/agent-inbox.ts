@@ -177,10 +177,6 @@ export const agentInboxTable = pgTable(
         chatId: text('chat_id'),
         /** Why a `cloud_agent_work` row reached this Agent. */
         cloudAgentNotice: text('cloud_agent_notice').$type<'settled' | 'stall' | 'pull_request'>(),
-        /**
-         * The Run a `cloud_agent_work` row describes; `dedupe_key` stays opaque.
-         * Null only on a `pull_request` notice for a Task with no cloud work.
-         */
         cloudAgentRunId: text('cloud_agent_run_id'),
         content: text('content').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -206,7 +202,6 @@ export const agentInboxTable = pgTable(
             .notNull()
             .default('queued')
             .$type<'queued' | 'accepted' | 'served' | 'seen'>(),
-        /** A direct Task mention changed this recipient's explicit unfollow back to followed. */
         taskFollowReactivated: boolean('task_follow_reactivated').notNull().default(false),
         /** Why this row settled `seen` without ever reaching the model. */
         undeliveredReason: text('undelivered_reason'),
@@ -263,8 +258,6 @@ export const agentInboxTable = pgTable(
             sql`${table.addressedReason} is null
                 or ${table.addressedReason} in ('dm', 'mention', 'routing', 'sole')`
         ),
-        // ADR 0053: a `task_assignment` may name its Task's Chat, or no Chat for a
-        // Task from before Tasks were places.
         check(
             'agent_inbox_chat',
             sql`${table.source} = 'task_assignment'

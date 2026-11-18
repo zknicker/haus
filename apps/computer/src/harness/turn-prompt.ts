@@ -212,7 +212,6 @@ export async function attestComposedDrain(
 // travels over the attachment socket rather than this request's connection.
 const receiptRetryDelaysMs = [0, 100, 300, 800];
 const receiptAttemptTimeoutMs = 2000;
-/** The Server's per-receipt cap; a full drain can exceed it. */
 const receiptBatchSize = 100;
 
 async function reportComposedVisibility(

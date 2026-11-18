@@ -41,13 +41,8 @@ export const cloudAgentWorkAttentionSchema = z
          * as false (no known fuller report), never as true.
          */
         hasFullReport: z.boolean().optional(),
-        /**
-         * Why this Run reached the Agent: it settled, it is stuck and still live,
-         * or its pull request changed after it settled (ADR 0053 decision 6).
-         */
         notice: z.enum(['settled', 'stall', 'pull_request']),
         providerUrl: z.url().max(2000).nullable(),
-        /** Set exactly on a `pull_request` notice: the change that woke the Agent. */
         pullRequestChange: cloudAgentPullRequestChangeSchema.optional(),
         repository: z.string().trim().min(1).max(200),
         runId: idSchema,
@@ -107,11 +102,9 @@ export const agentTaskContextSchema = z
     .object({
         parentMessage: agentTaskContextMessageSchema,
         parentTarget: z.string().trim().min(1).max(200),
-        /** Oldest first; the messages that precede the mention. */
         recentMessages: z.array(agentTaskContextMessageSchema).max(10),
         suggestedReadTarget: z.string().trim().min(1).max(200),
         taskTarget: z.string().trim().min(1).max(200),
-        /** Earlier messages exist that the package leaves out. */
         truncated: z.boolean(),
     })
     .strict();
@@ -134,12 +127,6 @@ export const agentInboxItemSchema = z
         /** Canonical Agent API shape cached for Computer-local message checks. */
         message: z.record(z.string(), z.unknown()).optional(),
         mentioned: z.boolean().optional(),
-        /**
-         * Typed Server attention for a pull request attached to a Task no cloud
-         * work reports to (ADR 0053 decision 6): what changed, with no Run behind
-         * it. `content` carries the same change as one sentence. Never set with
-         * `cloudAgentWork`, which names the change itself when a Run backs it.
-         */
         pullRequestNotice: cloudAgentPullRequestChangeSchema.optional(),
         /** Bounded direct-parent and chain-root context for an inline reply. */
         reply: chatMessageReplySchema.nullable().optional(),
@@ -151,9 +138,7 @@ export const agentInboxItemSchema = z
         /** Chat sequence, or zero for a typed attention with no Chat cursor. */
         sequence: z.number().int().nonnegative(),
         target: z.string().trim().min(1).max(200),
-        /** Present on the first drainable mention in a Task the Agent cannot see yet. */
         taskContext: agentTaskContextSchema.optional(),
-        /** The mention re-followed the Agent into a Task it had unfollowed. */
         taskFollowReactivated: z.boolean().optional(),
     })
     .strict()

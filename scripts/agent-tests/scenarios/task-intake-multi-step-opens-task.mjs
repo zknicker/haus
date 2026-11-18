@@ -1,9 +1,3 @@
-// Task intake 3: investigate-and-fix work that takes several steps. The reply will not be the
-// whole of the work, so the Agent starts a Task from the request, says so briefly in one inline
-// reply that references the Task, and reports the work in the Task. The work is a sealed relay,
-// so it is several steps by construction. The channel already previews the Task, so no channel
-// post repeats the result.
-
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
 import {

@@ -43,8 +43,6 @@ struct RichMessageTableView: View {
         }
         .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
         .frame(maxWidth: .infinity, alignment: .leading)
-        // Cells are SwiftUI `Text`, not the body's text view, so a Message chip
-        // in a cell needs the in-app routes on `openURL` to open its Message.
         .inAppReferenceRoutes()
     }
 

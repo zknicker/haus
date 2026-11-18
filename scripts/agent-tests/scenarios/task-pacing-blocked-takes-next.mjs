@@ -1,9 +1,3 @@
-// A Task only a person can unblock does not hold up the queue: the Agent @mentions them in the
-// Task, sets it back to `todo`, and takes the next Task a person assigned it. Nothing on the
-// Task says it is blocked, so the Agent has to leave it there rather than pick it up again
-// (ADR 0053; operator decision 2026-11-18). Seeded like task-pacing-assigned-queue: a lead
-// Agent starts both Tasks in `todo` from the person's message, and the person assigns them.
-
 import { mentionsHuman } from '../human-addressing.mjs';
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
@@ -50,7 +44,6 @@ export default defineScenario({
                 }
 
                 log('starting a Task the Agent can finish, then one only the human can decide');
-                // Older than the blocked Task, so age alone would pick it: priority has to decide.
                 next = await startTaskAsAgent(kit, {
                     agentId: lead.id,
                     channel,

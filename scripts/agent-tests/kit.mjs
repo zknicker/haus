@@ -71,7 +71,6 @@ export function createAgentTestKit(
         return { claim, claimId: claim.messageId, messageId: claim.messageId };
     }
 
-    /** The Agent's first matching reply in the chat (ADR 0053: there are no Threads). */
     async function awaitAgentReply(chatId, agentId, predicate, timeoutMs = 240_000) {
         const deadline = Date.now() + timeoutMs;
         const matches = (message) =>

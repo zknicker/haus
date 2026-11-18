@@ -53,7 +53,6 @@ test('Tasks others assign are paced one at a time; self-started Tasks run side b
     expect(tasks).toContain(
         'Work Tasks others assign you one at a time: pick by priority, then age, set that one `open`, and leave the rest `todo` until it is done or blocked. Tasks you started yourself can run side by side.'
     );
-    // The pacing rule leads into the blocked rule, which says what "blocked" means.
     expect(tasks.indexOf('Work Tasks others assign you one at a time')).toBeLessThan(
         tasks.indexOf('When a Task is blocked on a person')
     );

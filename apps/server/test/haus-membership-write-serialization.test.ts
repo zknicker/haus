@@ -143,7 +143,6 @@ test('Task follow queued behind removal reauthorizes before it writes', async ()
         serverId,
         title: 'Follow serialization',
     });
-    // Posting in the Task follows it.
     await member.client.trpc.chat.send.mutate({
         chatId: task.chatId,
         content: 'Follow before removal',

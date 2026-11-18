@@ -9,10 +9,6 @@ import { cloudAgentBranchResponseSchema } from './agent-cli/cloud-agent-work-res
  * a field a newer Server added instead of dropping the whole inbox item.
  */
 
-/**
- * A pull request change: on a Run's `pull_request` attention, or alone as the
- * `pullRequestNotice` for a Task no cloud work reports to (ADR 0053 decision 6).
- */
 export const pullRequestChangeResponseSchema = z.looseObject(
     cloudAgentPullRequestChangeSchema.shape
 );

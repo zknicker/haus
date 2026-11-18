@@ -13,7 +13,6 @@ export interface TabIdentity {
     /** Empty while the record behind the page loads; the tab keeps its slot. */
     label: string;
     mark: TabMark;
-    /** A second tooltip line naming where the page sits (a URL, `#general › attachments`). */
     place: string | null;
 }
 
@@ -182,7 +181,6 @@ function chatIdentity(chat: TabChat, records: TabIdentityRecords): TabIdentity {
     };
 }
 
-/** An Attachments page wears its chat's mark and names it as context. */
 function chatChildIdentity(
     page: Extract<TabPage, { kind: 'files' }>,
     records: TabIdentityRecords

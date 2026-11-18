@@ -112,7 +112,6 @@ export async function searchChatMessages(
             and(
                 eq(chatMessagesTable.serverId, input.serverId),
                 isNull(chatsTable.deletedAt),
-                // A Channel's Tasks are part of it, so a Chat filter keeps them.
                 input.chatId
                     ? or(
                           eq(chatMessagesTable.chatId, input.chatId),

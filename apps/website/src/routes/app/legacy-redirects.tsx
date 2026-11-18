@@ -38,10 +38,6 @@ function slugFrom(pathname: string) {
     return pathname.split('/')[2] ?? '';
 }
 
-/**
- * A retired conversation page (`redirectRetiredRoute`), a persisted desktop
- * tab included, lands on its Chat at the Message; a malformed one on the Server.
- */
 export function RetiredPageRedirect() {
     const location = useLocation();
     return (

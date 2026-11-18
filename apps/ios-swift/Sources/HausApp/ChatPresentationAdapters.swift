@@ -117,7 +117,6 @@ extension HausStore {
             }
             return nil
         case .task, .unknown:
-            // Never a Channel or DM destination; the Chat list filters these.
             return nil
         }
     }

@@ -25,7 +25,6 @@ struct TranscriptReveal: Equatable {
 enum TranscriptRevealPlacement: Equatable {
     /// Centers the item, or rests on the newest edge for the newest item.
     case center
-    /// Opening a transcript at its first unread message: stays put when
     /// the item's top already reads from the opening position, otherwise
     /// brings its top just under the top clearance with the item before it
     /// peeking.

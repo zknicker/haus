@@ -11,7 +11,6 @@ import {
 } from '../tasks/task-errors.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
 
-/** An Agent's reference that names nothing on the Server: a handle or label. */
 export class AgentTaskInputError extends Error {}
 
 type Action<Input> = (runner: ResolvedRunner, input: Input) => Promise<unknown>;
@@ -19,7 +18,6 @@ type Action<Input> = (runner: ResolvedRunner, input: Input) => Promise<unknown>;
 /** Each retry means another write landed, so this rides out a burst of Agents on one Task. */
 export const implicitVersionAttempts = 8;
 
-/** One Task read: authorize, validate the query, answer. */
 export function agentTaskRead<Schema extends z.ZodType>(
     app: FastifyInstance,
     db: HausDatabase,
@@ -39,7 +37,6 @@ export function agentTaskRead<Schema extends z.ZodType>(
     });
 }
 
-/** One Task write: authorize, validate the body, answer. */
 export function agentTaskWrite<Schema extends z.ZodType>(
     app: FastifyInstance,
     db: HausDatabase,

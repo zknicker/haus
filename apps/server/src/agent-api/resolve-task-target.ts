@@ -11,16 +11,10 @@ import {
 
 type Reader = Pick<HausDatabase, 'select'>;
 
-/** The Task key a `task:SEC-12` target names, or null when it is not one. */
 export function parseTaskTarget(target: string): string | null {
     return TASK_TARGET_PATTERN.exec(target)?.[1] ?? null;
 }
 
-/**
- * The Chat of the Task a `task:SEC-12` target names (ADR 0053), when the Agent
- * has joined the Channel the Task started in; null otherwise. A Task's key is
- * its ledger entry's key and its number, unique per Server.
- */
 export async function resolveTaskTargetChat(
     db: Reader,
     runner: Pick<ResolvedRunner, 'agentId' | 'serverId'>,

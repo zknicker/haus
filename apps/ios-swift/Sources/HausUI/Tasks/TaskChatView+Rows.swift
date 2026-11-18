@@ -8,7 +8,6 @@ extension TaskChatView {
             TaskStartedFromRow(origin: origin, onOpen: onOpenOrigin)
                 .padding(.bottom, 8)
         case .message(let message, let grouping):
-            // The Chat timeline's own row, spaced as the Chat spaces it.
             MessageTimelineRow(
                 message: message,
                 isContinuation: grouping.isContinuation,
@@ -31,8 +30,6 @@ extension TaskChatView {
         }
     }
 
-    /// A reference's tap reveals and highlights the message it names when the
-    /// Task is showing it.
     func revealInlineReply(_ reference: MessageReplyReferencePresentation) {
         guard let item = projection.items.first(where: { $0.message?.id == reference.id }) else { return }
         reveal = TranscriptReveal(token: UUID(), id: item.id, animated: true)
@@ -46,8 +43,6 @@ extension TaskChatView {
         withAnimation(.easeOut(duration: 0.45)) { highlightedMessageID = nil }
     }
 
-    /// Inside a Task the drawer offers reactions and copying; VoiceOver gets
-    /// the same.
     func accessibilityActions(for message: MessagePresentation) -> MessageRowAccessibilityActions {
         .forMessage(
             message,
@@ -61,8 +56,6 @@ extension TaskChatView {
         item.message.flatMap { $0.isPending ? nil : $0 }
     }
 
-    /// Everything a row draws from beyond its item, read in the screen's own
-    /// body so a change re-hosts the visible rows.
     var rowRevision: Int {
         var hasher = Hasher()
         hasher.combine(visualHeights.revision)
@@ -77,9 +70,6 @@ extension TaskChatView {
     }
 }
 
-/// The quiet first row of a Task: where it started, and the Message it
-/// started from as one line when that Channel is loaded. Tapping opens the
-/// origin Message in its Channel.
 struct TaskStartedFromRow: View {
     let origin: TaskStartedFromPresentation
     let onOpen: () -> Void

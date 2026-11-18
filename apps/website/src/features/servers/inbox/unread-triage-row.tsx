@@ -20,11 +20,9 @@ export interface UnreadRowView {
         fallbackLine: string;
         serverId: string;
     };
-    /** Muted beside the name: "DM", or the Channel a Task started from. */
     note: ReactNode;
     reply: UnreadRowReply;
     time: null | string;
-    /** The place as the card prints it: `#product`, `Tiny`, `SEC-12 Fix login`. */
     title: string;
 }
 

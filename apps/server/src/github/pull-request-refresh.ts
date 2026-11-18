@@ -26,9 +26,7 @@ type InstallationTokens = ReturnType<typeof createInstallationTokens>;
 export interface PullRequestRefreshDependencies {
     app: GithubApp;
     db: HausDatabase;
-    /** Queues the ready-after-settle wake inside the reading's write. */
     delivery: Pick<AgentDelivery, 'enqueue'>;
-    /** Dispatches the woken Agents once the reading commits. */
     wakeAgents(wakes: { agentId: string; serverId: string }[]): void;
 }
 
@@ -105,7 +103,6 @@ export async function refreshPullRequestReadings(
     }
 }
 
-/** The active installation covering a repository's owner, or null when none does. */
 export async function findPullRequestInstallation(
     db: Pick<HausDatabase, 'select'>,
     row: { repository: string; serverId: string }
@@ -132,8 +129,6 @@ async function writeReading(
     now: Date
 ): Promise<void> {
     const { events, wakes } = await dependencies.db.transaction(async (tx) => {
-        // Server row first, as a Run observation takes it before seeding readings,
-        // so the wake's inbox write never inverts that lock order.
         await lockServerRow(tx, row.serverId);
         await tx
             .update(cloudAgentPullRequestsTable)

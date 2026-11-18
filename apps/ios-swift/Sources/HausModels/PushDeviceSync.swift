@@ -61,8 +61,6 @@ public struct PendingPushUnregister {
 public enum DeliveredPushCleanup {
     public struct Delivered: Sendable, Equatable {
         public let identifier: String
-        /// The notification's group, Apple's `aps.thread-id`: the conversation
-        /// (Channel or DM) Chat id.
         public let groupID: String
         public let payload: PushNotificationPayload?
 
@@ -73,8 +71,6 @@ public enum DeliveredPushCleanup {
         }
     }
 
-    /// Opening a conversation clears every notification grouped under it;
-    /// opening a Task clears the ones sent from it.
     public static func identifiers(_ delivered: [Delivered], openedChatID: String?) -> [String] {
         guard let openedChatID else { return [] }
         return delivered

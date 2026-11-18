@@ -1,6 +1,5 @@
 import Foundation
 
-/// A person or an Agent of the Server: a Task's creator or assignee.
 public enum TaskActor: Codable, Hashable, Sendable {
     case user(userID: String)
     case agent(agentID: String)
@@ -48,23 +47,13 @@ public enum TaskActor: Codable, Hashable, Sendable {
     }
 }
 
-/// One Task as `task.get` names it (ADR 0053): a place for one piece of work,
-/// with its own Chat and a state. Named `TaskRecord` because `Task` is Swift
-/// Concurrency's.
 ///
-/// Only what identifies a Task and its state is required. Everything else
-/// decodes leniently, so a Server that drops or adds a field never costs the
-/// Task its screen.
 public struct TaskRecord: Decodable, Identifiable, Hashable, Sendable {
     public let id: String
-    /// `SEC-12`.
     public let key: String
     public let title: String
     public let state: TaskState
-    /// The Task's own conversation, a `task` Chat. Nil for a Task from before
-    /// Tasks were places: read-only history with no composer.
     public let chatID: String?
-    /// The Channel Message it started from; nil for a Task from before ADR 0053.
     public let origin: TaskOrigin?
     public let serverID: String
     public let version: Int
@@ -75,7 +64,6 @@ public struct TaskRecord: Decodable, Identifiable, Hashable, Sendable {
     public let createdBy: TaskActor?
     public let assignee: TaskActor?
     public let priority: TaskPriority
-    /// `YYYY-MM-DD`, a calendar day: display only. See `TaskDueDate`.
     public let dueOn: String?
     public let labelIDs: [String]
 

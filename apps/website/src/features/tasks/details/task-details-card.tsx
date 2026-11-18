@@ -4,10 +4,6 @@ import { InlineCard } from '../../../components/ui/inline-card.tsx';
 import { TaskDescription } from './task-description.tsx';
 import { TaskDuePicker, TaskLabelsPicker, TaskPrioritySelect } from './task-detail-pickers.tsx';
 
-/**
- * The Details card heading the Task page's right-hand panel. Its shell
- * matches the attached-work cards below it.
- */
 export function TaskDetailsCard({ task }: { task: TaskDetail }) {
     return (
         <InlineCard
@@ -21,12 +17,6 @@ export function TaskDetailsCard({ task }: { task: TaskDetail }) {
     );
 }
 
-/**
- * The Task's own facts (ADR 0053 decision 2 keeps them): priority, due date,
- * and labels as rows of inline controls sharing one left edge, then the
- * description, collapsed until opened. The card shows them beside the
- * conversation; the band's Details popover shows them bare on a narrow pane.
- */
 export function TaskDetails({ task }: { task: TaskDetail }) {
     return (
         <div className="flex min-w-0 flex-col gap-1">

@@ -66,7 +66,6 @@ export function serverPageRoutes({ desktop }: { desktop: boolean }): RouteObject
                 },
             ],
         },
-        // ADR 0053 deleted this page; saved links and persisted tabs still resolve.
         { path: 'threads/:chatId/:anchorMessageId', element: <RetiredPageRedirect /> },
         ...(desktop ? desktopPageRoutes : []),
         { path: '*', element: <ServerUnknownPage /> },

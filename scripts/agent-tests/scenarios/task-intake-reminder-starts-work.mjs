@@ -1,9 +1,3 @@
-// Task intake 6: a Reminder fires that starts real multi-step work (a re-review that ends in
-// a decision). The reply will not be the whole of the work, so the Agent starts a Task whose
-// origin is its own top-level message in the Reminder's channel, attributed to the fire, then
-// works and reports in the Task. The work is a sealed relay, so it is several steps by
-// construction.
-
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
 import {

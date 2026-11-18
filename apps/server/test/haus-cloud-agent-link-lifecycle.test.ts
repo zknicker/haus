@@ -98,7 +98,6 @@ test('deleting the requesting Channel keeps the work, moves Happening now, and s
             chatId: refugeId,
             messageId: refuge.message.id,
             serverId: fixture.serverId,
-            // The Task outlives its Channel, canceled, so the work still names it.
             taskId: expect.stringMatching(/^tsk_/u),
             workId: work.id,
         },
@@ -226,7 +225,6 @@ async function mintRunnerFor(agentId: string, chatId: string, runId: string) {
     return { runId, token: runnerToken };
 }
 
-/** A Task started in that Channel; cloud work launches on a Task (ADR 0053). */
 async function taskIn(channelId: string) {
     const task = await startTestTask(fixture.harness, fixture.owner, {
         channelId,

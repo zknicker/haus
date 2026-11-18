@@ -79,11 +79,6 @@ function claimUpdatedEvent(scope: RunScope, claim: { chatId: string; messageId: 
     });
 }
 
-/**
- * The claims this run's inbox rows anchor on: the claim on each row's own
- * message, and on the message it inline-replies to or roots under, since a
- * claimed message's replies are its work conversation.
- */
 async function claimsHeldByRun(db: ClaimWriter, scope: RunScope) {
     const rows = await db
         .select({ dedupeKey: agentInboxTable.dedupeKey })
@@ -119,7 +114,6 @@ async function claimsHeldByRun(db: ClaimWriter, scope: RunScope) {
         );
 }
 
-/** The messages themselves plus the inline parent and root of each. */
 async function readClaimAnchors(
     db: Pick<HausDatabase, 'select'>,
     serverId: string,

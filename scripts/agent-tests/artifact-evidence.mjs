@@ -12,7 +12,6 @@ export async function artifactsCreatedBy(kit, agentId) {
     return listed.artifacts;
 }
 
-/** The Agent's messages after `sinceSequence` in the chat, inline replies included. */
 export async function agentMessages(kit, agentId, chatId, sinceSequence) {
     const page = await kit.trpc('chat.messages', { chatId, limit: 100, serverId: kit.serverId });
     const own = (message) => message.author.kind === 'agent' && message.author.agentId === agentId;

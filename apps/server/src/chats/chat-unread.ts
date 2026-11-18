@@ -4,12 +4,6 @@ import { visibleChats } from './chat-visibility.ts';
 
 export type ChatListArchive = 'active' | 'all' | 'archived';
 
-/**
- * The Chats `chat.list` shows a human, as a predicate over `chats`: their
- * visible, undeleted Channels and DMs, never a Task's Chat (ADR 0053), minus a retired Agent's DM and the onboarding Channel until
- * onboarding completes. `chat.list` and the unread-Chat count both filter with
- * it, so they always agree on the set.
- */
 export function listedChats(userId: string, archive: ChatListArchive): SQL {
     return sql`(
         ${chatsTable.kind} in ('channel', 'dm')
@@ -39,12 +33,6 @@ export function listedChats(userId: string, archive: ChatListArchive): SQL {
     )`;
 }
 
-/**
- * A listed Chat's `unreadCount` for `userId`: its own messages past the
- * reader's marker that someone else wrote. A Task's messages live in the
- * Task's own Chat row and count there (`tasks/task-unread.ts`, ADR 0053),
- * never on its Channel.
- */
 export function chatUnreadCount(userId: string): SQL<number> {
     return sql<number>`(select count(*)::integer ${unreadMessages(userId)})`;
 }

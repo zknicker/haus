@@ -102,7 +102,6 @@ struct OpenChatPagesTests {
     }
 
     @Test func refreshesTheCoveredCanvasBehindAnOpenTask() {
-        // The Task is on screen, so it refreshes first; the canvas Chat is
         // covered but is what the pop reveals, so it refreshes too.
         #expect(
             OpenChatPages.toRefresh(focusedChatID: "task-c1", canvasChatID: "c1")

@@ -43,9 +43,6 @@ struct RichReferenceParityTests {
             label: "Product",
             mark: .channel(.default)
         ),
-        // The legacy wire form of a mention of one Message: the Chat scheme
-        // with the Message in the query. The id keeps the whole target so
-        // both ids ride.
         Row(
             markdown: "[#launch plan](chat://cht_product\(MessageReferenceTarget.legacyMessageParameter)msg_anchor)",
             kind: .message,

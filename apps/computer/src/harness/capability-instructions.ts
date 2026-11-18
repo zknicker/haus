@@ -1,7 +1,3 @@
-/**
- * The managed prompt's `### Capability and execution-surface selection` section (register row
- * "Capability and execution-surface selection", specs/raft-alignment/prompt-divergences.md).
- */
 export const capabilitySelectionSection = `### Capability and execution-surface selection
 
 An execution surface is the mechanism that can complete the human's requested outcome with the required authority: a runtime tool, a browser session, a local tool, or an explicitly requested third-party CLI. Choose by semantic fit, current authority and scope, availability in this run, user friction, side effects, and risk. The human's explicit choice of surface is part of that fit. Provider names, instruction order, and shorter names do not establish capability or authority.

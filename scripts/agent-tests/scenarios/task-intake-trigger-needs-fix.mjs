@@ -1,10 +1,3 @@
-// Task intake 7: a GitHub Trigger fires on failing CI that needs a fix. Getting main green
-// again will not finish in the fire turn's reply, so the Agent starts a Task whose `origin` is
-// its own top-level message in the Trigger's channel, sent with --cause naming the fire, and
-// works in the Task.
-// The installation is seeded on the stack (github-world.mjs); run through `bun run eval` or
-// under `bunx varlock run --` for the webhook secret.
-
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
 import {

@@ -11,9 +11,6 @@ export interface TaskDeps {
     write(text: string): void;
 }
 
-// The Task rows the Agent API returns, and how the CLI prints them. A Task is a place for one
-// piece of work (ADR 0053): its state is what the CLI reads, and `task:<key>` is where it lives.
-
 const actorSchema = z.object({
     handle: z.string().nullable(),
     type: z.enum(['agent', 'human']),
@@ -73,7 +70,6 @@ export const taskShowSchema = z.object({
 export type TaskRow = z.infer<typeof taskRowSchema>;
 type TaskActorRow = z.infer<typeof actorSchema>;
 
-/** One Task as a receipt the Agent can restate: key, state, title, then its facts. */
 export function describeTask(task: TaskRow): string {
     const facts = [
         ...(task.priority === 'none' ? [] : [`priority ${task.priority}`]),
@@ -85,7 +81,6 @@ export function describeTask(task: TaskRow): string {
     return `${task.key} [${task.state}] "${title}" · ${facts.join(' · ')}`;
 }
 
-/** Where a Task lives, stated so the next send needs no lookup. */
 export function taskPlaceLine(key: string): string {
     return `Task target: ${formatTaskTarget(key)}`;
 }
@@ -97,7 +92,6 @@ export function actorLabel(actor: TaskActorRow): string {
     return actor.type === 'agent' ? 'an Agent with no handle' : 'a person with no handle';
 }
 
-/** The body of `haus task show`: the row, where it lives, its text, and what references it. */
 export function formatTaskDetail(detail: z.infer<typeof taskShowSchema>): string {
     const { description, mentions, reminders, task } = detail;
     const lines = [

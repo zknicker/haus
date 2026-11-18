@@ -32,9 +32,6 @@ public struct ChatReadReceipt: Codable, Sendable, Equatable {
     }
 }
 
-/// `chat.unreadChatCount`: the reader's unread Channels, DMs, and followed
-/// Tasks across every Server they belong to — the same number push sets as
-/// the app icon badge.
 public struct UnreadChatCount: Decodable, Sendable, Equatable {
     public let count: Int
 

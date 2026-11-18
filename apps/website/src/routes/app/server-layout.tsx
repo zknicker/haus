@@ -84,7 +84,6 @@ export function ServerLayout() {
     );
 }
 
-/** The web's one routed page, beside the chat side pane that hosts Attachments and artifacts. */
 function WebServerLayout({
     server,
     serverError,

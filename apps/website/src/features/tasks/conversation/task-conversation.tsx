@@ -28,12 +28,6 @@ import { useServerContext } from '../../servers/server-context.ts';
 import { serverChatRoute } from '../../servers/server-routes.ts';
 import { TaskOrigin } from './task-origin.tsx';
 
-/**
- * A Task's own conversation (ADR 0053 decision 2): its Chat's transcript and
- * composer, the way a Channel reads, with the "Started from" line at the top
- * once the oldest message is loaded. Posting in a done or canceled Task
- * reopens it on the Server, so the composer is always there.
- */
 export function TaskConversation({
     chatId,
     origin,
@@ -41,7 +35,6 @@ export function TaskConversation({
 }: {
     chatId: string;
     origin: TaskOriginRecord | null;
-    /** What the composer addresses: the Task's key and title. */
     title: string;
 }) {
     const { server } = useServerContext();
@@ -67,8 +60,6 @@ export function TaskConversation({
     const visibleSequence = useVisibleChatSequenceSource();
     const openChat = (id: string) => navigate(serverChatRoute(server.slug, id));
     const activateReference = useChatReferenceActivation(openChat);
-    // An artifact opens as its own page on desktop; the web has no Task side
-    // pane, so it opens where the work started.
     const openArtifact = (target: HausResourceTarget) => {
         if (openers) {
             openDesktopArtifact(target, undefined, { openArtifactTab: openers.openArtifact });
@@ -113,8 +104,6 @@ export function TaskConversation({
                     </>
                 }
                 hasOlderHistory={messages.hasOlderHistory}
-                // The origin line is content of its own, so a Task with no
-                // messages yet still opens on where it started.
                 hasTransientTimelineContent={pendingMessages.length > 0 || startedFrom !== null}
                 historyLoaded={Boolean(messages.data)}
                 isFetchingOlderHistory={messages.isFetchingOlderHistory}

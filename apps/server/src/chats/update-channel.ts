@@ -141,14 +141,12 @@ export async function updateChannel(
 
 type ChannelEdits = Partial<Record<'color' | 'description' | 'icon' | 'taskKeyId', unknown>>;
 
-/** Whether any field the caller set differs from the stored Channel. */
 function editsChange(chat: ChannelEdits, edits: ChannelEdits): boolean {
     return (['color', 'description', 'icon', 'taskKeyId'] as const).some(
         (field) => edits[field] !== undefined && edits[field] !== chat[field]
     );
 }
 
-/** A Channel's Tasks take an entry of the Server's key ledger (ADR 0053 decision 11). */
 async function requireTaskKey(
     db: Pick<HausDatabase, 'select'>,
     serverId: string,

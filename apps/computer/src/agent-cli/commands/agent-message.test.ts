@@ -227,7 +227,6 @@ test('message check renders a claim assignment through the fire envelope header'
 
     const lines = (outputs[0] ?? '').trimEnd().split('\n');
     // The assignment key shortens to the claim message it hands over, which is
-    // the id the Agent can actually read, reply to, or react to.
     expect(lines[0]).toStartWith('[target=#general msg=1a2b3c4d ');
     expect(lines[0]).toEndWith(
         'type=system] haus: [Haus claim assignment claim=#7 target=#general assignedBy=@operator] Ship the release notes'

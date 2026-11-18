@@ -182,7 +182,6 @@ export async function recordRunOperation(
         );
 }
 
-/** An inline reply on the claim's message, from whoever the caller names. */
 export async function replyInline(
     db: HausDatabase,
     claim: BackgroundClaim,

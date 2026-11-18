@@ -196,7 +196,6 @@ test('0120 gives every Server a General board and moves backlog claims onto it',
             run_id: null,
             state: 'queued',
         });
-        // As 0120 stored it; 0127 later drops its board and column names.
         expect(JSON.parse(content)).toEqual({
             assignedBy: 'ada',
             assignedByAgent: false,

@@ -17,11 +17,6 @@ type DescribedTask = Pick<
     'description' | 'descriptionContent' | 'descriptionTaskLinks' | 'id' | 'serverId' | 'version'
 >;
 
-/**
- * The markdown description, collapsed to its first line until the reader
- * opens it, and edited in place as source text: it is what an Agent reads and
- * writes too. An empty description goes straight to the editor.
- */
 export function TaskDescription({ task }: { task: DescribedTask }) {
     const [draft, setDraft] = React.useState<null | string>(null);
 
@@ -97,11 +92,6 @@ function DescriptionEditor({
     );
 }
 
-/**
- * The description reads like a message: the Server's resolved form renders
- * through the chat path, so its references are the same chips with the same
- * hover cards, and a press opens the Channel, Agent, or Task.
- */
 export function DescriptionBody({ task }: { task: DescribedTask }) {
     const { server } = useServerContext();
     const navigate = useNavigate();

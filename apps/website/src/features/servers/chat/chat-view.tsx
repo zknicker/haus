@@ -40,7 +40,6 @@ export function ChatView({
     onOpenChat: (chatId: string) => void;
     server: ServerDetail;
 }) {
-    // Desktop opens Attachments and artifacts as pages (ADR 0039), so the
     // chat renders no side panel there.
     const desktopTabs = useOptionalDesktopTabs() !== null;
     const filesPane = useChatFilesPane(chat.id);
@@ -81,7 +80,6 @@ export function ChatView({
             : chat.peerAgentId
               ? (chat.peerAgentDisplayName ?? 'Agent')
               : `DM · ${humans.name(chat.peerUserId)}`;
-    // Website: the latest artifact opener wins the side panel and reveals it.
     const openArtifact = artifactState.open;
     const startDm = React.useCallback(
         (peerUserId: string) => ensureDm.mutate({ peerUserId, serverId: chat.serverId }),

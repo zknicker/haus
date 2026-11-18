@@ -7,12 +7,6 @@ import { serverRoute } from '../../features/servers/server-routes.ts';
 /** An artifact page always names the Agent whose workspace holds it. */
 export type ArtifactPageTarget = HausResourceTarget & { agentId: string };
 
-/**
- * Page addresses (ADR 0039): a chat's Attachments and an Agent's artifact are
- * ordinary pages a desktop tab can show; the web keeps them in the chat side
- * pane. Each second segment names the page, so `tabPageKey` tells two
- * artifacts apart.
- */
 export function filesPagePath(slug: string, chatId: string) {
     return `${serverRoute(slug)}/files/${encodeURIComponent(chatId)}`;
 }

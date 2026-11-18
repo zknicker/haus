@@ -20,7 +20,6 @@ beforeAll(async () => {
         insert into channel_agent_participants (server_id, chat_id, agent_id)
         values (${fixture.serverId}, ${fixture.channelId}, ${forgeAgentId})
     `;
-    // A Task delivers to its followers (ADR 0053), so Forge follows the launch Task.
     await fixture.harness.sql`
         insert into agent_task_follows (server_id, agent_id, task_chat_id, task_chat_kind)
         values (${fixture.serverId}, ${forgeAgentId}, ${fixture.task.chatId}, 'task')
@@ -43,7 +42,6 @@ test('a work title naming @forge links the work without mentioning Forge', async
     expect(await readContent(created.body.messageId)).toBe(
         `Handing this to a cloud agent.\n\n${formatCloudAgentWorkLink(work.title, work.id)}`
     );
-    // Forge still hears the Task it follows, but is not named personally.
     expect(await readInbox(created.body.messageId)).toEqual([
         {
             agent_id: forgeAgentId,

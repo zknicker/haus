@@ -9,7 +9,6 @@ import { startTestTask } from './task-place-fixture.ts';
 
 const agentId = 'agt_task_api';
 const agent = { agentId, kind: 'agent' } as const;
-/** Starts here assign the starting Agent, so nothing is enqueued. */
 const noDelivery = {
     enqueue: () => Promise.reject(new Error('A self-assigned start enqueues nothing.')),
 } as unknown as TaskAgentDelivery;
@@ -182,7 +181,6 @@ describe('assignment', () => {
         `) as { count: number }[];
         expect(posts?.count).toBe(0);
 
-        // Reassigning to an Agent wakes it with the assignment.
         await owner.trpc.task.assign.mutate({
             assignee: agent,
             expectedVersion: 2,
@@ -195,7 +193,6 @@ describe('assignment', () => {
         `;
         expect(wakes).toEqual([{ dedupe_key: `task-assign:${task.id}:3` }]);
 
-        // Assigning yourself, then the same assignee again, changes nothing more.
         const assigned = await owner.trpc.task.assign.mutate({
             assignee: { kind: 'user', userId: ownerUserId },
             expectedVersion: 3,

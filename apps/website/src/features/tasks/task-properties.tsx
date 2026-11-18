@@ -13,7 +13,6 @@ import { useTaskActor, useTaskPeople } from './use-task-people.ts';
 
 type TaskVersion = Pick<Task, 'assignee' | 'id' | 'serverId' | 'state' | 'version'>;
 
-/** The Task's state as a quiet select: todo, open, done, or canceled (ADR 0053 decision 13). */
 export function TaskStateSelect({ task }: { task: TaskVersion }) {
     const setState = useSetTaskState();
     return (
@@ -38,7 +37,6 @@ export function TaskStateSelect({ task }: { task: TaskVersion }) {
     );
 }
 
-/** The Task's one assignee, a person or an Agent, or nobody. */
 export function TaskAssigneeSelect({ task }: { task: TaskVersion }) {
     const assign = useAssignTask();
     const people = useTaskPeople(task.serverId);
@@ -100,7 +98,6 @@ export function TaskStateListBox() {
     );
 }
 
-/** One `task.setState` at the version the reader saw; a refusal is a toast. */
 export function changeTaskState(
     mutate: ReturnType<typeof useSetTaskState>['mutate'],
     task: Pick<Task, 'id' | 'serverId' | 'version'>,

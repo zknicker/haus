@@ -6,13 +6,6 @@ import { hausTrpc } from '../../lib/haus-server.tsx';
 import { tabIntentState } from '../desktop-tabs/tab-navigation.ts';
 import { currentOpenGesture } from '../desktop-tabs/tab-open-gesture.ts';
 
-/**
- * Opens the Task a reference names, from anywhere in the Server shell: a push
- * the router places (ADR 0039), honoring the click's own open gesture. A
- * reference that carries no key is read for it on the press, never on render.
- * The opener keeps one identity for the caller's lifetime, and reads only the
- * route's slug, so it works on the web or in a desktop tab alike.
- */
 export function useOpenTaskReference(serverId: string) {
     const navigate = useNavigate();
     const { slug = '' } = useParams();

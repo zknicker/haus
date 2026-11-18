@@ -2,7 +2,6 @@ import Foundation
 @testable import HausUI
 import Testing
 
-/// A one-line preview is the message as a sidebar or Task preview reads it. A
 /// visual fence has no prose to show, so it reads as the visual's name — never
 /// as the raw markup the model authored.
 struct RichMessagePreviewTests {

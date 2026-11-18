@@ -23,7 +23,6 @@ function conflict(overrides: Partial<ClaimConflict> = {}): ClaimConflict {
 
 const unblockedLine =
     'Not blocked by this claim conflict (each still subject to its own authority/policy): reading the claim and its conversation · replying inline with findings, questions, or review · claiming a different claim in this lane · raising the routing with the people in the original Chat.';
-// The routing sentence is the Server contract's own (`@haus/api`), printed as given.
 const routingLine = CLAIM_CONFLICT_ROUTING_NOTE;
 
 test('names the Agent holding the lock and what the lock leaves open', () => {

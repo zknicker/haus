@@ -1,5 +1,4 @@
 // "Try image gen out" is answered by the image cards themselves. Regression
-// for an Agent that posted the cards, then waited on every image and hung
 // an unrequested model comparison onto its own reply. Opt-in: it spends real
 // provider money (a few cents per image) and needs the Owner's image keys.
 
@@ -97,7 +96,6 @@ async function reshape(kit, worker, log) {
     throw new Error(`Worker never became ready on ${target.join('/')}.`);
 }
 
-/** Every message the Agent wrote in the channel after the request, inline replies included. */
 async function authoredAfter(kit, agentId, channelId, sinceSequence) {
     const own = (message) => message.author.kind === 'agent' && message.author.agentId === agentId;
     const page = await kit.trpc('chat.messages', {

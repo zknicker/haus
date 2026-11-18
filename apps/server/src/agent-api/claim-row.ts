@@ -43,7 +43,6 @@ export async function claimRows(
     );
     // Sequential: `db` is often the caller's transaction connection.
     const targets = new Map<string, string>();
-    // A claim's target is the Chat its message sits in.
     const chatIds = rows.map(({ claim }) => claim.chatId);
     for (const chatId of new Set(chatIds)) {
         targets.set(chatId, await targetForChat(db, runner.serverId, chatId));

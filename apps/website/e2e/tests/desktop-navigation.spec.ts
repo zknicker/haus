@@ -28,7 +28,6 @@ test('the sidebar goes in the left pane, pages open on the right, and Settings i
         .locator('.desktop-tab-frame[data-frame-pane="primary"]:visible')
         .getByRole('button', { name: new RegExp(`^Open task ${key},`, 'u') });
 
-    // Open: a Task previewed inside the chat opens on the right, creating the right pane.
     await openTask.click();
     await expect(right).toHaveCount(1);
     await expect(right.first()).toContainText(key);

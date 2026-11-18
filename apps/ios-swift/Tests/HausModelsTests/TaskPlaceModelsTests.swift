@@ -2,9 +2,6 @@ import Foundation
 import XCTest
 @testable import HausModels
 
-/// Tasks as places (ADR 0053) decode from the Server's wire shapes
-/// (`packages/haus-api/src/{task,task-preview,chat,chat-unread-preview,chat-events}.ts`),
-/// and a newer Server's additive fields and kinds never fail a read.
 final class TaskPlaceModelsTests: XCTestCase {
     // MARK: - Chat kind
 
@@ -91,7 +88,6 @@ final class TaskPlaceModelsTests: XCTestCase {
         XCTAssertEqual(detail.task.origin, TaskOrigin(chatID: "chat_security", messageID: "msg_origin"))
         XCTAssertTrue(detail.followed)
         XCTAssertEqual(detail.unreadCount, 3)
-        // A work this build cannot read drops itself, never the Task.
         XCTAssertEqual(detail.attachedWork, [])
         let pullRequest = try XCTUnwrap(detail.pullRequests.first)
         XCTAssertEqual(pullRequest.number, 42)
@@ -101,7 +97,6 @@ final class TaskPlaceModelsTests: XCTestCase {
         XCTAssertEqual(detail.reminders.first?.setBy, TaskReminderSetter(agentID: "agent_forge", displayName: "Forge"))
     }
 
-    /// A legacy Task has no Chat: it is read-only history.
     func testAChatlessLegacyTaskDetailDecodes() throws {
         let detail = try decode(TaskDetail.self, """
         {"assignee":null,"chatId":null,"completedAt":"2026-10-31T16:00:00Z",
@@ -176,7 +171,6 @@ final class TaskPlaceModelsTests: XCTestCase {
         XCTAssertEqual(effects.taskIDsToRefreshPreview, ["task_1", "task_2", "task_3", "task_4"])
         XCTAssertEqual(effects.changedTaskIDs, ["task_3", "task_4"])
         XCTAssertTrue(effects.reloadsUnreadTasks)
-        // A Task read is the Task's own, never a Chat list row's.
         XCTAssertTrue(effects.readChatIDs.isEmpty)
     }
 
@@ -201,11 +195,9 @@ final class TaskPlaceModelsTests: XCTestCase {
         XCTAssertEqual(store.refreshes(previewingTasks: ["task_12"]), [EntityRefresh(chatID: "chat_1", messageID: "msg_origin")])
         XCTAssertEqual(store.taskPreview(chatID: "chat_task_12")?.taskID, "task_12")
 
-        // A `chat.message` answer without `tasks` (an older Server) keeps the preview.
         store.setEntity(ChatMessageEntity(message: origin))
         XCTAssertEqual(store.page(.chat("chat_1"))?.tasks.map(\.taskID), ["task_12"])
 
-        // One with `tasks` replaces it: the single-message refresh.
         let moved = TaskPreview(
             taskID: "task_12", chatID: "chat_task_12", key: "SEC-12", title: "Rate-limit", state: .done,
             originMessageID: "msg_origin", messageCount: 6
@@ -213,7 +205,6 @@ final class TaskPlaceModelsTests: XCTestCase {
         store.setEntity(ChatMessageEntity(message: origin, tasks: [moved]))
         XCTAssertEqual(store.page(.chat("chat_1"))?.tasks.map(\.state), [.done])
 
-        // A page that no longer names the Task under its origin clears it.
         store.write(
             ChatMessagePage(messages: [origin], nextBeforeSequence: nil),
             to: .chat("chat_1"),
@@ -222,8 +213,6 @@ final class TaskPlaceModelsTests: XCTestCase {
         XCTAssertEqual(store.page(.chat("chat_1"))?.tasks, [])
     }
 
-    /// `chat.message` carries `tasks`; one it cannot read drops itself, and a
-    /// Server whose answer has no `tasks` key leaves them unknown (nil).
     func testASingleMessageReadCarriesItsTaskPreviews() throws {
         let message = Self.messageJSON("msg_origin", chatID: "chat_security")
         let entity = try decode(ChatMessageEntity.self, """

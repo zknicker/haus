@@ -1,8 +1,3 @@
-// Task intake 8: a GitHub Trigger fires on an event the Agent only needs to acknowledge (a
-// passing nightly build). The post is the whole of the work, so the Agent answers the fire
-// once, top level with --cause, and creates no Task. Same seeded installation and webhook
-// secret as task-intake-trigger-needs-fix.
-
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
 import { cancelTasksBy, expectSettled, postsAcross, tasksCreatedBy } from '../task-intake.mjs';

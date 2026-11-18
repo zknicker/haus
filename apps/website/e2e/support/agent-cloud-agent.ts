@@ -5,10 +5,8 @@ export interface SeededCloudAgentWork {
     agentId: string;
     chatId: string;
     computerId: string;
-    /** The launch Message, in the Task's own Chat (ADR 0053 decision 6). */
     messageId: string;
     runId: string;
-    /** The Task the work is attached to, started from a Message in the Channel. */
     taskKey: string;
     workId: string;
 }
@@ -89,12 +87,6 @@ export async function seedCloudAgentWork(input: {
     };
 }
 
-/**
- * One more work from an Agent that already exists. Cloud work attaches to a
- * Task and the Server refuses a launch without one (ADR 0053 decision 6), so,
- * like an Agent, the fixture first posts an origin Message in Channel `target`
- * and starts a Task from it, then launches on that Task.
- */
 export async function startCloudAgentWork(input: {
     agentId: string;
     /** The launch context Chat the runner credential is minted against. */
@@ -157,7 +149,6 @@ export async function startCloudAgentWork(input: {
 
 type AgentPost = (path: string, body: unknown) => Promise<Response>;
 
-/** Posts the origin Message in Channel `target` as the Agent and starts a Task from it. */
 async function startLaunchTask(
     agentPost: AgentPost,
     input: { agentId: string; target: string; title: string }
@@ -171,7 +162,6 @@ async function startLaunchTask(
         const payload = (await response.json()) as { message?: { id: string }; state?: string };
         return { payload, status: response.status };
     };
-    // Like the launch below, a send held for unread messages is sent once more.
     let { payload, status } = await send();
     if (status === 200 && payload.state === 'held') {
         ({ payload, status } = await send());

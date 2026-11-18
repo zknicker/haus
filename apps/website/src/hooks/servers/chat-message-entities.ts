@@ -44,12 +44,6 @@ export function chatMessageQueryKey(serverId: string, chatId: string, messageId:
     return getQueryKey(hausTrpc.chat.message, { chatId, messageId, serverId }, 'query');
 }
 
-/**
- * One entity read. The answer carries `tasks`, the previews of the Tasks
- * started from this Message, which the entity owns (its projected row carries
- * them to the preview), so a refreshed origin Message shows a new Task
- * without rereading its Chat.
- */
 export function chatMessageQueryOptions(
     client: ReturnType<typeof hausTrpc.createClient>,
     input: ChatMessageInput

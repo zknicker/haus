@@ -1,8 +1,3 @@
-/**
- * The GitHub REST responses `haus-pull-request-wake.test.ts` reads: one open
- * pull request at `headSha` whose draft flag and check outcome follow the
- * mutable `pull` reading the test steers.
- */
 export interface PullRequestWakeReading {
     checks: 'failing' | 'passing' | 'pending';
     draft: boolean;

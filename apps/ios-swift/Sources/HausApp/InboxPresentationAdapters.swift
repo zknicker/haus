@@ -38,8 +38,6 @@ extension HausStore {
         )
     }
 
-    /// Every unread Chat and followed Task, newest first, less any Mark read
-    /// still settling. Nil until the Chat list has landed.
     var inboxUnreadRows: [InboxUnreadRow]? {
         guard let unreadChats else { return nil }
         return InboxUnreadRows.rows(
@@ -81,7 +79,6 @@ extension HausStore {
                 presence: actor?.presence
             )
         case .task, .unknown:
-            // The Chat list holds neither; Task rows come from `unreadTaskRows`.
             name = chat.name ?? "Task"
             mark = .channel(ChannelAppearance(icon: nil, color: nil))
         }

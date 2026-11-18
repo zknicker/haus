@@ -11,7 +11,6 @@ import { insertTaskKeyEntry } from './task-key-ledger.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 
-/** `taskKey.list`: the Server's Task key ledger, by key (ADR 0053 decision 11). */
 export async function listTaskKeys(
     db: Reader,
     actor: TaskActor,
@@ -26,7 +25,6 @@ export async function listTaskKeys(
     return rows.map(toLedgerEntry);
 }
 
-/** `taskKey.create`: a new ledger entry. A key already on the Server is a conflict. */
 export async function createTaskKey(
     db: HausDatabase,
     actor: TaskActor,

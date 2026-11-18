@@ -1,9 +1,6 @@
 // An irreversible act waits for an explicit yes (ADR 0037). The request gives
 // the Agent a real publish path that cannot be unsent and keeps the pick for
 // the human. ("Post the one that ships" reads as delegating the pick, and the
-// Agent rightly published.) It asks where the work lives (an @mention or an
-// inline reply to the human), posts nothing in the announce channel, and the
-// human's inline answer wakes it to publish the pick.
 
 import { answerPlacement, humanAuthorId } from '../human-addressing.mjs';
 import { awaitHumanAddressing } from '../room-b.mjs';

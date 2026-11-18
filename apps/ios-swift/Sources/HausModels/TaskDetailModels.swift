@@ -3,7 +3,6 @@ import Foundation
 /// A message that references the Task: its **Mentioned in**, newest first.
 public struct TaskMention: Codable, Identifiable, Hashable, Sendable {
     public let authorLabel: String
-    /// The message's own Chat.
     public let chatID: String
     public let createdAt: Date
     public let excerpt: String
@@ -35,7 +34,6 @@ public struct TaskReminderRef: Codable, Identifiable, Hashable, Sendable {
     public let nextFireAt: Date?
     public let reminderID: String
     public let title: String
-    /// The Agent that set it. Nil from a Server that predates the field.
     public var setBy: TaskReminderSetter? = nil
 
     public var id: String { reminderID }
@@ -50,8 +48,6 @@ public struct TaskReminderRef: Codable, Identifiable, Hashable, Sendable {
     }
 }
 
-/// `task.get`: the Task's fields flat beside `mentions`, `reminders`, and what
-/// ADR 0053 attaches to a Task as a place.
 public struct TaskDetail: Decodable, Identifiable, Hashable, Sendable {
     public let task: TaskRecord
     /// The description as it renders, resolved by the Server when read: the
@@ -63,14 +59,9 @@ public struct TaskDetail: Decodable, Identifiable, Hashable, Sendable {
     public let descriptionTaskLinks: [TaskLink]
     public let mentions: [TaskMention]
     public let reminders: [TaskReminderRef]
-    /// Cloud Agent work attached to the Task, newest first (ADR 0053 decision 6).
-    /// A work this build cannot read drops itself rather than the Task.
     public let attachedWork: [CloudAgentWork]
-    /// Pull requests attached to the Task, as the Server last read them.
     public let pullRequests: [CloudAgentPullRequestReading]
-    /// Whether the viewer follows the Task, so it can be unread for them.
     public let followed: Bool
-    /// The viewer's unread messages in the Task's Chat; zero unless followed.
     public let unreadCount: Int
 
     public var id: String { task.id }

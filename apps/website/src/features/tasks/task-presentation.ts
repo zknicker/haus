@@ -21,7 +21,6 @@ export const taskPriorityRank: Record<TaskPriority, number> = {
     urgent: 0,
 };
 
-/** `#security` or `DM`: a DM never names its peer here. */
 export function taskMessagePlaceLabel({ chatKind, chatName }: TaskMessagePlace) {
     return chatKind === 'channel' ? `#${chatName}` : 'DM';
 }

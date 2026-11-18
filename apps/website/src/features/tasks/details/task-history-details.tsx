@@ -7,11 +7,6 @@ import { useTaskActor } from '../use-task-people.ts';
 import { DescriptionBody } from './task-description.tsx';
 import { TaskFact } from './task-details-card.tsx';
 
-/**
- * A Task from before Tasks were places (`chatId: null`) is read-only history:
- * its facts and description as text, with no controls and no conversation to
- * come. The Server refuses its edits; the band names its state as text.
- */
 export function TaskHistoryDetails({ task }: { task: TaskDetail }) {
     return (
         <InlineCard

@@ -33,12 +33,7 @@ export type TaskOrigin = z.infer<typeof taskOriginSchema>;
 
 const taskFields = {
     assignee: taskAssigneeSchema.nullable(),
-    /**
-     * The Task's own conversation: a `task` Chat (ADR 0053). Null for a Task
-     * from before Tasks were places, kept as read-only history.
-     */
     chatId: idSchema.nullable(),
-    /** Set exactly while the Task is `done` or `canceled`. */
     completedAt: timestampSchema.nullable(),
     createdAt: timestampSchema,
     createdBy: taskActorSchema,
@@ -46,11 +41,9 @@ const taskFields = {
     dueOn: taskDueOnSchema.nullable(),
     id: idSchema,
     key: taskKeySchema,
-    /** The key-ledger entry numbering this Task (`taskKey.list`). */
     keyId: idSchema,
     labelIds: z.array(idSchema),
     number: z.number().int().positive(),
-    /** The Channel Message it started from; null for a Task from before ADR 0053. */
     origin: taskOriginSchema.nullable(),
     priority: taskPrioritySchema,
     serverId: idSchema,
@@ -71,7 +64,6 @@ export type Task = z.infer<typeof taskSchema>;
  */
 export const taskMessagePlaceSchema = z
     .object({
-        /** The Channel or DM: the message's own Chat, or its Task's origin Channel. */
         chatId: idSchema,
         chatKind: z.enum(['channel', 'dm']),
         /** The Channel's name. Null for a DM, which a context label never names by its peer. */
@@ -89,7 +81,6 @@ export type TaskMessagePlace = z.infer<typeof taskMessagePlaceSchema>;
 export const taskMentionSchema = z
     .object({
         authorLabel: z.string().min(1),
-        /** The message's own Chat: a Task's Chat for a message in a Task. */
         chatId: idSchema,
         createdAt: timestampSchema,
         excerpt: z.string().max(500),
@@ -109,7 +100,6 @@ export const taskReminderRefSchema = z
         /** Null once a one-shot fired or the Reminder was canceled. */
         nextFireAt: timestampSchema.nullable(),
         reminderId: idSchema,
-        /** The Agent that set it; a retired Agent keeps its stored name. */
         setBy: z.object({ agentId: idSchema, displayName: z.string().min(1) }).strict(),
         title: z.string().min(1),
     })
@@ -118,7 +108,6 @@ export const taskReminderRefSchema = z
 export const taskDetailSchema = z
     .object({
         ...taskFields,
-        /** Cloud Agent work attached to this Task, newest first (ADR 0053 decision 6). */
         attachedWork: z.array(cloudAgentWorkSchema),
         /**
          * The description as clients render it, resolved when read: the bare
@@ -129,13 +118,10 @@ export const taskDetailSchema = z
         descriptionContent: z.string(),
         /** The Task references in `descriptionContent`, like a Message's `taskLinks`. */
         descriptionTaskLinks: z.array(taskLinkSchema),
-        /** Whether the viewer follows the Task, so it can be unread for them (decision 9). */
         followed: z.boolean(),
         mentions: z.array(taskMentionSchema),
-        /** Pull requests attached to this Task, as the Server last read them. */
         pullRequests: z.array(cloudAgentPullRequestReadingSchema),
         reminders: z.array(taskReminderRefSchema),
-        /** The viewer's unread messages in the Task's Chat; zero unless followed. */
         unreadCount: z.number().int().nonnegative(),
     })
     .strict()
@@ -158,7 +144,6 @@ export type TaskMutationResult = z.infer<typeof taskMutationResultSchema>;
  */
 export const taskCreatedEventSchema = z
     .object({
-        /** The Task's own Chat; null for a chatless history Task (see `Task.chatId`). */
         chatId: idSchema.nullable(),
         serverId: idSchema,
         taskId: idSchema,

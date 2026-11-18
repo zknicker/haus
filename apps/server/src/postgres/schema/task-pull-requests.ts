@@ -11,17 +11,11 @@ import {
 } from 'drizzle-orm/pg-core';
 import { tasksTable } from './tasks.ts';
 
-/**
- * A GitHub pull request attached to a Task (ADR 0053 decision 6). Its card and
- * the ready-after-settle wake read the stored pull request readings by
- * `repository` and `number`; this row only says which Task it reports to.
- */
 export const taskPullRequestsTable = pgTable(
     'task_pull_requests',
     {
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         number: integer('number').notNull(),
-        /** `owner/name`, as the stored pull request readings key it. */
         repository: text('repository').notNull(),
         serverId: text('server_id').notNull(),
         taskId: text('task_id').notNull(),

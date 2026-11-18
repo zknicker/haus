@@ -16,10 +16,6 @@ import { ChannelDialogError } from './channel-dialog-error.tsx';
 import { channelHandleIssue } from './channel-handle.ts';
 import { ChannelTaskKeyField } from './channel-task-key-field.tsx';
 
-/**
- * Edit a channel's name (its handle), the description Agents read to learn its
- * purpose, and the key its Tasks take (ADR 0053 decision 11).
- */
 export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: () => void }) {
     const updateChannel = useChannelUpdate();
     const currentName = chat.name ?? '';

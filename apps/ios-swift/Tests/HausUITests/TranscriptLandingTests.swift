@@ -2,7 +2,6 @@ import CoreGraphics
 @testable import HausUI
 import Testing
 
-/// Opening a transcript on its first unread message, on the flipped
 /// table: a 600pt viewport resting at offset -80 (the composer clearance),
 /// with a 100pt navigation bar clearance at the visual top.
 struct TranscriptLandingTests {

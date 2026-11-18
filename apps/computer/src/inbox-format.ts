@@ -109,7 +109,6 @@ export function composeInboxNotice(
         }
         return formatInboxTargetRow({
             claimNumber: latest.claim?.number ?? null,
-            // Matches the Server's `haus inbox check` row, which tags cloud work alone.
             cloudAgentResult: ordered.some((item) => Boolean(item.cloudAgentWork)),
             firstShortId: shortInboxId(first.id),
             latestSender: latest.senderHandle,

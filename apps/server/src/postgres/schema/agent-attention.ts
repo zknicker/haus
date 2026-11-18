@@ -36,7 +36,6 @@ export const agentChannelMutesTable = pgTable(
     ]
 );
 
-/** One Agent following, or explicitly unfollowing, one Task's Chat (ADR 0053 decision 9). */
 export const agentTaskFollowsTable = pgTable(
     'agent_task_follows',
     {

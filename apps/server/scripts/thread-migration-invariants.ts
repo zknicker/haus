@@ -1,31 +1,17 @@
 import type { SQL } from 'bun';
 
-/**
- * Structural facts the Thread → inline-reply migration must leave true. Each
- * is a count of violations, read the same way before and after, so a value
- * that was already non-zero before the migration shows up in the "before"
- * report rather than being blamed on it.
- */
 export interface Structure {
     counts: {
-        /** Adjacent Messages (by sequence) whose `created_at` goes backwards. */
         createdAtInversions: number;
-        /** Rows whose (Chat, Message) pair names a Message in another Chat. */
         mismatchedPairs: number;
         messages: number;
-        /** Inline replies whose parent or root is not in the same Chat. */
         repliesOutsideChat: number;
-        /** Inline replies sequenced at or before the Message they answer. */
         repliesBeforeParent: number;
-        /** Chats whose sequences are not exactly 1..n. */
         sparseChats: number;
-        /** Chats whose `last_message_sequence` is not their newest sequence. */
         staleLastSequence: number;
         threadChats: number;
     };
-    /** Rows naming a Chat id that no `chats` row has, by `table.column`. */
     missingChats: Record<string, number>;
-    /** Rows naming a Message id that no `chat_messages` row has, by `table.column`. */
     missingMessages: Record<string, number>;
 }
 
@@ -35,7 +21,6 @@ export interface InvariantResult {
     ok: boolean;
 }
 
-/** (table, Chat column, Message column) pairs whose Message must sit in that Chat. */
 const pairs = [
     ['attachments', 'chat_id', 'message_id'],
     ['cloud_agent_work_links', 'chat_id', 'message_id'],
@@ -96,11 +81,6 @@ export async function readStructure(database: SQL): Promise<Structure> {
     };
 }
 
-/**
- * Judges the current structure: the Message count must match the snapshot,
- * no Thread may remain, and every other violation count must be zero or no
- * worse than it was before the migration.
- */
 export function judgeStructure(after: Structure, before?: Structure): InvariantResult[] {
     const results: InvariantResult[] = [
         {
@@ -146,7 +126,6 @@ function noWorse(name: string, value: number, baseline: number | undefined): Inv
     };
 }
 
-/** Counts dangling ids in every public text column ending in `suffix`, outside the audit tables. */
 async function countMissing(database: SQL, suffix: string, target: 'chats' | 'chat_messages') {
     const columns = (await database`
         SELECT table_name, column_name FROM information_schema.columns

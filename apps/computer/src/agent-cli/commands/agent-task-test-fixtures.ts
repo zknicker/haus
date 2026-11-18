@@ -26,7 +26,6 @@ export function harness(respond: Responder) {
     const client: AgentApiRequester = {
         request<T>(route: string, schema: z.ZodType<T>, input?: AgentApiRequest): Promise<T> {
             calls.push({ input, route });
-            // A real request rejects rather than throwing, so a refusal reaches `.catch`.
             return Promise.resolve().then(() => schema.parse(respond(route, input)));
         },
     };

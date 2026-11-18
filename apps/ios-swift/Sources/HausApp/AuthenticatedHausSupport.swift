@@ -21,9 +21,6 @@ struct SettingsUnavailableSheet: View {
     }
 }
 
-/// The root stack's pushed routes. The Inbox is not here: it is the canvas
-/// itself, which is why it wears no navigation bar and no Back button — see
-/// `AuthenticatedHausView+Routes`.
 enum HausRootRoute: Hashable {
     case task(taskID: String)
 }

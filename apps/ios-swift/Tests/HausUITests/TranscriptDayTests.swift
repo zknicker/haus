@@ -78,8 +78,6 @@ struct TranscriptDayTests {
         ])
     }
 
-    /// A reply's reference shows once per run of the same author answering
-    /// the same parent, and the run reads as one block.
     @Test func aRunOfRepliesToOneParentStatesItsReferenceOnce() {
         let target = message("r1", at: day(0, hour: 9, minute: 1))
         let first = message("i1", at: day(0, hour: 9, minute: 2), replyingTo: target)

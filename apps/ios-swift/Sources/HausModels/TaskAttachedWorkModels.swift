@@ -1,19 +1,11 @@
 import Foundation
 
-/// The Server's live reading of a pull request attached to a Task
-/// (`cloudAgentPullRequestReadingSchema`). It stays evidence: Haus never acts on
-/// the pull request. Its rollups stay strings so a state this build does not
-/// know reads as plain words rather than failing the Task read.
 public struct CloudAgentPullRequestReading: Codable, Identifiable, Hashable, Sendable {
     public let number: Int
     public let repository: String
-    /// `open`, `merged`, `closed`, or `draft` as GitHub or the Run reported it.
     public let state: String
-    /// `none`, `pending`, `passing`, `failing`, or `unknown`.
     public let checks: String
-    /// `none`, `approved`, `changes-requested`, or `unknown`.
     public let review: String
-    /// Nil until GitHub is read: a Run's snapshot carries no title.
     public let title: String?
     public let url: String
     public let additions: Int
@@ -74,7 +66,6 @@ public struct CloudAgentPullRequestReading: Codable, Identifiable, Hashable, Sen
     }
 }
 
-/// The Agent that set a Task's Reminder; a retired Agent keeps its stored name.
 public struct TaskReminderSetter: Codable, Hashable, Sendable {
     public let agentID: String
     public let displayName: String
@@ -90,13 +81,11 @@ public struct TaskReminderSetter: Codable, Hashable, Sendable {
     }
 }
 
-/// What an unread Task row names beyond its messages (`chatUnreadPreviewTaskSchema`).
 public struct ChatUnreadPreviewTask: Codable, Hashable, Sendable {
     public let taskID: String
     public let key: String
     public let title: String
     public let state: TaskState
-    /// The Channel the Task started in.
     public let originChatID: String
 
     public init(taskID: String, key: String, title: String, state: TaskState, originChatID: String) {
@@ -116,8 +105,6 @@ public struct ChatUnreadPreviewTask: Codable, Hashable, Sendable {
     }
 }
 
-/// One unread row's newest counted messages, oldest first (`chat.unreadPreviews`).
-/// Set `task` marks a followed Task's row: `chatID` is then the Task's own Chat.
 public struct ChatUnreadPreview: Decodable, Equatable, Sendable {
     public let chatID: String
     public let earlierUnreadCount: Int
@@ -131,7 +118,6 @@ public struct ChatUnreadPreview: Decodable, Equatable, Sendable {
         self.task = task
     }
 
-    /// The unread messages the row stands for: those it quotes and those before.
     public var unreadCount: Int { earlierUnreadCount + messages.count }
 
     enum CodingKeys: String, CodingKey {
@@ -150,8 +136,6 @@ public struct ChatUnreadPreview: Decodable, Equatable, Sendable {
     }
 }
 
-/// `chat.unreadPreviews`: every unread row's preview on one Server. A row this
-/// build cannot read is dropped rather than failing the whole Inbox.
 public struct ChatUnreadPreviewList: Decodable, Sendable, Equatable {
     public let previews: [ChatUnreadPreview]
 
@@ -168,8 +152,6 @@ public struct ChatUnreadPreviewList: Decodable, Sendable, Equatable {
         previews = try container.decodeLossyArray(ChatUnreadPreview.self, forKey: .previews)
     }
 
-    /// The followed unread Tasks among the rows, newest activity first as the
-    /// Server ordered them. Channel and DM rows are the Chat list's to show.
     public var taskPreviews: [ChatUnreadPreview] {
         previews.filter { $0.task != nil && $0.unreadCount > 0 }
     }

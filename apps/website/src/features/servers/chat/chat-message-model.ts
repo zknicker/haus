@@ -78,7 +78,6 @@ function messageClaim(
         claimed_at: claim.claimedAt,
         created_at: claim.createdAt,
         // Tier and liveness are what the transcript's marks read: whether this
-        // claim shows at all, and whether anyone is on it now.
         live: claim.live,
         number: claim.number,
         origin: claim.origin,

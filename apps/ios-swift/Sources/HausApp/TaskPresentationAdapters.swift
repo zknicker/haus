@@ -2,7 +2,6 @@ import Foundation
 import HausModels
 import HausUI
 
-/// A read-only Task's seam onto the Store. Reads are the Store's own
 /// snapshots, so reading one from a view body tracks it and a durable event
 /// repaints the screen.
 extension HausStore {
@@ -23,7 +22,6 @@ extension HausStore {
     }
 
     /// A Chat as a context label: a Channel by name, a DM as `DM`, never its
-    /// peer. A Chat the list does not hold is named only as a Chat.
     func conversationLabel(chatID: String) -> String {
         guard let chat = chatsByID[chatID] else { return "Chat" }
         switch chat.kind {

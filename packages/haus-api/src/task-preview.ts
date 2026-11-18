@@ -14,21 +14,15 @@ export const taskPreviewRecentMessageLimit = 3;
  */
 export const taskPreviewSchema = z
     .object({
-        /** The Task's own Chat, which opens it. */
         chatId: idSchema,
-        /** Whether the viewer follows the Task. */
         followed: z.boolean(),
         key: taskKeySchema,
-        /** Messages in the Task's Chat. */
         messageCount: z.number().int().nonnegative(),
-        /** The Channel Message the Task started from; the preview sits under it. */
         originMessageId: idSchema,
-        /** The Task's newest messages, oldest first. */
         recentMessages: z.array(taskReplyPreviewSchema).max(taskPreviewRecentMessageLimit),
         state: taskStateSchema,
         taskId: idSchema,
         title: z.string().min(1),
-        /** The viewer's unread messages in the Task; zero unless followed (decision 9). */
         unreadCount: z.number().int().nonnegative(),
     })
     .strict();

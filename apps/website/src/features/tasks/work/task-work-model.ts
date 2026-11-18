@@ -30,16 +30,11 @@ export const pullRequestStateChip: Record<
     open: { color: 'accent', label: 'Open' },
 };
 
-/** "Checks passing · Approved · 4 files": the reading's facts on one line. */
 export function pullRequestFacts(reading: CloudAgentPullRequestReading): string {
     const files = `${reading.changedFiles} ${reading.changedFiles === 1 ? 'file' : 'files'}`;
     return `${checkLabels[reading.checks]} · ${reviewLabels[reading.review]} · ${files}`;
 }
 
-/**
- * The attached pull requests no Cloud Agent card already shows: a work card
- * carries its own pull request line, so the panel says each pull request once.
- */
 export function standalonePullRequests(
     works: readonly Pick<CloudAgentWork, 'pullRequest'>[],
     pullRequests: readonly CloudAgentPullRequestReading[]
@@ -50,7 +45,6 @@ export function standalonePullRequests(
     return pullRequests.filter((reading) => !shown.has(reading.url));
 }
 
-/** The Task's pending one-time reminders, soonest first (ADR 0053 decision 16). */
 export function pendingTaskReminders(
     reminders: readonly TaskReminderRef[]
 ): (TaskReminderRef & { nextFireAt: string })[] {
@@ -62,10 +56,6 @@ export function pendingTaskReminders(
         .sort((a, b) => Date.parse(a.nextFireAt) - Date.parse(b.nextFireAt));
 }
 
-/**
- * "Forge checks back at 7:35": who checks back and when, in the reader's
- * clock. A fire on another day names the day too.
- */
 export function reminderLine(
     agentName: string,
     nextFireAt: string,

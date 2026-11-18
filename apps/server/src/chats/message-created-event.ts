@@ -28,7 +28,6 @@ export async function prepareMessageCreatedEvent(
         chatId: message.chatId,
         serverId: message.serverId,
     });
-    // Only a child Chat can be a Task's (ADR 0053).
     const task = conversation.inTask
         ? await findTaskByChatId(db, { chatId: message.chatId, serverId: message.serverId })
         : null;
@@ -45,11 +44,6 @@ export async function prepareMessageCreatedEvent(
     });
 }
 
-/**
- * The Channel or DM a Chat belongs to: its own kind, or its origin Channel's
- * for a Task. The notification rule tells a DM message from a Channel one by
- * this kind (ADR 0038).
- */
 async function readConversation(
     db: Pick<HausDatabase, 'execute'>,
     input: { chatId: string; serverId: string }

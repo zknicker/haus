@@ -22,7 +22,6 @@ async function call(path: string, body?: unknown, as = runner): Promise<Reply> {
     return { body: (await response.json()) as Record<string, any>, status: response.status };
 }
 
-/** The calling Agent posts an origin Message in #product and starts a Task from it. */
 async function start(body: Record<string, unknown>) {
     origins += 1;
     const origin = await call('/api/agent/messages/send', {

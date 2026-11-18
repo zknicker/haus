@@ -1,12 +1,6 @@
 import HausModels
 import SwiftUI
 
-/// The claim a message carries, stated under that message.
-///
-/// The claim is the Agent's lock on a message (ADR 0053 decision 5), not a
-/// place, so its mark says only which claim and where it stands. An Agent's
-/// claim stays hidden until the reader asks to see claims in Chat; a claim a
-/// human made always shows.
 struct MessageClaimMark: View {
     let claim: ClaimPresentation?
     @AppStorage(ShowClaimsInChat.storageKey) private var showClaimsInChat = false
@@ -25,8 +19,6 @@ struct MessageClaimMark: View {
         }
     }
 
-    /// The claim the mark states, or nil for a claim the reader has not asked
-    /// to see.
     nonisolated static func stated(_ claim: ClaimPresentation?, showClaimsInChat: Bool) -> ClaimPresentation? {
         guard let claim,
               ClaimVisibility.visibleInChat(origin: claim.origin, showClaimsInChat: showClaimsInChat)

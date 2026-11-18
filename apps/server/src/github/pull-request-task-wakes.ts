@@ -2,19 +2,11 @@ import { and, eq, inArray, isNotNull, notExists } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { cloudAgentWorkTable, taskPullRequestsTable, tasksTable } from '../postgres/schema.ts';
 
-/** A Task the pull request is attached to that no cloud work reports to. */
 export interface UnworkedTaskWake {
     agentId: string;
     chatId: string;
 }
 
-/**
- * Tasks the pull request is attached to with no cloud work at all (ADR 0053
- * decision 6): the pull request change wakes the Task's assignee Agent in the
- * Task, with no Run behind the notice. A Task with cloud work wakes through
- * that work instead, once its newest Run settled. Only todo and open Tasks
- * with their own Chat and an Agent assignee qualify.
- */
 export async function readUnworkedTaskWakes(
     db: Pick<HausDatabase, 'select'>,
     pull: { number: number; repository: string; serverId: string }

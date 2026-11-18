@@ -12,11 +12,6 @@ afterAll(async () => {
     await fixture.close();
 });
 
-/**
- * The Inbox's Mark read reuses `chat.markRead`. A Channel row counts its inline
- * replies and clears them with its own read; a followed Task under it is its
- * own row (ADR 0053) and stays unread until the Task itself is read.
- */
 test('Mark read clears a Channel row with its inline replies and leaves its Task row', async () => {
     const { createChannel, harness, owner, ownerUserId, peer, serverId } = fixture;
     const channelId = await createChannel('mark-read-replies');
@@ -45,7 +40,6 @@ test('Mark read clears a Channel row with its inline replies and leaves its Task
         serverId,
         title: 'Pick the first region',
     });
-    // The mention follows the owner into the Task, so it is an Inbox row of its own.
     await peer.trpc.chat.send.mutate({
         chatId: task.chatId,
         content: `[@Ada](user://${ownerUserId}) us-east is ready.`,

@@ -12,12 +12,6 @@ import {
 } from 'drizzle-orm/pg-core';
 import { serversTable } from './servers.ts';
 
-/**
- * The Server's live reading of each pull request some Cloud Agent work
- * reported (ADR 0053 decision 6). A row is evidence, not a Haus lifecycle.
- * `refresh_requested_at` marks a row a webhook or a new report made stale; the
- * refresher reads GitHub and clears it. Rows for other pull requests never exist.
- */
 export const cloudAgentPullRequestsTable = pgTable(
     'cloud_agent_pull_requests',
     {

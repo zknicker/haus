@@ -52,7 +52,6 @@ test('a search result never seeds an entity', async () => {
         queryKey: getQueryKey(hausTrpc.chat.search, { query: 'x', serverId }, 'query'),
     });
 
-    // The search row lacks the Task previews; the entity keeps the canonical ones.
     expect(cache.entity(chatId, anchored.id)?.data?.tasks[0]?.messageCount).toBe(3);
     expect(cache.entity(chatId, anchored.id)?.data?.message.content).toBe('Message 1');
     list.close();

@@ -5,16 +5,6 @@ import {
     chatMessageQueryInput,
 } from '../servers/chat-message-entities.ts';
 
-/**
- * The Task previews under one origin Message (ADR 0053 decision 7) have one
- * owner: the Message's `chat.message` entity. `chat.messages` pages and
- * `chat.message` reads carry `tasks`, and every read seeds each entity with
- * the Tasks started from it (`chat-message-entities.ts`); the entity's
- * projected row carries them to the preview (`chat-message-projection.ts`).
- * Reads here only derive from those entities; nothing writes or fetches.
- */
-
-/** The origin Chat of a cached preview for this Task, or null when none is cached. */
 export function findTaskPreviewOrigin(
     queryClient: QueryClient,
     serverId: string,

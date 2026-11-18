@@ -6,11 +6,6 @@ import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { startTestTask } from './task-place-fixture.ts';
 
-/**
- * ADR 0053's shared seam: a Task's conversation is a `task` Chat under its origin
- * Channel and Message, joined 1:1 by `tasks.chat_id`, and several Tasks can
- * share one origin Message.
- */
 let channelId: string;
 let connection: HausConnection;
 let harness: HausServerHarness;
@@ -120,7 +115,6 @@ test('task.get reads the Task Chat and its origin', async () => {
         followed: false,
         origin: { chatId: channelId, messageId: expect.any(String) },
         pullRequests: [],
-        // `tasks.state` is the truth: the post above reopened it.
         state: 'open',
         unreadCount: 0,
     });

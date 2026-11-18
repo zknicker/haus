@@ -175,14 +175,9 @@ export const agentReminderScheduleInputSchema = z
         /** Opt-in: wake once on the Nth consecutive script failure, then quiet until it wakes again. */
         failAfter: failAfterSchema.optional(),
         fireAt: z.iso.datetime().optional(),
-        /** The anchor message; exactly one of `messageId` and `target` is given. */
         messageId: z.string().min(1).optional(),
         repeat: z.string().min(1).optional(),
         script: z.string().min(1).optional(),
-        /**
-         * `task:SEC-12`: anchor on a Task (ADR 0053 decision 16), one-time only. The
-         * reminder anchors on the Task's newest message.
-         */
         target: z.string().regex(TASK_TARGET_PATTERN).optional(),
         title: z.string().min(1),
         timezone: z.string().min(1).optional(),

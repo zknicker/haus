@@ -151,7 +151,6 @@ async function listChatMentionAgentIds(
 ) {
     const chat = await requireChatAccess(db, member, input);
     return await listParticipantAgentIds(db, {
-        // A Task's Chat (ADR 0053) mentions its origin Channel's Agents.
         chatId: chat.kind === 'task' ? (chat.parentChatId ?? chat.id) : chat.id,
         serverId: input.serverId,
     });

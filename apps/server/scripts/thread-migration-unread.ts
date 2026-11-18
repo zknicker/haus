@@ -1,44 +1,23 @@
 import type { SQL } from 'bun';
 
-/**
- * Unread sets for the Thread → inline-reply migration (ADR 0053 decision 14),
- * keyed `user|server|reader|chat` or `agent|server|reader|chat`, under the
- * Channel and DM rule: someone else wrote it, past the reader's position.
- *
- * The migration marks every affected Chat (one that received moved Thread
- * Messages) read through its newest Message for every reader, and leaves every
- * other Chat's positions alone. So after it, unread in an affected Chat is
- * zero for every reader, unread anywhere else is exactly what it was, and no
- * queued Agent inbox item names a moved Message or a Message in an affected
- * Chat. Readers are current members and active Agents who can read the Chat
- * (Channels are open; a DM is read by its own people and Agent). Archive and
- * Channel mutes filter both sides equally and are left out.
- */
 export interface UnreadSnapshot {
-    /** Parents that will receive at least one moved Message. */
     affected: ChatRef[];
-    /** Every Chat that is not a Thread, whose unread is compared. */
     chats: ChatRef[];
     movedMessageIds: string[];
     unread: Record<string, string[]>;
 }
 
 export interface UnreadAfter {
-    /** Queued, unattached Agent inbox items backed by a moved or affected-Chat Message. */
     pendingInboxItems: number;
     unread: Record<string, string[]>;
 }
 
 export interface UnreadComparison {
     affectedChats: number;
-    /** Must be zero: unread left in an affected Chat after the move. */
     affectedUnreadAfter: number;
-    /** Unread in affected Chats before the move, under the Channel rule alone. */
     affectedUnreadBefore: number;
-    /** Must be zero: queued inbox items still naming moved or affected-Chat Messages. */
     pendingInboxItems: number;
     readers: number;
-    /** Must be zero: reader/Chat pairs outside affected Chats whose unread changed. */
     unaffectedChanged: number;
     unaffectedChangedKeys: string[];
     unaffectedUnread: number;
@@ -95,7 +74,6 @@ export async function readUnreadAfter(database: SQL, before: UnreadSnapshot): Pr
     };
 }
 
-/** Affected Chats must read zero; every other reader/Chat pair must be unchanged. */
 export function compareUnread(before: UnreadSnapshot, after: UnreadAfter): UnreadComparison {
     const affected = new Set(before.affected.map((chat) => `${chat.serverId}|${chat.chatId}`));
     const keys = new Set([...Object.keys(before.unread), ...Object.keys(after.unread)]);
@@ -144,7 +122,6 @@ interface UnreadRow {
     server_id: string;
 }
 
-/** Unread under the Channel and DM rule for every reader of each listed Chat. */
 async function readChatUnread(database: SQL, chats: ChatRef[]) {
     const rows = (await database.unsafe(
         `WITH listed AS (

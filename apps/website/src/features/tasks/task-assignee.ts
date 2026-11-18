@@ -1,6 +1,5 @@
 import type { TaskAssignee, TaskListAssigneeFilter } from '@haus/api';
 
-/** The one spelling of "nobody" a filter or picker uses. */
 export const unassignedKey = 'none';
 
 export function assigneeKey(assignee: TaskAssignee | null): string {
@@ -18,7 +17,6 @@ export function assigneeFromKey(key: string): TaskAssignee | null {
     return kind === 'user' && id ? { kind, userId: id } : null;
 }
 
-/** An `assigneeKey` as the `task.list` filter it narrows to. */
 export function assigneeFilterFromKey(key: string): TaskListAssigneeFilter {
     const assignee = assigneeFromKey(key);
     if (!assignee) {

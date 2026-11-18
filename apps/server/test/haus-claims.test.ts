@@ -62,7 +62,6 @@ test('promotes one canonical Server message into a claim', async () => {
             claim: { messageId: sent.message.id, number: 1 },
         },
     ]);
-    // Promotion creates no Chat of its own: the claim is a lock on the Message.
     const children = (await harness.sql`
         select id from chats where server_id = ${server.id} and parent_chat_id = ${chatId}
     `) as { id: string }[];
@@ -604,8 +603,6 @@ test('assigns a claim to an Agent, wakes it with typed work, and writes no messa
         status: 'todo',
     });
 
-    // The Agent follows the claim's inline replies, or it would wake, claim,
-    // and then silently miss every reply.
     const readFollows = async () =>
         (await harness.sql`
             select followed from agent_message_follows

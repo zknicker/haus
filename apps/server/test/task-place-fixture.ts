@@ -9,18 +9,11 @@ export interface TestTask {
     originMessageId: string;
 }
 
-/**
- * A todo Task with its own `task` Chat under a Channel Message (ADR 0053),
- * numbered by a key-ledger entry and created by the Server's Owner, written
- * directly: only Agents start Tasks through the product, and these tests are
- * about what a person sees of one. No followers are seeded.
- */
 export async function startTestTask(
     harness: Pick<HausServerHarness, 'sql'>,
     owner: HausClient,
     input: {
         channelId: string;
-        /** The key-ledger entry's key; the General one by default. */
         key?: string;
         originMessageId?: string;
         serverId: string;

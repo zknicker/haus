@@ -72,14 +72,12 @@ test('a followed Task is a queue item among Chats: J reaches it, Return opens th
         token: session.accessToken,
     });
     const from = await agent.send('The vault audit is due.', 'tasks-origin');
-    // Assigned, so Ada follows it; its first message is unread for her (ADR 0053).
     const { key, target } = await agent.startTask({
         assignee: 'ada',
         from,
         title: 'Review the vault',
     });
     await agent.send('Starting with the admin accounts.', 'tasks-task', target);
-    // Newer than the Task's message, so the Channel leads the feed.
     await agent.send('Deploy notes are posted.', 'tasks-channel');
 
     await page.goto('/s/inbox-tasks/inbox');
@@ -88,7 +86,6 @@ test('a followed Task is a queue item among Chats: J reaches it, Return opens th
     await expect(channelCard).toHaveAttribute('data-selected', 'true');
     await expect(taskCard).toContainText('Starting with the admin accounts.');
     await expect(taskCard).not.toHaveAttribute('data-selected', 'true');
-    // The Task is its own conversation, with its own composer.
     await expect(
         taskCard.getByRole('textbox', { name: `Message ${key} Review the vault` })
     ).toBeVisible();
@@ -129,7 +126,6 @@ test('Unread is a feed of open cards: one selected, moved by keys and pressing, 
         token: session.accessToken,
     });
     const from = await agent.send('Can someone check the flaky deploy?', 'triage-origin');
-    // Assigned, so Ada follows the Task and its message is unread for her (ADR 0053).
     const { key, target } = await agent.startTask({
         assignee: 'ada',
         from,

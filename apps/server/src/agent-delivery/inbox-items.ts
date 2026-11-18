@@ -132,7 +132,6 @@ function toInboxItem(row: store.InboxItemRow, facets: InboxItemFacets): AgentInb
         ...sender,
         ...(senderTimezone ? { senderTimezone } : {}),
         chatId: chatOf(row),
-        // A Run's attention carries its outcome; a Run-less pull request notice keeps its sentence.
         content: cloudAgentWork ? '' : row.content,
         createdAt: row.createdAt.toISOString(),
         id: row.dedupeKey,
@@ -167,7 +166,6 @@ function requireAttention(
     if (row.cloudAgentNotice !== 'pull_request') {
         return { ...attention, notice: row.cloudAgentNotice };
     }
-    // The wake's dedupe key names the change (ADR 0053 decision 6).
     const change = parsePullRequestChangeKey(row.dedupeKey);
     if (!change) {
         throw new CloudAgentAttentionMissingError(row.dedupeKey);
@@ -175,10 +173,6 @@ function requireAttention(
     return { ...attention, notice: 'pull_request', pullRequestChange: change };
 }
 
-/**
- * A `pull_request` notice for a Task no cloud work reports to (ADR 0053
- * decision 6): no Run backs it, so the change its dedupe key names is all of it.
- */
 function requirePullRequestNotice(row: store.InboxItemRow): CloudAgentPullRequestChange {
     const change =
         row.cloudAgentNotice === 'pull_request' ? parsePullRequestChangeKey(row.dedupeKey) : null;

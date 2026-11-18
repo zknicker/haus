@@ -1,15 +1,6 @@
 import HausModels
 import SwiftUI
 
-/// Every unread Chat and followed Task, newest activity first. A
-/// conversation is a Messages-style two-line row: name and age, then the
-/// waiting line. A Task row adds a line for its key and state under its
-/// title. Opening the row reads it; **Mark read** is a trailing (swipe-left)
-/// action revealing an icon-only circle, with a full swipe committing it, and
-/// it also rides the row's long-press menu. It is never leading: the sidebar
-/// drawer owns every right-drag on the canvas, and a leading action would fire
-/// alongside it. The long-press lifts the Chat into its own peek card rather
-/// than the bare row.
 ///
 /// The section renders nothing until the Chat list has settled rather than
 /// emptying and then filling.

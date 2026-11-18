@@ -28,7 +28,6 @@ export function UnreadRowContent({
     onOpen,
     serverId,
 }: {
-    /** The Chat the waiting messages live in: the Channel, DM, or Task. */
     chatId: string;
     fallbackLine: string;
     /** Opens the conversation scrolled to `message`, by default the card's newest waiting one. */

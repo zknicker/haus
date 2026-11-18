@@ -5,11 +5,6 @@ import { expect, test } from '../support/test.ts';
 const title = 'Rotate the webhook signing secret';
 const originLine = 'The webhook secret leaked into a log. Rotating it now.';
 
-/**
- * A Task is a place (ADR 0053): an Agent starts it from a Channel Message,
- * the Channel previews it under that Message, the sidebar lists it while it
- * is open, and its page holds the conversation beside its Details.
- */
 test('an Agent-started Task previews under its origin, opens as a place, and closes out of the sidebar', async ({
     page,
 }) => {
@@ -31,8 +26,6 @@ test('an Agent-started Task previews under its origin, opens as a place, and clo
     const origin = page.locator(`[data-message-id="${originId}"]`);
     await expect(origin).toContainText(originLine);
 
-    // Started while the Channel is on screen: the preview arrives live, before
-    // the Task has a message of its own.
     const { key } = await agent.startTask({ from: originId, title });
     const preview = origin.getByRole('button', { name: `Open task ${key}, ${title}, Open` });
     await expect(preview).toBeVisible();
@@ -42,14 +35,12 @@ test('an Agent-started Task previews under its origin, opens as a place, and clo
         .getByRole('row', { exact: true, name: `${key} ${title}` });
     await expect(sidebarRow).toBeVisible();
 
-    // Opening it shows where it started, its conversation, and its Details.
     await preview.click();
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/tasks/${key}$`, 'u'));
     await expect(page.getByRole('button', { name: /^Started from #all, Orbit: / })).toBeVisible();
     await expect(page.getByRole('region', { name: 'Details' })).toBeVisible();
     await expect(page.getByText('No messages yet')).toBeVisible();
 
-    // A human reply posts in the Task's own Chat, not the Channel.
     const composer = page.getByRole('textbox', { name: `Message ${key} ${title}` });
     await composer.click();
     await page.keyboard.type('Thanks, ping me when the old one is revoked.');
@@ -74,7 +65,6 @@ test('an Agent-started Task previews under its origin, opens as a place, and clo
         })
         .toContain('Thanks, ping me when the old one is revoked.');
 
-    // Done ends it: it leaves the sidebar and stays on the Tasks page.
     await page.getByRole('button', { name: /^State/u }).click();
     await page.getByRole('option', { exact: true, name: 'Done' }).click();
     await expect

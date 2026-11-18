@@ -17,19 +17,15 @@ type Tx = Pick<HausDatabase, 'insert' | 'select' | 'update'>;
 
 interface DemoTask {
     assignee: TaskActor;
-    /** The Task's own conversation, oldest first (ADR 0053 decision 2). */
     conversation?: readonly { author: TaskActor; content: string }[];
     createdBy: TaskActor;
-    /** The Message that mentions the Task, shown in the Task's Mentioned in. */
     messageId: string;
-    /** The Channel Message the Task started from (ADR 0053 decision 3). */
     origin: { chatId: string; messageId: string };
     priority: 'high' | 'medium';
     state: 'done' | 'open' | 'todo';
     title: string;
 }
 
-/** One seeded Task and the Chat it is. */
 export interface SeededDemoTask {
     chatId: string;
     id: string;
@@ -37,11 +33,6 @@ export interface SeededDemoTask {
     number: number;
 }
 
-/**
- * The dev Server's GEN Tasks: one open Task with a conversation, attached cloud
- * work, and its pull request; todo Tasks with the Agents and the owner, one
- * with a short conversation; and one done Task.
- */
 export async function seedServerDemoTasks(
     tx: Tx,
     input: {
@@ -144,12 +135,6 @@ export async function seedServerDemoTasks(
     });
 }
 
-/**
- * Seeds demo Tasks under the General key, numbered from 1: each a place with its
- * own Chat under its origin Message, its conversation, mentioned by the Message
- * it came from, and followed by its assignee. The key's counter starts past
- * them, or the first real `tasks/start` collides with a seeded number.
- */
 export async function seedDemoTasks(
     tx: Tx,
     input: { keyId: string; serverId: string; tasks: readonly DemoTask[] }
@@ -232,7 +217,6 @@ export async function seedDemoTasks(
     }));
 }
 
-/** The assignee and everyone who posted follow each Task (ADR 0053 decision 9). */
 async function seedFollows(
     tx: Tx,
     serverId: string,

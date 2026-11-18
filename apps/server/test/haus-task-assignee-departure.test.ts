@@ -20,7 +20,6 @@ import { offlineDelivery } from './agent-inbox-harness.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 import { addPeerAgent, insertTaskPlace, seedTaskBoard } from './task-delivery-fixture.ts';
 
-/** A Task's assignee stays an active member or a live Agent, so a departure unassigns. */
 let cluster: PostgresCluster;
 let connection: HausConnection;
 
@@ -40,7 +39,6 @@ async function seedDepartures() {
     const { seed } = board;
     const { delivery } = offlineDelivery(connection.db, seed);
     const owner = { kind: 'user', userId: seed.userId } as const;
-    /** A Task `assigner` assigns to `assignee`: version 1 made, version 2 assigned. */
     const create = async (title: string, assignee: TaskActor, assigner: TaskActor = owner) => {
         const taskId = await insertTaskPlace(connection.db, board, title);
         return await assignTask(connection.db, assigner, delivery, {

@@ -3,11 +3,6 @@ import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { startTestTask, type TestTask } from './task-place-fixture.ts';
 
-/**
- * ADR 0053 decision 7: a Channel previews the Tasks started from its messages,
- * on a `chat.messages` page and on the single-message `chat.message` read alike,
- * and a Task with nothing posted yet still previews its state and title.
- */
 let channelId: string;
 let harness: HausServerHarness;
 let owner: HausClient;

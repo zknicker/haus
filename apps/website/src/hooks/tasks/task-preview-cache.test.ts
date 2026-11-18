@@ -37,7 +37,6 @@ test('a page seeds each origin Message entity with its Tasks, the one copy previ
     expect(findTaskPreviewOrigin(client, serverId, 'tsk_c')).toBe(chatId);
     expect(findTaskPreviewOrigin(client, serverId, 'tsk_missing')).toBeNull();
     expect(findTaskPreviewOrigin(client, 'srv_other', 'tsk_c')).toBeNull();
-    // No second cache holds the previews.
     expect(client.getQueryCache().findAll({ queryKey: ['taskPreviews'] })).toHaveLength(0);
 });
 

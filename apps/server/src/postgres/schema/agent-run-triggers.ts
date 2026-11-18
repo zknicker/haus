@@ -14,10 +14,6 @@ export const agentRunTriggersTable = pgTable(
     'agent_run_triggers',
     {
         agentId: text('agent_id').notNull(),
-        /**
-         * Null exactly for a chatless sub-agent wake. A task assignment names its Task's Chat
-         * when it has one (ADR 0053).
-         */
         chatId: text('chat_id'),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         runId: text('run_id').notNull(),

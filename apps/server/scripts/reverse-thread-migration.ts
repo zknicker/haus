@@ -3,21 +3,10 @@ import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { SQL } from 'bun';
 
-/**
- * DEV ONLY: replays migration 0126's audit tables backwards, restoring every
- * Thread, its Messages' Chat, sequence, nonce, and reply links, and the
- * before-image of every other row the migration changed or deleted. Rows
- * written after the migration in those Chats are overwritten or removed, so
- * this never runs against a database anyone uses. It refuses once 0128 has
- * dropped the Thread schema.
- *
- *   bun scripts/reverse-thread-migration.ts --database-url <url> --i-am-on-a-dev-database
- */
 const migrationTag = '0126_threads-to-inline-replies';
 const threadSchemaDroppedTag = '0128_threads-are-gone';
 const sequenceOffset = 1_000_000_000;
 
-/** Tables whose rows are deleted in the moving Chats and reinserted whole, with their Chat column. */
 const replacedTables = [
     ['chat_reads', 'chat_id'],
     ['agent_chat_reads', 'chat_id'],
@@ -31,7 +20,6 @@ const replacedTables = [
     ['image_generation_links', 'chat_id'],
 ] as const;
 
-/** Tables restored in place by primary key; the migration never deletes their rows. */
 const restoredTables = [
     'chats',
     'agent_inbox',
@@ -60,8 +48,6 @@ export async function reverseThreadMigration(databaseUrl: string) {
             throw new Error('No thread migration audit tables here; nothing to reverse.');
         }
         const migratedAt = await readMigrationTime(migrationTag);
-        // 0128 deleted the Thread schema the before-images need, so the audit
-        // tables can no longer be replayed once it has run.
         const schemaDroppedAt = await readMigrationTime(threadSchemaDroppedTag);
         const [dropped] = (await client`
             SELECT count(*)::integer AS total FROM drizzle.__drizzle_migrations
@@ -72,8 +58,6 @@ export async function reverseThreadMigration(databaseUrl: string) {
             );
         }
         await client.begin(async (tx) => {
-            // A restore, not a product write: triggers and key checks are off
-            // while before-images go back, and cascades must not fire.
             await tx`SET LOCAL session_replication_role = replica`;
             await tx`CREATE TEMP TABLE reversing_chats ON COMMIT DROP AS
                 SELECT row ->> 'server_id' AS server_id, row ->> 'id' AS chat_id
@@ -106,7 +90,6 @@ export async function reverseThreadMigration(databaseUrl: string) {
     }
 }
 
-/** Every renumbered Message returns to its old Chat, sequence, nonce, and reply links. */
 async function restoreMessages(tx: SQL) {
     await tx`UPDATE chat_messages message SET
             chat_id = map.old_chat_id,
@@ -122,7 +105,6 @@ async function restoreMessages(tx: SQL) {
             AND message.sequence > ${sequenceOffset}`;
 }
 
-/** Inserts a table's backed-up rows; with keys, only those not already present. */
 function insertFromBackup(table: string, columns: string[], keys: string[] | null) {
     const list = columns.map((column) => `"${column}"`).join(', ');
     const missing = keys
@@ -158,7 +140,6 @@ async function primaryKey(tx: SQL, table: string) {
     return rows.map((row) => row.name);
 }
 
-/** A migration's journal timestamp, which is its `created_at` in Drizzle's ledger. */
 async function readMigrationTime(tag: string) {
     const journal = JSON.parse(
         await readFile(join(import.meta.dir, '../drizzle/postgres/meta/_journal.json'), 'utf8')

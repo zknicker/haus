@@ -36,7 +36,6 @@ test('Attachments is its own page, one per chat', () => {
 test('only desktop tabs route Attachments and artifact pages; both redirect retired pages', () => {
     const paths = (desktop: boolean) =>
         serverPageRoutes({ desktop }).map((route) => route.path ?? '(index)');
-    // ADR 0053: a saved Thread page address still resolves, to its Chat.
     const retiredPage = 'threads/:chatId/:anchorMessageId';
     const desktopOnly = ['files/:chatId', 'artifacts/:artifactKey'];
     expect(paths(false)).toContain(retiredPage);

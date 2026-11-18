@@ -27,17 +27,10 @@ public struct ChatRealtimeEffects: Sendable, Equatable {
     public private(set) var readChatIDs: Set<String> = []
     public private(set) var reloadsActiveCloudAgentWork = false
     public private(set) var cloudAgentWorkChatIDs: Set<String> = []
-    /// Work that changed. Every loaded Message carrying one refreshes,
-    /// whichever Chat links it (ADR 0044).
     public private(set) var cloudAgentWorkIDs: Set<String> = []
     public private(set) var changedLabelIDs: Set<String> = []
-    /// Tasks whose open detail reads again.
     public private(set) var changedTaskIDs: Set<String> = []
-    /// Tasks whose preview under their origin Message moved (ADR 0053): a new
-    /// message, a read, a state or title change, or a follow. Only an origin a
-    /// loaded transcript holds reads again.
     public private(set) var taskIDsToRefreshPreview: Set<String> = []
-    /// A followed Task's Unread row may have come, gone, or changed.
     public private(set) var reloadsUnreadTasks = false
     public private(set) var deletedChatIDs: Set<String> = []
     /// Messages whose reactions changed live, for the sticker arrival motion.
@@ -69,8 +62,6 @@ public struct ChatRealtimeEffects: Sendable, Equatable {
 
     // MARK: - Per-event handlers
 
-    /// A new message: tail-read the Chat's lists; a Task message also moves
-    /// its preview and its Unread row.
     mutating func absorb(messageCreated event: MessageCreatedEvent) {
         tailSequenceByChatID[event.chatID] = max(tailSequenceByChatID[event.chatID] ?? 0, event.sequence)
         if let taskID = event.taskID {
@@ -85,9 +76,6 @@ public struct ChatRealtimeEffects: Sendable, Equatable {
         liveReactionMessageIDs.insert(event.messageID)
     }
 
-    /// A Chat read moves the Chat list's count. A Task is unread on its own:
-    /// its read moves its own Unread row and its preview's "N new", never a
-    /// Chat list row.
     mutating func absorb(read event: ChatReadEvent) {
         if let taskID = event.taskID {
             taskIDsToRefreshPreview.insert(taskID)
@@ -115,25 +103,18 @@ public struct ChatRealtimeEffects: Sendable, Equatable {
         changedLabelIDs.insert(event.labelID)
     }
 
-    /// A Task's open screen shows its state and attached work, and a
-    /// read-only Task its Mentioned in and Reminders, which is why a reference
-    /// publishes this event too.
     mutating func absorb(taskChanged event: TaskChangedEvent) {
         changedTaskIDs.insert(event.taskID)
         taskIDsToRefreshPreview.insert(event.taskID)
         reloadsUnreadTasks = true
     }
 
-    /// Following moves the open Task's control, its preview, and whether it
-    /// can be unread at all.
     mutating func absorb(taskFollow event: TaskFollowUpdatedEvent) {
         changedTaskIDs.insert(event.taskID)
         taskIDsToRefreshPreview.insert(event.taskID)
         reloadsUnreadTasks = true
     }
 
-    /// One event per linking Message: refresh that Message, and remember the
-    /// work so every other loaded copy follows.
     mutating func absorb(cloudAgentWork event: CloudAgentWorkUpdatedEvent) {
         entityRefreshes.insert(EntityRefresh(chatID: event.chatID, messageID: event.messageID))
         cloudAgentWorkIDs.insert(event.workID)

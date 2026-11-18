@@ -13,7 +13,6 @@ import { targetForChat } from './message-view.ts';
 type AgentTaskRow = HausApiSchema<'AgentTaskRow'>;
 type Reader = Pick<HausDatabase, 'select'>;
 
-/** Tasks as Agent API rows: handles for ids and label names, in a few batched reads. */
 export async function toAgentTaskRows(
     db: Reader,
     serverId: string,

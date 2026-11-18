@@ -11,7 +11,6 @@ public enum InboxOpenRequest: Hashable, Sendable {
     case agent(String)
     case chat(String)
     case cloudAgentWork(workID: String)
-    /// A followed Task with messages waiting.
     case task(taskID: String)
 }
 
@@ -29,19 +28,10 @@ public enum InboxMark: Hashable, Sendable {
 /// A week card's mark. Rows draw the same mark at `InboxMetrics.markSize`.
 public let inboxMarkSize: CGFloat = 32
 
-/// One unread Chat or followed Task: its mark and title, the line that is
-/// waiting, and when. Every row in the section is unread, so the row carries
-/// no unread flag and never a count — the count stays behind in the record.
 public struct InboxUnreadRow: Identifiable, Hashable, Sendable {
-    /// The Chat — a Task's own Chat for a Task — which is also what Mark read
-    /// names.
     public let id: String
     public let mark: InboxMark
-    /// `#product` for a Channel, the peer's name for a DM; a Task row is the
-    /// Task's title.
     public let title: String
-    /// A Task row's own line between title and quote: its key and state,
-    /// `SEC-12 · Open`. Nil for a conversation.
     public let facts: String?
     public let preview: String
     public let lastActivityAt: Date?

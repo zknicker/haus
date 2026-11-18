@@ -37,7 +37,6 @@ export function formatClaimList(claims: ClaimRow[], omitted: number): string {
     return `${claims.map((claim) => claimLine(claim)).join('\n')}${more}\n\nClaim before you work: haus claim --target <target> --number <n>\n`;
 }
 
-/** Each created claim names where it sits and its message id. */
 export function formatClaimsCreated(claims: ClaimRow[], fallbackTarget: string): string {
     return `${claims
         .map(
@@ -47,10 +46,6 @@ export function formatClaimsCreated(claims: ClaimRow[], fallbackTarget: string):
         .join('\n')}\n`;
 }
 
-/**
- * One row per requested claim. Granted rows name the inline reply to the
- * claim's message as a fact of the claim, never routing advice (ADR 0029).
- */
 export function formatClaimResults(results: ClaimResult[], fallbackTarget: string): string {
     const counts = [
         `${results.filter((row) => row.outcome === 'claimed').length} claimed`,

@@ -2,7 +2,6 @@ import Foundation
 import XCTest
 @testable import HausModels
 
-/// Tasks as the wire returns them.
 final class TaskModelsTests: XCTestCase {
     func testDecodesATaskOffTheWire() throws {
         let task = try decodeTask()
@@ -18,8 +17,6 @@ final class TaskModelsTests: XCTestCase {
         XCTAssertNil(task.completedAt)
     }
 
-    /// The fields a Task screen does not stand on decode leniently: a Server
-    /// that drops or adds one never costs the Task its screen.
     func testATaskWithoutItsOptionalFieldsOrWithNewOnesStillDecodes() throws {
         let task = try HausJSON.decoder().decode(TaskRecord.self, from: Data(
             """

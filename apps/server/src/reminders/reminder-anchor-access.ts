@@ -82,10 +82,6 @@ async function readAgentAnchorAccess(db: Pick<HausDatabase, 'select'>, input: Ag
     return { kind: 'ok' as const, anchor };
 }
 
-/**
- * The anchor Message in the anchor Chat. A Task's Chat (ADR 0053 decision 16)
- * may also anchor on its origin Message, which sits in the Channel above it.
- */
 async function readMessageAnchor(
     db: Pick<HausDatabase, 'select'>,
     input: { anchorChatId: string; anchorMessageId: string; serverId: string }

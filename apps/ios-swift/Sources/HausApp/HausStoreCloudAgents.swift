@@ -22,8 +22,6 @@ extension HausStore {
     }
 
     /// The App link Copy link shares, matching the web card: the
-    /// conversation presenting the card. The production Server origin is the
-    /// App origin; a Debug build points at the local Server instead.
     private func cloudAgentConversationLink(presentingChatID chatID: String) -> URL? {
         guard let slug = activeServer?.slug, chatsByID[chatID] != nil else { return nil }
         var components = URLComponents(url: HausRuntimeConfiguration.serverOrigin, resolvingAgainstBaseURL: false)

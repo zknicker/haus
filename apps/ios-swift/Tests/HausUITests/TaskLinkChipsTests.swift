@@ -58,7 +58,6 @@ struct TaskLinkChipsTests {
         #expect(references.count == 2)
     }
 
-    /// A re-keyed Task reads its new key; the Message keeps its words.
     @Test func aChipReadsTheCurrentKey() {
         let rekeyed = TaskLink(key: "SAFE-12", taskID: "task_1", text: "SEC-12")
         let blocks = TaskLinkChips.apply(
@@ -102,7 +101,6 @@ struct TaskLinkChipsTests {
     }
 
     /// A Task description draws through the message body path: the Server's
-    /// resolved Channel and Message references and its resolved key are chips,
     /// and code and a PR mentioned in words stay text.
     @Test func aTaskDescriptionDrawsLikeAMessage() throws {
         let content = """

@@ -23,7 +23,6 @@ export function useChatReferenceActivation(onOpenChat: (id: string) => void) {
                 return;
             }
             if (reference.kind === 'chat') {
-                // A link to one Message opens its Chat scrolled to that Message.
                 const message = parseChatMessageReferenceTarget(reference.id);
                 if (message) {
                     navigate(serverChatMessageRoute(slug, message.chatId, message.messageId));

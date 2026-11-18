@@ -5,11 +5,6 @@ import { expect, test } from '../support/test.ts';
 
 const title = 'Renew the Tailscale auth key';
 
-/**
- * A Server where the Agent started a Task assigned to the viewer from a
- * message in #all, then posted in it. Being assigned makes the viewer a
- * follower, so the Task's message is unread for them (ADR 0053 decision 9).
- */
 async function followedTask(page: Page, slug: string) {
     const { client, server, session } = await createTestServer(page, {
         displayName: 'Task Inbox',
@@ -59,7 +54,6 @@ test('an assigned Task is followed: its message is an Inbox card, and a reply po
     await card.click();
     await expect(card).toHaveAttribute('data-selected', 'true');
 
-    // R puts the cursor in the selected card's composer, which posts into the Task.
     const composer = card.getByRole('textbox', { name: `Message ${key} ${title}` });
     await page.keyboard.press('r');
     await expect(composer).toBeFocused();

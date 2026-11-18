@@ -34,7 +34,6 @@ test('removal clears Task follow and live composition state before reinvitation'
         serverId,
         title: 'Departure check',
     });
-    // Posting in the Task follows it.
     await member.trpc.chat.send.mutate({
         chatId: task.chatId,
         content: 'Following before removal',

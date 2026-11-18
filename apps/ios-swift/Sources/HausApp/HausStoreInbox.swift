@@ -3,8 +3,6 @@ import HausModels
 import OSLog
 
 /// The Server-wide reads the Inbox and its sidebar dot stand on: the Chat
-/// list's unread Chats, the followed unread Tasks (`HausStoreTaskPlaces.swift`), the Cloud Agent
-/// work running right now, and the Server's token-usage snapshot.
 ///
 /// Each snapshot lives on the Store rather than on a screen because the dot
 /// outlives the Inbox: a durable event refreshes what this client already
@@ -22,7 +20,6 @@ extension HausStore {
         _ = await (chats, unreadTasks, work, usage)
     }
 
-    /// Mark read on one Unread row: a Chat's or a Task's.
     func markInboxRowRead(id: String) async {
         if isUnreadTaskChat(id) {
             await markTaskChatRead(chatID: id)
@@ -34,8 +31,6 @@ extension HausStore {
     /// Mark read on one Chat row: it leaves at once, the Server advances the
     /// read marker through the Chat's newest message with the same
     /// `chat.markRead` an open transcript sends, and a Chat-list refetch
-    /// reconciles before the row is allowed back. A failed Mark read puts the
-    /// row back, because nothing was recorded.
     func markChatRead(chatID: String) async {
         guard let serverID = activeServer?.id,
               let chat = chats.first(where: { $0.id == chatID })
@@ -63,9 +58,6 @@ extension HausStore {
     }
 
     /// How many Unread rows there are, for surfaces that mark the Inbox
-    /// instead of opening it — the same Chats and followed Tasks the section
-    /// lists. Nil until the Chat list has landed, so "nothing unread" is never
-    /// confused with "not yet known".
     var unreadChatCount: Int? {
         guard let unreadChats else { return nil }
         return unreadChats.count + visibleUnreadTasks.count

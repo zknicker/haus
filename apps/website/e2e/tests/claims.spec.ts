@@ -43,8 +43,6 @@ test('a hosted claim message projects its status in the Chat', async ({ page }) 
     });
 
     await expect(page.getByText('Projected claim message', { exact: true })).toBeVisible();
-    // Claim identity is a chip beneath the message — the same slot Cloud
-    // Agent work uses. The author line carries provenance only.
     const chip = page.getByTestId('message-claim-chip');
     await expect(chip).toBeVisible();
     await expect(chip).toContainText('Claim #1');

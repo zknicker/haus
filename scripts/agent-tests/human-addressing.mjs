@@ -1,7 +1,4 @@
 // Evidence for scenarios where an Agent needs a human (ADR 0037). An Agent
-// asks a person by @mentioning them or inline-replying to their message, and
-// the human's inline reply wakes the Agent. These helpers stay pure so the
-// gates are proven without a live stack.
 
 /** The immutable link a resolved human mention serializes to. */
 export function humanMentionLink(userId) {
@@ -26,7 +23,6 @@ export function humanAddressingReason(message, userId) {
     return parent?.kind === 'human' && parent.userId === userId ? 'reply' : null;
 }
 
-/** Where the human answers so the asking Agent sees it: an inline reply to the question. */
 export function answerPlacement({ channelId, questionId }) {
     return { chatId: channelId, answerChatId: channelId, replyToMessageId: questionId };
 }

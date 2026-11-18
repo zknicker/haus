@@ -14,12 +14,6 @@ import { taskUnreadCount } from './task-unread.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 
-/**
- * What `task.get` adds for a Task as a place (ADR 0053 decisions 6 and 9): the
- * cloud agents and pull requests attached to it, and whether the viewer
- * follows it and how much is unread for them. A Task without its own Chat has
- * no followers and nothing unread.
- */
 export async function readTaskPlaceDetail(
     db: Reader,
     actor: TaskActor,
@@ -51,7 +45,6 @@ async function readAttachedWork(db: Reader, task: Task): Promise<CloudAgentWork[
     return rows.map((row) => toCloudAgentWork(row, details.get(row.id)));
 }
 
-/** Readings for the Task's attached pull requests, oldest attachment first; unread ones wait. */
 async function readAttachedPullRequests(db: Reader, task: Task) {
     const attached = await db
         .select({

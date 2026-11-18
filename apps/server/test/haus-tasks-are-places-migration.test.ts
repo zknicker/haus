@@ -6,12 +6,6 @@ import { SQL } from 'bun';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { startPostgresCluster } from './postgres-cluster.ts';
 
-/**
- * ADR 0053 over rows 0123 left: boards become key-ledger entries with the same
- * ids and counters, Tasks take their board's key and a state from their column,
- * Channels take the General board's key, and a `task` Chat may hang off a
- * Channel Message beside others on the same anchor.
- */
 test('0124 copies boards into the key ledger and backfills Task state and Channel keys', async () => {
     const cluster = await startPostgresCluster();
     const folder = await mkdtemp(join(tmpdir(), 'haus-tasks-places-'));
@@ -110,7 +104,6 @@ test('0124 copies boards into the key ledger and backfills Task state and Channe
     }
 }, 60_000);
 
-/** Runs a lazy Bun SQL query so `expect().rejects` sees a real promise. */
 async function settle(query: PromiseLike<unknown>) {
     return await query;
 }

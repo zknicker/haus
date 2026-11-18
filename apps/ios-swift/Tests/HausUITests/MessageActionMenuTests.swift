@@ -13,7 +13,6 @@ struct MessageActionMenuTests {
         MessagePresentation(id: "m1", author: author, content: content, createdAt: .now)
     }
 
-    /// Inline reply is the only reply (ADR 0053).
     @Test func chatWithInlineRepliesOffersReplyThenCopy() {
         let groups = MessageActionMenu.groups(for: message(), canReplyInline: true)
         #expect(groups == [[.reply], [.copyText]])

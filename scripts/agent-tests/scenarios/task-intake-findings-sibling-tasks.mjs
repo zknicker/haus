@@ -1,9 +1,3 @@
-// Task intake 9: mid-work, the Agent finds several separate issues that each need their own
-// fix. It reports them in one message and starts one Task per issue from that message:
-// siblings, never one umbrella Task. The request itself (go through the notes) is quick; each
-// finding is real work outside the chat, so none finishes in the reply. Tasks have no parents,
-// so the gate that bites is one Task per issue, all sharing one origin (ADR 0053 decision 3).
-
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
 import { cancelTasksBy, expectSettled, originMessage, tasksCreatedBy } from '../task-intake.mjs';

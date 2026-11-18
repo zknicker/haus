@@ -4,13 +4,6 @@ import type { TargetedReadCoalescer } from '../../lib/targeted-read-coalescer.ts
 import { taskDetailKeys } from '../tasks/task-cache.ts';
 import { findTaskPreviewOrigin } from '../tasks/task-preview-cache.ts';
 
-/**
- * A Task's cached detail and its origin Channel's preview, after its
- * conversation, unread, follow, or state changed. The preview rides the
- * origin Chat's transcript pages (`task-preview-cache.ts`), so the loaded
- * pages of that one Chat reread; nothing rereads while no preview or detail
- * names the origin, since no rendered row shows the Task there.
- */
 export function refreshTaskReads(
     coalescer: TargetedReadCoalescer,
     queryClient: QueryClient,

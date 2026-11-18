@@ -34,13 +34,11 @@ test('the URL filters read back into the task.list input', () => {
     expect(isFiltered(filters)).toBe(true);
     expect(isFiltered(readTasksPageFilters(new URLSearchParams()))).toBe(false);
     expect(isFiltered(readTasksPageFilters(new URLSearchParams('label=lbl_bug')))).toBe(true);
-    // The label narrows on the page; `task.list` takes no label.
     expect(taskListFilters(filters)).toEqual({
         assignee: { agentId: 'agt_forge' },
         keyId: 'tkk_sec',
         states: ['done'],
     });
-    // No filter reads all four states; a bogus state is ignored rather than sent.
     expect(taskListFilters(readTasksPageFilters(new URLSearchParams('state=active')))).toEqual({});
     expect(taskListFilters({ assignee: 'none', keyId: null, state: null })).toEqual({
         assignee: 'none',

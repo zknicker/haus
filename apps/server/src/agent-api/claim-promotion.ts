@@ -8,11 +8,6 @@ import { AgentClaimError } from './claim-error.ts';
 
 type ClaimRecord = typeof messageClaimsTable.$inferSelect;
 
-/**
- * Turns a message the Agent claimed by id into its claim, numbered and owned
- * by the Chat the message sits in: a Channel, a DM, or a Task's own Chat
- * (ADR 0053), which numbers its claims as a Channel does.
- */
 export async function promoteAgentMessageClaim(
     tx: HausDatabase,
     runner: ResolvedRunner,
@@ -33,8 +28,6 @@ export async function promoteAgentMessageClaim(
     if (!message) {
         throw new AgentClaimError('That message is not in the selected target.');
     }
-    // The update locks the numbering Chat's row, so concurrent claims draw
-    // distinct numbers from the one sequence.
     const [numberedChat] = await tx
         .update(chatsTable)
         .set({ lastClaimNumber: sql`${chatsTable.lastClaimNumber} + 1` })
@@ -70,7 +63,6 @@ export async function promoteAgentMessageClaim(
     return { event, claim };
 }
 
-/** The claimant follows the claim's replies: the claimed message's inline reply chain. */
 export async function followClaim(tx: HausDatabase, runner: ResolvedRunner, claim: ClaimRecord) {
     await followInlineReplyForMessage(tx, {
         agentId: runner.agentId,

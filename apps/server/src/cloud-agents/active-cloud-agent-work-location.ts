@@ -77,10 +77,6 @@ export async function readVisibleWorkLinks(
         );
 }
 
-/**
- * ADR 0044, Q4: the launch Message when the viewer can read it, otherwise the
- * newest visible link. `links` is newest first.
- */
 export function chooseWorkLocation(
     launchMessageId: string,
     links: VisibleWorkLink[]
@@ -95,7 +91,6 @@ export function chooseWorkLocation(
     };
 }
 
-/** The conversation a link opens: its own Chat, a Task's included (ADR 0053). */
 export function conversationChatIdOf(link: VisibleWorkLink): string {
     return link.chatId;
 }

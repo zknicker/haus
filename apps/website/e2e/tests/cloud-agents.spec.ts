@@ -37,9 +37,6 @@ test('Cloud Agent work reads as one card in the Chat and the Inbox', async ({ pa
     await expect(inboxRow).toContainText('#all');
     await expect(inboxRow).toContainText('Orbit');
 
-    // The launch Message posts in the Task the work is attached to (ADR 0053
-    // decision 6), and carries the work card column-wide with its actions
-    // inline: no detached overflow menu beside it.
     await page.goto(`/s/cloud-agent-work/tasks/${seeded.taskKey}`);
     const transcriptCard = page
         .locator(`[data-message-id="${seeded.messageId}"]`)
@@ -50,14 +47,11 @@ test('Cloud Agent work reads as one card in the Chat and the Inbox', async ({ pa
     await expect(transcriptCard).toContainText('haus/haus');
     await expect(page.getByRole('button', { name: /— Cloud Agent actions$/u })).toHaveCount(0);
     await expect(page.getByText('0 replies', { exact: true })).toHaveCount(0);
-    // The card carries no way out of the Chat and no delegation receipt: the
-    // Message's author line above it already says who and when.
     await expect(transcriptCard).not.toContainText('Delegated by');
     const cardWidth = await transcriptCard.evaluate(
         (element) => element.getBoundingClientRect().width
     );
     // It fills the shared in-chat column (`--chat-card-width`, 36rem), the
-    // same edge a Task preview under the Message lands on.
     expect(cardWidth).toBeCloseTo(36 * 16, 0);
 
     // A Computer reporting progress updates the same card in place, with no

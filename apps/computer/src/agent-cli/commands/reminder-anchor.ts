@@ -3,11 +3,6 @@ import { AgentCliError } from '../agent-error.ts';
 import type { CliFlag, ParsedArgs } from '../parse.ts';
 import { taskKeyArgument } from './agent-command-utils.ts';
 
-/**
- * Where a reminder anchors: a message (`--message-id`), or a Task (`--target task:SEC-12`,
- * ADR 0053 decision 16). Exactly one. A Task holds only one-time reminders; a recurring one
- * belongs on a Channel, and a fire that finds real work starts a Task there.
- */
 export const reminderAnchorFlags: CliFlag[] = [
     {
         description: 'Anchor message id (msg= from a message you received or read)',
@@ -55,7 +50,6 @@ export function reminderAnchor(args: ParsedArgs): ReminderAnchor {
     return { messageId };
 }
 
-/** The Server's `TASK_RECURRING_REMINDER` refusal, given the step that resolves it. */
 export function withTaskReminderStep(error: unknown): unknown {
     return error instanceof AgentCliError && error.code === 'TASK_RECURRING_REMINDER'
         ? taskRecurringReminder(error.message)

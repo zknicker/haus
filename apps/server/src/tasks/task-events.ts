@@ -12,7 +12,6 @@ export function prepareTaskCreatedEvent(task: TaskEventSubject) {
     return taskCreatedTopic.prepare(toEvent(task));
 }
 
-/** `task.updated` for an edit, state change, or assignment about to commit. */
 export function prepareTaskUpdatedEvent(task: TaskEventSubject) {
     return taskUpdatedTopic.prepare(toEvent(task));
 }

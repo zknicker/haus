@@ -1,8 +1,3 @@
-// Task intake 12: a human asks for multi-step work in a DM, and the work belongs to a
-// channel. The Agent posts the origin message in that channel, @mentioning the requester,
-// starts the Task from it, replies in the DM with the Task reference, and reports the work in
-// the Task. No Task starts in a DM (the Server refuses with `TASK_ORIGIN_DM`).
-
 import { humanAuthorId, mentionsHuman } from '../human-addressing.mjs';
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';

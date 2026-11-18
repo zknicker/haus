@@ -11,7 +11,6 @@ import {
 } from './chat-message-model.ts';
 
 export interface TranscriptSkeletonInput {
-    /** Ids whose entity carries a claim (`useAttachedWorkIds`). */
     attachedWork: ReadonlySet<string>;
     entries: readonly ChatMessageLayout[];
 }
@@ -107,10 +106,6 @@ export function useChatMessageEntityProjector(agents: readonly Agent[]) {
     }, [agents]);
 }
 
-/**
- * One entity's row. The entity owns its Task previews (ADR 0053 decision 7);
- * the row only carries them to the preview under the Message.
- */
 export function projectChatMessageEntity(
     entity: ChatMessageEntity,
     directories: ReturnType<typeof chatMessageDirectories>

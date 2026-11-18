@@ -7,12 +7,6 @@ import { taskUnreadCount } from './task-unread.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 
-/**
- * The Tasks started from `originMessageIds` in Channel `channelId`, as the
- * Channel previews them under each origin (ADR 0053 decision 7): state, the
- * viewer's follow and unread, and the newest few messages. Rides
- * `chat.messages` pages, so the viewer's Channel access is already checked.
- */
 export async function listTaskPreviews(
     db: Reader,
     viewerUserId: string,
@@ -83,7 +77,6 @@ export async function listTaskPreviews(
     return previews;
 }
 
-/** A Task's newest messages, oldest first. */
 async function readRecentMessages(db: Reader, serverId: string, chatId: string) {
     const rows = await db
         .select({

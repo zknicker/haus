@@ -70,7 +70,6 @@ export async function createRealtimeScene(page: Page, slug: string) {
         /** Change 1: a reply in `#all`. */
         allReply: (content: string, nonce: string) =>
             device.chat.send.mutate({ chatId: orbit.chatId, content, nonce, serverId: server.id }),
-        /** Change 2: an inline reply in `#product`, the kept tab, to its anchor. */
         inlineReply: (content: string, nonce: string) =>
             device.chat.send.mutate({
                 chatId: work.chatId,

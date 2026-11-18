@@ -30,10 +30,6 @@ enum MessageActionMenu {
     static let quickTileCount = 6
 
     /// Action groups, each drawn as one inset card: the conversation actions,
-    /// then copying. Inline reply is the only reply (ADR 0053): a side
-    /// conversation stays in its Channel or DM. A screen that cannot reply
-    /// inline (a Task) passes false and keeps only copying. There is no Convert
-    /// to Task: only Agents start Tasks (ADR 0053 decision 4).
     static func groups(
         for message: MessagePresentation,
         canReplyInline: Bool

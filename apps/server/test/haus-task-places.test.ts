@@ -3,12 +3,6 @@ import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 import type { HausClient } from './haus-client.ts';
 
-/**
- * ADR 0053, Server product: an Agent starts Tasks from a Channel Message, the
- * Task takes the Channel's key, its followers are seeded, it is unread only for
- * them, the sidebar lists open ones, state is versioned, closing cancels its
- * one-time reminders, posting reopens it, and the Channel previews it.
- */
 const fixture = agentCreationFixture();
 let runner: { token: string };
 let bea: HausClient;
@@ -73,7 +67,6 @@ beforeAll(async () => {
     bea = await join('user_task_places_bea', 'bea@haus.test');
     cal = await join('user_task_places_cal', 'cal@haus.test');
     calUserId = await fixture.readUserId('user_task_places_cal');
-    // Cal can see #product; Bea cannot.
     await fixture.harness.sql`
         insert into channel_participants (chat_id, server_id, user_id)
         values (${fixture.channelId}, ${serverId}, ${calUserId})

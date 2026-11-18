@@ -1,7 +1,3 @@
-// Task intake 2: a small fix the Agent can finish inside the turn. It claims the request (the
-// claim is the lock), makes the fix, and replies inline. No Task: the reply is the whole of
-// the work. The file sits in the Agent's workspace on this worktree's dev Computer.
-
 import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';

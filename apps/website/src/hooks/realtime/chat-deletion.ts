@@ -28,12 +28,6 @@ export function applyChatDeletion({
     invalidateLinkedCloudAgentWork(coalescer, serverId);
 }
 
-/**
- * Cloud Agent work is visible through the Messages that link it (ADR 0044), so
- * a lost Chat can take work out of the active list, move its Happening now
- * location, or leave a work list. Which lists named the Chat is unknown
- * here, so every work list of the Server refreshes; only mounted ones refetch.
- */
 function invalidateLinkedCloudAgentWork(coalescer: ChatReadsCoalescer, serverId: string) {
     coalescer.invalidate({
         queryKey: getQueryKey(hausTrpc.cloudAgentWork.listAutomations, { serverId }),

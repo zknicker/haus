@@ -15,7 +15,6 @@ import {
     galleryWork,
 } from './seed-ui-gallery-records.ts';
 
-/** Idempotent gallery, separate from the Inbox seed so existing dev workspaces gain it too. */
 export async function seedDevelopmentUiGallery(
     db: HausDatabase,
     input: { serverId: string; userId: string }

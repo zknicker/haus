@@ -1,7 +1,6 @@
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
-/** The Server's Task key ledger (`taskKey.list`, ADR 0053 decision 11), by key. */
 export function useTaskKeys(serverId: string) {
     const { data, error, isPending } = hausTrpc.taskKey.list.useQuery(
         { serverId },
@@ -10,10 +9,6 @@ export function useTaskKeys(serverId: string) {
     return { data, error, isPending };
 }
 
-/**
- * Adds a key to the ledger. No event announces a new key, so the receipt is
- * the ledger read's only refresh: it appends the entry the Server returned.
- */
 export function useCreateTaskKey() {
     const utils = hausTrpc.useUtils();
     return hausTrpc.taskKey.create.useMutation({

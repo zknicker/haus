@@ -57,7 +57,6 @@ function withTask(detail: TaskDetail, task: Task): TaskDetail {
         : { ...detail, ...task, descriptionContent: task.description };
 }
 
-/** `task.list` reads and the sidebar's `task.listOpen`: both answer `Task[]`. */
 function listQueries(queryClient: QueryClient, serverId: string) {
     const cache = queryClient.getQueryCache();
     return [

@@ -39,7 +39,6 @@ test('the badge count equals unread chat.list rows plus unread Tasks, across Ser
     });
     count = await expectStep(servers, count, 1);
 
-    // A read Channel with a Task message mentioning the reader: the Task is
     // the unread row, and the Channel stays read.
     const mentionChannelId = await createChannel('count-mention');
     const mentionTask = await startTestTask(harness, owner, {
@@ -58,7 +57,6 @@ test('the badge count equals unread chat.list rows plus unread Tasks, across Ser
     expect(await unreadOf(mentionChannelId)).toBe(0);
     count = await expectStep(servers, count, 1);
 
-    // A Task message that names nobody stays out until the reader follows.
     const followChannelId = await createChannel('count-follow');
     const followTask = await startTestTask(harness, owner, {
         channelId: followChannelId,
@@ -76,7 +74,6 @@ test('the badge count equals unread chat.list rows plus unread Tasks, across Ser
     await owner.trpc.task.setFollow.mutate({ followed: true, serverId, taskId: followTask.id });
     count = await expectStep(servers, count, 1);
 
-    // The Task row's Mark read is chat.markRead on the Task itself.
     await owner.trpc.chat.markRead.mutate({
         chatId: followTask.chatId,
         sequence: quiet.message.sequence,
@@ -90,7 +87,6 @@ test('the badge count equals unread chat.list rows plus unread Tasks, across Ser
     await owner.trpc.chat.archiveChannel.mutate({ chatId: channelId, serverId });
     count = await expectStep(servers, count, -1);
 
-    // A Task under an archived Channel leaves with its Channel.
     await owner.trpc.chat.archiveChannel.mutate({ chatId: mentionChannelId, serverId });
     count = await expectStep(servers, count, -1);
 

@@ -19,11 +19,6 @@ const markSize = 16;
 /** Identity marks — a channel box or an avatar — fill the 20px slot: a boxed mark needs the extra size to read level with a bare favicon. */
 const identityMarkSize = 20;
 
-/**
- * A desktop tab's mark from its identity (ADR 0039): a channel box or an
- * avatar at identity size, a section, artifact, Task, Attachments, or new
- * tab glyph, or a web page's favicon.
- */
 export function TabIdentityMark({ mark }: { mark: TabMark }) {
     switch (mark.kind) {
         case 'channel':

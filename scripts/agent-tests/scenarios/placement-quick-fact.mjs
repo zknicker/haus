@@ -1,6 +1,5 @@
 // Placement eval S2: a quick factual question already answered earlier in the
 // channel gets exactly one inline reply, and nothing else: no reaction, no
-// Task, no pickup note. Brevity, tails and tone are graded out of band by
 // scripts/eval/grade.mjs.
 
 import {

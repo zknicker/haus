@@ -17,11 +17,6 @@ import { serverMembershipsTable } from './server-memberships.ts';
 import { serversTable } from './servers.ts';
 import { taskKeysTable } from './task-keys.ts';
 
-/**
- * A Channel, DM, or Task's Chat. A `task` Chat is a Task's own conversation
- * (ADR 0053): its parent is the origin Channel and its anchor the origin
- * Message, and several may share one anchor.
- */
 export const chatsTable = pgTable(
     'chats',
     {
@@ -51,7 +46,6 @@ export const chatsTable = pgTable(
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),
-        /** A Channel's key-ledger entry, which its Tasks take (ADR 0053). Channels only. */
         taskKeyId: text('task_key_id'),
     },
     (table) => [

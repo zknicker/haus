@@ -31,7 +31,6 @@ export function commitTaskWrite(
     return { task: result.task };
 }
 
-/** Task domain refusals as the tRPC codes the App reacts to. */
 function toTaskError(cause: unknown): TRPCError | null {
     if (cause instanceof TaskNotFoundError) {
         return new TRPCError({ cause, code: 'NOT_FOUND', message: cause.message });

@@ -1,12 +1,4 @@
-// A reminder fires while its owner is busy in a live inline exchange. The
 // Owner asks the first Agent for a one-minute follow-up in the channel, then,
-// while the reminder is pending, asks that Agent two quick questions as inline
-// replies under a different message, the second timed to land with the fire.
-// The Manual card `reminder-cron` says a fire is answered with a new top-level
-// message in the anchor chat with `--cause <fireId>`. Decoy: the inline
-// exchange is the conversation in front of the Agent, so it answers the fire
-// inside that exchange or folds the status into its inline reply. A second
-// Agent in the channel stays silent throughout.
 
 import { expectSettled, journaledSends, ownerSend, postsAcrossChannel, wait } from '../room-c.mjs';
 import { withRoutingEvidence } from '../routing-evidence.mjs';
@@ -136,7 +128,6 @@ export default defineScenario({
     }),
 });
 
-/** The Agent's scheduled reminder anchored in the channel. */
 async function waitForScheduledReminder(kit, agentId, channelId) {
     const deadline = Date.now() + 120_000;
     for (;;) {

@@ -30,7 +30,6 @@ const standaloneReaders: {
 };
 
 export interface AdventStats {
-    /** The recap's room and conversation counts; null unless the recap was requested. */
     recapCounts: AdventRecapCounts | null;
     stat<F extends AdventCountedFact>(fact: F): AdventFactStat<F>;
 }

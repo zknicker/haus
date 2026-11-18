@@ -4,7 +4,6 @@
 
 import { createAgentAuthor } from './author.mjs';
 
-/** An Agent's posts in a fresh channel since `head`, top level and inline. */
 export async function agentPostsSince(kit, chatId, agentId, head) {
     const own = (message) => message.author.kind === 'agent' && message.author.agentId === agentId;
     return (await kit.readMessages(chatId)).filter(

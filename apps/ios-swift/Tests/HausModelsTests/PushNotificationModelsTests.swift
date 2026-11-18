@@ -84,10 +84,6 @@ final class PushNotificationModelsTests: XCTestCase {
         XCTAssertNil(PushNotificationPayload(userInfo: ["aps": ["alert": "hi"]]))
     }
 
-    /// A push sent before side conversations were deleted (ADR 0053) names
-    /// that conversation's own Chat beside its parent. The Chat is gone and its
-    /// messages are inline replies in the parent, so the parent opens, and a
-    /// reader on the parent has already seen it.
     func testAPushNamingASideConversationOpensItsParentChannel() throws {
         var info = userInfo()
         info["chatId"] = "chat_side"
@@ -102,7 +98,6 @@ final class PushNotificationModelsTests: XCTestCase {
         )
     }
 
-    /// The pure rule every push and deep link goes through.
     func testRouteOpeningRule() {
         XCTAssertEqual(
             PushNotificationRoute.opening(chatID: "chat_dm", conversationChatID: "chat_dm", taskID: nil),
@@ -118,8 +113,6 @@ final class PushNotificationModelsTests: XCTestCase {
         )
     }
 
-    /// A message in a Task names the Task, and the Task screen is what opens.
-    /// Keys this build does not know ride along without changing the route.
     func testATaskPayloadRoutesToItsTaskWhateverElseItCarries() throws {
         var info = userInfo()
         info["chatId"] = "chat_task_12"
@@ -135,7 +128,6 @@ final class PushNotificationModelsTests: XCTestCase {
         XCTAssertEqual(payload.route, .task(taskID: "task_12", chatID: "chat_task_12"))
     }
 
-    /// The Task decides the route even when the conversation id is left out.
     func testATaskPayloadNeedsNoConversationShape() throws {
         var info = userInfo()
         info["chatId"] = "chat_task_12"
@@ -146,8 +138,6 @@ final class PushNotificationModelsTests: XCTestCase {
         XCTAssertEqual(payload.route, .task(taskID: "task_12", chatID: "chat_task_12"))
     }
 
-    /// Without a Task the route is the conversation's: an empty `taskId` is no
-    /// Task, and unknown keys change nothing.
     func testAPayloadWithoutATaskKeepsItsConversationRoute() throws {
         var info = userInfo()
         info["taskId"] = ""
@@ -155,14 +145,12 @@ final class PushNotificationModelsTests: XCTestCase {
         XCTAssertEqual(PushNotificationPayload(userInfo: info)?.route, .chat(chatID: "chat_dm"))
     }
 
-    /// A Chat-only push with no conversation id is its own conversation.
     func testAPayloadWithoutAConversationIDOpensItsChat() {
         var info = userInfo()
         info["conversationChatId"] = nil
         XCTAssertEqual(PushNotificationPayload(userInfo: info)?.route, .chat(chatID: "chat_dm"))
     }
 
-    /// The retired assignment pushes name no message, so they open nothing.
     func testARetiredAssignmentPushOpensNothing() {
         XCTAssertNil(PushNotificationPayload(userInfo: [
             "kind": "task_assignment", "serverId": "server_1", "taskId": "task_1", "key": "SEC-1",

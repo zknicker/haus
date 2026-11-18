@@ -68,7 +68,6 @@ export async function expectBurstCoalesced(
     await traffic.settled();
     const mark = traffic.mark();
 
-    // Burst 1: an inline reply and a read; one frame flushes it.
     await freezeAppTime(page);
     await send('Burst reply', anchor.message.id);
     await device.chat.markRead.mutate({

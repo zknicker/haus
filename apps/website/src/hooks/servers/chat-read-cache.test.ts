@@ -44,7 +44,6 @@ test('a read this client zeroed changes the list, and one the Server zeroed does
         readChangesUnreadList({ chatId, queryClient, serverId, utils });
     expect(changes('chat_two')).toBe(false);
     expect(changes('chat_one')).toBe(true);
-    // The pending mark answers once: the Server's read confirmed it.
     expect(changes('chat_one')).toBe(false);
 });
 

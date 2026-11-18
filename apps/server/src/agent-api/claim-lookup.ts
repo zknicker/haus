@@ -5,7 +5,6 @@ import { chatsTable, messageClaimsTable } from '../postgres/schema.ts';
 import { AgentClaimError } from './claim-error.ts';
 import { resolveAgentTarget } from './resolve-target.ts';
 
-/** Resolves a claim command's target: the Chat that numbers its claims. */
 export async function resolveAgentClaimTarget(
     db: HausDatabase,
     runner: ResolvedRunner,
@@ -48,7 +47,6 @@ export async function queryAgentClaims(
         );
 }
 
-/** `haus claim create` posts a new message, so its target Chat must still exist. */
 export async function requireClaimChat(db: HausDatabase, runner: ResolvedRunner, chatId: string) {
     const [chat] = await db
         .select({ kind: chatsTable.kind })

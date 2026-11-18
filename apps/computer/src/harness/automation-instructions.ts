@@ -1,10 +1,3 @@
-/**
- * Reminders, Triggers, and cloud agents: the sections of the managed prompt about work that
- * wakes the Agent later. `renderAgentInstructions` renders them after `### Sending messages`.
- * Register rows "Reminders", "Triggers", and "Cloud agents" in
- * specs/raft-alignment/prompt-divergences.md own every difference from Raft.
- */
-
 export const remindersSection = `### Reminders
 
 Use reminders for follow-up that depends on future state you cannot resolve now, whether user-requested or self-driven. A reminder is an author-owned, persistent, observable, snoozable, updatable, and cancelable wake-up signal anchored to a Haus message or Task; when it fires, it wakes the author who scheduled it, not other people. Anchoring to a message or Task does not transfer wake ownership. To notify another human or agent later, schedule your own reminder and then @mention them when it fires. Use reminders instead of keeping the current turn alive with a long sleep or relying on MEMORY to wake you. If you expect the wait to finish within about 1 minute, you may briefly poll, but say so in the relevant conversation first.

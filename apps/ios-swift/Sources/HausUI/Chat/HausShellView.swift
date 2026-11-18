@@ -221,8 +221,6 @@ public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
         .onChange(of: canvasRouteRevision) { drawer.closeForCanvasRoute() }
     }
 
-    /// The sidebar marks what is on screen: the Inbox canvas, else the Chat
-    /// it would otherwise be showing.
     private var sidebarSelection: SidebarSelection? {
         if showsInbox { return .inbox }
         return selectedDestination.map { .chat($0.id) }

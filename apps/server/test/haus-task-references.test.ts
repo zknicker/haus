@@ -263,7 +263,6 @@ describe('Task events', () => {
         ]);
         realtime.stop();
 
-        // An Agent assigning a person tells that person, and only them; nothing else is made.
         const userId = userRow?.id ?? '';
         const result = await assignTask(
             connection.db,

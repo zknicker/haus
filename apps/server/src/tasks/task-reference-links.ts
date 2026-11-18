@@ -148,7 +148,6 @@ export async function prepareTaskLinkEvents(
     return tasks.map(prepareTaskUpdatedEvent);
 }
 
-/** Each Message's `taskLinks`, keyed by the Tasks' current keys, in content order. */
 export async function readMessageTaskLinks(
     db: Reader,
     serverId: string,

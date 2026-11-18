@@ -2,8 +2,6 @@ import { expect, test } from 'bun:test';
 import { cloudAgentFixture } from './cloud-agent-fixture.ts';
 
 const fixture = cloudAgentFixture();
-// ADR 0053: a launch posts in its Task, so the inline Channel card is gone; an
-// inline parent must still be valid in the Task.
 
 test('an invalid inline parent rejects cloud work before writes', async () => {
     const runner = await fixture.mintRunner('run_cloud_invalid_reply');

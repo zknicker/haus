@@ -1,6 +1,3 @@
-// Task intake 1: a quick factual question in a channel is the whole of the work, so the
-// Agent just replies inline. No Task: a Task is for work the reply will not finish.
-
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
 import { expectSettled, postsAcross, tasksCreatedBy } from '../task-intake.mjs';

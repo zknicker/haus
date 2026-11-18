@@ -6,8 +6,6 @@
 // at most one pickup note inline, then answers inline. The note is optional:
 // for work that finishes in under a minute the answer itself is the update. Decoys: the bystander
 // chiming in, and working notes posted as inline replies to the request (each
-// one notifies the requester). Work that outlasts a reply goes in a Task, which
-// the task-intake scenarios gate.
 
 import { gzipSync } from 'node:zlib';
 

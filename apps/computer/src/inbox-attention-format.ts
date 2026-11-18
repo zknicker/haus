@@ -5,12 +5,6 @@ import type {
 } from './agent-inbox-item.ts';
 import { indentContinuationLines } from './inbox-header-format.ts';
 
-/**
- * A Cloud Agent Run's attention for the Agent that delegated it, with everything it needs to
- * inspect the result and decide what to post. Results are ordinary Messages; nothing here
- * reaches a human until the Agent writes one. Work attached to a Task wakes the Agent on that
- * Task (ADR 0053 decision 6), so its target is `task:<key>` and the attention names the Task.
- */
 export function formatCloudAgentWorkAttention(
     work: AgentCloudAgentWorkAttention,
     target: string
@@ -37,11 +31,6 @@ export function formatCloudAgentWorkAttention(
     ].join('\n');
 }
 
-/**
- * A pull request attached to a Task changed, with no cloud work behind it (ADR 0053 decision 6).
- * Same shape as a Run's `pull_request` attention: a header naming the change and target, the
- * change in plain words with its URL, then where to report.
- */
 export function formatPullRequestNotice(
     notice: CloudAgentPullRequestChange,
     target: string
@@ -55,7 +44,6 @@ export function formatPullRequestNotice(
     ].join('\n');
 }
 
-/** The event-specific step: this work belongs to a Task, and what it learned is reported there. */
 function taskLine(target: string): string[] {
     const key = TASK_TARGET_PATTERN.exec(target)?.[1];
     return key
@@ -65,10 +53,6 @@ function taskLine(target: string): string[] {
         : [];
 }
 
-/**
- * A pull request moment after the Run settled: what changed and where. The change rides the
- * attention when the Server names it; otherwise the line says only that it changed.
- */
 function pullRequestLine(work: AgentCloudAgentWorkAttention): string {
     const change = work.pullRequestChange;
     const url =
@@ -90,11 +74,6 @@ function describeChange(change: CloudAgentPullRequestChange['change']): string {
     }
 }
 
-/**
- * One branch a Run wrote, with the pull request it opened and the diff the Computer read from
- * GitHub. The counts are evidence the Agent can act on without opening the pull request; a
- * branch whose pull request could not be read states the URL alone.
- */
 function formatCloudAgentBranch(branch: CloudAgentBranch): string {
     const pullRequest = branch.pullRequest;
     const diff = pullRequest

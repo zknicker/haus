@@ -76,7 +76,6 @@ async function settled(expect, turn, label) {
     expect(turn.failureKind ?? 'none', `${label} failure kind`).toBe('none');
 }
 
-/** An Agent's posts in a fresh channel since `head`, top level and inline. */
 async function agentPosts(kit, chatId, agentId, head) {
     const own = (message) => message.author.kind === 'agent' && message.author.agentId === agentId;
     return (await kit.readMessages(chatId)).filter(

@@ -214,7 +214,6 @@ test('a Message link holds the oldest loaded message while the older page it rea
         update chats set last_message_sequence = last_message_sequence + 120 where id = '${chatId}'`
     );
     // The newest page holds 71–120, so 71 is the oldest loaded message.
-    // A link to one Message reveals it, paging older history in as it goes.
     await page.goto(`/s/chat-jumps/chats/${chatId}?message=msg_jump_071`);
     const transcript = page.getByLabel('Messages', { exact: true });
     const rows = transcript.locator('[data-slot="message-scroller-item"]');

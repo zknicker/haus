@@ -4,7 +4,6 @@ import { usePressNavigationWith } from '../../hooks/shell/use-press-navigation.t
 import { tasksRoute } from '../servers/server-routes.ts';
 import { RouteTabIcon } from './route-tab-presentation.tsx';
 
-/** The sidebar's one Tasks row: it opens the flat Tasks page (ADR 0053 decision 10). */
 export function TasksNavigationRow({
     isCurrent,
     onPreload,

@@ -1,20 +1,11 @@
 import Foundation
 import HausModels
 
-/// The narrow App-layer seam for a read-only Task's details screen.
-///
-/// Reads are the Store's own snapshots, so a durable event repaints the screen
-/// without anyone pulling to refresh, and each returns nil until its first read
-/// lands. Loads ask for that read. There are no writes: a Task from before
-/// Tasks were places is history.
 public struct TaskDetailSource: Sendable {
     public let detail: @MainActor @Sendable (_ taskID: String) -> TaskDetail?
     public let labels: @MainActor @Sendable () -> [TaskLabel]
     public let actor: @MainActor @Sendable (TaskActor) -> MessageAuthorPresentation?
-    /// Where a Chat is, as a label: `#product`, `DM`, or `Chat`.
     public let conversationLabel: @MainActor @Sendable (_ chatID: String) -> String
-    /// A Task's description as a message body draws: its references resolved
-    /// against the Store's directory and its Task keys chipped.
     public let descriptionBlocks: @MainActor @Sendable (TaskDetail) -> [RichMessageBlock]
 
     public let loadDetail: @MainActor @Sendable (_ taskID: String) async throws -> Void
@@ -40,7 +31,6 @@ public struct TaskDetailSource: Sendable {
 }
 
 extension TaskDetailSource {
-    /// Fixture data, for previews.
     static let preview = TaskDetailSource(
         detail: { _ in TaskPreviewFixtures.detail },
         labels: { TaskPreviewFixtures.labels },

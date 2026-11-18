@@ -24,7 +24,6 @@ export interface GalleryContext {
     chatId: string;
     computerId: string;
     now: Date;
-    /** Set when the gallery writes inline replies under one Message. */
     reply?: { rootMessageId: string; toMessageId: string };
     serverId: string;
     userId: string;
@@ -49,7 +48,6 @@ export async function galleryMessage(db: HausDatabase, context: GalleryContext, 
     return id;
 }
 
-/** A context that writes inline replies under `messageId`. */
 export function galleryReplies(context: GalleryContext, messageId: string): GalleryContext {
     return { ...context, reply: { rootMessageId: messageId, toMessageId: messageId } };
 }
@@ -83,11 +81,6 @@ export async function galleryClaim(
     });
 }
 
-/**
- * An Agent asking the gallery's human by @mention (ADR 0037). An answered one
- * carries the human's inline reply under it (or under the same root when it is
- * already a reply).
- */
 export async function galleryMention(
     db: HausDatabase,
     context: GalleryContext,

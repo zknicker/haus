@@ -42,8 +42,6 @@ test('composes the CLI-only Haus collaboration contract', () => {
         'A failed claim is a concurrency lock, not a ruling on lane ownership'
     );
     expect(instructions).toContain('correct the routing in the original conversation');
-    // ADR 0053: there are no Threads, so neither Raft's top-level-only sentence nor the Haus
-    // thread claim that replaced it survives.
     expect(instructions).not.toContain('claimed in that thread');
     expect(instructions).not.toContain('Only top-level channel / DM messages can become tasks');
     // ADR 0051: the message lock is a claim; `haus task` is the board product, and no claim verb
@@ -180,7 +178,6 @@ test('advertises the Agent family without inventing an Agent-creation policy', (
     expect(instructions).not.toContain('haus avatar generate');
     expect(instructions).not.toContain('recipes/playbook/agent-creation');
     expect(instructions).not.toMatch(/playful character|fun name|exactly one generation/iu);
-    // Execution-config inheritance is Agent-creation policy, not prompt text.
     expect(instructions).not.toMatch(
         /--avatar-concept|inherits? (your|its)|a human in this Chat asked/u
     );

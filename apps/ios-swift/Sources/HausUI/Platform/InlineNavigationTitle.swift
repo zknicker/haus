@@ -1,8 +1,6 @@
 import SwiftUI
 
 extension View {
-    /// A pushed screen's inline title with its place beneath it — the system
-    /// subtitle on iOS 26, a two-line principal item before it.
     @ViewBuilder
     func inlineNavigationTitle(_ title: String, subtitle: String?) -> some View {
         #if os(iOS)

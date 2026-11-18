@@ -1,12 +1,8 @@
 import Foundation
 
-/// One row of a Task's transcript: a Task is a Channel for one piece of work
-/// (ADR 0053), so its rows are the Chat timeline's own, under one quiet row
-/// that points back at the Message the Task started from.
 enum TaskTranscriptItem: Identifiable, Equatable {
     case startedFrom(TaskStartedFromPresentation)
     case message(MessagePresentation, grouping: TranscriptRowGrouping)
-    /// Opens a calendar day.
     case dayDivider(Date)
 
     var id: String {
@@ -27,10 +23,6 @@ enum TaskTranscriptItem: Identifiable, Equatable {
         return nil
     }
 
-    /// The transcript in order. The "Started from" row heads it only once the
-    /// oldest message is loaded, so paging back never slides it under newer
-    /// history; a Task with no messages yet shows it alone. A day divider opens
-    /// each calendar day, as in the Chat.
     static func items(
         startedFrom: TaskStartedFromPresentation?,
         messages: [MessagePresentation],
@@ -54,8 +46,6 @@ enum TaskTranscriptItem: Identifiable, Equatable {
     }
 }
 
-/// The Task transcript's items, rebuilt only when an input changes: the body
-/// runs on every keyboard inset step with the same arrays. A cache, not state.
 @MainActor
 final class TaskTranscriptProjection {
     private struct Inputs: Equatable {

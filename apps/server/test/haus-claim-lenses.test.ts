@@ -58,7 +58,6 @@ test("the claimant's own inline reply leaves it in the background lens", async (
     expect(listed.claims).toEqual([]);
 });
 
-// Everyone else's chatter is what replies are for. A background claim is
 // the claimant's own bookkeeping, so only the claimant working there moves it
 // onto a person's lens.
 test('somebody else replying inline leaves the claim in the background lens', async () => {
@@ -213,7 +212,6 @@ async function seedAgentClaim(
     return agent.id;
 }
 
-/** The claimant answering inline on its own claimed message. */
 async function replyInlineAsAgent(
     server: { chatId: string; id: string },
     anchorMessageId: string,

@@ -9,11 +9,6 @@ import { cloudAgentLinkHelpers } from './cloud-agent-link-helpers.ts';
 const fixture = cloudAgentFixture();
 const links = cloudAgentLinkHelpers(fixture);
 
-/**
- * ADR 0053 decision 6: cloud work attaches to a Task and reports to it. The
- * launch Message posts in the Task's Chat, opens no child Chat, and every Run
- * notice lands in the Task. A launch with no Task is refused and writes nothing.
- */
 test('a launch on a Task posts in the Task, attaches to it, and reports there', async () => {
     const placed = await launch('place-task');
     const taskTarget = `task:${fixture.task.key}`;
@@ -25,7 +20,6 @@ test('a launch on a Task posts in the Task, attaches to it, and reports there', 
     `) as { chat_id: string; task_id: string }[];
     expect(work).toEqual({ chat_id: fixture.task.chatId, task_id: fixture.task.id });
     expect(await settleTarget(placed)).toBe(fixture.task.chatId);
-    // The Run notice names the Task as its target, as every Task item does.
     const connection = await connectHausDatabase(fixture.harness.databaseUrl);
     try {
         await fixture.harness.sql`
@@ -108,7 +102,6 @@ test('a send to a <target>:<shortId> is refused with what to do instead, and wri
     expect(written).toEqual([]);
 });
 
-/** Launches a refused body, proving no work or Message was written. */
 async function refuseLaunch(body: Record<string, string>) {
     const runner = await fixture.mintRunner(`run_${body.nonce}`);
     const workBefore = await fixture.countWork();

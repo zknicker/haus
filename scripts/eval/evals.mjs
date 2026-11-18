@@ -66,7 +66,6 @@ export const evals = {
             'Feedback in passing becomes a Standing Preference that survives a session reset; no feedback, no rule change.',
     },
     // Work that leaves the chat: Cloud Agents, MCP connections, Triggers, and Files.
-    // cloud-launch-and-link launches on a Task and needs Cursor access.
     tools: {
         judge: null,
         profiles: {},
@@ -89,11 +88,6 @@ export const evals = {
         summary:
             'Agents set up a GitHub CI-failure Trigger from a plain ask and answer its fire once, top level, with --cause.',
     },
-    // Task or reply: an Agent creates a Task when its reply will not be the whole of the work,
-    // whatever the source (human, Reminder, Trigger, its own finding), and a claim, not a
-    // Task, marks ownership (ADR 0053). Gates read the Task's `origin`, its own conversation,
-    // and its `attachedWork`. Serial: the Trigger scenarios share the seeded `acme`
-    // installation. The two cloud scenarios are opt-in: they spend real Cursor runs.
     'task-intake': {
         judge: null,
         lanes: 1,
@@ -115,11 +109,6 @@ export const evals = {
         summary:
             "Work the reply will not finish becomes a Task opened where the work belongs, from a human, a Reminder, a Trigger, or the Agent's own findings; work the reply finishes is just answered, and a claim, not a Task, marks ownership.",
     },
-    // Task pacing (operator decision 2026-11-18): Tasks a person assigns are worked one at a
-    // time by priority, a Task blocked on a person waits in todo while the next goes on, and
-    // Tasks the Agent starts itself are never parked to force a sequence. Gates read the
-    // execution journal's `haus task state` order. Serial: the queue scenarios stop and restart
-    // their Agents.
     'task-pacing': {
         judge: null,
         lanes: 1,

@@ -21,7 +21,6 @@ import { readTask } from './task-read.ts';
 type Tx = Parameters<Parameters<HausDatabase['transaction']>[0]>[0];
 
 export interface StartTaskInput {
-    /** Null leaves it unassigned; the Agent route defaults it to the caller. */
     assignee: TaskActor | null;
     description?: string;
     dueOn?: string;
@@ -33,12 +32,6 @@ export interface StartTaskInput {
     title: string;
 }
 
-/**
- * Starts a Task from a Message in a Channel (ADR 0053 decisions 3, 4, 11): an
- * Agent only. The Task takes the Channel's key and that key's next number, gets
- * its own `task` Chat under the origin Channel and Message, and starts with its
- * followers seeded. One Message can carry several Tasks.
- */
 export async function startTask(
     db: HausDatabase,
     actor: TaskActor,
@@ -101,10 +94,6 @@ export async function startTask(
     });
 }
 
-/**
- * Another Agent assigned at start is woken with its assignment. A person
- * assigned follows the Task instead of getting a Task Inbox item (decision 9).
- */
 async function assignAgentOnStart(
     tx: Tx,
     agentDelivery: TaskAgentDelivery,
@@ -120,7 +109,6 @@ async function assignAgentOnStart(
     return { wakes: effects.wakes };
 }
 
-/** The origin must be a Message in a live Channel the Task can hang off. */
 async function requireOriginInChannel(
     tx: Tx,
     input: { originChatId: string; originMessageId: string; serverId: string }

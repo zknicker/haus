@@ -4,11 +4,6 @@ import { type HausServerHarness, startHausServerHarness } from './haus-server-ha
 import { taskFixture } from './task-fixture.ts';
 import { startTestTask } from './task-place-fixture.ts';
 
-/**
- * Purging a Server cascades through key-ledger entries, Tasks, their Chats, and
- * everything that points at them in one statement, so the restricted key, Chat,
- * and creator links must all hold until commit (0002's rule).
- */
 let harness: HausServerHarness;
 let owner: HausClient;
 

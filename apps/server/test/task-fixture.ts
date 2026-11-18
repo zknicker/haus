@@ -1,7 +1,6 @@
 import { createHausClient, type HausClient } from './haus-client.ts';
 import type { HausServerHarness } from './haus-server-harness.ts';
 
-/** People and Agents for the Task tests. */
 export function taskFixture(harness: HausServerHarness) {
     const signIn = async (subject: string): Promise<HausClient> =>
         createHausClient(harness, await harness.humans.mintSessionToken(subject));

@@ -144,7 +144,6 @@ async function listAgentTasks(db: HausDatabase, runner: ResolvedRunner, query: A
     const tasks = await listTasks(db, agentActor(runner), {
         ...(assignee ? { assignee } : {}),
         ...(query.key ? { keyId: await requireTaskKeyId(db, runner, query.key) } : {}),
-        // Without a state, the unfinished ones: the Tasks still to work.
         states: query.state ?? [...unfinishedTaskStates],
         serverId: runner.serverId,
     });
@@ -155,7 +154,6 @@ async function listAgentTasks(db: HausDatabase, runner: ResolvedRunner, query: A
     };
 }
 
-/** The key-ledger entry a `key` filter names (`SEC`). */
 async function requireTaskKeyId(db: HausDatabase, runner: ResolvedRunner, key: string) {
     const entries = await listTaskKeys(db, agentActor(runner), { serverId: runner.serverId });
     const entry = entries.find((candidate) => candidate.key === key);

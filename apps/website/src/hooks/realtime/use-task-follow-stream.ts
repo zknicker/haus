@@ -9,13 +9,6 @@ import {
 import { refreshTaskReads } from './task-reads.ts';
 import { useSubscriptionRestart } from './use-subscription-restart.ts';
 
-/**
- * `task.onFollowUpdated` (the viewer's own follows, ADR 0053 decision 9):
- * following decides whether a Task is unread for the viewer, so the Task's
- * detail and origin preview (`followed`, `unreadCount`) and the Inbox's
- * unread rows, which are also the sidebar's unread marks, refresh. A start
- * reconciles every Task detail and the previews.
- */
 export function useTaskFollowStream(serverId: string | undefined) {
     const coalescer = useTargetedReadCoalescer();
     const queryClient = useQueryClient();

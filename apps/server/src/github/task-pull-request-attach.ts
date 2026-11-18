@@ -18,21 +18,11 @@ export class PullRequestUrlError extends Error {
 
 export interface AttachedTaskPullRequest {
     number: number;
-    /** The stored reading the card shows; null while GitHub could not be read. */
     reading: CloudAgentPullRequestReading | null;
-    /** `owner/name`, lower-cased, as the readings key it. */
     repository: string;
     url: string;
 }
 
-/**
- * Attaches a GitHub pull request to a Task (ADR 0053 decision 6). The pull
- * request card and the ready-after-settle wake read the stored readings, and
- * the refresher only updates readings that exist, so a pull request no reading
- * covers yet gets one synchronous GitHub read here. Without a GitHub App or an
- * installation for the owner, or when GitHub refuses, the attachment stands
- * and `reading` is null. Idempotent: attaching twice keeps one row.
- */
 export async function attachPullRequestToTask(
     dependencies: { app: GithubApp | null; db: HausDatabase },
     input: { serverId: string; taskId: string; url: string }
@@ -79,7 +69,6 @@ async function readStoredReading(
     return row ?? null;
 }
 
-/** One GitHub read as the owner's installation; null when there is no way to read it. */
 async function readOnce(
     dependencies: { app: GithubApp | null; db: HausDatabase },
     pull: { number: number; repository: string; serverId: string }
@@ -93,7 +82,6 @@ async function readOnce(
         const token = await createInstallationTokens(app).read(installationId);
         return await readGithubPullRequest({ ...pull, token }, app.transport);
     } catch (error) {
-        // The attachment stands without a reading; any other failure is a bug.
         if (error instanceof GithubApiError) {
             return null;
         }

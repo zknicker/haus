@@ -58,7 +58,6 @@ export const cloudAgentWorkUpdatedEventSchema = z
         chatId: idSchema,
         messageId: idSchema,
         serverId: idSchema,
-        /** The Task the work is attached to (ADR 0053 decision 6); null for older work. */
         taskId: idSchema.nullable(),
         workId: idSchema,
     })
@@ -82,11 +81,6 @@ export const agentCloudAgentStartInputSchema = z
         replyToMessageId: idSchema.optional(),
         startingRef: cloudAgentRefSchema.nullable().default(null),
         target: z.string().trim().min(1).max(200),
-        /**
-         * The Task the work attaches to and reports to (ADR 0053 decision 6).
-         * The Server refuses a launch without one with `CLOUD_AGENT_TASK_REQUIRED`
-         * once Tasks are places; `target` keeps working until then.
-         */
         task: taskKeySchema.optional(),
         title: cloudAgentTitleSchema,
     })
@@ -258,9 +252,7 @@ export const activeCloudAgentWorkSchema = z
         conversationChatId: idSchema,
         /** Where opening this row goes. */
         location: activeCloudAgentWorkLocationSchema,
-        /** The Task the work is attached to (ADR 0053 decision 6); null for older work. */
         taskId: idSchema.nullable(),
-        /** That Task's key, such as `SEC-12`; null exactly when `taskId` is. */
         taskKey: z.string().min(1).nullable(),
         work: cloudAgentWorkSchema,
     })

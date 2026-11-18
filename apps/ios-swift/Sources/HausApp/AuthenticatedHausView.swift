@@ -5,7 +5,6 @@ import SwiftUI
 
 struct AuthenticatedHausView: View {
     @State var store: HausStore
-    /// The App owns the open Chat so the shell canvas, a pushed Task, and
     /// the Store's read acknowledgements always name the same Chat.
     @State var selectedDestinationID: ChatDestination.ID?
     @State var canvasScrollTarget: MessageScrollTarget?
@@ -247,7 +246,6 @@ struct AuthenticatedHausView: View {
                 }
                 .task { await push.attach(store) }
                 // Consumed outside the change handler: clearing the value a
-                // `task(id:)` keys on would cancel the open it starts.
                 .onChange(of: push.pendingOpen, initial: true) { _, request in
                     guard let request else { return }
                     push.pendingOpen = nil

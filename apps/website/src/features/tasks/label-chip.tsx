@@ -5,7 +5,6 @@ import { taskLabelChipClass, taskLabelDotClass } from './label-colors.ts';
 
 type TaskLabelColor = TaskLabel['color'];
 
-// A colored label pill for Task rows and pickers. A soft Chip carrying the
 // task-label palette: labels own their nine product colors rather than the
 // chip status colors.
 export function LabelChip({ color, name }: { color: TaskLabelColor; name: string }) {

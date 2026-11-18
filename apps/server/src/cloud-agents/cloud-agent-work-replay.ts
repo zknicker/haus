@@ -11,11 +11,6 @@ import { cloudAgentRunsTable } from '../postgres/schema.ts';
 import { findCloudAgentWorkByLaunchMessage } from './cloud-agent-shape.ts';
 import { CloudAgentWorkConflictError } from './errors.ts';
 
-/**
- * A replay rebuilds the whole stored content from `--say`, the links the
- * launch recorded, and the trusted suffix, then compares; it never strips
- * link syntax to make a retry match.
- */
 export async function readWorkByNonce(
     db: HausDatabase,
     runner: ResolvedRunner,
@@ -89,7 +84,6 @@ export async function readWorkByNonce(
     };
 }
 
-/** `--say` with bare references resolved, within the authored content cap. */
 export async function authoredContent(
     db: HausDatabase,
     serverId: string,

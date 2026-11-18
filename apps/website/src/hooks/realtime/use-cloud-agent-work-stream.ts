@@ -9,13 +9,6 @@ import {
 import { refreshTaskReads } from './task-reads.ts';
 import { useSubscriptionRestart } from './use-subscription-restart.ts';
 
-/**
- * `cloudAgentWork.onUpdated`: the Server publishes one event per linking
- * Message (ADR 0044), so each event refreshes that Message's entity (its card
- * states the status), the work list of its Chat, and
- * the active-work list behind the Inbox, and the detail and preview of the Task
- * the event names (`taskId`). A start also rereads every Task detail.
- */
 export function useCloudAgentWorkStream(serverId: string | undefined) {
     const coalescer = useTargetedReadCoalescer();
     const queryClient = useQueryClient();
@@ -48,7 +41,6 @@ export function applyCloudAgentWorkUpdate(
     event: CloudAgentWorkUpdatedEvent
 ) {
     const { chatId, messageId, serverId, taskId } = event;
-    // The Task page's attached-work panel states the work too (ADR 0053 decision 12).
     if (taskId) {
         refreshTaskReads(coalescer, queryClient, { serverId, taskId });
     }

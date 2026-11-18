@@ -9,8 +9,6 @@ import UIKit
 
 /// How a send ended, from the composer's side.
 enum SendOutcome: Equatable {
-    /// Server accepted it. A first Agent message names the DM Server
-    /// materialized.
     case sent(chatID: String?)
     /// It did not reach Server; the viewer's row stays, marked failed, to retry.
     case failed
@@ -39,7 +37,6 @@ extension HausStore {
             return await deliverAgentDM(row, serverID: serverID)
         }
         do {
-            // Attachments are reserved in the Chat the message is sent to.
             let uploadedAttachments = try await uploadAttachments(
                 row.attachments,
                 serverID: serverID,

@@ -8,15 +8,6 @@ export interface ClaimLivenessRow {
     messageId: string;
 }
 
-/**
- * A claim is live while its assignee Agent's one in-flight run holds an inbox
- * row anchored on the claim's own message or on an inline reply to it —
- * attached to the run by a pull, or offered to it as a notice in the run's own
- * Chat. Liveness is volatile execution state derived at read time, never a
- * stored claim column; the run's start and its settlement both emit
- * `claim.updated`, so the App learns about it the same way it learns about
- * every other claim change.
- */
 export async function loadLiveClaimMessageIds(
     db: Pick<HausDatabase, 'select'>,
     serverId: string,
@@ -68,7 +59,6 @@ export async function loadLiveClaimMessageIds(
     return live;
 }
 
-/** Each message's inline parent and root, by message id. */
 async function readInlineParents(
     db: Pick<HausDatabase, 'select'>,
     serverId: string,

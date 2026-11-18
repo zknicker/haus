@@ -119,8 +119,6 @@ test('a claimant inline reply does not affect settlement tier', async () => {
     });
 });
 
-// An unmentioned peer Agent replied inline on the claimed message before the assignee
-// had even claimed. Inline replies do not affect claim tier, and a settled open
 // claim is tracked regardless of who spoke there.
 test("a peer Agent's inline reply does not change settlement", async () => {
     const claim = await seedBackgroundClaim(connection.db);

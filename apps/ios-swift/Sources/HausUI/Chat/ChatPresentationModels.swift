@@ -158,8 +158,6 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     public let artifacts: [ArtifactSegment]
     /// The Reminder or Trigger fire this message answers, when it answers one.
     public let cause: MessageCausePresentation?
-    /// The Tasks started from this message, each previewed under it (ADR 0053
-    /// decision 7). Only a Channel message carries any.
     public let tasks: [TaskPreviewPresentation]
 
     public init(
@@ -181,7 +179,6 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         tasks: [TaskPreviewPresentation] = []
     ) {
         self.tasks = tasks
-        // Trim consistently for Chat and Task bodies.
         let body = Self.body(content: content)
         // Fences are split off the resolved body before anything renders it:
         // the message content IS the visual, and the prose above the cards is
@@ -229,14 +226,12 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     /// Edge whitespace is never layout. An Agent's reply routinely ends in a
     /// newline, and a `Text` that keeps it paints a blank line under the body —
     /// a whole text line of phantom gap before the next row and before the
-    /// cards under it. Trimming here is presentation only; the stored Markdown is
     /// untouched, and interior blank lines stay as they were written.
     public static func body(content: String) -> String {
         content.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 
-/// One message as a Task preview quotes it, its author resolved.
 public struct TaskMessagePreviewPresentation: Identifiable, Hashable, Sendable {
     public let id: String
     public let author: MessageAuthorPresentation

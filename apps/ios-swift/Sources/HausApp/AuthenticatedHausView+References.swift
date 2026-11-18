@@ -2,10 +2,6 @@ import HausModels
 import HausUI
 import SwiftUI
 
-/// What a transcript row reaches beyond itself: a tapped Message or Task chip,
-/// an opened artifact page or shared artifact, and Try Again or Delete on a
-/// failed send. Rows live in hosted cells with no environment, so the App
-/// installs these once at its root (`InAppReferenceRoutes`,
 /// `ArtifactPageReader`, `SharedArtifactReader`).
 extension AuthenticatedHausView {
     func installTranscriptRoutes() {

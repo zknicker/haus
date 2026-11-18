@@ -18,8 +18,6 @@ struct ChatReadLedgerTests {
             visibleMessageIDs: ["m3", "m1", "m2"],
             sequenceByMessageID: sequences
         ) == 9)
-        // A Task's "Started from" row, a day divider, and an optimistic send
-        // are rows the loaded page cannot name.
         #expect(ChatReadVisibility.highestVisibleSequence(
             visibleMessageIDs: ["task-started-from", "m1", "pending-send"],
             sequenceByMessageID: sequences

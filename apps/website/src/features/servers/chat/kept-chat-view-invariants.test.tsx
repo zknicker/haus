@@ -143,7 +143,6 @@ test('a hidden kept view keeps the route it last had while shown', async () => {
         )
     );
     await act(() => navigate('/chat/b?message=m2'));
-    // The hidden view never sees the shown chat's `?message=`.
     expect(seen).toEqual({ a: 'm1', b: 'm2' });
     await act(() => navigate('/chat/a'));
     expect(seen).toEqual({ a: null, b: 'm2' });

@@ -69,11 +69,8 @@ final class HausStore {
     /// Whether the Chat list has landed once, so the unread count stays silent
     /// until it can answer honestly.
     private(set) var hasLoadedChats = false
-    /// The app icon badge: unread Chats and followed Tasks across every
-    /// Server, as the Server counts them for push. Nil until first read
     /// (`HausStoreIconBadge.swift`).
     var iconBadgeCount: Int?
-    /// Opened Tasks, the label catalog, and the followed unread Tasks (`HausStoreTasks.swift`).
     let taskSnapshots = TaskSnapshots()
     var activeCloudAgentWork: [ActiveCloudAgentWork]?
     var serverUsage: ServerUsageSnapshot?
@@ -217,9 +214,6 @@ final class HausStore {
         }
     }
 
-    /// The Channels and DMs the shell lists. A Task Chat (ADR 0053), or a kind
-    /// this build does not know, is never listed as a Channel or DM: a Task
-    /// opens as a Task, from its preview, its chip, or its Unread row.
     var chats: [ChatSummary] {
         get { storedChats }
         set {

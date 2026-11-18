@@ -20,8 +20,6 @@ export function withRoutingEvidence(run) {
 
 export async function captureRoutingEvidence(kit, agents) {
     const chats = [];
-    // Tasks started from a captured chat's messages are captured too (ADR 0053), so the
-    // grader sees what the Agent posted in them and can label it a Task post.
     const pending = new Set(kit.transcript().chats.map((chat) => chat.id));
     const errors = [];
     for (const chatId of pending) {

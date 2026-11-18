@@ -25,7 +25,6 @@ const githubRecoveryDefaultIntervalMs = 10 * 60_000;
 const pullRequestRefreshIntervalMs = 15_000;
 
 interface ServerSweepsInput {
-    /** Queues the wakes a pull request reading raises (ADR 0053 decision 6). */
     agentDelivery: Pick<AgentDelivery, 'enqueue'>;
     /** The App origin iPhone push builds absolute avatar URLs against. */
     appOrigin: string;
@@ -44,7 +43,6 @@ interface ServerSweepsInput {
     /** iPhone push; absent when no APNs key is configured. */
     pushSender: PushSender | null;
     timers?: SweepTimers;
-    /** Wakes Agents a sweep queued work for: Trigger problems, pull request changes. */
     wakeAgents?(wakes: { agentId: string; serverId: string }[]): void;
 }
 

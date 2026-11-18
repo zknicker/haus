@@ -15,7 +15,6 @@ const labelNamesSchema = z.array(z.string().trim().min(1).max(80)).max(50);
 /** An assignee as an Agent writes it: `me`, or the handle of a person or Agent of the Server. */
 const assigneeRefSchema = z.string().trim().min(1).max(64);
 
-/** A query value given once, repeated, or as a comma list, flattened to its parts. */
 const commaListSchema = z
     .union([z.string(), z.array(z.string())])
     .transform((value) =>

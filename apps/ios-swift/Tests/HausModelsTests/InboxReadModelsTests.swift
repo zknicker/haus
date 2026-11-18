@@ -51,7 +51,6 @@ final class InboxReadModelsTests: XCTestCase {
         XCTAssertNil(chat.lastMessage)
     }
 
-    /// `activeWorkLocations.message` in `cloud-agent-work-fixture.ts`.
     func testDecodesServerWideActiveCloudAgentWork() throws {
         let json = """
         [{"agentName":"Blippy","chatKind":"dm","chatName":null,"chatPeerUserId":"user_2",

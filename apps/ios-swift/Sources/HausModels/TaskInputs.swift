@@ -1,6 +1,5 @@
 import Foundation
 
-/// `task.get`.
 public struct TaskGetInput: Encodable, Equatable, Sendable {
     public let serverID: String
     public let taskID: String

@@ -7,11 +7,6 @@ import type { HausUser } from '../users/haus-user.ts';
 import { readWorkDetails, toCloudAgentWork } from './cloud-agent-shape.ts';
 import { linkChatVisibleSql, linkParentChatsTable } from './cloud-agent-work-visibility.ts';
 
-/**
- * Durable work linked in one conversation and the Task Chats under it,
- * including settled outcomes (ADR 0044), under the linking Message its card
- * sits beneath. One row per Message and work.
- */
 export async function listChatCloudAgentWork(
     db: HausDatabase,
     member: HausUser | null,

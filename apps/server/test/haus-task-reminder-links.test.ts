@@ -32,7 +32,6 @@ afterAll(async () => {
     await fixture.close();
 });
 
-/** A Task under `#all`, at version 1. */
 async function createTask(title: string) {
     const { harness, owner, serverId } = fixture;
     const task = await startTestTask(harness, owner, { channelId: allChatId, serverId, title });

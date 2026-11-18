@@ -29,7 +29,6 @@ import { createTopic } from './topic.ts';
  * subscription procedure.
  */
 
-// Chat streams.
 export const messageCreatedTopic = createTopic('message.created', messageCreatedEventSchema);
 export const messageReactionUpdatedTopic = createTopic(
     'message.reaction.updated',
@@ -67,12 +66,10 @@ export const cloudAgentSettingsUpdatedTopic = createTopic(
     cloudAgentSettingsUpdatedEventSchema
 );
 
-// Tasks (ADR 0053).
 export const taskCreatedTopic = createTopic('task.created', taskCreatedEventSchema);
 export const taskUpdatedTopic = createTopic('task.updated', taskUpdatedEventSchema);
 /** Server-internal: iPhone push listens; no client stream carries it. */
 export const taskAssignedTopic = createTopic('task.assigned', taskAssignedEventSchema);
-/** Follower only: published with the follower as `audienceUserId` (ADR 0053). */
 export const taskFollowUpdatedTopic = createTopic(
     'task.follow.updated',
     taskFollowUpdatedEventSchema

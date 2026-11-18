@@ -1,6 +1,4 @@
 // Placement control for side work: a one-off off-topic question in a purpose
-// channel is still answered with one inline reply and no Task. Guards the
-// channel-purpose sentence against turning every off-topic answer into a Task.
 
 import {
     expectDoneToRequest,

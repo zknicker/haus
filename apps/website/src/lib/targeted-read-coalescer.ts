@@ -11,7 +11,6 @@ import { type ChatScope, type HausClient, TranscriptListReads } from './transcri
 
 export type { ChatScope } from './transcript-list-reads.ts';
 
-/** One message whose annotations (reactions, Task previews, claim, Cloud Agent work) changed. */
 export interface MessageTarget extends ChatScope {
     messageId: string;
 }
@@ -60,7 +59,6 @@ export interface TargetedReadCoalescer {
     reconcileStart(recover: () => void): void;
     /** Stream start: refetch the loaded pages of the Server's (or these Chats') lists. */
     recoverTranscriptLists(scope: { chatIds?: readonly string[]; serverId: string }): void;
-    /** A send receipt or other ack: the same tail read. */
     requestTail(scope: ChatScope & { sequence: number }): void;
 }
 

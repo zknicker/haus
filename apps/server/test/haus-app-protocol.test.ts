@@ -77,11 +77,6 @@ test('the WebSocket gate rejects a stale subscription before serving it', async 
     }
 });
 
-// Protocol 13 makes Tasks places (ADR 0053): boards, columns, Convert to Task, and
-// the Task Inbox are gone, a Task carries its state and not a column, and the
-// Thread migration folds Threads into inline replies. A protocol 12 App still
-// calls `board.list` and `taskInbox.list`, so it must hit the update gate on both
-// transports.
 test('a protocol 12 App gets PRECONDITION_FAILED over HTTP and on socket subscribe', async () => {
     expect(appProtocolVersion).toBe(13);
     const response = await request(12);

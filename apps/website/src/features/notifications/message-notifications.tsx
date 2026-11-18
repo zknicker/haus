@@ -4,12 +4,6 @@ import { useNotificationSurface } from '../../hooks/notifications/use-notificati
 import { useChatReadStream } from '../../hooks/realtime/use-chat-read-stream.ts';
 import { useMessageCreatedStream } from '../../hooks/realtime/use-message-created-stream.ts';
 
-/**
- * The active Server's `chat.onMessageCreated` and `chat.onRead` streams, with
- * desktop and web notifications hearing their live events. The notifier rides
- * these single subscriptions; it opens none of its own. Key it by Server, so
- * switching Servers starts the notifier with nothing seen.
- */
 export function MessageNotifications({ server }: { server: { id: string; slug: string } }) {
     const surface = useNotificationSurface(server.id);
     const notifications = useMessageNotifications(server, surface);

@@ -1,8 +1,3 @@
-// Pacing is for Tasks others assign. Tasks an Agent starts itself, here one per failed check
-// from one request, may run side by side (operator decision 2026-11-18): the Agent must not
-// park its own siblings in `todo` to work them in sequence. Each check is a sealed relay, so it
-// is several steps by construction and a reply will not finish it.
-
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
 import { cancelTasksBy, expectSettled, relayPuzzle, tasksCreatedBy } from '../task-intake.mjs';

@@ -86,10 +86,6 @@ export async function postMessage(
 
 let taskKeys = 0;
 
-/**
- * A Task started from `anchorId` in `parentChatId`, optionally followed by the
- * seeded Agent. Each Task takes its own key entry, so its target is `task:<key>-1`.
- */
 export async function addTask(
     db: HausDatabase,
     seed: Seed,

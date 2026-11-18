@@ -47,17 +47,6 @@ export async function readFreshnessScope(
     };
 }
 
-/**
- * The messages a freshness check counts: written by a human or another Agent
- * after `after`, and neither seen this session nor served to this run.
- *
- * In a Channel or DM only messages delivered to this Agent count, its
- * `agent_inbox` rows, as Raft counts only an Agent's attention facts. History
- * from before it joined, or chatter delivery never planned for it, can never
- * hold it. A Task's Chat (ADR 0053) counts every message, as Raft's side
- * conversations do: a cold Task's boundary is its origin Message, which is not
- * one of the Task's messages.
- */
 export function unseenAttention(scope: FreshnessScope, after: number) {
     const { chatId, generation, runner } = scope;
     return and(

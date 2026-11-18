@@ -133,7 +133,6 @@ export function gradeScenario({ entry, evidence, profile, stamp }) {
     const check = (name, ok) => grade.checks.push({ name, ok });
     const [min, max] = profile.channel;
     check(`channel posts ${min}-${max}`, channelPosts.length >= min && channelPosts.length <= max);
-    // An answer belongs inline in the channel or in a Task started from it (ADR 0053).
     check('no post in another chat', !posts.some((post) => post.label === 'elsewhere'));
     grade.tails = authored.flatMap((message) =>
         tailPhrases.filter((phrase) => message.content.toLowerCase().includes(phrase))
@@ -167,7 +166,6 @@ function gradeResult({ check, doneSends, grade, ownReactions, profile, result, w
         check('result is an inline reply', result.label === 'inline-reply');
     }
     // The journal is the source for both flags: `--done` ends the typing
-    // indicator, and `--reply-to` is what notifies the asker.
     const send = doneSends.find((entry) => entry.body.trim() === result.content.trim());
     grade.finished = result.finished;
     grade.repliesToRequest =

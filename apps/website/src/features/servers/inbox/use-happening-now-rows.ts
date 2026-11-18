@@ -49,11 +49,6 @@ export function useHappeningNowRows(): HappeningNowRow[] | null {
     return settled ? rows : null;
 }
 
-/**
- * Opening a row: Cloud Agent work on a Task opens that Task's page (ADR 0053),
- * other work opens its own place (`useOpenCloudAgentWork`), and an Agent in a
- * turn opens its profile.
- */
 export function useOpenHappeningNowRow(): (row: HappeningNowRow) => void {
     const { server } = useServerContext();
     const navigate = useNavigate();

@@ -7,8 +7,6 @@ export function useChatMessageSend() {
     return hausTrpc.chat.send.useMutation({
         // `chat.onMessageCreated` owns the transcript response for a send. This
         // is only the sender's ack fallback for when that event is slow: the
-        // same idempotent tail read. Never awaited: the composer has already
-        // cleared and the transcript's pending row is carrying the message.
         onSuccess: ({ message }) => {
             coalescer.requestTail({
                 chatId: message.chatId,

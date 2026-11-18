@@ -7,10 +7,6 @@ import { chatsTable, taskKeysTable } from '../postgres/schema.ts';
 type Reader = Pick<HausDatabase, 'select'>;
 type Writer = Pick<HausDatabase, 'select' | 'update'>;
 
-/**
- * The key ledger (ADR 0053 decision 11): each entry numbers its own Tasks, and
- * `tasks_key_number_key` keeps those numbers unique. Returns the new entry's id.
- */
 export async function insertTaskKeyEntry(
     tx: Pick<HausDatabase, 'insert'>,
     input: { key: string; serverId: string }
@@ -20,10 +16,6 @@ export async function insertTaskKeyEntry(
     return id;
 }
 
-/**
- * The Server's General entry, made with the Server. Channels made with it take
- * its key (`defaultChannelTaskKeys`).
- */
 export async function insertGeneralTaskKey(
     tx: Pick<HausDatabase, 'insert' | 'update'>,
     serverId: string
@@ -33,7 +25,6 @@ export async function insertGeneralTaskKey(
     return id;
 }
 
-/** Takes the next number for a key under the entry's row lock and moves past it. */
 export async function allocateTaskNumber(
     tx: Writer,
     input: { keyId: string; serverId: string }
@@ -53,10 +44,6 @@ export async function allocateTaskNumber(
     return ledger.next;
 }
 
-/**
- * The key a Channel's Tasks take: its configured entry, else the Server's
- * General entry.
- */
 export async function resolveChannelTaskKeyId(
     db: Reader,
     input: { channelId: string; serverId: string }
@@ -76,10 +63,6 @@ export async function resolveChannelTaskKeyId(
     return general;
 }
 
-/**
- * The Server's General ledger entry: the `GEN` entry, else its oldest. Null
- * before the Server has any entry.
- */
 export async function findGeneralTaskKeyId(db: Reader, serverId: string): Promise<string | null> {
     const [general] = await db
         .select({ id: taskKeysTable.id })
@@ -94,7 +77,6 @@ export async function findGeneralTaskKeyId(db: Reader, serverId: string): Promis
     return general?.id ?? null;
 }
 
-/** Gives every Channel without a key the Server's General one. */
 export async function defaultChannelTaskKeys(
     tx: Pick<HausDatabase, 'update'>,
     input: { serverId: string; taskKeyId: string }

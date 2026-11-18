@@ -17,18 +17,10 @@ import { taskStateLabels } from './task-state.ts';
 import { TaskStateDisc } from './task-state-disc.tsx';
 import { showTaskUpdateError } from './task-update-error.ts';
 
-/**
- * The Task page band's controls: its state, its assignee, its Details when
- * the pane is too narrow for the right-hand panel, following, and the
- * reference to paste. A chatless Task shows its state as text and keeps only
- * its reference. Each reads the one cached `task.get`; nothing until it has
- * answered.
- */
 export function TaskBandControls({
     detailsInBand,
     taskKey,
 }: {
-    /** The page shows no right-hand panel, so the band carries the Details. */
     detailsInBand: boolean;
     taskKey: string;
 }) {
@@ -37,9 +29,6 @@ export function TaskBandControls({
     if (!task) {
         return null;
     }
-    // A chatless Task is read-only history (the Server refuses its edits): its
-    // page shows the Details itself, its state is text, and with no
-    // conversation there is nothing to follow.
     const isHistory = task.chatId === null;
     return (
         <>
@@ -63,7 +52,6 @@ export function TaskBandControls({
     );
 }
 
-/** A history Task's state: the disc and its name, nothing to press. */
 function TaskStateText({ state }: { state: TaskDetail['state'] }) {
     return (
         <span className="flex items-center gap-1.5 text-sm">
@@ -73,7 +61,6 @@ function TaskStateText({ state }: { state: TaskDetail['state'] }) {
     );
 }
 
-/** The Details card in a popover, for a pane too narrow to show it beside the conversation. */
 function DetailsButton({ task }: { task: TaskDetail }) {
     return (
         <Popover>
@@ -90,7 +77,6 @@ function DetailsButton({ task }: { task: TaskDetail }) {
     );
 }
 
-/** A follower sees the Task unread and in their Inbox (ADR 0053 decision 9). */
 function FollowButton({ task }: { task: Pick<TaskDetail, 'followed' | 'id' | 'serverId'> }) {
     const follow = useSetTaskFollow();
     const label = task.followed ? 'Stop following' : 'Follow';

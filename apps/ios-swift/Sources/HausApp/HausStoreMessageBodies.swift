@@ -15,7 +15,6 @@ extension HausStore {
     ) -> ParsedMessageBody {
         let revision = projections.referenceRevision
         // Task links ride the Message rather than the reference directory: a
-        // re-keyed Task changes them without changing the content.
         if let cached = projections.bodies.cached(id: id, content: content, revision: revision),
            cached.taskLinks == taskLinks {
             return cached

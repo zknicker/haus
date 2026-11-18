@@ -18,27 +18,12 @@ const conversationLayout = { showAgentIdentity: true, showHumanIdentity: true } 
 const noPendingMessages: ReadonlyMap<string, PendingChatMessage> = new Map();
 const noRepliedRuns: ReadonlySet<string> = new Set();
 
-/**
- * The transcript render context for one open Unread row: the same message
- * content, media, mentions, references, and author faces a Chat renders, so
- * the row's messages read exactly as they do in the conversation (ADR 0050).
- *
- * It differs from `useChatTranscript` only where a row is not a transcript.
- * It reads nothing per Chat — no Cloud Agent work list, no message entities —
- * because a page of rows fanning out per-Chat reads is the request burst
- * that wedges a Server; every read here is a Server-wide list the page
- * already holds. And it is read-only: no reactions, no inline-reply
- * actions, no mention requests. Answering happens in the row's own composer,
- * and anything more opens the conversation. An artifact link opens it too,
- * since the Artifact Panel belongs to the Chat (ADR 0004).
- */
 export function useUnreadRowRenderContext({
     chatId,
     messages,
     onOpenConversation,
     serverId,
 }: {
-    /** The Chat the messages live in: the Channel, DM, or Task. */
     chatId: string;
     messages: readonly ChatMessage[];
     onOpenConversation: () => void;

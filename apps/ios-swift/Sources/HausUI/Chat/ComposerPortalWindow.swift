@@ -53,7 +53,6 @@ final class ComposerPortalWindowController {
     }
 
     /// Tears the window down once no screen is hosting a portal, so it exists only for as long as a
-    /// Chat or Task is on screen.
     func detachIfIdle() {
         guard ComposerPortalPresenter.shared.host == nil else { return }
         detach()

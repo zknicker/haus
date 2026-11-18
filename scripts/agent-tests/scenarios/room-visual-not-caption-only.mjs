@@ -48,8 +48,6 @@ export default defineScenario({
         await kit.harness.waitForAgentQuiet(bystander.id, 10_000, 300_000);
 
         log('checking gates');
-        // A pickup note before the answer is ordinary; the answer is one channel
-        // post and nothing follows it there.
         const placement = await readPlacement(kit, turn, {
             agentId: worker.id,
             channelId: channel.id,

@@ -38,8 +38,6 @@ public struct TaskReferenceTarget: Hashable, Sendable {
 /// prose — and a key is chipped only if the Server resolved it, so `UTF-8` in a
 /// sentence stays text.
 ///
-/// The chip reads the Task's current key, because a Task can be re-keyed while
-/// the Message keeps the words it was written with.
 public enum TaskLinkChips {
     public static func apply(_ links: [TaskLink], to blocks: [RichMessageBlock]) -> [RichMessageBlock] {
         let byText = Dictionary(

@@ -1,22 +1,11 @@
 import SwiftUI
 
-/// A Task opened on iPhone (ADR 0053 decision 15): its conversation as a chat
-/// — the Chat timeline's rows and the iPhone composer, unchanged — under a
-/// simple header naming the Task, its state, and the work attached to it. A
-/// quiet "Started from" row heads the transcript and opens the origin Message.
-///
-/// The App owns fetching and mutation; this view presents. It is one pushed
-/// screen, so its composer state is screen-owned. Who is working
-/// shows in the header row under the band, never as a row at the transcript's
-/// tail, and nothing presented over the screen moves or insets its content.
 public struct TaskChatView: View {
     let header: TaskChatHeaderPresentation?
     let contextLabel: String?
     let startedFrom: TaskStartedFromPresentation?
     let onOpenOrigin: () -> Void
     private let messageProvider: () -> [MessagePresentation]
-    /// Whether the first page has landed. Until then the screen is blank: no
-    /// skeleton, and no "Started from" row that the page would then push up.
     private let isLoaded: Bool
     private let isConnected: Bool
     private let isReadOnly: Bool
@@ -31,8 +20,6 @@ public struct TaskChatView: View {
     @State private var draft = ""
     @State var projection = TaskTranscriptProjection()
     @State private var showsOutage = false
-    /// A first page that never comes (offline, a failed read) must not leave
-    /// the Task blank; after `firstPageHold` the transcript shows anyway.
     @State private var holdExpired = false
     @State private var isNearNewest = true
     @State var reveal: TranscriptReveal?
@@ -40,7 +27,6 @@ public struct TaskChatView: View {
     @State var attachmentPreview: AttachmentPreview?
     @State var attachmentTiles = AttachmentImageTileRegistry()
     @State var visualHeights = VisualHeightRegistry()
-    /// Hosted rows do not inherit the environment; see `MessageTimelineView`.
     @Environment(\.reactionStickers) var reactionBoard
     @State var actionMessage: MessagePresentation?
     @State var heldMessageID: String?
@@ -84,14 +70,11 @@ public struct TaskChatView: View {
         self.mentionOptions = mentionOptions
         self.onLoadMentionOptions = onLoadMentionOptions
         self.onVisibleMessagesChange = onVisibleMessagesChange
-        // Decided once, on the first init: reading moves the unread row, and
-        // the view must not chase it.
         _reveal = State(initialValue: landingMessageID.map {
             TranscriptReveal(token: UUID(), id: $0, animated: false, placement: .landing)
         })
     }
 
-    /// How long the screen waits for its first page before showing what it has.
     static let firstPageHold = Duration.milliseconds(1_200)
 
     public var body: some View {
@@ -104,8 +87,6 @@ public struct TaskChatView: View {
             ZStack(alignment: .bottomLeading) {
                 transcript(items: items, rowRevision: rowRevision)
                     .opacity(isLoaded || holdExpired ? 1 : 0)
-                    // Who is working hangs under the band, over the
-                    // transcript rather than in its layout.
                     .overlay(alignment: .top) {
                         if let engagementChatID {
                             HeaderEngagement(chatID: engagementChatID, style: .roster)
@@ -170,8 +151,6 @@ public struct TaskChatView: View {
         .messageActionDrawer(for: $actionMessage, board: reactionBoard)
     }
 
-    /// The Chat timeline's flipped-table substrate, so the bottom anchor,
-    /// keyboard rides, and history prepends behave exactly as in a Chat.
     private func transcript(items: [TaskTranscriptItem], rowRevision: Int) -> some View {
         GeometryReader { proxy in
             TranscriptListView(

@@ -38,7 +38,6 @@ test('the sidebar navigates the current tab, Back returns, and Command-click ope
     await page.getByRole('row', { exact: true, name: 'Tasks' }).click({ modifiers: ['Meta'] });
     await expect(tabs).toHaveCount(2);
     await expect(tabs.nth(0)).toContainText('all');
-    // `/tasks` is the one flat Tasks page, named as the section.
     await expect(tabs.nth(1)).toContainText('Tasks');
     await expect(tabs.nth(0)).toHaveAttribute('data-active', 'true');
     await expect(tabs.nth(1)).not.toHaveAttribute('data-active', 'true');
@@ -106,7 +105,6 @@ test('panes: a Task opens in the right pane, Move to right pane splits, and an e
     const composer = page.getByRole('textbox', { name: 'Message all' });
     const openTask = new RegExp(`^Open task ${key},`, 'u');
 
-    // A Task opens as a new tab in the right pane, creating it in a one-pane window
     // (Open, ADR 0046); the chat stays in the left pane.
     await page.getByRole('button', { name: openTask }).click();
     await expect(left).toHaveCount(1);

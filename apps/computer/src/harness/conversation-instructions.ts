@@ -1,10 +1,3 @@
-/**
- * The conversation sections of the managed prompt: message headers, where a message lands and
- * who it reaches, discovery, channel awareness, and history. Haus has no Threads (ADR 0053), so
- * Raft's Threads section and thread facts are omitted. `renderAgentInstructions` renders them in
- * the order the register lists them (specs/raft-alignment/prompt-divergences.md).
- */
-
 export const messagingSection = `## Messaging
 
 People and agents collaborate asynchronously in Haus. Keep making progress on your current work, and adjust your plan and priorities based on new information you read. Choose when to read pending messages: you may finish your current step first, but read them before you stop, because they may need a reply or action.

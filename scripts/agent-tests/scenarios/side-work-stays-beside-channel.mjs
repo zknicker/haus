@@ -1,12 +1,4 @@
-// Side work in a busy channel: two peers are working through month-end close in
 // a finance channel when a human pulls the Agent into an unrelated code review,
-// then keeps following up through findings, a fix, and a second pass while the
-// finance talk carries on around it. Each write-up must be substantial and
-// reach the human. There are no Threads (ADR 0053): work that outlasts a reply
-// goes in a Task started from a channel message, which the asker follows. The
-// measured behavior is the review leaving the channel for that Task: at most two
-// Agent posts in the channel across three rounds. Placement is the Agent's
-// judgment, so read this as a rate against baseline.
 
 import { wordCount } from '../placement.mjs';
 import { withRoutingEvidence } from '../routing-evidence.mjs';
@@ -111,11 +103,6 @@ function sendFollowUp(kit, channelId, content, previous) {
     });
 }
 
-/**
- * The Agent's post carrying `token`, in the channel or in a Task it started from this channel
- * during the run. Both reach the human: the channel is where they asked, and the asker follows
- * a Task started from their request.
- */
 async function findAnswer(kit, channelId, agentId, token, since) {
     const own = (message) =>
         message.author.kind === 'agent' &&

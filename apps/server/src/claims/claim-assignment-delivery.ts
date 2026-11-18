@@ -30,8 +30,6 @@ export async function deliverClaimAssignment(
         messageId: claim.messageId,
         serverId,
     });
-    // A claim inside a Task delivers only to the Task's followers, so the
-    // assignee follows the Task too, or it would never see a single reply.
     const [chat] = await tx
         .select({ kind: chatsTable.kind })
         .from(chatsTable)
@@ -42,7 +40,6 @@ export async function deliverClaimAssignment(
     }
 
     // The claim's title is its canonical message's content, and its target is
-    // that message's Chat.
     const [message] = await tx
         .select({ chatId: chatMessagesTable.chatId, content: chatMessagesTable.content })
         .from(chatMessagesTable)

@@ -125,7 +125,6 @@ export async function purgeDeletedChannel(
                 )
             );
         const childIds = chatIds.filter((id) => id !== input.chatId);
-        // Task Chats go with the Channel; their Tasks stay, canceled.
         const detachedTaskEvents = await detachTasksFromRemovedChats(tx, {
             chatIds: childIds,
             serverId: input.serverId,

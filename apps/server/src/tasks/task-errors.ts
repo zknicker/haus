@@ -14,7 +14,6 @@ export class TaskConflictError extends Error {
     }
 }
 
-/** A key-ledger entry with that key already exists on the Server. */
 export class TaskKeyConflictError extends Error {
     constructor(key: string) {
         super(`Another Task key on this Server is already ${key}.`);
@@ -34,10 +33,6 @@ export class TaskInvariantError extends Error {
     }
 }
 
-/**
- * A Task named an origin Message in a DM. Tasks start from a Message in a
- * Channel; a DM request gets a reply carrying the Task chip (ADR 0053 decision 4).
- */
 export class TaskOriginDmError extends Error {
     constructor() {
         super(
@@ -47,10 +42,6 @@ export class TaskOriginDmError extends Error {
     }
 }
 
-/**
- * A Task from before Tasks were places that 0127 left without a Chat is
- * read-only history: nothing changes its state, assignee, or fields.
- */
 export function requireTaskPlace<Task extends { chatId: string | null }>(
     task: Task
 ): asserts task is Task & { chatId: string } {

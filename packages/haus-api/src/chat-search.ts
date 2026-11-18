@@ -16,7 +16,6 @@ export const chatSearchInputSchema = z
     .strict();
 
 export const chatSearchResultSchema = chatMessageSchema.extend({
-    /** When the Message's Channel or DM was archived; a Task reads its Channel's. */
     chatArchivedAt: timestampSchema.nullable(),
 });
 

@@ -195,11 +195,6 @@ export async function cancelAgentReminder(
     };
 }
 
-/**
- * The anchor a schedule names: a readable message, or a `task:KEY-n` target,
- * which anchors on the Task's newest message, or its origin Message while the
- * Task has no posts (ADR 0053 decision 16).
- */
 async function resolveReminderAnchor(
     db: HausDatabase,
     runner: ResolvedRunner,

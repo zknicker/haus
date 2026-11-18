@@ -14,8 +14,6 @@ test('navigation treats resolved infinite-query error results as failed pages', 
     expect(historyFetchFailed(undefined)).toBe(false);
 });
 
-// A window can show a message twice (a hidden tab keeps its transcript): a document-wide
-// lookup flashed the wrong copy and left the chat's own row unmarked.
 test('a reveal flashes the message in its own transcript, never another copy in the window', () => {
     const scope = globalThis as unknown as Record<string, unknown>;
     const saved = { CSS: scope.CSS, window: scope.window };

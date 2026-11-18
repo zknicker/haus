@@ -10,15 +10,6 @@ import type { HausClient } from '../../lib/transcript-list-reads.ts';
 import { taskDetailKeys } from '../tasks/task-cache.ts';
 import { useSubscriptionRestart } from './use-subscription-restart.ts';
 
-/**
- * `task.onCreated`: the Tasks page's lists, the sidebar's open Tasks, and the
- * origin Message's preview. An Agent starts a Task from a Message that is
- * usually already on screen, so no message stream rereads it: the stream
- * reads the new Task's origin and refreshes that one Message's entity, whose
- * `chat.message` answer carries the preview the entity owns. The
- * preview shows from the start, before the Task has a message of its own. A
- * start reconciles the lists; previews ride the transcript recovery.
- */
 export function useTaskCreatedStream(serverId: string | undefined) {
     const coalescer = useTargetedReadCoalescer();
     const queryClient = useQueryClient();
@@ -49,15 +40,10 @@ export function applyTaskCreated(
 ) {
     invalidateTaskLists(coalescer, event.serverId);
     void refreshTaskOrigin(coalescer, queryClient, client, event).catch((error: unknown) => {
-        // The preview then waits for the origin Chat's next read; the lists are current.
         console.error('[haus] Could not read a new Task to show its preview', error);
     });
 }
 
-/**
- * The new Task's origin Message, refreshed in place. Nothing reads while no
- * transcript is loaded, since no row could show the preview.
- */
 async function refreshTaskOrigin(
     coalescer: TargetedReadCoalescer,
     queryClient: QueryClient,

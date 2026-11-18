@@ -2,8 +2,6 @@ import HausModels
 @testable import HausUI
 import Testing
 
-/// A claim on a message, stated on that message under the reader's Chat
-/// preference.
 struct MessageClaimMarkTests {
     @Test func hidesAnAgentClaimUntilTheReaderAsksForIt() {
         let claim = ClaimPresentation(number: 12, origin: .claimed, status: .inProgress, assignee: nil)

@@ -8,7 +8,6 @@ import {
     seededRandom,
 } from './thread-migration-rows.ts';
 
-/** Production's shape when the Thread migration was planned (ADR 0053 decision 14). */
 export const productionShape = {
     cloudWorkThreads: 25,
     taskChats: 10,
@@ -54,7 +53,6 @@ const parentCount = 12;
 const dmStart = 8;
 const taskMessagesEach = 10;
 
-/** Builds and inserts the dataset; returns the in-memory model for spot checks. */
 export async function seedThreadMigrationDataset(database: SQL) {
     const dataset = buildThreadMigrationDataset();
     await insertDatasetTables(database, dataset.tables);
@@ -137,7 +135,6 @@ function parentChat(index: number): DatasetChat {
     };
 }
 
-/** Thread `index` under its anchor's Chat: 6 or 5 replies, some inline, interleaved in time. */
 function threadChat(
     index: number,
     anchor: DatasetMessage,
@@ -166,7 +163,6 @@ function threadChat(
     return chat;
 }
 
-/** A Task Chat on the anchor of every 22nd Channel Thread, untouched by the migration. */
 function taskChats(threads: DatasetChat[]) {
     const channelThreads = threads.filter((thread) => thread.parent?.kind === 'channel');
     return Array.from({ length: productionShape.taskChats }, (_, index) => {
@@ -193,10 +189,6 @@ function taskChats(threads: DatasetChat[]) {
     });
 }
 
-/**
- * Nonces are unique per Chat only: Thread 0's first reply reuses its anchor's
- * nonce, and two Threads under one parent share one.
- */
 function shareNonces(threads: DatasetChat[]) {
     const first = threads[0] as DatasetChat;
     (first.messages[0] as DatasetMessage).nonce = (first.anchor as DatasetMessage).nonce;

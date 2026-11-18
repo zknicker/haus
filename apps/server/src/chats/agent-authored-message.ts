@@ -34,7 +34,6 @@ export interface AgentAuthoredMessage {
     event: PreparedRealtimeEvent;
     messageId: string;
     sequence: number;
-    /** `task.updated` when the Message reopened the done or canceled Task it landed in. */
     taskEvents: PreparedRealtimeEvent[];
     wakes: Array<{ agentId: string; serverId: string }>;
 }
@@ -140,8 +139,6 @@ export async function writeAgentAuthoredMessage(
         })
         .returning();
 
-    // Posting in a Task (ADR 0053) follows it, along with the people the
-    // message mentions, and reopens a done or canceled Task (decision 13).
     const reopened =
         plan.chat.kind === 'task'
             ? await reopenTaskOnPost(db, { chatId: plan.chatId, serverId: runner.serverId })

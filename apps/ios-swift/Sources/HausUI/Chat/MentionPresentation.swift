@@ -18,8 +18,6 @@ public enum MentionPresentationKind: CaseIterable, Hashable, Sendable {
     case directory
     case file
     case human
-    /// A Message in its Channel or DM, by the legacy wire form; see
-    /// `MessageReferenceTarget`.
     case message
     case plugin
     case pullRequest
@@ -27,7 +25,6 @@ public enum MentionPresentationKind: CaseIterable, Hashable, Sendable {
     /// `SharedArtifactLinkTarget.key`; see `SharedArtifactLinkTarget`.
     case sharedArtifact
     case skill
-    /// A Task, by its id (`task://<taskId>`), or a bare key the Server
     /// resolved when the Message was written; see `TaskLinkChips`.
     case task
     case website
@@ -178,7 +175,6 @@ public struct RichReferencePresentation: Hashable, Sendable {
         switch kind {
         case .pullRequest, .website: RichReferenceWireForm.activationURL(for: id)
         // An in-app address: the text view's link coordinator routes it to the
-        // Message instead of handing it to the system (`InAppReferenceRoutes`).
         case .message: MessageReferenceTarget(wireTarget: id).flatMap { _ in URL(string: id) }
         // In-app too: `InAppReferenceRoutes` opens the artifact viewer.
         case .sharedArtifact: SharedArtifactLinkTarget(key: id)?.inAppURL

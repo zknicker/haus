@@ -56,7 +56,6 @@ test('App status and assignment changes of a top-level claim name its Channel', 
     });
     expect(await delivered.next()).toEqual(expected);
 
-    // After an inline reply, the Message still sits in the Channel.
     await owner.trpc.chat.send.mutate({
         chatId,
         content: 'First reply',

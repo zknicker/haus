@@ -14,7 +14,6 @@ interface DatasetChats {
     threads: DatasetChat[];
 }
 
-/** Everything that names a Chat or Message besides the Messages themselves. */
 export function addDatasetLinks(tables: DatasetTables, chats: DatasetChats, random: () => number) {
     addReads(tables, chats, random);
     addAgentPositions(tables, chats, random);
@@ -23,7 +22,6 @@ export function addDatasetLinks(tables: DatasetTables, chats: DatasetChats, rand
     addDatasetRecords(tables, chats);
 }
 
-/** Human read markers and follows at varied positions, plus Task follows that must survive. */
 function addReads(tables: DatasetTables, chats: DatasetChats, random: () => number) {
     users.forEach((userId, user) => {
         chats.parents.forEach((chat, index) => {
@@ -70,7 +68,6 @@ function addReads(tables: DatasetTables, chats: DatasetChats, random: () => numb
     });
 }
 
-/** Agent read markers, follows, and freshness cursors across two session generations. */
 function addAgentPositions(tables: DatasetTables, chats: DatasetChats, random: () => number) {
     agents.forEach((agentId, agent) => {
         chats.parents.forEach((chat, index) => {
@@ -135,7 +132,6 @@ function addAgentPositions(tables: DatasetTables, chats: DatasetChats, random: (
     });
 }
 
-/** Inbox deliveries for Thread and parent Messages, and exact-visibility rows. */
 function addInboxItems(tables: DatasetTables, chats: DatasetChats) {
     let counter = 0;
     const deliver = (message: DatasetMessage, agentId: string, mentioned: boolean) => {
@@ -174,7 +170,6 @@ function addInboxItems(tables: DatasetTables, chats: DatasetChats) {
     }
 }
 
-/** Held drafts: a parent draft beats a Thread draft, the newest Thread draft beats another. */
 function addDrafts(tables: DatasetTables, threads: DatasetChat[]) {
     const first = threads[1] as DatasetChat;
     const sibling = threads.find(

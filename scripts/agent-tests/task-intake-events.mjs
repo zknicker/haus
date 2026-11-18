@@ -1,15 +1,6 @@
-// Event sources for the task-intake scenarios: a Reminder the Agent owns, fired now through
-// the dev-only `dev.fireReminderNow` route, and a GitHub `workflow_run` Trigger fired by a
-// signed delivery on the seeded `acme` installation (github-world.mjs). Both seed through the
-// same Agent routes the CLI uses, so the Agent meets an ordinary fire.
-
 import { createAgentAuthor } from './author.mjs';
 import { createAgentGithubTrigger, seedGithubWorld } from './github-world.mjs';
 
-/**
- * Schedules a one-shot Reminder owned by `agentId`, anchored on `messageId`, an hour out, as
- * `haus reminder schedule` would. The scenario fires it with `fireReminderNow`.
- */
 export async function scheduleAgentReminder(
     kit,
     { agentId, chatId, description, messageId, title }
@@ -40,7 +31,6 @@ export async function scheduleAgentReminder(
     return payload.reminder;
 }
 
-/** Fires the Reminder now and settles the fire turn. Returns the turn and the fire id. */
 export async function fireReminderNow(kit, { agentId, reminder, settleTurn }) {
     const settling = settleTurn(agentId, { startWithin: 90_000 });
     await kit.trpc('dev.fireReminderNow', { reminderId: reminder.id, serverId: kit.serverId });
@@ -72,11 +62,6 @@ export async function cancelReminder(kit, reminder, agentId) {
     }
 }
 
-/**
- * Seeds the `acme` installation, anchors a `workflow_run` Trigger owned by the worker on a
- * plain FYI in `channel`, and returns `fire(conclusion, workflow)`, which posts a signed
- * delivery and settles the fire turn, plus `cleanup()`.
- */
 export async function armWorkflowTrigger(kit, { channel, conclusion, instruction, title, worker }) {
     const world = await seedGithubWorld(kit, worker);
     try {
@@ -143,7 +128,6 @@ async function disarm(kit, world, agentId) {
     await world.cleanup();
 }
 
-/** A completed run on main, shaped like GitHub's `workflow_run` payload. */
 function workflowRun(world, { conclusion, name }) {
     const path = `.github/workflows/${name.toLowerCase().replaceAll(' ', '-')}.yml`;
     const sha = 'acb5820ced9479c074f688cc328bf03f341a511d';

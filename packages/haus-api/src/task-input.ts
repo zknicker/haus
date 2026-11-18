@@ -27,10 +27,8 @@ export const taskListAssigneeFilterSchema = z.union([
 export const taskListInputSchema = z
     .object({
         assignee: taskListAssigneeFilterSchema.optional(),
-        /** Tasks numbered by this key-ledger entry (ADR 0053 decision 11). */
         keyId: idSchema.optional(),
         serverId: idSchema,
-        /** Tasks in any of these states; the Tasks page reads all four. */
         states: z.array(taskStateSchema).min(1).optional(),
     })
     .strict();
@@ -112,7 +110,6 @@ export const taskAssignInputSchema = z
  */
 export const agentTaskStartInputSchema = z
     .object({
-        /** `me` or an @handle; defaults to the calling Agent. */
         assignee: z.string().trim().min(1).max(64).optional(),
         description: taskDescriptionSchema.optional(),
         dueOn: taskDueOnSchema.optional(),

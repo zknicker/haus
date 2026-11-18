@@ -1,7 +1,6 @@
 import Foundation
 
 /// The compact "now / 5m / 3h / 2d / Aug 18" age used by dense rows such as
-/// Task previews, claim rows, and search results.
 enum HausCompactRelativeTime {
     static func label(for date: Date, now: Date = .now) -> String {
         let seconds = max(0, Int(now.timeIntervalSince(date)))

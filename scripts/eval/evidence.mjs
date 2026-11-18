@@ -1,5 +1,4 @@
 // Reads one scenario run's saved evidence: the runner transcript, the routing
-// evidence a scenario captured (chats, Tasks, journals), the `--done` sends
 // those journals carry, and a display timeline for the report.
 
 import { existsSync } from 'node:fs';
@@ -63,7 +62,6 @@ export function evidenceMessages(evidence) {
     return [...new Map(all.map((message) => [message.id, message])).values()].sort(byTime);
 }
 
-/** The chats of the Tasks started from the evidence chats' messages (ADR 0053). */
 export function evidenceTaskChatIds(evidence) {
     return evidence.chats.flatMap((chat) => (chat.tasks ?? []).map((task) => task.chatId));
 }

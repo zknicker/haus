@@ -18,7 +18,6 @@ import { readTasks } from './task-read.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 
-/** `task.list`: the Server's Tasks, filtered by assignee, state, and key-ledger entry. */
 export async function listTasks(
     db: Reader,
     actor: TaskActor,
@@ -35,11 +34,6 @@ export async function listTasks(
     });
 }
 
-/**
- * `task.listOpen`, the sidebar (ADR 0053 decision 8): every `open` Task whose
- * origin Channel the actor can see. Todo, done, and canceled Tasks, and older
- * Tasks with no Chat of their own, are not listed.
- */
 export async function listOpenTasks(
     db: Reader,
     actor: TaskActor,

@@ -39,21 +39,6 @@ export type CreateCloudAgentWorkResult =
       }
     | { held: AgentCloudAgentHeld; kind: 'held' };
 
-/**
- * Writes one Cloud Agent work on a Task (ADR 0053 decision 6): an ordinary
- * text Message in the Task's Chat holding the Agent's own words plus a
- * Server-trusted link to the new work (ADR 0044), the work record attached to
- * the Task and reporting to its Chat, its first Run in `queued`, the Message's
- * links, ordinary delivery planning, and the durable events — all in one
- * transaction, idempotent by the message nonce. The Computer launches the
- * provider only after this commits, so a later provider failure settles this
- * same work rather than erasing it. A launch with no Task is refused.
- *
- * A new launch first runs the `haus message send` freshness check against the
- * Task's Chat. When it holds, nothing is written beyond the served-visibility
- * marks the check itself records, so a re-run (any nonce) is not held again
- * for the same messages. A committed nonce replays before the check.
- */
 export async function createCloudAgentWork(
     db: HausDatabase,
     runner: ResolvedRunner,
@@ -116,7 +101,6 @@ export async function createCloudAgentWork(
             });
         }
 
-        // `chat_id` is the Task's Chat, so every Run notice reports to the Task.
         await tx.insert(cloudAgentWorkTable).values({
             agentId: runner.agentId,
             chatId: plan.chatId,
@@ -160,7 +144,6 @@ export async function createCloudAgentWork(
         return {
             events: [
                 written.event,
-                // The Task now lists this work: its reopen announces that, or attaching does.
                 ...(written.taskEvents.length > 0
                     ? written.taskEvents
                     : [prepareTaskUpdatedEvent(await readTask(tx, runner.serverId, task.taskId))]),

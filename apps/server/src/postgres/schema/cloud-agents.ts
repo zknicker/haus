@@ -51,7 +51,6 @@ export const cloudAgentWorkTable = pgTable(
         startedAt: timestamp('started_at', { withTimezone: true }),
         startingRef: text('starting_ref'),
         status: text('status').notNull().default('queued').$type<CloudAgentStatus>(),
-        /** The Task this work attaches to and reports to (ADR 0053); null before Tasks. */
         taskId: text('task_id'),
         terminalAt: timestamp('terminal_at', { withTimezone: true }),
         title: text('title').notNull(),
@@ -59,7 +58,6 @@ export const cloudAgentWorkTable = pgTable(
     },
     (table) => [
         unique('cloud_agent_work_server_id_key').on(table.serverId, table.id),
-        // Not cascade: work outlives nothing but its Server; 0124 defers the check.
         foreignKey({
             columns: [table.serverId, table.taskId],
             foreignColumns: [tasksTable.serverId, tasksTable.id],

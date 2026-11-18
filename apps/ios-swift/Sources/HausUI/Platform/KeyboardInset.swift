@@ -17,7 +17,6 @@ struct KeyboardInsetSample: Equatable {
     /// The inset a keyboard whose top edge sits at `keyboardTop` implies, both measured in the same
     /// space as `screenBottom`. A keyboard below the screen — hidden — reads as the safe area, and
     /// so does any keyboard frame while nothing is editing: after a cancelled back swipe out of a
-    /// Task, UIKit keeps reporting a 233-point keyboard that is not on screen.
     static func inset(
         screenBottom: CGFloat,
         keyboardTop: CGFloat,
@@ -112,7 +111,6 @@ private final class KeyboardInsetView: UIView {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     /// The announced frame is reported straight away, on the keyboard's own curve. The guide alone
-    /// misses a keyboard that leaves while this screen is mid-transition — a Task popped by the
     /// back swipe with its keyboard up — and its last mid-flight reading would hold the composer in
     /// the air. An announcement made while this screen is off the window is picked up from the
     /// guide when it returns (`didMoveToWindow`).

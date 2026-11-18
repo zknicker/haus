@@ -223,7 +223,6 @@ test('renders a claim assignment as a bodiless @haus item keyed to its claim mes
     });
 
     // The assignment key shortens to the claim message it hands over, so `msg=`
-    // stays an id the Agent can read, reply to, or react to.
     expect(composeInboxDrain([assignment])).toContain(
         '[target=#general msg=1a2b3c4d time=2026-07-27 00:00:00 UTC type=system mentioned=true] haus: [Haus claim assignment claim=#1 target=#general assignedBy=@zach] Scout the release notes'
     );

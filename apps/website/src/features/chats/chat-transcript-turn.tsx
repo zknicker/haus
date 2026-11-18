@@ -693,7 +693,6 @@ function AgentTurnItem({
 
         if (streaming) {
             // A streaming post is not durable yet (a silent turn discards
-            // it), so it offers no reply or reaction affordances.
             return (
                 <AssistantReplyBody
                     content={getActiveReplyDisplayText(row.message.content)}

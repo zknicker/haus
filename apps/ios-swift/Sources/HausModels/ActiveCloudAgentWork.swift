@@ -2,8 +2,6 @@ import Foundation
 
 /// One queued or running Cloud Agent work visible to the viewer, with
 /// everything the Inbox's "Happening now" section needs to name it and open its
-/// conversation. Like `OpenAsk`, the Chat facts always name the Channel or DM.
-/// Server membership and Chat access gate the read, so work the
 /// viewer cannot see never arrives and no client-side filtering is needed.
 public struct ActiveCloudAgentWork: Decodable, Identifiable, Sendable, Equatable {
     /// The delegating Agent's stored display name; a retired Agent keeps it.
@@ -15,10 +13,7 @@ public struct ActiveCloudAgentWork: Decodable, Identifiable, Sendable, Equatable
     /// Where opening this row goes.
     public let location: ActiveCloudAgentWorkLocation
     public let work: CloudAgentWork
-    /// The Task the work reports to (ADR 0053 decision 6), which opening the
-    /// row opens; nil for older work.
     public var taskID: String? = nil
-    /// That Task's key, such as `SEC-12`.
     public var taskKey: String? = nil
 
     public var id: String { work.id }
@@ -36,9 +31,7 @@ public struct ActiveCloudAgentWork: Decodable, Identifiable, Sendable, Equatable
     }
 }
 
-/// Where "Happening now" opens one work without a Task (ADR 0044, Q4).
 public enum ActiveCloudAgentWorkLocation: Hashable, Sendable {
-    /// The newest visible linking Message, revealed in its Channel or DM.
     case message(chatID: String, messageID: String)
 }
 

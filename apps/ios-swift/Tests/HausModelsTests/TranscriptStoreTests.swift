@@ -87,8 +87,6 @@ final class TranscriptStoreTests: XCTestCase {
         XCTAssertNil(store.entities["m9"])
     }
 
-    /// A missed Task message heals through the bulk reload: the reseeded page
-    /// carries the origin's new preview, and the list's ids and paging stay.
     func testAReseedRewritesTheOriginTaskPreviewAndKeepsPaging() {
         var store = TranscriptStore()
         store.write(F.page(F.messages(1...3), nextBefore: 1, tasks: [F.task(origin: "m2", messageCount: 1)]),

@@ -578,7 +578,6 @@ test('an inline reply answer in the anchor Chat infers its fire', async () => {
         replyToMessageId: anchorMessageId,
         serverId,
     });
-    // The Agent has read the reply, so the answer is not held behind it.
     await advanceSeenCursor(connection.db, {
         agentId,
         chatId: channelId,

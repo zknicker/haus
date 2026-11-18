@@ -13,13 +13,6 @@ export const localReadSettleMs = 1000;
 // Rows this client cleared ahead of the Server, per cache, until a refetch confirms them.
 const pendingReads = new WeakMap<QueryClient, Set<string>>();
 
-/**
- * Viewing a Chat through its newest message clears its unread row at once:
- * its sidebar chip and Inbox row (`chat.list`). A read through the newest
- * message is the Server's answer. A read short of it leaves the row to the
- * `chat.read` event's refetch. Runs before the request leaves, so that event
- * finds the row pending and still confirms it.
- */
 export function patchLocalChatRead({
     chatId,
     queryClient,
@@ -68,13 +61,6 @@ export function settleLocalChatRead({
     }
 }
 
-/**
- * Whether a read of this Chat can change `chat.list`. A read only lowers
- * unread state, so a settled list that already shows the row read — and not
- * cleared ahead of the Server by this client — needs no refetch. Anything
- * unknown (no list, a fetch in flight) refetches. Clears the pending mark it
- * answers for.
- */
 export function readChangesUnreadList({
     chatId,
     queryClient,

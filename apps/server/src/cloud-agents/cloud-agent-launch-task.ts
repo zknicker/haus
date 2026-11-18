@@ -6,18 +6,12 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
 import { CloudAgentAgentNotFoundError, CloudAgentTaskRequiredError } from './errors.ts';
 
-/** The Task a launch attaches to: its id, its own Chat, and its `task:SEC-12` target. */
 export interface CloudAgentLaunchTask {
     chatId: string;
     target: string;
     taskId: string;
 }
 
-/**
- * Cloud work attaches to a Task and reports to it (ADR 0053 decision 6): the
- * launch Message posts into the Task's Chat, and Run notices land there. A
- * launch naming no Task, or one the Agent cannot reach, is refused.
- */
 export async function requireLaunchTask(
     db: Pick<HausDatabase, 'select'>,
     runner: ResolvedRunner,
@@ -35,7 +29,6 @@ export async function requireLaunchTask(
     return { chatId: task.chatId, target: formatTaskTarget(taskKey), taskId: task.taskId };
 }
 
-/** Cloud Agent work is owned by the Computer that holds the provider access. */
 export async function requireAssignedComputer(
     db: Pick<HausDatabase, 'select'>,
     runner: ResolvedRunner

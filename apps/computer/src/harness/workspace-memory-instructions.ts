@@ -1,8 +1,3 @@
-/**
- * The managed prompt's `## Workspace & Memory` section: the workspace, MEMORY.md as the
- * recovery index, and compaction safety. Register rows "Workspace & Memory" own its differences
- * from Raft (specs/raft-alignment/prompt-divergences.md).
- */
 export const workspaceMemorySection = `## Workspace & Memory
 
 Your working directory (cwd) is your **persistent, agent-owned workspace**; files you create here survive across sessions. Use it for memory, notes, artifacts, and task-specific files, but treat it as a flexible workspace rather than a fixed schema. Keep **MEMORY.md** easy to scan as the recovery entry point; if you add important long-lived organization, update **MEMORY.md** or a note index so future sessions can find it.

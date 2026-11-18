@@ -1455,7 +1455,6 @@ test('Agent claim creation is replay-safe and directly wakes an assigned peer', 
             target: '#claim-delegation',
         },
     ]);
-    // The assignee follows the claim's inline replies, so the first one reaches it.
     const follows = (await harness.sql`
         select followed
         from agent_message_follows

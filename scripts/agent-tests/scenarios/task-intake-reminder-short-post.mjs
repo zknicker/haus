@@ -1,7 +1,3 @@
-// Task intake 5: a Reminder fires whose whole job is a short post (a morning status). The
-// post is the whole of the work, so the Agent posts it top level in the anchor channel,
-// attributed to the fire, and creates no Task.
-
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
 import {

@@ -5,13 +5,6 @@ import { tasksTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { prepareTaskUpdatedEvent } from './task-events.ts';
 
-/**
- * A Channel purge removes the Task Chats under it (ADR 0053). Each Task keeps
- * its record, key, and attached work but loses its Chat and becomes read-only
- * history: a todo or open Task is canceled, a closed one keeps its state. Call
- * inside the purge transaction before the Chats are deleted; publish the
- * events after.
- */
 export async function detachTasksFromRemovedChats(
     tx: HausDatabase,
     input: { chatIds: readonly string[]; serverId: string }

@@ -17,7 +17,6 @@ import { expect, test } from '../support/test.ts';
 // The incident detector (specs/realtime-events.md, "App e2e: the incident
 // detector"). After the 9.5.0 deploy reconnected every socket, the App's one
 // Chat stream failed on resubscribe and nothing restarted it, so kept desktop
-// tabs stopped hearing Agent replies, inline replies, and Cloud Agent rows.
 // A desktop window cannot be refreshed: every change must converge with no reload.
 
 const removedProcedures = ['chat.onEvent', 'chat.events', 'chat.eventHead', 'server.onUpdate'];

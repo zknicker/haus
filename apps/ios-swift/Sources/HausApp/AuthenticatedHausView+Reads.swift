@@ -9,8 +9,6 @@ import SwiftUI
 /// three hooks are the whole seam between them.
 extension AuthenticatedHausView {
     /// The Chat the canvas has to have open, and the only one that
-    /// acknowledges: a pushed Task covers the canvas and owns the open Chat
-    /// while it is on screen.
     var canvasOpenChatID: String? {
         ChatCanvasOpen.chatID(
             selectedID: selectedDestinationID,
@@ -19,8 +17,6 @@ extension AuthenticatedHausView {
     }
 
     /// The Chat on screen right now, for deciding whether a foreground push
-    /// would only repeat it: a pushed Task's own Chat, the uncovered canvas
-    /// Chat, or nothing while the Inbox or a read-only Task shows.
     var viewingChatID: String? {
         switch path.last {
         case .task(let taskID):

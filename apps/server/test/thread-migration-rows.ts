@@ -1,18 +1,11 @@
 import type { SQL } from 'bun';
 
-/** A row the Thread migration dataset inserts, keyed by column name. */
 export type DatasetRow = Record<string, DatasetValue>;
 export type DatasetValue = string | number | boolean | null | Date | readonly string[];
 export type DatasetTables = Map<string, DatasetRow[]>;
 
 const insertChunk = 400;
 
-/**
- * Inserts every table's rows as literal multi-row INSERTs inside one
- * transaction with triggers off, the way a restore loads rows: the dataset is
- * internally consistent for every Chat and Message reference the migration
- * reads, but leaves out unrelated parents (Computers, generations, fires).
- */
 export async function insertDatasetTables(database: SQL, tables: DatasetTables) {
     await database.begin(async (tx) => {
         await tx`SET LOCAL session_replication_role = replica`;
@@ -24,7 +17,6 @@ export async function insertDatasetTables(database: SQL, tables: DatasetTables) 
     });
 }
 
-/** Appends rows to a table's list, creating it on first use. */
 export function addRows(tables: DatasetTables, table: string, ...rows: DatasetRow[]) {
     const existing = tables.get(table);
     if (existing) {
@@ -34,7 +26,6 @@ export function addRows(tables: DatasetTables, table: string, ...rows: DatasetRo
     tables.set(table, [...rows]);
 }
 
-/** A deterministic PRNG (mulberry32), so every run builds the same dataset. */
 export function seededRandom(seed: number) {
     let state = seed >>> 0;
     return () => {
@@ -46,7 +37,6 @@ export function seededRandom(seed: number) {
     };
 }
 
-/** A 16-character id body from a counter, for the `xxx_[A-Za-z0-9_-]{16}` id shapes. */
 export function idBody(value: number) {
     return value.toString(36).padStart(16, '0');
 }

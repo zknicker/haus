@@ -116,11 +116,6 @@ function parseInboxItem(item: unknown): AgentInboxItem | null {
 
 type TypedAttention = Pick<AgentInboxItem, 'cloudAgentWork' | 'pullRequestNotice'>;
 
-/**
- * The item's typed attention, if any: settled cloud work or a Task's pull request notice. A
- * change backed by a Run rides `cloudAgentWork`, so both at once is malformed. Typed attentions
- * are system items with zero Chat sequence; every other item has a cursor. Null rejects the item.
- */
 function parseTypedAttention(item: Record<string, unknown>): TypedAttention | null {
     const work = cloudAgentWorkAttentionResponseSchema.optional().safeParse(item.cloudAgentWork);
     const notice = pullRequestChangeResponseSchema.optional().safeParse(item.pullRequestNotice);

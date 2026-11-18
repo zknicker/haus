@@ -6,12 +6,6 @@ import { SQL } from 'bun';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { startPostgresCluster } from './postgres-cluster.ts';
 
-/**
- * ADR 0053 decisions 6 and 16 over rows 0124 left: a reminder's anchor Message
- * key no longer names its anchor Chat, so a reminder on a Task with no posts
- * anchors on the origin Message in the Channel above it; and a `pull_request`
- * notice may wake a Task's assignee without any cloud agent Run.
- */
 test('0125 keeps existing reminders and lets a Task reminder anchor on its origin', async () => {
     const cluster = await startPostgresCluster();
     const folder = await mkdtemp(join(tmpdir(), 'haus-reminder-task-anchors-'));
@@ -37,7 +31,6 @@ test('0125 keeps existing reminders and lets a Task reminder anchor on its origi
         expect(await database`SELECT id, anchor_chat_id, anchor_message_id FROM reminders`).toEqual(
             [{ anchor_chat_id: 'cht_ops', anchor_message_id: 'msg_origin', id: 'rem_existing' }]
         );
-        // A Task's Chat with an anchor in its parent Channel now satisfies the key.
         await database`INSERT INTO reminders
             (id, server_id, anchor_chat_id, anchor_message_id, owner_agent_id, status, timezone,
              title, fire_at, created_at, updated_at)
@@ -51,7 +44,6 @@ test('0125 keeps existing reminders and lets a Task reminder anchor on its origi
                         'scheduled', 'UTC', 'Nowhere', now(), now(), now())`)
         ).rejects.toThrow(/reminders_anchor_message_fk/u);
 
-        // A pull request notice no Run backs; settled and stall still need one.
         await database`INSERT INTO agent_inbox
             (id, server_id, agent_id, chat_id, content, dedupe_key, source, cloud_agent_notice)
             VALUES ('inb_pullrequest00001', 'srv_one', 'agt_one', 'cht_task', 'ready',
@@ -75,7 +67,6 @@ test('0125 keeps existing reminders and lets a Task reminder anchor on its origi
     }
 }, 60_000);
 
-/** A Channel, its origin Message, a Task Chat under it, and a reminder anchored the old way. */
 async function seedWorld(database: SQL) {
     await database.begin(async (tx) => {
         await tx`SET LOCAL session_replication_role = replica`;
@@ -98,7 +89,6 @@ async function seedWorld(database: SQL) {
     });
 }
 
-/** Runs a lazy Bun SQL query so `expect().rejects` sees a real promise. */
 async function settle(query: PromiseLike<unknown>) {
     return await query;
 }

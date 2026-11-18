@@ -1,6 +1,5 @@
 import Foundation
 
-// Focused realtime payloads for claims, labels, and Tasks
 // (specs/realtime-events.md). Ids and small facts only, like the Chat family's.
 
 public enum ClaimChangeKind: String, Decodable, Sendable, Equatable {
@@ -47,11 +46,9 @@ public struct TaskLabelUpdatedEvent: Decodable, Sendable, Equatable {
 }
 
 /// `task.onCreated` and `task.onUpdated` share one payload: a Task was created,
-/// or edited, changed state, was assigned, or gained a reference. Ids only.
 public struct TaskChangedEvent: Decodable, Sendable, Equatable {
     public let serverID: String
     public let taskID: String
-    /// The Task's own Chat; nil for a Task from before Tasks were places.
     public let chatID: String?
     public let version: Int
 
@@ -70,8 +67,6 @@ public struct TaskChangedEvent: Decodable, Sendable, Equatable {
     }
 }
 
-/// `task.onFollowUpdated`: the viewer followed or unfollowed a Task. Reader
-/// only. Names the Task's Chat, whose unread it moves.
 public struct TaskFollowUpdatedEvent: Decodable, Sendable, Equatable {
     public let serverID: String
     public let taskID: String

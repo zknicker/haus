@@ -2,14 +2,6 @@
 // where each Agent post landed relative to the human's request, and which
 // `haus message send --done` commands the turn ran.
 
-/**
- * Where one Agent post landed:
- * - `inline-reply`: in the channel/DM, in the reply chain of the request.
- * - `top-level`: in the channel/DM, outside the request's reply chain.
- * - `task`: in the conversation of a Task started from the channel (ADR 0053).
- * - `elsewhere`: in any other chat.
- * `taskChatIds` are the Task chats the channel previews (`chat.messages` page `tasks`).
- */
 export function classifyPlacement(message, { channelId, requestId, taskChatIds = [] }) {
     if (message.chatId === channelId) {
         return asSet(requestId).has(message.reply?.rootMessageId) ? 'inline-reply' : 'top-level';
@@ -164,7 +156,6 @@ export function expectDoneToRequest(expect, placement, { requestIds = [] } = {})
     ).toBe(true);
 }
 
-/** The spec's shared assertion: the result is an inline reply to the request. */
 export function expectSharedPlacement(expect, result) {
     expect(Boolean(result), 'result post in the channel').toBe(true);
     expect(result.label, 'result post placement').toBe('inline-reply');

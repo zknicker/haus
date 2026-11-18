@@ -12,13 +12,6 @@ import { resolveChatPageChat } from './chat-page-state.ts';
 import { useChatViewModule } from './chat-view-module.ts';
 import { KeptChatViews } from './kept-chat-views.tsx';
 
-/**
- * The chat route; recent chat views stay mounted (hidden) so returning to one
- * reveals it. Each kept view is memoized on stable props, so a navigation
- * re-renders only the views whose visibility changed, not every hidden one. An
- * address saved before ADR 0053 (`?thread=`, `?claim=`) is replaced by the
- * Message it names first (`redirectRetiredRoute`).
- */
 export function ChatPage({ chatId, server }: { chatId: string; server: ServerDetail }) {
     const location = useLocation();
     // Stable across navigations, desktop tab routers included (patched React Router).

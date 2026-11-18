@@ -1,7 +1,6 @@
 import type { CloudAgentBranch } from '@haus/api';
 import type { HausServerHarness } from './haus-server-harness.ts';
 
-/** The cloud agent fixture's database reads, bound to its harness and Server. */
 export function cloudAgentFixtureReads(
     harness: () => Pick<HausServerHarness, 'sql'>,
     serverId: () => string

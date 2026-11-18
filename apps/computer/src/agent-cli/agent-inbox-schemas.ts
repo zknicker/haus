@@ -33,7 +33,6 @@ export const agentInboxConversationsResponseSchema = z.object({
     items: z.array(
         z.object({
             chatId: z.string().min(1),
-            // Any other kind is a newer Server's; the row prints by its target all the same.
             kind: z.string().min(1),
             lastReadSequence: z.number().int().nonnegative(),
             latestAt: z.string().nullable(),

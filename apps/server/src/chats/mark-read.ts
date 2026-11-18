@@ -12,7 +12,6 @@ import { requireChatAccess } from './chat-access.ts';
 type ReadTransaction = Parameters<Parameters<HausDatabase['transaction']>[0]>[0];
 
 export interface MarkChatReadResult {
-    /** The reader-scoped `chat.read`, when the marker moved. */
     events: PreparedRealtimeEvent[];
     receipt: ChatReadReceipt;
 }
@@ -130,7 +129,6 @@ async function advanceReadMarker(
         return { event: null, sequence: current.sequence };
     }
 
-    // Only a child Chat can be a Task's (ADR 0053).
     const task = input.parentChatId
         ? await findTaskByChatId(tx, { chatId: input.chatId, serverId: input.serverId })
         : null;

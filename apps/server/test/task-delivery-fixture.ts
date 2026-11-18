@@ -10,16 +10,11 @@ import { type Seed, seedAgent } from './agent-inbox-harness.ts';
 
 export type TaskBoard = Awaited<ReturnType<typeof seedTaskBoard>>;
 
-/** One seeded Agent and human on a Server with its General Task key. */
 export async function seedTaskBoard(db: HausDatabase) {
     const seed = await seedAgent(db);
     return { keyId: await insertGeneralTaskKey(db, seed.serverId), seed };
 }
 
-/**
- * A new high-priority Task the human assigns to the seeded Agent: an
- * unassigned Task place in the seeded Channel, then the human's assignment.
- */
 export async function assignNewTask(
     db: HausDatabase,
     delivery: AgentDelivery,
@@ -36,11 +31,6 @@ export async function assignNewTask(
     });
 }
 
-/**
- * An unassigned, high-priority todo Task the human created from a new Message
- * in the seeded Channel, written directly: only Agents start Tasks through the
- * product, and these tests are about what assignment does.
- */
 export async function insertTaskPlace(
     db: HausDatabase,
     { keyId, seed }: TaskBoard,

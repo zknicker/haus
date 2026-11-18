@@ -41,7 +41,6 @@ test('a middle-click survives the fetch before the linking Message opens', async
     middleClick(() =>
         open({ id: 'w1', location: { chatId: 'c2', kind: 'message', messageId: 'm3' } })
     );
-    // The gesture's dispatch is long over by the time the fetch lands.
     await settle();
     await settle();
     uninstall();

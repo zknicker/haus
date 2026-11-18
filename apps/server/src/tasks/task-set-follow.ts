@@ -9,10 +9,6 @@ import { TaskInvariantError } from './task-errors.ts';
 import { setUserTaskFollow } from './task-follows.ts';
 import { lockTask } from './task-read.ts';
 
-/**
- * `task.setFollow`: a person follows or unfollows a Task by hand (ADR 0053
- * decision 9). Only someone who can see its origin Channel may follow it.
- */
 export async function setTaskFollow(
     db: HausDatabase,
     member: HausUser | null,

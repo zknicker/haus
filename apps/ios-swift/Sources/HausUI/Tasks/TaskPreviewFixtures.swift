@@ -1,9 +1,6 @@
 import Foundation
 import HausModels
 
-/// A read-only Task's detail, as the wire returns it: a Task from before Tasks
-/// were places, with no Chat. Decoded rather than constructed, so a preview
-/// stands on the shape the Server sends.
 enum TaskPreviewFixtures {
     static let labels: [TaskLabel] = [
         TaskLabel(color: "blue", id: "label_server", name: "Server"),

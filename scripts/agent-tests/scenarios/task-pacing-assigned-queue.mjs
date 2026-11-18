@@ -1,9 +1,3 @@
-// Three Tasks a person assigns to one Agent are a queue, not three requests: it works them one
-// at a time, most urgent first, setting each `open` and then `done` while the rest wait in
-// `todo` (ADR 0053, operator decision 2026-11-18). A lead Agent starts the Tasks in `todo` from
-// the person's message with both Agents stopped; the person then assigns them to the worker, and
-// only the worker is restarted, so one run carries all three assignments.
-
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
 import {
@@ -17,7 +11,6 @@ import {
     stopAgent,
 } from '../task-pacing.mjs';
 
-/** Oldest first, so age alone would pick the wrong one: priority has to decide. */
 const queue = [
     { priority: 'low', word: 'amber' },
     { priority: 'medium', word: 'birch' },

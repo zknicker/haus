@@ -14,7 +14,6 @@ test('the sidebar lists only open Tasks, newest started first, ties by key', () 
         task('t5', 'SEC-5', 'canceled', '2026-11-17T13:00:00.000Z'),
         task('t6', 'APP-1', 'open', '2026-11-17T10:00:00.000Z'),
     ];
-    // 11:00+01:00 is 10:00Z: compared as instants, not as text.
     expect(openTaskIds(tasks)).toEqual(['t6', 't3', 't1']);
 });
 

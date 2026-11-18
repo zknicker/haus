@@ -152,7 +152,6 @@ public struct ChatScreenView: View {
                 }
             }
             // The keyboard leaves before anything covers the composer — the drawer, a pushed
-            // Task — and nothing raises it again when that surface goes away.
             .onChange(of: isDrawerEngaged) { _, engaged in
                 if engaged { isComposerFocused = false }
             }

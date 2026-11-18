@@ -6,19 +6,15 @@ import type { HausDatabase } from '../postgres/connection.ts';
 export interface PushMessage extends StoredChatMessageAuthorRow {
     authorAgentAvatarId: string | null;
     authorUserAvatarId: string | null;
-    /** The Chat the message is in: a Task's own Chat, or the Channel or DM. */
     chatId: string;
     content: string;
-    /** The Channel or DM the conversation belongs to, a Task's origin Channel for a Task. */
     conversationChatId: string;
     conversationKind: 'channel' | 'dm';
     conversationName: string | null;
     /** The DM's human members; empty outside a DM. */
     dmMemberUserIds: string[];
     messageId: string;
-    /** The Task whose own Chat the message is in (ADR 0053); null elsewhere. */
     taskId: string | null;
-    /** That Task's key, `SEC-12`; null exactly when `taskId` is. */
     taskKey: string | null;
 }
 

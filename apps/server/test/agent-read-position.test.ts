@@ -71,7 +71,6 @@ test('joining starts read at the present; a mention that follows the Agent in st
     });
     expect(await readPosition(db, seed, taskChatId)).toBe(mention.sequence - 1);
 
-    // Following an already-followed Task keeps what is unread there.
     await followAgentTask(db, {
         agentId: seed.agentId,
         serverId: seed.serverId,

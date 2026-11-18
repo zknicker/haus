@@ -4,13 +4,6 @@ import { CloudAgentRunSummary } from './cloud-agent-run-summary.tsx';
 import { TaskPullRequestCard } from './task-pull-request-card.tsx';
 import { pendingTaskReminders, reminderLine, standalonePullRequests } from './task-work-model.ts';
 
-/**
- * The Task's attached work beside its conversation (ADR 0053 decision 12):
- * one card per Cloud Agent, each with its newest Run's summary, then each
- * attached pull request no card already names, then the pending one-time
- * reminders as quiet lines. Nothing at all while nothing is attached; the
- * cards carry their own edges.
- */
 export function TaskWorkPanel({
     task,
 }: {

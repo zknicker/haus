@@ -10,12 +10,6 @@ import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 import { useServerContext } from '../../servers/server-context.ts';
 import { serverChatRoute } from '../../servers/server-routes.ts';
 
-/**
- * The quiet "Started from" line at the top of a Task's conversation (ADR 0053
- * decision 3): the Channel, the origin Message's author, and its first line.
- * It opens the Channel scrolled to that Message. Blank until the Message
- * resolves; nothing once it no longer does.
- */
 export function TaskOrigin({ origin }: { origin: TaskOriginRecord }) {
     const { server } = useServerContext();
     const navigate = useNavigate();
@@ -51,7 +45,6 @@ export function TaskOrigin({ origin }: { origin: TaskOriginRecord }) {
     );
 }
 
-/** The author as the transcript names them: the live Agent or member first, then the stored profile. */
 function useMessageAuthorName(message: ChatMessage | null): string {
     const { server } = useServerContext();
     const agents = useAgentAppearances(server.id);

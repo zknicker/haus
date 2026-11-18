@@ -32,7 +32,6 @@ public enum RichReferenceWireForm {
         if let id = schemeID(target, scheme: "user") {
             return RichReferenceTarget(kind: .human, id: id, label: nil)
         }
-        // A Message rides the Chat scheme with its id in the query, so it is
         // read first; any other query makes the target no reference at all.
         if MessageReferenceTarget(wireTarget: target) != nil {
             return RichReferenceTarget(kind: .message, id: target, label: nil)

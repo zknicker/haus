@@ -5,17 +5,7 @@ import Foundation
 /// of truth: the live load replaces every field it carries.
 ///
 /// Scoped to one signed-in user and one Server. A snapshot written by another
-/// user, in another format version, or under another App protocol version is
-/// discarded rather than migrated.
 ///
-/// The protocol scope is what keeps a contract change from painting state the
-/// Server no longer has. A protocol bump can come with a one-time Server
-/// migration — ADR 0053's moved every side conversation into its parent
-/// Channel as inline replies, renumbered those Channels' sequences, and marked
-/// them read — so a page or a Chat list from before it holds conversations,
-/// sequences, and unread counts that are no longer true. Painted, its rows
-/// would report visible sequences to the read ledger before the live load
-/// replaced them. Discarding it costs one cold launch its instant paint.
 public struct LaunchSnapshot: Codable, Sendable, Equatable {
     /// Bump whenever a carried model's encoding changes shape.
     public static let currentVersion = 3
@@ -24,8 +14,6 @@ public struct LaunchSnapshot: Codable, Sendable, Equatable {
     public static let maximumPages = 3
 
     public let version: Int
-    /// The App ↔ Server protocol (`HausAppProtocol.version`) of the build that
-    /// wrote it.
     public let appProtocolVersion: Int
     public let userID: String
     public let servers: [ServerSummary]
@@ -84,15 +72,11 @@ public struct LaunchSnapshot: Codable, Sendable, Equatable {
 public actor LaunchSnapshotStore {
     private struct Header: Decodable {
         let version: Int
-        /// Absent from a file written before the protocol scope existed, which
-        /// therefore never matches.
         let appProtocolVersion: Int?
         let userID: String
     }
 
     public let fileURL: URL
-    /// The protocol this build speaks; a snapshot written under any other is
-    /// discarded on load.
     public nonisolated let appProtocolVersion: Int
 
     public init(fileURL: URL, appProtocolVersion: Int) {
@@ -114,8 +98,6 @@ public actor LaunchSnapshotStore {
     }
 
     /// The snapshot for this user, or nil. A file this build cannot read — an
-    /// older version, another protocol, another user, or a corrupt write — is
-    /// deleted.
     public func load(userID: String) -> LaunchSnapshot? {
         guard let data = try? Data(contentsOf: fileURL) else { return nil }
         let decoder = HausJSON.decoder()

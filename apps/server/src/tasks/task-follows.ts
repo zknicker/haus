@@ -16,11 +16,6 @@ import {
 
 type Writer = Pick<HausDatabase, 'execute' | 'insert' | 'select'>;
 
-/**
- * Task followers (ADR 0053 decision 9): a person in `task_follows`, an Agent
- * in `agent_task_follows`. Followers are the origin Message's author, anyone it
- * mentions, the assignee, and anyone who posts in the Task.
- */
 export async function followTask(
     tx: Writer,
     input: { actor: TaskActor; chatId: string; serverId: string }
@@ -32,7 +27,6 @@ export async function followTask(
     await setUserTaskFollow(tx, { ...input, followed: true, userId: input.actor.userId });
 }
 
-/** A person's follow row, written as given: a hand unfollow sticks until they follow again. */
 export async function setUserTaskFollow(
     tx: Pick<HausDatabase, 'insert'>,
     input: { chatId: string; followed: boolean; serverId: string; userId: string }
@@ -56,7 +50,6 @@ export async function setUserTaskFollow(
         });
 }
 
-/** Whether `userId` follows the Task whose Chat is `chatId`. */
 export async function isTaskFollowed(
     db: Pick<HausDatabase, 'select'>,
     input: { chatId: string; serverId: string; userId: string }
@@ -75,10 +68,6 @@ export async function isTaskFollowed(
     return row?.followed === true;
 }
 
-/**
- * A new Task's followers: the origin Message's author, the people and Agents
- * it mentions who can see its Channel, and the assignee.
- */
 export async function seedTaskFollowers(
     tx: Writer,
     input: {
@@ -130,7 +119,6 @@ export async function seedTaskFollowers(
     }
 }
 
-/** People a Task message mentions who can see its Channel follow the Task. */
 export async function followTaskMentions(
     tx: Writer,
     input: { chatId: string; mentionedUserIds: readonly string[]; serverId: string }

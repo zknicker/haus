@@ -15,16 +15,6 @@ import { TaskWorkPanel } from './work/task-work-panel.tsx';
 
 export { TaskBandControls } from './task-band-controls.tsx';
 
-/**
- * One Task as a page (ADR 0053 decision 12): its conversation on the left and,
- * on a pane wide enough, a right-hand panel of its Details and attached work,
- * on the page background with a gutter and no dividing border. Narrower, the
- * band's Details control carries the Details. A Task from before Tasks were
- * places has no conversation and reads as history. A re-keyed or mistyped
- * address answers NOT_FOUND; the check reads the error first because a
- * background refetch keeps the last good record beside it. Blank while the
- * Task loads.
- */
 export function TaskPage({ panelShown, taskKey }: { panelShown: boolean; taskKey: string }) {
     const { server } = useServerContext();
     const task = useTask(server.id, { key: taskKey });
@@ -79,7 +69,6 @@ function TaskDetailView({
     );
 }
 
-/** A chatless Task: its record, read-only, in one column. No composer, nothing to come. */
 function TaskHistoryView({ task }: { task: TaskDetail }) {
     return (
         <div className="min-h-0 flex-1 overflow-y-auto">

@@ -1,15 +1,5 @@
-// Evidence for Task pacing (ADR 0053, operator decision 2026-11-18): an Agent works Tasks others
-// assign it one at a time, by priority then age, setting the one it takes `open` and leaving the
-// rest `todo`; Tasks it started itself may run side by side. The Server keeps where each Task
-// ended up, not the order it got there, so the order comes from the execution journal.
-//
-// Assigned Tasks are seeded the way they reach an Agent in the product: a lead Agent starts them
-// in `todo` from a person's channel message, and the person assigns them to the worker, so the
-// assignment input names that person as the assigner.
-
 import { createAgentAuthor } from './author.mjs';
 
-/** Starts a Task as `agentId` from `messageId` in `channel`, assigned to that Agent. */
 export async function startTaskAsAgent(kit, { agentId, channel, messageId, ...fields }) {
     const author = createAgentAuthor({
         serverId: kit.serverId,
@@ -36,7 +26,6 @@ export async function startTaskAsAgent(kit, { agentId, channel, messageId, ...fi
     return payload.task;
 }
 
-/** The evaluating person assigns the Task to `agentId`, as the Tasks page does. */
 export async function assignAsPerson(kit, task, agentId) {
     const { task: assigned } = await kit.trpc('task.assign', {
         assignee: { agentId, kind: 'agent' },
@@ -47,7 +36,6 @@ export async function assignAsPerson(kit, task, agentId) {
     return assigned;
 }
 
-/** The Agent's completed tool calls across a settled turn's runs, oldest first. */
 export async function journalTools(kit, agentId, turn, { attempts = 10, delayMs = 3000 } = {}) {
     const tools = [];
     for (const runId of turn.runIds ?? [turn.runId]) {
@@ -73,11 +61,6 @@ export async function journalTools(kit, agentId, turn, { attempts = 10, delayMs 
     return tools.sort((left, right) => Date.parse(left.startedAt) - Date.parse(right.startedAt));
 }
 
-/**
- * The state changes in order, one `{ key, state }` per completed `haus task state <KEY> <state>`,
- * plus `{ kind: 'start-todo' }` for each `haus task start` that parked its Task in `todo`. A
- * refused command changed nothing, so only completed calls count.
- */
 export function stateSteps(tools) {
     return tools.flatMap((tool) => {
         const command = String(tool.input?.command ?? '');
@@ -96,10 +79,6 @@ export function stateSteps(tools) {
     });
 }
 
-/**
- * What the steps prove for the Tasks in `keys`: the most open at once, the order they were
- * opened and finished, which finished without being opened, and how often each was opened.
- */
 export function paceOf(steps, keys) {
     const tracked = new Set(keys);
     const open = new Set();
@@ -128,7 +107,6 @@ export function paceOf(steps, keys) {
     return { finished, mostOpen, opened, skippedOpen, timesOpened };
 }
 
-/** Tasks have no deletion; canceling keeps these out of later lists and queues. Best effort. */
 export async function cancelTasks(kit, tasks) {
     for (const task of tasks) {
         const current = await kit

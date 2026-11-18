@@ -22,7 +22,6 @@ export const messageClaimSchema = z
     .object({
         /** Claims are Agent work (ADR 0037): only an Agent ever holds one. */
         assigneeAgentId: claimIdSchema.nullable(),
-        /** The Chat the claimed message sits in, which numbers the claim. */
         chatId: claimIdSchema,
         claimedAt: z.iso.datetime({ offset: true }).nullable(),
         createdAt: z.iso.datetime({ offset: true }),

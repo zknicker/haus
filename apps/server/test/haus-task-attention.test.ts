@@ -3,11 +3,6 @@ import { cloudAgentFixture } from './cloud-agent-fixture.ts';
 import { cloudAgentLinkHelpers } from './cloud-agent-link-helpers.ts';
 import { startTestTask } from './task-place-fixture.ts';
 
-/**
- * ADR 0053 decision 9 for an Agent: a Task it follows wakes it even while its
- * Channel is muted; an explicit unfollow purges queued ordinary work and keeps
- * it quiet until a direct mention follows it back in.
- */
 const fixture = cloudAgentFixture();
 const { agentPost } = cloudAgentLinkHelpers(fixture);
 

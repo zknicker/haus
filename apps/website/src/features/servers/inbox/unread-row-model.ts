@@ -68,17 +68,7 @@ export function selectionAfterLeaving(
     return { carryFocus, id: next?.id ?? null, index: rows[index + 1] ? index : index - 1 };
 }
 
-/**
- * The `chat.markRead` that clears one Unread row, through the newest message
- * the row knows of. Mark read and a reply clear it the same way.
- *
- * Sending never moves the sender's read marker on the Server — a Chat's
- * unread rule only skips the viewer's own messages — so a reply from the row
- * reads the row itself; otherwise the row would stay with its question
- * answered (ADR 0050).
- */
 export function unreadRowReadInput(row: UnreadRow, serverId: string): ChatMarkReadInput {
-    // A Task's Chat reads through the newest message its row shows, like a reply would.
     if (row.kind === 'task-chat') {
         return {
             chatId: row.preview.chatId,

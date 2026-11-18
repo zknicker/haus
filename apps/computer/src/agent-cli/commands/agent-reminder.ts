@@ -43,7 +43,6 @@ import {
 } from './reminder-wake-rules.ts';
 
 // Family 8 — Reminders (D4). Author-owned wake signals anchored to a
-// message or a Task (reminder-anchor.ts); the only scheduling primitive. `--script` payloads run locally at
 // fire time: empty output is a quiet tick, output rides the fire. The opt-in
 // wake rules and `reminder log` live in reminder-wake-rules.ts.
 export const REMINDER_SUBCOMMANDS: SubCommand[] = [

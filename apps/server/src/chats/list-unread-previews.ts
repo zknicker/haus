@@ -9,14 +9,6 @@ import type { HausUser } from '../users/haus-user.ts';
 import { chatNewestUnreadMessageIds, chatUnreadCount, listedChats } from './chat-unread.ts';
 import { readMessagesById } from './read-messages-by-id.ts';
 
-/**
- * The waiting messages behind every unread Inbox row, in one read: each
- * unread Channel or DM (`listedChats` with an `unreadCount`) and each followed
- * unread Task (`unreadTasks`, ADR 0053), with its newest counted messages
- * projected the way the transcript projects them. The row predicates are the
- * ones `chat.list` and the badge use, so a preview exists for exactly the rows
- * the Inbox shows.
- */
 export async function listUnreadPreviews(
     db: HausDatabase,
     member: Pick<HausUser, 'id'> | null,

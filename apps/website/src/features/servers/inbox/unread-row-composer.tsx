@@ -8,7 +8,6 @@ export type UnreadRowReply =
     | {
           /** A DM with an Agent keys its draft by the Agent, as the DM's own composer does. */
           agentDmId: null | string;
-          /** The Channel, DM, or Task the card names. */
           chatId: string;
           /** What the composer's placeholder and accessible name address, as the conversation's does. */
           chatName: string;
@@ -16,21 +15,6 @@ export type UnreadRowReply =
           serverId: string;
       };
 
-/**
- * A card's input bar: the very composer its conversation renders
- * (ADR 0050) — the stock `ChatComposer` in the Chat view's own `primary`
- * shell, with the conversation's draft key — so a draft started here is
- * waiting there, and the other way round. A Channel the viewer can no longer
- * post in (archived, or a retired Agent's DM) renders none, as the Chat does.
- *
- * It does not take focus when it mounts. A Chat's composer is where that
- * view's keys go, but here every card mounts one on load, and a
- * self-focusing editor would swallow the very keys that move the selection.
- * R focuses the selected card's (`ref`); a click focuses any.
- *
- * `onSent` hears a send the moment it starts — sending is optimistic, and the
- * conversation's pending row carries the message from there.
- */
 export function UnreadRowComposer({
     onSent,
     ref,

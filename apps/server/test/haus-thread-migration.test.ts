@@ -17,13 +17,6 @@ import {
     seedThreadMigrationDataset,
 } from './thread-migration-dataset.ts';
 
-/**
- * ADR 0053 decision 14 on a production-shaped dataset: 0126 turns every Thread
- * into inline replies on its anchor, the verifier's invariants hold, every
- * affected Chat reads clean while every other Chat keeps its unread, Task
- * Chats are untouched, and the dev reverse script
- * restores the database exactly.
- */
 test('0126 folds every Thread into its parent and reverses exactly', async () => {
     const cluster = await startPostgresCluster();
     const folder = await mkdtemp(join(tmpdir(), 'haus-thread-migration-'));
@@ -59,8 +52,6 @@ test('0126 folds every Thread into its parent and reverses exactly', async () =>
         const result = await verifyThreadMigration(cluster.databaseUrl, before);
         expect(result.invariants.filter((invariant) => !invariant.ok)).toEqual([]);
         console.info('0126 unread on the generated dataset', JSON.stringify(result.unread));
-        // Affected Chats read clean, every other Chat keeps its unread, and no
-        // queued delivery wakes an Agent to moved history.
         expect(result.unread).toMatchObject({
             affectedUnreadAfter: 0,
             pendingInboxItems: 0,
@@ -77,8 +68,6 @@ test('0126 folds every Thread into its parent and reverses exactly', async () =>
         await reverseThreadMigration(cluster.databaseUrl);
         expect(await dumpDatabase(database)).toEqual(original);
 
-        // 0128 drops the Thread schema on the migrated dataset, keeps every Task
-        // follow under its Task name, and the reverse script refuses from then on.
         await writeFile(journalPath, through(127));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
             '0126_threads-to-inline-replies',
@@ -116,7 +105,6 @@ test('0126 folds every Thread into its parent and reverses exactly', async () =>
     }
 }, 180_000);
 
-/** Spot checks the verifier cannot express: where moved rows went and what was dropped. */
 async function expectMovedShape(database: SQL, threads: DatasetChat[]) {
     const dmThread = threads.find((thread) => thread.parent?.kind === 'dm') as DatasetChat;
     const anchor = dmThread.anchor as DatasetMessage;
@@ -131,7 +119,6 @@ async function expectMovedShape(database: SQL, threads: DatasetChat[]) {
     const anchorRoot = anchor.replyRootMessageId ?? anchor.id;
     expect(dmThread.messages.some((message) => message.replyToMessageId !== null)).toBe(true);
     for (const message of dmThread.messages) {
-        // A top-level Thread reply now answers the anchor; an inline reply keeps its parent.
         expect(rows.find((row) => row.id === message.id)).toEqual({
             chat_id: dmThread.parent?.id ?? '',
             id: message.id,
@@ -156,8 +143,6 @@ async function expectMovedShape(database: SQL, threads: DatasetChat[]) {
         string,
         number
     >[];
-    // Thread follows and closures are gone, claims and work name the parent, and
-    // the six held drafts collapse to one per session and parent.
     expect(dropped).toEqual([
         {
             agent_follows: 0,
@@ -184,7 +169,6 @@ async function shape(database: SQL) {
     return row;
 }
 
-/** Task Chats, their Messages, reads, follows, and reminders, as `dumpDatabase` renders them. */
 async function taskRows(database: SQL) {
     return pickTaskRows(await dumpDatabase(database));
 }
@@ -204,7 +188,6 @@ function pickTaskRows(dump: Record<string, string[]>) {
     );
 }
 
-/** Every public table's rows, the constraint set, and Drizzle's ledger, as sorted JSON text. */
 async function dumpDatabase(database: SQL) {
     const tables = (await database`
         SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY 1`) as {

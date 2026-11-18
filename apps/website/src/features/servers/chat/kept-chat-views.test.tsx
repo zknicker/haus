@@ -128,7 +128,6 @@ function visibleBands(node: Node, hidden = false): string[] {
 
 const openerRenders: Record<string, number> = {};
 
-/** Reads only the tab id, as a chat view's Attachments and artifact openers do. */
 const TabIdReader = React.memo(function TabIdReader({ chatId }: { chatId: string }) {
     useDesktopPageOpeners();
     openerRenders[chatId] = (openerRenders[chatId] ?? 0) + 1;

@@ -1,13 +1,6 @@
 import HausModels
 import SwiftUI
 
-/// One Task under the Message it started from (ADR 0053 decision 7), at
-/// inline density: the state disc, key, and title, then what the
-/// Task holds, then its newest messages. The whole row opens the Task.
-///
-/// Rows are hosted in `UIHostingConfiguration` cells with no environment of
-/// their own, so the open goes through the App-installed
-/// `InAppReferenceRoutes.openTask`, the same route a Task chip takes.
 struct TaskPreviewCard: View {
     let task: TaskPreviewPresentation
 
@@ -34,8 +27,6 @@ struct TaskPreviewCard: View {
         .padding(.top, 6)
     }
 
-    /// The title wraps rather than truncating: it is what the reader is
-    /// deciding on, and a long one at a large text size must still read whole.
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             TaskStateDisc(
@@ -64,8 +55,6 @@ struct TaskPreviewCard: View {
     }
 }
 
-/// One quoted Task message: who said it, then the line, flattened the way
-/// every quoting surface flattens Markdown.
 private struct TaskPreviewMessageRow: View {
     let message: TaskMessagePreviewPresentation
 
@@ -83,7 +72,6 @@ private struct TaskPreviewMessageRow: View {
     }
 }
 
-/// Every Task the message started, one preview each, below its content.
 struct TaskPreviewStack: View {
     let tasks: [TaskPreviewPresentation]
 

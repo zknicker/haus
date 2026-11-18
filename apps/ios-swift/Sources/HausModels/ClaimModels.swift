@@ -3,8 +3,6 @@ import Foundation
 /// The exact row returned by `claim.list`.
 ///
 /// Claims remain promoted Chat messages. This projection keeps the canonical
-/// message and claim metadata together so a native row can open the message in
-/// its Channel or DM.
 public struct ClaimListItem: Decodable, Identifiable, Sendable, Equatable {
     public let chatKind: ChatKind
     public let chatName: String?

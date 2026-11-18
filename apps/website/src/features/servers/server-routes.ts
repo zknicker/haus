@@ -14,12 +14,10 @@ export function serverChatRoute(slug: string, chatId: string) {
     return `${serverRoute(slug)}/chats/${encodeURIComponent(chatId)}`;
 }
 
-/** A Chat scrolled to one of its Messages, which flashes once it shows. */
 export function serverChatMessageRoute(slug: string, chatId: string, messageId: string) {
     return `${serverChatRoute(slug, chatId)}?${chatMessageParam}=${encodeURIComponent(messageId)}`;
 }
 
-/** The search param naming the Message a Chat route reveals. */
 export const chatMessageParam = 'message';
 
 export function serverAgentDmRoute(slug: string, agentId: string) {
@@ -39,12 +37,10 @@ export function activityRoute(slug: string) {
     return `${serverRoute(slug)}/activity`;
 }
 
-/** The one flat Tasks page (ADR 0053 decision 10). */
 export function tasksRoute(slug: string) {
     return `${serverRoute(slug)}/tasks`;
 }
 
-/** One Task's page by its key: `tasks/SEC-12`. */
 export function taskRoute(slug: string, key: string) {
     return `${tasksRoute(slug)}/${encodeURIComponent(key)}`;
 }

@@ -8,13 +8,6 @@ import {
 } from '../../../hooks/servers/use-pending-message-reveal.ts';
 import { chatMessageParam } from '../server-routes.ts';
 
-/**
- * Serves a Chat's reveals: a `?message=` link (`serverChatMessageRoute`) and
- * "View in chat" from a surface outside the Chat (`requestMessageReveal`).
- * The linked Message's entity supplies the sequence the reveal pages older
- * history by; once it resolves, the param leaves the URL and the reveal is
- * queued like any other, so it runs once the transcript shows.
- */
 export function useChatRouteMessage({
     chatId,
     ready,
@@ -22,7 +15,6 @@ export function useChatRouteMessage({
     serverId,
 }: {
     chatId: string;
-    /** The chat's transcript list has loaded. */
     ready: boolean;
     revealMessage: (target: ChatMessageJumpTarget) => void;
     serverId: string;

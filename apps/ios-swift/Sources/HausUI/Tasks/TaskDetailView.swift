@@ -5,10 +5,6 @@ import SwiftUI
 import UIKit
 #endif
 
-/// A Task from before Tasks were places: one with no Chat of its own (ADR
-/// 0053). It is read-only history, so the screen states what the Task is and
-/// where it was talked about, with no composer and no control that writes.
-/// A Task with a Chat never lands here; it opens as a chat (`TaskChatView`).
 public struct TaskDetailView: View {
     private let taskID: String
     private let source: TaskDetailSource
@@ -82,7 +78,6 @@ public struct TaskDetailView: View {
         #endif
     }
 
-    /// The title and the description read as the Task's own words. The
     /// description draws like a message body, so its references are the same
     /// chips a Channel shows and open the same way.
     private func header(_ detail: TaskDetail) -> some View {
@@ -105,9 +100,6 @@ public struct TaskDetailView: View {
         }
     }
 
-    /// Native settings rows: a short title and a one-line value each. Two
-    /// rows for the creator and the day, because one `Blippy · Nov 5, 2026`
-    /// value wraps mid-date at accessibility sizes.
     private func facts(_ task: TaskRecord) -> some View {
         Section {
             LabeledContent("State") {
@@ -140,8 +132,6 @@ public struct TaskDetailView: View {
         }
     }
 
-    /// One short value whatever the Task carries: a value that wraps or
-    /// truncates in a settings row reads as broken.
     private func labelSummary(_ task: TaskRecord) -> String? {
         let names = source.labels().filter { task.labelIDs.contains($0.id) }.map(\.name)
         switch names.count {
@@ -173,7 +163,6 @@ public struct TaskDetailView: View {
     }
 
     /// The Task opens with what the rest of the screen stands on. A failure
-    /// after the Task has landed keeps the screen; the next read repairs it.
     private func load() async {
         do {
             async let detail: Void = source.loadDetail(taskID)

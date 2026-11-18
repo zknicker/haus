@@ -74,7 +74,6 @@ test('an update naming a Task refreshes exactly that Task, by key and by id', as
     harness.start(path);
     harness.ops.splice(0);
 
-    // The work was just launched, so no cached detail lists it yet.
     harness.emit(path, {
         chatId: 'cht_task',
         messageId: 'msg_launch',

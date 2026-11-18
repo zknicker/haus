@@ -1,7 +1,3 @@
-// Exact-set eval chat cleanup: the chats a scenario registered, and nothing
-// else. There are no Threads to expand to (ADR 0053); a Task's Chat is
-// registered by the scenario that starts it.
-
 const chunkSize = 20;
 
 export async function settleEvalCleanup(operation, timeoutMs = 60_000) {
@@ -27,7 +23,6 @@ export function chunkChatIds(chatIds, size = chunkSize) {
     return chunks;
 }
 
-/** Deletes the exact chat set and returns every id it deleted, so callers can forget them. */
 export async function cleanupEvalChats({ serverId, trpc }, chatIds) {
     const exactChatIds = [...new Set([...chatIds].filter(Boolean))];
     for (const chunk of chunkChatIds(exactChatIds)) {

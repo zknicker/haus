@@ -128,8 +128,6 @@ test('an inline reply pushes the author of the message it answers, never the roo
     });
     expect(replyPushes[0]?.payload).not.toHaveProperty('threadAnchorMessageId');
 
-    // Bo answering his own reply addresses nobody: authoring the chain's root
-    // does not make Ada a recipient.
     const followUp = await peer.trpc.chat.send.mutate({
         chatId: channelId,
         content: 'Then eu-west.',
@@ -139,8 +137,6 @@ test('an inline reply pushes the author of the message it answers, never the roo
     });
     expect(await sender.sentFor(followUp.message.id, 0)).toEqual([]);
 
-    // Ada answering her own question pushes nobody: she never addresses herself,
-    // and Bo is neither mentioned nor the author of the message she answers.
     const own = await owner.trpc.chat.send.mutate({
         chatId: channelId,
         content: 'Agreed.',
@@ -248,7 +244,6 @@ test('the badge counts unread Chats across every Server, as chat.list reports th
     );
 });
 
-/** What the badge means: the Inbox's unread rows (Chats and followed Tasks), summed over Servers. */
 async function unreadChatCount(client: HausClient, serverIds: readonly string[]) {
     let count = 0;
     for (const serverId of serverIds) {

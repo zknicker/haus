@@ -19,7 +19,6 @@ export type MessageNotificationReason = (typeof messageNotificationReasons)[numb
 /** The addressing facts `message.created` carries for a new message. */
 export interface MessageNotificationFacts {
     authorUserId: string | null;
-    /** The Channel or DM the message belongs to; a Task reports its Channel's kind. */
     conversationKind: 'channel' | 'dm';
     mentionedUserIds: readonly string[];
     /** The human author of the message this one inline-replies to. */

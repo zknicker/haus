@@ -3,7 +3,6 @@ export interface BareReferenceToken {
     end: number;
     /** The token without its sigil, lowercased for directory lookup. */
     key: string;
-    /** `#channel:shortid`: the Message in that Channel the token names. */
     messageShortId?: string;
     sigil: '#' | '@';
     start: number;

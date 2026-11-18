@@ -15,12 +15,10 @@ export interface HappeningNowWork {
     chatLabel: string;
     /** The work id, which is also the `?work=` deep link. */
     id: string;
-    /** Where opening the row goes: the linking Message. */
     location: ActiveCloudAgentWorkLocation;
     provider: CloudAgentProvider;
     state: CloudAgentJobState;
     statusText: string;
-    /** The Task the work is attached to, which opening the row goes to instead. */
     task: { id: string; key: string } | null;
     title: string;
 }
@@ -51,12 +49,10 @@ export function toHappeningNowWork(
     }));
 }
 
-/** The Server sends a Task's id and key together, or neither. */
 function workTask({ taskId, taskKey }: ActiveCloudAgentWork): HappeningNowWork['task'] {
     return taskId !== null && taskKey !== null ? { id: taskId, key: taskKey } : null;
 }
 
-/** "Running · SEC-12 · #product · Forge": the Task key leads where there is one. */
 export function happeningNowWorkSubline(work: HappeningNowWork): string {
     const facts = [work.statusText, work.task?.key, work.chatLabel, work.agentName];
     return facts.filter((fact) => fact !== undefined).join(' · ');

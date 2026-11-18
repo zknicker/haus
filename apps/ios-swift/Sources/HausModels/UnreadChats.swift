@@ -2,8 +2,6 @@ import Foundation
 
 /// Which Chats are waiting on the reader: every Chat the Server counts unread,
 /// less any Mark read still settling. The Inbox's Unread section and the
-/// sidebar's Inbox dot ask this one rule, so they never disagree about what is
-/// waiting.
 public enum UnreadChats {
     /// Whether the Chat is still unread on this client. A Mark read hides the
     /// Chat at once, and only a message newer than the sequence it covered

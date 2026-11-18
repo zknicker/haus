@@ -47,7 +47,6 @@ test('lets Inbox read at the same weight and x as Search and Tasks', () => {
 test('badges Inbox with what is waiting there in the Chat rows own chip', () => {
     const markup = navigationMarkup({ inboxUnreadCount: 3 });
 
-    // The count holds unread Chats and followed Tasks, so it says Inbox.
     expect(markup).toContain('aria-label="3 waiting in Inbox"');
     // The same chip the unread counts wear, inside the row's own content, at
     // the row's natural trailing edge.

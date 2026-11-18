@@ -44,7 +44,6 @@ export interface AdventFactStats {
     'in-demand': Count;
     'longest-conversation': {
         replies: number;
-        /** `#channel`, or null for a conversation in a DM. */
         room: string | null;
     };
     'longest-streak': {

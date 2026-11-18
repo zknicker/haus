@@ -8,13 +8,6 @@ import {
 } from '../postgres/schema.ts';
 import { parseTaskTarget, resolveTaskTargetChat } from './resolve-task-target.ts';
 
-/**
- * Resolves the Agent CLI's product target under the runner's Server and Agent
- * authority. The launch chat is context, not a routing shortcut. `task:SEC-12`
- * names a Task's own Chat (ADR 0053). A `<target>:<shortId>` target once named
- * a side conversation on that message; there are none now, so it is refused
- * with what to do instead.
- */
 export async function resolveAgentTarget(
     db: HausDatabase,
     runner: ResolvedRunner,
@@ -108,10 +101,6 @@ export class AgentTargetError extends Error {
     }
 }
 
-/**
- * A `<target>:<shortId>` target (ADR 0053 decision 1): it named a side
- * conversation on a message, and Haus has none. The refusal says what to do.
- */
 export class MessageTargetRefusedError extends AgentTargetError {
     constructor(parent: string, shortId: string) {
         super(

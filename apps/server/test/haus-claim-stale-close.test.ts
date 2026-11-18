@@ -107,7 +107,6 @@ async function createClaim(content: string, nonce: string, status: 'in_progress'
     };
 }
 
-/** Ages the claim row and every inline reply already under its message. */
 async function backdate(messageId: string, quietSince: Date) {
     await harness.sql`
         update message_claims set updated_at = ${quietSince}

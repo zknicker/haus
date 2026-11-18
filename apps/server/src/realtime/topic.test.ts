@@ -21,7 +21,6 @@ test('prepare rejects a malformed event before anything is published', () => {
             mentionedUserIds: [],
             messageId: 'msg_reply',
             replyToAuthorUserId: null,
-            // A sequence starts at one; zero names no message.
             sequence: 0,
             serverId: 'srv_one',
             taskId: null,

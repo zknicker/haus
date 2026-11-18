@@ -65,7 +65,6 @@ function ActionCardRoot({
         <article
             className={cn(
                 // Fills the shared in-chat column (`--chat-card-width`), so it
-                // lines up with the Task preview stacked beneath it.
                 'card-shell mt-1.5 flex w-full max-w-(--chat-card-width) flex-col gap-2 border border-separator bg-nested-surface p-3',
                 className
             )}

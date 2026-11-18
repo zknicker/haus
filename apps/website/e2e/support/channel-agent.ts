@@ -98,11 +98,6 @@ export async function createChannelAgent(input: {
             }
             return payload.message.id;
         },
-        /**
-         * Starts a Task as the Agent from one of its Channel's Messages (ADR
-         * 0053 decision 4): only Agents create Tasks. `target` defaults to the
-         * Agent's own Channel; `assignee` is `me` or an @handle.
-         */
         startTask: async (task: {
             assignee?: string;
             from: string;
@@ -125,7 +120,6 @@ export async function createChannelAgent(input: {
             }
             return { key: payload.task.key, target: payload.target };
         },
-        /** Moves a Task between todo, open, done, and canceled, as the Agent. */
         setTaskState: async (key: string, state: 'canceled' | 'done' | 'open' | 'todo') => {
             const response = await agentPost('/api/agent/tasks/state', { key, state });
             if (response.status !== 200) {

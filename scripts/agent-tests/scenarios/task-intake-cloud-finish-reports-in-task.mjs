@@ -1,9 +1,3 @@
-// Task intake 10: a cloud agent attached to a Task finishes. Haus wakes the Agent on that Task,
-// and the Agent reports in the Task's own conversation with an @mention of the requester; it
-// posts nothing in the channel. Opt-in: it spends a real Cursor run to completion
-// (no Server fixture can finish a cloud work), so the stack needs Cursor access to zknicker/haus
-// and up to twenty minutes.
-
 import { humanAuthorId, mentionsHuman } from '../human-addressing.mjs';
 import { wait } from '../room-c.mjs';
 import { withRoutingEvidence } from '../routing-evidence.mjs';

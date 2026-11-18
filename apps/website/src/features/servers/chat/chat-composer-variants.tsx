@@ -5,7 +5,6 @@ import type { ChatInlineReplyTarget } from './chat-inline-reply.tsx';
 
 export function ChatComposer(props: {
     agentDmId?: string;
-    /** See `ServerChatComposer`; a Chat or Task view keeps the default. */
     autoFocus?: boolean;
     chatId: string;
     chatName: string;

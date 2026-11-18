@@ -3,10 +3,6 @@ import { openAgentChatRead } from '../agent-reads/agent-chat-reads.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentTaskFollowsTable } from '../postgres/schema.ts';
 
-/**
- * Follows each mentioned, eligible Agent into the Task. Returns the Agents
- * whose explicit unfollow the mention reversed; `followByAgent` is updated.
- */
 export async function followMentionedIntoTask(
     db: HausDatabase,
     input: {
@@ -35,7 +31,6 @@ export async function followMentionedIntoTask(
                     agentTaskFollowsTable.taskChatId,
                 ],
             });
-        // The mention that follows the Agent in stays unread.
         await openAgentChatRead(db, {
             agentId,
             causeMessageId: input.causeMessageId,

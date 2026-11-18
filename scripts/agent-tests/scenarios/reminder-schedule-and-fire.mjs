@@ -80,7 +80,6 @@ async function readAgentReplies(kit, chatId, agentId) {
     );
 }
 
-/** The Agent's scheduled reminder anchored in the channel. */
 async function waitForScheduledReminder(kit, agentId, channelId) {
     const deadline = Date.now() + 120_000;
     for (;;) {

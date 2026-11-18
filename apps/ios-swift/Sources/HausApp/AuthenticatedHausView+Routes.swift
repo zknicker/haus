@@ -9,7 +9,6 @@ import SwiftUI
 /// somewhere behind it, and on a cold start there is not. The Chat canvas and
 /// the Inbox therefore take turns in the one canvas slot, and the drawer —
 /// its toggle, its veil, its pan — belongs to the slot rather than to either
-/// of them. Tasks stay pushes over whichever is showing.
 extension AuthenticatedHausView {
     /// The Inbox page. Every section reads a Store snapshot, so the page adds
     /// no load of its own beyond the gathered refresh it asks for on arrival
@@ -45,9 +44,6 @@ extension AuthenticatedHausView {
         showsInboxCanvas = true
     }
 
-    /// A row states a record and opens it where that record is fully readable:
-    /// an Unread row its DM, Channel, or Task, and a Cloud Agent work its Task
-    /// or the Message that links it.
     func openInboxRequest(_ request: InboxOpenRequest) {
         switch request {
         case .agent(let agentID):
@@ -62,9 +58,6 @@ extension AuthenticatedHausView {
         }
     }
 
-    /// Opens one "Happening now" work: its Task when it reports to one (ADR
-    /// 0053 decision 6), else the newest visible linking Message, revealed in
-    /// its Channel or DM.
     private func openCloudAgentWork(_ work: ActiveCloudAgentWork) {
         if let taskID = work.taskID {
             openTask(taskID)
@@ -76,10 +69,6 @@ extension AuthenticatedHausView {
         }
     }
 
-    /// A message push or deep link opens its place: a DM or Channel on the
-    /// canvas, or its Task pushed over whatever is showing
-    /// (`PushNotificationRoute.opening`). A push for another Server opens
-    /// nothing — this app shows one Server.
     func openPushNotification(_ payload: PushNotificationPayload) async {
         guard payload.serverID == store.activeServer?.id else {
             PushNotifications.logger.notice("Ignoring a notification for another Server.")
@@ -117,9 +106,6 @@ extension AuthenticatedHausView {
         canvasRouteRevision += 1
     }
 
-    /// A stopped claim opens from an Agent profile at its message, in the
-    /// Channel or DM that numbers it. A claim is a lock on a message, not a
-    /// place (ADR 0053).
     func openClaim(_ item: ClaimListItem) {
         openCanvasChat(.chat(item.claim.chatID), revealing: item.claim.messageID)
     }

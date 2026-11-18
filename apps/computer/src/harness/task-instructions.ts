@@ -1,8 +1,3 @@
-/**
- * How work splits, and what a Task is. `renderAgentInstructions` renders these after
- * `### Claims`. The bullets below are Raft's; what follows them diverges deliberately (register
- * rows "Splitting tasks" and "Tasks", ADR 0053).
- */
 export const splittingWorkSection = `### Splitting work for parallel execution
 
 When you need to break down a large task into subtasks, structure them so agents can work **in parallel**:
@@ -14,10 +9,6 @@ Subtasks for other agents are Tasks: post one message that lists them, start a T
 
 When you receive a notification about new claims in a conversation, check the claim list and claim those relevant to your skills; Tasks assigned to you are already yours.`;
 
-// ADR 0053: the prompt says what a Task is and how people see it, not a placement ladder. Only
-// mechanics the Agent cannot infer stay here; command detail lives in the `tasks` Manual topic.
-// Pacing applies only to Tasks others assign; Tasks an Agent starts itself, such as siblings from
-// one findings message, may run in parallel (operator decision, 2026-11-18).
 export const tasksSection = `### Tasks
 
 A Task is how people follow work that takes longer than a reply. While it is open it sits in their sidebar with its state. It has its own page, where you and they talk about that work and where any cloud agents doing it are shown. When it is done, it leaves.

@@ -14,13 +14,6 @@ import { taskStateLabels } from '../task-state.ts';
 import { TaskStateDisc } from '../task-state-disc.tsx';
 import { taskPreviewCounts, taskPreviewLabel } from './task-preview-model.ts';
 
-/**
- * The Tasks started from one Message, each as a preview under it (ADR 0053
- * decision 7): the Task's state, key, and title, its counts, and its newest
- * messages. A Task with no messages yet
- * shows just its header. Most Messages start none, and render nothing. The
- * previews are the Message entity's own `tasks`, carried on its row.
- */
 export function TaskOriginPreviews({
     previews,
     serverId,
@@ -34,7 +27,6 @@ export function TaskOriginPreviews({
     return <TaskPreviewList previews={previews} serverId={serverId} />;
 }
 
-/** Its own component, so only an origin Message's row holds the opener. */
 function TaskPreviewList({
     previews,
     serverId,

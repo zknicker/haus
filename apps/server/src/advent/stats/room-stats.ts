@@ -71,7 +71,6 @@ export const roomColumns: MessageColumns<RoomFact> = {
             limit 1
         )`;
     },
-    // The inline reply chain the member wrote in with the most replies.
     'longest-conversation': (scope) => sql`(
         select json_build_object('replies', replies, 'room', room)
         from (
@@ -90,7 +89,6 @@ export const roomColumns: MessageColumns<RoomFact> = {
         order by replies desc, room asc nulls last
         limit 1
     )`,
-    // Top-level messages of the member's that someone else replied to inline.
     'conversations-started': (scope) => sql`(
         select json_build_object('count', count(*)::int)
         from mine
@@ -133,7 +131,6 @@ export const roomColumns: MessageColumns<RoomFact> = {
     )`,
 };
 
-/** Distinct rooms and inline reply chains the member wrote in, for the recap. */
 export const recapCountsColumn = sql`(
     select json_build_object(
         'chats', count(distinct room_id)::int,

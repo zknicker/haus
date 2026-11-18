@@ -36,7 +36,6 @@ export async function readTasks(
                 eq(taskKeysTable.id, tasksTable.keyId)
             )
         )
-        // A Task's origin is its Chat's parent Channel and anchor Message (ADR 0053).
         .leftJoin(
             chatsTable,
             and(eq(chatsTable.serverId, tasksTable.serverId), eq(chatsTable.id, tasksTable.chatId))

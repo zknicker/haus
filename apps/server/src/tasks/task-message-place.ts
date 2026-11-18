@@ -37,7 +37,6 @@ export interface MessagePlaceRow {
     parentChatName: null | string;
 }
 
-/** A Task's Chat with no origin Channel is a broken record, so the mapping fails rather than guess. */
 export function messagePlaceOf(row: MessagePlaceRow): TaskMessagePlace {
     if (row.chatKind !== 'task') {
         return {

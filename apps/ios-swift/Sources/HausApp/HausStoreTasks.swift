@@ -2,9 +2,6 @@ import Foundation
 import HausModels
 import OSLog
 
-/// Reads for a Task's own screen. The phone writes nothing to a Task: its
-/// conversation is its Chat, and a Task from before Tasks were places is
-/// read-only history.
 extension HausStore {
     func taskDetail(taskID: String) -> TaskDetail? {
         taskSnapshots.detailsByID[taskID]

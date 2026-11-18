@@ -15,7 +15,6 @@ import { useTaskPeople } from './use-task-people.ts';
 
 const any = 'any';
 
-/** The Tasks page's filters: state, key, assignee, and label, each in the URL. */
 export function TasksToolbar({ filters }: { filters: TasksPageFilters }) {
     const setFilter = useSetFilter();
     return (
@@ -47,7 +46,6 @@ export function TasksToolbar({ filters }: { filters: TasksPageFilters }) {
     );
 }
 
-/** Hidden while the Server has no labels, unless a stale URL still names one. */
 function LabelFilter({
     labelId,
     onChange,
@@ -178,7 +176,6 @@ function AnyItem() {
     );
 }
 
-/** One filter in the URL, replacing the entry so filtering never fills Back. */
 function useSetFilter() {
     const [, setParams] = useSearchParams();
     return (name: 'assignee' | 'key' | 'label' | 'state', value: null | string) =>

@@ -30,7 +30,6 @@ interface AgentWake {
     serverId: string;
 }
 
-/** What changed between two readings: a draft became ready, or checks finished. */
 export function pullRequestTransitions(
     before: ReadingState,
     after: ReadingState
@@ -48,15 +47,6 @@ export function pullRequestTransitions(
     return transitions;
 }
 
-/**
- * Wakes the delegating Agent of each cloud work this pull request belongs to,
- * once per transition and head: work whose Runs reported it, and work on a Task
- * it is attached to. Only after that work's newest Run settled, since a live
- * Run still reports on its own; the notice lands in the work's Chat, its Task's
- * once work attaches to Tasks. A Task the pull request is attached to with no
- * cloud work wakes its assignee Agent with a notice no Run backs. Call inside
- * the reading's write transaction and dispatch the returned wakes after commit.
- */
 export async function enqueuePullRequestWakes(
     tx: HausDatabase,
     delivery: Pick<AgentDelivery, 'enqueue'>,
@@ -105,7 +95,6 @@ export async function enqueuePullRequestWakes(
     return [...wakes.values()];
 }
 
-/** Each work tied to the pull request whose newest Run has settled, with its notice Chat. */
 async function readSettledWork(db: HausDatabase, reading: PullRequestWakeReading) {
     const workIds = await relatedWorkIds(db, reading);
     if (workIds.length === 0) {
@@ -151,7 +140,6 @@ async function readSettledWork(db: HausDatabase, reading: PullRequestWakeReading
     return settled;
 }
 
-/** Work whose Runs reported the pull request, plus work on a Task it is attached to. */
 async function relatedWorkIds(db: HausDatabase, reading: PullRequestWakeReading) {
     const reported = await db
         .selectDistinct({ workId: cloudAgentRunsTable.workId })

@@ -86,8 +86,6 @@ final class PushNotifications {
         }
     }
 
-    /// Opening a conversation answers the notifications grouped under it; a
-    /// Task screen passes its own Chat.
     func clearDelivered(openedChatID: String?) async {
         guard openedChatID != nil else { return }
         let center = UNUserNotificationCenter.current()

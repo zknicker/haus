@@ -5,7 +5,6 @@
 // @mentions the first Agent: is anyone already on it, and if not, grab it.
 // Only the first Agent is restarted, so it reads the whole exchange in one
 // turn. The claim is the lock: it must not claim, re-create, or deliver the
-// work, and replies at most once. Decoys: doing the
 // work anyway (the computed total appears in its post), claiming or creating a
 // duplicate claim. The peer stays stopped so the lock holder never moves.
 

@@ -116,7 +116,6 @@ test('a soft-deleted channel takes its inline replies out of every count', async
     await backdate(reply.message.id, '2025-04-02T15:05:00Z');
     await mentionCarol(attic.id, 'msg_advent_mention_attic', 1000);
 
-    // The test bites: while the channel lives, its replies count.
     expect(strongRuns(await read(1), 'messages-sent')).toEqual(['3']);
 
     await harness.sql`

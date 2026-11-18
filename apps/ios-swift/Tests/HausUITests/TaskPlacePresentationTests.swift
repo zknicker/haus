@@ -3,12 +3,9 @@ import HausModels
 @testable import HausUI
 import Testing
 
-/// How a Task reads on iPhone (ADR 0053 decision 15): its preview under the
-/// origin Message, its screen's header and transcript, and its Unread row.
 struct TaskPlacePresentationTests {
     // MARK: - Status words
 
-    /// Every Run status reads as words a person says, never the wire enum.
     @Test func runStatusesReadAsWords() {
         let labels = [
             CloudAgentStatus.queued, .running, .completed, .failed, .cancelled, .expired, .pendingInput,
@@ -37,7 +34,6 @@ struct TaskPlacePresentationTests {
 
     // MARK: - Attached work
 
-    /// The newest Run is first; its status and summary are what the header says.
     @Test func theHeaderReadsTheNewestRun() throws {
         let agent = try CloudAgentWorkFixture.work(
             status: "pending_input",
@@ -50,7 +46,6 @@ struct TaskPlacePresentationTests {
         #expect(agent.newestRunSummary == "Paused: which key should rotate?")
     }
 
-    /// A pull request a cloud agent card already shows is listed once.
     @Test func aPullRequestShownByItsCloudAgentIsNotRepeated() throws {
         let agent = try CloudAgentWorkFixture.work(runs: [
             CloudAgentWorkFixture.run(branches: [CloudAgentWorkFixture.branch(url: "https://github.com/haus/haus/pull/482")]),
@@ -76,7 +71,6 @@ struct TaskPlacePresentationTests {
         let presentation = TaskPreviewProjection.presentation(for: preview) { reply in
             reply.id == "gone" ? nil : MessageAuthorPresentation(id: "agent_1", name: "Forge", avatarURL: nil)
         }
-        // The Server caps at three; an author nobody can name is dropped, not drawn.
         #expect(presentation.recentMessages.map(\.id) == ["m2", "m4"])
         #expect(presentation.messagesLabel == "9 messages")
         #expect(presentation.unreadLabel == "2 new")
@@ -105,8 +99,6 @@ struct TaskPlacePresentationTests {
 
     // MARK: - Task transcript
 
-    /// "Started from" heads the transcript only once its oldest message is
-    /// loaded, so paging back never slides it under newer history.
     @Test func startedFromHeadsTheTranscriptOnceTheOldestPageIsLoaded() {
         let origin = TaskStartedFromPresentation(placeLabel: "#security", excerpt: "Forge: Found five issues")
         let messages = [message("m1", at: 0), message("m2", at: 60)]
@@ -136,12 +128,9 @@ struct TaskPlacePresentationTests {
         let row = rows[0]
         #expect(row.open == .task(taskID: "task_12"))
         #expect(row.preview == "Forge: Done")
-        // A conversation carries no facts line; its name is the whole title.
         #expect(rows[1].facts == nil)
     }
 
-    /// The title stands alone so a long one wraps whole; the key and state
-    /// take their own line.
     @Test func anUnreadTaskRowKeepsItsWholeTitleAndPutsKeyAndStateUnderIt() {
         let title = "Rate-limit the Trigger webhooks before the partner launch on Thursday"
         let row = taskChat(at: Date(timeIntervalSince1970: 1_800_000_200), title: title, state: .todo)

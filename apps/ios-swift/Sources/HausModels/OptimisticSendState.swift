@@ -17,8 +17,6 @@ public protocol OptimisticSendRow {
 }
 
 extension OptimisticMessageRow {
-    /// Marks the row carrying `nonce` failed, wherever it is keyed. False when
-    /// no such row exists —
     /// the reader deleted it, or the durable row already retired it.
     @discardableResult
     public static func markFailed<Row: OptimisticSendRow>(

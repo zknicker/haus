@@ -42,7 +42,6 @@ test('Unread reads the demo Chats with their last line', async () => {
         content: 'Pushed the sidebar badge fix — PR is up for a look.',
     });
     expect(all?.unreadCount).toBeGreaterThan(0);
-    // The release check's discussion is inline replies, and the newest is Blippy's.
     expect(product?.lastMessage).toMatchObject({
         authorDisplayName: 'Blippy',
         content: expect.stringContaining('the migration check is the blocker'),
@@ -88,7 +87,6 @@ test('Unread holds Tiny’s inline answer in the DM; the claim is on Claims', as
 test('Happening now shows gallery samples and settled work keeps its evidence', async () => {
     const active = await owner.trpc.cloudAgentWork.listActive.query({ serverId });
     // Six Cursor gallery samples (one needs input), three gallery follow-ups,
-    // and two Claude samples (working, needs input).
     expect(active).toHaveLength(11);
 
     const chats = await owner.trpc.chat.list.query({ serverId });
@@ -189,9 +187,7 @@ test('UI gallery reads the attachment combinations and isolates live samples', a
     expect(gallery).toBeDefined();
     const chatId = gallery?.id ?? '';
     const transcript = await owner.trpc.chat.messages.query({ serverId, chatId });
-    // Thirty-three top-level samples and the ten inline replies under them.
     expect(transcript.messages).toHaveLength(43);
-    // Every @mention sample, the two inline ones included.
     expect(
         transcript.messages.filter((message) => message.content.includes('user://'))
     ).toHaveLength(6);

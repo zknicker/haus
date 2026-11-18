@@ -11,11 +11,6 @@ import SwiftUI
 /// upward in front of the reader.
 ///
 /// The mark is the iridescent ghost, not the app-icon tile: it shares a glyph
-/// column with the Chat rows below it. It is drawn at the column's size here —
-/// the one glyph in the column that names the product where the others name a
-/// place — and it grows inside the shared column, centred on the same midline,
-/// so the `Inbox` label stays on the Chat labels' edge whatever size the mark
-/// takes. Its mesh drifts,
 /// quicker while an Agent here is working, and not at all while the drawer
 /// holding it is shut.
 struct SidebarInboxRow: View {

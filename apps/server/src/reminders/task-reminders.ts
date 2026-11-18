@@ -3,11 +3,6 @@ import { and, desc, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 
-/**
- * A Task holds only one-time reminders (ADR 0053 decision 16). A recurring
- * reminder anchors on a Channel, and a fire that turns up real work starts a
- * Task there.
- */
 export class TaskRecurringReminderError extends Error {
     readonly code: AgentTaskRefusalCode = 'TASK_RECURRING_REMINDER';
 
@@ -19,12 +14,6 @@ export class TaskRecurringReminderError extends Error {
     }
 }
 
-/**
- * Where a reminder set on a Task anchors: the newest message in the Task's own
- * Chat, or its origin Message in the Channel above while the Task has no posts.
- * Either way `anchor_chat_id` is the Task's Chat, so the fire reports to the
- * Task and closing the Task cancels it.
- */
 export async function readTaskReminderAnchor(
     db: Pick<HausDatabase, 'select'>,
     input: { chatId: string; serverId: string }
@@ -60,7 +49,6 @@ export async function readTaskReminderAnchor(
     return { anchorChatId: input.chatId, anchorMessageId: task.originMessageId };
 }
 
-/** Refuses `repeat` on a reminder anchored in a Task's own Chat. */
 export async function refuseRecurringTaskReminder(
     db: Pick<HausDatabase, 'select'>,
     input: { anchorChatId: string; repeat: string | null | undefined; serverId: string }

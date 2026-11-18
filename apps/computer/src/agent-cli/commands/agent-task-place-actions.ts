@@ -13,11 +13,6 @@ import {
     taskStartSchema,
 } from './agent-task-view.ts';
 
-/**
- * The verbs that make a Task a place (ADR 0053): start one from a Message in a Channel, set its
- * state, and attach a pull request. Each receipt names the Task's target, `task:<key>`.
- */
-
 export async function runTaskStart(args: ParsedArgs, deps: TaskDeps): Promise<number> {
     const target = requiredValue(args, '--target');
     assertAgentTarget(target);
@@ -91,7 +86,6 @@ export async function runTaskAttachPullRequest(args: ParsedArgs, deps: TaskDeps)
     return 0;
 }
 
-/** What a state means to the people who follow the Task, stated as fact (decisions 8, 13, 16). */
 function stateConsequence(state: TaskState): string {
     if (isClosedTaskState(state)) {
         return 'It leaves the sidebar and its pending reminders are canceled; a post in it reopens it.';

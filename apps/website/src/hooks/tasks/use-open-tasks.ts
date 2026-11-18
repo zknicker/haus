@@ -4,15 +4,8 @@ import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 import { openTaskIds } from './open-task-order.ts';
 
-/** What one sidebar row draws of its Task. */
 export type OpenTaskEntry = Pick<Task, 'chatId' | 'id' | 'key' | 'state' | 'title'>;
 
-/**
- * The sidebar's open Tasks (`task.listOpen`, ADR 0053 decision 8), as ids in
- * row order; undefined until the read settles. Each row reads its own entry,
- * so a retitle re-renders one row, not the section. `task.onUpdated`
- * invalidates the read, which is how a closed Task leaves.
- */
 export function useOpenTaskIds(serverId: string): readonly string[] | undefined {
     const { data } = hausTrpc.task.listOpen.useQuery(
         { serverId },

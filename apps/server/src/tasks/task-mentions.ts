@@ -93,13 +93,6 @@ export async function listTaskMentions(
     }));
 }
 
-/**
- * A Task's **Reminders**: Reminders set on the Task (anchored in its own Chat,
- * ADR 0053 decision 16) and Reminders whose description references it, soonest
- * first, each naming the Agent that set it, limited to those anchored in Chats
- * the reader can read. The Task is visible to every member; a Reminder
- * anchored in a DM is not.
- */
 export async function listTaskReminders(
     db: Reader,
     reader: TaskActor,

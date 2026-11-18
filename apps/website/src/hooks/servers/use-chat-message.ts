@@ -32,7 +32,6 @@ export function useChatMessage(
     const queryClient = useQueryClient();
     const { client } = hausTrpc.useUtils();
     // Only an enabled read follows the view's shown state. A disabled one
-    // (ChatView's linked Message with no `?message=`) never fetches, so it skips
     // the context and a reveal does not re-render its whole Chat view.
     const subscribed = enabled ? React.use(ChatMessageSubscriptionContext) : false;
     ensureChatMessageDefaults(queryClient);

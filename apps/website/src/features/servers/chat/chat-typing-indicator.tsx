@@ -35,7 +35,6 @@ export function ChatTypingIndicator({
     chatId: ownChatId,
     serverId,
 }: {
-    /** Undefined while the Chat is not known yet; the row still holds its height. */
     chatId: string | undefined;
     serverId: string;
 }) {

@@ -6,10 +6,8 @@ import { taskKeysTable, tasksTable } from '../postgres/schema.ts';
 type TaskChatReader = Pick<HausDatabase, 'select'>;
 type TaskChatWriter = Pick<HausDatabase, 'select' | 'update'>;
 
-/** The Task whose own Chat a conversation is (ADR 0053), as Chat-keyed code needs it. */
 export interface TaskChatRow {
     chatId: string;
-    /** `SEC-12`: the ledger entry's key and the Task's number. */
     key: string;
     serverId: string;
     state: TaskState;
@@ -17,7 +15,6 @@ export interface TaskChatRow {
     version: number;
 }
 
-/** The Task a `task` Chat belongs to, or null when the Chat is no Task's. */
 export async function findTaskByChatId(
     db: TaskChatReader,
     input: { chatId: string; serverId: string }
@@ -55,7 +52,6 @@ export async function findTaskByChatId(
     };
 }
 
-/** A `task` Chat's send target, `task:SEC-12`; null when the Chat is no Task's. */
 export async function taskTargetForChat(
     db: TaskChatReader,
     input: { chatId: string; serverId: string }
@@ -64,13 +60,6 @@ export async function taskTargetForChat(
     return task ? formatTaskTarget(task.key) : null;
 }
 
-/**
- * Posting in a done or canceled Task reopens it (ADR 0053 decision 13). Call it
- * inside the send's transaction. Returns the reopened Task, so the caller can
- * announce `task.updated` after commit, or null when nothing changed: the Chat
- * is no Task's, or its Task is already todo or open. Reopening never restores
- * reminders that closing canceled (decision 16).
- */
 export async function reopenTaskOnPost(
     tx: TaskChatWriter,
     input: { chatId: string; serverId: string }

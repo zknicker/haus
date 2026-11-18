@@ -4,8 +4,6 @@ import Foundation
 ///
 /// Pages are immutable Server snapshots. The window makes page direction
 /// explicit so loading older history keeps the old edge visible while loading
-/// newer history keeps the new edge visible. Messages from the incoming page
-/// win when records overlap.
 public struct ChatHistoryWindow: Equatable, Sendable {
     public static let defaultCapacity = 200
     public static let defaultPageSize = 50

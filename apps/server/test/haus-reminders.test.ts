@@ -227,7 +227,6 @@ describe('reminders', () => {
             anchorChatId: chatId,
             anchorMessageId: reply.message.id,
         });
-        // Neither the schedule nor the fire appends a row after the reply.
         expect(transcript.messages.at(-1)?.id).toBe(reply.message.id);
     });
 

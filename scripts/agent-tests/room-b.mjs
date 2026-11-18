@@ -1,7 +1,5 @@
 // Shared evidence for the room scenarios where a second Agent speaks only
 // through seeded messages (kit.authorAsAgent): every post one Agent made in a
-// channel, whether a post pings an Agent, and the first message an Agent
-// addressed to the human.
 
 import { humanAddressingReason } from './human-addressing.mjs';
 
@@ -32,7 +30,6 @@ export async function agentPosts(kit, chatId, agentId, head = 0) {
     );
 }
 
-/** Posts that address the human (a mention, or an inline reply to their message). */
 export async function humanAddressedPosts(kit, { agentId, channelId, userId }) {
     const own = (message) => message.author.kind === 'agent' && message.author.agentId === agentId;
     return (await kit.readMessages(channelId)).filter(

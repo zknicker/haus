@@ -40,8 +40,6 @@ export const claimStatusClasses: Record<ClaimStatus, string> = {
     todo: 'bg-[var(--label-orange-bg)] text-[var(--label-orange-fg)]',
 };
 
-// Status hue for the TaskStatusDisc on neutral surfaces (list groups, state
-// selects) where there is no chip fill to carry the color.
 export const claimStatusDiscClasses: Record<ClaimStatus, string> = {
     closed: 'text-[var(--label-gray-fg)]',
     done: 'text-[var(--label-green-fg)]',

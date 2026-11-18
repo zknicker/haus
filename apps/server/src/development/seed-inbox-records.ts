@@ -63,12 +63,6 @@ interface SeedCloudAgentWork {
     title: string;
 }
 
-/**
- * The settled Cloud Agent work Blippy delegated from #product, with its branch
- * and pull request retained. It is written the way `createCloudAgentWork`
- * writes one — the Agent-authored text Message that links the work (ADR 0044),
- * the work record, its provider Run, and the link.
- */
 export async function seedCloudAgentWork(
     tx: HausDatabase,
     context: InboxSeedContext,

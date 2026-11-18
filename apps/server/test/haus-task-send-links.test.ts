@@ -20,10 +20,6 @@ beforeAll(async () => {
     allChatId = all?.id ?? '';
 });
 
-/**
- * A Task at version 1 whose origin is in `#all`, so its origin Message is no
- * news in the Channel the Agent sends to.
- */
 async function createTask(title: string) {
     const { harness, owner, serverId } = fixture;
     const task = await startTestTask(harness, owner, { channelId: allChatId, serverId, title });

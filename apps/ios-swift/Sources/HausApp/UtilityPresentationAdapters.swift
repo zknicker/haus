@@ -93,7 +93,6 @@ extension HausStore {
                 ?? chat.peerAgentDisplayName ?? "DM"
             return (name, .directMessage)
         case .task, .unknown:
-            // The Chat list holds neither; a Task names itself by its key.
             return (chat.name ?? "Task", .channel)
         }
     }

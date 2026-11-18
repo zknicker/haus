@@ -42,7 +42,7 @@ export function AgentStalledClaims({ agent, server }: { agent: Agent; server: Se
             {stalled.map(({ item }, index) => (
                 <React.Fragment key={item.message.id}>
                     {index > 0 ? <Separator /> : null}
-                    {/* The row opens the Message; its menu sits beside it, never inside the button. */}
+                    {}
                     <div className="flex min-w-0 items-center gap-1">
                         <ItemCard<'button'>
                             className="relative min-w-0 flex-1 cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2 focus-visible:ring-focus"
@@ -88,7 +88,6 @@ export function AgentStalledClaims({ agent, server }: { agent: Agent; server: Se
     );
 }
 
-/** A stalled claim's one action: release it, so another Agent or a person can take the Message. */
 function StalledClaimMenu({ onRelease, pending }: { onRelease: () => void; pending: boolean }) {
     return (
         <Dropdown>

@@ -18,7 +18,6 @@ const origin = { chatId: 'cht_ops', messageId: 'msg_origin' };
 const event = { chatId: 'cht_task', serverId, taskId: 'tsk_12', version: 3 };
 const read = (path: string, input?: Record<string, unknown>) => ({ input, path });
 
-/** `task.get` reads cached by key and by id, with another Task beside them. */
 function seedDetails(harness: ReturnType<typeof createRealtimeHarness>) {
     const seed = (address: Record<string, string>, id: string) =>
         harness.queryClient.setQueryData(
@@ -30,7 +29,6 @@ function seedDetails(harness: ReturnType<typeof createRealtimeHarness>) {
     seed({ key: 'SEC-13' }, 'tsk_13');
 }
 
-/** A loaded transcript of the origin Channel, so a preview could show there. */
 function seedTranscript(harness: ReturnType<typeof createRealtimeHarness>) {
     harness.queryClient.setQueryData(
         getQueryKey(
@@ -78,7 +76,6 @@ describe('Task stream hooks', () => {
         const lists = [read('task.list', { serverId }), read('task.listOpen', { serverId })];
         expect(onEvent).toEqual(lists);
         expect(onRecovery).toEqual(lists);
-        // No transcript is loaded, so no row could show the preview: nothing more.
         expect(eventOps.some((op) => op.op === 'noteMessageAnnotated')).toBe(false);
     });
 
@@ -95,7 +92,6 @@ describe('Task stream hooks', () => {
             op: 'noteMessageAnnotated',
             target: { ...origin, serverId },
         });
-        // The cached detail named the origin, so no read was needed.
         expect(harness.reads).not.toContain('task.get');
     });
 

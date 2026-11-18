@@ -1,16 +1,6 @@
 import type { Chat } from '@haus/api';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 
-/**
- * The Inbox's Mark read: reads one Chat through its newest message
- * (`chat.markRead`), on purpose rather than by viewing it.
- *
- * The row leaves at once — the Chat's unread count drops to zero in the cached
- * `chat.list` — and the Server reconciles it: the reader-scoped `chat.read`
- * events refetch the list, and so does this mutation's own settle, which
- * repairs a client whose stream is reconnecting. A failure puts the previous
- * list back.
- */
 export function useMarkChatRead() {
     const utils = hausTrpc.useUtils();
 

@@ -5,7 +5,6 @@ import UIKit
 #endif
 
 /// The Cloud Agent work under the Message that delegated it — the same card
-/// in the Chat transcript and in a Task. Four parts, top to bottom:
 /// the header (mark, title, the job's state, the repository), the pull
 /// request once one exists, exactly one status line, and the actions. The
 /// headline is the job's state in Cursor's vocabulary, so a follow-up waiting
@@ -17,7 +16,6 @@ import UIKit
 ///
 /// The compact form is the same card cut to its header — mark, title, the
 /// repository and the job's chip — for a working job listed in an expanded
-/// stack, where the full card adds nothing but its actions.
 struct CloudAgentCard: View {
     let agent: CloudAgentPresentation
     var isCompact = false
@@ -242,7 +240,6 @@ enum CloudAgentCardMetrics {
 extension View {
     /// The card's box in one fill. The page background goes under the
     /// translucent system fill so a card stays opaque over whatever sits
-    /// behind it.
     func cloudAgentCardSurface(_ fill: Color) -> some View {
         background {
             RoundedRectangle.haus(CloudAgentCardMetrics.cornerRadius)

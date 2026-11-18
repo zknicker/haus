@@ -1,10 +1,3 @@
-// Task intake 4: coding work that needs a cloud agent. A cloud agent always means the reply
-// will not finish the work, so the Agent starts the Task first and then launches the cloud
-// agent on it (`haus cloud-agent start --task`); the CLI refuses a launch without one. The
-// work's link to its Task is the Task's `attachedWork` (the work's `task_id`). Opt-in: it
-// launches a real Cursor run, so the stack needs Cursor access to zknicker/haus (see
-// cloud-launch-and-link).
-
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
 import {

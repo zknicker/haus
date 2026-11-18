@@ -143,7 +143,6 @@ final class RealtimeStreamRestartsTests: XCTestCase {
 
     /// A restart reloads only what that stream keeps fresh.
     func testEachStreamReloadsOnlyItsOwnProjections() {
-        // A Task message or read also moves a followed Task's Unread row (ADR 0053).
         for stream in [RealtimeStream.messageCreated, .chatRead] {
             XCTAssertEqual(stream.ownedProjections, [.openTranscripts, .chatList, .unreadTasks], stream.path)
         }

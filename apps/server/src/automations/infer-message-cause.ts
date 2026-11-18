@@ -85,12 +85,6 @@ function isFireIdentity(dedupeKey: string): boolean {
     return dedupeKey.startsWith('trf_') || dedupeKey.startsWith('rmf_');
 }
 
-/**
- * The anchor Chats a message here answers for. A Task (ADR 0053) answers for
- * itself, so a fire anchored on the Task
- * keeps the Task as its place, and for the Channel it started in, where a fire
- * that turned up real work started it. Every other Chat answers for itself.
- */
 async function answeredChatIds(
     db: HausDatabase,
     input: { chatId: string; serverId: string }

@@ -55,7 +55,6 @@ function continuesReply(previous: MessageRow, next: MessageRow) {
     );
 }
 
-// A skeleton row only knows whether its entity carries a claim or started a Task.
 function hasAttachedWork(row: MessageRow) {
     return Boolean(row.entity?.attachedWork || row.message.claim);
 }

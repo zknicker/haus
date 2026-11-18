@@ -7,12 +7,6 @@ import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { seedLegacyTasks } from './legacy-tasks-seed.ts';
 import { startPostgresCluster } from './postgres-cluster.ts';
 
-/**
- * ADR 0053 over rows 0126 left: a legacy Task an Agent is working becomes a
- * place (its earliest linking Channel Message, else a "Tracking" post in
- * `#all`), every other unfinished legacy Task is canceled into history, closed
- * ones stay as they are, and boards, columns, and the Task Inbox are gone.
- */
 test('0127 turns worked legacy Tasks into places and archives the rest', async () => {
     const cluster = await startPostgresCluster();
     const folder = await mkdtemp(join(tmpdir(), 'haus-legacy-tasks-'));
@@ -41,11 +35,9 @@ test('0127 turns worked legacy Tasks into places and archives the rest', async (
             FROM tasks t LEFT JOIN chats c ON c.server_id = t.server_id AND c.id = t.chat_id
             ORDER BY t.number`;
         expect(tasks).toEqual([
-            // Earliest Channel Message that links it; the older DM link does not count.
             row('tsk_linked', 'open', 'cht_ops', 'msg_ops_1'),
             row('tsk_tracked_a', 'todo', 'cht_all', expect.stringMatching(/^msg_/u)),
             row('tsk_tracked_b', 'todo', 'cht_all', expect.stringMatching(/^msg_/u)),
-            // Its column said done, so it is history, not a place.
             row('tsk_drift', 'done'),
             row('tsk_human', 'canceled'),
             row('tsk_unassigned', 'canceled'),
@@ -64,7 +56,6 @@ test('0127 turns worked legacy Tasks into places and archives the rest', async (
         console.info('0127 legacy Task cases', JSON.stringify(counts[0]));
         expect(counts[0]).toEqual({ canceled_now: 2, history: 5, places: 4 });
 
-        // Two posts by each assignee, appended to #all in Task age order.
         const posts = await database`
             SELECT m.sequence, m.author_agent_id, m.content, m.nonce, l.task_id, l.text
             FROM chat_messages m JOIN task_message_links l ON l.message_id = m.id
@@ -82,7 +73,6 @@ test('0127 turns worked legacy Tasks into places and archives the rest', async (
             { id: 'cht_ops', last_message_sequence: 2, task_key_id: 'brd_gen' },
         ]);
 
-        // Followers: origin author and creator when people, and the assignee Agent.
         expect(
             await database`SELECT t.id, f.user_id FROM thread_follows f
                 JOIN tasks t ON t.chat_id = f.thread_chat_id
@@ -104,7 +94,6 @@ test('0127 turns worked legacy Tasks into places and archives the rest', async (
             { agent_id: 'agt_one', id: 'tsk_tracked_b', sequence: 0 },
         ]);
 
-        // The ledger alone numbers: past the board's counter and every taken number.
         expect(await database`SELECT id, next_number FROM task_keys`).toEqual([
             { id: 'brd_gen', next_number: 10 },
         ]);
@@ -138,7 +127,6 @@ test('0127 turns worked legacy Tasks into places and archives the rest', async (
     }
 }, 60_000);
 
-/** A Task row as the query reads it; `completed` follows the state. */
 function row(id: string, state: string, parent: string | null = null, anchor: unknown = null) {
     return {
         anchor_message_id: anchor,
@@ -161,7 +149,6 @@ function post(sequence: number, agent: string, content: string, taskId: string, 
     };
 }
 
-/** Runs a lazy Bun SQL query so `expect().rejects` sees a real promise. */
 async function settle(query: PromiseLike<unknown>) {
     return await query;
 }

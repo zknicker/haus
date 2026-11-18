@@ -1,5 +1,4 @@
 // A `github` Trigger fires on a failed CI run: the owning Agent answers the
-// fire once, top level in the anchor channel (not an inline reply), and names the
 // fire with `haus message send --cause <fireId>`. The installation is seeded on
 // the stack's own Server and the delivery is signed with the stack's App
 // webhook secret and POSTed to /api/github/webhook, as GitHub would

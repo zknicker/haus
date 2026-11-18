@@ -6,11 +6,6 @@ import { cloudAgentLinkHelpers } from './cloud-agent-link-helpers.ts';
 import { captureTopic, type TopicCapture } from './realtime-capture.ts';
 import { startTestTask } from './task-place-fixture.ts';
 
-/**
- * ADR 0053 surfaces the App and the Agent CLI read: the Agent Task list by
- * state and key, who set a Task's reminder, the Task a cloud work event and an
- * active work row name, and `task.updated` when work or a pull request attaches.
- */
 const fixture = cloudAgentFixture();
 const { agentPost } = cloudAgentLinkHelpers(fixture);
 let taskEvents: TopicCapture<TaskUpdatedEvent>;
@@ -51,7 +46,6 @@ test('the Agent Task list filters by state, repeated or comma-separated, and by 
     expect(await keys(`state=open,done&key=${ledger}`)).toEqual(
         [fixture.task.key, closed.key].sort()
     );
-    // Without a state, the unfinished ones; the old category filter is gone.
     expect(await keys('category=done')).not.toContain(closed.key);
 
     const unknown = await fetch(new URL('/api/agent/tasks?key=ZZZ', fixture.harness.url), {

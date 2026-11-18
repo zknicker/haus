@@ -67,7 +67,6 @@ test('the Agent Task list filters by state and key, as a comma list or repeated'
         'open',
         'done',
     ]);
-    // Board column categories are gone with boards; zod drops the unknown query key.
     expect(agentTaskListQuerySchema.parse({ category: 'active' })).toEqual({});
     expect(agentTaskListQuerySchema.safeParse({ state: 'finished' }).success).toBe(false);
     expect(agentTaskListQuerySchema.safeParse({ key: 'sec' }).success).toBe(false);

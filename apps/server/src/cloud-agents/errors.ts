@@ -52,10 +52,6 @@ export class CloudAgentComputerRemovedError extends Error {
     }
 }
 
-/**
- * Cloud work attaches to a Task and reports there (ADR 0053 decision 6), so a
- * launch that names no Task, or one the Agent cannot reach, is refused.
- */
 export class CloudAgentTaskRequiredError extends Error {
     constructor(
         message = 'A cloud agent launch needs a Task. Start a Task for this work first, then launch the cloud agent on that Task by its key; the cloud agent reports there.'

@@ -78,7 +78,6 @@ export async function listActiveCloudAgentWork(
     });
 }
 
-/** Each Task's key (`SEC-12`), by id: the Task a row of attached work names. */
 async function readTaskKeys(
     db: HausDatabase,
     input: { serverId: string; taskIds: string[] }
@@ -93,10 +92,6 @@ async function readTaskKeys(
     return new Map(tasks.map((task) => [task.id, task.key]));
 }
 
-/**
- * The Channel or DM a link's row names. A Task's Chat (ADR 0053) takes its
- * Channel's kind and name; a Task stays its own conversation.
- */
 function conversationFacts(link: VisibleWorkLink, viewerUserId: string) {
     const inTask = link.chatKind === 'task';
     const kind = inTask ? link.parentKind : link.chatKind;

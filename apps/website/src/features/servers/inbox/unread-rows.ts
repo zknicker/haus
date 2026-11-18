@@ -1,14 +1,7 @@
 import type { Chat, ChatUnreadPreview, ChatUnreadPreviewTask } from '@haus/api';
 
-/** A followed Task's unread preview: its row names the Task (ADR 0053 decision 9). */
 export type FollowedTaskPreview = ChatUnreadPreview & { task: ChatUnreadPreviewTask };
 
-/**
- * One Unread row: a Channel or DM with its own unread messages, or a followed
- * Task with unread messages, which reads like an unread Channel (ADR 0053
- * decision 9). Being assigned a Task makes you a follower; there is no
- * separate assignment row.
- */
 export type UnreadRow =
     | { chat: Chat; id: string; kind: 'chat' }
     | { id: string; kind: 'task-chat'; preview: FollowedTaskPreview };
@@ -35,17 +28,10 @@ export function selectUnreadRows(
     return rows.sort((a, b) => activityTime(b) - activityTime(a));
 }
 
-/**
- * How many rows `selectUnreadRows` returns: the unread Chats and the followed
- * Tasks with unread messages. A badge selects the Chat count from the list,
- * so a message that only moves a count inside an already unread Chat, or
- * reorders the list, leaves the badge alone.
- */
 export function countUnreadChats(chats: readonly Pick<Chat, 'unreadCount'>[]): number {
     return chats.filter(isUnreadChat).length;
 }
 
-/** The followed Tasks among the previews: the rows `chat.list` never names. */
 export function followedTaskPreviews(
     previews: readonly ChatUnreadPreview[]
 ): FollowedTaskPreview[] {

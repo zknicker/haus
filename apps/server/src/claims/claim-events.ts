@@ -3,7 +3,6 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { messageClaimsTable } from '../postgres/schema.ts';
 import { claimChangedTopic } from '../realtime/topics.ts';
 
-/** Where a claim's Message sits, as the claim row stores it. */
 export interface ClaimPlacement {
     chatId: string;
     messageId: string;

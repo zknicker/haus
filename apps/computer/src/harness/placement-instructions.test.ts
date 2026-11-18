@@ -15,11 +15,9 @@ test('Sending teaches placement as what a reader sees, with no Threads (ADR 0053
     expect(sending).toContain(
         'A channel is a shared space with its own purpose, and its members come to it for that.'
     );
-    // A side conversation stays inline, and work that outlasts a reply goes in a Task.
     expect(sending).toContain(
         'A side conversation stays there as inline replies; work that outlasts a reply goes in a Task.'
     );
-    // Notification facts mirror packages/haus-api/src/message-notification.ts.
     expect(sending).toContain('In a DM every message notifies the other person.');
     expect(sending).toContain(
         'an inline reply to their message in a channel or DM, with `--done` on the message that answers it, and nothing they did not ask for.'
@@ -33,7 +31,6 @@ test('Sending teaches placement as what a reader sees, with no Threads (ADR 0053
     );
     expect(sending.indexOf('--reply-to')).toBeLessThan(sending.indexOf('**Reply to a channel**'));
 
-    // Threads are gone: no section, no thread target shape, no thread facts anywhere.
     expect(instructions).not.toContain('### Threads');
     expect(instructions).not.toContain('#general:00000000');
     expect(instructions).not.toContain('haus thread');

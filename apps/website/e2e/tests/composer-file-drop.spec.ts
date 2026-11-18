@@ -42,7 +42,6 @@ test('files dropped on a chat attach to its composer, an inline reply included',
     await expect(overlay).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Remove screenshot.png' })).toHaveCount(1);
 
-    // Replying inline keeps the one composer, so a second drop joins the same draft.
     const messageRow = anchor.locator('xpath=ancestor::*[@data-slot="chat-message-assistant"][1]');
     await messageRow.hover();
     await messageRow.locator('button[aria-label="Reply"]').click();

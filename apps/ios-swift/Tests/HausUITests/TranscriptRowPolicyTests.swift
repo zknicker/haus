@@ -3,7 +3,6 @@ import Foundation
 import Testing
 
 /// Which rows an update re-hosts, what VoiceOver reads and offers for a
-/// message.
 struct TranscriptRowPolicyTests {
     @Test func anInsetOnlyUpdateReHostsNothing() {
         let rows = TranscriptRowReconfiguration.rows(

@@ -16,17 +16,6 @@ const showcaseAnchorNonce = 'dev-inbox-showcase-product-anchor';
 
 const minute = 60_000;
 
-/**
- * What the Inbox's cards and Agents rail need to be judged on a dev boot
- * (ADR 0050): unread inline replies that carry formatting and an @mention,
- * a token week that stays current however old the dev database is, and one
- * Agent running away today so the spike flag shows.
- *
- * The conversations are written once, marked by their first Message's nonce.
- * The usage is topped up on every boot: the cube fills days the database has
- * not seen yet and rewrites only today's spike row, so the rail always reads
- * the last seven days rather than the week the database was created.
- */
 export async function seedDevelopmentInboxShowcase(
     db: HausDatabase,
     input: { serverId: string; userId: string }
@@ -136,7 +125,6 @@ async function seedProductConversation(tx: HausDatabase, context: InboxSeedConte
     });
 }
 
-/** Tiny answering the owner inline in their DM, so the Inbox shows a DM reply card too. */
 async function seedTinyDmConversation(tx: HausDatabase, context: InboxSeedContext, now: Date) {
     const [anchor] = await appendSeedMessages(tx, {
         chatId: context.tinyDmChatId,

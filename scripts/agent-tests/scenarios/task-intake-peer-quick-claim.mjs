@@ -1,7 +1,3 @@
-// Task intake 11: a quick request to the room that either of two Agents could take. The one
-// that picks it up claims the message and answers; the claim is what marks ownership, so
-// neither Agent creates a Task to say "mine". Exactly one Agent answers.
-
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
 import { claimOn, postsAcross, tasksCreatedBy } from '../task-intake.mjs';

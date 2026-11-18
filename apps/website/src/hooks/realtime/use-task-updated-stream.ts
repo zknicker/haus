@@ -9,13 +9,6 @@ import {
 import { refreshTaskReads } from './task-reads.ts';
 import { useSubscriptionRestart } from './use-subscription-restart.ts';
 
-/**
- * `task.onUpdated`: a Task was retitled, moved to another state, or
- * reassigned. Its detail and its origin preview (`refreshTaskReads`), every
- * Tasks page list (a state filter can gain or lose it), the sidebar's open
- * Tasks (a done or canceled Task leaves there), and the Inbox's unread Task
- * rows, which name state and title. A start reconciles every Task read.
- */
 export function useTaskUpdatedStream(serverId: string | undefined) {
     const coalescer = useTargetedReadCoalescer();
     const queryClient = useQueryClient();

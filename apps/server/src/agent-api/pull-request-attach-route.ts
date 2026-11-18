@@ -10,7 +10,6 @@ import { findTask } from '../tasks/task-list.ts';
 import { agentTaskWrite } from './task-route-shell.ts';
 import { toAgentTaskRows } from './task-view.ts';
 
-/** `AgentTaskAttachPullRequestRequest` in openapi.yaml. */
 const attachInputSchema = z
     .object({
         key: taskKeySchema,
@@ -23,10 +22,6 @@ const attachInputSchema = z
     })
     .strict();
 
-/**
- * `haus task attach-pr` (ADR 0053 decision 6): attaches a GitHub pull request
- * to a Task, so its card and the ready-after-settle wake follow it.
- */
 export function registerAgentPullRequestAttachRoute(
     app: FastifyInstance,
     options: { db: HausDatabase; githubApp: GithubApp | null }
@@ -42,7 +37,6 @@ export function registerAgentPullRequestAttachRoute(
                 { app: options.githubApp, db },
                 { serverId: runner.serverId, taskId: task.id, url: input.url }
             );
-            // The Task page lists its pull requests, so it refreshes.
             publishRealtime([prepareTaskUpdatedEvent(task)]);
             const [row] = await toAgentTaskRows(db, runner.serverId, [task]);
             if (!row) {

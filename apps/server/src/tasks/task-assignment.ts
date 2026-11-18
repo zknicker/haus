@@ -39,17 +39,6 @@ export interface TaskAssignmentEffects {
     wakes: { agentId: string; serverId: string }[];
 }
 
-/**
- * The one place an assignment change acts on the people and Agents it touches,
- * run inside the transaction that changed the assignee (`task.start` with
- * another assignee, `task.assign`, and a departure), so every path gets all of it:
- *
- * - **Person:** assigning someone other than yourself announces `task.assigned`,
- *   which iPhone push acts on after commit. The person follows the Task
- *   (ADR 0053 decision 9, done by the caller); the assignment posts nothing.
- * - **Agent:** assigning another Agent enqueues a `task_assignment` inbox item and
- *   a wake; reassigning away withdraws any item still queued.
- */
 export async function applyTaskAssignmentChange(
     tx: Tx,
     agentDelivery: TaskAgentDelivery,

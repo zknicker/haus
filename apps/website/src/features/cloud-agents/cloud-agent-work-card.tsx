@@ -17,29 +17,10 @@ import { cloudAgentStatusLine } from './cloud-agent-status-line.ts';
 import { CloudAgentWorkActions } from './cloud-agent-work-actions.tsx';
 import { useCloudAgentWorkAgentName } from './use-cloud-agent-work-agent-name.ts';
 
-/**
- * The Cloud Agent work under each Message that links it — the same card in
- * the Chat transcript and on a Task page. It presents the Server-owned work
- * record, not a separate Chat row.
- *
- * Four parts, top to bottom: the header (provider mark, title, the job's
- * state, the repository), the pull request once one exists, exactly one status
- * line, and the actions. The headline is the job's state — the provider's
- * status for the newest Run it has received: working, needs input, done,
- * failed, cancelled, or expired — so a follow-up still in Haus's queue never turns a finished job
- * back into "queued". The status line is always there and always
- * one line, so the card changes height only when its pull request first
- * appears.
- *
- * Every Message that links the work renders this same card with the same
- * actions (ADR 0044); none is primary. The delegating Agent, who sends any
- * follow-up, resolves from the work itself, never the linking Message's author.
- */
 export function CloudAgentWorkCard({
     children,
     work,
 }: {
-    /** Below the actions: the Task page's attached-work panel adds the newest Run's summary. */
     children?: React.ReactNode;
     work: CloudAgentWork;
 }) {

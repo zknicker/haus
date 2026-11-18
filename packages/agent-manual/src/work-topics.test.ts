@@ -51,7 +51,6 @@ test('the result stays in the Task, and only Tasks others assign are paced one a
 
 test('no Manual topic teaches boards, columns, pickup-note threads, or work threads', () => {
     expect(getManualTopic('boards')).toBeNull();
-    // ADR 0053: there are no Threads, so there is no thread topic or `haus thread` family.
     expect(getManualTopic('thread')).toBeNull();
     for (const topic of manualTopics) {
         expect(topic.body).not.toContain('haus thread');

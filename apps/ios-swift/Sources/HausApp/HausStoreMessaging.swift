@@ -101,8 +101,6 @@ extension HausStore {
 
     func reloadChats(serverID: String) async throws {
         async let iconBadge: Void = refreshIconBadge()
-        // Followed unread Tasks read once here, for the Inbox dot; events and
-        // stream starts keep them current after that.
         async let tasks: Void = taskSnapshots.unreadTasks == nil ? loadUnreadTasks() : ()
         let readStart = realtimeReconciliation.beginRead()
         let refreshed: [ChatSummary] = try await client.query(

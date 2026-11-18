@@ -5,8 +5,6 @@ import XCTest
 /// Each focused stream's payload decodes from the Server's wire shape
 /// (`packages/haus-api/src/{chat-events,claim,cloud-agent}.ts`).
 final class RealtimeEventsTests: XCTestCase {
-    /// Fields an older Server still sends (`parentChatId`) or a newer one adds
-    /// are ignored.
     func testDecodesMessageCreatedIgnoringFieldsItDoesNotRead() throws {
         let event = try decode(MessageCreatedEvent.self, """
         {"authorUserId":null,"chatId":"chat_1","conversationKind":"channel","mentionedUserIds":["user_2"],
@@ -92,8 +90,6 @@ final class RealtimeEventsTests: XCTestCase {
         """).scannedThroughSequence, 12)
     }
 
-    /// An older Server's page still carries the side-conversation summaries it
-    /// no longer has; the page decodes without them.
     func testAPageIgnoresKeysItDoesNotRead() throws {
         let page = try decode(ChatMessagePage.self, """
         {"messages":[],"nextBeforeSequence":null,"nextAfterSequence":null,"scannedThroughSequence":3,
@@ -121,8 +117,6 @@ final class ChatRealtimeEffectsTests: XCTestCase {
         XCTAssertTrue(effects.reloadsChatList)
     }
 
-    /// An inline reply is an ordinary message in its Channel: it tails that
-    /// Channel and refreshes nothing else.
     func testAnInlineReplyTailsItsChannelAlone() {
         let effects = ChatRealtimeEffects([
             .messageCreated(.init(serverID: "s", chatID: "chat_1", messageID: "r1", sequence: 7)),
@@ -151,8 +145,6 @@ final class ChatRealtimeEffectsTests: XCTestCase {
         XCTAssertTrue(effects.reloadsActiveCloudAgentWork)
     }
 
-    /// Every Task that changed is named once, for its open screen, its
-    /// preview, and its Unread row; none of it reads the Chat list.
     func testTaskEventsNameEachChangedTaskOnce() {
         let effects = ChatRealtimeEffects([
             .taskChanged(.init(serverID: "s", taskID: "task_1", version: 2)),
@@ -166,8 +158,6 @@ final class ChatRealtimeEffectsTests: XCTestCase {
         XCTAssertFalse(effects.needsChatListRead { _ in nil })
     }
 
-    /// A Task event from a Server that still names a board decodes, and the
-    /// board is ignored.
     func testTaskEventsDecodeTheServerPayloads() throws {
         let task = try HausJSON.decoder().decode(
             TaskChangedEvent.self,
@@ -186,8 +176,6 @@ final class ChatRealtimeEffectsTests: XCTestCase {
         XCTAssertTrue(effects.needsChatListRead { _ in nil })
     }
 
-    /// A Task is unread on its own: its read moves its preview and Unread row,
-    /// never a Chat list row.
     func testATaskReadReloadsUnreadTasksNotTheChatList() {
         let effects = ChatRealtimeEffects([
             .read(.init(serverID: "s", chatID: "chat_task_1", sequence: 4, taskID: "task_1")),

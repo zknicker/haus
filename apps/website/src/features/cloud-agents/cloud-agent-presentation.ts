@@ -27,10 +27,6 @@ export const cloudAgentJobLabels: Record<CloudAgentJobState, string> = {
     working: 'Working',
 };
 
-/**
- * One Run's status as a person reads it, never the wire enum: a Run that
- * stopped to ask a question is waiting on whoever answers it.
- */
 export const cloudAgentRunStatusLabels: Record<CloudAgentStatus, string> = {
     cancelled: 'Stopped',
     completed: 'Completed',
@@ -41,7 +37,6 @@ export const cloudAgentRunStatusLabels: Record<CloudAgentStatus, string> = {
     running: 'Running',
 };
 
-/** The newest Run: a work record keeps its Runs newest first. */
 export function newestCloudAgentRun(work: {
     runs: readonly CloudAgentRun[];
 }): CloudAgentRun | null {
