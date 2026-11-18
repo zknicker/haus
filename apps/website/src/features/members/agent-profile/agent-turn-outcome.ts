@@ -52,13 +52,7 @@ export function formatTurnOutcome(turn: AgentActivityTurn): string {
     }
     // `outputProduced` is false here (no messages), so a completed turn is the
     // Agent's positive choice to stay quiet, not a lost run.
-    if (turn.status === 'completed') {
-        if (turn.trigger?.kind === 'heartbeat') {
-            return turn.trigger.report ? 'Reported' : 'Checked in';
-        }
-        return 'Stayed quiet';
-    }
-    return 'Ended before any action';
+    return turn.status === 'completed' ? 'Stayed quiet' : 'Ended before any action';
 }
 
 const failureReasons: Readonly<Record<string, string>> = {

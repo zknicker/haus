@@ -48,7 +48,7 @@ either:
 - they follow it (`thread_follows.followed` is true), or
 - it holds Cloud Agent work, and they have not explicitly unfollowed it.
 
-The second clause is what surfaces work an Agent started on its own, from a Trigger or a heartbeat,
+The second clause is what surfaces work an Agent started on its own, from a Trigger or a Reminder,
 which nobody follows yet. It does not change follows, so it does not change unread.
 
 A Thread holds work when a link sits on its anchor Message, as a work card's Thread does, or on a

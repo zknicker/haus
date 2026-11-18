@@ -280,7 +280,7 @@ An Agent's lock on one message, so no other Agent works the same request (ADR 00
 holds one. It is background bookkeeping with no page of its own: it shows in Chat by rule, and an
 Agent's stopped claims sit on its profile. A claim is not a Task, and they never share a row, a
 number, or a status.
-_Avoid_: Task, message task, Lead
+_Avoid_: Task, message task
 
 **Task**:
 A standalone work item on a Board, keyed like `SEC-12`, with at most one assignee, a person or an
@@ -441,7 +441,7 @@ _Avoid_: Agent activity history, Chat history, model session
 
 **Agent workspace**:
 The Computer-local per-Agent filesystem home that stores the Agent's editable identity,
-instructions, briefing files, episodic observations, generated files, and working state. The
+instructions, `MEMORY.md`, notes, generated files, and working state. The
 Haus Server does not cache it; authorized Haus App reads use a live Computer relay and are unavailable
 while that Computer is offline. Only human Server Owners and Admins may inspect it through Haus App.
 _Avoid_: Server attachment storage, Wiki root, provider home
@@ -650,9 +650,11 @@ visual system.
 _Avoid_: Model component, widget primitive
 
 **Memory**:
-Haus's per-agent durable context system: briefing files, episodic observations, and background
-workers that keep those files useful.
-_Avoid_: Wiki, vault, knowledgebase, prompt-time memory
+An Agent's one capped `MEMORY.md` at its workspace root. The Computer delivers it in the turn
+input whenever it changed, capped at 8,000 characters with a cut notice; the Agent keeps it small
+itself (ADR 0052). Everything else in the workspace, `notes/` included, is the Agent's to
+organize.
+_Avoid_: Wiki, vault, knowledgebase, dreaming, heartbeat (both retired)
 
 **Wiki**:
 The shared user-owned Markdown graph for durable cross-agent knowledge. Agents browse and maintain it
@@ -662,35 +664,6 @@ _Avoid_: Memory, vault, prompt briefing, episodic log
 **Wiki root**:
 The filesystem directory that stores the shared Wiki Markdown files and local Git history.
 _Avoid_: Runtime storage root, managed workspace, workbench
-
-**Agent briefing file**:
-An agent-owned startup briefing file in the Agent workspace, such as `MEMORY.md` or `USER.md`,
-loaded into that agent's prompt and refreshed from Memory by background workers.
-_Avoid_: root-level briefing files, Vault page
-
-**Dreaming**:
-The nightly heartbeat: an Agent's own memory consolidation, run once per night as a private,
-chatless dream turn in a throwaway session. It reflects on the day, consolidates `MEMORY.md` and
-`notes/` (Manual topic `recipes/technique/memory-hygiene`), follows up dropped promises, and writes
-a summary. The Agent does the work; nothing rewrites memory for it.
-_Avoid_: Tidy pass, nightly memory review, background extraction, compaction
-
-**Heartbeat**:
-A daytime check-in: a chatless run, every three hours from 08:00 to 20:00 Computer-local, in a
-throwaway session. It catches up on the Chats the Agent took part in, follows leads, and files at
-most one heartbeat report; it posts nothing in a Chat. Skipped while the Agent is busy, and it
-yields to a message addressed to the Agent. Spec: `specs/heartbeat.md`.
-_Avoid_: Ping, poll, cron, scout
-
-**Heartbeat report**:
-The one report a heartbeat run files, queued as a chatless inbox item for the Agent's main session.
-The main session decides whether anyone hears it.
-_Avoid_: Notification, alert, digest
-
-**Lead**:
-A shared, Server-owned claim on a question or thread an Agent is researching, so two Agents do not
-research the same thing. Claimed for seven days, kept fourteen; a finished lead records its finding.
-_Avoid_: Task, ticket, claim (alone)
 
 **Charts**:
 The Widget family for agent-authored chart displays.

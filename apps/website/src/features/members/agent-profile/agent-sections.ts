@@ -15,7 +15,6 @@ export const agentSections = [
     'permissions',
     'workspace',
     'activity',
-    'dreams',
 ] as const;
 
 export type AgentSection = (typeof agentSections)[number];
@@ -25,7 +24,6 @@ export const agentSectionLabels: Record<Exclude<AgentSection, 'home'>, string> =
     activity: 'Activity',
     automations: 'Automations',
     connections: 'Connections',
-    dreams: 'Dreams',
     permissions: 'Permissions',
     profile: 'Profile',
     runtime: 'Runs on',

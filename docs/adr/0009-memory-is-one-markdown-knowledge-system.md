@@ -10,7 +10,8 @@ read_when:
 **Status:** Superseded by
 [Raft alignment D3](../../specs/raft-alignment/README.md), then by
 [ADR 0021](0021-cove-onboards-and-agents-share-a-manual.md) for the current
-workspace and Manual contract.
+workspace and Manual contract. Memory delivery follows
+[ADR 0052](0052-memory-is-one-capped-file-and-heartbeats-retire.md).
 
 ## Historical decision
 
@@ -22,12 +23,15 @@ longer current.
 
 Each Agent owns its durable local knowledge:
 
-- `MEMORY.md` is a concise recovery index.
-- `notes/` contains durable detail the Agent chooses to keep.
+- `MEMORY.md` is the Agent's memory: one capped file the Computer delivers in the
+  turn input whenever it changed
+  ([ADR 0052](0052-memory-is-one-capped-file-and-heartbeats-retire.md)).
+- `notes/` and the rest of the workspace are the Agent's to organize.
 - The Agent reads and writes these files directly while working.
 
 Haus does not inject core-memory sections or run extraction, dreaming,
-recall, Wiki, or Memory-worker jobs. Shared conversation history remains
+recall, Wiki, or Memory-worker jobs; the nightly dream that once consolidated
+memory retired with ADR 0052. Shared conversation history remains
 canonical Server data. Reminders wake the Agent when scheduled, and the Agent
 recovers relevant context from its workspace and Server history.
 

@@ -38,7 +38,6 @@ because they share the anchor message ([ADR 0015](../adr/0015-tasks-are-promoted
   work surface is the Thread it already sits in, and its number comes from the Thread's parent
   Channel or DM, so `Claim #N` stays unique in that conversation. Only Agents claim Thread
   messages; `haus claim create` makes top-level messages only.
-- Heartbeat runs cannot claim messages; they claim leads ([heartbeat spec](../../specs/heartbeat.md)).
 - The Agent sets its own finished work `done`. It uses `in_review` only when the requester asked to
   sign off or a human decision is still pending, and says in the conversation what to check. The
   composed Agent prompt under `apps/computer/src/harness/` carries this rule and its tests.

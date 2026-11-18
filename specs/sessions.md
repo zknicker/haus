@@ -13,8 +13,8 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
 - `Agent seat` is one agent's stable participation in one chat: membership,
   addressing, authorship. Seats do not own sessions.
 - `AgentSession` is the agent's current global execution context: one persistent
-  main session per agent, backed by opaque engine resume state. Heartbeats add throwaway
-  sessions that never carry conversation ([ADR 0049](../docs/adr/0049-heartbeats-run-in-throwaway-sessions.md)).
+  main session per agent, backed by opaque engine resume state. Every turn runs in it; there are
+  no throwaway sessions ([ADR 0052](../docs/adr/0052-memory-is-one-capped-file-and-heartbeats-retire.md)).
 - `AgentTurn` is one execution inside the session, anchored to the session
   itself (floating, I1) — never to a chat. A turn's output is whatever the
   agent sends through the `haus` CLI; there is no reply delivery.
@@ -31,21 +31,12 @@ delivery, cursors, and notices in [inbox.md](inbox.md).
   it gets a distinct continuation carrying the Run's status, summary, and branches. A
   busy Agent receives only the notice at the safe boundary and gets the concrete item on
   the next turn. The item has no Chat cursor or visible Chat receipt.
-- Chatless runs are dream, heartbeat, heartbeat report, and sub-agent wake. A dream is the
-  nightly heartbeat; a heartbeat is a daytime check-in; a heartbeat report is the inbox item a
-  heartbeat files for the main session; a sub-agent wake reports background work the Agent
-  started that finished or stopped ([runtime-drivers.md](runtime-drivers.md#background-work)).
-  None has a Chat. Their start frames carry `chatId: null` and a `heartbeat` (daytime or
-  nightly), `heartbeatReport`, or `subagentWake` attention instead of inbox items, they publish
-  no Chat lifecycle event, and their recorded triggers are `{ kind: 'dream' }`,
-  `{ kind: 'heartbeat' }`, `{ kind: 'heartbeat_report' }`, and `{ kind: 'subagent' }`.
-  Otherwise each is an ordinary concrete run: busy notices reach it, and failure, Stop, and
-  requeue treat it like any other ([heartbeat.md](heartbeat.md)).
-- A heartbeat (daytime or nightly) runs in its own throwaway runtime session, `<agentId>-hb-<runId>`,
-  opened without resume under its own warm-process key, so the main session's warm process and
-  its background work are untouched. The main session is never touched by it: no `session.json` write, no
-  interrupt, no compaction or cache reset ([ADR 0049](../docs/adr/0049-heartbeats-run-in-throwaway-sessions.md)).
-  A heartbeat report run resumes the main session.
+- A sub-agent wake is a chatless run: it reports background work the Agent started that finished
+  or stopped ([runtime-drivers.md](runtime-drivers.md#background-work)). Its start frame carries
+  `chatId: null` and a `subagentWake` attention instead of inbox items, it publishes no Chat
+  lifecycle event, and its recorded trigger is `{ kind: 'subagent' }`. Otherwise it is an
+  ordinary concrete run: busy notices reach it, and failure, Stop, and requeue treat it like any
+  other.
 - A fresh session with no pending delivery starts with bare `Start.`. After a
   reset, the recovery line precedes either `Start.` or the pending notice/typed
   attention that becomes the first prompt. A newly created Agent gets, after any
@@ -134,8 +125,7 @@ the way Raft does (`standingPromptRefresh.ts`), at the executor for every runtim
   block carrying the full current instructions, marked as replacing the earlier ones, ahead of the
   turn's own input. Nothing earlier in the conversation changes. A session without a record (one
   that predates it) gets the block once instead of Raft's silent baseline: operator decision.
-- A fresh session needs no block: it launched on the current instructions. Heartbeat and dream runs
-  open fresh throwaway sessions, so they never carry one and never record one.
+- A fresh session needs no block: it launched on the current instructions.
 - A fresh launch records the current instructions however its turn ends, even a Stop before its
   prompt: the session already runs on them. Otherwise only a completed turn that carried the block
   advances the record. An interrupted or failed update turn keeps the old one, so the next turn
@@ -152,6 +142,11 @@ the way Raft does (`standingPromptRefresh.ts`), at the executor for every runtim
   compaction until it rotates.
 - The `updating_instructions` activity shows on a resumed turn that carries the block, a Restart,
   bootstrap drift, or Haus Agent version drift that turn can apply.
+
+`MEMORY.md` rides the same receipt pattern: a memory receipt (content digest) advances only after a
+turn that carried the file or whose own edits produced its current content, and resets on a fresh
+session or a compacted turn, so the next turn carries the file again
+([workspace.md](workspace.md#memory)).
 
 Haus Agent SemVer is the public release receipt layered over those exact fingerprints and managed
 factory inputs. A version change uses the same in-place, next-turn refresh path. It becomes current

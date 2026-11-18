@@ -1,8 +1,8 @@
 ---
-status: accepted
-summary: Agent heartbeats (daytime runs every three hours and the nightly dream) each run as one turn in a fresh throwaway harness session, serialized through the Agent's one run slot, reporting to the main session through the inbox. Amends ADR 0011 — one turn at a time still holds; one session per Agent no longer does.
+status: superseded
+summary: Superseded by ADR 0052, which retired heartbeats. Historical decision that ran Agent heartbeats (daytime check-ins and the nightly dream) as one turn each in a fresh throwaway harness session, serialized through the Agent's one run slot.
 read_when:
-  - changing how heartbeat or dream runs open, resume, or settle a harness session
+  - reading the history behind heartbeat or dream runs and throwaway sessions
   - deciding whether an Agent turn may run outside its main session
   - adding parallel background execution for an Agent
 ---
@@ -11,13 +11,15 @@ read_when:
 
 ## Status
 
-Accepted, 2026-10-20. Amends [ADR 0011](0011-agents-own-one-global-session.md). Design in
-[specs/heartbeat.md](../../specs/heartbeat.md).
+Superseded by [ADR 0052](0052-memory-is-one-capped-file-and-heartbeats-retire.md), 2026-11-18:
+heartbeats retired, so there are no throwaway sessions. Originally accepted 2026-10-20, amending
+[ADR 0011](0011-agents-own-one-global-session.md), with its design in `specs/heartbeat.md`
+(now deleted).
 
 ## Context
 
 Heartbeats give each Agent a daytime check-in every three hours and a nightly reflection
-([specs/heartbeat.md](../../specs/heartbeat.md)). Running them in the Agent's main session would
+(`specs/heartbeat.md`, since deleted). Running them in the Agent's main session would
 wake a 600k–960k-token context whose one-hour cache has expired by every three-hour slot, costing
 about 15× a bounded run (operator usage study, 2026-10-19). Codex heartbeats in the same thread
 show the failure in the wild: one drained a month's quota in a day (openai/codex#45070).

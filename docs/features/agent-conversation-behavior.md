@@ -235,7 +235,7 @@ Live scenarios that exercise each Manual card or managed skill, as of 2026-10-20
 | `when-to-ask-human`, `sent-zero` | `human-ask-reply-wakes`, `room-pending-ask-peer-guesses` |
 | `reminder-cron` | `reminder-schedule-and-fire`, `room-reminder-fires-mid-conversation` |
 | `trigger-webhook` | `webhook-secret-stays-out-of-chat`, the `triggers` eval |
-| `memory-hygiene` | `memory-feedback-*` (Standing Preferences only) |
+| Memory (`MEMORY.md`) | `memory-feedback-*` (Standing Preferences only) |
 | `one-or-many` | `cove-composes-agent-creation` (opt-in) |
 | Visuals skill | `room-visual-not-caption-only` |
 | Not covered | `coordinator-synthesis`, `interview-fanout`, `shard-and-merge`, `gate-chain`, `lane-design`, `stake-strictness`, `proof-of-work-receipts`, `acceptance-surface`, `attachment-comments`, `group-chat-debug`, `html-artifact-discussion`, `preview-env`, `recurring-recovery`, `video-review`, `video-review-loop`, the playbooks, and the archetypes |
@@ -256,9 +256,7 @@ they answer. Work split for other Agents is Tasks on a board, assigned; claims s
 a conversation. Chat requests interleave between turns while the active card holds its place. A
 Task's assignment arrives in the Agent inbox with no Chat, so a run started by one has no
 conversation to answer in unless the Agent picks one. Discussion about a Task stays in the Channels
-and Threads that reference its key, and a reference is written as the bare key (`SEC-12`). A
-heartbeat reads Tasks and writes none: its report names what sat waiting, leaving out a Task the
-Agent is waiting on a person for.
+and Threads that reference its key, and a reference is written as the bare key (`SEC-12`).
 
 - Owner: [ADR 0051](../adr/0051-tasks-are-boards-and-claims-are-the-lock.md) decisions 6 and 7;
   `tasksSection` in `apps/computer/src/harness/task-instructions.ts`; the `tasks` Manual topic in

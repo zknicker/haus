@@ -139,17 +139,6 @@
          */
         --context-line-quiet: color-mix(in oklab, var(--muted) 62%, var(--background));
 
-        /*
-         * Dreams. A nightly dream is its own kind of run, not a status: it never
-         * reads as success, caution, or failure, so it gets a violet of its own
-         * apart from `accent` (heartbeats) and `--trace-thinking` (a step kind).
-         * Paints the Activity Log's Dream badge. `-soft` is the chip wash,
-         * `-soft-foreground` the chip ink.
-         */
-        --dream: oklch(0.72 0.13 295);
-        --dream-soft: color-mix(in oklab, var(--dream) 18%, transparent);
-        --dream-soft-foreground: oklch(0.84 0.09 295);
-
         --label-red-fg: var(--color-red-300);
         --label-red-bg: --alpha(var(--color-red-500) / 15%);
         --label-orange-fg: var(--color-orange-300);
@@ -239,11 +228,6 @@
             inset 0 0 0 0.5px oklch(0 0 0 / 14%), inset 0 0.75px 0 oklch(1 0 0),
             inset 0 -1.75px 0 oklch(0 0 0 / 16%);
         --automation-keycap-ink-trigger: oklch(0.6 0.15 80);
-
-        /* Dream violet down the ramp for the near-white page. */
-        --dream: oklch(0.58 0.15 295);
-        --dream-soft: color-mix(in oklab, var(--dream) 14%, transparent);
-        --dream-soft-foreground: oklch(0.46 0.15 295);
 
         --label-red-fg: var(--color-red-600);
         --label-red-bg: --alpha(var(--color-red-500) / 12%);

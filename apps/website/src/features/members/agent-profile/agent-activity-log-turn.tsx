@@ -1,4 +1,4 @@
-import { Chip, Disclosure } from '@heroui/react';
+import { Disclosure } from '@heroui/react';
 import * as React from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { formatShortTime } from '../../../lib/format.ts';
@@ -8,7 +8,6 @@ import { TraceNested } from '../../turn-trace/turn-trace-depth.tsx';
 import {
     traceRowClass,
     traceRowHoverClass,
-    traceTextInset,
     traceTurnClass,
 } from '../../turn-trace/turn-trace-grid.tsx';
 import { readTraceScale } from '../../turn-trace/turn-trace-scale.ts';
@@ -17,7 +16,6 @@ import { TurnTraceScroll } from '../../turn-trace/turn-trace-scroll.tsx';
 import { TurnTraceSteps } from '../../turn-trace/turn-trace-steps-view.tsx';
 import { buildTurnTraceView, type TurnTraceView } from '../../turn-trace/turn-trace-view.ts';
 import { useTurnTraceNow } from '../../turn-trace/use-turn-trace-now.ts';
-import { LogDreamButton } from './agent-activity-log-dream.tsx';
 import { type ActivityLogEntry, readStepMarks } from './agent-activity-log-entries.ts';
 import { useLogTurnJournal } from './agent-activity-log-journal.ts';
 import { useActivityLogStores, useIsLinkedFromOverview } from './agent-activity-log-stores.ts';
@@ -28,7 +26,6 @@ import {
     TurnRuler,
 } from './agent-activity-log-turn-parts.tsx';
 import type { TurnDetailAccess, TurnJournalPresentation } from './agent-activity-model.ts';
-import { readRunOutcomeLine, type TurnRunBadge } from './agent-run-mark.ts';
 import { formatTurnOutcome } from './agent-turn-outcome.ts';
 import { TurnDuration, TurnRowTitleLine, TurnStatusGlyph } from './agent-turn-row.tsx';
 import { getTurnRowStatus } from './agent-turn-row-model.ts';
@@ -85,9 +82,6 @@ export function ActivityLogTurn({
     const isLinked = useIsLinkedFromOverview(turn.runId);
     const status = getTurnRowStatus(row);
     const chatTarget = readChatTarget(title, turn.trigger);
-    const isSettledDream = turn.trigger?.kind === 'dream' && turn.kind === 'settled';
-    const run = title.kind === 'text' ? title.run : undefined;
-    const outcomeLine = run ? readRunOutcomeLine(run, turn) : null;
 
     return (
         <div
@@ -139,8 +133,7 @@ export function ActivityLogTurn({
                                         title={title}
                                         turn={turn}
                                     />
-                                    {run ? <RunBadge badge={run.badge} /> : null}
-                                    {chatTarget || isSettledDream ? <ChatButtonRoom /> : null}
+                                    {chatTarget ? <ChatButtonRoom /> : null}
                                 </span>
                                 {/* The track column stays empty: the Chat button shows here on hover. */}
                                 <span
@@ -163,23 +156,7 @@ export function ActivityLogTurn({
                                 target={chatTarget}
                             />
                         ) : null}
-                        {isSettledDream ? (
-                            <LogDreamButton
-                                agentId={agent.id}
-                                runId={turn.runId}
-                                serverId={serverId}
-                            />
-                        ) : null}
                     </div>
-                    {outcomeLine ? (
-                        <p
-                            className="truncate pe-(--trace-pad) pt-0.5 pb-1 text-muted text-sm"
-                            data-log-outcome
-                            style={{ paddingInlineStart: traceTextInset }}
-                        >
-                            {outcomeLine}
-                        </p>
-                    ) : null}
                     <Disclosure.Content>
                         {ruler ? <TurnRuler scale={ruler} /> : null}
                         <TurnSteps
@@ -192,15 +169,6 @@ export function ActivityLogTurn({
                 </Disclosure>
             </TurnTraceScopeProvider>
         </div>
-    );
-}
-
-/** Marks a heartbeat or dream run among the log's turns; a dream wears its own violet wash. */
-function RunBadge({ badge }: { badge: TurnRunBadge }) {
-    return (
-        <Chip className={badge === 'Dream' ? 'chip--dream' : undefined} size="sm" variant="soft">
-            {badge}
-        </Chip>
     );
 }
 

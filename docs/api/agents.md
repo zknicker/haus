@@ -3,7 +3,6 @@ summary: Server Agent contracts, Computer execution reports, turn and delivery o
 read_when:
   - changing Agent CRUD, execution configuration, Computer reports, or managed Agent routes
   - reading Agent turn records or the delivery ledger
-  - changing the dream record (`agent.dreams`, `agent.dream`, `agent-dream-record`)
   - changing the Agent inbox list, `message read --unread`, or the Agent read position
   - changing an Agent's conversation style, signature emoji, or self-profile update
   - changing Agent channel routes (`haus channel create`, `haus channel add`)
@@ -102,26 +101,11 @@ rows: `{ kind: 'message', author: 'human' | 'agent', chatId, messageId, preview 
 `{ kind: 'claim', chatId, messageId, preview }` (the claim's message), or
 `{ kind: 'reminder' | 'trigger' | 'cloud_agent' | 'onboarding' | 'greeting', chatId }` (`greeting`
 is a new Agent's one-time `#all` wake when it led the run alone), or one of the chatless
-sources (`dream`, `heartbeat`, `heartbeat_report`, `subagent`), whose runs need no Chat visibility to read ([workspace](../../specs/workspace.md#dreaming),
-[heartbeat](../../specs/heartbeat.md), [runtime drivers](../../specs/runtime-drivers.md#background-work)).
-The heartbeat family carries what the run came to, so the Activity Log can say it under the
-row's title:
+sources, whose runs need no Chat visibility to read:
 
-- `{ kind: 'dream', learned, added, removed }`: the Agent's private nightly heartbeat. `learned`
-  is the first non-empty line of its `agent_dream_summaries` text with a leading `- ` removed
-  (null when it wrote none); `added` and `removed` total `agent_dreams.files`.
-- `{ kind: 'heartbeat', report, yielded }`: a daytime check-in. `report` is
-  `{ text, posted, postedChatId }` when a `heartbeat-report:<runId>` inbox row exists (`text` is
-  its head, at most 1,000 UTF-16 units; `posted` is whether the report run's Agent sent any
-  message, whatever the reader can see; `postedChatId` the Chat of the first such message, null
-  when it stayed quiet or the Chat is not one the reader can see), else null.
-  `yielded` marks a run `yieldHeartbeatToAddressed` stopped, which `agent_heartbeat_checks`
-  records because nothing else tells a stopped run from a finished one.
-- `{ kind: 'heartbeat_report', heartbeatRunId }`: a heartbeat's report arriving in the main session.
-- `{ kind: 'subagent' }`: a wake for background work the Agent started that finished or stopped.
-
-The dream and heartbeat facts for a page come from a few bounded reads keyed by the page's run
-ids, never one per turn.
+- `{ kind: 'subagent' }`: a wake for background work the Agent started that finished or stopped
+  ([runtime drivers](../../specs/runtime-drivers.md#background-work)).
+- `{ kind: 'task', taskId, key, title, more? }`: a board Task assigned to the Agent.
 
 `preview` quotes the waking message so a turn row is titled from the same read:
 `{ content, attachmentCount }`, where `content` is the head of the message's raw
@@ -156,48 +140,13 @@ run after the Computer restarts, the relaunch resumes a Computer-local turn ledg
 (`runtime/turns/<runId>.json`) holding that first start and every operation total the
 lost launch settled, so the summary spans the whole run rather than its tail.
 
-`agent.dreams` (`{ serverId, agentId, cursor?, limit? }`) lists what each nightly dream
-changed in the Agent's memory, newest first by `startedAt` (ties broken by `runId`).
-`limit` is 1–60 (default 20); the Server keeps only the newest 60 dreams per Agent. It
-returns `{ dreams, nextCursor }`: each dream carries `runId` (the dream turn's run),
-`startedAt`, `finishedAt`, `files` (`[{ path, change: 'added' | 'modified' | 'deleted',
-added, removed, omitted? }]`, where `omitted` is `binary` or `too-large` for a file whose text
-is not in the patch), and the `added` and `removed` line totals. A dream that changed nothing
-is still listed, with no files. Each dream also carries `summary` (the run's `haus heartbeat
-learned` text, or null) and `followUps` (`[{ reminderId, title, anchorChatId, fireAt }]`, the
-reminders the Agent created during the run, derived at read). `agent.dream` (`{ serverId, agentId, runId }`) returns one dream
-with its `patch`, or null when the Server has no record for that run. The patch is one unified
-diff, a `diff --git a/<path> b/<path>` block per file, whose hunk headers name the enclosing
-`## ` section as git's function context does; a file's text is dropped past 64 KiB and the
-whole patch stays under 256 KiB. Both reads use the `agent.turns` gate: any member who may
-view the Agent, with denied and unknown Agents as `NOT_FOUND`. The Computer sends the record
-as an `agent-dream-record` frame just before the dream turn's summary; the Server stores it in
-`agent_dreams` only for the assigned Computer and a run it started as a dream. There is no
-dream event: a settled run already invalidates the App's dream reads.
-
-Heartbeat writes use runner-token routes under `/api/agent/*`, scoped to the run that calls
-them ([heartbeat spec](../../specs/heartbeat.md#wire-contract); routes in
-`apps/server/src/agent-api/heartbeat-routes.ts`):
-
-- `POST /api/agent/heartbeat/report { text }` files the run's one heartbeat report as a
-  chatless `heartbeat_report` inbox item. Only a `heartbeat` or `dream` run may file one; a second
-  report from the same run is refused with 409.
-- `POST /api/agent/heartbeat/learned { text }` stores the nightly summary on the run's
-  `agent_dream_summaries` row. Only a `dream` run may.
-- `POST /api/agent/leads { topic, messageId? }` claims a shared lead, refused while another Agent
-  holds a claim on the same message within seven days. Only an active `heartbeat` or `dream` run
-  may claim (`403 HEARTBEAT_RUN_REQUIRED`), and a message an Agent holds as an open claim answers
-  `409 LEAD_HELD_AS_TASK` naming the holder. `GET /api/agent/leads` lists this Server's
-  leads from the last seven days. `POST /api/agent/leads/:id/done { finding }` records the finding.
-  Leads live in `agent_leads` and expire after fourteen days.
-
 `agent.deliveries` returns that Agent's delivery ledger, newest first by
 `createdAt`, with `limit` between 1 and 100 (default 50). Each record carries
 `chatId`, `source`, `workId`, `messageId`, `state` (`queued`,
 `accepted`, `served`, `seen`), `turnId`, and the per-state timestamps `createdAt`,
 `acceptedAt`, `servedAt`, and `seenAt`. `workId` is the durable identity for
-every kind of work; `messageId` is null for non-Chat work, and `chatId` is null only for a
-`dream`. Rows are retained after
+every kind of work; `messageId` is null for non-Chat work, and `chatId` is null for chatless work
+(a sub-agent wake or a Task assignment). Rows are retained after
 settlement rather than deleted, so
 "never delivered" and "delivered and answered with silence" read differently.
 `turnId` is the run that consumed the row; it stays null when the seen cursor
@@ -281,8 +230,6 @@ promotes the message first, so claiming is what creates the claim. `target` may 
 target (`#channel:anchorShort`, `dm:@peer:anchorShort`): a Thread message is claimed in place and
 numbered by the Thread's parent, and `numbers` resolve against that parent from either target.
 `create` refuses a Thread target, and a `create` assigned to the caller is `origin` `claimed`.
-A `heartbeat` or `dream` run
-may not claim (`403 REGULAR_TURN_REQUIRED`); it claims leads instead.
 
 `create` takes `{ target, content | titles, assignee?, nonce }`. The `nonce` (1–128) is the
 idempotency key: `haus claim create` mints one per invocation and, on a request that got no
@@ -398,8 +345,7 @@ address Tasks by key; `/move` answers `{ task, queue: { todo, active } }`. `GET 
 Omitting `expectedVersion` means the last write wins: a write that lost a race retries on the
 current version, a bounded number of times. A named `expectedVersion` that is stale, a race still
 lost after those retries, or a taken board key answers `409 TASK_CONFLICT`, a name that resolves to
-nothing `400 INVALID_ARG`, a missing Task or board `404 TASK_NOT_FOUND` or `BOARD_NOT_FOUND`, and any
-write from a heartbeat run `403 REGULAR_TURN_REQUIRED`. Assigning another Agent delivers a chatless
+nothing `400 INVALID_ARG`, and a missing Task or board `404 TASK_NOT_FOUND` or `BOARD_NOT_FOUND`. Assigning another Agent delivers a chatless
 `task_assignment` inbox item, which needs Computer protocol 33.
 
 ### Reminder routes

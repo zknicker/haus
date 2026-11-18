@@ -2,13 +2,8 @@ import type { AgentCurrentActivity } from '@haus/api';
 import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import { useOptionalCurrentAgentActivity } from '../../hooks/agents/use-current-agent-activity.tsx';
 import { useAgentActivityPreview } from '../../hooks/members/use-agent-activity-preview.ts';
-import { useAgentDreams } from '../../hooks/members/use-agent-dreams.ts';
 import { useAgentTurns } from '../../hooks/members/use-agent-turns.ts';
-import {
-    formatHoverLiveLine,
-    formatLastNightLine,
-    selectHoverLogLines,
-} from './agent-hover-activity-model.ts';
+import { formatHoverLiveLine, selectHoverLogLines } from './agent-hover-activity-model.ts';
 import { formatAgentDelegationSummary } from './agent-hover-delegations.ts';
 import { AgentHoverTurn, HoverLogRow, HoverTimedRow } from './agent-hover-rows.tsx';
 import { groupAgentActivityTurns } from './agent-profile/agent-activity-turns.ts';
@@ -66,13 +61,7 @@ function AgentHoverLive({
             {title.kind === 'none' ? null : (
                 // Held blank while the trigger reads, so the live line never jumps.
                 <p className="flex min-h-4 min-w-0 gap-1.5">
-                    <span
-                        className={
-                            title.kind === 'text' && title.quiet
-                                ? 'min-w-0 truncate text-muted'
-                                : 'min-w-0 truncate text-foreground'
-                        }
-                    >
+                    <span className="min-w-0 truncate text-foreground">
                         {title.kind === 'text' ? title.text : null}
                     </span>
                     {title.place ? (
@@ -97,8 +86,7 @@ function AgentHoverRecentTurns({ agentId, serverId }: { agentId: string; serverI
     const turns = useAgentTurns(serverId, agentId, recentTurnRead);
     const rows = collapseRecentActivity(
         groupAgentActivityTurns([], turns.data ?? []),
-        recentTurnRows,
-        { foldHeartbeats: true }
+        recentTurnRows
     );
     const titleOf = useTurnRowTitles(
         serverId,
@@ -113,29 +101,10 @@ function AgentHoverRecentTurns({ agentId, serverId }: { agentId: string; serverI
         return <p className="text-muted">No turns yet.</p>;
     }
     return (
-        <>
-            <ul className="flex min-w-0 flex-col gap-2">
-                {rows.map((row) => (
-                    <AgentHoverTurn key={row.latest.runId} row={row} title={titleOf(row.latest)} />
-                ))}
-            </ul>
-            <AgentHoverLastNight agentId={agentId} serverId={serverId} />
-        </>
-    );
-}
-
-/** What the Agent learned last night, in its own first line; nothing when it wrote none lately. */
-function AgentHoverLastNight({ agentId, serverId }: { agentId: string; serverId: string }) {
-    const dreams = useAgentDreams(serverId, agentId, 1);
-    const now = useRelativeNow();
-    const line = formatLastNightLine(dreams.data?.dreams ?? [], now);
-    if (!line) {
-        return null;
-    }
-    return (
-        <p className="flex min-w-0 items-baseline gap-1.5">
-            <span className="shrink-0 text-muted">Last night</span>
-            <span className="min-w-0 truncate text-foreground">{line}</span>
-        </p>
+        <ul className="flex min-w-0 flex-col gap-2">
+            {rows.map((row) => (
+                <AgentHoverTurn key={row.latest.runId} row={row} title={titleOf(row.latest)} />
+            ))}
+        </ul>
     );
 }

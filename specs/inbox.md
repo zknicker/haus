@@ -35,8 +35,7 @@ ordinary Chat work, the rendered envelope as its content, and the recipient Agen
 | `reminder` | One reminder fire | The fire id | Concrete |
 | `trigger` | One Trigger fire | The fire id | Concrete |
 | `onboarding` | Cove's one-shot bootstrap instruction | Its own bootstrap identity | Concrete |
-| `greeting` | A newly created Agent's one-time `#all` greeting wake (ADR 0028) | `greeting:<agentId>`, so one per Agent | No lane of its own: attached to the next ordinary run whatever leads it (setting the start frame's `greets`), and leads a run only when nothing else waits; no dream, heartbeat, or heartbeat report leads while it waits (a sub-agent wake still does, since it is never held and the greeting rides the next ordinary run). Retired as `seen`, queued or attached, once the Agent has a message in its `#all`, so neither a Stop nor a reconnect replay makes it show twice. Bodiless; never listed in a notice, the digest, or `haus inbox check` |
-| `dream` | One nightly dreaming turn the Agent's Computer requested ([workspace.md](workspace.md#dreaming)); no Chat | `dream:<agentId>:<Computer-local date>` | Concrete; queued even while the Agent is busy or has work waiting, then ordered like any other concrete item. Never listed in a notice, the digest, or `haus inbox check` (it has no Chat). Retired as `seen` instead of led once it has been queued four hours |
+| `greeting` | A newly created Agent's one-time `#all` greeting wake (ADR 0028) | `greeting:<agentId>`, so one per Agent | No lane of its own: attached to the next ordinary run whatever leads it (setting the start frame's `greets`), and leads a run only when nothing else waits (a sub-agent wake still leads, since it is never held and the greeting rides the next ordinary run). Retired as `seen`, queued or attached, once the Agent has a message in its `#all`, so neither a Stop nor a reconnect replay makes it show twice. Bodiless; never listed in a notice, the digest, or `haus inbox check` |
 | `subagent` | A wake for background work the Agent started on its runtime that finished or stopped ([runtime-drivers.md](runtime-drivers.md#background-work)); no Chat | `subagent:<agentId>:<wake id>` | Concrete; at most one queued per Agent, only for the current session generation. Never in a notice, the digest, or `haus inbox check`. Spends the automation chain; refused, not queued, at the chain ceiling. Retired by Stop, a session reset, or a run that adopted the turn it was for |
 | `task_assignment` | A board Task assigned to this Agent ([tasks.md](tasks.md)); no Chat | `task-assign:<taskId>:<version>` | Concrete, and the one kind that coalesces: every queued assignment rides one run in the main session, up to 50. A busy Agent gets a count in its notice, never a row. Not in the digest or `haus inbox check`. Retired by reassigning or unassigning before a run takes it |
 
@@ -125,7 +124,7 @@ A durable `message.created` is planned once by Server delivery
   concrete item earns its own dedicated wake, and a human drain never shares a run with a fire, which
   is what keeps the sole-fire cause inference readable. Task assignments are the one batch: all
   queued rows ride one chatless run, whose start frame carries them as `taskAssignments`, so ten
-  assignments wake an idle Agent once. That run resumes the main session, like a heartbeat report,
+  assignments wake an idle Agent once. That run resumes the main session,
   and the Computer renders one envelope line per Task and a one-line instruction. An automation
   fire's envelope prints `msg=-`, since a fire has no Chat message to address; its id rides the
   envelope's own `fire=` and `--cause` lines. Humans keep their own read/unread system; the inbox is

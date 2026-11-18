@@ -101,41 +101,31 @@ Factory guidance participates in the public Haus Agent version. A successful com
 may advance that version; a missing or edited Cove file blocks the receipt from advancing and leaves
 the conflict visible as a failed update.
 
-`MEMORY.md` is hot memory plus an index: in plain text, what the Agent needs on every wake (role,
-communication style, standing preferences and directives, and Active Context, which is rewritten
-rather than appended), then a Key Knowledge index whose lines are a `notes/` path plus a one-line
-hook. `notes/` holds deeper knowledge not in use right now, as topic files that each hold the
-current truth on one subject. History stays in Haus chats and tasks, referenced by handle. The
-Manual topic `recipes/technique/memory-hygiene` carries the full guidance, including the nightly pass:
-the Agent's own short, silent consolidation pass that folds recent lessons into MEMORY.md, rewrites
-Active Context, moves detail into notes, and touches only what changed since the last pass.
+### Memory
 
-### Dreaming
+`MEMORY.md` at the workspace root is the Agent's memory
+([ADR 0052](../docs/adr/0052-memory-is-one-capped-file-and-heartbeats-retire.md)): in plain text,
+what the Agent needs on every wake (role, communication style, standing preferences and
+directives, and Active Context, which is rewritten rather than appended). Everything else in the
+workspace, `notes/` included, is the Agent's to organize however it likes. History stays in Haus
+chats and tasks, referenced by handle.
 
-Dreaming is the nightly heartbeat: the Agent's own memory consolidation, run once per
-Computer-local night in a fresh throwaway session, never at the end of a conversation turn.
-[specs/heartbeat.md](heartbeat.md) is normative for its schedule, skip rules, turn input,
-recipe, summary, and follow-ups. Two facts belong here:
+The Computer delivers the file; the Agent does not have to remember to read it:
 
-- Only the nightly run writes `MEMORY.md` and `notes/` on the heartbeat's behalf. Daytime
-  heartbeats leave memory alone and suggest changes in their report.
-- Each nightly run leaves a dream record. Computer snapshots `MEMORY.md` and every file under
-  `notes/` when the run launches, diffs the two when it settles, whatever the outcome, and sends
-  the diff as an `agent-dream-record` frame just before the turn summary. Symlinks are skipped;
-  a file over 1 MiB or not UTF-8 text is compared by size and mtime or by digest. Text leaves
-  the patch past 64 KiB, and the patch stops growing at 256 KiB. A dream that changed nothing
-  still records, with no files. Server stores one row per run in `agent_dreams`, keeps the
-  newest 60 per Agent, and serves them through `agent.dreams` and `agent.dream`
-  ([Agents API](../docs/api/agents.md)). Each row also carries the Agent's `haus heartbeat
-  learned` summary and the follow-up reminders the run scheduled. A record failure is logged
-  and never fails the turn.
+- At turn start the Computer reads `MEMORY.md` and puts it in the turn input when its content
+  differs from what this session last received. An unchanged file adds nothing to the turn, so
+  the conversation and prompt cache never grow a copy per turn. A missing file delivers nothing.
+- Delivery is capped at 8,000 characters. A longer file is cut at a line boundary under the cap,
+  with a notice in the same block naming the file's size and the cap and asking the Agent to
+  tighten it. The cap is what keeps memory small; nothing tidies it in bulk.
+- A memory receipt (a content digest) works like the instruction receipt
+  ([sessions.md](sessions.md#instruction-updates)): it advances only after a turn that carried the
+  file or whose own edits produced the current content, and it resets on a fresh session or a
+  compacted turn, so the next turn carries the file again.
 
-The dream run is one of the chatless runs ([sessions.md](sessions.md)). It posts nothing in
-chat, and messages that arrive meanwhile are handled normally.
+There is no managed `NOTES.md`, `SOUL.md`, injected core-memory section, automatic extraction
+pipeline, Computer-run memory rewrite, nightly dream, or separate Wiki primitive.
 
-There is no managed `NOTES.md`, `SOUL.md`, injected core-memory section,
-automatic extraction pipeline, Computer-run memory rewrite, or separate Wiki primitive; dreaming is
-the Agent's own pass.
 The Server-owned description is the Agent's role line. How it talks comes from
 the house `## Personality` every Agent shares, plus an optional Server-owned
 conversation style rendered right after it as `## Conversation style`. Owners,

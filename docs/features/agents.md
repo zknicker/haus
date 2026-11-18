@@ -214,7 +214,7 @@ run it rather than at its first delivery. Both creation paths queue one
 after configuring the Computer. The greeting rides whichever run starts first:
 when the creator's reply @mentions the new Agent, that mention and the wake are
 one first turn, and a mention that lands mid-turn reaches it as a busy notice.
-A heartbeat report never runs ahead of a waiting greeting. A Stop returns the
+A Stop returns the
 greeting to the queue unless the Agent already posted in `#all`, so it is shown
 until the Agent has greeted and never twice. Cove keeps its own onboarding greeting. Nothing DMs the new Agent — a DM is
 between a human and an Agent.
