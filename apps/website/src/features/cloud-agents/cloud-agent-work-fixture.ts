@@ -58,6 +58,7 @@ export function cloudAgentRunFixture(overrides: Partial<CloudAgentRun> = {}): Cl
         // A queued Run is still in Haus's local queue; any other one reached Cursor.
         providerRunId: status === 'queued' ? null : 'run_cursor',
         rawStatus: null,
+        report: null,
         runId: 'car_one',
         stall: null,
         startedAt: status === 'queued' ? null : at,
