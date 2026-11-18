@@ -1,4 +1,4 @@
-import { triggerPayloadExcerptMaxChars } from '@haus/api';
+import { triggerPayloadExcerptMaxChars, universalLineBreak } from '@haus/api';
 import { automationReplyLine } from '../automations/automation-envelope.ts';
 /**
  * The Server-built lines a connection-backed fire (`github`) adds
@@ -44,9 +44,9 @@ export function triggerReceipt(title: string): string {
  * Every payload line is indented by two spaces. That is the neutralization: an
  * indented line can never start with `[target=` or any other envelope header,
  * so a body cannot forge a message from a Haus human, agent, or system actor.
- * Line breaks are normalized to `\n` first, so a `\r` cannot start an
- * unindented line either. The stored payload `haus trigger log --fire`
- * returns is unchanged.
+ * Line breaks are normalized to `\n` first, on the same universal-newline set
+ * the Computer renders with, so no other break can start an unindented line
+ * either. The stored payload `haus trigger log --fire` returns is unchanged.
  */
 export function triggerEnvelope(input: TriggerEnvelopeInput): string {
     const excerpt = input.payload.slice(0, triggerPayloadExcerptMaxChars);
@@ -96,5 +96,5 @@ function indentPayload(excerpt: string): string[] {
     if (excerpt.length === 0) {
         return [];
     }
-    return excerpt.split(/\r\n|\r|\n/u).map((line) => `  ${line}`);
+    return excerpt.split(universalLineBreak).map((line) => `  ${line}`);
 }

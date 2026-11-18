@@ -177,7 +177,7 @@ test('a github test fire carries a sample projection marked test', async () => {
         select content from agent_inbox where dedupe_key = ${fireId}
     `) as { content: string }[];
     expect(inbox?.content).toContain(
-        'GitHub: workflow_run completed · failure · main · acme/api #0'
+        'GitHub: workflow_run completed · failure · acme/api #0'
     );
     expect(inbox?.content).toContain('github-event=workflow_run.completed; delivery=test');
 });

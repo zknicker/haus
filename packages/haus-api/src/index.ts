@@ -146,6 +146,7 @@ export * from './host-skill-file.ts';
 export * from './image-generation.ts';
 export * from './image-generation-models.ts';
 export * from './image-generation-settings.ts';
+export * from './line-breaks.ts';
 export * from './manual.ts';
 export * from './mcp.ts';
 export * from './mcp-preset-icon-catalog.ts';
