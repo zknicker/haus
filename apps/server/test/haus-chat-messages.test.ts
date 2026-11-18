@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { startTestTask } from './task-place-fixture.ts';
 
 let harness: HausServerHarness;
 let client: HausClient;
@@ -154,28 +155,26 @@ test('the Chat list quotes the newest top-level Message with its resolved author
     );
 });
 
-test('a Thread reply never becomes the parent Chat last message', async () => {
+test('a Task message never becomes its Channel last message', async () => {
     const server = await client.trpc.server.create.mutate({
-        displayName: 'Thread Last Message',
-        slug: 'thread-last-message',
+        displayName: 'Task Last Message',
+        slug: 'task-last-message',
     });
-    const parentChatId = server.channels[0].id;
-    const anchor = await client.trpc.chat.send.mutate({
-        chatId: parentChatId,
-        content: 'Top-level anchor.',
-        nonce: 'thread-last-anchor',
+    const channelId = server.channels[0].id;
+    const task = await startTestTask(harness, client, {
+        channelId,
         serverId: server.id,
+        title: 'Last message check',
     });
     await client.trpc.chat.send.mutate({
-        chatId: parentChatId,
-        content: 'Thread-only reply.',
-        nonce: 'thread-last-reply',
+        chatId: task.chatId,
+        content: 'Task-only message.',
+        nonce: 'task-last-message',
         serverId: server.id,
-        thread: { anchorMessageId: anchor.message.id },
     });
 
     const listed = (await client.trpc.chat.list.query({ serverId: server.id })).find(
-        (chat) => chat.id === parentChatId
+        (chat) => chat.id === channelId
     );
-    expect(listed?.lastMessage).toMatchObject({ content: 'Top-level anchor.' });
+    expect(listed?.lastMessage).toMatchObject({ content: 'Origin for Last message check' });
 });

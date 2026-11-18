@@ -18,9 +18,9 @@ const backgroundStatuses = new Set<ClaimTierRow['status']>(['in_progress', 'done
 /**
  * A background claim is an Agent's record-keeping lock on work it started and
  * finished without anyone else needing to watch: it claimed a message nobody
- * had promoted, and it never asked for review or outlived its own run. Thread replies do not affect the tier; a Thread is a separate
- * conversation surface. Anything else is tracked and belongs on the default
- * Board and List.
+ * had promoted, and it never asked for review or outlived its own run. Inline
+ * replies do not affect the tier; they are a conversation surface. Anything
+ * else is tracked and belongs on the default Board and List.
  */
 export function resolveClaimTier(claim: ClaimTierRow): ClaimTier {
     const background =

@@ -204,6 +204,7 @@ export async function createHausServerApplication(
         handles.computerSocket = startedComputerSocket;
         const reminderClock = options.reminderClock ?? { now: () => new Date() };
         await startServerSweeps(runtime, scope, shutdown, {
+            agentDelivery,
             appOrigin: options.appOrigin,
             artifactStorage,
             clock: reminderClock,

@@ -2,7 +2,7 @@ import { formatTaskKey, type TaskLink } from '@haus/api';
 import { and, asc, eq, inArray, or } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
-    boardsTable,
+    taskKeysTable,
     taskMessageLinksTable,
     taskReminderLinksTable,
     tasksTable,
@@ -26,7 +26,7 @@ const maxLinkTextChars = 500;
 /**
  * Resolves the Task references in written content against one Server: a
  * `task://` id must name a Task on the Server, and a bare key must match a
- * board key and number there. Unresolved candidates are dropped and stay plain
+ * ledger key and number there. Unresolved candidates are dropped and stay plain
  * text; content is never rewritten. Every Task is visible to every member and
  * Agent, so no further access check applies.
  */
@@ -65,13 +65,13 @@ async function resolveKeyedTaskReferences(
     );
     const keys = candidates.flatMap((candidate) => (candidate.kind === 'key' ? [candidate] : []));
     const rows = await db
-        .select({ boardKey: boardsTable.key, id: tasksTable.id, number: tasksTable.number })
+        .select({ boardKey: taskKeysTable.key, id: tasksTable.id, number: tasksTable.number })
         .from(tasksTable)
         .innerJoin(
-            boardsTable,
+            taskKeysTable,
             and(
-                eq(boardsTable.serverId, tasksTable.serverId),
-                eq(boardsTable.id, tasksTable.boardId)
+                eq(taskKeysTable.serverId, tasksTable.serverId),
+                eq(taskKeysTable.id, tasksTable.keyId)
             )
         )
         .where(
@@ -80,7 +80,7 @@ async function resolveKeyedTaskReferences(
                 or(
                     ids.length > 0 ? inArray(tasksTable.id, ids) : undefined,
                     ...keys.map((key) =>
-                        and(eq(boardsTable.key, key.boardKey), eq(tasksTable.number, key.number))
+                        and(eq(taskKeysTable.key, key.boardKey), eq(tasksTable.number, key.number))
                     )
                 )
             )
@@ -133,7 +133,7 @@ export async function prepareTaskLinkEvents(
     }
     const tasks = await db
         .select({
-            boardId: tasksTable.boardId,
+            chatId: tasksTable.chatId,
             id: tasksTable.id,
             serverId: tasksTable.serverId,
             version: tasksTable.version,
@@ -148,7 +148,7 @@ export async function prepareTaskLinkEvents(
     return tasks.map(prepareTaskUpdatedEvent);
 }
 
-/** Each Message's `taskLinks`, keyed by the Tasks' current board keys, in content order. */
+/** Each Message's `taskLinks`, keyed by the Tasks' current keys, in content order. */
 export async function readMessageTaskLinks(
     db: Reader,
     serverId: string,
@@ -159,7 +159,7 @@ export async function readMessageTaskLinks(
     }
     const rows = await db
         .select({
-            boardKey: boardsTable.key,
+            boardKey: taskKeysTable.key,
             messageId: taskMessageLinksTable.messageId,
             number: tasksTable.number,
             taskId: taskMessageLinksTable.taskId,
@@ -174,10 +174,10 @@ export async function readMessageTaskLinks(
             )
         )
         .innerJoin(
-            boardsTable,
+            taskKeysTable,
             and(
-                eq(boardsTable.serverId, tasksTable.serverId),
-                eq(boardsTable.id, tasksTable.boardId)
+                eq(taskKeysTable.serverId, tasksTable.serverId),
+                eq(taskKeysTable.id, tasksTable.keyId)
             )
         )
         .where(

@@ -2,13 +2,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { queuedFor, retireQueuedItemsByDedupeKeys } from '../agent-delivery/store.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    agentInboxTable,
-    agentsTable,
-    boardColumnsTable,
-    boardsTable,
-    serverMembershipsTable,
-} from '../postgres/schema.ts';
+import { agentInboxTable, agentsTable, serverMembershipsTable } from '../postgres/schema.ts';
 import type { TaskAssignmentChange } from './task-assignment.ts';
 import { encodeTaskAssignment, taskAssignmentKey } from './task-assignment-envelope.ts';
 
@@ -26,29 +20,12 @@ export async function enqueueTaskAssignment(
 ): Promise<void> {
     const { task } = input.change;
     const dedupeKey = taskAssignmentKey(task.id, task.version);
-    const [place] = await tx
-        .select({ board: boardsTable.name, column: boardColumnsTable.name })
-        .from(boardColumnsTable)
-        .innerJoin(
-            boardsTable,
-            and(
-                eq(boardsTable.serverId, boardColumnsTable.serverId),
-                eq(boardsTable.id, boardColumnsTable.boardId)
-            )
-        )
-        .where(eq(boardColumnsTable.id, task.columnId))
-        .limit(1);
-    if (!place) {
-        throw new Error(`Task ${task.id} has no column to name in its assignment.`);
-    }
     await agentDelivery.enqueue(tx, {
         agentId: input.agentId,
         chatId: null,
         content: encodeTaskAssignment({
             assignedBy: await readAssignerHandle(tx, input.change),
             assignedByAgent: input.change.actor.kind === 'agent',
-            board: place.board,
-            column: place.column,
             id: dedupeKey,
             key: task.key,
             priority: task.priority,

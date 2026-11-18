@@ -1,10 +1,8 @@
-import { and, eq } from 'drizzle-orm';
 import { requireChatWritable } from '../chats/chat-access.ts';
 import { prepareMessageReactionEvent } from '../chats/message-reaction-event.ts';
 import { writeMessageReaction } from '../chats/message-reactions.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { chatsTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { requireAgentChatAccess, resolveAgentMessage } from './message-read.ts';
 
@@ -32,24 +30,10 @@ export async function changeAgentReaction(
             remove: input.remove,
             serverId: runner.serverId,
         });
-        const [chat] = await tx
-            .select({ kind: chatsTable.kind, parentChatId: chatsTable.parentChatId })
-            .from(chatsTable)
-            .where(
-                and(
-                    eq(chatsTable.serverId, runner.serverId),
-                    eq(chatsTable.id, visibleMessage.chat_id)
-                )
-            )
-            .limit(1);
-        if (!chat) {
-            throw new Error('Failed to resolve the Message reaction Chat.');
-        }
         return changed
             ? prepareMessageReactionEvent({
                   chatId: visibleMessage.chat_id,
                   messageId: visibleMessage.id,
-                  parentChatId: chat.kind === 'thread' ? chat.parentChatId : null,
                   serverId: runner.serverId,
               })
             : null;

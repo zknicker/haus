@@ -18,7 +18,7 @@ export class ClaimMessageNotFoundError extends Error {
 
 export class UnclaimableMessageError extends Error {
     constructor() {
-        super('Only human or Agent messages in a top-level Channel or DM can become claims.');
+        super('Only human or Agent messages in a Channel or DM can become claims.');
         this.name = 'UnclaimableMessageError';
     }
 }
@@ -67,7 +67,7 @@ export async function promoteMessageClaim(
             chatId: message.chatId,
             serverId: input.serverId,
         });
-        if (chat.kind === 'thread') {
+        if (chat.kind !== 'channel' && chat.kind !== 'dm') {
             throw new UnclaimableMessageError();
         }
 
@@ -91,9 +91,6 @@ export async function promoteMessageClaim(
             throw new ClaimMessageNotFoundError();
         }
 
-        // Promotion does not create the Thread. Claims never own Threads: a
-        // message gets a claim, a message gets a Thread, and they meet only
-        // because they share the anchor. The first reply materializes it.
         await tx.insert(messageClaimsTable).values({
             chatId: message.chatId,
             createdByUserId: member.id,
@@ -111,7 +108,6 @@ export async function promoteMessageClaim(
             chatId: message.chatId,
             messageId: message.id,
             serverId: input.serverId,
-            threadChatId: null,
             type: 'claim.created',
         });
         return { event, idempotent: false, claim };

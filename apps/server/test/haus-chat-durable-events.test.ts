@@ -47,37 +47,23 @@ test('a send publishes message.created with its notification facts, live only', 
         conversationKind: 'channel',
         mentionedUserIds: [],
         messageId: live.message.id,
-        parentChatId: null,
         replyToAuthorUserId: null,
         sequence: live.message.sequence,
         serverId,
-        threadAnchorAuthorUserId: null,
-        threadAnchorMessageId: null,
+        taskId: null,
     });
     stream.stop();
 });
 
-test('a Thread reply persists and names its parent Chat and anchor', async () => {
-    const anchor = await send('thread event anchor', 'thread-event-anchor');
-    const reply = await owner.trpc.chat.send.mutate({
-        chatId,
-        content: 'thread event setup',
-        nonce: 'thread-event-reply',
-        serverId,
-        thread: { anchorMessageId: anchor.message.id },
-    });
-    const threadChatId = reply.threadChatId;
-    if (!threadChatId) {
-        throw new Error('Expected the Thread reply to return a child Chat id.');
-    }
-
+test('an inline reply persists in its Chat and names the human it answers', async () => {
+    const anchor = await send('reply event anchor', 'reply-event-anchor');
     const created = captureTopic(messageCreatedTopic);
     const second = await owner.trpc.chat.send.mutate({
         chatId,
-        content: 'thread event follow-up',
-        nonce: 'thread-event-follow-up',
+        content: 'reply event follow-up',
+        nonce: 'reply-event-follow-up',
+        replyToMessageId: anchor.message.id,
         serverId,
-        thread: { anchorMessageId: anchor.message.id },
     });
     const [message] = await connection.db
         .select({
@@ -95,21 +81,24 @@ test('a Thread reply persists and names its parent Chat and anchor', async () =>
             )
         );
     expect(message).toEqual({
-        chatId: threadChatId,
-        content: 'thread event follow-up',
-        nonce: 'thread-event-follow-up',
-        sequence: 2,
+        chatId,
+        content: 'reply event follow-up',
+        nonce: 'reply-event-follow-up',
+        sequence: anchor.message.sequence + 1,
         // A human message belongs to no Agent session.
         sessionGeneration: null,
     });
 
-    await expect(created.next()).resolves.toMatchObject({
-        chatId: threadChatId,
+    await expect(created.next()).resolves.toEqual({
+        authorUserId: ownerUserId,
+        chatId,
+        conversationKind: 'channel',
+        mentionedUserIds: [],
         messageId: second.message.id,
-        parentChatId: chatId,
-        sequence: 2,
-        threadAnchorAuthorUserId: ownerUserId,
-        threadAnchorMessageId: anchor.message.id,
+        replyToAuthorUserId: ownerUserId,
+        sequence: anchor.message.sequence + 1,
+        serverId,
+        taskId: null,
     });
     created.stop();
 });

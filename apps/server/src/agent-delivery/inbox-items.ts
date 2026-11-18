@@ -1,6 +1,7 @@
 import type {
     AgentInboxItem,
-    AgentThreadContext,
+    AgentTaskContext,
+    CloudAgentPullRequestChange,
     CloudAgentWorkAttention,
     HausAgentMessage,
 } from '@haus/api';
@@ -15,19 +16,20 @@ import {
     type CloudAgentRunAttention,
     readCloudAgentWorkAttentions,
 } from '../cloud-agents/read-cloud-agent-work-attentions.ts';
+import { parsePullRequestChangeKey } from '../github/pull-request-change.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
 import { chatOf } from './inbox-lanes.ts';
 import { inboxSender } from './inbox-sender.ts';
 import type * as store from './store.ts';
-import { readThreadContexts, withoutVisibleThreads } from './thread-context.ts';
+import { readTaskContexts, withoutVisibleTasks } from './task-context.ts';
 
 /**
  * Renders queued Chat-backed rows (never a chatless attention, whose run frames
  * it separately) as the canonical envelopes the Computer projects. Bodies
  * always ride the frame; which of them reach the model is the lane decision.
- * A frame that may drain these rows names its Agent, so a Thread mention it has
- * no visible context for carries that Thread's context package.
+ * A frame that may drain these rows names its Agent, so a Task mention it has
+ * no visible context for carries that Task's context package.
  */
 export async function buildInboxItems(
     db: HausDatabase,
@@ -68,13 +70,13 @@ export async function buildInboxItems(
               rows.map((row) => row.dedupeKey)
           )
         : new Map();
-    const threadContexts = drainAgentId
-        ? await withoutVisibleThreads(db, {
+    const taskContexts = drainAgentId
+        ? await withoutVisibleTasks(db, {
               agentId: drainAgentId,
-              contexts: await readThreadContexts(db, rows),
+              contexts: await readTaskContexts(db, rows),
               rows,
           })
-        : new Map<string, AgentThreadContext>();
+        : new Map<string, AgentTaskContext>();
     const targetByChatId = new Map<string, string>();
     for (const chatId of new Set(rows.map(chatOf))) {
         targetByChatId.set(
@@ -86,13 +88,17 @@ export async function buildInboxItems(
         toInboxItem(row, {
             apiMessage: apiMessageById.get(row.dedupeKey),
             cloudAgentWork:
-                row.source === 'cloud_agent_work'
+                row.source === 'cloud_agent_work' && row.cloudAgentRunId
                     ? requireAttention(row, cloudAgentWorkByRun)
+                    : undefined,
+            pullRequestNotice:
+                row.source === 'cloud_agent_work' && !row.cloudAgentRunId
+                    ? requirePullRequestNotice(row)
                     : undefined,
             sequence: sequenceByMessageId.get(row.dedupeKey) ?? 1,
             target: targetByChatId.get(chatOf(row)) ?? '#unknown',
             claim: claimByMessage.get(row.dedupeKey),
-            threadContext: threadContexts.get(row.id),
+            taskContext: taskContexts.get(row.id),
         })
     );
 }
@@ -101,14 +107,15 @@ interface InboxItemFacets {
     apiMessage: HausAgentMessage | undefined;
     claim: AgentInboxItem['claim'];
     cloudAgentWork: CloudAgentWorkAttention | undefined;
+    pullRequestNotice: CloudAgentPullRequestChange | undefined;
     sequence: number;
     target: string;
-    threadContext: AgentThreadContext | undefined;
+    taskContext: AgentTaskContext | undefined;
 }
 
 function toInboxItem(row: store.InboxItemRow, facets: InboxItemFacets): AgentInboxItem {
-    const { apiMessage, cloudAgentWork, target } = facets;
-    const attention = Boolean(cloudAgentWork);
+    const { apiMessage, cloudAgentWork, pullRequestNotice, target } = facets;
+    const attention = Boolean(cloudAgentWork ?? pullRequestNotice);
     const sender = inboxSender({ attention, message: apiMessage, source: row.source, target });
     // Only a human-authored envelope carries the human's saved zone; a claim
     // assignment wrapping a human's message is a system envelope.
@@ -117,14 +124,16 @@ function toInboxItem(row: store.InboxItemRow, facets: InboxItemFacets): AgentInb
         ...messageFacets(apiMessage),
         ...(row.addressedReason ? { addressed: true, addressedReason: row.addressedReason } : {}),
         ...(cloudAgentWork ? { cloudAgentWork } : {}),
+        ...(pullRequestNotice ? { pullRequestNotice } : {}),
         ...(row.mentioned ? { mentioned: true } : {}),
-        ...(row.threadFollowReactivated ? { threadFollowReactivated: true } : {}),
+        ...(row.taskFollowReactivated ? { taskFollowReactivated: true } : {}),
         ...(facets.claim ? { claim: facets.claim } : {}),
-        ...(facets.threadContext ? { threadContext: facets.threadContext } : {}),
+        ...(facets.taskContext ? { taskContext: facets.taskContext } : {}),
         ...sender,
         ...(senderTimezone ? { senderTimezone } : {}),
         chatId: chatOf(row),
-        content: attention ? '' : row.content,
+        // A Run's attention carries its outcome; a Run-less pull request notice keeps its sentence.
+        content: cloudAgentWork ? '' : row.content,
         createdAt: row.createdAt.toISOString(),
         id: row.dedupeKey,
         sequence: attention ? 0 : facets.sequence,
@@ -155,7 +164,28 @@ function requireAttention(
     if (!(attention && row.cloudAgentNotice)) {
         throw new CloudAgentAttentionMissingError(row.dedupeKey);
     }
-    return { ...attention, notice: row.cloudAgentNotice };
+    if (row.cloudAgentNotice !== 'pull_request') {
+        return { ...attention, notice: row.cloudAgentNotice };
+    }
+    // The wake's dedupe key names the change (ADR 0052 decision 6).
+    const change = parsePullRequestChangeKey(row.dedupeKey);
+    if (!change) {
+        throw new CloudAgentAttentionMissingError(row.dedupeKey);
+    }
+    return { ...attention, notice: 'pull_request', pullRequestChange: change };
+}
+
+/**
+ * A `pull_request` notice for a Task no cloud work reports to (ADR 0052
+ * decision 6): no Run backs it, so the change its dedupe key names is all of it.
+ */
+function requirePullRequestNotice(row: store.InboxItemRow): CloudAgentPullRequestChange {
+    const change =
+        row.cloudAgentNotice === 'pull_request' ? parsePullRequestChangeKey(row.dedupeKey) : null;
+    if (!change) {
+        throw new CloudAgentAttentionMissingError(row.dedupeKey);
+    }
+    return change;
 }
 
 /** Named so a failed dispatch's log says which item stopped it. */

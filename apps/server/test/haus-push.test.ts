@@ -65,7 +65,8 @@ test('a DM message pushes its other member with the routing payload', async () =
                 reason: 'dm',
                 sender: { avatarUrl: null, id: fixture.peerUserId, kind: 'human', name: 'Bo' },
                 serverId,
-                threadAnchorMessageId: null,
+                taskId: null,
+                taskKey: null,
             },
         },
     ]);
@@ -102,7 +103,7 @@ test('a Channel mention pushes only mentioned humans with access, never the auth
     expect(alert?.body.endsWith('…')).toBe(true);
 });
 
-test('an inline reply or a Thread answer pushes the author of the message it answers', async () => {
+test('an inline reply pushes the author of the message it answers, never the root author', async () => {
     const { createChannel, owner, peer, serverId } = fixture;
     const channelId = await createChannel('push-replies');
     const question = await owner.trpc.chat.send.mutate({
@@ -124,34 +125,28 @@ test('an inline reply or a Thread answer pushes the author of the message it ans
         chatId: channelId,
         conversationChatId: channelId,
         reason: 'reply',
-        threadAnchorMessageId: null,
     });
+    expect(replyPushes[0]?.payload).not.toHaveProperty('threadAnchorMessageId');
 
-    const answer = await peer.trpc.chat.send.mutate({
+    // Bo answering his own reply addresses nobody: authoring the chain's root
+    // does not make Ada a recipient.
+    const followUp = await peer.trpc.chat.send.mutate({
         chatId: channelId,
         content: 'Then eu-west.',
-        nonce: 'push-reply-thread',
+        nonce: 'push-reply-follow-up',
+        replyToMessageId: reply.message.id,
         serverId,
-        thread: { anchorMessageId: question.message.id },
     });
-    const threadPushes = await sender.sentFor(answer.message.id, 1);
-    expect(threadPushes.map((push) => push.device.token)).toEqual([adaToken]);
-    expect(threadPushes[0]?.payload).toMatchObject({
-        aps: { alert: { title: 'Bo in #push-replies' }, 'thread-id': channelId },
-        chatId: answer.threadChatId,
-        conversationChatId: channelId,
-        reason: 'reply',
-        threadAnchorMessageId: question.message.id,
-    });
+    expect(await sender.sentFor(followUp.message.id, 0)).toEqual([]);
 
-    // Ada's own message in her Thread pushes nobody: she never addresses
-    // herself, and Bo is neither mentioned nor the anchor's author.
+    // Ada answering her own question pushes nobody: she never addresses herself,
+    // and Bo is neither mentioned nor the author of the message she answers.
     const own = await owner.trpc.chat.send.mutate({
         chatId: channelId,
         content: 'Agreed.',
         nonce: 'push-reply-own',
+        replyToMessageId: question.message.id,
         serverId,
-        thread: { anchorMessageId: question.message.id },
     });
     expect(await sender.sentFor(own.message.id, 0)).toEqual([]);
 });
@@ -253,13 +248,11 @@ test('the badge counts unread Chats across every Server, as chat.list reports th
     );
 });
 
-/** What the badge means: unread `chat.list` Chats plus `thread.listUnread` Threads, summed over Servers. */
+/** What the badge means: the Inbox's unread rows (Chats and followed Tasks), summed over Servers. */
 async function unreadChatCount(client: HausClient, serverIds: readonly string[]) {
     let count = 0;
     for (const serverId of serverIds) {
-        const chats = await client.trpc.chat.list.query({ serverId });
-        count += chats.filter((chat) => chat.unreadCount > 0).length;
-        count += (await client.trpc.thread.listUnread.query({ serverId })).threads.length;
+        count += (await client.trpc.chat.unreadPreviews.query({ serverId })).previews.length;
     }
     return count;
 }

@@ -3,38 +3,32 @@ import type {
     AgentCloudAgentReceipt,
     AgentCloudAgentStartInput,
 } from '@haus/api';
-import {
-    agentCloudAgentStartInputSchema,
-    chatMessageAuthoredContentMaxLength,
-    formatCloudAgentWorkLink,
-} from '@haus/api';
-import { and, asc, eq } from 'drizzle-orm';
+import { chatMessageAuthoredContentMaxLength } from '@haus/api';
 import { readFreshnessHold } from '../agent-api/send-hold.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { resolveAgentMessageCause } from '../automations/infer-message-cause.ts';
 import { insertMessageCause } from '../automations/message-cause.ts';
 import {
-    findAgentMessageByNonce,
     planAgentAuthoredMessage,
     writeAgentAuthoredMessage,
 } from '../chats/agent-authored-message.ts';
-import { canonicalizeAgentMessageContentForPersistence } from '../chats/canonicalize-agent-references.ts';
 import {
     recordCloudAgentWorkLinks,
-    replayCloudAgentWorkLinks,
     resolveCloudAgentWorkLinks,
 } from '../chats/cloud-agent-work-links.ts';
-import { resolveInlineReplyParent } from '../chats/reply-context.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { agentsTable, cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
+import { cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { prepareTaskUpdatedEvent } from '../tasks/task-events.ts';
+import { readTask } from '../tasks/task-read.ts';
 import { prepareLinkedWorkEvents } from './cloud-agent-events.ts';
+import { requireAssignedComputer, requireLaunchTask } from './cloud-agent-launch-task.ts';
 import { resolveRunModel } from './cloud-agent-model.ts';
-import { findCloudAgentWork, findCloudAgentWorkByLaunchMessage } from './cloud-agent-shape.ts';
-import { CloudAgentAgentNotFoundError, CloudAgentWorkConflictError } from './errors.ts';
+import { findCloudAgentWork } from './cloud-agent-shape.ts';
+import { authoredContent, readWorkByNonce, withLaunchLink } from './cloud-agent-work-replay.ts';
 
 export type CreateCloudAgentWorkResult =
     | {
@@ -46,16 +40,17 @@ export type CreateCloudAgentWorkResult =
     | { held: AgentCloudAgentHeld; kind: 'held' };
 
 /**
- * Writes one Cloud Agent work: an ordinary text Message holding the Agent's
- * own words plus a Server-trusted link to the new work (ADR 0044), the work
- * record, its first Run in `queued`, the Message's links, the deterministic
- * child Thread and follow when the Message is top-level, ordinary delivery
- * planning, and the durable events — all in one transaction, idempotent by the
- * message nonce. The Computer launches the provider only after this commits, so
- * a later provider failure settles this same work rather than erasing it.
+ * Writes one Cloud Agent work on a Task (ADR 0052 decision 6): an ordinary
+ * text Message in the Task's Chat holding the Agent's own words plus a
+ * Server-trusted link to the new work (ADR 0044), the work record attached to
+ * the Task and reporting to its Chat, its first Run in `queued`, the Message's
+ * links, ordinary delivery planning, and the durable events — all in one
+ * transaction, idempotent by the message nonce. The Computer launches the
+ * provider only after this commits, so a later provider failure settles this
+ * same work rather than erasing it. A launch with no Task is refused.
  *
  * A new launch first runs the `haus message send` freshness check against the
- * target Chat. When it holds, nothing is written beyond the served-visibility
+ * Task's Chat. When it holds, nothing is written beyond the served-visibility
  * marks the check itself records, so a re-run (any nonce) is not held again
  * for the same messages. A committed nonce replays before the check.
  */
@@ -67,11 +62,10 @@ export async function createCloudAgentWork(
 ): Promise<CreateCloudAgentWorkResult> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
-        // A launch card is an inline reply with its own work Thread, so a
-        // launch never opens a new Thread on any anchor, the Agent's own included.
-        const plan = await planAgentAuthoredMessage(tx, runner, input.target, 'refuse');
+        const task = await requireLaunchTask(tx, runner, input.task);
+        const plan = await planAgentAuthoredMessage(tx, runner, task.target);
 
-        const existing = await readWorkByNonce(tx, runner, plan.chatId, input);
+        const existing = await readWorkByNonce(tx, runner, task, input);
         if (existing) {
             return { events: [], kind: 'started', receipt: existing, wakes: [] };
         }
@@ -122,6 +116,7 @@ export async function createCloudAgentWork(
             });
         }
 
+        // `chat_id` is the Task's Chat, so every Run notice reports to the Task.
         await tx.insert(cloudAgentWorkTable).values({
             agentId: runner.agentId,
             chatId: plan.chatId,
@@ -132,6 +127,7 @@ export async function createCloudAgentWork(
             repository: input.repository,
             serverId: runner.serverId,
             startingRef: input.startingRef,
+            taskId: task.taskId,
             title: input.title,
         });
         const runId = createOpaqueId('car');
@@ -164,6 +160,10 @@ export async function createCloudAgentWork(
         return {
             events: [
                 written.event,
+                // The Task now lists this work: its reopen announces that, or attaching does.
+                ...(written.taskEvents.length > 0
+                    ? written.taskEvents
+                    : [prepareTaskUpdatedEvent(await readTask(tx, runner.serverId, task.taskId))]),
                 ...(await prepareLinkedWorkEvents(tx, {
                     serverId: runner.serverId,
                     workIds: links.map((link) => link.workId),
@@ -177,120 +177,10 @@ export async function createCloudAgentWork(
                 messageId: written.messageId,
                 runId,
                 sequence: written.sequence,
-                target: input.target,
+                target: task.target,
                 work,
             },
             wakes: written.wakes,
         };
     });
-}
-
-/**
- * A replay rebuilds the whole stored content from `--say`, the links the
- * launch recorded, and the trusted suffix, then compares; it never strips
- * link syntax to make a retry match.
- */
-async function readWorkByNonce(
-    db: HausDatabase,
-    runner: ResolvedRunner,
-    chatId: string,
-    input: AgentCloudAgentStartInput
-): Promise<AgentCloudAgentReceipt | null> {
-    const message = await findAgentMessageByNonce(db, {
-        chatId,
-        nonce: input.nonce,
-        serverId: runner.serverId,
-    });
-    if (!message) {
-        return null;
-    }
-    const work = await findCloudAgentWorkByLaunchMessage(db, runner.serverId, message.id);
-    if (!work) {
-        throw new CloudAgentWorkConflictError();
-    }
-    const authored = await authoredContent(db, runner.serverId, input.content, message.content);
-    const expected = withLaunchLink(
-        await replayCloudAgentWorkLinks(db, {
-            content: authored,
-            messageId: message.id,
-            serverId: runner.serverId,
-        }),
-        work.title,
-        work.id
-    );
-    const reply = input.replyToMessageId
-        ? await resolveInlineReplyParent(db, {
-              chatId,
-              replyToMessageId: input.replyToMessageId,
-              serverId: runner.serverId,
-          })
-        : null;
-    if (
-        message.authorAgentId !== runner.agentId ||
-        message.content !== expected ||
-        message.replyToMessageId !== (reply?.parent.id ?? null) ||
-        work.title !== input.title ||
-        work.repository !== input.repository ||
-        work.startingRef !== input.startingRef ||
-        work.provider !== input.provider
-    ) {
-        throw new CloudAgentWorkConflictError();
-    }
-    const [firstRun] = await db
-        .select({ id: cloudAgentRunsTable.id })
-        .from(cloudAgentRunsTable)
-        .where(
-            and(
-                eq(cloudAgentRunsTable.serverId, runner.serverId),
-                eq(cloudAgentRunsTable.workId, work.id)
-            )
-        )
-        .orderBy(asc(cloudAgentRunsTable.createdAt))
-        .limit(1);
-    if (!firstRun) {
-        throw new CloudAgentWorkConflictError('That Cloud Agent work has no Run to launch.');
-    }
-    return {
-        state: 'started',
-        chatId,
-        idempotent: true,
-        messageId: message.id,
-        runId: firstRun.id,
-        sequence: message.sequence,
-        target: input.target,
-        work,
-    };
-}
-
-/** `--say` with bare references resolved, within the authored content cap. */
-async function authoredContent(
-    db: HausDatabase,
-    serverId: string,
-    content: string,
-    existingContent?: string
-): Promise<string> {
-    return agentCloudAgentStartInputSchema.shape.content.parse(
-        await canonicalizeAgentMessageContentForPersistence(db, {
-            content,
-            existingContent,
-            serverId,
-        })
-    );
-}
-
-function withLaunchLink(authored: string, title: string, workId: string): string {
-    return `${authored}\n\n${formatCloudAgentWorkLink(title, workId)}`;
-}
-
-/** Cloud Agent work is owned by the Computer that holds the provider access. */
-async function requireAssignedComputer(db: HausDatabase, runner: ResolvedRunner): Promise<string> {
-    const [agent] = await db
-        .select({ computerId: agentsTable.computerId })
-        .from(agentsTable)
-        .where(and(eq(agentsTable.serverId, runner.serverId), eq(agentsTable.id, runner.agentId)))
-        .limit(1);
-    if (!agent?.computerId) {
-        throw new CloudAgentAgentNotFoundError();
-    }
-    return agent.computerId;
 }

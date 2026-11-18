@@ -275,7 +275,7 @@ function writableReminderAnchor() {
             and anchor.archived_at is null
             and anchor.deleted_at is null
             and (
-                anchor.kind <> 'thread'
+                anchor.kind <> 'task'
                 or exists (
                     select 1 from chats parent
                     where parent.server_id = anchor.server_id

@@ -53,7 +53,8 @@ export function buildPushPayload(
             name,
         },
         serverId: input.serverId,
-        threadAnchorMessageId: row.chatId === row.conversationChatId ? null : row.anchorMessageId,
+        taskId: row.taskId,
+        taskKey: row.taskKey,
     };
 }
 

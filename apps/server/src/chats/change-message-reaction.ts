@@ -45,7 +45,7 @@ export async function changeMessageReaction(
             throw new ChatNotFoundError();
         }
 
-        const chat = await requireChatWriteAccess(tx, member, {
+        await requireChatWriteAccess(tx, member, {
             chatId: message.chatId,
             serverId: input.serverId,
         });
@@ -61,7 +61,6 @@ export async function changeMessageReaction(
             ? prepareMessageReactionEvent({
                   chatId: message.chatId,
                   messageId: message.id,
-                  parentChatId: chat.kind === 'thread' ? chat.parentChatId : null,
                   serverId: input.serverId,
               })
             : null;

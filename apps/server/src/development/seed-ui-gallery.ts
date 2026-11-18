@@ -5,21 +5,17 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { channelParticipantsTable, chatsTable, computersTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { seedDevelopmentCloudFanoutThread } from './seed-cloud-fanout-thread.ts';
 import { findInboxSeedContext } from './seed-inbox-context.ts';
 import {
     type GalleryContext,
     galleryClaim,
     galleryMention,
     galleryMessage,
-    galleryThread,
+    galleryReplies,
     galleryWork,
 } from './seed-ui-gallery-records.ts';
 
-/**
- * Idempotent gallery, separate from the Inbox seed so existing dev workspaces gain it too.
- * The #repo-health fan-out rides along because it reuses the gallery's unattached Computer.
- */
+/** Idempotent gallery, separate from the Inbox seed so existing dev workspaces gain it too. */
 export async function seedDevelopmentUiGallery(
     db: HausDatabase,
     input: { serverId: string; userId: string }
@@ -63,14 +59,13 @@ export async function seedDevelopmentUiGallery(
         await galleryMessage(
             tx,
             gallery,
-            'UI gallery: compact attachments and populated threads. Toggle “Show claims in chat” to reveal claims. Open threads to compare inline @mentions and full cloud-work cards. All cloud runs here are static samples on an unattached Computer; no provider links or jobs are created.'
+            'UI gallery: compact attachments and inline replies. Toggle “Show claims in chat” to reveal claims. Compare inline @mentions and full cloud-work cards. All cloud runs here are static samples on an unattached Computer; no provider links or jobs are created.'
         );
         await seedMentionExamples(tx, gallery);
         await seedClaimExamples(tx, gallery);
         await seedCloudExamples(tx, gallery);
         await seedCombinedExamples(tx, gallery);
     });
-    await seedDevelopmentCloudFanoutThread(db, input);
 }
 
 async function seedMentionExamples(db: HausDatabase, context: GalleryContext) {
@@ -84,18 +79,18 @@ async function seedMentionExamples(db: HausDatabase, context: GalleryContext) {
         discussion: true,
     });
     await galleryMention(db, context, {
-        content: 'Answered @mention · The reply sits in its Thread.',
+        content: 'Answered @mention · The reply sits inline under it.',
         answered: true,
     });
     const plain = await galleryMessage(
         db,
         context,
-        'Ordinary thread · A discussion with no claim, @mention, or cloud work.'
+        'Ordinary conversation · A discussion with no claim, @mention, or cloud work.'
     );
     await galleryMessage(
         db,
-        await galleryThread(db, context, plain),
-        'This reply gives the message a thread card.'
+        galleryReplies(context, plain),
+        'This inline reply answers the message above.'
     );
 }
 
@@ -125,7 +120,7 @@ async function seedClaimExamples(db: HausDatabase, context: GalleryContext) {
     await galleryClaim(db, context, claimed, 'background', 'in_progress');
     await galleryMessage(
         db,
-        await galleryThread(db, context, claimed),
+        galleryReplies(context, claimed),
         'I found the cause and am working on the fix.'
     );
 }
@@ -150,37 +145,33 @@ async function seedCloudExamples(db: HausDatabase, context: GalleryContext) {
         expired: 'Audit empty-state copy',
     };
     for (const status of states) {
-        const work = await galleryWork(db, context, {
+        await galleryWork(db, context, {
             title: stateTitles[status],
             status,
             withBranch: status === 'completed',
         });
-        await galleryThread(db, context, work);
     }
-    const cancelling = await galleryWork(db, context, {
+    await galleryWork(db, context, {
         title: 'Accessibility pass on settings',
         status: 'running',
         cancelling: true,
     });
-    await galleryThread(db, context, cancelling);
-    const stale = await galleryWork(db, context, {
+    await galleryWork(db, context, {
         title: 'Fix stale reminder copy',
         status: 'running',
         stale: true,
     });
-    await galleryThread(db, context, stale);
     for (const [title, status, followUp] of [
         ['Fix the reminder retry · follow-up waiting', 'completed', 'waiting'],
         ['Fix the reminder retry · follow-up running', 'completed', 'running'],
         ['Migrate settings storage · follow-up after failure', 'failed', 'waiting'],
     ] as const) {
-        const followed = await galleryWork(db, context, {
+        await galleryWork(db, context, {
             followUp,
             status,
             title,
             withBranch: status === 'completed',
         });
-        await galleryThread(db, context, followed);
     }
     for (const [title, status] of [
         ['Claude · Trim the settings copy', 'running'],
@@ -189,16 +180,12 @@ async function seedCloudExamples(db: HausDatabase, context: GalleryContext) {
         ['Claude · Migrate the digest schedule', 'failed'],
         ['Claude · Draft the changelog', 'cancelled'],
     ] as const) {
-        await galleryThread(
-            db,
-            context,
-            await galleryWork(db, context, {
-                provider: 'claude',
-                status,
-                title,
-                withBranch: status === 'completed',
-            })
-        );
+        await galleryWork(db, context, {
+            provider: 'claude',
+            status,
+            title,
+            withBranch: status === 'completed',
+        });
     }
     const discussed = await galleryWork(db, context, {
         title: 'Review the navigation fix',
@@ -207,8 +194,8 @@ async function seedCloudExamples(db: HausDatabase, context: GalleryContext) {
     });
     await galleryMessage(
         db,
-        await galleryThread(db, context, discussed),
-        'The branch is ready for review. The thread card carries the work status.'
+        galleryReplies(context, discussed),
+        'The branch is ready for review. The work card carries its status.'
     );
 }
 
@@ -216,25 +203,23 @@ async function seedCombinedExamples(db: HausDatabase, context: GalleryContext) {
     const anchor = await galleryMessage(
         db,
         context,
-        'Claim + multiple cloud runs + inline @mentions · Open this thread to see the full combination.'
+        'Claim + multiple cloud runs + inline @mentions · Its replies hold the full combination.'
     );
     await galleryClaim(db, context, anchor, 'tracked', 'in_review');
-    const thread = await galleryThread(db, context, anchor);
-    await galleryWork(db, thread, {
+    const replies = galleryReplies(context, anchor);
+    await galleryWork(db, replies, {
         title: 'Keyboard navigation · Completed branch',
         status: 'completed',
         withBranch: true,
     });
-    await galleryWork(db, thread, { title: 'Accessibility pass · Running', status: 'running' });
-    await galleryMention(db, thread, {
-        content: 'Answered inline @mention · Your reply follows it in this Thread.',
+    await galleryWork(db, replies, { title: 'Accessibility pass · Running', status: 'running' });
+    await galleryMention(db, replies, {
+        content: 'Answered inline @mention · Your reply follows it.',
         answered: true,
-        inThread: true,
     });
-    await galleryMention(db, thread, {
+    await galleryMention(db, replies, {
         content: 'Open inline @mention · Is the new focus order right?',
         answered: false,
-        inThread: true,
     });
     const claimMention = await galleryMention(db, context, {
         content: 'Claim + @mention · Should I ship the new sidebar?',

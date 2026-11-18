@@ -22,7 +22,7 @@ import {
 import { addChannel } from './agent-inbox-harness.ts';
 import {
     addPeerAgent,
-    addThread,
+    addTask,
     postMessage,
     readerRunner,
     seedReader,
@@ -51,13 +51,13 @@ test('each joined conversation with someone else unread is one row, newest activ
     const seed = await seedReader(db);
     const peerId = await addPeerAgent(db, seed);
     const anchor = await postMessage(db, seed, { chatId: seed.channelId });
-    const threadId = await addThread(db, seed, {
+    const task = await addTask(db, seed, {
         anchorId: anchor.id,
         followed: true,
         parentChatId: seed.channelId,
     });
     await postMessage(db, seed, { chatId: seed.channelId, agentId: seed.agentId });
-    await postMessage(db, seed, { chatId: threadId, agentId: peerId });
+    await postMessage(db, seed, { chatId: task.chatId, agentId: peerId });
     await postMessage(db, seed, { chatId: seed.dmChatId });
     await postMessage(db, seed, { chatId: seed.dmChatId, agentId: seed.agentId });
 
@@ -66,7 +66,7 @@ test('each joined conversation with someone else unread is one row, newest activ
     expect(agentInboxConversationsResponseSchema.parse(inbox)).toEqual(inbox);
     expect(inbox.items.map(({ kind, target, unread }) => ({ kind, target, unread }))).toEqual([
         { kind: 'dm', target: `dm:@${seed.humanHandle}`, unread: 1 },
-        { kind: 'thread', target: `#product:${anchor.id.slice(4, 12)}`, unread: 1 },
+        { kind: 'task', target: task.target, unread: 1 },
         // The Agent's own message is not unread.
         { kind: 'channel', target: '#product', unread: 1 },
     ]);
@@ -80,11 +80,11 @@ test('each joined conversation with someone else unread is one row, newest activ
     expect(inbox).toMatchObject({ hasMore: false, nextBefore: null, view: 'unread' });
 });
 
-test('read positions, unfollowed Threads, and other channels stay out of the list', async () => {
+test('read positions, unfollowed Tasks, and other channels stay out of the list', async () => {
     const db = connection.db;
     const seed = await seedReader(db);
     const anchor = await postMessage(db, seed, { chatId: seed.channelId });
-    const unfollowed = await addThread(db, seed, {
+    const { chatId: unfollowed } = await addTask(db, seed, {
         anchorId: anchor.id,
         followed: false,
         parentChatId: seed.channelId,

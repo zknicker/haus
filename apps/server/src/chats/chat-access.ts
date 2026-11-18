@@ -38,7 +38,7 @@ export interface AccessibleChat {
     dmMemberTwoStint: number | null;
     dmMemberTwoUserId: string | null;
     id: string;
-    kind: 'channel' | 'dm' | 'thread';
+    kind: 'channel' | 'dm' | 'task';
     lastMessageSequence: number;
     parentArchivedAt: Date | null;
     parentChatId: string | null;

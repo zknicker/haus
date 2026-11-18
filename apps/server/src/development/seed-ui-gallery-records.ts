@@ -17,7 +17,6 @@ import {
     cloudAgentWorkTable,
     messageClaimsTable,
 } from '../postgres/schema.ts';
-import { ensureThreadRecord } from '../threads/ensure-thread.ts';
 import { appendSeedMessages } from './seed-inbox-messages.ts';
 
 export interface GalleryContext {
@@ -25,6 +24,8 @@ export interface GalleryContext {
     chatId: string;
     computerId: string;
     now: Date;
+    /** Set when the gallery writes inline replies under one Message. */
+    reply?: { rootMessageId: string; toMessageId: string };
     serverId: string;
     userId: string;
 }
@@ -41,19 +42,16 @@ export async function galleryMessage(db: HausDatabase, context: GalleryContext, 
                 authorAgentId: context.agentId,
                 content,
                 createdAt: context.now,
+                ...(context.reply ? { reply: context.reply } : {}),
             },
         ],
     });
     return id;
 }
 
-export async function galleryThread(db: HausDatabase, context: GalleryContext, messageId: string) {
-    const thread = await ensureThreadRecord(db, {
-        serverId: context.serverId,
-        parentChatId: context.chatId,
-        anchorMessageId: messageId,
-    });
-    return { ...context, chatId: thread.id };
+/** A context that writes inline replies under `messageId`. */
+export function galleryReplies(context: GalleryContext, messageId: string): GalleryContext {
+    return { ...context, reply: { rootMessageId: messageId, toMessageId: messageId } };
 }
 
 export async function galleryClaim(
@@ -87,24 +85,30 @@ export async function galleryClaim(
 
 /**
  * An Agent asking the gallery's human by @mention (ADR 0037). An answered one
- * carries the human's reply in the Thread on it (or in the same Thread when it
- * is already inside one).
+ * carries the human's inline reply under it (or under the same root when it is
+ * already a reply).
  */
 export async function galleryMention(
     db: HausDatabase,
     context: GalleryContext,
-    input: { content: string; answered: boolean; inThread?: boolean; discussion?: boolean }
+    input: { content: string; answered: boolean; discussion?: boolean }
 ) {
     const mention = `[@you](${formatUserReferenceTarget(context.userId)})`;
     const messageId = await galleryMessage(db, context, `${mention} ${input.content}`);
     if (!(input.discussion || input.answered)) {
         return messageId;
     }
-    const thread = input.inThread ? context : await galleryThread(db, context, messageId);
+    const replies: GalleryContext = {
+        ...context,
+        reply: {
+            rootMessageId: context.reply?.rootMessageId ?? messageId,
+            toMessageId: messageId,
+        },
+    };
     if (input.discussion) {
         await galleryMessage(
             db,
-            thread,
+            replies,
             'I recommend the smaller change. This is still waiting for your answer.'
         );
     }
@@ -112,7 +116,7 @@ export async function galleryMention(
         const answerMessageId = createOpaqueId('msg');
         await appendSeedMessages(db, {
             serverId: context.serverId,
-            chatId: thread.chatId,
+            chatId: context.chatId,
             messages: [
                 {
                     id: answerMessageId,
@@ -120,6 +124,7 @@ export async function galleryMention(
                     authorUserId: context.userId,
                     content: 'Yes, that works. Go ahead.',
                     createdAt: context.now,
+                    ...(replies.reply ? { reply: replies.reply } : {}),
                 },
             ],
         });

@@ -1,22 +1,21 @@
 import type { ActiveCloudAgentWorkLocation } from '@haus/api';
-import { and, desc, eq, inArray, isNull } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable, cloudAgentWorkLinksTable } from '../postgres/schema.ts';
 import { linkChatVisibleSql, linkParentChatsTable } from './cloud-agent-work-visibility.ts';
 
 /** One link the viewer can read, with the Chat facts "Happening now" names. */
 export interface VisibleWorkLink {
-    chatAnchorMessageId: string | null;
     chatDmMemberOneUserId: string | null;
     chatDmMemberTwoUserId: string | null;
     chatId: string;
-    chatKind: 'channel' | 'dm' | 'thread';
+    chatKind: 'channel' | 'dm' | 'task';
     chatName: string | null;
     messageId: string;
     parentChatId: string | null;
     parentDmMemberOneUserId: string | null;
     parentDmMemberTwoUserId: string | null;
-    parentKind: 'channel' | 'dm' | 'thread' | null;
+    parentKind: 'channel' | 'dm' | 'task' | null;
     parentName: string | null;
     workId: string;
 }
@@ -37,7 +36,6 @@ export async function readVisibleWorkLinks(
     }
     return await db
         .select({
-            chatAnchorMessageId: chatsTable.anchorMessageId,
             chatDmMemberOneUserId: chatsTable.dmMemberOneUserId,
             chatDmMemberTwoUserId: chatsTable.dmMemberTwoUserId,
             chatId: cloudAgentWorkLinksTable.chatId,
@@ -79,76 +77,25 @@ export async function readVisibleWorkLinks(
         );
 }
 
-/** The live child Thread each of these Messages anchors, by anchor id. */
-export async function readChildThreads(
-    db: Pick<HausDatabase, 'select'>,
-    input: { messageIds: string[]; serverId: string }
-): Promise<Map<string, string>> {
-    if (input.messageIds.length === 0) {
-        return new Map();
-    }
-    const rows = await db
-        .select({ anchorMessageId: chatsTable.anchorMessageId, id: chatsTable.id })
-        .from(chatsTable)
-        .where(
-            and(
-                eq(chatsTable.serverId, input.serverId),
-                eq(chatsTable.kind, 'thread'),
-                inArray(chatsTable.anchorMessageId, input.messageIds),
-                isNull(chatsTable.deletedAt)
-            )
-        );
-    return new Map(
-        rows.flatMap((row) => (row.anchorMessageId ? [[row.anchorMessageId, row.id]] : []))
-    );
-}
-
 /**
- * ADR 0044, Q4: the launch work Thread when the viewer can read it, otherwise
- * the newest visible link as a Message location (its Thread when it has one).
- * Opening a row never creates or follows a Thread. `links` is newest first.
+ * ADR 0044, Q4: the launch Message when the viewer can read it, otherwise the
+ * newest visible link. `links` is newest first.
  */
 export function chooseWorkLocation(
     launchMessageId: string,
-    links: VisibleWorkLink[],
-    childThreads: ReadonlyMap<string, string>
+    links: VisibleWorkLink[]
 ): ChosenWorkLocation | null {
-    const launch = links.find((link) => link.messageId === launchMessageId);
-    if (launch) {
-        const threadChatId =
-            launch.chatKind === 'thread' ? launch.chatId : childThreads.get(launch.messageId);
-        const anchorMessageId =
-            launch.chatKind === 'thread' ? launch.chatAnchorMessageId : launch.messageId;
-        if (threadChatId && anchorMessageId) {
-            return {
-                link: launch,
-                location: { anchorMessageId, kind: 'work-thread', threadChatId },
-            };
-        }
-    }
-    const newest = links[0];
-    if (!newest) {
+    const link = links.find((candidate) => candidate.messageId === launchMessageId) ?? links[0];
+    if (!link) {
         return null;
     }
-    const inThread = newest.chatKind === 'thread';
     return {
-        link: newest,
-        location: {
-            chatId: inThread ? conversationChatIdOf(newest) : newest.chatId,
-            kind: 'message',
-            messageId: newest.messageId,
-            threadChatId: inThread ? newest.chatId : (childThreads.get(newest.messageId) ?? null),
-        },
+        link,
+        location: { chatId: link.chatId, kind: 'message', messageId: link.messageId },
     };
 }
 
-/** The Channel or DM a link sits in, through its Thread when it has one. */
+/** The conversation a link opens: its own Chat, a Task's included (ADR 0052). */
 export function conversationChatIdOf(link: VisibleWorkLink): string {
-    if (link.chatKind !== 'thread') {
-        return link.chatId;
-    }
-    if (!link.parentChatId) {
-        throw new Error(`Cloud Agent work link ${link.messageId} has no conversation Chat.`);
-    }
-    return link.parentChatId;
+    return link.chatId;
 }

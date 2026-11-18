@@ -7,11 +7,13 @@ import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     agentChatReadsTable,
     agentsTable,
-    agentThreadFollowsTable,
+    agentTaskFollowsTable,
     channelAgentParticipantsTable,
     chatMessagesTable,
     chatsTable,
+    tasksTable,
 } from '../src/postgres/schema.ts';
+import { insertTaskKeyEntry } from '../src/tasks/task-key-ledger.ts';
 import { FakeTransport, type Seed, seedAgent } from './agent-inbox-harness.ts';
 
 /** A seeded Agent already joined to `#product`, as the inbox and read position see it. */
@@ -82,29 +84,46 @@ export async function postMessage(
     return { id, sequence: chat.sequence };
 }
 
-/** A Thread on `anchorId` in `parentChatId`, optionally followed by the seeded Agent. */
-export async function addThread(
+let taskKeys = 0;
+
+/**
+ * A Task started from `anchorId` in `parentChatId`, optionally followed by the
+ * seeded Agent. Each Task takes its own key entry, so its target is `task:<key>-1`.
+ */
+export async function addTask(
     db: HausDatabase,
     seed: Seed,
     input: { anchorId: string; followed: boolean; parentChatId: string }
-): Promise<string> {
-    const threadId = createOpaqueId('cht');
+): Promise<{ chatId: string; target: string }> {
+    const chatId = createOpaqueId('cht');
     await db.insert(chatsTable).values({
         anchorMessageId: input.anchorId,
-        id: threadId,
-        kind: 'thread',
+        id: chatId,
+        kind: 'task',
         parentChatId: input.parentChatId,
         parentChatKind: 'channel',
         serverId: seed.serverId,
     });
+    taskKeys += 1;
+    const key = `TK${taskKeys}`;
+    const keyId = await insertTaskKeyEntry(db, { key, serverId: seed.serverId });
+    await db.insert(tasksTable).values({
+        chatId,
+        createdByAgentId: seed.agentId,
+        id: createOpaqueId('tsk'),
+        keyId,
+        number: 1,
+        serverId: seed.serverId,
+        title: 'Fixture Task',
+    });
     if (input.followed) {
-        await db.insert(agentThreadFollowsTable).values({
+        await db.insert(agentTaskFollowsTable).values({
             agentId: seed.agentId,
             serverId: seed.serverId,
-            threadChatId: threadId,
+            taskChatId: chatId,
         });
     }
-    return threadId;
+    return { chatId, target: `task:${key}-1` };
 }
 
 /** A second Agent on the same Server, for messages the reader did not write. */

@@ -8,19 +8,22 @@ import { getTask } from '../src/tasks/task-list.ts';
 import { findUserById } from '../src/users/haus-user.ts';
 import { type NotificationFixture, startNotificationFixture } from './notification-fixture.ts';
 import { captureTopic, settleRealtime, type TopicCapture } from './realtime-capture.ts';
+import { startTestTask } from './task-place-fixture.ts';
 
 /** A Task's Reminders: who may read them, and how an open Task hears they changed. */
 const clock = { now: () => new Date() };
 const later = () => new Date(Date.now() + 3_600_000);
 let fixture: NotificationFixture;
-let boardId: string;
+let allChatId: string;
 let updates: TopicCapture<{ taskId: string; version: number }>;
 let commands = 0;
 
 beforeAll(async () => {
     fixture = await startNotificationFixture();
-    const [general] = await fixture.owner.trpc.board.list.query({ serverId: fixture.serverId });
-    boardId = general?.id ?? '';
+    const [all] = (await fixture.harness.sql`
+        select id from chats where server_id = ${fixture.serverId} and is_all
+    `) as { id: string }[];
+    allChatId = all?.id ?? '';
     updates = captureTopic(taskUpdatedTopic);
 });
 
@@ -29,9 +32,11 @@ afterAll(async () => {
     await fixture.close();
 });
 
+/** A Task under `#all`, at version 1. */
 async function createTask(title: string) {
-    const { owner, serverId } = fixture;
-    return (await owner.trpc.task.create.mutate({ boardId, serverId, title })).task;
+    const { harness, owner, serverId } = fixture;
+    const task = await startTestTask(harness, owner, { channelId: allChatId, serverId, title });
+    return { ...task, version: 1 };
 }
 
 /** An Agent's Reminder on a fresh message in `chatId`, describing `description`. */

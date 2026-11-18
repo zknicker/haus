@@ -129,7 +129,7 @@ export async function seedDevelopmentAutomationCauses(
                     ids.archived,
                     blippyId,
                     75,
-                    'Archived the four design threads nobody touched last week.'
+                    'Archived the four design channels nobody touched last week.'
                 ),
             ],
             serverId,
@@ -170,8 +170,8 @@ export async function seedDevelopmentAutomationCauses(
             script: null,
             serverId,
             status: 'fired',
-            title: 'Stale Thread Cleanup',
-            description: "Archive last week's design threads that nobody touched",
+            title: 'Stale Channel Cleanup',
+            description: "Archive last week's design channels that nobody touched",
         });
         const deploy = await seedTriggerFire(tx, {
             anchorChatId: chatId,

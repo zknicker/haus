@@ -1,16 +1,17 @@
+import type { AgentTaskRefusalCode } from '@haus/api';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import type * as z from 'zod';
-import {
-    BoardConflictError,
-    BoardInvariantError,
-    BoardNotFoundError,
-} from '../boards/board-errors.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { TaskConflictError, TaskInvariantError, TaskNotFoundError } from '../tasks/task-errors.ts';
+import {
+    TaskConflictError,
+    TaskInvariantError,
+    TaskNotFoundError,
+    TaskOriginDmError,
+} from '../tasks/task-errors.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
 
-/** An Agent's reference that names nothing on the Server: a handle, column, or label. */
+/** An Agent's reference that names nothing on the Server: a handle or label. */
 export class AgentTaskInputError extends Error {}
 
 type Action<Input> = (runner: ResolvedRunner, input: Input) => Promise<unknown>;
@@ -18,7 +19,7 @@ type Action<Input> = (runner: ResolvedRunner, input: Input) => Promise<unknown>;
 /** Each retry means another write landed, so this rides out a burst of Agents on one Task. */
 export const implicitVersionAttempts = 8;
 
-/** One board or Task read: authorize, validate the query, answer. */
+/** One Task read: authorize, validate the query, answer. */
 export function agentTaskRead<Schema extends z.ZodType>(
     app: FastifyInstance,
     db: HausDatabase,
@@ -38,7 +39,7 @@ export function agentTaskRead<Schema extends z.ZodType>(
     });
 }
 
-/** One board or Task write: authorize, validate the body, answer. */
+/** One Task write: authorize, validate the body, answer. */
 export function agentTaskWrite<Schema extends z.ZodType>(
     app: FastifyInstance,
     db: HausDatabase,
@@ -75,8 +76,7 @@ export async function withImplicitVersion<Result>(
         try {
             return await write(await readVersion());
         } catch (cause) {
-            const lostRace =
-                cause instanceof TaskConflictError || cause instanceof BoardConflictError;
+            const lostRace = cause instanceof TaskConflictError;
             if (!lostRace || attempt >= implicitVersionAttempts) {
                 throw cause;
             }
@@ -96,19 +96,20 @@ function sendAgentTaskError(reply: FastifyReply, cause: unknown) {
     if (cause instanceof TaskNotFoundError) {
         return sendAgentApiError(reply, 404, 'TASK_NOT_FOUND', cause.message);
     }
-    if (cause instanceof BoardNotFoundError) {
-        return sendAgentApiError(reply, 404, 'BOARD_NOT_FOUND', cause.message);
+    if (cause instanceof TaskOriginDmError) {
+        return sendAgentApiError(
+            reply,
+            400,
+            'TASK_ORIGIN_DM' satisfies AgentTaskRefusalCode,
+            cause.message
+        );
     }
-    if (cause instanceof TaskConflictError || cause instanceof BoardConflictError) {
+    if (cause instanceof TaskConflictError) {
         return sendAgentApiError(reply, 409, 'TASK_CONFLICT', cause.message, {
             nextAction: 'Read it again, then retry on the current state.',
         });
     }
-    if (
-        cause instanceof AgentTaskInputError ||
-        cause instanceof BoardInvariantError ||
-        cause instanceof TaskInvariantError
-    ) {
+    if (cause instanceof AgentTaskInputError || cause instanceof TaskInvariantError) {
         return sendAgentApiError(reply, 400, 'INVALID_ARG', cause.message);
     }
     return sendAgentReadError(reply, cause);

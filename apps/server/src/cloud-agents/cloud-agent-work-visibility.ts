@@ -10,12 +10,12 @@ export type CloudAgentWorkViewer =
     | { kind: 'agent'; agentId: string }
     | { kind: 'user'; userId: string };
 
-/** The parent of a link's Chat when that Chat is a Thread; join it on `chatsTable`. */
+/** The origin Channel of a link's Chat when that Chat is a Task's; join it on `chatsTable`. */
 export const linkParentChatsTable = alias(chatsTable, 'link_parent_chat');
 
 /**
  * Whether a viewer can read the Chat one link lives in (ADR 0044): the Chat
- * and, for a Thread, its parent are live, and the viewer can read it by the
+ * and, for a Task's Chat, its Channel are live, and the viewer can read it by the
  * canonical rule. A human also needs an active Server membership; a
  * tombstoned Chat grants nothing even before its purge removes the rows.
  * Apply over `chatsTable` joined to the link and `linkParentChatsTable`

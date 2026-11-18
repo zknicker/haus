@@ -126,12 +126,12 @@ test('a returning human cannot reopen DM history from their former membership st
         nonce: 'return-dm-anchor',
         serverId,
     });
-    const reply = await returner.trpc.chat.send.mutate({
+    await returner.trpc.chat.send.mutate({
         chatId: formerDm.id,
-        content: 'Former-stint Thread reply',
-        nonce: 'return-dm-thread',
+        content: 'Former-stint inline reply',
+        nonce: 'return-dm-reply',
+        replyToMessageId: anchor.message.id,
         serverId,
-        thread: { anchorMessageId: anchor.message.id },
     });
 
     await owner.trpc.member.remove.mutate({
@@ -145,12 +145,10 @@ test('a returning human cannot reopen DM history from their former membership st
     await expect(
         owner.trpc.chat.messages.query({ chatId: formerDm.id, serverId })
     ).resolves.toMatchObject({
-        messages: [{ content: 'Private history from the former stint' }],
-    });
-    await expect(
-        owner.trpc.chat.messages.query({ chatId: reply.threadChatId as string, serverId })
-    ).resolves.toMatchObject({
-        messages: [{ content: 'Former-stint Thread reply' }],
+        messages: [
+            { content: 'Private history from the former stint' },
+            { content: 'Former-stint inline reply' },
+        ],
     });
 
     await join(returner, 'return-dm@haus.test');
@@ -159,12 +157,6 @@ test('a returning human cannot reopen DM history from their former membership st
     expect(visibleAfterReturn.map((chat) => chat.id)).not.toContain(formerDm.id);
     await expect(
         returner.trpc.chat.messages.query({ chatId: formerDm.id, serverId })
-    ).rejects.toThrow(/participant/i);
-    await expect(
-        returner.trpc.chat.messages.query({
-            chatId: reply.threadChatId as string,
-            serverId,
-        })
     ).rejects.toThrow(/participant/i);
 
     const freshDm = await returner.trpc.chat.ensureDm.mutate({
@@ -179,10 +171,9 @@ test('a returning human cannot reopen DM history from their former membership st
     const preserved = await harness.sql`
         select id from chats
         where server_id = ${serverId}
-            and id in (${formerDm.id}, ${reply.threadChatId as string})
-        order by id
+            and id = ${formerDm.id}
     `;
-    expect(preserved).toHaveLength(2);
+    expect(preserved).toHaveLength(1);
 });
 
 test('reinvitation restores no claim authority from a former stint', async () => {
@@ -246,7 +237,7 @@ test('reinvitation restores no claim authority from a former stint', async () =>
     );
     await expect(
         returner.trpc.chat.messages.query({
-            chatId: privateClaim.claim.threadChatId,
+            chatId: privateClaim.claim.chatId,
             serverId,
         })
     ).rejects.toThrow(/participant/i);

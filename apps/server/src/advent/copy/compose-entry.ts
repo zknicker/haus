@@ -58,7 +58,7 @@ export function composeRecapEntry(stats: AdventRecapStats, seed: string): Advent
     };
     add('Messages', stats.messages ? count(stats.messages.count) : null);
     add('Chats', positive(stats.counts.chats));
-    add('Threads', positive(stats.counts.threads));
+    add('Conversations', positive(stats.counts.conversations));
     add('Agents', stats.agents ? count(stats.agents.count) : null);
     add('Tasks closed', stats.tasks ? count(stats.tasks.count) : null);
     add('Tokens', stats.tokens ? compactTokens(stats.tokens.tokens) : null);

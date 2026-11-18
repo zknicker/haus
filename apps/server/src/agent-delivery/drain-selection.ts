@@ -10,7 +10,7 @@ import {
 } from './inbox-lanes.ts';
 import type { AgentDeliveryRow } from './store.ts';
 import * as store from './store.ts';
-import { readThreadContexts, threadContextChars } from './thread-context.ts';
+import { readTaskContexts, taskContextChars } from './task-context.ts';
 import { readUnreadElsewhere } from './unread-elsewhere.ts';
 
 /** Bounds one drain so the composed prompt stays well under command/env limits. */
@@ -205,15 +205,15 @@ export function boundedCompatibleRows(
  * frame carries. Both the first dispatch and every resend compute them from the
  * same persisted notice window, so a replayed run composes the prompt the ledger
  * expects; the drain budget still bounds how much of it may become bodies. A
- * Thread mention's context package counts against that budget whether or not
+ * Task mention's context package counts against that budget whether or not
  * visibility later omits it, which keeps the sets identical on every resend.
  */
 export async function humanDrainSets(db: HausDatabase, noticeRows: store.InboxItemRow[]) {
     const humanRows = noticeRows.filter((row) => row.source === 'human');
-    const contexts = await readThreadContexts(db, humanRows);
+    const contexts = await readTaskContexts(db, humanRows);
     const drainable = boundedCompatibleRows(humanRows, 'human', (row) => {
         const context = contexts.get(row.id);
-        return context ? threadContextChars(context) : 0;
+        return context ? taskContextChars(context) : 0;
     });
     return {
         drainRows: drainable.filter(isAddressedHumanRow),

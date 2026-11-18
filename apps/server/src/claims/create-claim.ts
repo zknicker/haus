@@ -161,7 +161,6 @@ export async function createClaim(
             chatId: input.chatId,
             messageId: message.id,
             serverId: input.serverId,
-            threadChatId: null,
             type: 'claim.created',
         });
         const recipients = await planAgentMessageRecipients(tx, {
@@ -182,7 +181,7 @@ export async function createClaim(
                 sequence: message.sequence,
                 serverId: input.serverId,
                 source: 'human',
-                threadFollowReactivated: recipient.threadFollowReactivated,
+                taskFollowReactivated: recipient.taskFollowReactivated,
             });
         }
 

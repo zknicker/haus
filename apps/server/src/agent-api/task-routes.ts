@@ -1,15 +1,13 @@
 import {
     type AgentTaskListQuery,
     agentTaskAssignInputSchema,
-    agentTaskCreateInputSchema,
     agentTaskListQuerySchema,
-    agentTaskMoveInputSchema,
     agentTaskShowQuerySchema,
     agentTaskUpdateInputSchema,
-    openColumnCategories,
     type Task,
     type TaskListAssigneeFilter,
     taskPriorities,
+    unfinishedTaskStates,
 } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
@@ -19,19 +17,12 @@ import { publishRealtime } from '../realtime/topic.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { assignTask } from '../tasks/task-assign.ts';
 import type { TaskWriteResult } from '../tasks/task-assignment.ts';
-import { createTask } from '../tasks/task-create.ts';
-import { countAgentTaskQueue, findTask, getTask, listTasks } from '../tasks/task-list.ts';
-import { moveTask } from '../tasks/task-move.ts';
+import { TaskNotFoundError } from '../tasks/task-errors.ts';
+import { listTaskKeys } from '../tasks/task-keys.ts';
+import { findTask, getTask, listTasks } from '../tasks/task-list.ts';
 import { updateTask } from '../tasks/task-update.ts';
-import {
-    agentActor,
-    readAgentBoards,
-    requireBoardById,
-    requireBoardByKey,
-    resolveBoardColumn,
-    resolveTaskAssignee,
-    resolveTaskLabels,
-} from './task-refs.ts';
+import { registerAgentTaskPlaceRoutes } from './task-place-routes.ts';
+import { agentActor, resolveTaskAssignee, resolveTaskLabels } from './task-refs.ts';
 import { agentTaskRead, agentTaskWrite, withImplicitVersion } from './task-route-shell.ts';
 import { toAgentTaskRefs, toAgentTaskRows } from './task-view.ts';
 
@@ -60,6 +51,7 @@ export function registerAgentTaskRoutes(
         await postCommitWork.wakeAgents(agentDelivery, result.wakes);
         return await taskRow(db, runner, result.task);
     };
+    registerAgentTaskPlaceRoutes(app, { agentDelivery, commit, db });
 
     agentTaskRead(
         app,
@@ -81,59 +73,6 @@ export function registerAgentTaskRoutes(
                 description: detail.description,
                 ...(await toAgentTaskRefs(db, detail)),
                 task: await taskRow(db, runner, detail),
-            };
-        }
-    );
-
-    agentTaskWrite(
-        app,
-        db,
-        { body: agentTaskCreateInputSchema, path: '/api/agent/tasks/create' },
-        async (runner, input) => {
-            const { serverId } = runner;
-            const board = requireBoardByKey(await readAgentBoards(db, runner), input.board);
-            const result = await createTask(db, agentActor(runner), agentDelivery, {
-                ...(input.assignee
-                    ? { assignee: await resolveTaskAssignee(db, runner, input.assignee) }
-                    : {}),
-                boardId: board.id,
-                ...(input.column ? { columnId: resolveBoardColumn(board, input.column).id } : {}),
-                ...(input.description === undefined ? {} : { description: input.description }),
-                ...(input.dueOn === undefined ? {} : { dueOn: input.dueOn }),
-                ...(input.labels
-                    ? { labelIds: await resolveTaskLabels(db, serverId, input.labels) }
-                    : {}),
-                ...(input.priority === undefined ? {} : { priority: input.priority }),
-                serverId,
-                title: input.title,
-            });
-            return { task: await commit(runner, result) };
-        }
-    );
-
-    agentTaskWrite(
-        app,
-        db,
-        { body: agentTaskMoveInputSchema, path: '/api/agent/tasks/move' },
-        async (runner, input) => {
-            const { agentId, serverId } = runner;
-            const task = await findTask(db, { key: input.key, serverId });
-            const board = requireBoardById(await readAgentBoards(db, runner), task.boardId);
-            const columnId = resolveBoardColumn(board, input.column).id;
-            const result = await withImplicitVersion(
-                input.expectedVersion,
-                taskVersion(input.key, serverId),
-                (expectedVersion) =>
-                    moveTask(db, agentActor(runner), {
-                        columnId,
-                        expectedVersion,
-                        serverId,
-                        taskId: task.id,
-                    })
-            );
-            return {
-                queue: await countAgentTaskQueue(db, { agentId, serverId }),
-                task: await commit(runner, result),
             };
         }
     );
@@ -201,19 +140,29 @@ export function registerAgentTaskRoutes(
 
 /** Matching Tasks by priority then age, the order an Agent works them, limited to one page. */
 async function listAgentTasks(db: HausDatabase, runner: ResolvedRunner, query: AgentTaskListQuery) {
-    const boards = await readAgentBoards(db, runner);
     const assignee = await assigneeFilter(db, runner, query.assignee);
     const tasks = await listTasks(db, agentActor(runner), {
         ...(assignee ? { assignee } : {}),
-        ...(query.board ? { boardId: requireBoardByKey(boards, query.board).id } : {}),
-        categories: query.category ?? [...openColumnCategories],
+        ...(query.key ? { keyId: await requireTaskKeyId(db, runner, query.key) } : {}),
+        // Without a state, the unfinished ones: the Tasks still to work.
+        states: query.state ?? [...unfinishedTaskStates],
         serverId: runner.serverId,
     });
     const page = [...tasks].sort(byPriority).slice(0, listLimit);
     return {
         omitted: tasks.length - page.length,
-        tasks: await toAgentTaskRows(db, runner.serverId, page, boards),
+        tasks: await toAgentTaskRows(db, runner.serverId, page),
     };
+}
+
+/** The key-ledger entry a `key` filter names (`SEC`). */
+async function requireTaskKeyId(db: HausDatabase, runner: ResolvedRunner, key: string) {
+    const entries = await listTaskKeys(db, agentActor(runner), { serverId: runner.serverId });
+    const entry = entries.find((candidate) => candidate.key === key);
+    if (!entry) {
+        throw new TaskNotFoundError(`No Task key ${key} exists on this Server.`);
+    }
+    return entry.id;
 }
 
 async function assigneeFilter(
@@ -234,8 +183,7 @@ function byPriority(left: Task, right: Task): number {
 }
 
 async function taskRow(db: HausDatabase, runner: ResolvedRunner, task: Task) {
-    const boards = await readAgentBoards(db, runner);
-    const [row] = await toAgentTaskRows(db, runner.serverId, [task], boards);
+    const [row] = await toAgentTaskRows(db, runner.serverId, [task]);
     if (!row) {
         throw new Error(`Task ${task.key} did not shape into a row.`);
     }

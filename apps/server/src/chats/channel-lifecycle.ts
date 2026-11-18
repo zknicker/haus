@@ -208,7 +208,7 @@ async function discardQueuedChannelWork(
         );
 }
 
-/** The Channel and every Thread under it. */
+/** The Channel and every Task Chat under it. */
 async function readChannelChatIds(
     db: HausDatabase,
     input: { chatId: string; serverId: string }

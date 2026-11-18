@@ -7,9 +7,8 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { registerAgentAgentRoutes } from './agent-routes.ts';
 import { registerAgentAttachmentRoutes } from './attachment-routes.ts';
-import { unfollowAgentThread } from './attention.ts';
+import { unfollowAgentTask } from './attention.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
-import { registerAgentBoardRoutes } from './board-routes.ts';
 import { registerAgentChannelRoutes } from './channel-routes.ts';
 import { registerAgentClaimRoutes } from './claim-routes.ts';
 import { registerAgentCloudAgentRoutes } from './cloud-agent-routes.ts';
@@ -23,6 +22,7 @@ import { readAgentHistory } from './message-history.ts';
 import { resolveAgentMessage, searchAgentMessages } from './message-read.ts';
 import { registerAgentMessageSendRoute } from './message-send-route.ts';
 import { registerAgentProfileRoutes } from './profile-routes.ts';
+import { registerAgentPullRequestAttachRoute } from './pull-request-attach-route.ts';
 import { registerAgentReactionRoutes } from './reaction-routes.ts';
 import { registerAgentReminderRoutes } from './reminder-routes.ts';
 import { registerAgentTaskRoutes } from './task-routes.ts';
@@ -120,7 +120,7 @@ export function registerAgentApiRoutes(
         db: options.db,
         postCommitWork: options.postCommitWork,
     });
-    registerAgentBoardRoutes(app, options.db);
+    registerAgentPullRequestAttachRoute(app, { db: options.db, githubApp: options.githubApp });
     registerAgentTriggerRoutes(app, options.db, {
         githubTransport: options.githubApp?.transport ?? {},
     });
@@ -149,14 +149,14 @@ export function registerAgentApiRoutes(
         return await readAgentServerDirectory(options.db, runner, parsed.data);
     });
 
-    app.post('/api/agent/threads/unfollow', async (request, reply) => {
+    app.post('/api/agent/tasks/unfollow', async (request, reply) => {
         const runner = await authorizeAgentRunner(options.db, request);
         const parsed = targetQuerySchema.safeParse(request.body);
         if (!(runner && parsed.success)) {
-            return sendAgentApiError(reply, 400, 'INVALID_ARG', 'The thread request was invalid.');
+            return sendAgentApiError(reply, 400, 'INVALID_ARG', 'The Task request was invalid.');
         }
         try {
-            return await unfollowAgentThread(options.db, runner, parsed.data.target);
+            return await unfollowAgentTask(options.db, runner, parsed.data.target);
         } catch (cause) {
             return sendAgentReadError(reply, cause);
         }

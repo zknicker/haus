@@ -18,6 +18,7 @@ import {
     CloudAgentCancelDeniedError,
     CloudAgentComputerRemovedError,
     CloudAgentNotLaunchedError,
+    CloudAgentTaskRequiredError,
     CloudAgentWorkConflictError,
     CloudAgentWorkNotFoundError,
     CloudAgentWorkSettledError,
@@ -31,7 +32,6 @@ import { publishRealtime } from '../realtime/topic.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 import { requireCancellableWorkAgent } from './cloud-agents.ts';
-import { ThreadNotOpenError } from './resolve-send-target.ts';
 import { AgentTargetError } from './resolve-target.ts';
 
 /**
@@ -232,15 +232,9 @@ function sendCloudAgentFailure(
     if (cause instanceof AgentTargetError) {
         return sendAgentApiError(reply, 404, 'INVALID_TARGET', cause.message);
     }
-    if (cause instanceof ThreadNotOpenError) {
+    if (cause instanceof CloudAgentTaskRequiredError) {
         // The Computer proxy forwards only code and message, so the fix rides the message.
-        const anchor = cause.anchorMessageId.replace(/^msg_/u, '').slice(0, 8);
-        return sendAgentApiError(
-            reply,
-            400,
-            'CLOUD_AGENT_NEW_THREAD',
-            `A cloud agent launch can't open a new thread; its card gets its own work thread. Reply inline instead: --target "${cause.parentTarget}" --reply-to ${anchor}`
-        );
+        return sendAgentApiError(reply, 400, 'CLOUD_AGENT_TASK_REQUIRED', cause.message);
     }
     if (cause instanceof ChatArchivedError) {
         return sendAgentApiError(reply, 409, 'TARGET_READ_ONLY', cause.message);

@@ -107,7 +107,7 @@ function ambientRecipients(agentIds: string[]): AgentMessageRecipientPlan[] {
         addressedReason: null,
         agentId,
         mentioned: false,
-        threadFollowReactivated: false,
+        taskFollowReactivated: false,
     }));
 }
 
@@ -148,7 +148,7 @@ test('a narrow at the gate marks the surviving recipient addressed', async () =>
             addressedReason: 'routing',
             agentId: winner,
             mentioned: false,
-            threadFollowReactivated: false,
+            taskFollowReactivated: false,
         },
     ]);
 });
@@ -231,7 +231,7 @@ test('a judgment over one eligible Agent addresses it at the gate and never chan
             addressedReason: 'routing',
             agentId,
             mentioned: false,
-            threadFollowReactivated: false,
+            taskFollowReactivated: false,
         },
     ]);
     expect(await commit(channel, uncertain)).toEqual([
@@ -239,7 +239,7 @@ test('a judgment over one eligible Agent addresses it at the gate and never chan
             addressedReason: null,
             agentId,
             mentioned: false,
-            threadFollowReactivated: false,
+            taskFollowReactivated: false,
         },
     ]);
 });

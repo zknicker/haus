@@ -1,4 +1,4 @@
-import type { AddressedReason } from '@haus/api';
+import type { AddressedReason, CloudAgentWorkAttention } from '@haus/api';
 
 export interface EnqueueInput {
     /** Why this item names the Agent personally; null is an ambient delivery. */
@@ -6,7 +6,7 @@ export interface EnqueueInput {
     agentId: string;
     chatId: string | null;
     /** The Run and reason a `cloud_agent_work` notice describes. */
-    cloudAgentNotice?: 'settled' | 'stall';
+    cloudAgentNotice?: CloudAgentWorkAttention['notice'];
     cloudAgentRunId?: string;
     content: string;
     /** Queue time for work with no Chat message of its own, such as an automation fire. */
@@ -17,5 +17,5 @@ export interface EnqueueInput {
     sequence?: number;
     serverId: string;
     source?: string;
-    threadFollowReactivated?: boolean;
+    taskFollowReactivated?: boolean;
 }

@@ -6,13 +6,13 @@ export type ChatListArchive = 'active' | 'all' | 'archived';
 
 /**
  * The Chats `chat.list` shows a human, as a predicate over `chats`: their
- * visible, undeleted Channels and DMs, minus Threads, a retired Agent's DM, and
- * the onboarding Channel until onboarding completes. `chat.list` and the
- * unread-Chat count both filter with it, so they always agree on the set.
+ * visible, undeleted Channels and DMs, never a Task's Chat (ADR 0052), minus a retired Agent's DM and the onboarding Channel until
+ * onboarding completes. `chat.list` and the unread-Chat count both filter with
+ * it, so they always agree on the set.
  */
 export function listedChats(userId: string, archive: ChatListArchive): SQL {
     return sql`(
-        ${chatsTable.kind} <> 'thread'
+        ${chatsTable.kind} in ('channel', 'dm')
         and ${chatsTable.deletedAt} is null
         ${archiveFilter(archive)}
         and exists (
@@ -41,9 +41,9 @@ export function listedChats(userId: string, archive: ChatListArchive): SQL {
 
 /**
  * A listed Chat's `unreadCount` for `userId`: its own messages past the
- * reader's marker that someone else wrote. Thread replies live in the Thread's
- * own Chat row and count there (`threads/thread-unread.ts`, ADR 0043), never
- * on the parent.
+ * reader's marker that someone else wrote. A Task's messages live in the
+ * Task's own Chat row and count there (`tasks/task-unread.ts`, ADR 0052),
+ * never on its Channel.
  */
 export function chatUnreadCount(userId: string): SQL<number> {
     return sql<number>`(select count(*)::integer ${unreadMessages(userId)})`;

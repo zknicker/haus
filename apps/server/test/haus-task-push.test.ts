@@ -9,13 +9,17 @@ import { publishRealtime } from '../src/realtime/topic.ts';
 import { assignTask } from '../src/tasks/task-assign.ts';
 import { type NotificationFixture, startNotificationFixture } from './notification-fixture.ts';
 import { deviceToken, FakePushSender } from './push-fake-sender.ts';
+import { startTestTask } from './task-place-fixture.ts';
 
-/** Task assignment push (ADR 0051): the assignee's devices, when someone else assigned. */
+/**
+ * Task assignment push: the assignee's devices, when someone else assigned. The
+ * person also follows the Task (ADR 0052 decision 9); no Inbox item is made.
+ */
 const sender = new FakePushSender();
 const adaToken = deviceToken('a4');
 const boToken = deviceToken('b5');
 let fixture: NotificationFixture;
-let boardId: string;
+let channelId: string;
 
 const collapseId = (taskId: string, version: number) => `task-assign:${taskId}:${version}`;
 
@@ -32,24 +36,34 @@ beforeAll(async () => {
         environment: 'sandbox',
         token: boToken,
     });
-    const [general] = await fixture.owner.trpc.board.list.query({ serverId: fixture.serverId });
-    boardId = general?.id ?? '';
+    const [all] = (await fixture.harness.sql`
+        select id from chats where server_id = ${fixture.serverId} and is_all
+    `) as { id: string }[];
+    channelId = all?.id ?? '';
 });
 
 afterAll(async () => {
     await fixture.close();
 });
 
-test('assigning a person pushes their devices with the routing payload', async () => {
-    const { owner, peer, peerUserId, serverId } = fixture;
-    const { task } = await owner.trpc.task.create.mutate({
-        assignee: { kind: 'user', userId: peerUserId },
-        boardId,
+/** A new Task the owner assigns: version 1 started, version 2 assigned. */
+async function assignNew(title: string, assignee: Parameters<typeof assignTask>[3]['assignee']) {
+    const { owner, serverId } = fixture;
+    const task = await startTestTask(fixture.harness, owner, { channelId, serverId, title });
+    await owner.trpc.task.assign.mutate({
+        assignee,
+        expectedVersion: 1,
         serverId,
-        title: 'Rotate the signing key',
+        taskId: task.id,
     });
+    return task;
+}
 
-    const pushes = await sender.sentFor(collapseId(task.id, 1), 1);
+test('assigning a person pushes their devices with the routing payload', async () => {
+    const { peer, peerUserId, serverId } = fixture;
+    const task = await assignNew('Rotate the signing key', { kind: 'user', userId: peerUserId });
+
+    const pushes = await sender.sentFor(collapseId(task.id, 2), 1);
     expect(pushes.map((push) => push.device.token)).toEqual([boToken]);
     const { count } = await peer.trpc.chat.unreadChatCount.query();
     expect(pushes[0]?.payload).toEqual({
@@ -67,9 +81,37 @@ test('assigning a person pushes their devices with the routing payload', async (
     expect(pushTaskAssignmentPayloadSchema.parse(pushes[0]?.payload)).toBeDefined();
 });
 
+test('a message in a Task carries the Task, so a tap opens it', async () => {
+    const { owner, ownerUserId, peer, serverId } = fixture;
+    const task = await startTestTask(fixture.harness, owner, {
+        channelId,
+        serverId,
+        title: 'Push me',
+    });
+    const sent = await peer.trpc.chat.send.mutate({
+        chatId: task.chatId,
+        content: `[@Ada](user://${ownerUserId}) can you look?`,
+        nonce: 'task-push-message',
+        serverId,
+    });
+
+    const pushes = await sender.sentFor(sent.message.id, 1);
+    expect(pushes.map((push) => push.device.token)).toEqual([adaToken]);
+    expect(pushes[0]?.payload).toMatchObject({
+        chatId: task.chatId,
+        conversationChatId: channelId,
+        taskId: task.id,
+        taskKey: task.key,
+    });
+});
+
 test('an Agent assigning a person pushes under the Agent name', async () => {
     const { owner, orbitAgentId, peerUserId, serverId } = fixture;
-    const { task } = await owner.trpc.task.create.mutate({ boardId, serverId, title: 'Handoff' });
+    const task = await startTestTask(fixture.harness, owner, {
+        channelId,
+        serverId,
+        title: 'Handoff',
+    });
     const result = await assignTask(
         fixture.database.db,
         { agentId: orbitAgentId, kind: 'agent' },
@@ -89,72 +131,46 @@ test('an Agent assigning a person pushes under the Agent name', async () => {
 
 test('no push for self-assignment, an Agent assignee, or an unassigned Task', async () => {
     const { orbitAgentId, owner, ownerUserId, serverId } = fixture;
-    const own = await owner.trpc.task.create.mutate({
-        assignee: { kind: 'user', userId: ownerUserId },
-        boardId,
-        serverId,
-        title: 'Mine',
-    });
-    const agent = await owner.trpc.task.create.mutate({
-        assignee: { agentId: orbitAgentId, kind: 'agent' },
-        boardId,
-        serverId,
-        title: 'For Orbit',
-    });
+    const own = await assignNew('Mine', { kind: 'user', userId: ownerUserId });
+    const agent = await assignNew('For Orbit', { agentId: orbitAgentId, kind: 'agent' });
     await owner.trpc.task.assign.mutate({
         assignee: null,
-        expectedVersion: 1,
+        expectedVersion: 2,
         serverId,
-        taskId: agent.task.id,
+        taskId: agent.id,
     });
-    expect(await sender.sentFor(collapseId(own.task.id, 1), 0)).toEqual([]);
-    expect(await sender.sentFor(collapseId(agent.task.id, 1), 0)).toEqual([]);
-    expect(await sender.sentFor(collapseId(agent.task.id, 2), 0)).toEqual([]);
+    expect(await sender.sentFor(collapseId(own.id, 2), 0)).toEqual([]);
+    expect(await sender.sentFor(collapseId(agent.id, 2), 0)).toEqual([]);
+    expect(await sender.sentFor(collapseId(agent.id, 3), 0)).toEqual([]);
 });
 
-test('an assignment withdrawn or cleared before the push sends stays silent', async () => {
-    const { owner, ownerUserId, peer, peerUserId, serverId } = fixture;
-    const { task } = await owner.trpc.task.create.mutate({
-        assignee: { kind: 'user', userId: peerUserId },
-        boardId,
-        serverId,
-        title: 'Opened at once',
-    });
-    await sender.sentFor(collapseId(task.id, 1), 1);
+test('an assignment withdrawn before the push sends stays silent', async () => {
+    const { owner, ownerUserId, peerUserId, serverId } = fixture;
+    const task = await assignNew('Withdrawn at once', { kind: 'user', userId: peerUserId });
+    await sender.sentFor(collapseId(task.id, 2), 1);
     const before = sender.sent.length;
-    const event = {
-        assignedBy: { kind: 'user' as const, userId: ownerUserId },
-        serverId,
-        taskId: task.id,
-        userId: peerUserId,
-        version: 1,
-    };
-
-    await peer.trpc.taskInbox.clear.mutate({ serverId, taskId: task.id });
-    await pushTaskAssignments(fixture.database.db, sender, [event]);
-    expect(sender.sent).toHaveLength(before);
-
-    await peer.trpc.taskInbox.restore.mutate({ serverId, taskId: task.id });
     await owner.trpc.task.assign.mutate({
         assignee: null,
-        expectedVersion: 1,
+        expectedVersion: 2,
         serverId,
         taskId: task.id,
     });
-    await pushTaskAssignments(fixture.database.db, sender, [event]);
+    await pushTaskAssignments(fixture.database.db, sender, [
+        {
+            assignedBy: { kind: 'user', userId: ownerUserId },
+            serverId,
+            taskId: task.id,
+            userId: peerUserId,
+            version: 2,
+        },
+    ]);
     expect(sender.sent).toHaveLength(before);
 });
 
 describe('several assignments in one grace', () => {
     const assignPeer = async (title: string) => {
-        const { owner, peerUserId, serverId } = fixture;
-        const { task } = await owner.trpc.task.create.mutate({
-            assignee: { kind: 'user', userId: peerUserId },
-            boardId,
-            serverId,
-            title,
-        });
-        await sender.sentFor(collapseId(task.id, 1), 1);
+        const task = await assignNew(title, { kind: 'user', userId: fixture.peerUserId });
+        await sender.sentFor(collapseId(task.id, 2), 1);
         return task;
     };
     const event = (
@@ -168,7 +184,7 @@ describe('several assignments in one grace', () => {
         serverId: fixture.serverId,
         taskId,
         userId: fixture.peerUserId,
-        version: 1,
+        version: 2,
     });
 
     test('collapse to one push that names the count and opens the Inbox', async () => {
@@ -181,7 +197,7 @@ describe('several assignments in one grace', () => {
             [...tasks, newest].map((task) => event(task.id))
         );
 
-        const pushes = await sender.sentFor(`task-burst:${newest.id}:1`, 1);
+        const pushes = await sender.sentFor(`task-burst:${newest.id}:2`, 1);
         expect(pushes.map((push) => push.device.token)).toEqual([boToken]);
         const { count } = await peer.trpc.chat.unreadChatCount.query();
         expect(pushes[0]?.payload).toEqual({
@@ -206,21 +222,26 @@ describe('several assignments in one grace', () => {
             event(second.id, { agentId: fixture.orbitAgentId, kind: 'agent' }),
         ]);
 
-        const pushes = await sender.sentFor(`task-burst:${second.id}:1`, 1);
+        const pushes = await sender.sentFor(`task-burst:${second.id}:2`, 1);
         expect(pushes[0]?.payload.aps.alert.title).toBe('2 tasks assigned to you');
     });
 
     test('leave only what is still news, and one left is its own push', async () => {
-        const { peer, serverId } = fixture;
-        const opened = await assignPeer('Opened during the grace');
+        const { owner, serverId } = fixture;
+        const moved = await assignPeer('Reassigned during the grace');
         const left = await assignPeer('Still waiting');
-        await peer.trpc.taskInbox.clear.mutate({ serverId, taskId: opened.id });
+        await owner.trpc.task.assign.mutate({
+            assignee: null,
+            expectedVersion: 2,
+            serverId,
+            taskId: moved.id,
+        });
         const before = sender.sent.length;
 
-        await pushTaskAssignments(fixture.database.db, sender, [event(opened.id), event(left.id)]);
+        await pushTaskAssignments(fixture.database.db, sender, [event(moved.id), event(left.id)]);
 
         const sent = sender.sent.slice(before);
-        expect(sent.map((push) => push.collapseId)).toEqual([collapseId(left.id, 1)]);
+        expect(sent.map((push) => push.collapseId)).toEqual([collapseId(left.id, 2)]);
         expect(sent[0]?.payload.aps.alert.title).toBe(`Ada assigned you ${left.key}`);
     });
 });

@@ -16,17 +16,15 @@ test('prepare rejects a malformed event before anything is published', () => {
     expect(() =>
         messageCreatedTopic.prepare({
             authorUserId: null,
-            chatId: 'cht_thread',
+            chatId: 'cht_task',
             conversationKind: 'channel',
             mentionedUserIds: [],
             messageId: 'msg_reply',
-            // A Thread reply must name its anchor too.
-            parentChatId: 'cht_parent',
             replyToAuthorUserId: null,
-            sequence: 1,
+            // A sequence starts at one; zero names no message.
+            sequence: 0,
             serverId: 'srv_one',
-            threadAnchorAuthorUserId: null,
-            threadAnchorMessageId: null,
+            taskId: null,
         })
     ).toThrow();
 });

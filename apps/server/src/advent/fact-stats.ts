@@ -31,6 +31,7 @@ export interface AdventFactStats {
         hour: number;
     };
     'closest-dm': NamedCount;
+    'conversations-started': Count;
     'early-bird': {
         /** Minutes after local midnight. */
         minuteOfDay: number;
@@ -41,16 +42,16 @@ export interface AdventFactStats {
     'full-house': NamedCount;
     'hardest-worker': { name: string; turns: number };
     'in-demand': Count;
+    'longest-conversation': {
+        replies: number;
+        /** `#channel`, or null for a conversation in a DM. */
+        room: string | null;
+    };
     'longest-streak': {
         /** Consecutive local days with at least one message. */
         days: number;
         /** Local `YYYY-MM-DD` the run ended on. */
         endedOn: string;
-    };
-    'longest-thread': {
-        replies: number;
-        /** `#channel`, or null for a Thread in a DM. */
-        room: string | null;
     };
     'loudest-channel': NamedCount;
     'messages-sent': Count;
@@ -64,7 +65,6 @@ export interface AdventFactStats {
         month: number;
     };
     'tasks-closed': Count;
-    'threads-resolved': Count;
     'tokens-used': { tokens: number };
     'weekends-off': { percent: number; total: number; weekend: number };
 }
@@ -74,5 +74,5 @@ export type AdventFactStat<F extends AdventCountedFact> = AdventFactStats[F] | n
 /** The two recap counts no single door carries. */
 export interface AdventRecapCounts {
     chats: number;
-    threads: number;
+    conversations: number;
 }

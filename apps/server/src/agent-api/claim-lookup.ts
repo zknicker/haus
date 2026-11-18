@@ -5,26 +5,13 @@ import { chatsTable, messageClaimsTable } from '../postgres/schema.ts';
 import { AgentClaimError } from './claim-error.ts';
 import { resolveAgentTarget } from './resolve-target.ts';
 
-/**
- * Resolves a claim command's target. `chatId` is the Chat it names; `claimChatId`
- * is the top-level Channel or DM that numbers its claims, so a Thread target and
- * its parent find the same claim numbers.
- */
+/** Resolves a claim command's target: the Chat that numbers its claims. */
 export async function resolveAgentClaimTarget(
     db: HausDatabase,
     runner: ResolvedRunner,
     target: string
-) {
-    const chatId = await resolveAgentTarget(db, runner, target);
-    const [chat] = await db
-        .select({ kind: chatsTable.kind, parentChatId: chatsTable.parentChatId })
-        .from(chatsTable)
-        .where(and(eq(chatsTable.serverId, runner.serverId), eq(chatsTable.id, chatId)))
-        .limit(1);
-    if (chat?.kind === 'thread' && chat.parentChatId) {
-        return { chatId, claimChatId: chat.parentChatId };
-    }
-    return { chatId, claimChatId: chatId };
+): Promise<string> {
+    return await resolveAgentTarget(db, runner, target);
 }
 
 export async function findAgentClaims(
@@ -61,20 +48,13 @@ export async function queryAgentClaims(
         );
 }
 
-/**
- * `haus claim create` posts a new top-level message, so it needs a top-level
- * Channel or DM. Claiming an existing message may also land in a Thread.
- */
-export async function requireTopLevelClaimChat(
-    db: HausDatabase,
-    runner: ResolvedRunner,
-    parentChatId: string
-) {
-    const [parent] = await db
+/** `haus claim create` posts a new message, so its target Chat must still exist. */
+export async function requireClaimChat(db: HausDatabase, runner: ResolvedRunner, chatId: string) {
+    const [chat] = await db
         .select({ kind: chatsTable.kind })
         .from(chatsTable)
-        .where(and(eq(chatsTable.serverId, runner.serverId), eq(chatsTable.id, parentChatId)));
-    if (!parent || parent.kind === 'thread') {
-        throw new AgentClaimError('Claims require a top-level Channel or DM.');
+        .where(and(eq(chatsTable.serverId, runner.serverId), eq(chatsTable.id, chatId)));
+    if (!chat) {
+        throw new AgentClaimError('Claims require a Channel, DM, or Task.');
     }
 }

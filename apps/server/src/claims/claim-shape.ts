@@ -4,7 +4,6 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { messageClaimsTable } from '../postgres/schema.ts';
 import { loadLiveClaimMessageIds } from './claim-liveness.ts';
 import { resolveClaimTier } from './claim-tier.ts';
-import { claimWorkThreadChatId } from './claim-work-thread.ts';
 
 export type MessageClaimRow = typeof messageClaimsTable.$inferSelect;
 
@@ -105,7 +104,6 @@ export function toMessageClaimWithDerivation(
         number: row.number,
         origin: row.origin,
         status: row.status,
-        threadChatId: claimWorkThreadChatId(row),
         tier: derivation.tier,
         updatedAt: row.updatedAt.toISOString(),
         version: row.version,

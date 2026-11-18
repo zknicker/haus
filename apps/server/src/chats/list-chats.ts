@@ -97,6 +97,7 @@ export async function listChats(
                 end
             `,
             serverId: chatsTable.serverId,
+            taskKeyId: chatsTable.taskKeyId,
             unreadCount: chatUnreadCount(member.id),
         })
         .from(chatsTable)

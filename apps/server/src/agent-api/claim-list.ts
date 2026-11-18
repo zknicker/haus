@@ -25,10 +25,7 @@ export async function listAgentClaims(
     runner: ResolvedRunner,
     input: { mine?: boolean; status?: ClaimListStatus; target?: string }
 ) {
-    // A Thread target lists its parent's claims: the parent numbers them all.
-    const chatId = input.target
-        ? (await resolveAgentClaimTarget(db, runner, input.target)).claimChatId
-        : null;
+    const chatId = input.target ? await resolveAgentClaimTarget(db, runner, input.target) : null;
     const where = and(
         eq(messageClaimsTable.serverId, runner.serverId),
         chatId ? eq(messageClaimsTable.chatId, chatId) : visibleChatSql(runner),

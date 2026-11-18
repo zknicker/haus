@@ -13,7 +13,7 @@ import { readPushableMembers } from './push-devices.ts';
 import { type PushMessage, readPushMessage } from './push-message.ts';
 
 export interface PushRecipient {
-    /** The human's unread Inbox rows (Chats and Threads) across every Server they belong to. */
+    /** The human's unread Inbox rows (Chats and followed Tasks) across every Server they belong to. */
     badge: number;
     reason: MessageNotificationReason;
     userId: string;
@@ -24,8 +24,8 @@ export interface PushRecipient {
  * `messageNotificationReason` rule decides (ADR 0038) — the same rule the App
  * applies to desktop and web notifications — over the event's own facts plus
  * the DM's members. Push then keeps only humans with a registered device who
- * can still see the Chat and have not already read the message — a Thread
- * message by the Thread's own read marker; an archived or deleted Chat pushes
+ * can still see the Chat and have not already read the message — a Task
+ * message by the Task's own read marker; an archived or deleted Chat pushes
  * nobody.
  */
 export async function readPushRecipients(

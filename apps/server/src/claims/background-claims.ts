@@ -1,8 +1,7 @@
 import { and, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentInboxTable, messageClaimsTable } from '../postgres/schema.ts';
+import { agentInboxTable, chatMessagesTable, messageClaimsTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
-import { anchorMessageIdForThreadChatId } from '../threads/thread-id.ts';
 import { prepareClaimEvent } from './claim-events.ts';
 
 type ClaimWriter = Pick<HausDatabase, 'insert' | 'select' | 'update'>;
@@ -40,10 +39,7 @@ export async function settleAgentBackgroundClaims(
                 isNull(messageClaimsTable.trackedAt)
             )
         );
-    const changed = new Map<
-        string,
-        { chatId: string; messageId: string; threadChatId: string | null }
-    >();
+    const changed = new Map<string, { chatId: string; messageId: string }>();
     for (const claim of candidates) {
         await db
             .update(messageClaimsTable)
@@ -74,27 +70,23 @@ export async function runLivenessClaimEvents(
     return (await claimsHeldByRun(db, scope)).map((claim) => claimUpdatedEvent(scope, claim));
 }
 
-function claimUpdatedEvent(
-    scope: RunScope,
-    claim: { chatId: string; messageId: string; threadChatId: string | null }
-) {
+function claimUpdatedEvent(scope: RunScope, claim: { chatId: string; messageId: string }) {
     return prepareClaimEvent({
         chatId: claim.chatId,
         messageId: claim.messageId,
         serverId: scope.serverId,
-        threadChatId: claim.threadChatId,
         type: 'claim.updated',
     });
 }
 
 /**
- * The claims this run's inbox rows anchor on, by message or by Thread. A Thread
- * row holds both the claim on the Thread's anchor and every claim posted inside
- * that Thread: the Thread is their shared work surface.
+ * The claims this run's inbox rows anchor on: the claim on each row's own
+ * message, and on the message it inline-replies to or roots under, since a
+ * claimed message's replies are its work conversation.
  */
 async function claimsHeldByRun(db: ClaimWriter, scope: RunScope) {
     const rows = await db
-        .select({ chatId: agentInboxTable.chatId, dedupeKey: agentInboxTable.dedupeKey })
+        .select({ dedupeKey: agentInboxTable.dedupeKey })
         .from(agentInboxTable)
         .where(
             and(
@@ -110,32 +102,48 @@ async function claimsHeldByRun(db: ClaimWriter, scope: RunScope) {
     if (rows.length === 0) {
         return [];
     }
-    const anchors = new Set<string>();
-    const threadChatIds = new Set<string>();
-    for (const row of rows) {
-        anchors.add(row.dedupeKey);
-        const threadAnchor = row.chatId ? anchorMessageIdForThreadChatId(row.chatId) : null;
-        if (row.chatId && threadAnchor) {
-            anchors.add(threadAnchor);
-            threadChatIds.add(row.chatId);
-        }
-    }
+    const anchors = await readClaimAnchors(db, scope.serverId, [
+        ...new Set(rows.map((row) => row.dedupeKey)),
+    ]);
     return await db
         .select({
             chatId: messageClaimsTable.chatId,
             messageId: messageClaimsTable.messageId,
-            threadChatId: messageClaimsTable.threadChatId,
         })
         .from(messageClaimsTable)
         .where(
             and(
                 eq(messageClaimsTable.serverId, scope.serverId),
-                threadChatIds.size > 0
-                    ? or(
-                          inArray(messageClaimsTable.messageId, [...anchors]),
-                          inArray(messageClaimsTable.threadChatId, [...threadChatIds])
-                      )
-                    : inArray(messageClaimsTable.messageId, [...anchors])
+                inArray(messageClaimsTable.messageId, [...anchors])
             )
         );
+}
+
+/** The messages themselves plus the inline parent and root of each. */
+async function readClaimAnchors(
+    db: Pick<HausDatabase, 'select'>,
+    serverId: string,
+    messageIds: string[]
+): Promise<Set<string>> {
+    const anchors = new Set(messageIds);
+    if (messageIds.length === 0) {
+        return anchors;
+    }
+    const replies = await db
+        .select({
+            replyRootMessageId: chatMessagesTable.replyRootMessageId,
+            replyToMessageId: chatMessagesTable.replyToMessageId,
+        })
+        .from(chatMessagesTable)
+        .where(
+            and(eq(chatMessagesTable.serverId, serverId), inArray(chatMessagesTable.id, messageIds))
+        );
+    for (const reply of replies) {
+        for (const id of [reply.replyRootMessageId, reply.replyToMessageId]) {
+            if (id) {
+                anchors.add(id);
+            }
+        }
+    }
+    return anchors;
 }

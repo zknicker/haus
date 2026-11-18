@@ -100,7 +100,7 @@ export async function prepareAgentSend(
 
 /**
  * The freshness check every Agent-authored post into a Chat runs: newer
- * messages delivered to this Agent (every reply in a Thread) that it has
+ * messages delivered to this Agent (every message in a Task) that it has
  * neither seen nor been served (`unseenAttention`). A hold shows the latest
  * few, marks them and their queued rows served to this run, and records the newest as the session's
  * held-through boundary, so a re-post is held only for messages newer still
@@ -122,11 +122,7 @@ export async function readFreshnessHold(db: HausDatabase, runner: ResolvedRunner
 
 async function resolveHold(db: HausDatabase, runner: ResolvedRunner, chatId: string) {
     const scope = await readFreshnessScope(db, runner, chatId);
-    if (
-        !scope ||
-        (scope.kind !== 'channel' && scope.kind !== 'thread') ||
-        scope.latest <= scope.after
-    ) {
+    if (!(scope && ['channel', 'task'].includes(scope.kind)) || scope.latest <= scope.after) {
         return null;
     }
     const unseen = unseenAttention(scope, scope.after);

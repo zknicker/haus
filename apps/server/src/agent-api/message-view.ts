@@ -14,6 +14,7 @@ import {
     usersTable,
 } from '../postgres/schema.ts';
 import { readCreatedAgentsForMessages } from '../server-agents/agent-created-shape.ts';
+import { taskTargetForChat } from '../tasks/task-chat.ts';
 import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
 import { readMessageReactions } from './message-reactions.ts';
 import { agentMessageBodies } from './message-view-bodies.ts';
@@ -214,10 +215,7 @@ export async function targetForChat(
     if (chat.kind === 'channel') {
         return `#${chat.name}`;
     }
-    const parent = chat.parentChatId
-        ? await targetForChat(db, serverId, chat.parentChatId)
-        : '#unknown';
-    return `${parent}:${shortMessageId(chat.anchorMessageId ?? '')}`;
+    return (await taskTargetForChat(db, { chatId, serverId })) ?? '#unknown';
 }
 
 export function visibleChatSql(runner: Pick<ResolvedRunner, 'agentId' | 'serverId'>) {
@@ -233,21 +231,12 @@ export function visibleChatSql(runner: Pick<ResolvedRunner, 'agentId' | 'serverI
             )
         )
         or (
-            ${chatsTable.kind} = 'thread'
-            and (
-                exists (
-                    select 1 from channel_agent_participants cap
-                    where cap.server_id = ${runner.serverId}
-                      and cap.chat_id = ${chatsTable.parentChatId}
-                      and cap.agent_id = ${runner.agentId}
-                )
-                or exists (
-                    select 1 from chats parent_dm
-                    where parent_dm.server_id = ${runner.serverId}
-                      and parent_dm.id = ${chatsTable.parentChatId}
-                      and parent_dm.kind = 'dm'
-                      and parent_dm.dm_agent_id = ${runner.agentId}
-                )
+            ${chatsTable.kind} = 'task'
+            and exists (
+                select 1 from channel_agent_participants cap
+                where cap.server_id = ${runner.serverId}
+                  and cap.chat_id = ${chatsTable.parentChatId}
+                  and cap.agent_id = ${runner.agentId}
             )
         )
     )`;

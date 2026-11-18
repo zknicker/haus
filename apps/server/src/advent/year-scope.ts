@@ -26,8 +26,7 @@ export function inYear(scope: AdventScope, column: SQL): SQL {
 
 /**
  * `chat` (an alias of `chats`) is a live Chat the member can read: any channel,
- * a DM they are a side of, or a Thread under one of those. A Thread whose
- * parent is soft-deleted is gone with it, though its own row is not.
+ * or a DM they are a side of.
  */
 export function readableChat(scope: AdventScope, alias: string): SQL {
     const chat = sql.raw(alias);
@@ -36,17 +35,6 @@ export function readableChat(scope: AdventScope, alias: string): SQL {
         and (
             ${chat}.kind = 'channel'
             or (${chat}.kind = 'dm' and ${dmSide(scope, chat)})
-            or (
-                ${chat}.kind = 'thread'
-                and exists (
-                    select 1
-                    from chats parent
-                    where parent.server_id = ${chat}.server_id
-                      and parent.id = ${chat}.parent_chat_id
-                      and parent.deleted_at is null
-                      and (parent.kind = 'channel' or (parent.kind = 'dm' and ${dmSide(scope, sql.raw('parent'))}))
-                )
-            )
         )
     )`;
 }
@@ -60,9 +48,10 @@ export function readableChat(scope: AdventScope, alias: string): SQL {
  * (see `stats/message-pass.ts`), not once per fact.
  *
  * Columns: `id`, `chat_id`, `sequence`, `created_at`, `local_at` (wall-clock
- * time in the scope zone), `kind`, and `room_id` (a Thread's parent Chat, else
- * the Chat itself). `content` is selected only when a fact must match words in
- * it; it never leaves the query.
+ * time in the scope zone), `kind`, `room_id` (the Chat itself), and
+ * `conversation_id` (the inline reply chain's root, else the message itself).
+ * `content` is selected only when a fact must match words in it; it never
+ * leaves the query.
  */
 export function memberMessages(scope: AdventScope, options: { content?: boolean } = {}): SQL {
     const content = options.content ? sql`, message.content` : sql``;
@@ -74,11 +63,12 @@ export function memberMessages(scope: AdventScope, options: { content?: boolean 
             message.created_at,
             message.created_at at time zone ${scope.timeZone}::text as local_at,
             chat.kind,
-            case when chat.kind = 'thread' then chat.parent_chat_id else chat.id end as room_id
+            chat.id as room_id,
+            coalesce(message.reply_root_message_id, message.id) as conversation_id
             ${content}
         from chats chat
         cross join lateral (
-            select m.id, m.chat_id, m.sequence, m.created_at, m.content
+            select m.id, m.chat_id, m.sequence, m.created_at, m.content, m.reply_root_message_id
             from chat_messages m
             where m.server_id = chat.server_id
               and m.chat_id = chat.id

@@ -2,7 +2,12 @@ import type { ChannelUpdateInput, Chat } from '@haus/api';
 import { and, eq, inArray, isNull, notInArray } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
-import { agentsTable, channelAgentParticipantsTable, chatsTable } from '../postgres/schema.ts';
+import {
+    agentsTable,
+    channelAgentParticipantsTable,
+    chatsTable,
+    taskKeysTable,
+} from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
@@ -47,6 +52,7 @@ export async function updateChannel(
                 id: chatsTable.id,
                 kind: chatsTable.kind,
                 name: chatsTable.name,
+                taskKeyId: chatsTable.taskKeyId,
             })
             .from(chatsTable)
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
@@ -87,13 +93,14 @@ export async function updateChannel(
             ...(input.color === undefined ? {} : { color: input.color }),
             ...(input.description === undefined ? {} : { description: input.description }),
             ...(input.icon === undefined ? {} : { icon: input.icon }),
+            ...(input.taskKeyId === undefined
+                ? {}
+                : { taskKeyId: await requireTaskKey(tx, input.serverId, input.taskKeyId) }),
         };
         const changed =
             chat.name !== input.name ||
             previousAgentIds.join() !== agentIds.join() ||
-            (appearance.color !== undefined && appearance.color !== chat.color) ||
-            (appearance.description !== undefined && appearance.description !== chat.description) ||
-            (appearance.icon !== undefined && appearance.icon !== chat.icon);
+            editsChange(chat, appearance);
 
         try {
             await tx
@@ -130,4 +137,37 @@ export async function updateChannel(
         throw new Error('Failed to reload the updated channel.');
     }
     return { chat: channel, event };
+}
+
+type ChannelEdits = Partial<Record<'color' | 'description' | 'icon' | 'taskKeyId', unknown>>;
+
+/** Whether any field the caller set differs from the stored Channel. */
+function editsChange(chat: ChannelEdits, edits: ChannelEdits): boolean {
+    return (['color', 'description', 'icon', 'taskKeyId'] as const).some(
+        (field) => edits[field] !== undefined && edits[field] !== chat[field]
+    );
+}
+
+/** A Channel's Tasks take an entry of the Server's key ledger (ADR 0052 decision 11). */
+async function requireTaskKey(
+    db: Pick<HausDatabase, 'select'>,
+    serverId: string,
+    taskKeyId: string
+): Promise<string> {
+    const [entry] = await db
+        .select({ id: taskKeysTable.id })
+        .from(taskKeysTable)
+        .where(and(eq(taskKeysTable.serverId, serverId), eq(taskKeysTable.id, taskKeyId)))
+        .limit(1);
+    if (!entry) {
+        throw new TaskKeyNotFoundError();
+    }
+    return entry.id;
+}
+
+export class TaskKeyNotFoundError extends Error {
+    constructor() {
+        super('That Task key is not in this Server’s key ledger.');
+        this.name = 'TaskKeyNotFoundError';
+    }
 }

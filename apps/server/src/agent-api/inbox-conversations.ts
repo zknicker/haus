@@ -4,6 +4,7 @@ import type {
     AgentInboxView,
 } from '@haus/api';
 import { sql } from 'drizzle-orm';
+import { taskTargetOfChatSql } from '../agent-delivery/task-target-sql.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -22,7 +23,7 @@ export interface InboxConversationsQuery {
 
 /**
  * `haus inbox check` (Raft's `listAgentInbox`): every conversation the Agent
- * belongs to — joined channels, its DMs, followed Threads as their own rows —
+ * belongs to — joined channels, its DMs, followed Tasks as their own rows —
  * with someone else's message past its read position. A muted channel counts
  * only mentions and appears only while it has one: a mention pierces mute.
  * One statement, so the list, its paging, and its totals share one snapshot.
@@ -116,13 +117,7 @@ export function conversationsSql(runner: ResolvedRunner) {
             case
                 when chats.kind = 'channel' then '#' || chats.name
                 when chats.kind = 'dm' then 'dm:@' || dm_human.handle
-                else
-                    case when parent.kind = 'channel' then '#' || parent.name
-                        else 'dm:@' || dm_human.handle end
-                    || ':'
-                    || case when left(chats.anchor_message_id, 4) = 'msg_'
-                        then substr(chats.anchor_message_id, 5, 8)
-                        else chats.anchor_message_id end
+                else ${taskTargetOfChatSql('chats')}
             end as target
         from chats
         left join chats parent
@@ -130,10 +125,8 @@ export function conversationsSql(runner: ResolvedRunner) {
         left join server_memberships dm_human
             on dm_human.server_id = chats.server_id
             and dm_human.revoked_at is null
-            and dm_human.user_id = case
-                when chats.kind = 'dm' then chats.dm_member_one_user_id
-                when parent.kind = 'dm' then parent.dm_member_one_user_id
-            end
+            and chats.kind = 'dm'
+            and dm_human.user_id = chats.dm_member_one_user_id
         left join agent_channel_mutes mute
             on mute.server_id = chats.server_id
             and mute.agent_id = ${agentId}
@@ -185,12 +178,13 @@ export function conversationsSql(runner: ResolvedRunner) {
           and (parent.id is null or parent.deleted_at is null)
           and ${visibleChatSql(runner)}
           and (
-              chats.kind <> 'thread'
+              -- Tasks list only for Agents following them (ADR 0052).
+              chats.kind <> 'task'
               or exists (
-                  select 1 from agent_thread_follows follow
+                  select 1 from agent_task_follows follow
                   where follow.server_id = chats.server_id
                     and follow.agent_id = ${agentId}
-                    and follow.thread_chat_id = chats.id
+                    and follow.task_chat_id = chats.id
                     and follow.followed
               )
           )

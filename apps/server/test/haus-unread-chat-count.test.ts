@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { countUnreadInboxRows } from '../src/chats/unread-chat-count.ts';
 import { type NotificationFixture, startNotificationFixture } from './notification-fixture.ts';
+import { startTestTask } from './task-place-fixture.ts';
 
 let fixture: NotificationFixture;
 
@@ -14,14 +15,14 @@ afterAll(async () => {
 
 /**
  * The badge count is its own query, but it must mean exactly what the Inbox
- * means: listed Chats with `unreadCount > 0` plus `thread.listUnread` rows,
+ * means: listed Chats with `unreadCount > 0` plus unread followed Task rows,
  * summed over the human's Servers. Every step below moves the count and
- * re-proves the equality — DM and Channel unread, Thread attention alone
+ * re-proves the equality — DM and Channel unread, Task attention alone
  * (mention and follow) as its own row, reads, archiving, a second Server, and
  * leaving it.
  */
-test('the badge count equals unread chat.list rows plus unread Threads, across Servers', async () => {
-    const { createChannel, owner, ownerUserId, peer, serverId } = fixture;
+test('the badge count equals unread chat.list rows plus unread Tasks, across Servers', async () => {
+    const { createChannel, harness, owner, ownerUserId, peer, serverId } = fixture;
     const servers = [serverId];
     let count = await expectCountMatchesList(servers);
 
@@ -38,55 +39,47 @@ test('the badge count equals unread chat.list rows plus unread Threads, across S
     });
     count = await expectStep(servers, count, 1);
 
-    // A read Channel with a Thread reply mentioning the reader: the Thread is
+    // A read Channel with a Task message mentioning the reader: the Task is
     // the unread row, and the Channel stays read.
     const mentionChannelId = await createChannel('count-mention');
-    const anchor = await peer.trpc.chat.send.mutate({
-        chatId: mentionChannelId,
-        content: 'Anchor.',
-        nonce: 'cnt-mention-anchor',
+    const mentionTask = await startTestTask(harness, owner, {
+        channelId: mentionChannelId,
         serverId,
+        title: 'Mention check',
     });
     await markAllRead(mentionChannelId);
     count = await expectStep(servers, count, 0);
     await peer.trpc.chat.send.mutate({
-        chatId: mentionChannelId,
+        chatId: mentionTask.chatId,
         content: `[@Ada](user://${ownerUserId}) a look?`,
-        nonce: 'cnt-mention-reply',
+        nonce: 'cnt-mention-task',
         serverId,
-        thread: { anchorMessageId: anchor.message.id },
     });
     expect(await unreadOf(mentionChannelId)).toBe(0);
     count = await expectStep(servers, count, 1);
 
-    // An unfollowed Thread reply that names nobody stays out until followed.
+    // A Task message that names nobody stays out until the reader follows.
     const followChannelId = await createChannel('count-follow');
-    const followAnchor = await peer.trpc.chat.send.mutate({
-        chatId: followChannelId,
-        content: 'Another anchor.',
-        nonce: 'cnt-follow-anchor',
+    const followTask = await startTestTask(harness, owner, {
+        channelId: followChannelId,
         serverId,
+        title: 'Follow check',
     });
     await markAllRead(followChannelId);
-    const reply = await peer.trpc.chat.send.mutate({
-        chatId: followChannelId,
-        content: 'Quiet reply.',
-        nonce: 'cnt-follow-reply',
+    const quiet = await peer.trpc.chat.send.mutate({
+        chatId: followTask.chatId,
+        content: 'Quiet update.',
+        nonce: 'cnt-follow-task',
         serverId,
-        thread: { anchorMessageId: followAnchor.message.id },
     });
     count = await expectStep(servers, count, 0);
-    await owner.trpc.thread.setFollow.mutate({
-        follow: true,
-        serverId,
-        threadChatId: reply.message.chatId,
-    });
+    await owner.trpc.task.setFollow.mutate({ followed: true, serverId, taskId: followTask.id });
     count = await expectStep(servers, count, 1);
 
-    // The Thread row's Mark read is chat.markRead on the Thread itself.
+    // The Task row's Mark read is chat.markRead on the Task itself.
     await owner.trpc.chat.markRead.mutate({
-        chatId: reply.message.chatId,
-        sequence: reply.message.sequence,
+        chatId: followTask.chatId,
+        sequence: quiet.message.sequence,
         serverId,
     });
     count = await expectStep(servers, count, -1);
@@ -97,7 +90,7 @@ test('the badge count equals unread chat.list rows plus unread Threads, across S
     await owner.trpc.chat.archiveChannel.mutate({ chatId: channelId, serverId });
     count = await expectStep(servers, count, -1);
 
-    // A Thread under an archived Channel leaves with its parent.
+    // A Task under an archived Channel leaves with its Channel.
     await owner.trpc.chat.archiveChannel.mutate({ chatId: mentionChannelId, serverId });
     count = await expectStep(servers, count, -1);
 
@@ -142,7 +135,8 @@ async function expectCountMatchesList(serverIds: readonly string[]) {
     for (const serverId of serverIds) {
         const chats = await fixture.owner.trpc.chat.list.query({ serverId });
         listed += chats.filter((chat) => chat.unreadCount > 0).length;
-        listed += (await fixture.owner.trpc.thread.listUnread.query({ serverId })).threads.length;
+        const { previews } = await fixture.owner.trpc.chat.unreadPreviews.query({ serverId });
+        listed += previews.filter((preview) => preview.task !== null).length;
     }
     const { count } = await fixture.owner.trpc.chat.unreadChatCount.query();
     expect(count).toBe(listed);
@@ -160,7 +154,6 @@ async function markAllRead(chatId: string) {
     const chat = chats.find((candidate) => candidate.id === chatId);
     await fixture.owner.trpc.chat.markRead.mutate({
         chatId,
-        includeThreads: true,
         sequence: chat?.lastMessageSequence ?? 0,
         serverId: fixture.serverId,
     });

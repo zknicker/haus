@@ -17,7 +17,6 @@ import {
     usersTable,
 } from '../src/postgres/schema.ts';
 import { appendServerAgentActivity } from '../src/server-agents/agent-activity.ts';
-import { ensureThreadRecord } from '../src/threads/ensure-thread.ts';
 
 /**
  * One Agent, one Computer, one Channel message that Agent claimed: the exact
@@ -183,30 +182,27 @@ export async function recordRunOperation(
         );
 }
 
-/** A Thread reply on the claim's anchor, from whoever the caller names. */
-export async function replyInThread(
+/** An inline reply on the claim's message, from whoever the caller names. */
+export async function replyInline(
     db: HausDatabase,
     claim: BackgroundClaim,
     author: { agentId: string } | { userId: string }
 ) {
-    const thread = await ensureThreadRecord(db, {
-        anchorMessageId: claim.messageId,
-        parentChatId: claim.chatId,
-        serverId: claim.serverId,
-    });
     const [chat] = await db
         .update(chatsTable)
         .set({ lastMessageSequence: sql`${chatsTable.lastMessageSequence} + 1` })
-        .where(and(eq(chatsTable.serverId, claim.serverId), eq(chatsTable.id, thread.id)))
+        .where(and(eq(chatsTable.serverId, claim.serverId), eq(chatsTable.id, claim.chatId)))
         .returning({ sequence: chatsTable.lastMessageSequence });
     await db.insert(chatMessagesTable).values({
         ...('agentId' in author
             ? { authorAgentId: author.agentId, sessionGeneration: 1 }
             : { authorUserId: author.userId }),
-        chatId: thread.id,
+        chatId: claim.chatId,
         content: 'One more thing.',
         id: createOpaqueId('msg'),
         nonce: createOpaqueId('non'),
+        replyRootMessageId: claim.messageId,
+        replyToMessageId: claim.messageId,
         sequence: chat.sequence,
         serverId: claim.serverId,
     });

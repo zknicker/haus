@@ -13,11 +13,9 @@ const staleMs = CLAIM_IN_REVIEW_STALE_DAYS * 24 * 60 * 60 * 1000;
 
 /**
  * Closes every `in_review` claim nobody has touched for the stale window: the
- * claim row itself unchanged, and its inline reply chain and work Thread (the
- * Thread anchored on it, or the Thread a Thread claim sits in) without a new
- * message. Review that went quiet is finished work
- * nobody said so about, and `closed` is reversible: a human reopens it through
- * the ordinary update path.
+ * claim row itself unchanged, and its inline reply chain without a new message.
+ * Review that went quiet is finished work nobody said so about, and `closed`
+ * is reversible: a human reopens it through the ordinary update path.
  *
  * Each close takes the same path a human update does — Server row lock, claim
  * row lock, version bump, `claim.updated` — so App caches invalidate exactly as
@@ -33,7 +31,6 @@ export async function closeStaleInReviewClaims(
     const candidates = await db
         .select({
             chatId: messageClaimsTable.chatId,
-            threadChatId: messageClaimsTable.threadChatId,
             messageId: messageClaimsTable.messageId,
             serverId: messageClaimsTable.serverId,
         })
@@ -68,7 +65,7 @@ export function startStaleClaimSweep(
 
 async function closeStaleClaim(
     db: HausDatabase,
-    claim: { chatId: string; messageId: string; serverId: string; threadChatId: string | null },
+    claim: { chatId: string; messageId: string; serverId: string },
     window: { now: Date; quietBefore: Date }
 ): Promise<PreparedRealtimeEvent | null> {
     return await db.transaction(async (tx) => {
@@ -111,7 +108,6 @@ async function closeStaleClaim(
             chatId: claim.chatId,
             messageId: claim.messageId,
             serverId: claim.serverId,
-            threadChatId: claim.threadChatId,
             type: 'claim.updated',
         });
     });
@@ -133,24 +129,6 @@ function staleClaimFilter(quietBefore: Date) {
                   claim_message.reply_root_message_id, claim_message.id
               )
               and inline_message.created_at >= ${quietBefore}
-        )`,
-        sql`not exists (
-            select 1
-            from chat_messages stale_message
-            join chats stale_thread
-              on stale_thread.server_id = stale_message.server_id
-             and stale_thread.id = stale_message.chat_id
-            where stale_thread.server_id = ${messageClaimsTable.serverId}
-              and stale_thread.kind = 'thread'
-              and stale_thread.parent_chat_id = ${messageClaimsTable.chatId}
-              and (
-                  stale_thread.id = ${messageClaimsTable.threadChatId}
-                  or (
-                      ${messageClaimsTable.threadChatId} is null
-                      and stale_thread.anchor_message_id = ${messageClaimsTable.messageId}
-                  )
-              )
-              and stale_message.created_at >= ${quietBefore}
         )`
     );
 }

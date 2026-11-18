@@ -3,6 +3,7 @@ import { agentCreationFixture } from './agent-creation-fixture.ts';
 
 const fixture = agentCreationFixture();
 let runner: { token: string };
+let origins = 0;
 
 interface Reply {
     body: Record<string, any>;
@@ -21,10 +22,22 @@ async function call(path: string, body?: unknown, as = runner): Promise<Reply> {
     return { body: (await response.json()) as Record<string, any>, status: response.status };
 }
 
-async function create(body: Record<string, unknown>) {
-    const created = await call('/api/agent/tasks/create', { board: 'GEN', ...body });
-    expect(created.status).toBe(200);
-    return created.body.task as Record<string, any>;
+/** The calling Agent posts an origin Message in #product and starts a Task from it. */
+async function start(body: Record<string, unknown>) {
+    origins += 1;
+    const origin = await call('/api/agent/messages/send', {
+        content: `Work item ${origins}`,
+        nonce: `task_routes_origin_${origins}`,
+        target: '#product',
+    });
+    expect(origin.body.state).toBe('sent');
+    const started = await call('/api/agent/tasks/start', {
+        from: origin.body.message.id,
+        target: '#product',
+        ...body,
+    });
+    expect(started.status).toBe(200);
+    return started.body.task as Record<string, any>;
 }
 
 beforeAll(async () => {
@@ -35,122 +48,93 @@ beforeAll(async () => {
     });
 });
 
-describe('create and list', () => {
-    test('defaults to the first todo column and resolves handles, columns, and labels', async () => {
-        const plain = await create({ title: 'Plain' });
+describe('start and list', () => {
+    test('starts open, assigned to the caller, and resolves handles', async () => {
+        const plain = await start({ title: 'Plain' });
         expect(plain).toMatchObject({
-            assignee: null,
-            board: 'GEN',
-            category: 'todo',
-            column: 'Todo',
+            assignee: { handle: 'orbit', type: 'agent' },
             createdBy: { handle: 'orbit', type: 'agent' },
             labels: [],
             priority: 'none',
+            state: 'open',
             title: 'Plain',
             version: 1,
         });
-        expect(plain).not.toHaveProperty('description');
+        expect(plain).not.toHaveProperty('column');
+        expect(plain).not.toHaveProperty('board');
 
-        const rich = await create({
+        const rich = await start({
             assignee: '@ada',
-            column: 'in progress',
             description: 'All of it.',
             dueOn: '2026-12-01',
-            labels: ['security'],
             priority: 'urgent',
+            state: 'todo',
             title: 'Rich',
         });
         expect(rich).toMatchObject({
             assignee: { handle: 'ada', type: 'human' },
-            category: 'active',
-            column: 'In progress',
             dueOn: '2026-12-01',
-            labels: ['Security'],
             priority: 'urgent',
+            state: 'todo',
         });
     });
 
-    test('refuses names that resolve to nothing, with the reason', async () => {
-        const nobody = await call('/api/agent/tasks/create', {
-            assignee: '@nobody',
-            board: 'GEN',
-            title: 'x',
-        });
-        expect(nobody).toMatchObject({ body: { code: 'INVALID_ARG' }, status: 400 });
-        expect(nobody.body.message).toContain('@nobody');
-        const column = await call('/api/agent/tasks/create', {
-            board: 'GEN',
-            column: 'Nope',
-            title: 'x',
-        });
-        expect(column.body.message).toContain('Backlog');
-        const label = await call('/api/agent/tasks/create', {
-            board: 'GEN',
-            labels: ['nope'],
-            title: 'x',
-        });
-        expect(label.status).toBe(400);
-        const board = await call('/api/agent/tasks/create', { board: 'ZZZ', title: 'x' });
-        expect(board).toMatchObject({ body: { code: 'BOARD_NOT_FOUND' }, status: 404 });
-        const blank = await call('/api/agent/tasks/create', { board: 'GEN', title: ' ' });
-        expect(blank).toMatchObject({ body: { code: 'INVALID_ARG' }, status: 400 });
+    test('the board and create routes are gone', async () => {
+        expect((await call('/api/agent/tasks/create', { board: 'GEN', title: 'x' })).status).toBe(
+            404
+        );
+        expect((await call('/api/agent/tasks/move', { column: 'Done', key: 'GEN-1' })).status).toBe(
+            404
+        );
+        expect((await call('/api/agent/boards')).status).toBe(404);
     });
 
-    test('lists open Tasks by priority then age, filtered by board, assignee, and category', async () => {
-        const low = await create({ assignee: 'me', priority: 'low', title: 'Mine later' });
-        const high = await create({ assignee: 'me', priority: 'high', title: 'Mine first' });
-        const none = await create({ assignee: 'me', title: 'Mine unprioritized' });
+    test('lists unfinished Tasks by priority then age, filtered by assignee, key, and state', async () => {
+        const low = await start({ priority: 'low', title: 'Mine later' });
+        const high = await start({ priority: 'high', title: 'Mine first' });
+        const none = await start({ title: 'Mine unprioritized' });
         const mine = await call('/api/agent/tasks?assignee=me');
         expect(mine.status).toBe(200);
         expect(mine.body.omitted).toBe(0);
-        expect(mine.body.tasks.map((task: { key: string }) => task.key)).toEqual([
-            high.key,
-            low.key,
-            none.key,
-        ]);
+        const keys = mine.body.tasks.map((task: { key: string }) => task.key);
+        expect(keys.indexOf(high.key)).toBeLessThan(keys.indexOf(low.key));
+        expect(keys.indexOf(low.key)).toBeLessThan(keys.indexOf(none.key));
 
-        await call('/api/agent/tasks/move', { column: 'Done', key: low.key });
+        await call('/api/agent/tasks/state', { key: low.key, state: 'done' });
         const open = await call('/api/agent/tasks?assignee=me');
-        expect(open.body.tasks).toHaveLength(2);
-        const done = await call('/api/agent/tasks?assignee=me&category=done');
+        expect(open.body.tasks.map((task: { key: string }) => task.key)).not.toContain(low.key);
+        const done = await call('/api/agent/tasks?assignee=me&state=done');
         expect(done.body.tasks.map((task: { key: string }) => task.key)).toEqual([low.key]);
 
         const byHandle = await call('/api/agent/tasks?assignee=@ada');
         expect(byHandle.body.tasks.every((task: any) => task.assignee.handle === 'ada')).toBe(true);
-        const unassigned = await call('/api/agent/tasks?assignee=none&board=GEN');
-        expect(unassigned.body.tasks.every((task: any) => task.assignee === null)).toBe(true);
-        expect((await call('/api/agent/tasks?category=nope')).status).toBe(400);
+        const byKey = await call('/api/agent/tasks?key=GEN');
+        expect(byKey.body.tasks.length).toBeGreaterThan(0);
+        expect((await call('/api/agent/tasks?state=nope')).status).toBe(400);
+        expect((await call('/api/agent/tasks?key=ZZZ')).status).toBe(404);
     });
 });
 
-describe('move, update, and assign', () => {
-    test('a move answers with what is still waiting, and the current version by default', async () => {
-        const peer = await fixture.mintRunner('run_agent_task_queue', fixture.peerAgentId);
-        const first = await create({ assignee: '@peer', title: 'Queued one' });
-        await create({ assignee: '@peer', title: 'Queued two' });
-        const moved = await call(
-            '/api/agent/tasks/move',
-            { column: 'In progress', key: first.key },
-            peer
-        );
+describe('state, update, and assign', () => {
+    test('a state change takes the current version by default and refuses a stale one', async () => {
+        const task = await start({ title: 'Moving' });
+        const moved = await call('/api/agent/tasks/state', { key: task.key, state: 'done' });
         expect(moved.status).toBe(200);
-        expect(moved.body.queue).toEqual({ active: 1, todo: 1 });
-        expect(moved.body.task).toMatchObject({ category: 'active', key: first.key, version: 2 });
+        expect(moved.body.task).toMatchObject({ key: task.key, state: 'done', version: 2 });
+        expect(moved.body.task.completedAt).not.toBeNull();
 
-        const stale = await call('/api/agent/tasks/move', {
-            column: 'Done',
+        const stale = await call('/api/agent/tasks/state', {
             expectedVersion: 1,
-            key: first.key,
+            key: task.key,
+            state: 'open',
         });
         expect(stale).toMatchObject({ body: { code: 'TASK_CONFLICT' }, status: 409 });
-        const elsewhere = await call('/api/agent/tasks/move', { column: 'Nope', key: first.key });
-        expect(elsewhere.status).toBe(400);
-        const missing = await call('/api/agent/tasks/move', { column: 'Done', key: 'GEN-999' });
+        const missing = await call('/api/agent/tasks/state', { key: 'GEN-999', state: 'done' });
         expect(missing).toMatchObject({ body: { code: 'TASK_NOT_FOUND' }, status: 404 });
     });
 
     test('update edits fields and clears a due date; an empty update is refused', async () => {
-        const task = await create({ dueOn: '2026-12-24', title: 'Editable' });
+        const task = await start({ dueOn: '2026-12-24', title: 'Editable' });
         const updated = await call('/api/agent/tasks/update', {
             dueOn: null,
             key: task.key,
@@ -166,10 +150,12 @@ describe('move, update, and assign', () => {
             version: 2,
         });
         expect((await call('/api/agent/tasks/update', { key: task.key })).status).toBe(400);
+        const label = await call('/api/agent/tasks/update', { key: task.key, labels: ['nope'] });
+        expect(label.status).toBe(400);
     });
 
     test('assigning another Agent enqueues its wake; assigning yourself or a person does not', async () => {
-        const task = await create({ title: 'Handed over' });
+        const task = await start({ title: 'Handed over' });
         const [row] = (await fixture.harness.sql`
             select id from tasks
             where server_id = ${fixture.serverId} and title = 'Handed over'
@@ -196,6 +182,12 @@ describe('move, update, and assign', () => {
         // Taking it back retires the peer's queued wake and queues nothing for the caller.
         expect(await queued()).toEqual([]);
 
+        const nobody = await call('/api/agent/tasks/assign', {
+            assignee: '@nobody',
+            key: task.key,
+        });
+        expect(nobody).toMatchObject({ body: { code: 'INVALID_ARG' }, status: 400 });
+        expect(nobody.body.message).toContain('@nobody');
         const cleared = await call('/api/agent/tasks/assign', { assignee: null, key: task.key });
         expect(cleared.body.task.assignee).toBeNull();
         expect((await call('/api/agent/tasks/assign', { key: task.key })).status).toBe(400);
@@ -204,7 +196,7 @@ describe('move, update, and assign', () => {
 
 describe('show', () => {
     test('reads a Task with the messages and Reminders that reference it', async () => {
-        const task = await create({ description: 'The whole story.', title: 'Referenced' });
+        const task = await start({ description: 'The whole story.', title: 'Referenced' });
         const sent = await call('/api/agent/messages/send', {
             content: `Picking up ${task.key} now.`,
             nonce: 'task_routes_ref',

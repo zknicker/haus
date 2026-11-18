@@ -5,12 +5,13 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentChannelMutesTable,
     agentsTable,
-    agentThreadFollowsTable,
+    agentTaskFollowsTable,
     channelAgentParticipantsTable,
     chatsTable,
 } from '../postgres/schema.ts';
+import { isFollowedChatKind } from './followed-chat.ts';
 import { planInlineReplyMessage } from './inline-reply-recipients.ts';
-import { activeDmThreadRecipient, followMentionedIntoThread } from './thread-recipients.ts';
+import { followMentionedIntoTask } from './task-recipients.ts';
 
 export interface AgentMessageRecipientPlan {
     /**
@@ -21,7 +22,7 @@ export interface AgentMessageRecipientPlan {
     addressedReason: AddressedReason | null;
     agentId: string;
     mentioned: boolean;
-    threadFollowReactivated: boolean;
+    taskFollowReactivated: boolean;
 }
 
 export async function planAgentMessageRecipients(
@@ -59,27 +60,11 @@ export async function planAgentMessageRecipients(
             : [];
     }
 
-    const parentChatId = chat.kind === 'thread' ? chat.parentChatId : input.chatId;
+    // A Task's Chat delivers to its followers and mentions (ADR 0052).
+    const followerGated = isFollowedChatKind(chat.kind);
+    const parentChatId = followerGated ? chat.parentChatId : input.chatId;
     if (!parentChatId) {
         return [];
-    }
-    if (chat.kind === 'thread') {
-        const [parent] = await db
-            .select({ dmAgentId: chatsTable.dmAgentId, kind: chatsTable.kind })
-            .from(chatsTable)
-            .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, parentChatId)))
-            .limit(1);
-        if (parent?.kind === 'dm') {
-            return parent.dmAgentId && parent.dmAgentId !== input.authorAgentId
-                ? await activeDmThreadRecipient(db, {
-                      agentId: parent.dmAgentId,
-                      causeMessageId: input.messageId ?? null,
-                      content: input.content,
-                      serverId: input.serverId,
-                      threadChatId: input.chatId,
-                  })
-                : [];
-        }
     }
     const joined = await db
         .select({ agentId: channelAgentParticipantsTable.agentId })
@@ -121,41 +106,39 @@ export async function planAgentMessageRecipients(
                 inArray(agentChannelMutesTable.agentId, agentIds)
             )
         );
-    const follows =
-        chat.kind === 'thread'
-            ? await db
-                  .select({
-                      agentId: agentThreadFollowsTable.agentId,
-                      followed: agentThreadFollowsTable.followed,
-                  })
-                  .from(agentThreadFollowsTable)
-                  .where(
-                      and(
-                          eq(agentThreadFollowsTable.serverId, input.serverId),
-                          eq(agentThreadFollowsTable.threadChatId, input.chatId),
-                          inArray(agentThreadFollowsTable.agentId, agentIds)
-                      )
+    const follows = followerGated
+        ? await db
+              .select({
+                  agentId: agentTaskFollowsTable.agentId,
+                  followed: agentTaskFollowsTable.followed,
+              })
+              .from(agentTaskFollowsTable)
+              .where(
+                  and(
+                      eq(agentTaskFollowsTable.serverId, input.serverId),
+                      eq(agentTaskFollowsTable.taskChatId, input.chatId),
+                      inArray(agentTaskFollowsTable.agentId, agentIds)
                   )
-            : [];
+              )
+        : [];
     const muted = new Set(mutes.map((row) => row.agentId));
     const followByAgent = new Map(follows.map((row) => [row.agentId, row.followed]));
     const mentioned = mentionedAgentIds(input.content, agents);
-    const reactivated =
-        chat.kind === 'thread'
-            ? await followMentionedIntoThread(db, {
-                  agentIds,
-                  causeMessageId: input.messageId ?? null,
-                  followByAgent,
-                  mentioned,
-                  serverId: input.serverId,
-                  threadChatId: input.chatId,
-              })
-            : new Set<string>();
+    const reactivated = followerGated
+        ? await followMentionedIntoTask(db, {
+              agentIds,
+              causeMessageId: input.messageId ?? null,
+              followByAgent,
+              mentioned,
+              serverId: input.serverId,
+              taskChatId: input.chatId,
+          })
+        : new Set<string>();
 
     return agentIds.flatMap((agentId) => {
         const isMentioned = mentioned.has(agentId);
-        const isMuted = chat.kind !== 'thread' && muted.has(agentId);
-        const followed = chat.kind !== 'thread' || followByAgent.get(agentId) === true;
+        const isMuted = !followerGated && muted.has(agentId);
+        const followed = !followerGated || followByAgent.get(agentId) === true;
         if (!isMentioned && (isMuted || !followed)) {
             return [];
         }
@@ -164,7 +147,7 @@ export async function planAgentMessageRecipients(
                 addressedReason: isMentioned ? 'mention' : null,
                 agentId,
                 mentioned: isMentioned,
-                threadFollowReactivated: reactivated.has(agentId),
+                taskFollowReactivated: reactivated.has(agentId),
             },
         ];
     });
@@ -172,7 +155,7 @@ export async function planAgentMessageRecipients(
 
 /**
  * A retired Agent keeps its durable DM history but can never receive new work,
- * so a DM (or a DM Thread) resolves a recipient only while the Agent is active.
+ * so a DM resolves a recipient only while the Agent is active.
  */
 async function activeDmRecipient(
     db: HausDatabase,
@@ -191,6 +174,6 @@ async function activeDmRecipient(
         )
         .limit(1);
     return agent
-        ? [{ addressedReason: 'dm', agentId, mentioned: false, threadFollowReactivated: false }]
+        ? [{ addressedReason: 'dm', agentId, mentioned: false, taskFollowReactivated: false }]
         : [];
 }

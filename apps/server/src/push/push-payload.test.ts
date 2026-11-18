@@ -40,9 +40,40 @@ describe('buildPushPayload', () => {
                 name: 'Orbit',
             },
             serverId: 'srv_main',
-            threadAnchorMessageId: null,
+            taskId: null,
+            taskKey: null,
         });
         expect(pushNotificationPayloadSchema.parse(payload)).toEqual(payload as never);
+    });
+
+    test('a message in a Task carries the Task to route to', () => {
+        const payload = buildPushPayload(
+            row({
+                authorAgentDisplayName: 'Orbit',
+                authorAgentId: 'agt_orbit',
+                chatId: 'cht_task',
+                conversationChatId: 'cht_product',
+                conversationKind: 'channel',
+                conversationName: 'product',
+                taskId: 'tsk_12',
+                taskKey: 'SEC-12',
+            }),
+            input
+        );
+        expect(payload).toMatchObject({
+            chatId: 'cht_task',
+            conversationChatId: 'cht_product',
+            taskId: 'tsk_12',
+            taskKey: 'SEC-12',
+        });
+        expect(pushNotificationPayloadSchema.parse(payload)).toEqual(payload as never);
+        expect(pushNotificationPayloadSchema.safeParse({ ...payload, taskKey: null }).success).toBe(
+            false
+        );
+        expect(
+            pushNotificationPayloadSchema.safeParse({ ...payload, anchorMessageId: 'msg_origin' })
+                .success
+        ).toBe(false);
     });
 
     test('a Channel mention names the Channel without its sigil', () => {
@@ -114,7 +145,6 @@ describe('buildPushPayload', () => {
         const wide = '𝕏'.repeat(1000);
         const payload = buildPushPayload(
             row({
-                anchorMessageId: `msg_${'a'.repeat(60)}`,
                 authorAgentAvatarId: 'f'.repeat(64),
                 authorAgentDisplayName: wide,
                 authorAgentId: `agt_${'a'.repeat(60)}`,
@@ -144,7 +174,6 @@ describe('buildPushPayload', () => {
 
 function row(overrides: Partial<PushMessage>): PushMessage {
     return {
-        anchorMessageId: null,
         authorAgentAvatarId: null,
         authorAgentDisplayName: null,
         authorAgentId: null,
@@ -158,6 +187,8 @@ function row(overrides: Partial<PushMessage>): PushMessage {
         conversationName: null,
         dmMemberUserIds: ['usr_ada'],
         messageId: 'msg_1',
+        taskId: null,
+        taskKey: null,
         ...overrides,
     };
 }

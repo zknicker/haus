@@ -91,7 +91,7 @@ test('in-demand counts mentions only in Chats the member can read', async () => 
     expect(strongRuns(calendar, 'in-demand')).toEqual(['1']);
 });
 
-test('a soft-deleted channel takes its Threads out of every count', async () => {
+test('a soft-deleted channel takes its inline replies out of every count', async () => {
     const baseline = await read(25);
 
     const attic = await carol.trpc.chat.createChannel.mutate({
@@ -109,17 +109,14 @@ test('a soft-deleted channel takes its Threads out of every count', async () => 
         chatId: attic.id,
         content: 'reply',
         nonce: 'attic-reply',
+        replyToMessageId: anchor.message.id,
         serverId,
-        thread: { anchorMessageId: anchor.message.id },
     });
     await backdate(anchor.message.id, '2025-04-02T15:00:00Z');
     await backdate(reply.message.id, '2025-04-02T15:05:00Z');
-    if (!reply.threadChatId) {
-        throw new Error('Expected the reply to open a Thread.');
-    }
-    await mentionCarol(reply.threadChatId, 'msg_advent_mention_attic', 1000);
+    await mentionCarol(attic.id, 'msg_advent_mention_attic', 1000);
 
-    // The test bites: while the channel lives, its Thread counts.
+    // The test bites: while the channel lives, its replies count.
     expect(strongRuns(await read(1), 'messages-sent')).toEqual(['3']);
 
     await harness.sql`

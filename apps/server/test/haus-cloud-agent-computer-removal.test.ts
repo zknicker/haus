@@ -67,7 +67,7 @@ test('removing a Computer keeps its Cloud Agent work, Runs, links, and cards, an
     expect(links.map((row) => row.work_id)).toEqual(workIds);
 
     const transcript = await fixture.owner.trpc.chat.messages.query({
-        chatId: fixture.channelId,
+        chatId: fixture.task.chatId,
         serverId: fixture.serverId,
     });
     const cards = transcript.messages.flatMap((message) =>
@@ -80,7 +80,7 @@ test('removing a Computer keeps its Cloud Agent work, Runs, links, and cards, an
     });
     expect(listed.map((row) => row.work.id)).toEqual([active.work.id]);
     const forChat = await fixture.owner.trpc.cloudAgentWork.listForChat.query({
-        chatId: fixture.channelId,
+        chatId: fixture.task.chatId,
         serverId: fixture.serverId,
     });
     expect(forChat.map((row) => row.work.id).sort()).toEqual(workIds);

@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { captureAllTopics, publishedKinds } from './realtime-capture.ts';
+import { startTestTask } from './task-place-fixture.ts';
 
 let harness: HausServerHarness;
 let owner: HausClient;
@@ -17,7 +18,7 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('promotes one canonical Server message into its deterministic Thread work surface', async () => {
+test('promotes one canonical Server message into a claim', async () => {
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Claim Server',
         slug: 'claim-server',
@@ -47,7 +48,6 @@ test('promotes one canonical Server message into its deterministic Thread work s
             messageId: sent.message.id,
             number: 1,
             status: 'todo',
-            threadChatId: `cht_thr_${sent.message.id.slice('msg_'.length)}`,
             version: 1,
         },
     });
@@ -62,11 +62,11 @@ test('promotes one canonical Server message into its deterministic Thread work s
             claim: { messageId: sent.message.id, number: 1 },
         },
     ]);
-    // Promotion only derives the Thread id: the first reply creates the Thread.
-    const promotedThread = (await harness.sql`
-        select id from chats where server_id = ${server.id} and id = ${promoted.claim.threadChatId}
+    // Promotion creates no Chat of its own: the claim is a lock on the Message.
+    const children = (await harness.sql`
+        select id from chats where server_id = ${server.id} and parent_chat_id = ${chatId}
     `) as { id: string }[];
-    expect(promotedThread).toEqual([]);
+    expect(children).toEqual([]);
     const promotionMessages = await owner.trpc.chat.messages.query({ chatId, serverId: server.id });
     expect(promotionMessages.messages).toEqual(
         expect.arrayContaining([
@@ -84,32 +84,29 @@ test('promotes one canonical Server message into its deterministic Thread work s
     expect(promotionAuthors).not.toContain('system');
 });
 
-test('does not promote a Thread reply into human work', async () => {
+test('does not promote a Task message into human work', async () => {
     const server = await owner.trpc.server.create.mutate({
-        displayName: 'Unclaimable Thread Reply',
-        slug: 'unclaimable-thread-reply',
+        displayName: 'Unclaimable Task Message',
+        slug: 'unclaimable-task-message',
     });
-    const chatId = server.channels[0].id;
-    const anchor = await owner.trpc.chat.send.mutate({
-        chatId,
-        content: 'Anchor for the reply',
-        nonce: 'unclaimable-thread-anchor',
+    const task = await startTestTask(harness, owner, {
+        channelId: server.channels[0].id,
         serverId: server.id,
+        title: 'Work lives in the Task',
     });
-    const reply = await owner.trpc.chat.send.mutate({
-        chatId,
-        content: 'A reply is not a claim',
-        nonce: 'unclaimable-thread-reply',
+    const posted = await owner.trpc.chat.send.mutate({
+        chatId: task.chatId,
+        content: 'A Task message is not a claim',
+        nonce: 'unclaimable-task-message',
         serverId: server.id,
-        thread: { anchorMessageId: anchor.message.id },
     });
 
     await expect(
         owner.trpc.claim.promote.mutate({
-            messageId: reply.message.id,
+            messageId: posted.message.id,
             serverId: server.id,
         })
-    ).rejects.toThrow(/human or Agent messages.*top-level Channel or DM/i);
+    ).rejects.toThrow(/human or Agent messages in a Channel or DM/i);
 });
 
 test('creates a claim-message atomically and replays the same nonce idempotently', async () => {
@@ -146,10 +143,10 @@ test('creates a claim-message atomically and replays the same nonce idempotently
     expect(creationMessages.messages[0]?.id).toBe(created.claim.messageId);
 });
 
-test('lists the claim Thread summary and DM peer identity', async () => {
+test('lists a DM claim with its peer identity', async () => {
     const server = await owner.trpc.server.create.mutate({
-        displayName: 'Claim Thread Summary',
-        slug: 'claim-thread-summary',
+        displayName: 'Claim DM Peer',
+        slug: 'claim-dm-peer',
     });
     const peer = await addClaimPeer(server.id, server.channels[0].id);
     const dm = await owner.trpc.chat.ensureDm.mutate({
@@ -159,20 +156,8 @@ test('lists the claim Thread summary and DM peer identity', async () => {
     const created = await owner.trpc.claim.create.mutate({
         chatId: dm.id,
         content: 'Discuss this privately',
-        nonce: 'claim-thread-summary-create',
+        nonce: 'claim-dm-peer-create',
         serverId: server.id,
-    });
-    await owner.trpc.chat.send.mutate({
-        chatId: dm.id,
-        content: 'First claim reply',
-        nonce: 'claim-thread-summary-reply',
-        serverId: server.id,
-        thread: { anchorMessageId: created.claim.messageId },
-    });
-    await owner.trpc.thread.setFollow.mutate({
-        follow: false,
-        serverId: server.id,
-        threadChatId: created.claim.threadChatId,
     });
 
     const listed = await owner.trpc.claim.list.query({ serverId: server.id });
@@ -181,43 +166,28 @@ test('lists the claim Thread summary and DM peer identity', async () => {
             chatKind: 'dm',
             chatName: null,
             chatPeerUserId: peer.userId,
-            threadSummary: {
-                anchorMessageId: created.claim.messageId,
-                followed: false,
-                replyCount: 1,
-                threadChatId: created.claim.threadChatId,
-            },
+            claim: { messageId: created.claim.messageId },
         },
     ]);
     peer.client.close();
 });
 
-test('rejects claim creation in a Thread as a bad request', async () => {
+test('rejects claim creation in a Task as a bad request', async () => {
     const server = await owner.trpc.server.create.mutate({
-        displayName: 'Claim Thread Create',
-        slug: 'claim-thread-create',
+        displayName: 'Claim Task Create',
+        slug: 'claim-task-create',
     });
-    const chatId = server.channels[0].id;
-    const created = await owner.trpc.claim.create.mutate({
-        chatId,
-        content: 'Parent claim',
-        nonce: 'claim-thread-parent',
+    const task = await startTestTask(harness, owner, {
+        channelId: server.channels[0].id,
         serverId: server.id,
-    });
-    // The Thread has to exist before it can be refused as a claim's parent Chat.
-    await owner.trpc.chat.send.mutate({
-        chatId,
-        content: 'First reply',
-        nonce: 'claim-thread-first-reply',
-        serverId: server.id,
-        thread: { anchorMessageId: created.claim.messageId },
+        title: 'No human claims here',
     });
 
     await expect(
         owner.trpc.claim.create.mutate({
-            chatId: created.claim.threadChatId,
+            chatId: task.chatId,
             content: 'Nested claim',
-            nonce: 'claim-thread-nested',
+            nonce: 'claim-task-nested',
             serverId: server.id,
         })
     ).rejects.toMatchObject({ data: { code: 'BAD_REQUEST' } });
@@ -634,22 +604,15 @@ test('assigns a claim to an Agent, wakes it with typed work, and writes no messa
         status: 'todo',
     });
 
-    // The Agent is subscribed to the claim thread, or it would wake, claim, and
-    // then silently miss every reply. Reservation has no Thread to point at
-    // yet; the first reply materializes it and attaches the follow.
+    // The Agent follows the claim's inline replies, or it would wake, claim,
+    // and then silently miss every reply.
     const readFollows = async () =>
         (await harness.sql`
-            select followed from agent_thread_follows
-            where server_id = ${server.id} and agent_id = ${agent.agentId}
+            select followed from agent_message_follows
+            where server_id = ${server.id}
+              and agent_id = ${agent.agentId}
+              and root_message_id = ${created.claim.messageId}
         `) as { followed: boolean }[];
-    expect([...(await readFollows())]).toEqual([]);
-    await owner.trpc.chat.send.mutate({
-        chatId,
-        content: 'First reply',
-        nonce: 'claim-agent-assignment-reply',
-        serverId: server.id,
-        thread: { anchorMessageId: created.claim.messageId },
-    });
     expect([...(await readFollows())].map((row) => row.followed)).toEqual([true]);
 
     // The handoff is typed pending work keyed by the assignment identity, not a

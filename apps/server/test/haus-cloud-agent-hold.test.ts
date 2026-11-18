@@ -3,10 +3,10 @@ import { cloudAgentFixture } from './cloud-agent-fixture.ts';
 
 const fixture = cloudAgentFixture();
 
-test('a launch into a Chat with unseen newer messages is held and creates nothing', async () => {
+test('a launch into a Task with unseen newer messages is held and creates nothing', async () => {
     const runner = await fixture.mintRunner('run_cloud_hold');
     const newer = await fixture.owner.trpc.chat.send.mutate({
-        chatId: fixture.channelId,
+        chatId: fixture.task.chatId,
         content: 'own it in tech ops though not here',
         nonce: 'human-newer',
         serverId: fixture.serverId,

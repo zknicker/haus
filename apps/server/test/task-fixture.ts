@@ -1,7 +1,7 @@
 import { createHausClient, type HausClient } from './haus-client.ts';
 import type { HausServerHarness } from './haus-server-harness.ts';
 
-/** People and Agents for the board and Task tests. */
+/** People and Agents for the Task tests. */
 export function taskFixture(harness: HausServerHarness) {
     const signIn = async (subject: string): Promise<HausClient> =>
         createHausClient(harness, await harness.humans.mintSessionToken(subject));
@@ -32,20 +32,6 @@ export function taskFixture(harness: HausServerHarness) {
                 values (${`mem_${subject}`}, ${serverId}, ${user.id}, 'member')
             `;
             return { client, userId: user.id };
-        },
-        /** The person's Task Inbox rows for one Task. */
-        async inboxItems(taskId: string) {
-            return (await harness.sql`
-                select user_id, assignment_version, assigned_by_user_id,
-                    assigned_by_agent_id, cleared_at is not null as cleared
-                from task_inbox_items where task_id = ${taskId}
-            `) as {
-                assigned_by_agent_id: string | null;
-                assigned_by_user_id: string | null;
-                assignment_version: number;
-                cleared: boolean;
-                user_id: string;
-            }[];
         },
         signIn,
     };

@@ -1,10 +1,12 @@
 import { afterAll, beforeAll, expect } from 'bun:test';
 import { createHash } from 'node:crypto';
-import type { CloudAgentBranch, CloudAgentWork } from '@haus/api';
+import type { CloudAgentWork } from '@haus/api';
 import { readTargetAsAgent } from './agent-read-target.ts';
 import { cloudAgentComputerFixture } from './cloud-agent-computer-fixture.ts';
+import { cloudAgentFixtureReads } from './cloud-agent-fixture-reads.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { startTestTask, type TestTask } from './task-place-fixture.ts';
 
 export function cloudAgentFixture() {
     let harness: HausServerHarness;
@@ -17,6 +19,7 @@ export function cloudAgentFixture() {
     let orbitAgentId: string;
     let ownerUserId: string;
     let peerUserId: string;
+    let task: TestTask;
 
     const computerId = `cmp_${'c'.repeat(16)}`;
     const credential = `cloud-agent-computer-credential-${'x'.repeat(16)}`;
@@ -75,6 +78,12 @@ export function cloudAgentFixture() {
         insert into channel_participants (server_id, chat_id, user_id)
         values (${serverId}, ${channelId}, ${peerUserId})
     `;
+        // Cloud work attaches to a Task (ADR 0052): launches default to this one.
+        task = await startTestTask(harness, owner, {
+            channelId,
+            serverId,
+            title: 'Fix the flaky delivery test',
+        });
     });
 
     afterAll(async () => {
@@ -103,6 +112,10 @@ export function cloudAgentFixture() {
         get channelId() {
             return channelId;
         },
+        /** The Task launches attach to by default, with its own Chat. */
+        get task() {
+            return task;
+        },
         get orbitAgentId() {
             return orbitAgentId;
         },
@@ -127,13 +140,10 @@ export function cloudAgentFixture() {
             readTargetAsAgent(harness, { agentId: orbitAgentId, serverId }, runner, target),
         postCancel,
         mintRunner,
-        readWork,
-        readRun,
-        readBranches,
-        readAttentions,
-        countWork,
-        waitForWorkStatus,
-        waitFor,
+        ...cloudAgentFixtureReads(
+            () => harness,
+            () => serverId
+        ),
         ...cloudAgentComputerFixture(() => harness.url, credential),
         join,
         signIn,
@@ -148,6 +158,7 @@ export function cloudAgentFixture() {
             repository: 'haus/haus',
             startingRef: 'main',
             target: '#product',
+            task: task.key,
             title: 'Fix the flaky delivery test',
             ...overrides,
         };
@@ -202,70 +213,6 @@ export function cloudAgentFixture() {
         expect(response.status).toBe(200);
         const { runnerToken } = (await response.json()) as { runnerToken: string };
         return { runId, token: runnerToken };
-    }
-
-    async function readWork(workId: string) {
-        const [row] = (await harness.sql`
-        select work.activity_summary, newest.cancel_requested_by_agent_id,
-               newest.cancel_requested_by_user_id, work.environment_id, work.environment_name,
-               work.provider_agent_id, work.provider_url, work.started_at, work.status,
-               work.terminal_at
-        from cloud_agent_work as work
-        left join lateral (
-            select cancel_requested_by_agent_id, cancel_requested_by_user_id
-            from cloud_agent_runs as run
-            where run.server_id = work.server_id and run.work_id = work.id
-            order by run.created_at desc limit 1
-        ) as newest on true
-        where work.id = ${workId}
-    `) as Record<string, unknown>[];
-        return row;
-    }
-
-    async function readRun(runId: string) {
-        const [row] = (await harness.sql`
-        select branches, cancel_requested_at, raw_status, report, started_at, status, summary,
-               terminal_at
-        from cloud_agent_runs where id = ${runId}
-    `) as Record<string, unknown>[];
-        return row;
-    }
-
-    async function readBranches(runId: string): Promise<CloudAgentBranch[]> {
-        return ((await readRun(runId))?.branches as CloudAgentBranch[] | undefined) ?? [];
-    }
-
-    async function readAttentions(runId: string) {
-        return (await harness.sql`
-        select id from agent_inbox
-        where server_id = ${serverId} and source = 'cloud_agent_work' and dedupe_key = ${runId}
-    `) as { id: string }[];
-    }
-
-    async function countWork() {
-        const [row] = (await harness.sql`
-        select count(*)::int as total from cloud_agent_work where server_id = ${serverId}
-    `) as { total: number }[];
-        return row.total;
-    }
-
-    async function waitForWorkStatus(workId: string, status: string) {
-        await waitFor(async () => {
-            const row = await readWork(workId);
-            return row?.status === status ? row : null;
-        });
-    }
-
-    async function waitFor<T>(read: () => Promise<T | null | undefined> | T | null | undefined) {
-        const deadline = Date.now() + 5000;
-        while (Date.now() < deadline) {
-            const value = await read();
-            if (value) {
-                return value;
-            }
-            await Bun.sleep(20);
-        }
-        throw new Error('Timed out waiting for the expected Cloud Agent state.');
     }
 
     async function join(client: HausClient, email: string, displayName: string, handle: string) {

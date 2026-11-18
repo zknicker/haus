@@ -5,6 +5,7 @@ import { readTargetAsAgent } from './agent-read-target.ts';
 import { cloudAgentFixture } from './cloud-agent-fixture.ts';
 import { cloudAgentLinkHelpers } from './cloud-agent-link-helpers.ts';
 import { captureTopic, settleRealtime } from './realtime-capture.ts';
+import { startTestTask } from './task-place-fixture.ts';
 
 const fixture = cloudAgentFixture();
 const links = cloudAgentLinkHelpers(fixture);
@@ -20,7 +21,7 @@ test('a second link shows the card in both Channels and hears every lifecycle ch
         `Continuing here: [Fix](cloud-agent://${work.id})`,
         'second-link'
     );
-    for (const chatId of [fixture.channelId, techOpsId]) {
+    for (const chatId of [fixture.task.chatId, techOpsId]) {
         const rows = await fixture.peer.trpc.cloudAgentWork.listForChat.query({
             chatId,
             serverId: fixture.serverId,
@@ -69,7 +70,11 @@ test('deleting the requesting Channel keeps the work, moves Happening now, and s
     const runner = await fixture.mintRunner('run_link_launchpad');
     const launched = await fixture.postStart(
         runner,
-        fixture.startBody({ nonce: 'launchpad', target: '#launchpad', title: 'Survivor' })
+        fixture.startBody({
+            nonce: 'launchpad',
+            task: await taskIn(launchpadId),
+            title: 'Survivor',
+        })
     );
     const work = launched.body.work as CloudAgentWork;
     const refugeId = await links.createChannel('refuge', [fixture.peerUserId]);
@@ -92,8 +97,9 @@ test('deleting the requesting Channel keeps the work, moves Happening now, and s
         {
             chatId: refugeId,
             messageId: refuge.message.id,
-            parentChatId: null,
             serverId: fixture.serverId,
+            // The Task outlives its Channel, canceled, so the work still names it.
+            taskId: expect.stringMatching(/^tsk_/u),
             workId: work.id,
         },
     ]);
@@ -107,9 +113,8 @@ test('deleting the requesting Channel keeps the work, moves Happening now, and s
             chatId: refugeId,
             kind: 'message',
             messageId: refuge.message.id,
-            threadChatId: null,
         },
-        work: { chatId: launchpadId, messageId: launched.body.messageId },
+        work: { messageId: launched.body.messageId },
     });
 
     const socket = await fixture.attachComputer();
@@ -128,7 +133,7 @@ test('a tombstoned Chat grants nothing even before its purge removes the rows', 
     const runner = await fixture.mintRunner('run_link_tomb');
     const launched = await fixture.postStart(
         runner,
-        fixture.startBody({ nonce: 'tomb', target: '#tomb', title: 'Buried' })
+        fixture.startBody({ nonce: 'tomb', task: await taskIn(tombId), title: 'Buried' })
     );
     const work = launched.body.work as CloudAgentWork;
     const before = await fixture.peer.trpc.cloudAgentWork.listActive.query({
@@ -219,4 +224,14 @@ async function mintRunnerFor(agentId: string, chatId: string, runId: string) {
     expect(response.status).toBe(200);
     const { runnerToken } = (await response.json()) as { runnerToken: string };
     return { runId, token: runnerToken };
+}
+
+/** A Task started in that Channel; cloud work launches on a Task (ADR 0052). */
+async function taskIn(channelId: string) {
+    const task = await startTestTask(fixture.harness, fixture.owner, {
+        channelId,
+        serverId: fixture.serverId,
+        title: 'Channel work',
+    });
+    return task.key;
 }

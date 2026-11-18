@@ -1,6 +1,6 @@
 import type { MessageClaim } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-import { followAgentThread } from '../agent-api/attention.ts';
+import { followAgentTask } from '../agent-api/attention.ts';
 import { targetForChat } from '../agent-api/message-view.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { followInlineReplyForMessage } from '../chats/reply-subscriptions.ts';
@@ -30,23 +30,19 @@ export async function deliverClaimAssignment(
         messageId: claim.messageId,
         serverId,
     });
-    // Follow first: thread delivery is gated on this row, so without it the
-    // Agent would wake, claim, and then never see a single reply. `threadChatId`
-    // is the claim's work Thread: the Thread a Thread claim sits in (always
-    // present), or the one anchored on a top-level claim. A Thread nobody has
-    // replied in has no row to point at yet; the first reply materializes it
-    // and attaches the assignee's follow.
-    const [thread] = await tx
-        .select({ id: chatsTable.id })
+    // A claim inside a Task delivers only to the Task's followers, so the
+    // assignee follows the Task too, or it would never see a single reply.
+    const [chat] = await tx
+        .select({ kind: chatsTable.kind })
         .from(chatsTable)
-        .where(and(eq(chatsTable.serverId, serverId), eq(chatsTable.id, claim.threadChatId)))
+        .where(and(eq(chatsTable.serverId, serverId), eq(chatsTable.id, claim.chatId)))
         .limit(1);
-    if (thread) {
-        await followAgentThread(tx, { agentId, serverId, threadChatId: claim.threadChatId });
+    if (chat?.kind === 'task') {
+        await followAgentTask(tx, { agentId, serverId, taskChatId: claim.chatId });
     }
 
     // The claim's title is its canonical message's content, and its target is
-    // that message's Chat: the Thread a Thread claim sits in, or the parent.
+    // that message's Chat.
     const [message] = await tx
         .select({ chatId: chatMessagesTable.chatId, content: chatMessagesTable.content })
         .from(chatMessagesTable)

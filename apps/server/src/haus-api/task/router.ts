@@ -1,20 +1,24 @@
 import { createRouter } from '../trpc.ts';
 import { assignTaskProcedure } from './assign.ts';
-import { createTaskProcedure } from './create.ts';
 import { getTaskProcedure } from './get.ts';
 import { listTasksProcedure } from './list.ts';
-import { moveTaskProcedure } from './move.ts';
+import { listOpenTasksProcedure } from './list-open.ts';
 import { onTaskCreatedProcedure } from './on-created.ts';
+import { onTaskFollowUpdatedProcedure } from './on-follow-updated.ts';
 import { onTaskUpdatedProcedure } from './on-updated.ts';
+import { setTaskFollowProcedure } from './set-follow.ts';
+import { setTaskStateProcedure } from './set-state.ts';
 import { updateTaskProcedure } from './update.ts';
 
 export const taskRouter = createRouter({
     assign: assignTaskProcedure,
-    create: createTaskProcedure,
     get: getTaskProcedure,
     list: listTasksProcedure,
-    move: moveTaskProcedure,
+    listOpen: listOpenTasksProcedure,
     onCreated: onTaskCreatedProcedure,
+    onFollowUpdated: onTaskFollowUpdatedProcedure,
     onUpdated: onTaskUpdatedProcedure,
+    setFollow: setTaskFollowProcedure,
+    setState: setTaskStateProcedure,
     update: updateTaskProcedure,
 });

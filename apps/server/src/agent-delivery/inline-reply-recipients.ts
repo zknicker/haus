@@ -97,7 +97,7 @@ async function planInlineReplyRecipients(
                       addressedReason: isMentioned ? ('mention' as const) : null,
                       agentId: agent.id,
                       mentioned: isMentioned,
-                      threadFollowReactivated: false,
+                      taskFollowReactivated: false,
                   },
               ]
             : [];

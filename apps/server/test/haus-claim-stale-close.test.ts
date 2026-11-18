@@ -38,7 +38,7 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('closes an in_review claim whose Thread has been quiet for eight days', async () => {
+test('closes an in_review claim whose replies have been quiet for eight days', async () => {
     const claim = await createClaim('Ship the retention sweep', 'stale-quiet', 'in_review');
     await backdate(claim.messageId, daysBeforeSweep(8));
 
@@ -55,30 +55,6 @@ test('closes an in_review claim whose Thread has been quiet for eight days', asy
         expect.objectContaining({ kind: 'updated', messageId: claim.messageId })
     );
     delivered.stop();
-});
-
-test('keeps an in_review claim whose Thread was answered two days ago', async () => {
-    const claim = await createClaim('Review the migration', 'stale-answered', 'in_review');
-    await backdate(claim.messageId, daysBeforeSweep(9));
-    await owner.trpc.chat.send.mutate({
-        chatId,
-        content: 'Still looking at this.',
-        nonce: 'stale-answered-reply',
-        serverId,
-        thread: { anchorMessageId: claim.messageId },
-    });
-    await harness.sql`
-        update chat_messages set created_at = ${daysBeforeSweep(2)}
-        where nonce = 'stale-answered-reply' and server_id = ${serverId}
-    `;
-
-    const events = await closeStaleInReviewClaims(connection.db, sweptAt);
-
-    expect(events.map((event) => event.messageId)).not.toContain(claim.messageId);
-    expect(await readClaim(claim.messageId)).toMatchObject({
-        status: 'in_review',
-        version: claim.version,
-    });
 });
 
 test('a recent inline follow-up keeps review open while unrelated channel activity does not', async () => {
@@ -131,7 +107,7 @@ async function createClaim(content: string, nonce: string, status: 'in_progress'
     };
 }
 
-/** Ages the claim row and every message already in its Thread. */
+/** Ages the claim row and every inline reply already under its message. */
 async function backdate(messageId: string, quietSince: Date) {
     await harness.sql`
         update message_claims set updated_at = ${quietSince}
@@ -140,10 +116,8 @@ async function backdate(messageId: string, quietSince: Date) {
     await harness.sql`
         update chat_messages set created_at = ${quietSince}
         where server_id = ${serverId}
-          and chat_id in (
-            select id from chats
-            where server_id = ${serverId} and kind = 'thread' and anchor_message_id = ${messageId}
-          )
+          and reply_root_message_id = ${messageId}
+          and id <> ${messageId}
     `;
 }
 

@@ -10,8 +10,14 @@ import {
     snoozeReminder,
     updateReminder,
 } from '../reminders/reminders.ts';
+import {
+    readTaskReminderAnchor,
+    refuseRecurringTaskReminder,
+} from '../reminders/task-reminders.ts';
 import { resolveAgentMessage } from './message-read.ts';
 import { targetForChat } from './message-view.ts';
+import { AgentTargetError } from './resolve-target.ts';
+import { parseTaskTarget, resolveTaskTargetChat } from './resolve-task-target.ts';
 
 export { readAgentReminderLog } from './reminder-log.ts';
 
@@ -27,22 +33,27 @@ export async function scheduleAgentReminder(
         description?: string;
         failAfter?: number;
         fireAt?: string;
-        messageId: string;
+        messageId?: string;
         repeat?: string;
         script?: string;
+        target?: string;
         title: string;
         timezone?: string;
         wakeOnChange?: boolean;
     }
 ) {
-    const anchor = await resolveAgentMessage(db, runner, input.messageId);
+    const anchor = await resolveReminderAnchor(db, runner, input);
+    await refuseRecurringTaskReminder(db, {
+        anchorChatId: anchor.anchorChatId,
+        repeat: input.repeat,
+        serverId: runner.serverId,
+    });
     const fireAt = input.fireAt === undefined ? undefined : new Date(input.fireAt);
     const result = await scheduleReminder(
         db,
         runner.agentId,
         {
-            anchorChatId: anchor.chat_id,
-            anchorMessageId: anchor.id,
+            ...anchor,
             commandId: input.commandId,
             description: input.description,
             failAfter: input.failAfter,
@@ -125,9 +136,14 @@ export async function updateAgentReminder(
         wakeOnChange?: boolean;
     }
 ) {
-    await readOwnedReminder(db, {
+    const owned = await readOwnedReminder(db, {
         agentId: runner.agentId,
         reminderId: input.id,
+        serverId: runner.serverId,
+    });
+    await refuseRecurringTaskReminder(db, {
+        anchorChatId: owned.anchorChatId,
+        repeat: input.repeat,
         serverId: runner.serverId,
     });
     const result = await updateReminder(
@@ -177,6 +193,34 @@ export async function cancelAgentReminder(
         }),
         replayed: result.idempotent,
     };
+}
+
+/**
+ * The anchor a schedule names: a readable message, or a `task:KEY-n` target,
+ * which anchors on the Task's newest message, or its origin Message while the
+ * Task has no posts (ADR 0052 decision 16).
+ */
+async function resolveReminderAnchor(
+    db: HausDatabase,
+    runner: ResolvedRunner,
+    input: { messageId?: string; target?: string }
+): Promise<{ anchorChatId: string; anchorMessageId: string }> {
+    const taskKey = input.target ? parseTaskTarget(input.target) : null;
+    if (taskKey) {
+        const task = await resolveTaskTargetChat(db, runner, taskKey);
+        if (!task) {
+            throw new AgentTargetError();
+        }
+        return await readTaskReminderAnchor(db, {
+            chatId: task.chatId,
+            serverId: runner.serverId,
+        });
+    }
+    if (!input.messageId) {
+        throw new AgentTargetError('A reminder needs a message id or a task: target.');
+    }
+    const anchor = await resolveAgentMessage(db, runner, input.messageId);
+    return { anchorChatId: anchor.chat_id, anchorMessageId: anchor.id };
 }
 
 function commandInput<Extra extends object>(

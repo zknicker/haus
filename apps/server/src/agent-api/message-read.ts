@@ -1,5 +1,6 @@
 import type { HausAgentMessage } from '@haus/api';
 import { and, desc, eq, gt, ilike, lt, sql } from 'drizzle-orm';
+import { isFollowedChatKind } from '../agent-delivery/followed-chat.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -128,24 +129,7 @@ export async function requireAgentChatAccess(
     if (chat.kind === 'dm' && chat.dmAgentId === runner.agentId) {
         return;
     }
-    if (chat.kind === 'thread' && chat.parentChatId) {
-        const [parentDm] = await db
-            .select({ id: chatsTable.id })
-            .from(chatsTable)
-            .where(
-                and(
-                    eq(chatsTable.serverId, runner.serverId),
-                    eq(chatsTable.id, chat.parentChatId),
-                    eq(chatsTable.kind, 'dm'),
-                    eq(chatsTable.dmAgentId, runner.agentId)
-                )
-            )
-            .limit(1);
-        if (parentDm) {
-            return;
-        }
-    }
-    const channelId = chat.kind === 'thread' ? chat.parentChatId : chat.id;
+    const channelId = isFollowedChatKind(chat.kind) ? chat.parentChatId : chat.id;
     if (channelId) {
         const [joined] = await db
             .select({ agentId: channelAgentParticipantsTable.agentId })

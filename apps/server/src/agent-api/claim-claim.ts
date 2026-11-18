@@ -10,7 +10,7 @@ import { chatMessagesTable, messageClaimsTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { AgentClaimError } from './claim-error.ts';
-import { hasUnseenClaimThreadContext } from './claim-freshness.ts';
+import { hasUnseenClaimContext } from './claim-freshness.ts';
 import { queryAgentClaims, resolveAgentClaimTarget } from './claim-lookup.ts';
 import { followClaim, promoteAgentMessageClaim } from './claim-promotion.ts';
 import { type AgentClaimRow, claimRows } from './claim-row.ts';
@@ -41,7 +41,7 @@ export async function claimAgentClaims(
     runner: ResolvedRunner,
     input: { messageId?: string; numbers?: number[]; target: string }
 ) {
-    const { chatId, claimChatId } = await resolveAgentClaimTarget(db, runner, input.target);
+    const chatId = await resolveAgentClaimTarget(db, runner, input.target);
     const messageId = input.messageId
         ? (await resolveAgentMessage(db, runner, input.messageId)).id
         : undefined;
@@ -49,7 +49,7 @@ export async function claimAgentClaims(
         await lockServerRow(tx, runner.serverId);
         await requireChatWritable(tx, { chatId, serverId: runner.serverId });
         const events: PreparedRealtimeEvent[] = [];
-        const found = await queryAgentClaims(tx, runner, claimChatId, {
+        const found = await queryAgentClaims(tx, runner, chatId, {
             messageId,
             numbers: input.numbers,
         });
@@ -57,7 +57,7 @@ export async function claimAgentClaims(
         if (found.length === 0 && messageId) {
             // `numbers` may have filtered out the message's own claim; promoting
             // it again would violate the one-claim-per-message key.
-            const [existing] = await queryAgentClaims(tx, runner, claimChatId, { messageId });
+            const [existing] = await queryAgentClaims(tx, runner, chatId, { messageId });
             if (existing) {
                 const taken = await takeClaimRow(tx, runner, existing.messageId);
                 if (taken.event) {
@@ -116,7 +116,7 @@ async function takeClaimRow(tx: HausDatabase, runner: ResolvedRunner, messageId:
         throw new AgentClaimError('That claim no longer exists.');
     }
     if (current.assigneeAgentId === runner.agentId && current.claimedAt !== null) {
-        await followClaim(tx, runner, current, 'reconfirm');
+        await followClaim(tx, runner, current);
         return { event: null, outcome: grant(current, 'already_yours') };
     }
     // Only the holder decides a claim. The row is locked under the Server
@@ -142,13 +142,13 @@ async function takeClaimRow(tx: HausDatabase, runner: ResolvedRunner, messageId:
             outcome: refuse(current.number, current.messageId, 'Done claims cannot be claimed.'),
         };
     }
-    if (await hasUnseenClaimThreadContext(tx, runner, current)) {
+    if (await hasUnseenClaimContext(tx, runner, current)) {
         return {
             event: null,
             outcome: refuse(
                 current.number,
                 current.messageId,
-                'New context exists in this claim thread. Run haus message check before retrying.'
+                'New context exists in replies to this claimed message. Run haus message check before retrying.'
             ),
         };
     }
@@ -167,12 +167,11 @@ async function takeClaimRow(tx: HausDatabase, runner: ResolvedRunner, messageId:
                 eq(messageClaimsTable.messageId, messageId)
             )
         );
-    await followClaim(tx, runner, current, 'fresh');
+    await followClaim(tx, runner, current);
     const event = prepareClaimEvent({
         chatId: current.chatId,
         messageId,
         serverId: runner.serverId,
-        threadChatId: current.threadChatId,
         type: 'claim.updated',
     });
     return { event, outcome: grant(current, 'claimed') };

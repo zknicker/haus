@@ -31,9 +31,9 @@ export async function readAgentChatRead(db: ReadWriter, input: AgentChat): Promi
 
 /**
  * Starts (or restarts) the read position when the Agent becomes a member: a
- * channel join, a DM, a Thread follow. History from before the membership is
+ * channel join, a DM, a Task follow. History from before the membership is
  * not unread. A membership caused by a message — a reply or @mention that
- * follows the Agent into a Thread — leaves that message unread.
+ * follows the Agent into a Task — leaves that message unread.
  */
 export async function openAgentChatRead(
     db: ReadWriter,

@@ -14,7 +14,9 @@ const membershipsAlias = alias(serverMembershipsTable, 'inline_reply_membership'
 const replyExcerptMaxLength = 280;
 
 export class InvalidInlineReplyError extends Error {
-    constructor(message = 'Inline replies require a parent Message in the same Channel or DM.') {
+    constructor(
+        message = 'Inline replies require a parent Message in the same Channel, DM, or Task.'
+    ) {
         super(message);
         this.name = 'InvalidInlineReplyError';
     }
@@ -48,9 +50,9 @@ export async function resolveInlineReplyParent(
         .from(chatsTable)
         .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)))
         .limit(1);
-    if (!chat || (chat.kind !== 'channel' && chat.kind !== 'dm')) {
+    if (!chat) {
         throw new InvalidInlineReplyError(
-            'Inline replies are available only in Channels and DMs, not Threads.'
+            'Inline replies are available only in Channels, DMs, and Tasks.'
         );
     }
 

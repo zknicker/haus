@@ -6,13 +6,14 @@ import * as store from '../src/agent-delivery/store.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { agentDeliveryTable } from '../src/postgres/schema.ts';
-import { createTask } from '../src/tasks/task-create.ts';
+import { assignTask } from '../src/tasks/task-assign.ts';
 import { offlineDelivery, type Seed } from './agent-inbox-harness.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 import { settledTurn } from './settled-turn-fixture.ts';
 import {
     addPeerAgent,
     assignNewTask,
+    insertTaskPlace,
     seedTaskBoard,
     type TaskBoard,
 } from './task-delivery-fixture.ts';
@@ -48,17 +49,19 @@ async function seedChain(turns: number) {
     return { board, peerId, seed };
 }
 
-function assignFromAgent(
+async function assignFromAgent(
     delivery: AgentDelivery,
-    { boardId, seed }: TaskBoard,
+    board: TaskBoard,
     peerId: string,
     title: string
 ) {
-    return createTask(connection.db, { agentId: peerId, kind: 'agent' }, delivery, {
+    const { seed } = board;
+    const taskId = await insertTaskPlace(connection.db, board, title);
+    return await assignTask(connection.db, { agentId: peerId, kind: 'agent' }, delivery, {
         assignee: { agentId: seed.agentId, kind: 'agent' },
-        boardId,
+        expectedVersion: 1,
         serverId: seed.serverId,
-        title,
+        taskId,
     });
 }
 

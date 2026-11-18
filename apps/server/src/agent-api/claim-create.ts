@@ -32,7 +32,7 @@ import {
     resolveClaimAssignee,
 } from './claim-create-inputs.ts';
 import { AgentClaimError } from './claim-error.ts';
-import { requireTopLevelClaimChat } from './claim-lookup.ts';
+import { requireClaimChat } from './claim-lookup.ts';
 import { type AgentClaimRow, agentHandle, claimRow } from './claim-row.ts';
 import { messageSelection, targetForChat } from './message-view.ts';
 import { resolveAgentTarget } from './resolve-target.ts';
@@ -55,7 +55,7 @@ export async function createAgentClaims(
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
         await requireChatWritable(tx, { chatId, serverId: runner.serverId });
-        await requireTopLevelClaimChat(tx, runner, chatId);
+        await requireClaimChat(tx, runner, chatId);
         const replay = await replayAgentClaims(
             tx,
             runner,
@@ -190,7 +190,7 @@ export async function createAgentClaims(
                     addressedReason: null,
                     agentId: assigneeAgentId,
                     mentioned: false,
-                    threadFollowReactivated: false,
+                    taskFollowReactivated: false,
                 });
             }
             for (const recipient of dedupeRecipients(recipients)) {
@@ -204,7 +204,7 @@ export async function createAgentClaims(
                     sequence: message.sequence,
                     serverId: runner.serverId,
                     source: `agent:${await agentHandle(tx, runner)}`,
-                    threadFollowReactivated: recipient.threadFollowReactivated,
+                    taskFollowReactivated: recipient.taskFollowReactivated,
                 });
                 wakes.add(recipient.agentId);
             }
@@ -234,7 +234,6 @@ export async function createAgentClaims(
                     chatId,
                     messageId: message.id,
                     serverId: runner.serverId,
-                    threadChatId: null,
                     type: 'claim.created',
                 }),
                 ...(await prepareMessageLinkEvents(tx, {

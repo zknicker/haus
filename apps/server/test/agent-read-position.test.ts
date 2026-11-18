@@ -1,7 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { readFile } from 'node:fs/promises';
-import { eq, sql } from 'drizzle-orm';
-import { followAgentThread } from '../src/agent-api/attention.ts';
+import { eq } from 'drizzle-orm';
+import { followAgentTask } from '../src/agent-api/attention.ts';
 import { readAgentHistory } from '../src/agent-api/message-history.ts';
 import { recordExactMessagesServed } from '../src/agent-delivery/cursors.ts';
 import { planAgentMessageRecipients } from '../src/agent-delivery/message-recipients.ts';
@@ -11,7 +10,7 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import { agentChatReadsTable, agentsTable } from '../src/postgres/schema.ts';
 import {
     addPeerAgent,
-    addThread,
+    addTask,
     postMessage,
     readerRunner,
     readPosition,
@@ -34,34 +33,6 @@ afterAll(async () => {
     await cluster?.stop();
 });
 
-test('the migration backfill starts every current membership read through its last message', async () => {
-    const db = connection.db;
-    const seed = await seedReader(db);
-    const anchor = await postMessage(db, seed, { chatId: seed.channelId });
-    await postMessage(db, seed, { chatId: seed.channelId });
-    const followed = await addThread(db, seed, {
-        anchorId: anchor.id,
-        followed: true,
-        parentChatId: seed.channelId,
-    });
-    await postMessage(db, seed, { chatId: followed });
-    const unfollowedAnchor = await postMessage(db, seed, { chatId: seed.channelId });
-    const unfollowed = await addThread(db, seed, {
-        anchorId: unfollowedAnchor.id,
-        followed: false,
-        parentChatId: seed.channelId,
-    });
-    await postMessage(db, seed, { chatId: seed.dmChatId });
-    await db.delete(agentChatReadsTable).where(eq(agentChatReadsTable.agentId, seed.agentId));
-
-    await db.execute(sql.raw(await migrationBackfill()));
-
-    expect(await readPosition(db, seed, seed.channelId)).toBe(3);
-    expect(await readPosition(db, seed, followed)).toBe(1);
-    expect(await readPosition(db, seed, seed.dmChatId)).toBe(1);
-    expect(await readPosition(db, seed, unfollowed)).toBeNull();
-});
-
 test('joining starts read at the present; a mention that follows the Agent in stays unread', async () => {
     const db = connection.db;
     const seed = await seedReader(db);
@@ -79,34 +50,34 @@ test('joining starts read at the present; a mention that follows the Agent in st
         .where(eq(agentChatReadsTable.agentId, peerId));
     expect(peer?.sequence).toBe(2);
 
-    const threadId = await addThread(db, seed, {
+    const { chatId: taskChatId } = await addTask(db, seed, {
         anchorId: anchor.id,
         followed: false,
         parentChatId: seed.channelId,
     });
-    await postMessage(db, seed, { chatId: threadId });
+    await postMessage(db, seed, { chatId: taskChatId });
     const [agent] = await db
         .select({ handle: agentsTable.handle })
         .from(agentsTable)
         .where(eq(agentsTable.id, seed.agentId));
     const content = `@${agent?.handle} can you look?`;
-    const mention = await postMessage(db, seed, { chatId: threadId, content });
+    const mention = await postMessage(db, seed, { chatId: taskChatId, content });
     await planAgentMessageRecipients(db, {
         authorAgentId: null,
-        chatId: threadId,
+        chatId: taskChatId,
         content,
         messageId: mention.id,
         serverId: seed.serverId,
     });
-    expect(await readPosition(db, seed, threadId)).toBe(mention.sequence - 1);
+    expect(await readPosition(db, seed, taskChatId)).toBe(mention.sequence - 1);
 
-    // Following an already-followed Thread keeps what is unread there.
-    await followAgentThread(db, {
+    // Following an already-followed Task keeps what is unread there.
+    await followAgentTask(db, {
         agentId: seed.agentId,
         serverId: seed.serverId,
-        threadChatId: threadId,
+        taskChatId,
     });
-    expect(await readPosition(db, seed, threadId)).toBe(mention.sequence - 1);
+    expect(await readPosition(db, seed, taskChatId)).toBe(mention.sequence - 1);
 });
 
 test('read --unread starts after the read position and moves it through the page', async () => {
@@ -193,18 +164,3 @@ test('delivery-seen moves the read position through the contiguous visible prefi
     // The Agent's own message 3 needs no visibility.
     expect(await readPosition(db, seed, seed.channelId)).toBe(4);
 });
-
-/** The data statement the migration appends after its DDL. */
-async function migrationBackfill() {
-    const migration = await readFile(
-        new URL('../drizzle/postgres/0062_agent_chat_reads.sql', import.meta.url),
-        'utf8'
-    );
-    const statement = migration
-        .split('--> statement-breakpoint')
-        .find((part) => part.includes('INSERT INTO "agent_chat_reads"'));
-    if (!statement) {
-        throw new Error('The agent_chat_reads migration has no backfill.');
-    }
-    return statement;
-}

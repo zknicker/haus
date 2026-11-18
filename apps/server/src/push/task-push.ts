@@ -8,10 +8,10 @@ import {
     taskAssignmentBurstNotificationTitle,
     taskAssignmentNotificationTitle,
 } from '@haus/api';
-import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { countUnreadInboxRows } from '../chats/unread-chat-count.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable, taskInboxItemsTable, usersTable } from '../postgres/schema.ts';
+import { agentsTable, tasksTable, usersTable } from '../postgres/schema.ts';
 import { taskAssignedTopic } from '../realtime/topics.ts';
 import { readTask } from '../tasks/task-read.ts';
 import { messagePreview } from './message-preview.ts';
@@ -99,10 +99,9 @@ export function createTaskPushWindow(
 
 /**
  * Pushes one person's assignments from one window to their devices, less any
- * that stopped being news during the grace: the person opened the Task, or it
- * went to someone else. The version check also drops an assignment an immediate
- * reassign superseded. One left is the assignment's own push; several are one
- * push that opens the Inbox.
+ * that stopped being news during the grace: the Task went to someone else.
+ * One left is the assignment's own push; several are one push that opens the
+ * Inbox.
  */
 export async function pushTaskAssignments(
     db: HausDatabase,
@@ -126,30 +125,31 @@ export async function pushTaskAssignments(
     }
 }
 
+/**
+ * The assignments still news after the grace: the Task is still the person's.
+ * A reassignment away drops it; one assignment per Task pushes.
+ */
 async function readStillNews(
     db: HausDatabase,
     events: readonly TaskAssignedEvent[],
     { serverId, userId }: { serverId: string; userId: string }
 ) {
-    const items = await db
-        .select({
-            assignmentVersion: taskInboxItemsTable.assignmentVersion,
-            taskId: taskInboxItemsTable.taskId,
-        })
-        .from(taskInboxItemsTable)
+    const held = await db
+        .select({ taskId: tasksTable.id })
+        .from(tasksTable)
         .where(
             and(
-                eq(taskInboxItemsTable.serverId, serverId),
-                eq(taskInboxItemsTable.userId, userId),
+                eq(tasksTable.serverId, serverId),
+                eq(tasksTable.assigneeUserId, userId),
                 inArray(
-                    taskInboxItemsTable.taskId,
+                    tasksTable.id,
                     events.map((event) => event.taskId)
-                ),
-                isNull(taskInboxItemsTable.clearedAt)
+                )
             )
         );
-    const versionByTask = new Map(items.map((item) => [item.taskId, item.assignmentVersion]));
-    return events.filter((event) => versionByTask.get(event.taskId) === event.version);
+    const stillNews = new Set(held.map((row) => row.taskId));
+    const newestByTask = new Map(events.map((event) => [event.taskId, event]));
+    return [...newestByTask.values()].filter((event) => stillNews.has(event.taskId));
 }
 
 async function pushOneAssignment(

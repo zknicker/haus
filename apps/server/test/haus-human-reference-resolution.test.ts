@@ -56,7 +56,7 @@ test('resolves only active humans in this Server and keeps retry identities afte
     ).toBe('Ask [@zach-knickerbocker](user://usr_nohandle).');
 });
 
-test('resolves a whole Thread reference and retains it on retry after a Channel rename', async () => {
+test('resolves a whole Message reference and retains it on retry after a Channel rename', async () => {
     const anchor = 'msg_12345678aaaaaaaaaaaaaaaaaaaaaaaa';
     await harness.sql`
         insert into chats (id, server_id, kind, name)
@@ -64,15 +64,11 @@ test('resolves a whole Thread reference and retains it on retry after a Channel 
     `;
     await harness.sql`
         insert into chat_messages (id, server_id, chat_id, author_user_id, content, nonce, sequence)
-        values (${anchor}, 'srv_mentions', 'cht_refs', 'usr_zach', 'Assignment', 'thread-ref-anchor', 1)
-    `;
-    await harness.sql`
-        insert into chats (id, server_id, kind, parent_chat_id, parent_chat_kind, anchor_message_id)
-        values ('cht_thread_ref', 'srv_mentions', 'thread', 'cht_refs', 'channel', ${anchor})
+        values (${anchor}, 'srv_mentions', 'cht_refs', 'usr_zach', 'Assignment', 'message-ref-anchor', 1)
     `;
     const input = { content: 'Work in #tech-ops:12345678.', serverId: 'srv_mentions' };
     const stored = await canonicalizeAgentMessageContentForPersistence(connection.db, input);
-    expect(stored).toBe(`Work in [#tech-ops thread](chat://cht_refs?thread=${anchor}).`);
+    expect(stored).toBe(`Work in [#tech-ops message](chat://cht_refs?thread=${anchor}).`);
     await harness.sql`update chats set name = 'renamed' where id = 'cht_refs'`;
     expect(
         await canonicalizeAgentMessageContentForPersistence(connection.db, {
@@ -88,7 +84,7 @@ test('resolves a whole Thread reference and retains it on retry after a Channel 
     ).toBe('Other Server #renamed:12345678.');
 });
 
-test('resolves a Thread reference on a Channel message that has no Thread yet', async () => {
+test('resolves a Message reference by its case-sensitive short id', async () => {
     const anchor = 'msg_ofWoeFRCxQ2abcdEF_-1';
     await harness.sql`
         insert into chats (id, server_id, kind, name)
@@ -96,7 +92,7 @@ test('resolves a Thread reference on a Channel message that has no Thread yet', 
     `;
     await harness.sql`
         insert into chat_messages (id, server_id, chat_id, author_user_id, content, nonce, sequence)
-        values (${anchor}, 'srv_mentions', 'cht_plans', 'usr_zach', 'Plan', 'unthreaded-anchor', 1)
+        values (${anchor}, 'srv_mentions', 'cht_plans', 'usr_zach', 'Plan', 'plain-anchor', 1)
     `;
     expect(
         await canonicalizeAgentMessageContentForPersistence(connection.db, {
@@ -104,6 +100,6 @@ test('resolves a Thread reference on a Channel message that has no Thread yet', 
             serverId: 'srv_mentions',
         })
     ).toBe(
-        `Here it is: [#plans thread](chat://cht_plans?thread=${anchor}) (Oct 29), not #plans:ofwoefrc.`
+        `Here it is: [#plans message](chat://cht_plans?thread=${anchor}) (Oct 29), not #plans:ofwoefrc.`
     );
 });

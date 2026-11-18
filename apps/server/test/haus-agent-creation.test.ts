@@ -5,7 +5,7 @@ import { captureTopic, settleRealtime } from './realtime-capture.ts';
 
 const fixture = agentCreationFixture();
 
-test('creation records the Agent and memberships without messages, threads, or inbox work for anyone else', async () => {
+test('creation records the Agent and memberships without messages, Tasks, or inbox work for anyone else', async () => {
     const runner = await fixture.mintRunner('run_create_happy');
     const before = await conversationCounts();
     const lifecycle = captureTopic(chatLifecycleTopic);
@@ -97,42 +97,6 @@ test('a reused nonce with different values is refused as a conflict', async () =
     expect(await countAgentsNamed('Tally Two')).toBe(0);
 });
 
-test('creation can use a Thread as its request context without posting there', async () => {
-    const anchor = await fixture.owner.trpc.chat.send.mutate({
-        chatId: fixture.channelId,
-        content: 'Create a teammate here.',
-        nonce: 'create-thread-anchor',
-        serverId: fixture.serverId,
-    });
-    const reply = await fixture.owner.trpc.chat.send.mutate({
-        chatId: fixture.channelId,
-        content: 'In this thread.',
-        nonce: 'create-thread-reply',
-        serverId: fixture.serverId,
-        thread: { anchorMessageId: anchor.message.id },
-    });
-    const threadId = reply.message.chatId;
-    const runner = await fixture.mintRunner('run_create_thread', fixture.orbitAgentId, threadId);
-    const target = `#product:${anchor.message.id.slice('msg_'.length)}`;
-    // Arrange the Computer's model-seen proof for the request in this Thread.
-    await fixture.harness.sql`
-        insert into agent_inbox_cursors (server_id, agent_id, session_generation, chat_id, seen_up_to_sequence)
-        values (${fixture.serverId}, ${fixture.orbitAgentId}, 1, ${threadId}, ${reply.message.sequence})
-    `;
-    const before = await conversationCounts();
-    const created = await fixture.postCreate(
-        runner,
-        fixture.createBody({
-            displayName: 'Threadling',
-            nonce: 'create-thread',
-            target,
-        })
-    );
-    expect(created.status).toBe(200);
-    expect(created.body.chatId).toBe(threadId);
-    expect(await conversationCounts()).toEqual(before);
-});
-
 test('an archived target refuses the creation', async () => {
     const archived = await fixture.owner.trpc.chat.createChannel.mutate({
         agentIds: [fixture.orbitAgentId],
@@ -195,7 +159,7 @@ async function conversationCounts() {
     const [row] = await fixture.harness.sql`
         select
             (select count(*)::int from chat_messages where server_id = ${fixture.serverId}) as messages,
-            (select count(*)::int from chats where server_id = ${fixture.serverId} and kind = 'thread') as threads,
+            (select count(*)::int from chats where server_id = ${fixture.serverId} and kind = 'task') as tasks,
             (select count(*)::int from agent_inbox where server_id = ${fixture.serverId} and source <> 'greeting') as inbox
     `;
     return row;

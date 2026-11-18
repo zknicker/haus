@@ -18,7 +18,6 @@ export async function listCloudAgentWorkLinks(
     }
     const rows = await db
         .select({
-            anchorMessageId: chatsTable.anchorMessageId,
             chatId: chatsTable.id,
             parentChatId: chatsTable.parentChatId,
             workId: cloudAgentWorkLinksTable.workId,
@@ -48,9 +47,9 @@ export async function listCloudAgentWorkLinks(
         .orderBy(asc(cloudAgentWorkLinksTable.createdAt));
 
     const links = new Map<string, CloudAgentWorkLink>();
-    for (const { anchorMessageId, chatId, parentChatId, workId } of rows) {
-        const link = { anchorMessageId, chatId: parentChatId ?? chatId, workId };
-        links.set(`${workId}\0${link.chatId}\0${anchorMessageId ?? ''}`, link);
+    for (const { chatId, parentChatId, workId } of rows) {
+        const link = { chatId: parentChatId ?? chatId, workId };
+        links.set(`${workId}\0${link.chatId}`, link);
     }
     return [...links.values()];
 }

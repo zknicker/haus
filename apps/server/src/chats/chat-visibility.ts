@@ -1,7 +1,10 @@
 import { type SQL, sql } from 'drizzle-orm';
 import { chatsTable } from '../postgres/schema.ts';
 
-/** The canonical DM-pair-or-Channel-participant visibility rule. */
+/**
+ * The canonical DM-pair-or-Channel-participant visibility rule. A Task's Chat
+ * (ADR 0052) is visible exactly when its origin Channel is.
+ */
 export function visibleChats(userId: string): SQL {
     return sql`(
         (
@@ -35,45 +38,17 @@ export function visibleChats(userId: string): SQL {
                 and participant.user_id = ${userId}
         )
         or (
-            ${chatsTable.kind} = 'thread'
+            ${chatsTable.kind} = 'task'
             and exists (
                 select 1
                 from chats parent
+                join channel_participants parent_participant
+                    on parent_participant.server_id = parent.server_id
+                    and parent_participant.chat_id = parent.id
+                    and parent_participant.user_id = ${userId}
                 where parent.server_id = ${chatsTable.serverId}
                     and parent.id = ${chatsTable.parentChatId}
                     and parent.deleted_at is null
-                    and (
-                        (
-                            parent.kind = 'dm'
-                            and (
-                                (
-                                    parent.dm_member_one_user_id = ${userId}
-                                    and exists (
-                                        select 1 from server_memberships membership
-                                        where membership.server_id = parent.server_id
-                                            and membership.user_id = ${userId}
-                                            and membership.stint = parent.dm_member_one_stint
-                                    )
-                                )
-                                or (
-                                    parent.dm_member_two_user_id = ${userId}
-                                    and exists (
-                                        select 1 from server_memberships membership
-                                        where membership.server_id = parent.server_id
-                                            and membership.user_id = ${userId}
-                                            and membership.stint = parent.dm_member_two_stint
-                                    )
-                                )
-                            )
-                        )
-                        or exists (
-                            select 1
-                            from channel_participants parent_participant
-                            where parent_participant.server_id = parent.server_id
-                                and parent_participant.chat_id = parent.id
-                                and parent_participant.user_id = ${userId}
-                        )
-                    )
             )
         )
     )`;

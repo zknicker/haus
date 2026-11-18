@@ -1,21 +1,21 @@
 import { and, eq, inArray, ne, or } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentDeliveryTable, agentInboxTable } from '../postgres/schema.ts';
-import { type ClaimWorkThreadRow, claimWorkThreadChatId } from './claim-work-thread.ts';
+import { agentDeliveryTable, agentInboxTable, chatMessagesTable } from '../postgres/schema.ts';
 
 /** The claim columns liveness reads. */
-export interface ClaimLivenessRow extends ClaimWorkThreadRow {
+export interface ClaimLivenessRow {
     assigneeAgentId: string | null;
+    messageId: string;
 }
 
 /**
  * A claim is live while its assignee Agent's one in-flight run holds an inbox
- * row anchored on the claim's own message or on its work Thread (the Thread a
- * Thread claim sits in, which several claims can share) — attached to the
- * run by a pull, or offered to it as a notice in the run's own Chat. Liveness
- * is volatile execution state derived at read time, never a stored claim
- * column; the run's start and its settlement both emit `claim.updated`, so the
- * App learns about it the same way it learns about every other claim change.
+ * row anchored on the claim's own message or on an inline reply to it —
+ * attached to the run by a pull, or offered to it as a notice in the run's own
+ * Chat. Liveness is volatile execution state derived at read time, never a
+ * stored claim column; the run's start and its settlement both emit
+ * `claim.updated`, so the App learns about it the same way it learns about
+ * every other claim change.
  */
 export async function loadLiveClaimMessageIds(
     db: Pick<HausDatabase, 'select'>,
@@ -26,19 +26,11 @@ export async function loadLiveClaimMessageIds(
     if (assigned.length === 0) {
         return new Set();
     }
-    const claimsByKey = new Map<string, string[]>();
-    const hold = (key: string, messageId: string) => {
-        claimsByKey.set(key, [...(claimsByKey.get(key) ?? []), messageId]);
-    };
-    for (const row of assigned) {
-        hold(`${row.assigneeAgentId} ${row.messageId}`, row.messageId);
-        hold(`${row.assigneeAgentId} ${claimWorkThreadChatId(row)}`, row.messageId);
-    }
+    const claimed = new Set(assigned.map((row) => `${row.assigneeAgentId} ${row.messageId}`));
     const agentIds = [...new Set(assigned.map((row) => row.assigneeAgentId as string))];
     const served = await db
         .select({
             agentId: agentInboxTable.agentId,
-            chatId: agentInboxTable.chatId,
             dedupeKey: agentInboxTable.dedupeKey,
         })
         .from(agentInboxTable)
@@ -62,13 +54,43 @@ export async function loadLiveClaimMessageIds(
                 ne(agentInboxTable.state, 'seen')
             )
         );
+    const parents = await readInlineParents(db, serverId, [
+        ...new Set(served.map((row) => row.dedupeKey)),
+    ]);
     const live = new Set<string>();
     for (const row of served) {
-        for (const key of [`${row.agentId} ${row.dedupeKey}`, `${row.agentId} ${row.chatId}`]) {
-            for (const messageId of claimsByKey.get(key) ?? []) {
+        for (const messageId of [row.dedupeKey, ...(parents.get(row.dedupeKey) ?? [])]) {
+            if (claimed.has(`${row.agentId} ${messageId}`)) {
                 live.add(messageId);
             }
         }
     }
     return live;
+}
+
+/** Each message's inline parent and root, by message id. */
+async function readInlineParents(
+    db: Pick<HausDatabase, 'select'>,
+    serverId: string,
+    messageIds: string[]
+): Promise<Map<string, string[]>> {
+    if (messageIds.length === 0) {
+        return new Map();
+    }
+    const rows = await db
+        .select({
+            id: chatMessagesTable.id,
+            replyRootMessageId: chatMessagesTable.replyRootMessageId,
+            replyToMessageId: chatMessagesTable.replyToMessageId,
+        })
+        .from(chatMessagesTable)
+        .where(
+            and(eq(chatMessagesTable.serverId, serverId), inArray(chatMessagesTable.id, messageIds))
+        );
+    return new Map(
+        rows.map((row) => [
+            row.id,
+            [row.replyToMessageId, row.replyRootMessageId].filter((id): id is string => !!id),
+        ])
+    );
 }

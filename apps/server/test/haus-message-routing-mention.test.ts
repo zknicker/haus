@@ -2,6 +2,7 @@ import { beforeAll, expect, test } from 'bun:test';
 import type { MessageRouter, RoutingState } from '../src/message-routing/jev.ts';
 import type { MentionScopeDecision } from '../src/message-routing/mention-scope.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
+import { startTestTask } from './task-place-fixture.ts';
 
 const scopeCalls: RoutingState[] = [];
 let judgeScope: (state: RoutingState) => Promise<MentionScopeDecision> = async () => ({
@@ -153,20 +154,25 @@ test('mentioning every eligible Agent leaves nothing for Jev to narrow', async (
     });
 });
 
-test('a mention in an inline reply or a Thread keeps its deterministic bypass', async () => {
+test('a mention in an inline reply or a Task keeps its deterministic bypass', async () => {
     judgeScope = mentionedOnly;
     const root = await send('A root for replies.');
     const before = scopeCalls.length;
     const reply = await send('@orbit look at this one.', { replyToMessageId: root.message.id });
     expect((await audit(reply.message.id))?.bypassReason).toBe('reply');
-    const threaded = await fixture.owner.trpc.chat.send.mutate({
-        chatId: channelId,
+    const task = await startTestTask(fixture.harness, fixture.owner, {
+        channelId,
+        originMessageId: root.message.id,
         serverId: fixture.serverId,
-        content: '@orbit continue in the thread.',
-        nonce: `mention_${nonce++}`,
-        thread: { anchorMessageId: root.message.id },
+        title: 'Routing check',
     });
-    expect((await audit(threaded.message.id))?.bypassReason).toBe('thread');
+    const inTask = await fixture.owner.trpc.chat.send.mutate({
+        chatId: task.chatId,
+        serverId: fixture.serverId,
+        content: '@orbit continue in the Task.',
+        nonce: `mention_${nonce++}`,
+    });
+    expect((await audit(inTask.message.id))?.bypassReason).toBe('task');
     expect(scopeCalls.length).toBe(before);
 });
 

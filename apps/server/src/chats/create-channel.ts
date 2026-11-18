@@ -13,6 +13,7 @@ import {
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { findGeneralTaskKeyId } from '../tasks/task-key-ledger.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { prepareLifecycleEvent } from './lifecycle-events.ts';
 import { listChats } from './list-chats.ts';
@@ -112,6 +113,8 @@ export async function insertChannel(
             kind: 'channel',
             name: input.name,
             serverId: input.serverId,
+            // A new Channel's Tasks take the Server's General key (ADR 0052 decision 11).
+            taskKeyId: await findGeneralTaskKeyId(tx, input.serverId),
         });
     } catch (error) {
         if (violatesConstraint(error, 'chats_server_channel_name_key')) {

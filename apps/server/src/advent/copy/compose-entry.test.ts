@@ -20,14 +20,14 @@ const titles = [
     'Files on the shelf',
     'The night owl',
     'Your closest DM',
-    'Your longest thread',
+    'Your longest conversation',
     'Tokens burned',
     'The quickest reply',
     'Your busiest day',
     'Tasks closed',
     'New rooms',
     'The quiet month',
-    'Threads tied off',
+    'Loose ends tied off',
     'Your favourite reaction',
     'The hardest worker',
     'In demand',
@@ -116,7 +116,7 @@ describe('recap', () => {
     const empty: AdventRecapStats = {
         agents: null,
         busiestHour: null,
-        counts: { chats: 0, threads: 0 },
+        counts: { chats: 0, conversations: 0 },
         loudest: null,
         messages: null,
         tasks: null,
@@ -129,7 +129,7 @@ describe('recap', () => {
             {
                 agents: { count: 3 },
                 busiestHour: { count: 40, hour: 16 },
-                counts: { chats: 9, threads: 4 },
+                counts: { chats: 9, conversations: 4 },
                 loudest: { count: 200, name: '#product' },
                 messages: { count: 1200 },
                 tasks: { count: 15 },
@@ -145,7 +145,7 @@ describe('recap', () => {
         expect(entry.stats).toEqual([
             { label: 'Messages', value: '1,200' },
             { label: 'Chats', value: '9' },
-            { label: 'Threads', value: '4' },
+            { label: 'Conversations', value: '4' },
             { label: 'Agents', value: '3' },
             { label: 'Tasks closed', value: '15' },
             { label: 'Tokens', value: '1.3M' },
@@ -157,7 +157,7 @@ describe('recap', () => {
 
     test('omits stats with no data', () => {
         const entry = composeRecapEntry(
-            { ...empty, counts: { chats: 2, threads: 0 }, messages: { count: 5 } },
+            { ...empty, counts: { chats: 2, conversations: 0 }, messages: { count: 5 } },
             'seed'
         );
         if (entry.kind !== 'recap') {

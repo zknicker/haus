@@ -4,13 +4,11 @@ import { messageReactionUpdatedTopic } from '../realtime/topics.ts';
 export function prepareMessageReactionEvent(input: {
     chatId: string;
     messageId: string;
-    parentChatId: string | null;
     serverId: string;
 }) {
     return messageReactionUpdatedTopic.prepare({
         chatId: input.chatId,
         messageId: input.messageId,
-        parentChatId: input.parentChatId,
         serverId: input.serverId,
     });
 }

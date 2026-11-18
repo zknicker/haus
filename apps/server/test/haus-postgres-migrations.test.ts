@@ -186,12 +186,17 @@ test('copies each existing reminder title into its new description', async () =>
         await migrateHausDatabase(url.toString(), 'haus', 'haus', folder);
         upgraded = new SQL(url.toString());
         const title = 'Check advertising every Monday and look for campaigns that need bid changes';
-        // Only the reminder row matters here, so its Server, Agent, and anchor are skipped.
+        // Only the reminder row matters here, so its Server, Agent, and anchor Chat are
+        // skipped. Its anchor Message stays: 0123 re-adds the anchor key, which checks rows.
         await upgraded.begin(async (tx) => {
             await tx`SET LOCAL session_replication_role = replica`;
             await tx`INSERT INTO manual_lookup_audit (id,agent_id,intent,operation,reason,runner_id,server_id,topic_id)
                 VALUES ('aml_aaaaaaaaaaaaaaaa','agt_upgrade','Choose a standing lane','get','Read guidance before hire','arc_upgrade','srv_upgrade','archetype/patrol'),
                 ('aml_bbbbbbbbbbbbbbbb','agt_upgrade','Choose a standing lane','get','Read guidance before hire','arc_upgrade','srv_upgrade','missing/topic')`;
+            await tx`INSERT INTO chat_messages (id, server_id, chat_id, author_agent_id, content,
+                    nonce, sequence)
+                VALUES ('msg_upgrade', 'srv_upgrade', 'cht_upgrade', 'agt_upgrade', 'Anchor',
+                    'upgrade-anchor', 1)`;
             await tx`INSERT INTO reminders (id, server_id, owner_agent_id, anchor_chat_id,
                     anchor_message_id, created_at, fire_at, status, timezone, title, updated_at)
                 VALUES ('rem_upgrade', 'srv_upgrade', 'agt_upgrade', 'cht_upgrade', 'msg_upgrade',

@@ -1,11 +1,11 @@
 import {
     parseAgentReferenceTarget,
+    parseChatMessageReferenceTarget,
     parseChatReferenceTarget,
-    parseChatThreadReferenceTarget,
     parseHausRichReferences,
     parseUserReferenceTarget,
 } from '@haus/api';
-import type { ThreadReferenceTarget } from './thread-reference-targets.ts';
+import type { MessageReferenceTarget } from './message-reference-targets.ts';
 
 export interface ParticipantReferenceTarget {
     handle: string;
@@ -17,6 +17,11 @@ export interface ChatReferenceTarget {
     name: string;
 }
 
+/**
+ * The targets an edited Message already carries, so re-canonicalizing keeps
+ * them. A Message link's label is `#channel message`, or `#channel thread` in
+ * bodies written before ADR 0052; either names the Channel.
+ */
 export function readExistingReferenceTargets(content: string | undefined) {
     const references = parseHausRichReferences(content ?? '');
     const agents = references.flatMap((reference) => {
@@ -32,21 +37,19 @@ export function readExistingReferenceTargets(content: string | undefined) {
         if (!id) {
             return [];
         }
-        const thread = parseChatThreadReferenceTarget(reference.id);
+        const message = parseChatMessageReferenceTarget(reference.id);
         return [
             {
                 id,
-                name: thread
-                    ? reference.label.replace(/ thread$/u, '').split(':')[0]
+                name: message
+                    ? reference.label.replace(/ (?:message|thread)$/u, '').split(':')[0]
                     : reference.label,
             },
         ];
     });
-    const threads: ThreadReferenceTarget[] = references.flatMap((reference) => {
-        const thread = parseChatThreadReferenceTarget(reference.id);
-        return thread
-            ? [{ parentChatId: thread.chatId, anchorMessageId: thread.anchorMessageId }]
-            : [];
+    const messages: MessageReferenceTarget[] = references.flatMap((reference) => {
+        const message = parseChatMessageReferenceTarget(reference.id);
+        return message ? [message] : [];
     });
-    return { agents, channels, users, threads };
+    return { agents, channels, messages, users };
 }

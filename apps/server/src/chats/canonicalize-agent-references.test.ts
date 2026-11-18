@@ -9,21 +9,21 @@ const agents = [
 const channels = [{ id: 'cht_product', name: 'product' }];
 
 describe('canonicalizeAgentMessageContent', () => {
-    it('turns a whole thread target into a readable link, including legacy anchors', () => {
+    it('turns a #channel:shortid token into a Message link, including legacy ids', () => {
         const anchorMessageId = 'msg_12345678aaaaaaaaaaaaaaaaaaaaaaaa';
         const input = {
             agents,
             channels,
             users: [],
-            threads: [
-                { parentChatId: 'cht_product', anchorMessageId },
-                { parentChatId: 'cht_product', anchorMessageId: 'OB4fLQYW' },
+            messages: [
+                { chatId: 'cht_product', messageId: anchorMessageId },
+                { chatId: 'cht_product', messageId: 'OB4fLQYW' },
             ],
         };
         expect(
             canonicalizeAgentMessageContent('See #product:12345678, then #product:OB4fLQYW.', input)
         ).toBe(
-            `See [#product thread](chat://cht_product?thread=${anchorMessageId}), then [#product thread](chat://cht_product?thread=OB4fLQYW).`
+            `See [#product message](chat://cht_product?thread=${anchorMessageId}), then [#product message](chat://cht_product?thread=OB4fLQYW).`
         );
         const protectedContent = '`#product:12345678` and [#product:12345678](https://example.com)';
         expect(canonicalizeAgentMessageContent(protectedContent, input)).toBe(protectedContent);
@@ -35,31 +35,31 @@ describe('canonicalizeAgentMessageContent', () => {
             agents,
             channels,
             users: [],
-            threads: [{ parentChatId: 'cht_product', anchorMessageId }],
+            messages: [{ chatId: 'cht_product', messageId: anchorMessageId }],
         };
         expect(canonicalizeAgentMessageContent('See #product:dzV-6EXh.', input)).toBe(
-            `See [#product thread](chat://cht_product?thread=${anchorMessageId}).`
+            `See [#product message](chat://cht_product?thread=${anchorMessageId}).`
         );
         expect(canonicalizeAgentMessageContent('See #product:dzv-6exh.', input)).toBe(
             'See #product:dzv-6exh.'
         );
     });
 
-    it('leaves missing and ambiguous thread targets whole rather than linking just the channel', () => {
+    it('leaves missing and ambiguous Message tokens whole rather than linking just the channel', () => {
         const input = {
             agents,
             channels,
             users: [],
-            threads: [
+            messages: [
                 {
-                    parentChatId: 'cht_product',
-                    anchorMessageId: 'msg_12345678aaaaaaaaaaaaaaaaaaaaaaaa',
+                    chatId: 'cht_product',
+                    messageId: 'msg_12345678aaaaaaaaaaaaaaaaaaaaaaaa',
                 },
                 {
-                    parentChatId: 'cht_product',
-                    anchorMessageId: 'msg_12345678bbbbbbbbbbbbbbbbbbbbbbbb',
+                    chatId: 'cht_product',
+                    messageId: 'msg_12345678bbbbbbbbbbbbbbbbbbbbbbbb',
                 },
-                { parentChatId: 'cht_other', anchorMessageId: 'missing' },
+                { chatId: 'cht_other', messageId: 'missing' },
             ],
         };
         const content = 'See #product:12345678 or #product:missing.';

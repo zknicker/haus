@@ -42,32 +42,30 @@ test('Unread reads the demo Chats with their last line', async () => {
         content: 'Pushed the sidebar badge fix — PR is up for a look.',
     });
     expect(all?.unreadCount).toBeGreaterThan(0);
+    // The release check's discussion is inline replies, and the newest is Blippy's.
     expect(product?.lastMessage).toMatchObject({
         authorDisplayName: 'Blippy',
-        content:
-            'Thursday release check (report only, no changes). Headline: the badge fix cut duplicate digest reminders to zero, but two flaky specs are still blocking the release branch.',
+        content: expect.stringContaining('the migration check is the blocker'),
     });
     expect(product?.unreadCount).toBeGreaterThan(0);
     expect(
         dms.map((chat) => chat.lastMessage?.content).filter((content) => content !== undefined)
     ).toEqual(
         expect.arrayContaining([
-            expect.stringContaining('Can you price out moving the nightly backup to the mini?'),
+            expect.stringContaining('Two catches'),
             'Sounds right — badge PR first, then the reminders.',
         ])
     );
     expect(dms.every((chat) => chat.unreadCount > 0 || chat.lastMessage === null)).toBe(true);
 });
 
-test('Unread holds Tiny’s DM question; the claim is on Claims', async () => {
+test('Unread holds Tiny’s inline answer in the DM; the claim is on Claims', async () => {
     const agents = await owner.trpc.agent.list.query({ serverId });
     const agentId = (handle: string) => agents.find((agent) => agent.handle === handle)?.id;
     const chats = await owner.trpc.chat.list.query({ serverId });
     const tiny = chats.find((chat) => chat.peerAgentId === agentId('tiny'));
     expect(tiny?.unreadCount).toBeGreaterThan(0);
-    expect(tiny?.lastMessage?.content).toContain(
-        'Can you price out moving the nightly backup to the mini?'
-    );
+    expect(tiny?.lastMessage?.content).toContain('The mini is two releases behind');
 
     const blippyId = agents.find((agent) => agent.handle === 'blippy')?.id;
     const { claims } = await owner.trpc.claim.list.query({ includeBackground: false, serverId });
@@ -90,9 +88,8 @@ test('Unread holds Tiny’s DM question; the claim is on Claims', async () => {
 test('Happening now shows gallery samples and settled work keeps its evidence', async () => {
     const active = await owner.trpc.cloudAgentWork.listActive.query({ serverId });
     // Six Cursor gallery samples (one needs input), three gallery follow-ups,
-    // two Claude samples (working, needs input), and the seven running
-    // #repo-health fan-out rows.
-    expect(active).toHaveLength(18);
+    // and two Claude samples (working, needs input).
+    expect(active).toHaveLength(11);
 
     const chats = await owner.trpc.chat.list.query({ serverId });
     const productChatId = chats.find((chat) => chat.name === 'product')?.id ?? '';
@@ -192,10 +189,12 @@ test('UI gallery reads the attachment combinations and isolates live samples', a
     expect(gallery).toBeDefined();
     const chatId = gallery?.id ?? '';
     const transcript = await owner.trpc.chat.messages.query({ serverId, chatId });
-    expect(transcript.messages).toHaveLength(33);
+    // Thirty-three top-level samples and the ten inline replies under them.
+    expect(transcript.messages).toHaveLength(43);
+    // Every @mention sample, the two inline ones included.
     expect(
         transcript.messages.filter((message) => message.content.includes('user://'))
-    ).toHaveLength(4);
+    ).toHaveLength(6);
     const works = await owner.trpc.cloudAgentWork.listForChat.query({ serverId, chatId });
     expect(works).toHaveLength(20);
     // Follow-ups read as the job they follow, never as queued.

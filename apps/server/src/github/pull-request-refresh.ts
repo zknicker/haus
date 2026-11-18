@@ -1,4 +1,5 @@
 import { and, asc, eq, isNotNull, lte, sql } from 'drizzle-orm';
+import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { type BootSweep, type SweepTimers, startBootSweep } from '../boot-sweep.ts';
 import { prepareLinkedWorkEvents } from '../cloud-agents/cloud-agent-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -8,10 +9,12 @@ import {
     githubInstallationsTable,
 } from '../postgres/schema.ts';
 import { publishRealtime } from '../realtime/topic.ts';
+import { lockServerRow } from '../servers/server-lock.ts';
 import { GithubApiError } from './github-api.ts';
 import type { GithubApp } from './github-app.ts';
 import { createInstallationTokens } from './github-bot.ts';
 import { type GithubPullRequestFacts, readGithubPullRequest } from './pull-request-read.ts';
+import { enqueuePullRequestWakes, pullRequestTransitions } from './pull-request-wake.ts';
 
 /** A burst of check events settles into one read after this long. */
 const coalesceMs = 5000;
@@ -23,6 +26,10 @@ type InstallationTokens = ReturnType<typeof createInstallationTokens>;
 export interface PullRequestRefreshDependencies {
     app: GithubApp;
     db: HausDatabase;
+    /** Queues the ready-after-settle wake inside the reading's write. */
+    delivery: Pick<AgentDelivery, 'enqueue'>;
+    /** Dispatches the woken Agents once the reading commits. */
+    wakeAgents(wakes: { agentId: string; serverId: string }[]): void;
 }
 
 /** Reads marked pull requests on a fixed interval, one at a time. */
@@ -70,7 +77,7 @@ export async function refreshPullRequestReadings(
         if (options.closing?.aborted) {
             return;
         }
-        const installationId = await findInstallation(db, row);
+        const installationId = await findPullRequestInstallation(db, row);
         if (installationId === null) {
             await clearMark(db, row);
             continue;
@@ -84,7 +91,7 @@ export async function refreshPullRequestReadings(
                 },
                 dependencies.app.transport
             );
-            await writeReading(db, row, facts, now);
+            await writeReading(dependencies, row, facts, now);
         } catch (error) {
             if (!(error instanceof GithubApiError)) {
                 throw error;
@@ -98,7 +105,11 @@ export async function refreshPullRequestReadings(
     }
 }
 
-async function findInstallation(db: HausDatabase, row: ReadingRow): Promise<number | null> {
+/** The active installation covering a repository's owner, or null when none does. */
+export async function findPullRequestInstallation(
+    db: Pick<HausDatabase, 'select'>,
+    row: { repository: string; serverId: string }
+): Promise<number | null> {
     const owner = row.repository.split('/')[0] ?? '';
     const [installation] = await db
         .select({ installationId: githubInstallationsTable.installationId })
@@ -115,26 +126,39 @@ async function findInstallation(db: HausDatabase, row: ReadingRow): Promise<numb
 }
 
 async function writeReading(
-    db: HausDatabase,
+    dependencies: PullRequestRefreshDependencies,
     row: ReadingRow,
     facts: GithubPullRequestFacts,
     now: Date
 ): Promise<void> {
-    const events = await db.transaction(async (tx) => {
+    const { events, wakes } = await dependencies.db.transaction(async (tx) => {
+        // Server row first, as a Run observation takes it before seeding readings,
+        // so the wake's inbox write never inverts that lock order.
+        await lockServerRow(tx, row.serverId);
         await tx
             .update(cloudAgentPullRequestsTable)
             .set({ ...facts, observedAt: now, source: 'github' })
             .where(rowKey(row));
         await clearMark(tx, row);
-        return readingChanged(row, facts)
-            ? await prepareLinkedWorkEvents(tx, {
-                  serverId: row.serverId,
-                  workIds: await reportingWorkIds(tx, row),
-              })
-            : [];
+        if (!readingChanged(row, facts)) {
+            return { events: [], wakes: [] };
+        }
+        return {
+            events: await prepareLinkedWorkEvents(tx, {
+                serverId: row.serverId,
+                workIds: await reportingWorkIds(tx, row),
+            }),
+            wakes: await enqueuePullRequestWakes(tx, dependencies.delivery, {
+                reading: { ...row, headSha: facts.headSha },
+                transitions: pullRequestTransitions(row, facts),
+            }),
+        };
     });
     for (const event of events) {
         publishRealtime(event);
+    }
+    if (wakes.length > 0) {
+        dependencies.wakeAgents(wakes);
     }
 }
 

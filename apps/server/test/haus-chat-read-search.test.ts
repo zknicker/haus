@@ -112,10 +112,10 @@ test('PostgreSQL search returns only authorized Server messages', async () => {
     expect(JSON.stringify(plan)).toContain('chat_messages_search_idx');
 });
 
-test('search keeps a Thread behind its parent Chat access', async () => {
+test('search keeps an inline reply behind its Chat access', async () => {
     const anchor = await owner.trpc.chat.send.mutate({
         chatId,
-        content: 'Thread anchor',
+        content: 'Reply anchor',
         nonce: 'access-anchor',
         serverId,
     });
@@ -124,7 +124,7 @@ test('search keeps a Thread behind its parent Chat access', async () => {
         content: 'Wombat reply',
         nonce: 'access-reply',
         serverId,
-        thread: { anchorMessageId: anchor.message.id },
+        replyToMessageId: anchor.message.id,
     });
     await expect(peer.trpc.chat.search.query({ query: 'wombat', serverId })).resolves.toHaveLength(
         1

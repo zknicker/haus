@@ -10,7 +10,7 @@ import type { PreparedMessageRouting } from './route-human-message.ts';
 
 interface RoutingCommit {
     chatId: string;
-    chatKind: 'channel' | 'dm' | 'thread';
+    chatKind: 'channel' | 'dm' | 'task';
     isReply: boolean;
     messageId: string;
     prepared: PreparedMessageRouting;
@@ -174,8 +174,9 @@ function bypassReason(input: RoutingCommit, reason: RoutingBypassReason): Routin
     if (input.chatKind === 'dm') {
         return 'direct-message';
     }
-    if (input.chatKind === 'thread') {
-        return 'thread';
+    // ADR 0052: a Task's Chat delivers to its followers and mentions, unjudged.
+    if (input.chatKind === 'task') {
+        return 'task';
     }
     if (input.isReply) {
         return 'reply';

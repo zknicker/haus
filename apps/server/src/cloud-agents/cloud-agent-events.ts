@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray, isNotNull, isNull, or } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { chatsTable, cloudAgentWorkLinksTable } from '../postgres/schema.ts';
+import { chatsTable, cloudAgentWorkLinksTable, cloudAgentWorkTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { cloudAgentWorkUpdatedTopic } from '../realtime/topics.ts';
 import { linkParentChatsTable } from './cloud-agent-work-visibility.ts';
@@ -31,12 +31,18 @@ export async function prepareLinkedWorkEvents(
     const links = await db
         .select({
             chatId: cloudAgentWorkLinksTable.chatId,
-            kind: chatsTable.kind,
             messageId: cloudAgentWorkLinksTable.messageId,
-            parentChatId: chatsTable.parentChatId,
+            taskId: cloudAgentWorkTable.taskId,
             workId: cloudAgentWorkLinksTable.workId,
         })
         .from(cloudAgentWorkLinksTable)
+        .innerJoin(
+            cloudAgentWorkTable,
+            and(
+                eq(cloudAgentWorkTable.serverId, cloudAgentWorkLinksTable.serverId),
+                eq(cloudAgentWorkTable.id, cloudAgentWorkLinksTable.workId)
+            )
+        )
         .innerJoin(
             chatsTable,
             and(
@@ -67,8 +73,8 @@ export async function prepareLinkedWorkEvents(
         cloudAgentWorkUpdatedTopic.prepare({
             chatId: link.chatId,
             messageId: link.messageId,
-            parentChatId: link.kind === 'thread' ? link.parentChatId : null,
             serverId: input.serverId,
+            taskId: link.taskId,
             workId: link.workId,
         })
     );

@@ -1,13 +1,13 @@
 import type { ActiveCloudAgentWork } from '@haus/api';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
+import { agentsTable, cloudAgentWorkTable, tasksTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
+import { readTasks } from '../tasks/task-read.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import {
     chooseWorkLocation,
     conversationChatIdOf,
-    readChildThreads,
     readVisibleWorkLinks,
     type VisibleWorkLink,
 } from './active-cloud-agent-work-location.ts';
@@ -53,38 +53,61 @@ export async function listActiveCloudAgentWork(
         userId: member.id,
         workIds,
     });
-    const childThreads = await readChildThreads(db, {
-        messageIds: [...new Set(links.map((link) => link.messageId))],
-        serverId: input.serverId,
-    });
     const chosen = rows.flatMap(({ agentName, work }) => {
         const location = chooseWorkLocation(
             work.launchMessageId,
-            links.filter((link) => link.workId === work.id),
-            childThreads
+            links.filter((link) => link.workId === work.id)
         );
         return location ? [{ agentName, chosen: location, work }] : [];
     });
     const details = await readWorkDetails(db, input.serverId, workIds);
-    return chosen.map(({ agentName, chosen: { link, location }, work: row }) => ({
-        ...conversationFacts(link, member.id),
-        agentName,
-        location,
-        work: toCloudAgentWork(row, details.get(row.id)),
-    }));
+    const taskKeys = await readTaskKeys(db, {
+        serverId: input.serverId,
+        taskIds: chosen.flatMap(({ work }) => (work.taskId ? [work.taskId] : [])),
+    });
+    return chosen.map(({ agentName, chosen: { link, location }, work: row }) => {
+        const taskKey = row.taskId ? (taskKeys.get(row.taskId) ?? null) : null;
+        return {
+            ...conversationFacts(link, member.id),
+            agentName,
+            location,
+            taskId: taskKey ? row.taskId : null,
+            taskKey,
+            work: toCloudAgentWork(row, details.get(row.id)),
+        };
+    });
 }
 
+/** Each Task's key (`SEC-12`), by id: the Task a row of attached work names. */
+async function readTaskKeys(
+    db: HausDatabase,
+    input: { serverId: string; taskIds: string[] }
+): Promise<Map<string, string>> {
+    if (input.taskIds.length === 0) {
+        return new Map();
+    }
+    const tasks = await readTasks(db, {
+        serverId: input.serverId,
+        where: inArray(tasksTable.id, [...new Set(input.taskIds)]),
+    });
+    return new Map(tasks.map((task) => [task.id, task.key]));
+}
+
+/**
+ * The Channel or DM a link's row names. A Task's Chat (ADR 0052) takes its
+ * Channel's kind and name; a Task stays its own conversation.
+ */
 function conversationFacts(link: VisibleWorkLink, viewerUserId: string) {
-    const inThread = link.chatKind === 'thread';
-    const kind = inThread ? link.parentKind : link.chatKind;
+    const inTask = link.chatKind === 'task';
+    const kind = inTask ? link.parentKind : link.chatKind;
     if (kind !== 'channel' && kind !== 'dm') {
         throw new Error(`Cloud Agent work link ${link.messageId} is not in a Channel or DM.`);
     }
-    const one = inThread ? link.parentDmMemberOneUserId : link.chatDmMemberOneUserId;
-    const two = inThread ? link.parentDmMemberTwoUserId : link.chatDmMemberTwoUserId;
+    const one = inTask ? link.parentDmMemberOneUserId : link.chatDmMemberOneUserId;
+    const two = inTask ? link.parentDmMemberTwoUserId : link.chatDmMemberTwoUserId;
     return {
         chatKind: kind,
-        chatName: inThread ? link.parentName : link.chatName,
+        chatName: inTask ? link.parentName : link.chatName,
         chatPeerUserId: kind === 'dm' ? (one === viewerUserId ? two : one) : null,
         conversationChatId: conversationChatIdOf(link),
     };

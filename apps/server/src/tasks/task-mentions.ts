@@ -1,5 +1,5 @@
 import type { TaskMention, TaskReminderRef } from '@haus/api';
-import { and, desc, eq, isNull, max } from 'drizzle-orm';
+import { and, desc, eq, exists, isNull, max, or } from 'drizzle-orm';
 import { readStoredAuthorIdentity } from '../chats/message-shape.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -9,11 +9,12 @@ import {
     remindersTable,
     taskMessageLinksTable,
     taskReminderLinksTable,
+    tasksTable,
     usersTable,
 } from '../postgres/schema.ts';
 import { actorVisibleChats } from './actor-visible-chats.ts';
 import type { TaskActor } from './task-actor.ts';
-import { messagePlaceColumns, messagePlaceOf, threadParentChatJoin } from './task-message-place.ts';
+import { messagePlaceColumns, messagePlaceOf, originChannelJoin } from './task-message-place.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 
@@ -70,7 +71,7 @@ export async function listTaskMentions(
                 eq(chatsTable.id, chatMessagesTable.chatId)
             )
         )
-        .leftJoin(...threadParentChatJoin)
+        .leftJoin(...originChannelJoin)
         .leftJoin(
             agentsTable,
             and(
@@ -93,9 +94,11 @@ export async function listTaskMentions(
 }
 
 /**
- * A Task's **Reminders**: Reminders whose description references it, soonest
- * first, limited to those anchored in Chats the reader can read. The Task is
- * visible to every member; a Reminder anchored in a DM is not.
+ * A Task's **Reminders**: Reminders set on the Task (anchored in its own Chat,
+ * ADR 0052 decision 16) and Reminders whose description references it, soonest
+ * first, each naming the Agent that set it, limited to those anchored in Chats
+ * the reader can read. The Task is visible to every member; a Reminder
+ * anchored in a DM is not.
  */
 export async function listTaskReminders(
     db: Reader,
@@ -106,19 +109,14 @@ export async function listTaskReminders(
         .select({
             anchorChatId: remindersTable.anchorChatId,
             fireAt: remindersTable.fireAt,
+            ownerAgentId: remindersTable.ownerAgentId,
+            ownerDisplayName: agentsTable.displayName,
             repeat: remindersTable.repeat,
             reminderId: remindersTable.id,
             status: remindersTable.status,
             title: remindersTable.title,
         })
-        .from(taskReminderLinksTable)
-        .innerJoin(
-            remindersTable,
-            and(
-                eq(remindersTable.serverId, taskReminderLinksTable.serverId),
-                eq(remindersTable.id, taskReminderLinksTable.reminderId)
-            )
-        )
+        .from(remindersTable)
         .innerJoin(
             chatsTable,
             and(
@@ -126,10 +124,42 @@ export async function listTaskReminders(
                 eq(chatsTable.id, remindersTable.anchorChatId)
             )
         )
+        .innerJoin(
+            agentsTable,
+            and(
+                eq(agentsTable.serverId, remindersTable.serverId),
+                eq(agentsTable.id, remindersTable.ownerAgentId)
+            )
+        )
         .where(
             and(
-                eq(taskReminderLinksTable.serverId, input.serverId),
-                eq(taskReminderLinksTable.taskId, input.taskId),
+                eq(remindersTable.serverId, input.serverId),
+                or(
+                    exists(
+                        db
+                            .select({ reminderId: taskReminderLinksTable.reminderId })
+                            .from(taskReminderLinksTable)
+                            .where(
+                                and(
+                                    eq(taskReminderLinksTable.serverId, remindersTable.serverId),
+                                    eq(taskReminderLinksTable.reminderId, remindersTable.id),
+                                    eq(taskReminderLinksTable.taskId, input.taskId)
+                                )
+                            )
+                    ),
+                    exists(
+                        db
+                            .select({ id: tasksTable.id })
+                            .from(tasksTable)
+                            .where(
+                                and(
+                                    eq(tasksTable.serverId, remindersTable.serverId),
+                                    eq(tasksTable.id, input.taskId),
+                                    eq(tasksTable.chatId, remindersTable.anchorChatId)
+                                )
+                            )
+                    )
+                ),
                 isNull(chatsTable.deletedAt),
                 actorVisibleChats(reader)
             )
@@ -140,6 +170,7 @@ export async function listTaskReminders(
         kind: row.repeat === null ? 'once' : 'recurring',
         nextFireAt: row.status === 'scheduled' ? row.fireAt.toISOString() : null,
         reminderId: row.reminderId,
+        setBy: { agentId: row.ownerAgentId, displayName: row.ownerDisplayName },
         title: row.title,
     }));
 }

@@ -27,7 +27,7 @@ export async function assignAgentClaim(
     agentDelivery: AgentDelivery,
     input: { assignee: null | string; expectedRevision?: number; number: number; target: string }
 ) {
-    const { claimChatId } = await resolveAgentClaimTarget(db, runner, input.target);
+    const claimChatId = await resolveAgentClaimTarget(db, runner, input.target);
     const [found] = await findAgentClaims(db, runner, claimChatId, { numbers: [input.number] });
     const assignee = input.assignee
         ? await resolveAssigneeHandle(db, runner, input.assignee)

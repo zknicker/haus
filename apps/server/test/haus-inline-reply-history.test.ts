@@ -14,7 +14,7 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('claim inspection pages its inline chain without including unrelated chat messages or creating a thread', async () => {
+test('claim inspection pages its inline chain without including unrelated chat messages or creating a Chat', async () => {
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Reply history',
         slug: 'reply-history',
@@ -49,9 +49,9 @@ test('claim inspection pages its inline chain without including unrelated chat m
     });
     expect(older.messages.map(({ id }) => id)).toEqual([root.message.id]);
     expect(older.nextBeforeSequence).toBeNull();
-    const threads =
-        await harness.sql`select id from chats where server_id=${server.id} and kind='thread'`;
-    expect(threads).toHaveLength(0);
+    const children =
+        await harness.sql`select id from chats where server_id=${server.id} and parent_chat_id is not null`;
+    expect(children).toHaveLength(0);
 });
 
 test('inline reply excerpts fit the API limit when the parent contains supplementary Unicode', async () => {

@@ -77,18 +77,18 @@ test('the WebSocket gate rejects a stale subscription before serving it', async 
     }
 });
 
-// Protocol 12 carries opaque Haus sessions and links Cloud Agent work instead of embedding it:
-// Messages
-// drop the `cloud-agent-work` body, and Happening now work carries a `location`
-// and its Agent's name in place of its launch Message, which a protocol 10 App
-// cannot decode, so it must hit the update gate on both transports.
-test('a protocol 11 App gets PRECONDITION_FAILED over HTTP and on socket subscribe', async () => {
-    expect(appProtocolVersion).toBe(12);
-    const response = await request(11);
+// Protocol 13 makes Tasks places (ADR 0052): boards, columns, Convert to Task, and
+// the Task Inbox are gone, a Task carries its state and not a column, and the
+// Thread migration folds Threads into inline replies. A protocol 12 App still
+// calls `board.list` and `taskInbox.list`, so it must hit the update gate on both
+// transports.
+test('a protocol 12 App gets PRECONDITION_FAILED over HTTP and on socket subscribe', async () => {
+    expect(appProtocolVersion).toBe(13);
+    const response = await request(12);
     expect(response.status).toBe(412);
     expect(await response.text()).toContain('PRECONDITION_FAILED');
 
-    const client = createHausClient(harness, null, { protocolVersion: 11 });
+    const client = createHausClient(harness, null, { protocolVersion: 12 });
     try {
         await expect(startServerSubscription(client)).rejects.toMatchObject({
             data: { code: 'PRECONDITION_FAILED' },

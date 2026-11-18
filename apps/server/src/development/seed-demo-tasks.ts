@@ -1,62 +1,193 @@
-import { formatTaskKey, GENERAL_BOARD_KEY, type TaskActor } from '@haus/api';
+import { formatTaskKey, GENERAL_TASK_KEY, type TaskActor } from '@haus/api';
 import { eq, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
-    boardColumnsTable,
-    boardsTable,
-    taskInboxItemsTable,
+    agentTaskFollowsTable,
+    chatMessagesTable,
+    chatsTable,
+    taskFollowsTable,
+    taskKeysTable,
     taskMessageLinksTable,
     tasksTable,
 } from '../postgres/schema.ts';
+import { seedDemoTaskWork } from './seed-demo-task-work.ts';
 
 type Tx = Pick<HausDatabase, 'insert' | 'select' | 'update'>;
 
 interface DemoTask {
     assignee: TaskActor;
-    category: 'active' | 'todo';
+    /** The Task's own conversation, oldest first (ADR 0052 decision 2). */
+    conversation?: readonly { author: TaskActor; content: string }[];
     createdBy: TaskActor;
-    /** The Message the work came from, shown in the Task's Mentioned in. */
+    /** The Message that mentions the Task, shown in the Task's Mentioned in. */
     messageId: string;
+    /** The Channel Message the Task started from (ADR 0052 decision 3). */
+    origin: { chatId: string; messageId: string };
     priority: 'high' | 'medium';
+    state: 'done' | 'open' | 'todo';
     title: string;
 }
 
+/** One seeded Task and the Chat it is. */
+export interface SeededDemoTask {
+    chatId: string;
+    id: string;
+    messageCount: number;
+    number: number;
+}
+
 /**
- * Seeds the General board with demo Tasks, numbered from 1, each mentioned by the
- * Message it came from. A Task assigned to a person is that person's Inbox item,
- * so a fresh dev stack shows the Inbox card, the chip, and Mentioned in. The
- * board's counter starts past them, or the first real `task.create` collides
- * with a seeded number.
+ * The dev Server's GEN Tasks: one open Task with a conversation, attached cloud
+ * work, and its pull request; todo Tasks with the Agents and the owner, one
+ * with a short conversation; and one done Task.
+ */
+export async function seedServerDemoTasks(
+    tx: Tx,
+    input: {
+        agents: { blippyId: string; tinyId: string };
+        channels: { allId: string; demoId: string };
+        computerId: string;
+        keyId: string;
+        messages: {
+            auditTaskMessageId: string;
+            planMessageId: string;
+            polishMessageId: string;
+            shipTaskMessageId: string;
+            sizeCapMessageId: string;
+        };
+        serverId: string;
+        userId: string;
+    }
+): Promise<void> {
+    const { agents, channels, messages } = input;
+    const blippy = { agentId: agents.blippyId, kind: 'agent' } as const;
+    const tiny = { agentId: agents.tinyId, kind: 'agent' } as const;
+    const owner = { kind: 'user', userId: input.userId } as const;
+    const inAll = (messageId: string) => ({ chatId: channels.allId, messageId });
+    const [ship] = await seedDemoTasks(tx, {
+        keyId: input.keyId,
+        serverId: input.serverId,
+        tasks: [
+            {
+                assignee: blippy,
+                conversation: [
+                    { author: blippy, content: 'Taking this. Upload, crop, and save in one pass.' },
+                    { author: owner, content: 'Keep the crop square for now.' },
+                    {
+                        author: blippy,
+                        content: 'Square it is. Handing the build to a cloud agent.',
+                    },
+                ],
+                createdBy: blippy,
+                messageId: messages.shipTaskMessageId,
+                origin: inAll(messages.shipTaskMessageId),
+                priority: 'high',
+                state: 'open',
+                title: 'Ship the avatar upload flow end to end',
+            },
+            {
+                assignee: tiny,
+                createdBy: tiny,
+                messageId: messages.auditTaskMessageId,
+                origin: inAll(messages.auditTaskMessageId),
+                priority: 'medium',
+                state: 'todo',
+                title: 'Audit the member directory for stale copy',
+            },
+            {
+                assignee: owner,
+                conversation: [
+                    { author: tiny, content: '5 MB covers every phone photo I tried.' },
+                    { author: owner, content: 'Let me check what the iPhone sends first.' },
+                ],
+                createdBy: tiny,
+                messageId: messages.sizeCapMessageId,
+                origin: inAll(messages.planMessageId),
+                priority: 'high',
+                state: 'todo',
+                title: 'Pick the upload size cap',
+            },
+            {
+                assignee: owner,
+                createdBy: blippy,
+                messageId: messages.polishMessageId,
+                origin: { chatId: channels.demoId, messageId: messages.polishMessageId },
+                priority: 'medium',
+                state: 'todo',
+                title: 'Sign off on the core flow polish list',
+            },
+            {
+                assignee: tiny,
+                conversation: [
+                    { author: tiny, content: 'Drafted the welcome copy and posted it in #all.' },
+                    { author: owner, content: 'Reads well. Ship it.' },
+                    { author: tiny, content: 'Shipped. Marking this done.' },
+                ],
+                createdBy: tiny,
+                messageId: messages.planMessageId,
+                origin: inAll(messages.planMessageId),
+                priority: 'medium',
+                state: 'done',
+                title: 'Write the onboarding welcome copy',
+            },
+        ],
+    });
+    if (!ship) {
+        throw new Error('The dev seed wrote no open Task to attach work to.');
+    }
+    await seedDemoTaskWork(tx, {
+        agentId: agents.blippyId,
+        computerId: input.computerId,
+        serverId: input.serverId,
+        task: ship,
+    });
+}
+
+/**
+ * Seeds demo Tasks under the General key, numbered from 1: each a place with its
+ * own Chat under its origin Message, its conversation, mentioned by the Message
+ * it came from, and followed by its assignee. The key's counter starts past
+ * them, or the first real `tasks/start` collides with a seeded number.
  */
 export async function seedDemoTasks(
     tx: Tx,
-    input: { boardId: string; serverId: string; tasks: readonly DemoTask[] }
-): Promise<void> {
-    const { boardId, serverId } = input;
-    const columns = await tx
-        .select({ category: boardColumnsTable.category, id: boardColumnsTable.id })
-        .from(boardColumnsTable)
-        .where(eq(boardColumnsTable.boardId, boardId));
-    const rows = input.tasks.map((task, index) => {
-        const column = columns.find((candidate) => candidate.category === task.category);
-        if (!column) {
-            throw new Error(`The General board has no ${task.category} column.`);
-        }
-        return { column, id: createOpaqueId('tsk'), number: index + 1, task };
-    });
+    input: { keyId: string; serverId: string; tasks: readonly DemoTask[] }
+): Promise<SeededDemoTask[]> {
+    const { keyId, serverId } = input;
+    const now = new Date();
+    const rows = input.tasks.map((task, index) => ({
+        chatId: createOpaqueId('cht'),
+        id: createOpaqueId('tsk'),
+        number: index + 1,
+        task,
+    }));
+    await tx.insert(chatsTable).values(
+        rows.map(({ chatId, task }) => ({
+            anchorMessageId: task.origin.messageId,
+            id: chatId,
+            kind: 'task' as const,
+            lastActivityAt: task.conversation?.length ? now : null,
+            lastMessageSequence: task.conversation?.length ?? 0,
+            parentChatId: task.origin.chatId,
+            parentChatKind: 'channel' as const,
+            serverId,
+        }))
+    );
     await tx.insert(tasksTable).values(
-        rows.map(({ column, id, number, task }) => ({
+        rows.map(({ chatId, id, number, task }) => ({
             assigneeAgentId: agentIdOf(task.assignee),
             assigneeUserId: userIdOf(task.assignee),
-            boardId,
-            columnId: column.id,
+            chatId,
+            completedAt: task.state === 'done' ? now : null,
             createdByAgentId: agentIdOf(task.createdBy),
             createdByUserId: userIdOf(task.createdBy),
             id,
+            keyId,
             number,
             priority: task.priority,
             serverId,
+            state: task.state,
             title: task.title,
         }))
     );
@@ -66,31 +197,77 @@ export async function seedDemoTasks(
             ordinal: 0,
             serverId,
             taskId: id,
-            text: formatTaskKey(GENERAL_BOARD_KEY, number),
+            text: formatTaskKey(GENERAL_TASK_KEY, number),
         }))
     );
-    const inboxItems = rows.flatMap(({ id, task }) => {
-        const userId = userIdOf(task.assignee);
-        return userId
-            ? [
-                  {
-                      assignedByAgentId: agentIdOf(task.createdBy),
-                      assignedByUserId: userIdOf(task.createdBy),
-                      assignmentVersion: 1,
-                      serverId,
-                      taskId: id,
-                      userId,
-                  },
-              ]
-            : [];
-    });
-    if (inboxItems.length > 0) {
-        await tx.insert(taskInboxItemsTable).values(inboxItems);
+    const conversation = rows.flatMap(({ chatId, task }) =>
+        (task.conversation ?? []).map((line, index) => {
+            const id = createOpaqueId('msg');
+            return {
+                authorAgentId: agentIdOf(line.author),
+                authorUserId: userIdOf(line.author),
+                chatId,
+                content: line.content,
+                id,
+                nonce: `dev-${chatId}-${index + 1}`,
+                replyRootMessageId: id,
+                sequence: index + 1,
+                serverId,
+            };
+        })
+    );
+    if (conversation.length > 0) {
+        await tx.insert(chatMessagesTable).values(conversation);
     }
+    await seedFollows(tx, serverId, rows);
     await tx
-        .update(boardsTable)
-        .set({ nextNumber: sql`${boardsTable.nextNumber} + ${rows.length}` })
-        .where(eq(boardsTable.id, boardId));
+        .update(taskKeysTable)
+        .set({ nextNumber: sql`${taskKeysTable.nextNumber} + ${rows.length}` })
+        .where(eq(taskKeysTable.id, keyId));
+    return rows.map(({ chatId, id, number, task }) => ({
+        chatId,
+        id,
+        messageCount: task.conversation?.length ?? 0,
+        number,
+    }));
+}
+
+/** The assignee and everyone who posted follow each Task (ADR 0052 decision 9). */
+async function seedFollows(
+    tx: Tx,
+    serverId: string,
+    rows: readonly { chatId: string; task: DemoTask }[]
+) {
+    const followers = rows.flatMap(({ chatId, task }) =>
+        [task.assignee, ...(task.conversation ?? []).map((line) => line.author)].map((actor) => ({
+            actor,
+            chatId,
+        }))
+    );
+    const people = unique(
+        followers.flatMap(({ actor, chatId }) => {
+            const userId = userIdOf(actor);
+            return userId ? [{ serverId, taskChatId: chatId, userId }] : [];
+        }),
+        (row) => `${row.taskChatId} ${row.userId}`
+    );
+    const agents = unique(
+        followers.flatMap(({ actor, chatId }) => {
+            const agentId = agentIdOf(actor);
+            return agentId ? [{ agentId, serverId, taskChatId: chatId }] : [];
+        }),
+        (row) => `${row.taskChatId} ${row.agentId}`
+    );
+    if (people.length > 0) {
+        await tx.insert(taskFollowsTable).values(people);
+    }
+    if (agents.length > 0) {
+        await tx.insert(agentTaskFollowsTable).values(agents);
+    }
+}
+
+function unique<T>(rows: T[], key: (row: T) => string): T[] {
+    return [...new Map(rows.map((row) => [key(row), row])).values()];
 }
 
 function agentIdOf(actor: TaskActor) {

@@ -1,6 +1,5 @@
 import { formatCloudAgentWorkLink } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
-import { followAgentThread } from '../agent-api/attention.ts';
 import { recordCloudAgentWorkLinks } from '../chats/cloud-agent-work-links.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -10,8 +9,6 @@ import {
     cloudAgentWorkTable,
     messageClaimsTable,
 } from '../postgres/schema.ts';
-import { ensureThreadRecord } from '../threads/ensure-thread.ts';
-import { threadChatIdForAnchor } from '../threads/thread-id.ts';
 import type { InboxSeedContext } from './seed-inbox-context.ts';
 import { appendSeedMessages } from './seed-inbox-messages.ts';
 
@@ -70,7 +67,7 @@ interface SeedCloudAgentWork {
  * The settled Cloud Agent work Blippy delegated from #product, with its branch
  * and pull request retained. It is written the way `createCloudAgentWork`
  * writes one — the Agent-authored text Message that links the work (ADR 0044),
- * its child Thread, the work record, its provider Run, and the link.
+ * the work record, its provider Run, and the link.
  */
 export async function seedCloudAgentWork(
     tx: HausDatabase,
@@ -91,16 +88,6 @@ export async function seedCloudAgentWork(
             },
         ],
         serverId: context.serverId,
-    });
-    await ensureThreadRecord(tx, {
-        anchorMessageId: messageId,
-        parentChatId: context.productChatId,
-        serverId: context.serverId,
-    });
-    await followAgentThread(tx, {
-        agentId: context.blippyId,
-        serverId: context.serverId,
-        threadChatId: threadChatIdForAnchor(messageId),
     });
     await insertCloudAgentWork(tx, context, work, { messageId, workId });
     await recordCloudAgentWorkLinks(tx, {

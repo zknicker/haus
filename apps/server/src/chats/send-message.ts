@@ -14,12 +14,10 @@ import type { MessageRouter } from '../message-routing/jev.ts';
 import { prepareMessageRouting } from '../message-routing/route-human-message.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { chatMessagesTable, chatsTable, threadFollowsTable } from '../postgres/schema.ts';
+import { chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
-import { ensureThread } from '../threads/ensure-thread.ts';
-import { autoFollowThreadMentions } from '../threads/thread-attention.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { requireActiveDmPeer } from './active-dm-peer.ts';
 import { requireChatWriteAccess } from './chat-access.ts';
@@ -32,24 +30,14 @@ import {
     resolveMessageLinks,
 } from './message-links.ts';
 import { toChatMessage } from './message-shape.ts';
-import {
-    InvalidInlineReplyError,
-    readInlineReplyContext,
-    resolveChatReplyParent,
-} from './reply-context.ts';
+import { applyPostFollows } from './post-follows.ts';
+import { readInlineReplyContext, resolveChatReplyParent } from './reply-context.ts';
 import { readExistingChatMessage, replayChatMessage } from './send-message-replay.ts';
 
 export class ChatNonceConflictError extends Error {
     constructor() {
         super('That message nonce already belongs to a different send.');
         this.name = 'ChatNonceConflictError';
-    }
-}
-
-export class DirectThreadSendError extends Error {
-    constructor() {
-        super('Thread replies require their parent Chat and anchor message.');
-        this.name = 'DirectThreadSendError';
     }
 }
 
@@ -88,28 +76,12 @@ export async function sendChatMessage(
                       })
                   ).id
                 : input.chatId;
-        if ('chatId' in input && input.thread && input.replyToMessageId) {
-            throw new InvalidInlineReplyError(
-                'Inline replies cannot target a Thread; use either a thread or an inline reply.'
-            );
-        }
-        const thread =
-            'chatId' in input && input.thread
-                ? await ensureThread(tx, member, {
-                      anchorMessageId: input.thread.anchorMessageId,
-                      parentChatId: targetChatId,
-                      serverId: input.serverId,
-                  })
-                : null;
-        const writeChatId = thread?.id ?? targetChatId;
+        const writeChatId = targetChatId;
 
         const writeChat = await requireChatWriteAccess(tx, member, {
             chatId: writeChatId,
             serverId: input.serverId,
         });
-        if ('chatId' in input && !input.thread && writeChat.kind === 'thread') {
-            throw new DirectThreadSendError();
-        }
         const replyParent = await resolveChatReplyParent(tx, input, targetChatId);
 
         await tx.execute(sql`
@@ -131,7 +103,6 @@ export async function sendChatMessage(
                 member,
                 input,
                 existing,
-                thread?.id ?? null,
                 replyParent?.parent.id ?? null,
                 () => new ChatNonceConflictError()
             );
@@ -141,7 +112,6 @@ export async function sendChatMessage(
         const attachments = await requireMessageAttachments(tx, member, {
             attachmentIds: input.attachmentIds,
             chatId: writeChatId,
-            ...(thread ? { parentChatId: thread.parentChatId } : {}),
             serverId: input.serverId,
         });
         const [updatedChat] = await tx
@@ -187,29 +157,20 @@ export async function sendChatMessage(
             messageId,
             serverId: input.serverId,
         });
-        if (thread) {
-            await tx
-                .insert(threadFollowsTable)
-                .values({
-                    serverId: input.serverId,
-                    threadChatId: thread.id,
-                    userId: member.id,
-                })
-                .onConflictDoUpdate({
-                    set: { followed: true, updatedAt: sql`now()` },
-                    target: [
-                        threadFollowsTable.serverId,
-                        threadFollowsTable.threadChatId,
-                        threadFollowsTable.userId,
-                    ],
-                });
-            await autoFollowThreadMentions(tx, {
-                content,
-                parentChatId: thread.parentChatId,
+        const placeEvents = await applyPostFollows(
+            tx,
+            {
+                chatId: writeChatId,
+                kind: writeChat.kind,
+                parentChatId: writeChat.parentChatId,
                 serverId: input.serverId,
-                threadChatId: thread.id,
-            });
-        }
+            },
+            {
+                author: { kind: 'user', userId: member.id },
+                content,
+                mentionedUserIds: message.mentionedUserIds,
+            }
+        );
 
         const created = await prepareMessageCreatedEvent(
             tx,
@@ -247,13 +208,14 @@ export async function sendChatMessage(
                 sequence: message.sequence,
                 serverId: input.serverId,
                 source: 'human',
-                threadFollowReactivated: recipient.threadFollowReactivated,
+                taskFollowReactivated: recipient.taskFollowReactivated,
             });
         }
 
         return {
             events: [
                 created,
+                ...placeEvents,
                 ...(await prepareMessageLinkEvents(tx, { ...linked, serverId: input.serverId })),
             ],
             receipt: {
@@ -274,7 +236,6 @@ export async function sendChatMessage(
                         messageId
                     ),
                 }),
-                threadChatId: thread?.id ?? null,
             },
             wakes: recipients.map(({ agentId }) => ({ agentId, serverId: input.serverId })),
         };

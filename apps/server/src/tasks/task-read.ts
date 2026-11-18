@@ -2,8 +2,8 @@ import { formatTaskKey, type Task } from '@haus/api';
 import { and, asc, eq, inArray, type SQL } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
-    boardColumnsTable,
-    boardsTable,
+    chatsTable,
+    taskKeysTable,
     taskLabelAssignmentsTable,
     tasksTable,
 } from '../postgres/schema.ts';
@@ -14,8 +14,8 @@ type TaskReader = Pick<HausDatabase, 'select'>;
 
 /**
  * Tasks on one Server matching `where`, oldest first, as the contract shapes
- * them: the key derived from the board's current key, the category from the
- * Task's column, and labels in label-id order.
+ * them: the key derived from the key-ledger entry's current key, and labels in
+ * label-id order.
  */
 export async function readTasks(
     db: TaskReader,
@@ -23,19 +23,24 @@ export async function readTasks(
 ): Promise<Task[]> {
     const rows = await db
         .select({
-            boardKey: boardsTable.key,
-            category: boardColumnsTable.category,
+            ledgerKey: taskKeysTable.key,
+            originChatId: chatsTable.parentChatId,
+            originMessageId: chatsTable.anchorMessageId,
             task: tasksTable,
         })
         .from(tasksTable)
         .innerJoin(
-            boardsTable,
+            taskKeysTable,
             and(
-                eq(boardsTable.serverId, tasksTable.serverId),
-                eq(boardsTable.id, tasksTable.boardId)
+                eq(taskKeysTable.serverId, tasksTable.serverId),
+                eq(taskKeysTable.id, tasksTable.keyId)
             )
         )
-        .innerJoin(boardColumnsTable, eq(boardColumnsTable.id, tasksTable.columnId))
+        // A Task's origin is its Chat's parent Channel and anchor Message (ADR 0052).
+        .leftJoin(
+            chatsTable,
+            and(eq(chatsTable.serverId, tasksTable.serverId), eq(chatsTable.id, tasksTable.chatId))
+        )
         .where(and(eq(tasksTable.serverId, input.serverId), input.where))
         .orderBy(asc(tasksTable.createdAt), asc(tasksTable.number));
     const labels = await readTaskLabelIds(
@@ -43,22 +48,26 @@ export async function readTasks(
         input.serverId,
         rows.map(({ task }) => task.id)
     );
-    return rows.map(({ boardKey, category, task }) => ({
+    return rows.map(({ ledgerKey, originChatId, originMessageId, task }) => ({
         assignee: optionalActorFromColumns(task.assigneeUserId, task.assigneeAgentId),
-        boardId: task.boardId,
-        category,
-        columnId: task.columnId,
+        chatId: task.chatId,
         completedAt: task.completedAt?.toISOString() ?? null,
         createdAt: task.createdAt.toISOString(),
         createdBy: actorFromColumns(task.createdByUserId, task.createdByAgentId),
         description: task.description,
         dueOn: task.dueOn,
         id: task.id,
-        key: formatTaskKey(boardKey, task.number),
+        key: formatTaskKey(ledgerKey, task.number),
+        keyId: task.keyId,
         labelIds: labels.get(task.id) ?? [],
         number: task.number,
+        origin:
+            originChatId && originMessageId
+                ? { chatId: originChatId, messageId: originMessageId }
+                : null,
         priority: task.priority,
         serverId: task.serverId,
+        state: task.state,
         title: task.title,
         updatedAt: task.updatedAt.toISOString(),
         version: task.version,

@@ -1,28 +1,26 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { and, eq } from 'drizzle-orm';
+import type { TaskActor } from '@haus/api';
+import { eq } from 'drizzle-orm';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     agentInboxTable,
     agentsTable,
-    boardColumnsTable,
     serverMembershipsTable,
     serversTable,
-    taskInboxItemsTable,
     usersTable,
 } from '../src/postgres/schema.ts';
 import { deleteAgent } from '../src/server-agents/delete-agent.ts';
 import { removeServerMember } from '../src/servers/remove-member.ts';
 import { assignTask } from '../src/tasks/task-assign.ts';
-import { createTask } from '../src/tasks/task-create.ts';
 import { getTask } from '../src/tasks/task-list.ts';
-import { moveTask } from '../src/tasks/task-move.ts';
+import { setTaskState } from '../src/tasks/task-set-state.ts';
 import { offlineDelivery } from './agent-inbox-harness.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
-import { addPeerAgent, seedTaskBoard } from './task-delivery-fixture.ts';
+import { addPeerAgent, insertTaskPlace, seedTaskBoard } from './task-delivery-fixture.ts';
 
-/** A Task's assignee stays an active member or a live Agent, so a departure unassigns (ADR 0051). */
+/** A Task's assignee stays an active member or a live Agent, so a departure unassigns. */
 let cluster: PostgresCluster;
 let connection: HausConnection;
 
@@ -39,16 +37,19 @@ afterAll(async () => {
 
 async function seedDepartures() {
     const board = await seedTaskBoard(connection.db);
-    const { boardId, seed } = board;
+    const { seed } = board;
     const { delivery } = offlineDelivery(connection.db, seed);
     const owner = { kind: 'user', userId: seed.userId } as const;
-    const create = (title: string, assignee: Parameters<typeof createTask>[3]['assignee']) =>
-        createTask(connection.db, owner, delivery, {
+    /** A Task `assigner` assigns to `assignee`: version 1 made, version 2 assigned. */
+    const create = async (title: string, assignee: TaskActor, assigner: TaskActor = owner) => {
+        const taskId = await insertTaskPlace(connection.db, board, title);
+        return await assignTask(connection.db, assigner, delivery, {
             assignee,
-            boardId,
+            expectedVersion: 1,
             serverId: seed.serverId,
-            title,
+            taskId,
         });
+    };
     const read = (taskId: string) =>
         getTask(connection.db, owner, { serverId: seed.serverId, taskId });
     return { ...board, create, delivery, owner, read };
@@ -82,21 +83,17 @@ async function slugOf(serverId: string) {
 }
 
 test('deleting an Agent unassigns its Tasks, bumps each, and retires what is still queued', async () => {
-    const { boardId, create, delivery, owner, read, seed } = await seedDepartures();
+    const { create, delivery, owner, read, seed } = await seedDepartures();
     const assignee = { agentId: seed.agentId, kind: 'agent' } as const;
     const peerId = await addPeerAgent(connection.db, seed);
 
     const queued = await create('Queued', assignee);
     const finished = await create('Finished', assignee);
     const elsewhere = await create('Someone else has it', { agentId: peerId, kind: 'agent' });
-    const [doneColumn] = await connection.db
-        .select({ id: boardColumnsTable.id })
-        .from(boardColumnsTable)
-        .where(and(eq(boardColumnsTable.boardId, boardId), eq(boardColumnsTable.category, 'done')));
-    await moveTask(connection.db, owner, {
-        columnId: doneColumn?.id ?? '',
-        expectedVersion: 1,
+    await setTaskState(connection.db, owner, {
+        expectedVersion: 2,
         serverId: seed.serverId,
+        state: 'done',
         taskId: finished.task.id,
     });
 
@@ -107,15 +104,15 @@ test('deleting an Agent unassigns its Tasks, bumps each, and retires what is sti
         { agentId: seed.agentId, confirmation: 'Ada', serverId: seed.serverId }
     );
 
-    expect(await read(queued.task.id)).toMatchObject({ assignee: null, version: 2 });
+    expect(await read(queued.task.id)).toMatchObject({ assignee: null, version: 3 });
     expect(await read(finished.task.id)).toMatchObject({
         assignee: null,
-        category: 'done',
-        version: 3,
+        state: 'done',
+        version: 4,
     });
     expect(await read(elsewhere.task.id)).toMatchObject({
         assignee: { agentId: peerId, kind: 'agent' },
-        version: 1,
+        version: 2,
     });
     expect(taskEvents.filter((event) => event.topic === 'task.updated')).toHaveLength(2);
     expect(
@@ -131,7 +128,7 @@ test('deleting an Agent unassigns its Tasks, bumps each, and retires what is sti
     expect(agent?.retiredAt).not.toBeNull();
 });
 
-test('removing a member unassigns their Tasks and withdraws their Inbox items', async () => {
+test('removing a member unassigns their Tasks and announces only the Task change', async () => {
     const { create, delivery, read, seed } = await seedDepartures();
     const memberId = await addMember(seed.serverId);
     const assigned = await create('Theirs', { kind: 'user', userId: memberId });
@@ -144,44 +141,20 @@ test('removing a member unassigns their Tasks and withdraws their Inbox items', 
         { confirmation: await slugOf(seed.serverId), serverId: seed.serverId, userId: memberId }
     );
 
-    expect(await read(assigned.task.id)).toMatchObject({ assignee: null, version: 2 });
+    expect(await read(assigned.task.id)).toMatchObject({ assignee: null, version: 3 });
     expect(await read(kept.task.id)).toMatchObject({
         assignee: { kind: 'user', userId: seed.userId },
-        version: 1,
+        version: 2,
     });
-    expect(
-        await connection.db
-            .select({ taskId: taskInboxItemsTable.taskId })
-            .from(taskInboxItemsTable)
-            .where(eq(taskInboxItemsTable.userId, memberId))
-    ).toEqual([]);
-    expect(departure.taskEvents.map((event) => event.topic).sort()).toEqual([
-        'task.updated',
-        'taskInbox.changed',
-    ]);
+    expect(departure.taskEvents.map((event) => event.topic)).toEqual(['task.updated']);
 });
 
 test('leaving unassigns what the person held, and their assignments to others stay', async () => {
-    const { boardId, delivery, read, seed } = await seedDepartures();
+    const { create, delivery, read, seed } = await seedDepartures();
     const memberId = await addMember(seed.serverId);
     const leaver = { kind: 'user', userId: memberId } as const;
-    const self = await createTask(connection.db, leaver, delivery, {
-        assignee: leaver,
-        boardId,
-        serverId: seed.serverId,
-        title: 'Mine',
-    });
-    const handed = await createTask(connection.db, leaver, delivery, {
-        boardId,
-        serverId: seed.serverId,
-        title: 'For the Agent',
-    });
-    await assignTask(connection.db, leaver, delivery, {
-        assignee: { agentId: seed.agentId, kind: 'agent' },
-        expectedVersion: 1,
-        serverId: seed.serverId,
-        taskId: handed.task.id,
-    });
+    const self = await create('Mine', leaver, leaver);
+    const handed = await create('For the Agent', { agentId: seed.agentId, kind: 'agent' }, leaver);
 
     await removeServerMember(
         connection.db,
@@ -193,7 +166,7 @@ test('leaving unassigns what the person held, and their assignments to others st
         }
     );
 
-    expect(await read(self.task.id)).toMatchObject({ assignee: null, version: 2 });
+    expect(await read(self.task.id)).toMatchObject({ assignee: null, version: 3 });
     expect(await read(handed.task.id)).toMatchObject({
         assignee: { agentId: seed.agentId, kind: 'agent' },
     });
@@ -216,7 +189,7 @@ test('the assignee is unassignable afterwards: a departed Agent cannot be assign
     await expect(
         assignTask(connection.db, owner, delivery, {
             assignee,
-            expectedVersion: 2,
+            expectedVersion: 3,
             serverId: seed.serverId,
             taskId: task.id,
         })

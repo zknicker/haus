@@ -1,7 +1,7 @@
 import { taskCreatedTopic, taskUpdatedTopic } from '../realtime/topics.ts';
 
 interface TaskEventSubject {
-    boardId: string;
+    chatId: string | null;
     id: string;
     serverId: string;
     version: number;
@@ -12,14 +12,14 @@ export function prepareTaskCreatedEvent(task: TaskEventSubject) {
     return taskCreatedTopic.prepare(toEvent(task));
 }
 
-/** `task.updated` for an edit, move, assignment, or column restructure about to commit. */
+/** `task.updated` for an edit, state change, or assignment about to commit. */
 export function prepareTaskUpdatedEvent(task: TaskEventSubject) {
     return taskUpdatedTopic.prepare(toEvent(task));
 }
 
 function toEvent(task: TaskEventSubject) {
     return {
-        boardId: task.boardId,
+        chatId: task.chatId,
         serverId: task.serverId,
         taskId: task.id,
         version: task.version,

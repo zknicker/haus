@@ -1,7 +1,7 @@
 import { formatTaskKey } from '@haus/api';
 import { and, count, eq, inArray } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentInboxTable, boardsTable, tasksTable } from '../postgres/schema.ts';
+import { agentInboxTable, taskKeysTable, tasksTable } from '../postgres/schema.ts';
 import { taskIdOfAssignmentKey } from '../tasks/task-assignment-envelope.ts';
 import type { AgentTurnTaskTriggers, AgentTurnTriggerRecord } from './agent-turn-trigger.ts';
 
@@ -25,17 +25,17 @@ export async function readAgentTurnTaskTriggers(
     }
     const tasks = await db
         .select({
-            boardKey: boardsTable.key,
+            boardKey: taskKeysTable.key,
             id: tasksTable.id,
             number: tasksTable.number,
             title: tasksTable.title,
         })
         .from(tasksTable)
         .innerJoin(
-            boardsTable,
+            taskKeysTable,
             and(
-                eq(boardsTable.serverId, tasksTable.serverId),
-                eq(boardsTable.id, tasksTable.boardId)
+                eq(taskKeysTable.serverId, tasksTable.serverId),
+                eq(taskKeysTable.id, tasksTable.keyId)
             )
         )
         .where(

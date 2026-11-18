@@ -1,6 +1,12 @@
+import { TRPCError } from '@trpc/server';
 import { publishRealtime } from '../../realtime/topic.ts';
 import type { TaskWriteResult } from '../../tasks/task-assignment.ts';
-import { toBoardTaskError } from '../board/procedure.ts';
+import {
+    TaskConflictError,
+    TaskInvariantError,
+    TaskKeyConflictError,
+    TaskNotFoundError,
+} from '../../tasks/task-errors.ts';
 import type { HausContext } from '../context.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
@@ -9,7 +15,7 @@ export const taskProcedure = memberProcedure.use(async ({ next }) => {
     if (result.ok) {
         return result;
     }
-    throw toBoardTaskError(result.error.cause) ?? result.error;
+    throw toTaskError(result.error.cause) ?? result.error;
 });
 
 /**
@@ -23,4 +29,18 @@ export function commitTaskWrite(
     publishRealtime(result.events);
     void ctx.postCommitWork.wakeAgents(ctx.agentDelivery, result.wakes);
     return { task: result.task };
+}
+
+/** Task domain refusals as the tRPC codes the App reacts to. */
+function toTaskError(cause: unknown): TRPCError | null {
+    if (cause instanceof TaskNotFoundError) {
+        return new TRPCError({ cause, code: 'NOT_FOUND', message: cause.message });
+    }
+    if (cause instanceof TaskConflictError || cause instanceof TaskKeyConflictError) {
+        return new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
+    }
+    if (cause instanceof TaskInvariantError) {
+        return new TRPCError({ cause, code: 'BAD_REQUEST', message: cause.message });
+    }
+    return null;
 }

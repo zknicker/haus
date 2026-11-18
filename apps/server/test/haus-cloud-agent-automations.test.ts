@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import { agentCloudAgentReceiptSchema } from '@haus/api';
 import { cloudAgentFixture } from './cloud-agent-fixture.ts';
 import { cloudAgentLinkHelpers } from './cloud-agent-link-helpers.ts';
+import { startTestTask } from './task-place-fixture.ts';
 
 const fixture = cloudAgentFixture();
 const input = (history = false) => ({
@@ -23,8 +24,8 @@ test('automations follow durable work and per-Run inbox handoffs without creatin
     const list = () => fixture.owner.trpc.cloudAgentWork.listAutomations.query(input());
     expect((await list()).find((row) => row.work.id === created.work.id)).toMatchObject({
         notification: 'waiting',
-        conversationChatId: fixture.channelId,
-        location: { kind: 'work-thread' },
+        conversationChatId: fixture.task.chatId,
+        location: { chatId: fixture.task.chatId, kind: 'message' },
     });
     expect(await fixture.outsider.trpc.cloudAgentWork.listAutomations.query(input())).toEqual([]);
     const socket = await fixture.attachComputer();
@@ -61,12 +62,17 @@ test('automations follow durable work and per-Run inbox handoffs without creatin
 test('deleting the requesting Chat disables its future wake without moving it to another link', async () => {
     const links = cloudAgentLinkHelpers(fixture);
     const source = await links.createChannel('temporary-work');
+    const task = await startTestTask(fixture.harness, fixture.owner, {
+        channelId: source,
+        serverId: fixture.serverId,
+        title: 'Temporary work',
+    });
     const runner = await fixture.mintRunner('run_automation_deleted_chat');
     const created = agentCloudAgentReceiptSchema.parse(
         (
             await fixture.postStart(
                 runner,
-                fixture.startBody({ nonce: 'automation_deleted_chat', target: '#temporary-work' })
+                fixture.startBody({ nonce: 'automation_deleted_chat', task: task.key })
             )
         ).body
     );

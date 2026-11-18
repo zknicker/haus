@@ -178,7 +178,7 @@ async function seedProductChannelActivity(
             {
                 authorAgentId: context.tinyId,
                 content:
-                    'Two build questions landed here again; see the thread for the rename idea.',
+                    'Two build questions landed here again; see the replies for the rename idea.',
                 createdAt: before(now, 6 * minute),
                 nonce: 'dev-inbox-product-rename',
             },
@@ -233,7 +233,7 @@ async function seedDirectMessageActivity(
             {
                 authorAgentId: context.tinyId,
                 content:
-                    'Finished the member-directory audit. Three stale strings, listed in the thread.',
+                    'Finished the member-directory audit. Three stale strings, listed in the replies.',
                 createdAt: tinyAt,
                 nonce: 'dev-inbox-tiny-dm',
             },

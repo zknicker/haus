@@ -31,7 +31,7 @@ export async function pullAgentEvents(db: HausDatabase, runner: ResolvedRunner) 
         const messages: Array<{
             message: Awaited<ReturnType<typeof resolveAgentMessage>>;
             target: string;
-            threadFollowReactivated?: boolean;
+            taskFollowReactivated?: boolean;
         }> = [];
         const automations: AgentAutomationEvent[] = [];
         // Each resolver issues several queries. Bun's transaction client must not run those
@@ -55,7 +55,7 @@ export async function pullAgentEvents(db: HausDatabase, runner: ResolvedRunner) 
             messages.push({
                 message: await resolveAgentMessage(tx, runner, row.dedupeKey),
                 target,
-                ...(row.threadFollowReactivated ? { threadFollowReactivated: true } : {}),
+                ...(row.taskFollowReactivated ? { taskFollowReactivated: true } : {}),
             });
         }
         await attachQueuedItemsToRun(tx, {
@@ -197,7 +197,6 @@ export async function inspectAgentInbox(db: HausDatabase, runner: ResolvedRunner
                 pendingCount: group.length,
                 target: latest.target,
                 claimNumber: latest.claim?.number ?? null,
-                thread: latest.target.includes(':') && !latest.target.startsWith('dm:'),
             },
         ];
     });

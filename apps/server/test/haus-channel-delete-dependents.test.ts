@@ -5,6 +5,7 @@ import { purgeDeletedChannels } from '../src/chats/channel-lifecycle.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { startTestTask } from './task-place-fixture.ts';
 
 let harness: HausServerHarness;
 let connection: HausConnection;
@@ -90,6 +91,54 @@ test('deletes Triggers anchored in the channel aggregate with the channel', asyn
             (select count(*)::int from trigger_fires where id = 'trf_dependents') as fires
     `) as Array<{ chats: number; fires: number; triggers: number }>;
     expect(remaining).toEqual([{ chats: 0, fires: 0, triggers: 0 }]);
+});
+
+test('archiving then deleting a Channel takes its Task Chats and cancels their open Tasks', async () => {
+    const channel = await owner.trpc.chat.createChannel.mutate({
+        agentIds: [agentId],
+        name: 'tasks-go',
+        serverId,
+    });
+    const open = await startTestTask(harness, owner, {
+        channelId: channel.id,
+        serverId,
+        title: 'Open when the Channel goes',
+    });
+    const done = await startTestTask(harness, owner, {
+        channelId: channel.id,
+        serverId,
+        title: 'Done before the Channel goes',
+    });
+    await harness.sql`update tasks set state = 'open' where id = ${open.id}`;
+    await owner.trpc.task.setState.mutate({
+        expectedVersion: (await owner.trpc.task.get.query({ serverId, taskId: done.id })).version,
+        serverId,
+        state: 'done',
+        taskId: done.id,
+    });
+
+    await owner.trpc.chat.archiveChannel.mutate({ chatId: channel.id, serverId });
+    await expect(
+        owner.trpc.chat.deleteChannel.mutate({
+            chatId: channel.id,
+            confirmation: 'tasks-go',
+            serverId,
+        })
+    ).resolves.toEqual({ chatId: channel.id, serverId });
+
+    expect(
+        await harness.sql`
+            select count(*)::int as count from chats
+            where id in (${channel.id}, ${open.chatId}, ${done.chatId})
+        `
+    ).toEqual([{ count: 0 }]);
+    const openAfter = await owner.trpc.task.get.query({ serverId, taskId: open.id });
+    expect(openAfter).toMatchObject({ chatId: null, state: 'canceled' });
+    expect(openAfter.completedAt).not.toBeNull();
+    expect(await owner.trpc.task.get.query({ serverId, taskId: done.id })).toMatchObject({
+        chatId: null,
+        state: 'done',
+    });
 });
 
 async function insertTrigger(id: string, anchorChatId: string, removedAt: Date | null) {

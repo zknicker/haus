@@ -20,6 +20,7 @@ import {
     agentSessionRotationsTable,
     agentsTable,
     agentTurnsTable,
+    channelAgentParticipantsTable,
     chatMessagesTable,
     chatsTable,
     computersTable,
@@ -337,14 +338,14 @@ test('preserves direct-attention metadata independently through wire replay', as
         dedupeKey: 'msg-mentioned-replay',
         mentioned: true,
         serverId: seed.serverId,
-        threadFollowReactivated: true,
+        taskFollowReactivated: true,
     });
     await delivery.dispatchAgent(seed.agentId, seed.serverId, { resendActive: true });
 
     const starts = transport.framesOfType('start');
     expect(starts).toHaveLength(2);
     expect(starts.map((frame) => frame.inbox[0]?.mentioned)).toEqual([true, true]);
-    expect(starts.map((frame) => frame.inbox[0]?.threadFollowReactivated)).toEqual([true, true]);
+    expect(starts.map((frame) => frame.inbox[0]?.taskFollowReactivated)).toEqual([true, true]);
 });
 
 test('keeps a queued message bound to its retired author after handle reuse', async () => {
@@ -889,19 +890,42 @@ test('attests a multi-message Computer-local pull without wedging the transactio
         insertHumanMessage(seed, 'claim anchor one', 1),
         insertHumanMessage(seed, 'claim anchor two', 2),
     ]);
-    const threadChatId = `cht_thr_${messageIds[0]?.slice(4)}`;
+    // The third message sits in a Task's Chat, under a Channel the Agent joined.
+    const channelId = createOpaqueId('cht');
     await connection.db.insert(chatsTable).values({
-        anchorMessageId: messageIds[0],
-        id: threadChatId,
-        kind: 'thread',
-        parentChatId: seed.chatId,
+        id: channelId,
+        kind: 'channel',
+        lastMessageSequence: 1,
+        name: 'briefings',
+        serverId: seed.serverId,
+    });
+    await connection.db
+        .insert(channelAgentParticipantsTable)
+        .values({ agentId: seed.agentId, chatId: channelId, serverId: seed.serverId });
+    const originId = createOpaqueId('msg');
+    await connection.db.insert(chatMessagesTable).values({
+        authorUserId: seed.userId,
+        chatId: channelId,
+        content: 'claim task origin',
+        id: originId,
+        nonce: createOpaqueId('nonce'),
+        sequence: 1,
+        serverId: seed.serverId,
+    });
+    const taskChatId = createOpaqueId('cht');
+    await connection.db.insert(chatsTable).values({
+        anchorMessageId: originId,
+        id: taskChatId,
+        kind: 'task',
+        parentChatId: channelId,
+        parentChatKind: 'channel',
         serverId: seed.serverId,
     });
     const briefingId = createOpaqueId('msg');
     await connection.db.insert(chatMessagesTable).values({
         authorUserId: seed.userId,
-        chatId: threadChatId,
-        content: 'claim thread briefing',
+        chatId: taskChatId,
+        content: 'claim task briefing',
         id: briefingId,
         nonce: createOpaqueId('nonce'),
         sequence: 1,
@@ -953,8 +977,8 @@ test('attests a multi-message Computer-local pull without wedging the transactio
         },
         {
             agentId: seed.agentId,
-            chatId: threadChatId,
-            content: 'claim thread briefing',
+            chatId: taskChatId,
+            content: 'claim task briefing',
             dedupeKey: messageIds[2] ?? '',
             id: createOpaqueId('inb'),
             serverId: seed.serverId,
@@ -975,7 +999,7 @@ test('attests a multi-message Computer-local pull without wedging the transactio
             connection.db,
             runner,
             messageIds.map((id, index) => ({
-                chatId: index === 2 ? threadChatId : seed.chatId,
+                chatId: index === 2 ? taskChatId : seed.chatId,
                 id,
                 sequence: index === 2 ? 1 : index + 1,
             }))

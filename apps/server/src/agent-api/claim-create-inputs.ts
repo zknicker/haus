@@ -134,8 +134,8 @@ export function dedupeRecipients(recipients: AgentMessageRecipientPlan[]) {
             addressedReason: recipient.addressedReason ?? current?.addressedReason ?? null,
             agentId: recipient.agentId,
             mentioned: Boolean(current?.mentioned || recipient.mentioned),
-            threadFollowReactivated: Boolean(
-                current?.threadFollowReactivated || recipient.threadFollowReactivated
+            taskFollowReactivated: Boolean(
+                current?.taskFollowReactivated || recipient.taskFollowReactivated
             ),
         });
     }

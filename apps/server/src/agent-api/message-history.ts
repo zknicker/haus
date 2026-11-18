@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, gt, ilike, lt, sql } from 'drizzle-orm';
-import { listUnservedThreadFollowReactivationIds } from '../agent-delivery/store.ts';
+import { listUnservedTaskFollowReactivationIds } from '../agent-delivery/store.ts';
 import {
     advanceAgentChatRead,
     advanceAgentChatReadContiguous,
@@ -145,7 +145,7 @@ async function readUnreadHistory(
 async function historyPage(db: HausDatabase, runner: ResolvedRunner, page: MessageRow[]) {
     return {
         messages: await toAgentMessages(db, runner.serverId, page),
-        thread_follow_reactivated_message_ids: await listUnservedThreadFollowReactivationIds(db, {
+        task_follow_reactivated_message_ids: await listUnservedTaskFollowReactivationIds(db, {
             agentId: runner.agentId,
             dedupeKeys: page.map((message) => message.id),
             runId: runner.runId,

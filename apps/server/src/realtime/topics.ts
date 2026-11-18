@@ -1,7 +1,6 @@
 import {
     agentUpdatedEventSchema,
     artifactUpdatedEventSchema,
-    boardUpdatedEventSchema,
     chatLifecycleEventSchema,
     chatReadEventSchema,
     claimChangedEventSchema,
@@ -18,11 +17,9 @@ import {
     serverUpdatedEventSchema,
     taskAssignedEventSchema,
     taskCreatedEventSchema,
-    taskInboxChangedEventSchema,
+    taskFollowUpdatedEventSchema,
     taskLabelUpdatedEventSchema,
     taskUpdatedEventSchema,
-    threadClosedUpdatedEventSchema,
-    threadFollowUpdatedEventSchema,
 } from '@haus/api';
 import { createTopic } from './topic.ts';
 
@@ -32,7 +29,7 @@ import { createTopic } from './topic.ts';
  * subscription procedure.
  */
 
-// Chat and Thread streams.
+// Chat streams.
 export const messageCreatedTopic = createTopic('message.created', messageCreatedEventSchema);
 export const messageReactionUpdatedTopic = createTopic(
     'message.reaction.updated',
@@ -40,15 +37,6 @@ export const messageReactionUpdatedTopic = createTopic(
 );
 /** Reader only: published with the reader as `audienceUserId`. */
 export const chatReadTopic = createTopic('chat.read', chatReadEventSchema);
-/** Reader only: published with the follower as `audienceUserId`. */
-export const threadFollowUpdatedTopic = createTopic(
-    'thread.follow.updated',
-    threadFollowUpdatedEventSchema
-);
-export const threadClosedUpdatedTopic = createTopic(
-    'thread.closed.updated',
-    threadClosedUpdatedEventSchema
-);
 export const chatLifecycleTopic = createTopic('chat.lifecycle', chatLifecycleEventSchema);
 export const claimChangedTopic = createTopic('claim.changed', claimChangedEventSchema);
 export const taskLabelUpdatedTopic = createTopic('taskLabel.updated', taskLabelUpdatedEventSchema);
@@ -79,11 +67,13 @@ export const cloudAgentSettingsUpdatedTopic = createTopic(
     cloudAgentSettingsUpdatedEventSchema
 );
 
-// Boards and Tasks (ADR 0051).
-export const boardUpdatedTopic = createTopic('board.updated', boardUpdatedEventSchema);
+// Tasks (ADR 0052).
 export const taskCreatedTopic = createTopic('task.created', taskCreatedEventSchema);
 export const taskUpdatedTopic = createTopic('task.updated', taskUpdatedEventSchema);
-/** Assignee only: published with the person as `audienceUserId`. */
-export const taskInboxChangedTopic = createTopic('taskInbox.changed', taskInboxChangedEventSchema);
 /** Server-internal: iPhone push listens; no client stream carries it. */
 export const taskAssignedTopic = createTopic('task.assigned', taskAssignedEventSchema);
+/** Follower only: published with the follower as `audienceUserId` (ADR 0052). */
+export const taskFollowUpdatedTopic = createTopic(
+    'task.follow.updated',
+    taskFollowUpdatedEventSchema
+);

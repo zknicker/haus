@@ -5,19 +5,19 @@ import {
     channelParticipantsTable,
     chatReadsTable,
     chatsTable,
-    threadFollowsTable,
+    taskFollowsTable,
 } from '../postgres/schema.ts';
 
 type PersonalWorkWriter = Pick<HausDatabase, 'delete' | 'insert' | 'select'>;
 
 /**
  * The personal work one human holds on one Server today: Channel
- * participation, read markers, and Thread follows. Authored messages, DMs, and
- * Threads are deliberately untouched — those are collaboration history, not
+ * participation, read markers, and Task follows. Authored messages, DMs, and
+ * Tasks are deliberately untouched — those are collaboration history, not
  * personal work, and the membership row stays in place so they keep resolving
  * for participants whose stint did not end.
  *
- * Clearing returns every Chat the human just lost, including child Threads, so
+ * Clearing returns every Chat the human just lost, including Task Chats, so
  * a caller that also revokes access can retire live composition state.
  */
 export async function clearPersonalWork(
@@ -42,10 +42,8 @@ export async function clearPersonalWork(
         .delete(chatReadsTable)
         .where(and(eq(chatReadsTable.serverId, serverId), eq(chatReadsTable.readerUserId, userId)));
     await db
-        .delete(threadFollowsTable)
-        .where(
-            and(eq(threadFollowsTable.serverId, serverId), eq(threadFollowsTable.userId, userId))
-        );
+        .delete(taskFollowsTable)
+        .where(and(eq(taskFollowsTable.serverId, serverId), eq(taskFollowsTable.userId, userId)));
 
     return departed.map((chat) => chat.id);
 }

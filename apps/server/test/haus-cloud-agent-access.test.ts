@@ -78,11 +78,12 @@ test('listActive shows queued and running work to members with Chat access only'
         chatKind: 'channel',
         chatName: 'product',
         chatPeerUserId: null,
-        conversationChatId: fixture.channelId,
+        // A Task is its own conversation, named by its Channel (ADR 0052).
+        conversationChatId: fixture.task.chatId,
         location: {
-            anchorMessageId: created.body.messageId,
-            kind: 'work-thread',
-            threadChatId: `cht_thr_${(created.body.messageId as string).slice('msg_'.length)}`,
+            chatId: fixture.task.chatId,
+            kind: 'message',
+            messageId: created.body.messageId,
         },
         work: { status: 'queued' },
     });
@@ -93,8 +94,11 @@ test('listActive shows queued and running work to members with Chat access only'
         'chatPeerUserId',
         'conversationChatId',
         'location',
+        'taskId',
+        'taskKey',
         'work',
     ]);
+    expect(forOwner).toMatchObject({ taskId: fixture.task.id, taskKey: fixture.task.key });
     await expect(
         fixture.outsider.trpc.cloudAgentWork.listActive.query({ serverId: fixture.serverId })
     ).resolves.toEqual([]);
@@ -120,7 +124,7 @@ test('listActive shows queued and running work to members with Chat access only'
     ).not.toContain(work.id);
     const history = await fixture.owner.trpc.cloudAgentWork.listForChat.query({
         serverId: fixture.serverId,
-        chatId: fixture.channelId,
+        chatId: fixture.task.chatId,
     });
     expect(history.find((row) => row.work.id === work.id)).toMatchObject({
         anchorMessageId: work.messageId,
@@ -129,56 +133,32 @@ test('listActive shows queued and running work to members with Chat access only'
     await expect(
         fixture.outsider.trpc.cloudAgentWork.listForChat.query({
             serverId: fixture.serverId,
-            chatId: fixture.channelId,
+            chatId: fixture.task.chatId,
         })
     ).rejects.toThrow();
     socket.close();
 });
 
-test('a Claim Thread lists every delegation under its anchor without leaking other work', async () => {
-    const claim = await fixture.owner.trpc.claim.create.mutate({
-        chatId: fixture.channelId,
-        serverId: fixture.serverId,
-        content: 'Review both halves',
-        nonce: 'cloud-multiple-claim',
-    });
-    // A launch never opens a Thread, so the Claim Thread is already in progress.
-    await fixture.owner.trpc.chat.send.mutate({
-        chatId: fixture.channelId,
-        content: 'Split it in two.',
-        nonce: 'cloud-multiple-thread',
-        serverId: fixture.serverId,
-        thread: { anchorMessageId: claim.claim.messageId },
-    });
+test('a Task lists every cloud agent attached to it without leaking other work', async () => {
     const runner = await fixture.mintRunner('run_cloud_multiple');
-    await fixture.readTarget(runner, `#product:${claim.claim.messageId}`);
+    await fixture.readTarget(runner, `task:${fixture.task.key}`);
     const first = await fixture.postStart(
         runner,
-        fixture.startBody({
-            target: `#product:${claim.claim.messageId}`,
-            nonce: 'cloud-multiple-one',
-            title: 'First review',
-        })
+        fixture.startBody({ nonce: 'cloud-multiple-one', title: 'First review' })
     );
     const second = await fixture.postStart(
         runner,
-        fixture.startBody({
-            target: `#product:${claim.claim.messageId}`,
-            nonce: 'cloud-multiple-two',
-            title: 'Second review',
-        })
+        fixture.startBody({ nonce: 'cloud-multiple-two', title: 'Second review' })
     );
     expect(first.status).toBe(200);
     expect(second.status).toBe(200);
     const rows = await fixture.owner.trpc.cloudAgentWork.listForChat.query({
-        chatId: fixture.channelId,
+        chatId: fixture.task.chatId,
         serverId: fixture.serverId,
     });
-    expect(
-        rows
-            .filter((row) => row.anchorMessageId === claim.claim.messageId)
-            .map((row) => row.work.title)
-    ).toEqual(['First review', 'Second review']);
+    const titles = rows.map((row) => row.work.title);
+    expect(titles).toContain('First review');
+    expect(titles).toContain('Second review');
     await expect(
         fixture.outsider.trpc.cloudAgentWork.listForChat.query({
             chatId: first.body.chatId ?? '',

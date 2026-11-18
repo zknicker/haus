@@ -7,7 +7,6 @@ import type { HausUser } from '../users/haus-user.ts';
 import {
     chooseWorkLocation,
     conversationChatIdOf,
-    readChildThreads,
     readVisibleWorkLinks,
 } from './active-cloud-agent-work-location.ts';
 import { readWorkDetails, toCloudAgentWork } from './cloud-agent-shape.ts';
@@ -68,16 +67,11 @@ export async function listCloudAgentAutomations(
         userId: member.id,
         workIds,
     });
-    const threads = await readChildThreads(db, {
-        messageIds: links.map((link) => link.messageId),
-        serverId: input.serverId,
-    });
     const details = await readWorkDetails(db, input.serverId, workIds);
     return rows.flatMap((row) => {
         const chosen = chooseWorkLocation(
             row.work.launchMessageId,
-            links.filter((link) => link.workId === row.work.id),
-            threads
+            links.filter((link) => link.workId === row.work.id)
         );
         return chosen
             ? [

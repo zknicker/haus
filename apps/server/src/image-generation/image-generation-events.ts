@@ -22,9 +22,7 @@ export async function prepareImageGenerationEvents(
         .select({
             chatId: imageGenerationLinksTable.chatId,
             generationId: imageGenerationLinksTable.generationId,
-            kind: chatsTable.kind,
             messageId: imageGenerationLinksTable.messageId,
-            parentChatId: chatsTable.parentChatId,
         })
         .from(imageGenerationLinksTable)
         .innerJoin(
@@ -61,7 +59,6 @@ export async function prepareImageGenerationEvents(
             chatId: link.chatId,
             generationId: link.generationId,
             messageId: link.messageId,
-            parentChatId: link.kind === 'thread' ? link.parentChatId : null,
             serverId: input.serverId,
         })
     );

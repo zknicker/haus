@@ -1,14 +1,19 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { countAgentTaskQueue } from '../src/tasks/task-list.ts';
+import type { TaskAgentDelivery } from '../src/tasks/task-assignment.ts';
+import { startTask } from '../src/tasks/task-start.ts';
 import type { HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { taskFixture } from './task-fixture.ts';
+import { startTestTask } from './task-place-fixture.ts';
 
 const agentId = 'agt_task_api';
+const agent = { agentId, kind: 'agent' } as const;
+/** Starts here assign the starting Agent, so nothing is enqueued. */
+const noDelivery = {
+    enqueue: () => Promise.reject(new Error('A self-assigned start enqueues nothing.')),
+} as unknown as TaskAgentDelivery;
 let allChatId: string;
-let boardId: string;
-let columns: Record<'active' | 'backlog' | 'canceled' | 'done' | 'todo', string>;
 let connection: HausConnection;
 let fixture: ReturnType<typeof taskFixture>;
 let harness: HausServerHarness;
@@ -35,14 +40,6 @@ beforeAll(async () => {
         'user_task_api_peer'
     ));
     await fixture.addAgent(serverId, agentId, 'task-agent');
-    const [general] = await owner.trpc.board.list.query({ serverId });
-    if (!general) {
-        throw new Error('Expected the General board.');
-    }
-    boardId = general.id;
-    columns = Object.fromEntries(
-        general.columns.map((column) => [column.category, column.id])
-    ) as typeof columns;
 });
 
 afterAll(async () => {
@@ -52,29 +49,49 @@ afterAll(async () => {
     await harness?.close();
 });
 
+async function send(content: string) {
+    const nonce = `task-api-${crypto.randomUUID()}`;
+    return (await owner.trpc.chat.send.mutate({ chatId: allChatId, content, nonce, serverId }))
+        .message;
+}
+
 describe('task numbering and versions', () => {
-    test('numbers Tasks per board without collisions under concurrency', async () => {
-        const created = await Promise.all(
-            Array.from({ length: 8 }, (_, index) =>
-                owner.trpc.task.create.mutate({ boardId, serverId, title: `Parallel ${index}` })
+    test('numbers Tasks from the key ledger without collisions under concurrency', async () => {
+        const origins = await Promise.all(Array.from({ length: 8 }, (_, i) => send(`Work ${i}`)));
+        const started = await Promise.all(
+            origins.map((origin, index) =>
+                startTask(connection.db, agent, noDelivery, {
+                    assignee: agent,
+                    originChatId: allChatId,
+                    originMessageId: origin.id,
+                    serverId,
+                    state: 'todo',
+                    title: `Parallel ${index}`,
+                })
             )
         );
-        const numbers = created.map(({ task }) => task.number).toSorted((a, b) => a - b);
+        const numbers = started.map(({ task }) => task.number).toSorted((a, b) => a - b);
         expect(numbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
-        expect(created.every(({ task }) => task.key === `GEN-${task.number}`)).toBe(true);
-        expect(created[0]?.task).toMatchObject({
-            assignee: null,
-            category: 'todo',
-            columnId: columns.todo,
-            createdBy: { kind: 'user', userId: ownerUserId },
+        expect(started.every(({ task }) => task.key === `GEN-${task.number}`)).toBe(true);
+        expect(started[0]?.task).toMatchObject({
+            assignee: agent,
+            completedAt: null,
+            createdBy: agent,
             description: '',
             priority: 'none',
+            state: 'todo',
             version: 1,
         });
+        const [ledger] = await owner.trpc.taskKey.list.query({ serverId });
+        expect(ledger).toMatchObject({ key: 'GEN', nextNumber: 9 });
     });
 
     test('every mutation fails closed on a stale expectedVersion', async () => {
-        const { task } = await owner.trpc.task.create.mutate({ boardId, serverId, title: 'Edit' });
+        const task = await startTestTask(harness, owner, {
+            channelId: allChatId,
+            serverId,
+            title: 'Edit',
+        });
         const edited = await owner.trpc.task.update.mutate({
             expectedVersion: 1,
             patch: { dueOn: '2026-12-01', priority: 'high', title: 'Edited' },
@@ -86,127 +103,108 @@ describe('task numbering and versions', () => {
         await expect(
             owner.trpc.task.update.mutate({ ...stale, patch: { title: 'Lost' } })
         ).rejects.toThrow(/changed/);
-        await expect(
-            owner.trpc.task.move.mutate({ ...stale, columnId: columns.done })
-        ).rejects.toThrow(/changed/);
+        await expect(owner.trpc.task.setState.mutate({ ...stale, state: 'done' })).rejects.toThrow(
+            /changed/
+        );
         await expect(owner.trpc.task.assign.mutate({ ...stale, assignee: null })).rejects.toThrow(
             /changed/
         );
     });
 });
 
-describe('moves', () => {
-    test('entering a closed column sets completedAt and leaving clears it', async () => {
-        const { task } = await owner.trpc.task.create.mutate({ boardId, serverId, title: 'Ship' });
-        const done = await owner.trpc.task.move.mutate({
-            columnId: columns.done,
-            expectedVersion: 1,
+describe('states', () => {
+    test('closing sets completedAt, closing again keeps it, and reopening clears it', async () => {
+        const task = await startTestTask(harness, owner, {
+            channelId: allChatId,
             serverId,
-            taskId: task.id,
+            title: 'Ship',
         });
-        expect(done.task.category).toBe('done');
+        const at = { serverId, taskId: task.id };
+        const done = await owner.trpc.task.setState.mutate({
+            ...at,
+            expectedVersion: 1,
+            state: 'done',
+        });
         const completedAt = done.task.completedAt;
         expect(completedAt).not.toBeNull();
-        const canceled = await owner.trpc.task.move.mutate({
-            columnId: columns.canceled,
+        const canceled = await owner.trpc.task.setState.mutate({
+            ...at,
             expectedVersion: 2,
-            serverId,
-            taskId: task.id,
+            state: 'canceled',
         });
         expect(canceled.task.completedAt).toBe(completedAt);
-        const reopened = await owner.trpc.task.move.mutate({
-            columnId: columns.active,
+        const reopened = await owner.trpc.task.setState.mutate({
+            ...at,
             expectedVersion: 3,
-            serverId,
-            taskId: task.id,
+            state: 'open',
         });
-        expect(reopened.task).toMatchObject({ category: 'active', completedAt: null, version: 4 });
-        const { board: other } = await owner.trpc.board.create.mutate({
-            key: 'OTH',
-            name: 'Other',
-            serverId,
-        });
+        expect(reopened.task).toMatchObject({ completedAt: null, state: 'open', version: 4 });
+    });
+
+    test('a chatless Task is read-only history', async () => {
+        await harness.sql`
+            insert into tasks (id, server_id, key_id, number, title, state, completed_at, created_by_user_id)
+            select 'tsk_task_api_history', ${serverId}, id, 900, 'Old', 'done', now(), ${ownerUserId}
+            from task_keys where server_id = ${serverId} and key = 'GEN'
+        `;
+        const history = await owner.trpc.task.get.query({ key: 'GEN-900', serverId });
+        expect(history).toMatchObject({ chatId: null, origin: null, state: 'done' });
+        const at = { expectedVersion: 1, serverId, taskId: history.id };
+        await expect(owner.trpc.task.setState.mutate({ ...at, state: 'open' })).rejects.toThrow(
+            /read-only history/
+        );
+        await expect(owner.trpc.task.assign.mutate({ ...at, assignee: null })).rejects.toThrow(
+            /read-only history/
+        );
         await expect(
-            owner.trpc.task.move.mutate({
-                columnId: other.columns[0]?.id ?? '',
-                expectedVersion: 4,
-                serverId,
-                taskId: task.id,
-            })
-        ).rejects.toThrow(/own board/);
+            owner.trpc.task.update.mutate({ ...at, patch: { title: 'New' } })
+        ).rejects.toThrow(/read-only history/);
     });
 });
 
-describe('assignment and the person Task Inbox', () => {
-    test('assign, clear on the assignee move, reassign away, and self-assign', async () => {
-        const { task } = await owner.trpc.task.create.mutate({
-            assignee: { kind: 'user', userId: peerUserId },
-            boardId,
+describe('assignment', () => {
+    test('a person assigned follows the Task, and the assignment posts nothing', async () => {
+        const task = await startTestTask(harness, owner, {
+            channelId: allChatId,
             serverId,
             title: 'For the peer',
         });
-        expect(await fixture.inboxItems(task.id)).toEqual([
-            {
-                assigned_by_agent_id: null,
-                assigned_by_user_id: ownerUserId,
-                assignment_version: 1,
-                cleared: false,
-                user_id: peerUserId,
-            },
-        ]);
-
-        // Someone else moving it leaves the item; the assignee moving it clears it.
-        await owner.trpc.task.move.mutate({
-            columnId: columns.backlog,
+        await owner.trpc.task.assign.mutate({
+            assignee: { kind: 'user', userId: peerUserId },
             expectedVersion: 1,
             serverId,
             taskId: task.id,
         });
-        expect((await fixture.inboxItems(task.id))[0]?.cleared).toBe(false);
-        await peer.trpc.task.move.mutate({
-            columnId: columns.active,
+        const peerView = await peer.trpc.task.get.query({ serverId, taskId: task.id });
+        expect(peerView).toMatchObject({ followed: true, unreadCount: 0 });
+        const [posts] = (await harness.sql`
+            select count(*)::integer as count from chat_messages where chat_id = ${task.chatId}
+        `) as { count: number }[];
+        expect(posts?.count).toBe(0);
+
+        // Reassigning to an Agent wakes it with the assignment.
+        await owner.trpc.task.assign.mutate({
+            assignee: agent,
             expectedVersion: 2,
             serverId,
             taskId: task.id,
         });
-        expect((await fixture.inboxItems(task.id))[0]?.cleared).toBe(true);
+        const wakes = await harness.sql`
+            select dedupe_key from agent_inbox
+            where agent_id = ${agentId} and source = 'task_assignment'
+        `;
+        expect(wakes).toEqual([{ dedupe_key: `task-assign:${task.id}:3` }]);
 
-        // Reassigning away withdraws the item; the Agent assignee has none.
-        await owner.trpc.task.assign.mutate({
-            assignee: { agentId, kind: 'agent' },
+        // Assigning yourself, then the same assignee again, changes nothing more.
+        const assigned = await owner.trpc.task.assign.mutate({
+            assignee: { kind: 'user', userId: ownerUserId },
             expectedVersion: 3,
             serverId,
             taskId: task.id,
         });
-        expect(await fixture.inboxItems(task.id)).toEqual([]);
-        await expect(countAgentTaskQueue(connection.db, { agentId, serverId })).resolves.toEqual({
-            active: 1,
-            todo: 0,
-        });
-
-        // Reassigning back is a fresh, uncleared item stamped with the new version.
-        await owner.trpc.task.assign.mutate({
-            assignee: { kind: 'user', userId: peerUserId },
-            expectedVersion: 4,
-            serverId,
-            taskId: task.id,
-        });
-        expect(await fixture.inboxItems(task.id)).toEqual([
-            expect.objectContaining({ assignment_version: 5, cleared: false }),
-        ]);
-
-        // Assigning yourself creates nothing.
-        const assigned = await owner.trpc.task.assign.mutate({
-            assignee: { kind: 'user', userId: ownerUserId },
-            expectedVersion: 5,
-            serverId,
-            taskId: task.id,
-        });
-        expect(await fixture.inboxItems(task.id)).toEqual([]);
-        // The same assignee again changes nothing.
         const again = await owner.trpc.task.assign.mutate({
             assignee: { kind: 'user', userId: ownerUserId },
-            expectedVersion: 6,
+            expectedVersion: 4,
             serverId,
             taskId: task.id,
         });
@@ -214,77 +212,61 @@ describe('assignment and the person Task Inbox', () => {
     });
 
     test('refuses an assignee who is not an active member or Agent', async () => {
+        const task = await startTestTask(harness, owner, {
+            channelId: allChatId,
+            serverId,
+            title: 'Nobody',
+        });
         await expect(
-            owner.trpc.task.create.mutate({
+            owner.trpc.task.assign.mutate({
                 assignee: { agentId: 'agt_missing', kind: 'agent' },
-                boardId,
+                expectedVersion: 1,
                 serverId,
-                title: 'Nobody',
+                taskId: task.id,
             })
         ).rejects.toThrow(/active member or Agent/);
     });
 });
 
-describe('Convert to Task and reads', () => {
-    test('defaults the description to the source message and records it', async () => {
-        const chatId = allChatId;
-        const sent = await owner.trpc.chat.send.mutate({
-            chatId,
-            content: 'Rotate the staging credentials\nThey leaked in the logs.',
-            nonce: 'task-api-convert',
+describe('reads', () => {
+    test('get by key with Mentioned in, and list by assignee and state', async () => {
+        const task = await startTestTask(harness, owner, {
+            channelId: allChatId,
             serverId,
-        });
-        const label = await owner.trpc.taskLabel.create.mutate({ name: 'Security', serverId });
-        const { task } = await owner.trpc.task.create.mutate({
-            boardId,
-            labelIds: [label.label.id],
-            serverId,
-            sourceMessageId: sent.message.id,
             title: 'Rotate the staging credentials',
         });
-        expect(task.description).toBe('Rotate the staging credentials\nThey leaked in the logs.');
-        expect(task.labelIds).toEqual([label.label.id]);
-
+        const mention = await send(`Tracking ${task.key}`);
         const detail = await owner.trpc.task.get.query({ key: task.key, serverId });
         expect(detail.id).toBe(task.id);
+        expect(detail.origin).toEqual({ chatId: allChatId, messageId: task.originMessageId });
         expect(detail.mentions).toEqual([
-            expect.objectContaining({ chatId, messageId: sent.message.id }),
+            expect.objectContaining({ chatId: allChatId, messageId: mention.id }),
         ]);
         expect(detail.reminders).toEqual([]);
-        // The Task is visible to every member; a Chat the reader is not in is not.
-        const peerView = await peer.trpc.task.get.query({ serverId, taskId: task.id });
-        expect(peerView.key).toBe(task.key);
-        expect(peerView.mentions).toEqual([]);
         await expect(owner.trpc.task.get.query({ key: 'GEN-9999', serverId })).rejects.toThrow(
             /GEN-9999/
         );
-        await expect(
-            owner.trpc.task.create.mutate({
-                boardId,
-                serverId,
-                sourceMessageId: 'msg_missing',
-                title: 'No source',
-            })
-        ).rejects.toThrow(/source message/);
-    });
 
-    test('lists by assignee and category', async () => {
-        const { task } = await owner.trpc.task.create.mutate({
+        await owner.trpc.task.assign.mutate({
             assignee: { kind: 'user', userId: peerUserId },
-            boardId,
-            columnId: columns.done,
+            expectedVersion: 1,
             serverId,
-            title: 'Finished for the peer',
+            taskId: task.id,
+        });
+        await owner.trpc.task.setState.mutate({
+            expectedVersion: 2,
+            serverId,
+            state: 'done',
+            taskId: task.id,
         });
         const peers = await owner.trpc.task.list.query({
             assignee: { userId: peerUserId },
-            categories: ['done'],
             serverId,
+            states: ['done'],
         });
         expect(peers.map(({ id }) => id)).toEqual([task.id]);
-        expect(await owner.trpc.task.list.query({ assignee: { agentId }, serverId })).toEqual([]);
         const unassigned = await owner.trpc.task.list.query({ assignee: 'none', serverId });
-        expect(unassigned.every((task) => task.assignee === null)).toBe(true);
+        expect(unassigned.every((each) => each.assignee === null)).toBe(true);
         expect(unassigned.length).toBeGreaterThan(0);
     });
 });

@@ -14,6 +14,8 @@ export interface SeedMessage {
     /** Minted up front when a record row has to point at this Message. */
     id?: string;
     nonce: string;
+    /** An inline reply: the Message it answers and its chain's root. */
+    reply?: { rootMessageId: string; toMessageId: string };
 }
 
 export interface SeededMessage {
@@ -63,7 +65,8 @@ export async function appendSeedMessages(
             id,
             mentionedUserIds: mentionedUserIds(message.content),
             nonce: message.nonce,
-            replyRootMessageId: id,
+            replyRootMessageId: message.reply?.rootMessageId ?? id,
+            replyToMessageId: message.reply?.toMessageId ?? null,
             sequence: base + index + 1,
             serverId: input.serverId,
         };

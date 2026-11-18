@@ -10,6 +10,7 @@ import {
 } from '../postgres/schema.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { detachTasksFromRemovedChats } from '../tasks/task-chat-removal.ts';
 import { prepareTaskLinkEvents, readReminderTaskIds } from '../tasks/task-reference-links.ts';
 
 interface DeletedChannelTarget {
@@ -124,13 +125,18 @@ export async function purgeDeletedChannel(
                 )
             );
         const childIds = chatIds.filter((id) => id !== input.chatId);
+        // Task Chats go with the Channel; their Tasks stay, canceled.
+        const detachedTaskEvents = await detachTasksFromRemovedChats(tx, {
+            chatIds: childIds,
+            serverId: input.serverId,
+        });
         if (childIds.length > 0) {
             await tx.delete(chatsTable).where(inArray(chatsTable.id, childIds));
         }
         await tx
             .delete(chatsTable)
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
-        return events;
+        return [...events, ...detachedTaskEvents];
     });
     publishRealtime(taskEvents);
 }

@@ -1,4 +1,4 @@
-import type { Board, HausApiSchema, Task, TaskActor, TaskDetail } from '@haus/api';
+import type { HausApiSchema, Task, TaskActor, TaskDetail } from '@haus/api';
 import { and, eq, inArray } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -9,23 +9,15 @@ import {
     taskLabelsTable,
 } from '../postgres/schema.ts';
 import { targetForChat } from './message-view.ts';
-import { requireBoardById } from './task-refs.ts';
 
 type AgentTaskRow = HausApiSchema<'AgentTaskRow'>;
 type Reader = Pick<HausDatabase, 'select'>;
 
-/** A board as the Agent API shapes it: the fields an Agent acts on, without the Server's own. */
-export function toAgentBoard(board: Board): HausApiSchema<'AgentBoard'> {
-    const { archivedAt, columns, id, key, name, openTaskCount, version } = board;
-    return { archivedAt, columns, id, key, name, openTaskCount, version };
-}
-
-/** Tasks as Agent API rows: handles for ids, label and column names, in a few batched reads. */
+/** Tasks as Agent API rows: handles for ids and label names, in a few batched reads. */
 export async function toAgentTaskRows(
     db: Reader,
     serverId: string,
-    tasks: readonly Task[],
-    boards: readonly Board[]
+    tasks: readonly Task[]
 ): Promise<AgentTaskRow[]> {
     const actors = tasks.flatMap((task) => [
         task.createdBy,
@@ -37,30 +29,20 @@ export async function toAgentTaskRows(
         serverId,
         tasks.map((task) => task.id)
     );
-    return tasks.map((task) => {
-        const board = requireBoardById(boards, task.boardId);
-        const column = board.columns.find((candidate) => candidate.id === task.columnId);
-        if (!column) {
-            throw new Error(`Task ${task.key} sits in a column its board does not have.`);
-        }
-        return {
-            assignee: task.assignee ? actorRow(task.assignee, handles) : null,
-            board: board.key,
-            category: task.category,
-            column: column.name,
-            columnId: task.columnId,
-            completedAt: task.completedAt,
-            createdAt: task.createdAt,
-            createdBy: actorRow(task.createdBy, handles),
-            dueOn: task.dueOn,
-            key: task.key,
-            labels: labels.get(task.id) ?? [],
-            priority: task.priority,
-            title: task.title,
-            updatedAt: task.updatedAt,
-            version: task.version,
-        };
-    });
+    return tasks.map((task) => ({
+        assignee: task.assignee ? actorRow(task.assignee, handles) : null,
+        completedAt: task.completedAt,
+        createdAt: task.createdAt,
+        createdBy: actorRow(task.createdBy, handles),
+        dueOn: task.dueOn,
+        key: task.key,
+        labels: labels.get(task.id) ?? [],
+        priority: task.priority,
+        state: task.state,
+        title: task.title,
+        updatedAt: task.updatedAt,
+        version: task.version,
+    }));
 }
 
 /** `haus task show`'s body beside the row: where each mention and Reminder lives, as targets. */

@@ -3,7 +3,7 @@ import { deleteQueuedOrdinaryItems } from '../agent-delivery/store.ts';
 import { openAgentChatRead } from '../agent-reads/agent-chat-reads.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentChannelMutesTable, agentThreadFollowsTable, chatsTable } from '../postgres/schema.ts';
+import { agentChannelMutesTable, agentTaskFollowsTable, chatsTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { AgentTargetError, resolveAgentTarget } from './resolve-target.ts';
 
@@ -55,48 +55,44 @@ export async function changeAgentChannelMute(
     return { muted, target: `#${channel.name}` };
 }
 
-export async function unfollowAgentThread(
-    db: HausDatabase,
-    runner: ResolvedRunner,
-    target: string
-) {
-    const threadChatId = await resolveAgentTarget(db, runner, target);
-    const [thread] = await db
+export async function unfollowAgentTask(db: HausDatabase, runner: ResolvedRunner, target: string) {
+    const taskChatId = await resolveAgentTarget(db, runner, target);
+    const [task] = await db
         .select({ kind: chatsTable.kind })
         .from(chatsTable)
         .where(
             and(
                 eq(chatsTable.serverId, runner.serverId),
-                eq(chatsTable.id, threadChatId),
-                eq(chatsTable.kind, 'thread')
+                eq(chatsTable.id, taskChatId),
+                eq(chatsTable.kind, 'task')
             )
         )
         .limit(1);
-    if (!thread) {
-        throw new AgentTargetError('Thread unfollow requires a joined thread target.');
+    if (!task) {
+        throw new AgentTargetError('Unfollow requires a Task target.');
     }
     await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
         await tx
-            .insert(agentThreadFollowsTable)
+            .insert(agentTaskFollowsTable)
             .values({
                 agentId: runner.agentId,
                 followed: false,
                 serverId: runner.serverId,
-                threadChatId,
+                taskChatId,
                 updatedAt: new Date(),
             })
             .onConflictDoUpdate({
                 set: { followed: false, updatedAt: new Date() },
                 target: [
-                    agentThreadFollowsTable.serverId,
-                    agentThreadFollowsTable.agentId,
-                    agentThreadFollowsTable.threadChatId,
+                    agentTaskFollowsTable.serverId,
+                    agentTaskFollowsTable.agentId,
+                    agentTaskFollowsTable.taskChatId,
                 ],
             });
         await deleteQueuedOrdinaryItems(tx, {
             agentId: runner.agentId,
-            chatIds: [threadChatId],
+            chatIds: [taskChatId],
             serverId: runner.serverId,
         });
     });
@@ -104,39 +100,39 @@ export async function unfollowAgentThread(
 }
 
 /**
- * Follows a Thread for an Agent. A new or restored follow starts the Agent's
- * read position there; an already-followed Thread keeps its unread.
+ * Follows a Task's Chat for an Agent. A new or restored follow starts the
+ * Agent's read position there; an already-followed one keeps its unread.
  */
-export async function followAgentThread(
+export async function followAgentTask(
     db: Pick<HausDatabase, 'execute' | 'insert' | 'select'>,
-    input: { agentId: string; serverId: string; threadChatId: string }
+    input: { agentId: string; serverId: string; taskChatId: string }
 ) {
     const [previous] = await db
-        .select({ followed: agentThreadFollowsTable.followed })
-        .from(agentThreadFollowsTable)
+        .select({ followed: agentTaskFollowsTable.followed })
+        .from(agentTaskFollowsTable)
         .where(
             and(
-                eq(agentThreadFollowsTable.serverId, input.serverId),
-                eq(agentThreadFollowsTable.agentId, input.agentId),
-                eq(agentThreadFollowsTable.threadChatId, input.threadChatId)
+                eq(agentTaskFollowsTable.serverId, input.serverId),
+                eq(agentTaskFollowsTable.agentId, input.agentId),
+                eq(agentTaskFollowsTable.taskChatId, input.taskChatId)
             )
         )
         .limit(1);
     await db
-        .insert(agentThreadFollowsTable)
+        .insert(agentTaskFollowsTable)
         .values({ ...input, followed: true, updatedAt: new Date() })
         .onConflictDoUpdate({
             set: { followed: true, updatedAt: new Date() },
             target: [
-                agentThreadFollowsTable.serverId,
-                agentThreadFollowsTable.agentId,
-                agentThreadFollowsTable.threadChatId,
+                agentTaskFollowsTable.serverId,
+                agentTaskFollowsTable.agentId,
+                agentTaskFollowsTable.taskChatId,
             ],
         });
     if (previous?.followed !== true) {
         await openAgentChatRead(db, {
             agentId: input.agentId,
-            chatId: input.threadChatId,
+            chatId: input.taskChatId,
             serverId: input.serverId,
         });
     }

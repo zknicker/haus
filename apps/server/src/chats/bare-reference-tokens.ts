@@ -3,10 +3,11 @@ export interface BareReferenceToken {
     end: number;
     /** The token without its sigil, lowercased for directory lookup. */
     key: string;
+    /** `#channel:shortid`: the Message in that Channel the token names. */
+    messageShortId?: string;
     sigil: '#' | '@';
     start: number;
     text: string;
-    threadAnchor?: string;
 }
 
 export interface ReferenceRange {
@@ -37,11 +38,11 @@ export function readBareReferenceTokens(content: string): BareReferenceToken[] {
         if (!(text && start !== undefined)) {
             continue;
         }
-        const threadAnchor = text.startsWith('#')
+        const messageShortId = text.startsWith('#')
             ? /^:([A-Za-z0-9_-]+)(?![A-Za-z0-9_:-])/u.exec(content.slice(start + text.length))?.[1]
             : undefined;
-        if (threadAnchor) {
-            text += `:${threadAnchor}`;
+        if (messageShortId) {
+            text += `:${messageShortId}`;
         }
         const end = start + text.length;
         if (
@@ -58,7 +59,7 @@ export function readBareReferenceTokens(content: string): BareReferenceToken[] {
             sigil: text.startsWith('@') ? '@' : '#',
             start,
             text,
-            ...(threadAnchor ? { threadAnchor } : {}),
+            ...(messageShortId ? { messageShortId } : {}),
         });
     }
 

@@ -1,6 +1,5 @@
 import type { AgentActivityEvent, AgentSendReceipt, HausAgentMessage } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
-import { followAgentThread } from '../agent-api/attention.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { advanceAgentChatReadsSeen } from '../agent-reads/agent-chat-reads.ts';
@@ -16,7 +15,6 @@ import { agentsTable, chatMessagesTable, chatsTable } from '../postgres/schema.t
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { autoFollowThreadMentions } from '../threads/thread-attention.ts';
 import { canonicalizeAgentMessageContentForPersistence } from './canonicalize-agent-references.ts';
 import { requireChatWritable } from './chat-access.ts';
 import { mentionedUserIds } from './mentioned-user-ids.ts';
@@ -26,6 +24,7 @@ import {
     recordMessageLinks,
     resolveMessageLinks,
 } from './message-links.ts';
+import { applyPostFollows } from './post-follows.ts';
 import { readInlineReplyContext, resolveInlineReplyParent } from './reply-context.ts';
 import { AgentMessageContentTooLongError } from './send-agent-message-errors.ts';
 import {
@@ -210,21 +209,18 @@ export async function sendAgentMessage(
             .from(chatsTable)
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)))
             .limit(1);
-        if (writtenChat?.kind === 'thread') {
-            await followAgentThread(tx, {
-                agentId: input.agentId,
-                serverId: input.serverId,
-                threadChatId: input.chatId,
-            });
-            if (writtenChat.parentChatId) {
-                await autoFollowThreadMentions(tx, {
-                    content,
-                    parentChatId: writtenChat.parentChatId,
-                    serverId: input.serverId,
-                    threadChatId: input.chatId,
-                });
-            }
+        if (!writtenChat) {
+            throw new Error('The Agent message Chat disappeared mid-send.');
         }
+        const placeEvents = await applyPostFollows(
+            tx,
+            { ...writtenChat, chatId: input.chatId, serverId: input.serverId },
+            {
+                author: { agentId: input.agentId, kind: 'agent' },
+                content,
+                mentionedUserIds: message.mentionedUserIds,
+            }
+        );
 
         const recipients = await planAgentMessageRecipients(tx, {
             authorAgentId: input.agentId,
@@ -244,13 +240,10 @@ export async function sendAgentMessage(
                 sequence: message.sequence,
                 serverId: input.serverId,
                 source: `agent:${agent.handle}`,
-                threadFollowReactivated: recipient.threadFollowReactivated,
+                taskFollowReactivated: recipient.taskFollowReactivated,
             });
         }
 
-        if (!writtenChat) {
-            throw new Error('The Agent message Chat disappeared mid-send.');
-        }
         const event = await prepareMessageCreatedEvent(
             tx,
             message,
@@ -272,6 +265,7 @@ export async function sendAgentMessage(
             activities,
             events: [
                 event,
+                ...placeEvents,
                 ...(await prepareMessageLinkEvents(tx, { ...linked, serverId: input.serverId })),
             ],
             message: toAgentCliMessage(message, {

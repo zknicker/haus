@@ -3,7 +3,6 @@ import { createHash } from 'node:crypto';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { eq, inArray } from 'drizzle-orm';
 import { openAttachmentRoot } from '../src/attachments/attachment-root.ts';
 import { readMessageCauses } from '../src/automations/message-cause-read.ts';
 import { developmentArtifactFiles } from '../src/development/seed-artifact-files.ts';
@@ -15,18 +14,19 @@ import {
     agentsTable,
     attachmentsTable,
     avatarsTable,
-    boardsTable,
     chatMessagesTable,
     chatsTable,
+    cloudAgentWorkTable,
     computersTable,
     mcpConnectionsTable,
     messageClaimsTable,
     serverOnboardingTable,
     serversTable,
-    taskInboxItemsTable,
+    taskFollowsTable,
+    taskKeysTable,
     taskMessageLinksTable,
+    taskPullRequestsTable,
     tasksTable,
-    threadFollowsTable,
     usersTable,
 } from '../src/postgres/schema.ts';
 import { makeServerRuntime } from '../src/server-runtime.ts';
@@ -69,11 +69,9 @@ test('creates one idempotent Server-owned demo workspace', async () => {
     expect(await connection.db.select().from(computersTable)).toHaveLength(2);
     const agents = await connection.db.select().from(agentsTable);
     expect(agents).toHaveLength(3);
-    // Base workspace, the UI gallery channel and its threads, #automations,
-    // and #repo-health with its Cloud Agent fan-out Thread. The gallery's three
-    // follow-up works, its pending-input sample, its five Claude provider samples,
-    // and two inline-mention samples each carry a Thread.
-    expect(await connection.db.select().from(chatsTable)).toHaveLength(39);
+    // Base workspace, #ui-gallery, #automations, and the five demo Tasks' own Chats;
+    // conversations are inline replies.
+    expect(await connection.db.select().from(chatsTable)).toHaveLength(13);
     expect(await connection.db.select().from(serverOnboardingTable)).toMatchObject([
         {
             agentId: agents.find((agent) => agent.handle === 'cove')?.id,
@@ -83,10 +81,9 @@ test('creates one idempotent Server-owned demo workspace', async () => {
             serverId: first.id,
         },
     ]);
-    // #repo-health adds its anchor and nine Cloud Agent work Messages; the
-    // gallery's three follow-up works, pending-input sample, and five Claude
-    // provider samples add one Message each; inline mentions add six messages.
-    expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(92);
+    // Gallery follow-ups (3), pending input (1), Claude samples (5), inline mentions (6),
+    // the demo Tasks' conversations (8), and a cloud agent launch (1).
+    expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(91);
     const [seededAttachment] = await connection.db.select().from(attachmentsTable);
     expect(seededAttachment).toMatchObject({
         byteSize: 163_552,
@@ -169,9 +166,6 @@ test('creates one idempotent Server-owned demo workspace', async () => {
 // enough to exercise every surface without hand-building data.
 test('seeds a demo workspace an operator can actually look at', async () => {
     const agents = await connection.db.select().from(agentsTable);
-    const threads = (await connection.db.select().from(chatsTable)).filter(
-        (chat) => chat.kind === 'thread'
-    );
     const claims = await connection.db.select().from(messageClaimsTable);
     const users = await connection.db.select().from(usersTable);
 
@@ -194,43 +188,46 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     const allChannelId = (await connection.db.select().from(chatsTable)).find(
         (chat) => chat.isAll
     )?.id;
-    // Threads are anchored to real channel messages; three are followed.
-    // Includes the #repo-health fan-out Thread, the gallery's follow-up works,
-    // its pending-input sample, five Claude provider samples, and two inline-mention samples.
-    expect(threads).toHaveLength(30);
-    expect(threads.every((thread) => thread.anchorMessageId && thread.parentChatId)).toBe(true);
-    expect(await connection.db.select().from(threadFollowsTable)).toHaveLength(3);
-
-    // The General board's demo Tasks, each mentioned by the message it came from.
-    // The two handed to the owner are Inbox items; one's context is a Thread
-    // reply, and each message names its Task, so the chip shows. The board's
-    // counter is past them, so the first real Task does not collide with a
-    // seeded number.
+    // Side conversations are inline replies: the plan in #all carries three.
+    const messages = await connection.db.select().from(chatMessagesTable);
+    const planReplies = messages.filter(
+        (message) => message.chatId === allChannelId && message.replyToMessageId !== null
+    );
+    expect(planReplies).toHaveLength(3);
+    expect(new Set(planReplies.map((message) => message.replyRootMessageId)).size).toBe(1);
+    const follows = await connection.db.select().from(taskFollowsTable);
+    // The GEN demo Tasks are places, each mentioned by the message it came from; the owner
+    // follows the two handed to them and the three they posted in. The key's counter is past.
     const tasks = await connection.db.select().from(tasksTable);
     const links = await connection.db.select().from(taskMessageLinksTable);
-    expect(tasks.map((task) => task.number).sort()).toEqual([1, 2, 3, 4]);
-    expect(links.map((link) => link.text).sort()).toEqual(['GEN-1', 'GEN-2', 'GEN-3', 'GEN-4']);
-    const [general] = await connection.db.select().from(boardsTable);
-    expect(general).toMatchObject({ key: 'GEN', nextNumber: 5 });
-    const inboxItems = await connection.db.select().from(taskInboxItemsTable);
+    const states = byNumber(tasks).map((task) => `${task.number}:${task.state}`);
+    expect(states.join(' ')).toBe('1:open 2:todo 3:todo 4:todo 5:done');
+    expect(tasks.every((task) => task.chatId !== null)).toBe(true);
+    const keys = links.map((link) => link.text).sort();
+    expect(keys.join(' ')).toBe('GEN-1 GEN-2 GEN-3 GEN-4 GEN-5');
+    const [general] = await connection.db.select().from(taskKeysTable);
+    expect(general).toMatchObject({ key: 'GEN', nextNumber: 6 });
     const ownerTasks = tasks.filter((task) => task.assigneeUserId !== null);
     expect(ownerTasks.map((task) => task.number).sort()).toEqual([3, 4]);
-    expect(inboxItems.map((item) => item.taskId).sort()).toEqual(
-        ownerTasks.map((task) => task.id).sort()
-    );
-    expect(inboxItems.every((item) => item.assignedByAgentId !== null)).toBe(true);
-    const linkedMessages = await connection.db
-        .select({ chatKind: chatsTable.kind, content: chatMessagesTable.content })
-        .from(chatMessagesTable)
-        .innerJoin(chatsTable, eq(chatsTable.id, chatMessagesTable.chatId))
-        .where(
-            inArray(
-                chatMessagesTable.id,
-                links.filter((link) => /GEN-[34]/u.test(link.text)).map((link) => link.messageId)
-            )
-        );
-    expect(linkedMessages.map((message) => message.chatKind).sort()).toEqual(['channel', 'thread']);
-    expect(linkedMessages.every((message) => /GEN-[34]/u.test(message.content))).toBe(true);
+    const followed = new Set(follows.map((follow) => follow.taskChatId));
+    const followedNumbers = tasks.filter((task) => followed.has(task.chatId ?? ''));
+    expect(followedNumbers.map((task) => task.number).sort()).toEqual([1, 3, 4, 5]);
+    // The open Task holds a conversation, settled cloud work, and its pull request.
+    const [open] = byNumber(tasks);
+    expect(messages.filter((message) => message.chatId === open?.chatId)).toHaveLength(4);
+    const works = await connection.db.select().from(cloudAgentWorkTable);
+    const openWork = works.filter((work) => work.taskId === open?.id);
+    expect(openWork.map((work) => work.status)).toEqual(['completed']);
+    expect(await connection.db.select().from(taskPullRequestsTable)).toMatchObject([
+        { number: 512, repository: 'zknicker/haus', taskId: open?.id },
+    ]);
+    // GEN-3 and GEN-4 are named in Channel messages that say their keys.
+    const named = links
+        .filter((link) => /GEN-[34]/u.test(link.text))
+        .map((link) => messages.find((message) => message.id === link.messageId));
+    expect(named.every((message) => message && /GEN-[34]/u.test(message.content))).toBe(true);
+    const inTask = named.some((message) => tasks.some((task) => task.chatId === message?.chatId));
+    expect(inTask).toBe(false);
 
     // The Inbox seed's stalled claim is the only one in `#all`. The channel's
     // counter is past it, so promoting a message there does not collide with a
@@ -287,7 +284,7 @@ test('seeds #automations with live, archived, and replying automation causes', a
     expect(reminderCauses.map((cause) => cause.title).sort()).toEqual([
         'Monday Release Checklist',
         'Review Queue Check',
-        'Stale Thread Cleanup',
+        'Stale Channel Cleanup',
     ]);
     expect(reminderCauses.every((cause) => (cause.description?.length ?? 0) > 30)).toBe(true);
     // One reminder answer is also an inline reply; its cause line replaces the reply line.
@@ -297,3 +294,7 @@ test('seeds #automations with live, archived, and replying automation causes', a
         messages.filter((message) => message.replyToMessageId && !causes.has(message.id))
     ).toHaveLength(1);
 });
+
+function byNumber<T extends { number: number }>(rows: T[]): T[] {
+    return [...rows].sort((left, right) => left.number - right.number);
+}

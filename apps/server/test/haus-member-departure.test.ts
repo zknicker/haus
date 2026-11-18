@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { startTestTask } from './task-place-fixture.ts';
 
 let harness: HausServerHarness;
 let owner: HausClient;
@@ -24,36 +25,35 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('removal clears Thread follow and live composition state before reinvitation', async () => {
+test('removal clears Task follow and live composition state before reinvitation', async () => {
     const member = await signIn('user_departure_member', ['departure-member@haus.test']);
     await join(member, 'departure-member@haus.test');
     const memberUserId = await readUserId('user_departure_member');
-    const anchor = await owner.trpc.chat.send.mutate({
-        chatId: allChatId,
-        content: 'Departure anchor',
-        nonce: 'departure-anchor',
+    const task = await startTestTask(harness, owner, {
+        channelId: allChatId,
         serverId,
+        title: 'Departure check',
     });
-    const reply = await member.trpc.chat.send.mutate({
-        chatId: allChatId,
+    // Posting in the Task follows it.
+    await member.trpc.chat.send.mutate({
+        chatId: task.chatId,
         content: 'Following before removal',
         nonce: 'departure-reply',
         serverId,
-        thread: { anchorMessageId: anchor.message.id },
     });
-    const threadChatId = reply.threadChatId as string;
-    const compositions = subscribeToCompositions(owner, threadChatId);
+    const taskChatId = task.chatId;
+    const compositions = subscribeToCompositions(owner, taskChatId);
 
     await compositions.started;
     await member.trpc.chat.publishComposition.mutate({
-        chatId: threadChatId,
+        chatId: taskChatId,
         compositionId: 'departure-draft',
         serverId,
         text: 'unfinished private draft',
     });
     await expect(compositions.draft).resolves.toMatchObject({
         actorUserId: memberUserId,
-        chatId: threadChatId,
+        chatId: taskChatId,
         text: 'unfinished private draft',
     });
 
@@ -65,18 +65,18 @@ test('removal clears Thread follow and live composition state before reinvitatio
 
     await expect(compositions.cleared).resolves.toMatchObject({
         actorUserId: memberUserId,
-        chatId: threadChatId,
+        chatId: taskChatId,
         text: null,
     });
     const [afterRemoval] = await harness.sql`
-        select count(*)::int as total from thread_follows
+        select count(*)::int as total from task_follows
         where server_id = ${serverId} and user_id = ${memberUserId}
     `;
     expect(afterRemoval.total).toBe(0);
 
     await join(member, 'departure-member@haus.test');
     const parent = await member.trpc.chat.messages.query({ chatId: allChatId, serverId });
-    expect(parent.threads).toMatchObject([{ followed: false, threadChatId }]);
+    expect(parent.tasks).toMatchObject([{ chatId: taskChatId, followed: false }]);
 
     compositions.unsubscribe();
     member.close();

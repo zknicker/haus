@@ -82,7 +82,6 @@ test('human reactions persist, group by emoji, hydrate for a fresh client, and s
     await expect(subscription.next()).resolves.toEqual({
         chatId,
         messageId: sent.message.id,
-        parentChatId: null,
         serverId,
     });
     const freshClient = await signIn('user_reactions_peer');
@@ -175,24 +174,20 @@ test('human reactions persist, group by emoji, hydrate for a fresh client, and s
     subscription.stop();
 });
 
-test('reaction writes preserve Thread access and archived lifecycle guards', async () => {
+test('reaction writes on an inline reply keep Chat access and archived lifecycle guards', async () => {
     const anchor = await owner.trpc.chat.send.mutate({
         chatId,
-        content: 'Thread reaction anchor',
-        nonce: 'reaction-thread-anchor',
+        content: 'Reply reaction anchor',
+        nonce: 'reaction-reply-anchor',
         serverId,
     });
     const reply = await peer.trpc.chat.send.mutate({
         chatId,
-        content: 'Thread reaction reply',
-        nonce: 'reaction-thread-reply',
+        content: 'Reply reaction reply',
+        nonce: 'reaction-reply-reply',
+        replyToMessageId: anchor.message.id,
         serverId,
-        thread: { anchorMessageId: anchor.message.id },
     });
-    const threadChatId = reply.threadChatId;
-    if (!threadChatId) {
-        throw new Error('Expected the reaction fixture to materialize a Thread.');
-    }
 
     const subscription = collectStream(owner.trpc.chat.onMessageReactionUpdated, { serverId });
     await subscription.started;
@@ -203,16 +198,20 @@ test('reaction writes preserve Thread access and archived lifecycle guards', asy
     });
     expect(reacted.changed).toBe(true);
     await expect(subscription.next()).resolves.toEqual({
-        chatId: threadChatId,
+        chatId,
         messageId: reply.message.id,
-        parentChatId: chatId,
         serverId,
     });
     subscription.stop();
     await expect(
-        owner.trpc.chat.messages.query({ chatId: threadChatId, serverId })
+        owner.trpc.chat.messages.query({
+            chatId,
+            replyRootMessageId: anchor.message.id,
+            serverId,
+        })
     ).resolves.toMatchObject({
         messages: [
+            expect.objectContaining({ id: anchor.message.id }),
             expect.objectContaining({
                 id: reply.message.id,
                 reactions: [

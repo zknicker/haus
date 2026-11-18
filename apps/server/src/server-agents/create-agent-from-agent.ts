@@ -107,7 +107,7 @@ export async function createAgentFromAgent(
         // message, so the DM still becomes a visible Chat on its first one, and
         // the human has a place to talk to the new Agent from the start.
         const dmOwnerUserId = await resolveAgentDmOwnerUserId(tx, {
-            contextChatId: plan.chat.kind === 'thread' ? plan.chat.parentChatId : plan.chatId,
+            contextChatId: plan.chatId,
             creatorAgentId: runner.agentId,
             serverId: runner.serverId,
         });

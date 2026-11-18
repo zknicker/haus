@@ -1,5 +1,6 @@
 import { type EffectRuntime, settle } from '@haus/effect';
 import { Scope } from 'effect';
+import type { AgentDelivery } from './agent-delivery/delivery.ts';
 import { startArtifactRetentionSweep } from './artifacts/retention.ts';
 import type { ArtifactStorage } from './artifacts/storage.ts';
 import type { BootSweep, SweepTimers } from './boot-sweep.ts';
@@ -24,6 +25,8 @@ const githubRecoveryDefaultIntervalMs = 10 * 60_000;
 const pullRequestRefreshIntervalMs = 15_000;
 
 interface ServerSweepsInput {
+    /** Queues the wakes a pull request reading raises (ADR 0052 decision 6). */
+    agentDelivery: Pick<AgentDelivery, 'enqueue'>;
     /** The App origin iPhone push builds absolute avatar URLs against. */
     appOrigin: string;
     /** Private R2; revision retention runs only when it is configured. */
@@ -41,7 +44,7 @@ interface ServerSweepsInput {
     /** iPhone push; absent when no APNs key is configured. */
     pushSender: PushSender | null;
     timers?: SweepTimers;
-    /** Wakes Agents whose GitHub Triggers entered a problem during a sweep. */
+    /** Wakes Agents a sweep queued work for: Trigger problems, pull request changes. */
     wakeAgents?(wakes: { agentId: string; serverId: string }[]): void;
 }
 
@@ -130,7 +133,12 @@ function githubSweeps(runtime: EffectRuntime<never>, input: ServerSweepsInput): 
         );
     const pullRequests = () =>
         startPullRequestRefresher(
-            { app: githubApp, db: input.db },
+            {
+                app: githubApp,
+                db: input.db,
+                delivery: input.agentDelivery,
+                wakeAgents: (wakes) => input.wakeAgents?.(wakes),
+            },
             { intervalMs: pullRequestRefreshIntervalMs, timers: input.timers }
         );
     if (recoveryIntervalMs === null) {

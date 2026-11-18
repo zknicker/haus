@@ -5,9 +5,10 @@ import { captureAllTopics, publishedSince } from './realtime-capture.ts';
 
 const fixture = cloudAgentFixture();
 
-test('one Cloud Agent work writes its Message, record, first Run, Thread, and events', async () => {
+test('one Cloud Agent work writes its Message in its Task, record, first Run, and events', async () => {
     const runner = await fixture.mintRunner('run_cloud_create');
     const realtime = captureAllTopics();
+    const taskChatId = fixture.task.chatId;
 
     const created = await fixture.postStart(
         runner,
@@ -16,13 +17,13 @@ test('one Cloud Agent work writes its Message, record, first Run, Thread, and ev
     expect(created.status).toBe(200);
     const work = created.body.work as CloudAgentWork;
     expect(created.body).toMatchObject({
-        chatId: fixture.channelId,
+        chatId: taskChatId,
         idempotent: false,
-        target: '#product',
+        target: `task:${fixture.task.key}`,
         work: {
             agentId: fixture.orbitAgentId,
             cancelRequestedAt: null,
-            chatId: fixture.channelId,
+            chatId: taskChatId,
             computerId: fixture.computerId,
             provider: 'cursor',
             providerAgentId: null,
@@ -36,26 +37,24 @@ test('one Cloud Agent work writes its Message, record, first Run, Thread, and ev
     expect(work.runs).toHaveLength(1);
     expect(work.runs[0]).toMatchObject({ runId: created.body.runId, status: 'queued' });
 
-    const threadChatId = `cht_thr_${(created.body.messageId as string).slice('msg_'.length)}`;
-    const [thread] = (await fixture.harness.sql`
-        select anchor_message_id, parent_chat_id from chats where id = ${threadChatId}
-    `) as { anchor_message_id: string; parent_chat_id: string }[];
-    expect(thread).toMatchObject({
-        anchor_message_id: created.body.messageId,
-        parent_chat_id: fixture.channelId,
-    });
+    // A Task takes no child Chats (ADR 0052): the launch opens none.
+    const children = (await fixture.harness.sql`
+        select id from chats where anchor_message_id = ${created.body.messageId ?? ''}
+    `) as { id: string }[];
+    expect(children).toEqual([]);
 
     const events = await publishedSince(realtime, fixture.serverId);
     realtime.stop();
     expect(events.map((event) => event.type)).toEqual([
         'cloudAgentWork.updated',
         'message.created',
+        'task.updated',
     ]);
     expect(events[0]).toEqual({
-        chatId: fixture.channelId,
+        chatId: taskChatId,
         messageId: created.body.messageId,
-        parentChatId: null,
         serverId: fixture.serverId,
+        taskId: fixture.task.id,
         type: 'cloudAgentWork.updated',
         workId: work.id,
     });
@@ -70,7 +69,7 @@ test('one Cloud Agent work writes its Message, record, first Run, Thread, and ev
 
     // The launch Message is ordinary text that links its work (ADR 0044).
     const history = await fixture.owner.trpc.chat.messages.query({
-        chatId: fixture.channelId,
+        chatId: taskChatId,
         serverId: fixture.serverId,
     });
     const launch = history.messages.find((message) => message.id === created.body.messageId);
@@ -105,12 +104,12 @@ test('a launch that fails validation creates nothing', async () => {
         (await fixture.postStart(runner, fixture.startBody({ nonce: 'bad-say', content: '' })))
             .status
     ).toBe(400);
-    const unknownTarget = await fixture.postStart(
+    const unknownTask = await fixture.postStart(
         runner,
-        fixture.startBody({ nonce: 'bad-target', target: '#nowhere' })
+        fixture.startBody({ nonce: 'bad-task', task: 'ZZZ-404' })
     );
-    expect(unknownTarget.status).toBe(404);
-    expect(unknownTarget.body.code).toBe('INVALID_TARGET');
+    expect(unknownTask.status).toBe(400);
+    expect(unknownTask.body.code).toBe('CLOUD_AGENT_TASK_REQUIRED');
     expect((await fixture.postStart(null, fixture.startBody({ nonce: 'no-runner' }))).status).toBe(
         401
     );

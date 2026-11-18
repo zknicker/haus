@@ -43,10 +43,8 @@ export async function claimRows(
     );
     // Sequential: `db` is often the caller's transaction connection.
     const targets = new Map<string, string>();
-    // A claim's target is the Chat its message sits in: the top-level Channel or
-    // DM, or for a Thread claim its Thread (`dm:@x:<anchor>`), which also finds
-    // the claim by number because a Thread target numbers through its parent.
-    const chatIds = rows.map(({ claim }) => claim.threadChatId ?? claim.chatId);
+    // A claim's target is the Chat its message sits in.
+    const chatIds = rows.map(({ claim }) => claim.chatId);
     for (const chatId of new Set(chatIds)) {
         targets.set(chatId, await targetForChat(db, runner.serverId, chatId));
     }
@@ -55,7 +53,7 @@ export async function claimRows(
         message: messages[index] as (typeof messages)[number],
         number: claim.number,
         status: claim.status,
-        target: targets.get(claim.threadChatId ?? claim.chatId) ?? '#unknown',
+        target: targets.get(claim.chatId) ?? '#unknown',
         version: claim.version,
     }));
 }

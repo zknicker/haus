@@ -1,7 +1,5 @@
-import type { Board, BoardColumn, TaskActor } from '@haus/api';
+import type { TaskActor } from '@haus/api';
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
-import { BoardNotFoundError } from '../boards/board-errors.ts';
-import { listBoards } from '../boards/board-read.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, serverMembershipsTable, taskLabelsTable } from '../postgres/schema.ts';
@@ -13,45 +11,6 @@ type Reader = Pick<HausDatabase, 'select'>;
 /** The calling Agent as a Task actor. */
 export function agentActor(runner: Pick<ResolvedRunner, 'agentId'>): TaskActor {
     return { agentId: runner.agentId, kind: 'agent' };
-}
-
-/** Every board on the Server, archived ones included: an Agent may address them by key. */
-export async function readAgentBoards(db: Reader, runner: ResolvedRunner): Promise<Board[]> {
-    return await listBoards(db, agentActor(runner), {
-        includeArchived: true,
-        serverId: runner.serverId,
-    });
-}
-
-export function requireBoardByKey(boards: readonly Board[], key: string): Board {
-    const board = boards.find((candidate) => candidate.key === key);
-    if (!board) {
-        throw new BoardNotFoundError();
-    }
-    return board;
-}
-
-export function requireBoardById(boards: readonly Board[], id: string): Board {
-    const board = boards.find((candidate) => candidate.id === id);
-    if (!board) {
-        throw new BoardNotFoundError();
-    }
-    return board;
-}
-
-/** A column by id, or by name in any case: column names are unique that way on a board. */
-export function resolveBoardColumn(board: Board, value: string): BoardColumn {
-    const wanted = value.toLowerCase();
-    const column = board.columns.find(
-        (candidate) => candidate.id === value || candidate.name.toLowerCase() === wanted
-    );
-    if (!column) {
-        const names = board.columns.map((candidate) => candidate.name).join(', ');
-        throw new AgentTaskInputError(
-            `Board ${board.key} has no column "${value}". It has: ${names}.`
-        );
-    }
-    return column;
 }
 
 /**

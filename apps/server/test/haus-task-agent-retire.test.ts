@@ -1,24 +1,19 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
-import {
-    agentInboxTable,
-    boardColumnsTable,
-    chatMessagesTable,
-    messageClaimsTable,
-} from '../src/postgres/schema.ts';
+import { agentInboxTable, chatMessagesTable, messageClaimsTable } from '../src/postgres/schema.ts';
 import { assignTask } from '../src/tasks/task-assign.ts';
-import { createTask } from '../src/tasks/task-create.ts';
-import { moveTask } from '../src/tasks/task-move.ts';
+import { setTaskState } from '../src/tasks/task-set-state.ts';
 import { offlineDelivery, type Seed } from './agent-inbox-harness.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 import { settledTurn } from './settled-turn-fixture.ts';
 import {
     addPeerAgent,
     assignNewTask,
+    insertTaskPlace,
     seedTaskBoard,
     type TaskBoard,
     taskInboxRows,
@@ -56,18 +51,18 @@ test('reassigning or unassigning before delivery retires the queued item', async
     const kept = await assignNew(delivery, board, 'Kept');
     await assignTask(connection.db, actor, delivery, {
         assignee: { agentId: peerId, kind: 'agent' },
-        expectedVersion: 1,
+        expectedVersion: 2,
         serverId: seed.serverId,
         taskId: handedOff.task.id,
     });
     await assignTask(connection.db, actor, delivery, {
         assignee: null,
-        expectedVersion: 1,
+        expectedVersion: 2,
         serverId: seed.serverId,
         taskId: dropped.task.id,
     });
     expect((await inboxRows(seed)).map((row) => row.dedupeKey)).toEqual([
-        `task-assign:${kept.task.id}:1`,
+        `task-assign:${kept.task.id}:2`,
     ]);
 
     const start = await wake();
@@ -90,16 +85,16 @@ test('a failed run forgets an assignment the Agent has a newer one for, so the T
     await assignTask(connection.db, actor, delivery, {
         ...scope,
         assignee: { agentId: peerId, kind: 'agent' },
-        expectedVersion: 1,
+        expectedVersion: 2,
     });
     await assignTask(connection.db, actor, delivery, {
         ...scope,
         assignee: { agentId: seed.agentId, kind: 'agent' },
-        expectedVersion: 2,
+        expectedVersion: 3,
     });
     expect((await inboxRows(seed)).map((row) => row.dedupeKey).sort()).toEqual([
-        `task-assign:${task.id}:1`,
-        `task-assign:${task.id}:3`,
+        `task-assign:${task.id}:2`,
+        `task-assign:${task.id}:4`,
     ]);
 
     await delivery.onTurnSettled(seed.computerId, {
@@ -107,41 +102,30 @@ test('a failed run forgets an assignment the Agent has a newer one for, so the T
         status: 'failed',
     });
     expect((await inboxRows(seed)).map((row) => row.dedupeKey)).toEqual([
-        `task-assign:${task.id}:3`,
+        `task-assign:${task.id}:4`,
     ]);
 });
 
-test('a failed run keeps its assignment when the Task only moved meanwhile', async () => {
+test('a failed run keeps its assignment when the Task only changed state meanwhile', async () => {
     const board = await seedBoard();
-    const { boardId, seed } = board;
+    const { seed } = board;
     const { delivery, transport } = offlineDelivery(connection.db, seed);
     const { task } = await assignNew(delivery, board, 'Moved, still mine');
     transport.online.add(seed.computerId);
     await delivery.dispatchAgent(seed.agentId, seed.serverId);
     const runId = transport.framesOfType('start')[0]?.runId ?? '';
-    const [column] = await connection.db
-        .select({ id: boardColumnsTable.id })
-        .from(boardColumnsTable)
-        .where(
-            and(eq(boardColumnsTable.boardId, boardId), eq(boardColumnsTable.category, 'active'))
-        );
 
-    await moveTask(
+    await setTaskState(
         connection.db,
         { kind: 'user', userId: seed.userId },
-        {
-            columnId: column?.id ?? '',
-            expectedVersion: 1,
-            serverId: seed.serverId,
-            taskId: task.id,
-        }
+        { expectedVersion: 2, serverId: seed.serverId, state: 'open', taskId: task.id }
     );
     await delivery.onTurnSettled(seed.computerId, {
         ...settledTurn(seed, runId),
         status: 'failed',
     });
     expect(await inboxRows(seed)).toEqual([
-        { dedupeKey: `task-assign:${task.id}:1`, mentioned: true, state: 'queued' },
+        { dedupeKey: `task-assign:${task.id}:2`, mentioned: true, state: 'queued' },
     ]);
 });
 
@@ -202,19 +186,20 @@ test('a failed run forgets a claim assignment whose claim is gone, and keeps a l
 
 test('self-assignment enqueues nothing, and a failed run forgets a Task reassigned meanwhile', async () => {
     const board = await seedBoard();
-    const { boardId, seed } = board;
+    const { seed } = board;
     const { delivery, transport } = offlineDelivery(connection.db, seed);
     const actor = { kind: 'user', userId: seed.userId } as const;
 
-    const own = await createTask(
+    const ownId = await insertTaskPlace(connection.db, board, 'My own');
+    const own = await assignTask(
         connection.db,
         { agentId: seed.agentId, kind: 'agent' },
         delivery,
         {
             assignee: { agentId: seed.agentId, kind: 'agent' },
-            boardId,
+            expectedVersion: 1,
             serverId: seed.serverId,
-            title: 'My own',
+            taskId: ownId,
         }
     );
     expect(own.wakes).toEqual([]);
@@ -226,7 +211,7 @@ test('self-assignment enqueues nothing, and a failed run forgets a Task reassign
     const runId = transport.framesOfType('start')[0]?.runId ?? '';
     await assignTask(connection.db, actor, delivery, {
         assignee: null,
-        expectedVersion: 1,
+        expectedVersion: 2,
         serverId: seed.serverId,
         taskId: task.task.id,
     });

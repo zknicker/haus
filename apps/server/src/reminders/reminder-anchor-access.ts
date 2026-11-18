@@ -1,4 +1,5 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, or } from 'drizzle-orm';
+import { isFollowedChatKind } from '../agent-delivery/followed-chat.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     channelAgentParticipantsTable,
@@ -56,7 +57,8 @@ async function readAgentAnchorAccess(db: Pick<HausDatabase, 'select'>, input: Ag
     const anchor = input.anchorMessageId
         ? await readMessageAnchor(db, { ...input, anchorMessageId: input.anchorMessageId })
         : await readChatAnchor(db, input);
-    const accessChatId = anchor?.chatKind === 'thread' ? anchor.parentChatId : input.anchorChatId;
+    const accessChatId =
+        anchor && isFollowedChatKind(anchor.chatKind) ? anchor.parentChatId : input.anchorChatId;
     if (!(anchor && accessChatId)) {
         return { kind: 'missing' as const };
     }
@@ -80,6 +82,10 @@ async function readAgentAnchorAccess(db: Pick<HausDatabase, 'select'>, input: Ag
     return { kind: 'ok' as const, anchor };
 }
 
+/**
+ * The anchor Message in the anchor Chat. A Task's Chat (ADR 0052 decision 16)
+ * may also anchor on its origin Message, which sits in the Channel above it.
+ */
 async function readMessageAnchor(
     db: Pick<HausDatabase, 'select'>,
     input: { anchorChatId: string; anchorMessageId: string; serverId: string }
@@ -91,21 +97,23 @@ async function readMessageAnchor(
             messageId: chatMessagesTable.id,
             parentChatId: chatsTable.parentChatId,
         })
-        .from(chatMessagesTable)
+        .from(chatsTable)
         .innerJoin(
-            chatsTable,
+            chatMessagesTable,
             and(
-                eq(chatsTable.serverId, chatMessagesTable.serverId),
-                eq(chatsTable.id, chatMessagesTable.chatId)
+                eq(chatMessagesTable.serverId, chatsTable.serverId),
+                eq(chatMessagesTable.id, input.anchorMessageId),
+                or(
+                    eq(chatMessagesTable.chatId, chatsTable.id),
+                    and(
+                        eq(chatsTable.kind, 'task'),
+                        eq(chatsTable.anchorMessageId, chatMessagesTable.id),
+                        eq(chatMessagesTable.chatId, chatsTable.parentChatId)
+                    )
+                )
             )
         )
-        .where(
-            and(
-                eq(chatMessagesTable.serverId, input.serverId),
-                eq(chatMessagesTable.chatId, input.anchorChatId),
-                eq(chatMessagesTable.id, input.anchorMessageId)
-            )
-        )
+        .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.anchorChatId)))
         .limit(1);
     return anchor ?? null;
 }

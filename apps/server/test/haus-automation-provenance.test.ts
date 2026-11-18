@@ -570,31 +570,30 @@ test('an explicit cause outranks inference and says so', async () => {
     });
 });
 
-test('a Thread answer resolves to its parent Chat before inferring', async () => {
-    const threadReply = await owner.trpc.chat.send.mutate({
+test('an inline reply answer in the anchor Chat infers its fire', async () => {
+    const humanReply = await owner.trpc.chat.send.mutate({
         chatId: channelId,
-        content: 'Thread for the inferred answer',
-        nonce: 'infer-thread-seed',
+        content: 'Context for the inferred answer',
+        nonce: 'infer-reply-seed',
+        replyToMessageId: anchorMessageId,
         serverId,
-        thread: { anchorMessageId },
     });
-    const threadChatId = threadReply.threadChatId ?? '';
-    expect(threadChatId).not.toBe('');
-    // The Agent has read the Thread, so the answer is not held behind it.
+    // The Agent has read the reply, so the answer is not held behind it.
     await advanceSeenCursor(connection.db, {
         agentId,
-        chatId: threadChatId,
-        sequence: threadReply.message.sequence,
+        chatId: channelId,
+        sequence: humanReply.message.sequence,
         serverId,
     });
-    await startCleanRun('run_infer_thread');
-    const fireId = await fireNewTrigger('Answered in a Thread', 'thread-fire', 'ok');
+    await startCleanRun('run_infer_reply');
+    const fireId = await fireNewTrigger('Answered inline', 'reply-fire', 'ok');
     await pullEvents();
 
     const sent = await agentRequest('POST', '/api/agent/messages/send', {
-        content: 'Answering inside the Thread.',
-        nonce: 'infer-thread',
-        target: `#all:${anchorMessageId}`,
+        content: 'Answering inline.',
+        nonce: 'infer-reply',
+        replyToMessageId: anchorMessageId,
+        target: '#all',
     });
     expect(sent.status).toBe(200);
 

@@ -4,24 +4,27 @@ import type { HausDatabase } from '../postgres/connection.ts';
 
 /** One new message as a push renders it: its author, words, and place. */
 export interface PushMessage extends StoredChatMessageAuthorRow {
-    anchorMessageId: string | null;
     authorAgentAvatarId: string | null;
     authorUserAvatarId: string | null;
-    /** The Chat the message is in: a Thread's own Chat, or the Channel or DM. */
+    /** The Chat the message is in: a Task's own Chat, or the Channel or DM. */
     chatId: string;
     content: string;
-    /** The Channel or DM the conversation belongs to, never a Thread. */
+    /** The Channel or DM the conversation belongs to, a Task's origin Channel for a Task. */
     conversationChatId: string;
     conversationKind: 'channel' | 'dm';
     conversationName: string | null;
     /** The DM's human members; empty outside a DM. */
     dmMemberUserIds: string[];
     messageId: string;
+    /** The Task whose own Chat the message is in (ADR 0052); null elsewhere. */
+    taskId: string | null;
+    /** That Task's key, `SEC-12`; null exactly when `taskId` is. */
+    taskKey: string | null;
 }
 
 /**
  * Reads a new message for push, or null when it no longer exists or its
- * Chat — or the Channel or DM above its Thread — is archived or deleted.
+ * Chat — or the Channel above its Task — is archived or deleted.
  */
 export async function readPushMessage(
     db: Pick<HausDatabase, 'execute'>,
@@ -29,7 +32,6 @@ export async function readPushMessage(
 ): Promise<PushMessage | null> {
     const rows = (await db.execute(sql`
         select
-            chat.anchor_message_id as "anchorMessageId",
             agent.avatar_id as "authorAgentAvatarId",
             agent.display_name as "authorAgentDisplayName",
             message.author_agent_id as "authorAgentId",
@@ -48,11 +50,17 @@ export async function readPushMessage(
                 ],
                 null
             )::text[] as "dmMemberUserIds",
-            message.id as "messageId"
+            message.id as "messageId",
+            task.id as "taskId",
+            case when task.id is null then null
+                else task_key.key || '-' || task.number end as "taskKey"
         from chat_messages message
         join chats chat on chat.server_id = message.server_id and chat.id = message.chat_id
         left join chats parent
             on parent.server_id = chat.server_id and parent.id = chat.parent_chat_id
+        left join tasks task on task.server_id = chat.server_id and task.chat_id = chat.id
+        left join task_keys task_key
+            on task_key.server_id = task.server_id and task_key.id = task.key_id
         left join agents agent
             on agent.server_id = message.server_id and agent.id = message.author_agent_id
         left join users author on author.id = message.author_user_id

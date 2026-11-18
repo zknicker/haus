@@ -57,10 +57,7 @@ export async function searchChatMessages(
             authorUserId: chatMessagesTable.authorUserId,
             bodyKind: chatMessagesTable.bodyKind,
             chatId: chatMessagesTable.chatId,
-            chatAnchorMessageId: chatsTable.anchorMessageId,
             chatArchivedAt: chatsTable.archivedAt,
-            chatKind: chatsTable.kind,
-            chatParentChatId: chatsTable.parentChatId,
             parentChatArchivedAt: parentChatsTable.archivedAt,
             content: chatMessagesTable.content,
             createdAt: chatMessagesTable.createdAt,
@@ -115,7 +112,7 @@ export async function searchChatMessages(
             and(
                 eq(chatMessagesTable.serverId, input.serverId),
                 isNull(chatsTable.deletedAt),
-                // A Chat's Threads are part of it, so a Chat filter keeps them.
+                // A Channel's Tasks are part of it, so a Chat filter keeps them.
                 input.chatId
                     ? or(
                           eq(chatMessagesTable.chatId, input.chatId),
@@ -164,24 +161,5 @@ export async function searchChatMessages(
         }),
         chatArchivedAt:
             (message.parentChatArchivedAt ?? message.chatArchivedAt)?.toISOString() ?? null,
-        thread: searchResultThread(message),
     }));
-}
-
-function searchResultThread(message: {
-    chatAnchorMessageId: string | null;
-    chatKind: string;
-    chatParentChatId: string | null;
-    id: string;
-}): ChatSearchResult['thread'] {
-    if (message.chatKind !== 'thread') {
-        return null;
-    }
-    if (!(message.chatAnchorMessageId && message.chatParentChatId)) {
-        throw new Error(`Thread Message ${message.id} has no parent Chat or anchor.`);
-    }
-    return {
-        anchorMessageId: message.chatAnchorMessageId,
-        parentChatId: message.chatParentChatId,
-    };
 }

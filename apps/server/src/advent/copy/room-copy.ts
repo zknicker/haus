@@ -4,14 +4,14 @@ import { b, line } from './line.ts';
 
 type RoomFact =
     | 'closest-dm'
+    | 'conversations-started'
     | 'favorite-reaction'
     | 'files-shared'
     | 'full-house'
     | 'in-demand'
-    | 'longest-thread'
+    | 'longest-conversation'
     | 'loudest-channel'
-    | 'new-channels'
-    | 'threads-resolved';
+    | 'new-channels';
 
 /** Where the member wrote, and what they left behind. */
 export const roomCopy: FactCopyBook<RoomFact> = {
@@ -78,14 +78,14 @@ export const roomCopy: FactCopyBook<RoomFact> = {
         ],
         title: 'Your closest DM',
     },
-    'longest-thread': {
-        empty: [line('No long threads this year. Short and sweet it is.')],
+    'longest-conversation': {
+        empty: [line('No long conversations this year. Short and sweet it is.')],
         lines: (stat) => {
             const where = stat.room ? b(stat.room) : 'a DM';
             const replies = plural(stat.replies, 'reply', 'replies');
             return [
                 line(
-                    'Your longest thread ran ',
+                    'Your longest conversation ran ',
                     b(count(stat.replies)),
                     ` ${replies} in `,
                     where,
@@ -93,13 +93,13 @@ export const roomCopy: FactCopyBook<RoomFact> = {
                 ),
                 line(
                     b(count(stat.replies)),
-                    ` ${replies} in one thread, over in `,
+                    ` ${replies} in one conversation, over in `,
                     where,
                     '. Nobody wanted to leave.'
                 ),
             ];
         },
-        title: 'Your longest thread',
+        title: 'Your longest conversation',
     },
     'files-shared': {
         empty: [line('A quiet shelf this year. The good ones travel light.')],
@@ -135,20 +135,20 @@ export const roomCopy: FactCopyBook<RoomFact> = {
         ],
         title: 'New rooms',
     },
-    'threads-resolved': {
-        empty: [line("No threads tied off this year. The yarn's still in the basket.")],
-        lines: ({ count: threads }) => [
+    'conversations-started': {
+        empty: [line("No loose ends tied off this year. The yarn's still in the basket.")],
+        lines: ({ count: started }) => [
             line(
                 'You started ',
-                b(count(threads)),
-                ` ${plural(threads, 'thread')} that got an answer. Loose ends, tied.`
+                b(count(started)),
+                ` ${plural(started, 'conversation')} that got an answer. Loose ends, tied.`
             ),
             line(
-                b(count(threads)),
-                ` of your ${plural(threads, 'thread')} got a reply. Ask and ye shall receive.`
+                b(count(started)),
+                ` of your ${plural(started, 'message')} got a reply. Ask and ye shall receive.`
             ),
         ],
-        title: 'Threads tied off',
+        title: 'Loose ends tied off',
     },
     'favorite-reaction': {
         empty: [line('No reactions this year. You let your words do the work.')],

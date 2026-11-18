@@ -3,6 +3,7 @@ import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { captureAllTopics, publishedSince } from './realtime-capture.ts';
 import { collectStream } from './realtime-stream.ts';
+import { startTestTask } from './task-place-fixture.ts';
 
 // Focused realtime topics end to end (specs/realtime-events.md): each mutation
 // publishes exactly its topic, each stream applies its own audience, and the
@@ -132,10 +133,9 @@ test('reader-only events reach their reader and no other member', async () => {
 
     await expect(ownerReads.next()).resolves.toEqual({
         chatId,
-        parentChatId: null,
         sequence: latest.message.sequence,
         serverId,
-        threadAnchorMessageId: null,
+        taskId: null,
     });
     // The peer's first read event is its own: the owner's never reached it.
     await expect(peerReads.next()).resolves.toMatchObject({ sequence: latest.message.sequence });
@@ -144,30 +144,32 @@ test('reader-only events reach their reader and no other member', async () => {
     peerReads.stop();
 });
 
-test('a Thread read names its parent anchor', async () => {
-    const anchor = await send('read anchor', 'topics-read-anchor');
-    const reply = await peer.trpc.chat.send.mutate({
-        chatId,
-        content: 'read reply',
-        nonce: 'topics-read-reply',
+test('a Task read names its Task', async () => {
+    const task = await startTestTask(harness, owner, {
+        channelId: chatId,
         serverId,
-        thread: { anchorMessageId: anchor.message.id },
+        title: 'Read check',
+    });
+    const posted = await peer.trpc.chat.send.mutate({
+        chatId: task.chatId,
+        content: 'read in the Task',
+        nonce: 'topics-read-task',
+        serverId,
     });
     const reads = collectStream(owner.trpc.chat.onRead, { serverId });
     await reads.started;
 
     await owner.trpc.chat.markRead.mutate({
-        chatId: reply.threadChatId ?? '',
-        sequence: reply.message.sequence,
+        chatId: task.chatId,
+        sequence: posted.message.sequence,
         serverId,
     });
 
     await expect(reads.next()).resolves.toEqual({
-        chatId: reply.threadChatId,
-        parentChatId: chatId,
-        sequence: reply.message.sequence,
+        chatId: task.chatId,
+        sequence: posted.message.sequence,
         serverId,
-        threadAnchorMessageId: anchor.message.id,
+        taskId: task.id,
     });
     reads.stop();
 });
@@ -214,8 +216,8 @@ test('chat.message returns the chat.messages projection and enforces Chat access
         chatId,
         content: 'entity reply',
         nonce: 'topics-entity-reply',
+        replyToMessageId: anchor.message.id,
         serverId,
-        thread: { anchorMessageId: anchor.message.id },
     });
     await owner.trpc.chat.react.mutate({ emoji: '🎉', messageId: anchor.message.id, serverId });
 
@@ -227,14 +229,17 @@ test('chat.message returns the chat.messages projection and enforces Chat access
     });
     expect(entity).toEqual({
         message: page.messages.find((message) => message.id === anchor.message.id),
-        thread: page.threads.find((thread) => thread.anchorMessageId === anchor.message.id),
+        tasks: page.tasks.filter((task) => task.originMessageId === anchor.message.id),
     });
-    expect(entity?.thread?.replyCount).toBe(1);
+    expect(entity?.message.reactions).toHaveLength(1);
 
-    const lone = await send('entity without a Thread', 'topics-entity-lone');
+    const lone = await send('entity without replies', 'topics-entity-lone');
     await expect(
         owner.trpc.chat.message.query({ chatId, messageId: lone.message.id, serverId })
-    ).resolves.toMatchObject({ message: { id: lone.message.id }, thread: null });
+    ).resolves.toEqual({
+        message: expect.objectContaining({ id: lone.message.id }),
+        tasks: [],
+    });
     await expect(
         owner.trpc.chat.message.query({ chatId, messageId: 'msg_foreign000000000', serverId })
     ).resolves.toBeNull();

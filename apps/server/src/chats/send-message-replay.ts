@@ -50,7 +50,6 @@ export async function replayChatMessage(
     member: HausUser,
     input: ChatSendInput,
     existing: ExistingChatMessage,
-    threadChatId: string | null,
     replyParentId: string | null,
     conflict: () => Error
 ): Promise<{ events: []; receipt: ChatMessageReceipt; wakes: [] }> {
@@ -80,7 +79,6 @@ export async function replayChatMessage(
         receipt: {
             idempotent: true,
             message: toChatMessage(existing, existingRelations),
-            threadChatId,
         },
         wakes: [],
     };

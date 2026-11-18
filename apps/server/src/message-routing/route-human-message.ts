@@ -49,7 +49,7 @@ export async function prepareMessageRouting(
         serverId: input.serverId,
     });
     if (chat.kind !== 'channel') {
-        return bypass(chat.kind === 'dm' ? 'direct-message' : 'thread');
+        return bypass(chat.kind === 'dm' ? 'direct-message' : 'task');
     }
     if (await readExistingChatMessage(db, input.serverId, input.chatId, input.nonce)) {
         return bypass('disabled'); // The transaction returns the original receipt and audit.
@@ -157,9 +157,6 @@ async function prepareMentionScope(
 
 /** Message shapes that keep their deterministic delivery before any read. */
 function shapeBypass(input: ChatSendInput): RoutingBypassReason | null {
-    if ('thread' in input && input.thread) {
-        return 'thread';
-    }
     if (input.replyToMessageId) {
         return 'reply';
     }

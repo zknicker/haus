@@ -4,7 +4,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SQL } from 'bun';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
-import { decodeTaskAssignment } from '../src/tasks/task-assignment-envelope.ts';
 import { startPostgresCluster } from './postgres-cluster.ts';
 
 /**
@@ -197,7 +196,8 @@ test('0120 gives every Server a General board and moves backlog claims onto it',
             run_id: null,
             state: 'queued',
         });
-        expect(decodeTaskAssignment(content)).toEqual({
+        // As 0120 stored it; 0125 later drops its board and column names.
+        expect(JSON.parse(content)).toEqual({
             assignedBy: 'ada',
             assignedByAgent: false,
             board: 'General',

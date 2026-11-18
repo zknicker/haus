@@ -5,7 +5,7 @@ import { tasksTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { requireTaskActor, type TaskActor } from './task-actor.ts';
 import type { TaskWriteResult } from './task-assignment.ts';
-import { requireTaskVersion } from './task-errors.ts';
+import { requireTaskPlace, requireTaskVersion } from './task-errors.ts';
 import { prepareTaskUpdatedEvent } from './task-events.ts';
 import { writeTaskLabels } from './task-fields.ts';
 import { lockTask, readTask } from './task-read.ts';
@@ -21,6 +21,7 @@ export async function updateTask(
         await requireTaskActor(tx, input.serverId, actor);
         const current = await lockTask(tx, input.serverId, input.taskId);
         requireTaskVersion(current.version, input.expectedVersion);
+        requireTaskPlace(current);
         const { description, dueOn, labelIds, priority, title } = input.patch;
         if (labelIds !== undefined) {
             await writeTaskLabels(tx, { labelIds, serverId: input.serverId, taskId: current.id });

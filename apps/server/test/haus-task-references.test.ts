@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import {
     formatAgentReferenceTarget,
+    formatChatMessageReferenceTarget,
     formatChatReferenceTarget,
-    formatChatThreadReferenceTarget,
 } from '@haus/api';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { scheduleReminder } from '../src/reminders/reminders.ts';
@@ -11,13 +11,13 @@ import { assignTask } from '../src/tasks/task-assign.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { captureAllTopics, publishedSince } from './realtime-capture.ts';
+import { startTestTask } from './task-place-fixture.ts';
 
 const agentId = 'agt_task_refs';
 let chatId: string;
 let connection: HausConnection;
 let harness: HausServerHarness;
 let owner: HausClient;
-let securityBoardId: string;
 let serverId: string;
 let sec1: { id: string; key: string };
 let gen1: { id: string; key: string };
@@ -40,19 +40,19 @@ beforeAll(async () => {
         insert into channel_agent_participants (server_id, chat_id, agent_id)
         values (${serverId}, ${chatId}, ${agentId})
     `;
-    const { board } = await owner.trpc.board.create.mutate({
-        key: 'SEC',
-        name: 'Security',
-        serverId,
-    });
-    securityBoardId = board.id;
-    sec1 = (await owner.trpc.task.create.mutate({ boardId: board.id, serverId, title: 'Audit' }))
-        .task;
-    const [general] = await owner.trpc.board.list.query({ serverId });
-    gen1 = (
-        await owner.trpc.task.create.mutate({ boardId: general?.id ?? '', serverId, title: 'Gen' })
-    ).task;
+    await owner.trpc.taskKey.create.mutate({ key: 'SEC', serverId });
+    sec1 = await start('Audit', 'SEC');
+    gen1 = await start('Gen');
 });
+
+function start(title: string, key?: string) {
+    return startTestTask(harness, owner, {
+        channelId: chatId,
+        serverId,
+        title,
+        ...(key ? { key } : {}),
+    });
+}
 
 afterAll(async () => {
     owner?.close();
@@ -64,7 +64,7 @@ describe('description references', () => {
     test('task.get resolves a description like an Agent message, when read', async () => {
         const anchor = await owner.trpc.chat.send.mutate({
             chatId,
-            content: 'Thread anchor for a description',
+            content: 'Message anchor for a description',
             nonce: 'refs-description-anchor',
             serverId,
         });
@@ -77,18 +77,19 @@ describe('description references', () => {
             `Seen in #${channelName}:${shortId}, see SEC-1 with @refs-cove.`,
             'Not `SEC-1` in code; merchbase-fulfillment PR 29 (d66f487) stays text.',
         ].join('\n');
-        const { task } = await owner.trpc.task.create.mutate({
-            boardId: securityBoardId,
-            description,
+        const started = await start('Described', 'SEC');
+        const { task } = await owner.trpc.task.update.mutate({
+            expectedVersion: 1,
+            patch: { description },
             serverId,
-            title: 'Described',
+            taskId: started.id,
         });
 
         const detail = await owner.trpc.task.get.query({ serverId, taskId: task.id });
         expect(detail.description).toBe(description);
         expect(detail.descriptionContent).toBe(
             [
-                `Seen in [#${channelName} thread](${formatChatThreadReferenceTarget(chatId, anchor.message.id)}), see SEC-1 with [@refs-cove](${formatAgentReferenceTarget(agentId)}).`,
+                `Seen in [#${channelName} message](${formatChatMessageReferenceTarget(chatId, anchor.message.id)}), see SEC-1 with [@refs-cove](${formatAgentReferenceTarget(agentId)}).`,
                 'Not `SEC-1` in code; merchbase-fulfillment PR 29 (d66f487) stays text.',
             ].join('\n')
         );
@@ -153,31 +154,23 @@ describe('message references', () => {
                     chatId,
                     chatKind: 'channel',
                     chatName: expect.any(String),
-                    threadAnchorMessageId: null,
                 },
             }),
         ]);
     });
 
-    test('re-keying a board re-keys message links but keeps the matched text', async () => {
+    test('a link reads the Task key from the ledger entry', async () => {
         const sent = await owner.trpc.chat.send.mutate({
             chatId,
             content: 'SEC-1 again',
-            nonce: 'refs-rekey',
-            serverId,
-        });
-        const [, security] = await owner.trpc.board.list.query({ serverId });
-        await owner.trpc.board.update.mutate({
-            boardId: securityBoardId,
-            expectedVersion: security?.version ?? 1,
-            patch: { key: 'SAFE' },
+            nonce: 'refs-again',
             serverId,
         });
         const page = await owner.trpc.chat.messages.query({ chatId, serverId });
         expect(page.messages.find((message) => message.id === sent.message.id)?.taskLinks).toEqual([
-            { key: 'SAFE-1', taskId: sec1.id, text: 'SEC-1' },
+            { key: 'SEC-1', taskId: sec1.id, text: 'SEC-1' },
         ]);
-        const detail = await owner.trpc.task.get.query({ key: 'SAFE-1', serverId });
+        const detail = await owner.trpc.task.get.query({ key: 'SEC-1', serverId });
         expect(detail.mentions.map((mention) => mention.messageId)[0]).toBe(sent.message.id);
     });
 });
@@ -212,6 +205,7 @@ describe('reminder references', () => {
                 kind: 'once',
                 nextFireAt: '2026-07-31T14:00:00.000Z',
                 reminderId: scheduled.reminder.id,
+                setBy: { agentId, displayName: 'Cove' },
                 title: 'Follow up',
             },
         ]);
@@ -221,7 +215,7 @@ describe('reminder references', () => {
             agentId,
             {
                 commandId: 'refs-reminder-update',
-                description: 'Check SAFE-1 instead',
+                description: 'Check SEC-1 instead',
                 expectedVersion: scheduled.reminder.version,
                 reminderId: scheduled.reminder.id,
                 serverId,
@@ -240,42 +234,42 @@ describe('reminder references', () => {
 });
 
 describe('Task events', () => {
-    test('publishes task events to everyone and inbox changes to the assignee only', async () => {
+    test('publishes task events to everyone and the assignment fact to the assignee only', async () => {
         const [userRow] = (await harness.sql`
             select id from users where auth_subject = 'user_refs'
         `) as { id: string }[];
+        const task = await start('Evented', 'SEC');
         const realtime = captureAllTopics();
-        const { task } = await owner.trpc.task.create.mutate({
+        await owner.trpc.task.assign.mutate({
             assignee: { agentId, kind: 'agent' },
-            boardId: securityBoardId,
+            expectedVersion: 1,
             serverId,
-            title: 'Evented',
+            taskId: task.id,
         });
         await owner.trpc.task.assign.mutate({
             assignee: null,
-            expectedVersion: 1,
+            expectedVersion: 2,
             serverId,
             taskId: task.id,
         });
         const published = await publishedSince(realtime, serverId);
         expect(
             published
-                .filter((event) => event.taskId === task.id)
+                .filter((event) => event.taskId === task.id && event.type === 'task.updated')
                 .map(({ type, version }) => ({ type, version }))
         ).toEqual([
-            { type: 'task.created', version: 1 },
             { type: 'task.updated', version: 2 },
+            { type: 'task.updated', version: 3 },
         ]);
-        expect(published.some((event) => event.type === 'taskInbox.changed')).toBe(false);
         realtime.stop();
 
-        // An Agent assigning a person reaches that person's Task Inbox, and only theirs.
+        // An Agent assigning a person tells that person, and only them; nothing else is made.
         const userId = userRow?.id ?? '';
         const result = await assignTask(
             connection.db,
             { agentId, kind: 'agent' },
             { enqueue: () => Promise.resolve() },
-            { assignee: { kind: 'user', userId }, expectedVersion: 2, serverId, taskId: task.id }
+            { assignee: { kind: 'user', userId }, expectedVersion: 3, serverId, taskId: task.id }
         );
         expect(result.assignmentChange).toMatchObject({
             actor: { agentId, kind: 'agent' },
@@ -284,12 +278,8 @@ describe('Task events', () => {
         });
         expect(
             result.events
-                .filter((event) => event.topic === 'taskInbox.changed')
-                .map((event) => event.delivery)
-        ).toEqual([{ audienceUserId: userId, event: { serverId, userId } }]);
-        const [item] = (await harness.sql`
-            select assigned_by_agent_id from task_inbox_items where task_id = ${task.id}
-        `) as { assigned_by_agent_id: string }[];
-        expect(item?.assigned_by_agent_id).toBe(agentId);
+                .filter((event) => event.topic === 'task.assigned')
+                .map((event) => event.delivery.audienceUserId)
+        ).toEqual([userId]);
     });
 });

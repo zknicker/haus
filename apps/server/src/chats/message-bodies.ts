@@ -4,7 +4,7 @@ import { readCreatedAgentsForMessages } from '../server-agents/agent-created-sha
 
 /**
  * Projects every typed Message body for one page of Messages. This is the one
- * place a Server record becomes a `Message.body`, so Chat history, Threads,
+ * place a Server record becomes a `Message.body`, so Chat history, Tasks,
  * search, and Claim rows all read the same projection.
  */
 export async function readMessageBodies(

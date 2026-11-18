@@ -12,7 +12,7 @@ import { requireServerMembership } from '../../servers/server-access.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
 /**
- * Owners and Admins cancel Cloud Agent work from the Thread surface. The
+ * Owners and Admins cancel Cloud Agent work from its card. The
  * request is recorded either way; an offline Computer applies it on reconnect,
  * and the Run settles through the ordinary observation path.
  */

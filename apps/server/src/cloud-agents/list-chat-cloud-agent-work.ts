@@ -1,4 +1,4 @@
-import type { ThreadCloudAgentWork } from '@haus/api';
+import type { ChatCloudAgentWork } from '@haus/api';
 import { and, asc, eq, or } from 'drizzle-orm';
 import { requireChatAccess } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -8,23 +8,21 @@ import { readWorkDetails, toCloudAgentWork } from './cloud-agent-shape.ts';
 import { linkChatVisibleSql, linkParentChatsTable } from './cloud-agent-work-visibility.ts';
 
 /**
- * Durable work linked in a conversation and its Threads, including settled
- * outcomes (ADR 0044). A link inside a Thread anchors on that Thread's anchor;
- * any other on its linking Message. One row per anchor and work.
+ * Durable work linked in one conversation and the Task Chats under it,
+ * including settled outcomes (ADR 0044), under the linking Message its card
+ * sits beneath. One row per Message and work.
  */
 export async function listChatCloudAgentWork(
     db: HausDatabase,
     member: HausUser | null,
     input: { serverId: string; chatId: string }
-): Promise<ThreadCloudAgentWork[]> {
+): Promise<ChatCloudAgentWork[]> {
     await requireChatAccess(db, member, input);
     if (!member) {
         return [];
     }
     const rows = await db
         .select({
-            anchor: chatsTable.anchorMessageId,
-            kind: chatsTable.kind,
             messageId: cloudAgentWorkLinksTable.messageId,
             work: cloudAgentWorkTable,
         })
@@ -66,18 +64,17 @@ export async function listChatCloudAgentWork(
         ...new Set(rows.map(({ work }) => work.id)),
     ]);
     const seen = new Set<string>();
-    const listed: ThreadCloudAgentWork[] = [];
-    for (const { anchor, kind, messageId, work } of rows) {
-        const anchorMessageId = kind === 'thread' ? anchor : messageId;
-        if (!anchorMessageId) {
-            throw new Error('A Cloud Agent work link in a Thread has no Thread anchor.');
-        }
-        const key = `${anchorMessageId}\0${work.id}`;
+    const listed: ChatCloudAgentWork[] = [];
+    for (const { messageId, work } of rows) {
+        const key = `${messageId}\0${work.id}`;
         if (seen.has(key)) {
             continue;
         }
         seen.add(key);
-        listed.push({ anchorMessageId, work: toCloudAgentWork(work, details.get(work.id)) });
+        listed.push({
+            anchorMessageId: messageId,
+            work: toCloudAgentWork(work, details.get(work.id)),
+        });
     }
     return listed;
 }

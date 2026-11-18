@@ -65,7 +65,6 @@ test('inbox check rows carry the facts the notice tags a target with', async () 
         pendingCount: 2,
         target: '#product',
         claimNumber: null,
-        thread: false,
     });
     expect(inbox.rows.find((row) => row.target.startsWith('dm:'))).toMatchObject({
         dm: true,

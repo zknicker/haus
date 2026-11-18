@@ -1,4 +1,4 @@
-import type { ClaimList, ClaimListItem, ThreadSummary } from '@haus/api';
+import type { ClaimList, ClaimListItem } from '@haus/api';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { visibleChats } from '../chats/chat-visibility.ts';
 import { readMessageBodies } from '../chats/message-bodies.ts';
@@ -10,14 +10,8 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable, messageClaimsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
-import { listThreadSummaries } from '../threads/list-thread-summaries.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { projectMessageClaims } from './claim-shape.ts';
-import {
-    type ClaimWorkThreadRow,
-    claimWorkThreadAnchorId,
-    claimWorkThreadChatId,
-} from './claim-work-thread.ts';
 
 /**
  * The Board and List lens. Background claims are an Agent's own bookkeeping,
@@ -67,11 +61,10 @@ export async function listClaims(
         .where(and(...predicates))
         .orderBy(desc(messageClaimsTable.updatedAt));
 
-    // A claim's chat is always its top-level Channel or DM, Thread claims included.
+    // The Board and List show Channel and DM claims; a Task's Chat is its own place.
     const visible = rows.filter((row) => row.chatKind === 'channel' || row.chatKind === 'dm');
     const messageIds = visible.map((row) => row.claim.messageId);
-    const workAnchorIds = [...new Set(visible.map((row) => claimWorkThreadAnchorId(row.claim)))];
-    const [projected, bodies, works, images, reactions, summaries, taskLinks] = await Promise.all([
+    const [projected, bodies, works, images, reactions, taskLinks] = await Promise.all([
         projectMessageClaims(
             db,
             input.serverId,
@@ -81,16 +74,9 @@ export async function listClaims(
         readLinkedCloudAgentWork(db, input.serverId, messageIds),
         readLinkedImageGenerations(db, input.serverId, messageIds),
         readChatMessageReactions(db, input.serverId, messageIds),
-        listThreadSummaries(db, member, {
-            anchorMessageIds: workAnchorIds,
-            serverId: input.serverId,
-        }),
         readMessageTaskLinks(db, input.serverId, messageIds),
     ]);
     const claimByMessageId = new Map(projected.map((claim) => [claim.messageId, claim]));
-    const summaryByAnchorId = new Map(
-        summaries.map((summary) => [summary.anchorMessageId, summary])
-    );
     const claims: ClaimListItem[] = [];
     let backgroundCount = 0;
     for (const row of visible) {
@@ -117,27 +103,7 @@ export async function listClaims(
                 claim,
             },
             claim,
-            // A Thread claim's summary is the Thread it sits in.
-            threadSummary:
-                summaryByAnchorId.get(claimWorkThreadAnchorId(row.claim)) ??
-                emptyThreadSummary(row.claim),
         });
     }
     return { backgroundCount, claims };
-}
-
-/**
- * A claim whose Thread nobody has replied in yet has no Thread row, and its work
- * surface reads as exactly that: no replies, nothing unread, nothing followed.
- */
-function emptyThreadSummary(claim: ClaimWorkThreadRow): ThreadSummary {
-    return {
-        anchorMessageId: claimWorkThreadAnchorId(claim),
-        followed: false,
-        latestReplyAt: null,
-        recentReplies: [],
-        replyCount: 0,
-        threadChatId: claimWorkThreadChatId(claim),
-        unreadCount: 0,
-    };
 }

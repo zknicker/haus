@@ -1,35 +1,81 @@
 import { randomBytes } from 'node:crypto';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../src/agent-delivery/delivery.ts';
-import { insertGeneralBoard } from '../src/boards/board-create.ts';
 import type { HausDatabase } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import { agentInboxTable, agentsTable } from '../src/postgres/schema.ts';
-import { createTask } from '../src/tasks/task-create.ts';
+import { assignTask } from '../src/tasks/task-assign.ts';
+import { insertGeneralTaskKey } from '../src/tasks/task-key-ledger.ts';
 import { type Seed, seedAgent } from './agent-inbox-harness.ts';
 
 export type TaskBoard = Awaited<ReturnType<typeof seedTaskBoard>>;
 
-/** One seeded Agent and human on a Server with its General board. */
+/** One seeded Agent and human on a Server with its General Task key. */
 export async function seedTaskBoard(db: HausDatabase) {
     const seed = await seedAgent(db);
-    return { boardId: await insertGeneralBoard(db, seed.serverId), seed };
+    return { keyId: await insertGeneralTaskKey(db, seed.serverId), seed };
 }
 
-/** A new high-priority Task the human assigns to the seeded Agent. */
-export function assignNewTask(
+/**
+ * A new high-priority Task the human assigns to the seeded Agent: an
+ * unassigned Task place in the seeded Channel, then the human's assignment.
+ */
+export async function assignNewTask(
     db: HausDatabase,
     delivery: AgentDelivery,
-    { boardId, seed }: TaskBoard,
+    board: TaskBoard,
     title: string
 ) {
-    return createTask(db, { kind: 'user', userId: seed.userId }, delivery, {
+    const { seed } = board;
+    const taskId = await insertTaskPlace(db, board, title);
+    return await assignTask(db, { kind: 'user', userId: seed.userId }, delivery, {
         assignee: { agentId: seed.agentId, kind: 'agent' },
-        boardId,
-        priority: 'high',
+        expectedVersion: 1,
         serverId: seed.serverId,
-        title,
+        taskId,
     });
+}
+
+/**
+ * An unassigned, high-priority todo Task the human created from a new Message
+ * in the seeded Channel, written directly: only Agents start Tasks through the
+ * product, and these tests are about what assignment does.
+ */
+export async function insertTaskPlace(
+    db: HausDatabase,
+    { keyId, seed }: TaskBoard,
+    title: string
+): Promise<string> {
+    const messageId = createOpaqueId('msg');
+    const chatId = createOpaqueId('cht');
+    const taskId = createOpaqueId('tsk');
+    await db.execute(sql`
+        with channel as (
+            update chats set last_message_sequence = last_message_sequence + 1
+            where server_id = ${seed.serverId} and id = ${seed.channelId}
+            returning last_message_sequence
+        )
+        insert into chat_messages (id, server_id, chat_id, author_user_id, content, nonce, sequence)
+        select ${messageId}, ${seed.serverId}, ${seed.channelId}, ${seed.userId},
+            ${`Origin for ${title}`}, ${messageId}, channel.last_message_sequence
+        from channel
+    `);
+    await db.execute(sql`
+        insert into chats (id, server_id, kind, parent_chat_id, parent_chat_kind, anchor_message_id)
+        values (${chatId}, ${seed.serverId}, 'task', ${seed.channelId}, 'channel', ${messageId})
+    `);
+    await db.execute(sql`
+        with entry as (
+            update task_keys set next_number = next_number + 1
+            where server_id = ${seed.serverId} and id = ${keyId}
+            returning next_number - 1 as number
+        )
+        insert into tasks (id, server_id, key_id, number, title, priority, chat_id, created_by_user_id)
+        select ${taskId}, ${seed.serverId}, ${keyId}, entry.number, ${title}, 'high', ${chatId},
+            ${seed.userId}
+        from entry
+    `);
+    return taskId;
 }
 
 /** A second Agent on the seeded Server. */

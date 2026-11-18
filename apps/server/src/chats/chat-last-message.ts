@@ -20,9 +20,9 @@ export interface StoredChatLastMessage {
 
 /**
  * The newest top-level Message in each Chat, as one correlated lateral read
- * against `chat_messages (server_id, chat_id, sequence)`. Thread replies are
- * stored in the Thread's own Chat row, so scoping by `chat_id` already keeps
- * them out of the parent Chat's line — no extra predicate needed. `scope`
+ * against `chat_messages (server_id, chat_id, sequence)`. A Task's messages are
+ * stored in the Task's own Chat row, so scoping by `chat_id` already keeps
+ * them out of its Channel's line — no extra predicate needed. `scope`
  * narrows which Messages qualify, as a predicate on `chat_messages`.
  */
 export function chatLastMessageLateral(db: HausDatabase, scope?: SQL) {

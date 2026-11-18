@@ -15,8 +15,8 @@ type ClaimRow = typeof messageClaimsTable.$inferSelect;
 const blockedActions = ['start_conflicting_execution'];
 
 const unblockedActionExamples = [
-    'reading the claim and its Thread',
-    'replying in the Thread with findings, questions, or review',
+    'reading the claim and its conversation',
+    'replying inline with findings, questions, or review',
     'claiming a different claim in this lane',
     'raising the routing with the people in the original Chat',
 ];

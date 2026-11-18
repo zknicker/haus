@@ -104,14 +104,14 @@ test('a send to another Agent’s handle is an invalid target', async () => {
     expect(orbitDms.map((dm) => dm.id)).toEqual([memberDmChatId]);
 });
 
-test('a thread target under another Agent’s handle is invalid too', async () => {
+test('a message-suffixed target under another Agent’s handle is invalid too', async () => {
     const runner = await fixture.mintRunner(
-        'run_peer_dm_thread_refused',
+        'run_peer_dm_suffix_refused',
         fixture.peerAgentId,
         scoutingChannelId
     );
 
-    const sent = await sendBrief(runner, 'dm:@orbit:00000000', 'peer-dm-thread-refused');
+    const sent = await sendBrief(runner, 'dm:@orbit:00000000', 'peer-dm-suffix-refused');
 
     expect(sent.status).toBe(404);
     expect(sent.body.code).toBe('INVALID_TARGET');

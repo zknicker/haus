@@ -196,13 +196,13 @@ describe('reminders', () => {
         ).rejects.toThrow('valid IANA timezone');
     });
 
-    test('anchors a reminder directly in an authorized Thread and writes no receipt', async () => {
+    test('anchors a reminder directly on an inline reply and writes no receipt', async () => {
         const reply = await owner.trpc.chat.send.mutate({
             chatId,
-            content: 'Thread reminder anchor',
-            nonce: 'reminder-thread-anchor',
+            content: 'Inline reminder anchor',
+            nonce: 'reminder-reply-anchor',
+            replyToMessageId: anchorMessageId,
             serverId,
-            thread: { anchorMessageId },
         });
         const scheduled = await scheduleReminder(
             connection.db,
@@ -210,10 +210,10 @@ describe('reminders', () => {
             {
                 anchorChatId: reply.message.chatId,
                 anchorMessageId: reply.message.id,
-                commandId: 'reminder-command-thread-schedule',
+                commandId: 'reminder-command-reply-schedule',
                 fireAt: new Date('2026-07-26T13:00:00.000Z'),
                 serverId,
-                title: 'Reply in the Thread',
+                title: 'Follow up on the reply',
             },
             { now: () => new Date('2026-07-26T12:00:00.000Z') }
         );
@@ -222,17 +222,13 @@ describe('reminders', () => {
             now: () => new Date('2026-07-26T13:00:00.000Z'),
         });
 
-        const transcript = await owner.trpc.chat.messages.query({
-            chatId: reply.message.chatId,
-            limit: 20,
-            serverId,
-        });
+        const transcript = await owner.trpc.chat.messages.query({ chatId, limit: 50, serverId });
         expect(scheduled.reminder).toMatchObject({
-            anchorChatId: reply.message.chatId,
+            anchorChatId: chatId,
             anchorMessageId: reply.message.id,
         });
-        // Neither the schedule nor the fire appends a row to the Thread.
-        expect(transcript.messages.map((message) => message.id)).toEqual([reply.message.id]);
+        // Neither the schedule nor the fire appends a row after the reply.
+        expect(transcript.messages.at(-1)?.id).toBe(reply.message.id);
     });
 
     test('fires once atomically, advances recurrence from now, and never executes scripts', async () => {
@@ -254,6 +250,9 @@ describe('reminders', () => {
             { now: () => new Date('2026-07-26T12:00:00.000Z') }
         );
         const fireClock = { now: () => new Date('2026-07-26T14:00:00.000Z') };
+        const lastBefore = (
+            await owner.trpc.chat.messages.query({ chatId, limit: 20, serverId })
+        ).messages.at(-1)?.id;
 
         await Promise.all([
             tickReminders(connection.db, fireClock),
@@ -309,7 +308,7 @@ describe('reminders', () => {
             limit: 20,
             serverId,
         });
-        expect(transcript.messages.at(-1)?.id).toBe(anchorMessageId);
+        expect(transcript.messages.at(-1)?.id).toBe(lastBefore);
     });
 
     test('makes cancellation idempotent and terminal before concurrent ticks', async () => {

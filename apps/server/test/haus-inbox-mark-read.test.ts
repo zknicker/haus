@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { type NotificationFixture, startNotificationFixture } from './notification-fixture.ts';
+import { startTestTask } from './task-place-fixture.ts';
 
 let fixture: NotificationFixture;
 
@@ -12,13 +13,13 @@ afterAll(async () => {
 });
 
 /**
- * The Inbox's Mark read reuses `chat.markRead`. A Channel row and its Thread
- * rows are separate: viewing the Channel reads only its own messages, and Mark
- * read with `includeThreads` also clears the Thread rows under it.
+ * The Inbox's Mark read reuses `chat.markRead`. A Channel row counts its inline
+ * replies and clears them with its own read; a followed Task under it is its
+ * own row (ADR 0052) and stays unread until the Task itself is read.
  */
-test('Mark read with includeThreads clears a Channel row and its Thread rows', async () => {
-    const { createChannel, owner, ownerUserId, peer, serverId } = fixture;
-    const channelId = await createChannel('mark-read-threads');
+test('Mark read clears a Channel row with its inline replies and leaves its Task row', async () => {
+    const { createChannel, harness, owner, ownerUserId, peer, serverId } = fixture;
+    const channelId = await createChannel('mark-read-replies');
     const question = await owner.trpc.chat.send.mutate({
         chatId: channelId,
         content: 'Which region first?',
@@ -31,41 +32,44 @@ test('Mark read with includeThreads clears a Channel row and its Thread rows', a
         nonce: 'mark-read-top',
         serverId,
     });
-    const threadReply = await peer.trpc.chat.send.mutate({
+    await peer.trpc.chat.send.mutate({
         chatId: channelId,
         content: `[@Ada](user://${ownerUserId}) us-east, I think.`,
-        nonce: 'mark-read-thread',
+        nonce: 'mark-read-reply',
+        replyToMessageId: question.message.id,
         serverId,
-        thread: { anchorMessageId: question.message.id },
     });
-    const unreadOf = async () =>
-        (await owner.trpc.chat.list.query({ serverId })).find((chat) => chat.id === channelId);
-    const unreadThreadIds = async () =>
-        (await owner.trpc.thread.listUnread.query({ serverId })).threads.map(
-            (thread) => thread.threadChatId
+    const task = await startTestTask(harness, owner, {
+        channelId,
+        originMessageId: question.message.id,
+        serverId,
+        title: 'Pick the first region',
+    });
+    // The mention follows the owner into the Task, so it is an Inbox row of its own.
+    await peer.trpc.chat.send.mutate({
+        chatId: task.chatId,
+        content: `[@Ada](user://${ownerUserId}) us-east is ready.`,
+        nonce: 'mark-read-task',
+        serverId,
+    });
+    const unreadOf = async (chatId: string) =>
+        (await owner.trpc.chat.unreadPreviews.query({ serverId })).previews.find(
+            (preview) => preview.chatId === chatId
         );
 
-    const before = await unreadOf();
-    expect(before?.unreadCount).toBe(1);
-    expect(await unreadThreadIds()).toEqual([threadReply.message.chatId]);
+    const channel = (await owner.trpc.chat.list.query({ serverId })).find(
+        (chat) => chat.id === channelId
+    );
+    expect(channel?.unreadCount).toBe(2);
+    expect(await unreadOf(task.chatId)).toMatchObject({ task: { taskId: task.id } });
 
-    // Viewing the Channel reads its own line; the Thread row stays.
     await owner.trpc.chat.markRead.mutate({
         chatId: channelId,
-        sequence: before?.lastMessageSequence ?? 0,
+        sequence: channel?.lastMessageSequence ?? 0,
         serverId,
     });
-    expect((await unreadOf())?.unreadCount).toBe(0);
-    expect(await unreadThreadIds()).toEqual([threadReply.message.chatId]);
-
-    const receipt = await owner.trpc.chat.markRead.mutate({
-        chatId: channelId,
-        includeThreads: true,
-        sequence: before?.lastMessageSequence ?? 0,
-        serverId,
-    });
-    expect(receipt.sequence).toBe(before?.lastMessageSequence);
-    expect(await unreadThreadIds()).toEqual([]);
+    expect(await unreadOf(channelId)).toBeUndefined();
+    expect(await unreadOf(task.chatId)).toBeDefined();
 
     // A newer message makes the Channel unread again.
     await peer.trpc.chat.send.mutate({
@@ -74,5 +78,8 @@ test('Mark read with includeThreads clears a Channel row and its Thread rows', a
         nonce: 'mark-read-after',
         serverId,
     });
-    expect((await unreadOf())?.unreadCount).toBe(1);
+    expect(
+        (await owner.trpc.chat.list.query({ serverId })).find((chat) => chat.id === channelId)
+            ?.unreadCount
+    ).toBe(1);
 });

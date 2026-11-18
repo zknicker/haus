@@ -13,6 +13,7 @@ import {
     ReminderCommandConflictError,
     ReminderScheduleExpiredError,
 } from '../reminders/reminder-model.ts';
+import { TaskRecurringReminderError } from '../reminders/task-reminders.ts';
 import {
     cancelAgentReminder,
     listAgentReminders,
@@ -21,6 +22,7 @@ import {
     snoozeAgentReminder,
     updateAgentReminder,
 } from './reminders.ts';
+import { AgentTargetError } from './resolve-target.ts';
 
 /** One change per update; the title and description are one label and may change together. */
 const updateSchema = agentReminderCommandSchema
@@ -152,6 +154,12 @@ async function runAction(reply: FastifyReply, action: () => Promise<unknown>) {
                 nextAction:
                     'List reminders to reconcile the existing command. A changed schedule revision needs a new saved command id; never replace an earlier command input.',
             });
+        }
+        if (cause instanceof AgentTargetError) {
+            return reply.code(404).send({ code: 'INVALID_TARGET', message: cause.message });
+        }
+        if (cause instanceof TaskRecurringReminderError) {
+            return reply.code(400).send({ code: cause.code, message: cause.message });
         }
         if (cause instanceof ReminderScheduleExpiredError) {
             return reply.code(409).send({

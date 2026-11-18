@@ -1,6 +1,7 @@
 import { beforeAll, expect, test } from 'bun:test';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 import { captureAllTopics, publishedSince } from './realtime-capture.ts';
+import { startTestTask } from './task-place-fixture.ts';
 
 /**
  * References through the send paths: an Agent writes a bare key (ADR 0051), its
@@ -9,17 +10,24 @@ import { captureAllTopics, publishedSince } from './realtime-capture.ts';
  */
 const fixture = agentCreationFixture();
 let runner: { token: string };
-let boardId: string;
+let allChatId: string;
 
 beforeAll(async () => {
     runner = await fixture.mintRunner('run_task_send_links');
-    const [general] = await fixture.owner.trpc.board.list.query({ serverId: fixture.serverId });
-    boardId = general?.id ?? '';
+    const [all] = (await fixture.harness.sql`
+        select id from chats where server_id = ${fixture.serverId} and is_all
+    `) as { id: string }[];
+    allChatId = all?.id ?? '';
 });
 
+/**
+ * A Task at version 1 whose origin is in `#all`, so its origin Message is no
+ * news in the Channel the Agent sends to.
+ */
 async function createTask(title: string) {
-    const { serverId } = fixture;
-    return (await fixture.owner.trpc.task.create.mutate({ boardId, serverId, title })).task;
+    const { harness, owner, serverId } = fixture;
+    const task = await startTestTask(harness, owner, { channelId: allChatId, serverId, title });
+    return { ...task, version: 1 };
 }
 
 async function agentCall(path: string, body?: unknown) {
@@ -49,7 +57,7 @@ test('an Agent send resolves a bare key, projects it both ways, and updates the 
     );
     expect(updates).toEqual([
         {
-            boardId,
+            chatId: task.chatId,
             serverId,
             taskId: task.id,
             type: 'task.updated',

@@ -5,10 +5,8 @@ import {
     agentTokenUsageDailyTable,
     chatMessagesTable,
     serverMembershipsTable,
-    threadFollowsTable,
 } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { ensureThreadRecord } from '../threads/ensure-thread.ts';
 import { demoTokenUsage } from './demo-token-usage.ts';
 import { findInboxSeedContext, type InboxSeedContext } from './seed-inbox-context.ts';
 import { appendSeedMessages } from './seed-inbox-messages.ts';
@@ -20,7 +18,7 @@ const minute = 60_000;
 
 /**
  * What the Inbox's cards and Agents rail need to be judged on a dev boot
- * (ADR 0050): unread Threads whose replies carry formatting and an @mention,
+ * (ADR 0050): unread inline replies that carry formatting and an @mention,
  * a token week that stays current however old the dev database is, and one
  * Agent running away today so the spike flag shows.
  *
@@ -42,8 +40,8 @@ export async function seedDevelopmentInboxShowcase(
         const now = new Date();
         await topUpTokenUsage(tx, context, now);
         if (!(await alreadySeeded(tx, context.serverId))) {
-            await seedProductThread(tx, context, now);
-            await seedTinyDmThread(tx, context, now);
+            await seedProductConversation(tx, context, now);
+            await seedTinyDmConversation(tx, context, now);
         }
     });
 }
@@ -94,9 +92,10 @@ async function topUpTokenUsage(tx: HausDatabase, context: InboxSeedContext, now:
 
 /**
  * Blippy's report in #product, with Tiny correcting it and Blippy asking the
- * owner to decide: the Thread a person gets notified about and has to find.
+ * owner to decide, as inline replies under the report: the conversation a
+ * person gets notified about and has to find.
  */
-async function seedProductThread(tx: HausDatabase, context: InboxSeedContext, now: Date) {
+async function seedProductConversation(tx: HausDatabase, context: InboxSeedContext, now: Date) {
     const mention = await ownerMention(tx, context);
     const [anchor] = await appendSeedMessages(tx, {
         chatId: context.productChatId,
@@ -114,37 +113,31 @@ async function seedProductThread(tx: HausDatabase, context: InboxSeedContext, no
     if (!anchor) {
         throw new Error('The Inbox showcase seed wrote no #product anchor.');
     }
-    const thread = await ensureThreadRecord(tx, {
-        anchorMessageId: anchor.id,
-        parentChatId: context.productChatId,
-        serverId: context.serverId,
-    });
-    await tx
-        .insert(threadFollowsTable)
-        .values({ serverId: context.serverId, threadChatId: thread.id, userId: context.userId })
-        .onConflictDoNothing();
+    const reply = { rootMessageId: anchor.id, toMessageId: anchor.id };
     await appendSeedMessages(tx, {
-        chatId: thread.id,
+        chatId: context.productChatId,
         messages: [
             {
                 authorAgentId: context.tinyId,
                 content: `${mention} one correction on the flaky specs. Last week's runs show why they're not the release blocker:\n\n- **render-budget:** over its limit in 2 of 6 runs on this branch, 0 of 6 on main. Same noise either way.\n- **cloud-agent-work-links:** fails on main too. It still expects "Working" for queued work that now reads "Starting".\n\nSo the branch is clean. The real blocker is the migration check, which has failed **3 runs in a row** since Tuesday.`,
                 createdAt: before(now, 22 * minute),
                 nonce: 'dev-inbox-showcase-product-tiny',
+                reply,
             },
             {
                 authorAgentId: context.blippyId,
                 content: `Right, thanks Tiny. **The specs are noise; the migration check is the blocker.** ${mention}, the plan is then:\n\n- Update the stale "Working" expectation to "Starting"\n- Re-run render-budget twice before calling it\n- Pair with Cove on the migration check this afternoon\n\nGo?`,
                 createdAt: before(now, 9 * minute),
                 nonce: 'dev-inbox-showcase-product-blippy',
+                reply,
             },
         ],
         serverId: context.serverId,
     });
 }
 
-/** A Thread inside Tiny's DM, so the Inbox shows a "Thread in DM" card too. */
-async function seedTinyDmThread(tx: HausDatabase, context: InboxSeedContext, now: Date) {
+/** Tiny answering the owner inline in their DM, so the Inbox shows a DM reply card too. */
+async function seedTinyDmConversation(tx: HausDatabase, context: InboxSeedContext, now: Date) {
     const [anchor] = await appendSeedMessages(tx, {
         chatId: context.tinyDmChatId,
         messages: [
@@ -160,17 +153,9 @@ async function seedTinyDmThread(tx: HausDatabase, context: InboxSeedContext, now
     if (!anchor) {
         throw new Error('The Inbox showcase seed wrote no DM anchor.');
     }
-    const thread = await ensureThreadRecord(tx, {
-        anchorMessageId: anchor.id,
-        parentChatId: context.tinyDmChatId,
-        serverId: context.serverId,
-    });
-    await tx
-        .insert(threadFollowsTable)
-        .values({ serverId: context.serverId, threadChatId: thread.id, userId: context.userId })
-        .onConflictDoNothing();
+    const reply = { rootMessageId: anchor.id, toMessageId: anchor.id };
     await appendSeedMessages(tx, {
-        chatId: thread.id,
+        chatId: context.tinyDmChatId,
         messages: [
             {
                 authorAgentId: context.tinyId,
@@ -178,6 +163,7 @@ async function seedTinyDmThread(tx: HausDatabase, context: InboxSeedContext, now
                     'Priced it. The mini runs the backup in about **14 minutes** versus 9 on the laptop, and it frees the laptop overnight.',
                 createdAt: before(now, 34 * minute),
                 nonce: 'dev-inbox-showcase-dm-tiny-1',
+                reply,
             },
             {
                 authorAgentId: context.tinyId,
@@ -185,6 +171,7 @@ async function seedTinyDmThread(tx: HausDatabase, context: InboxSeedContext, now
                     'Two catches:\n\n1. The mini is two releases behind, so it needs `haus-computer upgrade` first.\n2. Its tailnet key expires Friday.\n\nWant me to do both tonight and move the backup after?',
                 createdAt: before(now, 33 * minute),
                 nonce: 'dev-inbox-showcase-dm-tiny-2',
+                reply,
             },
         ],
         serverId: context.serverId,

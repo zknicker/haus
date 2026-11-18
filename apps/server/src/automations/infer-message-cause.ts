@@ -34,10 +34,10 @@ export async function resolveAgentMessageCause(
  *
  * A fire is inferable only when it was the whole reason the run had anything to
  * say: the sending run was served exactly one inbox item, that item is the
- * fire, and the message landed in the fire's anchor Chat (a Thread resolves to
- * its parent). Any other shape — a second item, a human message alongside the
- * fire, an answer somewhere else — leaves the message unmarked rather than
- * guessing which item it answered.
+ * fire, and the message landed in the fire's anchor Chat (a Task also answers
+ * for its Channel). Any other shape — a second
+ * item, a human message alongside the fire, an answer somewhere else — leaves
+ * the message unmarked rather than guessing which item it answered.
  */
 export async function inferMessageCause(
     db: HausDatabase,
@@ -59,7 +59,7 @@ export async function inferMessageCause(
     if (!item || served.length !== 1 || !isFireIdentity(item.dedupeKey)) {
         return undefined;
     }
-    if (item.chatId !== (await anchorChatId(db, input))) {
+    if (!(item.chatId && (await answeredChatIds(db, input)).includes(item.chatId))) {
         return undefined;
     }
     try {
@@ -85,18 +85,23 @@ function isFireIdentity(dedupeKey: string): boolean {
     return dedupeKey.startsWith('trf_') || dedupeKey.startsWith('rmf_');
 }
 
-/** A Thread answers for its parent Chat; every other Chat answers for itself. */
-async function anchorChatId(
+/**
+ * The anchor Chats a message here answers for. A Task (ADR 0052) answers for
+ * itself, so a fire anchored on the Task
+ * keeps the Task as its place, and for the Channel it started in, where a fire
+ * that turned up real work started it. Every other Chat answers for itself.
+ */
+async function answeredChatIds(
     db: HausDatabase,
     input: { chatId: string; serverId: string }
-): Promise<string> {
+): Promise<string[]> {
     const [chat] = await db
         .select({ kind: chatsTable.kind, parentChatId: chatsTable.parentChatId })
         .from(chatsTable)
         .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)))
         .limit(1);
-    if (chat?.kind === 'thread' && chat.parentChatId) {
-        return chat.parentChatId;
+    if (chat?.kind === 'task' && chat.parentChatId) {
+        return [input.chatId, chat.parentChatId];
     }
-    return input.chatId;
+    return [input.chatId];
 }

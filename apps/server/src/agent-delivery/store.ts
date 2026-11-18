@@ -1,4 +1,4 @@
-import type { AddressedReason, AgentReasoningEffort } from '@haus/api';
+import type { AddressedReason, AgentReasoningEffort, CloudAgentWorkAttention } from '@haus/api';
 import { and, eq, inArray, isNotNull, isNull, lte, ne, notInArray, or, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -36,7 +36,7 @@ export interface InboxItemRow {
     /** Why this item names the Agent personally; null is an ambient delivery. */
     addressedReason: AddressedReason | null;
     chatId: string | null;
-    cloudAgentNotice: 'settled' | 'stall' | null;
+    cloudAgentNotice: CloudAgentWorkAttention['notice'] | null;
     cloudAgentRunId: string | null;
     content: string;
     createdAt: Date;
@@ -46,7 +46,7 @@ export interface InboxItemRow {
     noticeRunId: string | null;
     serverId: string;
     source: string;
-    threadFollowReactivated: boolean;
+    taskFollowReactivated: boolean;
 }
 
 /** The one projection every queue read returns, so a new column lands once. */
@@ -63,7 +63,7 @@ export const inboxItemColumns = {
     noticeRunId: agentInboxTable.noticeRunId,
     serverId: agentInboxTable.serverId,
     source: agentInboxTable.source,
-    threadFollowReactivated: agentInboxTable.threadFollowReactivated,
+    taskFollowReactivated: agentInboxTable.taskFollowReactivated,
 } as const;
 
 export async function readAgentServerId(db: HausDatabase, agentId: string): Promise<string | null> {
@@ -335,7 +335,7 @@ export async function listInboxItemsByDedupeKeys(
 }
 
 /** Delivery effects that have not yet reached the model in this run. */
-export async function listUnservedThreadFollowReactivationIds(
+export async function listUnservedTaskFollowReactivationIds(
     db: HausDatabase,
     input: { agentId: string; dedupeKeys: string[]; runId: string }
 ): Promise<string[]> {
@@ -349,7 +349,7 @@ export async function listUnservedThreadFollowReactivationIds(
             and(
                 eq(agentInboxTable.agentId, input.agentId),
                 inArray(agentInboxTable.dedupeKey, input.dedupeKeys),
-                eq(agentInboxTable.threadFollowReactivated, true),
+                eq(agentInboxTable.taskFollowReactivated, true),
                 isNull(agentInboxTable.servedAt),
                 or(
                     and(isNull(agentInboxTable.runId), eq(agentInboxTable.state, 'queued')),

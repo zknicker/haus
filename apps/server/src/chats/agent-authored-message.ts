@@ -1,10 +1,7 @@
 import type { MessageBodyKind } from '@haus/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
-import { followAgentThread } from '../agent-api/attention.ts';
-import {
-    type AnchorWithoutThread,
-    resolveAgentSendTarget,
-} from '../agent-api/resolve-send-target.ts';
+import { followAgentTask } from '../agent-api/attention.ts';
+import { resolveAgentSendTarget } from '../agent-api/resolve-send-target.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
@@ -12,15 +9,16 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
-import { ensureThreadRecord } from '../threads/ensure-thread.ts';
-import { autoFollowThreadMentions } from '../threads/thread-attention.ts';
+import { reopenTaskOnPost } from '../tasks/task-chat.ts';
+import { prepareTaskUpdatedEvent } from '../tasks/task-events.ts';
+import { followTaskMentions } from '../tasks/task-follows.ts';
 import { requireChatWritable } from './chat-access.ts';
 import { mentionedUserIds } from './mentioned-user-ids.ts';
 import { prepareMessageCreatedEvent } from './message-created-event.ts';
 import { resolveInlineReplyParent } from './reply-context.ts';
 
 export interface AgentAuthoredMessageChat {
-    kind: 'channel' | 'dm' | 'thread';
+    kind: 'channel' | 'dm' | 'task';
     parentChatId: string | null;
 }
 
@@ -36,8 +34,8 @@ export interface AgentAuthoredMessage {
     event: PreparedRealtimeEvent;
     messageId: string;
     sequence: number;
-    /** The conversation any answer or discussion happens in. */
-    threadChatId: string;
+    /** `task.updated` when the Message reopened the done or canceled Task it landed in. */
+    taskEvents: PreparedRealtimeEvent[];
     wakes: Array<{ agentId: string; serverId: string }>;
 }
 
@@ -56,10 +54,9 @@ export class AgentAuthorNotFoundError extends Error {
 export async function planAgentAuthoredMessage(
     db: HausDatabase,
     runner: ResolvedRunner,
-    target: string,
-    anchorWithoutThread: AnchorWithoutThread
+    target: string
 ): Promise<AgentAuthoredMessagePlan> {
-    const chatId = await resolveAgentSendTarget(db, runner, target, anchorWithoutThread);
+    const chatId = await resolveAgentSendTarget(db, runner, target);
     await requireChatWritable(db, { chatId, serverId: runner.serverId });
     const [agent] = await db
         .select({ handle: agentsTable.handle })
@@ -88,9 +85,8 @@ export async function planAgentAuthoredMessage(
 
 /**
  * Writes one Agent-authored Message that a Server record anchors: the numbered
- * Message carrying its typed body kind, the deterministic child Thread when the
- * Message is top-level, the authoring Agent's follow on the conversation the
- * discussion happens in, ordinary delivery planning, and `message.created`.
+ * Message carrying its typed body kind, the authoring Agent's follow when it
+ * lands in a Task, ordinary delivery planning, and `message.created`.
  * The caller inserts its own record and event inside the same transaction.
  */
 export async function writeAgentAuthoredMessage(
@@ -144,30 +140,22 @@ export async function writeAgentAuthoredMessage(
         })
         .returning();
 
-    // A top-level Message receives its child Thread immediately; one posted
-    // inside a Thread stays there, because Threads do not nest. Either way the
-    // authoring Agent follows the conversation that answers it.
-    const threadChatId =
-        plan.chat.kind === 'thread'
-            ? plan.chatId
-            : (
-                  await ensureThreadRecord(db, {
-                      anchorMessageId: message.id,
-                      parentChatId: plan.chatId,
-                      serverId: runner.serverId,
-                  })
-              ).id;
-    await followAgentThread(db, {
-        agentId: runner.agentId,
-        serverId: runner.serverId,
-        threadChatId,
-    });
-    if (plan.chat.kind === 'thread' && plan.chat.parentChatId) {
-        await autoFollowThreadMentions(db, {
-            content: input.content,
-            parentChatId: plan.chat.parentChatId,
+    // Posting in a Task (ADR 0052) follows it, along with the people the
+    // message mentions, and reopens a done or canceled Task (decision 13).
+    const reopened =
+        plan.chat.kind === 'task'
+            ? await reopenTaskOnPost(db, { chatId: plan.chatId, serverId: runner.serverId })
+            : null;
+    if (plan.chat.kind === 'task') {
+        await followAgentTask(db, {
+            agentId: runner.agentId,
             serverId: runner.serverId,
-            threadChatId: plan.chatId,
+            taskChatId: plan.chatId,
+        });
+        await followTaskMentions(db, {
+            chatId: plan.chatId,
+            mentionedUserIds: message.mentionedUserIds,
+            serverId: runner.serverId,
         });
     }
 
@@ -189,7 +177,7 @@ export async function writeAgentAuthoredMessage(
             sequence: message.sequence,
             serverId: runner.serverId,
             source: `agent:${plan.agentHandle}`,
-            threadFollowReactivated: recipient.threadFollowReactivated,
+            taskFollowReactivated: recipient.taskFollowReactivated,
         });
     }
 
@@ -199,7 +187,16 @@ export async function writeAgentAuthoredMessage(
         event: await prepareMessageCreatedEvent(db, message, reply?.parent.authorUserId ?? null),
         messageId: message.id,
         sequence: message.sequence,
-        threadChatId,
+        taskEvents: reopened
+            ? [
+                  prepareTaskUpdatedEvent({
+                      chatId: reopened.chatId,
+                      id: reopened.taskId,
+                      serverId: runner.serverId,
+                      version: reopened.version,
+                  }),
+              ]
+            : [],
         wakes: recipients.map(({ agentId }) => ({ agentId, serverId: runner.serverId })),
     };
 }

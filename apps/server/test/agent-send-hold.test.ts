@@ -10,7 +10,7 @@ import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { agentInboxExactVisibilityTable, agentInboxTable } from '../src/postgres/schema.ts';
 import { seedAgent } from './agent-inbox-harness.ts';
-import { addThread, postMessage, readerRunner, seedReader } from './agent-read-fixture.ts';
+import { addTask, postMessage, readerRunner, seedReader } from './agent-read-fixture.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
 
 let cluster: PostgresCluster;
@@ -78,25 +78,25 @@ test('a delivered message the Agent has not seen holds once; undelivered chatter
     });
 });
 
-test('a Thread holds for every unseen reply, delivered or not, as Raft counts it', async () => {
+test('a Task holds for every unseen message, delivered or not, as Raft counts it', async () => {
     const db = connection.db;
     const seed = await seedReader(db);
     const anchor = await postMessage(db, seed, { chatId: seed.channelId });
-    const threadId = await addThread(db, seed, {
+    const { chatId: taskChatId } = await addTask(db, seed, {
         anchorId: anchor.id,
         followed: true,
         parentChatId: seed.channelId,
     });
-    const reply = await postMessage(db, seed, { chatId: threadId, content: 'Earlier reply.' });
-    const runner = readerRunner(seed, 'run_thread_hold');
+    const reply = await postMessage(db, seed, { chatId: taskChatId, content: 'Earlier reply.' });
+    const runner = readerRunner(seed, 'run_task_hold');
 
-    const held = await send(runner, threadId, 'Joining the Thread.');
+    const held = await send(runner, taskChatId, 'Joining the Task.');
     expect(held).toMatchObject({ kind: 'held', response: { newMessageCount: 1 } });
     expect(shownIds(held)).toEqual([reply.id]);
-    expect(await send(runner, threadId, 'Joining the Thread.')).toMatchObject({ kind: 'send' });
+    expect(await send(runner, taskChatId, 'Joining the Task.')).toMatchObject({ kind: 'send' });
 
-    const newer = await postMessage(db, seed, { chatId: threadId, content: 'Newer reply.' });
-    const reheld = await send(runner, threadId, 'Joining the Thread.');
+    const newer = await postMessage(db, seed, { chatId: taskChatId, content: 'Newer reply.' });
+    const reheld = await send(runner, taskChatId, 'Joining the Task.');
     expect(shownIds(reheld)).toEqual([newer.id]);
 });
 

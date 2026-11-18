@@ -8,8 +8,7 @@ import { captureTopic } from './realtime-capture.ts';
 /**
  * `claim.changed` names the Chat the claim's Message sits in: the App
  * invalidates that Message's entity by it, and the stream delivers only to
- * members who can open it. A top-level claim's work Thread is not that Chat,
- * and before the first reply it does not exist at all.
+ * members who can open it. Inline replies to the claimed message do not move it.
  */
 
 let harness: HausServerHarness;
@@ -42,7 +41,6 @@ test('App status and assignment changes of a top-level claim name its Channel', 
     const expected = { chatId, kind: 'updated', messageId, serverId: server.id };
     const delivered = captureTopic(claimChangedTopic);
 
-    // Before any reply: the anchored Thread does not exist yet.
     const updated = await owner.trpc.claim.update.mutate({
         expectedVersion: created.claim.version,
         messageId,
@@ -58,13 +56,13 @@ test('App status and assignment changes of a top-level claim name its Channel', 
     });
     expect(await delivered.next()).toEqual(expected);
 
-    // After the first reply materializes the Thread, the Message still sits in the Channel.
+    // After an inline reply, the Message still sits in the Channel.
     await owner.trpc.chat.send.mutate({
         chatId,
         content: 'First reply',
-        nonce: 'claim-events-thread-reply',
+        nonce: 'claim-events-reply',
         serverId: server.id,
-        thread: { anchorMessageId: messageId },
+        replyToMessageId: messageId,
     });
     const reviewed = await owner.trpc.claim.update.mutate({
         expectedVersion: assigned.claim.version,

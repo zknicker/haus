@@ -21,7 +21,6 @@ export async function clearClaimAssignments(
         .select({
             chatId: messageClaimsTable.chatId,
             messageId: messageClaimsTable.messageId,
-            threadChatId: messageClaimsTable.threadChatId,
         })
         .from(messageClaimsTable)
         .where(and(eq(messageClaimsTable.serverId, serverId), eq(assigneeColumn, agentId)))
@@ -49,7 +48,6 @@ export async function clearClaimAssignments(
                 chatId: claim.chatId,
                 messageId: claim.messageId,
                 serverId,
-                threadChatId: claim.threadChatId,
                 type: 'claim.updated',
             })
         );

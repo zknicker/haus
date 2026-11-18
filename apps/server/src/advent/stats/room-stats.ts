@@ -4,16 +4,15 @@ import type { MessageColumns } from './message-columns.ts';
 
 type RoomFact =
     | 'closest-dm'
+    | 'conversations-started'
     | 'full-house'
-    | 'longest-thread'
+    | 'longest-conversation'
     | 'loudest-channel'
-    | 'quickest-reply'
-    | 'threads-resolved';
+    | 'quickest-reply';
 
 /**
  * Where the member wrote and whom they answered, read from the pass's `mine`
- * CTE. Thread messages count toward their parent (`room_id`). Every room in
- * `mine` is already readable and live.
+ * CTE. Every room in `mine` is already readable and live.
  */
 export const roomColumns: MessageColumns<RoomFact> = {
     'loudest-channel': (scope) => sql`(
@@ -72,32 +71,36 @@ export const roomColumns: MessageColumns<RoomFact> = {
             limit 1
         )`;
     },
-    'longest-thread': (scope) => sql`(
+    // The inline reply chain the member wrote in with the most replies.
+    'longest-conversation': (scope) => sql`(
         select json_build_object('replies', replies, 'room', room)
         from (
             select
-                thread.last_message_sequence::int as replies,
-                case when parent.kind = 'channel' then '#' || parent.name end as room
-            from (select distinct chat_id from mine where kind = 'thread') threads
-            join chats thread on thread.server_id = ${scope.serverId} and thread.id = threads.chat_id
-            join chats parent
-                on parent.server_id = thread.server_id and parent.id = thread.parent_chat_id
+                count(reply.id)::int as replies,
+                case when room.kind = 'channel' then '#' || room.name end as room
+            from (select distinct chat_id, conversation_id from mine) conversations
+            join chats room
+                on room.server_id = ${scope.serverId} and room.id = conversations.chat_id
+            join chat_messages reply
+                on reply.server_id = ${scope.serverId}
+                and reply.chat_id = conversations.chat_id
+                and reply.reply_root_message_id = conversations.conversation_id
+            group by conversations.chat_id, conversations.conversation_id, room.kind, room.name
         ) candidates
         order by replies desc, room asc nulls last
         limit 1
     )`,
-    // Threads whose first message was the member's and that someone else answered.
-    'threads-resolved': (scope) => sql`(
+    // Top-level messages of the member's that someone else replied to inline.
+    'conversations-started': (scope) => sql`(
         select json_build_object('count', count(*)::int)
         from mine
-        where mine.kind = 'thread'
-          and mine.sequence = 1
+        where mine.conversation_id = mine.id
           and exists (
               select 1
               from chat_messages reply
               where reply.server_id = ${scope.serverId}
                 and reply.chat_id = mine.chat_id
-                and reply.sequence > 1
+                and reply.reply_root_message_id = mine.id
                 and reply.author_user_id is distinct from ${scope.userId}
           )
         having count(*) > 0
@@ -130,11 +133,13 @@ export const roomColumns: MessageColumns<RoomFact> = {
     )`,
 };
 
-/** Distinct rooms and Threads the member wrote in, for the recap. */
+/** Distinct rooms and inline reply chains the member wrote in, for the recap. */
 export const recapCountsColumn = sql`(
     select json_build_object(
         'chats', count(distinct room_id)::int,
-        'threads', (count(distinct chat_id) filter (where kind = 'thread'))::int
+        'conversations', (count(distinct conversation_id) filter (
+            where conversation_id <> id
+        ))::int
     )
     from mine
 )`;

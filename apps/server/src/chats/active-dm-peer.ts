@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable, chatsTable } from '../postgres/schema.ts';
+import { agentsTable } from '../postgres/schema.ts';
 
 export class RetiredAgentDmSendError extends Error {
     constructor() {
@@ -15,22 +15,12 @@ export async function requireActiveDmPeer(
     db: HausDatabase,
     chat: {
         dmAgentId: string | null;
-        kind: 'channel' | 'dm' | 'thread';
+        kind: 'channel' | 'dm' | 'task';
         parentChatId: string | null;
         serverId: string;
     }
 ) {
-    let agentId = chat.kind === 'dm' ? chat.dmAgentId : null;
-    if (chat.kind === 'thread' && chat.parentChatId) {
-        const [parent] = await db
-            .select({ dmAgentId: chatsTable.dmAgentId })
-            .from(chatsTable)
-            .where(
-                and(eq(chatsTable.serverId, chat.serverId), eq(chatsTable.id, chat.parentChatId))
-            )
-            .limit(1);
-        agentId = parent?.dmAgentId ?? null;
-    }
+    const agentId = chat.kind === 'dm' ? chat.dmAgentId : null;
     if (!agentId) {
         return;
     }

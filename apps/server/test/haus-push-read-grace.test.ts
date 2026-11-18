@@ -2,6 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import type { HausClient } from './haus-client.ts';
 import { type NotificationFixture, startNotificationFixture } from './notification-fixture.ts';
 import { deviceToken, FakePushSender } from './push-fake-sender.ts';
+import { startTestTask } from './task-place-fixture.ts';
 
 // Long enough for a markRead right after the send to land inside it.
 const readGraceMs = 600;
@@ -90,44 +91,43 @@ test('a Channel mention of two humans pushes only the one who has not read it', 
     expect(pushes[0]?.payload.aps.badge).toBe(await unreadChatCount(owner, [serverId]));
 });
 
-test('a Thread reply is skipped only when the Thread itself was read', async () => {
-    const { createChannel, owner, peer, serverId } = fixture;
-    const channelId = await createChannel('grace-thread');
-    const question = await owner.trpc.chat.send.mutate({
-        chatId: channelId,
-        content: 'Which region first?',
-        nonce: 'grace-thread-question',
+test('a Task message is skipped only when the Task itself was read', async () => {
+    const { createChannel, harness, owner, ownerUserId, peer, serverId } = fixture;
+    const channelId = await createChannel('grace-task');
+    const task = await startTestTask(harness, owner, {
+        channelId,
         serverId,
+        title: 'Pick the first region',
     });
+    const [origin] = (await harness.sql`
+        select sequence from chat_messages where id = ${task.originMessageId}
+    `) as { sequence: number }[];
 
-    // Reading the Channel does not read its Threads: the reply still pushes.
+    // Reading the Channel does not read its Tasks: the mention still pushes.
     const first = await peer.trpc.chat.send.mutate({
-        chatId: channelId,
-        content: 'us-east.',
-        nonce: 'grace-thread-first',
+        chatId: task.chatId,
+        content: `[@Ada](user://${ownerUserId}) us-east.`,
+        nonce: 'grace-task-first',
         serverId,
-        thread: { anchorMessageId: question.message.id },
     });
     await owner.trpc.chat.markRead.mutate({
         chatId: channelId,
-        sequence: question.message.sequence,
+        sequence: Number(origin?.sequence),
         serverId,
     });
     const firstPushes = await settledPushes(first.message.id);
     expect(firstPushes.map((push) => push.device.token)).toEqual([adaToken]);
-    expect(firstPushes[0]?.payload.reason).toBe('reply');
+    expect(firstPushes[0]?.payload).toMatchObject({ reason: 'mention', taskId: task.id });
 
-    // Reading the open Thread through the reply does.
+    // Reading the open Task through the message does.
     const second = await peer.trpc.chat.send.mutate({
-        chatId: channelId,
-        content: 'Then eu-west.',
-        nonce: 'grace-thread-second',
+        chatId: task.chatId,
+        content: `[@Ada](user://${ownerUserId}) then eu-west.`,
+        nonce: 'grace-task-second',
         serverId,
-        thread: { anchorMessageId: question.message.id },
     });
-    expect(second.threadChatId).toBe(first.threadChatId);
     await owner.trpc.chat.markRead.mutate({
-        chatId: second.threadChatId as string,
+        chatId: task.chatId,
         sequence: second.message.sequence,
         serverId,
     });
@@ -140,13 +140,11 @@ async function settledPushes(messageId: string) {
     return await sender.sentFor(messageId, 0);
 }
 
-/** What the badge means: unread `chat.list` Chats plus `thread.listUnread` Threads, summed over Servers. */
+/** What the badge means: the Inbox's unread rows (Chats and followed Tasks), summed over Servers. */
 async function unreadChatCount(client: HausClient, serverIds: readonly string[]) {
     let count = 0;
     for (const serverId of serverIds) {
-        const chats = await client.trpc.chat.list.query({ serverId });
-        count += chats.filter((chat) => chat.unreadCount > 0).length;
-        count += (await client.trpc.thread.listUnread.query({ serverId })).threads.length;
+        count += (await client.trpc.chat.unreadPreviews.query({ serverId })).previews.length;
     }
     return count;
 }

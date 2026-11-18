@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { startTestTask } from './task-place-fixture.ts';
 
 let harness: HausServerHarness;
 let owner: HausClient;
@@ -135,32 +136,30 @@ test('invitation revocation and acceptance keep the Server-first lock order', as
     candidate.close();
 });
 
-test('Thread follow queued behind removal reauthorizes before it writes', async () => {
+test('Task follow queued behind removal reauthorizes before it writes', async () => {
     const member = await addMember('follow');
-    const anchor = await owner.trpc.chat.send.mutate({
-        chatId: allChatId,
-        content: 'Follow serialization anchor',
-        nonce: 'follow-serialization-anchor',
+    const task = await startTestTask(harness, owner, {
+        channelId: allChatId,
         serverId,
+        title: 'Follow serialization',
     });
-    const reply = await member.client.trpc.chat.send.mutate({
-        chatId: allChatId,
+    // Posting in the Task follows it.
+    await member.client.trpc.chat.send.mutate({
+        chatId: task.chatId,
         content: 'Follow before removal',
         nonce: 'follow-serialization-reply',
         serverId,
-        thread: { anchorMessageId: anchor.message.id },
     });
-    const threadChatId = reply.threadChatId as string;
     let removal: Promise<unknown> = Promise.resolve();
     let follow: Promise<unknown> = Promise.resolve();
 
     await whileServerRowIsHeld(async () => {
         removal = remove(member.userId);
         await Bun.sleep(120);
-        follow = member.client.trpc.thread.setFollow.mutate({
-            follow: false,
+        follow = member.client.trpc.task.setFollow.mutate({
+            followed: false,
             serverId,
-            threadChatId,
+            taskId: task.id,
         });
         await Bun.sleep(120);
     });
@@ -175,7 +174,7 @@ test('Thread follow queued behind removal reauthorizes before it writes', async 
         );
     }
     const [stored] = await harness.sql`
-        select count(*)::int as total from thread_follows
+        select count(*)::int as total from task_follows
         where server_id = ${serverId} and user_id = ${member.userId}
     `;
     expect(stored.total).toBe(0);
@@ -186,7 +185,7 @@ test('Thread follow queued behind removal reauthorizes before it writes', async 
     });
     await member.client.trpc.invitation.accept.mutate({ token });
     const parent = await member.client.trpc.chat.messages.query({ chatId: allChatId, serverId });
-    expect(parent.threads).toMatchObject([{ followed: false, threadChatId }]);
+    expect(parent.tasks).toMatchObject([{ chatId: task.chatId, followed: false }]);
     member.client.close();
 });
 

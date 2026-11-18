@@ -6,7 +6,7 @@ import { type AdventReader, readRow } from './read-row.ts';
 
 /**
  * The member's Agents. A message is addressed to an Agent when it sits in that
- * Agent's DM (or a Thread under it) or carries an `agent://` mention of it.
+ * Agent's DM or carries an `agent://` mention of it.
  * Message content is matched inside PostgreSQL and never selected out.
  */
 

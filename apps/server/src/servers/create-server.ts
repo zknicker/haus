@@ -1,4 +1,3 @@
-import { insertGeneralBoard } from '../boards/board-create.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -9,6 +8,7 @@ import {
     serverOnboardingTable,
     serversTable,
 } from '../postgres/schema.ts';
+import { insertGeneralTaskKey } from '../tasks/task-key-ledger.ts';
 import {
     allChannelDescription,
     allChannelName,
@@ -33,7 +33,7 @@ export class ServerSlugTakenError extends Error {
  * One transaction commits the whole Server: its opaque id, immutable slug and
  * editable display name, the first
  * human Owner membership, `#all` with that Owner participating, and the General
- * Task board (ADR 0051). It creates
+ * Task key (ADR 0052). It creates
  * no Computer, Agent, or execution configuration.
  */
 export async function createServer(
@@ -80,7 +80,7 @@ export async function createServer(
                 phase: 'awaiting-computer',
                 serverId: server.id,
             });
-            await insertGeneralBoard(tx, server.id);
+            await insertGeneralTaskKey(tx, server.id);
         });
     } catch (cause) {
         if (violatesConstraint(cause, 'servers_slug_key')) {

@@ -189,7 +189,7 @@ test('a repository no installation covers stays a Computer reading, unread', asy
 
 async function refresh() {
     await refreshPullRequestReadings(
-        { app, db: connection.db },
+        { app, db: connection.db, delivery: idleDelivery(), wakeAgents: () => undefined },
         { now: new Date(Date.now() + 60_000) }
     );
 }
@@ -252,4 +252,8 @@ function mergedPullRequest(path: string) {
         return Response.json({ check_runs: [{ conclusion: 'success', status: 'completed' }] });
     }
     return Response.json({ statuses: [] });
+}
+
+function idleDelivery() {
+    return new AgentDelivery(connection.db, { isOnline: () => false, send: () => false });
 }

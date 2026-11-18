@@ -1,7 +1,7 @@
 import {
     formatAgentReferenceTarget,
+    formatChatMessageReferenceTarget,
     formatChatReferenceTarget,
-    formatChatThreadReferenceTarget,
     formatUserReferenceTarget,
 } from '@haus/api';
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
@@ -14,10 +14,10 @@ import {
     readExistingReferenceTargets,
 } from './existing-reference-targets.ts';
 import {
-    readReferencedThreads,
-    resolveThreadReference,
-    type ThreadReferenceTarget,
-} from './thread-reference-targets.ts';
+    type MessageReferenceTarget,
+    readReferencedMessages,
+    resolveMessageReference,
+} from './message-reference-targets.ts';
 
 /**
  * Resolves the live Server directory once, then stores only immutable targets
@@ -44,7 +44,7 @@ export async function canonicalizeAgentMessageContentForPersistence(
             agents: preferred.agents,
             channels: preferred.channels,
             users: preferred.users,
-            threads: preferred.threads,
+            messages: preferred.messages,
         });
     }
 
@@ -81,7 +81,7 @@ export async function canonicalizeAgentMessageContentForPersistence(
     return canonicalizeAgentMessageContent(input.content, {
         agents: [...agents, ...(input.additionalAgents ?? [])],
         channels,
-        threads: await readReferencedThreads(db, input.serverId, input.content, channels),
+        messages: await readReferencedMessages(db, input.serverId, input.content, channels),
         users: users.flatMap((user) => (user.handle ? [{ handle: user.handle, id: user.id }] : [])),
     });
 }
@@ -93,7 +93,7 @@ export function canonicalizeAgentMessageContent(
         agents: ParticipantReferenceTarget[];
         channels: ChatReferenceTarget[];
         users: ParticipantReferenceTarget[];
-        threads?: ThreadReferenceTarget[];
+        messages?: MessageReferenceTarget[];
     }
 ): string {
     const participantTargets = uniqueTargetMap(
@@ -119,22 +119,22 @@ export function canonicalizeAgentMessageContent(
             continue;
         }
 
-        const anchor = token.threadAnchor
-            ? resolveThreadReference(input.threads ?? [], id, token.threadAnchor)
+        const messageId = token.messageShortId
+            ? resolveMessageReference(input.messages ?? [], id, token.messageShortId)
             : null;
-        if (token.threadAnchor && !anchor) {
+        if (token.messageShortId && !messageId) {
             continue;
         }
         const target =
             token.sigil === '@'
                 ? id
-                : anchor
-                  ? formatChatThreadReferenceTarget(id, anchor)
+                : messageId
+                  ? formatChatMessageReferenceTarget(id, messageId)
                   : formatChatReferenceTarget(id);
         replacements.push({
             end: token.end,
             start: token.start,
-            text: `[${anchor ? `#${token.text.slice(1).split(':')[0]} thread` : token.text}](${target})`,
+            text: `[${messageId ? `#${token.text.slice(1).split(':')[0]} message` : token.text}](${target})`,
         });
     }
 

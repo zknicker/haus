@@ -79,14 +79,13 @@ test('archives a regular channel as preserved, searchable, frozen history', asyn
         nonce: 'archive-parent-message',
         serverId,
     });
-    const reply = await owner.trpc.chat.send.mutate({
+    await owner.trpc.chat.send.mutate({
         chatId: channel.id,
-        content: 'child thread fixture',
-        nonce: 'archive-thread-message',
+        content: 'inline reply fixture',
+        nonce: 'archive-reply-message',
         serverId,
-        thread: { anchorMessageId: anchor.message.id },
+        replyToMessageId: anchor.message.id,
     });
-    const threadChatId = reply.threadChatId as string;
     const pendingAttachment = await owner.trpc.attachment.reserve.mutate({
         chatId: channel.id,
         filename: 'archive-me.txt',
@@ -102,7 +101,6 @@ test('archives a regular channel as preserved, searchable, frozen history', asyn
     });
     expect(receipt.archivedAt).toBeString();
     expect(await pendingWorkCount(channel.id)).toBe(0);
-    expect(await pendingWorkCount(threadChatId)).toBe(0);
     expect(
         (await owner.trpc.chat.list.query({ serverId })).some(({ id }) => id === channel.id)
     ).toBe(false);
@@ -136,7 +134,7 @@ test('archives a regular channel as preserved, searchable, frozen history', asyn
     });
     await expect(
         owner.trpc.attachment.reserve.mutate({
-            chatId: threadChatId,
+            chatId: channel.id,
             filename: 'archived.txt',
             mediaType: 'text/plain',
             nonce: crypto.randomUUID(),
@@ -194,10 +192,10 @@ test('deletes the channel aggregate and announces its deletion', async () => {
     });
     await owner.trpc.chat.send.mutate({
         chatId: channel.id,
-        content: 'erase this child thread',
-        nonce: 'delete-thread-message',
+        content: 'erase this inline reply',
+        nonce: 'delete-reply-message',
         serverId,
-        thread: { anchorMessageId: sent.message.id },
+        replyToMessageId: sent.message.id,
     });
     await expect(
         owner.trpc.chat.deleteChannel.mutate({

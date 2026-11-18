@@ -11,7 +11,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, messageClaimsTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { AgentClaimError } from './claim-error.ts';
-import { hasUnseenClaimThreadContext } from './claim-freshness.ts';
+import { hasUnseenClaimContext } from './claim-freshness.ts';
 import { findAgentClaims, resolveAgentClaimTarget } from './claim-lookup.ts';
 import { claimRow } from './claim-row.ts';
 import { messageSelection } from './message-view.ts';
@@ -21,7 +21,7 @@ export async function releaseAgentClaim(
     runner: ResolvedRunner,
     input: { number: number; target: string }
 ) {
-    const { claimChatId } = await resolveAgentClaimTarget(db, runner, input.target);
+    const claimChatId = await resolveAgentClaimTarget(db, runner, input.target);
     const [claim] = await findAgentClaims(db, runner, claimChatId, { numbers: [input.number] });
     return await mutateAgentClaim(db, runner, claim.messageId, claim.version, 'release');
 }
@@ -31,7 +31,7 @@ export async function updateAgentClaim(
     runner: ResolvedRunner,
     input: { number: number; status: ClaimStatus; target: string }
 ) {
-    const { claimChatId } = await resolveAgentClaimTarget(db, runner, input.target);
+    const claimChatId = await resolveAgentClaimTarget(db, runner, input.target);
     const [claim] = await findAgentClaims(db, runner, claimChatId, { numbers: [input.number] });
     return await mutateAgentClaim(
         db,
@@ -95,7 +95,6 @@ async function mutateAgentClaim(
             chatId: current.chatId,
             messageId: current.messageId,
             serverId: runner.serverId,
-            threadChatId: current.threadChatId,
             type: 'claim.updated',
         });
         const [next] = await tx
@@ -140,9 +139,9 @@ async function requireMayMutate(
         }
         return;
     }
-    if (await hasUnseenClaimThreadContext(tx, runner, current)) {
+    if (await hasUnseenClaimContext(tx, runner, current)) {
         throw new AgentClaimError(
-            'New context exists in this claim thread. Run haus message check before retrying.'
+            'New context exists in replies to this claimed message. Run haus message check before retrying.'
         );
     }
     // Status is member-level: any Agent that can write here may move it along

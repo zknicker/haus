@@ -1,4 +1,4 @@
-import type { ChatMessage, ThreadSummary } from '@haus/api';
+import type { ChatMessage } from '@haus/api';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import { readMessageCauses } from '../automations/message-cause-read.ts';
 import { listMessageClaimMap } from '../claims/claim-shape.ts';
@@ -6,8 +6,6 @@ import { readLinkedCloudAgentWork } from '../cloud-agents/linked-cloud-agent-wor
 import { readLinkedImageGenerations } from '../image-generation/linked-image-generations.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
-import { listThreadSummaries } from '../threads/list-thread-summaries.ts';
-import type { HausUser } from '../users/haus-user.ts';
 import { readMessageBodies } from './message-bodies.ts';
 import { readChatMessageReactions } from './message-reactions.ts';
 import { readStoredAuthorProfile, toChatMessage } from './message-shape.ts';
@@ -17,14 +15,13 @@ import type { SelectedMessageRow } from './select-message-page.ts';
 /**
  * The one canonical transcript projection (specs/realtime-events.md): every
  * `chat.messages` page and every `chat.message` entity goes through here, so a
- * message and its viewer's Thread summary read the same from either.
+ * message reads the same from either.
  */
 export async function projectChatMessages(
     db: HausDatabase,
-    member: HausUser | null,
     input: { chatId: string; serverId: string },
     rows: SelectedMessageRow[]
-): Promise<{ messages: ChatMessage[]; threads: ThreadSummary[] }> {
+): Promise<ChatMessage[]> {
     const messageIds = rows.map((message) => message.id);
     const [
         attachmentsByMessageId,
@@ -47,7 +44,7 @@ export async function projectChatMessages(
         readInlineReplyContexts(db, input.serverId, rows),
         readMessageTaskLinks(db, input.serverId, messageIds),
     ]);
-    const messages = rows.map((message) => ({
+    return rows.map((message) => ({
         ...toChatMessage(message, {
             attachments: attachmentsByMessageId.get(message.id) ?? [],
             authorProfile: readStoredAuthorProfile(message),
@@ -61,13 +58,4 @@ export async function projectChatMessages(
         }),
         claim: claimByMessageId.get(message.id) ?? null,
     }));
-
-    return {
-        messages,
-        threads: await listThreadSummaries(db, member, {
-            anchorMessageIds: messageIds,
-            parentChatId: input.chatId,
-            serverId: input.serverId,
-        }),
-    };
 }

@@ -85,17 +85,13 @@ describe('dev.cleanupEvalChats', () => {
             nonce: 'eval-cleanup-anchor',
             serverId: server.id,
         });
-        const reply = await owner.trpc.chat.send.mutate({
+        await owner.trpc.chat.send.mutate({
             chatId: parentChatId,
             content: 'Temporary eval reply',
             nonce: 'eval-cleanup-reply',
             serverId: server.id,
-            thread: { anchorMessageId: anchor.message.id },
+            replyToMessageId: anchor.message.id,
         });
-        const threadChatId = reply.threadChatId;
-        if (!threadChatId) {
-            throw new Error('Expected eval cleanup fixture to create a Thread.');
-        }
         const agentId = 'agt_eval_cleanup';
         const reminderId = 'rem_eval_cleanup';
         await harness.sql`
@@ -120,29 +116,29 @@ describe('dev.cleanupEvalChats', () => {
             values
                 ('trg_eval_cleanup_live', ${server.id}, ${agentId}, ${parentChatId},
                  ${anchor.message.id}, 'webhook', 'hash-live', 'armed', 'Live', now(), now(), null),
-                ('trg_eval_cleanup_gone', ${server.id}, ${agentId}, ${threadChatId},
+                ('trg_eval_cleanup_gone', ${server.id}, ${agentId}, ${parentChatId},
                  null, 'webhook', 'hash-gone', 'disabled', 'Gone', now(), now(), now())
         `;
 
         await expect(
             owner.trpc.dev.cleanupEvalChats.mutate({
-                chatIds: [parentChatId, threadChatId, otherChatId],
+                chatIds: [parentChatId, otherChatId],
                 serverId: server.id,
             })
         ).resolves.toEqual({
-            count: 2,
-            deletedChatIds: [parentChatId, threadChatId].sort(),
+            count: 1,
+            deletedChatIds: [parentChatId],
         });
 
         const deletedChats = await harness.sql`
             select id from chats
             where server_id = ${server.id}
-              and id in (${parentChatId}, ${threadChatId})
+              and id = ${parentChatId}
         `;
         const deletedMessages = await harness.sql`
             select id from chat_messages
             where server_id = ${server.id}
-              and chat_id in (${parentChatId}, ${threadChatId})
+              and chat_id = ${parentChatId}
         `;
         const deletedReminders = await harness.sql`
             select id from reminders

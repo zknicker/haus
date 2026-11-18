@@ -64,4 +64,9 @@ export const migrationsSince0060 = [
     '0121_drop-claim-priority-labels',
     '0122_cloud-agent-run-report',
     '0123_retire-heartbeats',
+    '0122_tasks-are-places',
+    '0123_reminder-task-anchors',
+    '0124_threads-to-inline-replies',
+    '0125_legacy-tasks-and-boards',
+    '0126_threads-are-gone',
 ];

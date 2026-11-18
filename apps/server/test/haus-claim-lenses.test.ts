@@ -5,7 +5,6 @@ import { buildClaimConflict } from '../src/claims/claim-conflict.ts';
 import type { ResolvedRunner } from '../src/computers/runner-credentials.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { messageClaimsTable } from '../src/postgres/schema.ts';
-import { ensureThreadRecord } from '../src/threads/ensure-thread.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -23,61 +22,6 @@ afterAll(async () => {
     owner.close();
     await connection?.close();
     await harness.close();
-});
-
-test('promotion leaves the Thread unmaterialized until the first reply', async () => {
-    const server = await createServer('lens-promote');
-    const anchor = await sendMessage(server, 'Audit the Server export');
-    const promoted = await owner.trpc.claim.promote.mutate({
-        messageId: anchor,
-        serverId: server.id,
-    });
-    const threadChatId = promoted.claim.threadChatId;
-
-    expect(await countChats(server.id, threadChatId)).toBe(0);
-
-    await owner.trpc.chat.send.mutate({
-        chatId: server.chatId,
-        content: 'Starting on it.',
-        nonce: 'lens-first-reply',
-        serverId: server.id,
-        thread: { anchorMessageId: anchor },
-    });
-
-    expect(await countChats(server.id, threadChatId)).toBe(1);
-    const { claims } = await owner.trpc.claim.list.query({ serverId: server.id });
-    expect(claims[0]?.threadSummary).toMatchObject({ replyCount: 1, threadChatId });
-});
-
-test('a claim with no Thread still resolves its deep link and reads as empty', async () => {
-    const server = await createServer('lens-deeplink');
-    const anchor = await sendMessage(server, 'Rotate the release token');
-    const promoted = await owner.trpc.claim.promote.mutate({
-        messageId: anchor,
-        serverId: server.id,
-    });
-    const threadChatId = promoted.claim.threadChatId;
-
-    expect(await owner.trpc.thread.get.query({ serverId: server.id, threadChatId })).toMatchObject({
-        anchorMessageId: anchor,
-        parentChatId: server.chatId,
-        threadChatId,
-    });
-    expect(
-        await owner.trpc.chat.messages.query({
-            chatId: threadChatId,
-            limit: 50,
-            serverId: server.id,
-        })
-    ).toMatchObject({ messages: [], nextBeforeSequence: null });
-    const { claims } = await owner.trpc.claim.list.query({ serverId: server.id });
-    expect(claims[0]?.threadSummary).toMatchObject({
-        followed: false,
-        latestReplyAt: null,
-        replyCount: 0,
-        threadChatId,
-        unreadCount: 0,
-    });
 });
 
 test('the default lens hides background claims and counts them', async () => {
@@ -102,22 +46,22 @@ test('the default lens hides background claims and counts them', async () => {
     ]);
 });
 
-test("the claimant's own Thread reply leaves it in the background lens", async () => {
+test("the claimant's own inline reply leaves it in the background lens", async () => {
     const server = await createServer('lens-promotes');
     const claimed = await sendMessage(server, 'Trace the reconnect path');
     const agentId = await seedAgentClaim(server, claimed);
 
-    await replyInThreadAsAgent(server, claimed, agentId);
+    await replyInlineAsAgent(server, claimed, agentId);
 
     const listed = await owner.trpc.claim.list.query({ serverId: server.id });
     expect(listed.backgroundCount).toBe(1);
     expect(listed.claims).toEqual([]);
 });
 
-// Everyone else's chatter is the thing a Thread is for. A background claim is
+// Everyone else's chatter is what replies are for. A background claim is
 // the claimant's own bookkeeping, so only the claimant working there moves it
 // onto a person's lens.
-test('somebody else replying in the Thread leaves the claim in the background lens', async () => {
+test('somebody else replying inline leaves the claim in the background lens', async () => {
     const server = await createServer('lens-chatter');
     const claimed = await sendMessage(server, 'Trace the reconnect timeout');
     await seedAgentClaim(server, claimed);
@@ -125,9 +69,9 @@ test('somebody else replying in the Thread leaves the claim in the background le
     await owner.trpc.chat.send.mutate({
         chatId: server.chatId,
         content: 'What did you find?',
-        nonce: 'lens-thread-question',
+        nonce: 'lens-reply-question',
         serverId: server.id,
-        thread: { anchorMessageId: claimed },
+        replyToMessageId: claimed,
     });
 
     const listed = await owner.trpc.claim.list.query({ serverId: server.id });
@@ -269,32 +213,27 @@ async function seedAgentClaim(
     return agent.id;
 }
 
-/** The claimant answering in its own Claim Thread, materializing the Thread as it goes. */
-async function replyInThreadAsAgent(
+/** The claimant answering inline on its own claimed message. */
+async function replyInlineAsAgent(
     server: { chatId: string; id: string },
     anchorMessageId: string,
     agentId: string
 ) {
-    const thread = await ensureThreadRecord(connection.db, {
-        anchorMessageId,
-        parentChatId: server.chatId,
-        serverId: server.id,
-    });
+    const [chat] = (await harness.sql`
+        update chats set last_message_sequence = last_message_sequence + 1
+        where server_id = ${server.id} and id = ${server.chatId}
+        returning last_message_sequence as sequence
+    `) as { sequence: number }[];
     await harness.sql`
         insert into chat_messages (
-            id, server_id, chat_id, author_agent_id, content, nonce, sequence, session_generation
+            id, server_id, chat_id, author_agent_id, content, nonce, sequence,
+            session_generation, reply_to_message_id, reply_root_message_id
         )
         values (
-            ${`msg_${anchorMessageId.slice(4)}reply`}, ${server.id}, ${thread.id},
+            ${`msg_${anchorMessageId.slice(4)}reply`}, ${server.id}, ${server.chatId},
             ${agentId}, 'Traced it; the reconnect path holds.',
-            ${`non_${anchorMessageId.slice(4)}`}, 1, 1
+            ${`non_${anchorMessageId.slice(4)}`}, ${chat?.sequence ?? 0}, 1,
+            ${anchorMessageId}, ${anchorMessageId}
         )
     `;
-}
-
-async function countChats(serverId: string, chatId: string) {
-    const rows = (await harness.sql`
-        select id from chats where server_id = ${serverId} and id = ${chatId}
-    `) as Array<{ id: string }>;
-    return rows.length;
 }

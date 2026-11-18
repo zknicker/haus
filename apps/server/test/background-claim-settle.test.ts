@@ -11,7 +11,7 @@ import {
     FakeTransport,
     readClaim,
     recordRunOperation,
-    replyInThread,
+    replyInline,
     seedBackgroundClaim,
     seedPeerAgent,
     sendHumanMessage,
@@ -105,11 +105,11 @@ test('a claim that outlives its settled run stays in progress and becomes tracke
     });
 });
 
-test('a claimant Thread reply does not affect settlement tier', async () => {
+test('a claimant inline reply does not affect settlement tier', async () => {
     const claim = await seedBackgroundClaim(connection.db);
     const run = await beginRun(connection.db, claim);
     await answerInChat(connection.db, claim, run.runId);
-    await replyInThread(connection.db, claim, { agentId: claim.agentId });
+    await replyInline(connection.db, claim, { agentId: claim.agentId });
 
     await run.delivery.onTurnSettled(claim.computerId, turnSummary(claim.agentId, run.runId));
 
@@ -119,13 +119,13 @@ test('a claimant Thread reply does not affect settlement tier', async () => {
     });
 });
 
-// An unmentioned peer Agent replied in the anchor's Thread before the assignee
-// had even claimed. Thread replies do not affect claim tier, and a settled open
+// An unmentioned peer Agent replied inline on the claimed message before the assignee
+// had even claimed. Inline replies do not affect claim tier, and a settled open
 // claim is tracked regardless of who spoke there.
-test("a peer Agent's Thread reply does not change settlement", async () => {
+test("a peer Agent's inline reply does not change settlement", async () => {
     const claim = await seedBackgroundClaim(connection.db);
     const peerAgentId = await seedPeerAgent(connection.db, claim);
-    await replyInThread(connection.db, claim, { agentId: peerAgentId });
+    await replyInline(connection.db, claim, { agentId: peerAgentId });
     const run = await beginRun(connection.db, claim);
     await answerInChat(connection.db, claim, run.runId);
 
@@ -137,9 +137,9 @@ test("a peer Agent's Thread reply does not change settlement", async () => {
     });
 });
 
-test("a bystander's Thread reply does not promote the claim either", async () => {
+test("a bystander's inline reply does not promote the claim either", async () => {
     const claim = await seedBackgroundClaim(connection.db);
-    await replyInThread(connection.db, claim, { userId: claim.userId });
+    await replyInline(connection.db, claim, { userId: claim.userId });
 
     expect(await readClaim(connection.db, claim)).toMatchObject({
         status: 'in_progress',

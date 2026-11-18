@@ -5,21 +5,20 @@ import {
     type TaskGetInput,
     type TaskListInput,
 } from '@haus/api';
-import { and, count, eq, inArray, isNull, type SQL } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, type SQL } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { boardColumnsTable, boardsTable, tasksTable } from '../postgres/schema.ts';
+import { chatsTable, taskKeysTable, tasksTable } from '../postgres/schema.ts';
+import { actorVisibleChats } from './actor-visible-chats.ts';
 import { requireTaskActor, type TaskActor } from './task-actor.ts';
 import { readTaskDescriptionReferences } from './task-description-references.ts';
+import { readTaskPlaceDetail } from './task-detail.ts';
 import { TaskNotFoundError } from './task-errors.ts';
 import { listTaskMentions, listTaskReminders } from './task-mentions.ts';
 import { readTasks } from './task-read.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 
-/**
- * `task.list`: the Server's Tasks, filtered by board, assignee, and column
- * category. Without a board, archived boards' Tasks stay out.
- */
+/** `task.list`: the Server's Tasks, filtered by assignee, state, and key-ledger entry. */
 export async function listTasks(
     db: Reader,
     actor: TaskActor,
@@ -29,11 +28,31 @@ export async function listTasks(
     return await readTasks(db, {
         serverId: input.serverId,
         where: and(
-            input.boardId === undefined
-                ? isNull(boardsTable.archivedAt)
-                : eq(tasksTable.boardId, input.boardId),
             assigneeFilter(input.assignee),
-            input.categories ? inArray(boardColumnsTable.category, input.categories) : undefined
+            input.states ? inArray(tasksTable.state, [...input.states]) : undefined,
+            input.keyId === undefined ? undefined : eq(tasksTable.keyId, input.keyId)
+        ),
+    });
+}
+
+/**
+ * `task.listOpen`, the sidebar (ADR 0052 decision 8): every `open` Task whose
+ * origin Channel the actor can see. Todo, done, and canceled Tasks, and older
+ * Tasks with no Chat of their own, are not listed.
+ */
+export async function listOpenTasks(
+    db: Reader,
+    actor: TaskActor,
+    input: { serverId: string }
+): Promise<Task[]> {
+    await requireTaskActor(db, input.serverId, actor);
+    return await readTasks(db, {
+        serverId: input.serverId,
+        where: and(
+            eq(tasksTable.state, 'open'),
+            isNotNull(tasksTable.chatId),
+            isNull(chatsTable.deletedAt),
+            actorVisibleChats(actor)
         ),
     });
 }
@@ -55,6 +74,7 @@ export async function getTask(
         })),
         mentions: await listTaskMentions(db, actor, scope),
         reminders: await listTaskReminders(db, actor, scope),
+        ...(await readTaskPlaceDetail(db, actor, task)),
     };
 }
 
@@ -68,7 +88,7 @@ export async function findTask(db: Reader, input: TaskGetInput): Promise<Task> {
         if (!parsed) {
             throw new TaskNotFoundError(`No task has the key ${input.key}.`);
         }
-        where = and(eq(boardsTable.key, parsed.boardKey), eq(tasksTable.number, parsed.number));
+        where = and(eq(taskKeysTable.key, parsed.boardKey), eq(tasksTable.number, parsed.number));
     }
     const [task] = await readTasks(db, { serverId: input.serverId, where });
     if (!task) {
@@ -77,39 +97,6 @@ export async function findTask(db: Reader, input: TaskGetInput): Promise<Task> {
         );
     }
     return task;
-}
-
-/**
- * An Agent's open queue: how many Tasks assigned to it sit in `todo` and
- * `active` columns, on boards that are not archived. The move receipt names
- * what is still waiting (ADR 0051 decision 7).
- */
-export async function countAgentTaskQueue(
-    db: Reader,
-    input: { agentId: string; serverId: string }
-): Promise<{ active: number; todo: number }> {
-    const rows = await db
-        .select({ category: boardColumnsTable.category, tasks: count() })
-        .from(tasksTable)
-        .innerJoin(boardColumnsTable, eq(boardColumnsTable.id, tasksTable.columnId))
-        .innerJoin(
-            boardsTable,
-            and(
-                eq(boardsTable.serverId, tasksTable.serverId),
-                eq(boardsTable.id, tasksTable.boardId)
-            )
-        )
-        .where(
-            and(
-                eq(tasksTable.serverId, input.serverId),
-                eq(tasksTable.assigneeAgentId, input.agentId),
-                isNull(boardsTable.archivedAt),
-                inArray(boardColumnsTable.category, ['todo', 'active'])
-            )
-        )
-        .groupBy(boardColumnsTable.category);
-    const byCategory = new Map(rows.map((row) => [row.category, row.tasks]));
-    return { active: byCategory.get('active') ?? 0, todo: byCategory.get('todo') ?? 0 };
 }
 
 function assigneeFilter(assignee: TaskListInput['assignee']): SQL | undefined {

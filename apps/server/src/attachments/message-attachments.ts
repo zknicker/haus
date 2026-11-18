@@ -20,12 +20,6 @@ export async function requireMessageAttachments(
     input: {
         attachmentIds: string[];
         chatId: string;
-        /**
-         * A Thread reply's composer is anchored in the parent Chat and stages
-         * its attachments there, because a first reply has no Thread chat id
-         * until it lands. Association re-homes them to the Thread.
-         */
-        parentChatId?: string;
         serverId: string;
     }
 ) {
@@ -33,14 +27,13 @@ export async function requireMessageAttachments(
         return [];
     }
 
-    const stagedChatIds = input.parentChatId ? [input.chatId, input.parentChatId] : [input.chatId];
     const rows = await db
         .select()
         .from(attachmentsTable)
         .where(
             and(
                 eq(attachmentsTable.serverId, input.serverId),
-                inArray(attachmentsTable.chatId, stagedChatIds),
+                eq(attachmentsTable.chatId, input.chatId),
                 inArray(attachmentsTable.id, input.attachmentIds)
             )
         );
