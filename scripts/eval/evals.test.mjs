@@ -3,11 +3,7 @@ import { readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { requestedTarget } from '../agent-tests/provisioner.mjs';
 import { evals, resolveEval } from './evals.mjs';
-import {
-    attentionProfiles,
-    githubTriggerProfiles,
-    placementProfiles,
-} from './profiles.mjs';
+import { attentionProfiles, githubTriggerProfiles, placementProfiles } from './profiles.mjs';
 
 const scenarioNames = (
     await readdir(fileURLToPath(new URL('../agent-tests/scenarios/', import.meta.url)))
