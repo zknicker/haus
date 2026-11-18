@@ -1,13 +1,13 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import type { ChatEngagementEvent } from '@haus/api';
 import { attestAgentEvents, pullAgentEvents } from '../src/agent-api/inbox.ts';
-import { readChatEngagements } from '../src/agent-delivery/chat-engagement.ts';
 import {
     announceRunEngagements,
     endChatEngagement,
     installChatEngagementProjector,
     subscribeToChatEngagements,
 } from '../src/agent-delivery/chat-engagement-events.ts';
+import { readChatEngagements } from '../src/agent-delivery/chat-engagement.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import { agentsTable } from '../src/postgres/schema.ts';

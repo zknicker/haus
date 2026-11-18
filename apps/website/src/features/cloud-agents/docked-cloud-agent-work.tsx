@@ -65,7 +65,7 @@ function CloudAgentWorkReference({ onPress, work }: { onPress: () => void; work:
             >
                 <CloudAgentStatusDisc state={work.job.state} />
                 <span className="min-w-0 truncate font-medium">{work.title}</span>
-                <span className="shrink-0 text-muted">{status}</span>
+                <span className="text-muted shrink-0">{status}</span>
             </Button>
         </div>
     );

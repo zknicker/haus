@@ -4,14 +4,14 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import { agentActivityTable, computersTable } from '../src/postgres/schema.ts';
 import {
+    listAgentActivityHistory,
+    readActiveAgentActivity,
+} from '../src/server-agents/agent-activity-history.ts';
+import {
     appendServerAgentActivity,
     recordComputerAgentActivity,
     recordComputerAgentActivityWithStatus,
 } from '../src/server-agents/agent-activity.ts';
-import {
-    listAgentActivityHistory,
-    readActiveAgentActivity,
-} from '../src/server-agents/agent-activity-history.ts';
 import { lockServerRow } from '../src/servers/server-lock.ts';
 import { activityFrame, seedActivity, startRun, summary } from './agent-activity-fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';

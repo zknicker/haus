@@ -40,9 +40,9 @@ export function TaskOrigin({ origin }: { origin: TaskOriginRecord }) {
                 size="sm"
                 variant="ghost"
             >
-                <span className="shrink-0 text-muted">Started from {place}</span>
+                <span className="text-muted shrink-0">Started from {place}</span>
                 <span className="shrink-0 font-medium">{author}</span>
-                <span className="min-w-0 truncate text-muted">
+                <span className="text-muted min-w-0 truncate">
                     <OriginLine message={message} />
                 </span>
             </Button>

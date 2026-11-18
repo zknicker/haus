@@ -1,11 +1,11 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { agentActivityFrameSchema } from '@haus/api';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { recordComputerAgentActivity } from '../src/server-agents/agent-activity.ts';
 import {
     listAgentActivityHistory,
     readActiveAgentActivity,
 } from '../src/server-agents/agent-activity-history.ts';
+import { recordComputerAgentActivity } from '../src/server-agents/agent-activity.ts';
 import { activityFrame, seedActivity, startRun } from './agent-activity-fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
