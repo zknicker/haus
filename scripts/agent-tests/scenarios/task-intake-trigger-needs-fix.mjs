@@ -23,7 +23,7 @@ export default defineScenario({
             conclusion: 'failure',
             instruction:
                 'CI failed on main. Find out why and get main green again; the release waits on it.',
-            title: 'CI failed on main in acme/api',
+            title: 'CI failed on main',
             worker,
         });
 

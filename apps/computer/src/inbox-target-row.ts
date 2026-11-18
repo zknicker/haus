@@ -5,9 +5,11 @@
  * drifting (Raft prints both with one row formatter too).
  */
 export interface InboxTargetSummary {
+    /** A typed attention (Cloud Agent result, pull request notice) waits here, so the target counts work items. */
+    attention: boolean;
     /** The latest item's claim number, when it is a claim. */
     claimNumber: number | null;
-    /** A settled Cloud Agent Run waits here, so the target counts work items. */
+    /** A settled Cloud Agent Run waits here. */
     cloudAgentResult: boolean;
     firstShortId: string;
     latestSender: string;
@@ -18,7 +20,7 @@ export interface InboxTargetSummary {
 }
 
 export function formatInboxTargetRow(row: InboxTargetSummary): string {
-    const noun = row.cloudAgentResult ? 'work item' : 'message';
+    const noun = row.attention ? 'work item' : 'message';
     return [
         row.target,
         `  pending: ${row.pendingCount} ${plural(row.pendingCount, noun)}`,

@@ -74,10 +74,10 @@ export const claimConflictBlockedActionCopy: Record<string, string> = {
  * The sentence that keeps a claim conflict a concurrency lock rather than a
  * verdict. Haus has no reassignment-request command, so the routing fix is
  * the original conversation; the clause naming one is deliberately absent.
- * The sentence is Raft's verbatim, so its last word stays Raft's.
+ * Haus has no threads (ADR 0053), so Raft's "original thread" reads "original conversation".
  */
 export const CLAIM_CONFLICT_ROUTING_NOTE =
-    'This is not a ruling on who owns or leads this lane. If you are its canonical owner or believe it is misrouted: correct the routing in the original thread.';
+    'This is not a ruling on who owns or leads this lane. If you are its canonical owner or believe it is misrouted: correct the routing in the original conversation.';
 
 export type MessageClaim = z.infer<typeof messageClaimSchema>;
 export type ClaimConflict = z.infer<typeof claimConflictSchema>;

@@ -63,11 +63,13 @@ export async function cancelReminder(kit, reminder, agentId) {
 }
 
 export async function armWorkflowTrigger(kit, { channel, conclusion, instruction, title, worker }) {
-    const world = await seedGithubWorld(kit, worker);
+    const world = await seedGithubWorld(kit, worker, {
+        account: `acme-${crypto.randomUUID().slice(0, 8)}`,
+    });
     try {
         const anchor = await kit.trpc('chat.send', {
             chatId: channel.id,
-            content: `Release log ${kit.stamp}: CI on acme/api main reports here.`,
+            content: `Release log ${kit.stamp}: CI on ${world.repository.full_name} main reports here.`,
             nonce: `agenttests_${kit.stamp}_${crypto.randomUUID()}`,
             serverId: kit.serverId,
         });
@@ -76,6 +78,7 @@ export async function armWorkflowTrigger(kit, { channel, conclusion, instruction
             agentId: worker.id,
             chatId: channel.id,
             github: {
+                account: world.account,
                 events: [
                     {
                         actions: ['completed'],
@@ -89,7 +92,7 @@ export async function armWorkflowTrigger(kit, { channel, conclusion, instruction
             },
             instruction,
             messageId: anchor.message.id,
-            title,
+            title: `${title} in ${world.repository.full_name}`,
         });
         const triggerId = created?.trigger?.id;
         if (!triggerId) {
@@ -104,6 +107,12 @@ export async function armWorkflowTrigger(kit, { channel, conclusion, instruction
                     'workflow_run',
                     workflowRun(world, { conclusion, name: workflow })
                 );
+                if (!(delivery.status === 202 && delivery.body?.routed === 1)) {
+                    settling.catch(() => undefined);
+                    throw new Error(
+                        `The workflow_run delivery reached no Trigger (${delivery.status}): ${JSON.stringify(delivery.body)}. 503 github_app_unconfigured means the stack's Server has no HAUS_GITHUB_APP_WEBHOOK_SECRET; 401 invalid_signature means the eval and the stack resolved different secrets.`
+                    );
+                }
                 const turn = await settling;
                 const fires = await kit.trpc('trigger.runs', { serverId: kit.serverId, triggerId });
                 return { delivery, fireId: fires[0]?.id ?? null, fires, turn };

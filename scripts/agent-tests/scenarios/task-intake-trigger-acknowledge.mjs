@@ -16,7 +16,7 @@ export default defineScenario({
             channel,
             conclusion: 'success',
             instruction: 'Let the channel know the nightly build passed, in one line.',
-            title: 'Nightly build passed on main in acme/api',
+            title: 'Nightly build passed on main',
             worker,
         });
 

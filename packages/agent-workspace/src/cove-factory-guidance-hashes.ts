@@ -18,6 +18,7 @@ export const recognizedFactoryGuidanceHashes: Record<
         '23f36559dbd221b95764c2a4d3bf7995ccc2ee174674ee59652201e11249b1fb',
         'da4ae05e0f84c78b52c4f0d89fc3e35d6d3bcb0141e59d5a937a1c6842094475',
         '0182ccf82a10192a0c03aeec117c6773cfacc103f6f7fff7cd0d160e8e0919df',
+        '6a6a920b2c4e40bfda127e4712e8eec8297a6e9db86bc3e9a036ecb8f5d20782',
     ],
     'notes/onboarding_playbook.md': [
         '864698e59425d4f3ba974f4fb27734556afd5cf6e86146a3f60bfb7757643500',

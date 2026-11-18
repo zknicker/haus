@@ -108,6 +108,7 @@ export function composeInboxNotice(
             throw new Error('Inbox notice target cannot be empty.');
         }
         return formatInboxTargetRow({
+            attention: ordered.some(isAttention),
             claimNumber: latest.claim?.number ?? null,
             cloudAgentResult: ordered.some((item) => Boolean(item.cloudAgentWork)),
             firstShortId: shortInboxId(first.id),

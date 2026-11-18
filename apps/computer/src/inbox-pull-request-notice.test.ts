@@ -82,7 +82,8 @@ test('counts the notice as pending work, not an unread message', () => {
     const notice = composeInboxNotice([item({})]);
 
     expect(notice).toContain('Inbox update: 1 pending work item total; 1 changed target');
-    expect(notice).toContain('task:HAUS-12');
+    expect(notice).toContain('task:HAUS-12  pending: 1 work item');
+    expect(notice).not.toContain('pending: 1 message');
     expect(notice).not.toContain(url);
 });
 

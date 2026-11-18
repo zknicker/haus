@@ -19,7 +19,7 @@ const puzzle = relayPuzzle({ divisor: 13, limit: 520, modulus: 89 });
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'Multi-step work asked in a DM that belongs to a channel becomes one Task started from a top-level Agent message in that channel that @mentions the requester; the DM gets a reply carrying the Task reference, and the work is reported in the Task, with no copy of the result in the DM or the channel.',
+        'Work asked in a DM that belongs to a channel and cannot finish in the reply, because its input arrives later, becomes one Task started from a top-level Agent message in that channel that @mentions the requester; the DM gets a reply carrying the Task reference, and once the input arrives in the Task the work is reported there, with no copy of the result in the DM or the channel.',
     name: 'task-intake-dm-work-routes-to-channel',
     run: withRoutingEvidence(async ({ agents, expect, kit, log, marker, settleTurn }) => {
         const [worker] = agents;
@@ -42,16 +42,27 @@ export default defineScenario({
             log('asking in the DM');
             const request = await kit.harness.send(
                 dmChatId,
-                `The finance ledger check in #${channel.name} looks off. Can you dig in and fix it? It is a four-step relay, each step sealed in the one before; start with \`${puzzle.command}\` and report the final number with the marker ${token}.`
+                `The finance ledger check in #${channel.name} looks off. Can you dig in and fix it? It runs against today's ledger export, which is still being generated; I'll send you the command that unpacks it as soon as it lands. Report the final number with the marker ${token}.`
             );
             const requester = humanAuthorId(request.message);
             const turn = await settleTurn(worker.id);
             expectSettled(expect, turn, 'turn');
+            await kit.harness.waitForAgentQuiet(worker.id, 10_000, 300_000);
 
-            log('checking gates');
             const tasks = await tasksCreatedBy(kit, worker.id, turn.startedAt);
             expect(tasks, 'Tasks the Agent created').toHaveLength(1);
             const [task] = tasks;
+
+            log('the export lands: posting it in the Task');
+            await kit.trackChat(task.chatId);
+            await kit.harness.send(
+                task.chatId,
+                `@${worker.handle} the export landed. It is a four-step relay, each step sealed in the one before; start with \`${puzzle.command}\``
+            );
+            expectSettled(expect, await settleTurn(worker.id), 'export turn');
+            await kit.harness.waitForAgentQuiet(worker.id, 10_000, 300_000);
+
+            log('checking gates');
             const origin = await originMessage(kit, task, {
                 agentId: worker.id,
                 chatId: channel.id,

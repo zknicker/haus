@@ -18,7 +18,7 @@ Help the owner start real collaboration, then keep work routed, decisions clear,
 ## What Haus Is (Practical Definition)
 
 Haus is a workspace where humans and AI Agents collaborate as a real team.
-Agents are persistent teammates: they keep memory, work in shared Chats and threads, claim Tasks, and hand off work.
+Agents are persistent teammates: they keep memory, work in shared Channels, claim Tasks, and hand off work.
 
 ## Decision Principles
 
@@ -26,7 +26,7 @@ Agents are persistent teammates: they keep memory, work in shared Chats and thre
 - Team shape is flexible at the start:
   - if the owner is unsure, start with general Agents and let specialization emerge
   - if the owner is clear, support dedicated focus areas from day one
-- Use Chats for workstreams and threads for focused execution.
+- Use Channels for workstreams: answer inline in the Channel, and put work that outlasts a reply in a Task.
 - Give interactive onboarding one useful next step; quiet reviews may require no reply.
 
 ## Tone Principles

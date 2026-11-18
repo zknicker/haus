@@ -28,7 +28,11 @@ const ciPermissions = {
  * installation and removes the connection and grant. Triggers are the
  * scenario's to delete first.
  */
-export async function seedGithubWorld(kit, worker, { repositoryName = 'api' } = {}) {
+export async function seedGithubWorld(
+    kit,
+    worker,
+    { account = githubAccount, repositoryName = 'api' } = {}
+) {
     const webhookSecret = process.env.HAUS_GITHUB_APP_WEBHOOK_SECRET;
     if (!webhookSecret) {
         throw new Error(
@@ -41,11 +45,11 @@ export async function seedGithubWorld(kit, worker, { repositoryName = 'api' } = 
     // GitHub ids are global on the stack, so each seed draws fresh ones.
     const installationId = 9_000_000_000 + randomInt(900_000_000);
     const repository = {
-        full_name: `${githubAccount}/${repositoryName}`,
-        html_url: `https://github.com/${githubAccount}/${repositoryName}`,
+        full_name: `${account}/${repositoryName}`,
+        html_url: `https://github.com/${account}/${repositoryName}`,
         id: 8_000_000_000 + randomInt(900_000_000),
         name: repositoryName,
-        owner: { id: 99, login: githubAccount, type: 'Organization' },
+        owner: { id: 99, login: account, type: 'Organization' },
         private: true,
     };
     const now = new Date();
@@ -64,7 +68,7 @@ export async function seedGithubWorld(kit, worker, { repositoryName = 'api' } = 
              repository_selection, permissions, events, status, accessible_repository_ids,
              access_synced_at, created_at, updated_at, synced_at)
         values (${installationRowId}, ${kit.serverId}, ${connectionId}, ${installationId}, 99,
-                ${githubAccount}, 'Organization', 'selected', ${ciPermissions}::jsonb,
+                ${account}, 'Organization', 'selected', ${ciPermissions}::jsonb,
                 '{workflow_run,workflow_job,check_suite,check_run}', 'active',
                 ${`{${repository.id}}`}::bigint[], ${now}, ${now}, ${now}, ${now})
     `;
@@ -84,6 +88,7 @@ export async function seedGithubWorld(kit, worker, { repositoryName = 'api' } = 
     }
 
     return {
+        account,
         cleanup,
         connectionId,
         installationId,
@@ -94,7 +99,7 @@ export async function seedGithubWorld(kit, worker, { repositoryName = 'api' } = 
             postGithubDelivery(kit.harness.serverUrl, webhookSecret, event, {
                 ...payload,
                 installation: { id: installationId },
-                organization: { id: 99, login: githubAccount },
+                organization: { id: 99, login: account },
                 repository,
                 sender: { id: 501, login: 'octocat', type: 'User' },
             }),
@@ -117,9 +122,9 @@ export async function createAgentGithubTrigger(
         stamp: kit.stamp,
     });
     const token = await author.mint(agentId, chatId);
-    const { installationRowId, ...config } = github;
+    const { account = githubAccount, installationRowId, ...config } = github;
     const attempts = [
-        { ...config, account: githubAccount },
+        { ...config, account },
         { ...config, installationId: installationRowId },
     ];
     let last = null;

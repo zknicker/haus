@@ -29,13 +29,13 @@ export default defineScenario({
         try {
             const anchor = await kit.harness.send(
                 channel.id,
-                `FYI, no reply needed. Release checklist ${kit.stamp} goes out Friday.`
+                `FYI, no reply needed now. Release checklist ${kit.stamp} goes out Friday. When it is time to re-run it, the checklist is a four-step relay, each step sealed in the one before; step 1 unpacks with \`${puzzle.command}\``
             );
             await settleIfStarted(settleTurn, worker.id);
             reminder = await scheduleAgentReminder(kit, {
                 agentId: worker.id,
                 chatId: channel.id,
-                description: `Re-run the release checklist and clear the release if it passes. The checklist is a four-step relay, each step sealed in the one before; start with \`${puzzle.command}\` and report the final number with the marker ${token}.`,
+                description: `Re-run the four-step release checklist relay from the anchor message, step by step, and clear the release if it passes. Report the final number with the marker ${token}.`,
                 messageId: anchor.message.id,
                 title: 'Re-run the release checklist',
             });
