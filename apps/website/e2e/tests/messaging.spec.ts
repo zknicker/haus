@@ -1,4 +1,3 @@
-import { verifyAgentThreadRecovery } from '../support/agent-thread-recovery.ts';
 import { createAppTestFixture, signInAsAppHuman } from '../support/app-session.ts';
 import {
     assertOpaqueId,
@@ -9,7 +8,6 @@ import {
     runPsql,
 } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
-import { openMessageThread, unfollowFromThreadMenu } from '../support/thread-actions.ts';
 
 test.beforeAll(async () => {
     const { accessToken, databaseUrl } = await createAppTestFixture();
@@ -51,7 +49,7 @@ test.beforeAll(async () => {
         nonce: 'e2e-peer-message',
         serverId,
     });
-    seedArtifactThread({ chatId: allChatId, databaseUrl, serverId });
+    seedArtifactReply({ chatId: allChatId, databaseUrl, serverId });
     seedReferenceFixture({ chatId: allChatId, databaseUrl, serverId });
 });
 
@@ -129,184 +127,82 @@ test('signing out closes authenticated routes and returns to sign in', async ({ 
     await expect(page.getByRole('textbox', { name: 'Message all' })).toHaveCount(0);
 });
 
-test('an Agent-authored page fence in a Thread opens the chat Workspace pane', async ({ page }) => {
-    await signInAsAppHuman(page);
-    await page.goto('/s/hosted-messages');
-    await openChannel(page, 'all');
-    await page.setViewportSize({ height: 720, width: 800 });
-
-    await page.getByRole('button', { name: 'Open thread, 1 reply' }).click();
-
-    const thread = page.getByRole('complementary', { name: 'Thread' });
-    await expect(thread.getByRole('textbox', { name: /Message Thread/u })).toBeFocused();
-    await expect(thread.getByText('```page', { exact: false })).toHaveCount(0);
-    await thread.getByRole('textbox', { name: /Message Thread/u }).fill('Preserved draft');
-    await thread.getByTestId('artifact-card').press('Enter');
-
-    const artifacts = page.getByRole('complementary', { name: 'Workspace' });
-    await expect(thread).toHaveCount(0);
-    await expect(artifacts).toBeVisible();
-    await expect(artifacts.getByRole('tab', { name: 'deterministic.html' })).toBeVisible();
-    await expect(artifacts.getByText('Unable to browse this workspace.')).toBeVisible();
-
-    await artifacts.getByRole('button', { name: 'Hide workspace' }).click();
-    await page.getByRole('button', { name: 'Open thread, 1 reply' }).click();
-    await expect(thread.getByRole('textbox', { name: /Message Thread/u })).toHaveText(
-        'Preserved draft'
-    );
-});
-
-test('a hosted Thread panel updates live and catches up after websocket reconnect', async ({
+test('an Agent-authored page fence in an inline reply opens the chat Workspace pane', async ({
     page,
 }) => {
     await signInAsAppHuman(page);
     await page.goto('/s/hosted-messages');
     await openChannel(page, 'all');
+    await page.setViewportSize({ height: 720, width: 800 });
+
+    const composer = page.getByRole('textbox', { name: 'Message all' });
+    await expect(page.getByText('```page', { exact: false })).toHaveCount(0);
+    await composer.fill('Preserved draft');
+    await page.getByTestId('artifact-card').press('Enter');
+
+    const artifacts = page.getByRole('complementary', { name: 'Workspace' });
+    await expect(artifacts).toBeVisible();
+    await expect(artifacts.getByRole('tab', { name: 'deterministic.html' })).toBeVisible();
+    await expect(artifacts.getByText('Unable to browse this workspace.')).toBeVisible();
+
+    await artifacts.getByRole('button', { name: 'Hide workspace' }).click();
+    await expect(composer).toHaveText('Preserved draft');
+});
+
+test('inline replies reach an open Channel live and catch up after reconnect', async ({ page }) => {
+    await signInAsAppHuman(page);
+    await page.goto('/s/hosted-messages');
+    await openChannel(page, 'all');
 
     const anchorText = 'First durable human message';
-    const anchorArticle = page
+    const anchorRow = page
         .getByText(anchorText, { exact: true })
         .locator('xpath=ancestor::div[@data-message-id][1]');
-    await openMessageThread(anchorArticle);
-
-    const panel = page.getByRole('complementary', { name: 'Thread' });
-    await expect.poll(async () => (await panel.boundingBox())?.width ?? 0).toBe(560);
-    await expect(panel.getByRole('textbox', { name: /Message Thread/u })).toBeFocused();
-    await expect
-        .poll(async () => {
-            const [chatBox, panelBox] = await Promise.all([
-                page.locator('[data-slot="chat-surface"]').filter({ visible: true }).boundingBox(),
-                panel.boundingBox(),
-            ]);
-
-            return chatBox && panelBox ? Math.round(chatBox.y - panelBox.y) : null;
-        })
-        .toBe(0);
-    const initialPane = await panel.elementHandle();
-    if (!initialPane) {
-        throw new Error('The hosted Thread test did not resolve the open pane.');
-    }
-    const artifactAnchor = page
-        .getByText('Agent artifact fixture', { exact: true })
-        .locator('xpath=ancestor::div[@data-message-id][1]');
-    await openMessageThread(artifactAnchor);
-    expect(
-        await panel.evaluate(
-            (currentPane, previousPane) => currentPane === previousPane,
-            initialPane
-        )
-    ).toBe(true);
-    await expect(panel.getByText('Agent artifact fixture', { exact: true })).toBeVisible();
-    await openMessageThread(anchorArticle);
-    await panel.getByRole('textbox', { name: /Message Thread/u }).fill('First hosted Thread reply');
-    await panel.getByRole('button', { name: 'Send' }).click();
-    await expect(panel.getByText('First hosted Thread reply', { exact: true })).toBeVisible();
-    // Following lives in the thread's name menu; posting a reply auto-follows,
-    // so the menu offers the unfollow escape hatch until it is used.
-    await unfollowFromThreadMenu(page, panel);
+    await anchorRow.hover();
+    await page.getByRole('button', { name: 'Reply', exact: true }).first().click();
+    const composer = page.getByRole('textbox', { name: 'Message all' });
+    await expect(composer).toBeFocused();
+    await composer.fill('First inline reply');
+    await page.getByRole('button', { name: 'Send' }).click();
+    await expect(page.getByText('First inline reply', { exact: true })).toBeVisible();
 
     const ownerFixture = await createAppTestFixture();
     const peerFixture = await createAppTestFixture('peer');
     const owner = createClient(ownerFixture.accessToken);
     const peer = createClient(peerFixture.accessToken);
     const server = await owner.server.bySlug.query({ slug: 'hosted-messages' });
-    const parentChatId = server.channels.find((channel) => channel.name === 'all')?.id;
-    if (!parentChatId) {
-        throw new Error('The hosted Thread test did not resolve #all.');
+    const chatId = server.channels.find((channel) => channel.name === 'all')?.id;
+    if (!chatId) {
+        throw new Error('The inline reply test did not resolve #all.');
     }
-    const pageSnapshot = await owner.chat.messages.query({
-        chatId: parentChatId,
-        serverId: server.id,
-    });
-    const anchor = pageSnapshot.messages.find((message) => message.content === anchorText);
+    const snapshot = await owner.chat.messages.query({ chatId, serverId: server.id });
+    const anchor = snapshot.messages.find((message) => message.content === anchorText);
     if (!anchor) {
-        throw new Error('The hosted Thread test did not resolve its anchor.');
+        throw new Error('The inline reply test did not resolve its parent Message.');
     }
 
     await peer.chat.send.mutate({
-        chatId: parentChatId,
-        content: 'Live peer Thread reply',
-        nonce: 'e2e-thread-live-reply',
+        chatId,
+        content: 'Live peer inline reply',
+        nonce: 'e2e-inline-live-reply',
+        replyToMessageId: anchor.id,
         serverId: server.id,
-        thread: { anchorMessageId: anchor.id },
     });
-    await expect(panel.getByText('Live peer Thread reply', { exact: true })).toBeVisible();
-
-    await page.evaluate(() => {
-        const pane = document.querySelector('[aria-label="Thread"]');
-        if (!pane) {
-            throw new Error('Thread pane missing before close.');
-        }
-        const startedAt = performance.now();
-        const removal = new Promise<number>((resolve) => {
-            const observer = new MutationObserver(() => {
-                if (!pane.isConnected) {
-                    observer.disconnect();
-                    resolve(performance.now() - startedAt);
-                }
-            });
-            observer.observe(document.body, { childList: true, subtree: true });
-        });
-        (
-            window as Window & {
-                __threadCloseDuration?: Promise<number>;
-            }
-        ).__threadCloseDuration = removal;
-    });
-    await panel.getByRole('button', { name: 'Close thread' }).press('Enter');
-    const closeDuration = await page.evaluate(
-        () =>
-            (
-                window as Window & {
-                    __threadCloseDuration?: Promise<number>;
-                }
-            ).__threadCloseDuration
-    );
-    expect(closeDuration).toBeGreaterThan(200);
-    await expect(panel).toHaveCount(0);
-    await peer.chat.send.mutate({
-        chatId: parentChatId,
-        content: 'Reply sent while the Thread was closed',
-        nonce: 'e2e-thread-closed-reply',
-        serverId: server.id,
-        thread: { anchorMessageId: anchor.id },
-    });
-    await expect(page.getByRole('button', { name: /3 replies/u })).toBeVisible();
-    await page.getByRole('button', { name: /3 replies/u }).click();
-    await expect(
-        panel.getByText('Reply sent while the Thread was closed', { exact: true })
-    ).toBeVisible();
+    await expect(page.getByText('Live peer inline reply', { exact: true })).toBeVisible();
 
     await page.context().setOffline(true);
     await peer.chat.send.mutate({
-        chatId: parentChatId,
-        content: 'Reply sent while the App was offline',
-        nonce: 'e2e-thread-offline-reply',
+        chatId,
+        content: 'Inline reply sent while the App was offline',
+        nonce: 'e2e-inline-offline-reply',
+        replyToMessageId: anchor.id,
         serverId: server.id,
-        thread: { anchorMessageId: anchor.id },
     });
     await page.context().setOffline(false);
 
     await expect(
-        panel.getByText('Reply sent while the App was offline', { exact: true })
+        page.getByText('Inline reply sent while the App was offline', { exact: true })
     ).toBeVisible();
-    await panel.getByRole('button', { name: 'Close thread' }).click();
-    await expect(page.getByRole('button', { name: /4 replies/u })).toBeVisible();
-
-    await page.setViewportSize({ height: 720, width: 800 });
-    await page.getByRole('button', { name: /4 replies/u }).click();
-    await expect(page.getByRole('button', { name: 'Back to chat' })).toBeVisible();
-    await page.getByRole('button', { name: /thread actions$/u }).click();
-    await page.getByRole('menuitem', { name: 'View in chat' }).click();
-    await expect(panel).toHaveCount(0);
-    await expect(
-        page.getByLabel('Messages', { exact: true }).getByText(anchorText, { exact: true })
-    ).toBeVisible();
-});
-
-test('an Agent reply reaches an already-open Thread live and after reconnect', async ({ page }) => {
-    test.setTimeout(60_000);
-    await verifyAgentThreadRecovery(page);
 });
 
 test('Agent-authored typed references render as interactive Agent and Chat chips', async ({
@@ -344,7 +240,7 @@ test('Agent-authored typed references render as interactive Agent and Chat chips
     await expect(page.getByRole('textbox', { name: 'Message product' })).toBeVisible();
 });
 
-function seedArtifactThread(input: { chatId: string; databaseUrl: string; serverId: string }) {
+function seedArtifactReply(input: { chatId: string; databaseUrl: string; serverId: string }) {
     runPsql(
         input.databaseUrl,
         `begin;
@@ -371,21 +267,20 @@ function seedArtifactThread(input: { chatId: string; databaseUrl: string; server
          where server_id = '${input.serverId}' and id = '${input.chatId}';
          update chats set last_message_sequence = last_message_sequence + 1
          where server_id = '${input.serverId}' and id = '${input.chatId}';
-         insert into chats (
-           id, server_id, kind, parent_chat_id, parent_chat_kind,
-           anchor_message_id, last_message_sequence
-         ) values (
-           'cht_e2e_artifact_thread', '${input.serverId}', 'thread', '${input.chatId}',
-           'channel', 'msg_e2e_artifact_anchor', 1
-         );
          insert into chat_messages (
-           id, server_id, chat_id, sequence, author_agent_id, content, nonce
-         ) values (
-           'msg_e2e_artifact_reply', '${input.serverId}', 'cht_e2e_artifact_thread', 1,
+           id, server_id, chat_id, sequence, author_agent_id, content, nonce,
+           reply_to_message_id, reply_root_message_id
+         )
+         select
+           'msg_e2e_artifact_reply', '${input.serverId}', '${input.chatId}',
+           last_message_sequence + 1,
            'agt_e2e_artifact',
            E'Here is the audit.\\n\\u0060\\u0060\\u0060page\\n{"path":"audits/deterministic.html","title":"Deterministic workspace audit"}\\n\\u0060\\u0060\\u0060',
-           'e2e-artifact-reply'
-         );
+           'e2e-artifact-reply', 'msg_e2e_artifact_anchor', 'msg_e2e_artifact_anchor'
+         from chats
+         where server_id = '${input.serverId}' and id = '${input.chatId}';
+         update chats set last_message_sequence = last_message_sequence + 1
+         where server_id = '${input.serverId}' and id = '${input.chatId}';
          commit;`
     );
 }

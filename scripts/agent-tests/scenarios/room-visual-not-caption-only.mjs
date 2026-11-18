@@ -26,7 +26,7 @@ const captionWordCeiling = 5;
 export default defineScenario({
     agents: [{ kind: 'worker' }, { kind: 'worker' }],
     contract:
-        'A mention asking for a quick comparison chart of four regions by quarter gets exactly one channel reply from the addressed Agent, after at most a pickup note (working notes only in the Thread on that note), carrying one visual fence whose body is SVG chart marks naming every region and holds no table, beside reply text longer than a caption with no raw HTML; the second Agent writes nothing.',
+        'A mention asking for a quick comparison chart of four regions by quarter gets exactly one channel reply from the addressed Agent, after at most a pickup note, carrying one visual fence whose body is SVG chart marks naming every region and holds no table, beside reply text longer than a caption with no raw HTML; the second Agent writes nothing.',
     name: 'room-visual-not-caption-only',
     run: withRoutingEvidence(async ({ agents, expect, kit, log, marker, settleTurn }) => {
         const [worker, bystander] = agents;
@@ -48,9 +48,8 @@ export default defineScenario({
         await kit.harness.waitForAgentQuiet(bystander.id, 10_000, 300_000);
 
         log('checking gates');
-        // A pickup note before the answer is ordinary, and working notes may go in
-        // the Thread on that note (the placement contract); the answer is one
-        // channel post and nothing follows it there.
+        // A pickup note before the answer is ordinary; the answer is one channel
+        // post and nothing follows it there.
         const placement = await readPlacement(kit, turn, {
             agentId: worker.id,
             channelId: channel.id,
@@ -67,16 +66,6 @@ export default defineScenario({
         expect(channelPosts.length <= 2, 'at most a pickup note beside the visual reply').toBe(
             true
         );
-        expect(
-            placement.threadPosts
-                .filter((entry) => entry.label !== 'working-thread')
-                .map((entry) => entry.label),
-            'Thread posts outside the working Thread'
-        ).toHaveLength(0);
-        expect(
-            placement.threadPosts.filter((entry) => hasVisual(entry.message.content)),
-            'visual landed in a Thread'
-        ).toHaveLength(0);
         const segments = splitVisualFences(reply.content);
         const visuals = segments.filter((segment) => segment.kind === 'visual');
         expect(visuals, 'visual fences in the reply').toHaveLength(1);

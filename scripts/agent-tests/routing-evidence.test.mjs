@@ -1,12 +1,10 @@
 import { expect, test } from 'bun:test';
 import { captureRoutingEvidence } from './routing-evidence.mjs';
 
-test('captures paginated parent messages, child destinations and every resumed journal', async () => {
-    const tracked = [];
+test('captures every tracked chat and its Tasks, paginated, and every resumed journal', async () => {
     const kit = {
         serverId: 'server',
         transcript: () => ({ chats: [{ id: 'parent' }] }),
-        trackChat: async (id) => tracked.push(id),
         turns: {
             deliveryState: async () => ({ running: false }),
             listTurns: async () => [{ runId: 'completion' }, { runId: 'launch' }],
@@ -16,16 +14,13 @@ test('captures paginated parent messages, child destinations and every resumed j
             if (procedure === 'agent.executionJournal') {
                 return { status: 'available', journal: { runId: input.runId } };
             }
-            if (input.chatId === 'child') {
-                return { messages: [{ id: 'outcome' }], threads: [], nextBeforeSequence: null };
+            if (input.chatId === 'task') {
+                return { messages: [{ id: 'outcome' }], nextBeforeSequence: null };
             }
+            const task = { chatId: 'task', originMessageId: 'launch', taskId: 'tsk_1' };
             return input.beforeSequence
-                ? { messages: [{ id: 'request' }], threads: [], nextBeforeSequence: null }
-                : {
-                      messages: [{ id: 'launch' }],
-                      threads: [{ threadChatId: 'child' }],
-                      nextBeforeSequence: 2,
-                  };
+                ? { messages: [{ id: 'request' }], nextBeforeSequence: null }
+                : { messages: [{ id: 'launch' }], nextBeforeSequence: 2, tasks: [task] };
         },
     };
     const evidence = await captureRoutingEvidence(kit, [{ id: 'agent' }]);
@@ -33,12 +28,11 @@ test('captures paginated parent messages, child destinations and every resumed j
         {
             chatId: 'parent',
             messages: [{ id: 'launch' }, { id: 'request' }],
-            threads: [{ threadChatId: 'child' }],
+            tasks: [{ chatId: 'task', originMessageId: 'launch', taskId: 'tsk_1' }],
         },
-        { chatId: 'child', messages: [{ id: 'outcome' }], threads: [] },
+        { chatId: 'task', messages: [{ id: 'outcome' }], tasks: [] },
     ]);
     expect(evidence.journals.map((entry) => entry.runId)).toEqual(['completion', 'launch']);
-    expect(tracked).toEqual(['child']);
     expect(evidence.errors).toEqual([]);
 });
 

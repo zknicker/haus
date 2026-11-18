@@ -39,7 +39,7 @@ export function quickFactEvidence({ channel = channelId, reply = '43447.', inlin
             {
                 chatId: channel,
                 messages: messages.map((message) => ({ ...message, chatId: channel })),
-                threads: [],
+                tasks: [],
             },
         ],
         diagnostics: [{ agentId }],

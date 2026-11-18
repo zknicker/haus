@@ -17,22 +17,13 @@ import { expect, test } from '../support/test.ts';
 // The incident detector (specs/realtime-events.md, "App e2e: the incident
 // detector"). After the 9.5.0 deploy reconnected every socket, the App's one
 // Chat stream failed on resubscribe and nothing restarted it, so kept desktop
-// tabs stopped hearing Agent replies, Thread summaries, and Cloud Agent rows.
+// tabs stopped hearing Agent replies, inline replies, and Cloud Agent rows.
 // A desktop window cannot be refreshed: every change must converge with no reload.
 
 const removedProcedures = ['chat.onEvent', 'chat.events', 'chat.eventHead', 'server.onUpdate'];
 
 /** `chat.onMessageCreated`'s owned reads, plus the read receipt viewing the reply sends. */
-const ownedReads = new Set([
-    'chat.messages',
-    'chat.list',
-    'chat.search',
-    'chat.markRead',
-    // A missed Thread reply may have made a Thread unread (ADR 0043).
-    'thread.listUnread',
-    // A new Thread reply can move an Open Threads row.
-    'thread.listOpen',
-]);
+const ownedReads = new Set(['chat.messages', 'chat.list', 'chat.search', 'chat.markRead']);
 
 test('A: one failed stream restarts alone and recovers only its owned reads', async ({ page }) => {
     test.setTimeout(150_000);
@@ -50,7 +41,7 @@ test('A: one failed stream restarts alone and recovers only its owned reads', as
     proxy.hold(['chat.onMessageCreated']);
     proxy.inject(stream, 'INTERNAL_SERVER_ERROR');
     await scene.changes.allReply('A reply while the stream is down', 'iso-all');
-    await scene.changes.threadReply('A Thread reply while the stream is down', 'iso-thread');
+    await scene.changes.inlineReply('An inline reply while the stream is down', 'iso-inline');
     const computer = await scene.changes.workUpdate('Rebuilding the index while down');
     // A sibling keeps its id and delivers while the failed stream is down.
     await expect.poll(() => proxy.deliveredTo(work).length, { timeout: 15_000 }).toBeGreaterThan(0);
@@ -80,7 +71,7 @@ test('A: one failed stream restarts alone and recovers only its owned reads', as
     await expectConverged(page, scene, {
         activity: 'Rebuilding the index while down',
         allReply: 'A reply while the stream is down',
-        threadReply: 'A Thread reply while the stream is down',
+        inlineReply: 'An inline reply while the stream is down',
     });
     expect(
         traffic.since(mark).filter((entry) => entry.kind === 'ws-open'),
@@ -175,7 +166,7 @@ test('B: a Server restart with refused resubscribes converges, then C and D', as
     await traffic.settled();
     const committing = traffic.mark();
     await scene.changes.allReply('A reply after the deploy', 'restart-all');
-    await scene.changes.threadReply('A Thread reply after the deploy', 'restart-thread');
+    await scene.changes.inlineReply('An inline reply after the deploy', 'restart-inline');
     const computer = await scene.changes.workUpdate('Rebuilding the index after the deploy');
     await traffic.settled();
     expect(
@@ -245,7 +236,7 @@ test('B: a Server restart with refused resubscribes converges, then C and D', as
     await expectConverged(page, scene, {
         activity: 'Rebuilding the index after the deploy',
         allReply: 'A reply after the deploy',
-        threadReply: 'A Thread reply after the deploy',
+        inlineReply: 'An inline reply after the deploy',
     });
     computer.close();
 

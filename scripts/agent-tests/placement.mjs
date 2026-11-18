@@ -6,26 +6,15 @@
  * Where one Agent post landed:
  * - `inline-reply`: in the channel/DM, in the reply chain of the request.
  * - `top-level`: in the channel/DM, outside the request's reply chain.
- * - `working-thread`: in a Thread anchored on one of the Agent's own posts.
- * - `request-thread`: in a Thread anchored on the request.
- * - `other-thread`: in any other Thread.
+ * - `task`: in the conversation of a Task started from the channel (ADR 0052).
+ * - `elsewhere`: in any other chat.
+ * `taskChatIds` are the Task chats the channel previews (`chat.messages` page `tasks`).
  */
-export function classifyPlacement(
-    message,
-    { channelId, ownAnchors = [], requestId, threads = [] }
-) {
-    const requests = asSet(requestId);
+export function classifyPlacement(message, { channelId, requestId, taskChatIds = [] }) {
     if (message.chatId === channelId) {
-        return requests.has(message.reply?.rootMessageId) ? 'inline-reply' : 'top-level';
+        return asSet(requestId).has(message.reply?.rootMessageId) ? 'inline-reply' : 'top-level';
     }
-    const thread = threads.find((entry) => entry.threadChatId === message.chatId);
-    if (thread && asSet(ownAnchors).has(thread.anchorMessageId)) {
-        return 'working-thread';
-    }
-    if (thread && requests.has(thread.anchorMessageId)) {
-        return 'request-thread';
-    }
-    return 'other-thread';
+    return asSet(taskChatIds).has(message.chatId) ? 'task' : 'elsewhere';
 }
 
 /** The latest message matching `predicate`, or null. */
@@ -95,23 +84,14 @@ function doneSendsIn(logical, bodies) {
     return sends;
 }
 
-/**
- * A thread target is a parent target plus a message short ID: `#general:1a2b3c4d`.
- * Short IDs are URL-safe base64, so they can carry `-` and `_`.
- */
-export function isThreadTarget(target) {
-    return /^(?:#[^:\s]+|dm:@[^:\s]+):[\w-]+$/u.test(target.trim());
-}
-
 /** Whitespace-separated words in a post. */
 export function wordCount(text) {
     return text.split(/\s+/u).filter(Boolean).length;
 }
 
 /**
- * Live evidence for a settled turn: every Agent post since the turn began,
- * labeled by placement, plus the turn's `--done` sends and which of them went
- * to a Thread.
+ * Live evidence for a settled turn: every Agent post in the channel since the
+ * turn began, labeled by placement, plus the turn's `--done` sends.
  */
 export async function readPlacement(kit, turn, { agentId, channelId, requestIds }) {
     const page = await kit.trpc('chat.messages', {
@@ -119,34 +99,13 @@ export async function readPlacement(kit, turn, { agentId, channelId, requestIds 
         limit: 100,
         serverId: kit.serverId,
     });
-    const ownAnchors = page.messages
-        .filter((message) => message.author.kind === 'agent' && message.author.agentId === agentId)
-        .map((message) => message.id);
-    const context = { channelId, ownAnchors, requestId: requestIds, threads: page.threads };
+    const context = { channelId, requestId: requestIds };
     const channelPosts = (await turn.authoredMessagesIn(channelId)).filter(
         (message) => message.chatId === channelId
     );
-    const threadPosts = [];
-    for (const thread of page.threads) {
-        await kit.trackChat(thread.threadChatId);
-        const posts = (await turn.authoredMessagesIn(thread.threadChatId)).filter(
-            (message) => message.chatId === thread.threadChatId
-        );
-        threadPosts.push(...posts);
-    }
     const label = (message) => ({ label: classifyPlacement(message, context), message });
     const doneSends = parseDoneSends(await journalCommands(kit, agentId, turn));
-    const threadBodies = new Set(threadPosts.map((message) => message.content.trim()));
-    return {
-        channelPosts: channelPosts.map(label),
-        doneInThread: doneSends.filter(
-            (send) =>
-                isThreadTarget(send.target) || (send.body !== '' && threadBodies.has(send.body))
-        ),
-        doneSends,
-        page,
-        threadPosts: threadPosts.map(label),
-    };
+    return { channelPosts: channelPosts.map(label), doneSends, page };
 }
 
 /**
@@ -192,39 +151,23 @@ export function refersTo(replyTo, messageId) {
 
 /**
  * The turn finished with `--done`: at least one `--done` send, and one of them
- * targets the channel/DM (not a Thread) replying to the request. With
- * `requestIds` empty the reply-to check is skipped (a request that arrived in a
- * Thread is answered there without `--reply-to`).
+ * replies to the request. With `requestIds` empty the reply-to check is skipped.
  */
-export function expectDoneToRequest(
-    expect,
-    placement,
-    { requestIds = [], threadTarget = false } = {}
-) {
+export function expectDoneToRequest(expect, placement, { requestIds = [] } = {}) {
     expect(placement.doneSends.length >= 1, '--done send found in the turn journal').toBe(true);
     const answering = placement.doneSends.filter(
-        (send) =>
-            isThreadTarget(send.target) === threadTarget &&
-            (requestIds.length === 0 || requestIds.some((id) => refersTo(send.replyTo, id)))
+        (send) => requestIds.length === 0 || requestIds.some((id) => refersTo(send.replyTo, id))
     );
     expect(
         answering.length >= 1,
-        `--done send to the ${threadTarget ? 'request Thread' : 'channel replying to the request'} (saw ${placement.doneSends.map((send) => `${send.target} reply-to=${send.replyTo || 'none'}`).join('; ')})`
+        `--done send to the channel replying to the request (saw ${placement.doneSends.map((send) => `${send.target} reply-to=${send.replyTo || 'none'}`).join('; ')})`
     ).toBe(true);
 }
 
-/** The spec's shared assertions: result inline, request thread empty, no `--done` into a Thread. */
-export function expectSharedPlacement(expect, placement, result) {
+/** The spec's shared assertion: the result is an inline reply to the request. */
+export function expectSharedPlacement(expect, result) {
     expect(Boolean(result), 'result post in the channel').toBe(true);
     expect(result.label, 'result post placement').toBe('inline-reply');
-    expect(
-        placement.threadPosts.filter((entry) => entry.label === 'request-thread').length,
-        'posts in the request thread'
-    ).toBe(0);
-    expect(
-        placement.doneInThread.map((send) => send.target),
-        '--done sends that went to a Thread'
-    ).toHaveLength(0);
 }
 
 /** A heredoc opener (`<<EOF`, `<<-'EOF'`), never a `<<<` here-string. */

@@ -6,10 +6,11 @@ import { expect, test } from '../support/test.ts';
 const title = 'Renew the Tailscale auth key';
 
 /**
- * A Server where the Agent assigned the viewer one Task, and the viewer's own
- * message references it, so nothing but the Task is waiting in the Inbox.
+ * A Server where the Agent started a Task assigned to the viewer from a
+ * message in #all, then posted in it. Being assigned makes the viewer a
+ * follower, so the Task's message is unread for them (ADR 0052 decision 9).
  */
-async function assignedTask(page: Page, slug: string) {
+async function followedTask(page: Page, slug: string) {
     const { client, server, session } = await createTestServer(page, {
         displayName: 'Task Inbox',
         slug,
@@ -27,207 +28,77 @@ async function assignedTask(page: Page, slug: string) {
         slug,
         token: session.accessToken,
     });
-    const { key } = await agent.createTask({
-        assignee: 'ada',
-        board: 'GEN',
-        priority: 'high',
-        title,
-    });
-    const context = await client.chat.send.mutate({
-        chatId: agent.chatId,
-        content: `${key} needs an admin login.`,
-        nonce: `${slug}-context`,
-        serverId: server.id,
-    });
+    const from = await agent.send('The Tailscale key expires Friday.', `${slug}-origin`);
+    const { key, target } = await agent.startTask({ assignee: 'ada', from, title });
+    await agent.send('It needs an admin login to renew.', `${slug}-task`, target);
+    const detail = await client.task.get.query({ key, serverId: server.id });
+    if (!detail.chatId) {
+        throw new Error('A started Task has its own Chat.');
+    }
     return {
         agent,
-        card: page.getByRole('article', { name: `${key}: ${title}` }),
+        card: page.getByRole('article', { exact: true, name: `${key} ${title}` }),
         client,
-        contextMessageId: context.message.id,
         key,
         serverId: server.id,
+        taskChatId: detail.chatId,
     };
 }
 
-test('an assignment is a card with its context message; Done resolves in place, Undo restores', async ({
+test('an assigned Task is followed: its message is an Inbox card, and a reply posts in the Task', async ({
     page,
 }) => {
-    const { card, client, key, serverId } = await assignedTask(page, 'task-inbox-resolve');
-    const itemCount = async () => (await client.taskInbox.list.query({ serverId })).items.length;
-    const category = async () => (await client.task.get.query({ key, serverId })).category;
-
-    await page.goto('/s/task-inbox-resolve/inbox');
-    await expect(card).toContainText(`${key} · Orbit assigned you`);
-    await expect(card).toContainText(title);
-    await expect(card).toContainText('General');
-    await expect(card.getByRole('img', { name: 'High priority' })).toBeVisible();
-    await expect(card).toContainText('needs an admin login.');
-    await expect(card.getByRole('button', { name: `Status of ${key}` })).toContainText('Todo');
-    // The badge counts the Task item, the only thing waiting.
-    await expect(page.getByLabel('1 waiting in Inbox')).toBeVisible();
-
-    await card.getByRole('button', { exact: true, name: 'Done' }).click();
-    const resolved = page.getByRole('status').filter({ hasText: `${key} moved to Done.` });
-    await expect(resolved).toBeVisible();
-    await expect(card).toHaveCount(0);
-    await expect(page.getByLabel('1 waiting in Inbox')).toHaveCount(0);
-    await expect.poll(category).toBe('done');
-    await expect.poll(itemCount).toBe(0);
-
-    await resolved.getByRole('button', { exact: true, name: 'Undo' }).click();
-    await expect(card).toBeVisible();
-    await expect(resolved).toHaveCount(0);
-    await expect(page.getByLabel('1 waiting in Inbox')).toBeVisible();
-    await expect.poll(category).toBe('todo');
-    await expect.poll(itemCount).toBe(1);
-
-    // The status picker reaches any column, and resolves the same way.
-    await card.getByRole('button', { name: `Status of ${key}` }).click();
-    await page.getByRole('option', { exact: true, name: 'Backlog' }).click();
-    await expect(
-        page.getByRole('status').filter({ hasText: `${key} moved to Backlog.` })
-    ).toBeVisible();
-    await expect(card).toHaveCount(0);
-    await expect.poll(category).toBe('backlog');
-    await expect.poll(itemCount).toBe(0);
-});
-
-test("a reply from the card posts in the context message's Thread and leaves the Task waiting", async ({
-    page,
-}) => {
-    const { agent, card, client, contextMessageId, serverId } = await assignedTask(
+    const { card, client, key, serverId, taskChatId } = await followedTask(
         page,
         'task-inbox-reply'
     );
 
     await page.goto('/s/task-inbox-reply/inbox');
-    await expect(card).toBeVisible();
+    await expect(card).toContainText('It needs an admin login to renew.');
+    await expect(card).toContainText('#all');
+    await card.click();
+    await expect(card).toHaveAttribute('data-selected', 'true');
 
-    // R puts the cursor in the selected card's composer, as on any card.
-    const composer = card.getByRole('textbox', { name: 'Message Thread — #all' });
+    // R puts the cursor in the selected card's composer, which posts into the Task.
+    const composer = card.getByRole('textbox', { name: `Message ${key} ${title}` });
     await page.keyboard.press('r');
     await expect(composer).toBeFocused();
     await page.keyboard.type('On it after standup.');
     await page.keyboard.press('Enter');
     await expect(composer).toHaveText('');
-
-    await expect(card).toBeVisible();
-    await expect
-        .poll(async () => (await client.taskInbox.list.query({ serverId })).items.length)
-        .toBe(1);
-
-    await page.goto(`/s/task-inbox-reply/chats/${agent.chatId}?thread=${contextMessageId}`);
-    await expect(
-        page
-            .getByRole('region', { name: 'Thread messages' })
-            .getByText('On it after standup.', { exact: true })
-    ).toBeVisible();
-});
-
-test('a context message in a Thread names its Channel, and the card answers and opens there', async ({
-    page,
-}) => {
-    const { agent, card, client, contextMessageId, key, serverId } = await assignedTask(
-        page,
-        'task-inbox-thread'
-    );
-    const excerpt = `${key} waits on the vendor.`;
-    const reply = await client.chat.send.mutate({
-        chatId: agent.chatId,
-        content: excerpt,
-        nonce: 'task-inbox-thread-reply',
-        serverId,
-        thread: { anchorMessageId: contextMessageId },
-    });
-    const threadUrl = new RegExp(`/chats/${agent.chatId}\\?thread=${contextMessageId}$`, 'u');
-
-    await page.goto('/s/task-inbox-thread/inbox');
-    const place = card.getByRole('button', { exact: true, name: '#all · Thread' });
-    await expect(place).toBeVisible();
-    await expect(card).toContainText('waits on the vendor.');
-
-    await page.keyboard.press('r');
-    const composer = card.getByRole('textbox', { name: 'Message Thread — #all' });
-    await expect(composer).toBeFocused();
-    await page.keyboard.type('Pinged them.');
-    await page.keyboard.press('Enter');
-    await expect(composer).toHaveText('');
+    await expect(card).toHaveCount(0);
     await expect
         .poll(async () => {
-            const thread = await client.chat.messages.query({
-                chatId: reply.message.chatId,
-                serverId,
-            });
-            return thread.messages.map((message) => message.content);
+            const transcript = await client.chat.messages.query({ chatId: taskChatId, serverId });
+            return transcript.messages.map((message) => message.content);
         })
-        .toContain('Pinged them.');
-
-    await place.click();
-    await expect(page).toHaveURL(threadUrl);
-
-    // Mentioned in names the same place and opens the same Thread.
-    const [board, number] = key.split('-');
-    await page.goto(`/s/task-inbox-thread/tasks/${board}/${number}`);
-    const mention = page.getByRole('button', { exact: true, name: excerpt });
-    await expect(mention).toContainText('#all · Thread');
-    await mention.click();
-    await expect(page).toHaveURL(threadUrl);
+        .toContain('On it after standup.');
 });
 
-test('E clears the card without moving the Task', async ({ page }) => {
-    const { card, client, key, serverId } = await assignedTask(page, 'task-inbox-clear');
+test('E reads the Task card without changing the Task', async ({ page }) => {
+    const { card, client, key, serverId } = await followedTask(page, 'task-inbox-clear');
 
     await page.goto('/s/task-inbox-clear/inbox');
-    await expect(card).toBeVisible();
-
+    await card.click();
+    await expect(card).toHaveAttribute('data-selected', 'true');
     await page.keyboard.press('e');
     await expect(card).toHaveCount(0);
-    await expect(page.getByText('All caught up.')).toBeVisible();
-    await expect
-        .poll(async () => (await client.taskInbox.list.query({ serverId })).items.length)
-        .toBe(0);
-    expect((await client.task.get.query({ key, serverId })).category).toBe('todo');
+    expect((await client.task.get.query({ key, serverId })).state).toBe('open');
 
     await page.reload();
-    await expect(page.getByText('All caught up.')).toBeVisible();
-});
-
-test('Convert to Task files the message on a board and offers to open it', async ({ page }) => {
-    const { agent, client, contextMessageId, serverId } = await assignedTask(
-        page,
-        'task-inbox-convert'
-    );
-
-    await page.goto(`/s/task-inbox-convert/chats/${agent.chatId}`);
-    await page.locator(`[data-message-id="${contextMessageId}"]`).click({ button: 'right' });
-    await page.getByRole('menuitem', { exact: true, name: 'Convert to Task' }).click();
-
-    const dialog = page.getByRole('dialog', { name: 'Convert to Task' });
-    const titleField = dialog.getByRole('textbox', { name: 'Title' });
-    await expect(titleField).toHaveValue(/needs an admin login\.$/u);
-    await titleField.fill('Get an admin login for the Mac mini');
-    await dialog.getByRole('button', { exact: true, name: 'Create Task' }).click();
-    await expect(dialog).toHaveCount(0);
-
-    const tasks = await client.task.list.query({ serverId });
-    const created = tasks.find((task) => task.title === 'Get an admin login for the Mac mini');
-    if (!created) {
-        throw new Error('Convert to Task did not create the Task.');
-    }
-    const detail = await client.task.get.query({ key: created.key, serverId });
-    expect(detail.mentions.map((mention) => mention.messageId)).toContain(contextMessageId);
-
-    await page.getByRole('button', { exact: true, name: 'Open task' }).click();
-    const [board, number] = created.key.split('-');
-    await expect(page).toHaveURL(
-        new RegExp(`/s/task-inbox-convert/tasks/${board}/${number}$`, 'u')
-    );
+    await expect(page.getByRole('article', { name: /Renew the Tailscale/u })).toHaveCount(0);
 });
 
 test('a bare Task key in a message is a chip that previews and opens the Task', async ({
     page,
 }) => {
-    const { agent, key } = await assignedTask(page, 'task-inbox-chip');
+    const { agent, client, key, serverId } = await followedTask(page, 'task-inbox-chip');
+    await client.chat.send.mutate({
+        chatId: agent.chatId,
+        content: `${key} needs an admin login.`,
+        nonce: 'task-inbox-chip-reference',
+        serverId,
+    });
 
     await page.goto(`/s/task-inbox-chip/chats/${agent.chatId}`);
     const chip = page.getByRole('button', { exact: true, name: `Open ${key}` });
@@ -239,11 +110,9 @@ test('a bare Task key in a message is a chip that previews and opens the Task', 
         await chip.hover();
         await expect(preview).toContainText(title, { timeout: 1500 });
     }).toPass({ timeout: 10_000 });
-    await expect(preview).toContainText('Todo');
-    await expect(preview).toContainText('General');
-    await expect(preview).toContainText('High');
+    await expect(preview).toContainText('Open');
+    await expect(preview).toContainText('Ada');
 
     await chip.click();
-    const [board, number] = key.split('-');
-    await expect(page).toHaveURL(new RegExp(`/s/task-inbox-chip/tasks/${board}/${number}$`, 'u'));
+    await expect(page).toHaveURL(new RegExp(`/s/task-inbox-chip/tasks/${key}$`, 'u'));
 });

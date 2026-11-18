@@ -45,11 +45,7 @@ export default defineScenario({
                 'webhook Triggers the worker created'
             ).toHaveLength(0);
             const [trigger] = github;
-            const anchors = await channelAnchors(kit, channel.id);
-            expect(
-                anchors.has(trigger.anchorChatId),
-                'Trigger anchored in the asking channel'
-            ).toBe(true);
+            expect(trigger.anchorChatId, 'Trigger anchored in the asking channel').toBe(channel.id);
             expect(trigger.github.installationId, 'Trigger installation').toBe(
                 world.installationRowId
             );
@@ -84,17 +80,7 @@ export default defineScenario({
     }),
 });
 
-/** The channel and its Threads: a Trigger anchored on either sits in the channel. */
-async function channelAnchors(kit, channelId) {
-    const page = await kit.trpc('chat.messages', {
-        chatId: channelId,
-        limit: 100,
-        serverId: kit.serverId,
-    });
-    return new Set([channelId, ...(page.threads ?? []).map((thread) => thread.threadChatId)]);
-}
-
-/** Everything the worker wrote in the channel, its Threads, and its Owner DM. */
+/** Everything the worker wrote in the channel and its Owner DM. */
 async function everyAgentMessage(kit, worker, channelId) {
     const chatIds = [channelId, ...(worker.dmChatId ? [worker.dmChatId] : [])];
     const written = [];
@@ -105,9 +91,6 @@ async function everyAgentMessage(kit, worker, channelId) {
             serverId: kit.serverId,
         });
         written.push(...kit.authoredBy(page.messages, worker.id));
-        for (const thread of page.threads ?? []) {
-            written.push(...kit.authoredBy(await kit.readMessages(thread.threadChatId), worker.id));
-        }
     }
     return written;
 }

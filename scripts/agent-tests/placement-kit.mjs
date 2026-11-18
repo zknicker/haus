@@ -40,7 +40,7 @@ export function refersToKit(text, { paths = [] } = {}) {
 }
 
 export const foundTheKitContract =
-    'Told to check again for a starter kit, the Agent answers inline to the exchange with a post that names, links, or quotes the kit, at most two channel posts, nothing in the request Thread, and a --done send to the channel replying to the exchange.';
+    'Told to check again for a starter kit, the Agent answers inline to the exchange with a post that names, links, or quotes the kit, at most two channel posts, and a --done send to the channel replying to the exchange.';
 
 /**
  * Seeds the earlier exchange with delivery held (every human message in a
@@ -76,13 +76,11 @@ export async function runFoundTheKit(
             channelId: channel.id,
             requestIds,
         });
-        log(
-            `posts: ${[...placement.channelPosts, ...placement.threadPosts].map((entry) => entry.label).join(', ') || 'none'}`
-        );
+        log(`posts: ${placement.channelPosts.map((entry) => entry.label).join(', ') || 'none'}`);
         const result = findResultPost(placement.channelPosts, (entry) =>
             refersToKit(entry.message.content, { paths: kitPaths })
         );
-        expectSharedPlacement(expect, placement, result);
+        expectSharedPlacement(expect, result);
         // The reply may quote the human's message or the seeded "Not yet"; all
         // three sit in the request's reply chain.
         expectDoneToRequest(expect, placement, {

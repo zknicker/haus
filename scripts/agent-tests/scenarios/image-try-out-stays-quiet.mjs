@@ -1,5 +1,5 @@
 // "Try image gen out" is answered by the image cards themselves. Regression
-// for an Agent that posted the cards, then waited on every image and threaded
+// for an Agent that posted the cards, then waited on every image and hung
 // an unrequested model comparison onto its own reply. Opt-in: it spends real
 // provider money (a few cents per image) and needs the Owner's image keys.
 
@@ -18,7 +18,7 @@ export default defineScenario({
     agents: [{ kind: 'worker' }],
     optIn: true,
     contract:
-        'Asked to try out image generation, an Agent posts one reply linking its image-generation:// cards and authors nothing after it, in the channel or any Thread, without waiting on the images.',
+        'Asked to try out image generation, an Agent posts one reply linking its image-generation:// cards and authors nothing after it in the channel, without waiting on the images.',
     name: 'image-try-out-stays-quiet',
     async run({ agents, expect, kit, log, settleTurn }) {
         const [worker] = agents;
@@ -97,7 +97,7 @@ async function reshape(kit, worker, log) {
     throw new Error(`Worker never became ready on ${target.join('/')}.`);
 }
 
-/** Every message the Agent wrote after the request, in the channel and in any Thread on it. */
+/** Every message the Agent wrote in the channel after the request, inline replies included. */
 async function authoredAfter(kit, agentId, channelId, sinceSequence) {
     const own = (message) => message.author.kind === 'agent' && message.author.agentId === agentId;
     const page = await kit.trpc('chat.messages', {
@@ -108,13 +108,6 @@ async function authoredAfter(kit, agentId, channelId, sinceSequence) {
     const posts = page.messages
         .filter((message) => own(message) && message.sequence > sinceSequence)
         .map((message) => ({ message, where: 'channel' }));
-    for (const thread of page.threads ?? []) {
-        await kit.trackChat(thread.threadChatId);
-        const replies = (await kit.readMessages(thread.threadChatId)).filter(own);
-        posts.push(
-            ...replies.map((message) => ({ message, where: `thread ${thread.threadChatId}` }))
-        );
-    }
     return posts.map((post) => ({
         ...post,
         content: post.message.content,

@@ -9,7 +9,7 @@ import { expect } from './test.ts';
 /**
  * The incident detector's scene (specs/realtime-events.md, "App e2e"): a
  * desktop window whose shown tab A is `#all` and whose kept, hidden tab B is
- * `#product`, which holds a Thread anchor and a Cloud Agent work Message. Two
+ * `#product`, which holds an inline reply anchor and a Cloud Agent work Message. Two
  * Agents with no model write through the Agent API, and a Computer reports
  * the work's progress over its attachment.
  */
@@ -46,22 +46,15 @@ export async function createRealtimeScene(page: Page, slug: string) {
     });
     const anchor = await client.chat.send.mutate({
         chatId: work.chatId,
-        content: 'Product anchor for the Thread',
+        content: 'Product anchor for inline replies',
         nonce: `${slug}-anchor`,
         serverId: server.id,
-    });
-    await client.chat.send.mutate({
-        chatId: work.chatId,
-        content: 'First human reply in the Thread',
-        nonce: `${slug}-anchor-reply`,
-        serverId: server.id,
-        thread: { anchorMessageId: anchor.message.id },
     });
 
     await openDesktopWindow(page, `/s/${slug}`);
     await openChannel(page, 'product');
     await expect(composer(page, 'product')).toBeVisible();
-    await expect(threadSummary(page, 1)).toBeVisible();
+    await expect(visibleSurface(page).getByText('Product anchor for inline replies')).toBeVisible();
     await page.getByRole('row', { exact: true, name: 'all' }).click({ modifiers: ['Meta'] });
     await expect(tabs(page)).toHaveCount(2);
     await showTab(page, 'all');
@@ -77,14 +70,14 @@ export async function createRealtimeScene(page: Page, slug: string) {
         /** Change 1: a reply in `#all`. */
         allReply: (content: string, nonce: string) =>
             device.chat.send.mutate({ chatId: orbit.chatId, content, nonce, serverId: server.id }),
-        /** Change 2: a reply in `#product`'s Thread; no new parent-Chat message. */
-        threadReply: (content: string, nonce: string) =>
+        /** Change 2: an inline reply in `#product`, the kept tab, to its anchor. */
+        inlineReply: (content: string, nonce: string) =>
             device.chat.send.mutate({
                 chatId: work.chatId,
                 content,
                 nonce,
+                replyToMessageId: anchor.message.id,
                 serverId: server.id,
-                thread: { anchorMessageId: anchor.message.id },
             }),
         /** Change 3: the Computer reports the Cloud Agent work's progress. */
         workUpdate: async (activity: string) => {
@@ -128,41 +121,27 @@ export function visibleSurface(page: Page) {
     return page.locator('[data-slot="chat-surface"]').filter({ visible: true });
 }
 
-export function threadSummary(page: Page, replies: number) {
-    return visibleSurface(page).getByRole('button', {
-        name: new RegExp(`^Open thread, ${replies} repl(y|ies)`, 'u'),
-    });
-}
-
 /**
  * The convergence assertions: tab A shows the `#all` reply with no reload;
- * revealing tab B shows the Thread summary and the updated Cloud Agent row;
- * opening the Thread shows the Agent's reply.
+ * revealing tab B shows the inline reply and the updated Cloud Agent row.
  */
 export async function expectConverged(
     page: Page,
     scene: Awaited<ReturnType<typeof createRealtimeScene>>,
-    expected: { activity: string; allReply: string; threadReply: string }
+    expected: { activity: string; allReply: string; inlineReply: string }
 ) {
     await expect(visibleSurface(page).getByText(expected.allReply)).toBeVisible({
         timeout: 15_000,
     });
     await showTab(page, 'product');
-    await expect(threadSummary(page, 2)).toBeVisible({ timeout: 15_000 });
+    await expect(visibleSurface(page).getByText(expected.inlineReply, { exact: true })).toBeVisible(
+        {
+            timeout: 15_000,
+        }
+    );
     await expect(
         visibleSurface(page)
             .locator(`[data-message-id="${scene.work.messageId}"]`)
             .getByTestId('cloud-agent-work-status-line')
     ).toContainText(expected.activity, { timeout: 15_000 });
-    await threadSummary(page, 2).click();
-    await expect(
-        page
-            .getByRole('region', { exact: true, name: 'Thread' })
-            .getByText(expected.threadReply, { exact: true })
-    ).toBeVisible();
-    // The Thread opened in a right pane; closing its tab returns to one pane.
-    await page
-        .getByRole('button', { exact: true, name: 'Close Product anchor for the Thread' })
-        .click();
-    await expect(tabs(page)).toHaveCount(2);
 }

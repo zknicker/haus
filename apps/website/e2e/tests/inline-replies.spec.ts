@@ -1,5 +1,5 @@
 import { createAppTestFixture, signInAsAppHuman } from '../support/app-session.ts';
-import { completeOnboarding, createClient, openChannel, runPsql } from '../support/server.ts';
+import { completeOnboarding, createClient, openChannel } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 test('inline replies send, survive reload, and navigate to an off-page parent', async ({
@@ -90,7 +90,6 @@ test('inline replies send, survive reload, and navigate to an off-page parent', 
         (message) => message.content === 'Use yesterday instead, please.'
     );
     expect(reply?.reply?.parentMessageId).toBe(root.message.id);
-    expect(history.threads.every((thread) => thread.replyCount === 0)).toBe(true);
     await page.reload();
     await expect(page.locator('[data-inline-reply-preview]')).toContainText('How are sales today?');
     await page.screenshot({ path: testInfo.outputPath('inline-reply.png') });
@@ -144,9 +143,7 @@ test('inline replies send, survive reload, and navigate to an off-page parent', 
         .toBe(root.message.id);
 });
 
-test('claim inspection shows its inline conversation without creating a thread', async ({
-    page,
-}, testInfo) => {
+test('a saved claim link lands on its Chat at the claimed Message', async ({ page }, testInfo) => {
     const { accessToken, databaseUrl } = await createAppTestFixture();
     const client = createClient(accessToken);
     const server = await client.server.create.mutate({
@@ -176,43 +173,15 @@ test('claim inspection shows its inline conversation without creating a thread',
         replyToMessageId: root.message.id,
     });
     await signInAsAppHuman(page);
+    // A claim link saved before ADR 0052 still resolves: it reveals the Message.
     await page.goto(`/s/reply-claim/chats/${chatId}?claim=${root.message.id}`);
-    const dialog = page.getByRole('complementary', { name: 'Thread' });
-    await expect(dialog).toBeVisible();
-    await expect(dialog.getByText('Review yesterday’s sales', { exact: true })).toHaveCount(2);
-    const quote = dialog.locator('[data-inline-reply-preview]');
-    await expect(quote).toContainText('Review yesterday’s sales');
-    await quote.click();
-    await expect(dialog).toBeVisible();
-    await expect(dialog.getByRole('region', { name: 'Inline replies' })).toHaveCount(0);
-    await expect(dialog.getByText('Include returns in the report.', { exact: true })).toBeVisible();
-    await expect(dialog.getByText('Unrelated channel discussion', { exact: true })).toHaveCount(0);
-    expect(
-        runPsql(
-            databaseUrl,
-            `select count(*) from chats where server_id='${server.id}' and kind='thread'`
-        )
-    ).toBe('0');
-    const threadInput = dialog.getByRole('textbox');
-    await threadInput.fill('Discuss the details here.');
-    await threadInput.press('Enter');
-    await expect(dialog.getByText('Discuss the details here.', { exact: true })).toBeVisible();
-    await client.chat.send.mutate({
-        chatId,
-        serverId: server.id,
-        content: 'A later channel follow-up.',
-        nonce: 'later-inline',
-        replyToMessageId: root.message.id,
-    });
-    await expect(dialog.getByText('A later channel follow-up.', { exact: true })).toBeVisible();
-    const transcript = dialog.getByTestId('thread-conversation');
-    await expect(transcript).toContainText(
-        /Include returns in the report\.[\s\S]*Discuss the details here\.[\s\S]*A later channel follow-up\./
-    );
-    const channelHistory = await client.chat.messages.query({ serverId: server.id, chatId });
-    expect(
-        channelHistory.messages.some((message) => message.content === 'Discuss the details here.')
-    ).toBe(false);
-    expect(channelHistory.threads).toHaveLength(1);
-    await page.screenshot({ path: testInfo.outputPath('claim-unified-conversation.png') });
+    await expect(page).toHaveURL(new RegExp(`/chats/${chatId}$`, 'u'));
+    const transcript = page.getByLabel('Messages', { exact: true });
+    await expect(
+        transcript.locator(`[data-message-id="${root.message.id}"]`).first()
+    ).toBeInViewport();
+    await expect(
+        transcript.getByText('Include returns in the report.', { exact: true })
+    ).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath('claim-link-reveal.png') });
 });

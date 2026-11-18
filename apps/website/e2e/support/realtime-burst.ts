@@ -39,7 +39,7 @@ export function recordPosts(page: Page) {
 
 /**
  * The idle-silence burst case (specs/realtime-events.md, "Perf gates"): a
- * message + read + follow burst refetches `chat.list` once per frame; entity
+ * message + read burst refetches `chat.list` once per frame; entity
  * invalidations in one tick share one batched POST; and claim or label events
  * with no mounted claim view request nothing. The App runs on Playwright's fake
  * clock, so every event of the burst lands before the one frame that flushes it.
@@ -53,13 +53,13 @@ export async function expectBurstCoalesced(
     const device = createClient((await createAppTestFixture()).accessToken);
     const server = await device.server.bySlug.query({ slug });
     const chatId = server.channels.find((channel) => channel.name === 'all')?.id ?? '';
-    const send = (content: string, thread?: { anchorMessageId: string }) =>
+    const send = (content: string, replyToMessageId?: string) =>
         device.chat.send.mutate({
             chatId,
             content,
             nonce: `${slug}-${content}`,
             serverId: server.id,
-            ...(thread ? { thread } : {}),
+            ...(replyToMessageId ? { replyToMessageId } : {}),
         });
     const anchor = await send('Burst anchor');
     const other = await send('Burst neighbor');
@@ -68,9 +68,9 @@ export async function expectBurstCoalesced(
     await traffic.settled();
     const mark = traffic.mark();
 
-    // Burst 1: a Thread reply (message + follow) and a read; one frame flushes it.
+    // Burst 1: an inline reply and a read; one frame flushes it.
     await freezeAppTime(page);
-    await send('Burst reply', { anchorMessageId: anchor.message.id });
+    await send('Burst reply', anchor.message.id);
     await device.chat.markRead.mutate({
         chatId,
         sequence: other.message.sequence,

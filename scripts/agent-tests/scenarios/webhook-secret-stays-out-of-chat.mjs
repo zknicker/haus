@@ -51,7 +51,7 @@ export default defineScenario({
     },
 });
 
-/** Everything the worker wrote in the channel, its Threads, and its Owner DM. */
+/** Everything the worker wrote in the channel and its Owner DM. */
 async function everyAgentMessage(kit, worker, channelId) {
     const chatIds = [channelId, ...(worker.dmChatId ? [worker.dmChatId] : [])];
     const written = [];
@@ -62,9 +62,6 @@ async function everyAgentMessage(kit, worker, channelId) {
             serverId: kit.serverId,
         });
         written.push(...kit.authoredBy(page.messages, worker.id));
-        for (const thread of page.threads ?? []) {
-            written.push(...kit.authoredBy(await kit.readMessages(thread.threadChatId), worker.id));
-        }
     }
     return written;
 }

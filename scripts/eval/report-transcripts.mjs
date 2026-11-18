@@ -9,12 +9,10 @@ const bodyLimit = 700;
 
 /** Plain-language placement badges, worded the way the asker experiences them. */
 export const placementBadges = {
-    'asked-thread': { text: 'in the thread they asked in', tone: 'ok' },
+    elsewhere: { text: 'some other chat', tone: 'warn' },
     'inline-reply': { text: 'reply in channel', tone: 'ok' },
-    'other-thread': { text: 'some other thread', tone: 'warn' },
-    'request-thread': { text: 'thread under the request', tone: 'bad' },
+    task: { text: 'in a Task', tone: 'ok' },
     'top-level': { text: 'channel, not a reply', tone: 'bad' },
-    'working-thread': { text: 'thread under its own note', tone: 'ok' },
 };
 
 const speakers = { agent: 'Agent', human: 'Human', peer: 'Peer', seeded: 'Seeded' };
@@ -62,8 +60,8 @@ function renderMessage(entry, grade) {
     for (const emoji of entry.reactions ?? []) {
         tags.push(tag(`${emoji} reaction`));
     }
-    const thread = entry.where === 'thread' ? ' thread' : '';
-    return `<div class="msg"><span class="who">${speakers[entry.who] ?? 'Agent'}</span><div class="body${thread}">${escapeHtml(clip(entry.content))}${tags.join('')}</div></div>`;
+    const elsewhere = entry.where === 'elsewhere' ? ' elsewhere' : '';
+    return `<div class="msg"><span class="who">${speakers[entry.who] ?? 'Agent'}</span><div class="body${elsewhere}">${escapeHtml(clip(entry.content))}${tags.join('')}</div></div>`;
 }
 
 function renderVerdict(grade) {

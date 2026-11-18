@@ -1,6 +1,6 @@
 // Placement eval S2: a quick factual question already answered earlier in the
 // channel gets exactly one inline reply, and nothing else: no reaction, no
-// Thread, no pickup note. Brevity, tails and tone are graded out of band by
+// Task, no pickup note. Brevity, tails and tone are graded out of band by
 // scripts/eval/grade.mjs.
 
 import {
@@ -11,13 +11,14 @@ import {
 } from '../placement.mjs';
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
+import { tasksCreatedBy } from '../task-intake.mjs';
 
 const port = '43447';
 
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'A quick factual question gets exactly one inline reply carrying the fact, no reaction on the question, no Thread, and no --done send into a Thread.',
+        'A quick factual question gets exactly one inline reply carrying the fact, no reaction on the question, no Task, and a --done send replying to the question.',
     name: 'placement-quick-fact',
     run: withRoutingEvidence(async ({ agents, expect, kit, log, settleTurn }) => {
         const [worker] = agents;
@@ -46,24 +47,21 @@ export default defineScenario({
             channelId: channel.id,
             requestIds: [question.message.id],
         });
-        log(
-            `posts: ${[...placement.channelPosts, ...placement.threadPosts].map((entry) => entry.label).join(', ') || 'none'}`
-        );
+        log(`posts: ${placement.channelPosts.map((entry) => entry.label).join(', ') || 'none'}`);
         const result = findResultPost(placement.channelPosts, (entry) =>
             entry.message.content.includes(port)
         );
-        expectSharedPlacement(expect, placement, result);
+        expectSharedPlacement(expect, result);
         expectDoneToRequest(expect, placement, { requestIds: [question.message.id] });
         expect(placement.channelPosts, 'channel posts').toHaveLength(1);
-        expect(placement.threadPosts, 'Thread posts').toHaveLength(0);
         const asked = placement.page.messages.find((message) => message.id === question.message.id);
         const reactions = (asked?.reactions ?? []).filter((reaction) =>
             reaction.actors.some((actor) => actor.kind === 'agent' && actor.id === worker.id)
         );
         expect(reactions, 'Agent reactions on the question').toHaveLength(0);
         expect(
-            placement.page.threads.filter((thread) => thread.replyCount > 0),
-            'Threads with replies'
+            await tasksCreatedBy(kit, worker.id, turn.startedAt),
+            'Tasks the Agent created'
         ).toHaveLength(0);
     }),
 });

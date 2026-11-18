@@ -1,5 +1,5 @@
 // A `github` Trigger fires on a failed CI run: the owning Agent answers the
-// fire once, top level in the anchor channel (not in a Thread), and names the
+// fire once, top level in the anchor channel (not an inline reply), and names the
 // fire with `haus message send --cause <fireId>`. The installation is seeded on
 // the stack's own Server and the delivery is signed with the stack's App
 // webhook secret and POSTed to /api/github/webhook, as GitHub would
@@ -12,7 +12,7 @@ import { defineScenario } from '../scenario.mjs';
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'When a github Trigger fires on a failed workflow_run, the fire is recorded and the owning Agent posts exactly one top-level message in the anchor channel, sent with --cause naming that fire, and nothing else anywhere in the channel or its Threads.',
+        'When a github Trigger fires on a failed workflow_run, the fire is recorded and the owning Agent posts exactly one top-level message in the anchor channel, sent with --cause naming that fire, and nothing else anywhere in the channel.',
     name: 'github-trigger-fire-reply',
     run: withRoutingEvidence(async ({ agents, expect, kit, log, marker, settleTurn }) => {
         const [worker] = agents;
@@ -81,23 +81,13 @@ export default defineScenario({
 
             const own = (message) =>
                 message.author.kind === 'agent' && message.author.agentId === worker.id;
-            const topLevel = (await kit.readMessages(channel.id)).filter(
+            const posts = (await kit.readMessages(channel.id)).filter(
                 (message) => own(message) && message.sequence > head
             );
-            expect(topLevel, 'top-level posts after the fire').toHaveLength(1);
-            expect(topLevel[0].cause?.fireId, 'the answer names the fire').toBe(fireId);
-            expect(topLevel[0].cause?.attribution, 'the fire named with --cause').toBe('explicit');
-            const page = await kit.trpc('chat.messages', {
-                chatId: channel.id,
-                limit: 100,
-                serverId: kit.serverId,
-            });
-            const threadPosts = [];
-            for (const thread of page.threads ?? []) {
-                await kit.trackChat(thread.threadChatId);
-                threadPosts.push(...(await kit.readMessages(thread.threadChatId)).filter(own));
-            }
-            expect(threadPosts, 'Thread posts in the anchor channel').toHaveLength(0);
+            expect(posts, 'posts after the fire').toHaveLength(1);
+            expect(posts[0].reply ?? null, 'the answer is top level').toBe(null);
+            expect(posts[0].cause?.fireId, 'the answer names the fire').toBe(fireId);
+            expect(posts[0].cause?.attribution, 'the fire named with --cause').toBe('explicit');
 
             const causeSends = await causeSendsFor(kit, worker.id, turn, fireId);
             expect(

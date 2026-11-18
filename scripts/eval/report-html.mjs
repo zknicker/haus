@@ -15,7 +15,7 @@ export function renderReportHtml(report) {
         report.notesMarkdown ? renderNotes(report.notesMarkdown) : '',
         renderResults(report, labels),
         renderGraderTable(report, labels),
-        `<section>\n<h2>What the agent posted</h2>\n<p>One representative run per build: the first whose runner verdict matches that build's majority. Grey indented lines are inside a Thread; badges say where each post landed.</p>\n${renderTranscripts({ builds, grades: report.grades, labels, scenarios: report.scenarios })}\n</section>`,
+        `<section>\n<h2>What the agent posted</h2>\n<p>One representative run per build: the first whose runner verdict matches that build's majority. Grey indented lines are outside the channel, in a Task or another chat; badges say where each post landed.</p>\n${renderTranscripts({ builds, grades: report.grades, labels, scenarios: report.scenarios })}\n</section>`,
         renderCaveats(report, labels),
     ].filter(Boolean);
     return `<!doctype html>

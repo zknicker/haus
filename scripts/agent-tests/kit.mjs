@@ -68,35 +68,10 @@ export function createAgentTestKit(
             serverId,
         });
         const { claim } = promotion;
-        await trackChat(claim.threadChatId);
-        return {
-            claim,
-            claimId: claim.messageId,
-            messageId: claim.messageId,
-            threadChatId: claim.threadChatId,
-        };
+        return { claim, claimId: claim.messageId, messageId: claim.messageId };
     }
 
-    /** Thread replies target the PARENT chat plus the anchor message. */
-    async function sendInThread(parentChatId, anchorMessageId, content) {
-        const receipt = await trpc('chat.send', {
-            chatId: parentChatId,
-            content,
-            nonce: `agenttests_${context.stamp}_${crypto.randomUUID()}`,
-            serverId,
-            thread: { anchorMessageId },
-        });
-        if (receipt.threadChatId) {
-            await trackChat(receipt.threadChatId);
-        }
-        return receipt;
-    }
-
-    /**
-     * An Agent may answer in the chat itself or promote the request to a claim
-     * whose Thread carries the reply — both satisfy an ordinary request. Polls
-     * the chat plus every claim Thread promoted from it.
-     */
+    /** The Agent's first matching reply in the chat (ADR 0052: there are no Threads). */
     async function awaitAgentReply(chatId, agentId, predicate, timeoutMs = 240_000) {
         const deadline = Date.now() + timeoutMs;
         const matches = (message) =>
@@ -106,29 +81,12 @@ export function createAgentTestKit(
         while (Date.now() < deadline) {
             const direct = record(await harness.readMessages(chatId)).find(matches);
             if (direct) {
-                return { container: 'chat', message: direct, threadChatId: null };
-            }
-            const { claims } = await trpc('claim.list', { serverId });
-            for (const entry of claims.filter((item) => item.claim.chatId === chatId)) {
-                const inThread = record(await harness.readMessages(entry.claim.threadChatId)).find(
-                    matches
-                );
-                if (inThread) {
-                    // Track only the matched thread: it answers this scenario's
-                    // own prompt. Merely-inspected threads (a shared DM can
-                    // carry others) are not ours to claim or delete.
-                    await trackChat(entry.claim.threadChatId);
-                    return {
-                        container: 'thread',
-                        message: inThread,
-                        threadChatId: entry.claim.threadChatId,
-                    };
-                }
+                return { container: 'chat', message: direct };
             }
             await new Promise((resolve) => setTimeout(resolve, 2000));
         }
         throw new Error(
-            `no matching Agent reply in ${chatId} or its claim Threads within ${Math.round(timeoutMs / 1000)}s.`
+            `no matching Agent reply in ${chatId} within ${Math.round(timeoutMs / 1000)}s.`
         );
     }
 
@@ -257,7 +215,6 @@ export function createAgentTestKit(
         retire,
         scenarioName,
         sendClaim,
-        sendInThread,
         serverId,
         settleTurn,
         stamp: context.stamp,

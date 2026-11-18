@@ -1,14 +1,17 @@
-// A sidebar in a busy channel: two peers are working through month-end close in
+// Side work in a busy channel: two peers are working through month-end close in
 // a finance channel when a human pulls the Agent into an unrelated code review,
-// then keeps replying inline through findings, a fix, and a second pass while
-// the finance talk carries on around it. Each write-up must be substantial and
-// reach the human. The measured behavior is the sidebar moving beside the main
-// discussion: at most two Agent posts in the channel across three rounds.
-// Placement is the Agent's judgment, so read this as a rate against baseline.
+// then keeps following up through findings, a fix, and a second pass while the
+// finance talk carries on around it. Each write-up must be substantial and
+// reach the human. There are no Threads (ADR 0052): work that outlasts a reply
+// goes in a Task started from a channel message, which the asker follows. The
+// measured behavior is the review leaving the channel for that Task: at most two
+// Agent posts in the channel across three rounds. Placement is the Agent's
+// judgment, so read this as a rate against baseline.
 
 import { wordCount } from '../placement.mjs';
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
+import { tasksCreatedBy } from '../task-intake.mjs';
 
 const deployScript = `#!/bin/bash
 cd /srv/app
@@ -52,7 +55,7 @@ const rounds = [
 export default defineScenario({
     agents: [{ kind: 'worker' }, { kind: 'worker' }, { kind: 'worker' }],
     contract:
-        'Three rounds of substantial code-review write-ups asked during a live finance discussion each reach the human, and the Agent authors at most two posts in the channel itself across all three rounds.',
+        'Three rounds of substantial code-review write-ups asked during a live finance discussion each reach the human, inline or in a Task started from the channel, and the Agent authors at most two posts in the channel itself across all three rounds.',
     name: 'side-work-stays-beside-channel',
     run: withRoutingEvidence(async ({ agents, expect, kit, log, marker, settleTurn }) => {
         const [worker, ...peers] = agents;
@@ -61,6 +64,7 @@ export default defineScenario({
             name: `finance-${kit.stamp.slice(-6)}-${marker('').toLowerCase()}`,
         });
 
+        const startedAt = new Date().toISOString();
         let followUp = null;
         for (const [index, round] of rounds.entries()) {
             const token = marker(`R${index + 1}`);
@@ -75,17 +79,14 @@ export default defineScenario({
             const turn = await settleTurn(worker.id);
             expect(turn.status, `round ${index + 1} turn`).toBe('completed');
 
-            const answer = await findAnswer(kit, channel.id, worker.id, token);
+            const answer = await findAnswer(kit, channel.id, worker.id, token, startedAt);
             expect(Boolean(answer), `round ${index + 1} answer with marker`).toBe(true);
             const words = wordCount(answer.message.content);
             log(`round ${index + 1} write-up: ${words} words`);
             expect(words >= minReportWords, `round ${index + 1} write-up is substantial`).toBe(
                 true
             );
-            expect(answer.reachesHuman, `round ${index + 1} answer reaches the human`).toBe(true);
-            log(
-                `round ${index + 1} answered in ${answer.threadAnchorId ? 'a Thread' : 'the channel'}`
-            );
+            log(`round ${index + 1} answered in ${answer.taskChatId ? 'a Task' : 'the channel'}`);
             followUp = answer;
         }
 
@@ -96,52 +97,42 @@ export default defineScenario({
 });
 
 /**
- * The human follows up where the Agent last answered: in that Thread, or as an
+ * The human follows up where the Agent last answered: in that Task, or as an
  * inline reply to the Agent's answer in the channel.
  */
 function sendFollowUp(kit, channelId, content, previous) {
     return kit.trpc('chat.send', {
         attachmentIds: [],
-        chatId: channelId,
+        chatId: previous?.taskChatId ?? channelId,
         content,
         nonce: `agenttests_${kit.stamp}_${crypto.randomUUID()}`,
         serverId: kit.serverId,
-        ...(previous?.threadAnchorId
-            ? { thread: { anchorMessageId: previous.threadAnchorId } }
-            : {}),
-        ...(previous && !previous.threadAnchorId ? { replyToMessageId: previous.message.id } : {}),
+        ...(previous && !previous.taskChatId ? { replyToMessageId: previous.message.id } : {}),
     });
 }
 
 /**
- * The Agent's post carrying `token`, in the channel or any of its Threads, and
- * whether it reaches the human: anything in the channel does, while a Thread
- * post does only on a human-authored anchor, whose author is notified.
+ * The Agent's post carrying `token`, in the channel or in a Task it started from this channel
+ * during the run. Both reach the human: the channel is where they asked, and the asker follows
+ * a Task started from their request.
  */
-async function findAnswer(kit, channelId, agentId, token) {
-    const page = await kit.trpc('chat.messages', {
-        chatId: channelId,
-        limit: 100,
-        serverId: kit.serverId,
-    });
+async function findAnswer(kit, channelId, agentId, token, since) {
     const own = (message) =>
         message.author.kind === 'agent' &&
         message.author.agentId === agentId &&
         message.content.includes(token);
-    const inChannel = page.messages.find(own);
+    const inChannel = (await kit.readMessages(channelId)).find(own);
     if (inChannel) {
-        return { message: inChannel, reachesHuman: true, threadAnchorId: null };
+        return { message: inChannel, taskChatId: null };
     }
-    for (const thread of page.threads) {
-        await kit.trackChat(thread.threadChatId);
-        const found = (await kit.readMessages(thread.threadChatId)).find(own);
+    const tasks = (await tasksCreatedBy(kit, agentId, since)).filter(
+        (task) => task.origin?.chatId === channelId && task.chatId
+    );
+    for (const task of tasks) {
+        await kit.trackChat(task.chatId);
+        const found = (await kit.readMessages(task.chatId)).find(own);
         if (found) {
-            const anchor = page.messages.find((message) => message.id === thread.anchorMessageId);
-            return {
-                message: found,
-                reachesHuman: anchor?.author.kind === 'human',
-                threadAnchorId: thread.anchorMessageId,
-            };
+            return { message: found, taskChatId: task.chatId };
         }
     }
     return null;

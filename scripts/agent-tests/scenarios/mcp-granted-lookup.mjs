@@ -162,13 +162,8 @@ async function journalTools(kit, agentId, turn, { attempts = 10, delayMs = 3000 
     return tools;
 }
 
-/** Agent replies in the Owner DM, including any Thread the Agent opened there. */
+/** Agent replies in the Owner DM, inline replies included. */
 async function agentReplies(kit, agentId, chatId, sinceSequence) {
     const page = await kit.trpc('chat.messages', { chatId, limit: 100, serverId: kit.serverId });
-    const collected = kit.authoredBy(page.messages, agentId, sinceSequence);
-    for (const thread of page.threads ?? []) {
-        const messages = await kit.readMessages(thread.threadChatId);
-        collected.push(...kit.authoredBy(messages, agentId));
-    }
-    return collected;
+    return kit.authoredBy(page.messages, agentId, sinceSequence);
 }

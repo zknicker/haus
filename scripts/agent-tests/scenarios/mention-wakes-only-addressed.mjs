@@ -12,7 +12,7 @@ import { defineScenario } from '../scenario.mjs';
 export default defineScenario({
     agents: [{ kind: 'worker' }, { kind: 'worker' }],
     contract:
-        'A mention addressed to one Agent gets exactly one inline reply from that Agent, an unmentioned inline follow-up to that reply is answered inline by the same Agent, and the unaddressed Agent in the channel stays silent everywhere, Threads included.',
+        'A mention addressed to one Agent gets exactly one inline reply from that Agent, an unmentioned inline follow-up to that reply is answered inline by the same Agent, and the unaddressed Agent in the channel stays silent.',
     name: 'mention-wakes-only-addressed',
     run: withRoutingEvidence(async ({ agents, expect, kit, log, marker, settleTurn }) => {
         const [worker, bystander] = agents;
@@ -76,16 +76,10 @@ async function settled(expect, turn, label) {
     expect(turn.failureKind ?? 'none', `${label} failure kind`).toBe('none');
 }
 
-/** An Agent's posts in a fresh channel since `head`, top level and in every Thread. */
+/** An Agent's posts in a fresh channel since `head`, top level and inline. */
 async function agentPosts(kit, chatId, agentId, head) {
     const own = (message) => message.author.kind === 'agent' && message.author.agentId === agentId;
-    const posts = (await kit.readMessages(chatId)).filter(
+    return (await kit.readMessages(chatId)).filter(
         (message) => own(message) && message.sequence > head
     );
-    const page = await kit.trpc('chat.messages', { chatId, limit: 100, serverId: kit.serverId });
-    for (const thread of page.threads) {
-        await kit.trackChat(thread.threadChatId);
-        posts.push(...(await kit.readMessages(thread.threadChatId)).filter(own));
-    }
-    return posts;
 }

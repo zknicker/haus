@@ -190,7 +190,7 @@ test('human sends jump to latest; agent messages preserve following across backg
     }
 });
 
-test('View in chat holds the oldest loaded message while the older page it reaches loads', async ({
+test('a Message link holds the oldest loaded message while the older page it reaches loads', async ({
     page,
 }) => {
     test.setTimeout(90_000);
@@ -214,12 +214,10 @@ test('View in chat holds the oldest loaded message while the older page it reach
         update chats set last_message_sequence = last_message_sequence + 120 where id = '${chatId}'`
     );
     // The newest page holds 71–120, so 71 is the oldest loaded message.
-    await page.goto(`/s/chat-jumps/chats/${chatId}?thread=msg_jump_071`);
-    // The chat's own transcript; the Thread pane has a scroller of its own.
+    // A link to one Message reveals it, paging older history in as it goes.
+    await page.goto(`/s/chat-jumps/chats/${chatId}?message=msg_jump_071`);
     const transcript = page.getByLabel('Messages', { exact: true });
     const rows = transcript.locator('[data-slot="message-scroller-item"]');
-    await page.getByRole('button', { name: /thread actions$/u }).click();
-    await page.getByRole('menuitem', { name: 'View in chat' }).click();
     const target = transcript.getByText('Jump history 71', { exact: true });
     await expect(target).toBeInViewport();
     const landedTop = () => target.evaluate((element) => element.getBoundingClientRect().top);

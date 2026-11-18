@@ -42,41 +42,12 @@ test('an @mention or an inline reply to the human addresses them; mention wins',
     expect(humanAddressingReason({ content: 'Which one?', reply: null }, 'usr_ada')).toBe(null);
 });
 
-test("any message in a Thread on the human's message addresses them as a reply", () => {
-    const ada = { kind: 'human', userId: 'usr_ada' };
-    expect(humanAddressingReason({ content: 'Option one.' }, 'usr_ada', ada)).toBe('reply');
-    expect(humanAddressingReason({ content: '[@Ada](user://usr_ada) pick?' }, 'usr_ada', ada)).toBe(
-        'mention'
-    );
-    expect(
-        humanAddressingReason({ content: 'Option one.' }, 'usr_ada', {
-            kind: 'human',
-            userId: 'usr_bo',
-        })
-    ).toBe(null);
-    expect(
-        humanAddressingReason({ content: 'Option one.' }, 'usr_ada', {
-            agentId: 'agt_x',
-            kind: 'agent',
-        })
-    ).toBe(null);
+test('a plain message that neither mentions nor replies to the human does not address them', () => {
+    expect(humanAddressingReason({ content: 'Option one.' }, 'usr_ada')).toBe(null);
 });
 
-test('answers inside the Thread the question arrived in, or inline at top level', () => {
-    expect(
-        answerPlacement({
-            channelId: 'cht_channel',
-            questionId: 'msg_question',
-            thread: { anchorMessageId: 'msg_anchor', chatId: 'cht_thread' },
-        })
-    ).toEqual({
-        chatId: 'cht_channel',
-        answerChatId: 'cht_thread',
-        thread: { anchorMessageId: 'msg_anchor' },
-    });
-    expect(
-        answerPlacement({ channelId: 'cht_channel', questionId: 'msg_question', thread: null })
-    ).toEqual({
+test('the human answers inline under the question', () => {
+    expect(answerPlacement({ channelId: 'cht_channel', questionId: 'msg_question' })).toEqual({
         chatId: 'cht_channel',
         answerChatId: 'cht_channel',
         replyToMessageId: 'msg_question',

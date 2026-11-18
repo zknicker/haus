@@ -1,6 +1,5 @@
 // An explicitly created claim is claimed before the Agent replies, and the reply
-// lands inline in the channel where the request arrived. Agents never post into
-// the claim Thread on the human's request (ADR 0029).
+// lands inline in the channel where the request arrived (ADR 0029, ADR 0052).
 
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
@@ -8,8 +7,8 @@ import { defineScenario } from '../scenario.mjs';
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'An explicitly created claim is claimed by that Agent before it replies, answered inline in the channel where it arrived with the requested marker, and its claim Thread stays empty.',
-    name: 'task-thread-routing',
+        'An explicitly created claim is claimed by that Agent before it replies, and answered inline in the channel where it arrived with the requested marker.',
+    name: 'claim-then-inline-reply',
     run: withRoutingEvidence(async ({ agents, expect, kit, log, marker, settleTurn }) => {
         const [worker] = agents;
         const token = marker();
@@ -48,13 +47,12 @@ export default defineScenario({
             `a channel reply carries the marker ${token}`
         ).toBe(true);
         expect(
+            channelReplies.some((reply) => reply.reply?.rootMessageId === created.messageId),
+            'a channel reply is inline under the claim message'
+        ).toBe(true);
+        expect(
             Date.parse(claim.claimedAt ?? '') <= Date.parse(channelReplies[0].createdAt),
             'claim happened before the first channel reply'
         ).toBe(true);
-
-        expect(
-            await turn.authoredMessagesIn(created.threadChatId),
-            'replies in the claim Thread'
-        ).toHaveLength(0);
     }),
 });

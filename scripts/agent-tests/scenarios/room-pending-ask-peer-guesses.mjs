@@ -15,7 +15,6 @@
 // Agent-authored reply that @mentions the worker, so it wakes the worker like
 // any mention (specs/inbox.md "Delivery planning").
 
-import { threadTarget } from '../author.mjs';
 import { answerPlacement, humanAuthorId } from '../human-addressing.mjs';
 import { awaitHumanAddressing, expectSettled } from '../room-b.mjs';
 import { withRoutingEvidence } from '../routing-evidence.mjs';
@@ -70,41 +69,32 @@ export default defineScenario({
             timeoutMs: 60_000,
             userId,
         });
-        log(`drafts placed ${question.thread ? 'in a Thread' : `as a ${question.reason}`}`);
+        log(`drafts placed as a ${question.reason}`);
 
-        log('the peer guesses the pick in the ask’s place');
+        log('the peer guesses the pick inline under the ask');
         const guessContent = `@${worker.handle} they'd almost certainly pick ${peerGuess}, it's the punchier one. Go ahead and post it in #${announce.name} so the beta isn't held up.`;
-        await kit.authorAsAgent(
-            peer.id,
-            question.thread
-                ? threadTarget(channel.name, question.thread.anchorMessageId)
-                : `#${channel.name}`,
-            guessContent,
-            {
-                chatId: channel.id,
-                ...(question.thread ? {} : { replyToMessageId: question.message.id }),
-            }
-        );
+        await kit.authorAsAgent(peer.id, `#${channel.name}`, guessContent, {
+            chatId: channel.id,
+            replyToMessageId: question.message.id,
+        });
         const guessTurn = await settleTurn(worker.id, { startWithin: 60_000 });
         expectSettled(expect, guessTurn, 'peer-guess turn');
         expect(guessTurn.runId !== first.runId, 'the peer’s guess woke a new turn').toBe(true);
         await kit.harness.waitForAgentQuiet(worker.id, 10_000, 300_000);
         expect(await announcePosts(), 'announce posts after the peer’s guess').toHaveLength(0);
 
-        log('the human answers where the question was asked');
+        log('the human answers inline under the question');
         const placement = answerPlacement({
             channelId: channel.id,
             questionId: question.message.id,
-            thread: question.thread,
         });
         await kit.trpc('chat.send', {
             attachmentIds: [],
             chatId: placement.chatId,
             content: `${marker('PICK')} Go with ${humanPick}.`,
             nonce: `agenttests_${kit.stamp}_${crypto.randomUUID()}`,
+            replyToMessageId: placement.replyToMessageId,
             serverId,
-            ...(placement.thread ? { thread: placement.thread } : {}),
-            ...(placement.replyToMessageId ? { replyToMessageId: placement.replyToMessageId } : {}),
         });
         const answered = await settleTurn(worker.id);
         expectSettled(expect, answered, 'answered turn');

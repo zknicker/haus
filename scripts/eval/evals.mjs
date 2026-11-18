@@ -11,21 +11,28 @@ import {
     placementProfiles,
 } from './profiles.mjs';
 
+const placementScenarios = [
+    'placement-found-the-kit-files',
+    'placement-quick-fact',
+    'ack-reaction-thanks',
+    'placement-recommendation',
+    'placement-off-topic-quick-question',
+];
+
+const attentionScenarios = [
+    'mention-wakes-only-addressed',
+    'fyi-silence-dm',
+    'human-ask-reply-wakes',
+    'claim-then-inline-reply',
+    'reminder-schedule-and-fire',
+];
+
 export const evals = {
     placement: {
         judge: placementJudge,
         profiles: placementProfiles,
-        scenarios: [
-            'placement-found-the-kit-files',
-            'placement-quick-fact',
-            'ack-reaction-thanks',
-            'thread-reply-stays-in-thread',
-            'solo-progress-threads-on-ack',
-            'placement-recommendation',
-            'placement-off-topic-quick-question',
-        ],
-        summary:
-            'Answers land where the asker looks (inline reply, or the Thread they chose), say only what was asked, and stop.',
+        scenarios: placementScenarios,
+        summary: 'Answers land inline where the asker looks, say only what was asked, and stop.',
     },
     // Side work in a purpose channel, with the one-off control that must stay
     // inline. The multi-round scenario asserts its own structure; its rate is
@@ -45,25 +52,9 @@ export const evals = {
         // Serial: these scenarios assert silence and wake order.
         lanes: 1,
         profiles: attentionProfiles,
-        scenarios: [
-            'mention-wakes-only-addressed',
-            'fyi-silence-dm',
-            'human-ask-reply-wakes',
-            'task-thread-routing',
-            'thread-claim-dm',
-            'thread-claim-channel',
-            'reminder-schedule-and-fire',
-        ],
+        scenarios: attentionScenarios,
         summary:
-            'Agents wake for what is addressed to them, stay quiet on FYIs, ask before irreversible acts, claim work (in the Thread a request arrived in), and follow up on schedule.',
-    },
-    // Board Tasks (ADR 0051). The scenario makes its own board, so lanes share no queue.
-    tasks: {
-        judge: null,
-        profiles: {},
-        scenarios: ['task-queue-pacing', 'task-blocked-takes-next'],
-        summary:
-            'Tasks assigned to an Agent are worked one card at a time by priority, carried to the next by the move receipt, with no pickup posts; a Task blocked on a person goes back to todo with an @mention and the queue moves on.',
+            'Agents wake for what is addressed to them, stay quiet on FYIs, ask before irreversible acts, claim work before replying inline, and follow up on schedule.',
     },
     // Both overwrite MEMORY.md on the stack's own Computer. Rule quality is
     // scored out of band by scripts/agent-tests/memory-feedback-grade.mjs.
@@ -75,7 +66,7 @@ export const evals = {
             'Feedback in passing becomes a Standing Preference that survives a session reset; no feedback, no rule change.',
     },
     // Work that leaves the chat: Cloud Agents, MCP connections, Triggers, and Files.
-    // cloud-launch-and-link needs Cursor access.
+    // cloud-launch-and-link launches on a Task and needs Cursor access.
     tools: {
         judge: null,
         profiles: {},
@@ -97,6 +88,49 @@ export const evals = {
         scenarios: ['github-trigger-ci-setup', 'github-trigger-fire-reply'],
         summary:
             'Agents set up a GitHub CI-failure Trigger from a plain ask and answer its fire once, top level, with --cause.',
+    },
+    // Task or reply: an Agent creates a Task when its reply will not be the whole of the work,
+    // whatever the source (human, Reminder, Trigger, its own finding), and a claim, not a
+    // Task, marks ownership (ADR 0052). Gates read the Task's `origin`, its own conversation,
+    // and its `attachedWork`. Serial: the Trigger scenarios share the seeded `acme`
+    // installation. The two cloud scenarios are opt-in: they spend real Cursor runs.
+    'task-intake': {
+        judge: null,
+        lanes: 1,
+        profiles: {},
+        scenarios: [
+            'task-intake-quick-fact-replies',
+            'task-intake-small-fix-in-turn',
+            'task-intake-multi-step-opens-task',
+            'task-intake-cloud-launch-on-task',
+            'task-intake-reminder-short-post',
+            'task-intake-reminder-starts-work',
+            'task-intake-trigger-needs-fix',
+            'task-intake-trigger-acknowledge',
+            'task-intake-findings-sibling-tasks',
+            'task-intake-cloud-finish-reports-in-task',
+            'task-intake-peer-quick-claim',
+            'task-intake-dm-work-routes-to-channel',
+        ],
+        summary:
+            "Work the reply will not finish becomes a Task opened where the work belongs, from a human, a Reminder, a Trigger, or the Agent's own findings; work the reply finishes is just answered, and a claim, not a Task, marks ownership.",
+    },
+    // Task pacing (operator decision 2026-11-18): Tasks a person assigns are worked one at a
+    // time by priority, a Task blocked on a person waits in todo while the next goes on, and
+    // Tasks the Agent starts itself are never parked to force a sequence. Gates read the
+    // execution journal's `haus task state` order. Serial: the queue scenarios stop and restart
+    // their Agents.
+    'task-pacing': {
+        judge: null,
+        lanes: 1,
+        profiles: {},
+        scenarios: [
+            'task-pacing-assigned-queue',
+            'task-pacing-blocked-takes-next',
+            'task-pacing-self-started-side-by-side',
+        ],
+        summary:
+            'Tasks a person assigns are worked one at a time, most urgent first, skipping one blocked on a person; Tasks the Agent starts itself may run side by side.',
     },
     // Two Agents and a human in one channel, each scenario with a decoy the
     // Manual card warns against. Serial: the scenarios assert silence.

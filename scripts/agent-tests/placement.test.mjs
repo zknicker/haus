@@ -1,23 +1,17 @@
 import { expect, test } from 'bun:test';
-import {
-    classifyPlacement,
-    isThreadTarget,
-    journalCommands,
-    parseDoneSends,
-    refersTo,
-} from './placement.mjs';
+import { classifyPlacement, journalCommands, parseDoneSends, refersTo } from './placement.mjs';
 import { namesKitRules, refersToKit, starterKit } from './placement-kit.mjs';
 
 test('parses --done anywhere in the invocation, with every target spelling', () => {
     const sends = parseDoneSends([
         "haus message send --done --target '#all' --reply-to msg_1 <<'EOF'\nIt is in.\nEOF",
-        'haus message send --target="#all:1a2b3c4d" <<EOF --done\nstep two\nEOF',
+        'haus message send --target="task:SEC-12" <<EOF --done\nstep two\nEOF',
         'haus message send \\\n  --target "dm:@zach" \\\n  --done <<-"BODY"\nanswer\nBODY',
         "cat <<'EOF' | haus message send --target #all --done\npiped\nEOF",
     ]);
     expect(sends).toEqual([
         { body: 'It is in.', replyTo: 'msg_1', target: '#all' },
-        { body: 'step two', replyTo: '', target: '#all:1a2b3c4d' },
+        { body: 'step two', replyTo: '', target: 'task:SEC-12' },
         { body: 'answer', replyTo: '', target: 'dm:@zach' },
         { body: 'piped', replyTo: '', target: '#all' },
     ]);
@@ -53,7 +47,7 @@ test('journal reads retry a missing journal and refuse to pass vacuously', async
 
 test('never counts --done or a send written inside a heredoc body', () => {
     const sends = parseDoneSends([
-        "haus message send --target '#all' <<'EOF'\nUse haus message send --target '#all' --done to finish.\nEOF\nhaus message send --target '#all:abcd1234' <<'EOF'\nnote\nEOF",
+        "haus message send --target '#all' <<'EOF'\nUse haus message send --target '#all' --done to finish.\nEOF\nhaus message send --target 'task:SEC-12' <<'EOF'\nnote\nEOF",
         "echo 'haus message send --done' > notes.md",
         'printf %s "$x" <<< "--done"',
     ]);
@@ -87,26 +81,8 @@ test('a found-the-kit result names, links, or quotes the kit', () => {
     expect(refersToKit('Yep, I can see it.', { paths })).toBe(false);
 });
 
-test('thread targets carry a message short ID', () => {
-    expect(isThreadTarget('#all:1a2b3c4d')).toBe(true);
-    expect(isThreadTarget('dm:@zach:1a2b3c4d')).toBe(true);
-    expect(isThreadTarget('dm:@zach:-NSrvCA3')).toBe(true);
-    expect(isThreadTarget('#all:Id0_WvSZ')).toBe(true);
-    expect(isThreadTarget('#all')).toBe(false);
-    expect(isThreadTarget('dm:@zach')).toBe(false);
-});
-
-test('classifies placement against the request and the Agent anchors', () => {
-    const context = {
-        channelId: 'chat',
-        ownAnchors: ['pickup'],
-        requestId: ['request'],
-        threads: [
-            { anchorMessageId: 'pickup', threadChatId: 'working' },
-            { anchorMessageId: 'request', threadChatId: 'asked' },
-            { anchorMessageId: 'other', threadChatId: 'elsewhere' },
-        ],
-    };
+test('classifies placement as inline in the channel, top level, in a Task, or elsewhere', () => {
+    const context = { channelId: 'chat', requestId: ['request'], taskChatIds: ['task'] };
     const at = (chatId, rootMessageId) => ({
         chatId,
         reply: rootMessageId ? { parentMessageId: rootMessageId, rootMessageId } : null,
@@ -114,7 +90,6 @@ test('classifies placement against the request and the Agent anchors', () => {
     expect(classifyPlacement(at('chat', 'request'), context)).toBe('inline-reply');
     expect(classifyPlacement(at('chat'), context)).toBe('top-level');
     expect(classifyPlacement(at('chat', 'other'), context)).toBe('top-level');
-    expect(classifyPlacement(at('working'), context)).toBe('working-thread');
-    expect(classifyPlacement(at('asked'), context)).toBe('request-thread');
-    expect(classifyPlacement(at('elsewhere'), context)).toBe('other-thread');
+    expect(classifyPlacement(at('task'), context)).toBe('task');
+    expect(classifyPlacement(at('dm'), context)).toBe('elsewhere');
 });

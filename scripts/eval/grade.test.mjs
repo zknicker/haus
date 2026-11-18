@@ -46,6 +46,30 @@ test('a top-level, over-cap answer with a tail fails the matching checks', async
     expect(grade.infra).toBe(false);
 });
 
+test('a post in a Task started from the channel is a Task post; any other chat fails', async () => {
+    const evidence = quickFactEvidence();
+    const note = (id, chatId) => ({
+        ...evidence.chats[0].messages.at(-1),
+        chatId,
+        content: 'Notes on the port.',
+        createdAt: '2026-10-15T10:00:06.000Z',
+        id,
+        reply: null,
+    });
+    evidence.chats[0].tasks = [
+        { chatId: 'cht_task', originMessageId: 'msg_ans33333', taskId: 'tsk_1' },
+    ];
+    evidence.chats.push(
+        { chatId: 'cht_task', messages: [note('msg_task4444', 'cht_task')], tasks: [] },
+        { chatId: 'cht_other', messages: [note('msg_else5555', 'cht_other')], tasks: [] }
+    );
+    const [grade] = await gradeFixture([{ evidence, name: 'placement-quick-fact', ok: true }]);
+    const labels = Object.fromEntries(grade.posts.map((post) => [post.id, post.label]));
+    expect(labels).toMatchObject({ msg_else5555: 'elsewhere', msg_task4444: 'task' });
+    const failed = grade.checks.filter((check) => !check.ok).map((check) => check.name);
+    expect(failed).toEqual(['no post in another chat']);
+});
+
 test('infra failures are flagged, and unprofiled scenarios grade on the runner verdict', async () => {
     const grades = await gradeFixture([
         {

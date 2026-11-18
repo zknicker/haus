@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createAgentInputSchema } from '../../packages/haus-api/src/agent-creation.ts';
-import { chunkChatIds, expandEvalCleanupChatIds } from './cleanup-chats.mjs';
+import { chunkChatIds } from './cleanup-chats.mjs';
 import { marker } from './kit.mjs';
 import {
     agentKindDescriptions,
@@ -65,26 +65,7 @@ describe('marker', () => {
     });
 });
 
-describe('cleanup expansion', () => {
-    const claims = [{ claim: { chatId: 'cht_parent', threadChatId: 'cht_thread' } }];
-
-    test('adds the Threads owned by a requested parent Chat', () => {
-        expect(expandEvalCleanupChatIds(['cht_parent'], claims)).toEqual({
-            chatIds: ['cht_parent', 'cht_thread'],
-            retained: [],
-        });
-    });
-
-    test('retains a claim Thread whose parent is not in the set', () => {
-        // Deleting a claim's thread chat alone orphans the durable claim row and
-        // 500s claim.list server-wide (observed live). The thread is retained
-        // and reported resolved so cleanup state stops retrying it.
-        expect(expandEvalCleanupChatIds(['cht_thread'], claims)).toEqual({
-            chatIds: [],
-            retained: ['cht_thread'],
-        });
-    });
-
+describe('cleanup', () => {
     test('chunks ids to the twenty id server limit', () => {
         const ids = Array.from({ length: 45 }, (_, index) => `cht_${index}`);
         expect(chunkChatIds(ids).map((chunk) => chunk.length)).toEqual([20, 20, 5]);
@@ -292,7 +273,7 @@ describe('cli scenario selection', () => {
     test('lists the scenarios it would run', () => {
         const listed = runCli(['--list']);
         expect(listed.status).toBe(0);
-        expect(listed.stdout).toContain('task-thread-routing');
+        expect(listed.stdout).toContain('claim-then-inline-reply');
     });
 
     test('keeps opt-in scenarios out unless explicitly included', () => {
@@ -316,7 +297,7 @@ describe('cli scenario selection', () => {
         expect(listed.status).toBe(0);
         expect(listed.stdout).toContain('fyi-silence-dm');
         expect(listed.stdout).toContain('reminder-schedule-and-fire');
-        expect(listed.stdout).not.toContain('task-thread-routing');
+        expect(listed.stdout).not.toContain('claim-then-inline-reply');
     });
 
     test('a missing filter aborts before the live stack', () => {
@@ -357,7 +338,7 @@ describe('report shape', () => {
     });
 
     test('slug and stamp are filesystem safe', () => {
-        expect(slug('task thread routing!')).toBe('task-thread-routing');
+        expect(slug('claim then inline reply!')).toBe('claim-then-inline-reply');
         expect(runStamp(new Date('2026-08-12T09:41:07.123Z'))).toBe('20260812T094107');
     });
 });
@@ -371,11 +352,11 @@ describe('render helpers', () => {
     test('active line carries the index, name, phase, and elapsed seconds', () => {
         const line = activeLine({
             index: 1,
-            name: 'task-thread-routing',
+            name: 'claim-then-inline-reply',
             phase: 'turn active',
             startedAt: Date.now() - 24_000,
         });
-        expect(line).toBe('▶ 01 task-thread-routing       turn active · 24s');
+        expect(line).toBe('▶ 01 claim-then-inline-reply   turn active · 24s');
     });
 });
 
@@ -436,7 +417,7 @@ function createFakeHarness({
             return { backgroundCount: 0, claims: [] };
         }
         if (path === 'chat.messages') {
-            return { messages: [], threads: [] };
+            return { messages: [] };
         }
         if (path === 'dev.cleanupEvalChats') {
             return { deleted: input.chatIds.length };

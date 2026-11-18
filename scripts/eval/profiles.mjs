@@ -46,13 +46,6 @@ export const placementProfiles = {
         spec: 'S7',
     },
     'ack-reaction-thanks': { channel: [0, 0], reaction: true, spec: 'S3' },
-    'thread-reply-stays-in-thread': { cap: 40, channel: [0, 0], inThread: true, spec: 'S4' },
-    'solo-progress-threads-on-ack': {
-        cap: 60,
-        channel: [1, 2],
-        result: (post) => /\b44\b/u.test(post.content),
-        spec: 'S5',
-    },
     'placement-recommendation': {
         cap: 80,
         channel: [1, 1],
@@ -63,7 +56,7 @@ export const placementProfiles = {
 };
 
 /**
- * Attention scenarios that capture routing evidence. Both grade every human
+ * Attention scenarios that capture routing evidence. Each grades every human
  * message in the channel as a request, so an answer inline anywhere in the
  * exchange counts as an inline reply.
  */
@@ -74,12 +67,6 @@ export const attentionProfiles = {
         requests: 'channel-humans',
         result: (post) => post.content.includes('323'),
         spec: 'A1',
-    },
-    'task-thread-routing': {
-        cap: 70,
-        channel: [1, 2],
-        requests: 'channel-humans',
-        spec: 'A4',
     },
 };
 
@@ -95,7 +82,8 @@ export const attentionProfiles = {
  *
  * Fire (R9): when CI fails, the teammate posts one short top-level message in
  * the channel it was asked in, naming the failing workflow and the branch, and
- * stops. Wrong: a Thread, a second post, a recap of the payload, or a tail offer.
+ * stops. Wrong: a Task for a fire the reply finishes, a second post, a recap of the payload,
+ * or a tail offer.
  */
 export const githubTriggerProfiles = {
     'github-trigger-ci-setup': {

@@ -5,9 +5,11 @@ export interface SeededCloudAgentWork {
     agentId: string;
     chatId: string;
     computerId: string;
+    /** The launch Message, in the Task's own Chat (ADR 0052 decision 6). */
     messageId: string;
     runId: string;
-    threadChatId: string;
+    /** The Task the work is attached to, started from a Message in the Channel. */
+    taskKey: string;
     workId: string;
 }
 
@@ -76,28 +78,22 @@ export async function seedCloudAgentWork(input: {
         target: `#${input.channelName}`,
         title: input.title,
     });
-    const threadChatId = runPsql(
-        input.databaseUrl,
-        `select id from chats where server_id = '${input.serverId}'
-           and anchor_message_id = '${receipt.messageId}'`
-    );
-    assertOpaqueId(threadChatId);
-
     return {
         agentId: created.agent.id,
         chatId,
         computerId: attached.computerId,
         messageId: receipt.messageId,
         runId: receipt.runId,
-        threadChatId,
+        taskKey: receipt.taskKey,
         workId: receipt.work.id,
     };
 }
 
 /**
- * One more work from an Agent that already exists, against any product target
- * the CLI accepts — including `#channel:<anchorMessageId>`, which is how work
- * comes to run inside somebody else's Thread.
+ * One more work from an Agent that already exists. Cloud work attaches to a
+ * Task and the Server refuses a launch without one (ADR 0052 decision 6), so,
+ * like an Agent, the fixture first posts an origin Message in Channel `target`
+ * and starts a Task from it, then launches on that Task.
  */
 export async function startCloudAgentWork(input: {
     agentId: string;
@@ -109,28 +105,32 @@ export async function startCloudAgentWork(input: {
     startingRef?: null | string;
     target: string;
     title: string;
-}): Promise<{ messageId: string; runId: string; work: { id: string } }> {
+}): Promise<{ messageId: string; runId: string; taskKey: string; work: { id: string } }> {
     const runnerToken = await mintAgentRunner({
         agentId: input.agentId,
         chatId: input.chatId,
         credential: input.computerCredential,
     });
-    const launch = async () => {
-        const response = await fetch(`${hausOrigin()}/api/agent/cloud-agents`, {
-            body: JSON.stringify({
-                content: input.content,
-                nonce: `cloud-agent-${input.agentId}-${input.target}`,
-                provider: 'cursor',
-                repository: input.repository,
-                startingRef: input.startingRef ?? null,
-                target: input.target,
-                title: input.title,
-            }),
+    const agentPost = (path: string, body: unknown) =>
+        fetch(`${hausOrigin()}${path}`, {
+            body: JSON.stringify(body),
             headers: {
                 authorization: `Bearer ${runnerToken}`,
                 'content-type': 'application/json',
             },
             method: 'POST',
+        });
+    const taskKey = await startLaunchTask(agentPost, input);
+    const launch = async () => {
+        const response = await agentPost('/api/agent/cloud-agents', {
+            content: input.content,
+            nonce: `cloud-agent-${input.agentId}-${input.target}`,
+            provider: 'cursor',
+            repository: input.repository,
+            startingRef: input.startingRef ?? null,
+            target: input.target,
+            task: taskKey,
+            title: input.title,
         });
         const receipt = (await response.json()) as {
             messageId?: string;
@@ -152,7 +152,47 @@ export async function startCloudAgentWork(input: {
         );
     }
 
-    return { messageId: receipt.messageId, runId: receipt.runId, work: receipt.work };
+    return { messageId: receipt.messageId, runId: receipt.runId, taskKey, work: receipt.work };
+}
+
+type AgentPost = (path: string, body: unknown) => Promise<Response>;
+
+/** Posts the origin Message in Channel `target` as the Agent and starts a Task from it. */
+async function startLaunchTask(
+    agentPost: AgentPost,
+    input: { agentId: string; target: string; title: string }
+): Promise<string> {
+    const send = async () => {
+        const response = await agentPost('/api/agent/messages/send', {
+            content: `Starting: ${input.title}`,
+            nonce: `cloud-agent-origin-${input.agentId}-${input.target}`,
+            target: input.target,
+        });
+        const payload = (await response.json()) as { message?: { id: string }; state?: string };
+        return { payload, status: response.status };
+    };
+    // Like the launch below, a send held for unread messages is sent once more.
+    let { payload, status } = await send();
+    if (status === 200 && payload.state === 'held') {
+        ({ payload, status } = await send());
+    }
+    if (status !== 200 || payload.state !== 'sent' || !payload.message) {
+        throw new Error(
+            `The Cloud Agent fixture could not post its origin Message: ${status} ${JSON.stringify(payload)}`
+        );
+    }
+    const response = await agentPost('/api/agent/tasks/start', {
+        from: payload.message.id,
+        target: input.target,
+        title: input.title,
+    });
+    const started = (await response.json()) as { task?: { key: string } };
+    if (response.status !== 200 || !started.task) {
+        throw new Error(
+            `The Cloud Agent fixture could not start its Task: ${response.status} ${JSON.stringify(started)}`
+        );
+    }
+    return started.task.key;
 }
 
 /** One bounded observation, the frame a Computer sends over its attachment. */

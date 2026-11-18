@@ -67,7 +67,6 @@ export default defineScenario({
             const results = posts.filter((message) => netDue.test(message.content));
             expect(results, 'posts carrying the net amount due').toHaveLength(1);
             const [result] = results;
-            expect(result.chatId, 'result is in the channel, not a Thread').toBe(channel.id);
             expect(result.reply?.rootMessageId, 'result is inline in the human’s exchange').toBe(
                 request.message.id
             );

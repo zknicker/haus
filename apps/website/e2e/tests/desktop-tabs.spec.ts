@@ -5,7 +5,7 @@ import {
     moveTabToRightPane,
     openDesktopWindow,
 } from '../support/desktop-browser-stub.ts';
-import { assertOpaqueId, createTestServer, openChannel, openSection } from '../support/server.ts';
+import { createTestServer, openChannel, openSection } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 test('the sidebar navigates the current tab, Back returns, and Command-click opens a background tab', async ({
@@ -27,7 +27,7 @@ test('the sidebar navigates the current tab, Back returns, and Command-click ope
     await expect(tabs).toContainText('all');
     await openSection(page, 'Tasks');
     await expect(tabs).toHaveCount(1);
-    await expect(tabs).toContainText('General');
+    await expect(tabs).toContainText('Tasks');
 
     // Back (⌘[, the Go menu) walks the tab's own history.
     await desktopEvent(page, 'test:desktop-history');
@@ -38,8 +38,8 @@ test('the sidebar navigates the current tab, Back returns, and Command-click ope
     await page.getByRole('row', { exact: true, name: 'Tasks' }).click({ modifiers: ['Meta'] });
     await expect(tabs).toHaveCount(2);
     await expect(tabs.nth(0)).toContainText('all');
-    // `/tasks` lands on a board, so the tab reads as the address until it reads as the board.
-    await expect(tabs.nth(1)).toContainText(/Tasks|General/u);
+    // `/tasks` is the one flat Tasks page, named as the section.
+    await expect(tabs.nth(1)).toContainText('Tasks');
     await expect(tabs.nth(0)).toHaveAttribute('data-active', 'true');
     await expect(tabs.nth(1)).not.toHaveAttribute('data-active', 'true');
     await expect(page.getByRole('textbox', { name: 'Message all' })).toBeVisible();
@@ -55,10 +55,7 @@ test('the sidebar navigates the current tab, Back returns, and Command-click ope
     await expect(page.getByRole('textbox', { name: 'Message all' })).toBeHidden();
     await desktopEvent(page, 'test:desktop-close');
     await expect(tabs).toHaveCount(2);
-    await tabs
-        .nth(1)
-        .getByRole('button', { name: /^(Tasks|General)$/u })
-        .click();
+    await tabs.nth(1).getByRole('button', { exact: true, name: 'Tasks' }).click();
     await expect(tabs.nth(1)).toHaveAttribute('data-active', 'true');
 
     // ⌘W closes the current tab; ⌘⇧T reopens it with its history.
@@ -69,7 +66,7 @@ test('the sidebar navigates the current tab, Back returns, and Command-click ope
         window.dispatchEvent(new CustomEvent('test:desktop-shortcut', { detail: 'reopen-tab' }))
     );
     await expect(tabs).toHaveCount(2);
-    await expect(tabs.nth(1)).toContainText('General');
+    await expect(tabs.nth(1)).toContainText('Tasks');
 
     // Tabs, their order, and their histories survive a reload.
     await page.reload();
@@ -86,46 +83,40 @@ test('the sidebar navigates the current tab, Back returns, and Command-click ope
     await expect(page.locator('html')).toHaveAttribute('data-window-closed', 'true');
 });
 
-test('panes: a Thread opens in the right pane, Move to right pane splits, and an empty pane closes', async ({
+test('panes: a Task opens in the right pane, Move to right pane splits, and an empty pane closes', async ({
     page,
 }) => {
     await installDesktopBrowserStub(page);
-    const { client, server } = await createTestServer(page, {
+    const { server, session } = await createTestServer(page, {
         displayName: 'Desktop panes',
         slug: 'desktop-tabs-panes',
     });
-    const chatId = server.channels.find((chat) => chat.name === 'all')?.id;
-    assertOpaqueId(chatId);
-    const root = await client.chat.send.mutate({
+    const agent = await createChannelAgent({
+        channelName: 'all',
+        databaseUrl: session.databaseUrl,
         serverId: server.id,
-        chatId,
-        nonce: 'pane-thread-root',
-        content: 'Pane thread root',
+        slug: server.slug,
+        token: session.accessToken,
     });
-    await client.chat.send.mutate({
-        serverId: server.id,
-        chatId,
-        nonce: 'pane-thread-reply',
-        content: 'Pane thread reply',
-        thread: { anchorMessageId: root.message.id },
-    });
-    await openDesktopWindow(page, `/s/${server.slug}/chats/${chatId}`);
+    const originId = await agent.send('Pane task origin', 'pane-task-origin');
+    const { key } = await agent.startTask({ from: originId, title: 'Pane task' });
+    await openDesktopWindow(page, `/s/${server.slug}/chats/${agent.chatId}`);
     const left = tabRow(page, 'Left pane tabs').locator('.workspace-tab');
     const right = tabRow(page, 'Right pane tabs').locator('.workspace-tab');
     const composer = page.getByRole('textbox', { name: 'Message all' });
+    const openTask = new RegExp(`^Open task ${key},`, 'u');
 
-    // A Thread opens as a new tab in the right pane, creating it in a one-pane window
+    // A Task opens as a new tab in the right pane, creating it in a one-pane window
     // (Open, ADR 0046); the chat stays in the left pane.
-    await page.getByRole('button', { name: 'Open thread, 1 reply' }).click();
+    await page.getByRole('button', { name: openTask }).click();
     await expect(left).toHaveCount(1);
     await expect(left).toContainText('all');
     await expect(right).toHaveCount(1);
-    await expect(right).toContainText('Pane thread root');
-    await expect(paneBody(page, 'secondary').getByText('Pane thread reply')).toBeVisible();
+    await expect(right).toContainText(key);
     await expect(composer).toBeVisible();
 
     // The same link again selects that right-pane tab instead of duplicating it.
-    await paneBody(page, 'primary').getByRole('button', { name: 'Open thread, 1 reply' }).click();
+    await paneBody(page, 'primary').getByRole('button', { name: openTask }).click();
     await expect(right).toHaveCount(1);
 
     // Dragging the right pane's only tab onto the left row moves it and closes the right pane.
@@ -135,9 +126,9 @@ test('panes: a Thread opens in the right pane, Move to right pane splits, and an
     await expect(only).toHaveCount(2);
 
     // There is no body edge drop target (ADR 0039): Move to right pane opens the second pane.
-    await moveTabToRightPane(page, 'Pane thread root');
+    await moveTabToRightPane(page, key);
     await expect(right).toHaveCount(1);
-    await expect(right).toContainText('Pane thread root');
+    await expect(right).toContainText(key);
 
     // Closing a pane's last tab closes the pane, leaving one full-width pane.
     await right

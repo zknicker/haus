@@ -1,49 +1,44 @@
 import type { Page } from '@playwright/test';
+import { createChannelAgent } from '../support/channel-agent.ts';
 import { installDesktopBrowserStub, openDesktopWindow } from '../support/desktop-browser-stub.ts';
-import { assertOpaqueId, createTestServer, openSection } from '../support/server.ts';
+import { createTestServer, openSection } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 test('the sidebar goes in the left pane, pages open on the right, and Settings is one tab', async ({
     page,
 }) => {
     await installDesktopBrowserStub(page);
-    const { client, server } = await createTestServer(page, {
+    const { server, session } = await createTestServer(page, {
         displayName: 'Desktop navigation',
         slug: 'desktop-navigation',
     });
-    const chatId = server.channels.find((chat) => chat.name === 'all')?.id;
-    assertOpaqueId(chatId);
-    const root = await client.chat.send.mutate({
+    const agent = await createChannelAgent({
+        channelName: 'all',
+        databaseUrl: session.databaseUrl,
         serverId: server.id,
-        chatId,
-        nonce: 'navigation-thread-root',
-        content: 'Navigation thread root',
+        slug: server.slug,
+        token: session.accessToken,
     });
-    await client.chat.send.mutate({
-        serverId: server.id,
-        chatId,
-        nonce: 'navigation-thread-reply',
-        content: 'Navigation thread reply',
-        thread: { anchorMessageId: root.message.id },
-    });
-    await openDesktopWindow(page, `/s/${server.slug}/chats/${chatId}`);
+    const originId = await agent.send('Navigation task origin', 'navigation-task-origin');
+    const { key } = await agent.startTask({ from: originId, title: 'Navigation task' });
+    await openDesktopWindow(page, `/s/${server.slug}/chats/${agent.chatId}`);
     const left = tabRow(page, 'Left pane tabs').locator('.workspace-tab');
     const right = tabRow(page, 'Right pane tabs').locator('.workspace-tab');
-    const openThread = page
+    const openTask = page
         .locator('.desktop-tab-frame[data-frame-pane="primary"]:visible')
-        .getByRole('button', { name: 'Open thread, 1 reply' });
+        .getByRole('button', { name: new RegExp(`^Open task ${key},`, 'u') });
 
-    // Open: a Thread inside the chat opens on the right, creating the right pane.
-    await openThread.click();
+    // Open: a Task previewed inside the chat opens on the right, creating the right pane.
+    await openTask.click();
     await expect(right).toHaveCount(1);
-    await expect(right.first()).toContainText('Navigation thread root');
+    await expect(right.first()).toContainText(key);
 
     // Go: with the right pane focused, a sidebar row still navigates the left pane's tab.
     await openSection(page, 'Tasks');
     await expect(left).toHaveCount(1);
     await expect(left.first()).toContainText('General');
     await expect(right).toHaveCount(1);
-    await expect(right.first()).toContainText('Navigation thread root');
+    await expect(right.first()).toContainText(key);
 
     // Back undoes Go in the left tab.
     await page.evaluate(() => window.dispatchEvent(new Event('test:desktop-history')));
@@ -51,11 +46,11 @@ test('the sidebar goes in the left pane, pages open on the right, and Settings i
 
     // Modifiers open beside the source in its own pane, never on the right: Command-click
     // and middle-click a background tab, each after the last.
-    await openThread.click({ modifiers: ['Meta'] });
+    await openTask.click({ modifiers: ['Meta'] });
     await expect(left).toHaveCount(2);
     await expect(left.nth(0)).toHaveAttribute('data-active', 'true');
-    await expect(left.nth(1)).toContainText('Navigation thread root');
-    await openThread.click({ button: 'middle' });
+    await expect(left.nth(1)).toContainText(key);
+    await openTask.click({ button: 'middle' });
     await expect(left).toHaveCount(3);
     await expect(left.nth(0)).toHaveAttribute('data-active', 'true');
     await expect(right).toHaveCount(1);

@@ -53,57 +53,84 @@ export async function createChannelAgent(input: {
     );
     const runnerToken = await mintAgentRunner(created.agent.id, chatId, agentCredentialHash);
 
+    const agentPost = (path: string, body: unknown) =>
+        fetch(`${hausOrigin()}${path}`, {
+            body: JSON.stringify(body),
+            headers: {
+                authorization: `Bearer ${runnerToken}`,
+                'content-type': 'application/json',
+            },
+            method: 'POST',
+        });
+
     return {
         agentId: created.agent.id,
         chatId,
-        /** Files a Task as the Agent; the viewer can't assign themselves into their own Inbox. */
-        createTask: async (input: {
-            assignee?: string;
-            board: string;
-            priority?: string;
-            title: string;
-        }) => {
-            const response = await fetch(`${hausOrigin()}/api/agent/tasks/create`, {
-                body: JSON.stringify(input),
-                headers: {
-                    authorization: `Bearer ${runnerToken}`,
-                    'content-type': 'application/json',
-                },
-                method: 'POST',
-            });
-            const payload = (await response.json()) as { task?: { key: string } };
-            if (response.status !== 200 || !payload.task) {
-                throw new Error(
-                    `The Task fixture could not file as its Agent: ${response.status} ${JSON.stringify(payload)}`
-                );
-            }
-            return payload.task;
-        },
         ownerUserId,
         /**
          * Posts as the Agent; `target` defaults to its own Channel. A send held
          * for unseen messages has now shown them, so it is sent once more, as a
-         * real Agent would after reading.
+         * real Agent would after reading. Answers the sent Message's id.
          */
         send: async (content: string, nonce: string, target = `#${input.channelName}`) => {
             const post = async () => {
-                const response = await fetch(`${hausOrigin()}/api/agent/messages/send`, {
-                    body: JSON.stringify({ content, nonce, target }),
-                    headers: {
-                        authorization: `Bearer ${runnerToken}`,
-                        'content-type': 'application/json',
-                    },
-                    method: 'POST',
+                const response = await agentPost('/api/agent/messages/send', {
+                    content,
+                    nonce,
+                    target,
                 });
-                return { payload: (await response.json()) as { state?: string }, response };
+                return {
+                    payload: (await response.json()) as {
+                        message?: { id: string };
+                        state?: string;
+                    },
+                    response,
+                };
             };
             let { payload, response } = await post();
             if (response.status === 200 && payload.state === 'held') {
                 ({ payload, response } = await post());
             }
-            if (response.status !== 200 || payload.state !== 'sent') {
+            if (response.status !== 200 || payload.state !== 'sent' || !payload.message) {
                 throw new Error(
                     `The mention fixture could not post as its Agent: ${response.status} ${JSON.stringify(payload)}`
+                );
+            }
+            return payload.message.id;
+        },
+        /**
+         * Starts a Task as the Agent from one of its Channel's Messages (ADR
+         * 0052 decision 4): only Agents create Tasks. `target` defaults to the
+         * Agent's own Channel; `assignee` is `me` or an @handle.
+         */
+        startTask: async (task: {
+            assignee?: string;
+            from: string;
+            state?: 'open' | 'todo';
+            target?: string;
+            title: string;
+        }) => {
+            const response = await agentPost('/api/agent/tasks/start', {
+                ...task,
+                target: task.target ?? `#${input.channelName}`,
+            });
+            const payload = (await response.json()) as {
+                target?: string;
+                task?: { key: string };
+            };
+            if (response.status !== 200 || !(payload.task && payload.target)) {
+                throw new Error(
+                    `The Task fixture could not start as its Agent: ${response.status} ${JSON.stringify(payload)}`
+                );
+            }
+            return { key: payload.task.key, target: payload.target };
+        },
+        /** Moves a Task between todo, open, done, and canceled, as the Agent. */
+        setTaskState: async (key: string, state: 'canceled' | 'done' | 'open' | 'todo') => {
+            const response = await agentPost('/api/agent/tasks/state', { key, state });
+            if (response.status !== 200) {
+                throw new Error(
+                    `The Task fixture could not set ${key} ${state}: ${response.status} ${await response.text()}`
                 );
             }
         },

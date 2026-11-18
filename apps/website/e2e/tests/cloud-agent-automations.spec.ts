@@ -70,7 +70,8 @@ test('Automations exposes automatic cloud handoffs and keeps delivered work in h
     mkdirSync(screenshots, { recursive: true });
     await page.screenshot({ path: `${screenshots}/running.png` });
     await row.click();
-    await expect(page).toHaveURL(new RegExp(`thread=${seeded.messageId}`, 'u'));
+    await expect(page).toHaveURL(new RegExp(`/chats/${seeded.chatId}`, 'u'));
+    await expect(page.locator(`[data-message-id="${seeded.messageId}"]`)).toBeInViewport();
     await page.goto(route);
     socket.send(
         cloudAgentObservationFrame({
@@ -106,6 +107,7 @@ test('Automations exposes automatic cloud handoffs and keeps delivered work in h
     await page.mouse.move(5, 5);
     await page.screenshot({ path: `${screenshots}/history.png` });
     await row.click();
-    await expect(page).toHaveURL(new RegExp(`thread=${seeded.messageId}`, 'u'));
+    await expect(page).toHaveURL(new RegExp(`/chats/${seeded.chatId}`, 'u'));
+    await expect(page.locator(`[data-message-id="${seeded.messageId}"]`)).toBeInViewport();
     socket.close();
 });

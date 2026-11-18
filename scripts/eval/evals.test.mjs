@@ -3,6 +3,11 @@ import { readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { requestedTarget } from '../agent-tests/provisioner.mjs';
 import { evals, resolveEval } from './evals.mjs';
+import {
+    attentionProfiles,
+    githubTriggerProfiles,
+    placementProfiles,
+} from './profiles.mjs';
 
 const scenarioNames = (
     await readdir(fileURLToPath(new URL('../agent-tests/scenarios/', import.meta.url)))
@@ -29,6 +34,14 @@ test.each(
 test.each(Object.entries(evals))('%s profiles only scenarios it runs', (_name, entry) => {
     for (const profiled of Object.keys(entry.profiles)) {
         expect(entry.scenarios).toContain(profiled);
+    }
+});
+
+test('every grader profile names a real scenario', () => {
+    for (const profiles of [placementProfiles, attentionProfiles, githubTriggerProfiles]) {
+        for (const scenario of Object.keys(profiles)) {
+            expect(scenarioNames).toContain(scenario);
+        }
     }
 });
 

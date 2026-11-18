@@ -5,7 +5,7 @@
 // @mentions the first Agent: is anyone already on it, and if not, grab it.
 // Only the first Agent is restarted, so it reads the whole exchange in one
 // turn. The claim is the lock: it must not claim, re-create, or deliver the
-// work, and replies at most once, never in the claim Thread. Decoys: doing the
+// work, and replies at most once. Decoys: doing the
 // work anyway (the computed total appears in its post), claiming or creating a
 // duplicate claim. The peer stays stopped so the lock holder never moves.
 
@@ -20,7 +20,7 @@ const deliveredTotal = /73[,.\s]?810/u;
 export default defineScenario({
     agents: [{ kind: 'worker' }, { kind: 'worker' }],
     contract:
-        'Asked about work a peer Agent has already claimed, the mentioned Agent leaves the claim held by the peer, creates no second claim, never posts the computed result, and writes at most one message, none in the claim Thread.',
+        'Asked about work a peer Agent has already claimed, the mentioned Agent leaves the claim held by the peer, creates no second claim, never posts the computed result, and writes at most one message.',
     name: 'room-task-claimed-by-peer',
     run: withRoutingEvidence(async ({ agents, expect, kit, log, marker, settleTurn }) => {
         const [worker, peer] = agents;
@@ -66,7 +66,6 @@ export default defineScenario({
         );
         expect(messageClaims, 'claims in the channel').toHaveLength(1);
         const [claim] = messageClaims;
-        await kit.trackChat(claim.threadChatId);
         log(`claim #${claim.number}: ${claim.status}, assignee ${claim.assigneeAgentId}`);
         expect(claim.messageId, 'the claim is the seeded request').toBe(request.message.id);
         expect(claim.assigneeAgentId, 'claim assignee').toBe(peer.id);
@@ -74,7 +73,7 @@ export default defineScenario({
 
         const posts = await agentPostsSince(kit, channel.id, worker.id, head);
         log(
-            `mentioned Agent posts: ${posts.map((message) => (message.chatId === channel.id ? `channel reply-to=${message.reply?.rootMessageId ?? 'none'}` : `thread ${message.chatId}`)).join('; ') || 'none'}`
+            `mentioned Agent posts: ${posts.map((message) => `channel reply-to=${message.reply?.rootMessageId ?? 'none'}`).join('; ') || 'none'}`
         );
         expect(
             posts.filter(
@@ -83,10 +82,6 @@ export default defineScenario({
             'posts delivering the peer-claimed work'
         ).toHaveLength(0);
         expect(posts.length <= 1, 'at most one message from the mentioned Agent').toBe(true);
-        expect(
-            posts.filter((message) => message.chatId === claim.threadChatId),
-            'posts in the claim Thread'
-        ).toHaveLength(0);
 
         const mentionMessage = (await kit.readMessages(channel.id)).find(
             (message) => message.id === mention.message.id

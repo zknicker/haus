@@ -20,13 +20,15 @@ export function withRoutingEvidence(run) {
 
 export async function captureRoutingEvidence(kit, agents) {
     const chats = [];
+    // Tasks started from a captured chat's messages are captured too (ADR 0052), so the
+    // grader sees what the Agent posted in them and can label it a Task post.
     const pending = new Set(kit.transcript().chats.map((chat) => chat.id));
     const errors = [];
     for (const chatId of pending) {
         try {
             let beforeSequence;
             const messages = [];
-            const threads = [];
+            const tasks = [];
             do {
                 const page = await kit.trpc('chat.messages', {
                     chatId,
@@ -35,14 +37,17 @@ export async function captureRoutingEvidence(kit, agents) {
                     ...(beforeSequence ? { beforeSequence } : {}),
                 });
                 messages.push(...page.messages);
-                for (const thread of page.threads) {
-                    threads.push(thread);
-                    pending.add(thread.threadChatId);
-                    await kit.trackChat(thread.threadChatId);
+                for (const task of page.tasks ?? []) {
+                    tasks.push({
+                        chatId: task.chatId,
+                        originMessageId: task.originMessageId,
+                        taskId: task.taskId,
+                    });
+                    pending.add(task.chatId);
                 }
                 beforeSequence = page.nextBeforeSequence;
             } while (beforeSequence);
-            chats.push({ chatId, messages, threads });
+            chats.push({ chatId, messages, tasks });
         } catch (error) {
             errors.push({ chatId, error: String(error) });
         }

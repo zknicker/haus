@@ -4,18 +4,12 @@
 
 import { createAgentAuthor } from './author.mjs';
 
-/** An Agent's posts in a fresh channel since `head`, top level and in every Thread. */
+/** An Agent's posts in a fresh channel since `head`, top level and inline. */
 export async function agentPostsSince(kit, chatId, agentId, head) {
     const own = (message) => message.author.kind === 'agent' && message.author.agentId === agentId;
-    const posts = (await kit.readMessages(chatId)).filter(
+    return (await kit.readMessages(chatId)).filter(
         (message) => own(message) && message.sequence > head
     );
-    const page = await kit.trpc('chat.messages', { chatId, limit: 100, serverId: kit.serverId });
-    for (const thread of page.threads) {
-        await kit.trackChat(thread.threadChatId);
-        posts.push(...(await kit.readMessages(thread.threadChatId)).filter(own));
-    }
-    return posts;
 }
 
 /** The reactions `agentId` left on `message`. */

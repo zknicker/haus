@@ -6,9 +6,8 @@
 // at most one pickup note inline, then answers inline. The note is optional:
 // for work that finishes in under a minute the answer itself is the update. Decoys: the bystander
 // chiming in, and working notes posted as inline replies to the request (each
-// one notifies the requester) or in the request's Thread instead of in the
-// Thread on the Agent's own pickup note. Progress itself is not required here;
-// `solo-progress-threads-on-ack` gates it when the human asks to be kept posted.
+// one notifies the requester). Work that outlasts a reply goes in a Task, which
+// the task-intake scenarios gate.
 
 import { gzipSync } from 'node:zlib';
 
@@ -43,7 +42,7 @@ const step1 = seal(
 export default defineScenario({
     agents: [{ kind: 'worker' }, { kind: 'worker' }],
     contract:
-        'An @mentioned multi-step shell request in a two-Agent channel gets exactly one signature-emoji reaction from the addressed Agent, at most one one-line inline pickup note before an inline --done answer carrying the marker, no post in the request Thread or elsewhere outside its own working Thread, and nothing from the other Agent.',
+        'An @mentioned multi-step shell request in a two-Agent channel gets exactly one signature-emoji reaction from the addressed Agent, at most one one-line inline pickup note before an inline --done answer carrying the marker, and nothing from the other Agent.',
     name: 'room-pickup-reaction-on-it',
     run: withRoutingEvidence(async ({ agents, expect, kit, log, marker, settleTurn }) => {
         const [worker, bystander] = agents;
@@ -65,9 +64,7 @@ export default defineScenario({
             channelId: channel.id,
             requestIds: [request.message.id],
         });
-        log(
-            `posts: ${[...placement.channelPosts, ...placement.threadPosts].map((entry) => entry.label).join(', ') || 'none'}`
-        );
+        log(`posts: ${placement.channelPosts.map((entry) => entry.label).join(', ') || 'none'}`);
 
         const target = (await kit.readMessages(channel.id)).find(
             (message) => message.id === request.message.id
@@ -105,23 +102,7 @@ export default defineScenario({
             ).toBe(true);
         }
 
-        // Working notes are optional, but when present they live only in the
-        // Thread on the Agent's own post: never the request's Thread.
-        const stray = placement.threadPosts.filter((entry) => entry.label !== 'working-thread');
-        expect(
-            stray.map((entry) => entry.label),
-            'Thread posts outside the working Thread'
-        ).toHaveLength(0);
-        expect(
-            placement.threadPosts.filter((entry) => entry.message.content.includes(token)),
-            'answer landed in the working Thread'
-        ).toHaveLength(0);
-
         expectDoneToRequest(expect, placement, { requestIds: [request.message.id] });
-        expect(
-            placement.doneInThread.map((send) => send.target),
-            '--done sends that went to a Thread'
-        ).toHaveLength(0);
         const noteBodies = new Set(notes.map((note) => note.message.content.trim()));
         expect(
             placement.doneSends.filter((send) => send.body !== '' && noteBodies.has(send.body)),

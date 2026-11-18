@@ -1,5 +1,5 @@
 // Reads one scenario run's saved evidence: the runner transcript, the routing
-// evidence a scenario captured (chats, Threads, journals), the `--done` sends
+// evidence a scenario captured (chats, Tasks, journals), the `--done` sends
 // those journals carry, and a display timeline for the report.
 
 import { existsSync } from 'node:fs';
@@ -63,6 +63,11 @@ export function evidenceMessages(evidence) {
     return [...new Map(all.map((message) => [message.id, message])).values()].sort(byTime);
 }
 
+/** The chats of the Tasks started from the evidence chats' messages (ADR 0052). */
+export function evidenceTaskChatIds(evidence) {
+    return evidence.chats.flatMap((chat) => (chat.tasks ?? []).map((task) => task.chatId));
+}
+
 /** Whether a post's body is one the turn sent with `--done`. */
 export function sentWithDone(content, doneSends) {
     const body = content.trim();
@@ -70,7 +75,7 @@ export function sentWithDone(content, doneSends) {
 }
 
 /**
- * The run as the report shows it: every message in the channel and its Threads.
+ * The run as the report shows it: every message in the channel and in its Tasks.
  * Agent posts carry a placement label and whether they went out with `--done`.
  * Without routing evidence, the transcript's observed messages stand in, unlabeled.
  */
@@ -81,9 +86,8 @@ export function buildTimeline({ evidence, transcript }, { labels = new Map() } =
         const doneSends = doneSendsFrom(evidence.journals ?? []);
         const context = {
             channelId: rootChatId,
-            ownAnchors: messages.filter((m) => isOwn(m, agentId)).map((m) => m.id),
             requestId: messages.filter((m) => m.author.kind === 'human').map((m) => m.id),
-            threads: evidence.chats.flatMap((chat) => chat.threads ?? []),
+            taskChatIds: evidenceTaskChatIds(evidence),
         };
         return messages.map((message) => {
             const entry = baseEntry(message, rootChatId);
@@ -115,7 +119,7 @@ function baseEntry(message, rootChatId) {
         content: message.content,
         id: message.id,
         reactions: (message.reactions ?? []).map((reaction) => reaction.emoji),
-        where: message.chatId === rootChatId ? 'channel' : 'thread',
+        where: message.chatId === rootChatId ? 'channel' : 'elsewhere',
         who: message.author.kind === 'human' ? 'human' : 'agent',
     };
 }

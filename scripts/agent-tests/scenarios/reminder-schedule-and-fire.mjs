@@ -38,15 +38,8 @@ export default defineScenario({
             expect(reminder.repeat ?? 'none', 'reminder repeat').toBe('none');
 
             const anchorChatId = reminder.anchorChatId;
-            if (anchorChatId !== channel.id) {
-                await kit.trackChat(anchorChatId);
-            }
-
             const fresh = `Deployment status: READY-${token}`;
             await kit.harness.send(channel.id, fresh);
-            if (anchorChatId !== channel.id) {
-                await kit.harness.send(anchorChatId, fresh);
-            }
 
             log('waiting for the reminder to fire');
             const earlyReports = (await readAgentReplies(kit, anchorChatId, worker.id)).filter(
@@ -74,10 +67,7 @@ export default defineScenario({
                     message.cause?.kind === 'reminder' &&
                     message.cause.automationId === reminder.id
             );
-            expect(
-                reports,
-                'follow-up reports across the anchor and its claim Threads'
-            ).toHaveLength(1);
+            expect(reports, 'follow-up reports in the anchor chat').toHaveLength(1);
         } finally {
             await cancelIfScheduled(kit, reminder);
         }
@@ -85,37 +75,21 @@ export default defineScenario({
 });
 
 async function readAgentReplies(kit, chatId, agentId) {
-    const direct = await kit.readMessages(chatId);
-    const { claims } = await kit.trpc('claim.list', { serverId: kit.serverId });
-    const threads = await Promise.all(
-        claims
-            .filter((entry) => entry.claim.chatId === chatId)
-            .map((entry) => kit.readMessages(entry.claim.threadChatId))
-    );
-    return [...direct, ...threads.flat()].filter(
+    return (await kit.readMessages(chatId)).filter(
         (message) => message.author.kind === 'agent' && message.author.agentId === agentId
     );
 }
 
-/** The Agent may anchor its reminder to the channel itself or to a Thread in it. */
+/** The Agent's scheduled reminder anchored in the channel. */
 async function waitForScheduledReminder(kit, agentId, channelId) {
     const deadline = Date.now() + 120_000;
     for (;;) {
-        const page = await kit.trpc('chat.messages', {
-            chatId: channelId,
-            limit: 100,
-            serverId: kit.serverId,
-        });
-        const anchors = new Set([
-            channelId,
-            ...(page.threads ?? []).map((thread) => thread.threadChatId),
-        ]);
         const reminders = await kit.trpc('reminder.list', {
             agentId,
             serverId: kit.serverId,
             status: 'scheduled',
         });
-        const scheduled = reminders.find((candidate) => anchors.has(candidate.anchorChatId));
+        const scheduled = reminders.find((candidate) => candidate.anchorChatId === channelId);
         if (scheduled || Date.now() >= deadline) {
             return scheduled ?? null;
         }

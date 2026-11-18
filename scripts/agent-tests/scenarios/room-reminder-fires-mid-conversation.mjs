@@ -1,12 +1,12 @@
-// A reminder fires while its owner is busy in a live Thread exchange. The
+// A reminder fires while its owner is busy in a live inline exchange. The
 // Owner asks the first Agent for a one-minute follow-up in the channel, then,
-// while the reminder is pending, opens a Thread on a different message and asks
-// that Agent two quick questions there, the second timed to land with the fire.
-// The Manual card `reminder-cron` says a fire is answered top level in the
-// anchor chat with `--cause <fireId>` and never in a Thread. Decoy: the live
-// Thread is the conversation in front of the Agent, so it answers the fire
-// inside that Thread or folds the status into its Thread reply. A second Agent
-// in the channel stays silent throughout.
+// while the reminder is pending, asks that Agent two quick questions as inline
+// replies under a different message, the second timed to land with the fire.
+// The Manual card `reminder-cron` says a fire is answered with a new top-level
+// message in the anchor chat with `--cause <fireId>`. Decoy: the inline
+// exchange is the conversation in front of the Agent, so it answers the fire
+// inside that exchange or folds the status into its inline reply. A second
+// Agent in the channel stays silent throughout.
 
 import { expectSettled, journaledSends, ownerSend, postsAcrossChannel, wait } from '../room-c.mjs';
 import { withRoutingEvidence } from '../routing-evidence.mjs';
@@ -15,7 +15,7 @@ import { defineScenario } from '../scenario.mjs';
 export default defineScenario({
     agents: [{ kind: 'worker' }, { kind: 'worker' }],
     contract:
-        'A reminder that fires while its owner is mid-exchange in a live Thread is answered by exactly one reminder-caused message in the anchor chat, attributed with --cause, never inside the live Thread; both Thread questions are answered in the Thread, and the second Agent writes nothing.',
+        'A reminder that fires while its owner is mid-exchange in a live inline exchange is answered by exactly one reminder-caused top-level message in the anchor chat, attributed with --cause, never inside the inline exchange; both inline questions are answered inline, and the second Agent writes nothing.',
     name: 'room-reminder-fires-mid-conversation',
     run: withRoutingEvidence(async ({ agents, expect, kit, log, marker, settleTurn }) => {
         const [worker, bystander] = agents;
@@ -43,20 +43,16 @@ export default defineScenario({
             expect(reminder.repeat ?? 'none', 'reminder repeat').toBe('none');
             await ownerSend(kit, channel.id, `Release status: ${token}`);
 
-            log('opening a live Thread on a different message');
+            log('opening a live inline exchange under a different message');
             const anchor = await ownerSend(kit, channel.id, `Launch email list ${kit.stamp}`);
-            const threadHead = await kit.readHead(channel.id);
-            const opened = await ownerSend(
+            const exchangeHead = await kit.readHead(channel.id);
+            await ownerSend(
                 kit,
                 channel.id,
                 `@${worker.handle} Quick one while we're here: 17 segments of 23 recipients each, how many recipients total?`,
-                { thread: { anchorMessageId: anchor.message.id } }
+                { replyToMessageId: anchor.message.id }
             );
-            const liveThreadId = opened.threadChatId;
-            expect(liveThreadId, 'live Thread chat id on the send receipt').toBeTruthy();
-            await kit.trackChat(liveThreadId);
-            expect(liveThreadId === reminder.anchorChatId, 'live Thread is the anchor').toBe(false);
-            expectSettled(expect, await settleTurn(worker.id), 'first Thread turn');
+            expectSettled(expect, await settleTurn(worker.id), 'first inline turn');
 
             const untilFire = Date.parse(reminder.fireAt) - Date.now();
             log(
@@ -66,10 +62,10 @@ export default defineScenario({
             );
             await wait(Math.max(0, untilFire - 2000));
             await ownerSend(kit, channel.id, 'And with 19 segments instead?', {
-                thread: { anchorMessageId: anchor.message.id },
+                replyToMessageId: anchor.message.id,
             });
 
-            log('waiting for the fire and the Thread answer');
+            log('waiting for the fire and the inline answer');
             const fire = await waitForFire(kit, reminder.id);
             expect(fire?.id, 'the reminder fired').toBeTruthy();
             await kit.harness.waitForAgentQuiet(worker.id, 15_000, 300_000);
@@ -81,38 +77,39 @@ export default defineScenario({
                 (message) =>
                     message.cause?.kind === 'reminder' && message.cause.automationId === reminder.id
             );
-            expect(caused, 'reminder-caused posts across the channel and its Threads').toHaveLength(
-                1
-            );
+            expect(caused, 'reminder-caused posts in the channel').toHaveLength(1);
             const [answer] = caused;
             expect(answer.chatId, 'the fire answer lands in the anchor chat').toBe(
                 reminder.anchorChatId
             );
+            expect(answer.reply ?? null, 'the fire answer is a new top-level message').toBe(null);
             expect(answer.content, 'the fire answer reports the newest status').toContain(token);
             expect(answer.cause.fireId, 'the fire answer names the fire').toBe(fire.id);
             expect(answer.cause.attribution, 'the fire named with --cause').toBe('explicit');
 
-            const inThread = posts.filter((message) => message.chatId === liveThreadId);
+            const inExchange = posts.filter(
+                (message) => message.reply?.rootMessageId === anchor.message.id
+            );
             expect(
-                inThread.filter((message) => message.content.includes(token)),
-                'live Thread posts carrying the reminder status'
+                inExchange.filter((message) => message.content.includes(token)),
+                'inline exchange posts carrying the reminder status'
             ).toHaveLength(0);
             expect(
-                inThread.filter((message) => message.content.includes('391')),
-                'first Thread answer in the live Thread'
+                inExchange.filter((message) => message.content.includes('391')),
+                'first inline answer in the exchange'
             ).toHaveLength(1);
             expect(
-                inThread.filter((message) => message.content.includes('437')),
-                'second Thread answer in the live Thread'
+                inExchange.filter((message) => message.content.includes('437')),
+                'second inline answer in the exchange'
             ).toHaveLength(1);
             expect(
                 posts.filter(
                     (message) =>
-                        message.chatId === channel.id &&
-                        message.sequence > threadHead &&
-                        message.id !== answer.id
+                        message.sequence > exchangeHead &&
+                        message.id !== answer.id &&
+                        message.reply?.rootMessageId !== anchor.message.id
                 ),
-                'top-level channel posts after the Thread opened, besides the fire answer'
+                'channel posts after the exchange opened, besides the fire answer and the inline answers'
             ).toHaveLength(0);
 
             const { sends, unavailable } = await journaledSends(kit, worker.id);
@@ -139,29 +136,17 @@ export default defineScenario({
     }),
 });
 
-/** The Agent may anchor its reminder to the channel itself or to a Thread in it. */
+/** The Agent's scheduled reminder anchored in the channel. */
 async function waitForScheduledReminder(kit, agentId, channelId) {
     const deadline = Date.now() + 120_000;
     for (;;) {
-        const page = await kit.trpc('chat.messages', {
-            chatId: channelId,
-            limit: 100,
-            serverId: kit.serverId,
-        });
-        const anchors = new Set([
-            channelId,
-            ...(page.threads ?? []).map((thread) => thread.threadChatId),
-        ]);
         const reminders = await kit.trpc('reminder.list', {
             agentId,
             serverId: kit.serverId,
             status: 'scheduled',
         });
-        const scheduled = reminders.find((candidate) => anchors.has(candidate.anchorChatId));
+        const scheduled = reminders.find((candidate) => candidate.anchorChatId === channelId);
         if (scheduled || Date.now() >= deadline) {
-            if (scheduled && scheduled.anchorChatId !== channelId) {
-                await kit.trackChat(scheduled.anchorChatId);
-            }
             return scheduled ?? null;
         }
         await wait(2000);

@@ -91,6 +91,6 @@ export async function expectDeletedChatPurged(page: Page, scene: Scene) {
     // Revealing the deleted Chat's tab never renders it from cache.
     await tabs(page).nth(0).getByRole('button').first().click();
     await expect(
-        page.locator('[data-slot="chat-surface"]').getByText('Product anchor for the Thread')
+        page.locator('[data-slot="chat-surface"]').getByText('Product anchor for inline replies')
     ).toHaveCount(0, { timeout: 15_000 });
 }

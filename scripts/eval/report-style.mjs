@@ -59,7 +59,7 @@ td small{display:block;color:var(--muted)}
 .msg:first-of-type{border-top:0}
 .msg .who{font-size:11px;color:var(--muted);padding-top:3px}
 .msg .body{min-width:0;overflow-wrap:anywhere;white-space:pre-line}
-.msg .body.thread{padding-left:12px;border-left:2px solid var(--line);color:var(--muted)}
+.msg .body.elsewhere{padding-left:12px;border-left:2px solid var(--line);color:var(--muted)}
 .tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;margin-left:6px;vertical-align:middle;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
 .tag.ok{border-color:var(--good);color:var(--good)} .tag.bad{border-color:var(--bad);color:var(--bad)} .tag.warn{border-color:var(--warn);color:var(--warn)}
 .verdict{font-size:13px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}

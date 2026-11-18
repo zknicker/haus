@@ -12,17 +12,11 @@ export async function artifactsCreatedBy(kit, agentId) {
     return listed.artifacts;
 }
 
-/** The Agent's messages after `sinceSequence` in the chat, plus any Thread opened there. */
+/** The Agent's messages after `sinceSequence` in the chat, inline replies included. */
 export async function agentMessages(kit, agentId, chatId, sinceSequence) {
     const page = await kit.trpc('chat.messages', { chatId, limit: 100, serverId: kit.serverId });
     const own = (message) => message.author.kind === 'agent' && message.author.agentId === agentId;
-    const collected = page.messages.filter(
-        (message) => own(message) && message.sequence > sinceSequence
-    );
-    for (const thread of page.threads ?? []) {
-        collected.push(...(await kit.readMessages(thread.threadChatId)).filter(own));
-    }
-    return collected;
+    return page.messages.filter((message) => own(message) && message.sequence > sinceSequence);
 }
 
 /** Shell commands the settled turn ran, from its Computer execution journal. */

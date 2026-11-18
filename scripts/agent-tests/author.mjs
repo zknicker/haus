@@ -154,11 +154,6 @@ export function agentWorkspacePath({ agentId, repositoryRoot, serverId }) {
     );
 }
 
-/** Builds the thread target grammar for an anchor message id. */
-export function threadTarget(channelName, anchorMessageId) {
-    return `#${channelName}:${anchorMessageId.replace(/^msg_/u, '').slice(0, 8)}`;
-}
-
 function describeHolds(holds) {
     return holds
         .map(

@@ -1,14 +1,14 @@
 import { createTestServer } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
-test('cold Tasks navigation paints its shell before the board module arrives', async ({
+test('cold Tasks navigation paints its shell before the Tasks module arrives', async ({
     page,
 }, testInfo) => {
     let release = () => {};
     const held = new Promise<void>((resolve) => {
         release = resolve;
     });
-    await page.route('**/src/features/tasks/board-page.tsx*', async (route) => {
+    await page.route('**/src/features/tasks/tasks-page.tsx*', async (route) => {
         await held;
         await route.continue();
     });
@@ -22,14 +22,7 @@ test('cold Tasks navigation paints its shell before the board module arrives', a
                 const frames: boolean[] = [];
                 for (let index = 0; index < 60; index += 1) {
                     await new Promise(requestAnimationFrame);
-                    // The redirect frame reads "Tasks"; the board's own frame, its name.
-                    frames.push(
-                        Boolean(
-                            document.querySelector(
-                                'section[aria-label="Tasks"], section[aria-label="General"]'
-                            )
-                        )
-                    );
+                    frames.push(Boolean(document.querySelector('section[aria-label="Tasks"]')));
                 }
                 return frames;
             });
@@ -41,14 +34,15 @@ test('cold Tasks navigation paints its shell before the board module arrives', a
             contentType: 'application/json',
         });
         expect(samples.some(Boolean)).toBe(true);
-        await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toContainText('General');
-        await expect(page.getByRole('heading', { name: 'Todo', exact: true })).toHaveCount(0);
+        await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toContainText('Tasks');
+        await expect(page.getByRole('toolbar', { name: 'Task filters' })).toHaveCount(0);
         await expect(page.locator('.skeleton')).toHaveCount(0);
     } finally {
         release();
     }
-    await expect(page.getByRole('heading', { name: 'Todo', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'New task', exact: true })).toBeVisible();
+    await expect(page.getByRole('toolbar', { name: 'Task filters' })).toBeVisible();
+    // No create: a human asks an Agent for a Task (ADR 0052 decision 4).
+    await expect(page.getByRole('button', { name: 'New task', exact: true })).toHaveCount(0);
 });
 
 test('Inbox reserves its greeting line without moving the date when identity arrives', async ({
@@ -123,7 +117,7 @@ test('default channel marks leave the icon catalog unloaded until the picker ope
         }
     });
     const warmed = page.waitForResponse((response) =>
-        response.url().includes('/features/tasks/board-page.tsx')
+        response.url().includes('/features/tasks/tasks-page.tsx')
     );
     await createTestServer(page, { displayName: 'Icon performance', slug: 'icon-performance' });
     await expect(page.getByRole('row', { name: 'all', exact: true })).toBeVisible();

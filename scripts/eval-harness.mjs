@@ -181,7 +181,6 @@ export async function createEvalHarness({ evalName, repositoryRoot = process.cwd
                 .filter((state) => state.running)
                 .map((state) => state.agentId),
             messages: page.messages,
-            threads: page.threads,
         };
     }
 

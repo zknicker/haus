@@ -16,7 +16,7 @@ const options = /\bdog[\s-]?moms?\b|\bteachers?\b/iu;
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'A pick-one recommendation gets exactly one inline channel reply naming one of the two options, nothing in any Thread, and a --done send to the channel.',
+        'A pick-one recommendation gets exactly one inline channel reply naming one of the two options and a --done send to the channel.',
     name: 'placement-recommendation',
     run: withRoutingEvidence(async ({ agents, expect, kit, log, settleTurn }) => {
         const [worker] = agents;
@@ -38,15 +38,12 @@ export default defineScenario({
             channelId: channel.id,
             requestIds: [request.message.id],
         });
-        log(
-            `posts: ${[...placement.channelPosts, ...placement.threadPosts].map((entry) => entry.label).join(', ') || 'none'}`
-        );
+        log(`posts: ${placement.channelPosts.map((entry) => entry.label).join(', ') || 'none'}`);
         const result = findResultPost(placement.channelPosts, (entry) =>
             options.test(entry.message.content)
         );
-        expectSharedPlacement(expect, placement, result);
+        expectSharedPlacement(expect, result);
         expectDoneToRequest(expect, placement, { requestIds: [request.message.id] });
         expect(placement.channelPosts, 'channel posts').toHaveLength(1);
-        expect(placement.threadPosts, 'Thread posts').toHaveLength(0);
     }),
 });

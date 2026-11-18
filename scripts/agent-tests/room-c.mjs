@@ -1,9 +1,9 @@
 // Shared moves for the room scenarios that place a reminder answer and draw a
-// visual: Owner sends, turn gates, every post an Agent made across a channel
-// and its Threads, and journaled `haus message send` commands.
+// visual: Owner sends, turn gates, every post an Agent made in a channel, and
+// journaled `haus message send` commands.
 
 /** Owner send through the same hosted contract the App composer uses. */
-export function ownerSend(kit, chatId, content, { replyToMessageId, thread } = {}) {
+export function ownerSend(kit, chatId, content, { replyToMessageId } = {}) {
     return kit.trpc('chat.send', {
         attachmentIds: [],
         chatId,
@@ -11,7 +11,6 @@ export function ownerSend(kit, chatId, content, { replyToMessageId, thread } = {
         nonce: `agenttests_${kit.stamp}_${crypto.randomUUID()}`,
         serverId: kit.serverId,
         ...(replyToMessageId ? { replyToMessageId } : {}),
-        ...(thread ? { thread } : {}),
     });
 }
 
@@ -20,25 +19,12 @@ export function expectSettled(expect, turn, label) {
     expect(turn.failureKind ?? 'none', `${label} failure kind`).toBe('none');
 }
 
-/**
- * An Agent's posts in a fresh channel after `head`, top level, plus every post
- * it made in any Thread of that channel. Each message carries its `chatId`.
- */
+/** An Agent's posts in a fresh channel after `head`, top level and inline. */
 export async function postsAcrossChannel(kit, channelId, agentId, head = 0) {
     const own = (message) => message.author.kind === 'agent' && message.author.agentId === agentId;
-    const posts = (await kit.readMessages(channelId)).filter(
+    return (await kit.readMessages(channelId)).filter(
         (message) => own(message) && message.sequence > head
     );
-    const page = await kit.trpc('chat.messages', {
-        chatId: channelId,
-        limit: 100,
-        serverId: kit.serverId,
-    });
-    for (const thread of page.threads ?? []) {
-        await kit.trackChat(thread.threadChatId);
-        posts.push(...(await kit.readMessages(thread.threadChatId)).filter(own));
-    }
-    return posts;
 }
 
 /**

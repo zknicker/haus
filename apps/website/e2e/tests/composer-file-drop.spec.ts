@@ -27,7 +27,9 @@ test.beforeAll(async () => {
     });
 });
 
-test('files dropped on a chat or its Thread attach to that composer only', async ({ page }) => {
+test('files dropped on a chat attach to its composer, an inline reply included', async ({
+    page,
+}) => {
     await signInAsAppHuman(page);
     await page.goto('/s/composer-drops');
     await openChannel(page, 'all');
@@ -38,21 +40,15 @@ test('files dropped on a chat or its Thread attach to that composer only', async
     await expect(overlay).toBeVisible();
     await dragFile(anchor, 'drop', 'screenshot.png');
     await expect(overlay).toHaveCount(0);
-    const chatAttachment = page.getByRole('button', { name: 'Remove screenshot.png' });
-    await expect(chatAttachment).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Remove screenshot.png' })).toHaveCount(1);
 
+    // Replying inline keeps the one composer, so a second drop joins the same draft.
     const messageRow = anchor.locator('xpath=ancestor::*[@data-slot="chat-message-assistant"][1]');
     await messageRow.hover();
-    await messageRow.locator('button[aria-label="Reply in thread"]').click();
-    const thread = page.getByRole('complementary', { name: 'Thread' });
-    await expect(thread).toBeVisible();
-
-    // The Thread pane is its own drop surface, so the chat composer keeps
-    // its single attachment.
-    await dragFile(thread.getByText(anchorText, { exact: true }), 'drop', 'thread-shot.png');
-    await expect(thread.getByRole('button', { name: 'Remove thread-shot.png' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Remove thread-shot.png' })).toHaveCount(1);
-    await expect(chatAttachment).toHaveCount(1);
+    await messageRow.locator('button[aria-label="Reply"]').click();
+    await dragFile(anchor, 'drop', 'reply-shot.png');
+    await expect(page.getByRole('button', { name: 'Remove reply-shot.png' })).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Remove screenshot.png' })).toHaveCount(1);
 });
 
 test('the drop overlay tracks a file drag across children and only for files', async ({ page }) => {

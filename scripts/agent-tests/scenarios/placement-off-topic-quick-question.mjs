@@ -1,6 +1,6 @@
 // Placement control for side work: a one-off off-topic question in a purpose
-// channel is still answered with one inline reply and no Thread. Guards the
-// channel-purpose sentence against turning every off-topic answer into a Thread.
+// channel is still answered with one inline reply and no Task. Guards the
+// channel-purpose sentence against turning every off-topic answer into a Task.
 
 import {
     expectDoneToRequest,
@@ -10,11 +10,12 @@ import {
 } from '../placement.mjs';
 import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
+import { tasksCreatedBy } from '../task-intake.mjs';
 
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'A one-off off-topic question in a finance channel gets exactly one inline reply carrying the answer, no reaction, and no Thread.',
+        'A one-off off-topic question in a finance channel gets exactly one inline reply carrying the answer, no reaction, and no Task.',
     name: 'placement-off-topic-quick-question',
     run: withRoutingEvidence(async ({ agents, expect, kit, log, marker, settleTurn }) => {
         const [worker] = agents;
@@ -50,10 +51,13 @@ export default defineScenario({
         const result = findResultPost(placement.channelPosts, (entry) =>
             entry.message.content.includes('429')
         );
-        expectSharedPlacement(expect, placement, result);
+        expectSharedPlacement(expect, result);
         expectDoneToRequest(expect, placement, { requestIds: [question.message.id] });
         expect(placement.channelPosts, 'channel posts').toHaveLength(1);
-        expect(placement.threadPosts, 'Thread posts').toHaveLength(0);
+        expect(
+            await tasksCreatedBy(kit, worker.id, turn.startedAt),
+            'Tasks the Agent created'
+        ).toHaveLength(0);
         const asked = placement.page.messages.find((message) => message.id === question.message.id);
         const reactions = (asked?.reactions ?? []).filter((reaction) =>
             reaction.actors.some((actor) => actor.kind === 'agent' && actor.id === worker.id)

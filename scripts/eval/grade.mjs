@@ -5,16 +5,12 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import {
-    classifyPlacement,
-    isThreadTarget,
-    refersTo,
-    wordCount,
-} from '../agent-tests/placement.mjs';
+import { classifyPlacement, refersTo, wordCount } from '../agent-tests/placement.mjs';
 import {
     buildTimeline,
     doneSendsFrom,
     evidenceMessages,
+    evidenceTaskChatIds,
     readScenarioRun,
     runsDirectory,
     sentWithDone,
@@ -96,11 +92,10 @@ export function gradeScenario({ entry, evidence, profile, stamp }) {
     const isAgent = (message) =>
         message.author.kind === 'agent' && message.author.agentId === agentId;
     const seeded = (message) => message.runId?.startsWith('run_agenttests_');
-    const humans = messages.filter((message) => message.author.kind === 'human');
-    const rootHumans = humans.filter((message) => message.chatId === rootChatId);
-    const wake = profile.inThread
-        ? humans.findLast((message) => message.chatId !== rootChatId)
-        : rootHumans.at(-1);
+    const rootHumans = messages.filter(
+        (message) => message.author.kind === 'human' && message.chatId === rootChatId
+    );
+    const wake = rootHumans.at(-1);
     if (!wake) {
         grade.checks.push({ name: 'request found', ok: false });
         return grade;
@@ -110,9 +105,8 @@ export function gradeScenario({ entry, evidence, profile, stamp }) {
     const doneSends = doneSendsFrom(evidence.journals ?? []);
     const context = {
         channelId: rootChatId,
-        ownAnchors: messages.filter(isAgent).map((message) => message.id),
         requestId: requestIds,
-        threads: evidence.chats.flatMap((chat) => chat.threads ?? []),
+        taskChatIds: evidenceTaskChatIds(evidence),
     };
     const authored = messages.filter((message) => isAgent(message) && !seeded(message));
     // A fire-answer profile grades from the first post the fire caused, not the human's anchor.
@@ -124,11 +118,7 @@ export function gradeScenario({ entry, evidence, profile, stamp }) {
             content: message.content,
             finished: sentWithDone(message.content, doneSends),
             id: message.id,
-            // A human who asked inside a Thread is looking there.
-            label:
-                profile.inThread && message.chatId === wake.chatId
-                    ? 'asked-thread'
-                    : classifyPlacement(message, context),
+            label: classifyPlacement(message, context),
             replyTo: message.reply?.rootMessageId ?? null,
             words: wordCount(message.content),
         }));
@@ -143,16 +133,13 @@ export function gradeScenario({ entry, evidence, profile, stamp }) {
     const check = (name, ok) => grade.checks.push({ name, ok });
     const [min, max] = profile.channel;
     check(`channel posts ${min}-${max}`, channelPosts.length >= min && channelPosts.length <= max);
-    check('no request-thread post', !posts.some((post) => post.label === 'request-thread'));
+    // An answer belongs inline in the channel or in a Task started from it (ADR 0052).
+    check('no post in another chat', !posts.some((post) => post.label === 'elsewhere'));
     grade.tails = authored.flatMap((message) =>
         tailPhrases.filter((phrase) => message.content.toLowerCase().includes(phrase))
     );
     check('no tail phrase', grade.tails.length === 0);
     grade.doneSends = doneSends;
-    check(
-        'no --done send to a working Thread',
-        profile.inThread || !doneSends.some((send) => isThreadTarget(send.target))
-    );
     const ownReactions = (wake.reactions ?? []).filter((reaction) =>
         reaction.actors.some((actor) => actor.kind === 'agent' && actor.id === agentId)
     );
@@ -162,36 +149,29 @@ export function gradeScenario({ entry, evidence, profile, stamp }) {
         check('one reaction on thanks', ownReactions.length === 1);
         return grade;
     }
-    const candidates = profile.inThread
-        ? posts.filter((post) => post.chatId === wake.chatId)
-        : channelPosts;
-    const result = candidates.findLast((post) => profile.result?.(post) ?? true) ?? null;
+    const result = channelPosts.findLast((post) => profile.result?.(post) ?? true) ?? null;
     grade.result = result;
     check('result post found', Boolean(result));
     if (!result) {
         return grade;
     }
-    gradeResult({ candidates, check, doneSends, grade, ownReactions, profile, result, wake });
+    gradeResult({ check, doneSends, grade, ownReactions, profile, result, wake });
     return grade;
 }
 
-function gradeResult({ candidates, check, doneSends, grade, ownReactions, profile, result, wake }) {
-    if (profile.inThread) {
-        check('result in the asked Thread', result.chatId === wake.chatId);
-        check('one Thread post', candidates.length === 1);
-    } else if (profile.inChat) {
+function gradeResult({ check, doneSends, grade, ownReactions, profile, result, wake }) {
+    if (profile.inChat) {
         // A fire answer has no request to reply to: it only has to land in the anchor chat.
         check('result in the anchor chat', result.chatId === wake.chatId);
     } else {
         check('result is an inline reply', result.label === 'inline-reply');
     }
     // The journal is the source for both flags: `--done` ends the typing
-    // indicator, and `--reply-to` (or a Thread send) is what notifies the asker.
+    // indicator, and `--reply-to` is what notifies the asker.
     const send = doneSends.find((entry) => entry.body.trim() === result.content.trim());
     grade.finished = result.finished;
-    grade.repliesToRequest = profile.inThread
-        ? Boolean(send)
-        : Boolean(send && refersTo(send.replyTo, wake.id)) || result.replyTo === wake.id;
+    grade.repliesToRequest =
+        Boolean(send && refersTo(send.replyTo, wake.id)) || result.replyTo === wake.id;
     check(`result <= ${profile.cap} words`, result.words <= profile.cap);
     grade.questions = (result.content.match(/\?/gu) ?? []).length;
     if (profile.maxQuestions !== undefined) {
