@@ -4,6 +4,7 @@ import ultracite from 'ultracite/oxfmt';
 export default defineConfig({
     ...ultracite,
     printWidth: 100,
+    sortImports: { ...ultracite.sortImports, newlinesBetween: false },
     semi: true,
     singleQuote: true,
     tabWidth: 4,
