@@ -15,7 +15,7 @@ test('lists a GitHub Trigger with its scope, events, and suppressed count, no UR
         [
             'trg_gh [github · armed] "CI failed" — never fired, anchored in #general — GitHub acme',
             '  repositories: acme/api',
-            '  events: workflow_run completed branches=main conclusions=failure',
+            '  events: workflow_run completed authors=collaborators branches=main conclusions=failure',
             '  suppressed over the rate limit: 2',
             '',
         ].join('\n')
@@ -78,6 +78,7 @@ test('creates a GitHub Trigger naming the account that owns the repository', asy
             events: [
                 {
                     actions: ['completed'],
+                    authors: 'collaborators',
                     branches: ['main'],
                     conclusions: ['failure', 'timed_out'],
                     event: 'workflow_run',

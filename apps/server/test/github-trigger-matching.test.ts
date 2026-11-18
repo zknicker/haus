@@ -19,6 +19,7 @@ function events(input: unknown): GithubTriggerEvents {
 
 type Case = [string, unknown, Parameters<typeof matchesGithubEvents>[1], Payload, boolean];
 
+// Author/actor trust gating has its own file: github-trigger-authors.test.ts.
 const cases: Case[] = [
     [
         'workflow_run default action is completed',
@@ -132,32 +133,11 @@ const cases: Case[] = [
         false,
     ],
     [
-        'authors default to collaborators',
-        [{ event: 'pull_request' }],
-        'pull_request',
-        pullRequestPayload({ association: 'CONTRIBUTOR' }),
-        false,
-    ],
-    [
-        'authors anyone admits outsiders',
-        [{ authors: 'anyone', event: 'pull_request' }],
-        'pull_request',
-        pullRequestPayload({ association: 'NONE' }),
-        true,
-    ],
-    [
         'review state filter',
         [{ event: 'pull_request_review', states: ['changes_requested'] }],
         'pull_request_review',
         pullRequestReviewPayload('changes_requested'),
         true,
-    ],
-    [
-        'review by an outsider misses the default',
-        [{ event: 'pull_request_review' }],
-        'pull_request_review',
-        pullRequestReviewPayload('approved', 'FIRST_TIME_CONTRIBUTOR'),
-        false,
     ],
     [
         'push to a filtered branch',

@@ -27,6 +27,8 @@ export type TextKey =
 export interface GithubEventSpec {
     actions: readonly string[];
     authors: boolean;
+    /** What "Collaborators" means for this event, shown under the Authors control. */
+    authorsHint?: string;
     choices: readonly { key: ChoiceKey; label: string; options: readonly string[] }[];
     defaultActions: readonly string[];
     label: string;
@@ -48,7 +50,9 @@ const labels = { key: 'labels', label: 'Labels', placeholder: 'bug, needs-review
 export const githubEventSpecs: Record<GithubTriggerEventName, GithubEventSpec> = {
     check_run: {
         actions: ['created', 'completed'],
-        authors: false,
+        authors: true,
+        authorsHint:
+            'Collaborators means GitHub reported a branch for this check — which also excludes a tag push or a detached commit, not only a fork.',
         choices: [conclusions],
         defaultActions: ['completed'],
         label: 'Check runs',
@@ -56,7 +60,9 @@ export const githubEventSpecs: Record<GithubTriggerEventName, GithubEventSpec> =
     },
     check_suite: {
         actions: ['completed'],
-        authors: false,
+        authors: true,
+        authorsHint:
+            'Collaborators means GitHub reported a branch for this check — which also excludes a tag push or a detached commit, not only a fork.',
         choices: [conclusions],
         defaultActions: ['completed'],
         label: 'Check suites',
@@ -122,7 +128,9 @@ export const githubEventSpecs: Record<GithubTriggerEventName, GithubEventSpec> =
     },
     workflow_job: {
         actions: ['queued', 'in_progress', 'completed', 'waiting'],
-        authors: false,
+        authors: true,
+        authorsHint:
+            "GitHub gives Haus no way to tell a fork's job from this repository's, so Collaborators never fires here — choose Any author to receive these.",
         choices: [conclusions],
         defaultActions: ['completed'],
         label: 'Workflow jobs',
@@ -130,7 +138,8 @@ export const githubEventSpecs: Record<GithubTriggerEventName, GithubEventSpec> =
     },
     workflow_run: {
         actions: ['requested', 'in_progress', 'completed'],
-        authors: false,
+        authors: true,
+        authorsHint: "Collaborators means the run's commit is in this repository, not a fork.",
         choices: [conclusions],
         defaultActions: ['completed'],
         label: 'Workflow runs',

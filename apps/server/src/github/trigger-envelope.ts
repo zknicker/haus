@@ -4,7 +4,7 @@ import { count, field, type Payload, text } from './event-projection/payload.ts'
 
 // The Server-built lines a `github` fire adds to the `type=trigger` envelope
 // (specs/github-triggers.md#envelope). The `GitHub:` line carries only
-// enumerated values, repository names, refs, and numbers; every author-written
+// enumerated values, repository names, and numbers; every author-written
 // field (titles, bodies, names) stays in the indented, untrusted excerpt.
 
 const summaryMaxChars = 200;
@@ -39,38 +39,22 @@ function summaryParts(
     switch (event) {
         case 'workflow_run': {
             const run = field(payload, 'workflow_run');
-            return [
-                enumerated(text(run, 'conclusion')),
-                ref(text(run, 'head_branch')),
-                numbered(repo, count(run, 'run_number')),
-            ];
+            return [enumerated(text(run, 'conclusion')), numbered(repo, count(run, 'run_number'))];
         }
         case 'workflow_job':
         case 'check_suite': {
             const subject = field(payload, event);
-            return [
-                enumerated(text(subject, 'conclusion')),
-                ref(text(subject, 'head_branch')),
-                repo,
-            ];
+            return [enumerated(text(subject, 'conclusion')), repo];
         }
         case 'check_run': {
             const run = field(payload, 'check_run');
-            return [
-                enumerated(text(run, 'conclusion')),
-                ref(text(field(run, 'check_suite'), 'head_branch')),
-                repo,
-            ];
+            return [enumerated(text(run, 'conclusion')), repo];
         }
         case 'deployment_status':
-            return [
-                enumerated(text(field(payload, 'deployment_status'), 'state')),
-                ref(text(field(payload, 'deployment'), 'ref')),
-                repo,
-            ];
+            return [enumerated(text(field(payload, 'deployment_status'), 'state')), repo];
         case 'pull_request': {
             const pull = field(payload, 'pull_request');
-            return [ref(text(field(pull, 'base'), 'ref')), numbered(repo, count(pull, 'number'))];
+            return [numbered(repo, count(pull, 'number'))];
         }
         case 'pull_request_review':
             return [
@@ -78,11 +62,11 @@ function summaryParts(
                 numbered(repo, count(field(payload, 'pull_request'), 'number')),
             ];
         case 'push':
-            return [ref(text(payload, 'ref')?.replace(/^refs\/heads\//u, '') ?? null), repo];
+            return [repo];
         case 'issues':
             return [numbered(repo, count(field(payload, 'issue'), 'number'))];
         case 'release':
-            return [ref(text(field(payload, 'release'), 'tag_name')), repo];
+            return [repo];
         default:
             return [repo];
     }
@@ -91,12 +75,6 @@ function summaryParts(
 /** GitHub's own vocabulary: lower-case words joined by underscores. */
 function enumerated(value: string | null): string | null {
     return value && /^[a-z_]{1,40}$/u.test(value) ? value : null;
-}
-
-/** A branch or tag, reduced to characters a ref may hold and that cannot break a line. */
-function ref(value: string | null): string | null {
-    const cleaned = value?.replace(/[^\w./@+-]/gu, '').slice(0, 100) ?? '';
-    return cleaned.length > 0 ? cleaned : null;
 }
 
 function repositoryName(value: string | null): string | null {

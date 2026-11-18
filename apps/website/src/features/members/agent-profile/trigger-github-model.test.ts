@@ -111,6 +111,7 @@ test('filters are comma-separated text until submit; empty filters are omitted',
     };
     expect(githubEventFromDraft(draft)).toEqual({
         actions: ['completed'],
+        authors: 'collaborators',
         branches: ['main', 'release'],
         conclusions: ['failure'],
         event: 'workflow_run',
@@ -146,6 +147,7 @@ test('the detail reads each event as what it narrows to', () => {
     expect(
         githubEventSummary({
             actions: ['completed'],
+            authors: 'collaborators',
             branches: ['main'],
             conclusions: ['failure'],
             event: 'workflow_run',

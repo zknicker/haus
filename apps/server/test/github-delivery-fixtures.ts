@@ -22,48 +22,126 @@ const installation = {
 const sender = { id: 501, login: 'octocat', type: 'User' };
 const organization = { id: 99, login: 'acme' };
 
-function envelope<T extends object>(body: T, repository = fixtureRepository) {
-    return { ...body, installation, organization, repository, sender };
+function envelope<T extends object>(
+    body: T,
+    overrides: { repository?: typeof fixtureRepository; sender?: typeof sender } = {}
+) {
+    return {
+        ...body,
+        installation,
+        organization,
+        repository: overrides.repository ?? fixtureRepository,
+        sender: overrides.sender ?? sender,
+    };
 }
 
 export function workflowRunPayload(
-    overrides: { action?: string; conclusion?: string | null; branch?: string; path?: string } = {}
+    overrides: {
+        action?: string;
+        conclusion?: string | null;
+        branch?: string;
+        path?: string;
+        headRepository?: string;
+        /** The run's own trigger, e.g. `push` for a bot-authored main-branch run. */
+        runEvent?: string;
+        sender?: { id: number; login: string; type: string };
+    } = {}
 ) {
-    return envelope({
-        action: overrides.action ?? 'completed',
-        workflow: { id: 161_335, name: 'CI', path: '.github/workflows/ci.yml' },
-        workflow_run: {
-            check_suite_id: 42,
-            conclusion: overrides.conclusion === undefined ? 'failure' : overrides.conclusion,
-            display_title: 'Fix flaky login test',
-            event: 'pull_request',
-            head_branch: overrides.branch ?? 'main',
-            head_commit: { id: 'acb5820ced9479c074f688cc328bf03f341a511d', message: 'Fix' },
-            head_sha: 'acb5820ced9479c074f688cc328bf03f341a511d',
-            html_url: 'https://github.com/acme/api/actions/runs/30433642',
-            id: 30_433_642,
-            name: 'CI',
-            path: overrides.path ?? '.github/workflows/ci.yml',
-            pull_requests: [{ id: 1, number: 1423, url: 'https://api.github.com/x' }],
-            run_attempt: 1,
-            run_number: 562,
-            status: 'completed',
-            workflow_id: 161_335,
+    return envelope(
+        {
+            action: overrides.action ?? 'completed',
+            workflow: { id: 161_335, name: 'CI', path: '.github/workflows/ci.yml' },
+            workflow_run: {
+                check_suite_id: 42,
+                conclusion: overrides.conclusion === undefined ? 'failure' : overrides.conclusion,
+                display_title: 'Fix flaky login test',
+                event: overrides.runEvent ?? 'pull_request',
+                head_branch: overrides.branch ?? 'main',
+                head_commit: { id: 'acb5820ced9479c074f688cc328bf03f341a511d', message: 'Fix' },
+                // Same-repo by default; a fork run carries a different full_name here.
+                head_repository: { full_name: overrides.headRepository ?? 'acme/api', id: 7001 },
+                head_sha: 'acb5820ced9479c074f688cc328bf03f341a511d',
+                html_url: 'https://github.com/acme/api/actions/runs/30433642',
+                id: 30_433_642,
+                name: 'CI',
+                path: overrides.path ?? '.github/workflows/ci.yml',
+                pull_requests: [{ id: 1, number: 1423, url: 'https://api.github.com/x' }],
+                run_attempt: 1,
+                run_number: 562,
+                status: 'completed',
+                workflow_id: 161_335,
+            },
         },
-    });
+        { sender: overrides.sender }
+    );
 }
 
-export function checkSuitePayload(conclusion = 'failure') {
+export function checkSuitePayload(
+    overrides: { conclusion?: string; headBranch?: string | null } = {}
+) {
     return envelope({
         action: 'completed',
         check_suite: {
             app: { id: 15_368, name: 'GitHub Actions', slug: 'github-actions' },
-            conclusion,
-            head_branch: 'main',
+            conclusion: overrides.conclusion ?? 'failure',
+            // null reproduces GitHub's documented behavior: a check whose
+            // commit lives only in a fork reports a null head_branch and an
+            // empty pull_requests, together, as GitHub actually sends them.
+            // The same null also occurs for a tag push or a detached commit,
+            // so this fixture stands in for all three, not forks alone.
+            head_branch: overrides.headBranch === undefined ? 'main' : overrides.headBranch,
             head_sha: 'ec26c3e57ca3a959ca5aad62de7213c562f8c821',
             id: 118_578_147,
             pull_requests: [],
             status: 'completed',
+        },
+    });
+}
+
+export function checkRunPayload(
+    overrides: { conclusion?: string; headBranch?: string | null } = {}
+) {
+    return envelope({
+        action: 'completed',
+        check_run: {
+            check_suite: {
+                head_branch: overrides.headBranch === undefined ? 'main' : overrides.headBranch,
+                id: 118_578_147,
+            },
+            completed_at: '2026-10-11T12:00:00Z',
+            conclusion: overrides.conclusion ?? 'failure',
+            head_sha: 'ec26c3e57ca3a959ca5aad62de7213c562f8c821',
+            html_url: 'https://github.com/acme/api/runs/30433642',
+            id: 30_433_642,
+            name: 'lint',
+            output: { summary: 'Lint failed on 3 files.', title: 'Lint' },
+            pull_requests: [],
+            status: 'completed',
+        },
+    });
+}
+
+export function workflowJobPayload(
+    overrides: { conclusion?: string; headBranch?: string | null } = {}
+) {
+    return envelope({
+        action: 'completed',
+        workflow_job: {
+            completed_at: '2026-10-11T12:00:00Z',
+            conclusion: overrides.conclusion ?? 'failure',
+            // Unlike check_suite/check_run, GitHub does NOT null this for a
+            // fork job — a fork PR's workflow_job carries the fork's real
+            // branch name. head_branch is not a trust signal for this event;
+            // the override exists only for the branches filter tests below.
+            head_branch: overrides.headBranch === undefined ? 'main' : overrides.headBranch,
+            html_url: 'https://github.com/acme/api/runs/30433642',
+            id: 30_433_642,
+            name: 'build',
+            run_id: 30_433_642,
+            started_at: '2026-10-11T11:58:00Z',
+            status: 'completed',
+            steps: [],
+            workflow_name: 'CI',
         },
     });
 }

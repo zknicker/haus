@@ -11,7 +11,13 @@ const installation = {
 };
 const facts = { connected: true, grantedAgentIds: new Set(['agt_owner']) };
 const trigger = {
-    events: [{ actions: ['completed' as const], event: 'workflow_run' as const }],
+    events: [
+        {
+            actions: ['completed' as const],
+            authors: 'collaborators' as const,
+            event: 'workflow_run' as const,
+        },
+    ],
     ownerAgentId: 'agt_owner',
     repositoryIds: [2],
 };

@@ -125,9 +125,7 @@ test('a matching delivery fires once with a projection, and its replay is a dupl
         select source, content from agent_inbox where dedupe_key = ${fires[0]?.id ?? ''}
     `) as { content: string; source: string }[];
     expect(inbox?.source).toBe('trigger');
-    expect(inbox?.content).toContain(
-        'GitHub: workflow_run completed · failure · main · acme/api #562'
-    );
+    expect(inbox?.content).toContain('GitHub: workflow_run completed · failure · acme/api #562');
     expect(inbox?.content).toContain(`github-event=workflow_run.completed; delivery=${guid}`);
     const [delivery] = await harness.sql`
         select state, routed_count, source from github_webhook_deliveries where delivery_guid = ${guid}
