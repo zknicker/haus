@@ -19,7 +19,13 @@ export default defineConfig({
         'apps/website/src-tauri/gen/schemas',
         'apps/website/src/components/charts',
     ],
+    jsPlugins: [{ name: 'haus', specifier: './scripts/lint/haus-rules/plugin.mjs' }],
     rules: {
+        // The repo's own rules (scripts/lint/haus-rules).
+        'haus/cloud-agent-status-writes': 'error',
+        'haus/heroui-compound-children': 'error',
+        'haus/heroui-dialog-form': 'error',
+
         // Biome parity: the repo turned these Biome rules off.
         'default-case': 'off',
         'jsx-a11y/label-has-associated-control': 'off',
@@ -181,5 +187,22 @@ export default defineConfig({
         'unicorn/switch-case-braces': 'off',
         'unicorn/text-encoding-identifier-case': 'off',
     },
-    overrides: grandfatherOverrides(),
+    overrides: [
+        {
+            files: ['apps/website/src/**/*.tsx'],
+            excludeFiles: ['**/*.test.tsx'],
+            rules: {
+                'haus/heroui-spacing-override': [
+                    'error',
+                    {
+                        allow: {
+                            'apps/website/src/features/onboarding/cove-meet-step.tsx':
+                                'Card.Content hosts a two-column split whose halves each carry their own padding and divider',
+                        },
+                    },
+                ],
+            },
+        },
+        ...grandfatherOverrides(),
+    ],
 });

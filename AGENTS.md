@@ -108,9 +108,8 @@ so `docs:list` routes future agents correctly.
 - Use HeroUI components stock. Customize through component props (`variant`, `size`, semantic
   states) and compound parts before adding CSS. Do not restyle HeroUI components at call sites.
   Read a compound component's anatomy before wrapping its parts in your own layout, and never
-  cancel its padding or gap with a `className`. Both are enforced: GritQL rules in
-  `apps/website/lint/` (being ported to Oxlint) and
-  `apps/website/src/lib/heroui-composition-contract.test.ts`.
+  cancel its padding or gap with a `className`. Both are enforced by the repo's Oxlint
+  rules in `scripts/lint/haus-rules`.
 - When a stock dependency misbehaves, first reproduce the failure at the dependency boundary and
   check its upstream issues, releases, and source. Prefer a verified upgrade or a bounded package
   patch with a regression test over reimplementing the dependency in product code. Use a local

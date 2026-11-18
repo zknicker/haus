@@ -307,8 +307,10 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   `Footer` unpinned the footer; a flex row inside `Modal.Header` stranded the
   icon, because that header stacks Icon over Heading over one muted line; and
   `<Card className="gap-0 p-0">` is how a whole parallel settings row kit began.
-  The first shape is enforced by the Biome plugins in `apps/website/lint/`, the
-  second by `lib/heroui-composition-contract.test.ts`. Neither sees a `className`
+  Both are enforced by the repo's Oxlint rules in `scripts/lint/haus-rules`
+  (`haus/heroui-compound-children`, `haus/heroui-dialog-form`, and
+  `haus/heroui-spacing-override`, whose allowlist in `oxlint.config.mts` names
+  each exception's reason). Neither sees a `className`
   built through `cn()` or a variable, so read the component's anatomy before
   reaching for a wrapper.
 * One Settings page separates **Preferences** (Profile, Preferences, Servers)
