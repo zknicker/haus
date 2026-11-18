@@ -48,7 +48,7 @@ const labels = { key: 'labels', label: 'Labels', placeholder: 'bug, needs-review
 export const githubEventSpecs: Record<GithubTriggerEventName, GithubEventSpec> = {
     check_run: {
         actions: ['created', 'completed'],
-        authors: false,
+        authors: true,
         choices: [conclusions],
         defaultActions: ['completed'],
         label: 'Check runs',
@@ -56,7 +56,7 @@ export const githubEventSpecs: Record<GithubTriggerEventName, GithubEventSpec> =
     },
     check_suite: {
         actions: ['completed'],
-        authors: false,
+        authors: true,
         choices: [conclusions],
         defaultActions: ['completed'],
         label: 'Check suites',
@@ -122,7 +122,7 @@ export const githubEventSpecs: Record<GithubTriggerEventName, GithubEventSpec> =
     },
     workflow_job: {
         actions: ['queued', 'in_progress', 'completed', 'waiting'],
-        authors: false,
+        authors: true,
         choices: [conclusions],
         defaultActions: ['completed'],
         label: 'Workflow jobs',
@@ -130,7 +130,7 @@ export const githubEventSpecs: Record<GithubTriggerEventName, GithubEventSpec> =
     },
     workflow_run: {
         actions: ['requested', 'in_progress', 'completed'],
-        authors: false,
+        authors: true,
         choices: [conclusions],
         defaultActions: ['completed'],
         label: 'Workflow runs',
