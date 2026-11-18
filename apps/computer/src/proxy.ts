@@ -25,8 +25,6 @@ export interface LoopbackProxy {
     close(): void;
     /** Requests arriving with no runner wait up to `ms` for one (a wake run is on its way). */
     holdForRunner(ms: number): void;
-    /** Heartbeat reports the Server accepted since the last reset. */
-    reportCount(): number;
     resetSendCount(): void;
     sendCount(): number;
     setActivityRun(activity: AgentActivityRun | undefined): void;
@@ -51,7 +49,6 @@ export function startLoopbackProxy(input: {
 }): LoopbackProxy {
     const artifacts = createArtifactProxy(input);
     let sends = 0;
-    let reports = 0;
     let runnerToken: string | null = input.runnerToken;
     let runId: string | null = input.runId ?? null;
     let activityRun: AgentActivityRun | undefined;
@@ -80,9 +77,6 @@ export function startLoopbackProxy(input: {
                     onCommittedSend: recordCommittedSend,
                     incrementSendCount: () => {
                         sends += 1;
-                    },
-                    incrementReportCount: () => {
-                        reports += 1;
                     },
                     artifacts,
                 });
@@ -117,10 +111,8 @@ export function startLoopbackProxy(input: {
             releaseArtifacts();
         },
         holdForRunner: (ms) => runnerHold.hold(ms),
-        reportCount: () => reports,
         resetSendCount: () => {
             sends = 0;
-            reports = 0;
         },
         sendCount: () => sends,
         setActivityRun: (activity) => {
@@ -162,7 +154,6 @@ async function handleAuthorizedProxyRequest(
         traceContext?: TraceCarrier;
         onCommittedSend?: (send: CommittedSend) => void;
         incrementSendCount(): void;
-        incrementReportCount(): void;
         artifacts: ReturnType<typeof createArtifactProxy>;
     }
 ): Promise<Response> {
@@ -256,9 +247,6 @@ async function handleAuthorizedProxyRequest(
     if (committed) {
         state.incrementSendCount();
         state.onCommittedSend?.(committed);
-    }
-    if (upstream.ok && url.pathname === '/api/agent/heartbeat/report') {
-        state.incrementReportCount();
     }
     const visibleMessageIds = upstream.ok
         ? extractVisibleMessageIds(url.pathname, responseBody)

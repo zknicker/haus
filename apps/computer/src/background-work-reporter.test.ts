@@ -90,7 +90,7 @@ test('each Agent’s running sub-agents and tasks reach the Server on change and
     await mkdir(join(agentsDir, 'agt_two'));
     const work = reporter();
     work.changed(agentRoot, { subagents: 2, tasks: 3 });
-    // A shell ending changes only the task count, which the Server's heartbeat hold reads.
+    // A shell ending changes only the task count, which the Server still hears.
     work.changed(agentRoot, { subagents: 2, tasks: 2 });
     work.changed(agentRoot, { subagents: 2, tasks: 2 });
     work.lost(agentRoot, true);

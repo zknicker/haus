@@ -44,7 +44,7 @@ function delivery(overrides: Partial<TurnDelivery> = {}): TurnDelivery {
     };
 }
 
-test('a sub-agent wake frame parses chatless, and never beside a heartbeat report or a Chat', () => {
+test('a sub-agent wake frame parses chatless, and never beside a Task assignment or a Chat', () => {
     const command = parseStartCommand(wakeFrame);
     expect(command).toMatchObject({ chatId: null, inboxDelivery: 'concrete', subagentWake });
     expect(command && turnDeliveryOf(command).subagentWake).toEqual(subagentWake);
@@ -56,13 +56,19 @@ test('a sub-agent wake frame parses chatless, and never beside a heartbeat repor
     expect(
         parseStartCommand({
             ...wakeFrame,
-            heartbeatReport: {
-                createdAt: subagentWake.createdAt,
-                heartbeatKind: 'daytime',
-                heartbeatRunId: 'run_hb',
-                id: 'heartbeat-report:run_hb',
-                text: 'Nothing new.',
-            },
+            taskAssignments: [
+                {
+                    assignedBy: 'ada',
+                    assignedByAgent: false,
+                    board: 'Product',
+                    column: 'Doing',
+                    id: 'tka_1',
+                    key: 'PROD-1',
+                    priority: 'medium',
+                    taskId: 'tsk_1',
+                    title: 'Fix the bug',
+                },
+            ],
         })
     ).toBeNull();
 });

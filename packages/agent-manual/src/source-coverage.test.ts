@@ -66,28 +66,10 @@ test('pinned source inventory accounts for every card, omission and Haus additio
             throw new Error(`Missing source recipe ${metadata.doc_id}`);
         }
         expect(topic.class).toBe(metadata.class);
-        expect(topic.title).toBe(
-            topic.id === 'recipes/technique/memory-hygiene'
-                ? 'Keep MEMORY.md hot and notes/ current'
-                : metadata.title
-        );
+        expect(topic.title).toBe(metadata.title);
         expect(topic.tier).toBe(metadata.tier);
         expect(topic.evidence).toBe(metadata.evidence);
-        if (topic.id === 'recipes/technique/memory-hygiene') {
-            expect(topic.triggers).toEqual([
-                'my MEMORY.md is bloating or over its size limit',
-                'a nightly heartbeat asks me to consolidate my memory',
-                'where should this preference or fact live in memory',
-                'someone gave me feedback to remember as a standing preference',
-                'Active Context reads like a diary',
-                'about to append a log entry or work log to notes',
-                'closed work still looks active',
-                'future me needs to recover after compaction',
-                'I keep resuming from stale facts',
-            ]);
-        } else {
-            expect(topic.triggers).toEqual(metadata.triggers);
-        }
+        expect(topic.triggers).toEqual(metadata.triggers);
         expect(topic.prereqs).toEqual(
             topic.id === 'recipes/technique/html-artifact-discussion'
                 ? ['page fence']

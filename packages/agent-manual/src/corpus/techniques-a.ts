@@ -1,7 +1,5 @@
 import { createManualRecipe } from '../recipe.ts';
 import type { ManualRecipeTopic } from '../types.ts';
-import { heartbeatRecipe } from './heartbeat.ts';
-import { memoryHygieneRecipe } from './memory-hygiene.ts';
 
 export const techniqueRecipesA: readonly ManualRecipeTopic[] = [
     createManualRecipe({
@@ -191,8 +189,6 @@ Build each round as a self-contained HTML file in your workspace and show it wit
             'we keep misunderstanding each other about a UI, page, or visual',
         ],
     }),
-    memoryHygieneRecipe,
-    heartbeatRecipe,
     createManualRecipe({
         body: `
 # Spin up a preview environment so the owner sees the change running

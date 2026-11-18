@@ -5,7 +5,6 @@
 
 import { createAgentAuthor } from './author.mjs';
 import { cleanupEvalChats } from './cleanup-chats.mjs';
-import { heartbeatKitMembers } from './heartbeat.mjs';
 import { provisionAgents, retireAgents } from './provisioner.mjs';
 import { createRunLedger } from './state.mjs';
 import { createTurnObserver } from './turns.mjs';
@@ -250,7 +249,6 @@ export function createAgentTestKit(
         createChannel,
         expectNoAgentMessages,
         harness,
-        ...heartbeatKitMembers({ serverId, settleTurn, trpc }),
         marker,
         provision,
         readClaim,

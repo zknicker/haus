@@ -13,7 +13,6 @@ import {
     type VisibleMessageIdentity,
 } from '../inbox-store.ts';
 import { renderedThreadContexts, threadContextVisibleMessages } from '../thread-context-format.ts';
-import { composeHeartbeatReportInput } from './heartbeat-prompt.ts';
 
 /** What the frame offers this turn, independent of how the turn was started. */
 export interface TurnDelivery {
@@ -30,10 +29,6 @@ export interface TurnDelivery {
     drainItemIds: string[];
     /** The Server attached the new Agent's one-time greeting to this run. */
     greets?: boolean;
-    /** A heartbeat run: composed by `composeHeartbeatInput` in its own throwaway session. */
-    heartbeat?: AgentStartCommand['heartbeat'];
-    /** A report run: the Agent's own heartbeat report, handed to its main session. */
-    heartbeatReport?: AgentStartCommand['heartbeatReport'];
     homeTimezone: string;
     inbox: AgentInboxItem[];
     inboxDelivery: 'concrete' | 'notice';
@@ -89,8 +84,6 @@ export const subagentWakeTurnLine =
 export function turnDeliveryOf(command: AgentStartCommand) {
     return {
         connectionChips: command.connectionChips ?? [],
-        ...(command.heartbeat ? { heartbeat: command.heartbeat } : {}),
-        ...(command.heartbeatReport ? { heartbeatReport: command.heartbeatReport } : {}),
         ...(command.subagentWake ? { subagentWake: command.subagentWake } : {}),
         ...(command.taskAssignments ? { taskAssignments: command.taskAssignments } : {}),
         drainItemIds: command.drainItemIds ?? [],
@@ -162,9 +155,6 @@ export function composeTurnPrompt(input: TurnDelivery, session: TurnSession): Tu
 
 /** The whole input of a chatless main-session run, or null for an ordinary inbox turn. */
 function composeChatlessInput(input: TurnDelivery): string | null {
-    if (input.heartbeatReport) {
-        return composeHeartbeatReportInput(input.heartbeatReport);
-    }
     if (input.taskAssignments) {
         return composeTaskAssignmentInput(input.taskAssignments);
     }

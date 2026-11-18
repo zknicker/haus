@@ -35,8 +35,7 @@ export function createIdleCompactionReporter(
 ): IdleCompactionHooks {
     const agentOf = (key: string): string | null => {
         const agentId = basename(key);
-        // A throwaway (heartbeat) session parks at `<agentRoot>#<session>`: never compacted.
-        return dirname(key) === deps.agentsDir && !agentId.includes('#') ? agentId : null;
+        return dirname(key) === deps.agentsDir ? agentId : null;
     };
     const log = (message: string, fields: Record<string, unknown>, level: 'info' | 'warning') =>
         void deps.runtime.runPromise(

@@ -16,13 +16,11 @@ import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import { createComputerTools } from './computer-tools.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
 import type { StoredNoticeReceipt } from './delivery.ts';
-import { openDreamRecording } from './harness/dream-record.ts';
 import {
     type NoticeSinkRegistrar,
     runHarnessTurn,
     type TurnDriverFactory,
 } from './harness/executor.ts';
-import { settleHeartbeat } from './harness/heartbeat-settle.ts';
 import { ensureNativeSkillLinks } from './harness/native-skill-links.ts';
 import type { AgentThoughtNarrator } from './harness/thought-narrator.ts';
 import { turnDeliveryOf } from './harness/turn-prompt.ts';
@@ -193,7 +191,6 @@ async function runLedgeredLaunch(
     };
 
     let result: RuntimeTurnOutcome = { status: 'failed' };
-    const dream = await openDreamRecording({ ...options, startedAt, workspaceDir: dirs.workspace });
     try {
         await options.onRuntimeReady?.();
         result =
@@ -236,15 +233,6 @@ async function runLedgeredLaunch(
         },
         options.runtime
     );
-    await settleHeartbeat({
-        agentRoot,
-        command,
-        dreamChange: (await dream?.finish()) ?? null,
-        proxy,
-        runtime: options.runtime,
-        status: result.status,
-        workspaceDir: dirs.workspace,
-    });
     return reportTurn(options, {
         messageCount: proxy.sendCount(),
         activity: activity.snapshot(),

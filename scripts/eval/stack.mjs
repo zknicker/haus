@@ -12,15 +12,11 @@ const bootTimeoutMs = 6 * 60_000;
 const stopTimeoutMs = 90_000;
 
 /**
- * The environment every eval child runs with: this stack's id, no inherited port overrides,
- * and the heartbeat clock switched off (no schedule loop, no quiet hours), so a run does
- * not depend on the time of day.
+ * The environment every eval child runs with: this stack's id and no inherited port overrides.
  */
 export function stackEnvironment(stackId, extra = {}) {
     const env = {
         ...process.env,
-        HAUS_HEARTBEAT_QUIET_HOURS: 'off',
-        HAUS_HEARTBEAT_SCHEDULE: 'off',
         ...extra,
         HAUS_DEV_STACK_ID: stackId,
     };

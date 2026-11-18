@@ -36,7 +36,7 @@ const priorityFlag = {
 
 /**
  * Board Tasks (ADR 0051): queued work with a key like SEC-12, separate from `haus claim`, the
- * lock on a message. The Agent API refuses every write here in a heartbeat run.
+ * lock on a message.
  */
 export const TASK_SUBCOMMANDS: SubCommand[] = [
     {

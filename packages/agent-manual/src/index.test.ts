@@ -35,8 +35,6 @@ const recipeIds = [
     'recipes/technique/attachment-comments',
     'recipes/technique/group-chat-debug',
     'recipes/technique/html-artifact-discussion',
-    'recipes/technique/memory-hygiene',
-    'recipes/technique/heartbeat',
     'recipes/technique/preview-env',
     'recipes/technique/proof-of-work-receipts',
     'recipes/technique/reminder-cron',
@@ -50,10 +48,6 @@ const recipeIds = [
 // The fidelity test below asserts each really has no source file, so this list
 // cannot quietly become an escape hatch for a drifted adapted card.
 const hausNativeIds = new Set<string>(sourceManifest.hausNativeRecipeIds);
-
-// Cards Haus rewrote on purpose. The captured source card stays the record of
-// what was adapted; each rewrite owns a row in specs/raft-alignment/prompt-divergences.md.
-const hausRewrittenIds = new Set<string>(['recipes/technique/memory-hygiene']);
 
 const seededIds = [
     'recipes/decision/one-or-many',
@@ -78,11 +72,11 @@ test('publishes the complete adapted corpus with source metadata', () => {
     const published = recipes();
 
     expect(published.map((topic) => topic.id)).toEqual([...recipeIds]);
-    expect(new Set(published.map((topic) => topic.id)).size).toBe(34);
+    expect(new Set(published.map((topic) => topic.id)).size).toBe(32);
     expect(published.filter((topic) => topic.tier === 'seeded').map((topic) => topic.id)).toEqual([
         ...seededIds,
     ]);
-    expect(published.filter((topic) => topic.tier === 'query')).toHaveLength(22);
+    expect(published.filter((topic) => topic.tier === 'query')).toHaveLength(20);
     expect(published.filter((topic) => topic.class === 'archetype')).toHaveLength(7);
     expect(
         published
@@ -137,10 +131,6 @@ test('keeps every published body faithful to its captured source card', async ()
             continue;
         }
         const source = await sourceFile.text();
-        if (hausRewrittenIds.has(topic.id)) {
-            expect(source).not.toContain(topic.body);
-            continue;
-        }
         const boundaries = [...source.matchAll(/^---$/gm)];
         const body = source
             .slice(boundaries[1].index + 3, boundaries[2]?.index ?? source.length)
@@ -223,14 +213,6 @@ test('returns the complete topic and preserves stable unknown-topic behavior', (
     });
     expect(topic?.body).toContain('The task claim is the concurrency lock.');
     expect(getManualTopic('recipes/no-such-topic')).toBeNull();
-});
-
-test('memory hygiene teaches dreaming and never invites verification stamps', () => {
-    const body = getManualTopic('recipes/technique/memory-hygiene')?.body ?? '';
-
-    expect(body).toContain('### Dreaming');
-    expect(body).toContain('No "verified <date>" stamps');
-    expect(body).not.toContain('verified or from memory');
 });
 
 test('publishes the trigger technique card with its CLI verbs and untrusted-payload rule', () => {

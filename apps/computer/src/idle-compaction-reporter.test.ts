@@ -48,7 +48,6 @@ function reporter(busyAgents: string[] = []) {
 test('only an Agent’s main session compacts, and never while Haus is using the Agent', () => {
     const { hooks } = reporter(['agt_busy']);
     expect(hooks.compactable(join(agentsDir, 'agt_1'))).toBe(true);
-    expect(hooks.compactable(`${join(agentsDir, 'agt_1')}#heartbeat-1`)).toBe(false);
     expect(hooks.compactable(join(root, 'elsewhere', 'agt_1'))).toBe(false);
     expect(hooks.busy(join(agentsDir, 'agt_1'))).toBe(false);
     expect(hooks.busy(join(agentsDir, 'agt_busy'))).toBe(true);

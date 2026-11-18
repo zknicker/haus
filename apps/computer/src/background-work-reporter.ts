@@ -57,7 +57,7 @@ export function createBackgroundWorkReporter(
             } satisfies AgentBackgroundWorkReport);
         }
     };
-    // Sub-agents show as Agent activity; any task holds the Agent's heartbeats and dreams.
+    // Sub-agents show as Agent activity.
     const count = (agentRoot: string, work: BackgroundWork) => {
         const agentId = basename(agentRoot);
         const last = counts.get(agentId) ?? idleWork;

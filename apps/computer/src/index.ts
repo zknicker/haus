@@ -80,7 +80,6 @@ import {
     readComputerStatus,
 } from './diagnostics.ts';
 import { attachmentJournalUploads } from './execution-journal-upload/attachment-journal-uploads.ts';
-import { startHeartbeatSchedule } from './heartbeat-schedule.ts';
 import { handleHostSkillFileRequest } from './host-skill-file.ts';
 import {
     acceptHostSkillImport,
@@ -1109,7 +1108,6 @@ async function connect(
                     startCloudAgentModelCatalogRefresh(connectionWork, () =>
                         trackWriter(reportComputer())
                     );
-                    startHeartbeatSchedule(connectionWork, { agentsDir, daemonWork, runtime });
                     return;
                 }
                 if (process.env.HAUS_COMPUTER_ONESHOT === '1') {

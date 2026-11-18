@@ -54,7 +54,6 @@ export function createClaimSubcommands(resolveDeps: () => ClaimDeps): SubCommand
             name: 'claim',
             notes: [
                 'Prints one row per requested claim: claimed, already yours, or refused with the reason. Exits non-zero only when nothing was granted.',
-                'Regular turns only; a heartbeat run uses haus lead claim.',
             ],
             positionals: [],
             run: (args) => runClaim(args, resolveDeps()),

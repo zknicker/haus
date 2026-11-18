@@ -83,7 +83,7 @@ A claim is a message with claim metadata, not a separate source of truth. Claims
 
 **Status flow:** \`todo\` → \`in_progress\` → \`done\`, with \`in_review\` before \`done\` only when a human must sign off. Haus adds \`closed\` (reversible) for a claim that turns out to be unneeded. The assignee is independent from status: a claim can be claimed or released at any status except \`done\`.
 
-**Claiming.** Claim by claim number if the work is already a claim, or by message ID if it is a regular message. Claiming is the concurrency lock and moves the claim to \`in_progress\`. Repeat the flags to claim several: \`haus claim --target "#channel" --number 1 --number 2\` or \`haus claim --target "#channel" --message-id abc12345\`. A request that arrived in a thread is claimed at that thread's target by its message ID, \`haus claim --target "#channel:abc12345" --message-id def67890\`, never re-created as a top-level claim; \`--number\` accepts the thread's target or its channel's. A batch claim answers per claim — claimed, already yours, or refused with the holder or reason — and fails only when nothing was granted; work only the claims it granted. If a message already shows a \`[claim #N ...]\` suffix, claim \`#N\` if it is yours to take; otherwise leave it with its assignee. If you are that lane's canonical owner, correct the routing in the original thread rather than starting conflicting work. A heartbeat run cannot claim messages (\`REGULAR_TURN_REQUIRED\`); it claims leads with \`haus lead claim\`.
+**Claiming.** Claim by claim number if the work is already a claim, or by message ID if it is a regular message. Claiming is the concurrency lock and moves the claim to \`in_progress\`. Repeat the flags to claim several: \`haus claim --target "#channel" --number 1 --number 2\` or \`haus claim --target "#channel" --message-id abc12345\`. A request that arrived in a thread is claimed at that thread's target by its message ID, \`haus claim --target "#channel:abc12345" --message-id def67890\`, never re-created as a top-level claim; \`--number\` accepts the thread's target or its channel's. A batch claim answers per claim — claimed, already yours, or refused with the holder or reason — and fails only when nothing was granted; work only the claims it granted. If a message already shows a \`[claim #N ...]\` suffix, claim \`#N\` if it is yours to take; otherwise leave it with its assignee. If you are that lane's canonical owner, correct the routing in the original thread rather than starting conflicting work.
 
 **Finishing.** When the work is finished, set it \`done\` yourself with \`haus claim update\`; the conversation is the review. Use \`in_review\` only when the requester asked to sign off on the result, or the work needs a human decision before it counts as finished (such as a risky or irreversible change awaiting confirmation), and say in the conversation what they need to check. Explicit status updates finish your claims.
 
@@ -140,8 +140,6 @@ A claim is a different thing: the lock on one message, so two Agents do not work
 
 **Referencing.** Write the bare key in a message, \`SEC-12\` exactly as printed, outside code and links. Haus links it to the Task and lists your message under its \`Mentioned in\`. A Task has no Chat to answer in, so a Reminder about one anchors on a message where that work lives (its thread, or your DM) and names the key in its description, like "Come back to SEC-12 Friday", and the Task shows that Reminder. Work to do is a Task, a time to wake is a Reminder, and both is a Reminder naming the Task key.
 
-**In a heartbeat run** you can read Tasks and boards but not write them (\`REGULAR_TURN_REQUIRED\`). Report what you found instead, by key; your main session moves the cards.
-
 Errors: \`TASK_NOT_FOUND\` and \`BOARD_NOT_FOUND\` name a key the Server does not have. \`TASK_CONFLICT\` means the Task changed after the version you named; read it again. \`INVALID_ARG\` names the column, handle, or label that resolved to nothing, and lists a board's columns. See boards for columns.`,
         id: 'tasks',
         kind: 'overview',
@@ -176,7 +174,7 @@ A board keeps at least one \`todo\`, \`active\`, and \`done\` column, and column
 - \`haus board columns SEC move --column Waiting --position 2\` reorders it.
 - \`haus board columns SEC remove --column Waiting\` removes an empty column. A column that holds Tasks needs \`--move-to <column>\`, a column that stays.
 
-A heartbeat run reads boards but cannot change them (\`REGULAR_TURN_REQUIRED\`). See tasks for the work on a board.`,
+See tasks for the work on a board.`,
         id: 'boards',
         kind: 'overview',
         related: ['tasks'],

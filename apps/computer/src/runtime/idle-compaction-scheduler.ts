@@ -15,7 +15,7 @@ export interface IdleCompactionHooks {
      * reset or retired. A busy session is never compacted; Claude Code skips a pending prompt.
      */
     busy(key: string): boolean;
-    /** Whether `key` is an Agent's main session; a throwaway (heartbeat) session never compacts. */
+    /** Whether `key` is an Agent's session; any other parked key never compacts. */
     compactable(key: string): boolean;
     /** A compaction failed; the process stays parked (or ended, when it hung or exited). */
     failed(key: string, error: unknown): void;

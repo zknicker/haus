@@ -5,13 +5,7 @@
 
 import { createServer } from 'node:http';
 
-/**
- * `recent` also exposes `list_recent_audit_records`, which returns every defined
- * record in definition order, for scenarios where an Agent watches the ledger
- * without being told a key (the heartbeat evals). Off by default so the lookup-only
- * scenarios keep their one-tool server.
- */
-export async function startControlledMcp({ recent = false } = {}) {
+export async function startControlledMcp() {
     /** @type {Array<{ caller: string | null, key: string | null, tool: string }>} */
     const calls = [];
     /** @type {Map<string, { owner: string, title: string }>} */
@@ -33,7 +27,7 @@ export async function startControlledMcp({ recent = false } = {}) {
         // A path suffix (`/mcp/<caller>`) names the caller: each Agent that needs
         // attributable calls gets its own connection URL from `urlFor`.
         const caller = (request.url ?? '').split('?')[0].split('/').filter(Boolean)[1] ?? null;
-        const result = respond(message, records, calls, recent, caller);
+        const result = respond(message, records, calls, caller);
         // An unknown method is a JSON-RPC error, never a null result: the Server's
         // client probes newer protocol methods during version negotiation and
         // rejects `result: null` as a malformed response.
@@ -90,14 +84,7 @@ const lookupTool = {
     name: 'lookup_audit_record',
 };
 
-const recentTool = {
-    description:
-        'List the most recent private audit records, newest last, each with its key, title, owner, and status. Use this to see what is new in the Audit Ledger.',
-    inputSchema: { additionalProperties: false, properties: {}, type: 'object' },
-    name: 'list_recent_audit_records',
-};
-
-function respond(message, records, calls, recent, caller) {
+function respond(message, records, calls, caller) {
     switch (message.method) {
         case 'initialize':
             return {
@@ -108,11 +95,9 @@ function respond(message, records, calls, recent, caller) {
         case 'ping':
             return {};
         case 'tools/list':
-            return { tools: recent ? [lookupTool, recentTool] : [lookupTool] };
+            return { tools: [lookupTool] };
         case 'tools/call':
-            return message.params?.name === recentTool.name
-                ? recentResult(records, calls, caller)
-                : lookupResult(message, records, calls, caller);
+            return lookupResult(message, records, calls, caller);
         default:
             return null;
     }
@@ -132,12 +117,6 @@ function lookupResult(message, records, calls, caller) {
             },
         ],
     };
-}
-
-function recentResult(records, calls, caller) {
-    calls.push({ caller, key: null, tool: recentTool.name });
-    const listed = [...records.entries()].map(([key, record]) => ({ key, ...record }));
-    return { content: [{ text: JSON.stringify({ records: listed }), type: 'text' }] };
 }
 
 async function readBody(request) {

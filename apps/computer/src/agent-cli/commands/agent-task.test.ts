@@ -172,12 +172,9 @@ test('assign takes a handle or me, and none unassigns', async () => {
 
 test('a refusal from the Server reaches the caller untouched', async () => {
     const { run } = harness(() => {
-        throw new AgentCliError(
-            'REGULAR_TURN_REQUIRED',
-            'Tasks and boards are read-only in a heartbeat run. Report what you found with haus heartbeat report.'
-        );
+        throw new AgentCliError('TASK_NOT_FOUND', 'No Task SEC-12 on this Server.');
     });
     await expect(
         run(runTaskMove, args({ positionals: ['SEC-12'], values: { '--column': 'Done' } }))
-    ).rejects.toMatchObject({ code: 'REGULAR_TURN_REQUIRED' });
+    ).rejects.toMatchObject({ code: 'TASK_NOT_FOUND' });
 });

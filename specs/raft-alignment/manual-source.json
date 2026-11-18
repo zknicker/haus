@@ -4,11 +4,11 @@
   "tag": "v1.21.2-source.1",
   "daemonVersion": "1.0.43",
   "verifiedAt": "2026-10-06T18:01:05.889526Z",
-  "omittedRecipeIds": ["recipes/technique/login-with-raft"],
-  "hausNativeRecipeIds": [
-    "recipes/technique/heartbeat",
-    "recipes/technique/trigger-webhook"
+  "omittedRecipeIds": [
+    "recipes/technique/login-with-raft",
+    "recipes/technique/memory-hygiene"
   ],
+  "hausNativeRecipeIds": ["recipes/technique/trigger-webhook"],
   "files": [
     {
       "sourcePath": "manual/recipes/archetype/analyst.md",

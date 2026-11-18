@@ -7,10 +7,8 @@ import { CLAIM_SUBCOMMANDS } from './agent-cli/commands/agent-claim.ts';
 import { CLOUD_AGENT_SUBCOMMANDS } from './agent-cli/commands/agent-cloud-agent.ts';
 import { CONNECTION_SUBCOMMANDS } from './agent-cli/commands/agent-connection.ts';
 import { CHANNEL_SUBCOMMANDS, SERVER_SUBCOMMANDS } from './agent-cli/commands/agent-directory.ts';
-import { HEARTBEAT_SUBCOMMANDS } from './agent-cli/commands/agent-heartbeat.ts';
 import { IMAGE_SUBCOMMANDS } from './agent-cli/commands/agent-image.ts';
 import { INBOX_SUBCOMMANDS } from './agent-cli/commands/agent-inbox.ts';
-import { LEAD_SUBCOMMANDS } from './agent-cli/commands/agent-lead.ts';
 import { MANUAL_EXAMPLE_FLOWS, MANUAL_SUBCOMMANDS } from './agent-cli/commands/agent-manual.ts';
 import { MESSAGE_SUBCOMMANDS } from './agent-cli/commands/agent-message.ts';
 import { PROFILE_SUBCOMMANDS } from './agent-cli/commands/agent-profile.ts';
@@ -32,10 +30,8 @@ export const commandGroups = {
     'cloud-agent': CLOUD_AGENT_SUBCOMMANDS,
     connection: CONNECTION_SUBCOMMANDS,
     files: ARTIFACT_SUBCOMMANDS,
-    heartbeat: HEARTBEAT_SUBCOMMANDS,
     image: IMAGE_SUBCOMMANDS,
     inbox: INBOX_SUBCOMMANDS,
-    lead: LEAD_SUBCOMMANDS,
     manual: MANUAL_SUBCOMMANDS,
     message: MESSAGE_SUBCOMMANDS,
     profile: PROFILE_SUBCOMMANDS,

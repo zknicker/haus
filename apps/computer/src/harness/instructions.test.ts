@@ -251,8 +251,9 @@ test('teaches MEMORY.md as hot memory plus a notes index, with history left in c
         "## Active Context\n<current work only: rewrite, don't append; drop finished items>\n\n## Key Knowledge\n- notes/channels.md: what each channel is about"
     );
     expect(prompt).toContain(
-        "`notes/` holds deeper knowledge not needed every wake: topic files, each the current truth on one subject. Update or delete a topic's note before adding one; no dated logs. Manual topic `recipes/technique/memory-hygiene` has the rest."
+        "`notes/` holds deeper knowledge not needed every wake: topic files, each the current truth on one subject. Update or delete a topic's note before adding one; no dated logs."
     );
+    expect(prompt).not.toContain('memory-hygiene');
     expect(prompt).toContain(
         "The history itself lives in Haus chats and claims: don't copy it; record handles (chat/message, claim, file, commit) and find it with `haus message search`."
     );

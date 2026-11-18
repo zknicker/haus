@@ -1,6 +1,4 @@
 import type {
-    AgentHeartbeatAttention,
-    AgentHeartbeatReportAttention,
     AgentTaskAssignment,
     AgentTaskAssignmentNotice,
     AgentTurnActivitySummary,
@@ -20,7 +18,7 @@ export interface AgentStartCommand {
     agentName?: string;
     /** Pickup reaction; null or absent means the prompt's default. */
     agentSignatureEmoji?: string | null;
-    /** The run's Chat; null only for a chatless run: a heartbeat, report, wake, or assignment. */
+    /** The run's Chat; null only for a chatless run: a wake or assignment. */
     chatId: string | null;
     /** Chips the Server's connections add to chat; the prompt teaches the ones an Agent writes. */
     connectionChips?: ConnectionChipKind[];
@@ -28,10 +26,6 @@ export interface AgentStartCommand {
     drainItemIds?: string[];
     /** This run carries the new Agent's one-time `#all` greeting, claimed once by the Server. */
     greets?: true;
-    /** A heartbeat run (daytime or nightly): a fresh throwaway session, no inbox. */
-    heartbeat?: AgentHeartbeatAttention;
-    /** A report run: the Agent's own heartbeat report, delivered to the main session. */
-    heartbeatReport?: AgentHeartbeatReportAttention;
     homeTimezone?: string;
     inbox?: AgentInboxItem[];
     inboxDelivery: 'concrete' | 'notice';

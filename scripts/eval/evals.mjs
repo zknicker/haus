@@ -74,30 +74,6 @@ export const evals = {
         summary:
             'Feedback in passing becomes a Standing Preference that survives a session reset; no feedback, no rule change.',
     },
-    // Heartbeat runs start through the dev-only `dev.startHeartbeat` trigger, seed
-    // chat history without waking the Agent, and overwrite MEMORY.md on the stack's
-    // own Computer. Serial: each run takes the Agent's one turn slot and the
-    // controlled MCP scenarios share the model budget. Word quality is scored out of
-    // band by scripts/agent-tests/heartbeat-grade.mjs (`heartbeatProfiles`).
-    heartbeat: {
-        judge: null,
-        lanes: 1,
-        profiles: {},
-        scenarios: [
-            'heartbeat-learns-unsaved-correction',
-            'heartbeat-quiet-day-control',
-            'heartbeat-follows-up-dropped-promise',
-            'heartbeat-nightly-report-morning-post',
-            'heartbeat-surfaces-new-signal',
-            'heartbeat-nothing-new-control',
-            'heartbeat-reports-unhandled-standing-item',
-            'heartbeat-stale-loose-end-control',
-            'heartbeat-quiet-run-awareness',
-            'heartbeat-lead-dedupe',
-        ],
-        summary:
-            'A nightly heartbeat learns a correction the Agent only acknowledged, follows up a dropped promise, and turns a finding into a morning post that explains itself; a daytime heartbeat reports a new signal or a still-unhandled item once with a heads-up, stays quiet otherwise, leaves stale loose ends alone, and two Agents answer a shared question once without duplicate research.',
-    },
     // Work that leaves the chat: Cloud Agents, MCP connections, Triggers, and Files.
     // cloud-launch-and-link needs Cursor access.
     tools: {

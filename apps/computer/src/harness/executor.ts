@@ -29,8 +29,6 @@ import {
     createComputerExecutionJournal,
 } from './execution-journal.ts';
 import { currentRuntimeDriverFactory, type TurnDriverFactory } from './executor-seams.ts';
-import { clearQuietRunNote, quietRunLine, readQuietRunNote } from './heartbeat-note.ts';
-import { runHeartbeatTurn } from './heartbeat-turn.ts';
 import { startInstructionRefreshActivity } from './instruction-refresh-activity.ts';
 import { composeAgentInstructions } from './instructions.ts';
 import { planInstructionsUpdate, withInstructionsUpdate } from './instructions-update.ts';
@@ -105,14 +103,6 @@ export async function runHarnessTurn(input: HarnessTurnInput): Promise<HarnessTu
     const operation = Effect.tryPromise({
         catch: (cause) => new HarnessStreamForeignError({ cause }),
         try: async () => {
-            if (input.heartbeat) {
-                // A heartbeat opens its own throwaway session; the main session is not read or written.
-                return await runHeartbeatTurn(
-                    { ...input, heartbeat: input.heartbeat },
-                    input.runtimeDriverFactory ?? currentRuntimeDriverFactory(),
-                    journal
-                );
-            }
             const stored = await readAgentSessionState(input.agentRoot);
             const session = resolveTurnSession(stored, {
                 generation: input.sessionGeneration,
@@ -248,9 +238,6 @@ async function executeHarnessTurn(
         const turnContent = prompt.turnContent;
         // Cleared only after a completed turn, so a turn that fails before the model sees it retries.
         const skillNotice = await readManagedSkillChangeNotice(input.agentRoot);
-        // Any main-session turn hears what its heartbeats did; a report run clears it unrendered.
-        const quietNote = await readQuietRunNote(input.agentRoot);
-        const quietLine = quietNote && !input.heartbeatReport ? quietRunLine(quietNote) : null;
         // The no-progress deadline interrupts through the same path as Stop, keeping resume state.
         const noProgress = new AbortController();
         const turnSignal = AbortSignal.any([noProgress.signal, input.signal ?? noProgress.signal]);
@@ -259,7 +246,7 @@ async function executeHarnessTurn(
             prompt: withInstructionsUpdate(
                 instructionsUpdate,
                 projectMessageForAgent({
-                    content: [quietLine, coveGuidance.notice, turnContent, skillNotice?.text]
+                    content: [coveGuidance.notice, turnContent, skillNotice?.text]
                         .filter(Boolean)
                         .join('\n\n'),
                     enabledSkillIds: skillNames,
@@ -349,9 +336,6 @@ async function executeHarnessTurn(
         }
         if (skillNotice) {
             await clearManagedSkillChangeNotice(input.agentRoot, skillNotice);
-        }
-        if (quietNote) {
-            await clearQuietRunNote(input.agentRoot);
         }
         await input.activity.finish(instructionActivityKey, 'completed');
         return observation;

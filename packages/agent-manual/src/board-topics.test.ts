@@ -18,7 +18,6 @@ test('the tasks topic teaches pacing, finishing, and references, and keeps claim
     expect(body).toContain('Write the bare key in a message');
     expect(body).toContain('anchors on a message where that work lives');
     expect(body).toContain('names the key in its description');
-    expect(body).toContain('`REGULAR_TURN_REQUIRED`');
     expect(body).not.toContain('—');
     expect(getManualTopic('claims')?.body).toContain('queued work on a board is a Task');
 });

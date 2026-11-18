@@ -174,7 +174,7 @@ test('a busy Agent, live background work, or a newer request skips the compactio
     expect(moved.skips).toEqual(['newer-activity']);
 });
 
-test('a small context, a five-minute cache, or a throwaway session is never compacted', async () => {
+test('a small context, a five-minute cache, or an uncompactable key is never compacted', async () => {
     const { pool, skips } = harness();
     pool.setIdleCompaction(true);
     const small = new CompactableProcess();
@@ -197,7 +197,7 @@ test('a small context, a five-minute cache, or a throwaway session is never comp
     fiveMinutePool.setIdleCompaction(true);
     await fiveMinutePool.park('agent-b', identity, shortCache);
     const throwaway = new CompactableProcess();
-    await pool.park('agent-c#heartbeat', identity, throwaway);
+    await pool.park('agent-c#other', identity, throwaway);
     await Bun.sleep(20);
     expect([small.compactions, shortCache.compactions, throwaway.compactions]).toEqual([0, 0, 0]);
     expect(skips).toEqual(['small-context']);

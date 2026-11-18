@@ -1,6 +1,4 @@
 import {
-    agentHeartbeatAttentionResponseSchema,
-    agentHeartbeatReportAttentionResponseSchema,
     agentSubagentWakeAttentionResponseSchema,
     agentTaskAssignmentNoticeResponseSchema,
     agentTaskAssignmentsResponseSchema,
@@ -206,22 +204,16 @@ export function parseStopBackgroundCommand(frame: unknown): AgentStopBackgroundC
 }
 
 /**
- * Only a heartbeat, report, sub-agent wake, or Task assignment run is chatless, and it
- * carries nothing but its one attention.
+ * Only a sub-agent wake or Task assignment run is chatless, and it carries nothing but
+ * its one attention.
  */
 function parseRunChat(
     frame: Record<string, unknown>,
     itemCount: number
-): Pick<
-    AgentStartCommand,
-    'chatId' | 'heartbeat' | 'heartbeatReport' | 'subagentWake' | 'taskAssignments'
-> | null {
-    const attentions = [
-        frame.heartbeat,
-        frame.heartbeatReport,
-        frame.subagentWake,
-        frame.taskAssignments,
-    ].filter((attention) => attention !== undefined).length;
+): Pick<AgentStartCommand, 'chatId' | 'subagentWake' | 'taskAssignments'> | null {
+    const attentions = [frame.subagentWake, frame.taskAssignments].filter(
+        (attention) => attention !== undefined
+    ).length;
     if (attentions === 0) {
         return typeof frame.chatId === 'string' && frame.chatId.length > 0
             ? { chatId: frame.chatId }
@@ -234,14 +226,6 @@ function parseRunChat(
         itemCount !== 0
     ) {
         return null;
-    }
-    if (frame.heartbeat !== undefined) {
-        const heartbeat = agentHeartbeatAttentionResponseSchema.safeParse(frame.heartbeat);
-        return heartbeat.success ? { chatId: null, heartbeat: heartbeat.data } : null;
-    }
-    if (frame.heartbeatReport !== undefined) {
-        const report = agentHeartbeatReportAttentionResponseSchema.safeParse(frame.heartbeatReport);
-        return report.success ? { chatId: null, heartbeatReport: report.data } : null;
     }
     if (frame.taskAssignments !== undefined) {
         const assignments = agentTaskAssignmentsResponseSchema.safeParse(frame.taskAssignments);
