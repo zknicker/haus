@@ -1,0 +1,4 @@
+# Mechanical reformats. Use with `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
+
+# style: format the tree with Oxfmt (`bun x oxfmt .`)
+6e1730affd188db2c3c8053ca98fcfb15c32104d
