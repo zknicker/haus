@@ -110,7 +110,7 @@ function matchesEntry(entry: GithubTriggerEvent, payload: Payload): boolean {
                     text(job, 'head_branch'),
                     defaultBranch
                 ) &&
-                authorAllowed(entry.authors, text(job, 'head_branch') !== null)
+                authorAllowed(entry.authors, workflowJobTrusted)
             );
         }
         case 'check_suite': {
@@ -124,7 +124,7 @@ function matchesEntry(entry: GithubTriggerEvent, payload: Payload): boolean {
                     text(suite, 'head_branch'),
                     defaultBranch
                 ) &&
-                authorAllowed(entry.authors, text(suite, 'head_branch') !== null)
+                authorAllowed(entry.authors, checkTrusted(text(suite, 'head_branch')))
             );
         }
         case 'check_run': {
@@ -135,7 +135,7 @@ function matchesEntry(entry: GithubTriggerEvent, payload: Payload): boolean {
                 oneOf(entry.conclusions, text(run, 'conclusion')) &&
                 matchesSelection(entry.branches, entry.branchesIgnore, headBranch, defaultBranch) &&
                 matchesSelection(entry.checkNames, entry.checkNamesIgnore, text(run, 'name')) &&
-                authorAllowed(entry.authors, headBranch !== null)
+                authorAllowed(entry.authors, checkTrusted(headBranch))
             );
         }
         case 'deployment_status': {
@@ -235,4 +235,30 @@ function associationTrusted(association: string | null): boolean {
  */
 function sameRepository(headFullName: string | null, baseFullName: string | null): boolean {
     return headFullName !== null && baseFullName !== null && headFullName === baseFullName;
+}
+
+/**
+ * `workflow_job` reports no `head_repository`, and GitHub's own documented
+ * null-on-fork `head_branch` behavior covers only `check_suite`/`check_run`
+ * (confirmed against GitHub's Checks API docs) — a fork PR's `workflow_job`
+ * carries the fork's real branch name, non-null, so treating a non-null
+ * `head_branch` as trusted would do nothing. With no reliable signal in the
+ * payload, `workflow_job` is untrusted under the default gate; `authors:
+ * anyone` is the only way to receive it.
+ */
+const workflowJobTrusted = false;
+
+/**
+ * `check_suite`/`check_run` report a null `head_branch` when their commit
+ * lives only in a fork (GitHub's own documented behavior), but the same null
+ * also shows up for a tag push and a detached-commit check — GitHub has no
+ * per-event field that tells these apart. So a default-gated `check_suite` or
+ * `check_run` Trigger also misses tag- and detached-commit-triggered checks,
+ * not only fork ones; `authors: anyone` or a matching `actors` entry gets
+ * them back. Documented in specs/github-triggers.md#events and the website's
+ * Authors hint rather than solved here, since nothing in the payload
+ * distinguishes the two.
+ */
+function checkTrusted(headBranch: string | null): boolean {
+    return headBranch !== null;
 }

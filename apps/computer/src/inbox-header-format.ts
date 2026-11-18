@@ -1,4 +1,4 @@
-import { universalLineBreak } from '@haus/api';
+import { createLineBreakPattern } from '@haus/api';
 
 /**
  * The header facts every inbox line prints — the `msg=` short id, the `time=`
@@ -79,7 +79,10 @@ export function shortInboxId(id: string): string {
 const bodyContinuationPrefix = '  │ ';
 
 export function indentContinuationLines(text: string): string {
-    return text.replace(universalLineBreak, (separator) => `${separator}${bodyContinuationPrefix}`);
+    return text.replace(
+        createLineBreakPattern(),
+        (separator) => `${separator}${bodyContinuationPrefix}`
+    );
 }
 
 /**

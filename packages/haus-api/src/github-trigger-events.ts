@@ -70,9 +70,13 @@ export const githubReviewStateSchema = z.enum([
 ]);
 /**
  * `collaborators` means `author_association` is OWNER, MEMBER, or
- * COLLABORATOR; for `workflow_run`, `workflow_job`, `check_suite`, and
- * `check_run`, which carry no `author_association`, it means the run's
- * commit lived in the base repository rather than a fork.
+ * COLLABORATOR. The four CI events carry no `author_association`, so it
+ * means something narrower per event: for `workflow_run`, the run's commit
+ * lived in the base repository rather than a fork; for `check_suite` and
+ * `check_run`, GitHub reported a branch at all, which also excludes
+ * tag-triggered and detached-commit checks, not only forks; `workflow_job`
+ * has no reliable signal in its payload at all, so it never passes under
+ * `collaborators` — only `anyone` receives it.
  */
 export const githubTriggerAuthorsSchema = z.enum(['collaborators', 'anyone']);
 
