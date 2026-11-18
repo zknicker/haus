@@ -1,6 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import {
     agentRunTriggersTable,
@@ -12,9 +11,9 @@ import {
     serversTable,
 } from '../src/postgres/schema.ts';
 import { recordReminderWakeUsage } from '../src/reminders/reminder-wake-usage.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
-let cluster: PostgresCluster | null = null;
+let cluster: TestDatabase | null = null;
 let connection: HausConnection | null = null;
 
 afterEach(async () => {
@@ -25,8 +24,7 @@ afterEach(async () => {
 });
 
 test("links a turn's reported usage to the fire that woke it", async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
     const db = connection.db;
     await seedFire(db, 'srv_usage', 'agt_usage', 'rmf_usage');
@@ -59,8 +57,7 @@ test("links a turn's reported usage to the fire that woke it", async () => {
 });
 
 test('does nothing when the runtime reported no usage', async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
     const db = connection.db;
     await seedFire(db, 'srv_nousage', 'agt_nousage', 'rmf_nousage');
@@ -87,8 +84,7 @@ test('does nothing when the runtime reported no usage', async () => {
 });
 
 test('does nothing when the run was not triggered by a reminder', async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
     const db = connection.db;
     await seedFire(db, 'srv_other', 'agt_other', 'rmf_other');

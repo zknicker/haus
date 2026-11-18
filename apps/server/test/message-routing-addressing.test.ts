@@ -5,7 +5,6 @@ import type { AgentMessageRecipientPlan } from '../src/agent-delivery/message-re
 import { applyMessageRouting } from '../src/message-routing/apply-message-routing.ts';
 import { readRoutingAgents } from '../src/message-routing/context.ts';
 import type { PreparedMessageRouting } from '../src/message-routing/route-human-message.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
@@ -19,14 +18,13 @@ import {
     serversTable,
     usersTable,
 } from '../src/postgres/schema.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
 });
 

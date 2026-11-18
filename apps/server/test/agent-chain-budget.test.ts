@@ -3,7 +3,6 @@ import { randomBytes } from 'node:crypto';
 import type { AgentCommand, AgentTurnSummary } from '@haus/api';
 import { eq } from 'drizzle-orm';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
@@ -15,18 +14,17 @@ import {
     serversTable,
     usersTable,
 } from '../src/postgres/schema.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 // The automation chain budget through real delivery: Trigger wakes spend it,
 // human work resets it, the ceiling holds until a human speaks, and a chain
 // idle for half an hour below the ceiling restarts.
 
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
 });
 

@@ -12,18 +12,16 @@ import {
     type HausServerApplication,
 } from '../src/haus-server-application.ts';
 import type { HostedMcpAccess } from '../src/hosted-mcp/supervisor.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 const appOrigin = 'https://haus.chat';
 let application: HausServerApplication;
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let healthUrl: string;
 let attachmentRoot: string;
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     attachmentRoot = await mkdtemp(join(tmpdir(), 'haus-health-attachments-'));
     application = await createHausServerApplication({
         appOrigin,

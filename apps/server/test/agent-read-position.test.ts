@@ -5,7 +5,6 @@ import { readAgentHistory } from '../src/agent-api/message-history.ts';
 import { recordExactMessagesServed } from '../src/agent-delivery/cursors.ts';
 import { planAgentMessageRecipients } from '../src/agent-delivery/message-recipients.ts';
 import { joinChannelAgents } from '../src/chats/channel-agent-membership.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { agentChatReadsTable, agentsTable } from '../src/postgres/schema.ts';
 import {
@@ -17,14 +16,13 @@ import {
     seedReader,
     setReadPosition,
 } from './agent-read-fixture.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
 });
 

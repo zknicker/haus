@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SQL } from 'bun';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
-import { startPostgresCluster } from './postgres-cluster.ts';
+import { startEmptyDatabase } from './postgres-cluster.ts';
 
 const efforts = ['low', 'medium', 'high', 'xhigh', 'max'];
 const runtime = (id: string, models: { id: string; reasoningEfforts: string[] }[]) => ({
@@ -22,7 +22,7 @@ const createdAt = new Date('2026-01-01T00:00:00.000Z');
 const previousRotation = new Date('2026-02-01T00:00:00.000Z');
 
 test('retiring Pi moves its Agents to the default runtime their Computer reports', async () => {
-    const cluster = await startPostgresCluster();
+    const cluster = await startEmptyDatabase();
     const folder = await mkdtemp(join(tmpdir(), 'haus-retire-pi-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
     try {

@@ -205,19 +205,18 @@ test('restricts one-run execution detail to Server Owners and Admins', async () 
 
     const input = { agentId: agent.id, runId: 'run_detail', serverId };
     const outlines = { agentId: agent.id, runIds: ['run_detail'], serverId };
-    for (const viewer of [member, owner]) {
-        const journal = viewer.trpc.agent.executionJournal.query(input);
-        const outline = viewer.trpc.agent.executionOutlines.query(outlines);
-        if (viewer === member) {
-            await expect(journal).rejects.toThrow(/Owner or Admin/i);
-            await expect(outline).rejects.toThrow(/Owner or Admin/i);
-        } else {
-            await expect(journal).resolves.toMatchObject({ status: 'missing' });
-            await expect(outline).resolves.toEqual({
-                outlines: [{ runId: 'run_detail', status: 'missing' }],
-            });
-        }
-    }
+    await expect(member.trpc.agent.executionJournal.query(input)).rejects.toThrow(
+        /Owner or Admin/i
+    );
+    await expect(member.trpc.agent.executionOutlines.query(outlines)).rejects.toThrow(
+        /Owner or Admin/i
+    );
+    await expect(owner.trpc.agent.executionJournal.query(input)).resolves.toMatchObject({
+        status: 'missing',
+    });
+    await expect(owner.trpc.agent.executionOutlines.query(outlines)).resolves.toEqual({
+        outlines: [{ runId: 'run_detail', status: 'missing' }],
+    });
 });
 
 test('fails closed on a runtime or model the assigned Computer never reported', async () => {

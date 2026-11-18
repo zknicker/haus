@@ -5,10 +5,10 @@ import { join } from 'node:path';
 import { SQL } from 'bun';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { seedLegacyTasks } from './legacy-tasks-seed.ts';
-import { startPostgresCluster } from './postgres-cluster.ts';
+import { startEmptyDatabase } from './postgres-cluster.ts';
 
 test('0127 turns worked legacy Tasks into places and archives the rest', async () => {
-    const cluster = await startPostgresCluster();
+    const cluster = await startEmptyDatabase();
     const folder = await mkdtemp(join(tmpdir(), 'haus-legacy-tasks-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
     try {

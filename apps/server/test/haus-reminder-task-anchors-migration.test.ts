@@ -4,10 +4,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SQL } from 'bun';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
-import { startPostgresCluster } from './postgres-cluster.ts';
+import { startEmptyDatabase } from './postgres-cluster.ts';
 
 test('0125 keeps existing reminders and lets a Task reminder anchor on its origin', async () => {
-    const cluster = await startPostgresCluster();
+    const cluster = await startEmptyDatabase();
     const folder = await mkdtemp(join(tmpdir(), 'haus-reminder-task-anchors-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
     try {

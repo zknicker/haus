@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import Fastify from 'fastify';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { emptySecret } from '../src/server-mcp/connection-secret.ts';
 import { registerMcpOAuthCallback } from '../src/server-mcp/oauth-callback-route.ts';
@@ -11,21 +10,20 @@ import {
     approveControlledAuthorization as approve,
     startControlledOAuthMcpProvider,
 } from './controlled-oauth-mcp.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 const connectionId = 'mcp_oauthrelaytest01';
 const redirectUrl = 'http://127.0.0.1:8091/mcp/oauth/callback';
 const serverId = 'srv_oauthrelaytest01';
 
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 let provider: Awaited<ReturnType<typeof startControlledOAuthMcpProvider>>;
 let runtime: McpRuntime;
 const effectRuntime = makeServerRuntime();
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
     provider = await startControlledOAuthMcpProvider();
     runtime = new McpRuntime(connection.db, effectRuntime);

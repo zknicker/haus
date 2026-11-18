@@ -3,12 +3,11 @@ import { eq } from 'drizzle-orm';
 import { maxAgentChainTurns } from '../src/agent-delivery/chain-budget.ts';
 import type { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import * as store from '../src/agent-delivery/store.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { agentDeliveryTable } from '../src/postgres/schema.ts';
 import { assignTask } from '../src/tasks/task-assign.ts';
 import { offlineDelivery, type Seed } from './agent-inbox-harness.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { settledTurn } from './settled-turn-fixture.ts';
 import {
     addPeerAgent,
@@ -23,12 +22,11 @@ import {
  * Agent made is Agent-authored traffic, so two Agents assigning each other stop at
  * the ceiling; one a person made starts fresh.
  */
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
 });
 

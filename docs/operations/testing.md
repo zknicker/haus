@@ -49,7 +49,7 @@ Each package gate includes its tests and typecheck:
 
 | Touched path | Gate |
 | --- | --- |
-| `apps/server` | `@haus/server test` + `typecheck`. Hosted Server tests provision a throwaway cluster from locally installed PostgreSQL binaries; install PostgreSQL 16 or point `HAUS_POSTGRES_BIN` at its bin directory. Avatar generation tests inject a deterministic fake provider and never call OpenAI. |
+| `apps/server` | `@haus/server test` + `typecheck`. See [Server suite](#server-suite). Avatar generation tests inject a deterministic fake provider and never call OpenAI. |
 | `apps/computer` | `@haus/computer test` + `typecheck` |
 | `apps/website` | `@haus/website test` + `typecheck` |
 | `packages/haus-api` | `@haus/api check`, plus typecheck of the consuming apps you touched |
@@ -78,6 +78,36 @@ Rules that keep runs cheap and honest:
   prep, not development.
 
 Before handoff, report the commands you ran and anything you did not verify.
+
+### Server suite
+
+Server tests run against real PostgreSQL 16 from locally installed binaries.
+Install PostgreSQL 16 or point `HAUS_POSTGRES_BIN` at its bin directory.
+
+`bun run --filter @haus/server test` runs `apps/server/scripts/run-tests.ts`.
+It starts one PostgreSQL cluster for the run, migrates a template database
+once, and runs every test file in parallel, one `bun test` process per file.
+Each file's databases are copies of that template (`CREATE DATABASE … TEMPLATE`),
+so no two files share rows. The runner never stops at the first failure: it
+runs every file, prints each failing file's full output, the ten slowest
+files, and a total, and exits non-zero if anything failed.
+
+* `HAUS_TEST_WORKERS` sets the parallel file count. It defaults to half the
+  CPU count: on a 16-core Mac, 8 and 16 workers finish in the same time, and
+  fewer workers leave wall-clock assertions more headroom.
+* Pass file paths to run only those files through the runner:
+  `bun scripts/run-tests.ts test/haus-claims.test.ts` from `apps/server`.
+* `bun test test/<file>.test.ts` alone still works with no setup. Outside the
+  runner, each test database starts a throwaway cluster of its own.
+
+Test helpers in `apps/server/test/postgres-cluster.ts`:
+
+* `startMigratedDatabase()` gives a fresh database with every migration
+  applied. Most tests want this, usually through `startHausServerHarness()`.
+* `startEmptyDatabase()` gives a fresh empty database, for migration tests
+  that replay a partial migration chain.
+* `startPostgresCluster()` gives a cluster of the test's own. Use it only for
+  cluster-wide state: roles, a non-default collation, or sibling databases.
 
 ## Change Routing
 
@@ -126,7 +156,7 @@ not a list of exclusions:
   typecheck and its unit tests both resolve `@heroui-pro/react`, whose dist is
   a licensed download, and so does the desktop packaging check — which is why
   that one file is named `*.licensed-check.mjs`, out of `bun test`
-  auto-discovery, and run by `test:licensed`. The Server suites each provision
+  auto-discovery, and run by `test:licensed`. The Server suite provisions
   a real PostgreSQL cluster. The Computer suites spawn execution runtimes. The
   build is the deploy path's proof, not CI's.
 * `check:fast` is fully offline: it pins the schema's `test` lifecycle, so no
@@ -157,7 +187,7 @@ not a list of exclusions:
 | --- | --- | --- |
 | Focused unit/domain tests | Pure logic, view models, hooks, mappers, scheduling rules, validation, or regressions. | Add one targeted regression for behavior changes. Avoid asserting implementation calls. |
 | Computer service tests | Workspaces, queues, execution state, recovery, or execution evidence. | Use real temp directories and the real service boundary. |
-| Hosted Server tests | Haus Server identity, Chats, messages, reads, search, ordering, authorization, or realtime. | Drive the public tRPC surface through `test/haus-server-harness.ts`: a throwaway PostgreSQL cluster plus a local Cloudflare assertion issuer. Never mock PostgreSQL or the transaction. |
+| Hosted Server tests | Haus Server identity, Chats, messages, reads, search, ordering, authorization, or realtime. | Drive the public tRPC surface through `test/haus-server-harness.ts`: a throwaway migrated PostgreSQL database plus a local Cloudflare assertion issuer. Never mock PostgreSQL or the transaction. |
 | Contract/API/SDK gates | `packages/haus-api`, OpenAPI, SDK client shape, generated types, or cross-boundary request/response contracts. | Run `@haus/api check`, SDK tests/typecheck, and update docs with the product contract. |
 | App component/hook tests | React state rules, cache invalidation, optimistic UI, row models, filters, keyboard behavior, or rendering transforms. | Prefer hook/model/component tests before e2e. Use the `architect-react-features` skill for nontrivial React architecture. |
 | Desktop shell tests | Electron main-process and preload behavior: the injected bridge globals, trusted-renderer origins, Cloudflare OAuth callback and native requests, external-link routing, window state. | Extract the rule into a `.cjs` module beside its caller and cover it with a `*.test.cjs` in `apps/website/electron`; the fast lane runs them. Keep them free of the `electron` runtime. |

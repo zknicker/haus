@@ -10,7 +10,7 @@
     "start": "bun dist/haus-server.js",
     "lint": "ultracite check src test",
     "lint:fix": "ultracite fix src test",
-    "test": "drizzle-kit check --config=drizzle.postgres.config.ts && node scripts/run-tests.mjs",
+    "test": "drizzle-kit check --config=drizzle.postgres.config.ts && bun scripts/run-tests.ts",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate --config=drizzle.postgres.config.ts",
     "db:generate:postgres": "drizzle-kit generate --config=drizzle.postgres.config.ts",

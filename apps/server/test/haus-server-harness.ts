@@ -25,7 +25,11 @@ import { connectHausDatabase } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import { usersTable, userVerifiedEmailsTable } from '../src/postgres/schema.ts';
 import type { PushSender } from '../src/push/push-sender.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import {
+    startMigratedDatabase,
+    startPostgresCluster,
+    type TestDatabase,
+} from './postgres-cluster.ts';
 
 export interface TestHumanAuth {
     mintExpiredSessionToken(subject: string): Promise<string>;
@@ -78,15 +82,12 @@ export async function startHausServerHarness(
         cloudflareOAuthMetadataFetch?: typeof fetch;
     } = {}
 ): Promise<HausServerHarness> {
-    const cluster: PostgresCluster = await startPostgresCluster({
-        icuLocale: options.postgresIcuLocale,
-    });
+    const cluster = await startHarnessDatabase(options.postgresIcuLocale);
     const attachmentRoot = await mkdtemp(join(tmpdir(), 'haus-server-attachments-'));
     const appOrigin = options.appOrigin ?? harnessAppOrigin;
     let connection: Awaited<ReturnType<typeof connectHausDatabase>> | null = null;
 
     try {
-        await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
         connection = await connectHausDatabase(cluster.databaseUrl);
         const sql = new SQL({ url: cluster.databaseUrl });
         const humans = createTestHumanAuth(connection.db, sql);
@@ -152,6 +153,20 @@ export async function startHausServerHarness(
         await rm(attachmentRoot, { force: true, recursive: true });
         throw error;
     }
+}
+
+async function startHarnessDatabase(icuLocale: string | undefined): Promise<TestDatabase> {
+    if (!icuLocale) {
+        return startMigratedDatabase();
+    }
+    const cluster = await startPostgresCluster({ icuLocale });
+    try {
+        await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    } catch (error) {
+        await cluster.stop();
+        throw error;
+    }
+    return cluster;
 }
 
 function createTestHumanAuth(

@@ -5,10 +5,10 @@ import { join } from 'node:path';
 import { SQL } from 'bun';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { migrationsSince0060 } from './migration-receipts.ts';
-import { startPostgresCluster } from './postgres-cluster.ts';
+import { startEmptyDatabase } from './postgres-cluster.ts';
 
 test('an existing Server accepts tmterminal after migration without changing saved accounts', async () => {
-    const cluster = await startPostgresCluster();
+    const cluster = await startEmptyDatabase();
     const folder = await mkdtemp(join(tmpdir(), 'haus-tmterminal-preset-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
     try {

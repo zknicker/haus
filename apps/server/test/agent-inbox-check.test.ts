@@ -3,19 +3,17 @@ import { eq } from 'drizzle-orm';
 import { inspectAgentInbox } from '../src/agent-api/inbox.ts';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import type { ResolvedRunner } from '../src/computers/runner-credentials.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import { agentInboxTable, chatMessagesTable, messageClaimsTable } from '../src/postgres/schema.ts';
 import { deliverHuman, FakeTransport, type Seed, seedAgent } from './agent-inbox-harness.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
 });
 

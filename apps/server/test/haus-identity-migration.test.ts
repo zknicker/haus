@@ -1,10 +1,10 @@
 import { expect, test } from 'bun:test';
 import { readFile } from 'node:fs/promises';
 import { SQL } from 'bun';
-import { startPostgresCluster } from './postgres-cluster.ts';
+import { startEmptyDatabase } from './postgres-cluster.ts';
 
 test('identity migration preserves existing Agent state and is repeatable', async () => {
-    const cluster = await startPostgresCluster();
+    const cluster = await startEmptyDatabase();
     const sql = new SQL({ url: cluster.databaseUrl, max: 1 });
     try {
         await sql

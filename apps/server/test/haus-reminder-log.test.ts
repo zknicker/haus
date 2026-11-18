@@ -1,7 +1,6 @@
 import { afterEach, expect, test } from 'bun:test';
 import { REMINDER_HISTORY_RETENTION_DAYS } from '@haus/api';
 import { readAgentReminderLog } from '../src/agent-api/reminders.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import {
     agentsTable,
@@ -14,7 +13,7 @@ import {
     serversTable,
     usersTable,
 } from '../src/postgres/schema.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 // `readAgentReminderLog` reads against the real clock (unlike scheduling and
 // firing, which take an injected `ReminderClock`), because it bounds its
@@ -27,7 +26,7 @@ const chatId = 'cht_log';
 const agentId = 'agt_log';
 const reminderId = 'rem_log';
 
-let cluster: PostgresCluster | null = null;
+let cluster: TestDatabase | null = null;
 let connection: HausConnection | null = null;
 
 afterEach(async () => {
@@ -38,8 +37,7 @@ afterEach(async () => {
 });
 
 test('bounds the fire history it reads to the retention window, by real time', async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
     const db = connection.db;
 
@@ -137,8 +135,7 @@ test('bounds the fire history it reads to the retention window, by real time', a
 });
 
 test('a script fire the Computer has not settled yet reads as "not reported", never guessed as "woke"', async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
     const db = connection.db;
 

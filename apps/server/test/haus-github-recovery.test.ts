@@ -4,11 +4,10 @@ import { eq } from 'drizzle-orm';
 import type { GithubDelivery, GithubIngestOutcome } from '../src/github/delivery-ingest.ts';
 import { maxRecoveryAttempts, sweepGithubDeliveries } from '../src/github/delivery-recovery.ts';
 import type { GithubApp } from '../src/github/github-app.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { githubDeliveryCursorTable, githubWebhookDeliveriesTable } from '../src/postgres/schema.ts';
 import { workflowRunPayload } from './github-delivery-fixtures.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 // Recovery against a recorded-shape delivery log: newest-first pages linked by
 // `Link`, entries GitHub calls "OK" that Haus never finished, redeliveries
@@ -19,7 +18,7 @@ const hour = 3_600_000;
 const appId = 123_456;
 const now = new Date('2026-10-11T12:00:00.000Z');
 
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 let pages: Record<string, LogEntry[]>;
 let requests: string[];
@@ -34,8 +33,7 @@ interface LogEntry {
 }
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
 });
 

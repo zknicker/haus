@@ -1,19 +1,17 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
 import { enqueueInboxItem } from '../src/agent-delivery/store.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { agentInboxTable } from '../src/postgres/schema.ts';
 import { offlineDelivery } from './agent-inbox-harness.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { assignNewTask, seedTaskBoard, taskInboxRows } from './task-delivery-fixture.ts';
 
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
 });
 

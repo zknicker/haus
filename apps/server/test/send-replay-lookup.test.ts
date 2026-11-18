@@ -2,18 +2,16 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { inArray } from 'drizzle-orm';
 import { readExistingAgentMessage } from '../src/chats/send-agent-message-replay.ts';
 import { readExistingChatMessage } from '../src/chats/send-message-replay.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { chatMessagesTable } from '../src/postgres/schema.ts';
 import { postMessage, seedReader } from './agent-read-fixture.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
 });
 

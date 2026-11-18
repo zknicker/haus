@@ -4,10 +4,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SQL } from 'bun';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
-import { startPostgresCluster } from './postgres-cluster.ts';
+import { startEmptyDatabase } from './postgres-cluster.ts';
 
 test('0124 copies boards into the key ledger and backfills Task state and Channel keys', async () => {
-    const cluster = await startPostgresCluster();
+    const cluster = await startEmptyDatabase();
     const folder = await mkdtemp(join(tmpdir(), 'haus-tasks-places-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
     try {

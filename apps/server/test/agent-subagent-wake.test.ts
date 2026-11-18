@@ -9,22 +9,20 @@ import {
     retireSubagentWake,
 } from '../src/agent-delivery/subagent-wake-request.ts';
 import { ingestBackgroundWorkFrame } from '../src/computers/ingest-background-work.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { agentInboxTable, agentRunTriggersTable, agentsTable } from '../src/postgres/schema.ts';
 import { agentTurnTrigger } from '../src/server-agents/agent-turn-trigger.ts';
 import { recordAgentBackgroundWork } from '../src/server-agents/record-agent-background-work.ts';
 import { deliverHuman, offlineDelivery, type Seed, seedAgent } from './agent-inbox-harness.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { settledTurn } from './settled-turn-fixture.ts';
 
 /** Sub-agent wakes (specs/runtime-drivers.md "Background work"). */
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
 });
 

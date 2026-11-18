@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { TASK_DESCRIPTION_MAX_CHARS, TASK_TITLE_MAX_CHARS } from '@haus/api';
 import { SQL } from 'bun';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
-import { startPostgresCluster } from './postgres-cluster.ts';
+import { startEmptyDatabase } from './postgres-cluster.ts';
 
 /**
  * Task limits count UTF-16 units and Postgres counts code points, so 0120 must
@@ -13,7 +13,7 @@ import { startPostgresCluster } from './postgres-cluster.ts';
  * read of the General board.
  */
 test('0120 trims migrated claims to the limits a Task read enforces', async () => {
-    const cluster = await startPostgresCluster();
+    const cluster = await startEmptyDatabase();
     const folder = await mkdtemp(join(tmpdir(), 'haus-task-limits-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
     try {

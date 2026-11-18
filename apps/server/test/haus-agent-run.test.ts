@@ -1970,10 +1970,12 @@ test('a slow MCP discovery is bounded without hiding healthy granted tools', asy
         toolName: 'healthy_echo',
     });
     const slow = createMcpFixture({
-        delayMs: 200,
+        delayMs: 600_000,
         toolName: 'slow_echo',
     });
-    const runtime = new McpRuntime(connection.db, serverEffectRuntime, { discoveryTimeoutMs: 25 });
+    const runtime = new McpRuntime(connection.db, serverEffectRuntime, {
+        discoveryTimeoutMs: 1000,
+    });
     try {
         for (const fixture of [
             { id: healthyId, server: healthy, tool: 'healthy_echo' },
@@ -2003,9 +2005,7 @@ test('a slow MCP discovery is bounded without hiding healthy granted tools', asy
         }
 
         await runtime.start();
-        const startedAt = performance.now();
         const tools = await runtime.listAgentTools(serverId, agentId);
-        expect(performance.now() - startedAt).toBeLessThan(150);
         expect(tools.map((tool) => tool.name)).toEqual([modelToolName(healthyId, 'healthy_echo')]);
     } finally {
         await runtime.close();

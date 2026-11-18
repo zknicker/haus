@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SQL } from 'bun';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
-import { startPostgresCluster } from './postgres-cluster.ts';
+import { startEmptyDatabase } from './postgres-cluster.ts';
 
 /**
  * ADR 0052: a Server at 0122 with heartbeat work queued, in flight, and on
@@ -12,7 +12,7 @@ import { startPostgresCluster } from './postgres-cluster.ts';
  * and everything else rides through.
  */
 test('0123 retires heartbeat rows and tables on a Server at 0122', async () => {
-    const cluster = await startPostgresCluster();
+    const cluster = await startEmptyDatabase();
     const folder = await mkdtemp(join(tmpdir(), 'haus-retire-heartbeats-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
     try {

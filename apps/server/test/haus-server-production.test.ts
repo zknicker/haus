@@ -7,18 +7,16 @@ import {
     createHausServerApplication,
     type HausServerApplication,
 } from '../src/haus-server-application.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 const appOrigin = 'https://haus.chat';
 let application: HausServerApplication;
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let staticAppRoot: string;
 let attachmentRoot: string;
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     attachmentRoot = mkdtempSync(join(tmpdir(), 'haus-production-attachments-'));
     staticAppRoot = mkdtempSync(join(tmpdir(), 'haus-static-app-'));
     writeFileSync(

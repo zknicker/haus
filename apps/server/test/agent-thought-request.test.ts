@@ -3,20 +3,18 @@ import type { AgentThoughtFrame } from '@haus/api';
 import { eq } from 'drizzle-orm';
 import { attestAgentEvents } from '../src/agent-api/inbox.ts';
 import { subscribeToAgentThoughts } from '../src/agent-delivery/thought-events.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { usersTable } from '../src/postgres/schema.ts';
 import { createAgentThoughts } from '../src/server-agents/agent-thought.ts';
 import { collectBackground, fakeSummarizer, phrase, reasoning } from './agent-thought-harness.ts';
 import { agentPost, post, wakeOn } from './chat-engagement-harness.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
 });
 

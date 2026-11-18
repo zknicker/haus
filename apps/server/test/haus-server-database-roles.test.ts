@@ -10,14 +10,14 @@ import {
     type HausServerApplication,
 } from '../src/haus-server-application.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startPostgresCluster, type TestDatabase } from './postgres-cluster.ts';
 
 const appOrigin = 'https://haus.chat';
 const backupRole = 'haus_backup_test';
 const runtimeRole = 'haus_runtime_test';
 let admin: SQL;
 let application: HausServerApplication;
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let runtimeDatabaseUrl: string;
 let attachmentRoot: string;
 

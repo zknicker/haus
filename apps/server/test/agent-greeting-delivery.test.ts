@@ -3,7 +3,6 @@ import type { AgentTurnSummary } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { enqueueAgentGreeting, greetingDedupeKey } from '../src/agent-delivery/greeting.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import { agentDeliveryTable, agentInboxTable, chatMessagesTable } from '../src/postgres/schema.ts';
@@ -14,14 +13,13 @@ import {
     type Seed,
     seedAgent,
 } from './agent-inbox-harness.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
 });
 

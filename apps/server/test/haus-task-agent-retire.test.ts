@@ -1,14 +1,13 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import type { AgentDelivery } from '../src/agent-delivery/delivery.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import { agentInboxTable, chatMessagesTable, messageClaimsTable } from '../src/postgres/schema.ts';
 import { assignTask } from '../src/tasks/task-assign.ts';
 import { setTaskState } from '../src/tasks/task-set-state.ts';
 import { offlineDelivery, type Seed } from './agent-inbox-harness.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { settledTurn } from './settled-turn-fixture.ts';
 import {
     addPeerAgent,
@@ -20,12 +19,11 @@ import {
 } from './task-delivery-fixture.ts';
 
 /** When a `task_assignment` item leaves the queue undelivered (ADR 0051 decision 5). */
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
 });
 

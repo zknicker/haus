@@ -1,7 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import type { TaskActor } from '@haus/api';
 import { eq } from 'drizzle-orm';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
@@ -17,15 +16,14 @@ import { assignTask } from '../src/tasks/task-assign.ts';
 import { getTask } from '../src/tasks/task-list.ts';
 import { setTaskState } from '../src/tasks/task-set-state.ts';
 import { offlineDelivery } from './agent-inbox-harness.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { addPeerAgent, insertTaskPlace, seedTaskBoard } from './task-delivery-fixture.ts';
 
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
 });
 

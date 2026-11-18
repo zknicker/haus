@@ -8,7 +8,6 @@ import { eq, sql } from 'drizzle-orm';
 import { pullAgentEvents } from '../src/agent-api/inbox.ts';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import { createHausServerApplication } from '../src/haus-server-application.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import {
     agentInboxTable,
@@ -26,12 +25,12 @@ import {
 } from '../src/postgres/schema.ts';
 import { createReminderScheduler } from '../src/reminders/reminder-scheduler.ts';
 import { tickReminders } from '../src/reminders/scheduler.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 const appOrigin = 'https://app.haus.test';
 const dueAt = new Date('2026-07-26T13:00:00.000Z');
 const now = new Date('2026-07-26T14:00:00.000Z');
-let cluster: PostgresCluster | null = null;
+let cluster: TestDatabase | null = null;
 let connection: HausConnection | null = null;
 let attachmentRoot: string | null = null;
 
@@ -47,8 +46,7 @@ afterEach(async () => {
 });
 describe('reminder scheduler lifecycle', () => {
     test('fresh schema indexes the global scheduled-due scan', async () => {
-        cluster = await startPostgresCluster();
-        await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+        cluster = await startMigratedDatabase();
         connection = await connectHausDatabase(cluster.databaseUrl);
 
         const result = await connection.db.execute(sql`
@@ -65,8 +63,7 @@ describe('reminder scheduler lifecycle', () => {
     });
 
     test('recovers one overdue fire on startup and does not burst after restart', async () => {
-        cluster = await startPostgresCluster();
-        await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+        cluster = await startMigratedDatabase();
         connection = await connectHausDatabase(cluster.databaseUrl);
         attachmentRoot = await mkdtemp(join(tmpdir(), 'haus-reminder-attachments-'));
         await seedOverdueReminder(connection);
@@ -175,8 +172,7 @@ describe('reminder scheduler lifecycle', () => {
     });
 
     test('continues past one poisoned reminder and reports the degraded tick', async () => {
-        cluster = await startPostgresCluster();
-        await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+        cluster = await startMigratedDatabase();
         connection = await connectHausDatabase(cluster.databaseUrl);
         await seedOverdueReminder(connection);
         await connection.db
@@ -207,8 +203,7 @@ describe('reminder scheduler lifecycle', () => {
     });
 
     test('dispatches script fires to Computer and wakes the Agent only for output', async () => {
-        cluster = await startPostgresCluster();
-        await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+        cluster = await startMigratedDatabase();
         connection = await connectHausDatabase(cluster.databaseUrl);
         await seedOverdueReminder(connection);
         await configureComputer(connection);
@@ -267,8 +262,7 @@ describe('reminder scheduler lifecycle', () => {
     });
 
     test('replays one offline script fire on reconnect and settles it exactly once', async () => {
-        cluster = await startPostgresCluster();
-        await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+        cluster = await startMigratedDatabase();
         connection = await connectHausDatabase(cluster.databaseUrl);
         await seedOverdueReminder(connection);
         await configureComputer(connection);
@@ -326,8 +320,7 @@ describe('reminder scheduler lifecycle', () => {
     });
 
     test('delivers one ordinary overdue reminder after reconnect and clears attention on completion', async () => {
-        cluster = await startPostgresCluster();
-        await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+        cluster = await startMigratedDatabase();
         connection = await connectHausDatabase(cluster.databaseUrl);
         await seedOverdueReminder(connection);
         await configureComputer(connection);

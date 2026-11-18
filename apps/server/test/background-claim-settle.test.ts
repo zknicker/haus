@@ -1,7 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { and, eq, sql } from 'drizzle-orm';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { messageClaimsTable } from '../src/postgres/schema.ts';
 import { claimChangedTopic } from '../src/realtime/topics.ts';
@@ -17,15 +16,14 @@ import {
     sendHumanMessage,
     turnSummary,
 } from './background-claim-fixture.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { captureTopic, settleRealtime } from './realtime-capture.ts';
 
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
 });
 

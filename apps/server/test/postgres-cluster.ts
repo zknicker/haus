@@ -1,23 +1,32 @@
-import { type ChildProcess, spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { postgresLocaleEnvironment } from '../../../scripts/dev-postgres.mjs';
+import { SQL } from 'bun';
 import {
     postgresServerCommand,
     preparePostgresServerDirectory,
 } from '../../../scripts/postgres-server-account.mjs';
+import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
+import {
+    clusterEnvironment,
+    reserveLoopbackPort,
+    resolvePostgresBinaries,
+    run,
+    runServer,
+    waitForReadyCluster,
+} from './postgres-process.ts';
 
 /**
- * Runs a throwaway PostgreSQL cluster so Server tests exercise real
- * PostgreSQL instead of a mock. Each cluster owns its own data directory and
- * port, so parallel test files never share rows.
+ * A throwaway PostgreSQL database that Server tests exercise instead of a mock.
+ * Inside the suite runner every database lives in the run's one shared cluster;
+ * a file run alone gets a cluster of its own. Either way no two files share rows.
  *
  * `postgres` runs as a direct child rather than through `pg_ctl start`, which
  * daemonises it: a daemonised cluster outlives a killed test runner or
  * Playwright web server and leaks for the life of the machine.
  */
-export interface PostgresCluster {
+export interface TestDatabase {
     databaseUrl: string;
     stop(): Promise<void>;
 }
@@ -25,16 +34,78 @@ export interface PostgresCluster {
 export interface PostgresClusterOptions {
     /** Pins a language-aware default collation for tests that exercise collation boundaries. */
     icuLocale?: string;
+    /** Raises PostgreSQL's connection ceiling for a cluster many test processes share. */
+    maxConnections?: number;
 }
 
 const clusterUser = 'haus';
 const clusterDatabase = 'haus_test';
-const readyTimeoutMs = 20_000;
-const readyPollMs = 50;
+const sharedAdminUrlVariable = 'HAUS_TEST_POSTGRES_URL';
+const sharedTemplateVariable = 'HAUS_TEST_POSTGRES_TEMPLATE';
+const sharedMaxConnections = 2000;
 
+/** A fresh database with every migration applied. */
+export async function startMigratedDatabase(): Promise<TestDatabase> {
+    const shared = readSharedPostgres();
+    if (shared) {
+        return createSharedDatabase(shared.adminUrl, shared.template);
+    }
+    const cluster = await startPostgresCluster();
+    try {
+        await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    } catch (error) {
+        await cluster.stop();
+        throw error;
+    }
+    return cluster;
+}
+
+/** A fresh, empty database, for tests that migrate it themselves. */
+export async function startEmptyDatabase(): Promise<TestDatabase> {
+    const shared = readSharedPostgres();
+    if (shared) {
+        return createSharedDatabase(shared.adminUrl, null);
+    }
+    return startPostgresCluster();
+}
+
+/**
+ * Starts the suite runner's one cluster and migrates its template database once.
+ * The returned environment points every test process at it.
+ */
+export async function startSharedTestPostgres() {
+    const cluster = await startPostgresCluster({ maxConnections: sharedMaxConnections });
+    try {
+        await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+        const adminUrl = withDatabase(cluster.databaseUrl, 'postgres');
+        const admin = new SQL({ max: 1, url: adminUrl });
+        try {
+            await admin.unsafe(
+                `ALTER DATABASE ${clusterDatabase} WITH IS_TEMPLATE true ALLOW_CONNECTIONS false`
+            );
+        } finally {
+            await admin.close();
+        }
+        return {
+            environment: {
+                [sharedAdminUrlVariable]: adminUrl,
+                [sharedTemplateVariable]: clusterDatabase,
+            },
+            stop: cluster.stop,
+        };
+    } catch (error) {
+        await cluster.stop();
+        throw error;
+    }
+}
+
+/**
+ * A throwaway cluster of this file's own, for tests that change cluster-wide
+ * state such as roles or the default collation.
+ */
 export async function startPostgresCluster(
     options: PostgresClusterOptions = {}
-): Promise<PostgresCluster> {
+): Promise<TestDatabase> {
     const binaries = resolvePostgresBinaries();
     const root = mkdtempSync(join(tmpdir(), 'haus-postgres-'));
     preparePostgresServerDirectory(root);
@@ -68,6 +139,7 @@ export async function startPostgresCluster(
         'fsync=off',
         '-c',
         'full_page_writes=off',
+        ...(options.maxConnections ? ['-c', `max_connections=${options.maxConnections}`] : []),
     ]);
     const server = spawn(
         postgres.command,
@@ -139,107 +211,48 @@ export async function startPostgresCluster(
     };
 }
 
-interface PostgresBinaries {
-    createdb: string;
-    initdb: string;
-    pgIsReady: string;
-    postgres: string;
+function readSharedPostgres() {
+    const adminUrl = process.env[sharedAdminUrlVariable];
+    const template = process.env[sharedTemplateVariable];
+    if (!(adminUrl && template)) {
+        return null;
+    }
+    return { adminUrl, template };
 }
 
-async function waitForReadyCluster(
-    binaries: PostgresBinaries,
-    port: number,
-    server: ChildProcess,
-    readStartupErrors: () => string
-) {
-    const deadline = Date.now() + readyTimeoutMs;
-
-    while (Date.now() < deadline) {
-        if (server.exitCode !== null) {
-            const reported = readStartupErrors().trim();
-            throw new Error(
-                `The PostgreSQL test cluster exited with code ${server.exitCode} before accepting connections.${
-                    reported ? `\n${reported}` : ''
-                }`
-            );
-        }
-
-        const ready = spawnSync(
-            binaries.pgIsReady,
-            ['--host', '127.0.0.1', '--port', String(port)],
-            { stdio: 'ignore' }
-        );
-
-        if (ready.status === 0) {
-            return;
-        }
-
-        await Bun.sleep(readyPollMs);
+async function createSharedDatabase(
+    adminUrl: string,
+    template: string | null
+): Promise<TestDatabase> {
+    const name = `haus_test_${crypto.randomUUID().replaceAll('-', '')}`;
+    const admin = new SQL({ max: 1, url: adminUrl });
+    try {
+        await admin.unsafe(`CREATE DATABASE ${name}${template ? ` TEMPLATE ${template}` : ''}`);
+    } finally {
+        await admin.close();
     }
 
-    const reported = readStartupErrors().trim();
-    throw new Error(
-        `The PostgreSQL test cluster did not accept connections in time.${reported ? `\n${reported}` : ''}`
-    );
+    let stopPromise: Promise<void> | null = null;
+    return {
+        databaseUrl: withDatabase(adminUrl, name),
+        stop: () => {
+            stopPromise ??= dropSharedDatabase(adminUrl, name);
+            return stopPromise;
+        },
+    };
 }
 
-function resolvePostgresBinaries(): PostgresBinaries {
-    const explicitRoot = process.env.HAUS_POSTGRES_BIN;
-    const searchRoots = explicitRoot
-        ? [explicitRoot]
-        : ['/opt/homebrew/opt/postgresql@16/bin', '/usr/local/opt/postgresql@16/bin', ''];
-
-    for (const searchRoot of searchRoots) {
-        const candidate = {
-            createdb: join(searchRoot, 'createdb'),
-            initdb: join(searchRoot, 'initdb'),
-            pgIsReady: join(searchRoot, 'pg_isready'),
-            postgres: join(searchRoot, 'postgres'),
-        };
-
-        if (spawnSync(candidate.initdb, ['--version'], { stdio: 'ignore' }).status === 0) {
-            return candidate;
-        }
-    }
-
-    throw new Error(
-        'PostgreSQL is required for Server tests but its binaries were not found. Install PostgreSQL 16 (`brew install postgresql@16`) or point HAUS_POSTGRES_BIN at its bin directory.'
-    );
-}
-
-/**
- * PostgreSQL 16 on macOS aborts at startup when it inherits no locale, which is
- * what a non-interactive shell provides — without this the whole lane is
- * unrunnable. The rule lives with the development cluster's; collation-sensitive
- * tests pin their own ordering through `icuLocale`.
- */
-function clusterEnvironment(): NodeJS.ProcessEnv {
-    return { ...process.env, ...postgresLocaleEnvironment() };
-}
-
-function runServer(binary: string, args: string[]) {
-    const { command, args: commandArgs } = postgresServerCommand(binary, args);
-    run(command, commandArgs);
-}
-
-function run(command: string, args: string[]) {
-    const result = spawnSync(command, args, { encoding: 'utf8', env: clusterEnvironment() });
-
-    if (result.status !== 0) {
-        throw new Error(
-            `Failed to provision the PostgreSQL test cluster: ${command} exited ${result.status}.\n${result.stderr ?? ''}`
-        );
+async function dropSharedDatabase(adminUrl: string, name: string) {
+    const admin = new SQL({ max: 1, url: adminUrl });
+    try {
+        await admin.unsafe(`DROP DATABASE IF EXISTS ${name} WITH (FORCE)`);
+    } finally {
+        await admin.close();
     }
 }
 
-function reserveLoopbackPort(): number {
-    const socket = Bun.listen({
-        hostname: '127.0.0.1',
-        port: 0,
-        socket: { data: () => undefined },
-    });
-    const { port } = socket;
-
-    socket.stop(true);
-    return port;
+function withDatabase(databaseUrl: string, name: string) {
+    const url = new URL(databaseUrl);
+    url.pathname = `/${name}`;
+    return url.toString();
 }

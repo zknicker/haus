@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SQL } from 'bun';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
-import { startPostgresCluster } from './postgres-cluster.ts';
+import { startEmptyDatabase } from './postgres-cluster.ts';
 
 /**
  * ADR 0051 decision 2 over rows 0120 left: an Agent's claim keeps its lock
@@ -95,7 +95,7 @@ test('0121 runs in the same batch as the 0120 claim move', async () => {
 }, 60_000);
 
 async function migrationScene(prefix: string) {
-    const cluster = await startPostgresCluster();
+    const cluster = await startEmptyDatabase();
     const folder = await mkdtemp(join(tmpdir(), prefix));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
     await cp(join(import.meta.dir, '../drizzle/postgres'), folder, { recursive: true });

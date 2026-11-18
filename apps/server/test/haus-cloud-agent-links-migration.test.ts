@@ -6,9 +6,9 @@ import { formatCloudAgentWorkLink, parseHausRichReferences } from '@haus/api';
 import { SQL } from 'bun';
 import { cloudAgentWorkLinkLabelCases } from '../../../packages/haus-api/src/cloud-agent-work-fixture.ts';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startPostgresCluster, type TestDatabase } from './postgres-cluster.ts';
 
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 
 beforeAll(async () => {
     cluster = await startPostgresCluster();

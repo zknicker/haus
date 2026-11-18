@@ -2,7 +2,6 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import type { AgentCommand } from '@haus/api';
 import { eq } from 'drizzle-orm';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import {
     agentInboxTable,
@@ -18,7 +17,7 @@ import {
     serversTable,
     usersTable,
 } from '../src/postgres/schema.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 // Run accounting and the wake decision play out through the real settlement path,
 // `AgentDelivery.onReminderScriptResult`; `reminder-wake-decision.test.ts` covers the
@@ -44,7 +43,7 @@ class RecordingTransport implements DeliveryTransport {
     }
 }
 
-let cluster: PostgresCluster | null = null;
+let cluster: TestDatabase | null = null;
 let connection: HausConnection | null = null;
 
 afterEach(async () => {
@@ -56,8 +55,7 @@ afterEach(async () => {
 
 describe('reminder wake rules settlement', () => {
     test('accounts for a failure streak, a failed-threshold wake, recovery, and wake-on-change', async () => {
-        cluster = await startPostgresCluster();
-        await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+        cluster = await startMigratedDatabase();
         connection = await connectHausDatabase(cluster.databaseUrl);
         await seedWakeRuleReminder(connection, { failAfter: 2, wakeOnChange: true });
 
@@ -124,8 +122,7 @@ describe('reminder wake rules settlement', () => {
     });
 
     test('a duration the Computer reports settles onto the fire row', async () => {
-        cluster = await startPostgresCluster();
-        await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+        cluster = await startMigratedDatabase();
         connection = await connectHausDatabase(cluster.databaseUrl);
         await seedWakeRuleReminder(connection, { failAfter: null, wakeOnChange: false });
         const delivery = new AgentDelivery(connection.db, new RecordingTransport());
@@ -145,8 +142,7 @@ describe('reminder wake rules settlement', () => {
     });
 
     test("without --fail-after, every failure keeps waking (today's behavior)", async () => {
-        cluster = await startPostgresCluster();
-        await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+        cluster = await startMigratedDatabase();
         connection = await connectHausDatabase(cluster.databaseUrl);
         await seedWakeRuleReminder(connection, { failAfter: null, wakeOnChange: false });
         const delivery = new AgentDelivery(connection.db, new RecordingTransport());

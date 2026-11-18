@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { agentActivityFrameSchema } from '@haus/api';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { recordComputerAgentActivity } from '../src/server-agents/agent-activity.ts';
 import {
@@ -8,14 +7,13 @@ import {
     readActiveAgentActivity,
 } from '../src/server-agents/agent-activity-history.ts';
 import { activityFrame, seedActivity, startRun } from './agent-activity-fixture.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
 });
 

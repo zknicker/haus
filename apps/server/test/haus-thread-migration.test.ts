@@ -9,7 +9,7 @@ import {
     verifyThreadMigration,
 } from '../scripts/verify-thread-migration.ts';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
-import { startPostgresCluster } from './postgres-cluster.ts';
+import { startEmptyDatabase } from './postgres-cluster.ts';
 import {
     type DatasetChat,
     type DatasetMessage,
@@ -18,7 +18,7 @@ import {
 } from './thread-migration-dataset.ts';
 
 test('0126 folds every Thread into its parent and reverses exactly', async () => {
-    const cluster = await startPostgresCluster();
+    const cluster = await startEmptyDatabase();
     const folder = await mkdtemp(join(tmpdir(), 'haus-thread-migration-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
     try {

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SQL } from 'bun';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
-import { startPostgresCluster } from './postgres-cluster.ts';
+import { startEmptyDatabase } from './postgres-cluster.ts';
 
 /**
  * ADR 0051 decision 9 over rows 0119 wrote: every Server gains the General
@@ -13,7 +13,7 @@ import { startPostgresCluster } from './postgres-cluster.ts';
  * the message), and Agent claims stay claims.
  */
 test('0120 gives every Server a General board and moves backlog claims onto it', async () => {
-    const cluster = await startPostgresCluster();
+    const cluster = await startEmptyDatabase();
     const folder = await mkdtemp(join(tmpdir(), 'haus-task-boards-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
     try {

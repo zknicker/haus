@@ -4,13 +4,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SQL } from 'bun';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
-import { startPostgresCluster } from './postgres-cluster.ts';
+import { startEmptyDatabase } from './postgres-cluster.ts';
 
 // Production held Linear rows when 0108 first ran. Deleting the Linear connection queued a
 // deferred check for `github_installations_connection_fk`, and the next ALTER TABLE on
 // `mcp_connections` failed on the pending trigger event, rolling the whole release back.
 test('removing Linear deletes its live rows and narrows the constraints', async () => {
-    const cluster = await startPostgresCluster();
+    const cluster = await startEmptyDatabase();
     const folder = await mkdtemp(join(tmpdir(), 'haus-remove-linear-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
     try {

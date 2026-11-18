@@ -7,7 +7,6 @@ import { advanceSeenCursor, markCursorSubsumedSeen } from '../src/agent-delivery
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import { subscribeToAgentLifecycle } from '../src/agent-delivery/lifecycle.ts';
 import { countQueuedInboxItems, readDeliveryState } from '../src/agent-delivery/store.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
@@ -30,14 +29,13 @@ import {
     usersTable,
 } from '../src/postgres/schema.ts';
 import { configureAgent } from '../src/server-agents/configure-agent.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
 });
 

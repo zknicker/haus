@@ -3,10 +3,10 @@ import { readFile } from 'node:fs/promises';
 import { SQL } from 'bun';
 import { drizzle } from 'drizzle-orm/bun-sql';
 import { agentsTable } from '../src/postgres/schema/agents.ts';
-import { startPostgresCluster } from './postgres-cluster.ts';
+import { startEmptyDatabase } from './postgres-cluster.ts';
 
 test('conversation style preserves the preceding Server personality read and write path', async () => {
-    const cluster = await startPostgresCluster();
+    const cluster = await startEmptyDatabase();
     const sql = new SQL({ url: cluster.databaseUrl, max: 1 });
     try {
         await sql.unsafe(`CREATE TABLE agents (

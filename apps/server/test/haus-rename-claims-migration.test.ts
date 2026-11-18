@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SQL } from 'bun';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
-import { startPostgresCluster } from './postgres-cluster.ts';
+import { startEmptyDatabase } from './postgres-cluster.ts';
 
 /**
  * ADR 0051's rename over rows the previous schema wrote: the claim store keeps
@@ -12,7 +12,7 @@ import { startPostgresCluster } from './postgres-cluster.ts';
  * its identity under the `claim_assignment` source and `claim-assign:` key.
  */
 test('0119 renames tasks to claims and carries assignment deliveries across', async () => {
-    const cluster = await startPostgresCluster();
+    const cluster = await startEmptyDatabase();
     const folder = await mkdtemp(join(tmpdir(), 'haus-rename-claims-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
     try {

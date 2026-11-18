@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SQL } from 'bun';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
-import { startPostgresCluster } from './postgres-cluster.ts';
+import { startEmptyDatabase } from './postgres-cluster.ts';
 
 /**
  * The production upgrade: a Server with rows under the old task names takes the
@@ -44,7 +44,7 @@ async function upgradeFrom(
     expected: string[],
     seed: { orphanedCloudNotice: boolean }
 ) {
-    const cluster = await startPostgresCluster();
+    const cluster = await startEmptyDatabase();
     const folder = await mkdtemp(join(tmpdir(), 'haus-tasks-upgrade-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
     try {

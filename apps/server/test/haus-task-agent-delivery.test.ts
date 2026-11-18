@@ -3,12 +3,11 @@ import { agentCommandSchema, agentTurnTriggerSchema } from '@haus/api';
 import { eq } from 'drizzle-orm';
 import type { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { enqueueAgentGreeting } from '../src/agent-delivery/greeting.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { agentRunTriggersTable } from '../src/postgres/schema.ts';
 import { resolveAgentTurnTriggers } from '../src/server-agents/agent-turn-trigger-previews.ts';
 import { addChannel, deliverHuman, offlineDelivery, type Seed } from './agent-inbox-harness.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { settledTurn } from './settled-turn-fixture.ts';
 import {
     assignNewTask,
@@ -18,12 +17,11 @@ import {
 } from './task-delivery-fixture.ts';
 
 /** `task_assignment` delivery (ADR 0051 decision 5, specs/inbox.md). */
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
 });
 

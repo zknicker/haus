@@ -5,9 +5,9 @@ import { join } from 'node:path';
 import { SQL } from 'bun';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { allChannelDescription } from '../src/servers/contracts.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startPostgresCluster, type TestDatabase } from './postgres-cluster.ts';
 
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 
 beforeAll(async () => {
     cluster = await startPostgresCluster();

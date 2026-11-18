@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { emptySecret } from '../src/server-mcp/connection-secret.ts';
 import { McpOAuthRelay } from '../src/server-mcp/oauth-relay.ts';
@@ -9,7 +8,7 @@ import {
     approveControlledAuthorization,
     startControlledOAuthMcpProvider,
 } from './controlled-oauth-mcp.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 // The incident: a provider rejected every refresh token at once, the SDK dropped
 // the tokens, Settings still said connected, and signing in again wiped every grant.
@@ -18,7 +17,7 @@ const connectionId = 'mcp_oauthreauthtest1';
 const redirectUrl = 'http://127.0.0.1:8091/mcp/oauth/callback';
 const serverId = 'srv_oauthreauthtest1';
 
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 let provider: Awaited<ReturnType<typeof startControlledOAuthMcpProvider>>;
 let relay: McpOAuthRelay;
@@ -26,8 +25,7 @@ let runtime: McpRuntime;
 const effectRuntime = makeServerRuntime();
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
     provider = await startControlledOAuthMcpProvider();
     runtime = new McpRuntime(connection.db, effectRuntime);

@@ -4,17 +4,15 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SQL } from 'bun';
 import { createHausServerApplication } from '../src/haus-server-application.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 const appOrigin = 'https://app.haus.test';
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let observer: SQL;
 let attachmentRoot: string;
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     attachmentRoot = await mkdtemp(join(tmpdir(), 'haus-lifecycle-attachments-'));
     // One connection, so the observer's own pool cannot be mistaken for the
     // application's backends.

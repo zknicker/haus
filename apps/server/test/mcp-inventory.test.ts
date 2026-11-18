@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import {
     agentMcpConnectionGrantsTable,
@@ -13,19 +12,18 @@ import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { modelToolName } from '../src/server-mcp/tool-catalog.ts';
 import { makeServerRuntime } from '../src/server-runtime.ts';
 import { startControlledToolMcp } from './controlled-tool-mcp.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 const effectRuntime = makeServerRuntime();
 const serverId = 'srv_inventory';
 const agentId = 'agt_inventory';
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 const runtimes: McpRuntime[] = [];
 const upstreams: ReturnType<typeof startControlledToolMcp>[] = [];
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
     await connection.db
         .insert(serversTable)

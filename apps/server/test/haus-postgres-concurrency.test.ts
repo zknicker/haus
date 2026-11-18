@@ -2,13 +2,13 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { sql } from 'drizzle-orm';
 import { jsonb, pgTable, timestamp } from 'drizzle-orm/pg-core';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startEmptyDatabase, type TestDatabase } from './postgres-cluster.ts';
 
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
+    cluster = await startEmptyDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
 });
 

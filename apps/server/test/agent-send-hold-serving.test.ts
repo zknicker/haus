@@ -2,20 +2,18 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
 import { prepareAgentSend } from '../src/agent-api/send-hold.ts';
 import type { ResolvedRunner } from '../src/computers/runner-credentials.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import { agentDeliveryTable, agentInboxTable } from '../src/postgres/schema.ts';
 import type { Seed } from './agent-inbox-harness.ts';
 import { postMessage, readerRunner, seedReader } from './agent-read-fixture.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
 });
 

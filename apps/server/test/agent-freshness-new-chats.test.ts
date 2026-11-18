@@ -6,19 +6,17 @@ import { prepareAgentSend } from '../src/agent-api/send-hold.ts';
 import { enqueueAgentGreeting, greetingDedupeKey } from '../src/agent-delivery/greeting.ts';
 import { joinChannelAgents } from '../src/chats/channel-agent-membership.ts';
 import type { ResolvedRunner } from '../src/computers/runner-credentials.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { agentInboxTable, chatsTable } from '../src/postgres/schema.ts';
 import { seedAgent } from './agent-inbox-harness.ts';
 import { postMessage, readerRunner } from './agent-read-fixture.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
 });
 

@@ -3,12 +3,11 @@ import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SQL } from 'bun';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { migrationsSince0060 } from './migration-receipts.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 test('upgrades the preceding production schema without replaying migrations', async () => {
     const folder = await mkdtemp(join(tmpdir(), 'haus-upgrade-'));
     const database = new SQL(cluster.databaseUrl);
@@ -219,8 +218,7 @@ test('copies each existing reminder title into its new description', async () =>
 });
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
 });
 
 afterAll(async () => {

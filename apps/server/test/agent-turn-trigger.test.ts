@@ -2,7 +2,6 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import type { AgentCommand, AgentTurnSummary } from '@haus/api';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
@@ -21,19 +20,18 @@ import {
 } from '../src/server-agents/read-agent-run-trigger.ts';
 import { recordAgentTurnSummary } from '../src/server-agents/record-agent-turn.ts';
 import type { HausUser } from '../src/users/haus-user.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 /**
  * `agent.turns` names the work that woke each turn. The Server records it once at
  * dispatch, so it survives a failed run requeueing its inbox rows, and it reaches
  * only readers who can see the trigger's Chat.
  */
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
 });
 

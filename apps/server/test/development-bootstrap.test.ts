@@ -8,7 +8,6 @@ import { readMessageCauses } from '../src/automations/message-cause-read.ts';
 import { developmentArtifactFiles } from '../src/development/seed-artifact-files.ts';
 import { seedDevelopmentServer } from '../src/development/seed-server.ts';
 import { readPendingCoveCommand } from '../src/onboarding/create-cove.ts';
-import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import {
     agentsTable,
@@ -30,15 +29,14 @@ import {
     usersTable,
 } from '../src/postgres/schema.ts';
 import { makeServerRuntime } from '../src/server-runtime.ts';
-import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
-let cluster: PostgresCluster;
+let cluster: TestDatabase;
 let connection: HausConnection;
 const runtime = makeServerRuntime();
 
 beforeAll(async () => {
-    cluster = await startPostgresCluster();
-    await bootstrapHausDatabase(cluster.databaseUrl, 'haus');
+    cluster = await startMigratedDatabase();
     connection = await connectHausDatabase(cluster.databaseUrl);
 });
 
