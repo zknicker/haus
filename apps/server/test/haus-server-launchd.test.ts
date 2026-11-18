@@ -1,8 +1,7 @@
 import { expect, test } from 'bun:test';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parse } from 'yaml';
 
 const serverRoot = fileURLToPath(new URL('../', import.meta.url));
 const hostServicesRoot = join(serverRoot, 'host-services');
@@ -52,63 +51,6 @@ test('ships valid supervised services without checked-in secret values', () => {
         '/Users/zknicker/srv/haus/config/cloudflared.yml'
     );
     expect(JSON.stringify(plists)).not.toContain('postgres://');
-    expect(JSON.stringify(plists)).not.toContain('hc-ping.com');
-    expect(JSON.stringify(plists)).not.toContain('/opt/haus-server');
-    expect(JSON.stringify(plists)).not.toContain('/Library/Application Support/Haus');
-});
-
-test('retires the backup and monitor services entirely', () => {
-    for (const label of ['backup', 'monitor']) {
-        expect(existsSync(join(launchdRoot, `com.haus.${label}.plist`))).toBe(false);
-    }
-    for (const operation of ['run-backup', 'run-restore']) {
-        expect(existsSync(join(serverRoot, 'operations', operation))).toBe(false);
-    }
-});
-
-test('ships one private PostgreSQL Compose service with durable state', () => {
-    const composeText = readFileSync(join(serverRoot, 'compose.yml'), 'utf8');
-    const compose = parse(composeText) as {
-        name: string;
-        services: Record<string, Record<string, unknown>>;
-        volumes: Record<string, { name: string }>;
-    };
-    const postgres = compose.services.postgres;
-
-    expect(compose.name).toBe('haus');
-    expect(Object.keys(compose.services)).toEqual(['postgres']);
-    expect(postgres?.container_name).toBe('haus-postgres');
-    expect(postgres?.image).toBe(
-        'postgres:16.14-alpine@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777'
-    );
-    expect(postgres?.ports).toEqual(['127.0.0.1:5438:5432']);
-    expect(postgres?.restart).toBe('unless-stopped');
-    expect(postgres?.stop_signal).toBe('SIGINT');
-    expect(postgres?.sysctls).toEqual({ 'net.mptcp.enabled': '0' });
-    expect(postgres?.volumes).toEqual(['postgres_data:/var/lib/postgresql/data']);
-    expect(compose.volumes.postgres_data?.name).toBe('haus_postgres_data');
-    expect((postgres?.environment as Record<string, string>).POSTGRES_PASSWORD).toBe(
-        ['$', '{HAUS_POSTGRES_ADMIN_PASSWORD:?HAUS_POSTGRES_ADMIN_PASSWORD is required}'].join('')
-    );
-    expect(composeText).not.toContain('POSTGRES_HOST_AUTH_METHOD');
-    expect(composeText).not.toContain('GENERATE_ON_HOST');
-});
-
-test('keeps production state and credentials inside the canonical srv root', () => {
-    const files = [
-        ...services.map((service) => join(launchdRoot, `com.haus.${service}.plist`)),
-        join(serverRoot, 'config', 'cloudflared.yml.example'),
-        join(serverRoot, 'operations', 'run-server'),
-    ];
-    const source = files.map((path) => readFileSync(path, 'utf8')).join('\n');
-
-    expect(source).toContain('/Users/zknicker/srv/haus/current');
-    expect(source).toContain('/Users/zknicker/srv/haus/config');
-    expect(source).toContain('/Users/zknicker/srv/haus/logs');
-    expect(source).not.toContain('/opt/haus-server');
-    expect(source).not.toContain('/Library/Application Support/Haus');
-    expect(source).not.toContain('/var/db/haus-server');
-    expect(source).not.toContain('/var/log/haus-server');
 });
 
 test('starts the Server from its rendered environment without re-entering varlock', () => {

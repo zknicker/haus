@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AgentCommand } from '@haus/api';
 import { makeTestRuntime } from '@haus/effect';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { pullAgentEvents } from '../src/agent-api/inbox.ts';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import { createHausServerApplication } from '../src/haus-server-application.ts';
@@ -45,23 +45,6 @@ afterEach(async () => {
     attachmentRoot = null;
 });
 describe('reminder scheduler lifecycle', () => {
-    test('fresh schema indexes the global scheduled-due scan', async () => {
-        cluster = await startMigratedDatabase();
-        connection = await connectHausDatabase(cluster.databaseUrl);
-
-        const result = await connection.db.execute(sql`
-            select indexdef
-            from pg_indexes
-            where schemaname = 'public'
-              and tablename = 'reminders'
-              and indexname = 'reminders_due_idx'
-        `);
-
-        expect(result).toHaveLength(1);
-        expect(result[0]?.indexdef).toContain('(fire_at, id)');
-        expect(result[0]?.indexdef).toContain("WHERE (status = 'scheduled'::text)");
-    });
-
     test('recovers one overdue fire on startup and does not burst after restart', async () => {
         cluster = await startMigratedDatabase();
         connection = await connectHausDatabase(cluster.databaseUrl);

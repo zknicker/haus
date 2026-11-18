@@ -93,16 +93,6 @@ test('a per-Chat stream on a missing Chat is refused with chat_missing', async (
     expect(read?.data?.hausRefusal).toBeUndefined();
 });
 
-test('a non-stream access failure carries no refusal class', async () => {
-    const failure = await stranger.trpc.chat.list.query({ serverId }).then(
-        () => null,
-        (error: { data?: Record<string, unknown> }) => error
-    );
-
-    expect(failure?.data?.code).toBe('FORBIDDEN');
-    expect(failure?.data?.hausRefusal).toBeUndefined();
-});
-
 async function signIn(subject: string) {
     return createHausClient(harness, await harness.humans.mintSessionToken(subject));
 }

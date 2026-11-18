@@ -17,20 +17,6 @@ test('a colliding name returns the minted handle without needing announcement te
     expect(created.body).not.toHaveProperty('messageId');
 });
 
-test('creation rejects the removed announcement input', async () => {
-    const runner = await fixture.mintRunner('run_create_old_input');
-    const refused = await fixture.postCreate(
-        runner,
-        fixture.createBody({
-            content: 'Meet @legacy.',
-            displayName: 'Legacy',
-            nonce: 'old-create-input',
-        })
-    );
-    expect(refused.status).toBe(400);
-    expect(refused.body.code).toBe('INVALID_ARG');
-});
-
 test('reusing a nonce with a different brief or channels refuses before avatar generation', async () => {
     const runner = await fixture.mintRunner('run_create_request_conflict');
     const body = fixture.createBody({

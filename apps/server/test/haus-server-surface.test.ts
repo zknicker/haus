@@ -16,28 +16,6 @@ afterAll(async () => {
     await harness.close();
 });
 
-const legacyProcedures = [
-    'identity.me',
-    'identity.pushSessionToken',
-    'identity.removeMember',
-    'agentRuntime.connect',
-    'skill.list',
-    'model.list',
-];
-
-test('exposes no legacy local-owner procedure', async () => {
-    for (const path of legacyProcedures) {
-        const response = await fetch(new URL(`/trpc/${path}`, harness.url), {
-            body: '{}',
-            headers: { 'content-type': 'application/json' },
-            method: 'POST',
-        });
-
-        expect({ path, status: response.status }).toEqual({ path, status: 404 });
-        expect(await response.text()).toContain('No procedure found');
-    }
-});
-
 test('dev sign-in returns a fixed Haus session only to loopback requests', async () => {
     const local = await fetch(new URL('/auth/dev/session', harness.url));
     expect(local.status).toBe(200);

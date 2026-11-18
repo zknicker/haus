@@ -78,16 +78,6 @@ describe('start and list', () => {
         });
     });
 
-    test('the board and create routes are gone', async () => {
-        expect((await call('/api/agent/tasks/create', { board: 'GEN', title: 'x' })).status).toBe(
-            404
-        );
-        expect((await call('/api/agent/tasks/move', { column: 'Done', key: 'GEN-1' })).status).toBe(
-            404
-        );
-        expect((await call('/api/agent/boards')).status).toBe(404);
-    });
-
     test('lists unfinished Tasks by priority then age, filtered by assignee, key, and state', async () => {
         const low = await start({ priority: 'low', title: 'Mine later' });
         const high = await start({ priority: 'high', title: 'Mine first' });

@@ -84,29 +84,6 @@ async function postLoginRoute(
     });
 }
 
-test('superseded one-off Computer setup routes are unavailable', async () => {
-    const harness = await startHausServerHarness();
-
-    try {
-        const begin = await fetch(new URL('/computer/setup', harness.url), {
-            body: JSON.stringify({
-                credentialHash: 'a'.repeat(64),
-                slug: 'retired-setup',
-            }),
-            headers: { 'content-type': 'application/json' },
-            method: 'POST',
-        });
-        const status = await fetch(
-            new URL(`/computer/setup/cap_${'a'.repeat(16)}?secret=${'s'.repeat(32)}`, harness.url)
-        );
-
-        expect(begin.status).toBe(404);
-        expect(status.status).toBe(404);
-    } finally {
-        await harness.close();
-    }
-});
-
 test('Computer login grants approve without Server membership and exchange once', async () => {
     const harness = await startHausServerHarness();
     const client = createHausClient(

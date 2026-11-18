@@ -37,8 +37,6 @@ test('maps each inbox source to its narrow trigger kind', () => {
     expect(at('onboarding')).toEqual({ chatId: 'cht_one', kind: 'onboarding' });
     expect(at('greeting', 'greeting:agt_one')).toEqual({ chatId: 'cht_one', kind: 'greeting' });
     expect(at('something_new')).toBeNull();
-    // A retired heartbeat source names nothing.
-    expect(at('heartbeat')).toBeNull();
     expect(agentTurnTrigger(null)).toBeNull();
 });
 

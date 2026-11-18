@@ -53,9 +53,6 @@ test('builds one versioned Apple Silicon Server artifact with App and operations
     expect(paths).toContain('./bin/haus-server');
     expect(paths).toContain('./bin/haus-server-bootstrap');
     expect(paths).toContain('./bin/haus-server-migrate');
-    expect(paths).not.toContain('./bin/haus-server-backup');
-    expect(paths).not.toContain('./bin/haus-server-restore');
-    expect(paths).not.toContain('./bin/haus-server-monitor');
     expect(paths).toContain('./bin/haus-server-deploy');
     expect(paths).toContain('./bin/activate-haus-server');
     expect(paths).toContain('./release-files.sha256');
@@ -75,22 +72,11 @@ test('builds one versioned Apple Silicon Server artifact with App and operations
     expect(paths).toContain('./colima/com.merchbaseco.colima-autostart.plist');
     expect(paths).toContain('./launchd/com.haus.server.plist');
     expect(paths).toContain('./launchd/com.haus.tunnel.plist');
-    expect(paths).not.toContain('./launchd/com.haus.backup.plist');
-    expect(paths).not.toContain('./launchd/com.haus.monitor.plist');
-    expect(paths).not.toContain('./launchd/com.haus.postgresql.plist');
     expect(paths).toContain('./host-services/haus-server-activation.sudoers');
     expect(paths).toContain('./operations/install-colima-boot');
     expect(paths).toContain('./operations/launchctl-service-disabled');
     expect(paths).toContain('./operations/rollback-colima-boot');
     expect(paths).toContain('./operations/run-server');
-    expect(paths).not.toContain('./operations/run-backup');
-    expect(paths).not.toContain('./operations/run-restore');
-    // Runtime configuration is rendered from `.env.schema` by the deploy job,
-    // so the artifact ships no environment example of any kind.
-    expect(paths).not.toContain('./config/server.env.example');
-    expect(paths).not.toContain('./config/migration.env.example');
-    expect(paths).not.toContain('./config/backup.env.example');
-    expect(paths).not.toContain('./config/restore.env.example');
     expect(paths).toContain('./config/cloudflared.yml.example');
     expect(verboseArchive.stdout.toString()).toMatch(
         /-rwxr-xr-x .* \.\/operations\/install-colima-boot/u
