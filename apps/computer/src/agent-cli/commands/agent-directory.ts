@@ -92,7 +92,7 @@ export const CHANNEL_SUBCOMMANDS: SubCommand[] = [
         confirmation: (target) =>
             `Muted ${target}. Personal @mentions and DMs still reach you; reverse with haus channel unmute.`,
         example: 'haus channel mute --target "#general"',
-        summary: 'Mute ordinary delivery from a channel and its threads',
+        summary: 'Mute ordinary delivery from a channel',
     }),
     channelActionSubcommand('unmute', {
         confirmation: (target) => `Unmuted ${target}. Ordinary delivery resumes.`,

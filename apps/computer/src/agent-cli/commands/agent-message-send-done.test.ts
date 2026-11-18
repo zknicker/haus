@@ -98,8 +98,7 @@ test('a --done receipt states that it closes the reply', async () => {
     await runSend(args({ '--done': true }), scriptedClient([], ['sent'], outputs));
     expect(outputs.join('')).toBe(
         'Message sent to #general. Message ID: msg_sent\n' +
-            'Posted in #general as an inline reply, quoted under message 1234abcd. This closes your reply to that request.\n' +
-            'Thread on this message: #general:sent\n'
+            'Posted in #general as an inline reply, quoted under message 1234abcd. This closes your reply to that request.\n'
     );
 });
 
@@ -123,7 +122,7 @@ test('--done is a documented boolean flag on haus message send', () => {
     const flag = messageSendSubcommand.flags.find((candidate) => candidate.name === '--done');
     expect(flag?.valueName).toBeUndefined();
     expect(flag?.description).toContain(
-        'an inline reply in a channel or DM, or the thread post when it arrived in a thread'
+        'an inline reply in a channel or DM, or a post in the Task it arrived in'
     );
     expect(messageSendSubcommand.usage).toContain('[--done]');
 });

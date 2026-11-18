@@ -36,19 +36,15 @@ test('composes the CLI-only Haus collaboration contract', () => {
     // Assignment mechanics live in the `claims` Manual topic (product-topics.test.ts); the prompt
     // keeps the receipt rule and the pointer.
     expect(instructions).toContain('live in the `claims` Manual topic');
-    expect(instructions).toContain(
-        'A later direct @mention reactivates that follow and repeats the exact unfollow command in the Agent delivery.'
-    );
     expect(instructions).not.toContain('A server owner/admin may use `--assignee @someone-else`');
     expect(instructions).toContain('An assignee-only receipt that names you is actionable');
     expect(instructions).toContain(
         'A failed claim is a concurrency lock, not a ruling on lane ownership'
     );
-    expect(instructions).toContain('correct the routing in the original thread');
-    // Haus-only: a thread request is claimed in its thread, never re-created top-level.
-    expect(instructions).toContain(
-        'A request that arrives in a thread is claimed in that thread by its message ID: `haus claim --target <thread target> --message-id <shortid>`. Never give it a separate top-level claim.'
-    );
+    expect(instructions).toContain('correct the routing in the original conversation');
+    // ADR 0052: there are no Threads, so neither Raft's top-level-only sentence nor the Haus
+    // thread claim that replaced it survives.
+    expect(instructions).not.toContain('claimed in that thread');
     expect(instructions).not.toContain('Only top-level channel / DM messages can become tasks');
     // ADR 0051: the message lock is a claim; `haus task` is the board product, and no claim verb
     // survives under it.
@@ -98,7 +94,7 @@ test('composes the CLI-only Haus collaboration contract', () => {
     // Anchoring never moves wake ownership, but the anchored surface no longer
     // shows a receipt: a fire writes nothing to chat on its own.
     expect(instructions).toContain(
-        'Anchoring to a message or thread does not transfer wake ownership.'
+        'Anchoring to a message or Task does not transfer wake ownership.'
     );
     expect(instructions).not.toContain(
         'the receipt/fire system message is visible in that surface'
@@ -141,7 +137,7 @@ test('composes the CLI-only Haus collaboration contract', () => {
     );
     // Provenance rides the Agent's own message: the fire itself is silent in chat.
     expect(instructions).toContain(
-        'Answer a trigger fire with a new top-level message in the anchor chat, sent with `--cause <fireId>` so the message carries its provenance; never as a reply in any thread, even a thread you were already working in.'
+        'Answer a trigger fire with a new top-level message in the anchor chat, sent with `--cause <fireId>` so the message carries its provenance.'
     );
     // Outside payloads cannot acquire the configured instruction's authority.
     expect(instructions).toContain(
@@ -157,7 +153,9 @@ test('composes the CLI-only Haus collaboration contract', () => {
     expect(instructions.indexOf('### Reminders')).toBeLessThan(
         instructions.indexOf('### Triggers')
     );
-    expect(instructions.indexOf('### Triggers')).toBeLessThan(instructions.indexOf('### Threads'));
+    expect(instructions.indexOf('### Triggers')).toBeLessThan(
+        instructions.indexOf('### Cloud agents')
+    );
 
     // Identity + authoritative runtime context are personalized per Agent.
     expect(instructions).toContain('You are "Cove"');
@@ -182,7 +180,7 @@ test('advertises the Agent family without inventing an Agent-creation policy', (
     expect(instructions).not.toContain('haus avatar generate');
     expect(instructions).not.toContain('recipes/playbook/agent-creation');
     expect(instructions).not.toMatch(/playful character|fun name|exactly one generation/iu);
-    // Execution-config inheritance is Agent-creation policy; thread visibility inheritance is not.
+    // Execution-config inheritance is Agent-creation policy, not prompt text.
     expect(instructions).not.toMatch(
         /--avatar-concept|inherits? (your|its)|a human in this Chat asked/u
     );

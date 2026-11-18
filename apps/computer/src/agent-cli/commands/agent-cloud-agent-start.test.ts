@@ -26,28 +26,66 @@ test('starts one Cloud Agent with the stdin instructions and the Agent’s own w
         nonce: 'cloud-agent-nonce',
         repository: 'haus/haus',
         startingRef: 'main',
-        target: '#product',
+        target: 'task:SEC-12',
+        task: 'SEC-12',
         title: 'Fix the flaky delivery test',
     });
     const printed = output.join('');
     expect(printed).toContain('Work ID: caw_1234567890abcdef');
-    expect(printed).toContain('Work thread: "#product:1a2b3c4d"');
-    expect(printed).toContain('reaches your inbox');
+    expect(printed).toContain('Posted to task:SEC-12.');
+    expect(printed).toContain('Haus wakes you on task:SEC-12 when the run settles');
+    expect(printed).toContain('when its pull request becomes ready or its checks finish');
+    expect(printed).not.toContain('Work thread');
 });
 
-test('starts a cloud card as an inline reply without changing its channel', async () => {
+test('a launch with no Task is refused before anything is sent, naming the next step', async () => {
     const seen: AgentApiRequest[] = [];
-    await runCloudAgentStart(args({ '--reply-to': '1a2b3c4d' }), {
+    await expect(
+        runCloudAgentStart(args({ '--task': '' }), {
+            client: requester(seen),
+            mintNonce: () => 'no-task-nonce',
+            readStdin: () => Promise.resolve('Fix the reported failure.'),
+            stdinIsTty: false,
+            write: () => undefined,
+        })
+    ).rejects.toMatchObject({
+        code: 'CLOUD_AGENT_TASK_REQUIRED',
+        options: { nextAction: expect.stringContaining('haus task start') },
+    });
+    expect(seen).toHaveLength(0);
+});
+
+test('a Server CLOUD_AGENT_TASK_REQUIRED refusal gains the start-a-Task step', async () => {
+    await expect(
+        runCloudAgentStart(args(), {
+            client: {
+                request: () =>
+                    Promise.reject(
+                        new AgentCliError('CLOUD_AGENT_TASK_REQUIRED', 'Cloud work needs a Task.')
+                    ),
+            },
+            mintNonce: () => 'refused-nonce',
+            readStdin: () => Promise.resolve('Fix the reported failure.'),
+            stdinIsTty: false,
+            write: () => undefined,
+        })
+    ).rejects.toMatchObject({
+        code: 'CLOUD_AGENT_TASK_REQUIRED',
+        message: 'Cloud work needs a Task.',
+        options: { nextAction: expect.stringContaining('--task <KEY-n>') },
+    });
+});
+
+test('--task accepts the Task target form too', async () => {
+    const seen: AgentApiRequest[] = [];
+    await runCloudAgentStart(args({ '--task': 'task:SEC-12' }), {
         client: requester(seen),
-        mintNonce: () => 'inline-cloud-nonce',
+        mintNonce: () => 'target-form-nonce',
         readStdin: () => Promise.resolve('Fix the reported failure.'),
         stdinIsTty: false,
         write: () => undefined,
     });
-    expect(seen[0]?.body).toMatchObject({
-        replyToMessageId: '1a2b3c4d',
-        target: '#product',
-    });
+    expect(seen[0]?.body).toMatchObject({ target: 'task:SEC-12', task: 'SEC-12' });
 });
 
 test('--cause rides the --say post as on haus message send, and a blank one is refused', async () => {

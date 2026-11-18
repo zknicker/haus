@@ -43,7 +43,7 @@ test('claims before acting and finishes its own work without parking it', () => 
     expect(instructions).toContain('say in the conversation what they need to check.');
     expect(instructions).not.toContain('so a human can validate it, then to `done` after approval');
     expect(instructions).toContain(
-        "**Keep the conversation together.** Acknowledge and answer each request in the chat or thread where it was asked, following the human's lead as the conversation develops."
+        "**Keep the conversation together.** Acknowledge and answer each request in the chat where it was asked, following the human's lead as the conversation develops."
     );
     expect(instructions).toContain(
         `An \`in_review\` claim whose conversation stays silent for ${CLAIM_IN_REVIEW_STALE_DAYS} days is closed as stale by the Server, so keep pending reviews current in their conversation.`

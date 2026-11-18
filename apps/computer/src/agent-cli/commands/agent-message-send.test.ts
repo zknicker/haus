@@ -91,7 +91,7 @@ test('inline send preserves the channel and passes its parent reference', async 
     });
 });
 
-test('a top-level send receipt states where it landed and its own thread target', async () => {
+test('a top-level send receipt states where it landed', async () => {
     const outputs: string[] = [];
     await runSend(sendArgs({ '--target': '#general' }), {
         ...depsFor(capturingSendClient({}), outputs),
@@ -99,9 +99,17 @@ test('a top-level send receipt states where it landed and its own thread target'
     });
     expect(outputs.join('')).toBe(
         'Message sent to #general. Message ID: msg_sent\n' +
-            'Posted at the top of #general; members see it in the channel.\n' +
-            'Thread on this message: #general:sent\n'
+            'Posted at the top of #general; members see it in the channel.\n'
     );
+});
+
+test('a send accepts a Task target', async () => {
+    const outputs: string[] = [];
+    await runSend(sendArgs({ '--target': 'task:SEC-12' }), {
+        ...depsFor(capturingSendClient({}), outputs),
+        readStdin: async () => 'The fix is in review.',
+    });
+    expect(outputs.join('')).toStartWith('Message sent to task:SEC-12. Message ID: msg_sent\n');
 });
 
 test('saved drafts cannot be retargeted to a different inline parent', async () => {
@@ -159,7 +167,7 @@ test('send carries --cause in the --send-draft and --anyway modes', async () => 
     const anyway: CapturedSend = {};
     await runSend(
         sendArgs(
-            { '--target': '#general:00000000', '--cause': 'rmf_9a8b7c6d' },
+            { '--target': 'task:SEC-12', '--cause': 'rmf_9a8b7c6d' },
             { '--send-draft': true, '--anyway': true }
         ),
         depsFor(capturingSendClient(anyway), [])
@@ -169,7 +177,7 @@ test('send carries --cause in the --send-draft and --anyway modes', async () => 
         continueAnyway: true,
         nonce: 'nonce',
         sendDraft: true,
-        target: '#general:00000000',
+        target: 'task:SEC-12',
     });
 });
 

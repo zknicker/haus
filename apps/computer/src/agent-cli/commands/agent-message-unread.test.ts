@@ -14,15 +14,14 @@ const baseHistory = {
     has_older: true,
     last_read: { after: 10, unread_after: 10 },
     messages: [] as AgentCliMessage[],
-    target: '#wg-ax:b365e91f',
-    thread_follow_reactivated_message_ids: [],
+    target: 'task:WG-7',
 };
 
 test('message read --unread asks the Server for unread and prints the same command to continue', async () => {
     const messages = [message('msg_three', 11), message('msg_four', 12)];
     const { output, queries } = await read(
         { ...baseHistory, has_newer: true, messages, read_through_seq: 12, unread_after_seq: 10 },
-        { '--target': '#wg-ax:b365e91f' }
+        { '--target': 'task:WG-7' }
     );
     expect(queries[0]?.unread).toBe('true');
     expect(output).toBe(
@@ -32,8 +31,8 @@ test('message read --unread asks the Server for unread and prints the same comma
             formatHistoryLine(messages[0] as AgentCliMessage),
             formatHistoryLine(messages[1] as AgentCliMessage),
             '',
-            'Read position: seq 10 → 12. To re-read these: haus message read --target "#wg-ax:b365e91f" --after 10',
-            'More unread remain. Next: haus message read --target "#wg-ax:b365e91f" --unread',
+            'Read position: seq 10 → 12. To re-read these: haus message read --target "task:WG-7" --after 10',
+            'More unread remain. Next: haus message read --target "task:WG-7" --unread',
             '',
         ].join('\n')
     );

@@ -7,9 +7,7 @@ import {
     formatClaimsCreated,
 } from './agent-claim-format.ts';
 
-// A Thread claim's row carries its Thread's own target (`#channel:anchor` or
-// `dm:@handle:anchor`). Threads refuse `--reply-to` and cannot nest.
-test('a Thread claim names its Thread target with no --reply-to', () => {
+test('a claim in a Task names the inline reply in that Task', () => {
     const output = formatClaimResults(
         [
             {
@@ -17,14 +15,14 @@ test('a Thread claim names its Thread target with no --reply-to', () => {
                 number: 7,
                 outcome: 'claimed',
                 reason: null,
-                claim: claimRow('dm:@wren:9f8e7d6c'),
+                claim: claimRow('task:SEC-12'),
             },
         ],
-        'dm:@wren:9f8e7d6c'
+        'task:SEC-12'
     );
 
     expect(output).toBe(
-        'Claim results (1 claimed):\n#7 (msg:1a2b3c4d): claimed · thread reply --target "dm:@wren:9f8e7d6c", no --reply-to\n'
+        'Claim results (1 claimed):\n#7 (msg:1a2b3c4d): claimed · inline reply --target "task:SEC-12" --reply-to 1a2b3c4d\n'
     );
 });
 
@@ -47,9 +45,9 @@ test('a top-level claim keeps the inline reply to its message', () => {
     );
 });
 
-test('a Thread claim names the Thread it sits in as its thread address, never a nested target', () => {
-    expect(formatClaimsCreated([claimRow('#general:9f8e7d6c')], '#general')).toBe(
-        'Created claim #7 [in_progress] in #general:9f8e7d6c. Message ID: msg_1a2b3c4d00000000. Thread: "#general:9f8e7d6c".\n'
+test('a created claim names where it sits and its message id, with no thread address', () => {
+    expect(formatClaimsCreated([claimRow('#general')], '#general')).toBe(
+        'Created claim #7 [in_progress] in #general. Message ID: msg_1a2b3c4d00000000.\n'
     );
 });
 
@@ -94,7 +92,7 @@ function claimRow(target: string): ClaimRow {
             attachments: [],
             author: { id: 'usr_wren', kind: 'user', label: 'wren', metadata: {} },
             body_kind: 'text',
-            chat_id: 'cht_thr_9f8e7d6c00000000',
+            chat_id: 'cht_general',
             content: 'Set up the export',
             created_at: '2026-11-02T20:00:00.000Z',
             deleted_at: null,

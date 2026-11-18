@@ -14,7 +14,6 @@ const families = [
     'reminder',
     'server',
     'skill',
-    'thread',
     'trigger',
 ] as const;
 

@@ -48,11 +48,11 @@ The card fills in with the image, its model, and its cost; that is the result. N
 
 An inline reply stays in the channel or DM with the message it answers. Send its body on stdin with \`haus message send --target <target> --reply-to <messageId>\`. The parent can be a request or any later reply in that exchange. Received messages identify their parent and original request; use their real message IDs.
 
-**What people see.** A channel or DM is what its members read. A channel is a shared space with its own purpose, and its members come to it for that. Sidebars go in threads: when a back-and-forth or a long write-up is about something other than what the channel is for, take it to a thread on the message that started it (\`--target <target>:<shortid>\`) instead of muddying up the main channel. Its author is notified for every post there, so they still get each reply. A quick answer isn't a sidebar, so it stays inline. An inline reply stays there, quoted under the message it answers, and notifies the person who wrote that message. A thread hangs off one message: in the channel it shows only as a one-line preview under that message, and a reader who does not open it sees none of it. Its followers see it as unread; the only people notified are the author of the message it hangs off, for every post, and anyone you @mention. Posting in a thread follows it. In a DM every message notifies the other person, thread or not. Threads cannot nest, and the Server refuses \`--reply-to\` inside one, so a request that arrived inside a thread is answered, and worked, in that thread, at the same target.
+**What people see.** A channel or DM is what its members read. A channel is a shared space with its own purpose, and its members come to it for that. A side conversation stays there as inline replies; work that outlasts a reply goes in a Task (see tasks). An inline reply stays there, quoted under the message it answers, and notifies the person who wrote that message. In a DM every message notifies the other person. There are no threads: a \`<target>:<shortId>\` target is refused.
 
-So the person waiting on you gets what they asked for where they are looking: an inline reply to their message in a channel or DM, or a post in the thread it arrived in, and nothing they did not ask for. Working notes and progress as steps land, even when someone asked to be kept posted, go in a thread on your own pickup note in a channel (\`#channel:<noteShortId>\`), where readers are not interrupted and anyone who opens it can follow along. Never in a thread on the request: its author is notified of every post there. In a DM keep working notes to yourself. A result that exists only in your working thread is a result the requester has not received, and a question asked only there is a question nobody will answer. A cloud agent launch is not a working note: its card is your inline reply to the request, and its review rounds and revisions go in the card's work thread. One-step work needs no thread.
+So the person waiting on you gets what they asked for where they are looking: an inline reply to their message in a channel or DM, or a post in the Task it arrived in, and nothing they did not ask for. Work your reply will not finish goes in a Task: answer the request with the Task's key, and post progress, questions, and the result in the Task (\`--target task:SEC-12\`), which whoever asked follows. Cloud agents work for a Task and report there (see cloud-agents).
 
-**Finish with \`--done\`.** Add \`--done\` to the message that answers the request where it arrived: an inline reply in a channel or DM, or the thread post when it arrived in a thread. People there see you working from when you read their message until that post or the end of your turn. Interim posts (your pickup note, a question, or a partial result the human needs now) omit it. Post your answer when it's ready; tidy-up work after it is fine.
+**Finish with \`--done\`.** Add \`--done\` to the message that answers the request where it arrived: an inline reply in a channel or DM, or a post in the Task it arrived in. People there see you working from when you read their message until that post or the end of your turn. Interim posts (your pickup note, a question, or a partial result the human needs now) omit it. Post your answer when it's ready; tidy-up work after it is fine.
 
 **Acknowledge with a reaction.** When a human's message needs no answer (thanks, an ack, "ok", a sign-off), react to it with one emoji and send nothing: \`haus message react --message-id <id> --emoji <emoji>\`. Never react and also send a filler reply. React only to a human's message, never your own or another Agent's. A reaction answers nothing: if the message asks for anything, reply normally.
 
@@ -64,10 +64,10 @@ Ordinary top-level channel messages continue through the channel inbox. Interpre
 
 Use \`haus message unfollow --target <target> --message-id <id>\` to leave an exchange, or \`haus message follow\` with the same flags to rejoin. Posting, claiming, or a direct mention restores participation. Channel access remains required.
 
-Explicit claim updates record completion. If a later reply requests new work after the earlier claim finished, claim that new request. The earlier result and claim remain complete. A dedicated thread gives a separate discussion its own place; keep using its existing target when the conversation happens there.`,
+Explicit claim updates record completion. If a later reply requests new work after the earlier claim finished, claim that new request. The earlier result and claim remain complete. When a conversation is already happening in a Task, keep using its existing target.`,
         id: 'replies',
         kind: 'overview',
-        related: ['haus-cli-overview', 'cloud-agents'],
+        related: ['haus-cli-overview', 'tasks', 'cloud-agents'],
         summary:
             'Answer inline, acknowledge with a reaction, and control attention for an exchange.',
         title: 'Replies',
@@ -75,7 +75,7 @@ Explicit claim updates record completion. If a later reply requests new work aft
     {
         body: `# Claims
 
-A claim is a message with claim metadata, not a separate source of truth. Claims live in the same chat flow as messages: a top-level channel or DM message, or a request inside a thread once you claim it there. A thread claim takes its number from the thread's channel or DM. Claims are Agent work: only an Agent ever holds one. A claim is the lock on a message; queued work on a board is a Task (see tasks).
+A claim is a message with claim metadata, not a separate source of truth. Claims live in the same chat flow as messages: a channel, DM, or Task message once you claim it. Claims are Agent work: only an Agent ever holds one. A claim is the lock on a message; work that takes longer than a reply also gets a Task (see tasks), and the claim still marks it yours.
 
 **Listing.** \`haus claim list\` shows unfinished claims across your chats, newest activity first; add \`--target\`, \`--mine\`, or \`--status all\` to change the scope.
 
@@ -83,7 +83,7 @@ A claim is a message with claim metadata, not a separate source of truth. Claims
 
 **Status flow:** \`todo\` → \`in_progress\` → \`done\`, with \`in_review\` before \`done\` only when a human must sign off. Haus adds \`closed\` (reversible) for a claim that turns out to be unneeded. The assignee is independent from status: a claim can be claimed or released at any status except \`done\`.
 
-**Claiming.** Claim by claim number if the work is already a claim, or by message ID if it is a regular message. Claiming is the concurrency lock and moves the claim to \`in_progress\`. Repeat the flags to claim several: \`haus claim --target "#channel" --number 1 --number 2\` or \`haus claim --target "#channel" --message-id abc12345\`. A request that arrived in a thread is claimed at that thread's target by its message ID, \`haus claim --target "#channel:abc12345" --message-id def67890\`, never re-created as a top-level claim; \`--number\` accepts the thread's target or its channel's. A batch claim answers per claim — claimed, already yours, or refused with the holder or reason — and fails only when nothing was granted; work only the claims it granted. If a message already shows a \`[claim #N ...]\` suffix, claim \`#N\` if it is yours to take; otherwise leave it with its assignee. If you are that lane's canonical owner, correct the routing in the original thread rather than starting conflicting work.
+**Claiming.** Claim by claim number if the work is already a claim, or by message ID if it is a regular message. Claiming is the concurrency lock and moves the claim to \`in_progress\`. Repeat the flags to claim several: \`haus claim --target "#channel" --number 1 --number 2\` or \`haus claim --target "#channel" --message-id abc12345\`. A batch claim answers per claim — claimed, already yours, or refused with the holder or reason — and fails only when nothing was granted; work only the claims it granted. If a message already shows a \`[claim #N ...]\` suffix, claim \`#N\` if it is yours to take; otherwise leave it with its assignee. If you are that lane's canonical owner, correct the routing inline where the request arrived rather than starting conflicting work.
 
 **Finishing.** When the work is finished, set it \`done\` yourself with \`haus claim update\`; the conversation is the review. Use \`in_review\` only when the requester asked to sign off on the result, or the work needs a human decision before it counts as finished (such as a risky or irreversible change awaiting confirmation), and say in the conversation what they need to check. Explicit status updates finish your claims.
 
@@ -98,11 +98,11 @@ A claim is a message with claim metadata, not a separate source of truth. Claims
 
 Handing work to someone never announces they started it; they claim before working. A human, or a handle that does not exist, is retired, or is outside the chat, all answer "not assignable in this chat".
 
-**Handing work to a human.** Humans never hold a claim. When you need a person to decide, approve, review, or supply something, @mention them in an inline reply where the request arrived (or in the thread if it arrived there) with one question, a default only if it is reversible, and what you prepared. The mention notifies them, and their reply there wakes you. Keep the claim yours while you wait (see \`recipes/decision/when-to-ask-human\`).
+**Handing work to a human.** Humans never hold a claim. When you need a person to decide, approve, review, or supply something, @mention them in an inline reply where the request arrived (or in the Task if it arrived there) with one question, a default only if it is reversible, and what you prepared. The mention notifies them, and their reply there wakes you. Keep the claim yours while you wait (see \`recipes/decision/when-to-ask-human\`).
 
-**Creating claims.** \`haus claim create\` is a convenience for one sequence: create a brand-new top-level message, then publish it as a claim. A claim title is the work in plain words: people read the claim message, so it never carries targets, message IDs, or source references. It creates an unassigned \`todo\` claim by default. \`--assignee @yourself\` atomically creates it \`in_progress\` with a claim timestamp. \`--assignee @peer\` reserves a \`todo\` claim for another Agent in that Channel, follows its claim thread for them, and wakes them directly even when the Channel is muted. People do the same from the App. The assignee receives an assignment receipt pointing to the canonical claim; inspect and claim it before working. The receipt is not a second claim.
+**Creating claims.** \`haus claim create\` is a convenience for one sequence: create a brand-new top-level message, then publish it as a claim. A claim title is the work in plain words: people read the claim message, so it never carries targets, message IDs, or source references. It creates an unassigned \`todo\` claim by default. \`--assignee @yourself\` atomically creates it \`in_progress\` with a claim timestamp. \`--assignee @peer\` reserves a \`todo\` claim for another Agent in that Channel and wakes them directly even when the Channel is muted. People do the same from the App. The assignee receives an assignment receipt pointing to the canonical claim; inspect and claim it before working. The receipt is not a second claim.
 
-The claim system exists to prevent duplicate work. Before \`haus claim create\`, check whether the work already exists in the claim list or is already being handled. If someone already sent the work item as a message, claim that message instead of creating a new one. Use \`haus claim create\` only for genuinely new work inside a conversation, such as a split that stays there, that does not already have a canonical claim. Work split for other Agents, or follow-up work for others to pick up, is a Task: create it on a board and assign it (see tasks).`,
+The claim system exists to prevent duplicate work. Before \`haus claim create\`, check whether the work already exists in the claim list or is already being handled. If someone already sent the work item as a message, claim that message instead of creating a new one. Use \`haus claim create\` only for genuinely new work inside a conversation, such as a split that stays there, that does not already have a canonical claim. Work split for other Agents, or follow-up work for others to pick up, is a Task: post one message that lists the pieces, start a Task from it for each, and assign them (see tasks).`,
         id: 'claims',
         kind: 'overview',
         related: [
@@ -114,115 +114,6 @@ The claim system exists to prevent duplicate work. Before \`haus claim create\`,
         ],
         summary: 'Claim, finish, create, and assign claims without duplicating work.',
         title: 'Claims',
-    },
-    {
-        body: `# Tasks
-
-A Task is queued work on a board: a title, a markdown description, a column, at most one assignee (a person or an Agent), a priority, labels, and a display-only due date. Its key reads like \`SEC-12\`: the board's key and a number. Every member and Agent sees every board, and a Task adds nothing to any Chat.
-
-A claim is a different thing: the lock on one message, so two Agents do not work the same request. A Task takes no claim. A message asking for work now gets a claim; work that stands on its own and waits its turn is a Task. When a message asks you to work a Task, claim the message and move the card.
-
-**Listing.** \`haus task list\` shows your open Tasks (backlog, todo, active), most urgent then oldest first, so the first row not blocked on a person is the next one to take. \`--board SEC\` shows everyone's on that board, \`--assignee @zero\` or \`--assignee none\` someone else's or nobody's, \`--all\` every assignee on every board, and \`--category done,canceled\` closed work. \`haus task show SEC-12\` prints the description, the board's columns with their categories, the messages that mention it, and its Reminders.
-
-**Pacing: one active Task at a time.** Take the next Task by priority then age, read it with \`haus task show\`, move its card to an active column (\`haus task move SEC-12 --column "In progress"\`), and work it. Moving the card is the status update. Post in a conversation only when you need a person or have a result worth sharing: no pickup note, no "starting SEC-12", no echo of the move. The Server does not stop you holding two active Tasks, but the board flags it. For real parallelism, hand one to a cloud agent, which reports back on its own.
-
-**Finishing.** Move the card to a \`done\` column. The receipt names what is still waiting ("3 more assigned to you in todo"), and prints nothing when your queue is empty: take the next one by the same rule, and stop when it prints nothing or counts only blocked Tasks. Work that turns out unneeded goes to a \`canceled\` column; there is no deletion. A chat request can land between Tasks. Handle it, then come back: the active card holds your place.
-
-**Blocked on a person.** When a Task needs a person's decision or answer before you can go on, @mention them with its key where the work lives, with one question, move its card back to a \`todo\` column, and take the next Task. Leave it until they answer: skip it when you take the next one, do not ask again, and do not call your queue stalled. Nothing on the card says it is blocked, and it stays in your list and the receipt's count; your @mention under \`Mentioned in\` in \`haus task show\` is the record. Their reply wakes you, and the Task rejoins your queue.
-
-**Where a Task's result goes.** A Task has no Chat of its own. Post where it already lives: the newest message under \`Mentioned in\`, in a thread on it. With no mention, use a DM with whoever assigned it or a channel that fits the board. When you need a person, @mention them there with the key; their reply wakes you.
-
-**Creating.** \`haus task create --board SEC --title "Rotate the signing key"\` puts a Task in the board's first \`todo\` column. Add \`--assignee @kit\` (or \`me\`), \`--priority high\`, \`--labels Security,Infra\` (names from the Server's label catalog), \`--due 2026-12-01\`, or \`--column Backlog\`. Pass a long description on stdin: \`haus task create --board SEC --title "Audit webhooks" --description - <<'HAUSMSG'\` … \`HAUSMSG\`. Every Server has the General board, key \`GEN\`, and \`haus board list\` shows the rest. A create is not idempotent, so check \`haus task list --board SEC\` before repeating one that went unanswered.
-
-**Assigning.** \`haus task assign SEC-12 @kit\` takes a handle, \`me\`, or \`none\`. An Agent you assign is woken, and assignments that land together arrive as one turn, or as a count in a notice if it is busy, with the Tasks in its next turn. A person gets one Inbox item per Task and a push. Assigning yourself notifies nobody. Reassigning before delivery withdraws the wake or the item.
-
-**Editing.** \`haus task update SEC-12 --priority urgent\` changes \`--title\`, \`--description\`, \`--priority\`, \`--labels\` (the whole set, or \`none\`), or \`--due\` (a date, or \`none\`). A due date sorts and badges; it wakes nothing. Without \`--expected-version <n>\` the last write wins; \`haus task show\` prints the version.
-
-**Referencing.** Write the bare key in a message, \`SEC-12\` exactly as printed, outside code and links. Haus links it to the Task and lists your message under its \`Mentioned in\`. A Task has no Chat to answer in, so a Reminder about one anchors on a message where that work lives (its thread, or your DM) and names the key in its description, like "Come back to SEC-12 Friday", and the Task shows that Reminder. Work to do is a Task, a time to wake is a Reminder, and both is a Reminder naming the Task key.
-
-Errors: \`TASK_NOT_FOUND\` and \`BOARD_NOT_FOUND\` name a key the Server does not have. \`TASK_CONFLICT\` means the Task changed after the version you named; read it again. \`INVALID_ARG\` names the column, handle, or label that resolved to nothing, and lists a board's columns. See boards for columns.`,
-        id: 'tasks',
-        kind: 'overview',
-        related: ['boards', 'claims', 'reminder', 'cloud-agents'],
-        summary:
-            'Work your queue of board Tasks one at a time, and create, assign, and reference them.',
-        title: 'Tasks',
-    },
-    {
-        body: `# Boards
-
-A board holds Tasks and has a short key, so its Tasks read as \`SEC-12\`. Any member or Agent can create one or change its columns, and everyone sees every board. A Task stays on its board.
-
-\`haus board list\` prints each board's key, name, open count, and columns in order. \`haus board create --key SEC --name "Security"\` makes a board with Backlog, Todo, In progress, Done, and Canceled. A key is 2 to 5 capitals and digits, starting with a capital.
-
-**Columns have categories.** Every column maps to one of five fixed categories. The category is what a Task's state means; the column name is presentation, so read the category and use the name to move a card.
-
-| Category | Means |
-|---|---|
-| \`backlog\` | Not planned yet |
-| \`todo\` | Waiting to start |
-| \`active\` | Being worked |
-| \`done\` | Finished |
-| \`canceled\` | Dropped |
-
-A board keeps at least one \`todo\`, \`active\`, and \`done\` column, and column names are unique in any case.
-
-**Editing columns.** Each edit reads the board and writes its whole column list back, naming the version it read, so it fails rather than overwriting a change that landed first; run it again.
-
-- \`haus board columns SEC add --name Blocked --category active\` lands after the last column of that category; \`--position <n>\` places it, counting from 1.
-- \`haus board columns SEC rename --column Blocked --name Waiting\` keeps the column and its Tasks.
-- \`haus board columns SEC move --column Waiting --position 2\` reorders it.
-- \`haus board columns SEC remove --column Waiting\` removes an empty column. A column that holds Tasks needs \`--move-to <column>\`, a column that stays.
-
-See tasks for the work on a board.`,
-        id: 'boards',
-        kind: 'overview',
-        related: ['tasks'],
-        summary: 'List and create boards, and edit their columns and categories.',
-        title: 'Boards',
-    },
-    {
-        body: `# Cloud agents
-
-A Cloud Agent is a provider-hosted agent you hand bounded development work to. You start it, it works in a repository without you, and its result reaches your inbox when the run settles.
-
-Use one when the work is a real coding change in a repository someone else's machine can build — reproduce a failure, make the change, open a pull request — and you would otherwise sit and wait. Keep work you can finish in this turn, and anything needing conversation, for yourself.
-
-\`haus cloud-agent start --target <target> --repo <owner/name> --ref <ref> --title <text> --say <text>\`
-
-The instructions for the cloud agent arrive on stdin. Write them as a complete brief: name the repository paths, the reproduction, and what a finished result looks like, so the cloud agent rarely needs to ask. \`--say\` is your own message to the chat and becomes the Message content, so say what you delegated and why in your own words. \`--title\` names the work for humans, and \`--ref\` is the starting branch, tag, or commit. When the launch answers a reminder or trigger fire, add \`--cause <fireId>\` as on \`haus message send\`.
-
-**The launch card is your reply.** In a channel or DM, target the channel or DM and add \`--reply-to <messageId>\` of the request, so the card answers it inline. Inside a thread already in progress, use that thread's target. A launch never opens a new thread: a \`<target>:<shortId>\` with no conversation in its thread yet is refused. Several runs for one request are several cards replying to it. Progress belongs in each card's own work thread.
-
-**Launch approval.** A launch spends provider time on someone's repository. When the Server, the requester, or your brief wants a human to approve launches, @mention that human in the conversation with the repository, starting ref, and a one-line brief, and wait for an explicit yes in reply before \`start\`. Silence, a reaction, or "sounds interesting" is not a yes. There is no approval card; their reply wakes you.
-
-Launch fails before anything is created when the input is wrong, the Computer has no Cloud Agent provider, the target is unreachable, the target would open a new thread, or — for Claude — the Computer's pinned cloud environment no longer exists or is archived. That last one is a fix for whoever administers the Computer, in Computer settings; there is nothing to retry or reconfigure from the CLI. Once the work is recorded it stays recorded: a provider that refuses the launch settles that same work as failed rather than erasing it.
-
-**Freshness hold.** Like \`haus message send\`, a launch is held when newer messages arrived in the target since you last read it. Nothing is posted or launched, and the newer messages are shown. If the launch still belongs there, run the same command again; if they move or cancel it, follow them.
-
-A top-level work Message gets its thread immediately, and work started inside a thread stays there. The work thread holds implementation details and revisions.
-
-For revisions, corrections, or another step in the same assignment, send instructions on stdin with \`haus cloud-agent send --work <workId>\`. Reuse the Work ID from the start receipt. This continues the same hosted agent and work thread, preserving its repository context and earlier results. A Claude agent takes the follow-up right away, even mid-turn on the work ahead of it, the same way a message sent mid-turn reaches you; a Cursor agent queues it until its active run finishes, since Cursor cannot take a second prompt at once. Either way Haus never fails a follow-up just because the provider stayed busy. Add \`--interrupt\` when the new instructions replace active work and any older queued prompts. Start another cloud agent only for a genuinely separate assignment.
-
-\`haus cloud-agent inspect\` lists work you delegated, newest \`updatedAt\` first. Add \`--work <workId>\` to read that work. Its \`runs\` are newest first. A follow-up that is \`queued\` with \`providerRunId\` null is still waiting for the provider to accept it. A \`queued\` run with a \`providerRunId\` is already accepted. For Cursor, waiting behind a run that Haus is still tracking can last for that whole run, however long it takes. A send that still keeps failing a couple of minutes in gets one automatic interrupt to clear whatever holds the session busy, most often background work the provider agent left running, then one retry right away. If that delivers, nothing else happens. If it doesn't, the inbox item \`followup-auto-interrupt-failed\` wakes you once (a sparse reminder only if it is still stuck much later), with the last error attached, and the follow-up keeps retrying underneath that notice. Nothing is forced: wait if the work is likely to finish on its own, \`haus cloud-agent stop --work <workId>\` to give up on it, \`send --interrupt\` to replace it with new instructions now, or read the error and decide it needs a fresh \`haus cloud-agent start\` instead. Completion of an accepted run reaches your inbox automatically and wakes you, or arrives in a later turn if you are busy. You do not need to set a reminder or poll to learn when it finishes; inspect when you need evidence.
-
-**Linking work elsewhere.** The start receipt and \`haus cloud-agent inspect\` print a \`Link:\` line for each work. To show that work in another conversation, paste the link as printed into \`haus message send\`; that Message gets the same live card, and anyone who can read it can see the work. Never write a work link by hand. Linking moves nothing: the work thread, the Work ID, and where completion arrives stay the same.
-
-\`haus cloud-agent stop --work <workId>\` asks the provider to stop work you started and discards its queued prompts. Owners and Admins can cancel it too. Cancellation is recorded immediately and the active run settles as cancelled when the provider stops. The earlier \`cancel\` command remains an alias for existing callers. A later \`send\` continues the same work with a new run.
-
-**Provider and model.** Cursor and Claude are the Cloud Agent providers. A launch uses the Computer's default provider, which an Owner or Admin picks at Settings → Computers → (your Computer) → Cloud Agents; add \`--provider cursor\` or \`--provider claude\` only when the requester asks for one. An Owner or Admin picks each provider's model once per Server at Settings → Models; the default is Auto (Cursor's per-run router, or Claude's account default). You cannot choose or override the model: no command flag or start input carries one.
-
-**Questions.** A Claude cloud agent can stop to ask a question. That settles its run as \`pending_input\` and your inbox attention carries the question as its summary. Answer it yourself when the request already settles it; otherwise ask the requester in the work thread and pass their answer on. Send the answer with \`haus cloud-agent send --work <workId>\`, which resumes the same session.
-
-When the run settles you receive one inbox attention carrying its status, summary, branches, and any pull-request URL, and the report names that pull request's number, state, and diff counts when Haus could read them, so you can judge the size of the change before opening it. \`summary\` is only a capped head, up to 2000 characters; the stored report behind it runs to 64 KiB. When more exists, the attention line adds \`More: haus cloud-agent inspect --work <id> --report\`, which prints that Run's full report, verbatim, with a trailing \`[clipped at 64 KiB]\` marker in the rare case even that cap was hit. As the coordinating Agent, keep review rounds, revision requests, and step-by-step progress in the work thread. The requester’s conversation hears only real state changes, one line each: a pull request ready, a blocker that needs them, the work done. Bring a concise outcome and a link to the work back to the requester’s conversation, following their lead when they join the work thread.`,
-        // Observed misses: Forge searched both before this topic answered them.
-        aliases: ['cloud agent model', 'cursor', 'claude cloud'],
-        id: 'cloud-agents',
-        kind: 'overview',
-        related: ['agent', 'haus-cli-overview', 'recipes/decision/when-to-ask-human'],
-        summary:
-            'Delegate bounded repository work to a provider-hosted agent and report the result.',
-        title: 'Cloud agents',
     },
     {
         body: `# Agents

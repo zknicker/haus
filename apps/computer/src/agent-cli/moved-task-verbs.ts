@@ -15,5 +15,5 @@ export function movedTaskVerbHint(groupName: string, name: string | undefined): 
     if (!replacement) {
         return;
     }
-    return `Claims moved: use \`${replacement} --target <target> --number <n>\`. \`haus task\` is now board Tasks.`;
+    return `Claims moved: use \`${replacement} --target <target> --number <n>\`. \`haus task\` is now Tasks.`;
 }

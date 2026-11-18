@@ -1,8 +1,8 @@
 import { addressedReasonSchema, humanTimezoneSchema } from '@haus/api';
 import type { UnreadElsewhere } from './agent-commands.ts';
 import {
-    agentThreadContextResponseSchema,
     cloudAgentWorkAttentionResponseSchema,
+    pullRequestChangeResponseSchema,
 } from './agent-inbox-attention-response-schema.ts';
 import type { AgentCloudAgentWorkAttention, AgentInboxItem } from './agent-inbox-item.ts';
 import { chatMessageReplyResponseSchema } from './chat-message-reply-response-schema.ts';
@@ -94,8 +94,6 @@ function parseInboxItem(item: unknown): AgentInboxItem | null {
                 (item.senderType === 'human' &&
                     humanTimezoneSchema.safeParse(item.senderTimezone).success)) &&
             (item.message === undefined || isRecord(item.message)) &&
-            (item.threadFollowReactivated === undefined ||
-                typeof item.threadFollowReactivated === 'boolean') &&
             ['agent', 'human', 'system', 'trigger'].includes(item.senderType as string)
         ) ||
         typeof item.sequence !== 'number' ||
@@ -104,43 +102,42 @@ function parseInboxItem(item: unknown): AgentInboxItem | null {
     ) {
         return null;
     }
-    const cloudAgentWork = parseCloudAgentWorkAttention(item.cloudAgentWork);
+    const attention = parseTypedAttention(item);
     const reply = chatMessageReplyResponseSchema.nullish().safeParse(item.reply);
-    const threadContext = agentThreadContextResponseSchema.optional().safeParse(item.threadContext);
-    if (!(reply.success && threadContext.success)) {
-        return null;
-    }
-    if (item.cloudAgentWork !== undefined && !cloudAgentWork) {
-        return null;
-    }
-    if (invalidAttentionIdentity(item, cloudAgentWork)) {
+    if (!(attention && reply.success)) {
         return null;
     }
     return {
         ...item,
         ...(reply.data !== undefined ? { reply: reply.data } : {}),
-        ...(cloudAgentWork ? { cloudAgentWork } : {}),
+        ...attention,
     } as unknown as AgentInboxItem;
 }
 
-function invalidAttentionIdentity(
-    item: Record<string, unknown>,
-    work: AgentCloudAgentWorkAttention | null | undefined
-): boolean {
-    if (work) {
-        return item.sequence !== 0 || item.senderType !== 'system';
-    }
-    return item.sequence === 0;
-}
+type TypedAttention = Pick<AgentInboxItem, 'cloudAgentWork' | 'pullRequestNotice'>;
 
-function parseCloudAgentWorkAttention(
-    value: unknown
-): AgentCloudAgentWorkAttention | undefined | null {
-    if (value === undefined) {
-        return undefined;
+/**
+ * The item's typed attention, if any: settled cloud work or a Task's pull request notice. A
+ * change backed by a Run rides `cloudAgentWork`, so both at once is malformed. Typed attentions
+ * are system items with zero Chat sequence; every other item has a cursor. Null rejects the item.
+ */
+function parseTypedAttention(item: Record<string, unknown>): TypedAttention | null {
+    const work = cloudAgentWorkAttentionResponseSchema.optional().safeParse(item.cloudAgentWork);
+    const notice = pullRequestChangeResponseSchema.optional().safeParse(item.pullRequestNotice);
+    if (!(work.success && notice.success) || (work.data && notice.data)) {
+        return null;
     }
-    const parsed = cloudAgentWorkAttentionResponseSchema.safeParse(value);
-    return parsed.success ? parsed.data : null;
+    const isAttention = Boolean(work.data || notice.data);
+    const identityValid = isAttention
+        ? item.sequence === 0 && item.senderType === 'system'
+        : item.sequence !== 0;
+    if (!identityValid) {
+        return null;
+    }
+    return {
+        ...(work.data ? { cloudAgentWork: work.data as AgentCloudAgentWorkAttention } : {}),
+        ...(notice.data ? { pullRequestNotice: notice.data } : {}),
+    };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

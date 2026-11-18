@@ -36,7 +36,7 @@ export const MESSAGE_SUBCOMMANDS: SubCommand[] = [
             {
                 name: '--target',
                 valueName: '<target>',
-                description: 'Channel, DM, or thread target',
+                description: 'Channel, DM, or Task target',
             },
             {
                 name: '--before',
@@ -127,7 +127,7 @@ export async function runCheck(deps: MessageDeps): Promise<number> {
             envelopes.push({
                 createdAt: row.message.created_at,
                 id: row.message.id,
-                line: formatDeliveryEnvelope(row.target, row.message, row.threadFollowReactivated),
+                line: formatDeliveryEnvelope(row.target, row.message),
             });
         }
         // A fire or a claim assignment has no Chat message but is still an inbox

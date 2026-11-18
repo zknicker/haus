@@ -5,7 +5,7 @@ import type { ParsedArgs } from '../parse.ts';
 import { runReminderSchedule, runReminderUpdate } from './agent-reminder.ts';
 
 const reminder = {
-    anchorTarget: '#general:deadbeef',
+    anchorTarget: '#general',
     description: null,
     fireAt: '2026-07-30T16:00:00.000Z',
     id: 'rem_test',

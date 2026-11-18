@@ -29,8 +29,6 @@ test('the canonical strict Task assignment schema rejects a field it does not kn
         agentTaskAssignmentSchema.parse({
             assignedBy: 'ada',
             assignedByAgent: false,
-            board: 'Product',
-            column: 'Doing',
             futureAssignmentField: true,
             id: 'tka_1',
             key: 'PROD-1',
@@ -46,8 +44,6 @@ test('the Computer response schema tolerates an unknown field on a Task assignme
         {
             assignedBy: 'ada',
             assignedByAgent: false,
-            board: 'Product',
-            column: 'Doing',
             futureAssignmentField: true,
             id: 'tka_1',
             key: 'PROD-1',

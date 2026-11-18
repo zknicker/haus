@@ -181,20 +181,20 @@ test('a create without an avatar concept sends null and keeps the ordinary timeo
     expect(seen[0]?.timeoutMs).toBeUndefined();
 });
 
-test('creation in a thread points the creator back to that thread', async () => {
+test('creation from a DM points the creator back to that DM', async () => {
     const output: string[] = [];
     await runAgentCreate(
-        args({ '--target': '#product:1a2b3c4d' }),
+        args({ '--target': 'dm:@zach' }),
         deps({
             client: requester([], [], {
-                '/api/agent/agents': { ...createReceipt, target: '#product:1a2b3c4d' },
+                '/api/agent/agents': { ...createReceipt, target: 'dm:@zach' },
             }),
             write: (text) => output.push(text),
         })
     );
 
     expect(output.join('')).toContain('@orbit introduces itself in #all on its first turn');
-    expect(output.join('')).toContain('Answer the human in #product:1a2b3c4d.');
+    expect(output.join('')).toContain('Answer the human in dm:@zach.');
     expect(output.join('')).not.toContain('discussion continues');
 });
 

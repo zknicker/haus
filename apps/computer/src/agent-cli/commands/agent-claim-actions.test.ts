@@ -1,11 +1,12 @@
 import { expect, test } from 'bun:test';
+import { CLAIM_CONFLICT_ROUTING_NOTE } from '@haus/api';
 import type * as z from 'zod';
 import { AgentApiClient, type AgentApiRequester } from '../agent-api-client.ts';
 import { AgentCliError, renderAgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';
 import { runClaim, runClaimCreate, runClaimList } from './agent-claim-actions.ts';
 
-test('a claim names the inline reply for each granted claim, never its claim thread', async () => {
+test('a claim names the inline reply for each granted claim', async () => {
     const outputs: string[] = [];
     await runClaim(
         claimArgs(['7']),
@@ -131,8 +132,8 @@ test('a lost claim prints the structured conflict instead of a refresh notice', 
     expect(renderAgentCliError(failure as AgentCliError)).toBe(
         'Claim failed — @sage currently holds the implementation lock (assignment state as of 2026-09-08T17:09:52.000Z).\n' +
             'Blocked: starting conflicting implementation/change work.\n' +
-            'Not blocked by this claim conflict (each still subject to its own authority/policy): reading the claim and its Thread · replying in the Thread with findings, questions, or review · claiming a different claim in this lane · raising the routing with the people in the original Chat.\n' +
-            'This is not a ruling on who owns or leads this lane. If you are its canonical owner or believe it is misrouted: correct the routing in the original thread.\n' +
+            'Not blocked by this claim conflict (each still subject to its own authority/policy): reading the claim and its conversation · replying inline with findings, questions, or review · claiming a different claim in this lane · raising the routing with the people in the original Chat.\n' +
+            `${CLAIM_CONFLICT_ROUTING_NOTE}\n` +
             'Code: TASK_CONFLICT\n'
     );
 });
@@ -179,7 +180,7 @@ test('a claim conflict without a structured body keeps the ordinary refusal', as
     );
 });
 
-test('claim create names every created claim its own thread address', async () => {
+test('claim create names where each created claim sits and its message id', async () => {
     const outputs: string[] = [];
     const row = claimRow(8);
     const second = { ...row, message: { ...row.message, id: 'msg_9f8e7d6c00000000' } };
@@ -195,8 +196,8 @@ test('claim create names every created claim its own thread address', async () =
     );
 
     expect(outputs.join('')).toBe(
-        'Created claim #7 [in_progress] in #general. Message ID: msg_1a2b3c4d00000000. Thread: "#general:1a2b3c4d".\n' +
-            'Created claim #8 [in_progress] in #general. Message ID: msg_9f8e7d6c00000000. Thread: "#general:9f8e7d6c".\n'
+        'Created claim #7 [in_progress] in #general. Message ID: msg_1a2b3c4d00000000.\n' +
+            'Created claim #8 [in_progress] in #general. Message ID: msg_9f8e7d6c00000000.\n'
     );
 });
 
@@ -235,8 +236,8 @@ const sageConflict = {
     observedAt: '2026-09-08T17:09:52.000Z',
     status: 'in_progress',
     unblockedActionExamples: [
-        'reading the claim and its Thread',
-        'replying in the Thread with findings, questions, or review',
+        'reading the claim and its conversation',
+        'replying inline with findings, questions, or review',
         'claiming a different claim in this lane',
         'raising the routing with the people in the original Chat',
     ],

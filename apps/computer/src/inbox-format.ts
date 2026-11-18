@@ -1,16 +1,18 @@
-import type { AgentTaskAssignment, CloudAgentBranch } from '@haus/api';
 import type { UnreadElsewhere } from './agent-commands.ts';
-import type { AgentCloudAgentWorkAttention, AgentInboxItem } from './agent-inbox-item.ts';
+import type { AgentInboxItem } from './agent-inbox-item.ts';
+import {
+    formatCloudAgentWorkAttention,
+    formatPullRequestNotice,
+} from './inbox-attention-format.ts';
 import {
     formatInboxTimeFields,
     formatSenderLabel,
     inboxBodyText,
-    indentContinuationLines,
     shortInboxId,
 } from './inbox-header-format.ts';
 import { formatInboxTargetRow } from './inbox-target-row.ts';
+import { taskAssignmentNoticeGuidance } from './inbox-task-assignment-format.ts';
 import { formatInlineReplyContext } from './inline-reply-format.ts';
-import { formatThreadContext, renderedThreadContexts } from './thread-context-format.ts';
 
 const deliveryTrailer = [
     'Respond as appropriate. Complete all your work before stopping.',
@@ -28,31 +30,15 @@ const noticeGuidance = [
     'Their bodies are withheld to avoid flooding you, not absent. The notice is not itself a request, so do not acknowledge it. If what you read is higher priority, pivot to it; otherwise continue your current work. Deferral needs no visible reply and the messages remain queryable; read them before you stop.',
 ].join('\n');
 
-/** Assignments are concrete work: they arrive in a turn of their own, so nothing is pulled. */
-const taskAssignmentNoticeGuidance =
-    'Their details arrive in your next turn. Keep working; the notice is not itself a request, so do not acknowledge it.';
-
-/**
- * The command shapes ride the event; the pacing principle stays in the prompt. `haus task list`
- * rather than the lines above, because these are only what just arrived, not the whole queue.
- */
-const taskAssignmentGuidance =
-    'Take the next Task from `haus task list`, skipping any blocked on a person. `haus task show <key>` prints its details and columns; move it to an active column with `haus task move <key> --column <name>`, then work it.';
-
 /** Exact model-visible drain shape from specs/inbox.md. */
 export function composeInboxDrain(items: AgentInboxItem[]): string {
     if (items.length === 0) {
         return 'Start.';
     }
-    const contexts = renderedThreadContexts(items);
     return [
         items.length === 1 ? 'New message received:' : 'New messages received:',
         '',
-        ...items.map((item) => {
-            const envelope = formatEnvelope(item);
-            const context = contexts.get(item.id);
-            return context ? `${formatThreadContext(context)}\n\n${envelope}` : envelope;
-        }),
+        ...items.map(formatEnvelope),
         '',
         ...openClaimLines(items),
         deliveryTrailer,
@@ -123,7 +109,8 @@ export function composeInboxNotice(
         }
         return formatInboxTargetRow({
             claimNumber: latest.claim?.number ?? null,
-            cloudAgentResult: ordered.some(isAttention),
+            // Matches the Server's `haus inbox check` row, which tags cloud work alone.
+            cloudAgentResult: ordered.some((item) => Boolean(item.cloudAgentWork)),
             firstShortId: shortInboxId(first.id),
             latestSender: latest.senderHandle,
             latestShortId: shortInboxId(latest.id),
@@ -145,34 +132,6 @@ export function composeInboxNotice(
     ].join('\n');
 }
 
-/**
- * The input of a Task assignment run: how many, one line per Task, then how to take them. Each
- * line is the envelope the contract names, built here from the typed attention. A title or name
- * can hold anything a person typed, so none may open a new line or close the bracket.
- */
-export function composeTaskAssignmentInput(assignments: readonly AgentTaskAssignment[]): string {
-    return [
-        `${assignments.length} ${plural(assignments.length, 'task')} assigned to you:`,
-        ...assignments.map(formatTaskAssignment),
-        '',
-        taskAssignmentGuidance,
-    ].join('\n');
-}
-
-function formatTaskAssignment(task: AgentTaskAssignment): string {
-    const assignedBy = task.assignedBy ? ` assignedBy=@${task.assignedBy}` : '';
-    const fields = `board=${headerValue(task.board)} column=${headerValue(task.column)} priority=${task.priority}${assignedBy}`;
-    return `[Haus task assignment ${task.key} ${fields}] ${flattened(task.title)}`;
-}
-
-function headerValue(value: string): string {
-    return flattened(value).replaceAll(/[[\]]/gu, '');
-}
-
-function flattened(value: string): string {
-    return value.replaceAll(/\s+/gu, ' ').trim();
-}
-
 function plural(count: number, singular: string): string {
     return count === 1 ? singular : `${singular}s`;
 }
@@ -181,60 +140,18 @@ function formatEnvelope(item: AgentInboxItem): string {
     if (item.cloudAgentWork) {
         return formatCloudAgentWorkAttention(item.cloudAgentWork, item.target);
     }
+    if (item.pullRequestNotice) {
+        return formatPullRequestNotice(item.pullRequestNotice, item.target);
+    }
     const sender = formatSenderLabel(item.senderHandle, item.senderDescription);
     const claim = item.claim
         ? ` claim=#${item.claim.number}:${item.claim.status}:${claimAssignee(item)}`
         : '';
     const mention = item.mentioned ? ' mentioned=true' : '';
-    const envelope =
+    return (
         `[target=${item.target} msg=${shortInboxId(item.id)} ${formatInboxTimeFields(item.createdAt, item.senderType === 'human' ? item.senderTimezone : null)} type=${item.senderType}${claim}${mention}] ` +
-        `${sender}: ${inboxBodyText(item.id, item.content)}${formatAttachmentSuffix(messageAttachments(item))}${formatInlineReplyContext(item.reply)}`;
-    return item.threadFollowReactivated
-        ? `${formatThreadFollowRestoration(item.target)}\n${envelope}`
-        : envelope;
-}
-
-/**
- * The settled Run an Agent delegated, with everything it needs to inspect the
- * result and decide what to post. Results are ordinary Messages; nothing here
- * reaches a human until the Agent writes one.
- */
-function formatCloudAgentWorkAttention(work: AgentCloudAgentWorkAttention, target: string): string {
-    const branches = work.branches.map(formatCloudAgentBranch);
-    return [
-        `[Haus cloud agent attention status=${work.status} work=${work.workId} run=${work.runId} target=${target}]`,
-        indentContinuationLines(`${work.title} — ${work.repository} (${work.provider})`),
-        `summary=${work.summary ? indentContinuationLines(work.summary) : '-'}`,
-        `errorCode=${work.errorCode ?? work.stallCode ?? '-'}`,
-        `branches=${branches.length > 0 ? branches.join(', ') : '-'}`,
-        `url=${work.providerUrl ?? '-'}`,
-        ...(work.status === 'pending_input'
-            ? [
-                  `The cloud agent stopped to ask the question in summary. Answer it yourself when the request settles it, or ask the requester first; send the answer with: haus cloud-agent send --work ${work.workId}`,
-              ]
-            : []),
-        // `summary` above is already the short, 2000-char head (TECH-8); this
-        // only points at the rest for a completed/failed Run whose stored
-        // report outgrew it. `pending_input` keeps its own pointer above.
-        ...((work.status === 'completed' || work.status === 'failed') && work.hasFullReport === true
-            ? [`More: haus cloud-agent inspect --work ${work.workId} --report`]
-            : []),
-    ].join('\n');
-}
-
-/**
- * One branch a Run wrote, with the pull request it opened and the diff the
- * Computer read from GitHub. The counts are evidence the Agent can act on
- * without opening the pull request; a branch whose pull request could not be
- * read states the URL alone.
- */
-function formatCloudAgentBranch(branch: CloudAgentBranch): string {
-    const pullRequest = branch.pullRequest;
-    const diff = pullRequest
-        ? ` state=${pullRequest.state} files=${pullRequest.changedFiles} +${pullRequest.additions} -${pullRequest.deletions}`
-        : '';
-    const url = branch.pullRequestUrl ? ` pr=${branch.pullRequestUrl}` : '';
-    return `${branch.repository}:${branch.branch}${url}${diff}`;
+        `${sender}: ${inboxBodyText(item.id, item.content)}${formatAttachmentSuffix(messageAttachments(item))}${formatInlineReplyContext(item.reply)}`
+    );
 }
 
 /**
@@ -266,13 +183,6 @@ function messageAttachments(item: AgentInboxItem): readonly unknown[] {
     return Array.isArray(attachments) ? attachments : [];
 }
 
-export function formatThreadFollowRestoration(target: string): string {
-    return [
-        `[Haus thread follow restored: this @mention re-subscribed you to ordinary replies in ${target}.]`,
-        `To stop those replies again: haus thread unfollow --target "${target}"`,
-    ].join('\n');
-}
-
 function claimAssignee(item: AgentInboxItem): string {
     if (!item.claim) {
         return 'unassigned';
@@ -282,7 +192,7 @@ function claimAssignee(item: AgentInboxItem): string {
 
 /** A bodiless typed attention: work to act on, not a message to read. */
 function isAttention(item: AgentInboxItem): boolean {
-    return Boolean(item.cloudAgentWork);
+    return Boolean(item.cloudAgentWork || item.pullRequestNotice);
 }
 
 function compareItems(left: AgentInboxItem, right: AgentInboxItem): number {

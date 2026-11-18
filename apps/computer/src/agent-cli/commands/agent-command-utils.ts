@@ -1,3 +1,4 @@
+import { formatTaskTarget, TASK_TARGET_PATTERN } from '@haus/api';
 import { AgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';
 
@@ -28,14 +29,47 @@ export function optionalInteger(
     return parsed;
 }
 
+/** A Channel, a DM, or a Task (`task:SEC-12`). There are no Threads (ADR 0052). */
 export function assertAgentTarget(target: string): void {
-    const channel = /^#[A-Za-z0-9][A-Za-z0-9_-]{0,31}(?::[^:]+)?$/u;
-    const dm = /^dm:@[A-Za-z0-9][A-Za-z0-9_-]{0,31}(?::[^:]+)?$/u;
-    if (!(channel.test(target) || dm.test(target))) {
+    refuseRemovedThreadTarget(target);
+    const channel = /^#[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/u;
+    const dm = /^dm:@[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/u;
+    if (!(channel.test(target) || dm.test(target) || TASK_TARGET_PATTERN.test(target))) {
         throw new AgentCliError('INVALID_TARGET', `Invalid target "${target}".`, {
-            nextAction: 'Use #channel or dm:@peer. Add :<shortId> only for a message thread.',
+            nextAction: 'Use #channel, dm:@peer, or task:KEY-n.',
         });
     }
+}
+
+/**
+ * Threads are gone (ADR 0052), and the Server refuses a `<target>:<shortId>` target. Refuse it
+ * here first, with what replaces it: an inline reply to that message, or a Task for the work.
+ */
+export function refuseRemovedThreadTarget(target: string): void {
+    const match = /^(#[^:]+|dm:@[^:]+):([^:]+)$/u.exec(target.trim());
+    if (!match) {
+        return;
+    }
+    const [, parent, shortId] = match;
+    throw new AgentCliError(
+        'THREAD_TARGET_REMOVED',
+        `Threads are gone: "${target}" names a thread on message ${shortId}, and Haus has no threads.`,
+        {
+            nextAction: `Reply inline instead: haus message send --target "${parent}" --reply-to ${shortId}. For work that outlasts a reply, start a Task from a channel message: haus task start --target "#channel" --from <shortid> --title <text>.`,
+        }
+    );
+}
+
+/** A Task key as the Agent typed it, or as its `task:` target. */
+export function taskKeyArgument(value: string | undefined, flag: string): string {
+    const raw = value?.trim() ?? '';
+    const key = raw.startsWith('task:') ? raw.slice('task:'.length) : raw;
+    if (!TASK_TARGET_PATTERN.test(formatTaskTarget(key))) {
+        throw new AgentCliError('INVALID_ARG', `${flag} needs a Task key like SEC-12.`, {
+            nextAction: 'Use the key haus task start or haus task list printed.',
+        });
+    }
+    return key;
 }
 
 export function valuesFor(args: ParsedArgs, flag: string): string[] {

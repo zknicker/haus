@@ -20,38 +20,26 @@ test('inline reply guidance is discoverable and separates attention from ownersh
     expect(topic?.body).toContain('Claim completion preserves that participation');
     expect(topic?.body).toContain('haus message unfollow');
     expect(topic?.body).toContain(
-        'Add `--done` to the message that answers the request where it arrived: an inline reply in a channel or DM, or the thread post when it arrived in a thread.'
+        'Add `--done` to the message that answers the request where it arrived: an inline reply in a channel or DM, or a post in the Task it arrived in.'
     );
     expect(topic?.body).toContain(
         'Interim posts (your pickup note, a question, or a partial result the human needs now) omit it.'
     );
-    // Placement is described as what humans see, and the result never lives only in the thread.
-    expect(topic?.body).toContain(
-        'in the channel it shows only as a one-line preview under that message'
-    );
     // Notification facts mirror packages/haus-api/src/message-notification.ts.
-    expect(topic?.body).toContain(
-        'the only people notified are the author of the message it hangs off, for every post, and anyone you @mention.'
-    );
-    expect(topic?.body).toContain(
-        'In a DM every message notifies the other person, thread or not.'
-    );
+    expect(topic?.body).toContain('In a DM every message notifies the other person.');
     expect(topic?.body).not.toContain('nobody is notified');
     expect(topic?.body).not.toContain('bother nobody');
-    expect(topic?.body).toContain('the Server refuses `--reply-to` inside one');
+    // ADR 0052: there are no Threads; work that outlasts a reply goes in a Task.
     expect(topic?.body).toContain(
-        'Working notes and progress as steps land, even when someone asked to be kept posted, go in a thread on your own pickup note in a channel'
+        'There are no threads: a `<target>:<shortId>` target is refused.'
     );
-    expect(topic?.body).toContain('its author is notified of every post there.');
-    expect(topic?.body).toContain('`#channel:<noteShortId>`');
+    expect(topic?.body).not.toContain('one-line preview');
     expect(topic?.body).toContain(
-        'A result that exists only in your working thread is a result the requester has not received'
+        "Work your reply will not finish goes in a Task: answer the request with the Task's key, and post progress, questions, and the result in the Task (`--target task:SEC-12`), which whoever asked follows."
     );
+    expect(topic?.body).not.toContain('`#channel:<noteShortId>`');
+    expect(topic?.body).not.toContain('Sidebars go in threads');
     expect(topic?.body).not.toContain('final answer in order');
-    expect(topic?.body).toContain(
-        'A cloud agent launch is not a working note: its card is your inline reply to the request'
-    );
-    expect(topic?.body).toContain('One-step work needs no thread');
     expect(topic?.body).not.toContain('—');
     expect(topic?.body).toContain('Never react and also send a filler reply.');
     expect(topic?.body).toContain('if the message asks for anything, reply normally');
@@ -68,17 +56,13 @@ test('inline reply guidance is discoverable and separates attention from ownersh
     ).toContain('replies');
 });
 
-test('cloud work keeps implementation details and requester outcomes in their conversations', () => {
+test('cloud work keeps review rounds and requester outcomes in its Task', () => {
     const body = getManualTopic('cloud-agents')?.body;
-    expect(body).toContain('The work thread holds implementation details and revisions.');
     expect(body).toContain('`haus cloud-agent send --work <workId>`');
-    expect(body).toContain('back to the requester’s conversation');
-    expect(body).toContain('following their lead when they join the work thread');
-    // Review loops stay out of the channel (ADR 0029 amendment, 2026-10-02).
+    // Review loops stay in the Task, and the requester hears only real state changes (ADR 0052).
     expect(body).toContain(
-        'keep review rounds, revision requests, and step-by-step progress in the work thread'
+        'keep review rounds, revision requests, and progress in the Task, and @mention the requester there only for a real state change'
     );
-    expect(body).toContain('only real state changes, one line each');
     expect(body).toContain('newest first');
     expect(body).toContain('providerRunId');
     expect(body).toContain('followup-auto-interrupt-failed');
@@ -96,13 +80,13 @@ test('cloud work keeps implementation details and requester outcomes in their co
     expect(body).toContain('[clipped at 64 KiB]');
 });
 
-test('a cloud agent launch card is an inline reply and never opens a new thread', () => {
+test('a cloud agent launches for a Task, and several can work one Task', () => {
     const body = getManualTopic('cloud-agents')?.body;
-    expect(body).toContain('**The launch card is your reply.**');
-    expect(body).toContain('add `--reply-to <messageId>` of the request');
-    expect(body).toContain("Inside a thread already in progress, use that thread's target.");
-    expect(body).toContain('A launch never opens a new thread');
-    expect(body).toContain('Several runs for one request are several cards replying to it.');
+    expect(body).toContain('**It works for a Task.**');
+    expect(body).toContain('then launch with `--task SEC-12`');
+    expect(body).toContain('A Task can hold several cloud agents');
+    expect(body).not.toContain('--reply-to');
+    expect(body).not.toContain('**The launch card is your reply.**');
 });
 
 test('cloud work is shown elsewhere by pasting its printed link, which moves nothing', () => {
@@ -111,9 +95,7 @@ test('cloud work is shown elsewhere by pasting its printed link, which moves not
     expect(body).toContain('**Linking work elsewhere.**');
     expect(body).toContain('paste the link as printed into `haus message send`');
     expect(body).toContain('Never write a work link by hand.');
-    expect(body).toContain(
-        'the work thread, the Work ID, and where completion arrives stay the same'
-    );
+    expect(body).toContain('the Task, the Work ID, and where completion arrives stay the same');
     expect(
         searchManualTopics('show cloud agent work in another channel', {
             limit: 5,
@@ -236,27 +218,25 @@ test('publishes the claims topic the prompt points to for claim mechanics', () =
     );
     expect(claims?.body).toContain('The receipt is not a second claim.');
     expect(claims?.body).toContain('claim that message instead of creating a new one');
-    // A thread request is claimed in its thread, never re-created top-level.
+    // ADR 0052: there are no Threads, so no thread claim survives.
     expect(claims?.body).not.toContain('Messages inside threads are discussion context');
+    expect(claims?.body.toLowerCase()).not.toContain('thread');
     expect(claims?.body).toContain(
-        'A request that arrived in a thread is claimed at that thread\'s target by its message ID, `haus claim --target "#channel:abc12345" --message-id def67890`, never re-created as a top-level claim'
-    );
-    expect(claims?.body).toContain(
-        "A thread claim takes its number from the thread's channel or DM."
+        'Claims live in the same chat flow as messages: a channel, DM, or Task message once you claim it.'
     );
     expect(claims?.body).toContain(
         'A claim title is the work in plain words: people read the claim message, so it never carries targets, message IDs, or source references.'
     );
     expect(getManualTopic('recipes/technique/task-claim-lock')?.body).toContain(
-        'If it is a regular work request, top-level or in a thread, claim by message id'
+        'If it is a regular top-level work request, claim by message id.'
     );
     expect(
         searchManualTopics('claim create assignee', { limit: 5, scope: 'all' }).map(({ id }) => id)
     ).toContain('claims');
 });
 
-// ADR 0029: the requester follows the thread on their request, so the Manual
-// never routes Agent progress, receipts, questions, or handoffs into it.
+// ADR 0052: there are no Threads, so the Manual never routes Agent progress, receipts,
+// questions, or handoffs into a claim's or task's thread.
 test('no Manual text sends Agent posts into the claim thread', () => {
     const taskThreadPost =
         /\b(in|into|to) the (task|claim)'?s? thread\b|— the (task|claim) thread\b/i;

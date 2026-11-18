@@ -1,18 +1,13 @@
 import type { ConnectionChipKind } from '@haus/api';
 import type { AgentStartCommand, UnreadElsewhere } from '../agent-commands.ts';
 import type { AgentInboxItem } from '../agent-inbox-item.ts';
-import {
-    composeInboxDrain,
-    composeInboxNotice,
-    composeTaskAssignmentInput,
-    formatUnreadElsewhere,
-} from '../inbox-format.ts';
+import { composeInboxDrain, composeInboxNotice, formatUnreadElsewhere } from '../inbox-format.ts';
 import {
     consumeVisibleMessages,
     recordRunVisibleMessages,
     type VisibleMessageIdentity,
 } from '../inbox-store.ts';
-import { renderedThreadContexts, threadContextVisibleMessages } from '../thread-context-format.ts';
+import { composeTaskAssignmentInput } from '../inbox-task-assignment-format.ts';
 
 /** What the frame offers this turn, independent of how the turn was started. */
 export interface TurnDelivery {
@@ -183,8 +178,7 @@ function openingPrompt(session: TurnSession, body: string | null, greets: boolea
 /**
  * Exact run visibility for bodies this turn composed itself. Only notice-lane
  * items need it: concrete work is served the moment the Computer accepts the
- * run, and its identities address no Chat message. A rendered thread context
- * made its quoted messages visible too, as Raft's receipts for it record.
+ * run, and its identities address no Chat message.
  *
  * The Server hears about them before the model streams, not at settlement:
  * its freshness hold treats any message it has not seen served to this run as
@@ -204,10 +198,11 @@ export async function attestComposedDrain(
         dataRoot: input.dataRoot,
         serverId: input.serverId,
     };
-    const identities = [
-        ...drained.map((item) => ({ chatId: item.chatId, id: item.id, sequence: item.sequence })),
-        ...[...renderedThreadContexts(drained).values()].flatMap(threadContextVisibleMessages),
-    ];
+    const identities = drained.map((item) => ({
+        chatId: item.chatId,
+        id: item.id,
+        sequence: item.sequence,
+    }));
     await recordRunVisibleMessages(location, input.runId, identities);
     await reportComposedVisibility(input, identities);
     await consumeVisibleMessages(location, identities);
@@ -217,7 +212,7 @@ export async function attestComposedDrain(
 // travels over the attachment socket rather than this request's connection.
 const receiptRetryDelaysMs = [0, 100, 300, 800];
 const receiptAttemptTimeoutMs = 2000;
-/** The Server's per-receipt cap; a full drain plus thread context can exceed it. */
+/** The Server's per-receipt cap; a full drain can exceed it. */
 const receiptBatchSize = 100;
 
 async function reportComposedVisibility(

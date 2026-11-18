@@ -136,7 +136,6 @@ test('serves cached message bodies locally when the Server fetch is unavailable'
     const location = { agentId: 'agt_local', dataRoot, serverId: 'srv_local' };
     const cached = inboxItem('msg_cached', 1);
     cached.message = agentMessage(cached);
-    cached.threadFollowReactivated = true;
     await replacePendingInbox(location, [cached]);
     const proxy = startLoopbackProxy({
         ...location,
@@ -152,10 +151,7 @@ test('serves cached message bodies locally when the Server fetch is unavailable'
         expect(response.status).toBe(200);
         expect(await response.json()).toMatchObject({
             messages: [
-                {
-                    message: { content: 'msg_cached', id: 'msg_cached' },
-                    threadFollowReactivated: true,
-                },
+                { message: { content: 'msg_cached', id: 'msg_cached' }, target: 'dm:@operator' },
             ],
         });
         expect(await readPendingInbox(location)).toEqual([]);

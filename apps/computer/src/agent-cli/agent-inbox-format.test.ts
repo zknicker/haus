@@ -6,7 +6,7 @@ const NOW_MS = Date.parse('2026-09-25T12:00:00.000Z');
 
 const dmRow = {
     chatId: 'cht_richard',
-    kind: 'dm' as const,
+    kind: 'dm',
     lastReadSequence: 1200,
     latestAt: '2026-09-25T11:48:00.000Z',
     latestSenderHandle: 'richard',
@@ -14,14 +14,14 @@ const dmRow = {
     target: 'dm:@richard',
     unread: 3,
 };
-const threadRow = {
-    chatId: 'cht_thread',
-    kind: 'thread' as const,
+const taskRow = {
+    chatId: 'cht_task',
+    kind: 'task',
     lastReadSequence: 1180,
     latestAt: '2026-09-25T11:00:00.000Z',
     latestSenderHandle: 'alice',
     mentions: 1,
-    target: '#general:3f4b1fd4',
+    target: 'task:SEC-12',
     unread: 1,
 };
 
@@ -39,7 +39,7 @@ test('a page with more renders open commands, the More trailer, and exactly one 
     const output = render({
         list: list({
             hasMore: true,
-            items: [dmRow, threadRow],
+            items: [dmRow, taskRow],
             nextBefore: 'MTE5MA',
             totals: { conversations: 43, dms: 2, mentions: 5 },
         }),
@@ -50,8 +50,8 @@ test('a page with more renders open commands, the More trailer, and exactly one 
             '',
             'dm:@richard · 3 unread · latest @richard 12m ago',
             '  open: haus message read --target "dm:@richard" --after 1200',
-            '#general:3f4b1fd4 · 1 unread · mentions you · latest @alice 1h ago',
-            '  open: haus message read --target "#general:3f4b1fd4" --after 1180',
+            'task:SEC-12 · 1 unread · mentions you · latest @alice 1h ago',
+            '  open: haus message read --target "task:SEC-12" --after 1180',
             '',
             'More: haus inbox check --before MTE5MA',
             'Next: open the first conversation above: haus message read --target "dm:@richard" --after 1200',
@@ -63,14 +63,14 @@ test('a page with more renders open commands, the More trailer, and exactly one 
 test('a singular count, repeat mentions, and old activity read naturally', () => {
     const output = render({
         list: list({
-            items: [{ ...threadRow, latestAt: '2026-09-21T12:00:00.000Z', mentions: 3 }],
+            items: [{ ...taskRow, latestAt: '2026-09-21T12:00:00.000Z', mentions: 3 }],
             totals: { conversations: 1, dms: 1, mentions: 0 },
         }),
     });
     expect(output.split('\n').slice(0, 3)).toEqual([
         'Inbox: 1 unread conversation (1 DM, 0 with mentions). Newest activity first.',
         '',
-        '#general:3f4b1fd4 · 1 unread · mentions you 3x · latest @alice 4d ago',
+        'task:SEC-12 · 1 unread · mentions you 3x · latest @alice 4d ago',
     ]);
 });
 
@@ -119,7 +119,7 @@ test('mentions view has a mentions header and keeps the view on the More line', 
     const output = render({
         list: list({
             hasMore: true,
-            items: [threadRow],
+            items: [taskRow],
             nextBefore: 'MTE5MA',
             totals: { conversations: 43, dms: 2, mentions: 5 },
             view: 'mentions',

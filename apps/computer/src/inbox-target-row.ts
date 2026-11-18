@@ -43,7 +43,7 @@ function targetTag(target: string): string | null {
     if (target.startsWith('dm:')) {
         return 'dm';
     }
-    return target.includes(':') ? 'thread' : null;
+    return target.startsWith('task:') ? 'task' : null;
 }
 
 function plural(count: number, singular: string): string {

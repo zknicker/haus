@@ -1,5 +1,4 @@
 import type { z } from 'zod';
-import { formatThreadFollowRestoration } from '../inbox-format.ts';
 import type { AgentCliMessage, agentHistoryResponseSchema } from './agent-api-schemas.ts';
 import { formatHistoryLine } from './agent-format.ts';
 
@@ -25,12 +24,8 @@ export function renderUnreadWindow(target: string, response: AgentHistoryRespons
     const end = response.has_newer
         ? `More unread remain. Next: haus message read --target "${target}" --unread`
         : 'No more unread in this target.';
-    const reactivated = new Set(response.thread_follow_reactivated_message_ids);
     const header = `Unread window: ${messages.length} returned, seq ${seqRange(messages)}, oldest to newest, starting after your read position (seq ${readThrough}).`;
-    const lines = messages.flatMap((message) => [
-        ...(reactivated.has(message.id) ? [formatThreadFollowRestoration(response.target)] : []),
-        formatHistoryLine(message),
-    ]);
+    const lines = messages.map(formatHistoryLine);
     return `${header}\n\n${lines.join('\n')}\n\n${[movedTo, end].filter(Boolean).join('\n')}\n`;
 }
 

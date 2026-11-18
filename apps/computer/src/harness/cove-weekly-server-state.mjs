@@ -1,8 +1,6 @@
 // Only disposable synthetic Server state; never called against an existing Haus stack.
 export async function clearWeeklyConversation(fixture) {
     await fixture.harness.sql`delete from reminders where server_id=${fixture.serverId}`;
-    await fixture.harness
-        .sql`delete from chats where server_id=${fixture.serverId} and kind='thread'`;
     await fixture.harness.sql`delete from chat_messages where server_id=${fixture.serverId}`;
 }
 

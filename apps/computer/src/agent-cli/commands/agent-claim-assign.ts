@@ -12,7 +12,7 @@ import { assigneeLabel } from './agent-claim-format.ts';
 // `assign` moves which Agent a claim belongs to and never its status: handing
 // work to someone does not announce they started. The bare `claim` stays the
 // "I'm starting" verb. The inverse is its own verb, like claim/release. Humans
-// are never assignees (ADR 0037); they are handed work by @mention in the thread.
+// are never assignees (ADR 0037); they are handed work by @mention in the conversation.
 
 const HUMAN_HANDOFF =
     'Only Agent members of the chat hold claims. To hand work to a human, @mention them in an inline reply where the request arrived with what you need from them.';

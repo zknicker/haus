@@ -1,9 +1,8 @@
-import { taskPriorities } from '@haus/api';
+import { formatTaskTarget, taskPriorities, taskStates } from '@haus/api';
 import * as z from 'zod';
 import { indentContinuationLines } from '../../inbox-header-format.ts';
 import type { AgentApiRequester } from '../agent-api-client.ts';
 import { formatUtcTime, shortMessageId } from '../agent-format.ts';
-import { columnCategorySchema } from './agent-board-view.ts';
 import { clip } from './agent-reminder-view.ts';
 
 export interface TaskDeps {
@@ -12,7 +11,8 @@ export interface TaskDeps {
     write(text: string): void;
 }
 
-// The Task rows the Agent API returns, and how the CLI prints them.
+// The Task rows the Agent API returns, and how the CLI prints them. A Task is a place for one
+// piece of work (ADR 0052): its state is what the CLI reads, and `task:<key>` is where it lives.
 
 const actorSchema = z.object({
     handle: z.string().nullable(),
@@ -21,16 +21,13 @@ const actorSchema = z.object({
 
 const taskRowSchema = z.object({
     assignee: actorSchema.nullable(),
-    board: z.string(),
-    category: columnCategorySchema,
-    column: z.string(),
-    columnId: z.string(),
     createdAt: z.string(),
     createdBy: actorSchema,
     dueOn: z.string().nullable(),
     key: z.string(),
     labels: z.array(z.string()),
     priority: z.enum(taskPriorities),
+    state: z.enum(taskStates),
     title: z.string(),
     updatedAt: z.string(),
     version: z.number().int().positive(),
@@ -41,10 +38,12 @@ export const taskListSchema = z.object({
     tasks: z.array(taskRowSchema),
 });
 export const taskSingleSchema = z.object({ task: taskRowSchema });
-export const taskMoveSchema = z.object({
-    queue: z.object({
-        active: z.number().int().nonnegative(),
-        todo: z.number().int().nonnegative(),
+export const taskStartSchema = z.object({ target: z.string(), task: taskRowSchema });
+export const taskAttachPullRequestSchema = z.object({
+    pullRequest: z.object({
+        number: z.number().int().positive(),
+        repository: z.string(),
+        url: z.string(),
     }),
     task: taskRowSchema,
 });
@@ -74,7 +73,7 @@ export const taskShowSchema = z.object({
 export type TaskRow = z.infer<typeof taskRowSchema>;
 type TaskActorRow = z.infer<typeof actorSchema>;
 
-/** One Task as a receipt the Agent can restate: key, category and column, title, then its facts. */
+/** One Task as a receipt the Agent can restate: key, state, title, then its facts. */
 export function describeTask(task: TaskRow): string {
     const facts = [
         ...(task.priority === 'none' ? [] : [`priority ${task.priority}`]),
@@ -83,7 +82,12 @@ export function describeTask(task: TaskRow): string {
         ...(task.labels.length > 0 ? [`labels ${task.labels.join(', ')}`] : []),
     ];
     const title = task.title.replaceAll(/\s+/gu, ' ').trim();
-    return `${task.key} [${task.category}: ${task.column}] "${title}" · ${facts.join(' · ')}`;
+    return `${task.key} [${task.state}] "${title}" · ${facts.join(' · ')}`;
+}
+
+/** Where a Task lives, stated so the next send needs no lookup. */
+export function taskPlaceLine(key: string): string {
+    return `Task target: ${formatTaskTarget(key)}`;
 }
 
 export function actorLabel(actor: TaskActorRow): string {
@@ -93,29 +97,12 @@ export function actorLabel(actor: TaskActorRow): string {
     return actor.type === 'agent' ? 'an Agent with no handle' : 'a person with no handle';
 }
 
-/**
- * What is still waiting for the Agent once it finishes one (ADR 0051 decision 7), or null
- * when nothing is: a receipt with nothing to say prints no line at all.
- */
-export function formatTaskQueue({ active, todo }: { active: number; todo: number }): string | null {
-    if (todo > 0 && active > 0) {
-        return `${todo + active} more assigned to you: ${todo} in todo, ${active} in active`;
-    }
-    if (todo > 0) {
-        return `${todo} more assigned to you in todo`;
-    }
-    return active > 0 ? `${active} more assigned to you in active` : null;
-}
-
-/** The body of `haus task show`: the row, its columns, its text, and what references it. */
-export function formatTaskDetail(
-    detail: z.infer<typeof taskShowSchema>,
-    columns: string | null
-): string {
+/** The body of `haus task show`: the row, where it lives, its text, and what references it. */
+export function formatTaskDetail(detail: z.infer<typeof taskShowSchema>): string {
     const { description, mentions, reminders, task } = detail;
     const lines = [
         describeTask(task),
-        ...(columns ? [`Columns on ${task.board}: ${columns}`] : []),
+        taskPlaceLine(task.key),
         `Created by ${actorLabel(task.createdBy)} ${formatUtcTime(task.createdAt)}; updated ${formatUtcTime(task.updatedAt)}; version ${task.version}`,
     ];
     if (description) {

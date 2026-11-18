@@ -1,115 +1,118 @@
 import { expect, test } from 'bun:test';
 import { AgentCliError } from '../agent-error.ts';
-import { runTaskAssign, runTaskCreate, runTaskMove, runTaskUpdate } from './agent-task-actions.ts';
+import { runTaskAssign, runTaskUpdate } from './agent-task-actions.ts';
+import {
+    runTaskAttachPullRequest,
+    runTaskStart,
+    runTaskState,
+} from './agent-task-place-actions.ts';
 import { args, harness, task } from './agent-task-test-fixtures.ts';
 
-const done = { ...task, category: 'done' as const, column: 'Done' };
+const startArgs = {
+    '--from': 'msg_1a2b3c4d5e6f',
+    '--target': '#security',
+    '--title': 'Rotate the signing key',
+};
 
-test('create sends the Task and restates it, with the description from stdin on -', async () => {
-    const { calls, lines, run } = harness(() => ({ task }));
+test('start sends the origin message and names where the Task lives', async () => {
+    const { calls, lines, run } = harness(() => ({ target: 'task:SEC-12', task }));
 
     await run(
-        runTaskCreate,
-        args({
-            values: {
-                '--assignee': '@kit',
-                '--board': 'SEC',
-                '--column': 'Todo',
-                '--description': '-',
-                '--due': '2026-11-20',
-                '--labels': 'Security, Infra',
-                '--priority': 'high',
-                '--title': 'Rotate the signing key',
-            },
-        })
+        runTaskStart,
+        args({ values: { ...startArgs, '--assignee': '@kit', '--description': '-' } })
     );
 
-    expect(calls[0]?.route).toBe('/api/agent/tasks/create');
+    expect(calls[0]?.route).toBe('/api/agent/tasks/start');
     expect(calls[0]?.input?.body).toEqual({
         assignee: '@kit',
-        board: 'SEC',
-        column: 'Todo',
         description: 'From stdin',
-        dueOn: '2026-11-20',
-        labels: ['Security', 'Infra'],
-        priority: 'high',
+        dueOn: undefined,
+        from: 'msg_1a2b3c4d5e6f',
+        priority: undefined,
+        state: undefined,
+        target: '#security',
         title: 'Rotate the signing key',
     });
     expect(lines.join('')).toBe(
-        'Created SEC-12 [todo: Todo] "Rotate the signing key" · priority high · assigned @kit\n'
+        [
+            'Started SEC-12 [open] "Rotate the signing key" · priority high · assigned @kit',
+            'Task target: task:SEC-12',
+            'Started from message 1a2b3c4d in #security; its author and anyone it mentions follow the Task.',
+            '',
+        ].join('\n')
     );
 });
 
-test('create needs a board and a title', async () => {
-    const { calls, run } = harness(() => ({ task }));
-    await expect(run(runTaskCreate, args({ values: { '--title': 'No board' } }))).rejects.toThrow(
-        '--board is required.'
-    );
-    await expect(run(runTaskCreate, args({ values: { '--board': 'SEC' } }))).rejects.toThrow(
-        '--title is required.'
-    );
+test('start refuses a DM origin before asking the Server, and says where to post instead', async () => {
+    const { calls, run } = harness(() => ({ target: 'task:SEC-12', task }));
+    const refusal = run(runTaskStart, args({ values: { ...startArgs, '--target': 'dm:@zero' } }));
+    await expect(refusal).rejects.toMatchObject({ code: 'TASK_ORIGIN_DM' });
+    await expect(refusal).rejects.toMatchObject({
+        options: { nextAction: expect.stringContaining('in the channel where the work belongs') },
+    });
     expect(calls).toHaveLength(0);
 });
 
-test('a move into an open column prints no queue', async () => {
-    const { calls, lines, run } = harness(() => ({
-        queue: { active: 1, todo: 3 },
-        task: { ...task, category: 'active', column: 'In progress' },
-    }));
-
-    await run(
-        runTaskMove,
-        args({
-            positionals: ['SEC-12'],
-            values: { '--column': 'In progress', '--expected-version': '3' },
-        })
-    );
-
-    expect(calls[0]?.input?.body).toEqual({
-        column: 'In progress',
-        expectedVersion: 3,
-        key: 'SEC-12',
+test('a Server TASK_ORIGIN_DM refusal gains the same next step', async () => {
+    const { run } = harness(() => {
+        throw new AgentCliError('TASK_ORIGIN_DM', 'That message is in a DM.');
     });
-    expect(lines.join('')).toBe('Moved SEC-12 to In progress [active].\n');
+    await expect(run(runTaskStart, args({ values: startArgs }))).rejects.toMatchObject({
+        code: 'TASK_ORIGIN_DM',
+        options: { nextAction: expect.stringContaining('mentioning whoever asked') },
+    });
+});
+
+test('start needs a channel, an origin, and a title, and starts only todo or open', async () => {
+    const { calls, run } = harness(() => ({ target: 'task:SEC-12', task }));
+    await expect(
+        run(runTaskStart, args({ values: { ...startArgs, '--from': '' } }))
+    ).rejects.toThrow('--from is required.');
+    await expect(
+        run(runTaskStart, args({ values: { ...startArgs, '--title': '' } }))
+    ).rejects.toThrow('--title is required.');
+    await expect(
+        run(runTaskStart, args({ values: { ...startArgs, '--state': 'done' } }))
+    ).rejects.toThrow('A Task starts todo or open.');
+    expect(calls).toHaveLength(0);
 });
 
 test.each([
-    [{ active: 0, todo: 3 }, '3 more assigned to you in todo\n'],
-    [{ active: 2, todo: 0 }, '2 more assigned to you in active\n'],
-    [{ active: 1, todo: 3 }, '4 more assigned to you: 3 in todo, 1 in active\n'],
-    [{ active: 0, todo: 0 }, ''],
-])('a move into done names what is still waiting: %o', async (queue, expected) => {
-    const { lines, run } = harness(() => ({ queue, task: done }));
-    await run(runTaskMove, args({ positionals: ['SEC-12'], values: { '--column': 'Done' } }));
-    expect(lines.join('')).toBe(`Moved SEC-12 to Done [done].\n${expected}`);
+    [
+        'done',
+        'SEC-12 is done. It leaves the sidebar and its pending reminders are canceled; a post in it reopens it.\n',
+    ],
+    ['open', 'SEC-12 is open. It shows in the sidebar with its state.\n'],
+    ['todo', 'SEC-12 is todo. Todo Tasks are not listed in the sidebar.\n'],
+] as const)('state %s says what it means for the Task', async (state, expected) => {
+    const { calls, lines, run } = harness(() => ({ task: { ...task, state } }));
+    await run(runTaskState, args({ positionals: ['task:SEC-12', state] }));
+    expect(calls[0]?.input?.body).toEqual({ expectedVersion: undefined, key: 'SEC-12', state });
+    expect(lines.join('')).toBe(expected);
 });
 
-test('a move into a canceled column counts as closing it too', async () => {
-    const { lines, run } = harness(() => ({
-        queue: { active: 0, todo: 1 },
-        task: { ...task, category: 'canceled', column: 'Canceled' },
-    }));
-    await run(runTaskMove, args({ positionals: ['SEC-12'], values: { '--column': 'Canceled' } }));
-    expect(lines.join('')).toBe(
-        'Moved SEC-12 to Canceled [canceled].\n1 more assigned to you in todo\n'
+test('state refuses an unknown state and a bad key before asking the Server', async () => {
+    const { calls, run } = harness(() => ({ task }));
+    await expect(run(runTaskState, args({ positionals: ['SEC-12', 'finished'] }))).rejects.toThrow(
+        'Give the new state'
     );
-});
-
-test('move needs a column and a valid expected version', async () => {
-    const { calls, run } = harness(() => ({ queue: { active: 0, todo: 0 }, task }));
-    await expect(run(runTaskMove, args({ positionals: ['SEC-12'] }))).rejects.toThrow(
-        '--column is required.'
+    await expect(run(runTaskState, args({ positionals: ['sec', 'done'] }))).rejects.toThrow(
+        'needs a Task key like SEC-12'
     );
-    await expect(
-        run(
-            runTaskMove,
-            args({
-                positionals: ['SEC-12'],
-                values: { '--column': 'Done', '--expected-version': '0' },
-            })
-        )
-    ).rejects.toMatchObject({ code: 'INVALID_ARG' });
     expect(calls).toHaveLength(0);
+});
+
+test('attach-pr attaches the pull request and names the Task target', async () => {
+    const url = 'https://github.com/haus/haus/pull/12';
+    const { calls, lines, run } = harness(() => ({
+        pullRequest: { number: 12, repository: 'haus/haus', url },
+        task,
+    }));
+    await run(runTaskAttachPullRequest, args({ positionals: ['SEC-12', url] }));
+    expect(calls[0]?.input?.body).toEqual({ key: 'SEC-12', url });
+    expect(lines.join('')).toBe(
+        'Attached haus/haus#12 to SEC-12. When it becomes ready for review or its checks finish, Haus wakes you on the Task.\nTask target: task:SEC-12\n'
+    );
 });
 
 test('update sends only what changed and clears with none', async () => {
@@ -132,7 +135,7 @@ test('update sends only what changed and clears with none', async () => {
         priority: 'urgent',
         title: undefined,
     });
-    expect(lines.join('')).toStartWith('Updated SEC-12 [todo: Todo]');
+    expect(lines.join('')).toStartWith('Updated SEC-12 [open]');
 });
 
 test('update refuses a call that changes nothing', async () => {
@@ -175,6 +178,6 @@ test('a refusal from the Server reaches the caller untouched', async () => {
         throw new AgentCliError('TASK_NOT_FOUND', 'No Task SEC-12 on this Server.');
     });
     await expect(
-        run(runTaskMove, args({ positionals: ['SEC-12'], values: { '--column': 'Done' } }))
+        run(runTaskState, args({ positionals: ['SEC-12', 'done'] }))
     ).rejects.toMatchObject({ code: 'TASK_NOT_FOUND' });
 });

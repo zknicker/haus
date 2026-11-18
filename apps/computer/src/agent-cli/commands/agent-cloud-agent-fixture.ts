@@ -39,7 +39,7 @@ export function args(overrides: Record<string, string> = {}): ParsedArgs {
             '--ref': 'main',
             '--repo': 'haus/haus',
             '--say': 'Handing the flaky delivery test to a cloud agent.',
-            '--target': '#product',
+            '--task': 'SEC-12',
             '--title': 'Fix the flaky delivery test',
             ...overrides,
         },
@@ -58,7 +58,7 @@ export function requester(seen: AgentApiRequest[], route: string[] = []): AgentA
                 messageId: work.messageId,
                 runId: 'car_1234567890abcdef',
                 sequence: 7,
-                target: '#product',
+                target: 'task:SEC-12',
                 work,
             };
             const response =

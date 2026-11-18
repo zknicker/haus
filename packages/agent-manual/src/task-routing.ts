@@ -1,7 +1,8 @@
-// Haus routes Agent posts where the request arrived, never into the thread on
-// the request: its author follows that thread (ADR 0029). Each row swaps one
-// captured Raft line for its Haus routing; the rest of the card stays verbatim.
-export const taskThreadRouting = new Map<string, ReadonlyArray<readonly [string, string]>>([
+// Haus routes Agent posts where the request arrived, and work that outlasts a
+// reply into its Task (ADR 0029, ADR 0052). Each row swaps one captured Raft
+// line for its Haus routing; the rest of the card stays verbatim. The left side
+// quotes the captured source, whose tasks owned a thread.
+export const taskRouting = new Map<string, ReadonlyArray<readonly [string, string]>>([
     [
         'recipes/decision/stake-strictness',
         [
@@ -16,7 +17,7 @@ export const taskThreadRouting = new Map<string, ReadonlyArray<readonly [string,
         [
             [
                 "Post in the task's thread, not a fresh channel root",
-                'Post the handoff as an inline reply where the request arrived (or in its thread if it arrived inside one), not a fresh channel root',
+                'Post the handoff as an inline reply where the request arrived, not a fresh channel root',
             ],
         ],
     ],
@@ -46,7 +47,7 @@ export const taskThreadRouting = new Map<string, ReadonlyArray<readonly [string,
             ],
             [
                 'Post progress in the task thread, not scattered across channels.',
-                'Working notes go in a thread on your own pickup note, never in the thread on the request; see replies.',
+                'Work your reply will not finish goes in a Task, and its progress is posted there; see tasks.',
             ],
             // Agents finish their own work; `in_review` is for requested sign-off only (2026-10-05).
             [

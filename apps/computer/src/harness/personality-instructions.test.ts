@@ -74,7 +74,8 @@ test('the rendered prompt carries no em dash outside the real envelope header ex
         initialRole: 'Keeps release notes current.',
     });
     const dashed = prompt.split('\n').filter((line) => line.includes('—'));
-    expect(dashed).toHaveLength(6);
+    // Three header examples and the sender spec; the two thread examples went with ADR 0052.
+    expect(dashed).toHaveLength(4);
     for (const line of dashed) {
         expect(
             line.startsWith('[target=') ||

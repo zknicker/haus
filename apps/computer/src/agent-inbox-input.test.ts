@@ -150,8 +150,7 @@ test("accepts a human sender's IANA zone and refuses one on any other sender", (
 });
 
 /**
- * A current Server's inline reply, thread-join context, and settled Cloud
- * Agent attention, each carrying a field a future Server release might
+ * A current Server's inline reply and settled Cloud Agent attention, each carrying a field a future Server release might
  * additively send at every nesting level the shape reaches. Before the
  * loosened response schemas, any one of these fields stranded the whole
  * inbox item: `parseInbox` requires every item in the frame to parse, so a
@@ -179,25 +178,6 @@ function inboxItemWithUnknownNestedFields() {
             sequence: 1,
         },
         rootMessageId: 'msg_root1234567890',
-    };
-    const threadMessage = {
-        chatId: 'cht_1',
-        content: 'Standup at 9?',
-        createdAt: '2026-09-23T00:00:00.000Z',
-        futureThreadMessageField: true,
-        id: 'msg_1',
-        senderHandle: 'ada',
-        senderType: 'human',
-        sequence: 1,
-    };
-    const threadContext = {
-        futureThreadContextField: true,
-        parentMessage: threadMessage,
-        parentTarget: '#product',
-        recentMessages: [threadMessage],
-        suggestedReadTarget: '#product',
-        threadTarget: '#product:msg_1',
-        truncated: false,
     };
     const cloudAgentWork = {
         branches: [
@@ -241,7 +221,6 @@ function inboxItemWithUnknownNestedFields() {
         senderType: 'system',
         sequence: 0,
         target: '@operator',
-        threadContext,
     };
 }
 
@@ -252,11 +231,31 @@ test('the canonical strict cloud agent attention schema rejects a field it does 
     );
 });
 
-test('parseInbox tolerates an inline reply, thread context, and cloud agent attention carrying fields from a newer Server, at every nesting level', () => {
+test('parseInbox tolerates an inline reply and cloud agent attention carrying fields from a newer Server, at every nesting level', () => {
     const item = inboxItemWithUnknownNestedFields();
     const [parsed] = parseInbox([item]) ?? [];
     expect(parsed?.id).toBe(item.id);
     expect(parsed?.reply?.parentMessageId).toBe('msg_parent1234567890');
-    expect(parsed?.threadContext?.parentMessage.id).toBe('msg_1');
     expect(parsed?.cloudAgentWork?.branches[0]?.pullRequest?.number).toBe(42);
+});
+
+test('parseInbox keeps the change a pull request notice names (ADR 0052)', () => {
+    const item = inboxItemWithUnknownNestedFields();
+    const pullRequestChange = {
+        change: 'checks_failing' as const,
+        url: 'https://github.com/haus/haus/pull/42',
+    };
+    const [parsed] =
+        parseInbox([
+            {
+                ...item,
+                cloudAgentWork: {
+                    ...item.cloudAgentWork,
+                    notice: 'pull_request',
+                    pullRequestChange,
+                },
+            },
+        ]) ?? [];
+    expect(parsed?.cloudAgentWork?.notice).toBe('pull_request');
+    expect(parsed?.cloudAgentWork?.pullRequestChange).toEqual(pullRequestChange);
 });

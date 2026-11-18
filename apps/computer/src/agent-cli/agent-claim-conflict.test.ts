@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { ClaimConflict } from '@haus/api';
+import { CLAIM_CONFLICT_ROUTING_NOTE, type ClaimConflict } from '@haus/api';
 import { formatClaimConflict } from './agent-claim-conflict.ts';
 
 function conflict(overrides: Partial<ClaimConflict> = {}): ClaimConflict {
@@ -12,8 +12,8 @@ function conflict(overrides: Partial<ClaimConflict> = {}): ClaimConflict {
         observedAt: '2026-09-08T17:09:52.000Z',
         status: 'in_progress',
         unblockedActionExamples: [
-            'reading the claim and its Thread',
-            'replying in the Thread with findings, questions, or review',
+            'reading the claim and its conversation',
+            'replying inline with findings, questions, or review',
             'claiming a different claim in this lane',
             'raising the routing with the people in the original Chat',
         ],
@@ -22,9 +22,9 @@ function conflict(overrides: Partial<ClaimConflict> = {}): ClaimConflict {
 }
 
 const unblockedLine =
-    'Not blocked by this claim conflict (each still subject to its own authority/policy): reading the claim and its Thread · replying in the Thread with findings, questions, or review · claiming a different claim in this lane · raising the routing with the people in the original Chat.';
-const routingLine =
-    'This is not a ruling on who owns or leads this lane. If you are its canonical owner or believe it is misrouted: correct the routing in the original thread.';
+    'Not blocked by this claim conflict (each still subject to its own authority/policy): reading the claim and its conversation · replying inline with findings, questions, or review · claiming a different claim in this lane · raising the routing with the people in the original Chat.';
+// The routing sentence is the Server contract's own (`@haus/api`), printed as given.
+const routingLine = CLAIM_CONFLICT_ROUTING_NOTE;
 
 test('names the Agent holding the lock and what the lock leaves open', () => {
     expect(formatClaimConflict(conflict())).toBe(

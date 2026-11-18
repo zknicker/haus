@@ -47,29 +47,19 @@ function receipt(target: string) {
     };
 }
 
-const request = { repository: 'haus/haus', startingRef: 'main', target: '#product' };
+const request = { repository: 'haus/haus', startingRef: 'main', target: 'task:SEC-12' };
 
-test('the start receipt keeps its work thread and adds the link to paste elsewhere', () => {
-    expect(renderCloudAgentStart(receipt('#product'), request)).toBe(
+test('the start receipt names the Task it reports to and adds the link to paste elsewhere', () => {
+    expect(renderCloudAgentStart(receipt('task:SEC-12'), request)).toBe(
         [
             'Cloud agent launching for haus/haus@main. Work ID: caw_1234567890abcdef',
-            'Posted to #product. Message ID: msg_1a2b3c4d5e6f7890',
-            'Work thread: "#product:1a2b3c4d".',
-            'The result reaches your inbox when the run settles, a failed launch included; post what you learn yourself.',
+            'Posted to task:SEC-12. Message ID: msg_1a2b3c4d5e6f7890',
+            'Haus wakes you on task:SEC-12 when the run settles, a failed launch included, and when its pull request becomes ready or its checks finish; post what you learn yourself.',
             'Link: [Fix the flaky delivery test](cloud-agent://caw_1234567890abcdef)',
             'To show this work in another conversation, paste its Link line into haus message send.',
             '',
         ].join('\n')
     );
-});
-
-test('a launch inside a thread names that thread as its work thread', () => {
-    const printed = renderCloudAgentStart(receipt('#product:9f8e7d6c'), {
-        ...request,
-        target: '#product:9f8e7d6c',
-    });
-    expect(printed).toContain('Work thread: "#product:9f8e7d6c".');
-    expect(printed).toContain('Link: [Fix the flaky delivery test](cloud-agent://');
 });
 
 test('inspect prints each work with its link, escaping titles the link grammar cannot hold', () => {

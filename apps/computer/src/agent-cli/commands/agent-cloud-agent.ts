@@ -3,6 +3,7 @@ import {
     cloudAgentProviderSchema,
     cloudAgentRepositorySchema,
     cloudAgentTitleSchema,
+    formatTaskTarget,
 } from '@haus/api';
 import { agentCloudAgentStartResponseSchema } from '../agent-api-schemas.ts';
 import { AgentCliError } from '../agent-error.ts';
@@ -15,34 +16,33 @@ import type { ParsedArgs } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
 import { type CloudAgentDeps, defaultDeps } from './agent-cloud-agent-deps.ts';
 import { INSPECT_COMMAND, runCloudAgentInspect } from './agent-cloud-agent-inspect.ts';
-import { assertAgentTarget, requiredValue } from './agent-command-utils.ts';
+import { requiredValue, taskKeyArgument } from './agent-command-utils.ts';
 import { optionalCause } from './agent-message-input.ts';
 
 export { runCloudAgentInspect };
 
-const START_RECIPE = `haus cloud-agent start --target "#product" --reply-to <messageId> --repo haus/haus --ref main \\
+const START_RECIPE = `haus cloud-agent start --task SEC-12 --repo haus/haus --ref main \\
   --title "Fix the flaky delivery test" \\
-  --say "Handing the flaky delivery test to a cloud agent; I will report back." <<'HAUSMSG'
+  --say "Handing the flaky delivery test to a cloud agent; I will report back here." <<'HAUSMSG'
 Reproduce apps/server/test/agent-delivery.test.ts locally, find the race, and open a pull request.
 HAUSMSG`;
+
+/** Cloud work attaches to a Task and reports there (ADR 0052 decision 6). */
+const TASK_REQUIRED_NEXT_ACTION =
+    'Start a Task for this work first (haus task start --target <#channel> --from <messageId> --title <text>), then launch with --task <KEY-n>.';
 
 const START_COMMAND: SubCommand = {
     examples: [START_RECIPE],
     flags: [
         {
-            description: 'Channel or DM target, or a thread already in progress',
-            name: '--target',
-            valueName: '<target>',
-        },
-        {
-            description: 'Request this card replies to inline',
-            name: '--reply-to',
-            valueName: '<messageId>',
+            description: 'The Task this work is for; it reports there',
+            name: '--task',
+            valueName: '<KEY-n>',
         },
         { description: 'Repository as owner/name', name: '--repo', valueName: '<owner/name>' },
         { description: 'Starting ref (branch, tag, or SHA)', name: '--ref', valueName: '<ref>' },
         { description: 'One-line title for the work', name: '--title', valueName: '<text>' },
-        { description: 'What you tell the chat you are doing', name: '--say', valueName: '<text>' },
+        { description: 'What you tell the Task you are doing', name: '--say', valueName: '<text>' },
         {
             description: 'Record the trigger or reminder fire the --say post answers',
             name: '--cause',
@@ -55,10 +55,11 @@ const START_COMMAND: SubCommand = {
         },
     ],
     name: 'start',
+    notes: ['A cloud agent needs a Task: start one with haus task start first.'],
     positionals: [],
     run: (args) => runCloudAgentStart(args, defaultDeps()),
-    summary: 'Delegate bounded work to a cloud agent; the instructions come from stdin',
-    usage: 'haus cloud-agent start --target <target> [--reply-to <messageId>] --repo <owner/name> --ref <ref> --title <text> --say <text> [--cause <fireId>] [--provider <cursor|claude>]',
+    summary: 'Delegate bounded work for a Task to a cloud agent; the instructions come from stdin',
+    usage: 'haus cloud-agent start --task <KEY-n> --repo <owner/name> --ref <ref> --title <text> --say <text> [--cause <fireId>] [--provider <cursor|claude>]',
 };
 
 const SEND_COMMAND: SubCommand = {
@@ -135,16 +136,14 @@ export async function runCloudAgentSend(args: ParsedArgs, deps: CloudAgentDeps):
 }
 
 export async function runCloudAgentStart(args: ParsedArgs, deps: CloudAgentDeps): Promise<number> {
-    const target = requiredValue(args, '--target');
-    assertAgentTarget(target);
+    const task = readTask(args);
+    const target = formatTaskTarget(task);
     const repository = readRepository(args);
     const title = readTitle(args);
     const content = requiredValue(args, '--say');
     const startingRef = args.values['--ref']?.trim() || null;
     const provider = readProvider(args);
     const cause = optionalCause(args);
-    const replyToMessageId =
-        args.values['--reply-to'] === undefined ? undefined : requiredValue(args, '--reply-to');
 
     const instructions = deps.stdinIsTty ? '' : await deps.readStdin();
     if (!instructions.trim()) {
@@ -155,10 +154,8 @@ export async function runCloudAgentStart(args: ParsedArgs, deps: CloudAgentDeps)
         );
     }
 
-    const response = await deps.client.request(
-        '/api/agent/cloud-agents',
-        agentCloudAgentStartResponseSchema,
-        {
+    const response = await deps.client
+        .request('/api/agent/cloud-agents', agentCloudAgentStartResponseSchema, {
             body: {
                 ...(cause ? { cause } : {}),
                 content: content.trim(),
@@ -166,18 +163,36 @@ export async function runCloudAgentStart(args: ParsedArgs, deps: CloudAgentDeps)
                 nonce: deps.mintNonce(),
                 ...(provider ? { provider } : {}),
                 repository,
-                ...(replyToMessageId ? { replyToMessageId } : {}),
                 startingRef,
                 target,
+                task,
                 title,
             },
             method: 'POST',
             timeoutMs: 60_000,
-        }
-    );
+        })
+        .catch((error: unknown) => {
+            if (error instanceof AgentCliError && error.code === 'CLOUD_AGENT_TASK_REQUIRED') {
+                throw taskRequired(error.message);
+            }
+            throw error;
+        });
 
     deps.write(renderCloudAgentStart(response, { repository, startingRef, target }));
     return 0;
+}
+
+function readTask(args: ParsedArgs): string {
+    if (!args.values['--task']?.trim()) {
+        throw taskRequired('A cloud agent works for a Task, and this launch named none.');
+    }
+    return taskKeyArgument(args.values['--task'], '--task');
+}
+
+function taskRequired(message: string): AgentCliError {
+    return new AgentCliError('CLOUD_AGENT_TASK_REQUIRED', message, {
+        nextAction: TASK_REQUIRED_NEXT_ACTION,
+    });
 }
 
 export async function runCloudAgentCancel(args: ParsedArgs, deps: CloudAgentDeps): Promise<number> {

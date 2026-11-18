@@ -1,6 +1,5 @@
 import type {
     AddressedReason,
-    AgentThreadContext,
     ChatMessageReply,
     CloudAgentBranch,
     CloudAgentProvider,
@@ -25,6 +24,11 @@ export interface AgentInboxItem {
     id: string;
     mentioned?: boolean;
     message?: Record<string, unknown>;
+    /**
+     * A pull request attached to a Task no cloud work reports to changed (ADR 0052). Never set
+     * with `cloudAgentWork`, which names the change itself when a Run backs it.
+     */
+    pullRequestNotice?: CloudAgentPullRequestChange;
     reply?: ChatMessageReply | null;
     senderDescription?: string;
     senderHandle: string;
@@ -33,9 +37,6 @@ export interface AgentInboxItem {
     senderType: 'agent' | 'human' | 'system' | 'trigger';
     sequence: number;
     target: string;
-    /** The Thread a mention arrived in, when the Agent has no visible context for it. */
-    threadContext?: AgentThreadContext;
-    threadFollowReactivated?: boolean;
 }
 
 /** A settled Cloud Agent Run's terminal attention for the delegating Agent. */
@@ -44,9 +45,15 @@ export interface AgentCloudAgentWorkAttention {
     errorCode: string | null;
     /** Whether `summary` is only the capped head of a longer report (TECH-8). */
     hasFullReport?: boolean;
-    notice: 'settled' | 'stall';
+    /** `pull_request`: its pull request changed after the Run settled (ADR 0052). */
+    notice: 'settled' | 'stall' | 'pull_request';
     provider: CloudAgentProvider;
     providerUrl: string | null;
+    /**
+     * What changed on a `pull_request` notice. Absent until the Server's attention carries it;
+     * the notice then names the change generically and reads the URL from `branches`.
+     */
+    pullRequestChange?: CloudAgentPullRequestChange;
     repository: string;
     runId: string;
     stallCode: CloudAgentStallCode | null;
@@ -54,4 +61,10 @@ export interface AgentCloudAgentWorkAttention {
     summary: string | null;
     title: string;
     workId: string;
+}
+
+/** A pull request moment that wakes the delegating Agent after its Run settled (ADR 0052). */
+export interface CloudAgentPullRequestChange {
+    change: 'checks_failing' | 'checks_passing' | 'ready_for_review';
+    url: string;
 }

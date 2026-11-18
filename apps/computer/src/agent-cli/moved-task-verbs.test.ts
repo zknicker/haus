@@ -2,7 +2,7 @@ import { afterEach, expect, spyOn, test } from 'bun:test';
 import { runAgentCli } from '../agent-cli.ts';
 
 const flags = '--target <target> --number <n>';
-const tail = '`haus task` is now board Tasks.';
+const tail = '`haus task` is now Tasks.';
 
 let restore: (() => void) | null = null;
 
@@ -28,7 +28,7 @@ test.each([
     [['task', 'claimm']],
     [['claim', 'claim']],
     [['claim', 'unclaim']],
-    [['board', 'claim']],
+    [['reminder', 'claim']],
 ])('%j gets no moved-claims line', async (argv) => {
     const stderr = captureStderr();
 

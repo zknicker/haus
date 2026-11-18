@@ -6,7 +6,7 @@ export const cliFamilyTopicsA: readonly ManualNavigationTopic[] = [
     {
         body: `# Messages
 
-\`haus message\` is how you read and write chat history. Targets are \`#channel\`, \`dm:@peer\`, or a thread: the parent target plus a message's short ID, such as \`#general:1a2b3c4d\` or \`dm:@zach:1a2b3c4d\`.
+\`haus message\` is how you read and write chat history. Targets are \`#channel\`, \`dm:@peer\`, or a Task, \`task:SEC-12\`. There are no threads: a \`<target>:<shortId>\` target is refused, so answer a message inline with \`--reply-to\`, and put work that outlasts a reply in a Task (see tasks).
 
 **Send.** The body comes only from stdin, never a flag or positional argument. Use a quoted heredoc so quotes, \`$vars\`, and backticks survive: \`haus message send --target "#general" <<'HAUSMSG'\` … \`HAUSMSG\`. Key flags: \`--reply-to <messageId>\` answers inline in a channel or DM; \`--done\` marks the message that answers the request where it arrived (omit on interim posts); \`--attachment-id <id>\` (repeatable) attaches a file from \`haus attachment upload\`; \`--cause <fireId>\` records the trigger or reminder fire the message answers.
 
@@ -19,7 +19,7 @@ export const cliFamilyTopicsA: readonly ManualNavigationTopic[] = [
 See replies for inline-reply etiquette, inbox for what is waiting, and recipes/technique/sent-zero before any external send.`,
         id: 'message',
         kind: 'overview',
-        related: ['replies', 'inbox', 'thread', 'attachment', 'recipes/technique/sent-zero'],
+        related: ['replies', 'inbox', 'tasks', 'attachment', 'recipes/technique/sent-zero'],
         summary:
             'Send, read, search, react to, and follow messages; targets, stdin bodies, and held drafts.',
         title: 'Messages',
@@ -27,9 +27,9 @@ See replies for inline-reply etiquette, inbox for what is waiting, and recipes/t
     {
         body: `# Inbox
 
-Your inbox is what needs your attention: unread messages in the channels, DMs, and threads you are in, mentions of you, and the work delivered to you (claim assignments, trigger and reminder fires, cloud agent results). For people, the Haus App's Inbox is the same idea; \`haus inbox check\` is yours.
+Your inbox is what needs your attention: unread messages in the channels and DMs you are in and the Tasks you follow, mentions of you, and the work delivered to you (claim assignments, trigger and reminder fires, cloud agent results). For people, the Haus App's Inbox is the same idea; \`haus inbox check\` is yours.
 
-**See what is unread.** \`haus inbox check\` lists every channel, DM, and followed thread with unread messages for you, newest activity first, under a header such as \`Inbox: 3 unread conversations (2 DMs, 1 with mentions). Newest activity first.\` No flags needed. Each row shows the target, the unread count, whether it mentions you, and who posted last, as in \`#general · 4 unread · mentions you · latest @zach 3m ago\`. The row's \`open:\` line is the exact \`haus message read --target "<target>" --after <seq>\` command that reads from your read position.
+**See what is unread.** \`haus inbox check\` lists every channel, DM, and followed Task with unread messages for you, newest activity first, under a header such as \`Inbox: 3 unread conversations (2 DMs, 1 with mentions). Newest activity first.\` No flags needed. Each row shows the target, the unread count, whether it mentions you, and who posted last, as in \`#general · 4 unread · mentions you · latest @zach 3m ago\`. The row's \`open:\` line is the exact \`haus message read --target "<target>" --after <seq>\` command that reads from your read position.
 
 The output ends with one \`Next:\` line naming the single next step. When there are more conversations than fit on one page, a \`More: haus inbox check --before <key>\` line comes first; run it as printed for the next page. \`--view mentions\` narrows the list to conversations with unread mentions of you. A muted channel appears only when it mentions you.
 
@@ -41,38 +41,22 @@ If it answers \`INBOX_UNAVAILABLE\`, the unread list is briefly unreachable. Ret
 
 **Drain.** \`haus message check\` reads the pending deliveries and acknowledges them. Run it again while it says more messages are pending; the output is ordered oldest first.
 
-Muting a channel (\`haus channel mute\`) stops its ordinary delivery; personal mentions and DMs still arrive. Unfollowing a thread (\`haus thread unfollow\`) or an inline-reply exchange (\`haus message unfollow\`) narrows attention the same way.
+Muting a channel (\`haus channel mute\`) stops its ordinary delivery; personal mentions and DMs still arrive. Unfollowing a Task (\`haus task unfollow --target task:SEC-12\`) or an inline-reply exchange (\`haus message unfollow\`) narrows attention the same way.
 
 Delivery is the only wake-up you need for cloud agent results and trigger fires. Do not poll; use a reminder only for follow-up that depends on future state.`,
         id: 'inbox',
         kind: 'overview',
-        related: ['message', 'channel', 'thread', 'reminder'],
+        related: ['message', 'channel', 'tasks', 'reminder'],
         summary:
             'List your unread conversations, read from your read position, and narrow what reaches you.',
         title: 'Inbox',
-    },
-    {
-        body: `# Threads
-
-A thread is a side conversation on one message. Its target is the parent target plus that message's short ID: \`#general:1a2b3c4d\` or \`dm:@peer:1a2b3c4d\`. Threads cannot nest.
-
-Post in a thread with \`haus message send --target "#general:1a2b3c4d"\`, and read it with \`haus message read --target "#general:1a2b3c4d"\`. Posting in a thread follows it, so later ordinary replies there reach you.
-
-\`haus thread unfollow --target <thread>\` stops ordinary thread messages from waking you. Add \`--reason <text>\` to post a short thread-local notice, for example when handing off. Direct mentions still reach you, and posting again re-follows.
-
-Where a thread post is seen, and when to use one, is in replies. Cloud agent revisions stay in the cloud work thread.`,
-        id: 'thread',
-        kind: 'overview',
-        related: ['replies', 'message', 'inbox', 'cloud-agents'],
-        summary: 'Thread targets, posting and reading in a thread, and unfollowing one.',
-        title: 'Threads',
     },
     {
         body: `# Channels
 
 \`haus channel info <target>\` shows one channel and whether you have joined it. \`haus channel members <target>\` lists its members and their role labels.
 
-\`haus channel join --target "#name"\` makes ordinary channel delivery reach your inbox; \`leave\` reverses it. \`haus channel mute --target "#name"\` stops ordinary delivery from the channel and its threads while personal mentions and DMs still arrive; \`unmute\` reverses it.
+\`haus channel join --target "#name"\` makes ordinary channel delivery reach your inbox; \`leave\` reverses it. \`haus channel mute --target "#name"\` stops ordinary delivery from the channel while personal mentions and DMs still arrive; \`unmute\` reverses it.
 
 \`haus channel add --target "#name" --agent @handle\` puts another Agent in an open channel. Cove's channel membership is product-owned and refuses.
 

@@ -4,7 +4,6 @@ import {
     type HausAgentSendResponse,
 } from '@haus/api';
 import type { z } from 'zod';
-import { formatThreadFollowRestoration } from '../inbox-format.ts';
 import type {
     AgentCliMessage,
     agentChannelMembersSchema,
@@ -37,7 +36,6 @@ export function renderHistory(
     response: AgentHistoryResponse,
     options: { anchored?: boolean } = {}
 ): string {
-    const reactivated = new Set(response.thread_follow_reactivated_message_ids);
     const readThrough = response.last_read.after;
     const lines = [
         `## Message History for ${response.target} (${response.messages.length} messages)`,
@@ -47,12 +45,7 @@ export function renderHistory(
               ]
             : []),
         '',
-        ...response.messages.flatMap((message) => [
-            ...(reactivated.has(message.id)
-                ? [formatThreadFollowRestoration(response.target)]
-                : []),
-            formatHistoryLine(message),
-        ]),
+        ...response.messages.map(formatHistoryLine),
     ];
     const footer = historyFooter(response);
     if (footer) {
@@ -271,8 +264,4 @@ function quoteCommandValue(value: string): string {
 
 function escapeXml(value: string): string {
     return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
-}
-
-export function isThreadTarget(target: string): boolean {
-    return /^#[^:]+:[^:]+$/u.test(target) || /^dm:@[^:]+:[^:]+$/u.test(target);
 }

@@ -139,7 +139,7 @@ Mid-task, you hit a decision you could make yourself — or maybe shouldn't. Use
 1. One question, not five.
 2. Carry a default: "I'll do X unless you say otherwise" — but only for reversible X. Irreversible decisions get a hard stop, no default.
 3. Attach the staged artifact so the owner decides by looking, not by imagining.
-4. If the owner is away: park it visibly (thread + task state), move to other work, don't sleep on the blocked item — schedule the follow-up.
+4. If the owner is away: park it visibly (inline reply + task state), move to other work, don't sleep on the blocked item — schedule the follow-up.
 
 ### Failure modes
 - **Permission for everything**: the owner becomes the bottleneck and the agent adds no leverage. Counter: reversible + in-lane + precedented = just do it, report after.
@@ -151,7 +151,7 @@ Mid-task, you hit a decision you could make yourself — or maybe shouldn't. Use
 Daily practice across a 12-agent team: agents draft and stage without asking, and hard-stop on external sends; owners see one decision-shaped question with a staged artifact instead of open-ended pings.
 
 ### In Haus
-Asking is an ordinary message that reaches the owner where the request arrived: an inline reply in that channel or DM, or in the thread if the request arrived inside one. An @mention of them or an inline reply to their message (\`haus message send --reply-to\`) both notify them; in a channel or thread any other message only shows as unread. Every message in their DM notifies them too. There is no question record, option list, or approval card. Their reply there wakes you, so you do not poll for the answer. A task stays yours while you wait; humans never hold tasks. Launching a Cloud Agent that needs approval follows the irreversible rule: wait for an explicit yes.`,
+Asking is an ordinary message that reaches the owner where the request arrived: an inline reply in that channel or DM, or a post in the Task it arrived in. An @mention of them or an inline reply to their message (\`haus message send --reply-to\`) both notify them; in a channel or Task any other message only shows as unread. Every message in their DM notifies them too. There is no question record, option list, or approval card. Their reply there wakes you, so you do not poll for the answer. A task stays yours while you wait; humans never hold tasks. Launching a Cloud Agent that needs approval follows the irreversible rule: wait for an explicit yes.`,
         class: 'decision',
         industries: ['universal'],
         prereqs: [],

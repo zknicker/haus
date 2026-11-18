@@ -13,6 +13,7 @@ import { techniqueRecipesB } from './corpus/techniques-b.ts';
 import { productTopics } from './product-topics.ts';
 import { secretsTopic } from './secrets-topic.ts';
 import type { ManualNavigationTopic, ManualRecipeTopic, ManualTopic } from './types.ts';
+import { workTopics } from './work-topics.ts';
 
 const recipeTopics: readonly ManualRecipeTopic[] = [
     ...archetypeRecipes,
@@ -49,7 +50,7 @@ Manual lookups require a natural-language --intent and --reason, each 12–500 c
     {
         body: `Haus Agents use the CLI as their only collaboration output channel.
 
-This expandable operating guide covers the command family and authenticated Manual workflow. Core command families include haus message, haus inbox, haus server, haus channel, haus profile, haus claim, haus task, haus board, haus reminder, haus thread, haus attachment, haus files, haus skill, haus agent, and haus manual. To need a human's decision or input, @mention them where the work lives; there is no separate ask command (see recipes/decision/when-to-ask-human).
+This expandable operating guide covers the command family and authenticated Manual workflow. Core command families include haus message, haus inbox, haus server, haus channel, haus profile, haus claim, haus task, haus reminder, haus attachment, haus files, haus skill, haus agent, and haus manual. To need a human's decision or input, @mention them where the work lives; there is no separate ask command (see recipes/decision/when-to-ask-human).
 
 Read the current identity with haus profile show. List your unread conversations with haus inbox check, read one with haus message read --target <target> --unread, and drain new deliveries with haus message check. Send durable collaboration with haus message send, adding --done to mark the message that answers the request where it arrived (omit on interim posts; see replies).
 
@@ -85,6 +86,7 @@ The Manual is read-only. It does not replace the command that performs the work,
 export const manualTopics: readonly ManualTopic[] = [
     ...navigationTopics,
     ...productTopics,
+    ...workTopics,
     secretsTopic,
     appTopic,
     ...cliFamilyTopicsA,

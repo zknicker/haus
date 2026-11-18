@@ -223,7 +223,7 @@ test('renders a claim assignment as a bodiless @haus item keyed to its claim mes
     });
 
     // The assignment key shortens to the claim message it hands over, so `msg=`
-    // stays an id the Agent can read, thread on, or react to.
+    // stays an id the Agent can read, reply to, or react to.
     expect(composeInboxDrain([assignment])).toContain(
         '[target=#general msg=1a2b3c4d time=2026-07-27 00:00:00 UTC type=system mentioned=true] haus: [Haus claim assignment claim=#1 target=#general assignedBy=@zach] Scout the release notes'
     );
@@ -231,23 +231,6 @@ test('renders a claim assignment as a bodiless @haus item keyed to its claim mes
     expect(notice).toContain('1 unread message total');
     expect(notice).toContain('· first msg=1a2b3c4d · latest sender @haus · latest msg=1a2b3c4d');
     expect(notice).toContain('· you were mentioned');
-});
-
-test('renders a restored Thread follow as recipient-only delivery guidance', () => {
-    const restored = item({
-        content: '@sage please come back to this discussion.',
-        mentioned: true,
-        target: '#general:deadbeef',
-        threadFollowReactivated: true,
-    });
-
-    expect(composeInboxDrain([restored])).toContain(
-        [
-            '[Haus thread follow restored: this @mention re-subscribed you to ordinary replies in #general:deadbeef.]',
-            'To stop those replies again: haus thread unfollow --target "#general:deadbeef"',
-            '[target=#general:deadbeef msg=first time=2026-07-27 00:00:00 UTC type=human mentioned=true] zach: @sage please come back to this discussion.',
-        ].join('\n')
-    );
 });
 
 test('busy notices retain an earlier mention when newer target traffic is ambient', () => {

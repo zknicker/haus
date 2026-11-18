@@ -68,9 +68,7 @@ export const agentMessageSchema = z.object({
     reactions: z
         .array(z.object({ actors: z.array(claimActorSchema), emoji: z.string() }))
         .optional(),
-    replyCount: z.number().int().nonnegative().optional(),
     reply: chatMessageReplyResponseSchema.nullable().optional(),
-    replyTarget: z.string().min(1).optional(),
     role: z.enum(['user', 'assistant', 'system']),
     sender: z.object({
         description: z.string().nullable(),
@@ -79,7 +77,6 @@ export const agentMessageSchema = z.object({
         type: z.enum(['human', 'agent', 'system']),
     }),
     sequence: z.number().int().positive(),
-    threadId: z.string().min(1).optional(),
 }) satisfies z.ZodType<HausAgentMessage>;
 
 export type AgentCliMessage = HausAgentMessage;
@@ -139,7 +136,6 @@ export const agentMessageCheckResponseSchema = z.object({
         z.object({
             message: agentMessageSchema,
             target: z.string().min(1),
-            threadFollowReactivated: z.boolean().optional(),
         })
     ),
     more: z.boolean(),
@@ -161,7 +157,6 @@ export const agentHistoryResponseSchema = z.object({
     last_read: z.object({ after: z.number().int().nonnegative(), unread_after: z.number().int() }),
     messages: z.array(agentMessageSchema),
     target: z.string().min(1),
-    thread_follow_reactivated_message_ids: z.array(z.string().min(1)).default([]),
     /** `--unread` only: the read position after this read. */
     read_through_seq: z.number().int().nonnegative().nullable().optional(),
     /** `--unread` only: the read position the window starts after. Absent on an older Server. */

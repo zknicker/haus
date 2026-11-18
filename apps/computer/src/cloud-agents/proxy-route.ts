@@ -95,7 +95,7 @@ export async function handleCloudAgentStart(
             return Response.json(
                 {
                     code: 'CLOUD_AGENT_LAUNCH_FAILED',
-                    message: `${error.message} The work is recorded as failed; read it in the thread.`,
+                    message: `${error.message} The work is recorded as failed; read it in the Task.`,
                 },
                 { status: 502 }
             );

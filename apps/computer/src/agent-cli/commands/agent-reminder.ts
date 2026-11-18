@@ -13,6 +13,7 @@ import {
     reminderSingleSchema,
     requireFlag,
 } from './agent-reminder-view.ts';
+import { reminderAnchor, reminderAnchorFlags, withTaskReminderStep } from './reminder-anchor.ts';
 import { isCalendarRepeat } from './reminder-cadence-label.ts';
 import { reminderCommandIdFlag, scheduleCommandId } from './reminder-command-id.ts';
 import {
@@ -42,13 +43,14 @@ import {
 } from './reminder-wake-rules.ts';
 
 // Family 8 — Reminders (D4). Author-owned wake signals anchored to a
-// message; the only scheduling primitive. `--script` payloads run locally at
+// message or a Task (reminder-anchor.ts); the only scheduling primitive. `--script` payloads run locally at
 // fire time: empty output is a quiet tick, output rides the fire. The opt-in
 // wake rules and `reminder log` live in reminder-wake-rules.ts.
 export const REMINDER_SUBCOMMANDS: SubCommand[] = [
     {
         examples: [
             'haus reminder schedule --title "CI Check" --description "check if CI finished and update the claim" --delay-seconds 1800 --message-id 1a2b3c4d',
+            'haus reminder schedule --title "Deploy Check" --description "confirm the backfill finished, then set the Task done" --delay-seconds 3600 --target task:SEC-12',
             'haus reminder schedule --title "Monday Advertising Review" --description "check advertising and flag campaigns that need bid adjustments" --repeat weekly:mon@09:00 --timezone America/New_York --message-id 1a2b3c4d',
             "haus reminder schedule --title 'Nightly Export Watch' --delay-seconds 3600 --repeat every:1h --message-id 1a2b3c4d --script 'check-export --quiet-when-ok'",
             "haus reminder schedule --title 'Disk Watchdog' --repeat every:15m --message-id 1a2b3c4d --script 'check-disk.sh' --wake-on-change --fail-after 3",
@@ -59,11 +61,7 @@ export const REMINDER_SUBCOMMANDS: SubCommand[] = [
             { description: titleHelp, name: '--title', valueName: '<label>' },
             { description: descriptionHelp, name: '--description', valueName: '<text>' },
             ...scheduleTimingFlags,
-            {
-                description: 'Anchor message id (msg= from a message you received or read)',
-                name: '--message-id',
-                valueName: '<id>',
-            },
+            ...reminderAnchorFlags,
             {
                 description:
                     'Local script at fire time: empty output = quiet tick, output wakes you',
@@ -74,10 +72,13 @@ export const REMINDER_SUBCOMMANDS: SubCommand[] = [
             failAfterFlag,
         ],
         name: 'schedule',
+        notes: [
+            'On a Task (--target task:KEY-n) a reminder is one-time only and wakes you on that Task; recurring reminders belong on a Channel.',
+        ],
         positionals: [],
         run: (args) => runReminderSchedule(args, defaultDeps()),
-        summary: 'Schedule an author-owned wake signal anchored to a message',
-        usage: 'haus reminder schedule --title <label> [--description <text>] (--delay-seconds <n> | --fire-at <iso>) [--repeat <cadence>] [--timezone <iana>] --message-id <id> [--script <command>] [--wake-on-change] [--fail-after <n>]',
+        summary: 'Schedule an author-owned wake signal anchored to a message or a Task',
+        usage: 'haus reminder schedule --title <label> [--description <text>] (--delay-seconds <n> | --fire-at <iso>) [--repeat <cadence>] [--timezone <iana>] (--message-id <id> | --target task:<KEY-n>) [--script <command>] [--wake-on-change] [--fail-after <n>]',
     },
     {
         examples: ['haus reminder list', 'haus reminder list --status scheduled'],
@@ -167,7 +168,6 @@ export const REMINDER_SUBCOMMANDS: SubCommand[] = [
 
 export async function runReminderSchedule(args: ParsedArgs, deps: ReminderDeps): Promise<number> {
     const title = args.values['--title'];
-    const messageId = args.values['--message-id'];
     if (!title) {
         throw new AgentCliError(
             'INVALID_ARG',
@@ -175,11 +175,7 @@ export async function runReminderSchedule(args: ParsedArgs, deps: ReminderDeps):
             { nextAction: 'Put the full instruction in --description.' }
         );
     }
-    if (!messageId) {
-        throw new AgentCliError('INVALID_ARG', 'Provide --message-id with the anchor message.', {
-            nextAction: 'Use the msg= id from the message this follow-up is about.',
-        });
-    }
+    const anchor = reminderAnchor(args);
     requireScriptForWakeRules(args);
     const wakeOnChange = args.flags['--wake-on-change'] === true;
     const failAfter = parseFailAfter(args.values['--fail-after']);
@@ -195,7 +191,7 @@ export async function runReminderSchedule(args: ParsedArgs, deps: ReminderDeps):
                 description: args.values['--description'],
                 ...(failAfter !== undefined ? { failAfter } : {}),
                 ...(fireAt ? { fireAt } : {}),
-                messageId,
+                ...anchor,
                 repeat: args.values['--repeat'],
                 script: args.values['--script'],
                 title,
@@ -336,7 +332,7 @@ async function requestReminderMutation<T>(
         return await deps.client.request(route, schema, input);
     } catch (cause) {
         if (!(cause instanceof AgentCliError) || cause.code !== 'SERVER_5XX') {
-            throw cause;
+            throw withTaskReminderStep(cause);
         }
         return await deps.client.request(route, schema, input);
     }

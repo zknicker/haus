@@ -1,8 +1,7 @@
 import { formatCloudAgentWorkLink } from '@haus/api';
 import type { z } from 'zod';
 import type { agentCloudAgentStartResponseSchema } from './agent-api-schemas.ts';
-import { formatHistoryLine, shortMessageId } from './agent-format.ts';
-import { isThreadTarget } from './agent-render.ts';
+import { formatHistoryLine } from './agent-format.ts';
 
 type CloudAgentStartResponse = z.infer<typeof agentCloudAgentStartResponseSchema>;
 
@@ -98,10 +97,7 @@ function renderStarted(
     const lines = [
         `Cloud agent launching for ${request.repository}${ref}. Work ID: ${receipt.work.id}`,
         `Posted to ${receipt.target}. Message ID: ${receipt.messageId}`,
-        isThreadTarget(receipt.target)
-            ? `Work thread: "${receipt.target}".`
-            : `Work thread: "${receipt.target}:${shortMessageId(receipt.messageId)}".`,
-        'The result reaches your inbox when the run settles, a failed launch included; post what you learn yourself.',
+        `Haus wakes you on ${receipt.target} when the run settles, a failed launch included, and when its pull request becomes ready or its checks finish; post what you learn yourself.`,
         // Agents paste this line; they never build a work link themselves.
         `Link: ${formatCloudAgentWorkLink(receipt.work.title, receipt.work.id)}`,
         linkSentence,

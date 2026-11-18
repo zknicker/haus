@@ -18,6 +18,7 @@ import {
     formatClaimResults,
     formatClaimsCreated,
 } from './agent-claim-format.ts';
+import { refuseRemovedThreadTarget } from './agent-command-utils.ts';
 
 // Family 5 — Claims (D8). A claim is a message with claim metadata; claiming
 // is the concurrency lock. `claim create` posts a fresh message and publishes
@@ -45,6 +46,7 @@ export async function runClaimList(args: ParsedArgs, deps: ClaimDeps): Promise<n
     const target = args.values['--target'];
     const status = args.values['--status'];
     if (target) {
+        refuseRemovedThreadTarget(target);
         params.set('target', target);
     }
     if (status) {
@@ -187,6 +189,7 @@ export function requireTarget(args: ParsedArgs, nextAction: string): string {
             nextAction,
         });
     }
+    refuseRemovedThreadTarget(target);
     return target;
 }
 

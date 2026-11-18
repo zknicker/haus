@@ -3,7 +3,6 @@ import * as z from 'zod';
 import { agentMessageSchema, claimActorSchema } from '../agent-api-schemas.ts';
 import { AgentCliError } from '../agent-error.ts';
 import { shortMessageId } from '../agent-format.ts';
-import { isThreadTarget } from '../agent-render.ts';
 
 /** Loosened so a newer Server's claim-conflict field does not strand an older Computer. */
 const claimConflictResponseSchema = z.looseObject(claimConflictSchema.shape);
@@ -38,22 +37,19 @@ export function formatClaimList(claims: ClaimRow[], omitted: number): string {
     return `${claims.map((claim) => claimLine(claim)).join('\n')}${more}\n\nClaim before you work: haus claim --target <target> --number <n>\n`;
 }
 
-/** Each created claim names its own thread address as a reference. */
+/** Each created claim names where it sits and its message id. */
 export function formatClaimsCreated(claims: ClaimRow[], fallbackTarget: string): string {
     return `${claims
         .map(
             (claim) =>
-                `Created claim #${claim.number} [${claim.status}] in ${claim.target ?? fallbackTarget}. Message ID: ${claim.message.id}. Thread: ${threadRef(claim, fallbackTarget)}.`
+                `Created claim #${claim.number} [${claim.status}] in ${claim.target ?? fallbackTarget}. Message ID: ${claim.message.id}.`
         )
         .join('\n')}\n`;
 }
 
 /**
  * One row per requested claim. Granted rows name the inline reply to the
- * claim's message as a fact of the claim, never its claim thread and never
- * routing advice: the requester follows that thread, so every post there
- * becomes their unread (ADR 0029). A Thread claim's message sits in a Thread,
- * which refuses `--reply-to`, so its row names that Thread's target instead.
+ * claim's message as a fact of the claim, never routing advice (ADR 0029).
  */
 export function formatClaimResults(results: ClaimResult[], fallbackTarget: string): string {
     const counts = [
@@ -83,7 +79,7 @@ export function claimRefusal(results: ClaimResult[]): AgentCliError | null {
     const summary = results.map((row) => `#${row.number} ${refusalReason(row)}`).join('; ');
     return new AgentCliError('TASK_CONFLICT', `Claim refused — ${summary}.`, {
         nextAction:
-            'Do not retry the identical claim or start conflicting work. If you own this lane, correct the routing in the original thread.',
+            'Do not retry the identical claim or start conflicting work. If you own this lane, correct the routing in the original conversation.',
     });
 }
 
@@ -106,9 +102,7 @@ function resultLine(row: ClaimResult, fallbackTarget: string) {
 
 function replyFact(claim: ClaimRow, fallbackTarget: string) {
     const target = claim.target ?? fallbackTarget;
-    return isThreadTarget(target)
-        ? `thread reply --target "${target}", no --reply-to`
-        : `inline reply --target "${target}" --reply-to ${shortMessageId(claim.message.id)}`;
+    return `inline reply --target "${target}" --reply-to ${shortMessageId(claim.message.id)}`;
 }
 
 function refusalReason(row: ClaimResult) {
@@ -119,12 +113,6 @@ function refusalReason(row: ClaimResult) {
 function countLabel(results: ClaimResult[], outcome: ClaimResult['outcome'], label: string) {
     const count = results.filter((row) => row.outcome === outcome).length;
     return count > 0 ? `${count} ${label}` : '';
-}
-
-/** A Thread claim's thread address is the Thread it sits in, whose target the row carries. */
-function threadRef(claim: ClaimRow, fallbackTarget: string) {
-    const target = claim.target ?? fallbackTarget;
-    return `"${isThreadTarget(target) ? target : `${target}:${shortMessageId(claim.message.id)}`}"`;
 }
 
 function claimLine(claim: ClaimRow): string {

@@ -64,7 +64,7 @@ This rule caught repeated real misses on this server: UI updates that required r
 Use this when feedback needs to attach to a specific piece of the work: a paragraph, image region, slide, screenshot, HTML section, spreadsheet row, or timestamped artifact.
 
 ### Use When / Don't Use When
-Use comments when location matters. Do not force comments for simple yes/no approval or high-level direction; a thread reply is enough.
+Use comments when location matters. Do not force comments for simple yes/no approval or high-level direction; an inline reply is enough.
 
 ### Do This
 1. Upload or link the actual artifact under review, not only a screenshot of the artifact unless the screenshot is the artifact.
@@ -79,7 +79,7 @@ Every comment should have one of four states: fixed, not changed with reason, ne
 
 ### If It Fails
 - **Feedback in chat only**: location is lost. Counter: ask for quote/region/timestamp or move feedback onto the artifact.
-- **Per-comment replies**: the thread becomes noisy. Counter: consolidate states in one update.
+- **Per-comment replies**: the conversation becomes noisy. Counter: consolidate states in one update.
 - **Unversioned fixes**: owner cannot tell which artifact changed. Counter: label the updated version.
 - **Silent skips**: reviewer assumes every comment was handled. Counter: every skipped comment gets a reason.
 
@@ -114,7 +114,7 @@ You are mid-task and a message arrives — a question, a new ask, a correction. 
 
 ### How to handle the interleave
 1. **Acknowledge fast, triage honestly**: if the incoming thing is quick (a question you can answer from current context), answer it now — that ability is the point; owners experience it as "no context window".
-2. If it's real work: claim/park it visibly (thread + task state), say when you'll get to it, return to the current task. Never silently queue.
+2. If it's real work: claim/park it visibly (inline reply + task state), say when you'll get to it, return to the current task. Never silently queue.
 3. If it changes the current task (correction, new constraint): fold it in now and say what changed.
 4. Batched notifications while you're deep in work are signals, not interrupts: finish the atomic step, then check — but never let "busy" become "unreachable" for more than one step.
 5. The felt contract for the owner: **ask anything, anywhere, anytime — the work continues**.

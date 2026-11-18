@@ -56,11 +56,7 @@ async function localAgentEvents(location: AgentInboxLocation) {
             id: message.id,
             sequence: message.sequence,
         })),
-        messages: selected.map(({ item, message }) => ({
-            message,
-            target: item.target,
-            ...(item.threadFollowReactivated ? { threadFollowReactivated: true } : {}),
-        })),
+        messages: selected.map(({ item, message }) => ({ message, target: item.target })),
         more: pending.totalPending > selected.length,
     };
 }

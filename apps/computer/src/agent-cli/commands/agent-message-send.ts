@@ -24,7 +24,7 @@ export const messageSendSubcommand: SubCommand = {
         'haus message send --target "#general" --cause trf_41c2d8e9 <<\'HAUSMSG\'\nPayment webhook failed twice.\nHAUSMSG',
     ],
     flags: [
-        { name: '--target', valueName: '<target>', description: 'Channel, DM, or thread target' },
+        { name: '--target', valueName: '<target>', description: 'Channel, DM, or Task target' },
         {
             name: '--reply-to',
             valueName: '<messageId>',
@@ -43,7 +43,7 @@ export const messageSendSubcommand: SubCommand = {
         {
             name: '--done',
             description:
-                'This message answers the request where it arrived: an inline reply in a channel or DM, or the thread post when it arrived in a thread. People there stop seeing you work. Omit on interim posts',
+                'This message answers the request where it arrived: an inline reply in a channel or DM, or a post in the Task it arrived in. People there stop seeing you work. Omit on interim posts',
         },
         { name: '--send-draft', description: 'Send the saved draft unchanged' },
         { name: '--anyway', description: 'Send a repeatedly held draft despite new activity' },

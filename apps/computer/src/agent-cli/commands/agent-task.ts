@@ -1,15 +1,14 @@
-import { columnCategories } from '@haus/api';
+import { taskStates } from '@haus/api';
 import { createAgentApiClient } from '../agent-api-client.ts';
 import { readAgentStdin } from '../stdin.ts';
 import type { SubCommand } from '../subcommand.ts';
+import { runTaskAssign, runTaskList, runTaskShow, runTaskUpdate } from './agent-task-actions.ts';
 import {
-    runTaskAssign,
-    runTaskCreate,
-    runTaskList,
-    runTaskMove,
-    runTaskShow,
-    runTaskUpdate,
-} from './agent-task-actions.ts';
+    runTaskAttachPullRequest,
+    runTaskStart,
+    runTaskState,
+} from './agent-task-place-actions.ts';
+import { TASK_UNFOLLOW_SUBCOMMAND } from './agent-task-unfollow.ts';
 import type { TaskDeps } from './agent-task-view.ts';
 
 const keyPositional = '<key>';
@@ -35,47 +34,88 @@ const priorityFlag = {
 };
 
 /**
- * Board Tasks (ADR 0051): queued work with a key like SEC-12, separate from `haus claim`, the
- * lock on a message.
+ * Tasks (ADR 0052): a place for one piece of work, with a key like SEC-12 and its own
+ * conversation at `task:SEC-12`. Separate from `haus claim`, the lock on a message.
  */
 export const TASK_SUBCOMMANDS: SubCommand[] = [
     {
         examples: [
+            'haus task start --target "#security" --from 1a2b3c4d --title "Rotate the signing key"',
+            'haus task start --target "#security" --from 1a2b3c4d --title "Audit the webhook secrets" --assignee @kit --state todo',
+        ],
+        flags: [
+            {
+                description: 'The channel holding the origin message, like #security',
+                name: '--target',
+                valueName: '<#channel>',
+            },
+            {
+                description: 'The origin message id (msg= from a message in that channel)',
+                name: '--from',
+                valueName: '<messageId>',
+            },
+            titleFlag,
+            descriptionFlag,
+            {
+                description: 'me or an @handle; defaults to you',
+                name: '--assignee',
+                valueName: '<who>',
+            },
+            { description: 'open (default) or todo', name: '--state', valueName: '<todo|open>' },
+            priorityFlag,
+            {
+                description: 'Display-only due date, YYYY-MM-DD',
+                name: '--due',
+                valueName: '<date>',
+            },
+        ],
+        name: 'start',
+        notes: [
+            "A Task starts from a message in a channel, never a DM. It takes that channel's key. Several Tasks may start from one message.",
+            'Not idempotent: if a start goes unanswered, check haus task list before repeating it.',
+        ],
+        positionals: [],
+        run: (args) => runTaskStart(args, defaultDeps()),
+        summary: 'Start a Task from a message in a channel',
+        usage: 'haus task start --target <#channel> --from <messageId> --title <text> [--description <text|->] [--assignee <me|@handle>] [--state <todo|open>] [--priority <priority>] [--due <date>]',
+    },
+    {
+        examples: [
             'haus task list',
-            'haus task list --category done',
-            'haus task list --board SEC',
-            'haus task list --assignee @zero --category todo,active',
+            'haus task list --state done',
+            'haus task list --key SEC',
+            'haus task list --assignee @zero --state todo,open',
             'haus task list --all',
         ],
         flags: [
             { description: "Every assignee's Tasks, not only yours", name: '--all' },
             {
-                description: "One board's Tasks; lists every assignee unless --assignee narrows it",
-                name: '--board',
-                valueName: '<key>',
+                description: "One key's Tasks; lists every assignee unless --assignee narrows it",
+                name: '--key',
+                valueName: '<KEY>',
             },
             { description: 'me, none, or an @handle', name: '--assignee', valueName: '<who>' },
             {
-                description: `Comma list of ${columnCategories.join(', ')}`,
-                name: '--category',
-                valueName: '<categories>',
+                description: `Comma list of ${taskStates.join(', ')}`,
+                name: '--state',
+                valueName: '<states>',
             },
         ],
         name: 'list',
         notes: [
-            'Lists your open Tasks (backlog, todo, active) unless a flag widens it, most urgent then oldest first, at most 50 rows: the first row is the next one to take.',
+            'Lists your todo and open Tasks unless a flag widens it, most urgent then oldest first, at most 50 rows.',
         ],
         positionals: [],
         run: (args) => runTaskList(args, defaultDeps()),
-        summary: 'List your open Tasks in the order to work them',
-        usage: 'haus task list [--all] [--board <key>] [--assignee <me|none|@handle>] [--category <categories>]',
+        summary: 'List your unfinished Tasks',
+        usage: 'haus task list [--all] [--key <KEY>] [--assignee <me|none|@handle>] [--state <states>]',
     },
     {
         examples: ['haus task show SEC-12'],
         flags: [],
         name: 'show',
         notes: [
-            "Prints the Task, its board's columns, its description, the messages that mention it, and its Reminders.",
+            'Prints the Task, its target, its description, the messages that mention it, and its Reminders. Read its conversation with haus message read --target task:SEC-12.',
         ],
         positionals: [keyPositional],
         run: (args) => runTaskShow(args, defaultDeps()),
@@ -83,56 +123,28 @@ export const TASK_SUBCOMMANDS: SubCommand[] = [
         usage: 'haus task show <key>',
     },
     {
-        examples: [
-            'haus task create --board SEC --title "Rotate the signing key" --priority high --assignee @kit',
-            'haus task create --board SEC --title "Audit the webhook secrets" --description - <<\'HAUSMSG\'\nStart with the GitHub deliveries.\nHAUSMSG',
-        ],
-        flags: [
-            { description: 'Board key, like SEC', name: '--board', valueName: '<key>' },
-            titleFlag,
-            descriptionFlag,
-            {
-                description: 'A column on the board; defaults to its first todo column',
-                name: '--column',
-                valueName: '<name>',
-            },
-            { description: 'me or an @handle', name: '--assignee', valueName: '<who>' },
-            priorityFlag,
-            { description: 'Comma list of label names', name: '--labels', valueName: '<names>' },
-            {
-                description: 'Display-only due date, YYYY-MM-DD',
-                name: '--due',
-                valueName: '<date>',
-            },
-        ],
-        name: 'create',
+        examples: ['haus task state SEC-12 open', 'haus task state SEC-12 done'],
+        flags: [expectedVersionFlag],
+        name: 'state',
         notes: [
-            'Not idempotent: if a create goes unanswered, check haus task list before repeating it.',
+            'done or canceled ends the Task and cancels its pending reminders; a post in it reopens it.',
         ],
-        positionals: [],
-        run: (args) => runTaskCreate(args, defaultDeps()),
-        summary: 'Create one Task on a board',
-        usage: 'haus task create --board <key> --title <text> [--description <text|->] [--column <name>] [--assignee <me|@handle>] [--priority <priority>] [--labels <names>] [--due <date>]',
+        positionals: [keyPositional, '<todo|open|done|canceled>'],
+        run: (args) => runTaskState(args, defaultDeps()),
+        summary: "Set a Task's state",
+        usage: 'haus task state <key> <todo|open|done|canceled> [--expected-version <n>]',
     },
     {
-        examples: [
-            'haus task move SEC-12 --column "In progress"',
-            'haus task move SEC-12 --column Done',
+        examples: ['haus task attach-pr SEC-12 https://github.com/haus/haus/pull/12'],
+        flags: [],
+        name: 'attach-pr',
+        notes: [
+            'A pull request a cloud agent opens for the Task attaches on its own; use this for one opened another way. Its changes wake you on the Task.',
         ],
-        flags: [
-            {
-                description: "A column on the Task's board, by name in any case",
-                name: '--column',
-                valueName: '<name>',
-            },
-            expectedVersionFlag,
-        ],
-        name: 'move',
-        notes: ['A move into a done or canceled column prints what is still assigned to you.'],
-        positionals: [keyPositional],
-        run: (args) => runTaskMove(args, defaultDeps()),
-        summary: 'Move one Task to another column on its board',
-        usage: 'haus task move <key> --column <name> [--expected-version <n>]',
+        positionals: [keyPositional, '<url>'],
+        run: (args) => runTaskAttachPullRequest(args, defaultDeps()),
+        summary: 'Attach a GitHub pull request to a Task',
+        usage: 'haus task attach-pr <key> <url>',
     },
     {
         examples: [
@@ -166,13 +178,14 @@ export const TASK_SUBCOMMANDS: SubCommand[] = [
         flags: [expectedVersionFlag],
         name: 'assign',
         notes: [
-            'A person or an Agent can hold a Task. An Agent you assign is woken; a person gets it in their Inbox.',
+            'A person or an Agent can hold a Task, and the assignee follows it. An Agent you assign is woken.',
         ],
         positionals: [keyPositional, '<handle|me|none>'],
         run: (args) => runTaskAssign(args, defaultDeps()),
         summary: 'Assign a Task to a person or Agent, or unassign it',
         usage: 'haus task assign <key> <handle|me|none> [--expected-version <n>]',
     },
+    TASK_UNFOLLOW_SUBCOMMAND,
 ];
 
 function defaultDeps(): TaskDeps {

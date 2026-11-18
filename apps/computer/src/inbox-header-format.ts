@@ -1,7 +1,7 @@
 /**
  * The header facts every inbox line prints — the `msg=` short id, the `time=`
  * instant, and a human sender's `sender_tz=` — shared by envelopes, notices,
- * thread context lines, and the Agent CLI.
+ * and the Agent CLI.
  */
 
 /**
@@ -41,7 +41,7 @@ export function formatSenderLabel(handle: string, description?: string | null): 
 /**
  * An id that addresses no Chat message: a Trigger fire (`trf_…`), a Reminder
  * fire (`rmf_…`), or a Cloud Agent Run (`car_…`). None of them can be read,
- * threaded on, reacted to, or handed to `--message-id`. Each carries the id
+ * replied to, reacted to, or handed to `--message-id`. Each carries the id
  * that does work on its own envelope line instead — a fire's `fire=<id>` and
  * `--cause <fireId>`, a Run's `work=` and `run=`.
  */
@@ -53,8 +53,8 @@ function isBodilessInboxId(id: string): boolean {
  * The `msg=` short id every inbox surface prints, for messages and for the
  * bodiless items alike. A compound assignment key
  * (`claim-assign:<messageId>:<version>`) shortens to the claim message it hands
- * over, which is the id the Agent can actually address — reading it, threading
- * on it, or reacting to it. A fire has no such message, so it prints `-`
+ * over, which is the id the Agent can actually address — reading it, replying
+ * to it, or reacting to it. A fire has no such message, so it prints `-`
  * rather than an id the Agent would spend a failed command on.
  */
 export function shortInboxId(id: string): string {
@@ -68,7 +68,7 @@ export function shortInboxId(id: string): string {
 
 /**
  * Raft's `  │ ` continuation prefix (`indentAgentBodyContinuationLines`). Header
- * lines (`[target=…]`, thread-context `- [msg=…]`) always start at column 0,
+ * lines (`[target=…]`, history `[seq=…]`) always start at column 0,
  * so prefixing every continuation line of a sender handle, description, or
  * body keeps a newline in that free text from forging one. The `│` survives a
  * reader that trims each line. Every separator a universal-newline reader
