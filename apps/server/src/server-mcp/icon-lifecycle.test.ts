@@ -1,11 +1,9 @@
 import { expect, test } from 'bun:test';
-
 import { makeTestRuntime } from '@haus/effect';
 import { TestClock } from 'effect';
 import * as Cause from 'effect/Cause';
 import * as Option from 'effect/Option';
 import * as Runtime from 'effect/Runtime';
-
 import { loadRemoteIcon } from './icon-loader.ts';
 import { makeMcpIconResolver } from './icons.ts';
 

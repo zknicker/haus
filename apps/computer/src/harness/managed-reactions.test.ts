@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { renderAgentInstructions } from './managed-instructions.ts';
 
 test('acknowledgment-only celebrations use a reaction rather than an emoji-only reply', () => {

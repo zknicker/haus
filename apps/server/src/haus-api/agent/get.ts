@@ -1,6 +1,5 @@
 import { agentDetailInputSchema, agentSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
-
 import { getAgent } from '../../server-agents/get-agent.ts';
 import { memberProcedure } from '../server/procedure.ts';
 

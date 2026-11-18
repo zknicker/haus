@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-
 import { createTargetedReadCoalescer } from '../../lib/targeted-read-coalescer.ts';
 import {
     createRealtimeHarness,

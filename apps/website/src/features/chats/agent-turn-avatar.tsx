@@ -1,5 +1,4 @@
 import type * as React from 'react';
-
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { cn } from '../../lib/utils.ts';

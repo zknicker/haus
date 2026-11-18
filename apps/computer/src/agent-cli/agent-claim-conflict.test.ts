@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { CLAIM_CONFLICT_ROUTING_NOTE, type ClaimConflict } from '@haus/api';
-
 import { formatClaimConflict } from './agent-claim-conflict.ts';
 
 function conflict(overrides: Partial<ClaimConflict> = {}): ClaimConflict {

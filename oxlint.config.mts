@@ -1,7 +1,6 @@
 import { defineConfig } from 'oxlint';
 import core from 'ultracite/oxlint/core';
 import react from 'ultracite/oxlint/react';
-
 import { grandfatherOverrides } from './scripts/lint/grandfathered-overrides.mts';
 import { landminesOverrides, landminesPlugins, landminesRules } from './scripts/lint/landmines.mts';
 

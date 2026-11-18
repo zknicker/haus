@@ -1,9 +1,7 @@
 import { expect, test } from 'bun:test';
-
 import type { MessageRoutingAudit } from '@haus/api';
 import { Popover } from '@heroui/react';
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { RoutingDecisionPanel } from './routing-decision-panel.tsx';
 import { routingExplanation, routingOutcomeLabel } from './routing-labels.ts';
 

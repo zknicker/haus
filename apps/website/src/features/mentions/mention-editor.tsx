@@ -6,7 +6,6 @@ import { AllSelection, EditorState, TextSelection } from 'prosemirror-state';
 import { EditorView, type NodeView } from 'prosemirror-view';
 import * as React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-
 import { isSelectAllShortcut } from '../../lib/select-all.ts';
 import { cn } from '../../lib/utils.ts';
 import { contentToDoc, mentionSchema } from './mention-document.ts';

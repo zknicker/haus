@@ -1,5 +1,4 @@
 import type { TaskState } from '@haus/api';
-
 import { taskStateDiscs } from './task-state.ts';
 import { TaskStatusDisc } from './task-status-disc.tsx';
 

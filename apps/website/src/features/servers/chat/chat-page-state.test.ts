@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { Chat } from '@haus/api';
-
 import { resolveChatPageChat } from './chat-page-state.ts';
 
 test('uses the selected list snapshot while its detail query loads', () => {

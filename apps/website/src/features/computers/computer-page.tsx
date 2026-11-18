@@ -3,7 +3,6 @@ import { Button, Description, Dropdown, Label } from '@heroui/react';
 import { ComputerIcon, MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { PageTopbar } from '../shell/shell-topbar.tsx';

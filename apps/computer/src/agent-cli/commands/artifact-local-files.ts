@@ -2,9 +2,7 @@ import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-
 import { parseArtifactPath } from '@haus/api';
-
 import { AgentCliError } from '../agent-error.ts';
 import { ARTIFACT_MANIFEST_NAME } from './artifact-manifest.ts';
 

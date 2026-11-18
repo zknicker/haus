@@ -13,7 +13,6 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { copyFile, mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
-
 import { visualsSkillId } from '../../../packages/agent-workspace/src/index.ts';
 import { skillModules } from './skill-fragments.mjs';
 

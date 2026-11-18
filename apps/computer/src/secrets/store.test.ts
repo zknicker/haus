@@ -2,9 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import type { ComputerSecretsOperation, ComputerSecretsStatus, OnePasswordItem } from '@haus/api';
-
 import type { SecretsKeychain } from './keychain.ts';
 import { secretsVarlockBin } from './runtime.ts';
 import {

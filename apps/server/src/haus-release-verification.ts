@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
 import { lstat, readFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
-
 import type { HausReleaseIdentity } from './haus-release-identity.ts';
 
 const revisionPattern = /^[0-9a-f]{40}$/u;

@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { commandGroups } from '../../agent-cli.ts';
 import type { AgentApiRequest, AgentApiRequester } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';

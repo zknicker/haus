@@ -1,5 +1,4 @@
 import type { AgentCreated, AvatarMediaType, CreateAgentInput } from '@haus/api';
-
 import { enqueueAgentGreeting } from '../agent-delivery/greeting.ts';
 import { type AvatarBytes, createAvatarId, readAvatarBytes } from '../avatars/avatar-bytes.ts';
 import { findAllChannel, joinChannelAgents } from '../chats/channel-agent-membership.ts';

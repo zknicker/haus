@@ -3,7 +3,6 @@ import { EmptyState, ItemCard, PressableFeedback } from '@heroui-pro/react';
 import { Button, Chip, SearchField } from '@heroui/react';
 import { Search01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';

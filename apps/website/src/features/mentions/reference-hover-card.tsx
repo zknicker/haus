@@ -4,7 +4,6 @@ import {
     parseSkillReferenceTarget,
 } from '@haus/api/rich-references';
 import type * as React from 'react';
-
 import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';
 import { AgentHoverCard } from '../members/agent-hover-card.tsx';
 import { ChannelHoverCard } from './channel-hover-card.tsx';

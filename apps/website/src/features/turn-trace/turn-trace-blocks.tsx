@@ -1,7 +1,6 @@
 import { CodeBlock } from '@heroui-pro/react/code-block';
 import { Button } from '@heroui/react';
 import * as React from 'react';
-
 import { MicroLabel } from '../../components/micro-label.tsx';
 import { cn } from '../../lib/utils.ts';
 import { formatTraceFold } from './turn-trace-fold.ts';

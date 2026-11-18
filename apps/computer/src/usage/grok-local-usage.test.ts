@@ -2,7 +2,6 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { readGrokLocalUsage } from './grok-local-usage.ts';
 
 const roots: string[] = [];

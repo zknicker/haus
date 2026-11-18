@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { UsageOverview } from '@haus/api';
-
 import { buildRuntimeRow, type RuntimeUsageRow, staleUsageTimestamp } from './runtime-usage-row.ts';
 
 const row: RuntimeUsageRow = {

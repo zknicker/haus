@@ -1,8 +1,6 @@
 import { randomBytes } from 'node:crypto';
-
 import type { AgentCommand, AgentTurnSummary } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
-
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import { findMessageClaim } from '../src/claims/claim-shape.ts';
 import type { HausDatabase } from '../src/postgres/connection.ts';

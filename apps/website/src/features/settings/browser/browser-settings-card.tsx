@@ -2,7 +2,6 @@ import type { AgentRuntimeBrowserSettings, AgentRuntimeSaveBrowserSettings } fro
 import { ItemCard } from '@heroui-pro/react';
 import { Button } from '@heroui/react';
 import * as React from 'react';
-
 import { browserCapabilityView } from '../../computers/browser-capability-model.ts';
 import { BrowserSettingsDialog } from './browser-settings-dialog.tsx';
 import {

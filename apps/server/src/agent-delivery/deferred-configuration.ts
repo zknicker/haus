@@ -5,7 +5,6 @@ import {
     reasoningChangeResetsSession,
 } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentMessageDraftsTable, agentsTable } from '../postgres/schema.ts';
 import type { DeliveryTransport } from './delivery.ts';

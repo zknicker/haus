@@ -1,6 +1,5 @@
 import { Button, Card, Form } from '@heroui/react';
 import * as React from 'react';
-
 import { ActivationStep } from '../../components/activation/activation-shell.tsx';
 import type { ServerSummary } from '../../lib/haus-server.tsx';
 import { CreateServerFields, useCreateServerForm } from './create-server-form.tsx';

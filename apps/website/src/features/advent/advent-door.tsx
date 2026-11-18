@@ -4,7 +4,6 @@ import { SquareLock02Icon } from '@hugeicons-pro/core-solid-rounded';
 import { motion, useReducedMotion } from 'motion/react';
 import type * as React from 'react';
 import { Button as DoorButton } from 'react-aria-components';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { AdventLine } from './advent-line.tsx';
 import { type DoorState, doorColor } from './advent-season.ts';

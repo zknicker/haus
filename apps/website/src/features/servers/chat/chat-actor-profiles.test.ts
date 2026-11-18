@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { testAgent } from '../../members/agent-fixtures.ts';
 import { liveAgentActorProfile } from './chat-actor-profiles.ts';
 

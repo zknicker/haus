@@ -1,5 +1,4 @@
 import { Sidebar } from '@heroui-pro/react';
-
 import { UnreadCountChip } from '../../components/chats/unread-count-chip.tsx';
 import { HausMascot } from '../../components/haus-mascot.tsx';
 import { useOptionalServerWorkState } from '../../hooks/agents/use-current-agent-activity.tsx';

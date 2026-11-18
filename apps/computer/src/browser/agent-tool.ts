@@ -1,9 +1,7 @@
 import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { promisify } from 'node:util';
-
 import * as z from 'zod';
-
 import { defineHostTool, type HostToolSet } from '../host-tools/host-tool.ts';
 import { runtimeSearchPath } from '../runtime-discovery.ts';
 import { SystemCdpProber } from './cdp-probe.ts';

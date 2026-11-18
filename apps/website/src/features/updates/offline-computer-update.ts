@@ -1,5 +1,4 @@
 import type { ComputerUpdatePhase } from '@haus/api';
-
 import { expectedComputerRestartMs } from './haus-update-timing.ts';
 
 interface ComputerUpdateConnection {

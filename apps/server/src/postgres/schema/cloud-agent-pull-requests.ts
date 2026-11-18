@@ -10,7 +10,6 @@ import {
     text,
     timestamp,
 } from 'drizzle-orm/pg-core';
-
 import { serversTable } from './servers.ts';
 
 export const cloudAgentPullRequestsTable = pgTable(

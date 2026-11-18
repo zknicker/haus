@@ -1,5 +1,4 @@
 import type { Page } from '@playwright/test';
-
 import { installDesktopBrowserStub, openDesktopWindow } from '../support/desktop-browser-stub.ts';
 import { assertOpaqueId, createTestServer, openSection } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';

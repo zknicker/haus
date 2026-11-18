@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { readAppSourceFiles, type SourceFile } from '../test-support/source-files.ts';
 
 /**

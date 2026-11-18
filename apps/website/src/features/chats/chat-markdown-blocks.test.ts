@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { parseChatMarkdownBlocks } from './chat-markdown-blocks.ts';
 
 test('parseChatMarkdownBlocks spans a pipe table through its last row', () => {

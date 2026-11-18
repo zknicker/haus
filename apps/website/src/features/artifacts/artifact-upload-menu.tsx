@@ -1,6 +1,5 @@
 import { Button, Dropdown, Label } from '@heroui/react';
 import { FileUploadIcon, FolderUploadIcon, Upload04Icon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { Icon } from '../../components/ui/icon.tsx';
 
 /** The band's Upload button: files or a whole folder, into the open folder. */

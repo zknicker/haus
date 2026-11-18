@@ -1,8 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
-
 import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@haus/api';
-
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
 let harness: HausServerHarness;

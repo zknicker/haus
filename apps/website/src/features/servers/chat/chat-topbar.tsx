@@ -2,7 +2,6 @@ import type { Chat } from '@haus/api';
 import { Button, Chip, Tooltip } from '@heroui/react';
 import { SidebarRightIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
-
 import { ChannelIconBox } from '../../../components/chats/channel-icon-box.tsx';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';

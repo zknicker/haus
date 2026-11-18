@@ -1,6 +1,5 @@
 import type { ComputerSecretsStatus, OnePasswordVault } from '@haus/api';
 import { useRef, useState } from 'react';
-
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import {
     parseOnePasswordConnectReply,

@@ -3,7 +3,6 @@ import { ContextMenu } from '@heroui-pro/react';
 import { Label, toast } from '@heroui/react';
 import { Copy01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-
 import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import {

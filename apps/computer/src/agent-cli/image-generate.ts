@@ -1,12 +1,10 @@
 import path from 'node:path';
-
 import {
     type AgentImageGenerationCreateInput,
     agentImageGenerationCreateReceiptSchema,
     imageGenerationMaxReferences,
     inferAttachmentMediaType,
 } from '@haus/api';
-
 import { type AgentApiRequester, AgentApiTransportError } from './agent-api-client.ts';
 import { agentAttachmentUploadResponseSchema } from './agent-api-schemas.ts';
 import { AgentCliError } from './agent-error.ts';

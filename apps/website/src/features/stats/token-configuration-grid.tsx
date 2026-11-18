@@ -1,7 +1,6 @@
 import { DataGrid, type DataGridColumn, EmptyState, ItemCardGroup } from '@heroui-pro/react';
 import { Card, Chip } from '@heroui/react';
 import { ChartHistogramIcon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import type { ConfigurationUsage } from './token-usage-view.ts';

@@ -1,5 +1,4 @@
 import { githubInstallCandidatesInputSchema, githubInstallCandidatesSchema } from '@haus/api';
-
 import { requireGithubAdmin } from '../../github/installation-access.ts';
 import { listGithubInstallCandidates } from '../../github/installation-binding.ts';
 import { githubClock, githubProcedure, requireGithubApp } from './procedure.ts';

@@ -1,11 +1,9 @@
 import { expect, test } from 'bun:test';
-
 import {
     agentCloudAgentReceiptSchema,
     agentCloudAgentSendReceiptSchema,
     type CloudAgentObservation,
 } from '@haus/api';
-
 import { cloudAgentFixture } from './cloud-agent-fixture.ts';
 
 const fixture = cloudAgentFixture();

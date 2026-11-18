@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createMcpPresetAccount } from '../src/server-mcp/presets.ts';
 import { makeClient } from '../src/server-mcp/runtime-test-fixtures.ts';

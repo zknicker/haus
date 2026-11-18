@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { ActivationFrame } from './activation-frame.tsx';
 import { ActivationLoading } from './activation-loading.tsx';
 import { ActivationShell } from './activation-shell.tsx';

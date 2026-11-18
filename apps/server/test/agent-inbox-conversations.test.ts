@@ -1,9 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import { agentInboxConversationsResponseSchema } from '@haus/api';
 import { eq, sql } from 'drizzle-orm';
 import Fastify from 'fastify';
-
 import { decodeInboxActivityKey } from '../src/agent-api/inbox-activity-key.ts';
 import {
     parseInboxConversationsQuery,

@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-
 import { RequireOperator } from '../../servers/require-operator.tsx';
 import { useServerContext } from '../../servers/server-context.ts';
 import { serverRoute, settingsConnectionRoute } from '../../servers/server-routes.ts';

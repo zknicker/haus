@@ -1,5 +1,4 @@
 import { beforeAll, expect, test } from 'bun:test';
-
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 import { captureAllTopics, publishedSince } from './realtime-capture.ts';
 import { startTestTask } from './task-place-fixture.ts';

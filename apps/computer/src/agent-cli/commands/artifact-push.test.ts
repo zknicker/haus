@@ -2,7 +2,6 @@ import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { parseArgs } from '../parse.ts';
 import { ARTIFACT_SUBCOMMANDS } from './agent-artifact.ts';
 import { runArtifactPull } from './artifact-pull.ts';

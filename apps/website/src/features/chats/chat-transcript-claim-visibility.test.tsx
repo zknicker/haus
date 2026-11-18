@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import { MemoryRouter } from 'react-router-dom';
-
 import {
     MessageScroller,
     MessageScrollerProvider,

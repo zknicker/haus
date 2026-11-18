@@ -1,7 +1,6 @@
 import { Button } from '@heroui/react';
 import { ArrowUpRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useNavigate } from 'react-router-dom';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { cn } from '../../../lib/utils.ts';

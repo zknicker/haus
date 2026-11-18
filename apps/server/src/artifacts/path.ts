@@ -1,6 +1,5 @@
 import { artifactPathAncestors, artifactPathKey } from '@haus/api';
 import { and, eq, inArray, isNull, like, notInArray, type SQL } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { artifactsTable as artifacts } from '../postgres/schema.ts';
 import { ArtifactError } from './storage.ts';

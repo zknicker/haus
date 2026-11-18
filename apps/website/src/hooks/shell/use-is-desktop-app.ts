@@ -1,5 +1,4 @@
 import { useState } from 'react';
-
 import { isElectronDesktopApp } from '../../lib/desktop-bridge.ts';
 
 /**

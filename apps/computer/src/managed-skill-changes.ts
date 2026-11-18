@@ -1,7 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-
 import { factoryManagedSkillHashes, seedFactoryManagedSkills } from '@haus/agent-workspace';
 
 /** The release-owned skills one seed writes, and the content hash of each. */

@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'bun:test';
-
 import { getMentionAppearance } from './mention-appearance.tsx';
 import { getMentionDisplayLabel } from './mention-display-label.ts';
 

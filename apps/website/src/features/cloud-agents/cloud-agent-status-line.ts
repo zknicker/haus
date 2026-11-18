@@ -1,5 +1,4 @@
 import { isTerminalCloudAgentStatus } from '@haus/api';
-
 import { formatRelativeTime } from '../../lib/format.ts';
 import { messagePreviewLine } from '../chats/message-preview-line.ts';
 import {

@@ -11,7 +11,6 @@ import {
     unique,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
-
 import { agentsTable } from './agents.ts';
 import { bunJsonb } from './bun-jsonb.ts';
 import { chatMessagesTable } from './chat-messages.ts';

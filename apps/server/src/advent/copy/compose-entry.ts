@@ -1,5 +1,4 @@
 import { type AdventEntry, adventDoorCount } from '@haus/api';
-
 import type {
     AdventCountedFact,
     AdventFactStat,

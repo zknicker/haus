@@ -1,7 +1,6 @@
 import { type ImageGenerationProvider, imageGenerationProviderKeySchema } from '@haus/api';
 import { Button, FieldError, Form, Input, Label, Modal, TextField } from '@heroui/react';
 import { useState } from 'react';
-
 import { providerNames } from './image-generation-settings-model.ts';
 
 const FORM_ID = 'image-generation-key-form';

@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import journal from '../drizzle/postgres/meta/_journal.json' with { type: 'json' };
 
 // Drizzle applies only migrations whose `when` is later than the newest applied one, so a

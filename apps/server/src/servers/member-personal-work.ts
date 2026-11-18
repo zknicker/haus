@@ -1,5 +1,4 @@
 import { and, eq } from 'drizzle-orm';
-
 import { visibleChats } from '../chats/chat-visibility.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {

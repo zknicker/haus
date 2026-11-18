@@ -1,5 +1,4 @@
 import type { Page } from '@playwright/test';
-
 import { createAppTestFixture } from './app-session.ts';
 import { type AppTraffic, describeTraffic } from './app-traffic.ts';
 import { createClient } from './server.ts';

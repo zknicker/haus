@@ -5,7 +5,6 @@ import {
     browserResultSchema,
 } from '@haus/api';
 import { type EffectRuntime, tracePromise } from '@haus/effect';
-
 import { getComputerBrowserSettings, saveComputerBrowserSettings } from './settings.ts';
 
 export function parseBrowserRequest(value: unknown): BrowserRequest | null {

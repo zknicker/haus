@@ -2,7 +2,6 @@ import { afterEach, beforeEach, expect, spyOn, test } from 'bun:test';
 import { mkdir, mkdtemp, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { fakeHdiutil, holderListing } from './disk-fixtures.ts';
 import { parseMountpoints } from './disk-image.ts';
 import { detachWorkspaceVolume, WorkspaceDetachError } from './volume-detach.ts';

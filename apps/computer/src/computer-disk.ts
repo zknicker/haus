@@ -1,5 +1,4 @@
 import { statfs } from 'node:fs/promises';
-
 import { computerDiskStatusSchema } from '@haus/api';
 
 /** A failed measurement clears the last sample; it never changes execution readiness. */

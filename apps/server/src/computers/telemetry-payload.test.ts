@@ -1,10 +1,8 @@
 import { expect, test } from 'bun:test';
-
 import { makeProcessTelemetryLayer, withTelemetrySpan } from '@haus/effect';
 import { Effect, ManagedRuntime } from 'effect';
 import Fastify from 'fastify';
 import { Field, Root } from 'protobufjs';
-
 import { sanitizeComputerTelemetry } from './telemetry-payload.ts';
 import { telemetryProtobuf } from './telemetry-protobuf.ts';
 

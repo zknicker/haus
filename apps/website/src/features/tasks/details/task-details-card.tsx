@@ -1,6 +1,5 @@
 import type { TaskDetail } from '@haus/api';
 import type * as React from 'react';
-
 import { InlineCard } from '../../../components/ui/inline-card.tsx';
 import { TaskDescription } from './task-description.tsx';
 import { TaskDuePicker, TaskLabelsPicker, TaskPrioritySelect } from './task-detail-pickers.tsx';

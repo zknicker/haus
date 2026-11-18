@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Navigate, type RouteObject, useParams } from 'react-router-dom';
-
 import { serverRoute } from '../../features/servers/server-routes.ts';
 import {
     AgentHomeRedirect,

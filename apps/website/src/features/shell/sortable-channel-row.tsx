@@ -2,7 +2,6 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
-
 import { useChatNavigationEntry } from '../../hooks/servers/use-chats.ts';
 import { chatNavigationName } from './chat-navigation-name.ts';
 import { ChatNavigationRow } from './chat-navigation-row.tsx';

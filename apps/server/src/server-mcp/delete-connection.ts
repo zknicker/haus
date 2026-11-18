@@ -1,6 +1,5 @@
 import type { McpConnection } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-
 import { builtInConnection } from '../built-in-connections/built-in-connections.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { mcpConnectionsTable } from '../postgres/schema.ts';

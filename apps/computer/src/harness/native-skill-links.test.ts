@@ -2,7 +2,6 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, readdir, readlink, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { ensureNativeSkillLinks } from './native-skill-links.ts';
 
 const roots: string[] = [];

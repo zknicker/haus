@@ -1,7 +1,6 @@
 import type { ChatMessage } from '@haus/api';
 import { Button } from '@heroui/react';
 import { type RefObject, useLayoutEffect, useRef, useState } from 'react';
-
 import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useUnreadPreview } from '../../../hooks/inbox/use-unread-previews.ts';
 import type { ChatMessageJumpTarget } from '../../../hooks/servers/use-chat-message-navigation.ts';

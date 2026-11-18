@@ -1,5 +1,4 @@
 import { beforeAll, expect, test } from 'bun:test';
-
 import { implicitVersionAttempts, withImplicitVersion } from '../src/agent-api/task-route-shell.ts';
 import { TaskConflictError, TaskInvariantError } from '../src/tasks/task-errors.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';

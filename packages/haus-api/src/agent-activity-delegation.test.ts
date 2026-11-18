@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import {
     AGENT_ACTIVE_DELEGATIONS_MAX,
     type AgentActivityEvent,

@@ -1,5 +1,4 @@
 import { afterAll, expect, mock, test } from 'bun:test';
-
 import type React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 

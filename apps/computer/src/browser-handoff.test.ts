@@ -1,6 +1,5 @@
 import { expect, test } from 'bun:test';
 import { EventEmitter } from 'node:events';
-
 import {
     installEnterToOpenUrl,
     openUrlInBrowser,

@@ -1,5 +1,4 @@
 import type { MessageCause } from '@haus/api';
-
 import { CursorHoverCard } from '../../../components/ui/cursor-hover-card.tsx';
 import { cn } from '../../../lib/utils.ts';
 import { AgentProfileLink } from '../../members/agent-profile-link.tsx';

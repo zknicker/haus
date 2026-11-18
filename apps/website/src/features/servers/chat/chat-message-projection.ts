@@ -1,7 +1,6 @@
 import type { Agent } from '@haus/api';
 import { replaceEqualDeep } from '@tanstack/react-query';
 import * as React from 'react';
-
 import type { ChatMessageEntity } from '../../../hooks/servers/chat-message-entities.ts';
 import type { ChatMessageLayout } from '../../../hooks/servers/chat-message-layout.ts';
 import {

@@ -1,5 +1,4 @@
 import type { AgentActivityEvent, AgentExecutionJournal } from '@haus/api';
-
 import { readTraceError, type TurnTraceError } from './turn-trace-error.ts';
 import { buildTurnTrace } from './turn-trace-model.ts';
 import type { TurnTraceStep } from './turn-trace-step-types.ts';

@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import type { AgentApiRequest, AgentApiRequester } from '../agent-api-client.ts';
 import type { ParsedArgs } from '../parse.ts';
 import { runAttachmentUpload } from './agent-attachment.ts';

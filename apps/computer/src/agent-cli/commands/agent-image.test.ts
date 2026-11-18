@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { AgentCliError } from '../agent-error.ts';
 import { readGenerateFlags, runImageGenerate } from '../image-generate.ts';
 import { imageNotPostedSentence } from '../image-render.ts';

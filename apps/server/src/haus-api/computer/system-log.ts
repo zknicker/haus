@@ -1,6 +1,5 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
-
 import { ComputerSetupDeniedError, listComputerSystemEvents } from '../../computers/service.ts';
 import { serverIdSchema } from '../../servers/contracts.ts';
 import { memberProcedure } from '../server/procedure.ts';

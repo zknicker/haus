@@ -1,5 +1,4 @@
 import type { AmazonProductSummary } from '@haus/api';
-
 import type { AmazonProductLookup } from './amazon-product-lookup.ts';
 
 export function AmazonProductPreview({

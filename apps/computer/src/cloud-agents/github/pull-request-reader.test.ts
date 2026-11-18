@@ -1,5 +1,4 @@
 import { afterAll, expect, test } from 'bun:test';
-
 import { makeTestRuntime } from '@haus/effect';
 
 const runtime = makeTestRuntime();

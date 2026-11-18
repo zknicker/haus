@@ -1,7 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-
 import type { UsageOverview } from '@haus/api';
 import * as z from 'zod';
 

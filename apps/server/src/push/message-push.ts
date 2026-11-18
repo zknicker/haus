@@ -1,5 +1,4 @@
 import type { MessageCreatedEvent } from '@haus/api';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { messageCreatedTopic } from '../realtime/topics.ts';
 import { sendToDevices } from './push-delivery.ts';

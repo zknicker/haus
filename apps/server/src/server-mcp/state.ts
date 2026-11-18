@@ -1,6 +1,5 @@
 import { type McpConnection, type McpGrant, mcpSummarySchema } from '@haus/api';
 import { and, asc, eq, isNull } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentMcpConnectionGrantsTable,

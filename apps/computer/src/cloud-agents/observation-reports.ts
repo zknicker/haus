@@ -1,6 +1,5 @@
 import { isTerminalCloudAgentStatus } from '@haus/api';
 import { Deferred, Effect, Exit, Option, Queue } from 'effect';
-
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import { CloudAgentOperationError, foreign } from './foreign-operation.ts';
 import type { CloudAgentProviderObservation } from './provider.ts';

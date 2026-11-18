@@ -1,5 +1,4 @@
 import * as z from 'zod';
-
 import { serverRoleSchema } from './member-authority.ts';
 import { participantHandleSchema } from './participant-handle.ts';
 import { canonicalIanaTimezone } from './timezone.ts';

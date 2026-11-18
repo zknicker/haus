@@ -1,5 +1,4 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { CloudflareAdmissions } from './cloudflare-access.ts';
 import { CloudflareAdmissionUnavailableError } from './cloudflare-access.ts';

@@ -1,5 +1,4 @@
 import type { Locator } from '@playwright/test';
-
 import { createAppTestFixture, signInAsAppHuman } from '../support/app-session.ts';
 import {
     assertOpaqueId,

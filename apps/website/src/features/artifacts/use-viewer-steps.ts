@@ -1,6 +1,5 @@
 import type { ArtifactRecord } from '@haus/api';
 import * as React from 'react';
-
 import { useArtifactLibrary } from '../../hooks/artifacts/use-artifact-library.ts';
 import { useViewShown } from '../../hooks/desktop-tabs/view-shown.ts';
 import type { ArtifactViewerContext } from './library-params.ts';

@@ -1,5 +1,4 @@
 import { AlertDialog, Button, toast } from '@heroui/react';
-
 import { useArtifactDeleteMany } from '../../hooks/artifacts/use-artifact-delete-many.ts';
 import type { BulkDeletePlan } from './library-bulk.ts';
 

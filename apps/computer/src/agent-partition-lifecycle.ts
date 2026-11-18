@@ -1,5 +1,4 @@
 import { join } from 'node:path';
-
 import { parseRestartCommand } from './agent-command-frames.ts';
 import { disposeAgentLaunchHost } from './agent-launch-host.ts';
 import { resetAgentState } from './agent-reset.ts';

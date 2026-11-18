@@ -1,8 +1,6 @@
 import { lstat, mkdir, readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
-
 import { z } from 'zod';
-
 import { hostWorkspaceDisk, type WorkspaceDisk } from './disk-image.ts';
 import { isMissing, readJson, withStorageLock } from './storage-ledger.ts';
 import {

@@ -1,6 +1,5 @@
 import type { Agent } from '@haus/api';
 import * as React from 'react';
-
 import { useTabId } from '../../../hooks/desktop-tabs/tab-presence.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import {

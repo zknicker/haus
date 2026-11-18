@@ -1,7 +1,6 @@
 import type { ArtifactCreator } from '@haus/api';
 import { Button, Dropdown, Label, Separator } from '@heroui/react';
 import { ArrowDown01Icon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useArtifactCreators } from '../../hooks/artifacts/use-artifact-creators.ts';

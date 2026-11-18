@@ -2,9 +2,7 @@ import { afterEach, beforeEach, expect, test } from 'bun:test';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-
 import { getManualTopic } from '@haus/agent-manual';
-
 import {
     coveSeededSummaries,
     coveWorkspaceFiles,

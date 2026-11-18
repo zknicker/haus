@@ -1,5 +1,4 @@
 import type { AgentExecutionOutline, AgentExecutionOutlineStep } from '@haus/api';
-
 import type { TraceBarKind } from '../../turn-trace/turn-trace-grid.tsx';
 import { traceStepKind, traceToolKind } from '../../turn-trace/turn-trace-kind.ts';
 import type { TurnTraceStep } from '../../turn-trace/turn-trace-step-types.ts';

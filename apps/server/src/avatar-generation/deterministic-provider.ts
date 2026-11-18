@@ -1,6 +1,5 @@
 import { appendFile, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
-
 import type { AvatarImageProvider, AvatarProviderRequest } from './types.ts';
 
 /**

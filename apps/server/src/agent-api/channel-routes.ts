@@ -1,7 +1,6 @@
 import { agentAddChannelAgentInputSchema, agentCreateChannelInputSchema } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
-
 import { findLiveChannel } from '../chats/channel-agent-membership.ts';
 import { ChannelNameTakenError } from '../chats/create-channel.ts';
 import { prepareLifecycleEvent } from '../chats/lifecycle-events.ts';

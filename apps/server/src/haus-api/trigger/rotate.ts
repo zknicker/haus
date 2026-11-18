@@ -1,5 +1,4 @@
 import { triggerRotateInputSchema, triggerSecretResultSchema } from '@haus/api';
-
 import { rotateOperatorTriggerSecret } from '../../triggers/operator-triggers.ts';
 import { triggerCurlCommand } from '../../triggers/trigger-url.ts';
 import { triggerClock, triggerProcedure } from './procedure.ts';

@@ -1,6 +1,5 @@
 import type { GithubTrigger } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
-
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { projectGithubDelivery } from '../github/event-projection/project.ts';
 import { sampleGithubPayload } from '../github/event-projection/sample.ts';

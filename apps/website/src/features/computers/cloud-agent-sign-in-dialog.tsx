@@ -2,7 +2,6 @@ import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Button, Modal, Separator, Spinner } from '@heroui/react';
 import { Key01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useState } from 'react';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { writeClipboardText } from '../../lib/clipboard.ts';
 import { openSystemBrowserLink } from '../../lib/open-external-link.ts';

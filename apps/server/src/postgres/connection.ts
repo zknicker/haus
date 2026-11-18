@@ -1,6 +1,5 @@
 import { SQL } from 'bun';
 import { type BunSQLDatabase, drizzle } from 'drizzle-orm/bun-sql';
-
 import { describeDatabaseUrl } from './database-url.ts';
 import * as schema from './schema.ts';
 

@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { listReminders, scheduleReminder, tickReminders } from '../src/reminders/reminders.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';

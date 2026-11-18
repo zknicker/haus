@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { TokenUsageOverview } from '@haus/api';
-
 import { summarizeAgentTokenUsage } from './agent-usage-summary.ts';
 
 function row(overrides: {

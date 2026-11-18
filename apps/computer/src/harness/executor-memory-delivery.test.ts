@@ -2,7 +2,6 @@ import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { createIdleCompactionReporter } from '../idle-compaction-reporter.ts';
 import { fakeRuntimeDriver, finishedTurn } from '../runtime/testing/fake-runtime-driver.ts';

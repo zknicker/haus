@@ -1,6 +1,5 @@
 import type { CloudAgentProvider, CloudAgentWork } from '@haus/api';
 import { toast } from '@heroui/react';
-
 import type { ModelProviderLogoSource } from '../../components/badges/model-provider-logo.tsx';
 import { getDesktopBridge, type HausDesktopBridge } from '../../lib/desktop-bridge.ts';
 import { openExternalLink } from '../../lib/open-external-link.ts';

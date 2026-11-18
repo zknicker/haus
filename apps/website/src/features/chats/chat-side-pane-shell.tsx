@@ -1,6 +1,5 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import * as React from 'react';
-
 import { ResizablePaneRail } from '../../components/ui/resizable-pane-rail.tsx';
 import {
     artifactPaneWidthLimits,

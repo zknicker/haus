@@ -1,5 +1,4 @@
 import { TRPCError } from '@trpc/server';
-
 import { RealtimeRefusalError } from './refusal.ts';
 import type { RealtimeTopic } from './topic.ts';
 

@@ -1,6 +1,5 @@
 import { computerBootstrapHelloSchema, computerUpdateProgressSchema } from '@haus/api';
 import { z } from 'zod';
-
 import { serverIdSchema, serverSlugSchema } from '../servers/contracts.ts';
 
 export const computerIdSchema = z.string().regex(/^cmp_[A-Za-z0-9_-]{16}$/u);

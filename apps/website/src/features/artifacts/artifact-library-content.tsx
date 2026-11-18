@@ -1,7 +1,6 @@
 import type { ArtifactFolderEntry, ArtifactMetadata, ArtifactRecord } from '@haus/api';
 import { Button } from '@heroui/react';
 import type { DragAndDropHooks } from 'react-aria-components';
-
 import { useArtifactFolderPreviews } from '../../hooks/artifacts/use-artifact-folder-previews.ts';
 import type {
     ArtifactLibrary,

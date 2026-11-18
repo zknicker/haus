@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'bun:test';
-
 import { buildHostSkillSections } from './host-skill-catalog.ts';
 
 const skill = (name: string) => ({ description: '', id: `hsk_${name}`, name, source: name });

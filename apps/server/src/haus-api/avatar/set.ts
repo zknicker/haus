@@ -1,5 +1,4 @@
 import { avatarSchema, setAvatarInputSchema } from '@haus/api';
-
 import { setAvatar } from '../../avatars/set-avatar.ts';
 import { avatarProcedure } from './procedure.ts';
 

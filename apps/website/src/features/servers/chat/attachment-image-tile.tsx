@@ -2,7 +2,6 @@ import { ChatAttachment, ContextMenu } from '@heroui-pro/react';
 import { Label } from '@heroui/react';
 import { Download04Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAttachmentImage } from '../../../hooks/servers/use-attachment-image.ts';
 import {

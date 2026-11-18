@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import { recommendedPresets } from './connection-presets.ts';
 
 test('Factory is recommended until the Server has a Factory account', () => {

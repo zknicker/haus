@@ -1,6 +1,5 @@
 import type * as React from 'react';
 import { Link } from 'react-router-dom';
-
 import { HausMascot } from '../../components/haus-mascot.tsx';
 import { useOptionalServerWorkState } from '../../hooks/agents/use-current-agent-activity.tsx';
 import { inboxRoute } from '../servers/server-routes.ts';

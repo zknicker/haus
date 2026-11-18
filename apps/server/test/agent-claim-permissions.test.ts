@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import { assignAgentClaim } from '../src/agent-api/claim-assign.ts';
 import { claimAgentClaims } from '../src/agent-api/claim-claim.ts';
 import { updateAgentClaim } from '../src/agent-api/claims.ts';

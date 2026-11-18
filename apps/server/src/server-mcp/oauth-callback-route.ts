@@ -1,5 +1,4 @@
 import type { FastifyInstance } from 'fastify';
-
 import type { McpOAuthRelay } from './oauth-relay.ts';
 
 export function registerMcpOAuthCallback(app: FastifyInstance, relay: McpOAuthRelay): void {

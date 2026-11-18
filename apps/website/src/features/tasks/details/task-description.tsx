@@ -2,7 +2,6 @@ import { TASK_DESCRIPTION_MAX_CHARS, type TaskDetail } from '@haus/api';
 import { Button, Disclosure, TextArea, TextField } from '@heroui/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-
 import { useUpdateTask } from '../../../hooks/tasks/use-update-task.ts';
 import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 import { ReferenceMarkdown } from '../../mentions/reference-markdown.tsx';

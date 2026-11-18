@@ -1,7 +1,6 @@
 import type { ChatLastMessage } from '@haus/api';
 import { and, desc, eq, type SQL, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, chatMessagesTable, chatsTable, usersTable } from '../postgres/schema.ts';
 import { readStoredAuthorIdentity } from './message-shape.ts';

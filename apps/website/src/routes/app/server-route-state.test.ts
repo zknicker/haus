@@ -1,7 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-
 import type { Chat } from '@haus/api';
-
 import {
     resolveActiveSection,
     resolveAgentProfileTarget,

@@ -2,7 +2,6 @@ import { Sidebar } from '@heroui-pro/react';
 import { Button } from '@heroui/react';
 import { Plus } from '@hugeicons/core-free-icons';
 import { useLocation } from 'react-router-dom';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { usePreloadUnreadPreviews } from '../../hooks/inbox/use-unread-previews.ts';
 import { useAgentIds } from '../../hooks/members/use-agents.ts';

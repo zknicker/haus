@@ -1,6 +1,5 @@
 import type { Agent, ChatMessage } from '@haus/api';
 import * as React from 'react';
-
 import type { TranscriptActor, TranscriptActorProfile } from '../../chats/transcript-contract.ts';
 import type { HumanDirectory } from '../human-identity.ts';
 

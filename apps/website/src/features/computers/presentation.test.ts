@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { AppleIcon, ComputerIcon, WindowsNewIcon } from '@hugeicons-pro/core-solid-rounded';
-
 import {
     agentExecutionLabels,
     computerHealthColor,

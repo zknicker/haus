@@ -1,6 +1,5 @@
 import { Toolbar } from '@heroui/react';
 import { useParams } from 'react-router-dom';
-
 import { ArtifactOptionsMenu } from '../../features/chats/chat-artifact-panel-chrome.tsx';
 import { WorkspaceBrowserContent } from '../../features/chats/chat-artifact-workspace-content.tsx';
 import {

@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { createBrowserTools, validateBrowserCommand } from './agent-tool.ts';
 
 test('browser commands cannot replace the selected connection or close the shared browser', () => {

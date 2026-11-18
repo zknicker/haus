@@ -1,7 +1,6 @@
 import { Button, Tooltip } from '@heroui/react';
 import { ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 import {
     type AvatarGenerationSession,

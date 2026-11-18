@@ -1,6 +1,5 @@
 import type { MessageCause } from '@haus/api';
 import { FlashIcon } from '@hugeicons-pro/core-solid-rounded';
-
 import { identityMarkRadius } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 

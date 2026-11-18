@@ -1,7 +1,6 @@
 import type { Agent, Reminder } from '@haus/api';
 import { Sheet } from '@heroui-pro/react';
 import * as React from 'react';
-
 import { ReminderDetailPanel } from './reminder-detail-panel.tsx';
 
 /**

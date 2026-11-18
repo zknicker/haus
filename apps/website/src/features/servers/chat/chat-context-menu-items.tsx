@@ -10,7 +10,6 @@ import {
     UserCircleIcon,
     UserMultiple02Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 import { ChatContextSurfaceItems } from './chat-surface-items.tsx';
 import type { ChannelActions } from './use-channel-actions.tsx';

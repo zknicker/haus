@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { UsageOverview } from '@haus/api';
-
 import { normalizeStoredUsage } from './computer-usage.ts';
 
 test('Server returns a retained provider snapshot with its retention stamp intact', () => {

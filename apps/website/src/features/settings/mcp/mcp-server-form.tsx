@@ -12,7 +12,6 @@ import {
 } from '@heroui/react';
 import type * as React from 'react';
 import { useState } from 'react';
-
 import { SecretFieldsEditor } from './mcp-secret-fields.tsx';
 import {
     buildSaveInput,

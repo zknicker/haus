@@ -3,7 +3,6 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-
 import { coveOnboardingFaq } from './cove-factory-faq.ts';
 import { coveOnboardingPlaybook } from './cove-factory-guidance.ts';
 import {

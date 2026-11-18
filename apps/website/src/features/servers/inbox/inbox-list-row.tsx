@@ -1,6 +1,5 @@
 import { ItemCard, PressableFeedback } from '@heroui-pro/react';
 import type { ReactNode } from 'react';
-
 import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { cn } from '../../../lib/utils.ts';
 

@@ -1,5 +1,4 @@
 import { build, type InlineConfig } from 'vite';
-
 import { rejectNodeBuiltins } from '../vite-browser-module-guard.ts';
 
 const apiRootEntry = decodeURIComponent(

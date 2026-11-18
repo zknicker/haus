@@ -4,7 +4,6 @@ import {
     type ShellCommand,
     unwrapShellCommand,
 } from '@haus/api';
-
 import { readHausVerb } from './turn-trace-haus-command.ts';
 import { basenameOf } from './turn-trace-path.ts';
 import type { TraceTense } from './turn-trace-tense.ts';

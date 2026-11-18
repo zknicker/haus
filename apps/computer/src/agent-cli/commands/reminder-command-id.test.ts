@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type * as z from 'zod';
-
 import type { AgentApiRequest } from '../agent-api-client.ts';
 import { runReminderSchedule } from './agent-reminder.ts';
 import { scheduleCommandId } from './reminder-command-id.ts';

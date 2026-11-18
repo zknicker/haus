@@ -1,6 +1,5 @@
 import type { Agent } from '@haus/api';
 import type * as React from 'react';
-
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { BandBreadcrumbs } from '../../shell/band-breadcrumbs.tsx';

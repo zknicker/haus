@@ -4,7 +4,6 @@ import {
     parseExecutionJournalUploadRecord,
 } from '@haus/api';
 import { and, eq, isNull, lt, or } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentExecutionJournalRecordsTable,

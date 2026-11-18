@@ -1,5 +1,4 @@
 import type { AgentTrigger, GithubTriggerEvent, GithubTriggerProblem } from '@haus/api';
-
 import { formatUtcTime } from '../agent-format.ts';
 
 // How `haus trigger` prints a Trigger. A webhook is reached at its URL; a

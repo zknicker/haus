@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { resolveMcpConnectionIcon } from './connection-branding.ts';
 import type { McpIconResolver } from './icons.ts';
 

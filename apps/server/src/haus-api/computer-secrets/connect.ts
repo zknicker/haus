@@ -7,7 +7,6 @@ import {
     onePasswordServiceAccountTokenSchema,
     onePasswordVaultSchema,
 } from '@haus/api';
-
 import { memberProcedure } from '../server/procedure.ts';
 import { computerSecretsTargetSchema, relayComputerSecrets } from './relay.ts';
 

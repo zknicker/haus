@@ -1,8 +1,6 @@
 import { expect, test } from 'bun:test';
-
 import { makeTestRuntime } from '@haus/effect';
 import { TestClock } from 'effect';
-
 import { AttachmentConnectionWork } from './attachment-connection-work.ts';
 
 test('connection loops use the Effect clock and stop with the connection scope', async () => {

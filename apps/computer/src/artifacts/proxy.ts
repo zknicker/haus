@@ -1,5 +1,4 @@
 import { join } from 'node:path';
-
 import { artifactDownloadResultResponseSchema } from '../agent-cli/artifact-drive-response-schema.ts';
 import { applyServerAcceptEncoding, relayDecodedResponse } from '../server-encoding.ts';
 import { ArtifactCache } from './cache.ts';

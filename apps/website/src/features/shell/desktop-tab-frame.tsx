@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { RouterProvider } from 'react-aria-components';
 import { Outlet, type RouteObject, useRoutes } from 'react-router-dom';
-
 import { useDesktopTabsSelector } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import { currentEntry, type TabHistoryEntry } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import {

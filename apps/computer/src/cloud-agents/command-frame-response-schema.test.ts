@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { cloudAgentCancelCommandSchema } from '@haus/api';
-
 import {
     cloudAgentCancelCommandResponseSchema,
     cloudAgentCapabilityRequestResponseSchema,

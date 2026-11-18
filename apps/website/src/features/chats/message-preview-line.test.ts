@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { messagePreviewLine } from './message-preview-line.ts';
 
 test('a preview line shows reference labels instead of their targets', () => {

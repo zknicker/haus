@@ -11,7 +11,6 @@ import {
     unique,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
-
 import { bunJsonb } from './bun-jsonb.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
 import { serversTable } from './servers.ts';

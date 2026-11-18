@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { AgentTurnTimings } from './agent-turn-timings.ts';
 
 test('distinguishes first events, repeated sends, and trailing work on a monotonic clock', async () => {

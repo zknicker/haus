@@ -1,6 +1,5 @@
 import { type GithubTriggerEventName, githubTriggerEventsSchema } from '@haus/api';
 import { and, eq, inArray, isNull, ne } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentMcpConnectionGrantsTable,

@@ -1,6 +1,5 @@
 import { AlertDialog, Button, Input, Label, TextField } from '@heroui/react';
 import * as React from 'react';
-
 import { SettingsRowError } from '../../features/settings/layout/settings-text.tsx';
 
 export function DeleteDialog({

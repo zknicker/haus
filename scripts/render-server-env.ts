@@ -21,7 +21,6 @@ import { execFileSync } from 'node:child_process';
 import { chmodSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 import {
     deliverableNames,
     deliveredEnvironmentNames,

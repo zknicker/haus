@@ -1,5 +1,4 @@
 import type { GithubTriggerProblem } from '@haus/api';
-
 import { enqueueInboxItem, ensureDeliveryState } from '../agent-delivery/store.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 

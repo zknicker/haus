@@ -1,7 +1,6 @@
 import type { TaskMessagePlace } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
-
 import { chatsTable } from '../postgres/schema.ts';
 
 const originChannelsTable = alias(chatsTable, 'origin_channel');

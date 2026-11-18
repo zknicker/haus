@@ -1,5 +1,4 @@
 import { triggerResultSchema, triggerSetStatusInputSchema } from '@haus/api';
-
 import { setOperatorTriggerStatus } from '../../triggers/operator-triggers.ts';
 import { triggerClock, triggerProcedure } from './procedure.ts';
 

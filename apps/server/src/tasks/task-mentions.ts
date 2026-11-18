@@ -1,6 +1,5 @@
 import type { TaskMention, TaskReminderRef } from '@haus/api';
 import { and, desc, eq, exists, isNull, max, or } from 'drizzle-orm';
-
 import { readStoredAuthorIdentity } from '../chats/message-shape.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {

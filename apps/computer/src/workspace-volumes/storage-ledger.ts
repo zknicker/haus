@@ -1,8 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-
 import { z } from 'zod';
-
 import { withPidLock } from '../pid-lock.ts';
 
 const ledgerSchema = z.object({

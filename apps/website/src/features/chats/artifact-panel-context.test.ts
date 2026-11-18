@@ -1,5 +1,4 @@
 import { expect, mock, test } from 'bun:test';
-
 import { routeArtifactOpen } from './artifact-panel-context.tsx';
 import type { HausResourceTarget } from './haus-resource-link.ts';
 

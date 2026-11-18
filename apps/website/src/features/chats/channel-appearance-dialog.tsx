@@ -1,7 +1,6 @@
 import type { Chat } from '@haus/api';
 import { Button, Form, Modal, toast } from '@heroui/react';
 import * as React from 'react';
-
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { useChannelUpdate } from '../../hooks/servers/use-channel-update.ts';
 import { type ChannelAppearance, ChannelAppearanceFields } from './channel-appearance-fields.tsx';

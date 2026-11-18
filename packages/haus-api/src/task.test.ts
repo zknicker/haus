@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { agentDeliveryRecordSchema, isChatlessInboxSource } from './agent-deliveries.ts';
 import { type AgentTurnTrigger, agentTurnTriggerSchema } from './agent-turn-trigger.ts';
 import { chatMessageSchema } from './chat.ts';

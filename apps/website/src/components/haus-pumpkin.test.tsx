@@ -1,7 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { EYES_PATH } from './haus-ghost-paths.ts';
 import { HausGhost } from './haus-ghost.tsx';
 import { MARK_RIB, PUMPKIN_FORM, PUMPKIN_PATCHES } from './haus-pumpkin-form.ts';

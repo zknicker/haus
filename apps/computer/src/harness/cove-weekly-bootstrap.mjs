@@ -1,7 +1,5 @@
 import { pathToFileURL } from 'node:url';
-
 import { seedAgentWorkspace, seedCoveWorkspace } from '@haus/agent-workspace';
-
 import { composeAgentInstructions } from './instructions.ts';
 
 /** Explicit opt-in skew probe. Read a pinned old checkout; all writes stay in the fixture. */

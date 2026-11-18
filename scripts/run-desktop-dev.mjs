@@ -1,7 +1,6 @@
 import { spawn, spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 import { getDevEnvironment } from './dev-ports.mjs';
 
 const currentDirectory = path.dirname(fileURLToPath(import.meta.url));

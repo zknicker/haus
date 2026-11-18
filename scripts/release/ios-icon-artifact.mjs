@@ -2,7 +2,6 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-
 import { repoRoot } from './release-utils.mjs';
 
 export const iosIconArtifactDirectory = path.join(repoRoot, 'assets', 'ios-icon');

@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { deleteArtifact } from '../src/artifacts/delete.ts';
 import { artifactThumbnailKey } from '../src/artifacts/storage.ts';
 import {

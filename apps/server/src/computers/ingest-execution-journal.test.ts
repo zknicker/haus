@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { ingestExecutionJournalUpload } from './ingest-execution-journal.ts';
 

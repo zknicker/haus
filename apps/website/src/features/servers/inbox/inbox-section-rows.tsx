@@ -1,7 +1,6 @@
 import { Separator } from '@heroui/react';
 import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion';
 import type { ReactNode, Ref } from 'react';
-
 import { springs } from '../../../lib/springs.ts';
 import { InboxCardMotionItem } from './inbox-card-motion.tsx';
 import { InboxSectionRows } from './inbox-section.tsx';

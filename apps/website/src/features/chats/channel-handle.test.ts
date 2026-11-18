@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { channelHandleIssue, isValidChannelHandle } from './channel-handle.ts';
 
 test('accepts handles the runtime accepts', () => {

@@ -4,7 +4,6 @@ import { Button, Calendar, DatePicker, Label, ListBox } from '@heroui/react';
 import { Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { parseDate } from '@internationalized/date';
 import type * as React from 'react';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useTaskLabels } from '../../../hooks/servers/use-task-labels.ts';
 import { useUpdateTask } from '../../../hooks/tasks/use-update-task.ts';

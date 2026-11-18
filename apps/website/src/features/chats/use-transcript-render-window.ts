@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import { getRememberedChatScrollPosition } from './chat-scroll-position-memory.tsx';
 import type { TranscriptRenderRow } from './chat-transcript-row-model.ts';
 import {

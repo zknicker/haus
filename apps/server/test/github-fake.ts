@@ -1,5 +1,4 @@
 import { generateKeyPairSync } from 'node:crypto';
-
 import type { GithubAppConfig } from '../src/github/app-auth.ts';
 import { createGithubApp, type GithubApp } from '../src/github/github-app.ts';
 

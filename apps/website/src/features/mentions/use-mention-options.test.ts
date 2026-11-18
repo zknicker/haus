@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'bun:test';
-
 import type { MentionOption } from './mention-types.ts';
 
 type InventoryMentionOption = MentionOption;

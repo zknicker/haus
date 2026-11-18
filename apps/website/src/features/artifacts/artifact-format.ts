@@ -1,5 +1,4 @@
 import type { ArtifactMetadata } from '@haus/api';
-
 import { formatRelativeTime } from '../../lib/format.ts';
 import { serverRoute } from '../servers/server-routes.ts';
 import type { ArtifactFileKind } from './icons/artifact-file-kind.ts';

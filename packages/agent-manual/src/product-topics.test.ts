@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { getManualTopic, manualTopics, searchManualTopics } from './index.ts';
 import { resolveManualTopic } from './search.ts';
 

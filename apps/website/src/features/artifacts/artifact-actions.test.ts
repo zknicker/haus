@@ -1,7 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-
 import type { ArtifactCreator } from '@haus/api';
-
 import {
     canDeleteArtifact,
     fileActions,

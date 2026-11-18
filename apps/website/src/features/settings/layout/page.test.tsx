@@ -1,8 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom';
-
 import { PageColumn } from '../../shell/page-column.tsx';
 import { useLayoutContext } from '../../shell/use-layout-context.ts';
 import { SettingsLayout } from './page.tsx';

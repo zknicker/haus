@@ -6,7 +6,6 @@ import {
     cloudAgentActivityMaxLength,
     cloudAgentBranchRepositorySchema,
 } from '@haus/api';
-
 import type { CloudAgentProviderObservation } from '../provider.ts';
 import { boundedReport, boundedSummary } from '../report-text.ts';
 import type { CursorBranchReading, CursorRunReading, CursorRunStatus } from './transport.ts';

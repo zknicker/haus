@@ -1,5 +1,4 @@
 import { getServerMemberInputSchema, serverMemberSchema } from '@haus/api';
-
 import { getServerMember } from '../../servers/get-member.ts';
 import { serverMemberProcedure } from './procedure.ts';
 

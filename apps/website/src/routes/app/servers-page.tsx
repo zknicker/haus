@@ -1,5 +1,4 @@
 import { Navigate, useSearchParams } from 'react-router-dom';
-
 import { ActivationLoading } from '../../components/activation/activation-loading.tsx';
 import { ActivationShell, ActivationStep } from '../../components/activation/activation-shell.tsx';
 import { ServerChoiceFlow } from '../../features/servers/server-choice-flow.tsx';

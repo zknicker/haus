@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { agentNoticeCommandSchema, agentStartCommandSchema } from './agent-delivery-frames.ts';
 import {
     agentTaskAssignInputSchema,

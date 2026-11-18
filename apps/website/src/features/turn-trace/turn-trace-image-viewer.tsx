@@ -1,6 +1,5 @@
 import { Button, Modal } from '@heroui/react';
 import type * as React from 'react';
-
 import { useDesktopPageOpeners } from '../../hooks/desktop-tabs/use-desktop-page-openers.ts';
 import { TurnTraceProse } from './turn-trace-blocks.tsx';
 import type { TurnTraceWorkspace } from './turn-trace-scope.tsx';

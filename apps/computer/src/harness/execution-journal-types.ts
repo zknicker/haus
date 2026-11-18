@@ -3,7 +3,6 @@ import type {
     ExecutionJournalStatus,
     ExecutionJournalSubagentPatch,
 } from '@haus/api';
-
 import type { JournalRecord } from './execution-journal-records.ts';
 
 /**

@@ -1,6 +1,5 @@
 import * as React from 'react';
 import type { Navigator } from 'react-router-dom';
-
 import {
     type DesktopTabCommands,
     useDesktopTabCommands,

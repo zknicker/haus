@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import { createDevServerEnvironment } from './dev-stack-server-environment.mjs';
 
 test('Server owns the worktree endpoint without external Skool configuration', () => {

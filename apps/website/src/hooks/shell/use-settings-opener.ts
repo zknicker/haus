@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import { serverSettingsRoute } from '../../features/servers/server-routes.ts';
 import {
     type DesktopTabCommands,

@@ -11,7 +11,6 @@ import {
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { grokAuthMethod, resolveGrokCredential } from './grok-auth.ts';
 
 const CLIENT = 'b1a00492-073a-47ea-816f-4c329264a828';

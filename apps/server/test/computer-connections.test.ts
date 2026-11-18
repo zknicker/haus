@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { AgentCommand, SignedComputerRelease } from '@haus/api';
-
 import { registerTestConnections } from './test-computer-connections.ts';
 
 const computerId = 'cmp_1234567890123456';

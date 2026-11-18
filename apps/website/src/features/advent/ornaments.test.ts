@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { adventFacts } from '@haus/api';
-
 import { dayOrnament, factOrnament, ornamentArt } from './ornaments.ts';
 
 test('every fact has painted art', () => {

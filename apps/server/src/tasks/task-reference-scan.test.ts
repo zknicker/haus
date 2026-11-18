@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { readTaskReferenceCandidates } from './task-reference-scan.ts';
 
 const keys = (content: string) =>

@@ -4,9 +4,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { SQL } from 'bun';
-
 import {
     createHausServerApplication,
     type HausServerApplication,

@@ -2,7 +2,6 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-
 import {
     archiveComputerArtifact,
     computerReleaseRoot,

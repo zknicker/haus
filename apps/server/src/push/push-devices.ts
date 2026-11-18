@@ -1,6 +1,5 @@
 import type { PushRegisterDeviceInput } from '@haus/api';
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { pushDevicesTable, serverMembershipsTable, serversTable } from '../postgres/schema.ts';
 import type { PushDevice } from './push-sender.ts';

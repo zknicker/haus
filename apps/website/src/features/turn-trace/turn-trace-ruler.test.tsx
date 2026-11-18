@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { TraceBody, type TraceLayout, TraceLayoutProvider } from './turn-trace-grid.tsx';
 import { TraceRow } from './turn-trace-row.tsx';
 import { TraceRuler } from './turn-trace-ruler.tsx';

@@ -1,5 +1,4 @@
 import { afterEach, expect, spyOn, test } from 'bun:test';
-
 import { runAgentCli } from '../agent-cli.ts';
 
 const flags = '--target <target> --number <n>';

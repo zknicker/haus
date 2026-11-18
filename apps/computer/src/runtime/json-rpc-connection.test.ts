@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { JsonRpcConnection, JsonRpcHandlerError } from './json-rpc-connection.ts';
 import { JsonRpcConnectionClosedError, JsonRpcRequestError } from './json-rpc.ts';
 

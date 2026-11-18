@@ -1,6 +1,5 @@
 import { mcpPresetIcons, mcpPresetSchema } from '@haus/api';
 import { and, asc, eq, inArray, isNull, type SQL } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { mcpConnectionsTable } from '../postgres/schema.ts';
 import { mcpUpdatedTopic } from '../realtime/topics.ts';

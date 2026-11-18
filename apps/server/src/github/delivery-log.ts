@@ -1,5 +1,4 @@
 import { and, eq, inArray } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { githubWebhookDeliveriesTable } from '../postgres/schema.ts';
 import type { GithubDelivery } from './delivery-ingest.ts';

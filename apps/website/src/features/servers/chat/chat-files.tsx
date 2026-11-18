@@ -1,7 +1,6 @@
 import type { ChatMessage } from '@haus/api';
 import { Button, Description, Label, ListBox, Tooltip } from '@heroui/react';
 import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { identityMarkRadius } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAttachmentDownload } from '../../../hooks/servers/use-attachment-download.ts';

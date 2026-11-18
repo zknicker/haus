@@ -1,5 +1,4 @@
 import * as z from 'zod';
-
 import { AUTOMATION_HISTORY_RETENTION_DAYS } from './automation.ts';
 import { idSchema } from './chat.ts';
 import { triggerTitleMaxLength } from './triggers.ts';

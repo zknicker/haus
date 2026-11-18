@@ -1,5 +1,4 @@
 import EventEmitter, { on } from 'node:events';
-
 import { type AgentActivityEvent, agentActivityEventSchema } from '@haus/api';
 
 const eventName = 'agent.activity.committed';

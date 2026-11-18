@@ -1,5 +1,4 @@
 import { deflateSync } from 'node:zlib';
-
 import { createAppTestFixture, signInAsAppHuman } from '../support/app-session.ts';
 import {
     assertOpaqueId,

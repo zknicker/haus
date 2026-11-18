@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import { agentHoverMeta, formatAgentDelegationSummary } from './agent-hover-delegations.ts';
 
 const now = Date.parse('2026-10-06T12:10:00.000Z');

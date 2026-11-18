@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { WidgetArtifactCard } from './artifact-card.tsx';
 import { ArtifactPanelOpenProvider } from './artifact-panel-context.tsx';
 

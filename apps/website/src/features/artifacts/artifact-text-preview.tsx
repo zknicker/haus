@@ -1,5 +1,4 @@
 import { type ArtifactMetadata, artifactTextMaxBytes } from '@haus/api';
-
 import { useArtifactText } from '../../hooks/artifacts/use-artifact-text.ts';
 import { FileTextPreview, type FileTextRenderer } from '../chats/file-text-preview.tsx';
 import { ArtifactFileCard } from './artifact-file-card.tsx';

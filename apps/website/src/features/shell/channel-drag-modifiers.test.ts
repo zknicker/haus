@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { Modifier } from '@dnd-kit/core';
-
 import { channelListModifiers } from './channel-drag-modifiers.ts';
 
 test('keeps channel dragging inside the list bounds', () => {

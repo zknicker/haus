@@ -1,5 +1,4 @@
 import { chatListInputSchema, chatListSchema } from '@haus/api';
-
 import { listChats } from '../../chats/list-chats.ts';
 import { chatProcedure } from './procedure.ts';
 

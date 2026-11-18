@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { rankWranglerMcpUrl } from './amazon-products.ts';
 import {
     availableChipKinds,

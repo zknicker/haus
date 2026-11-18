@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { createHausConnection, refreshHausSession } from './haus-connection.ts';
 
 interface Frame {

@@ -1,7 +1,6 @@
 import { agentMcpRequestIdSchema } from '@haus/api';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import * as z from 'zod';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { McpRequests } from '../server-mcp/requests.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';

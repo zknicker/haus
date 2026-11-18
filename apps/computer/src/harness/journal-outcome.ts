@@ -1,5 +1,4 @@
 import { Cause, Exit } from 'effect';
-
 import type { HarnessTurnResult } from './executor.ts';
 import type { HarnessStreamForeignError } from './turn-stream.ts';
 

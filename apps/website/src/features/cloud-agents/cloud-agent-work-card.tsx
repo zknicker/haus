@@ -2,7 +2,6 @@ import type { CloudAgentBranch, CloudAgentPullRequestReading, CloudAgentWork } f
 import { Chip } from '@heroui/react';
 import { GitPullRequestIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
-
 import { ActionCard } from '../../components/chats/action-card.tsx';
 import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import { Icon } from '../../components/ui/icon.tsx';

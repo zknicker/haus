@@ -5,7 +5,6 @@ import {
     SnowIcon,
     Sun01Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
-
 import type { ThemePreference } from '../components/theme-provider.tsx';
 import { selectColorTheme } from '../hooks/shell/use-color-theme.ts';
 import { selectRooflineSnow } from '../hooks/shell/use-roofline-snow.ts';

@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import { CompactCode, CompactCodeBlock } from '../../components/code/compact-code-block.tsx';
 import { cn } from '../../lib/utils.ts';
 import { TraceFoldButton, TurnTraceNote } from './turn-trace-blocks.tsx';

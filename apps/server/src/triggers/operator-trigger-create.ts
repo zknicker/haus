@@ -1,5 +1,4 @@
 import type { TriggerCreateInput, TriggerCreateResult } from '@haus/api';
-
 import { requireChatWritable } from '../chats/chat-access.ts';
 import { ensureAgentDmRecord } from '../chats/ensure-agent-dm.ts';
 import { prepareLifecycleEvent } from '../chats/lifecycle-events.ts';

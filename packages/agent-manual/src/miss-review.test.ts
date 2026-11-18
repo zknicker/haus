@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { type ManualLookupRecord, unresolvedManualLookups } from './miss-review.ts';
 
 const record = (operation: 'get' | 'search', lookup: string): ManualLookupRecord => ({

@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import type { DesktopTabsAction } from '../../hooks/desktop-tabs/desktop-tabs-reducer.ts';
 import {
     app,

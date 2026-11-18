@@ -1,7 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import { and, eq } from 'drizzle-orm';
-
 import { maxAgentChainTurns } from '../src/agent-delivery/chain-budget.ts';
 import type { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { readAgentDispatchConfig } from '../src/agent-delivery/dispatch-config.ts';

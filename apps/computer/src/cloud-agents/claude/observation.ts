@@ -1,5 +1,4 @@
 import { cloudAgentActivityMaxLength, cloudAgentSummaryMaxLength } from '@haus/api';
-
 import type { CloudAgentProviderObservation } from '../provider.ts';
 import { boundedReport, boundedSummary } from '../report-text.ts';
 import type { ClaudeSession, ClaudeSessionEvent } from './controller.ts';

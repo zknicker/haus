@@ -1,9 +1,7 @@
 import { expect, test } from 'bun:test';
-
 import type { AppSession } from '@haus/api/app-session';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { appAuthStore } from './app-auth-session.ts';
 import { AppAuthProvider, useAppAuth } from './app-auth.tsx';
 

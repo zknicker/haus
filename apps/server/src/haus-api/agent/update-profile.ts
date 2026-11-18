@@ -1,6 +1,5 @@
 import { agentSchema, updateAgentProfileInputSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
-
 import { agentUpdatedTopic } from '../../realtime/topics.ts';
 import { AgentConfigDeniedError } from '../../server-agents/agent-config-errors.ts';
 import { AgentDescriptionTooLongError } from '../../server-agents/errors.ts';

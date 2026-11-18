@@ -1,7 +1,6 @@
 import { ItemCard } from '@heroui-pro/react';
 import { Button, Chip, Spinner } from '@heroui/react';
 import { useState } from 'react';
-
 import { ConnectionSection } from './connection-section.tsx';
 import { connectionSetupDescription, type McpConnection } from './mcp-server-shared.ts';
 

@@ -2,9 +2,7 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { hausAgentVersion } from '@haus/api';
-
 import { readEffectiveAgentStates } from './effective-state.ts';
 import { writeAgentSessionState } from './harness/session-store.ts';
 

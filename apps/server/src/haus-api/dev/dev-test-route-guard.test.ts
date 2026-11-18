@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { assertDevTestRouteAllowed } from './dev-test-route-guard.ts';
 
 test('dev test routes need a development lifecycle, not just a localhost Host header', () => {

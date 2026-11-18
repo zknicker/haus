@@ -2,7 +2,6 @@ import { type Agent, type ComputerInventory, reasoningChangeResetsSession } from
 import { Button, Description, Form, Label, ListBox, Modal, Select } from '@heroui/react';
 import { CpuIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 import { SettingsRowError } from '../../settings/layout/settings-text.tsx';
 import { modelFeatureDescription } from '../model-features.ts';

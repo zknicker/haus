@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import { DayDivider } from '../../components/chats/day-divider.tsx';
 import { SessionLogHiddenCount } from '../sessions/session-log-hidden-count.tsx';
 import { useTranscriptRenderContext } from './chat-transcript-render-context.tsx';

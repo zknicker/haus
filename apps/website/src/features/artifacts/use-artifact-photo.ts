@@ -1,5 +1,4 @@
 import type { ArtifactMetadata } from '@haus/api';
-
 import { useArtifactThumbnailUrl } from '../../hooks/artifacts/use-artifact-thumbnails.ts';
 import { hasLibraryPreview } from './artifact-format.ts';
 import { useDecodedImage } from './use-decoded-image.ts';

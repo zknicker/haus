@@ -1,12 +1,10 @@
 import { randomUUID } from 'node:crypto';
-
 import {
     agentMcpInvocationSchema,
     agentMcpResultSchema,
     agentMcpSearchSchema,
     agentMcpToolsSchema,
 } from '@haus/api';
-
 import { parseServerMcpResult, readServerMcpPayload } from './server-mcp-response.ts';
 
 export function createServerMcpClient(input: { proxyToken: string; proxyUrl: string }) {

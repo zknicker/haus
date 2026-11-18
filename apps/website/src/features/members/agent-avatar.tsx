@@ -1,7 +1,6 @@
 import type { Agent, AgentAvailability } from '@haus/api';
 import { Badge } from '@heroui/react';
 import type React from 'react';
-
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { type AgentMark, useAgentPresence } from '../../hooks/members/use-agents.ts';
 import { cn } from '../../lib/utils.ts';

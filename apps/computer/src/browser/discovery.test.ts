@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { chromeUserDataDir, existingBrowserCandidates } from './discovery.ts';
 import type { ProcessRecord } from './types.ts';
 

@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { WorkGroupHeaderText, WorkGroupHeaderTextView } from './work-group-header-text.tsx';
 
 test('WorkGroupHeaderText primes active slot text without hiding the fallback label', () => {

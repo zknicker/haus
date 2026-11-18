@@ -7,7 +7,6 @@ import type {
     TriggerStatus,
 } from '@haus/api';
 import type { FastifyRequest } from 'fastify';
-
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { previewGithubTrigger } from '../triggers/github-trigger-preview.ts';

@@ -2,7 +2,6 @@ import { REMINDER_HISTORY_RETENTION_DAYS, type ReminderHistoryEntry } from '@hau
 import { DataGrid, type DataGridColumn } from '@heroui-pro/react';
 import { Chip, Drawer } from '@heroui/react';
 import { Link } from 'react-router-dom';
-
 import {
     REMINDER_HISTORY_LIMIT,
     useAgentReminderHistory,

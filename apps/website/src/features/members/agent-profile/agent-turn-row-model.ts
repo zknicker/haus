@@ -1,5 +1,4 @@
 import type { AgentTurnTrigger, Chat } from '@haus/api';
-
 import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 import { chatPlace } from '../../shell/tab-identity.ts';
 import type { RecentActivityRow } from './recent-activity-rows.ts';

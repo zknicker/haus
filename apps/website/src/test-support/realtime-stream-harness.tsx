@@ -1,11 +1,9 @@
 import { afterAll, beforeAll } from 'bun:test';
-
 import { QueryClient, QueryClientProvider, type QueryKey } from '@tanstack/react-query';
 import { TRPCClientError } from '@trpc/client';
 import { type Observer, observable } from '@trpc/server/observable';
 import * as React from 'react';
 import type { Root } from 'react-dom/client';
-
 import { subscriptionRestartDelayMs } from '../hooks/realtime/subscription-restart.ts';
 import { hausTrpc } from '../lib/haus-server.tsx';
 import { HausSessionRefreshContext } from '../lib/haus-session-context.ts';

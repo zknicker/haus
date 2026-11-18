@@ -1,7 +1,5 @@
 import { afterAll, describe, expect, test } from 'bun:test';
-
 import { makeTestRuntime } from '@haus/effect';
-
 import { iconPageMaxCandidates, parsePageIconLinks } from './icon-page-links.ts';
 import { type McpIconFetch, makeMcpIconResolver } from './icons.ts';
 

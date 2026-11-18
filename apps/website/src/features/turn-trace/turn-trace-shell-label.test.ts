@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import { setupCommand } from './turn-trace-claude-fixtures.ts';
 import { formatShellLabel, readShellLabel } from './turn-trace-shell-label.ts';
 

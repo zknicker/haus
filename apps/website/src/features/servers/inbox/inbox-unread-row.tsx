@@ -1,5 +1,4 @@
 import type { Agent, Chat } from '@haus/api';
-
 import { conversationPreviewLine } from './conversation-preview.ts';
 import type { UnreadRowReply } from './unread-row-composer.tsx';
 import { UnreadChatMark } from './unread-row-parts.tsx';

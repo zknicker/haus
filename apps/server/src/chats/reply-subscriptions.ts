@@ -1,6 +1,5 @@
 import { parseAgentReferenceTarget, parseHausRichReferences } from '@haus/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentMessageFollowsTable,

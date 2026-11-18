@@ -1,5 +1,4 @@
 import { expect, test } from 'vitest';
-
 import { tabPageKey } from './desktop-tabs-model.ts';
 import {
     openWithGesture,

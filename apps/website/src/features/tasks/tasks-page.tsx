@@ -3,7 +3,6 @@ import { EmptyState, ListView } from '@heroui-pro/react';
 import { Alert02Icon, Task01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { useTaskList } from '../../hooks/tasks/use-task-list.ts';
 import { useServerContext } from '../servers/server-context.ts';

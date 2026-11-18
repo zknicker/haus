@@ -1,6 +1,5 @@
 import { type CloudAgentEnvironment, cloudAgentEnvironmentSchema } from '@haus/api';
 import * as z from 'zod';
-
 import { readClaudeEnvironmentId, writeClaudeEnvironmentId } from '../settings.ts';
 import { claudeControllerHeaders } from './native-auth.ts';
 

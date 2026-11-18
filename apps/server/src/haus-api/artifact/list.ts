@@ -1,5 +1,4 @@
 import { artifactLibraryPageSchema, artifactListInputSchema } from '@haus/api';
-
 import { listArtifactDrive } from '../../artifacts/list.ts';
 import { artifactPublicLinks } from '../../artifacts/public-link.ts';
 import { artifactProcedure } from './procedure.ts';

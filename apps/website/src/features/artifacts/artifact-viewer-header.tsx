@@ -6,7 +6,6 @@ import {
     MoreVerticalIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import { Link } from 'react-router-dom';
-
 import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';

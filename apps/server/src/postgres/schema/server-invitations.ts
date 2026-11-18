@@ -8,7 +8,6 @@ import {
     timestamp,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
-
 import { serverMembershipsTable } from './server-memberships.ts';
 import { serversTable } from './servers.ts';
 

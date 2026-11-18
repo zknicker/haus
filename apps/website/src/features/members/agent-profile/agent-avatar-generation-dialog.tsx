@@ -1,7 +1,6 @@
 import { avatarGenerationConceptMaxLength } from '@haus/api/avatar-generation';
 import { Button, Form, InputGroup, Modal, Spinner, TextField, Tooltip } from '@heroui/react';
 import { AiMagicIcon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 import {
     type AvatarGenerationSession,

@@ -1,5 +1,4 @@
 import type { CloudAgentWork } from '@haus/api';
-
 import { ChatMarkdownText } from '../../chats/chat-markdown-text.tsx';
 import {
     cloudAgentRunStatusLabels,

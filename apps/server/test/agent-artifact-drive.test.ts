@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { artifactListResultSchema, artifactPublishResultSchema } from '@haus/api';
-
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 import { MemoryArtifactStorage } from './artifact-drive-fixture.ts';
 

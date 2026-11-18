@@ -1,5 +1,4 @@
 import type { ImageGenerationProvider } from '@haus/api';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { imageGenerationKeysTable } from '../postgres/schema.ts';
 

@@ -1,6 +1,5 @@
 import type { Agent, AgentWakePause } from '@haus/api';
 import { Alert } from '@heroui/react';
-
 import type { HausOutputs } from '../../lib/haus-server.tsx';
 import { computerLabel } from '../computers/presentation.ts';
 import { agentRuntimeIssue, runtimeIssueLabel } from '../computers/runtime-issue-model.ts';

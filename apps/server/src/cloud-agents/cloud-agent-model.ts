@@ -15,7 +15,6 @@ import {
     unofferedCloudAgentModelParams,
 } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { cloudAgentModelSettingsTable, computersTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';

@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-
 import { BandBreadcrumbs } from './band-breadcrumbs.tsx';
 import type { BandCrumb } from './band-trail.ts';
 import { PageTopbar } from './shell-topbar.tsx';

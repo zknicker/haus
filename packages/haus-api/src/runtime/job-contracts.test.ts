@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'bun:test';
-
 import { agentRuntimeRunJobInputSchema } from './contracts.ts';
 
 describe('Runtime job contracts', () => {

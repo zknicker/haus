@@ -1,5 +1,4 @@
 import type { AgentRuntimeBrowserStatus } from '@haus/api';
-
 import { SystemCdpProber } from './cdp-probe.ts';
 import { isApplicationProcess, SystemProcessList } from './chrome-processes.ts';
 import { chromeUserDataDir } from './discovery.ts';

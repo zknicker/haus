@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import { skoolHostedUrl } from '../src/hosted-mcp/catalog.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createMcpPresetAccount, replaceMcpPresetToken } from '../src/server-mcp/presets.ts';

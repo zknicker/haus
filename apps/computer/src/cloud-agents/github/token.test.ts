@@ -1,8 +1,6 @@
 import { afterAll, expect, test } from 'bun:test';
-
 import { makeTestRuntime } from '@haus/effect';
 import { Fiber, TestClock } from 'effect';
-
 import { createGithubTokenReader } from './token.ts';
 
 const runtime = makeTestRuntime();

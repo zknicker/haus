@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { work } from './cloud-agent-fixture.ts';
 import {
     cloudAgentObservationSchema,

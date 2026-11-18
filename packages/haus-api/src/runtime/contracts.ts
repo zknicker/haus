@@ -1,5 +1,4 @@
 import * as z from 'zod';
-
 import { avatarMaxBytes } from '../avatar.ts';
 import { agentRuntimeModelProviderIdSchema } from './model-providers.ts';
 

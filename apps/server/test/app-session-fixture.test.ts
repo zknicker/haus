@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { createAppSessionFixture } from './app-session-fixture.ts';
 
 test('App session fixtures refuse a remote database before connecting', async () => {

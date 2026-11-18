@@ -1,6 +1,5 @@
 import { Button, Dropdown, Label } from '@heroui/react';
 import { ArrowDown01Icon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { type ArtifactKindFilter, artifactKindFilters } from './library-params.ts';
 

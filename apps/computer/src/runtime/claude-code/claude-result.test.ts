@@ -1,6 +1,5 @@
 // Ported from botiverse/raft-source packages/daemon/src/drivers/claudeEventNormalizer.test.ts (FSL-1.1-ALv2)
 import { expect, test } from 'bun:test';
-
 import { classifyRuntimeFailure } from '../../runtime-failure.ts';
 import { ClaudeEventNormalizer } from './claude-event-normalizer.ts';
 import { type ClaudeResult, parseClaudeLine } from './claude-messages.ts';

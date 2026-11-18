@@ -1,5 +1,4 @@
 import type { ArtifactErrorData } from '@haus/api';
-
 import { ArtifactError } from './storage.ts';
 
 /** tRPC error data for artifact failures, so the App can branch on the code and conflict head. */

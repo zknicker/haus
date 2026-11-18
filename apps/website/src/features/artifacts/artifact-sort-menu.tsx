@@ -1,6 +1,5 @@
 import { Button, Dropdown, Header, Label, Separator } from '@heroui/react';
 import { ArrowDown01Icon, ArrowUp01Icon, Sorting01Icon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import {
     type LibrarySortDirection,

@@ -1,7 +1,6 @@
 import type { ImageGenerationProvider } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import { check, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core';
-
 import { bunJsonb } from './bun-jsonb.ts';
 import { serversTable } from './servers.ts';
 

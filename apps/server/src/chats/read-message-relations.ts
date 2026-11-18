@@ -1,6 +1,5 @@
 import type { AttachmentMetadata, ChatMessage } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import { readLinkedCloudAgentWork } from '../cloud-agents/linked-cloud-agent-work.ts';
 import { readLinkedImageGenerations } from '../image-generation/linked-image-generations.ts';

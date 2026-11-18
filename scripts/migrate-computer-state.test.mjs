@@ -3,7 +3,6 @@ import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { migrateComputerState } from './migrate-computer-state.mjs';
 
 test('moves Computer state, preserves credentials and work, and previews without writes', async () => {

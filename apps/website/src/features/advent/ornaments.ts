@@ -1,5 +1,4 @@
 import { type AdventFact, adventFacts } from '@haus/api';
-
 import baublePurpleSource from './assets/ornament-bauble-purple.png';
 import baubleSnowflakeSource from './assets/ornament-bauble-snowflake.png';
 import baubleStripedSource from './assets/ornament-bauble-striped.png';

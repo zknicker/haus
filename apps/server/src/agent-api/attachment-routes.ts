@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
-
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { AgentAttachmentError, uploadAgentAttachment, viewAgentAttachment } from './attachments.ts';

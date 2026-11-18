@@ -1,7 +1,6 @@
 import type { ChatEngagement } from '@haus/api';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import * as React from 'react';
-
 import { useChatThoughtListener } from '../../../hooks/servers/use-chat-thought-listener.ts';
 import {
     type ChatTypingThought,

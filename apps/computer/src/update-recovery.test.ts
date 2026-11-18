@@ -3,7 +3,6 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 import type { ComputerUpdateProgress } from './update-contract.ts';
 import { finishRestart, recoverInterruptedUpdate } from './update-recovery.ts';
 import { progress, readUpdateProgress, writeUpdateProgress } from './update.ts';

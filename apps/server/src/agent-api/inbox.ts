@@ -1,5 +1,4 @@
 import type { AgentAutomationEvent } from '@haus/api';
-
 import { recordExactMessagesServed } from '../agent-delivery/cursors.ts';
 import { buildInboxItems } from '../agent-delivery/inbox-items.ts';
 import { chatOf, isNoticelessInboxSource } from '../agent-delivery/inbox-lanes.ts';

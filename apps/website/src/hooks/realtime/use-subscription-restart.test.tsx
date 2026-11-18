@@ -1,10 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { getQueryKey } from '@trpc/react-query';
 import * as React from 'react';
 import type { Root } from 'react-dom/client';
-
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { installFakeDom } from '../../test-support/fake-dom.ts';
 import { type StreamRestart, useSubscriptionRestart } from './use-subscription-restart.ts';

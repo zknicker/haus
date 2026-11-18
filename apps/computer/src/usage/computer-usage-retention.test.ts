@@ -2,9 +2,7 @@ import { expect, test } from 'bun:test';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { ClaudeUsageAuthError, ClaudeUsageRequestError } from '@haus/claude-usage';
-
 import { createComputerUsageCache } from './computer-usage-cache.ts';
 import { readComputerUsage } from './read-usage.ts';
 import { claudeOnlyReadOptions, claudeSnapshotAt, usageAt } from './usage-overview-fixtures.ts';

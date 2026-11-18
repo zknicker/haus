@@ -1,5 +1,4 @@
 import { Outlet, useLocation, useOutletContext } from 'react-router-dom';
-
 import type { ServerContextValue } from '../../features/servers/server-context.ts';
 import { SettingsContentFrame } from '../../features/settings/layout/page.tsx';
 import { SettingsBreadcrumb } from '../../features/settings/layout/settings-breadcrumb.tsx';

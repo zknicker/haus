@@ -1,7 +1,6 @@
 import { mcpIconMaxBytes } from '@haus/api';
 import { type EffectRuntime, settle } from '@haus/effect';
 import { Effect } from 'effect';
-
 import { McpIconIoError, mcpFailureKind } from './errors.ts';
 import { fetchMcpIcon } from './icon-fetch.ts';
 

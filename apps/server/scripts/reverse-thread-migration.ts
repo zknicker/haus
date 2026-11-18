@@ -1,7 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
-
 import { SQL } from 'bun';
 
 const migrationTag = '0126_threads-to-inline-replies';

@@ -1,5 +1,4 @@
 import { cloudAgentCapabilityResultSchema, cloudAgentObservationFrameSchema } from '@haus/api';
-
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { applyCloudAgentObservation } from '../cloud-agents/apply-cloud-agent-observation.ts';
 import { listComputerCloudAgentWork } from '../cloud-agents/list-computer-cloud-agent-work.ts';

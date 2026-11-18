@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { formatWorkspaceFileBytes } from './chat-artifact-workspace-preview.tsx';
 
 test('formats truthful workspace file sizes', () => {

@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import type { IdleCompactionHooks } from './idle-compaction-scheduler.ts';
 import {
     type IdleCompactable,

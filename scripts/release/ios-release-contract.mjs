@@ -1,5 +1,4 @@
 import path from 'node:path';
-
 import { isSemver } from './release-utils.mjs';
 
 export function assertIOSReleaseTarget(release, version, buildNumber) {

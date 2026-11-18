@@ -3,7 +3,6 @@
 import { appendFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 import { createAppStoreConnectToken, IOS_BUNDLE_ID } from './ios-provisioning-profile.mjs';
 
 const appStoreConnectEndpoint = 'https://api.appstoreconnect.apple.com/v1';

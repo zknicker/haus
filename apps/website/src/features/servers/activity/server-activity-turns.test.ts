@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { AgentCurrentActivity, AgentTurn } from '@haus/api';
-
 import {
     type ActivityLogEntry,
     readLogDays,

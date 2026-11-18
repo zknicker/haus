@@ -1,6 +1,5 @@
 import type { TaskActor } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, serversTable } from '../postgres/schema.ts';
 import { requireServerMembership, ServerAccessDeniedError } from '../servers/server-access.ts';

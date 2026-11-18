@@ -1,5 +1,4 @@
 import { and, asc, desc, eq, inArray, isNull, lte } from 'drizzle-orm';
-
 import { mentionedAgentIds } from '../chats/reply-subscriptions.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {

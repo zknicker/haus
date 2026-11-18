@@ -2,7 +2,6 @@ import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { unavailableCloudAgentProvider } from './cloud-agents/provider.ts';
 import { setCloudAgentProvider } from './cloud-agents/registry.ts';
 import { refreshRuntimeAuthentication } from './runtime-auth-refresh.ts';

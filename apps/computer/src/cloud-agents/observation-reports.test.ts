@@ -1,8 +1,6 @@
 import { expect, test } from 'bun:test';
-
 import { makeTestRuntime, settle } from '@haus/effect';
 import { Effect, Exit, Scope } from 'effect';
-
 import { ObservationReports } from './observation-reports.ts';
 
 test('burst progress stays bounded while terminal evidence is preserved', async () => {

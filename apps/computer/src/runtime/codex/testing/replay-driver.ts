@@ -1,7 +1,6 @@
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import type { HostToolServer } from '../../../host-tools/mcp-server.ts';
 import type { RuntimeDriver, RuntimeSession } from '../../driver.ts';
 import type { TurnEvent } from '../../turn-event.ts';

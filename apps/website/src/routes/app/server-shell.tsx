@@ -2,7 +2,6 @@ import type { Chat } from '@haus/api';
 import { AppLayout } from '@heroui-pro/react';
 import * as React from 'react';
 import { useLocation } from 'react-router-dom';
-
 import { AppShell, AppShellDragRegion } from '../../components/ui/app-shell.tsx';
 import { AgentLifecycleProvider } from '../../features/servers/agent-lifecycle.tsx';
 import { readLastChatId, rememberLastChatId } from '../../features/servers/server-choice.ts';

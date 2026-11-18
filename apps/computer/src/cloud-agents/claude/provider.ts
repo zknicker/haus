@@ -1,5 +1,4 @@
 import { isTerminalCloudAgentStatus } from '@haus/api';
-
 import { resolveRuntimeExecutable } from '../../runtime-discovery.ts';
 import {
     type CloudAgentLaunch,

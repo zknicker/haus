@@ -1,6 +1,5 @@
 import { BrainIcon, BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { AnimatePresence } from 'motion/react';
-
 import { formatAgentActivityEvent } from '../members/agent-profile/agent-activity-model.ts';
 import {
     TraceCallStep,

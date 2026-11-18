@@ -1,7 +1,5 @@
 import { createHash } from 'node:crypto';
-
 import type { AvatarMediaType } from '@haus/api/avatar';
-
 import { createAvatarId } from '../avatars/avatar-bytes.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { avatarsTable } from '../postgres/schema.ts';

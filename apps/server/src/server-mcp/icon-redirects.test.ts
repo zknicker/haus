@@ -1,7 +1,5 @@
 import { afterAll, describe, expect, test } from 'bun:test';
-
 import { makeTestRuntime } from '@haus/effect';
-
 import { fetchMcpIcon } from './icon-fetch.ts';
 import { type McpIconFetch, makeMcpIconResolver } from './icons.ts';
 

@@ -1,6 +1,5 @@
 import type { HausAgentMessage } from '@haus/api';
 import { and, desc, eq, gt, ilike, lt, sql } from 'drizzle-orm';
-
 import { isFollowedChatKind } from '../agent-delivery/followed-chat.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';

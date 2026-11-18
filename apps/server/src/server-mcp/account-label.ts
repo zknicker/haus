@@ -1,6 +1,5 @@
 import type { McpPreset } from '@haus/api';
 import type { Client as MCPClient } from '@modelcontextprotocol/client';
-
 import { callMcpTool } from './tool-catalog.ts';
 
 interface LabelContext {

@@ -4,7 +4,6 @@ import type {
     AgentCloudAgentStartInput,
 } from '@haus/api';
 import { chatMessageAuthoredContentMaxLength } from '@haus/api';
-
 import { readFreshnessHold } from '../agent-api/send-hold.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { resolveAgentMessageCause } from '../automations/infer-message-cause.ts';

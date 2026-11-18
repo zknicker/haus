@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { DeliverySweepError, dispatchEach } from './dispatch-each.ts';
 
 test('one Agent that cannot dispatch never stops the rest of the sweep', async () => {

@@ -1,5 +1,4 @@
 import type { MessageClaim } from '@haus/api';
-
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 
 export class ClaimConflictError extends Error {

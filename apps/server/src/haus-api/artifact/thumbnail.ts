@@ -1,5 +1,4 @@
 import { artifactThumbnailInputSchema, artifactThumbnailResultSchema } from '@haus/api';
-
 import { artifactThumbnail } from '../../artifacts/thumbnail-read.ts';
 import { artifactProcedure } from './procedure.ts';
 

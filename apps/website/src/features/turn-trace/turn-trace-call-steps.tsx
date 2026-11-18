@@ -1,6 +1,5 @@
 import { Task01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
-
 import { hasCallBody, TurnTraceCallBody } from './turn-trace-call-body.tsx';
 import { TraceElbow, TraceGroup, TraceNested, traceBranchClass } from './turn-trace-depth.tsx';
 import { type TraceBar, TraceBody } from './turn-trace-grid.tsx';

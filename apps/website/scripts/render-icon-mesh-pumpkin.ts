@@ -8,7 +8,6 @@
  */
 
 import { fileURLToPath } from 'node:url';
-
 import type { FormPaint } from '../src/components/haus-ghost-figure.ts';
 import {
     PUMPKIN_PATCHES,

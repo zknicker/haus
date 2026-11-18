@@ -1,6 +1,5 @@
 import { Sidebar } from '@heroui-pro/react';
 import * as React from 'react';
-
 import { ResizablePaneRail } from '../../components/ui/resizable-pane-rail.tsx';
 import {
     appSidebarWidthLimits,

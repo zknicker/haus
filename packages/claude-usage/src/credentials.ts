@@ -3,9 +3,7 @@ import { readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
-
 import { z } from 'zod';
-
 import { ClaudeUsageAuthError } from './errors.ts';
 import type {
     ClaudeCredentials,

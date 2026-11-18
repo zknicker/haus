@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { ActiveUsageFilters, usageFilterChips } from './usage-filters.tsx';
 
 const settled = {

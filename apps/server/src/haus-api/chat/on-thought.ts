@@ -1,5 +1,4 @@
 import { agentThoughtEventSchema, agentThoughtSubscriptionInputSchema } from '@haus/api';
-
 import { subscribeToAgentThoughts } from '../../agent-delivery/thought-events.ts';
 import { requireChatAccess } from '../../chats/chat-access.ts';
 import { chatProcedure } from './procedure.ts';

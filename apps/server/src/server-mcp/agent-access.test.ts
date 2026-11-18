@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { authorizeToolConnection, decideToolAccess, toolNotOffered } from './agent-access.ts';
 import { McpDeniedError } from './errors.ts';

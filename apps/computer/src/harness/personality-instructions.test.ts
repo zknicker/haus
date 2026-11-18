@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { type AgentPromptRenderInput, renderAgentInstructions } from './managed-instructions.ts';
 
 test('renders the house personality for every Agent, right after Who you are', () => {

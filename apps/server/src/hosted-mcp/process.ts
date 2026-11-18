@@ -4,7 +4,6 @@ import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createInterface } from 'node:readline';
-
 import type { HostedMcpDefinition } from './catalog.ts';
 
 export interface HostedMcpProcess {

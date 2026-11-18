@@ -2,7 +2,6 @@ import type { AgentRuntimeBrowserSettings } from '@haus/api';
 import { ItemCard } from '@heroui-pro/react';
 import { Button, Chip, Dropdown, Label } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 import type { BrowserCapabilityView } from '../../computers/browser-capability-model.ts';
 

@@ -2,10 +2,8 @@ import { expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { makeTestRuntime } from '@haus/effect';
 import { Effect, TestClock } from 'effect';
-
 import { AttachmentDaemonWork } from './attachment-daemon-work.ts';
 import { harnessSessionOwner } from './harness/session-lifecycle.ts';
 import {

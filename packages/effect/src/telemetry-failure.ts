@@ -1,5 +1,4 @@
 import { Cause, Exit } from 'effect';
-
 import type { TelemetryOutcome } from './telemetry-metrics.ts';
 
 export type ObservedTelemetryResult<A> = readonly [value: A, outcome: TelemetryOutcome];

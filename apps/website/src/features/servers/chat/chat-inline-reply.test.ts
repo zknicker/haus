@@ -1,7 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
-
 import type { ChatMessage, ChatSendInput } from '@haus/api';
-
 import {
     chatDraftKey,
     readChatDraftState,

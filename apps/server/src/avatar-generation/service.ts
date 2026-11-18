@@ -1,12 +1,10 @@
 import { randomUUID } from 'node:crypto';
-
 import {
     avatarGenerationModel,
     avatarGenerationOutputFormat,
     avatarGenerationRequestSchema,
     buildAvatarGenerationPrompt,
 } from '@haus/api';
-
 import {
     AvatarGenerationBusyError,
     AvatarGenerationProviderError,

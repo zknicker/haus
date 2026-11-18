@@ -7,7 +7,6 @@ import {
 import * as React from 'react';
 import type { Selection } from 'react-aria-components';
 import { useNavigate } from 'react-router-dom';
-
 import { useArtifactLibrary } from '../../hooks/artifacts/use-artifact-library.ts';
 import { useArtifactUpload } from '../../hooks/artifacts/use-artifact-upload.ts';
 import { PageBand } from '../shell/page-band.tsx';

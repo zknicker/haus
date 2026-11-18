@@ -1,7 +1,5 @@
 import { randomUUID } from 'node:crypto';
-
 import * as z from 'zod';
-
 import type { HostToolSession } from '../../host-tools/mcp-server.ts';
 import type { BackgroundWork } from '../background-work.ts';
 import {

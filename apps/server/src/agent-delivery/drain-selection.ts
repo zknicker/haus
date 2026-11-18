@@ -1,5 +1,4 @@
 import { type AgentCommand, isChatlessInboxSource } from '@haus/api';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatlessStartFrame } from './chatless-run.ts';
 import { type AgentDispatchConfig, startPromptFacts } from './dispatch-config.ts';

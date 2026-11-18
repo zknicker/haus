@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { Sparkline } from './sparkline.tsx';
 
 test('a series draws one point per value inside the box it was given', () => {

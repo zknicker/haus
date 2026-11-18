@@ -1,8 +1,6 @@
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-
 import type { RuntimeTokenUsageSnapshot } from '@haus/api';
-
 import {
     buildRuntimeTokenSnapshot,
     collectRecentJsonlFiles,

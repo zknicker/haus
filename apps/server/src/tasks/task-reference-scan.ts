@@ -1,5 +1,4 @@
 import { parseHausRichReferences, parseTaskKey, parseTaskReferenceTarget } from '@haus/api';
-
 import {
     isInsidePlainUrl,
     isProtectedRange,

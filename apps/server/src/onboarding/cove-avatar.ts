@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto';
-
 import coveAvatarPath from '../../../website/public/prototypes/cove-avatar.png' with { type: 'file' };
 import { createAvatarId } from '../avatars/avatar-bytes.ts';
 

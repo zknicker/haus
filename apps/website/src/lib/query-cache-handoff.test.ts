@@ -1,7 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-
 import { QueryClient, QueryObserver } from '@tanstack/react-query';
-
 import {
     hydrateQueryCacheHandoff,
     packQueryCacheHandoff,

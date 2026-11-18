@@ -1,6 +1,5 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 import { DeterministicAvatarImageProvider } from './avatar-generation/deterministic-provider.ts';
 import { env } from './config/env.ts';
 import { githubAppFromEnvironment } from './github/github-app.ts';

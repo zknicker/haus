@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { Effect } from 'effect';
-
 import { makeServerRuntime } from './server-runtime.ts';
 
 test('Server runtime executes sync effects and can be disposed twice', async () => {

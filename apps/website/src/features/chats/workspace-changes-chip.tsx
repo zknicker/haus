@@ -1,6 +1,5 @@
 import { ArrowRight01Icon, FileEditIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
 import { useTranscriptRenderContextOptional } from './chat-transcript-render-context.tsx';

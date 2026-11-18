@@ -1,10 +1,8 @@
 import { randomUUID } from 'node:crypto';
-
 import type { VoiceServerEvent } from '@haus/api';
 import { type EffectRuntime, settle } from '@haus/effect';
 import { Data, Deferred, Effect, Exit, Schedule, Scope } from 'effect';
 import { WebSocket } from 'ws';
-
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';

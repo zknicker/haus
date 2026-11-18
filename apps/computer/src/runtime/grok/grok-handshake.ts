@@ -1,5 +1,4 @@
 import * as z from 'zod';
-
 import { computerVersion } from '../../build-identity.ts';
 import type { HostToolMcpDescriptor } from '../../host-tools/mcp-server.ts';
 import type { JsonRpcConnection } from '../json-rpc-connection.ts';

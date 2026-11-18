@@ -1,5 +1,4 @@
 import { avatarGenerationModel, avatarGenerationOutputFormat } from '@haus/api';
-
 import { AvatarGenerationUnavailableError, AvatarProviderError } from './errors.ts';
 import type { AvatarImageProvider, AvatarProviderRequest } from './types.ts';
 

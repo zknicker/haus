@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { MESSAGE_SUBCOMMANDS } from './agent-message.ts';
 
 test('react help teaches acknowledgement without anchoring on one emoji', () => {

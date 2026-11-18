@@ -1,6 +1,5 @@
 import type { ChannelUpdateInput, Chat } from '@haus/api';
 import { and, eq, inArray, isNull, notInArray } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import {

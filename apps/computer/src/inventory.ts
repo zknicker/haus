@@ -5,7 +5,6 @@ import type {
     ComputerModelFeature,
 } from '@haus/api';
 import { type ComputerRuntimeId, computerRuntimeCatalog } from '@haus/api/computer-runtime';
-
 import { detectCloudAgentProviders } from './cloud-agents/registry.ts';
 import { resolveRuntimeById } from './runtime-discovery.ts';
 import { supportsSubagents } from './runtime/runtime-subagents.ts';

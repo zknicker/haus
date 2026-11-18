@@ -1,6 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { getQueryKey } from '@trpc/react-query';
-
 import { hausTrpc } from '../../lib/haus-server.tsx';
 
 type ReadUtils = Pick<ReturnType<typeof hausTrpc.useUtils>, 'chat'>;

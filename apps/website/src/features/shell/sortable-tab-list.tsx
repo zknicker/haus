@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import type { PaneSide } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import { useDraggedRow } from './tab-drag/tab-rows-drag.tsx';
 import { WorkspaceTabMenu } from './workspace-tab-menu.tsx';

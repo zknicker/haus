@@ -1,7 +1,6 @@
 import { mkdir, mkdtemp, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { startHostToolServer } from '../../../host-tools/mcp-server.ts';
 import type { RuntimeSession } from '../../driver.ts';
 import type { IdleCompactionResult, IdleCompactionSnapshot } from '../../idle-compaction.ts';

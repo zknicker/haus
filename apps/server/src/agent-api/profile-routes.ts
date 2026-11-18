@@ -1,7 +1,6 @@
 import { agentSelfProfileUpdateInputSchema } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentUpdatedTopic } from '../realtime/topics.ts';
 import { AgentConfigDeniedError } from '../server-agents/agent-config-errors.ts';

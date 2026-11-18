@@ -1,8 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import { eq, sql } from 'drizzle-orm';
 import Fastify from 'fastify';
-
 import {
     decodeInboxActivityKey,
     encodeInboxActivityKey,

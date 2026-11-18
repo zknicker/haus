@@ -3,9 +3,7 @@ import { createHash } from 'node:crypto';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import type { ArtifactMetadata } from '@haus/api';
-
 import { ArtifactCache } from './cache.ts';
 
 const roots: string[] = [];

@@ -1,7 +1,6 @@
 import { Button, Form, Modal } from '@heroui/react';
 import { Key01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useState } from 'react';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 import { SecretFieldsEditor } from './mcp-secret-fields.tsx';
 import {

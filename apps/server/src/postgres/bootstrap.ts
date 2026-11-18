@@ -1,5 +1,4 @@
 import { SQL } from 'bun';
-
 import { migrateHausDatabase } from './migrations.ts';
 import { assertHausDatabaseRole, grantHausRuntimePrivileges } from './roles.ts';
 

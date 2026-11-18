@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { McpPreset } from '@haus/api';
-
 import { resolveAccountLabel } from './account-label.ts';
 import { makeClient } from './runtime-test-fixtures.ts';
 

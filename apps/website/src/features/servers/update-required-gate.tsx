@@ -1,7 +1,6 @@
 import { Button } from '@heroui/react';
 import type { QueryClient } from '@tanstack/react-query';
 import * as React from 'react';
-
 import {
     isUpdateRequiredError,
     type UpdateRequiredMode,

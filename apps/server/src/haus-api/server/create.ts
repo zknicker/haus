@@ -1,5 +1,4 @@
 import { z } from 'zod';
-
 import { serverDisplayNameSchema, serverSlugSchema } from '../../servers/contracts.ts';
 import { createServer } from '../../servers/create-server.ts';
 import { serverProcedure } from './procedure.ts';

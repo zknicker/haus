@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { parseColorTheme } from './color-theme.ts';
 import { colorThemeDefinition, colorThemes } from './color-themes.ts';
 

@@ -1,6 +1,5 @@
 import { expect, test } from 'bun:test';
 import { readFile } from 'node:fs/promises';
-
 import { isAcceptedComputerNotarization } from './build-computer-artifact.mjs';
 
 test('signs the Bun executable with only its required memory entitlements', async () => {

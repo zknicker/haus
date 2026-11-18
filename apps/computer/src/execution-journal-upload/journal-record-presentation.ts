@@ -6,7 +6,6 @@
  */
 import { readFile, realpath } from 'node:fs/promises';
 import { join } from 'node:path';
-
 import {
     EXECUTION_JOURNAL_REASONING_MAX_CHARS,
     EXECUTION_JOURNAL_SUBAGENT_LABEL_MAX_CHARS,
@@ -15,7 +14,6 @@ import {
     type ExecutionJournalUploadRecord,
     type ExecutionJournalValue,
 } from '@haus/api';
-
 import type { JournalRecord } from '../harness/execution-journal-records.ts';
 import { createJournalRedactor, isSecretKey } from './journal-redaction.ts';
 import { whenMissing } from './journal-upload-ledger.ts';

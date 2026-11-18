@@ -1,7 +1,6 @@
 import { InputGroup, TextField, Toolbar } from '@heroui/react';
 import { ArrowDown01Icon, ArrowUp01Icon, Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { useBrowserViews } from '../../hooks/browser/browser-views-context.ts';
 import type { BrowserFindResult, BrowserTab } from '../../lib/desktop-browser.ts';

@@ -1,8 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-
 import * as z from 'zod';
-
 import type { CdpAttachment, CdpProber, CdpSnapshot } from './types.ts';
 
 const probeTimeoutMs = 1500;

@@ -1,6 +1,5 @@
 import { CodeBlock } from '@heroui-pro/react/code-block';
 import type { CSSProperties } from 'react';
-
 import {
     SelectionQuoteContainer,
     type SelectionQuoteSource,

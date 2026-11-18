@@ -8,9 +8,7 @@
  */
 import { appendFile, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
-
 import type { ExecutionJournalDocument, ExecutionJournalMutation } from '@haus/api';
-
 import { replayJournalRecords, serializeJournalRecord } from './execution-journal-records.ts';
 import { isMissingFile } from './execution-journal-values.ts';
 

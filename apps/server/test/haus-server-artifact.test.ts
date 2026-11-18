@@ -3,7 +3,6 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 import { resolveReleaseSnapshot } from '../../../scripts/release/release-snapshot.mjs';
 
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));

@@ -1,6 +1,5 @@
 import { isClosedTaskState } from '@haus/api';
 import { and, eq, inArray, sql } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { tasksTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';

@@ -1,5 +1,4 @@
 import type { AgentExecutionJournalTool } from '@haus/api';
-
 import { formatTraceDuration } from './turn-trace-duration.ts';
 import type { TurnTraceTiming } from './turn-trace-timing.ts';
 import { readRecord, readString } from './turn-trace-values.ts';

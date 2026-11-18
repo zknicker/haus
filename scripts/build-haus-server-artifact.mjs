@@ -6,7 +6,6 @@ import { createReadStream } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 import { packageHostedMcp } from './package-hosted-mcp.mjs';
 
 const repoRoot = fileURLToPath(new URL('../', import.meta.url));

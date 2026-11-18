@@ -1,7 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import type { Agent } from '@haus/api';
-
 import { installKeptChatViewTestDom } from '../../test-support/kept-chat-views-harness.tsx';
 import {
     agents,

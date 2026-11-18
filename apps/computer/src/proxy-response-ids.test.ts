@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { extractVisibleMessageIds } from './proxy-response-ids.ts';
 
 const shown = {

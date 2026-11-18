@@ -1,9 +1,7 @@
 import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-
 import { getManualTopic } from '@haus/agent-manual';
-
 import { coveOnboardingFaq } from './cove-factory-faq.ts';
 import { recognizedFactoryGuidanceHashes } from './cove-factory-guidance-hashes.ts';
 import { coveMemory, coveOnboardingPlaybook } from './cove-factory-guidance.ts';

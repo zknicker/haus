@@ -9,7 +9,6 @@ import {
     type TRPCWebSocketClient,
     wsLink,
 } from '@trpc/client';
-
 import type { HausRouter } from '../../../server/src/haus-api/router.ts';
 
 export type HausServerConnectionState = 'connected' | 'connecting' | 'reconnecting';

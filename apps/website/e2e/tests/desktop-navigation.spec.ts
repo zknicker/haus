@@ -1,5 +1,4 @@
 import type { Page } from '@playwright/test';
-
 import { createChannelAgent } from '../support/channel-agent.ts';
 import { installDesktopBrowserStub, openDesktopWindow } from '../support/desktop-browser-stub.ts';
 import { createTestServer, openSection } from '../support/server.ts';

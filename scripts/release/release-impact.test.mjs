@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import { assertRequiredTargetsSelected, calculateReleaseImpact } from './release-impact.mjs';
 
 const sha = (character) => character.repeat(40);

@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-
 import type { IdleCompactionResult } from '../idle-compaction.ts';
 import type { ClaudeConnection, TurnSink } from './claude-connection.ts';
 import { ClaudeProcessExitError, ClaudeTurnError } from './claude-errors.ts';

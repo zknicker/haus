@@ -1,7 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import { eq } from 'drizzle-orm';
-
 import { updateAgentClaim } from '../src/agent-api/claims.ts';
 import { updateClaim } from '../src/claims/update-claim.ts';
 import type { ResolvedRunner } from '../src/computers/runner-credentials.ts';

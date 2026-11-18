@@ -1,6 +1,5 @@
 import type { IncomingMessage, Server } from 'node:http';
 import type { Duplex } from 'node:stream';
-
 import {
     computerBootstrapHelloSchema,
     computerHeartbeatNegotiationSchema,
@@ -8,7 +7,6 @@ import {
     computerProtocolVersion,
 } from '@haus/api';
 import { WebSocket, WebSocketServer } from 'ws';
-
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { clearStartRejectedHolds } from '../agent-delivery/failure-hold.ts';
 import { onAgentLifecycle } from '../agent-delivery/lifecycle.ts';

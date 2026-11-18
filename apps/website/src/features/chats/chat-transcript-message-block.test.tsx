@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { TranscriptMessageBlock } from './chat-transcript-message-block.tsx';
 
 test('message text leads its attachments in one media slot', () => {

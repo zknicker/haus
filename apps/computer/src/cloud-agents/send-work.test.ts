@@ -2,7 +2,6 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { CloudLaunchJournal } from './launch-journal.ts';
 import type { CloudAgentRunRef } from './provider.ts';
 import { sendCloudAgentWork } from './send-work.ts';

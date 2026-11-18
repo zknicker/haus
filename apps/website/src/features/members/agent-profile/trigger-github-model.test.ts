@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { type GithubInstallation, githubTriggerEventsSchema } from '@haus/api';
-
 import {
     createGithubEventDraft,
     githubEventDraftFromEntry,

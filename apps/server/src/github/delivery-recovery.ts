@@ -1,7 +1,6 @@
 import { type EffectRuntime, settle } from '@haus/effect';
 import { eq } from 'drizzle-orm';
 import { Effect } from 'effect';
-
 import { type BootSweep, type SweepTimers, startBootSweep } from '../boot-sweep.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { githubWebhookDeliveriesTable } from '../postgres/schema.ts';

@@ -1,5 +1,4 @@
 import type { Ref } from 'react';
-
 import { ChatComposer } from '../chat/chat-composer-variants.tsx';
 import type { ChatComposerHandle } from '../chat/chat-composer.tsx';
 

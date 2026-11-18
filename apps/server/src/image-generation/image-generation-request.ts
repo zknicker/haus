@@ -6,7 +6,6 @@ import type {
     ImageGenerationSize,
 } from '@haus/api';
 import type * as z from 'zod';
-
 import { ImageGenerationRequestError } from './image-generation-errors.ts';
 import { findImageGenerationModel, imageGenerationRegistry } from './image-generation-registry.ts';
 import {

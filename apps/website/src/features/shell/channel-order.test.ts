@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { orderChannelIds, readChannelOrder, writeChannelOrder } from './channel-order.ts';
 
 test('restores known channels and appends newly visible channels', () => {

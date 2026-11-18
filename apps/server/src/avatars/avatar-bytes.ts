@@ -1,7 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-
 import { type AvatarMediaType, avatarMaxBytes } from '@haus/api/avatar';
-
 import { AvatarRejectedError } from './avatar-errors.ts';
 
 export interface AvatarBytes {

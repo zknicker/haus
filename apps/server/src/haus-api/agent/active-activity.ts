@@ -1,5 +1,4 @@
 import { agentActiveActivityInputSchema, agentActiveActivitySnapshotSchema } from '@haus/api';
-
 import { readActiveAgentActivity } from '../../server-agents/agent-activity-history.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
 import { memberProcedure } from '../server/procedure.ts';

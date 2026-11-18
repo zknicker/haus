@@ -1,6 +1,5 @@
 import { agentExecutionJournalRecordsFrameSchema } from '@haus/api';
 import { z } from 'zod';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { publishExecutionJournalChange } from '../server-agents/execution-journal-changes.ts';
 import { ingestExecutionJournalFrame } from '../server-agents/execution-journal-ingest.ts';

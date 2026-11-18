@@ -1,8 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { generateKeyPairSync } from 'node:crypto';
-
 import { decodeJwt, decodeProtectedHeader, importSPKI, jwtVerify } from 'jose';
-
 import { createGithubAppJwtSigner, readGithubAppConfig } from './app-auth.ts';
 
 // GitHub generates PKCS #1 keys; the signer must take those as well as PKCS #8.

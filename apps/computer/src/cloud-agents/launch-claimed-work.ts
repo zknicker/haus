@@ -1,5 +1,4 @@
 import type { AgentCloudAgentReceipt } from '@haus/api';
-
 import { launchCloudAgent } from './launch-attempt.ts';
 import type { CloudLaunchJournal } from './launch-journal.ts';
 import {

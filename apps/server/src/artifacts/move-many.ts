@@ -7,7 +7,6 @@ import {
     artifactPathParent,
     parseArtifactPath,
 } from '@haus/api';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { artifactUpdatedTopic } from '../realtime/topics.ts';
 import { type ArtifactActor, artifactAccess } from './access.ts';

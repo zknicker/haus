@@ -12,7 +12,6 @@ import {
     TagGroup,
     useFilter,
 } from '@heroui/react';
-
 import { useGithubRepositories } from '../../../hooks/github/use-github-repositories.ts';
 import { githubRepositoryScopeLabel } from '../../settings/connections/built-in/github/github-installation-model.ts';
 import { SettingsRowError } from '../../settings/layout/settings-text.tsx';

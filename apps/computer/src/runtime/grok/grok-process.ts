@@ -1,5 +1,4 @@
 import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
-
 import { JsonRpcConnection } from '../json-rpc-connection.ts';
 import { LineDecoder } from '../line-decoder.ts';
 import { isSystemErrorCode } from '../process-group-liveness.ts';

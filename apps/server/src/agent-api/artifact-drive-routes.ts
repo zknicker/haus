@@ -1,6 +1,5 @@
 import { artifactMoveInputSchema, artifactResolveInputSchema } from '@haus/api';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-
 import type { ArtifactActor } from '../artifacts/access.ts';
 import { moveArtifacts } from '../artifacts/move.ts';
 import { getArtifactAtPath } from '../artifacts/read.ts';

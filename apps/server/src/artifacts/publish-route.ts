@@ -1,7 +1,6 @@
 import { artifactPublishInputSchema } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
-
 import { sendArtifactError } from '../agent-api/artifact-errors.ts';
 import { HausAuthError, type HausSessions } from '../identity/haus-sessions.ts';
 import type { HausDatabase } from '../postgres/connection.ts';

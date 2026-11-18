@@ -1,6 +1,5 @@
 import { expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
-
 import { handleReleaseRequest, releaseOrigin } from './index.ts';
 
 test('uses the release origin declared by the environment contract', () => {

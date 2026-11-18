@@ -1,6 +1,5 @@
 import { executeMcpCode } from '@haus/mcp-executor';
 import * as z from 'zod';
-
 import { computerEntrypoint } from './build-identity.ts';
 
 /** Exercises the embedded WASM and the actual re-exec path in a compiled release. */

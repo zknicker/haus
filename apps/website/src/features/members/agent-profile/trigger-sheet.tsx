@@ -1,7 +1,6 @@
 import type { Agent, Trigger } from '@haus/api';
 import { Sheet } from '@heroui-pro/react';
 import * as React from 'react';
-
 import type { TriggerSheetMode } from './agent-trigger-model.ts';
 import { TriggerCreatePanel } from './trigger-create-panel.tsx';
 import { TriggerDetailPanel } from './trigger-detail-panel.tsx';

@@ -1,7 +1,6 @@
 import type { ArtifactUpdatedEvent } from '@haus/api';
 import { getQueryKey } from '@trpc/react-query';
 import * as React from 'react';
-
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import {
     type TargetedReadCoalescer,

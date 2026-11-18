@@ -1,8 +1,6 @@
 import { expect, test } from 'bun:test';
-
 import type { CloudAgentWork } from '@haus/api';
 import { agentCloudAgentListReceiptSchema } from '@haus/api';
-
 import { findCloudAgentWork } from '../src/cloud-agents/cloud-agent-shape.ts';
 import { readCloudAgentWorkAttentions } from '../src/cloud-agents/read-cloud-agent-work-attentions.ts';
 import { connectHausDatabase } from '../src/postgres/connection.ts';

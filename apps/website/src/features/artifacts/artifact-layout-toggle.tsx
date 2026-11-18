@@ -1,6 +1,5 @@
 import { ToggleButton, ToggleButtonGroup, Tooltip } from '@heroui/react';
 import { GridViewIcon, ListViewIcon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import {
     type ArtifactLibraryLayout,

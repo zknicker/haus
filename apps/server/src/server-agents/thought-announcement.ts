@@ -1,5 +1,4 @@
 import type { AgentThoughtEvent } from '@haus/api';
-
 import { announceAgentThought } from '../agent-delivery/thought-events.ts';
 import type { ThoughtLine } from './thought-cadence.ts';
 import type { PhrasedThought } from './thought-novelty.ts';

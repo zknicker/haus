@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { TRPCError } from '@trpc/server';
-
 import { toMembershipLossError } from '../src/haus-api/server/membership-loss.ts';
 import { ServerAccessDeniedError, ServerNotFoundError } from '../src/servers/server-access.ts';
 

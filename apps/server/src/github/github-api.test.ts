@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { GithubApiError, githubNextPage, githubRequest } from './github-api.ts';
 
 function answering(status: number, body: unknown, headers: Record<string, string> = {}) {

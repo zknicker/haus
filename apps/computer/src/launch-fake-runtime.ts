@@ -1,6 +1,5 @@
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 import type { AgentStartCommand } from './agent-commands.ts';
 import { composeInboxDrain } from './inbox-format.ts';
 import { writeTrace } from './launch-trace.ts';

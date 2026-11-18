@@ -1,5 +1,4 @@
 import type { AgentExecutionJournalFailure } from '@haus/api';
-
 import { readRecord, readString } from './turn-trace-values.ts';
 
 /** A failure as a person reads it: the message, and the exit code when a command set one. */

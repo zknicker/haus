@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { tabsToRight } from './desktop-tabs-commands.ts';
 import { currentLocation, newTabLocation } from './desktop-tabs-model.ts';
 import { rowSelection } from './desktop-tabs-selection.ts';

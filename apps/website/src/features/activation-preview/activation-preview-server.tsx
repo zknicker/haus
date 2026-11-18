@@ -2,7 +2,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TRPCClientError, type TRPCLink } from '@trpc/client';
 import { observable } from '@trpc/server/observable';
 import * as React from 'react';
-
 import type { HausRouter } from '../../../../server/src/haus-api/router.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { resolveActivationFixture } from './activation-preview-fixtures.ts';

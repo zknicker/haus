@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import {
     agentExecutionOutlineSchema,
     EXECUTION_OUTLINE_LABEL_MAX_CHARS,
@@ -8,7 +7,6 @@ import {
     type ExecutionJournalTool,
 } from '@haus/api';
 import { executionBookkeepingCases } from '@haus/api/execution-bookkeeping-fixtures';
-
 import { outlineExecutionJournal } from './execution-journal-outline.ts';
 
 const secretOutput = 'SECRET-OUTPUT-BODY';

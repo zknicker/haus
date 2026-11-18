@@ -2,7 +2,6 @@ import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import {
     applyAgentConfiguration,
     parseAgentConfigureCommand,

@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { readExecutionToolKind } from './execution-tool-kind.ts';
 
 test('a journal tool reads its kind from its wire name, in any case', () => {

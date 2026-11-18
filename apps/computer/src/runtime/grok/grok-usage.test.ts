@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { readGrokRequestUsage, readGrokTurnUsage } from './grok-usage.ts';
 
 test('reads Grok turn usage from the prompt response _meta.usage', () => {

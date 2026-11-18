@@ -1,7 +1,6 @@
 import type { HugeiconsIconProps } from '@hugeicons/react';
 import type { ReactNode } from 'react';
 import * as React from 'react';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 import { cn } from '../../../lib/utils.ts';
 import { formatToolDuration, hasErrorStatus } from '../../sessions/tools/tool-ui.ts';

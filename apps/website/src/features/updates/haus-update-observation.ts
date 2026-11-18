@@ -1,5 +1,4 @@
 import type { HausReleaseDiscovery } from '@haus/api';
-
 import type { useDesktopUpdate } from '../../hooks/desktop/use-desktop-update.ts';
 import { isElectronDesktopApp } from '../../lib/desktop-bridge.ts';
 import type { ComputerUpdateComputer } from '../computers/computer-update-card.tsx';

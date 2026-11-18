@@ -7,7 +7,6 @@ import type {
 } from '@haus/api';
 import { projectAgentCurrentActivity } from '@haus/api/agent-activity';
 import { and, asc, desc, eq, isNotNull, lt, or, sql } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentActivityTable,

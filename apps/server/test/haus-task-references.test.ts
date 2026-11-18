@@ -1,11 +1,9 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
-
 import {
     formatAgentReferenceTarget,
     formatChatMessageReferenceTarget,
     formatChatReferenceTarget,
 } from '@haus/api';
-
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { scheduleReminder } from '../src/reminders/reminders.ts';
 import { updateReminder } from '../src/reminders/reschedule.ts';

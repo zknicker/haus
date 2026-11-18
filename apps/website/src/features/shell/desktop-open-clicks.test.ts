@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { openWithGesture } from '../../hooks/desktop-tabs/tab-navigation.ts';
 import {
     currentOpenGesture,

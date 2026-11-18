@@ -1,6 +1,5 @@
 import { toast } from '@heroui/react';
 import * as React from 'react';
-
 import { type BrowserTab, isFaviconUrl } from '../../lib/desktop-browser.ts';
 
 export interface BrowserHistoryEntry {

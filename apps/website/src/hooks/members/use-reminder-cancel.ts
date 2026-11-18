@@ -1,5 +1,4 @@
 import type { Reminder } from '@haus/api';
-
 import { hausTrpc } from '../../lib/haus-server.tsx';
 
 /**

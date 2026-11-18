@@ -2,7 +2,6 @@ import { afterAll, expect, test } from 'bun:test';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { readAgentSessionState } from '../harness/session-store.ts';
 import { toHausResumeState } from './legacy-resume-state.ts';
 import { isRuntimeResumeRejection } from './resume-rejected.ts';

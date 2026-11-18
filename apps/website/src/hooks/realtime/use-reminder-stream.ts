@@ -1,6 +1,5 @@
 import type { ReminderUpdatedEvent } from '@haus/api';
 import { getQueryKey } from '@trpc/react-query';
-
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import {
     type TargetedReadCoalescer,

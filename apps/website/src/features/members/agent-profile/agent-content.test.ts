@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { resolveWorkspaceAvailability } from './agent-content.tsx';
 
 const computers = [{ health: 'healthy' as const, id: 'cmp_1' }];

@@ -1,5 +1,4 @@
 import type { ArtifactMetadata } from '@haus/api';
-
 import { identityMarkRadius } from '../../components/ui/entity-avatar.tsx';
 import { ArtifactFileIcon } from './icons/artifact-file-icon.tsx';
 import { artifactFileKind } from './icons/artifact-file-kind.ts';

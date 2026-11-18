@@ -2,7 +2,6 @@ import type { GithubTrigger } from '@haus/api';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Alert, Separator } from '@heroui/react';
 import { Fragment } from 'react';
-
 import { AutomationFactRow } from './automation-fact-row.tsx';
 import { githubEventSpecs, githubEventSummary } from './trigger-github-events-model.ts';
 import {

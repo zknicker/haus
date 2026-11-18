@@ -4,7 +4,6 @@ import {
     type AmazonProductResult,
     amazonProductMaxRetryAfterSeconds,
 } from '@haus/api';
-
 import { McpUpstreamError } from '../server-mcp/errors.ts';
 import {
     assertSameProduct,

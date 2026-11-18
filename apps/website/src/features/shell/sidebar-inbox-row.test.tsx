@@ -1,9 +1,7 @@
 import { expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
-
 import { Sidebar } from '@heroui-pro/react';
 import { MemoryRouter } from 'react-router-dom';
-
 import { renderWithTrpc } from '../../test-support/trpc-test-provider.tsx';
 import { ChatNavigation } from './chat-navigation.tsx';
 import { CommandMenuProvider } from './command-menu-provider.tsx';

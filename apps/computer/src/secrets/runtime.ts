@@ -3,7 +3,6 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-
 // Bun's text loader embeds the pinned manifest and lockfile in the standalone
 // executable, the same way the Codex driver ships its pin.
 import runtimeManifest from '../../assets/secrets-runtime/package.json' with { type: 'text' };

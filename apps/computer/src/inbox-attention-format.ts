@@ -1,5 +1,4 @@
 import { type CloudAgentBranch, TASK_TARGET_PATTERN } from '@haus/api';
-
 import type {
     AgentCloudAgentWorkAttention,
     CloudAgentPullRequestChange,

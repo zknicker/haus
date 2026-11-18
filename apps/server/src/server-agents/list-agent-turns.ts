@@ -1,6 +1,5 @@
 import { type AgentTurn, type AgentTurnsInput, agentTurnActivitySummarySchema } from '@haus/api';
 import { and, desc, eq, isNull, type SQL } from 'drizzle-orm';
-
 import { visibleChats } from '../chats/chat-visibility.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentRunTriggersTable, agentTurnsTable, chatsTable } from '../postgres/schema.ts';

@@ -1,6 +1,5 @@
 import { artifactTargetInputSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
-
 import { deleteArtifact } from '../../artifacts/delete.ts';
 import { artifactProcedure } from './procedure.ts';
 

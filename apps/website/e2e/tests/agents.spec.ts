@@ -1,6 +1,5 @@
 import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@haus/api';
 import { WebSocket } from 'ws';
-
 import { attachComputer, createTestServer, runAgentAction } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 

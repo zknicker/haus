@@ -1,5 +1,4 @@
 import type * as React from 'react';
-
 import { MarkdownLink, matchBareUrl, matchMarkdownLink } from './chat-inline-markdown-link.tsx';
 import {
     type ChatTextAnimationRange,

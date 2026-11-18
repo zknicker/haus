@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { TurnTraceImageViewer, TurnTraceImageViewerContent } from './turn-trace-image-viewer.tsx';
 import type { TurnTraceImage } from './turn-trace-tool-model.ts';
 

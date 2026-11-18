@@ -3,7 +3,6 @@ import { Button, Separator, Tooltip } from '@heroui/react';
 import { GithubIcon, WebhookIcon } from '@hugeicons-pro/core-solid-rounded';
 import { Add01Icon, HistoryIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentTriggers } from '../../../hooks/members/use-agent-triggers.ts';

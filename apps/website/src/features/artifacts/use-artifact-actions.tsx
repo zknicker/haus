@@ -6,7 +6,6 @@ import {
 } from '@haus/api';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-
 import { useArtifactSave } from '../../hooks/artifacts/use-artifact-save.ts';
 import { useArtifactZipDownload } from '../../hooks/artifacts/use-artifact-zip-download.ts';
 import { useServerContext } from '../servers/server-context.ts';

@@ -1,5 +1,4 @@
 import * as z from 'zod';
-
 import { runtimeUserIdSchema } from './runtime/identity.ts';
 
 export const appSessionSchema = z

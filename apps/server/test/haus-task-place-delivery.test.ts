@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import { targetForChat } from '../src/agent-api/message-view.ts';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { buildInboxItems } from '../src/agent-delivery/inbox-items.ts';

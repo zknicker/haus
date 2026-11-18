@@ -1,5 +1,4 @@
 import { afterAll, expect, test } from 'bun:test';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { makeServerRuntime } from '../server-runtime.ts';
 import { McpUpstreamError } from './errors.ts';

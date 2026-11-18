@@ -1,7 +1,6 @@
 import { usePrefetchInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-
 import { chatMessagesQueryOptions } from '../../../hooks/servers/use-chat-messages.ts';
 import { useChat } from '../../../hooks/servers/use-chat.ts';
 import { useListedChat } from '../../../hooks/servers/use-chats.ts';

@@ -1,8 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import { appProtocolVersion } from '@haus/api';
 import { createTRPCClient, createWSClient, TRPCClientError, wsLink } from '@trpc/client';
-
 import type { HausRouter } from '../src/haus-api/router.ts';
 import { socketSessionExpiredCloseCode } from '../src/haus-api/socket-session.ts';
 import { createHausClient, createOriginWebSocket, type HausClient } from './haus-client.ts';

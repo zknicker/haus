@@ -1,6 +1,5 @@
 import type { Agent } from '@haus/api';
 import * as React from 'react';
-
 import { useAgentHubReveal } from '../../../hooks/members/use-agent-hub-reveal.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { AgentRuntimeIssue } from '../agent-runtime-issue.tsx';

@@ -1,7 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { HausGhost } from './haus-ghost.tsx';
 
 const iridescent = () => renderToStaticMarkup(<HausGhost fill="iridescent" />);

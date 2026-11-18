@@ -1,5 +1,4 @@
 import { Clock, Effect } from 'effect';
-
 import { type CloudAgentOperationError, foreign } from './foreign-operation.ts';
 import { abortCloudAgentLaunch } from './launch-attempt.ts';
 import type { CloudLaunchJournal, CloudLaunchRecord, CloudPendingSend } from './launch-journal.ts';

@@ -1,5 +1,4 @@
 import { and, eq, sql } from 'drizzle-orm';
-
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { queuedFor, retireQueuedItemsByDedupeKeys } from '../agent-delivery/store.ts';
 import type { HausDatabase } from '../postgres/connection.ts';

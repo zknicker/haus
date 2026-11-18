@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { Task } from '@haus/api';
-
 import { assigneeFilterFromKey, assigneeFromKey, assigneeKey } from './task-assignee.ts';
 import { isTaskState, taskStateLabels, taskStateOrder } from './task-state.ts';
 import {

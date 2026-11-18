@@ -1,8 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import { sql } from 'drizzle-orm';
 import { jsonb, pgTable, timestamp } from 'drizzle-orm/pg-core';
-
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { startEmptyDatabase, type TestDatabase } from './postgres-cluster.ts';
 

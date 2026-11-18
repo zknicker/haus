@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
-
 import {
     announceRunEngagements,
     installChatEngagementProjector,

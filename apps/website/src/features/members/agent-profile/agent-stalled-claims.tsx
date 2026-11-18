@@ -4,7 +4,6 @@ import { Button, Dropdown, Label, Separator } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-
 import { RelativeTime } from '../../../components/time/relative-time.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useClaimRelease } from '../../../hooks/servers/use-claim-release.ts';

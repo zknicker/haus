@@ -1,6 +1,5 @@
 import type { AttachmentMetadata } from '@haus/api';
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { attachmentsTable } from '../postgres/schema.ts';
 import type { HausUser } from '../users/haus-user.ts';

@@ -2,7 +2,6 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import {
     cancelReminder,

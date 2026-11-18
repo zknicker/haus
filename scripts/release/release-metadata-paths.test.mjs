@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { releaseMetadataPaths } from './release-metadata-paths.mjs';
 
 test('publisher accepts every file changed by the coordinated release bump', () => {

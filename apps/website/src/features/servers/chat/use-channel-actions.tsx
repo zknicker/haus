@@ -1,7 +1,6 @@
 import type { Chat } from '@haus/api';
 import { toast } from '@heroui/react';
 import * as React from 'react';
-
 import {
     useChannelArchive,
     useChannelDelete,

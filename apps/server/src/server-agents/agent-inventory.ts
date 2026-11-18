@@ -4,7 +4,6 @@ import {
     modelReasoningEfforts,
 } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computersTable } from '../postgres/schema.ts';
 import { AgentConfigDeniedError } from './agent-config-errors.ts';

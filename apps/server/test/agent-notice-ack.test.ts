@@ -1,10 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import type { AgentActivityEvent } from '@haus/api';
 import { makeLifecycleLoggerLayer } from '@haus/effect';
 import { and, eq } from 'drizzle-orm';
 import { ManagedRuntime } from 'effect';
-
 import { subscribeToCommittedAgentActivity } from '../src/agent-delivery/activity-events.ts';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';

@@ -1,8 +1,6 @@
 import { cp, mkdir, rename } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
-
 import { z } from 'zod';
-
 import { hostWorkspaceDisk } from './disk-image.ts';
 import { inventoryDigest } from './inventory-digest.ts';
 import { readJson, releaseWorkspace, writeJson } from './storage-ledger.ts';

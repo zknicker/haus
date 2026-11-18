@@ -8,7 +8,6 @@ import {
     text,
     timestamp,
 } from 'drizzle-orm/pg-core';
-
 import { agentsTable } from './agents.ts';
 
 /**

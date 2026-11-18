@@ -1,6 +1,5 @@
 import type { AgentCreateChannelInput, AgentCreateChannelReceipt } from '@haus/api';
 import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
-
 import { insertChannel } from '../chats/create-channel.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';

@@ -1,7 +1,6 @@
 import { ImageUpload01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { createPortal } from 'react-dom';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 import { springs } from '../../../lib/springs.ts';
 

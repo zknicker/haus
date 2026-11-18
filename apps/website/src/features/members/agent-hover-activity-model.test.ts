@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { AgentActivityEvent, AgentCurrentActivity } from '@haus/api';
-
 import {
     formatElapsedSince,
     formatHoverLiveLine,

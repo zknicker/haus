@@ -1,7 +1,5 @@
 import { randomBytes } from 'node:crypto';
-
 import { and, eq, sql } from 'drizzle-orm';
-
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import type { ResolvedRunner } from '../src/computers/runner-credentials.ts';
 import type { HausDatabase } from '../src/postgres/connection.ts';

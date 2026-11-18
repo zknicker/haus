@@ -1,5 +1,4 @@
 import { type SQL, sql } from 'drizzle-orm';
-
 import type { AdventFactStats } from '../fact-stats.ts';
 import { type AdventScope, memberAgents } from '../year-scope.ts';
 import type { MessageColumns } from './message-columns.ts';

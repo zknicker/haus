@@ -1,7 +1,6 @@
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import { promisify } from 'node:util';
-
 import type { ChromeApplication } from './types.ts';
 
 const execFileAsync = promisify(execFile);

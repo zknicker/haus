@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { systemEventLabel } from './computer-system-log.ts';
 
 test('system events name Computer lifecycle and Server connection changes directly', () => {

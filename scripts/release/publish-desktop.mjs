@@ -3,7 +3,6 @@
 import { spawnSync } from 'node:child_process';
 import { readdir } from 'node:fs/promises';
 import path from 'node:path';
-
 import { readJson, repoRoot } from './release-utils.mjs';
 
 const s3Uri = trimTrailingSlash(requireEnv('HAUS_RELEASE_S3_URI'));

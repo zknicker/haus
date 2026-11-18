@@ -1,5 +1,4 @@
 import { type CSSProperties, useId } from 'react';
-
 import { cn } from '../../../lib/utils.ts';
 import { ArtifactFileGlyphSmall } from './artifact-file-glyphs-small.tsx';
 import { ArtifactFileGlyph } from './artifact-file-glyphs.tsx';

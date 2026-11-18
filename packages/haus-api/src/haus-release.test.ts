@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { hausReleaseSnapshotSchema } from './haus-release.ts';
 
 const snapshot = {

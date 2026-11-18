@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { agentUpdatedTopic, chatLifecycleTopic } from '../src/realtime/topics.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 import { captureTopic, settleRealtime } from './realtime-capture.ts';

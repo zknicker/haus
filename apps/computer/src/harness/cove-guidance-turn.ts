@@ -1,5 +1,4 @@
 import { inspectCoveFactoryGuidance, reconcileCoveFactoryGuidance } from '@haus/agent-workspace';
-
 import type { AgentActivityRun } from '../agent-activity-run.ts';
 import {
     coveGuidanceConflictNotice,

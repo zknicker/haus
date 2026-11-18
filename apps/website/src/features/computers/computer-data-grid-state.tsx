@@ -1,7 +1,6 @@
 import { Button, EmptyState, Spinner } from '@heroui/react';
 import { AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type { IconSvgElement } from '@hugeicons/react';
-
 import { Icon } from '../../components/ui/icon.tsx';
 
 type ComputerDataGridStateProps =

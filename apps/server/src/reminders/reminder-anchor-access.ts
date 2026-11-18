@@ -1,5 +1,4 @@
 import { and, eq, or } from 'drizzle-orm';
-
 import { isFollowedChatKind } from '../agent-delivery/followed-chat.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {

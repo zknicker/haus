@@ -1,8 +1,6 @@
 import { expect, test } from 'bun:test';
-
 import { type EffectRuntime, type LifecycleConsole, makeTestRuntime, settle } from '@haus/effect';
 import { Cause, Effect, Exit, Layer, ManagedRuntime, Runtime, Scope, TestClock } from 'effect';
-
 import {
     type HausServerShutdownOptions,
     type HausServerShutdownResources,

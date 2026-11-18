@@ -1,10 +1,8 @@
 import { expect, test } from 'bun:test';
-
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpBatchLink } from '@trpc/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
-
 import { hausTrpc, type ServerDetail } from '../../../lib/haus-server.tsx';
 import { testAgent } from '../agent-fixtures.ts';
 import { AgentChats } from './agent-chats.tsx';

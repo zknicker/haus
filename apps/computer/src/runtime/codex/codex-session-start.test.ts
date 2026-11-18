@@ -1,6 +1,5 @@
 // Ported from botiverse/raft-source packages/daemon/src/drivers/codex.test.ts (FSL-1.1-ALv2)
 import { describe, expect, test } from 'bun:test';
-
 import { isRuntimeResumeRejection } from '../resume-rejected.ts';
 import { resumeThreadId } from './codex-driver.ts';
 import { CodexResumeRejectedError, CodexThreadBusyError } from './codex-errors.ts';

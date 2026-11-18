@@ -1,7 +1,6 @@
 import { Button, ScrollShadow } from '@heroui/react';
 import { useVirtualizer, type Virtualizer } from '@tanstack/react-virtual';
 import * as React from 'react';
-
 import { getChannelColorStyle } from '../../components/chats/channel-color-options.ts';
 import {
     type ChannelIconCatalog,

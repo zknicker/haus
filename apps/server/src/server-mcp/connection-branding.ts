@@ -1,5 +1,4 @@
 import { type McpIcon, type McpPreset, mcpIconSchema, mcpPresetIcons } from '@haus/api';
-
 import type { McpIconResolver } from './icons.ts';
 
 interface ConnectionBranding {

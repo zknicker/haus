@@ -1,6 +1,5 @@
 import { formatTaskKey, type Task } from '@haus/api';
 import { and, asc, eq, inArray, type SQL } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     chatsTable,

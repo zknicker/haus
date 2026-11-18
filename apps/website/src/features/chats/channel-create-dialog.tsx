@@ -1,6 +1,5 @@
 import { Button, FieldError, Form, InputGroup, Label, Modal, TextField } from '@heroui/react';
 import * as React from 'react';
-
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import {
     type ChannelAgentOption,

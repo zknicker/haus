@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { agentCreateAgentInputSchema, agentUpdateAgentInputSchema } from './agent-creation.ts';
 import {
     AGENT_DESCRIPTION_MAX_LENGTH,

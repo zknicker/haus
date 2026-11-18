@@ -8,7 +8,6 @@ import {
     type MessageClaim,
 } from '@haus/api';
 import { eq, sql } from 'drizzle-orm';
-
 import { recordCloudAgentWorkLinks } from '../chats/cloud-agent-work-links.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';

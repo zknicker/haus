@@ -1,5 +1,4 @@
 import { type WidgetRenderInput, widgetRenderInputSchema } from '@haus/api/widgets';
-
 import { cn } from '../../lib/utils.ts';
 import { WidgetArtifactCard } from './artifact-card.tsx';
 import type { TranscriptWidgetRow } from './transcript-contract.ts';

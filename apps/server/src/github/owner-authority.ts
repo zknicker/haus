@@ -1,6 +1,5 @@
 import type { GithubAccount } from '@haus/api';
 import * as z from 'zod';
-
 import { GithubApiError, type GithubApiTransport, githubRequest } from './github-api.ts';
 
 // GitHub-side binding authority (specs/github-app-connection.md#binding): the

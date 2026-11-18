@@ -1,8 +1,6 @@
 import { expect, test } from 'bun:test';
-
 import type { ImageGenerationModel } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { ImageGenerationSettings } from './image-generation-group.tsx';
 import { modelPriceRange, providerKeyActions } from './image-generation-settings-model.ts';
 

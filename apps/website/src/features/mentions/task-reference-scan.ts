@@ -4,7 +4,6 @@ import {
     parseTaskReferenceTarget,
     type TaskLink,
 } from '@haus/api';
-
 import { normalizeMentions } from './mention-text.ts';
 import type { Mention } from './mention-types.ts';
 

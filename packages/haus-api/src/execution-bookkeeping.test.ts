@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { executionBookkeepingCases } from './execution-bookkeeping-fixtures.ts';
 import {
     isExecutionBookkeeping,

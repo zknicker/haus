@@ -1,13 +1,11 @@
 import { lstat, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-
 import {
     type HostSkillFileRequest,
     type HostSkillFileResult,
     hostSkillFileMaxBytes,
     hostSkillFileRequestSchema,
 } from '@haus/api';
-
 import { reportStateError } from './computer-report.ts';
 import { findHostSkillSource } from './host-skills.ts';
 

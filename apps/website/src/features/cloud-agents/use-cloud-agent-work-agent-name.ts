@@ -1,7 +1,6 @@
 import type { Agent, CloudAgentWork } from '@haus/api';
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
-
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';

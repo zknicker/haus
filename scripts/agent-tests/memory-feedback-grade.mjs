@@ -13,7 +13,6 @@
 
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
-
 import { evidenceDirectory, seededRules } from './memory-feedback.mjs';
 
 const brevity = /\b(short|brief|concise|terse|tight|lean|ground|scope|focus|succinct|minimal)/i;

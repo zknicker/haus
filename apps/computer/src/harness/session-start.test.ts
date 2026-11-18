@@ -1,8 +1,6 @@
 import { afterEach, expect, test } from 'bun:test';
-
 import { makeTestRuntime } from '@haus/effect';
 import { TestClock } from 'effect';
-
 import { AgentTurnTimings } from '../agent-turn-timings.ts';
 import { isRetryableRuntimeFailure } from '../runtime-failure.ts';
 import type { RuntimeSession } from '../runtime/driver.ts';

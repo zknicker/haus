@@ -1,7 +1,6 @@
 import { artifactPathBasename, artifactPublicTokenPattern } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     artifactsTable as artifacts,

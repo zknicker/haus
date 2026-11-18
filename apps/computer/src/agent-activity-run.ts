@@ -1,7 +1,6 @@
 import type { AgentTurnActivitySummary, AgentTurnOperationCategory } from '@haus/api';
 import { type EffectRuntime, settle } from '@haus/effect';
 import { Cause, Clock, Data, Effect, Exit } from 'effect';
-
 import type {
     ComputerAgentActivityCategory,
     ComputerAgentActivityUpdate,

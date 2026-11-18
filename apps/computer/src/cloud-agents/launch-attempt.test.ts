@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { createFakeCloudAgentProvider } from './fake-provider.ts';
 import { abortCloudAgentLaunch, launchCloudAgent } from './launch-attempt.ts';
 import type { CloudAgentLaunch } from './provider.ts';

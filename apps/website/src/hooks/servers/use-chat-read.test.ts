@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { canMarkChatRead, createChatReadAttemptTracker } from './use-chat-read.ts';
 
 test('chat reads require a foreground app and a visible sequence', () => {

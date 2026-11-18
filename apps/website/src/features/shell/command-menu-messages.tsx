@@ -2,7 +2,6 @@ import type { Chat, ChatSearchResult } from '@haus/api';
 import { Command } from '@heroui-pro/react';
 import { ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useEffect, useMemo, useState } from 'react';
-
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';

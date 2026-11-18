@@ -1,5 +1,4 @@
 import { chatSchema, ensureDmInputSchema } from '@haus/api';
-
 import { ensureDm } from '../../chats/ensure-dm.ts';
 import { publishRealtime } from '../../realtime/topic.ts';
 import { chatProcedure } from './procedure.ts';

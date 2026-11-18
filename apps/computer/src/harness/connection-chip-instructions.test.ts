@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { composeAgentInstructions } from './instructions.ts';
 
 const facts = {

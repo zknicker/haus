@@ -1,5 +1,4 @@
 import { triggerResultSchema, triggerUpdateInputSchema } from '@haus/api';
-
 import { updateOperatorTrigger } from '../../triggers/operator-triggers.ts';
 import { triggerAuthoring, triggerClock, triggerProcedure } from './procedure.ts';
 

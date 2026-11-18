@@ -1,5 +1,4 @@
 import { artifactPublicLinkResultSchema } from '@haus/api';
-
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import type { ParsedArgs } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';

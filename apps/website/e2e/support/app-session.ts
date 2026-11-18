@@ -1,8 +1,6 @@
 import { readFileSync } from 'node:fs';
-
 import type { AppSession } from '@haus/api/app-session';
 import type { Page } from '@playwright/test';
-
 import { createAppSessionFixture as createServerSession } from '../../../server/test/app-session-fixture.ts';
 import { serverStateFile } from './server-state.ts';
 

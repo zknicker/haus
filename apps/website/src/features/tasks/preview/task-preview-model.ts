@@ -1,5 +1,4 @@
 import type { TaskPreview } from '@haus/api';
-
 import { taskStateLabels } from '../task-state.ts';
 
 export function taskPreviewCounts(preview: Pick<TaskPreview, 'messageCount' | 'unreadCount'>) {

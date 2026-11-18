@@ -1,5 +1,4 @@
 import { mkdirSync } from 'node:fs';
-
 import { cloudAgentObservationFrame, seedCloudAgentWork } from '../support/agent-cloud-agent.ts';
 import { sendBootstrap, socketMessage, socketOpen } from '../support/computer-socket.ts';
 import { createTestServer, runPsql } from '../support/server.ts';

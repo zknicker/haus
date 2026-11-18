@@ -3,7 +3,6 @@ import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Button, Label, ListBox, Modal, Spinner } from '@heroui/react';
 import { Key01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { useState } from 'react';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import type { OnePasswordConnectStep } from '../../hooks/servers/use-onepassword-connect.ts';
 import { SettingsRowError } from '../settings/layout/settings-text.tsx';

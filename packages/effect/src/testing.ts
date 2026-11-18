@@ -1,5 +1,4 @@
 import { Layer, ManagedRuntime, TestContext } from 'effect';
-
 import { type LifecycleConsole, makeLifecycleLoggerLayer } from './logging.ts';
 
 /** Build the Bun-compatible lifecycle test runtime with virtual time enabled. */

@@ -35,7 +35,6 @@
 // Chats: #all is shown; #product, #automations and the Tiny and Blippy DMs are kept.
 import { writeFileSync } from 'node:fs';
 import path from 'node:path';
-
 import { defaultBase, parseArgs, repositoryRoot, sidebarRow } from './browser-session.mjs';
 import { launchAuditedElectron, openSender } from './render-audit-session.mjs';
 

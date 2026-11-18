@@ -14,7 +14,6 @@ import {
 } from '@hugeicons-pro/core-solid-rounded';
 import { GitPullRequestIcon, Globe02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type { IconSvgElement } from '@hugeicons/react';
-
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';

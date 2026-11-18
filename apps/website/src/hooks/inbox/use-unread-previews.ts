@@ -1,6 +1,5 @@
 import type { ChatUnreadPreview, ChatUnreadPreviewList } from '@haus/api';
 import * as React from 'react';
-
 import {
     type FollowedTaskPreview,
     followedTaskPreviews,

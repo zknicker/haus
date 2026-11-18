@@ -1,7 +1,5 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-
 import type { ArtifactUpdatedEvent } from '@haus/api';
-
 import { deleteArtifact } from '../src/artifacts/delete.ts';
 import { moveArtifacts } from '../src/artifacts/move.ts';
 import { shareArtifact, unshareArtifact } from '../src/artifacts/public-link.ts';

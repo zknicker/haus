@@ -1,5 +1,4 @@
 import type { ReactNode, Ref } from 'react';
-
 import { type ChatComposerHandle, ServerChatComposer } from './chat-composer.tsx';
 import { agentDmDraftKey, chatDraftKey } from './chat-draft-store.ts';
 import type { ChatInlineReplyTarget } from './chat-inline-reply.tsx';

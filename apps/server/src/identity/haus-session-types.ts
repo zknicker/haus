@@ -1,5 +1,4 @@
 import type { AppSession, NativeAppClient, NativeAppSession } from '@haus/api/app-session';
-
 import type { CloudflareAdmission } from './cloudflare-access.ts';
 
 export type HausAuthErrorCode =

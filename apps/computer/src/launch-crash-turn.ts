@@ -1,6 +1,5 @@
 import { appendFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-
 import { messageOf } from './launch-trace.ts';
 import type { AgentStartCommand, AgentTurnFrame } from './launch.ts';
 import { runtimeFailureFields } from './runtime-failure.ts';

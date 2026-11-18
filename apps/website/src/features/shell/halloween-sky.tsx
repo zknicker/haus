@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import { useColorThemeDefinition } from '../../hooks/shell/use-color-theme.ts';
 import { type SkyMoonLayout, startSkyLoop } from './halloween-sky-loop.ts';
 

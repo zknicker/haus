@@ -1,7 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
-
 import { focusManager, QueryClient, QueryObserver } from '@tanstack/react-query';
-
 import { installQueryFocusSources } from './query-focus.ts';
 import { focusStaleWindowMs, queryClientDefaultOptions, refetchesOnFocus } from './query-policy.ts';
 import { createStartReconciliation } from './start-reconciliation.ts';

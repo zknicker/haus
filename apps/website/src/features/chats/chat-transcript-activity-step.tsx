@@ -1,5 +1,4 @@
 import { PuzzleIcon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { workerKindConfig } from '../workers/config.ts';
 import type { ActivityItem } from './chat-transcript-activity-utils.ts';
 import type { TranscriptRow } from './chat-transcript-model.ts';

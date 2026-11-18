@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'vitest';
-
 import { isDurableMessageRow } from './durable-message-row.ts';
 
 describe('durable message rows', () => {

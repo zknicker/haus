@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import { countUnreadInboxRows } from '../src/chats/unread-chat-count.ts';
 import { type NotificationFixture, startNotificationFixture } from './notification-fixture.ts';
 import { startTestTask } from './task-place-fixture.ts';

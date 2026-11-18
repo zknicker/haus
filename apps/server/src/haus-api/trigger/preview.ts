@@ -4,7 +4,6 @@ import {
     idSchema,
 } from '@haus/api';
 import * as z from 'zod';
-
 import { previewGithubTrigger } from '../../triggers/github-trigger-preview.ts';
 import { requireTriggerOperator } from '../../triggers/operator-triggers.ts';
 import { readTrigger } from '../../triggers/trigger-queries.ts';

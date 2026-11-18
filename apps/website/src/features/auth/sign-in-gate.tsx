@@ -1,6 +1,5 @@
 import { Button, Spinner } from '@heroui/react';
 import { Fragment, type ReactNode, useState } from 'react';
-
 import { ActivationLoading } from '../../components/activation/activation-loading.tsx';
 import { ActivationShell, ActivationStep } from '../../components/activation/activation-shell.tsx';
 import type { AppAuthSnapshot } from '../../lib/app-auth-session.ts';

@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { ImageGenerationCard } from './image-generation-card.tsx';
 import { failedResult, imageGenerationFixture } from './image-generation-fixture.ts';
 

@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { ProfileFact, ProfileFacts } from './profile-facts.tsx';
 
 test('a fact pairs label then value in the DOM', () => {

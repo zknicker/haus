@@ -5,7 +5,6 @@
  * serves the replayed document (ADR 0048).
  */
 import * as z from 'zod';
-
 import { idSchema } from './chat.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });

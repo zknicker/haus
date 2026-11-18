@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { createJevRouter } from './jev-client.ts';
 import { type RoutingState, routingModel } from './jev.ts';
 import { decodeMentionScopeDecision, mentionScopePromptVersion } from './mention-scope.ts';

@@ -1,5 +1,4 @@
 import type { Chat } from '@haus/api';
-
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { canRunAgentActions } from '../../members/agent-profile/agent-actions-model.ts';
 import { ArchivedChannelBar } from './archived-channel-bar.tsx';

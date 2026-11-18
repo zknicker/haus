@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { readProxyResponse } from './proxy-mcp.ts';
 
 function endlessBody(onCancel: () => void) {

@@ -1,5 +1,4 @@
 import type * as React from 'react';
-
 import type { ComputerLoginStatus } from './computer-login-view.tsx';
 
 export function loginTitle(status: ComputerLoginStatus | undefined, setupFlow: boolean) {

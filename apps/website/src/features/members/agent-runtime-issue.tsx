@@ -1,7 +1,6 @@
 import type { Agent } from '@haus/api';
 import { Alert } from '@heroui/react';
 import { Link, useParams } from 'react-router-dom';
-
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { computerLabel } from '../computers/presentation.ts';
 import { agentRuntimeIssue, runtimeIssueLabel } from '../computers/runtime-issue-model.ts';

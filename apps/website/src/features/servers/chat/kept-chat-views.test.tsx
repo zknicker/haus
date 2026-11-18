@@ -1,8 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import * as React from 'react';
 import type { Root } from 'react-dom/client';
-
 import { TabIdContext, useTabPresence } from '../../../hooks/desktop-tabs/tab-presence.ts';
 import { useDesktopPageOpeners } from '../../../hooks/desktop-tabs/use-desktop-page-openers.ts';
 import { installFakeDom } from '../../../test-support/fake-dom.ts';

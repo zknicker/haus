@@ -1,5 +1,4 @@
 import { TRPCError } from '@trpc/server';
-
 import type { TriggerAuthoringServices } from '../../triggers/operator-triggers.ts';
 import {
     TriggerAccessDeniedError,

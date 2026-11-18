@@ -1,6 +1,5 @@
 import { Button, Tooltip } from '@heroui/react';
 import { Add01Icon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { useDesktopTabs } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import type { PaneSide } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';

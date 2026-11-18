@@ -1,8 +1,6 @@
 import { afterAll, expect, test } from 'bun:test';
-
 import type { AgentCommand } from '@haus/api';
 import { makeTestRuntime } from '@haus/effect';
-
 import { InventoryRefreshReplies } from './inventory-refresh-replies.ts';
 
 const runtime = makeTestRuntime();

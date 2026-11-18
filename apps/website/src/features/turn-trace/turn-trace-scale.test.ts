@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import { formatTraceTick, placeTick, readTraceScale } from './turn-trace-scale.ts';
 
 const s = 1000;

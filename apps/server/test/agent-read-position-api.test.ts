@@ -1,5 +1,4 @@
 import { beforeAll, expect, test } from 'bun:test';
-
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 
 const fixture = agentCreationFixture();

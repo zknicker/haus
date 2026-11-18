@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { CloudAgentWork } from '@haus/api';
-
 import { buildInboxItems } from '../src/agent-delivery/inbox-items.ts';
 import { listInboxItemsByDedupeKeys } from '../src/agent-delivery/store.ts';
 import { connectHausDatabase } from '../src/postgres/connection.ts';

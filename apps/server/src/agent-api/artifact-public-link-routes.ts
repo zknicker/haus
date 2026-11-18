@@ -1,7 +1,6 @@
 import type { ArtifactPublicLinkResult } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
-
 import { shareArtifact, unshareArtifact } from '../artifacts/public-link.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { sendArtifactError } from './artifact-errors.ts';

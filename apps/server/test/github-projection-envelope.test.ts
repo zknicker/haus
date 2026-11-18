@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { triggerPayloadMaxBytes } from '@haus/api';
-
 import { projectGithubDelivery } from '../src/github/event-projection/project.ts';
 import { githubEnvelopeLines, githubSummary } from '../src/github/trigger-envelope.ts';
 import { signGithubPayload, verifyGithubSignature } from '../src/github/webhook-signature.ts';

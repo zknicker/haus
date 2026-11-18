@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import type { HausUpdateComputer, HausUpdateInput } from './haus-update-model.ts';
 import { projectHausUpdate } from './haus-update-model.ts';
 import { expectedComputerRestartMs } from './haus-update-timing.ts';

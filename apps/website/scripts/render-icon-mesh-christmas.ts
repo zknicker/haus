@@ -25,9 +25,7 @@
 import { copyFile, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 import { chromium } from '@playwright/test';
-
 import type { GlassPiece } from '../src/components/haus-ghost-figure.ts';
 import { BODY_PATH } from '../src/components/haus-ghost-paths.ts';
 import { SANTA_PIECES } from '../src/components/haus-santa-ghost-palette.ts';

@@ -1,8 +1,6 @@
 import { expect, test } from 'bun:test';
-
 import type { CloudAgentBranch } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { CloudAgentPullRequestRow } from './cloud-agent-work-card.tsx';
 
 const pullRequestBranch: CloudAgentBranch = {

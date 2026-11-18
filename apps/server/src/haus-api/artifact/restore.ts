@@ -1,5 +1,4 @@
 import { artifactRecordResultSchema, artifactRestoreInputSchema } from '@haus/api';
-
 import { restoreArtifactRevision } from '../../artifacts/restore.ts';
 import { artifactProcedure } from './procedure.ts';
 

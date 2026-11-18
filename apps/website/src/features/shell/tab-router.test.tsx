@@ -8,7 +8,6 @@ import {
     useRoutes,
 } from 'react-router-dom';
 import { expect, test } from 'vitest';
-
 import { tabIntentState, tabStayState } from '../../hooks/desktop-tabs/tab-navigation.ts';
 import {
     type OpenGesture,

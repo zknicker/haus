@@ -1,9 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { realpathSync } from 'node:fs';
 import { join } from 'node:path';
-
 import type { AgentReasoningEffort } from '@haus/api';
-
 import type { HostToolSet } from '../../host-tools/host-tool.ts';
 import type { HostToolServer } from '../../host-tools/mcp-server.ts';
 import { unlinkHostClaudeState } from '../auth-profiles.ts';

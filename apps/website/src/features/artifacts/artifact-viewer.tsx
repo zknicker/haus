@@ -1,7 +1,6 @@
 import { artifactPathParent } from '@haus/api';
 import * as React from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-
 import { useArtifact } from '../../hooks/artifacts/use-artifact.ts';
 import type { BandCrumb } from '../shell/band-trail.ts';
 import { PageBand } from '../shell/page-band.tsx';

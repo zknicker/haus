@@ -4,7 +4,6 @@
 // same markdown parser the product uses.
 import { createRequire } from 'node:module';
 import path from 'node:path';
-
 import { repoRoot } from './paths.mjs';
 
 const { marked } = createRequire(path.join(repoRoot, 'apps/website/package.json'))('marked');

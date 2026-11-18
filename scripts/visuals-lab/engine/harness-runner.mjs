@@ -5,7 +5,6 @@
 // about the product rather than about whichever CLI happens to be installed on
 // this Mac; Grok Build runs the operator's installed `grok`, as Haus does.
 import path from 'node:path';
-
 import { makeDaemonRuntime } from '../../../apps/computer/src/daemon-runtime.ts';
 import { createDriver } from '../../../apps/computer/src/runtime/driver-factory.ts';
 import {

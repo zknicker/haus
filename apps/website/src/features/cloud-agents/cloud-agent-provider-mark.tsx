@@ -2,7 +2,6 @@ import type { CloudAgentProvider } from '@haus/api';
 import { Tooltip } from '@heroui/react';
 import { CommandLineIcon } from '@hugeicons-pro/core-solid-rounded';
 import { CloudIcon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { ModelProviderLogo } from '../../components/badges/model-provider-logo.tsx';
 import { identityMarkRadius } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';

@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import { shouldRetryQuery } from './query-retry.ts';
 
 test('shouldRetryQuery does not retry route-not-found failures', () => {

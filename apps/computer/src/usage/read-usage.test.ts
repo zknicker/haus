@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { ClaudeUsageRequestError } from '@haus/claude-usage';
-
 import { readComputerUsage } from './read-usage.ts';
 
 test('Computer reports only provider usage sources it can actually read', async () => {

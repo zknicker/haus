@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import { AvatarGenerationDialog } from './agent-avatar-generation-dialog.tsx';
 import { useAvatarGenerationSession } from './use-avatar-generation-session.ts';
 

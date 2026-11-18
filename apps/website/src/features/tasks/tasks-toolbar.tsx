@@ -2,7 +2,6 @@ import { InlineSelect } from '@heroui-pro/react/inline-select';
 import { Label, ListBox, Toolbar } from '@heroui/react';
 import type * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
-
 import { useTaskLabels } from '../../hooks/servers/use-task-labels.ts';
 import { useTaskKeys } from '../../hooks/tasks/use-task-keys.ts';
 import { useServerContext } from '../servers/server-context.ts';

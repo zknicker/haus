@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { avatarVariants } from '@heroui/styles';
 
 describe('HeroUI avatar variants', () => {

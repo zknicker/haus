@@ -1,7 +1,5 @@
 import { beforeAll, expect, test } from 'bun:test';
-
 import { type CloudAgentWork, formatCloudAgentWorkLink } from '@haus/api';
-
 import { cloudAgentFixture } from './cloud-agent-fixture.ts';
 import { cloudAgentLinkHelpers } from './cloud-agent-link-helpers.ts';
 

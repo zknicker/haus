@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-
 import { cn } from '../../lib/utils.ts';
 import { buildDiffHunks, type DiffHunk, type DiffLine } from './diff-hunks.ts';
 

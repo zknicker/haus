@@ -1,8 +1,6 @@
 import { randomBytes } from 'node:crypto';
-
 import type { ArtifactPublicLink } from '@haus/api';
 import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { artifactsTable as artifacts } from '../postgres/schema.ts';
 import { artifactUpdatedTopic } from '../realtime/topics.ts';

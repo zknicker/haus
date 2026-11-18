@@ -6,7 +6,6 @@ import type {
     AvatarMediaType,
 } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-
 import { assertFreshAgentView } from '../agent-api/chat-freshness.ts';
 import type { AvatarBytes } from '../avatars/avatar-bytes.ts';
 import { resolveAgentDmOwnerUserId } from '../chats/agent-dm-owner.ts';

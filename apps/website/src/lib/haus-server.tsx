@@ -2,7 +2,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createTRPCReact } from '@trpc/react-query';
 import type { inferRouterInputs, inferRouterOutputs } from '@trpc/server';
 import * as React from 'react';
-
 import type { HausRouter } from '../../../server/src/haus-api/router.ts';
 import { UpdateRequiredGate } from '../features/servers/update-required-gate.tsx';
 import { getAppSessionAccessToken, useAppAuth } from './app-auth.tsx';

@@ -1,6 +1,5 @@
 import type { AgentRunTrigger, AgentRunTriggerEntry, AgentRunTriggerInput } from '@haus/api';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
-
 import { visibleChats } from '../chats/chat-visibility.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentRunTriggersTable, chatsTable } from '../postgres/schema.ts';

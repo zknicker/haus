@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { formatDueOn } from '../tasks/task-facts.tsx';
 import { TaskHoverCardView } from './task-hover-card.tsx';
 

@@ -9,7 +9,6 @@ import {
     text,
     timestamp,
 } from 'drizzle-orm/pg-core';
-
 import { tasksTable } from './tasks.ts';
 
 export const taskPullRequestsTable = pgTable(

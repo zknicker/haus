@@ -1,5 +1,4 @@
 import { TRPCError } from '@trpc/server';
-
 import { AttachmentAssociationError } from '../../attachments/message-attachments.ts';
 import { RetiredAgentDmSendError } from '../../chats/active-dm-peer.ts';
 import {

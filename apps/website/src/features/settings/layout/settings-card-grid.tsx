@@ -2,7 +2,6 @@ import { ItemCard, ItemCardGroup, PressableFeedback } from '@heroui-pro/react';
 import { Button } from '@heroui/react';
 import { Tick02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type React from 'react';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 
 /**

@@ -11,7 +11,6 @@ import {
     UNSAFE_NavigationContext,
     UNSAFE_RouteContext,
 } from 'react-router-dom';
-
 import type { DesktopTabsApi } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import type { TabLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import {

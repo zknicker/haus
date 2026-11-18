@@ -1,6 +1,5 @@
 import { type CloudAgentPullRequestReading, parseGithubPullRequestUrl } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-
 import { toPullRequestReading } from '../cloud-agents/pull-request-readings.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { cloudAgentPullRequestsTable, taskPullRequestsTable } from '../postgres/schema.ts';

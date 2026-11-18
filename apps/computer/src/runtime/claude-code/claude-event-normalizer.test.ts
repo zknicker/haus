@@ -1,6 +1,5 @@
 // Ported from botiverse/raft-source packages/daemon/src/drivers/claudeEventNormalizer.test.ts (FSL-1.1-ALv2)
 import { expect, test } from 'bun:test';
-
 import { ClaudeEventNormalizer } from './claude-event-normalizer.ts';
 import { type ParsedClaudeLine, parseClaudeLine } from './claude-messages.ts';
 import { createWorkspaceStripper } from './claude-tool-names.ts';

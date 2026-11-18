@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto';
-
 import { assertOpaqueId, attachComputer, createClient, runPsql } from './server.ts';
 
 export interface SeededCloudAgentWork {

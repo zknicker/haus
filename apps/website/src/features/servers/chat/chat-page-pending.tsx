@@ -1,5 +1,4 @@
 import type { Agent, Chat } from '@haus/api';
-
 import { ChannelIconBox } from '../../../components/chats/channel-icon-box.tsx';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';

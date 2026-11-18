@@ -1,6 +1,5 @@
 import type { AttachmentMetadata, HausAgentMessage, MessageBodyKind } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';

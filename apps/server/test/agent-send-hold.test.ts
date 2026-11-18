@@ -1,7 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import { and, eq } from 'drizzle-orm';
-
 import { assertFreshAgentView } from '../src/agent-api/chat-freshness.ts';
 import { readAgentHistory } from '../src/agent-api/message-history.ts';
 import { type AgentSendModeInput, prepareAgentSend } from '../src/agent-api/send-hold.ts';

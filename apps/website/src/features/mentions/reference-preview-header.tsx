@@ -1,5 +1,4 @@
 import type * as React from 'react';
-
 import { cn } from '../../lib/utils.ts';
 import { type MentionAppearance, MentionAppearanceIcon } from './mention-appearance.tsx';
 

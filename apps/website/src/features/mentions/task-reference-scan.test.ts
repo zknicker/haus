@@ -1,7 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-
 import type { TaskLink } from '@haus/api';
-
 import { readMentionsFromMarkdown } from './mention-metadata.ts';
 import { prepareMarkdownReferences } from './reference-markdown.tsx';
 import { applyTaskLinks, readTaskKey } from './task-reference-scan.ts';

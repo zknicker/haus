@@ -1,6 +1,5 @@
 import type { AgentTaskRefusalCode } from '@haus/api';
 import { and, desc, eq } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 

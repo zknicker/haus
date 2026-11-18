@@ -1,5 +1,4 @@
 import type { ChatUnreadPreviewList } from '@haus/api';
-
 import {
     countUnreadChats,
     followedTaskPreviews,

@@ -1,5 +1,4 @@
 import { artifactRecordResultSchema, artifactTargetInputSchema } from '@haus/api';
-
 import { getArtifact } from '../../artifacts/read.ts';
 import { artifactProcedure } from './procedure.ts';
 

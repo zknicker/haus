@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { agentInboxItemSchema } from './agent-inbox.ts';
 import { formatTaskTarget, TASK_TARGET_PATTERN } from './agent-task-refusals.ts';
 import { agentTaskListQuerySchema } from './agent-task.ts';

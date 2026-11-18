@@ -4,7 +4,6 @@
 // Usage: bun replay-grok.ts <fixture.jsonl> [grok args...]
 import { appendFileSync, readFileSync } from 'node:fs';
 import { createInterface } from 'node:readline';
-
 import {
     FIXTURE_PLACEHOLDERS,
     type FixtureFrame,

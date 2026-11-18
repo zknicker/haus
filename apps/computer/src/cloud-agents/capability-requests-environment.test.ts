@@ -2,9 +2,7 @@ import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { makeTestRuntime } from '@haus/effect';
-
 import { runCloudAgentCapabilityRequest } from './capability-requests.ts';
 import { createCursorCloudAgentProvider } from './cursor/provider.ts';
 import { createRecordedCursorTransport, recordedAuth } from './cursor/recorded-transport.ts';

@@ -1,7 +1,6 @@
 import type { Task, TaskState } from '@haus/api';
 import { InlineSelect } from '@heroui-pro/react/inline-select';
 import { Label, ListBox } from '@heroui/react';
-
 import { EntityName } from '../../components/ui/entity-name.tsx';
 import { useAssignTask } from '../../hooks/tasks/use-assign-task.ts';
 import { useSetTaskState } from '../../hooks/tasks/use-set-task-state.ts';

@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-
 import { ConnectionNotice } from '../../features/servers/connection-notice.tsx';
 import { serverSearchRoute, serverSettingsRoute } from '../../features/servers/server-routes.ts';
 import { BrowserViewsProvider } from '../../features/shell/browser-views-provider.tsx';

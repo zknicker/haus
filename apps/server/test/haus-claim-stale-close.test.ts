@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import { closeStaleInReviewClaims } from '../src/claims/close-stale-claims.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { claimChangedTopic } from '../src/realtime/topics.ts';

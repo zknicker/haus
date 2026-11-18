@@ -2,9 +2,7 @@ import { afterAll, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import * as z from 'zod';
-
 import { defineHostTool } from '../../host-tools/host-tool.ts';
 import { startHostToolServer } from '../../host-tools/mcp-server.ts';
 import type { RuntimeSession } from '../driver.ts';

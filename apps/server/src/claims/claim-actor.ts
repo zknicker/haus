@@ -1,5 +1,4 @@
 import { and, eq, sql } from 'drizzle-orm';
-
 import { requireChatWritable, requireChatWriteAccess } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, serverMembershipsTable } from '../postgres/schema.ts';

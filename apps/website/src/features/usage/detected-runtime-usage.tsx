@@ -1,7 +1,6 @@
 import type { ComputerInventory, ComputerRuntimeId, UsageOverview } from '@haus/api';
 import { DataGrid, type DataGridColumn } from '@heroui-pro/react';
 import { Chip, ProgressBar, Skeleton, Tooltip } from '@heroui/react';
-
 import { ProviderMark } from '../../components/provider-mark.tsx';
 import { formatTimestamp } from '../../lib/format.ts';
 import { RuntimeIssueHelp } from './runtime-issue.tsx';

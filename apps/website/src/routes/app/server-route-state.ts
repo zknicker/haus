@@ -1,5 +1,4 @@
 import type { Chat } from '@haus/api';
-
 import { resolveAgentSectionParam } from '../../features/members/agent-profile/agent-section-route.ts';
 import type { AgentSection } from '../../features/members/agent-profile/agent-sections.ts';
 import { resolveEntryChat } from '../../features/servers/server-choice.ts';

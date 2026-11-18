@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import type { BrowserCommand, BrowserTab } from '../../lib/desktop-browser.ts';
 import type { BrowserFind } from './use-browser-find.ts';
 import type { BrowserHistoryEntry } from './use-browser-history.ts';

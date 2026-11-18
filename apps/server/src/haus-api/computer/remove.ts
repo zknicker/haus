@@ -1,6 +1,5 @@
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
-
 import { removeServerComputer } from '../../computers/remove-computer.ts';
 import { ComputerSetupDeniedError } from '../../computers/service.ts';
 import { computerUpdatedTopic } from '../../realtime/topics.ts';

@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { readAgentStdin } from '../stdin.ts';
 

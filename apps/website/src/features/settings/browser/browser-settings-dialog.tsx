@@ -2,7 +2,6 @@ import type { AgentRuntimeBrowserSettings } from '@haus/api';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Button, Separator, Switch, Tooltip } from '@heroui/react';
 import { ArrowReloadHorizontalIcon, BrowserIcon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 import { SettingsRowError } from '../layout/settings-text.tsx';
 import { BROWSER_DIALOG_FORM_ID, BrowserDialog } from './browser-dialog.tsx';

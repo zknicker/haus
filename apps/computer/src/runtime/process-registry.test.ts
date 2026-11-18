@@ -2,7 +2,6 @@ import { expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { spawnClaudeProcess } from './claude-code/claude-process.ts';
 import { runtimeProcessOwner, stopRuntimeProcesses } from './process-registry.ts';

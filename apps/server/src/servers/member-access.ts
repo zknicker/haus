@@ -1,6 +1,5 @@
 import type { ServerMember, ServerMemberAuthorityRefusal, ServerRole } from '@haus/api';
 import { and, eq, isNull, ne, sql } from 'drizzle-orm';
-
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { serverMembershipsTable, usersTable } from '../postgres/schema.ts';

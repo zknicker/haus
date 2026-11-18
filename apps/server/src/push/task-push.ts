@@ -9,7 +9,6 @@ import {
     taskAssignmentNotificationTitle,
 } from '@haus/api';
 import { and, eq, inArray } from 'drizzle-orm';
-
 import { countUnreadInboxRows } from '../chats/unread-chat-count.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, tasksTable, usersTable } from '../postgres/schema.ts';

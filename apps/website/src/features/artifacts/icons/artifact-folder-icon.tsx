@@ -9,7 +9,6 @@
  * `default-theme.css` (Artifact icons).
  */
 import { type CSSProperties, useId } from 'react';
-
 import { cn } from '../../../lib/utils.ts';
 import { ArtifactFileIcon, insideHairline } from './artifact-file-icon.tsx';
 import type { ArtifactFileKind } from './artifact-file-kind.ts';

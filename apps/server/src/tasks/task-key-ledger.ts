@@ -1,6 +1,5 @@
 import { GENERAL_TASK_KEY } from '@haus/api';
 import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatsTable, taskKeysTable } from '../postgres/schema.ts';

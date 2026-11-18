@@ -1,6 +1,5 @@
 import { type Query, type QueryClient, type QueryKey, useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
-
 import type { TargetedReadCoalescer } from '../../lib/targeted-read-coalescer.ts';
 import { useTargetedReadCoalescer } from '../../lib/targeted-read-coalescer.ts';
 

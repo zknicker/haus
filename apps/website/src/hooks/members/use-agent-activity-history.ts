@@ -6,7 +6,6 @@ import type {
 } from '@haus/api';
 import { useQueries } from '@tanstack/react-query';
 import * as React from 'react';
-
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 

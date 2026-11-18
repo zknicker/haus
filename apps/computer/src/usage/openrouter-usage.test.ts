@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { readOpenRouterUsage } from './openrouter-usage.ts';
 
 const capturedAt = new Date('2026-07-28T20:00:00.000Z');

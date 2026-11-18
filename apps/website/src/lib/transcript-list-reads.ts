@@ -1,5 +1,4 @@
 import type { InfiniteData, Query, QueryClient, QueryKey } from '@tanstack/react-query';
-
 import {
     chatMessageQueryKey,
     seedChatMessageEntities,

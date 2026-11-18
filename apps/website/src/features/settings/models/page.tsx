@@ -1,7 +1,6 @@
 import { DataGrid, type DataGridColumn, ItemCardGroup } from '@heroui-pro/react';
 import { Alert, Chip, SearchField } from '@heroui/react';
 import * as React from 'react';
-
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import { PageColumn } from '../../shell/page-column.tsx';
 import { ImageGenerationSettings } from '../image-generation/image-generation-group.tsx';

@@ -1,5 +1,4 @@
 import { agentThoughtResultMaxLength } from '@haus/api';
-
 import type { ComputerAgentActivityCategory } from '../agent-activity.ts';
 import type { ComputerToolClassification } from './activity-tool-fixtures.ts';
 import { scrubResultLine } from './thought-action-scrub.ts';

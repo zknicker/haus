@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import { unwrapShellCommand } from '@haus/api';
-
 import { readHausMessage } from './turn-trace-haus-command.ts';
 
 const read = (command: string) => readHausMessage(unwrapShellCommand(command));

@@ -1,6 +1,5 @@
 import type { MessageRoutingAudit, RoutingBypassReason } from '@haus/api';
 import { eq } from 'drizzle-orm';
-
 import type { AgentMessageRecipientPlan } from '../agent-delivery/message-recipients.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';

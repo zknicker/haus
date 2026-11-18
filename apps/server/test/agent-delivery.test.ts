@@ -1,9 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
-
 import type { AgentCommand, AgentTurnSummary } from '@haus/api';
 import { and, eq, ne } from 'drizzle-orm';
-
 import { attestAgentEvents, pullAgentEvents } from '../src/agent-api/inbox.ts';
 import { advanceSeenCursor, markCursorSubsumedSeen } from '../src/agent-delivery/cursors.ts';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';

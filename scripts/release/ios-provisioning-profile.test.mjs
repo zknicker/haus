@@ -3,7 +3,6 @@ import { generateKeyPairSync, verify } from 'node:crypto';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-
 import {
     createAppStoreConnectToken,
     IOS_RELEASE_PROFILES,

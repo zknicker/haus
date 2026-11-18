@@ -1,7 +1,6 @@
 import { EmptyState } from '@heroui-pro/react';
 import { File01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type { ReactNode } from 'react';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { codeLanguageForPath, countCodeLines } from '../../lib/code-language.ts';
 import {

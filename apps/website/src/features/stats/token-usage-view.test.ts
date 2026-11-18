@@ -1,6 +1,5 @@
 import type { TokenUsageOverview } from '@haus/api';
 import { expect, test } from 'vitest';
-
 import { agentSeriesColorMap } from './token-usage-colors.ts';
 import { buildTokenUsageView } from './token-usage-view.ts';
 

@@ -1,7 +1,6 @@
 import { AGENT_CONVERSATION_STYLE_MAX_LENGTH } from '@haus/api';
 import { Button, Popover } from '@heroui/react';
 import * as React from 'react';
-
 import { ProfileTextField } from './profile-text-field.tsx';
 import { SignatureEmojiField } from './signature-emoji-field.tsx';
 

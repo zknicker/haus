@@ -2,7 +2,6 @@ import { type Agent, agentReasoningEffortLabels, type ComputerInventory } from '
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Button, Chip, Separator } from '@heroui/react';
 import * as React from 'react';
-
 import { useAgentRuntime } from '../../../hooks/members/use-agent-runtime.ts';
 import { RuntimeDialog } from './runtime-dialog.tsx';
 import { resolveRuntimeConfig, runtimeConfigStatusLabel } from './runtime-model.ts';

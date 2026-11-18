@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { agentStartCommandSchema } from './agent-delivery-frames.ts';
 import { signatureEmojiInputSchema, signatureEmojiRule } from './agent-profile-text.ts';
 import {

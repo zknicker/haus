@@ -1,6 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import * as React from 'react';
-
 import { type ItemRect, useProximityHover } from '../../hooks/use-proximity-hover.ts';
 import { springs } from '../../lib/springs.ts';
 

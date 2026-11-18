@@ -1,5 +1,4 @@
 import { afterEach, expect, spyOn, test } from 'bun:test';
-
 import type { AgentApiRequest, AgentApiRequester } from '../agent-api-client.ts';
 import { parseArgs, UsageError } from '../parse.ts';
 import { ARTIFACT_SUBCOMMANDS, runArtifactList } from './agent-artifact.ts';

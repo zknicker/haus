@@ -1,7 +1,6 @@
 import type { AdventEntry } from '@haus/api';
 import { Button } from '@heroui/react';
 import { motion, useReducedMotion } from 'motion/react';
-
 import { AdventLine, adventFallbackLine } from './advent-line.tsx';
 import { dayOrnament, ornamentArt } from './ornaments.ts';
 

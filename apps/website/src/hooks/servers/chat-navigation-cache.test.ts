@@ -1,9 +1,7 @@
 import { expect, test } from 'bun:test';
-
 import type { ChatMessage } from '@haus/api';
 import { InfiniteQueryObserver, QueryClient } from '@tanstack/react-query';
 import { httpLink } from '@trpc/client';
-
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryClientDefaultOptions } from '../../lib/query-policy.ts';
 import { targetedReadCoalescer } from '../../lib/targeted-read-coalescer.ts';

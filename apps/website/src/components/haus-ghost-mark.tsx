@@ -1,11 +1,9 @@
 import { type ComponentPropsWithoutRef, useId } from 'react';
-
 import { cn } from '../lib/utils.ts';
 import type { GlassFigure, GlassPiece } from './haus-ghost-figure.ts';
 import { ghostGlassIds } from './haus-ghost-glass-defs.tsx';
 import { HausGhostGlass } from './haus-ghost-glass.tsx';
 import { VIEWBOX_HEIGHT, VIEWBOX_WIDTH } from './haus-ghost-paths.ts';
-
 import './haus-ghost.css';
 import './haus-ghost-pieces.css';
 

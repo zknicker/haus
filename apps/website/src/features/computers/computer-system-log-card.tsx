@@ -3,7 +3,6 @@ import { DataGrid, type DataGridColumn, ItemCardGroup } from '@heroui-pro/react'
 import { Alert, Pagination } from '@heroui/react';
 import { InboxIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { useState } from 'react';
-
 import { useComputerSystemLog } from '../../hooks/servers/use-computer-system-log.ts';
 import { ComputerDataGridState } from './computer-data-grid-state.tsx';
 import { systemEventLabel } from './computer-system-log.ts';

@@ -1,5 +1,4 @@
 import { and, eq } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { messageClaimsTable } from '../postgres/schema.ts';
 import { claimChangedTopic } from '../realtime/topics.ts';

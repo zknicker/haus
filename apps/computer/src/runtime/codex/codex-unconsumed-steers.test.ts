@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { emitTurn, flush, runningFakeTurn, turnCompleted } from './testing/session-harness.ts';
 
 const userMessage = (text: string) => ({

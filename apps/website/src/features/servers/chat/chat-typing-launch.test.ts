@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { AgentActivityCategory } from '@haus/api';
-
 import {
     admitChatTypingLaunch,
     admitChatTypingThinking,

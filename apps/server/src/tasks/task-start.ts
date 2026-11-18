@@ -1,6 +1,5 @@
 import type { Task, TaskActor } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-
 import { requireChatWritable } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';

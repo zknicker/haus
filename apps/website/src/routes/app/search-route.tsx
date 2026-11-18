@@ -1,5 +1,4 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
-
 import { ChatSearch } from '../../features/servers/chat/chat-search.tsx';
 import { useServerContext } from '../../features/servers/server-context.ts';
 import { serverChatMessageRoute } from '../../features/servers/server-routes.ts';

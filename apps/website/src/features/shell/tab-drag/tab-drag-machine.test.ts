@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import type { BandLayout } from './tab-drag-geometry.ts';
 import {
     idleTabDrag,

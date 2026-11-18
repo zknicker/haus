@@ -4,7 +4,6 @@ import {
     githubTriggerEventSchema,
     githubTriggerFilterValuesMax,
 } from '@haus/api';
-
 import {
     type ChoiceKey,
     githubEventSpecs,

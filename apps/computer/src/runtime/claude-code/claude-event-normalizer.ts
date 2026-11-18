@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-
 import { claudeSubagentEvents } from '../claude-subagent-events.ts';
 import { compactionToolName, type TurnEvent } from '../turn-event.ts';
 import { ClaudeTurnError } from './claude-errors.ts';

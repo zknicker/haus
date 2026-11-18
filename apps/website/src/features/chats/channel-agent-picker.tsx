@@ -1,6 +1,5 @@
 import { Label, Spinner } from '@heroui/react';
 import * as React from 'react';
-
 import { ChannelAgentAddField } from './channel-agent-add-field.tsx';
 import {
     ChannelAgentRoster,

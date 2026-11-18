@@ -1,7 +1,5 @@
 import { afterAll, expect, test } from 'bun:test';
-
 import { Effect, Fiber } from 'effect';
-
 import { AgentActivityRun } from './agent-activity-run.ts';
 import type { ComputerAgentActivityUpdate } from './agent-activity.ts';
 import { makeDaemonRuntime } from './daemon-runtime.ts';

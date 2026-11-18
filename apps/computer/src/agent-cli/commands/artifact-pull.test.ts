@@ -11,7 +11,6 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { parseArgs } from '../parse.ts';
 import { ARTIFACT_SUBCOMMANDS } from './agent-artifact.ts';
 import { localTargetUnder } from './artifact-local-files.ts';

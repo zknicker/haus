@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { getContextMenuDisposition } from './desktop-edit-context-menu.tsx';
 
 describe('desktop edit context menu policy', () => {

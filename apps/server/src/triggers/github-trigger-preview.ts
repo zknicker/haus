@@ -1,6 +1,5 @@
 import type { GithubTriggerPreviewInput, Trigger } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-
 import { field } from '../github/event-projection/payload.ts';
 import { matchesGithubGroup, repositoryInScope } from '../github/trigger-matching.ts';
 import type { HausDatabase } from '../postgres/connection.ts';

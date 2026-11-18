@@ -1,6 +1,5 @@
 import type { AgentExecutionOutline } from '@haus/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import {
     createReadGate,

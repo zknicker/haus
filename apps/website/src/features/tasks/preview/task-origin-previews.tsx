@@ -1,6 +1,5 @@
 import type { TaskPreview, TaskReplyPreview } from '@haus/api';
 import { ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';

@@ -1,5 +1,4 @@
 import { and, eq, isNull } from 'drizzle-orm';
-
 import { openAgentChatRead } from '../agent-reads/agent-chat-reads.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';

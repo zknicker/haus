@@ -1,6 +1,5 @@
 import type { HausReleaseDiscovery } from '@haus/api';
 import * as React from 'react';
-
 import type { useComputers } from '../../hooks/servers/use-computers.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import type { ComputerUpdateComputer } from '../computers/computer-update-card.tsx';

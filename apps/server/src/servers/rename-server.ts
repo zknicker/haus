@@ -1,5 +1,4 @@
 import { eq } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { serversTable } from '../postgres/schema.ts';
 import type { HausUser } from '../users/haus-user.ts';

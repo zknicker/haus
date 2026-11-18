@@ -1,8 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import type { AgentThoughtFrame } from '@haus/api';
 import { eq } from 'drizzle-orm';
-
 import { attestAgentEvents } from '../src/agent-api/inbox.ts';
 import { subscribeToAgentThoughts } from '../src/agent-delivery/thought-events.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';

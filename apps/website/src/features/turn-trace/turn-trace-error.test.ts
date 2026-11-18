@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import { readFailure, readTraceError } from './turn-trace-error.ts';
 
 test('P0-4: a Codex shell failure reads as its output and exit code, not JSON', () => {

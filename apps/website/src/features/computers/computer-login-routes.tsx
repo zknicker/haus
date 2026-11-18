@@ -1,5 +1,4 @@
 import { Outlet } from 'react-router-dom';
-
 import { useAppAuth } from '../../lib/app-auth.tsx';
 import { HausServerProvider } from '../../lib/haus-server.tsx';
 

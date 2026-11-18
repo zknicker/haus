@@ -1,7 +1,6 @@
 import type { ClaudeUsageSnapshot } from '@haus/claude-usage';
 import { settle } from '@haus/effect';
 import { Clock, Data, Duration, Effect, Stream } from 'effect';
-
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import { compactionToolName, type TurnEvent, turnEventLabel } from '../runtime/turn-event.ts';
 import type { createComputerActivityProjector } from './activity-projector.ts';

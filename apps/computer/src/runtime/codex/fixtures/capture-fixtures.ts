@@ -8,9 +8,7 @@ import { appendFileSync } from 'node:fs';
 import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { homedir, hostname, tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import * as z from 'zod';
-
 import { defineHostTool } from '../../../host-tools/host-tool.ts';
 import { startHostToolServer } from '../../../host-tools/mcp-server.ts';
 import type { RuntimeSession } from '../../driver.ts';

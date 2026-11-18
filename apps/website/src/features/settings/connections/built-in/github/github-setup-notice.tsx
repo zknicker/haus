@@ -1,5 +1,4 @@
 import { Alert, CloseButton } from '@heroui/react';
-
 import { useGithubSetupOutcome } from '../../../../../hooks/github/use-github-setup-outcome.ts';
 import { githubSetupNotice } from './github-installation-model.ts';
 

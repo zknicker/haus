@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { startLoopbackProxy } from './proxy.ts';
 
 test('counts only committed messages as produced output', async () => {

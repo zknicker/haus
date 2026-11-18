@@ -2,7 +2,6 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import {
     agentExecutionJournalSchema,
     type ExecutionJournalDocument,
@@ -10,7 +9,6 @@ import {
     presentExecutionJournal,
     replayExecutionJournalUpload,
 } from '@haus/api';
-
 import { createJournalRecordPresenter, pathRelativizer } from './journal-record-presentation.ts';
 
 const roots: string[] = [];

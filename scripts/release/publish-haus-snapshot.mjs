@@ -4,7 +4,6 @@ import { spawnSync } from 'node:child_process';
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-
 import { hausSnapshotKeys, resolveReleaseSnapshot } from './release-snapshot.mjs';
 import { readJson, repoRoot } from './release-utils.mjs';
 import { verifyPublicHausRelease } from './verify-public-haus-release.mjs';

@@ -1,6 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import * as React from 'react';
-
 import {
     type ChatTypingLaunch,
     type ChatTypingLaunchQueue,

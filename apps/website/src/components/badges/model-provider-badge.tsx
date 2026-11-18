@@ -1,7 +1,6 @@
 import { Chip, type ChipProps } from '@heroui/react';
 import type { IconSvgElement } from '@hugeicons/react';
 import type { ComponentPropsWithoutRef } from 'react';
-
 import { cn } from '../../lib/utils.ts';
 import { ModelProviderLogo, type ModelProviderLogoSource } from './model-provider-logo.tsx';
 

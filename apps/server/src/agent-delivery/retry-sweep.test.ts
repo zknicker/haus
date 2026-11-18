@@ -1,8 +1,6 @@
 import { expect, test } from 'bun:test';
-
 import { makeTestRuntime } from '@haus/effect';
 import { Effect, TestClock } from 'effect';
-
 import { startDeliveryRetrySweep } from './retry-sweep.ts';
 
 test('retry sweep has no startup run and follows its two-second cadence', async () => {

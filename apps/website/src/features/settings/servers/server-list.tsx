@@ -3,7 +3,6 @@ import { Separator } from '@heroui/react';
 import { Tick02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Fragment } from 'react';
 import { Link, useMatch } from 'react-router-dom';
-
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import type { ServerSummary } from '../../../lib/haus-server.tsx';

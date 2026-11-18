@@ -1,5 +1,4 @@
 import { type RefObject, useEffect, useEffectEvent } from 'react';
-
 import { useViewShown } from '../../../hooks/desktop-tabs/view-shown.ts';
 
 /** What a key does to the Unread list. */

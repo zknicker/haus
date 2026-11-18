@@ -1,5 +1,4 @@
 import * as z from 'zod';
-
 import { idSchema } from './chat.ts';
 import { cloudAgentWorkSchema } from './cloud-agent-shared.ts';
 import { activeCloudAgentWorkLocationSchema } from './cloud-agent.ts';

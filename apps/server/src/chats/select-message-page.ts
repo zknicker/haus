@@ -1,6 +1,5 @@
 import type { ChatMessagesInput } from '@haus/api';
 import { and, asc, desc, eq, getTableColumns, gt, lt, type SQL } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,

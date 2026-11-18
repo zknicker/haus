@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, expect, spyOn, test } from 'bun:test';
-
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { mcpUpdatedTopic } from '../src/realtime/topics.ts';
 import { cacheAnonymousMcpIcons } from '../src/server-mcp/icon-cache.ts';

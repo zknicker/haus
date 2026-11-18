@@ -1,6 +1,5 @@
 import { toast } from '@heroui/react';
 import * as React from 'react';
-
 import { useDesktopPageOpeners } from '../../hooks/desktop-tabs/use-desktop-page-openers.ts';
 import type { ArtifactPageTarget } from '../../routes/app/desktop-page-paths.ts';
 import { bindWorkspaceTargetToAgent, type HausResourceTarget } from './haus-resource-link.ts';

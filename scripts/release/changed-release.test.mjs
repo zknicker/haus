@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { detectChangedRelease } from './changed-release.mjs';
 import { createReleaseDraft } from './release-ledger.mjs';
 

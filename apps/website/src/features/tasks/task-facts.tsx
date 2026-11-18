@@ -1,6 +1,5 @@
 import type { Task } from '@haus/api';
 import { getLocalTimeZone, today } from '@internationalized/date';
-
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useTaskLabels } from '../../hooks/servers/use-task-labels.ts';
 import { cn } from '../../lib/utils.ts';

@@ -2,9 +2,7 @@ import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { hausAgentVersion } from '@haus/api';
-
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { fakeRuntimeDriver, finishedTurn } from '../runtime/testing/fake-runtime-driver.ts';
 import type { TurnEvent } from '../runtime/turn-event.ts';

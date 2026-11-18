@@ -1,7 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { VIEWBOX_HEIGHT, VIEWBOX_WIDTH } from './haus-ghost-paths.ts';
 import { HausGhost } from './haus-ghost.tsx';
 

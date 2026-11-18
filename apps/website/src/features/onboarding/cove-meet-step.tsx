@@ -1,6 +1,5 @@
 import { Alert, Button, Card, Label, ListBox, Select } from '@heroui/react';
 import * as React from 'react';
-
 import { ActivationStep } from '../../components/activation/activation-shell.tsx';
 import { CodeSnippet } from '../../components/code-snippet.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';

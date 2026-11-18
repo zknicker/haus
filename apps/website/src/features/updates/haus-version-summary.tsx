@@ -1,5 +1,4 @@
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-
 import type { HausUpdateView } from './haus-update-model.ts';
 
 export function HausVersionSummary({ view }: { view: HausUpdateView }) {

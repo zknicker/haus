@@ -1,9 +1,7 @@
 import { expect, test } from 'bun:test';
-
 import { makeTestRuntime, settle } from '@haus/effect';
 import type { Client } from '@modelcontextprotocol/client';
 import { Exit, Scope, TestClock } from 'effect';
-
 import { tick } from './runtime-test-fixtures.ts';
 import { maintainToolSubscription } from './tool-subscription.ts';
 

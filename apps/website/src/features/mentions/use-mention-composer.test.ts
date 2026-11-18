@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'bun:test';
-
 import type { ActiveMentionQuery, Mention, MentionOption } from './mention-types.ts';
 import { selectVisibleOptions } from './mention-visible-options.ts';
 import {

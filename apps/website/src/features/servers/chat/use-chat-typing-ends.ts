@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import type { ChatMessageLayout } from '../../../hooks/servers/chat-message-layout.ts';
 import { useChatMessages } from '../../../hooks/servers/use-chat-messages.ts';
 import {

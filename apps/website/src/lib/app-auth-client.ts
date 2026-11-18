@@ -1,5 +1,4 @@
 import { type AppSession, appAuthErrorSchema, appSessionSchema } from '@haus/api/app-session';
-
 import { createDevSignOutPreference, isLoopbackHost } from './app-auth-session.ts';
 import { getDesktopBridge } from './desktop-bridge.ts';
 

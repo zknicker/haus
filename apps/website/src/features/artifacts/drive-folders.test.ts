@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { ArtifactMetadata } from '@haus/api';
-
 import {
     artifactFolderCrumbs,
     artifactFolderPreviews,

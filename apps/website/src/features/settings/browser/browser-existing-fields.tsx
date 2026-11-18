@@ -1,7 +1,6 @@
 import type { AgentRuntimeBrowserConnection, AgentRuntimeBrowserSettings } from '@haus/api';
 import { ItemCard } from '@heroui-pro/react';
 import { Separator } from '@heroui/react';
-
 import { SettingsFact } from '../layout/settings-text.tsx';
 import { BrowserChoice } from './browser-choice.tsx';
 

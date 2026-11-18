@@ -1,5 +1,4 @@
 import { and, eq, sql } from 'drizzle-orm';
-
 import { followInlineReplyForMessage } from '../chats/reply-subscriptions.ts';
 import { prepareClaimEvent } from '../claims/claim-events.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';

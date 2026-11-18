@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { renderImageModels } from '../image-render.ts';
 import type { ParsedArgs } from '../parse.ts';
 import { IMAGE_SUBCOMMANDS, runImageModels } from './agent-image.ts';

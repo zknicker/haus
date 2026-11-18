@@ -2,7 +2,6 @@ import type { Reminder } from '@haus/api';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Separator } from '@heroui/react';
 import { Link } from 'react-router-dom';
-
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { useViewerTimeZone } from '../../../hooks/members/use-viewer-time-zone.ts';
 import { useChats } from '../../../hooks/servers/use-chats.ts';

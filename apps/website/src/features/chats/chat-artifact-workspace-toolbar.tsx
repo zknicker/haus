@@ -1,7 +1,6 @@
 import { Breadcrumbs, Button, Dropdown, Label, SearchField, Toolbar } from '@heroui/react';
 import { FilterHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { createContext, type ReactNode, useContext } from 'react';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { PageToolbar } from '../shell/page-toolbar.tsx';
 import { SectionBar } from '../shell/section-header.tsx';

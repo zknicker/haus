@@ -1,7 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-
 import type { Agent, Chat } from '@haus/api';
-
 import { buildCommandGroups, getCurrentChatId } from './server-commands.ts';
 
 const agent = {

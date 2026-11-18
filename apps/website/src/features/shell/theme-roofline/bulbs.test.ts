@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { bulbColor, bulbSwell } from './bulbs.ts';
 
 const step = 0.05;

@@ -1,6 +1,5 @@
 import { Button, Popover } from '@heroui/react';
 import * as React from 'react';
-
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { type ChannelAppearance, ChannelAppearanceFields } from './channel-appearance-fields.tsx';
 

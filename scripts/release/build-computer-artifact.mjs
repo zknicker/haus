@@ -4,7 +4,6 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-
 import { computerArtifactName, computerProtocolVersion } from './computer-release-contract.mjs';
 import { fail, repoRoot } from './release-utils.mjs';
 

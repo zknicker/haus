@@ -1,7 +1,6 @@
 import type { Agent } from '@haus/api';
 import { Separator } from '@heroui/react';
 import * as React from 'react';
-
 import { availabilityLabel } from '../computers/presentation.ts';
 import { AgentAvatar } from '../members/agent-avatar.tsx';
 import { AgentProfileLink } from '../members/agent-profile-link.tsx';

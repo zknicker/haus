@@ -2,11 +2,9 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import type { CloudAgentStatus } from '@haus/api';
 import { makeTestRuntime } from '@haus/effect';
 import { type Duration, TestClock } from 'effect';
-
 import { recordedAgentBusyError } from './cursor/recorded-transport.ts';
 import { createFakeCloudAgentProvider } from './fake-provider.ts';
 import { CloudLaunchJournal } from './launch-journal.ts';

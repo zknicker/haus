@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import type { BackgroundWork } from '../background-work.ts';
 import type { TurnEvent } from '../turn-event.ts';
 import { CLAUDE_CODE_VERSION } from './claude-install.ts';

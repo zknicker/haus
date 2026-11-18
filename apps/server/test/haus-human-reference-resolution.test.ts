@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import { canonicalizeAgentMessageContentForPersistence } from '../src/chats/canonicalize-agent-references.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';

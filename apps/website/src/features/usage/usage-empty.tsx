@@ -1,7 +1,6 @@
 import { EmptyState } from '@heroui-pro/react';
 import { Card } from '@heroui/react';
 import { ChartHistogramIcon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { Icon } from '../../components/ui/icon.tsx';
 
 /**

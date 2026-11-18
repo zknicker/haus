@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import type { ArtifactMetadata } from '@haus/api';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpBatchLink } from '@trpc/client';
@@ -7,7 +6,6 @@ import { getQueryKey } from '@trpc/react-query';
 import type * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
-
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { MarkdownLink } from './chat-inline-markdown-link.tsx';
 import { SharedArtifactScopeProvider } from './shared-artifact-scope.tsx';

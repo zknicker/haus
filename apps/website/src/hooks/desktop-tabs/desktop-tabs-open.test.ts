@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { newTabLocation, type TabLocation } from './desktop-tabs-model.ts';
 import { app, describeTabs, run, split, start, web } from './desktop-tabs-test-fixtures.ts';
 import { openNewTabPage } from './use-desktop-tab-shortcuts.ts';

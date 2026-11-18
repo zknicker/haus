@@ -9,7 +9,6 @@ import { messageBodySchema } from './message-body.ts';
 export * from './message-body.ts';
 
 import * as z from 'zod';
-
 import { attachmentMetadataSchema } from './attachments.ts';
 import { messageCauseSchema } from './automation.ts';
 import { idSchema, timestampSchema } from './chat-contract-primitives.ts';

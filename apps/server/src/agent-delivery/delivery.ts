@@ -9,7 +9,6 @@ import {
 } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
 import { and, eq, sql } from 'drizzle-orm';
-
 import {
     runLivenessClaimEvents,
     settleAgentBackgroundClaims,

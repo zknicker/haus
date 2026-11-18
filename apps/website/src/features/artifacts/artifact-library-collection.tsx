@@ -2,7 +2,6 @@ import type { ArtifactFolderEntry, ArtifactMetadata, ArtifactRecord } from '@hau
 import { ListView } from '@heroui-pro/react';
 import type { ReactNode } from 'react';
 import { type DragAndDropHooks, GridList, type Key } from 'react-aria-components';
-
 import { type ArtifactFileRun, ArtifactFileSection } from './artifact-files.tsx';
 import { ArtifactFolderSection } from './artifact-folder-section.tsx';
 import type { ArtifactLibraryLayout } from './library-layout.ts';

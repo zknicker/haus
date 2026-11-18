@@ -1,5 +1,4 @@
 import type { ComputerSecretItem, OnePasswordItem, OnePasswordSecondaryField } from '@haus/api';
-
 import { keychainItemNotFoundExitCode, securityPath } from './keychain.ts';
 import { secretsRuntimePlugin } from './runtime.ts';
 

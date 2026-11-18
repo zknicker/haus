@@ -1,7 +1,6 @@
 import { ComboBox, Input, ListBox } from '@heroui/react';
 import * as React from 'react';
 import { ComboBoxStateContext, type Key } from 'react-aria-components';
-
 import {
     type BrowserHistoryEntry,
     removeBrowserHistoryEntry,

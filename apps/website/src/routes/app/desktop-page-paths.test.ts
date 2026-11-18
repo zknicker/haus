@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { tabPageKey } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import {
     artifactPagePath,

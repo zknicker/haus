@@ -3,7 +3,6 @@ import { existsSync, realpathSync } from 'node:fs';
 import { mkdir, rename, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-
 import codexPackageJson from './pin/codex.package.json' with { type: 'text' };
 import codexLockfile from './pin/codex.pnpm-lock.yaml' with { type: 'text' };
 

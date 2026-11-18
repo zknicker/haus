@@ -1,5 +1,4 @@
 import { z } from 'zod';
-
 import { serverUpdatedTopic } from '../../realtime/topics.ts';
 import { serverDisplayNameSchema, serverIdSchema } from '../../servers/contracts.ts';
 import { renameServer } from '../../servers/rename-server.ts';

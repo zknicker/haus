@@ -1,5 +1,4 @@
 import { agentActivityInputSchema, agentActivitySchema } from '@haus/api';
-
 import { listAgentActivity } from '../../server-agents/list-agent-activity.ts';
 import { memberProcedure } from '../server/procedure.ts';
 

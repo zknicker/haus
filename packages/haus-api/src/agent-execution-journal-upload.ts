@@ -10,7 +10,6 @@
  * `agent-execution-journal-ack` naming the frame's last sequence.
  */
 import * as z from 'zod';
-
 import type {
     ExecutionJournalDocument,
     ExecutionJournalMutation,

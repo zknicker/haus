@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 
 // Whether the app sidebar shows. Desktop only: View > Show/Hide Sidebar

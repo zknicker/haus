@@ -2,7 +2,6 @@ import { REMINDER_HISTORY_RETENTION_DAYS, type Reminder } from '@haus/api';
 import { Sheet } from '@heroui-pro/react';
 import { Button } from '@heroui/react';
 import * as React from 'react';
-
 import { useReminderCancel } from '../../../hooks/members/use-reminder-cancel.ts';
 import { SettingsRowError } from '../../settings/layout/settings-text.tsx';
 import { reminderDescription } from './agent-reminder-model.ts';

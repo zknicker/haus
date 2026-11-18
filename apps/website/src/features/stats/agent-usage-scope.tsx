@@ -1,6 +1,5 @@
 import { Label, ListBox, Select } from '@heroui/react';
 import { UserMultiple02Icon } from '@hugeicons-pro/core-stroke-rounded';
-
 import {
     EntityAvatar,
     type EntityAvatarProps,

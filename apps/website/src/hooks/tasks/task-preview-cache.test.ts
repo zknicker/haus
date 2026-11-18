@@ -1,8 +1,6 @@
 import { expect, test } from 'bun:test';
-
 import type { ChatMessage, TaskPreview } from '@haus/api';
 import { QueryClient } from '@tanstack/react-query';
-
 import {
     type ChatMessageEntry,
     chatMessageQueryKey,

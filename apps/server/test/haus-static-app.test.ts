@@ -2,9 +2,7 @@ import { expect, test } from 'bun:test';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import Fastify from 'fastify';
-
 import { registerHausStaticApp } from '../src/haus-static-app.ts';
 
 test('website documents and build marker bypass caches across a deployment', async () => {

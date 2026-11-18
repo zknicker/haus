@@ -1,5 +1,4 @@
 import { ItemCard } from '@heroui-pro/react';
-
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { CloudAgentKeycap } from '../../cloud-agents/cloud-agent-provider-mark.tsx';
 import { CloudAgentStatusDisc } from '../../cloud-agents/cloud-agent-status-disc.tsx';

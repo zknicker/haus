@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-
 import { ConnectionSection } from './connection-section.tsx';
 import type { McpConnection } from './mcp-server-shared.ts';
 

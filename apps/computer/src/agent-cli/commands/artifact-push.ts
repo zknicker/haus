@@ -1,8 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import fs from 'node:fs/promises';
-
 import { type ArtifactMetadata, artifactPathKey, inferAttachmentMediaType } from '@haus/api';
-
 import { AgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';
 import { displayPath, sha256File, shellArg, THEIRS_SUFFIX } from './artifact-local-files.ts';

@@ -1,5 +1,4 @@
 import { eq } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { hausSessionAccessTokensTable, hausSessionsTable, usersTable } from '../postgres/schema.ts';
 import { hashHausToken, isHausToken } from './haus-session-tokens.ts';

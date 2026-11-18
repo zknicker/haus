@@ -1,8 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
-
 import { eq } from 'drizzle-orm';
-
 import type { AgentMessageRecipientPlan } from '../src/agent-delivery/message-recipients.ts';
 import { applyMessageRouting } from '../src/message-routing/apply-message-routing.ts';
 import { readRoutingAgents } from '../src/message-routing/context.ts';

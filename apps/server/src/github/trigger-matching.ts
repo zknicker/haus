@@ -1,6 +1,5 @@
 import type { GithubTriggerEvent, GithubTriggerEventName, GithubTriggerEvents } from '@haus/api';
 import { githubTriggerEventNameSchema } from '@haus/api';
-
 import { field, labelNames, type Payload, text } from './event-projection/payload.ts';
 import { matchesSelection } from './trigger-pattern.ts';
 

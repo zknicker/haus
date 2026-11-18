@@ -1,5 +1,4 @@
 import type { AgentAddChannelAgentInput, AgentAddChannelAgentReceipt } from '@haus/api';
-
 import {
     findActiveAgentByHandle,
     findLiveChannel,

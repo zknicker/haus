@@ -2,11 +2,9 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import type { CloudAgentObservation } from '@haus/api';
 import { makeTestRuntime } from '@haus/effect';
 import { TestClock } from 'effect';
-
 import { createCursorCloudAgentProvider } from './cursor/provider.ts';
 import {
     createRecordedCursorTransport,

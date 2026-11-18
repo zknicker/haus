@@ -1,11 +1,9 @@
 import EventEmitter, { on } from 'node:events';
-
 import {
     type ChatEngagementEndReason,
     type ChatEngagementEvent,
     chatEngagementEventSchema,
 } from '@haus/api';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { readActiveRunEngagements, readSettledRunEngagements } from './chat-engagement.ts';

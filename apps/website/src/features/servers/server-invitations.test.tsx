@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { ServerInvitation } from '@haus/api/membership';
-
 import { sortInvitations } from './server-invitations.tsx';
 
 function invitation(overrides: Partial<ServerInvitation>): ServerInvitation {

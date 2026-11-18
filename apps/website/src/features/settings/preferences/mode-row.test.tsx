@@ -1,7 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { ModeField } from './mode-row.tsx';
 
 const noop = () => undefined;

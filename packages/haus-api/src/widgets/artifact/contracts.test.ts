@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { parseWidgetPayload, widgetFallbackText, widgetFenceLabel } from '../contracts.ts';
 import { widgetArtifactPropsSchema } from './contracts.ts';
 

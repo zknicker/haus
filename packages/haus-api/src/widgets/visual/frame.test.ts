@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import golden from './frame-golden.json' with { type: 'json' };
 import {
     agentHtmlSandbox,

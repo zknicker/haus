@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { connectionSearchText, mcpCatalogResponse } from './catalog-response.ts';
 import { modelToolName } from './tool-catalog.ts';
 

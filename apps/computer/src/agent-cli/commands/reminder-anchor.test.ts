@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type * as z from 'zod';
-
 import type { AgentApiRequest, AgentApiRequester } from '../agent-api-client.ts';
 import { AgentCliError, renderAgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';

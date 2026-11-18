@@ -1,5 +1,4 @@
 import { toast } from '@heroui/react';
-
 import { hausTrpc } from '../../lib/haus-server.tsx';
 
 export function useClaimRelease() {

@@ -1,6 +1,5 @@
 import { HourglassIcon, TerminalIcon, ZapIcon } from '@hugeicons-pro/core-duotone-rounded';
 import type { IconSvgElement } from '@hugeicons/react';
-
 import type { TranscriptWorker } from '../chats/transcript-contract.ts';
 
 export const workerKindConfig = {

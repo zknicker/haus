@@ -2,10 +2,8 @@ import { afterEach, expect, test } from 'bun:test';
 import http2 from 'node:http2';
 import type { AddressInfo } from 'node:net';
 import net from 'node:net';
-
 import type { PushNotificationPayload } from '@haus/api';
 import { exportPKCS8, generateKeyPair } from 'jose';
-
 import { ApnsSender, type ApnsSenderOptions } from './apns-sender.ts';
 import type { PushRequest } from './push-sender.ts';
 

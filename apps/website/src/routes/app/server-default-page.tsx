@@ -1,5 +1,4 @@
 import { Navigate } from 'react-router-dom';
-
 import { readLastChatId, resolveEntryChat } from '../../features/servers/server-choice.ts';
 import { useServerContext } from '../../features/servers/server-context.ts';
 import { serverChatRoute } from '../../features/servers/server-routes.ts';

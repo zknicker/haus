@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { deviceTimezone, matchesTimezoneSearch, timezoneOptions } from './timezones.ts';
 
 test('the device zone is the runtime zone the Server stores', () => {

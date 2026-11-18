@@ -3,7 +3,6 @@ import { EmptyState } from '@heroui-pro/react';
 import { Task01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useDesktopPageOpeners } from '../../../hooks/desktop-tabs/use-desktop-page-openers.ts';
 import {

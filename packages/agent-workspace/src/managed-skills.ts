@@ -3,7 +3,6 @@
 import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-
 import antiPatternsMd from './visuals-skill/anti-patterns.md' with { type: 'text' };
 import chartsMd from './visuals-skill/charts.md' with { type: 'text' };
 import componentsMd from './visuals-skill/components.md' with { type: 'text' };

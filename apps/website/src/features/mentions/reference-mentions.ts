@@ -1,5 +1,4 @@
 import type { Agent, Chat, TaskLink } from '@haus/api';
-
 import type { HumanDirectory } from '../servers/human-identity.ts';
 import {
     applyAgentMentionAppearance,

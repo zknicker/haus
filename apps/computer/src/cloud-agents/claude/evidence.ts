@@ -1,5 +1,4 @@
 import type { CloudAgentBranch } from '@haus/api';
-
 import type { CloudAgentProviderObservation } from '../provider.ts';
 import type { ClaudeLogEntry } from './session-events.ts';
 

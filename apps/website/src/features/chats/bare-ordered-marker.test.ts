@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { escapeBareOrderedMarkers } from './bare-ordered-marker.ts';
 
 test('escapes a reply that is only a number sentence', () => {

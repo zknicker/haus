@@ -1,6 +1,5 @@
 import type { AttachmentInventory } from '@haus/api';
 import { asc, eq } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { attachmentsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';

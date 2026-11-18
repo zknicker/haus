@@ -1,7 +1,6 @@
 import type { Chat } from '@haus/api';
 import { Button, Form, Modal, toast } from '@heroui/react';
 import * as React from 'react';
-
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useChannelUpdate } from '../../hooks/servers/use-channel-update.ts';
 import { ChannelAgentPicker, normalizeChannelAgentIds } from './channel-agent-picker.tsx';

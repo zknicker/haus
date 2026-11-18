@@ -1,5 +1,4 @@
 import { and, eq, gt, ne, or, sql } from 'drizzle-orm';
-
 import { advanceSeenCursor, readAgentInboxCursor } from '../agent-delivery/cursors.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';

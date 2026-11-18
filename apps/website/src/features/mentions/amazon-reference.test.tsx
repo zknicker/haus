@@ -1,8 +1,6 @@
 import { expect, test } from 'bun:test';
-
 import type { AmazonProductSummary } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import type { AmazonProductLookup } from './amazon-product-lookup.ts';
 import { AmazonProductPreview } from './amazon-product-preview.tsx';
 import { AmazonReferenceChip, renderAmazonText } from './amazon-reference.tsx';

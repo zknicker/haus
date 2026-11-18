@@ -1,5 +1,4 @@
 import { and, asc, desc, eq, gt, ilike, lt, sql } from 'drizzle-orm';
-
 import { listUnservedTaskFollowReactivationIds } from '../agent-delivery/store.ts';
 import {
     advanceAgentChatRead,

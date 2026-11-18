@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { agentAutomationEventSchema, chatMessageReplySchema } from '@haus/api';
-
 import { agentMessageCheckResponseSchema, agentMessageSchema } from './agent-api-schemas.ts';
 
 const baseMessage = {

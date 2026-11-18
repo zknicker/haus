@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import {
     type GithubFixture,
     insertGithubConnection,

@@ -1,5 +1,4 @@
 import { and, asc, eq, lte, notInArray, sql } from 'drizzle-orm';
-
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';

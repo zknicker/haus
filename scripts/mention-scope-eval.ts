@@ -7,7 +7,6 @@
 // Usage: agent-varlock -- bunx varlock run -- bun scripts/mention-scope-eval.ts [--only <id>]
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-
 import type { RoutingState } from '../apps/server/src/message-routing/jev.ts';
 import { routingThreshold } from '../apps/server/src/message-routing/jev.ts';
 import {

@@ -1,9 +1,7 @@
 import { expect, test } from 'bun:test';
-
 import { Sidebar } from '@heroui-pro/react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
-
 import { SettingsSidebar } from './settings-sidebar.tsx';
 
 function render(backRoute: string | null) {

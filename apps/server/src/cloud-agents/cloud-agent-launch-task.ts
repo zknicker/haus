@@ -1,6 +1,5 @@
 import { formatTaskTarget } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-
 import { resolveTaskTargetChat } from '../agent-api/resolve-task-target.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';

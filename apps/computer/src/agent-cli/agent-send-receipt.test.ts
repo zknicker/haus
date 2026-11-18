@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import type { AgentCliMessage } from './agent-api-schemas.ts';
 import { renderSentReceipt, sendPlacement } from './agent-send-receipt.ts';
 

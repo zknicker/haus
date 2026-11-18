@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import type { ComputerUpdateComputer } from '../computers/computer-update-card.tsx';
 import { computerLabel } from '../computers/presentation.ts';
 import { expectedComputerRestartMs, offlineComputerNoticeDelayMs } from './haus-update-timing.ts';

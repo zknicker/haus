@@ -6,7 +6,6 @@ import {
     SdkHttpError,
     UnauthorizedError,
 } from '@modelcontextprotocol/client';
-
 import { McpDeniedError, McpUpstreamError } from './errors.ts';
 
 export type McpClientFailureScope = 'operation' | 'session';

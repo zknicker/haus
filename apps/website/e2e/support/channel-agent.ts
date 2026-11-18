@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto';
-
 import { assertOpaqueId, createClient, runPsql } from './server.ts';
 
 /**

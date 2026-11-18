@@ -2,7 +2,6 @@ import { CodeBlock } from '@heroui-pro/react/code-block';
 import { ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Button, type Key, Tree, TreeItem, TreeItemContent } from 'react-aria-components';
-
 import { MicroLabel } from '../../components/micro-label.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';

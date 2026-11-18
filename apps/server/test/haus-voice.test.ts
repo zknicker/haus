@@ -1,8 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import { appProtocolHeaders, appProtocolVersion } from '@haus/api';
 import { WebSocket, WebSocketServer } from 'ws';
-
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 

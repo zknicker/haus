@@ -1,5 +1,4 @@
 import type { ComputerInventory } from '@haus/api';
-
 import { type ComputerPresentation, computerLabel } from '../../computers/presentation.ts';
 import { modelFeatureLabels } from '../../members/model-features.ts';
 

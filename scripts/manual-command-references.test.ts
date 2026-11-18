@@ -1,6 +1,5 @@
 import { expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
-
 import { commandGroups } from '../apps/computer/src/agent-cli.ts';
 import {
     coveGuidanceConflictNotice,

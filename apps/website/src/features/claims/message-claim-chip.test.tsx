@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import type { MessageClaim } from './claim-presentation.ts';
 import { MessageClaimChip } from './message-claim-chip.tsx';
 

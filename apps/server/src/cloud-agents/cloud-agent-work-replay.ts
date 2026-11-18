@@ -1,7 +1,6 @@
 import type { AgentCloudAgentReceipt, AgentCloudAgentStartInput } from '@haus/api';
 import { agentCloudAgentStartInputSchema, formatCloudAgentWorkLink } from '@haus/api';
 import { and, asc, eq } from 'drizzle-orm';
-
 import { findAgentMessageByNonce } from '../chats/agent-authored-message.ts';
 import { canonicalizeAgentMessageContentForPersistence } from '../chats/canonicalize-agent-references.ts';
 import { replayCloudAgentWorkLinks } from '../chats/cloud-agent-work-links.ts';

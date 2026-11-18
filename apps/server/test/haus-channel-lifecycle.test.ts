@@ -1,9 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { lstat } from 'node:fs/promises';
 import { join } from 'node:path';
-
 import { makeTestRuntime } from '@haus/effect';
-
 import { openAttachmentRoot } from '../src/attachments/attachment-root.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';

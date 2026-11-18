@@ -1,7 +1,6 @@
 // Permission and steering cases ported from botiverse/raft-source
 // packages/daemon/src/drivers/grok.test.ts (FSL-1.1-ALv2), on an in-memory Grok.
 import { expect, test } from 'bun:test';
-
 import { drain, fakeGrok, update } from './fixtures/fake-grok.ts';
 import { grokLaunchArgs } from './grok-launch.ts';
 import { grokRequestHandler } from './grok-permissions.ts';

@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { useViewShown, useViewShownChange } from '../../hooks/desktop-tabs/view-shown.ts';
 import { cn } from '../../lib/utils.ts';

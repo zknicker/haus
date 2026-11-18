@@ -6,7 +6,6 @@ import type {
     CloudAgentSettings,
 } from '@haus/api';
 import { findCloudAgentModel } from '@haus/api';
-
 import { type CloudAgentModelParamsView, cloudAgentModelParamsView } from './cloud-agent-params.ts';
 
 /** Never a Cursor model id, so Auto cannot collide with a listed model. */

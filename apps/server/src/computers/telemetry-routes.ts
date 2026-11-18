@@ -1,7 +1,6 @@
 import type { OtlpSignal, OtlpTelemetryRelay } from '@haus/effect';
 import { and, eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema/agents.ts';
 import { hashComputerSecret, resolveComputerCredential } from './service.ts';

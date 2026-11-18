@@ -12,7 +12,6 @@ import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 import { columnById, readColumns, readSkills } from './columns.mjs';
 import { visualsBattery } from './engine/prompts.mjs';
 // The real frame, straight from the product: the card's srcdoc builder, the

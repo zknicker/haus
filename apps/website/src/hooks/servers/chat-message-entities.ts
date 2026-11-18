@@ -1,7 +1,6 @@
 import type { ChatMessageEntity, ChatMessageInput, TaskPreview } from '@haus/api';
 import { notifyManager, type Query, type QueryClient, type QueryKey } from '@tanstack/react-query';
 import { getQueryKey } from '@trpc/react-query';
-
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import type { ChatMessagePage } from './chat-message-layout.ts';
 

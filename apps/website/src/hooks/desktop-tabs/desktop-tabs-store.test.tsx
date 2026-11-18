@@ -1,8 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
-
 import * as React from 'react';
 import type { Root } from 'react-dom/client';
-
 import { installFakeDom } from '../../test-support/fake-dom.ts';
 import {
     DesktopTabsContext,

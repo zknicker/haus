@@ -1,6 +1,5 @@
 import { expect, test } from 'bun:test';
 import { generateKeyPairSync } from 'node:crypto';
-
 import { checkComputerReleasePrerequisite } from './check-computer-prerequisite.mjs';
 import {
     computerProtocolVersion,

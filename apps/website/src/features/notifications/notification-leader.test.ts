@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { claimNotificationLeadership, type LockManagerApi } from './notification-leader.ts';
 
 /** An in-memory exclusive lock queue with the Web Locks request shape. */

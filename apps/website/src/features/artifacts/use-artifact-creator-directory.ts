@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import { useAgentAppearances } from '../../hooks/members/use-agents.ts';
 import { useHumanDirectory } from '../../hooks/servers/use-human-directory.ts';
 import { type ArtifactCreatorDirectory, artifactCreatorDirectory } from './artifact-creators.ts';

@@ -1,5 +1,4 @@
 import { TRPCError } from '@trpc/server';
-
 import { GithubApiError } from '../../github/github-api.ts';
 import type { GithubApp } from '../../github/github-app.ts';
 import { GithubAppUnavailableError, GithubRefusedError } from '../../github/github-errors.ts';

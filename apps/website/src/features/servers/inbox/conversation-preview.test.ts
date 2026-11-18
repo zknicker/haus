@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { conversationPreviewLine } from './conversation-preview.ts';
 
 const createdAt = '2025-05-08T15:00:00.000Z';

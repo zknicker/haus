@@ -1,5 +1,4 @@
 import type { Task } from '@haus/api';
-
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useTask } from '../../hooks/tasks/use-task.ts';
 import { formatDueOn } from '../tasks/task-facts.tsx';

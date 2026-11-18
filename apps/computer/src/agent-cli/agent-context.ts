@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-
 import { AgentCliError } from './agent-error.ts';
 
 const tokenPattern = /^grta_[A-Za-z0-9_-]{43}$/u;

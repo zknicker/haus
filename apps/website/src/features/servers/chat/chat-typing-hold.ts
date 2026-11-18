@@ -1,5 +1,4 @@
 import type { ChatEngagement, ChatEngagementEvent, ChatMessage } from '@haus/api';
-
 import {
     type ChatTypingFace,
     chatTypingReadFace,

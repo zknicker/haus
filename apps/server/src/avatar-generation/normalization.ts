@@ -1,7 +1,5 @@
 import { deflateSync, inflateSync } from 'node:zlib';
-
 import { type AvatarMediaType, avatarMaxBytes, avatarPixelSize } from '@haus/api/avatar';
-
 import { readAvatarBytes } from '../avatars/avatar-bytes.ts';
 import { AvatarImageOutputError } from './errors.ts';
 

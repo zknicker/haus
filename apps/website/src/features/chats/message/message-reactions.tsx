@@ -2,7 +2,6 @@ import { ChatMessage, EmojiPicker } from '@heroui-pro/react';
 import { Button } from '@heroui/react';
 import { SmileIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 import { ActionTooltip } from '../chat-action-tooltip.tsx';
 import {

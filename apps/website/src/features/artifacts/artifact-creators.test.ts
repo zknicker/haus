@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { ArtifactCreatorSummary } from '@haus/api';
-
 import { humanDirectory } from '../servers/human-identity.ts';
 import {
     artifactCreatorDirectory,

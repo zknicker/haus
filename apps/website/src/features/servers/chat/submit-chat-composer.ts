@@ -1,5 +1,4 @@
 import type * as React from 'react';
-
 import type { useChatMessageSend } from '../../../hooks/servers/use-chat-message-send.ts';
 import type { useUploadServerAttachment } from '../../../hooks/servers/use-upload-server-attachment.ts';
 import { buildChatComposerSubmission } from '../../chats/chat-composer-submission.ts';

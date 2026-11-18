@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { computerDiskWarning, shouldShowDiskNotice } from './computer-disk.ts';
 
 test('offline and unknown disk samples do not render warnings', () => {

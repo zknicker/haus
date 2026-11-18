@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { agentWorkspaceRequestSchema } from './agent-workspace-files.ts';
 import { agentWorkspaceListInputSchema, agentWorkspaceReadInputSchema } from './agent.ts';
 import { agentRuntimeWorkspaceFileListInputSchema } from './runtime/contracts.ts';

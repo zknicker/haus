@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import { readAgentServerDirectory } from '../src/agent-api/directory.ts';
 import { messageSelection, targetForChat, toAgentMessages } from '../src/agent-api/message-view.ts';
 import { resolveAgentSendTarget } from '../src/agent-api/resolve-send-target.ts';

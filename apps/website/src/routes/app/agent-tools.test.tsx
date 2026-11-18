@@ -1,8 +1,6 @@
 import { afterAll, expect, mock, test } from 'bun:test';
-
 import type { McpConnection } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { testAgent } from '../../features/members/agent-fixtures.ts';
 
 // Bun keeps module mocks for the rest of the worker, so copy the real hook first and put it

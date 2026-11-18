@@ -1,7 +1,6 @@
 import { artifactPathBasename } from '@haus/api';
 import { Input, toast } from '@heroui/react';
 import * as React from 'react';
-
 import { artifactMoveMessage, useArtifactMove } from '../../hooks/artifacts/use-artifact-move.ts';
 import {
     type ArtifactRenameTarget,

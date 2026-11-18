@@ -1,7 +1,6 @@
 import type { Agent } from '@haus/api';
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
-
 import { wakePauseColumns } from '../agent-delivery/failure-hold.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentDeliveryTable, agentsTable, chatsTable, computersTable } from '../postgres/schema.ts';

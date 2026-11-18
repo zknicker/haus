@@ -1,6 +1,5 @@
 import { expect, test } from 'bun:test';
 import { generateKeyPairSync } from 'node:crypto';
-
 import computerProtocol from '../../packages/haus-api/computer-protocol.json' with { type: 'json' };
 import {
     assertComputerReleaseKey,

@@ -1,9 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import type { AgentExecutionJournalTool } from '@haus/api';
 import { executionBookkeepingCases } from '@haus/api/execution-bookkeeping-fixtures';
-
 import {
     classifyTraceTool,
     resolveToolPartState,

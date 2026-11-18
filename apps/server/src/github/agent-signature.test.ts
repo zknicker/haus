@@ -1,7 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-
 import type { McpPreset } from '@haus/api';
-
 import { signGithubToolCall } from './agent-signature.ts';
 
 const signature = '<sub>Posted by Forge via Haus</sub>';

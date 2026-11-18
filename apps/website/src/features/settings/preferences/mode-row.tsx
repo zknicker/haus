@@ -1,6 +1,5 @@
 import { ItemCard } from '@heroui-pro/react';
 import { Label, ListBox, Select } from '@heroui/react';
-
 import {
     type ResolvedTheme,
     type ThemePreference,

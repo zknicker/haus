@@ -1,6 +1,5 @@
 import { Image01Icon } from '@hugeicons-pro/core-solid-rounded';
 import { useState } from 'react';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
 

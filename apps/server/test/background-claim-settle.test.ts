@@ -1,7 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import { and, eq, sql } from 'drizzle-orm';
-
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { messageClaimsTable } from '../src/postgres/schema.ts';

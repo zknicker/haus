@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import type { HausUpdateView } from './haus-update-model.ts';
 import type { HausUpdateSequence } from './haus-update-reconciler.ts';
 import {

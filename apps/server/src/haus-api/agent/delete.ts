@@ -1,6 +1,5 @@
 import { deleteAgentInputSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
-
 import { publishRealtime } from '../../realtime/topic.ts';
 import { agentUpdatedTopic } from '../../realtime/topics.ts';
 import { AgentDeleteDeniedError } from '../../server-agents/agent-config-errors.ts';

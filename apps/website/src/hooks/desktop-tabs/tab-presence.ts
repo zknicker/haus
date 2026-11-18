@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import type { PaneSide } from './desktop-tabs-model.ts';
 
 /**

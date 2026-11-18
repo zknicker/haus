@@ -1,5 +1,4 @@
 import { agentAddChannelAgentReceiptSchema } from '@haus/api';
-
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import {
     agentChannelActionResponseSchema,

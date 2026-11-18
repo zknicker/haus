@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { revealScrollLeft } from './tab-reveal.ts';
 
 const port = { clientWidth: 300, scrollLeft: 0 };

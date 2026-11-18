@@ -1,5 +1,4 @@
 import type { PressEvent, Selection } from 'react-aria-components';
-
 import { currentOpenGesture } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useTabId } from '../../hooks/desktop-tabs/tab-presence.ts';
 

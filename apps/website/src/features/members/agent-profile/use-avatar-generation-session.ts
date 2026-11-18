@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import { useAgentAvatarGeneration } from '../../../hooks/members/use-agent-avatar-generation.ts';
 import { useAgentAvatar } from '../../../hooks/members/use-agent-avatar.ts';
 import {

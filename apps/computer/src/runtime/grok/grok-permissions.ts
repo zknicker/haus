@@ -1,5 +1,4 @@
 import * as z from 'zod';
-
 import { JsonRpcHandlerError, type JsonRpcRequestHandler } from '../json-rpc-connection.ts';
 import { jsonRpcInvalidParams, jsonRpcMethodNotFound } from '../json-rpc.ts';
 

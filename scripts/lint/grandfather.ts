@@ -1,6 +1,5 @@
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-
 import type { Grandfathered } from './grandfathered-overrides.mts';
 
 /**

@@ -1,6 +1,5 @@
 import { automationSnippetMaxChars, type MessageCause, type MessageCauseLive } from '@haus/api';
 import { and, count, eq, inArray, max } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     messageCausesTable,

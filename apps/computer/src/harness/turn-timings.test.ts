@@ -2,7 +2,6 @@ import { expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { AgentTurnTimings } from '../agent-turn-timings.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';

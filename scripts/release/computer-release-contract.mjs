@@ -1,6 +1,5 @@
 import { createHash, createPublicKey, sign, timingSafeEqual, verify } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-
 import computerProtocol from '../../packages/haus-api/computer-protocol.json' with { type: 'json' };
 
 export const computerProtocolVersion = computerProtocol.version;

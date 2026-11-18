@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import { verifyHostedHaus } from './verify-hosted-haus.mjs';
 
 const response = (body, options = {}) => ({

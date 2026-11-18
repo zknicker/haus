@@ -1,8 +1,6 @@
 import { afterAll, beforeAll, expect } from 'bun:test';
 import { createHash } from 'node:crypto';
-
 import type { AgentCreateAgentReceipt, CreatedAgentSummary } from '@haus/api';
-
 import type { ArtifactStorage } from '../src/artifacts/storage.ts';
 import type {
     AvatarImageProvider,

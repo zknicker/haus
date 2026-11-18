@@ -1,5 +1,4 @@
 import type { QueryClient } from '@tanstack/react-query';
-
 import { fetchAttachmentBlob, isRetryableAttachmentError } from './attachment-bytes.ts';
 
 /**

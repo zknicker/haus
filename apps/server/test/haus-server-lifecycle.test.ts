@@ -2,9 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { SQL } from 'bun';
-
 import { createHausServerApplication } from '../src/haus-server-application.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 

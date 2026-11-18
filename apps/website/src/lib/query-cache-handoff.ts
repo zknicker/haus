@@ -7,7 +7,6 @@ import {
     type QueryClient,
 } from '@tanstack/react-query';
 import * as React from 'react';
-
 import { getDesktopBridge } from './desktop-bridge.ts';
 
 /**

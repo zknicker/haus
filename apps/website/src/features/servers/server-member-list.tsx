@@ -2,7 +2,6 @@ import type { ServerMember, ServerMemberDirectory } from '@haus/api/membership';
 import { Button, Chip, Separator } from '@heroui/react';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
-
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { humanDisplayName } from './human-identity.ts';
 import { type ServerMemberRowAction, serverMemberRowActions } from './server-member-actions.ts';

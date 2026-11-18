@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { CloudAgentLaunchRejectedError } from '../provider.ts';
 import { createCursorCloudAgentProvider } from './provider.ts';
 import {

@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-
 import { normalizeCodexUsageResponse } from './index.ts';
 
 describe('normalizeCodexUsageResponse', () => {

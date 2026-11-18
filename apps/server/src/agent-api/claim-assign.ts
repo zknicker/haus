@@ -1,5 +1,4 @@
 import { and, eq, isNull } from 'drizzle-orm';
-
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import {
     assignClaim,

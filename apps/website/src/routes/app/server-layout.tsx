@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { Outlet, useParams } from 'react-router-dom';
-
 import { ConnectionNotice } from '../../features/servers/connection-notice.tsx';
 import { CommandMenuProvider } from '../../features/shell/command-menu-provider.tsx';
 import { ShellFrame, SidePaneProvider } from '../../features/shell/shell-side-pane.tsx';

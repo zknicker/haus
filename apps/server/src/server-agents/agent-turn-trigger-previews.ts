@@ -1,6 +1,5 @@
 import { AGENT_TURN_TRIGGER_PREVIEW_MAX_LENGTH, type AgentTurnTrigger } from '@haus/api';
 import { and, count, eq, inArray, sql } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { attachmentsTable, chatMessagesTable } from '../postgres/schema.ts';
 import { readAgentTurnTaskTriggers } from './agent-turn-task-triggers.ts';

@@ -1,6 +1,5 @@
 import { ItemCard } from '@heroui-pro/react';
 import { Label, ListBox, Select, Separator } from '@heroui/react';
-
 import { selectColorTheme, useColorTheme } from '../../../hooks/shell/use-color-theme.ts';
 import { parseColorTheme } from '../../../lib/color-theme.ts';
 import { colorThemes } from '../../../lib/color-themes.ts';

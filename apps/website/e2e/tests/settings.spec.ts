@@ -1,7 +1,5 @@
 import { randomBytes } from 'node:crypto';
-
 import type { Page } from '@playwright/test';
-
 import { createAppTestFixture, signInAsAppHuman } from '../support/app-session.ts';
 import { assertOpaqueId, completeOnboarding, createClient, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';

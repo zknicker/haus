@@ -1,6 +1,5 @@
 import { lazy, Suspense } from 'react';
 import { useParams } from 'react-router-dom';
-
 import { useServerContext } from '../../features/servers/server-context.ts';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
 import { parseArtifactPageKey } from './desktop-page-paths.ts';

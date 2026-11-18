@@ -1,6 +1,5 @@
 import { agentRunTriggerInputSchema, agentRunTriggerSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
-
 import { AgentConfigDeniedError } from '../../server-agents/agent-config-errors.ts';
 import { readAgentRunTrigger } from '../../server-agents/read-agent-run-trigger.ts';
 import { memberProcedure } from '../server/procedure.ts';

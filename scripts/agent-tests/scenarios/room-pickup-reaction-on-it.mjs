@@ -8,7 +8,6 @@
 // chiming in, and working notes posted as inline replies to the request (each
 
 import { gzipSync } from 'node:zlib';
-
 import { normalizeReactionEmoji } from '../../../packages/haus-api/src/reaction-emoji.ts';
 import { expectDoneToRequest, readPlacement } from '../placement.mjs';
 import { agentPostsSince, agentReactions } from '../room-a.mjs';

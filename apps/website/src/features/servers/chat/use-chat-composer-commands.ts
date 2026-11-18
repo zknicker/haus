@@ -1,5 +1,4 @@
 import type { Agent } from '@haus/api';
-
 import { useChatComposerFocusRequest } from '../../../commands/chat-composer-focus.ts';
 import {
     appendComposerInsert,

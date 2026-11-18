@@ -1,8 +1,6 @@
 import { createHash } from 'node:crypto';
-
 import type { ArtifactErrorCode, ArtifactMetadata } from '@haus/api';
 import { S3Client } from 'bun';
-
 import { attachmentDisposition } from '../utils/content-disposition.ts';
 
 export interface ArtifactStorage {

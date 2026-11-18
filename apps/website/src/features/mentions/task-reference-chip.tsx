@@ -1,7 +1,6 @@
 import { parseTaskReferenceTarget } from '@haus/api';
 import { toast } from '@heroui/react';
 import type * as React from 'react';
-
 import { useOpenTaskReference } from '../../hooks/tasks/use-open-task-reference.ts';
 import { ReferenceChipView } from './reference-chip-view.tsx';
 import { TaskHoverCardContent } from './task-hover-card.tsx';

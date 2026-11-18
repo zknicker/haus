@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { AGENT_TURN_TRIGGER_PREVIEW_MAX_LENGTH } from '@haus/api';
-
 import { agentTurnTrigger, previewHead } from '../src/server-agents/agent-turn-trigger.ts';
 
 test('maps each inbox source to its narrow trigger kind', () => {

@@ -1,6 +1,5 @@
 import type { ClaimList, ClaimListItem } from '@haus/api';
 import { and, desc, eq, sql } from 'drizzle-orm';
-
 import { visibleChats } from '../chats/chat-visibility.ts';
 import { readMessageBodies } from '../chats/message-bodies.ts';
 import { readChatMessageReactions } from '../chats/message-reactions.ts';

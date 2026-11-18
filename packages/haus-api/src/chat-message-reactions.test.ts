@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { chatMessageReactionInputSchema } from './chat-message-reactions.ts';
 import { chatMessageReactionReceiptSchema } from './chat.ts';
 

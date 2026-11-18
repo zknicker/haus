@@ -3,7 +3,6 @@ import {
     isTerminalCloudAgentStatus,
 } from '@haus/api';
 import { Clock, Effect } from 'effect';
-
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import { foreign } from './foreign-operation.ts';
 import type { CloudLaunchJournal, CloudPendingSend as Pending } from './launch-journal.ts';

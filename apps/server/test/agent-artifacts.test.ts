@@ -1,8 +1,6 @@
 import { expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
-
 import { artifactPublicLinkResultSchema, artifactPublishResultSchema } from '@haus/api';
-
 import type { ArtifactStorage } from '../src/artifacts/storage.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 

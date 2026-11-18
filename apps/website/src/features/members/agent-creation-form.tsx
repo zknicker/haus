@@ -11,7 +11,6 @@ import {
     TextField,
 } from '@heroui/react';
 import * as React from 'react';
-
 import { AvatarPicker } from '../avatars/avatar-picker.tsx';
 import type { AvatarImage } from '../avatars/resize-avatar-image.ts';
 import type { AgentCreationSubmitValues, ReportedComputer } from './agent-creation-contract.ts';

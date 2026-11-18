@@ -1,6 +1,5 @@
 import type { ArtifactRecord } from '@haus/api';
 import { useState } from 'react';
-
 import { ImageLightbox } from '../../components/chats/image-lightbox.tsx';
 import { useArtifactDownload } from '../../hooks/artifacts/use-artifact-download.ts';
 import { useArtifactSave } from '../../hooks/artifacts/use-artifact-save.ts';

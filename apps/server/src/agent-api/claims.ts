@@ -1,5 +1,4 @@
 import { and, eq, sql } from 'drizzle-orm';
-
 import { requireChatWritable } from '../chats/chat-access.ts';
 import { prepareClaimEvent } from '../claims/claim-events.ts';
 import {

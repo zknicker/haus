@@ -2,7 +2,6 @@ import { type EffectRuntime, settle } from '@haus/effect';
 import type { Tool } from '@modelcontextprotocol/client';
 import { and, eq } from 'drizzle-orm';
 import { Clock, Data, Deferred, Effect, Exit, Scope } from 'effect';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { mcpConnectionsTable } from '../postgres/schema.ts';
 import { mcpUpdatedTopic } from '../realtime/topics.ts';

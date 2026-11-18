@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { agentTriggerResultSchema } from '@haus/api';
-
 import {
     agentTriggerDeleteResultResponseSchema,
     agentTriggerListResponseSchema,

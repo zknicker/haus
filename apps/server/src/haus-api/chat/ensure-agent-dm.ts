@@ -1,6 +1,5 @@
 import { chatSchema, ensureAgentDmInputSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
-
 import { AgentDmPeerNotFoundError, ensureAgentDmRecord } from '../../chats/ensure-agent-dm.ts';
 import { prepareLifecycleEvent } from '../../chats/lifecycle-events.ts';
 import { listChats } from '../../chats/list-chats.ts';

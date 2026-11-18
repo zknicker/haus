@@ -1,7 +1,5 @@
 import { afterEach, expect, spyOn, test } from 'bun:test';
-
 import type * as z from 'zod';
-
 import type { AgentApiRequester } from '../agent-api-client.ts';
 import { dispatchSubcommand } from '../subcommand.ts';
 import type { ClaimDeps } from './agent-claim-actions.ts';

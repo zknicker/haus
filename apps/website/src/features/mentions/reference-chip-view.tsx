@@ -1,6 +1,5 @@
 import { Chip } from '@heroui/react';
 import type * as React from 'react';
-
 import { getChannelColorStyle } from '../../components/chats/channel-color-options.ts';
 import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';
 import { opensPlaceAttribute } from '../../hooks/desktop-tabs/tab-open-gesture.ts';

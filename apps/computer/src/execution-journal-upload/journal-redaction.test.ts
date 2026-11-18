@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { computerKnownSecrets, createJournalRedactor, isSecretKey } from './journal-redaction.ts';
 
 const redact = createJournalRedactor(['exact-known-value-1234', 'short']);

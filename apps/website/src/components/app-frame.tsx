@@ -1,5 +1,4 @@
 import { Outlet } from 'react-router-dom';
-
 import { useDesktopHistoryNavigation } from '../hooks/desktop/use-desktop-menu-navigation.ts';
 import { useDesktopWindowCommands } from '../hooks/desktop/use-desktop-window-commands.ts';
 

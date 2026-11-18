@@ -1,6 +1,5 @@
 // Ported from botiverse/raft-source packages/daemon/src/drivers/grokEventNormalizer.test.ts (FSL-1.1-ALv2)
 import { expect, test } from 'bun:test';
-
 import { createGrokTurnNormalizer } from './grok-turn-normalizer.ts';
 import { createWorkspacePaths } from './workspace-paths.ts';
 

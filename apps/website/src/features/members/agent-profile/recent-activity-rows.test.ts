@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import type { AgentActivityTurn } from './agent-activity-turns.ts';
 import { collapseRecentActivity } from './recent-activity-rows.ts';
 

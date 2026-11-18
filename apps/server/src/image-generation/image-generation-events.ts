@@ -1,5 +1,4 @@
 import { and, asc, eq, inArray, isNotNull, isNull, or } from 'drizzle-orm';
-
 import { linkParentChatsTable } from '../cloud-agents/cloud-agent-work-visibility.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable, imageGenerationLinksTable } from '../postgres/schema.ts';

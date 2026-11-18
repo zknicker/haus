@@ -2,7 +2,6 @@ import { expect, test } from 'bun:test';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { parseBrowserRequest, runBrowserRequest } from './requests.ts';
 import { disconnectBrowserService } from './service.ts';

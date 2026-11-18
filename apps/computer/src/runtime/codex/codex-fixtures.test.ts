@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { fatalRuntimeSessionFailure } from '../../harness/runtime-session-failure.ts';
 import type { RuntimeSession } from '../driver.ts';
 import { isRuntimeResumeRejection } from '../resume-rejected.ts';

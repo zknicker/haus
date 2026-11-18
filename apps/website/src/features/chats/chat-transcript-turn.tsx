@@ -2,7 +2,6 @@ import { ChatMessage, ChatMessageActions } from '@heroui-pro/react';
 import { Separator } from '@heroui/react';
 import { Activity01Icon, AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-
 import { RelativeTime } from '../../components/time/relative-time.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { writeClipboardText } from '../../lib/clipboard.ts';

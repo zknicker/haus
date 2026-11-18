@@ -1,8 +1,6 @@
 import { access, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
-
 import type { AgentBackgroundWorkReport, AgentSubagentWakeResult } from '@haus/api';
-
 import { createKeyedQueue } from './keyed-queue.ts';
 import type { BackgroundWork, BackgroundWorkListener } from './runtime/background-work.ts';
 import { createSubagentWakeRequests } from './subagent-wake-requests.ts';

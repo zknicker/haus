@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import { MessageMediaStrip } from '../../chats/message-media-strip.tsx';
 import type { SharedArtifactLinkTarget } from '../../chats/shared-artifact-link.ts';
 import { sharedArtifactKey } from '../../chats/shared-artifact-link.ts';

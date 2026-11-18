@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import type { ComputerUpdateComputer } from './computer-update-card.tsx';
 import { ComputerUpdateCard } from './computer-update-card.tsx';
 import { computerUpdatePreviewStates, previewComputerUpdate } from './computer-update-preview.tsx';

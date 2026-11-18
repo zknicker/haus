@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import { agentRuntimeEventSchema } from './contracts.ts';
 
 test('engine restart events parse through the runtime event union', () => {

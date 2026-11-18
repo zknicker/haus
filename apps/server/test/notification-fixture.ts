@@ -1,5 +1,4 @@
 import { expect } from 'bun:test';
-
 import { recordExactMessagesServed } from '../src/agent-delivery/cursors.ts';
 import { connectHausDatabase } from '../src/postgres/connection.ts';
 import type { PushSender } from '../src/push/push-sender.ts';

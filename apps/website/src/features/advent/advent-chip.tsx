@@ -2,7 +2,6 @@ import { adventDoorCount } from '@haus/api';
 import { Chip } from '@heroui/react';
 import * as React from 'react';
 import { Button } from 'react-aria-components';
-
 import { useColorThemeDefinition } from '../../hooks/shell/use-color-theme.ts';
 import { useServerContext } from '../servers/server-context.ts';
 import { AdventCalendarDialog } from './advent-calendar-dialog.tsx';

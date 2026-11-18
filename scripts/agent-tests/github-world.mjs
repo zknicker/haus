@@ -9,9 +9,7 @@
 
 import { createHmac } from 'node:crypto';
 import { readdirSync } from 'node:fs';
-
 import { SQL } from 'bun';
-
 import { createDevStackStatePaths } from '../dev-stack-shared.mjs';
 import { createAgentAuthor } from './author.mjs';
 

@@ -1,5 +1,4 @@
 import { Effect } from 'effect';
-
 import type { RuntimeSession, RuntimeTurn } from '../runtime/driver.ts';
 import type { HarnessTurnInput } from './executor.ts';
 import { createNoticeDelivery } from './steer-inbox-notice.ts';

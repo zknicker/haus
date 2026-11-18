@@ -1,7 +1,6 @@
 import { EmptyState } from '@heroui-pro/react';
 import { File01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { bandHeightClassName } from '../shell/section-header.tsx';
 import { ArtifactPanelChrome } from './chat-artifact-panel-chrome.tsx';

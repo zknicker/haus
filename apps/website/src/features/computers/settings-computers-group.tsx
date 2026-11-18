@@ -3,7 +3,6 @@ import { Badge, Button, Tooltip } from '@heroui/react';
 import { ComputerIcon, PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { cn } from '../../lib/utils.ts';

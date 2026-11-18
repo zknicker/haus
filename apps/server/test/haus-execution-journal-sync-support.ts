@@ -1,7 +1,5 @@
 import { createHash } from 'node:crypto';
-
 import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@haus/api';
-
 import type { HausServerHarness } from './haus-server-harness.ts';
 
 export function bootstrapFrame(credential: string) {

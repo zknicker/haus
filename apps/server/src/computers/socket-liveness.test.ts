@@ -1,8 +1,6 @@
 import { afterEach, beforeEach, expect, jest, test } from 'bun:test';
 import { EventEmitter } from 'node:events';
-
 import { WebSocket } from 'ws';
-
 import { defaultComputerSocketLiveness, watchComputerSocketLiveness } from './socket-liveness.ts';
 
 // The App no longer probes Computers on focus, so this routine timeout is the

@@ -1,6 +1,5 @@
 import { formatTaskKey, formatTaskTarget, type TaskState } from '@haus/api';
 import { and, eq, inArray, sql } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { taskKeysTable, tasksTable } from '../postgres/schema.ts';
 

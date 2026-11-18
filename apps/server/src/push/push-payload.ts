@@ -5,7 +5,6 @@ import {
     pushAlertBodyMaxLength,
     pushNotificationSenderNameMaxLength,
 } from '@haus/api';
-
 import { absoluteAvatarUrlFor } from '../avatars/avatar-url.ts';
 import { readStoredAuthor } from '../chats/message-shape.ts';
 import { messagePreview } from './message-preview.ts';

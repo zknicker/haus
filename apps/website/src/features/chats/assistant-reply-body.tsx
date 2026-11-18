@@ -1,7 +1,6 @@
 import { splitVisualFences } from '@haus/api/widgets/visual';
 import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
-
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
 import { useStreamingTextRanges } from './chat-streaming-text-ranges.ts';
 import { TranscriptMessageBlock } from './chat-transcript-message-block.tsx';

@@ -1,5 +1,4 @@
 import { channelUpdateInputSchema, chatSchema } from '@haus/api';
-
 import { updateChannel } from '../../chats/update-channel.ts';
 import { publishRealtime } from '../../realtime/topic.ts';
 import { chatProcedure } from './procedure.ts';

@@ -1,7 +1,6 @@
 import { Sidebar } from '@heroui-pro/react';
 import { Button, Kbd, Tooltip } from '@heroui/react';
 import { ArrowLeft01Icon, Settings01Icon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 

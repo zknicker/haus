@@ -1,7 +1,6 @@
 import type { ArtifactCreator } from '@haus/api';
 import { SearchField } from '@heroui/react';
 import type { ReactNode } from 'react';
-
 import { ArtifactCreatorMenu } from './artifact-creator-menu.tsx';
 import { ArtifactFilterMenu } from './artifact-filter-menu.tsx';
 import { ArtifactKindMenu } from './artifact-kind-menu.tsx';

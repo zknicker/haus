@@ -4,7 +4,6 @@ import { Separator } from '@heroui/react';
 import { BubbleChatIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-
 import { getChannelColorStyle } from '../../../components/chats/channel-color-options.ts';
 import { useChannelIconGlyph } from '../../../components/chats/channel-icon-catalog.ts';
 import { Icon } from '../../../components/ui/icon.tsx';

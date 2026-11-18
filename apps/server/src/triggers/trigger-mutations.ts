@@ -6,7 +6,6 @@ import type {
     TriggerStatus,
     WebhookTrigger,
 } from '@haus/api';
-
 import { requireChatWritable } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { requireActiveAgent, requireAgentAnchor } from '../reminders/reminder-model.ts';

@@ -1,6 +1,5 @@
 import type { MessageRoutingAudit, MessageRoutingDebug as RoutingDebugData } from '@haus/api';
 import { Button, Popover } from '@heroui/react';
-
 import { useDevMode } from '../../../components/dev-mode-provider.tsx';
 import { useMessageRouting } from '../../../hooks/servers/use-message-routing.ts';
 import { RoutingDecisionPanel } from './routing-decision-panel.tsx';

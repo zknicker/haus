@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { formatImageGenerationLink } from '@haus/api';
-
 import { fakePng, imageGenerationFixture } from './image-generation-fixture.ts';
 
 const fixture = imageGenerationFixture();

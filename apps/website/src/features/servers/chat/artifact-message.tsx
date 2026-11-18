@@ -1,5 +1,4 @@
 import { type WidgetArtifactProps, widgetArtifactPropsSchema } from '@haus/api/widgets/artifact';
-
 import { WidgetArtifactCard } from '../../chats/artifact-card.tsx';
 import { ArtifactPanelOpenProvider } from '../../chats/artifact-panel-context.tsx';
 import { ChatMarkdownText } from '../../chats/chat-markdown-text.tsx';

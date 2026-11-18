@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { artifactDriveFixture } from './artifact-drive-fixture.ts';
 
 const { publish, state } = artifactDriveFixture('artifact-move');

@@ -1,6 +1,5 @@
 import { Chip } from '@heroui/react';
 import type * as React from 'react';
-
 import { useArtifact } from '../../hooks/artifacts/use-artifact.ts';
 import { ArtifactFileIcon } from '../artifacts/icons/artifact-file-icon.tsx';
 import { artifactFileKind } from '../artifacts/icons/artifact-file-kind.ts';

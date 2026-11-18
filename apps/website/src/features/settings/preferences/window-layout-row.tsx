@@ -1,6 +1,5 @@
 import { ItemCard } from '@heroui-pro/react';
 import { Label, ListBox, Select, Separator } from '@heroui/react';
-
 import { selectShellVariant, useShellVariant } from '../../../hooks/shell/use-shell-variant.ts';
 import { parseShellVariant, type ShellVariant } from '../../../lib/shell-variant.ts';
 

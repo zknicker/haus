@@ -1,7 +1,6 @@
 import type { ArtifactMetadata, ArtifactPublicLink } from '@haus/api';
 import { ContextMenu } from '@heroui-pro/react';
 import * as React from 'react';
-
 import { artifactActionItems } from './artifact-action-items.tsx';
 import {
     type FileActionId,

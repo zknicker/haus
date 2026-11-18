@@ -4,7 +4,6 @@ import { Button, Dropdown, Header, Label, Separator, Tooltip } from '@heroui/rea
 import { MoreHorizontalIcon, UserCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 import { DmContextMenuItems } from './chat-context-menu-items.tsx';
 import { ChatSurfaceItems } from './chat-surface-items.tsx';

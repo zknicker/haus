@@ -1,6 +1,5 @@
 import { agentWorkspaceReadInputSchema, workspaceFileContentSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
-
 import {
     AgentWorkspaceAccessError,
     readAgentWorkspaceFile,

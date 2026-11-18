@@ -3,7 +3,6 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 import { themeIconFiles as themeDockIconFiles } from '../../apps/website/electron/dock-app-icon.cjs';
 
 const __filename = fileURLToPath(import.meta.url);

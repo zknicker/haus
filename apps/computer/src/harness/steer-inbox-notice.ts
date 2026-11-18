@@ -1,8 +1,6 @@
 import { readFile, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-
 import { Effect } from 'effect';
-
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import type { RuntimeSession } from '../runtime/driver.ts';
 import type { HarnessTurnInput } from './executor.ts';

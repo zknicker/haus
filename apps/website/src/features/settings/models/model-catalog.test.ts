@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { buildModelCatalog, buildRuntimeAccess } from './model-catalog.ts';
 
 const computers = [

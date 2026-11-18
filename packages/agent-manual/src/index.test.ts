@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import sourceManifest from '../../../specs/raft-alignment/manual-source.json' with { type: 'json' };
 import {
     getManualTopic,

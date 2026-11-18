@@ -1,5 +1,4 @@
 import { isDeepStrictEqual } from 'node:util';
-
 import type {
     agentImageGenerationCreateInputSchema,
     ImageGeneration,
@@ -7,7 +6,6 @@ import type {
 } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type * as z from 'zod';
-
 import { AgentAttachmentError, requireVisibleAgentAttachment } from '../agent-api/attachments.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';

@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import type { BrowserBounds } from '../../lib/desktop-browser.ts';
 import { type BrowserCoverIO, createBrowserCover } from './browser-cover.ts';
 

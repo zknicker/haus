@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { computerInventorySchema } from './computer-inventory.ts';
 
 const observedAt = '2026-10-20T12:00:00.000Z';

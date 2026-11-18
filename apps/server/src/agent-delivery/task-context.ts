@@ -1,6 +1,5 @@
 import type { AgentTaskContext, AgentTaskContextMessage, HausAgentMessage } from '@haus/api';
 import { and, desc, eq, inArray, isNotNull, lt } from 'drizzle-orm';
-
 import { messageSelection, targetForChat, toAgentMessages } from '../agent-api/message-view.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {

@@ -1,7 +1,6 @@
 import { Button, Popover, SearchField } from '@heroui/react';
 import { Add01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-
 import { Icon } from '../../components/ui/icon.tsx';
 
 export interface PickerPopoverItem {

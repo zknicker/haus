@@ -1,6 +1,5 @@
 import type { AgentEffectiveState } from '@haus/api';
 import { and, eq, isNull, or, sql } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
 

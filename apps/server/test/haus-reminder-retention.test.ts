@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import { readMessageCauses } from '../src/automations/message-cause-read.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { cancelReminder, scheduleReminder, tickReminders } from '../src/reminders/reminders.ts';

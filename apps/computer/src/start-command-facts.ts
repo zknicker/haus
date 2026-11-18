@@ -1,5 +1,4 @@
 import { type ConnectionChipKind, connectionChipKindSchema } from '@haus/api';
-
 import type { AgentStartCommand } from './agent-commands.ts';
 
 const agentFactFields = [

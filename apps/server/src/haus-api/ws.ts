@@ -1,10 +1,8 @@
 import type { IncomingMessage, Server } from 'node:http';
 import type { Duplex } from 'node:stream';
-
 import type { TRPCError } from '@trpc/server';
 import { applyWSSHandler, type CreateWSSContextFnOptions } from '@trpc/server/adapters/ws';
 import { WebSocketServer } from 'ws';
-
 import type { HausContext } from './context.ts';
 import { hausRouter } from './router.ts';
 import { SocketSession, socketSessionExpiredCloseCode } from './socket-session.ts';

@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { artifactTextMaxBytes } from '@haus/api';
-
 import { artifactTextFromBytes } from './text.ts';
 
 test('valid UTF-8 decodes to text, including multibyte characters', () => {

@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { cloudAgentModelCatalogSchema } from '@haus/api';
-
 import cursorModels from './cursor/cursor-models.fixture.json' with { type: 'json' };
 import {
     cleanCloudAgentModelLabel,

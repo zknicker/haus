@@ -1,7 +1,6 @@
 import type { Task } from '@haus/api';
 import { Button, Dropdown, Header, Label, Separator } from '@heroui/react';
 import { CopyLinkIcon, MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useAssignTask } from '../../hooks/tasks/use-assign-task.ts';

@@ -1,5 +1,4 @@
 import { auth } from '@modelcontextprotocol/client';
-
 import { env } from '../config/env.ts';
 import { configuredOAuthClient } from './oauth-clients.ts';
 import {

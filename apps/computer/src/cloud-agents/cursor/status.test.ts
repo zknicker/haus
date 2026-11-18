@@ -1,7 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-
 import { cloudAgentBranchSchema, cloudAgentReportMaxLength } from '@haus/api';
-
 import { boundedReport, boundedSummary } from '../report-text.ts';
 import { branchesOf, observationOf, repositoryOf } from './status.ts';
 

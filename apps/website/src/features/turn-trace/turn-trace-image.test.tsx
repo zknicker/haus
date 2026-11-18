@@ -1,9 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import type { AgentExecutionJournalTool } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { TurnTraceImagePreview } from './turn-trace-image.tsx';
 import { classifyTraceTool } from './turn-trace-tool-model.ts';
 

@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
-
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import type { TaskAgentDelivery } from '../src/tasks/task-assignment.ts';
 import { startTask } from '../src/tasks/task-start.ts';

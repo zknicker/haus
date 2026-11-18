@@ -1,5 +1,4 @@
 import { Input, Label, TextField } from '@heroui/react';
-
 import type { GithubEventDraft, githubEventTextFields } from './trigger-github-events-model.ts';
 
 export function EventTextFields({

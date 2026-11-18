@@ -1,5 +1,4 @@
 import type * as React from 'react';
-
 import { cn } from '../lib/utils.ts';
 import { CopyButton } from './copy-button.tsx';
 

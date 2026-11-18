@@ -1,6 +1,5 @@
 import { agentAvatarGenerationInputSchema, avatarGenerationResponseSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
-
 import {
     AvatarGenerationBusyError,
     AvatarGenerationProviderError,

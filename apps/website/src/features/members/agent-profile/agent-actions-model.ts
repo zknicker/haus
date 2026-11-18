@@ -1,5 +1,4 @@
 import type { Agent } from '@haus/api';
-
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 
 /**

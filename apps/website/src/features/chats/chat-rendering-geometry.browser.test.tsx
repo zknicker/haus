@@ -1,10 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
-
 import { type Browser, chromium, type Page } from '@playwright/test';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { ReferenceChip } from '../mentions/reference-chip.tsx';
 import { ChatMarkdownText } from './chat-markdown-text.tsx';
 import { TranscriptMessageBlock } from './chat-transcript-message-block.tsx';

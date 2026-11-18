@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import type { TranscriptEntry, TranscriptItem } from './chat-transcript-model.ts';
 import { buildTranscriptRenderRows } from './chat-transcript-row-model.ts';
 

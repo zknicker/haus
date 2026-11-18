@@ -5,7 +5,6 @@ import {
     parseAmazonProduct,
 } from '@haus/api';
 import type * as React from 'react';
-
 import { AmazonReference, AmazonReferenceChip } from './amazon-reference.tsx';
 
 interface ChipLinkInput {

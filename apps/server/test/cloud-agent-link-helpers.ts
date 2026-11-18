@@ -1,7 +1,5 @@
 import { expect } from 'bun:test';
-
 import type { CloudAgentStatus } from '@haus/api';
-
 import type { cloudAgentFixture } from './cloud-agent-fixture.ts';
 import type { HausClient } from './haus-client.ts';
 

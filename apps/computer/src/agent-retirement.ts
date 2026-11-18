@@ -1,8 +1,6 @@
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
-
 import type { AgentRetireCommand } from '@haus/api';
-
 import { detachMountsUnder } from './workspace-volumes/computer-volumes.ts';
 import type { WorkspaceDisk } from './workspace-volumes/disk-image.ts';
 import { releaseWorkspace, withStorageLock } from './workspace-volumes/storage-ledger.ts';

@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { AgentCurrentActivity } from '@haus/api';
-
 import {
     applyCurrentAgentActivityEvent,
     filterCurrentAgentActivityByAvailability,

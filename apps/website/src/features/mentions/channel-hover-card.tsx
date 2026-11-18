@@ -1,7 +1,6 @@
 import type { Agent } from '@haus/api';
 import type { ServerMember } from '@haus/api/membership';
 import type * as React from 'react';
-
 import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useAgents } from '../../hooks/members/use-agents.ts';

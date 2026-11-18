@@ -1,5 +1,4 @@
 import { TRPCError } from '@trpc/server';
-
 import { sendPendingDevelopmentCoveApplication } from '../../development/seed-cove.ts';
 import {
     readDevelopmentImageGenerationKeys,

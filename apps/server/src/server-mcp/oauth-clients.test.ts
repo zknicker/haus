@@ -1,8 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import dns from 'node:dns';
-
 import type { McpPreset } from '@haus/api';
-
 import { emptySecret, type McpSecret } from './connection-secret.ts';
 import { startMcpAuthorization } from './oauth-sign-in.ts';
 import { createMcpOAuthProvider } from './oauth.ts';

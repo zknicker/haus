@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { buildDayTimeline, type TimelineTurnInput } from './agent-activity-log-overview-model.ts';
 
 const minute = 60_000;

@@ -11,7 +11,6 @@
  */
 
 import { CLAIM_IN_REVIEW_STALE_DAYS, type ConnectionChipKind } from '@haus/api';
-
 import {
     cloudAgentsSection,
     remindersSection,

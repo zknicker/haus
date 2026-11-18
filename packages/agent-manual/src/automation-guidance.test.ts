@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { getManualTopic } from './index.ts';
 
 test('reminder manual retains script and reply guidance disclosed by the prompt', () => {

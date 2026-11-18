@@ -1,6 +1,5 @@
 import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, relative } from 'node:path';
-
 import { parse as parseYaml } from 'yaml';
 
 export const skillNamePattern = /^[A-Za-z0-9][A-Za-z0-9_-]*$/u;

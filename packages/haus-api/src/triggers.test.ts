@@ -1,9 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-
 import { parse } from 'yaml';
-
 import { agentTriggerCreateInputSchema, agentTriggerSchema } from './agent-triggers.ts';
 import {
     triggerCreateInputSchema,

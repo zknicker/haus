@@ -2,7 +2,6 @@ import { ContextMenu } from '@heroui-pro/react';
 import { Label } from '@heroui/react';
 import { BubbleChatIcon, HashtagIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import {
     useDesktopTabCommands,

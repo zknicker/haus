@@ -4,7 +4,6 @@ import { execFileSync } from 'node:child_process';
 import { generateKeyPairSync } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-
 import {
     archiveComputerArtifact,
     buildComputerArtifact,

@@ -1,5 +1,4 @@
 import type { McpOAuthStartResult } from '@haus/api';
-
 import type { McpConnection } from './mcp-server-shared.ts';
 
 /** The tab a sign-in drives: opened blank in the press, pointed at the provider later. */

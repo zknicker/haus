@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { parseChatMarkdownBlocks, readChatMarkdownBlocks } from './chat-markdown-blocks.ts';
 
 test('readChatMarkdownBlocks reuses one parse per content string', () => {

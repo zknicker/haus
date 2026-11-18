@@ -1,5 +1,4 @@
 import { formatTaskTarget, TASK_TARGET_PATTERN } from '@haus/api';
-
 import { AgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';
 

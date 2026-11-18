@@ -1,6 +1,5 @@
 import { ChatAttachment, ChatAttachmentGroup, PromptInput } from '@heroui-pro/react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-
 import { useAttachmentImage } from '../../../hooks/servers/use-attachment-image.ts';
 import { springs } from '../../../lib/springs.ts';
 import { ArtifactFileIcon } from '../../artifacts/icons/artifact-file-icon.tsx';

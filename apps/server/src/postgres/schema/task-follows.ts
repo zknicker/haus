@@ -8,7 +8,6 @@ import {
     text,
     timestamp,
 } from 'drizzle-orm/pg-core';
-
 import { chatsTable } from './chats.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
 

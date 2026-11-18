@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { createAndSignIn, type SignInFlow, type SignInPopup } from './connection-sign-in-flow.ts';
 import type { McpConnection } from './mcp-server-shared.ts';
 

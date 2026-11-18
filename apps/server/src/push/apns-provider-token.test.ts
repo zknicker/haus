@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { decodeProtectedHeader, exportPKCS8, generateKeyPair, jwtVerify } from 'jose';
-
 import { ApnsProviderToken } from './apns-provider-token.ts';
 
 async function generateApnsKey() {

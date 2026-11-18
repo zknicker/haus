@@ -1,5 +1,4 @@
 import type { AgentCommand } from '@haus/api';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';

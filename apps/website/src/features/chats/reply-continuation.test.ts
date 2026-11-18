@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { ChatMessageReplyReference } from '@haus/api';
-
 import type { TranscriptActor, TranscriptRow } from './chat-transcript-model.ts';
 import { buildTranscriptEntries } from './chat-transcript-model.ts';
 

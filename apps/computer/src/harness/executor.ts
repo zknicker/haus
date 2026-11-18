@@ -1,11 +1,9 @@
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
-
 import { type AgentReasoningEffort, hausAgentVersion } from '@haus/api';
 import type { ClaudeUsageSnapshot } from '@haus/claude-usage';
 import { settle } from '@haus/effect';
 import { Effect } from 'effect';
-
 import type { AgentActivityRun } from '../agent-activity-run.ts';
 import { AgentTurnTimings } from '../agent-turn-timings.ts';
 import type { DaemonRuntime } from '../daemon-runtime.ts';

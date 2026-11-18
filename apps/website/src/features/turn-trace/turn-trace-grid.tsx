@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import { cn } from '../../lib/utils.ts';
 import { tracePad, useTraceDepthStyle } from './turn-trace-depth.tsx';
 import { formatTraceDuration } from './turn-trace-duration.ts';

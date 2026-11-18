@@ -1,9 +1,7 @@
 import { randomUUID } from 'node:crypto';
-
 import { artifactFolderSchema, artifactListPageMax } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
-
 import type { ArtifactActor } from '../artifacts/access.ts';
 import { defaultArtifactListFilters, runArtifactAction } from '../artifacts/action.ts';
 import { publishInputFromQuery } from '../artifacts/publish-route.ts';

@@ -1,5 +1,4 @@
 import { and, eq, inArray, isNotNull, or } from 'drizzle-orm';
-
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {

@@ -1,5 +1,4 @@
 import * as z from 'zod';
-
 import { agentDetailInputSchema } from './agent.ts';
 import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
 

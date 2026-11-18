@@ -9,7 +9,6 @@ import {
     UserMultiple02Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 import { ChatSurfaceItems } from './chat-surface-items.tsx';
 

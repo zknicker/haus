@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { agentRuntimeCreateAgentSchema } from './contracts.ts';
 
 test('ordinary Runtime Agent creation rejects retired archetype input', () => {

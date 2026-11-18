@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { createJevRouter } from './jev-client.ts';
 import {
     decodeRoutingDecision,

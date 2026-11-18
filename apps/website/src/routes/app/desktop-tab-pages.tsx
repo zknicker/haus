@@ -1,5 +1,4 @@
 import { useParams } from 'react-router-dom';
-
 import { ChatFiles } from '../../features/servers/chat/chat-files.tsx';
 import { useServerContext } from '../../features/servers/server-context.ts';
 import { useChatMessages } from '../../hooks/servers/use-chat-messages.ts';

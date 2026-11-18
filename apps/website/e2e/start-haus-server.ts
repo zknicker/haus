@@ -2,9 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 import { computerProtocolVersion } from '@haus/api';
-
 import { bootstrapHausDatabase } from '../../server/src/postgres/bootstrap.ts';
 import { startPostgresCluster } from '../../server/test/postgres-cluster.ts';
 import { type ServerState, serverStateFile } from './support/server-state.ts';

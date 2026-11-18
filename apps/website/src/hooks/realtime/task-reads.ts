@@ -1,6 +1,5 @@
 import type { TaskDetail } from '@haus/api';
 import type { QueryClient } from '@tanstack/react-query';
-
 import type { TargetedReadCoalescer } from '../../lib/targeted-read-coalescer.ts';
 import { taskDetailKeys } from '../tasks/task-cache.ts';
 import { findTaskPreviewOrigin } from '../tasks/task-preview-cache.ts';

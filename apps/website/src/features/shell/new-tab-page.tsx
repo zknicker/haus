@@ -1,7 +1,6 @@
 import { Button, toast } from '@heroui/react';
 import { Globe02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { newBrowserLocation } from '../../hooks/browser/browser-view-tabs.ts';
 import { useBrowserViews } from '../../hooks/browser/browser-views-context.ts';

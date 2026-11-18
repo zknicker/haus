@@ -1,6 +1,5 @@
 import { type ClaudeUsageSnapshot, normalizeClaudeUsageResponse } from '@haus/claude-usage';
 import * as z from 'zod';
-
 import type { ClaudeConnection } from './claude-connection.ts';
 
 /** Turns that claim a plan-usage refresh carry this in their launch env (executor). */

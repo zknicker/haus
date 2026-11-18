@@ -1,6 +1,5 @@
 import type { CloudAgentPullRequestReading } from '@haus/api';
 import { and, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
-
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { isLiveChat } from '../cloud-agents/cloud-agent-attention.ts';
 import type { HausDatabase } from '../postgres/connection.ts';

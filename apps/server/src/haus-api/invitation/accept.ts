@@ -1,5 +1,4 @@
 import { acceptedServerInvitationSchema, serverInvitationTokenInputSchema } from '@haus/api';
-
 import { invitationUpdatedTopic, memberUpdatedTopic } from '../../realtime/topics.ts';
 import { acceptServerInvitation } from '../../servers/accept-invitation.ts';
 import { invitationProcedure } from './procedure.ts';

@@ -1,5 +1,4 @@
 import { and, asc, eq, isNull } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { serverMembershipsTable, serversTable } from '../postgres/schema.ts';
 import type { ServerSummary } from './contracts.ts';

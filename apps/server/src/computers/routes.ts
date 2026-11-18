@@ -1,7 +1,6 @@
 import { runnerMintRequestSchema, runnerRevokeRequestSchema } from '@haus/api';
 import type { OtlpTelemetryRelay } from '@haus/effect';
 import type { FastifyInstance } from 'fastify';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { attachComputer, ComputerAttachmentError } from './attachment-service.ts';
 import {

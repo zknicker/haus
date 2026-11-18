@@ -1,5 +1,4 @@
 import { type Agent, modelDefaultReasoningEffort } from '@haus/api';
-
 import type { AgentCreationSubmitValues, ReportedComputer } from './agent-creation-contract.ts';
 
 /**

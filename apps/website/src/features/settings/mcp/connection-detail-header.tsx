@@ -1,6 +1,5 @@
 import { Button, Dropdown, Label } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 import { ConnectionGlyph } from './connection-mark.tsx';
 import type { McpConnection } from './mcp-server-shared.ts';

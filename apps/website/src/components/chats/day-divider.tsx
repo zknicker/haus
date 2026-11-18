@@ -1,5 +1,4 @@
 import { Chip } from '@heroui/react';
-
 import { cn } from '../../lib/utils.ts';
 
 function sameDay(left: Date, right: Date) {

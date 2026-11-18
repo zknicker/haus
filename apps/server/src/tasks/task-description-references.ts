@@ -1,5 +1,4 @@
 import type { TaskDetail } from '@haus/api';
-
 import { readBareReferenceTokens } from '../chats/bare-reference-tokens.ts';
 import { canonicalizeAgentMessageContentForPersistence } from '../chats/canonicalize-agent-references.ts';
 import type { HausDatabase } from '../postgres/connection.ts';

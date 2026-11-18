@@ -1,7 +1,6 @@
 import { ContextMenu } from '@heroui-pro/react';
 import { Dropdown, Label } from '@heroui/react';
 import { Attachment01Icon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 
 /** The chat-scoped surface every chat menu offers: its attachments. */

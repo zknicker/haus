@@ -1,7 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-
 import { and, eq } from 'drizzle-orm';
-
 import { insertMessageCause, resolveMessageCause } from '../automations/message-cause.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';

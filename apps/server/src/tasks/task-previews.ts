@@ -1,6 +1,5 @@
 import { type TaskPreview, taskPreviewRecentMessageLimit } from '@haus/api';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable, taskFollowsTable, tasksTable } from '../postgres/schema.ts';
 import { readTasks } from './task-read.ts';

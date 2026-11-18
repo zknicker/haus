@@ -6,7 +6,6 @@ import {
     Notification01Icon,
     NotificationOff01Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { useSetTaskFollow } from '../../hooks/tasks/use-set-task-follow.ts';
 import { useTask } from '../../hooks/tasks/use-task.ts';

@@ -1,5 +1,4 @@
 import { and, eq, gt, inArray, isNotNull, or, sql } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     artifactsTable as artifacts,

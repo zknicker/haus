@@ -7,7 +7,6 @@
  */
 
 import { agentThoughtTextMaxLength } from '@haus/api';
-
 import type { ThoughtStream } from './agent-thought-summarizer.ts';
 
 /** Lines whose content words overlap at least this much (Jaccard) say the same thing. */

@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { GithubInstallStates } from './install-state.ts';
 
 const attempt = { connectionId: 'mcp_github', serverId: 'srv_one', userId: 'usr_owner' };

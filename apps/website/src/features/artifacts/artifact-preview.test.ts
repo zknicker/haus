@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { isPreviewImage } from './artifact-format.ts';
 
 test('only passive raster formats render inline, never executable SVG or HTML', () => {

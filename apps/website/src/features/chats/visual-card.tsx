@@ -5,7 +5,6 @@ import {
     visualHeights,
 } from '@haus/api/widgets/visual/frame';
 import * as React from 'react';
-
 import { agentHtmlColorScheme, agentHtmlTokenDeclarations } from '../../agent-html/tokens.ts';
 import { useVisualContentHeight } from './use-visual-content-height.ts';
 

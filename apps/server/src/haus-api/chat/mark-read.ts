@@ -1,5 +1,4 @@
 import { chatMarkReadInputSchema, chatReadReceiptSchema } from '@haus/api';
-
 import { markChatRead } from '../../chats/mark-read.ts';
 import { publishRealtime } from '../../realtime/topic.ts';
 import { chatProcedure } from './procedure.ts';

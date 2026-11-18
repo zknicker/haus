@@ -1,5 +1,4 @@
 import { cloudAgentPullRequestNumber, formatCloudAgentWorkSuffix } from '@haus/api';
-
 import { formatAttachmentSuffix } from '../inbox-format.ts';
 import {
     formatInboxTime,

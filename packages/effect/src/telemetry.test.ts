@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import {
     AggregationTemporality,
     InMemoryMetricExporter,
@@ -7,7 +6,6 @@ import {
 } from '@opentelemetry/sdk-metrics';
 import { InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { ManagedRuntime } from 'effect';
-
 import { makeProcessTelemetryRelay } from './telemetry-relay.ts';
 import {
     makeProcessTelemetryLayer,

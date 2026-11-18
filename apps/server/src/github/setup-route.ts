@@ -1,7 +1,6 @@
 import { eq } from 'drizzle-orm';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import * as z from 'zod';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { serversTable } from '../postgres/schema.ts';
 import { GithubApiError } from './github-api.ts';

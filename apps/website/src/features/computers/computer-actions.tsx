@@ -2,7 +2,6 @@ import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { CodeBlock } from '@heroui-pro/react/code-block';
 import { Button, Separator, Tooltip } from '@heroui/react';
 import { useState } from 'react';
-
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import {
     type ComputerRemovalAvailability,

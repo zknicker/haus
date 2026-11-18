@@ -1,5 +1,4 @@
 import type * as React from 'react';
-
 import { cn } from '../../lib/utils.ts';
 import type { TraceBar, TraceLayout, TraceRowTone } from './turn-trace-grid.tsx';
 import { traceKindFill } from './turn-trace-kind.ts';

@@ -2,7 +2,6 @@ import { expect, test } from 'bun:test';
 import { existsSync, mkdirSync, mkdtempSync, readlinkSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { activateHausRelease } from '../src/haus-server-activation.ts';
 
 const nextRevision = '2222222222222222222222222222222222222222';

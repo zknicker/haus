@@ -1,5 +1,4 @@
 import { canManageServerInvitations } from '@haus/api';
-
 import { realtimeSubscription } from '../../realtime/subscription.ts';
 import { invitationUpdatedTopic } from '../../realtime/topics.ts';
 

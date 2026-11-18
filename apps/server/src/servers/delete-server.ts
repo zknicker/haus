@@ -1,7 +1,5 @@
 import { createHash } from 'node:crypto';
-
 import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
-
 import { purgeServerArtifacts } from '../artifacts/delete.ts';
 import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';

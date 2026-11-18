@@ -1,6 +1,5 @@
 import { type EffectRuntime, instrumentOperation, settle } from '@haus/effect';
 import { Data, Deferred, type Duration, Effect, Exit, Ref, Schedule, Scope } from 'effect';
-
 import type { ReminderClock } from './reminder-model.ts';
 
 const defaultInterval = '15 seconds';

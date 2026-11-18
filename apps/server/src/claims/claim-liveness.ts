@@ -1,5 +1,4 @@
 import { and, eq, inArray, ne, or } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentDeliveryTable, agentInboxTable, chatMessagesTable } from '../postgres/schema.ts';
 

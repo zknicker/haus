@@ -1,7 +1,6 @@
 import { type EffectRuntime, settle } from '@haus/effect';
 import { Effect } from 'effect';
 import type { FastifyInstance } from 'fastify';
-
 import type { HostedMcpAccess } from './hosted-mcp/supervisor.ts';
 import type { ReminderSchedulerHealth } from './reminders/reminder-scheduler.ts';
 

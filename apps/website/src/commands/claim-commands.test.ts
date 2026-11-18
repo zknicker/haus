@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { buildClaimCommandGroup } from './claim-commands.ts';
 import type { AppCommand } from './types.ts';
 import { getCommandSearchText } from './types.ts';

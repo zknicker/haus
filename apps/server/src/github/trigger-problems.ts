@@ -1,6 +1,5 @@
 import type { GithubTriggerProblem } from '@haus/api';
 import { and, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { githubTriggerConfigsTable, triggersTable } from '../postgres/schema.ts';
 import { enqueueTriggerProblemNotice } from './problem-notice.ts';

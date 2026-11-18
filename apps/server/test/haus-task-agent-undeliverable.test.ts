@@ -1,7 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import { and, eq } from 'drizzle-orm';
-
 import { enqueueInboxItem } from '../src/agent-delivery/store.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { agentInboxTable } from '../src/postgres/schema.ts';

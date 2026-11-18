@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { Trigger } from '@haus/api';
-
 import {
     githubInstallationSettingsUrl,
     githubInstallationStatus,

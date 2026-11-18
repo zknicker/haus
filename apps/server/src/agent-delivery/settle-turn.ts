@@ -1,5 +1,4 @@
 import type { AgentTurnSummary } from '@haus/api';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { AgentDelivery } from './delivery.ts';
 import { clearDeliveryFailures } from './failure-hold.ts';

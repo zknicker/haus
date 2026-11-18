@@ -1,5 +1,4 @@
 import * as z from 'zod';
-
 import { widgetArtifactPropsSchema } from './artifact/contracts.ts';
 import { visualFallbackText, widgetVisualPropsSchema } from './visual/contracts.ts';
 

@@ -1,6 +1,5 @@
 import { asError, settle } from '@haus/effect';
 import { Deferred, Effect } from 'effect';
-
 import type { ServerRuntime } from '../server-runtime.ts';
 
 interface ServerWriteState {

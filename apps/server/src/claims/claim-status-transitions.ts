@@ -1,5 +1,4 @@
 import { sql } from 'drizzle-orm';
-
 import { stampsClaimTracked } from './claim-tier.ts';
 
 export type ClaimStatus = 'todo' | 'in_progress' | 'in_review' | 'done' | 'closed';

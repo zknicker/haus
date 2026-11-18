@@ -3,7 +3,6 @@ import { TextShimmer } from '@heroui-pro/react';
 import { Skeleton } from '@heroui/react';
 import { AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { useReducedMotion } from 'motion/react';
-
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import {

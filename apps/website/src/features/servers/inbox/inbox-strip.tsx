@@ -1,7 +1,6 @@
 import type { Agent } from '@haus/api';
 import { Chip } from '@heroui/react';
 import { ArrowUp02Icon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';

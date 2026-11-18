@@ -1,8 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import * as React from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-
 import { installFakeDom } from '../../test-support/fake-dom.ts';
 import { useOpenAgentProfile } from '../agents/use-open-agent-profile.ts';
 import { useStableNavigate } from './use-stable-navigate.ts';

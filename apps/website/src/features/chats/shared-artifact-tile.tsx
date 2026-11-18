@@ -1,6 +1,5 @@
 import type { ArtifactMetadata } from '@haus/api';
 import { ChatAttachment } from '@heroui-pro/react';
-
 import { useArtifact } from '../../hooks/artifacts/use-artifact.ts';
 import { artifactKindLabel } from '../artifacts/artifact-format.ts';
 import { ArtifactFileIcon } from '../artifacts/icons/artifact-file-icon.tsx';

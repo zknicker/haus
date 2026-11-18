@@ -1,11 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-
 import {
     type AgentThoughtContent,
     agentThoughtResultMaxLength,
     agentThoughtResultSchema,
 } from '@haus/api';
-
 import { createAgentThoughtNarrator, thoughtIntervalMs } from './thought-narrator.ts';
 
 function harness() {

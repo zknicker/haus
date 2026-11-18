@@ -1,6 +1,5 @@
 import { agentConnectionGrantInputSchema, CONNECTION_ADMIN_REQUIRED } from '@haus/api';
 import type { FastifyInstance, FastifyReply } from 'fastify';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { mcpUpdatedTopic } from '../realtime/topics.ts';
 import {

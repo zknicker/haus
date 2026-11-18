@@ -1,11 +1,9 @@
 import { expect, test } from 'bun:test';
-
 import type {
     AgentActivityEvent,
     AgentExecutionJournal,
     AgentExecutionJournalResult,
 } from '@haus/api';
-
 import {
     formatAgentActivityDiagnosticInfo,
     formatAgentActivityEvent,

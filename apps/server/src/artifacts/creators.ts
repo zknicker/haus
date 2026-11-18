@@ -1,6 +1,5 @@
 import type { ArtifactCreatorSummary } from '@haus/api';
 import { and, asc, desc, eq, isNull, lte, sql } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     artifactsTable as artifacts,

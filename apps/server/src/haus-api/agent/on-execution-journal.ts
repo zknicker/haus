@@ -1,6 +1,5 @@
 import { agentExecutionJournalChangeSchema, agentExecutionJournalInputSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
-
 import type { HausDatabase } from '../../postgres/connection.ts';
 import {
     AgentExecutionJournalAccessError,

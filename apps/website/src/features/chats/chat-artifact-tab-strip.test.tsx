@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { ArtifactTabStrip } from './chat-artifact-tab-strip.tsx';
 import { getArtifactPanelTargetKey, type HausResourceTarget } from './haus-resource-link.ts';
 

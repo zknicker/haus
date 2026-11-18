@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { agentInboxItemSchema } from './agent-inbox.ts';
 
 const item = {

@@ -5,7 +5,6 @@ import type {
     ImageGenerationSize,
     ImageGenerationSizing,
 } from '@haus/api';
-
 import { ImageGenerationRequestError } from './image-generation-errors.ts';
 
 type ExactPixels = Extract<ImageGenerationSizing, { kind: 'exact-pixels' }>;

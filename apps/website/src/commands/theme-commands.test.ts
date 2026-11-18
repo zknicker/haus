@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import type { ThemePreference } from '../components/theme-provider.tsx';
 import type { ColorTheme } from '../lib/color-theme.ts';
 import type { RooflineSnow } from '../lib/roofline-snow.ts';

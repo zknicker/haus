@@ -1,6 +1,5 @@
 import { settle } from '@haus/effect';
 import { Deferred } from 'effect';
-
 import { type DaemonRuntime, daemonSerialWork } from './daemon-runtime.ts';
 
 interface ActiveRun {

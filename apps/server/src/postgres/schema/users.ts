@@ -1,5 +1,4 @@
 import { pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
-
 import { avatarsTable } from './avatars.ts';
 
 /** Haus owns the human identity; this subject is only an external lookup key. */

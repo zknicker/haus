@@ -1,5 +1,4 @@
 import { agentCloudAgentSendReceiptSchema } from '@haus/api';
-
 import { CloudLaunchJournal, type CloudLaunchRecord } from './launch-journal.ts';
 import { CloudAgentServerError } from './launch-work.ts';
 import { cloudAgentModelSelectionOf } from './provider.ts';

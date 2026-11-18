@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { resolveAgentActivityGhostTempo } from './agent-activity-ghost-tempo.ts';
 
 test('keeps the mark calm outside an activity provider', () => {

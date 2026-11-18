@@ -12,7 +12,6 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded';
 import type { HugeiconsIconProps } from '@hugeicons/react';
 import * as React from 'react';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { formatTimestamp } from '../../lib/format.ts';
 import { AccessEventLogEntry } from '../sessions/log/event-entry/access-entry.tsx';

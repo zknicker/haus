@@ -1,5 +1,4 @@
 import { formatImageGenerationLink, type ImageGeneration } from '@haus/api';
-
 import type { AgentApiRequest, AgentApiRequester } from '../agent-api-client.ts';
 import type { ImageGenerateDeps } from '../image-generate.ts';
 import type { ParsedArgs } from '../parse.ts';

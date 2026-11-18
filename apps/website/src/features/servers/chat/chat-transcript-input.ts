@@ -1,5 +1,4 @@
 import type { ChatMessage } from '@haus/api';
-
 import type { ChatMessageLayout } from '../../../hooks/servers/chat-message-layout.ts';
 import type { HausResourceTarget } from '../../chats/haus-resource-link.ts';
 import type { InlineReplyNavigation } from '../../chats/transcript-reply-contract.ts';

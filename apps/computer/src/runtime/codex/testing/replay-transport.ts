@@ -1,6 +1,5 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-
 import type { CodexExit, CodexTransport } from '../codex-transport.ts';
 
 /** One recorded line: what the driver wrote (`in`) or the app-server printed (`out`). */

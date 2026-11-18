@@ -1,7 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
-
 import { REMINDER_HISTORY_RETENTION_DAYS } from '@haus/api';
-
 import { readAgentReminderLog } from '../src/agent-api/reminders.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import {

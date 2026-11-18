@@ -1,5 +1,4 @@
 import type { ChatMarkReadInput, ChatUnreadPreview } from '@haus/api';
-
 import type { UnreadRow } from './unread-rows.ts';
 
 /**

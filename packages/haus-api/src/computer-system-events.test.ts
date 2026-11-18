@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { computerSystemEventReportSchema } from './computer-system-events.ts';
 
 describe('computerSystemEventReportSchema', () => {

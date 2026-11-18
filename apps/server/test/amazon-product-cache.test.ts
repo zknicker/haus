@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { readAmazonProductSummary } from '../src/amazon-products/read-products.ts';
 import { connectHausDatabase } from '../src/postgres/connection.ts';
 import { makeClient } from '../src/server-mcp/runtime-test-fixtures.ts';

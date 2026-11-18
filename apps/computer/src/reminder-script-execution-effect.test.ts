@@ -1,7 +1,5 @@
 import { afterAll, expect, test } from 'bun:test';
-
 import { Cause, Effect, Fiber } from 'effect';
-
 import { makeDaemonRuntime } from './daemon-runtime.ts';
 import {
     createReminderScriptExecution,

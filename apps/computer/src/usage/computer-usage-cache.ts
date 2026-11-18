@@ -1,8 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-
 import { type UsageOverview, type UsageStale, usageOverviewSchema } from '@haus/api';
-
 import { readComputerUsage } from './read-usage.ts';
 import { createUsageFailureReporter, type UsageFailureLog } from './usage-failure.ts';
 

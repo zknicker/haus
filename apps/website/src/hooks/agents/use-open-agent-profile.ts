@@ -1,6 +1,5 @@
 import { useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-
 import type { AgentSection } from '../../features/members/agent-profile/agent-sections.ts';
 import { agentProfileRoute } from '../../features/servers/server-routes.ts';
 

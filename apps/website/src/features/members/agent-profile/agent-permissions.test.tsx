@@ -1,7 +1,5 @@
 import { afterAll, expect, mock, test } from 'bun:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { testAgent } from '../agent-fixtures.ts';
 
 // Bun keeps module mocks for the rest of the worker, so copy the real hook first and put it

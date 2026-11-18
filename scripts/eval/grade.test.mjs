@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { gradeBuild, isInfraFailure } from './grade.mjs';
 import { githubTriggerProfiles, placementProfiles } from './profiles.mjs';
 import { summarizeEval } from './summary.mjs';

@@ -3,7 +3,6 @@ import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Button, Chip } from '@heroui/react';
 import type * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import { useConnections } from '../../../hooks/servers/use-connections.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';

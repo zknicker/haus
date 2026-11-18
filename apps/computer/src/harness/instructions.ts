@@ -1,8 +1,6 @@
 import { createHash } from 'node:crypto';
 import { hostname, release, type } from 'node:os';
-
 import type { ConnectionChipKind } from '@haus/api';
-
 import computerPackage from '../../package.json' with { type: 'json' };
 import { supportsSubagents } from '../runtime/runtime-subagents.ts';
 import { type AgentPromptRenderInput, renderAgentInstructions } from './managed-instructions.ts';

@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { clock, compactTokens, duration, hour, monthDay, tokens } from './format.ts';
 
 test('hours read the way people say them', () => {

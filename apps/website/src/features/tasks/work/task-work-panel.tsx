@@ -1,5 +1,4 @@
 import type { TaskDetail } from '@haus/api';
-
 import { CloudAgentWorkCard } from '../../cloud-agents/cloud-agent-work-card.tsx';
 import { CloudAgentRunSummary } from './cloud-agent-run-summary.tsx';
 import { TaskPullRequestCard } from './task-pull-request-card.tsx';

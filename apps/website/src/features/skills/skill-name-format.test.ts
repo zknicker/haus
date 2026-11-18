@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'bun:test';
-
 import { formatSkillName } from './skill-name-format.ts';
 
 describe('formatSkillName', () => {

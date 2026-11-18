@@ -3,7 +3,6 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 import {
     deliverableNames,
     deliveredEnvironmentNames,

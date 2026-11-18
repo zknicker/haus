@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import { useTurnOutlines } from '../../../hooks/members/use-turn-outlines.ts';
 import { type ActivityLogDay, readOutlineMarks } from './agent-activity-log-entries.ts';
 import { useActivityLogStores } from './agent-activity-log-stores.ts';

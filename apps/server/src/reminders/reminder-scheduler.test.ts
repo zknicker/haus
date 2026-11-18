@@ -1,8 +1,6 @@
 import { expect, test } from 'bun:test';
-
 import { makeTestRuntime } from '@haus/effect';
 import { TestClock } from 'effect';
-
 import { createReminderScheduler } from './reminder-scheduler.ts';
 
 const now = new Date('2026-07-26T14:00:00.000Z');

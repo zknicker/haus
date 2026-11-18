@@ -1,6 +1,5 @@
 import { sql } from 'drizzle-orm';
 import { check, integer, pgTable, text, timestamp, unique, uniqueIndex } from 'drizzle-orm/pg-core';
-
 import { serversTable } from './servers.ts';
 
 export const taskKeysTable = pgTable(

@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { settleEvalCleanup } from './cleanup-chats.mjs';
 
 test('completed cleanup does not become a deferred cleanup after its deadline', async () => {

@@ -1,7 +1,6 @@
 import { verify } from 'node:crypto';
 import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-
 import { computerReleasePublicKey, computerVersion } from './build-identity.ts';
 import {
     type ComputerUpdateProgress,

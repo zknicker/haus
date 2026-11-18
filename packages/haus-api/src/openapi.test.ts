@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-
 import Ajv2020 from 'ajv/dist/2020.js';
 import { parse } from 'yaml';
 

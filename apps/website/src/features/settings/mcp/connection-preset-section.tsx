@@ -8,7 +8,6 @@ import { ItemCard } from '@heroui-pro/react';
 import { Button, Tooltip } from '@heroui/react';
 import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { useState } from 'react';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useConnectionPresetAdd } from '../../../hooks/servers/use-connection-preset-add.ts';
 import { useConnectionPresetIcons } from '../../../hooks/servers/use-connection-preset-icons.ts';

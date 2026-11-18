@@ -1,7 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-
 import { mcpIconSchema, mcpPresetIcons, mcpPresetSchema } from '@haus/api';
-
 import type { mcpConnectionsTable } from '../postgres/schema.ts';
 import { resolveMcpPresetIcons } from './presets.ts';
 import { shapeMcpConnection } from './state.ts';

@@ -1,7 +1,5 @@
 import { afterEach, beforeAll, beforeEach, expect, test } from 'bun:test';
-
 import type { ArtifactUpdatedEvent } from '@haus/api';
-
 import { artifactUpdatedTopic } from '../src/realtime/topics.ts';
 import { artifactDriveFixture } from './artifact-drive-fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';

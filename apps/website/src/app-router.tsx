@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { createBrowserRouter, createHashRouter } from 'react-router-dom';
-
 import { ActivationLoading } from './components/activation/activation-loading.tsx';
 import { AppFrame } from './components/app-frame.tsx';
 import { ComputerLoginRoutes } from './features/computers/computer-login-routes.tsx';

@@ -1,5 +1,4 @@
 import { beforeAll, expect, test } from 'bun:test';
-
 import type { MessageRouter, RoutingDecision, RoutingState } from '../src/message-routing/jev.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 import { createInlineReplyHelpers } from './haus-inline-replies-helpers.ts';

@@ -2,7 +2,6 @@ import { TRIGGER_HISTORY_RETENTION_DAYS, type TriggerHistoryEntry } from '@haus/
 import { DataGrid, type DataGridColumn } from '@heroui-pro/react';
 import { Chip, Drawer } from '@heroui/react';
 import { Link } from 'react-router-dom';
-
 import {
     TRIGGER_HISTORY_LIMIT,
     useAgentTriggerHistory,

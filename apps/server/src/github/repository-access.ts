@@ -1,7 +1,6 @@
 import type { GithubRepository } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import * as z from 'zod';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { githubInstallationsTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';

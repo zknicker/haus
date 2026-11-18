@@ -1,7 +1,6 @@
 import type { ChatMessagesInput, chatMessagePageSchema } from '@haus/api';
 import { and, eq, or, type SQL } from 'drizzle-orm';
 import type * as z from 'zod';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 import { listTaskPreviews } from '../tasks/task-previews.ts';

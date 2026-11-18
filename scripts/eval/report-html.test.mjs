@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { gradeBuild } from './grade.mjs';
 import { renderMarkdown } from './markdown.mjs';
 import { placementProfiles } from './profiles.mjs';

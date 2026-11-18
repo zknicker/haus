@@ -3,7 +3,6 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
-
 import { detectLinuxChromeApplications } from './linux-chrome-detection.ts';
 import type { ChromeApplication } from './types.ts';
 

@@ -1,7 +1,6 @@
 import type { ImageGeneration } from '@haus/api';
 import { Button, Separator } from '@heroui/react';
 import * as React from 'react';
-
 import { formatElapsed, formatImageGenerationCost } from './image-generation-presentation.ts';
 
 type Fact = [label: string, value: string];

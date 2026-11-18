@@ -2,7 +2,6 @@ import type { AdventEntry } from '@haus/api';
 import { useReducedMotion } from 'motion/react';
 import * as React from 'react';
 import { flushSync } from 'react-dom';
-
 import {
     type AdventCalendarRead,
     useAdventCalendar,
@@ -11,7 +10,6 @@ import { AdventDayCard, type AdventDayText } from './advent-day-card.tsx';
 import { AdventDoor } from './advent-door.tsx';
 import { type AdventSeason, adventDoors, doorState } from './advent-season.ts';
 import { openAdventDay, useOpenedDays } from './use-opened-days.ts';
-
 import './advent-calendar.css';
 
 /** Today's card waits for the door's swing (0.5s) and the ornament's pop, in ms. */

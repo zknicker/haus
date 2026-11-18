@@ -1,5 +1,4 @@
 import type { Agent, AgentLifecycleEvent } from '@haus/api';
-
 import {
     type CurrentAgentActivity,
     filterCurrentAgentActivityByLifecycle,

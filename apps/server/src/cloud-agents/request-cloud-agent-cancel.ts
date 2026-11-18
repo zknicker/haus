@@ -5,7 +5,6 @@ import {
     isTerminalCloudAgentStatus,
 } from '@haus/api';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { cloudAgentRunsTable, cloudAgentWorkTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';

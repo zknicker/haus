@@ -1,7 +1,6 @@
 import { ItemCard } from '@heroui-pro/react';
 import { Chip, Meter } from '@heroui/react';
 import { ArrowUp02Icon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 import { Sparkline } from '../../../components/ui/sparkline.tsx';
 import { cn } from '../../../lib/utils.ts';

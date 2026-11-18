@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { ArtifactMetadata } from '@haus/api';
-
 import { groupArtifactsByDate } from './artifact-date-groups.ts';
 
 const artifact = (id: string, updated_at: string) =>

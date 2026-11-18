@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { namesKitRules, refersToKit, starterKit } from './placement-kit.mjs';
 import { classifyPlacement, journalCommands, parseDoneSends, refersTo } from './placement.mjs';
 

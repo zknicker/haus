@@ -10,7 +10,6 @@ import {
     StopCircleIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentDelete } from '../../../hooks/members/use-agent-delete.ts';
 import { useAgentReset } from '../../../hooks/members/use-agent-reset.ts';

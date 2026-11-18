@@ -1,6 +1,5 @@
 import type { ChatMessage } from '@haus/api';
 import * as React from 'react';
-
 import { requestChatComposerFocus } from '../../../commands/chat-composer-focus.ts';
 import { type ChatInlineReplyTarget, toChatInlineReplyTarget } from './chat-inline-reply.tsx';
 

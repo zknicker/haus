@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { CLAIM_IN_REVIEW_STALE_DAYS } from '@haus/api';
-
 import { composeAgentInstructions } from './instructions.ts';
 
 const facts = {

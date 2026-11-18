@@ -1,5 +1,4 @@
 import type * as React from 'react';
-
 import { ActivationLoading } from '../../components/activation/activation-loading.tsx';
 import { ActivationShell } from '../../components/activation/activation-shell.tsx';
 import { SignInGateFrame, SignInSessionRecovery } from '../auth/sign-in-gate.tsx';

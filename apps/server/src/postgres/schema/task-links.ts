@@ -9,7 +9,6 @@ import {
     text,
     timestamp,
 } from 'drizzle-orm/pg-core';
-
 import { chatMessagesTable } from './chat-messages.ts';
 import { remindersTable } from './reminders.ts';
 import { tasksTable } from './tasks.ts';

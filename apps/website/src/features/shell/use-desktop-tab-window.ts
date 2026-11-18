@@ -1,6 +1,5 @@
 import * as React from 'react';
 import type { Location } from 'react-router-dom';
-
 import { useDesktopTabs } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import { currentLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import { focusedTabId } from '../../hooks/desktop-tabs/desktop-tabs-panes.ts';

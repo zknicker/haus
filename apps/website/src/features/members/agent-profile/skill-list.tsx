@@ -2,7 +2,6 @@ import type { AgentSkillImportRecord, AgentSkillMetadata, ImportableSkill } from
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Separator } from '@heroui/react';
 import * as React from 'react';
-
 import { PickerPopover } from '../../agents/picker-popover.tsx';
 import { SkillMark } from '../../skills/skill-mark.tsx';
 import { formatSkillName } from '../../skills/skill-name-format.ts';

@@ -1,7 +1,6 @@
 import { AGENT_DESCRIPTION_MAX_LENGTH, type Agent } from '@haus/api';
 import { Chip } from '@heroui/react';
 import * as React from 'react';
-
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { useAgentAvatar } from '../../../hooks/members/use-agent-avatar.ts';
 import {

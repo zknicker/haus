@@ -1,5 +1,4 @@
 import type { ComponentType } from 'react';
-
 import { useColorThemeDefinition } from '../hooks/shell/use-color-theme.ts';
 import type { ColorThemeDefinition } from '../lib/color-themes.ts';
 import type { HausMarkProps } from './haus-ghost-mark.tsx';

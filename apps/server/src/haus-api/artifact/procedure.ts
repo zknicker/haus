@@ -1,5 +1,4 @@
 import { type TRPC_ERROR_CODE_KEY, TRPCError } from '@trpc/server';
-
 import { ArtifactError } from '../../artifacts/storage.ts';
 import { memberProcedure } from '../server/procedure.ts';
 

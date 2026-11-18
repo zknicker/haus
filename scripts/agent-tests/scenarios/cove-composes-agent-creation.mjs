@@ -11,7 +11,6 @@
 // returned identity; the new Agent introduces itself in #all on its first turn.
 
 import { isAbsolute } from 'node:path';
-
 import { defineScenario } from '../scenario.mjs';
 import {
     resetAgentToFactory,

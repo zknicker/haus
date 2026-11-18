@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import { attachmentMaxSizeBytes } from '../../../hooks/servers/use-upload-server-attachment.ts';
 import type { Mention } from '../../mentions/mention-types.ts';
 import {

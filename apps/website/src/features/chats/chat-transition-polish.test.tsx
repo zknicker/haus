@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { TranscriptMessageBlock } from './chat-transcript-message-block.tsx';
 
 test('chat messages arrive at full weight with no entrance motion', () => {

@@ -1,5 +1,4 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-
 import { bodyRefusal } from '../triggers/trigger-route.ts';
 import type { GithubDelivery, GithubIngestOutcome } from './delivery-ingest.ts';
 import { verifyGithubSignature } from './webhook-signature.ts';

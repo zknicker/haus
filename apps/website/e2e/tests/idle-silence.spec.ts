@@ -1,5 +1,4 @@
 import type { Page } from '@playwright/test';
-
 import {
     type AppTraffic,
     describeTraffic,

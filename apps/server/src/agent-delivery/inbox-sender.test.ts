@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { inboxSender } from './inbox-sender.ts';
 
 test('Trigger problem notices and claim assignments speak as the Haus system sender', () => {

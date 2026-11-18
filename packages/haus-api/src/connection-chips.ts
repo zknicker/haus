@@ -1,5 +1,4 @@
 import * as z from 'zod';
-
 import { rankWranglerMcpUrl } from './amazon-products.ts';
 import type { McpConnection, McpPreset } from './mcp.ts';
 

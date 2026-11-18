@@ -1,7 +1,6 @@
 import { Chip } from '@heroui/react';
 import { Layers02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
-
 import { cn } from '../../lib/utils.ts';
 import { Icon } from '../ui/icon.tsx';
 

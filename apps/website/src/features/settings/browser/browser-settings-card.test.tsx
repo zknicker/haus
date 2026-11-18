@@ -1,8 +1,6 @@
 import { expect, test } from 'bun:test';
-
 import type { AgentRuntimeBrowserSettings } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { BrowserSettingsCard } from './browser-settings-card.tsx';
 
 const settings: AgentRuntimeBrowserSettings = {

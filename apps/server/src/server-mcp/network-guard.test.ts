@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { isBlockedNetworkAddress } from './network-guard.ts';
 
 describe('blocked ranges', () => {

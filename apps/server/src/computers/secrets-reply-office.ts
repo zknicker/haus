@@ -6,7 +6,6 @@ import type {
 } from '@haus/api';
 import { type EffectRuntime, settle, tracePromise } from '@haus/effect';
 import { Deferred, Effect } from 'effect';
-
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 
 interface PendingSecretsReply {

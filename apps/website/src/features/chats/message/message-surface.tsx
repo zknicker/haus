@@ -1,6 +1,5 @@
 import type { CloudAgentWork } from '@haus/api';
 import type * as React from 'react';
-
 import { cn } from '../../../lib/utils.ts';
 import { claimVisibleInChat, useShowClaimsInChat } from '../../claims/show-claims-in-chat.ts';
 import { TranscriptClaimChip } from '../../claims/transcript-claim-chip.tsx';

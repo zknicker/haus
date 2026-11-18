@@ -1,5 +1,4 @@
 import type { ServerMember } from '@haus/api/membership';
-
 import { ProfileFact, ProfileFacts } from '../../../components/ui/profile-facts.tsx';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { PageColumn } from '../../shell/page-column.tsx';

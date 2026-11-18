@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import type { ChatMessageEntry } from '../../hooks/servers/chat-message-entities.ts';
 import { useChatMessageEntries } from '../../hooks/servers/use-chat-message.ts';
 import type { TranscriptEntry, TranscriptItem } from './chat-transcript-model.ts';

@@ -1,8 +1,6 @@
 import { afterAll, beforeAll } from 'bun:test';
 import { createHash } from 'node:crypto';
-
 import { artifactPublishInputSchema } from '@haus/api';
-
 import { publishArtifact } from '../src/artifacts/publish.ts';
 import type { ArtifactStorage } from '../src/artifacts/storage.ts';
 import type { ArtifactThumbnails } from '../src/artifacts/thumbnails.ts';

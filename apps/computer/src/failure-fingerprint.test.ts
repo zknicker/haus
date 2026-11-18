@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { failureFingerprint } from './failure-fingerprint.ts';
 
 test('the same failure with different ids and numbers shares a fingerprint', () => {

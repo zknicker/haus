@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
-
 import { type ArtifactAction, runArtifactAction } from '../artifacts/action.ts';
 import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';

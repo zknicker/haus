@@ -1,6 +1,5 @@
 import { expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
-
 import sourceManifest from '../../../specs/raft-alignment/manual-source.json' with { type: 'json' };
 import {
     getManualTopic,

@@ -4,7 +4,6 @@ import type {
     ImageGenerationProvider,
     ImageGenerationRequest,
 } from '@haus/api';
-
 import { readImageHeader } from './image-dimensions.ts';
 
 export type ImageProviderErrorKind =

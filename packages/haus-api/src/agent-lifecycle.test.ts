@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { agentLifecycleEventSchema } from './agent.ts';
 
 const base = {

@@ -1,5 +1,4 @@
 import type { AgentSetAgentAvatarReceipt } from '@haus/api';
-
 import type { NormalizedAvatarImage } from '../avatar-generation/normalization.ts';
 import { createAvatarId, hashAvatarBytes } from '../avatars/avatar-bytes.ts';
 import { assignAvatar } from '../avatars/set-avatar.ts';

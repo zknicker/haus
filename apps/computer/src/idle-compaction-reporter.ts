@@ -1,9 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { basename, dirname } from 'node:path';
-
 import type { AgentIdleCompactionReport } from '@haus/api';
 import { Effect } from 'effect';
-
 import type { DaemonRuntime } from './daemon-runtime.ts';
 import { journalSinkFor } from './execution-journal-upload/attachment-journal-uploads.ts';
 import {

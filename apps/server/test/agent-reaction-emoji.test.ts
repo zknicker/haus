@@ -1,7 +1,5 @@
 import { beforeAll, expect, test } from 'bun:test';
-
 import { reactionEmojiRule } from '@haus/api';
-
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 
 const fixture = agentCreationFixture();

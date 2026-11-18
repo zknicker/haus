@@ -1,6 +1,5 @@
 import type { TriggerKind } from '@haus/api';
 import { Description, Label, ListBox, Select } from '@heroui/react';
-
 import type { TriggerKindOption } from './agent-trigger-model.ts';
 
 /**

@@ -1,5 +1,4 @@
 import type { ArtifactCreator, ArtifactCreatorSummary } from '@haus/api';
-
 import type { HumanDirectory } from '../servers/human-identity.ts';
 
 /** Who made what, named the way every other surface names them. */

@@ -1,5 +1,4 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { ServerAccessDeniedError, ServerNotFoundError } from '../servers/server-access.ts';
 import { attachmentDisposition } from '../utils/content-disposition.ts';

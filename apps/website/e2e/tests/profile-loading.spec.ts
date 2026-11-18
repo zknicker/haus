@@ -1,5 +1,4 @@
 import type { Page } from '@playwright/test';
-
 import { createTestServer } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 

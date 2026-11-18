@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { cachedRouteModule } from './server-route-modules.ts';
 
 test('shares a pending route import across prefetch and navigation', async () => {

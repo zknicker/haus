@@ -9,7 +9,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 import { runStamp } from '../agent-tests/report.mjs';
 import { parseEvalArgs, UsageError } from './args.mjs';
 import { git, prepareBaseline } from './baseline.mjs';

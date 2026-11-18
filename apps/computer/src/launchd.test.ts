@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { replaceLaunchdService, restartLaunchdService, runsInsideLaunchdJob } from './launchd.ts';
 
 const service = {

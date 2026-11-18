@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-
 import type { WorkspaceArtifact } from './chat-artifact-workspace-file.tsx';
 import {
     WorkspaceArtifactContent,

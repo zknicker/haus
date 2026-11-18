@@ -1,5 +1,4 @@
 import type { MessageCause } from '@haus/api';
-
 import { MessageCauseLine } from './automation/message-cause-line.tsx';
 import type { TranscriptItem, TranscriptTurnEntry } from './chat-transcript-model.ts';
 import { NavigableInlineReply, useTurnReplyReference } from './inline-reply-preview.tsx';

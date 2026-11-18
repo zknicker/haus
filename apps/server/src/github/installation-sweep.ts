@@ -1,5 +1,4 @@
 import { and, eq, ne } from 'drizzle-orm';
-
 import { type BootSweep, type SweepTimers, startBootSweep } from '../boot-sweep.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { githubInstallationsTable } from '../postgres/schema.ts';

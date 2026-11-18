@@ -1,5 +1,4 @@
 import { isDeepStrictEqual } from 'node:util';
-
 import {
     assertReleaseLedger,
     latestProductVersion,

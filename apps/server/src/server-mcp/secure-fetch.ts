@@ -1,5 +1,4 @@
 import { isIP } from 'node:net';
-
 import { env } from '../config/env.ts';
 import { isBlockedNetworkAddress } from './network-guard.ts';
 import { BLOCKED_MESSAGE, SCHEME_MESSAGE, safeFetch } from './safe-remote-fetch.ts';

@@ -1,6 +1,5 @@
 import { Dropdown, Label, Separator } from '@heroui/react';
 import { Fragment } from 'react';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import type { ArtifactAction } from './artifact-actions.ts';

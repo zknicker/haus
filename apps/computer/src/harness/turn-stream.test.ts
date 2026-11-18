@@ -1,8 +1,6 @@
 import { afterEach, expect, test } from 'bun:test';
-
 import { makeTestRuntime } from '@haus/effect';
 import { TestClock } from 'effect';
-
 import {
     compactionToolName,
     type RuntimeTokenUsage,

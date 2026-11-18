@@ -1,6 +1,5 @@
 import { Button, Toolbar, Tooltip } from '@heroui/react';
 import { Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import type { ArtifactAction, SelectionActionId } from './artifact-actions.ts';
 

@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test';
 import { generateKeyPairSync } from 'node:crypto';
-
 import { createGithubApp } from './github-app.ts';
 import { createGithubBot } from './github-bot.ts';
 

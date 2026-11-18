@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { serverEventTargets, serverSlugFromPath } from './server-event-model.ts';
 
 test('the open Server is observed before the Server list resolves', () => {

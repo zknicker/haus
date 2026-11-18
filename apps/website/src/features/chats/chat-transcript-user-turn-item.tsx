@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import { TranscriptMessageBlock } from './chat-transcript-message-block.tsx';
 import { ChatTranscriptMessageContent } from './chat-transcript-message.tsx';
 import type { TranscriptItem } from './chat-transcript-model.ts';

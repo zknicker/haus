@@ -2,7 +2,6 @@ import type { Agent } from '@haus/api';
 import { ItemCard, ItemCardGroup, PressableFeedback } from '@heroui-pro/react';
 import { Chip, Separator } from '@heroui/react';
 import * as React from 'react';
-
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profile.ts';
 import { useAgents } from '../../../hooks/members/use-agents.ts';

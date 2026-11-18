@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { createHausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 

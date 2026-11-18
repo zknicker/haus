@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { serverReconciliationInterval } from './use-server.ts';
 
 describe('Server query reconciliation', () => {

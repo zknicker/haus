@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import { type DesktopEditCommand, getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import { cn } from '../../lib/utils.ts';
 

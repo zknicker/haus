@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import { getDevEnvironment, resolveDevPorts } from './dev-ports.mjs';
 
 test('uses the base port for Vite and the fourth reserved port for Haus Server', () => {

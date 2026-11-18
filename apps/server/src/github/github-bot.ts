@@ -1,6 +1,5 @@
 import { and, eq, ne, sql } from 'drizzle-orm';
 import * as z from 'zod';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { githubInstallationsTable } from '../postgres/schema.ts';
 import { GithubApiError, githubRequest } from './github-api.ts';

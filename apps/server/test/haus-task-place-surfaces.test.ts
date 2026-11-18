@@ -1,7 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import type { CloudAgentWorkUpdatedEvent, TaskUpdatedEvent } from '@haus/api';
-
 import { cloudAgentWorkUpdatedTopic, taskUpdatedTopic } from '../src/realtime/topics.ts';
 import { cloudAgentFixture } from './cloud-agent-fixture.ts';
 import { cloudAgentLinkHelpers } from './cloud-agent-link-helpers.ts';

@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { requestMessageReveal, takeMessageReveal } from './use-pending-message-reveal.ts';
 
 test('a reveal request is served once, for its own chat', () => {

@@ -6,7 +6,6 @@ import {
     type ServerMemberDirectory,
     type ServerRole,
 } from '@haus/api/membership';
-
 import { humanDisplayName } from './human-identity.ts';
 
 export type ServerMemberActionKind =

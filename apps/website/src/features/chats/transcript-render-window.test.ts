@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-
 import type { TranscriptEntry, TranscriptItem } from './chat-transcript-model.ts';
 import type { TranscriptRenderRow } from './chat-transcript-row-model.ts';
 import { createTranscriptRenderWindow } from './transcript-render-window.ts';

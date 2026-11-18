@@ -1,5 +1,4 @@
 import { Sidebar } from '@heroui-pro/react';
-
 import { UnreadCountChip } from '../../components/chats/unread-count-chip.tsx';
 import { useUnreadPreview } from '../../hooks/inbox/use-unread-previews.ts';
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';

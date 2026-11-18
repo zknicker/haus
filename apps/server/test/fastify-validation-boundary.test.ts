@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import Fastify from 'fastify';
 
 test('Fastify exposes the primitive value that its body schema actually validated', async () => {

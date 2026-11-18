@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-
 import { buildClaimCommandGroup } from '../../commands/claim-commands.ts';
 import { buildCommandGroups } from '../../commands/server-commands.ts';
 import { buildThemeCommandGroup } from '../../commands/theme-commands.ts';

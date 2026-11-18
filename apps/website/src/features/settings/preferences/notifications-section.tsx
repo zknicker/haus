@@ -1,7 +1,6 @@
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Switch } from '@heroui/react';
 import * as React from 'react';
-
 import {
     enableMessageNotifications,
     type NotificationPermissionState,

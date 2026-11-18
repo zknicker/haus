@@ -5,7 +5,6 @@ import type {
     Run,
     RunStatus,
 } from '@cursor/sdk';
-
 import type { CloudAgentModelSelection } from '../provider.ts';
 import { streamCursorRun } from './sdk-stream.ts';
 import {

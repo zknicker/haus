@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { Agent, Cursor } from '@cursor/sdk';
-
 import { createCursorSdkTransport } from './sdk-transport.ts';
 
 test('SDK sign-in never opens a browser on the Computer and forwards cancellation', async () => {

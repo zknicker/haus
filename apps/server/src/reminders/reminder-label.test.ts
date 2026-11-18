@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { validReminderDescription, validReminderTitle } from './reminder-model.ts';
 
 const teaching =

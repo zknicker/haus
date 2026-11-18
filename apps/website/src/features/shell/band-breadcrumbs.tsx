@@ -3,7 +3,6 @@ import { breadcrumbsVariants } from '@heroui/styles';
 import { ArrowRight01Icon, MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type { ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { inboxRoute } from '../servers/server-routes.ts';
 import { type BandCrumb, collapseTrail, crumbKey } from './band-trail.ts';

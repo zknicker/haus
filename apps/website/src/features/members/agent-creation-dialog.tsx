@@ -1,7 +1,6 @@
 import type { Agent, ComputerInventory } from '@haus/api';
 import { Alert, Modal, Spinner } from '@heroui/react';
 import type * as React from 'react';
-
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { computerLabel } from '../computers/presentation.ts';

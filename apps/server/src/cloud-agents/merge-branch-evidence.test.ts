@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { CloudAgentBranch } from '@haus/api';
-
 import { mergeBranchEvidence } from './merge-branch-evidence.ts';
 
 const snapshot = {

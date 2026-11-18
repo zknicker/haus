@@ -1,5 +1,4 @@
 import { and, count, eq, gt, isNull, type SQL } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable, serverMembershipsTable, serversTable } from '../postgres/schema.ts';
 import { unreadTasks } from '../tasks/task-unread.ts';

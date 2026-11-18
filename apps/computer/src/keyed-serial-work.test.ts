@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { Runtime } from 'effect';
-
 import { makeDaemonRuntime } from './daemon-runtime.ts';
 import { KeyedSerialWork } from './keyed-serial-work.ts';
 

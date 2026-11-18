@@ -1,7 +1,6 @@
 import type { GithubTrigger } from '@haus/api';
 import { Button, Form } from '@heroui/react';
 import { useState } from 'react';
-
 import { useTriggerUpdate } from '../../../hooks/members/use-trigger-update.ts';
 import { SettingsRowError } from '../../settings/layout/settings-text.tsx';
 import { refusalText } from './agent-trigger-model.ts';

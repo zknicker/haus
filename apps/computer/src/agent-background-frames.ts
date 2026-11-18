@@ -1,8 +1,6 @@
 import { join } from 'node:path';
-
 import { agentSubagentWakeResultSchema } from '@haus/api';
 import * as z from 'zod';
-
 import { parseStopBackgroundCommand, parseStopCommand } from './agent-command-frames.ts';
 import type { AgentWorkCoordinator } from './agent-work-coordinator.ts';
 import type { BackgroundWorkReporter } from './background-work-reporter.ts';

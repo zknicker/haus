@@ -1,9 +1,7 @@
 import { createHash } from 'node:crypto';
 import { mkdir, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-
 import { eq } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computersTable, serverOnboardingTable } from '../postgres/schema.ts';
 import type { ServerSummary } from '../servers/contracts.ts';

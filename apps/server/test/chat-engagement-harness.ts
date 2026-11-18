@@ -1,6 +1,5 @@
 import type { AddressedReason, AgentTurnSummary } from '@haus/api';
 import { eq, max } from 'drizzle-orm';
-
 import type { HausDatabase } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {

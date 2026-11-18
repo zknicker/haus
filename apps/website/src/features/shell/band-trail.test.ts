@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { collapseTrail } from './band-trail.ts';
 
 const crumb = (label: string) => ({ href: `/s/haus/artifacts?folder=${label}`, label });

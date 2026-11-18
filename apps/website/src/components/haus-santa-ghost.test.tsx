@@ -1,7 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { GHOST_FIGURE } from './haus-ghost-figure.ts';
 import { HausGhost } from './haus-ghost.tsx';
 import { HausPumpkin } from './haus-pumpkin.tsx';

@@ -2,9 +2,7 @@ import { afterAll, afterEach, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { agentExecutionJournalSchema } from '@haus/api';
-
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import type { ComputerAgentActivityUpdate } from '../agent-activity.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';

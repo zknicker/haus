@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import { authoredInChannel, readChannelMessages } from './channel-messages.mjs';
 
 test('reads only the requested channel, inline replies included', async () => {

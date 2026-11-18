@@ -1,7 +1,6 @@
 import { hasServerAdminAuthority } from '@haus/api/membership';
 import type { ReactNode } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
-
 import { ComputerPage } from '../../features/computers/computer-page.tsx';
 import { HumanProfile } from '../../features/members/human-profile/human-profile.tsx';
 import { HumanDirectory } from '../../features/servers/human-directory.tsx';

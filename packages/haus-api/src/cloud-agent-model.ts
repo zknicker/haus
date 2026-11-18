@@ -1,5 +1,4 @@
 import * as z from 'zod';
-
 import { cloudAgentProviderSchema } from './cloud-agent-provider.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });

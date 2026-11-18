@@ -1,7 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { showsHiddenFiles, WorkspaceOptionsMenu } from './chat-artifact-workspace-options-menu.tsx';
 
 describe('workspace options menu', () => {

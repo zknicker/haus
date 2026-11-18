@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import type { RuntimeSession } from '../driver.ts';
 import { isRuntimeResumeRejection } from '../resume-rejected.ts';
 import type { TurnEvent } from '../turn-event.ts';

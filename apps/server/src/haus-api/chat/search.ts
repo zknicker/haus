@@ -1,5 +1,4 @@
 import { chatSearchInputSchema, chatSearchResultsSchema } from '@haus/api';
-
 import { searchChatMessages } from '../../chats/search-messages.ts';
 import { chatProcedure } from './procedure.ts';
 

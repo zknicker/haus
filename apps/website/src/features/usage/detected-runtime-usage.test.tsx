@@ -1,8 +1,6 @@
 import { expect, test } from 'bun:test';
-
 import type { UsageOverview } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { DetectedRuntimeUsage } from './detected-runtime-usage.tsx';
 import { usageFixture } from './usage-fixtures.ts';
 

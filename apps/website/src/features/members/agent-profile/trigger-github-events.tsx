@@ -11,7 +11,6 @@ import {
     Tag,
     TagGroup,
 } from '@heroui/react';
-
 import { EventTextFields } from './trigger-github-event-text-fields.tsx';
 import {
     createGithubEventDraft,

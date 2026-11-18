@@ -2,7 +2,6 @@ import { type AttachmentUploadResult, resolveAttachmentMediaType } from '@haus/a
 import { asError, settle } from '@haus/effect';
 import { and, eq, inArray } from 'drizzle-orm';
 import { Effect, Exit } from 'effect';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { attachmentsTable } from '../postgres/schema.ts';

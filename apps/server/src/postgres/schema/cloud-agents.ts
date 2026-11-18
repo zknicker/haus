@@ -10,7 +10,6 @@ import type {
 } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import { check, foreignKey, index, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
-
 import { agentsTable } from './agents.ts';
 import { bunJsonb } from './bun-jsonb.ts';
 import { serverMembershipsTable } from './server-memberships.ts';

@@ -2,7 +2,6 @@ import { ContextMenu } from '@heroui-pro/react';
 import { Label } from '@heroui/react';
 import { ArrowUpRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { useDesktopPageOpeners } from '../../hooks/desktop-tabs/use-desktop-page-openers.ts';
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';

@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
-
 import { useDesktopTabs } from '../../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import type { PaneSide } from '../../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import { getDesktopBridge } from '../../../lib/desktop-bridge.ts';

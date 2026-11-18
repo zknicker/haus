@@ -1,5 +1,4 @@
 import type { AgentRuntimeSaveBrowserSettings } from '@haus/api';
-
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import type { BrowserTarget } from './use-browser-settings.ts';
 

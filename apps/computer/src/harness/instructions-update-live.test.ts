@@ -3,7 +3,6 @@ import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import type { AgentInboxItem } from '../agent-inbox-item.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';

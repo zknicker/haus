@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'bun:test';
-
 import { chatMessageSchema, chatSendInputSchema } from './chat.ts';
 import { cloudAgentTitleMaxLength } from './cloud-agent-shared.ts';
 import {

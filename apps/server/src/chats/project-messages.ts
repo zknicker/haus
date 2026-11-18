@@ -1,5 +1,4 @@
 import type { ChatMessage } from '@haus/api';
-
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import { readMessageCauses } from '../automations/message-cause-read.ts';
 import { listMessageClaimMap } from '../claims/claim-shape.ts';

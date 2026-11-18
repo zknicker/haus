@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { projectMessageForAgent } from './rich-reference-projection.ts';
 
 describe('projectMessageForAgent', () => {

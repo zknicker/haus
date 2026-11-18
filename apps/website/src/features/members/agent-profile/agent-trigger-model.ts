@@ -7,7 +7,6 @@ import {
     triggerInstructionMaxBytes,
     triggerTitleMaxLength,
 } from '@haus/api';
-
 import { formatByteSize, formatRelativeTime } from '../../../lib/format.ts';
 import { githubProblemTitle } from './trigger-github-model.ts';
 

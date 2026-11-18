@@ -3,7 +3,6 @@ import { createHash, generateKeyPairSync, sign } from 'node:crypto';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { getFreePort } from './test-port.ts';
 import { computerProtocolVersion, computerReleaseSigningPayload } from './update-contract.ts';
 import { finishRestart } from './update-recovery.ts';

@@ -1,8 +1,6 @@
 import { expect, test } from 'bun:test';
-
 import type { AgentTurnOperationCount } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import type { AgentActivityTurn } from './agent-activity-turns.ts';
 import type { TurnRowTitle } from './agent-turn-row-model.ts';
 import { TurnRowContent } from './agent-turn-row.tsx';

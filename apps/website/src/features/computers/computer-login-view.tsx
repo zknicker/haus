@@ -1,7 +1,6 @@
 import { Button, InputOTP, REGEXP_ONLY_DIGITS_AND_CHARS, Spinner } from '@heroui/react';
 import * as React from 'react';
 import { useSearchParams } from 'react-router-dom';
-
 import { ActivationShell, ActivationStep } from '../../components/activation/activation-shell.tsx';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { loginDescription, loginTitle } from './computer-login-copy.tsx';

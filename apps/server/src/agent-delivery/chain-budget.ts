@@ -1,5 +1,4 @@
 import { and, eq, gt, inArray, isNull, lt, notInArray, notLike, or, sql } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentDeliveryTable, agentInboxTable } from '../postgres/schema.ts';
 import { decodeTaskAssignment } from '../tasks/task-assignment-envelope.ts';

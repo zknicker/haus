@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import type { AgentApiRequest } from '../agent-api-client.ts';
 import { runTriggerCreate } from './agent-trigger-actions.ts';
 import { args, githubTrigger, requester } from './agent-trigger-test-fixtures.ts';

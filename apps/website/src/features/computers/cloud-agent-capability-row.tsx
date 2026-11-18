@@ -1,7 +1,6 @@
 import { ItemCard } from '@heroui-pro/react';
 import { Button, Chip, Dropdown, Label, ListBox, Select } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import type { CloudAgentCapabilityView } from './cloud-agent-capability-model.ts';
 

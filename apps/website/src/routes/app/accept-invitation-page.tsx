@@ -1,6 +1,5 @@
 import { Button, Spinner } from '@heroui/react';
 import { useParams } from 'react-router-dom';
-
 import { ActivationShell, ActivationStep } from '../../components/activation/activation-shell.tsx';
 import {
     useAcceptInvitation,

@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { agentSubagentWakeResultSchema } from '@haus/api';
-
 import { handleBackgroundFrame } from './agent-background-frames.ts';
 import { makeDaemonRuntime } from './daemon-runtime.ts';
 

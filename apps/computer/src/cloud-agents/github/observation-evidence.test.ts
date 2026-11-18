@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { CloudAgentPullRequest } from '@haus/api';
-
 import type { CloudAgentProviderObservation } from '../provider.ts';
 import { carriesPullRequest, withPullRequestEvidence } from './observation-evidence.ts';
 import type { PullRequestReader } from './pull-request-reader.ts';

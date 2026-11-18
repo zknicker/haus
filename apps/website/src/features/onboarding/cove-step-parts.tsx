@@ -1,10 +1,8 @@
 import { Button, Spinner } from '@heroui/react';
 import { AlertCircleIcon, CheckmarkCircle02Icon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { cn } from '../../lib/utils.ts';
 import type { CoveStatusLine } from './cove-onboarding-model.ts';
-
 import './cove-onboarding.css';
 
 const setupStepLabels = ['Connect a Computer', 'Meet Cove', 'Onboarding Chat'];

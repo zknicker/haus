@@ -1,5 +1,4 @@
 import { Sidebar } from '@heroui-pro/react';
-
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import { usePressNavigationWith } from '../../hooks/shell/use-press-navigation.ts';
 import { RouteTabIcon } from './route-tab-presentation.tsx';

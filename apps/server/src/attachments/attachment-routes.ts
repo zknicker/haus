@@ -1,5 +1,4 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
-
 import {
     ChatAccessDeniedError,
     ChatArchivedError,

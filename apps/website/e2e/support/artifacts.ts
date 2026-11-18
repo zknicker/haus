@@ -1,7 +1,5 @@
 import { createHash } from 'node:crypto';
-
 import type { Locator, Page } from '@playwright/test';
-
 import { assertOpaqueId, runPsql } from './server.ts';
 
 interface SeededFile {

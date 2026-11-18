@@ -2,7 +2,6 @@ import { expect, spyOn, test } from 'bun:test';
 import { mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { parseAgentRetireCommand, purgeRetiredAgent } from './agent-retirement.ts';
 import { fakeHdiutil, holderListing } from './workspace-volumes/disk-fixtures.ts';
 import { withStorageLock } from './workspace-volumes/storage-ledger.ts';

@@ -1,5 +1,4 @@
 import { useCallback } from 'react';
-
 import { useAppAuth } from '../../lib/app-auth.tsx';
 
 /** Ends this browser or desktop session and drops its App cache ownership. */

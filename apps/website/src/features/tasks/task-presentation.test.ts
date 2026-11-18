@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { taskMessagePlaceLabel } from './task-presentation.ts';
 
 const channel = { chatId: 'cht_security', chatKind: 'channel', chatName: 'security' } as const;

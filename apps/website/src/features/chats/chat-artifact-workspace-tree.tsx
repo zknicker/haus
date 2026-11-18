@@ -3,7 +3,6 @@ import type { Selection } from '@heroui/react';
 import { File01Icon, Folder01Icon, FolderOpenIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Collection } from 'react-aria-components';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import type { WorkspaceTreeNode } from './chat-artifact-workspace-model.ts';
 

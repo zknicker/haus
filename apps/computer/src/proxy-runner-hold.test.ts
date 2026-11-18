@@ -1,5 +1,4 @@
 import { afterEach, expect, test } from 'bun:test';
-
 import { startLoopbackProxy } from './proxy.ts';
 
 const servers: Array<{ stop(force?: boolean): void }> = [];

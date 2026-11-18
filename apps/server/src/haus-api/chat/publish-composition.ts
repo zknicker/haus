@@ -1,5 +1,4 @@
 import { compositionPublishedSchema, compositionPublishInputSchema } from '@haus/api';
-
 import { requireChatWriteAccess } from '../../chats/chat-access.ts';
 import { publishChatComposition } from '../../chats/composition-hub.ts';
 import { chatProcedure } from './procedure.ts';

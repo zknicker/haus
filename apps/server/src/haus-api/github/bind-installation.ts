@@ -1,5 +1,4 @@
 import { githubBindInstallationInputSchema, githubInstallationResultSchema } from '@haus/api';
-
 import { requireGithubAdmin } from '../../github/installation-access.ts';
 import { bindGithubInstallation } from '../../github/installation-binding.ts';
 import { problemWakes } from '../../github/trigger-problems.ts';

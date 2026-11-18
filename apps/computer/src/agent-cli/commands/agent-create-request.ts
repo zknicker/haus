@@ -1,11 +1,9 @@
 import { createHash } from 'node:crypto';
-
 import {
     type AgentCreateAgentInput,
     type AgentCreateAgentReceipt,
     agentCreateAgentReceiptSchema,
 } from '@haus/api';
-
 import { type AgentApiRequester, AgentApiTransportError } from '../agent-api-client.ts';
 
 /** Avatar generation alone takes up to 75 s; a create that waits on one needs the headroom. */

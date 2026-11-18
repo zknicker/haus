@@ -1,5 +1,4 @@
 import { beforeAll, expect, test } from 'bun:test';
-
 import { cloudAgentFixture } from './cloud-agent-fixture.ts';
 
 /**

@@ -1,5 +1,4 @@
 import { channelDeleteInputSchema, channelDeleteReceiptSchema } from '@haus/api';
-
 import { deleteChannel } from '../../chats/channel-lifecycle.ts';
 import { publishRealtime } from '../../realtime/topic.ts';
 import { chatProcedure } from './procedure.ts';

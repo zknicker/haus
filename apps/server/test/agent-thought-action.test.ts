@@ -1,7 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import type { AgentThoughtEvent, AgentThoughtFrame } from '@haus/api';
-
 import { attestAgentEvents } from '../src/agent-api/inbox.ts';
 import { subscribeToAgentThoughts } from '../src/agent-delivery/thought-events.ts';
 import { ingestAgentRunFrame } from '../src/computers/ingest-agent-run-frame.ts';

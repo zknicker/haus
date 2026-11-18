@@ -1,7 +1,6 @@
 import type { Agent } from '@haus/api';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { useOptionalCurrentAgentActivity } from '../../../hooks/agents/use-current-agent-activity.tsx';
 import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profile.ts';

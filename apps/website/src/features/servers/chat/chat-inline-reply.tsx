@@ -2,7 +2,6 @@ import type { ChatMessage, ChatMessageReplyReference } from '@haus/api';
 import { Button, Tooltip } from '@heroui/react';
 import { Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'framer-motion';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 import { messagePreviewLine } from '../../chats/message-preview-line.ts';
 

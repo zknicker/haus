@@ -1,5 +1,4 @@
 import type { Agent } from '@haus/api';
-
 import type { AgentUsageSummary } from '../../stats/agent-usage-summary.ts';
 import { formatTokens } from '../../stats/usage-format.ts';
 

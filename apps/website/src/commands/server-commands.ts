@@ -8,7 +8,6 @@ import {
     CursorTextIcon,
     UserCircleIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
-
 import {
     activityRoute,
     inboxRoute,

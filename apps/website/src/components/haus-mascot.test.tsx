@@ -1,7 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { selectColorTheme } from '../hooks/shell/use-color-theme.ts';
 import { HausMascot } from './haus-mascot.tsx';
 

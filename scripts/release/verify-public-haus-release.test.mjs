@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import { verifyPublicHausRelease } from './verify-public-haus-release.mjs';
 
 const sourceRevision = 'a'.repeat(40);

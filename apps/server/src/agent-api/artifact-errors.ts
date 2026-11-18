@@ -1,6 +1,5 @@
 import type { FastifyReply } from 'fastify';
 import * as z from 'zod';
-
 import { ArtifactError } from '../artifacts/storage.ts';
 import { sendAgentApiError } from './auth.ts';
 

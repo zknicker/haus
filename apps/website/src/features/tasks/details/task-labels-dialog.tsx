@@ -1,7 +1,6 @@
 import type { TaskLabel } from '@haus/api';
 import { Button, Form, Input, Modal, TextField } from '@heroui/react';
 import * as React from 'react';
-
 import { useTaskLabelCreate } from '../../../hooks/servers/use-task-label-create.ts';
 import { useTaskLabelDelete } from '../../../hooks/servers/use-task-label-delete.ts';
 import { useTaskLabelUpdate } from '../../../hooks/servers/use-task-label-update.ts';

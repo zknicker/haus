@@ -1,5 +1,4 @@
 import type * as React from 'react';
-
 import { ReferenceChipView } from './reference-chip-view.tsx';
 import { TaskReferenceChip } from './task-reference-chip.tsx';
 

@@ -1,7 +1,6 @@
 import { Button, Tooltip } from '@heroui/react';
 import { Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { useDesktopTabs } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
 import { currentLocation, type TabLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';

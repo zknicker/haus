@@ -1,5 +1,4 @@
 import { TRPCError } from '@trpc/server';
-
 import { memberProcedure } from '../server/procedure.ts';
 
 /**

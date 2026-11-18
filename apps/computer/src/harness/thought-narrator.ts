@@ -5,7 +5,6 @@ import {
     extractThoughtTitle,
     thoughtReasoningExcerpt,
 } from '@haus/api';
-
 import type { ReasoningTurnEvent } from '../runtime/turn-event.ts';
 
 /**

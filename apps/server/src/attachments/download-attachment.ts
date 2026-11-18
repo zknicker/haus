@@ -1,5 +1,4 @@
 import { and, eq } from 'drizzle-orm';
-
 import { requireChatAccess } from '../chats/chat-access.ts';
 import { isVisibleGeneratedImage } from '../image-generation/image-generation-visibility.ts';
 import type { HausDatabase } from '../postgres/connection.ts';

@@ -1,6 +1,5 @@
 import { Button, Modal } from '@heroui/react';
 import { ComputerIcon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { ComputerSetupCommands } from './computer-setup-commands.tsx';
 

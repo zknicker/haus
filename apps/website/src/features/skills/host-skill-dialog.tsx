@@ -1,7 +1,6 @@
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { AvatarGroup, Button, Disclosure, Modal, Separator } from '@heroui/react';
 import type React from 'react';
-
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { SettingsFact } from '../settings/layout/settings-text.tsx';
 import type { HostSkill } from './host-skill-catalog.ts';

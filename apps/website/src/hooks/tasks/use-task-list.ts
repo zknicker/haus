@@ -1,5 +1,4 @@
 import type { TaskListInput } from '@haus/api';
-
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 

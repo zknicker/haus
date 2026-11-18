@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { hausUpdateRunProgress, holdPeak, stepFraction } from './haus-update-run-progress.ts';
 import { computer, desktop, view } from './reconciler-test-fixtures.ts';
 

@@ -1,7 +1,5 @@
 import { afterAll, describe, expect, test } from 'bun:test';
-
 import { agentThoughtResultMaxLength } from '@haus/api';
-
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { createComputerActivityProjector } from './activity-projector.ts';

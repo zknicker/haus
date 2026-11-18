@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { failedResult, imageGenerationFixture, readyResult } from './image-generation-fixture.ts';
 import {
     formatElapsed,

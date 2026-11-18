@@ -2,7 +2,6 @@ import { execFileSync } from 'node:child_process';
 import { appendFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 import { verifyComputerOnlyRelease } from './computer-release-verifier.mjs';
 import { extractReleaseNotes } from './extract-release-notes-from-changelog.mjs';
 import { verifyNormalRelease, verifyProductRelease } from './github-release-verifier.mjs';

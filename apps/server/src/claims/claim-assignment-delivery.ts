@@ -1,6 +1,5 @@
 import type { MessageClaim } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-
 import { followAgentTask } from '../agent-api/attention.ts';
 import { targetForChat } from '../agent-api/message-view.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';

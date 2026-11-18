@@ -2,11 +2,9 @@ import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { settle } from '@haus/effect';
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { Exit, Scope } from 'effect';
-
 import { makeServerRuntime } from '../server-runtime.ts';
 import { skoolHostedDefinition, skoolHostedUrl } from './catalog.ts';
 import { startHostedMcps } from './supervisor.ts';

@@ -1,5 +1,4 @@
 import * as z from 'zod';
-
 import { cloudAgentTimestampSchema } from './cloud-agent-time.ts';
 
 /**

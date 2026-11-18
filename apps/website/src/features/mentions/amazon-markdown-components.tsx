@@ -1,6 +1,5 @@
 import type { Markdown } from '@heroui-pro/react/markdown';
 import type * as React from 'react';
-
 import { renderAmazonText } from './amazon-reference.tsx';
 
 export function amazonMarkdownComponents(

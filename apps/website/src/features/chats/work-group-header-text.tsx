@@ -2,7 +2,6 @@ import { TextShimmer } from '@heroui-pro/react';
 import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
 import { SlotText } from 'slot-text/react';
-
 import { cn } from '../../lib/utils.ts';
 
 const activeHeaderDwellMs = 280;

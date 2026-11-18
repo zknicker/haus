@@ -1,6 +1,5 @@
 import { ChartTooltip, Widget } from '@heroui-pro/react';
 import { BarChart } from '@heroui-pro/react/bar-chart';
-
 import { formatUsageDay, type TokenUsageView } from './token-usage-view.ts';
 import { formatTokens } from './usage-format.ts';
 

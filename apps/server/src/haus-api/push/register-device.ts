@@ -1,5 +1,4 @@
 import { pushDeviceResultSchema, pushRegisterDeviceInputSchema } from '@haus/api';
-
 import { registerPushDevice } from '../../push/push-devices.ts';
 import { pushProcedure } from './procedure.ts';
 

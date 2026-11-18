@@ -1,5 +1,4 @@
 import { Alert, Button } from '@heroui/react';
-
 import type { FailedChatDraft } from './chat-draft-store.ts';
 
 export function ChatComposerRecovery({

@@ -1,6 +1,5 @@
 import { nativeAppSessionRequestSchema } from '@haus/api/app-session';
 import type { FastifyInstance } from 'fastify';
-
 import {
     type AuthRouteDependencies,
     isLoopbackRequest,

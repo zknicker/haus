@@ -1,7 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-
 import type { ComputerSecretsStatus } from '@haus/api';
-
 import { secretsCapabilityView } from './secrets-capability-model.ts';
 
 const notConnected: ComputerSecretsStatus = { connected: false, provider: '1password' };

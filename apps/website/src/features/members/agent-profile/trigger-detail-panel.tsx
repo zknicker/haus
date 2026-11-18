@@ -2,7 +2,6 @@ import { type Agent, type Trigger, triggerTitleMaxLength } from '@haus/api';
 import { Sheet } from '@heroui-pro/react';
 import { Button, FieldError, Form, Input, Label, TextArea, TextField } from '@heroui/react';
 import * as React from 'react';
-
 import { useTriggerDelete } from '../../../hooks/members/use-trigger-delete.ts';
 import { useTriggerRotate } from '../../../hooks/members/use-trigger-rotate.ts';
 import { useTriggerRuns } from '../../../hooks/members/use-trigger-runs.ts';

@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import { useMessageScrollerVisibility } from '../../../components/chats/message-scroller.tsx';
 import { useTabPresence } from '../../../hooks/desktop-tabs/tab-presence.ts';
 import {

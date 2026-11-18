@@ -1,6 +1,5 @@
 import { Disclosure } from '@heroui/react';
 import * as React from 'react';
-
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { formatShortTime } from '../../../lib/format.ts';
 import { cn } from '../../../lib/utils.ts';

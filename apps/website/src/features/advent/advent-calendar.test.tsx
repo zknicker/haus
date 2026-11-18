@@ -1,8 +1,6 @@
 import { afterAll, describe, expect, mock, test } from 'bun:test';
-
 import type { AdventEntry } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import type { AdventCalendarRead } from '../../hooks/advent/use-advent-calendar.ts';
 import { AdventDayCard } from './advent-day-card.tsx';
 import { adventFallbackLine } from './advent-line.tsx';

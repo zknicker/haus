@@ -1,5 +1,4 @@
 import * as z from 'zod';
-
 import { artifactPathSchema } from './artifact-path.ts';
 
 const id = z.string().trim().min(1).max(128);

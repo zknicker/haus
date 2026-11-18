@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { hausImageLabels, readHausImageCall } from './turn-trace-haus-image.ts';
 
 const generate =

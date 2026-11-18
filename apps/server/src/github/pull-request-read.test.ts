@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { rollupChecks, rollupReview } from './pull-request-read.ts';
 
 const passed = { conclusion: 'success', status: 'completed' };

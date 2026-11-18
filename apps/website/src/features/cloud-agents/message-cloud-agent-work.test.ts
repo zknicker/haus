@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { formatCloudAgentWorkLink } from '@haus/api';
-
 import {
     linkedMessage,
     linkedWork,

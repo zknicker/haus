@@ -1,5 +1,4 @@
 import { sql } from 'drizzle-orm';
-
 import type { AdventScope } from '../year-scope.ts';
 import type { MessageColumns } from './message-columns.ts';
 

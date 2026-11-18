@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { EventQueue } from './event-queue.ts';
 
 test('a waiting consumer receives pushes in order and stops after end drains the queue', async () => {

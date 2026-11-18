@@ -1,5 +1,4 @@
 import { type AgentReasoningEffort, hausAgentVersion } from '@haus/api';
-
 import type { RuntimeResumeState } from '../runtime/resume-state.ts';
 import { deliveredInstructionReceipt, type InstructionsUpdatePlan } from './instructions-update.ts';
 import type { ComposedInstructions } from './instructions.ts';

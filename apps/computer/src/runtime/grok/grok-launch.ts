@@ -2,9 +2,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, rename, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import { join } from 'node:path';
-
 import type { AgentReasoningEffort } from '@haus/api';
-
 import { referenceAuthProfiles } from '../auth-profiles.ts';
 
 /**

@@ -1,5 +1,4 @@
 import { Button } from '@heroui/react';
-
 import { useOptionalCurrentAgentActivity } from '../../../hooks/agents/use-current-agent-activity.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useServerTurns } from '../../../hooks/members/use-server-turns.ts';

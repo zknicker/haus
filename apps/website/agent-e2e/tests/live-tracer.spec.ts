@@ -1,8 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 import { expect, test } from '@playwright/test';
-
 import { createAgentChannelFixture } from '../support/agent-channel-fixture.ts';
 import {
     expectAgentSettled,

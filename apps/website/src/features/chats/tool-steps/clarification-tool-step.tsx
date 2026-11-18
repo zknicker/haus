@@ -1,5 +1,4 @@
 import { BubbleChatQuestionIcon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { hasErrorStatus } from '../../sessions/tools/tool-ui.ts';
 import { getToolTarget, InlineToolLabel, ToolTimelineStep } from './tool-summary.tsx';
 import type { ToolStepRendererProps } from './types.ts';

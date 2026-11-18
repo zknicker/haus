@@ -1,5 +1,4 @@
 import { claimAssigneesInputSchema, claimAssigneesSchema } from '@haus/api';
-
 import { listClaimAssignees } from '../../claims/list-claim-assignees.ts';
 import { claimProcedure } from './procedure.ts';
 

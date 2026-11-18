@@ -4,7 +4,6 @@ import {
     artifactRevisionConflictSchema,
 } from '@haus/api';
 import * as z from 'zod';
-
 import { applyServerAcceptEncoding } from '../../server-encoding.ts';
 import { resolveAgentContext } from '../agent-context.ts';
 

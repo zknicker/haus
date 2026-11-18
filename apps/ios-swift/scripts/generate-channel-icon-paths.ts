@@ -16,7 +16,6 @@
 import { readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-
 import { convertIcons, report } from './hugeicon-paths.ts';
 
 const iosRoot = join(dirname(fileURLToPath(import.meta.url)), '..');

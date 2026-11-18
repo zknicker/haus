@@ -1,10 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
-
 import type { AgentExecutionJournal } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { TurnTraceCallBody } from './turn-trace-call-body.tsx';
 import { TraceNested } from './turn-trace-depth.tsx';
 import { TurnTraceFooter } from './turn-trace-footer.tsx';

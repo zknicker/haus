@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import type { ArtifactActions } from './use-artifact-actions.tsx';
 
 /**

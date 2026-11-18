@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { tokenState } from './keychain.ts';
 
 test('maps security exit codes to token states', () => {

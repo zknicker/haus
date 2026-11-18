@@ -1,5 +1,4 @@
 import { and, eq, or, sql } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
 import { readBareReferenceTokens } from './bare-reference-tokens.ts';

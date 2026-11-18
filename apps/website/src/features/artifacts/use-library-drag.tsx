@@ -1,7 +1,6 @@
 import { Chip } from '@heroui/react';
 import * as React from 'react';
 import { useDragAndDrop } from 'react-aria-components';
-
 import { bulkMovePaths } from './library-bulk.ts';
 import type { LibraryItem } from './library-items.ts';
 import { libraryDragType } from './use-library-drop.ts';

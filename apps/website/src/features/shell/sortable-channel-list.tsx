@@ -13,7 +13,6 @@ import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-ki
 import { Sidebar } from '@heroui-pro/react';
 import { useReducedMotion } from 'framer-motion';
 import * as React from 'react';
-
 import { useChatNavigationEntry } from '../../hooks/servers/use-chats.ts';
 import { channelListModifiers } from './channel-drag-modifiers.ts';
 import { orderChannelIds, readChannelOrder, writeChannelOrder } from './channel-order.ts';
@@ -25,7 +24,6 @@ import {
     type SortableChannel,
     SortableChannelRow,
 } from './sortable-channel-row.tsx';
-
 import './sortable-channel-list.css';
 
 const screenReaderInstructions = {

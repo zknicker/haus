@@ -1,5 +1,4 @@
 import { artifactDeleteManyInputSchema, artifactDeleteManyResultSchema } from '@haus/api';
-
 import { deleteManyArtifacts } from '../../artifacts/delete-many.ts';
 import { artifactProcedure } from './procedure.ts';
 

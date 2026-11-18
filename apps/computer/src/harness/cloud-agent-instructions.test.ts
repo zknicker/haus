@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { renderAgentInstructions } from './managed-instructions.ts';
 
 const prompt = renderAgentInstructions({

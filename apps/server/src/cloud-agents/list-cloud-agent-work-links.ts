@@ -1,6 +1,5 @@
 import type { CloudAgentWorkLink } from '@haus/api';
 import { and, asc, eq, inArray } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable, cloudAgentWorkLinksTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';

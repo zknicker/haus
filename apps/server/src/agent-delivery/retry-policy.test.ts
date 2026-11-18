@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { failureBackoffMs, isBackedOff, rateLimitBackoffMs } from './retry-policy.ts';
 
 const noJitter = () => 0;

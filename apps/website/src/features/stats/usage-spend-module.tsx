@@ -2,7 +2,6 @@ import type { UsageOverview } from '@haus/api';
 import { BarChart } from '@heroui-pro/react/bar-chart';
 import { Card } from '@heroui/react';
 import { AiAudioIcon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { UsageSpendSummary } from './usage-spend-summary.tsx';
 import { openRouterKeyColors, useUsageSpend } from './use-usage-spend.ts';

@@ -1,6 +1,5 @@
 import type { MessageBodyKind } from '@haus/api';
 import { and, asc, eq, like, sql } from 'drizzle-orm';
-
 import { mentionedUserIds } from '../chats/mentioned-user-ids.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';

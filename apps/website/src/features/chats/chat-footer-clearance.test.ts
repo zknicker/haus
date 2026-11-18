@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { chatFooterClearance } from './chat-footer-clearance.ts';
 
 test('a footer without a rising stack clears its own height', () => {

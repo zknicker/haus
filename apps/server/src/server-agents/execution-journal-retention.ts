@@ -1,6 +1,5 @@
 import { EXECUTION_JOURNAL_RETENTION_DAYS } from '@haus/api';
 import { lt } from 'drizzle-orm';
-
 import { type BootSweep, type SweepTimers, startBootSweep } from '../boot-sweep.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentExecutionJournalsTable } from '../postgres/schema.ts';

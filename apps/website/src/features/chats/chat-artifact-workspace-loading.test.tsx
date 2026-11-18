@@ -1,10 +1,8 @@
 import { expect, test } from 'bun:test';
-
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpBatchLink } from '@trpc/client';
 import { getQueryKey } from '@trpc/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { WorkspaceBrowserContent } from './chat-artifact-workspace-content.tsx';
 import type { WorkspaceBarPlacement } from './chat-artifact-workspace-toolbar.tsx';

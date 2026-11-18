@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { useParams } from 'react-router-dom';
-
 import { ChatPagePending } from '../../features/servers/chat/chat-page-pending.tsx';
 import { ChatPage } from '../../features/servers/chat/chat-page.tsx';
 import { useChatViewModule } from '../../features/servers/chat/chat-view-module.ts';

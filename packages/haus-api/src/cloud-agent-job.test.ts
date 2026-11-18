@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { deriveCloudAgentJob } from './cloud-agent-job.ts';
 import type { CloudAgentStatus } from './cloud-agent-shared.ts';
 

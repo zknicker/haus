@@ -1,9 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
-
 import { type Browser, chromium, type Page } from '@playwright/test';
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { AmazonReferenceChip } from './amazon-reference.tsx';
 import { ReferenceChip } from './reference-chip.tsx';
 

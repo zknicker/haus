@@ -1,5 +1,4 @@
 import type { CloudAgentAutomation } from '@haus/api';
-
 import { formatRelativeTime } from '../../../lib/format.ts';
 import {
     cloudAgentJobChipColor,

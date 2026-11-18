@@ -6,7 +6,6 @@ import { execFileSync, spawn } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-
 import { resolveDevPorts } from '../dev-ports.mjs';
 
 const bootTimeoutMs = 6 * 60_000;

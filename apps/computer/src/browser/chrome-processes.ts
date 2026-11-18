@@ -1,7 +1,6 @@
 import { execFile } from 'node:child_process';
 import fs from 'node:fs/promises';
 import { promisify } from 'node:util';
-
 import type { ProcessListReader, ProcessRecord } from './types.ts';
 
 const execFileAsync = promisify(execFile);

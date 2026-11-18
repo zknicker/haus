@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { ReferenceMarkdown } from '../mentions/reference-markdown.tsx';
 import { SettingsFact } from '../settings/layout/settings-text.tsx';
 import { TranscriptMessageBlock } from './chat-transcript-message-block.tsx';

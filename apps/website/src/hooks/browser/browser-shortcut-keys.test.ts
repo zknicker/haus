@@ -1,6 +1,5 @@
 import { expect, test } from 'bun:test';
 import { createRequire } from 'node:module';
-
 import { appShortcut, parseBrowserShortcut } from './browser-shortcut-keys.ts';
 
 const require = createRequire(import.meta.url);

@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { modelFeatureDescription, modelFeatureLabels } from './model-features.ts';
 
 test('labels model features, with the Codex plan caveat on image generation', () => {

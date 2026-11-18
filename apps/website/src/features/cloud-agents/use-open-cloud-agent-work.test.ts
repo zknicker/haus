@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { tabIntentState } from '../../hooks/desktop-tabs/tab-navigation.ts';
 import { trackOpenGestures } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { createCloudAgentWorkOpener } from './use-open-cloud-agent-work.ts';

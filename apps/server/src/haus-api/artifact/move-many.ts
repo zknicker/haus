@@ -1,5 +1,4 @@
 import { artifactMoveManyInputSchema, artifactMoveManyResultSchema } from '@haus/api';
-
 import { moveManyArtifacts } from '../../artifacts/move-many.ts';
 import { artifactProcedure } from './procedure.ts';
 

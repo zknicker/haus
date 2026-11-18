@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import { foldTraceLines, formatTraceFold, traceFoldLines } from './turn-trace-fold.ts';
 
 const lines = (count: number) =>

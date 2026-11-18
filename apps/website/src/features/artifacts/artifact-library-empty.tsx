@@ -6,7 +6,6 @@ import {
     FolderOpenIcon,
     Upload04Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
-
 import { Icon } from '../../components/ui/icon.tsx';
 
 /**

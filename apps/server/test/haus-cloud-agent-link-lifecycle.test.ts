@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { CloudAgentWork } from '@haus/api';
-
 import { cloudAgentWorkUpdatedTopic } from '../src/realtime/topics.ts';
 import { readTargetAsAgent } from './agent-read-target.ts';
 import { cloudAgentFixture } from './cloud-agent-fixture.ts';

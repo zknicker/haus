@@ -2,7 +2,6 @@ import type { Agent, McpConnection } from '@haus/api';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Separator, Switch } from '@heroui/react';
 import * as React from 'react';
-
 import { ConnectionGlyph } from '../../features/settings/mcp/connection-mark.tsx';
 import { useAgentGrant } from '../../hooks/members/use-agent-grant.ts';
 

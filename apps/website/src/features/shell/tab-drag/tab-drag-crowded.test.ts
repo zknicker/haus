@@ -1,7 +1,6 @@
 import { expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-
 import { autoScrollStep } from './tab-drag-autoscroll.ts';
 import {
     type BandLayout,

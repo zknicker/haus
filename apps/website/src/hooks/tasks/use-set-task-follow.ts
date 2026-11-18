@@ -1,6 +1,5 @@
 import type { TaskDetail } from '@haus/api';
 import { useQueryClient } from '@tanstack/react-query';
-
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { taskDetailKeys } from './task-cache.ts';
 

@@ -1,6 +1,5 @@
 import type { ArtifactFolderEntry, ArtifactMetadata } from '@haus/api';
 import * as React from 'react';
-
 import { artifactFolderPreviews } from '../../features/artifacts/drive-folders.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';

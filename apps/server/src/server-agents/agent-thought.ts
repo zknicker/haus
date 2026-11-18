@@ -6,7 +6,6 @@ import {
     thoughtRequestExcerpt,
 } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-
 import {
     readActiveRunEngagements,
     readActiveRunRequest,

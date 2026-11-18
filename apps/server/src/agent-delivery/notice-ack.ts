@@ -1,7 +1,6 @@
 import type { AgentNoticeAck } from '@haus/api';
 import { type EffectRuntime, settle } from '@haus/effect';
 import { Effect } from 'effect';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import { lockServerRow } from '../servers/server-lock.ts';

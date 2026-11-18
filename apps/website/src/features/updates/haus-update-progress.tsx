@@ -1,5 +1,4 @@
 import { Label, ProgressBar } from '@heroui/react';
-
 import { computerUpdatePhaseLabel } from '../computers/computer-update-model.ts';
 import type { HausUpdateStep } from './haus-update-model.ts';
 import { isActiveUpdateStep } from './haus-update-model.ts';

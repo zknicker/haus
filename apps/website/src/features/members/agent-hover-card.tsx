@@ -1,6 +1,5 @@
 import { Spinner } from '@heroui/react';
 import type * as React from 'react';
-
 import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useAgent } from '../../hooks/members/use-agent.ts';

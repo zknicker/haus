@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { CloudAgentWork } from '@haus/api';
-
 import { cloudAgentStatusLine } from './cloud-agent-status-line.ts';
 import {
     cloudAgentRunFixture as run,

@@ -5,7 +5,6 @@ import type {
     UpdateHumanProfileInput,
 } from '@haus/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { serverMembershipsTable, usersTable } from '../postgres/schema.ts';

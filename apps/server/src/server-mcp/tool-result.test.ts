@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { narrowMcpToolResult } from './tool-result.ts';
 
 const structured = { orders: [{ id: 'ord_1', total: 42 }] };

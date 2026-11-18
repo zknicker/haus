@@ -1,6 +1,5 @@
 import type { AgentConnectionAdmin, SetAgentConnectionAdminInput } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';

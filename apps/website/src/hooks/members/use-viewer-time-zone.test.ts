@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { resolveViewerTimeZone } from './use-viewer-time-zone.ts';
 
 const device = Intl.DateTimeFormat().resolvedOptions().timeZone;

@@ -1,5 +1,4 @@
 import { agentActivityEventSchema, agentActivitySubscriptionInputSchema } from '@haus/api';
-
 import { subscribeToCommittedAgentActivity } from '../../agent-delivery/activity-events.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
 import { memberProcedure } from '../server/procedure.ts';

@@ -1,5 +1,4 @@
 import { focusManager } from '@tanstack/react-query';
-
 import { getDesktopBridge } from './desktop-bridge.ts';
 
 interface FocusSources {

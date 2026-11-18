@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { parseJsonRpcLine } from './json-rpc.ts';
 
 const parse = (value: unknown) => parseJsonRpcLine(JSON.stringify(value));

@@ -1,10 +1,8 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { lstat, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-
 import type { AgentSkillFile, AgentSkillFileRequest, AgentSkillFileResult } from '@haus/api';
 import { agentSkillFileRequestSchema } from '@haus/api';
-
 import { reportStateError } from './computer-report.ts';
 import { readSkillBundle, skillNamePattern } from './host-skill-bundle.ts';
 

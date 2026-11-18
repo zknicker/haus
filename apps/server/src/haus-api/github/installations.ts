@@ -1,5 +1,4 @@
 import { githubInstallationsInputSchema, githubInstallationsSchema } from '@haus/api';
-
 import {
     listGithubInstallations,
     requireGithubConnection,

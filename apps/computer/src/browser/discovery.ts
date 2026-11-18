@@ -1,7 +1,5 @@
 import path from 'node:path';
-
 import type { AgentRuntimeBrowserSettings } from '@haus/api';
-
 import { SystemCdpProber } from './cdp-probe.ts';
 import { detectChromeApplications } from './chrome-detection.ts';
 import { isApplicationProcess, SystemProcessList } from './chrome-processes.ts';

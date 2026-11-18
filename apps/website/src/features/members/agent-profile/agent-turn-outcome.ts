@@ -1,5 +1,4 @@
 import type { AgentTurnOperationCategory } from '@haus/api';
-
 import { formatAgentActivityEvent } from './agent-activity-model.ts';
 import type { AgentActivityTurn } from './agent-activity-turns.ts';
 

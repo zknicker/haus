@@ -1,7 +1,6 @@
 import { Button, Form, Modal } from '@heroui/react';
 import type { HugeiconsIconProps } from '@hugeicons/react';
 import type { ReactNode } from 'react';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 
 // Shell for Browser connection settings.

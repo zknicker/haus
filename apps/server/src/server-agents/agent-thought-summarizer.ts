@@ -4,7 +4,6 @@ import {
     thoughtReasoningExcerptMaxLength,
     thoughtRequestMaxLength,
 } from '@haus/api';
-
 import { isHousekeepingPhrase } from './thought-housekeeping.ts';
 import { skipAnswer, thoughtCue, thoughtInstructions } from './thought-summary-prompt.ts';
 

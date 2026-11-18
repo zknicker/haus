@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { formatReminderCadence, formatViewerCadence } from './reminder-cadence.ts';
 
 const newYork = { fireAt: '2026-10-09T13:00:00.000Z', timezone: 'America/New_York' };

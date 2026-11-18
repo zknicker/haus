@@ -1,9 +1,7 @@
 import { expect, test } from 'bun:test';
-
 import { makeTelemetryLayer } from '@haus/effect';
 import { InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { ManagedRuntime } from 'effect';
-
 import { McpClientCache } from './client-cache.ts';
 import { McpUpstreamError } from './errors.ts';
 import { makeClient } from './runtime-test-fixtures.ts';

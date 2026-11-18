@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { startLoopbackProxy } from '../proxy.ts';
 
 test('artifact publishing preserves binary bytes through the authenticated Computer proxy', async () => {

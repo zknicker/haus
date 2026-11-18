@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { sanitizeComputerTelemetry } from './telemetry-payload.ts';
 import { telemetryProtobuf } from './telemetry-protobuf.ts';
 

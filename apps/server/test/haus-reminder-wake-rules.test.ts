@@ -1,8 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-
 import type { AgentCommand } from '@haus/api';
 import { eq } from 'drizzle-orm';
-
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import {

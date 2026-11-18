@@ -1,5 +1,4 @@
 import type { AgentThoughtEvent, ChatEngagement } from '@haus/api';
-
 import { isEngagedActivity } from './chat-typing-launch.ts';
 
 /** One thought bubble over the typing strip; `id` keys its enter and exit. */

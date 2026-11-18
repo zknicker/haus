@@ -1,6 +1,5 @@
 import type { AgentThoughtEvent } from '@haus/api';
 import * as React from 'react';
-
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { useChatLost } from '../realtime/use-chat-lost.ts';
 import { useSubscriptionRestart } from '../realtime/use-subscription-restart.ts';

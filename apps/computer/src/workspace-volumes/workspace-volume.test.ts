@@ -14,7 +14,6 @@ import {
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import type { WorkspaceDisk } from './disk-image.ts';
 import { ensureAgentWorkspace } from './workspace-volume.ts';
 

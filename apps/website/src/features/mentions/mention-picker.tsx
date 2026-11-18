@@ -1,6 +1,5 @@
 import { Spinner } from '@heroui/react';
 import * as React from 'react';
-
 import { cn } from '../../lib/utils.ts';
 import { getMentionAppearance, MentionAppearanceIcon } from './mention-appearance.tsx';
 import { getMentionDisplayLabel } from './mention-display-label.ts';

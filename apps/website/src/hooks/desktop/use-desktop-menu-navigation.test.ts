@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { mouseHistoryDirection } from './use-desktop-menu-navigation.ts';
 
 describe('mouseHistoryDirection', () => {

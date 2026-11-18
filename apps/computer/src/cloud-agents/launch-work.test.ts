@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { createFakeCloudAgentProvider } from './fake-provider.ts';
 import {
     receipt,

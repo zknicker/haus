@@ -2,7 +2,6 @@ import { avatarMediaTypes } from '@haus/api/avatar';
 import { Button, Description, Dropdown, Label, Tooltip } from '@heroui/react';
 import { AiMagicIcon, Camera01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-
 import type { EntityAvatarProps } from '../../components/ui/entity-avatar.tsx';
 import { EntityAvatar, identityMarkRadius } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';

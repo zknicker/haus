@@ -6,7 +6,6 @@ import {
     type HausAgentStatus,
     hausAgentVersion,
 } from '@haus/api';
-
 import { toWakePause, type WakeState } from '../agent-delivery/wake-pause.ts';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 

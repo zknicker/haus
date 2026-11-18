@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto';
-
 import type { Client, Tool } from '@modelcontextprotocol/client';
 
 export function modelToolName(connectionId: string, toolName: string) {

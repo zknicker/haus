@@ -1,12 +1,10 @@
 import { randomBytes } from 'node:crypto';
-
 import {
     manualRunnerCapability,
     type RunnerMintRequest,
     type RunnerRevokeRequest,
 } from '@haus/api';
 import { and, eq, gt, isNull } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {

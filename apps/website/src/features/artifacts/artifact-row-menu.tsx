@@ -1,7 +1,6 @@
 import type { ArtifactPublicLink } from '@haus/api';
 import { Button, Dropdown } from '@heroui/react';
 import { MoreVerticalIcon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { artifactActionItems } from './artifact-action-items.tsx';
 import { useArtifactActionsContext } from './artifact-actions-context.ts';

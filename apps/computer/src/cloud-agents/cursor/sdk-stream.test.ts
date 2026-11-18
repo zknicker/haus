@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { SDKMessage } from '@cursor/sdk';
-
 import { streamCursorRun } from './sdk-stream.ts';
 
 test('aborting an idle stream disposes its reader and joins iteration without cancelling work', async () => {

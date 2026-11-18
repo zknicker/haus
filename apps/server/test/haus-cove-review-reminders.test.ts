@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { AGENT_IDEMPOTENCY_KEY_REUSED } from '@haus/api';
-
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 
 const fixture = agentCreationFixture();

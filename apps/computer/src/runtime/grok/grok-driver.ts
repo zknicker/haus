@@ -1,9 +1,7 @@
 import { existsSync } from 'node:fs';
 import os from 'node:os';
 import { join } from 'node:path';
-
 import type { AgentReasoningEffort } from '@haus/api';
-
 import type { HostToolSet } from '../../host-tools/host-tool.ts';
 import type { HostToolServer } from '../../host-tools/mcp-server.ts';
 import type { RuntimeDriver } from '../driver.ts';

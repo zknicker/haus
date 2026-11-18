@@ -1,5 +1,4 @@
 import { type TaskState, taskStates } from '@haus/api';
-
 import type { ClaimStatus } from '../claims/claim-presentation.ts';
 
 export const taskStateOrder: readonly TaskState[] = taskStates;

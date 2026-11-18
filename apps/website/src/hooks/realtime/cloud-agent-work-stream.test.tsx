@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { getQueryKey } from '@trpc/react-query';
-
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import {
     createRealtimeHarness,

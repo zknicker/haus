@@ -1,5 +1,4 @@
 import * as z from 'zod';
-
 import { coincidentLines, describeCoincidence, seriesLineSchema } from './coincident-lines.ts';
 import { layoutFactsSource } from './layout-probe-source.ts';
 

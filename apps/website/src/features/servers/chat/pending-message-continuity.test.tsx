@@ -1,8 +1,6 @@
 import { expect, test } from 'bun:test';
-
 import type { ChatMessage } from '@haus/api';
 import { MemoryRouter } from 'react-router-dom';
-
 import {
     MessageScroller,
     MessageScrollerProvider,

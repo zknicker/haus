@@ -1,6 +1,5 @@
 import type { Agent, AgentWakePause } from '@haus/api';
 import { Alert, Button } from '@heroui/react';
-
 import { useAgentRestart } from '../../hooks/members/use-agent-restart.ts';
 import { agentWakePauseCopy } from './agent-wake-pause-model.ts';
 

@@ -1,5 +1,4 @@
 import { NavLink } from 'react-router-dom';
-
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import type { ServerSummary } from '../../lib/haus-server.tsx';
 import { cn } from '../../lib/utils.ts';

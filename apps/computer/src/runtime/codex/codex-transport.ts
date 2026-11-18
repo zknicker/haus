@@ -1,5 +1,4 @@
 import { spawn } from 'node:child_process';
-
 import { LineDecoder } from '../line-decoder.ts';
 import { ownProcessGroup } from '../process-group.ts';
 

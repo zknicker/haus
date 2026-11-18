@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import type { ComputerUpdateStep, HausUpdateView } from './haus-update-model.ts';
 import { waitForUpdateStepChange } from './wait-for-update-step.ts';
 

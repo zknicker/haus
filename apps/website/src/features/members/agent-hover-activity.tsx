@@ -1,5 +1,4 @@
 import type { AgentCurrentActivity } from '@haus/api';
-
 import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import { useOptionalCurrentAgentActivity } from '../../hooks/agents/use-current-agent-activity.tsx';
 import { useAgentActivityPreview } from '../../hooks/members/use-agent-activity-preview.ts';

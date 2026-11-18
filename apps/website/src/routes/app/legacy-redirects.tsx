@@ -1,5 +1,4 @@
 import { Navigate, useLocation, useParams } from 'react-router-dom';
-
 import { redirectRetiredRoute } from '../../features/servers/retired-routes.ts';
 import {
     agentProfileRoute,

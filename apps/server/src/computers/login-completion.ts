@@ -1,5 +1,4 @@
 import { eq } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computerLoginSessionsTable } from '../postgres/schema.ts';
 import { computerLoginError } from './login-errors.ts';

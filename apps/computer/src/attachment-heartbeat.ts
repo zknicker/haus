@@ -1,7 +1,6 @@
 import type { ComputerHeartbeatConfiguration } from '@haus/api';
 import { settle } from '@haus/effect';
 import { Effect, Exit, Queue, Scope } from 'effect';
-
 import type { DaemonRuntime } from './daemon-runtime.ts';
 
 export interface AttachmentHeartbeat {

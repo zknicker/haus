@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { BrowserCommandQueue } from './command-queue.ts';
 
 test('commands remain serial and a failure does not poison the queue', async () => {

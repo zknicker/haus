@@ -5,7 +5,6 @@ import type {
     MessageBodyKind,
     MessageCause,
 } from '@haus/api';
-
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 
 interface StoredChatMessage {

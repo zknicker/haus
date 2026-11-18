@@ -1,5 +1,4 @@
 import type { ImageGenerationUpdatedEvent } from '@haus/api';
-
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import {
     type TargetedReadCoalescer,

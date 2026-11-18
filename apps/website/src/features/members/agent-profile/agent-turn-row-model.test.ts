@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { AgentTurnOperationCount } from '@haus/api';
-
 import type { AgentActivityTurn } from './agent-activity-turns.ts';
 import { formatTurnOutcome } from './agent-turn-outcome.ts';
 import {

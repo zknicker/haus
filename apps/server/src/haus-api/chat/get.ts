@@ -1,5 +1,4 @@
 import { chatGetInputSchema, chatSchema } from '@haus/api';
-
 import { getChat } from '../../chats/get-chat.ts';
 import { chatProcedure } from './procedure.ts';
 

@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { getHighestVisibleSequence } from './chat-read-visibility.ts';
 
 test('only visible transcript entries contribute to the read sequence', () => {

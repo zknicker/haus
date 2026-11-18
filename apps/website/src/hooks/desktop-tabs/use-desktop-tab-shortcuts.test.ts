@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import type { BrowserShortcut } from '../browser/browser-shortcut-keys.ts';
 import type { DesktopTabsState } from './desktop-tabs-model.ts';
 import { app, run, split } from './desktop-tabs-test-fixtures.ts';

@@ -1,8 +1,6 @@
 import { afterAll, expect, test } from 'bun:test';
-
 import { makeTestRuntime, settle } from '@haus/effect';
 import { Effect, TestClock } from 'effect';
-
 import { createPullRequestReader } from './pull-request-reader.ts';
 
 const runtime = makeTestRuntime();

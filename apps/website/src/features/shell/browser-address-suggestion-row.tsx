@@ -1,7 +1,6 @@
 import { Description, Label, ListBox } from '@heroui/react';
 import { Globe02Icon, Search01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import type { BrowserAddressSuggestion, BrowserMatchRange } from './browser-address-suggestions.ts';
 

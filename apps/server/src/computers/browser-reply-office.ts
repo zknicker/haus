@@ -1,7 +1,6 @@
 import type { AgentCommand, BrowserRequest, BrowserResult } from '@haus/api';
 import { type EffectRuntime, settle, type TraceCarrier, tracePromise } from '@haus/effect';
 import { Deferred, Effect } from 'effect';
-
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 
 type BrowserReplyValue = NonNullable<BrowserResult['result']>;

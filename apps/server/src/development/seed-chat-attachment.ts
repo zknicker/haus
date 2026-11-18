@@ -1,7 +1,5 @@
 import { createHash } from 'node:crypto';
-
 import { and, eq, isNull } from 'drizzle-orm';
-
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';

@@ -1,10 +1,8 @@
 import { afterAll, expect, test } from 'bun:test';
-
 import type { Client as MCPClient } from '@modelcontextprotocol/client';
 import * as Cause from 'effect/Cause';
 import * as Option from 'effect/Option';
 import * as Runtime from 'effect/Runtime';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { makeServerRuntime } from '../server-runtime.ts';
 import { McpDeniedError, McpUpstreamError } from './errors.ts';

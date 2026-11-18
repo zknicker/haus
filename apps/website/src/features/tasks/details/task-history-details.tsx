@@ -1,5 +1,4 @@
 import type { TaskDetail } from '@haus/api';
-
 import { InlineCard } from '../../../components/ui/inline-card.tsx';
 import { formatDueOn, TaskAssigneeMark, TaskLabelChips } from '../task-facts.tsx';
 import { taskPriorityLabels } from '../task-presentation.ts';

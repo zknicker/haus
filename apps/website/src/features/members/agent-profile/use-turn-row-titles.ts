@@ -1,6 +1,5 @@
 import type { AgentTurnTrigger, Chat } from '@haus/api';
 import { useQueries } from '@tanstack/react-query';
-
 import { useAgentRunTrigger } from '../../../hooks/members/use-agent-run-trigger.ts';
 import { useChats } from '../../../hooks/servers/use-chats.ts';
 import { hausTrpc } from '../../../lib/haus-server.tsx';

@@ -1,6 +1,5 @@
 import { QuoteDownIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-
 import { requestChatComposerFocus } from '../../commands/chat-composer-focus.ts';
 import {
     requestChatComposerInsert,

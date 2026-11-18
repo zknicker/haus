@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { getEntityInitials } from '../../components/ui/entity-avatar.tsx';
 
 describe('turn avatar initials', () => {

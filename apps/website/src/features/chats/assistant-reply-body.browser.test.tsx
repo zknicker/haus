@@ -1,10 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
-
 import { type Browser, chromium } from '@playwright/test';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { AssistantReplyBody } from './assistant-reply-body.tsx';
 import type { TranscriptMessage } from './chat-transcript-message.tsx';
 import {

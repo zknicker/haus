@@ -6,7 +6,6 @@ import {
     artifactPathMaxLength,
 } from '@haus/api';
 import { and, eq, isNull, notInArray, sql } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { artifactsTable as artifacts, serversTable } from '../postgres/schema.ts';
 import { artifactUpdatedTopic } from '../realtime/topics.ts';

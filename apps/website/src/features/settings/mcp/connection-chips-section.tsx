@@ -1,6 +1,5 @@
 import { type McpPreset, presetChips } from '@haus/api';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-
 import { connectionChipViews } from '../../mentions/connection-chip-views.tsx';
 import { ConnectionSection } from './connection-section.tsx';
 

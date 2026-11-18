@@ -1,6 +1,5 @@
 import type { MessageRoutingAudit, MessageRoutingDebug } from '@haus/api';
 import { Chip, Popover } from '@heroui/react';
-
 import {
     isMentionScopeJudgment,
     mentionScopeChoiceLabel,

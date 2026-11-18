@@ -1,6 +1,5 @@
 import type { ArtifactMetadata } from '@haus/api';
 import { Button } from '@heroui/react';
-
 import { useArtifactSave } from '../../hooks/artifacts/use-artifact-save.ts';
 import { artifactKindLabel, formatArtifactBytes } from './artifact-format.ts';
 import { ArtifactFileIcon } from './icons/artifact-file-icon.tsx';

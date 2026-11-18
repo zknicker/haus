@@ -1,5 +1,4 @@
 import type { GithubTriggerEventName } from '@haus/api';
-
 import {
     projectCheckRun,
     projectCheckSuite,

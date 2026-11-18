@@ -1,5 +1,4 @@
 import { taskLabelMutationSchema, taskLabelUpdateInputSchema } from '@haus/api';
-
 import { publishRealtime } from '../../realtime/topic.ts';
 import { updateTaskLabel } from '../../task-labels/task-labels.ts';
 import { claimProcedure } from '../claim/procedure.ts';

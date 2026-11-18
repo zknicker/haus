@@ -2,7 +2,6 @@ import { afterAll, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { startHostToolServer } from '../../host-tools/mcp-server.ts';
 import { ClaudeConnection } from './claude-connection.ts';
 import { resolveClaudeCredentials } from './claude-credentials.ts';

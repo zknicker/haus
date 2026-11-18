@@ -1,6 +1,5 @@
 import { ChatSource, ChatSources } from '@heroui-pro/react';
 import type { ReactNode } from 'react';
-
 import { buildDiffHunks, countDiffStats } from '../../components/diff/diff-hunks.ts';
 import { DiffStatBadge, DiffView } from '../../components/diff/diff-view.tsx';
 import { codeLanguageForPath } from '../../lib/code-language.ts';

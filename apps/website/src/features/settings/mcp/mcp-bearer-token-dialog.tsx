@@ -11,7 +11,6 @@ import {
     toast,
 } from '@heroui/react';
 import { useState } from 'react';
-
 import { openSystemBrowserLink } from '../../../lib/open-external-link.ts';
 import { ConnectionGlyph } from './connection-mark.tsx';
 

@@ -1,6 +1,5 @@
 import { formatImageGenerationLink } from '@haus/api';
 import { and, asc, eq, isNotNull, isNull, or } from 'drizzle-orm';
-
 import { enqueueInboxItem, ensureDeliveryState } from '../agent-delivery/store.ts';
 import { linkParentChatsTable } from '../cloud-agents/cloud-agent-work-visibility.ts';
 import type { HausDatabase } from '../postgres/connection.ts';

@@ -1,7 +1,6 @@
 import type { TaskCreatedEvent, TaskDetail } from '@haus/api';
 import { type QueryClient, useQueryClient } from '@tanstack/react-query';
 import { getQueryKey } from '@trpc/react-query';
-
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import {
     type TargetedReadCoalescer,

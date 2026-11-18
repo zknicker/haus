@@ -1,6 +1,5 @@
 import type { AgentTokenUsage } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentRunTriggersTable, reminderFiresTable } from '../postgres/schema.ts';
 

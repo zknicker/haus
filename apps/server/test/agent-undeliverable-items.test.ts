@@ -1,8 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import type { AgentCommand } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-
 import { clearStartRejectedHolds } from '../src/agent-delivery/failure-hold.ts';
 import { settleTurn } from '../src/agent-delivery/settle-turn.ts';
 import { enqueueInboxItem } from '../src/agent-delivery/store.ts';

@@ -1,6 +1,5 @@
 import type { MessageBodyKind } from '@haus/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
-
 import { followAgentTask } from '../agent-api/attention.ts';
 import { resolveAgentSendTarget } from '../agent-api/resolve-send-target.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';

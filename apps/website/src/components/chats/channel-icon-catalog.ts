@@ -1,7 +1,6 @@
 import { HashtagIcon } from '@hugeicons-pro/core-solid-rounded';
 import type { IconSvgElement } from '@hugeicons/react';
 import * as React from 'react';
-
 import type { ChannelIconEntry } from './channel-icon-catalog.generated.ts';
 
 export type { ChannelIconEntry };

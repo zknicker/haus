@@ -1,6 +1,5 @@
 import type { ReactNode, Ref } from 'react';
 import { useFocusWithin } from 'react-aria';
-
 import { UnreadCountChip } from '../../../components/chats/unread-count-chip.tsx';
 import type { ChatMessageJumpTarget } from '../../../hooks/servers/use-chat-message-navigation.ts';
 import type { ChatComposerHandle } from '../chat/chat-composer.tsx';

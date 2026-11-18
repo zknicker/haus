@@ -1,5 +1,4 @@
 import { TRPCError } from '@trpc/server';
-
 import { RealtimeRefusalError } from '../../realtime/refusal.ts';
 import { ServerSlugTakenError } from '../../servers/create-server.ts';
 import { ServerDeleteDeniedError } from '../../servers/delete-server.ts';

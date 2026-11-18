@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-
 import { assignLanes, readTiming, spanTimings, type TurnTraceTiming } from './turn-trace-timing.ts';
 
 const origin = Date.parse('2026-10-06T17:44:00.000Z');

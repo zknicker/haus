@@ -1,5 +1,4 @@
 import type { Agent } from '@haus/api';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { queryAgents } from './query-agents.ts';

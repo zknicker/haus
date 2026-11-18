@@ -1,5 +1,4 @@
 import { reminderListInputSchema, reminderListSchema } from '@haus/api';
-
 import { listOperatorReminders } from '../../reminders/operator-reminders.ts';
 import { reminderProcedure } from './procedure.ts';
 

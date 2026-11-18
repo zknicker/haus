@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { browserSaveInput } from './use-browser-save.ts';
 
 test('Browser saves retain the selected Server and Computer route', () => {

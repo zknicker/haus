@@ -1,5 +1,4 @@
 import { eq } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { githubDeliveryCursorTable } from '../postgres/schema.ts';
 

@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { createUsageFailureReporter, type UsageFailure } from './usage-failure.ts';
 
 test('an unchanged provider failure is logged once, not once per read', () => {

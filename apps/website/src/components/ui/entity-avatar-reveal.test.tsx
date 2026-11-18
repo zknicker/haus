@@ -1,7 +1,5 @@
 import { afterAll, expect, test } from 'bun:test';
-
 import * as React from 'react';
-
 import { installFakeDom } from '../../test-support/fake-dom.ts';
 import { createRenderCensus } from '../../test-support/render-census.tsx';
 

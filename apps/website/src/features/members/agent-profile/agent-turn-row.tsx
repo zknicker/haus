@@ -1,6 +1,5 @@
 import { Spinner } from '@heroui/react';
 import { AlertCircleIcon, StopCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { formatShortTime } from '../../../lib/format.ts';

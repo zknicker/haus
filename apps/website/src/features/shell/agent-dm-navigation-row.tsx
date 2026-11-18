@@ -1,7 +1,6 @@
 import { Sidebar } from '@heroui-pro/react';
 import { mergeRefs } from '@react-aria/utils';
 import * as React from 'react';
-
 import { UnreadCountChip } from '../../components/chats/unread-count-chip.tsx';
 import { useAgentMark } from '../../hooks/members/use-agents.ts';
 import { usePreloadAgentRecord } from '../../hooks/members/use-preload-agent-profile.ts';

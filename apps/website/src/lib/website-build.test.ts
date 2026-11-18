@@ -2,9 +2,7 @@ import { expect, test } from 'bun:test';
 import { mkdtemp, readdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import { build } from 'vite';
-
 import { appBuildPlugin } from '../../vite-app-build.ts';
 
 test('each website build ships the same unique marker in its renderer and manifest', async () => {

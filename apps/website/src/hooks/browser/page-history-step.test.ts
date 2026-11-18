@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { newTabLocation, type TabHistory } from '../desktop-tabs/desktop-tabs-model.ts';
 import { web } from '../desktop-tabs/desktop-tabs-test-fixtures.ts';
 import { pageHistoryStep } from './page-history-step.ts';

@@ -1,5 +1,4 @@
 import { Separator } from '@heroui/react';
-
 import { MicroLabel } from '../../components/micro-label.tsx';
 import { cn } from '../../lib/utils.ts';
 import { formatTraceDuration } from './turn-trace-duration.ts';

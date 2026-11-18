@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { ClaudeBackgroundTasks } from './claude-background.ts';
 import type { ClaudeSystemMessage } from './claude-messages.ts';
 

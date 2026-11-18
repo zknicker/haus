@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { resolveCloudAgentRunModel } from './cloud-agent-model-choice.ts';
 import {
     cloudAgentModelCatalogSchema,

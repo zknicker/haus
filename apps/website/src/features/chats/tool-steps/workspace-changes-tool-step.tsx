@@ -1,5 +1,4 @@
 import { FileEditIcon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { getToolTarget, InlineToolLabel, ToolTimelineStep } from './tool-summary.tsx';
 import type { ToolStepRendererProps } from './types.ts';
 

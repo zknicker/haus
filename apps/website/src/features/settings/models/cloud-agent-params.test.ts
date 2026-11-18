@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { CloudAgentModel } from '@haus/api';
-
 import { cloudAgentModelParamsView, settingWithParam } from './cloud-agent-params.ts';
 
 const opus: CloudAgentModel = {

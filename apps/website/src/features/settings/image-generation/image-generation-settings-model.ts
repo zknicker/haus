@@ -3,7 +3,6 @@ import type {
     ImageGenerationProvider,
     ImageGenerationProviderStatus,
 } from '@haus/api';
-
 import { formatImageGenerationCost } from '../../image-generation/image-generation-presentation.ts';
 
 export const providerNames: Record<ImageGenerationProvider, string> = {

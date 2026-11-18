@@ -1,7 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-
 import type { MessageCreatedEvent } from '@haus/api';
-
 import {
     createRealtimeHarness,
     installRealtimeTestDom,

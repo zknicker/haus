@@ -1,7 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-
 import { formatCloudAgentWorkLink } from '@haus/api';
-
 import { applyCloudAgentWorkLinks } from './cloud-agent-work-links.ts';
 
 const seen = 'caw_seenseenseenseen';

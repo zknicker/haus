@@ -1,6 +1,5 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-
 import {
     type AgentRuntimeBrowserSettings,
     type AgentRuntimeSaveBrowserSettings,
@@ -10,7 +9,6 @@ import {
 } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
 import * as z from 'zod';
-
 import { discoverBrowsers } from './discovery.ts';
 import { getBrowserService, reconcileBrowserService } from './service.ts';
 

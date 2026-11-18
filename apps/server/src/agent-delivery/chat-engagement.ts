@@ -1,6 +1,5 @@
 import type { ChatEngagement } from '@haus/api';
 import { and, desc, eq, isNotNull, type SQL, sql } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentDeliveryTable,

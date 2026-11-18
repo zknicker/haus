@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import { MessageScrollerContent } from '../../components/chats/message-scroller.tsx';
 import { buildTranscriptEntries, type TranscriptRow } from './chat-transcript-model.ts';
 import {

@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto';
-
 import type { ReminderFireOutcome } from '../postgres/schema/reminders.ts';
 
 export interface ReminderWakeState {

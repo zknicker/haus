@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { createNoticeCoordinator } from './stored-notice.ts';
 
 test('a notice waits until every in-flight tool call has resolved', async () => {

@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import type { ClaudeConnection, TurnSink } from './claude-connection.ts';
 import { type ParsedClaudeLine, parseClaudeLine } from './claude-messages.ts';
 import { ClaudeTurn } from './claude-turn.ts';

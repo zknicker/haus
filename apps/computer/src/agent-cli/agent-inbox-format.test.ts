@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { formatInboxCheck, type InboxCheckInput } from './agent-inbox-format.ts';
 import type { AgentInboxConversations, AgentInboxPendingRow } from './agent-inbox-schemas.ts';
 

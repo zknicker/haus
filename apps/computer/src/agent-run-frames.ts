@@ -1,6 +1,5 @@
 import type { AgentThoughtContent, AgentTurnActivitySummary } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
-
 import { AgentActivityRun } from './agent-activity-run.ts';
 import type { ComputerAgentActivityUpdate } from './agent-activity.ts';
 import { createAgentThoughtNarrator } from './harness/thought-narrator.ts';

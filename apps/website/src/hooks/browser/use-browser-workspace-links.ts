@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import { clickTabId } from '../../features/shell/desktop-open-clicks.ts';
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import { type OpenGesture, openIntentFromEvent } from '../desktop-tabs/tab-open-gesture.ts';

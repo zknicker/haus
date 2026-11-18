@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import { agentHtmlTokenCss, injectHostTokenStyle } from '../agent-html/tokens.ts';
 
 describe('host token injection', () => {

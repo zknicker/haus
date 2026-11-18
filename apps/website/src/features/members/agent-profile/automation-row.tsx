@@ -1,6 +1,5 @@
 import { ItemCard, PressableFeedback } from '@heroui-pro/react';
 import { Chip } from '@heroui/react';
-
 import {
     AutomationKeycapFace,
     type AutomationKeycapMark,

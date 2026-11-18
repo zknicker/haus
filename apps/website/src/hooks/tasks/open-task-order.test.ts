@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { Task } from '@haus/api';
-
 import { openTaskIds } from './open-task-order.ts';
 
 const task = (id: string, key: string, state: Task['state'], createdAt: string) =>

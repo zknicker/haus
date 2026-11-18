@@ -8,7 +8,6 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Dialog, Modal, ModalOverlay } from 'react-aria-components';
-
 import { cn } from '../../lib/utils.ts';
 import { Icon } from '../ui/icon.tsx';
 import { type ImageSize, useLightboxZoom } from './image-lightbox-zoom.ts';

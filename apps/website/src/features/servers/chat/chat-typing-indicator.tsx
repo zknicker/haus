@@ -1,7 +1,6 @@
 import { ChatLoader } from '@heroui-pro/react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import * as React from 'react';
-
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { useAgentActivityListener } from '../../../hooks/agents/use-current-agent-activity.tsx';
 import { useTabPresence } from '../../../hooks/desktop-tabs/tab-presence.ts';

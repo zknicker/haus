@@ -9,7 +9,6 @@ import {
     timestamp,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
-
 import { usersTable } from './users.ts';
 
 export type ComputerLoginGrantStatus = 'approved' | 'consumed' | 'denied' | 'expired' | 'pending';

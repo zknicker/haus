@@ -1,6 +1,5 @@
 import { expect, test } from 'bun:test';
 import { readFile } from 'node:fs/promises';
-
 import { releaseTagArgs } from './release-publication.mjs';
 
 test('Server publisher consumes prebuilt App artifacts without publishing desktop', async () => {

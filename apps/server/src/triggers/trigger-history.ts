@@ -1,6 +1,5 @@
 import type { TriggerHistoryEntry } from '@haus/api';
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     chatMessagesTable,

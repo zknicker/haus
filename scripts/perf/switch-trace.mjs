@@ -15,7 +15,6 @@
 //   --out <file>         raw trace/profile (default .perf/switch-<mode>.json|.cpuprofile)
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-
 import {
     captureAuth,
     defaultBase,

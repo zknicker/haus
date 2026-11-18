@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { runReminderSchedule } from './agent-reminder.ts';
 import { absoluteReminderFireAt, reminderScheduleTime } from './reminder-schedule-time.ts';
 

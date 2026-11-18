@@ -1,5 +1,4 @@
 import { canonicalIanaTimezone } from '@haus/api';
-
 import {
     isValidReminderTimezone,
     nextReminderFireAt,

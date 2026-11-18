@@ -3,7 +3,6 @@ import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-
 import { visualsSkillId } from '../../../packages/agent-workspace/src/index.ts';
 import { overrideVisualsSkill } from './skill-override.mjs';
 

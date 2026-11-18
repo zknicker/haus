@@ -2,7 +2,6 @@ import { ItemCard } from '@heroui-pro/react';
 import { Button, Chip, Tooltip } from '@heroui/react';
 import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type React from 'react';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useConnections } from '../../../hooks/servers/use-connections.ts';

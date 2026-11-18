@@ -1,6 +1,5 @@
 import { Button, Form, Modal } from '@heroui/react';
 import { Link01Icon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { JoinServerFields, useJoinServerForm } from './join-server-form.tsx';
 

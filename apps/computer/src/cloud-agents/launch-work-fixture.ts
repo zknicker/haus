@@ -3,9 +3,7 @@ import { afterEach, beforeEach } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
 import type { CloudAgentObservation, CloudAgentReconcileEntry } from '@haus/api';
-
 import type { createFakeCloudAgentProvider } from './fake-provider.ts';
 import { setCloudAgentProvider } from './registry.ts';
 

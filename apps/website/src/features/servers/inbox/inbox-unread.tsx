@@ -1,7 +1,6 @@
 import type { Chat } from '@haus/api';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-
 import { tabStayState } from '../../../hooks/desktop-tabs/tab-navigation.ts';
 import {
     useFollowedTaskPreviews,

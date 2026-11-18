@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import { renderToStaticMarkup } from 'react-dom/server';
-
 import { FileCodeView } from './file-code-view.tsx';
 
 const path = 'notes/app.ts';

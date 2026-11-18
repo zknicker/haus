@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
 import type { ChatMessage } from '@haus/api';
-
 import { buildTranscriptEntries, getItemRunId } from '../../chats/chat-transcript-model.ts';
 import { projectChatMessages } from './chat-message-model.ts';
 

@@ -2,7 +2,6 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-
 import { mkUniqueResultsDir, stampFor } from './paths.mjs';
 
 const roots: string[] = [];

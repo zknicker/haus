@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import { useDesktopPaneDivider } from './desktop-pane-drag.ts';
 
 /**

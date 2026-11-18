@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { renderAgentInstructions } from '../../../apps/computer/src/harness/managed-instructions.ts';
 import { visualsPointer } from './instructions.mjs';
 

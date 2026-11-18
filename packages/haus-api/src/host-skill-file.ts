@@ -1,5 +1,4 @@
 import { z } from 'zod';
-
 import { idSchema } from './chat.ts';
 
 /** Largest host `SKILL.md` the relay carries; matches the Agent skill file cap. */

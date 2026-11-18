@@ -1,6 +1,5 @@
 import type { TaskActor } from '@haus/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
-
 import { openAgentChatRead } from '../agent-reads/agent-chat-reads.ts';
 import { visibleChats } from '../chats/chat-visibility.ts';
 import { mentionedAgentIds } from '../chats/reply-subscriptions.ts';

@@ -1,8 +1,6 @@
 import { afterEach, expect, test } from 'bun:test';
-
 import { makeTestRuntime } from '@haus/effect';
 import { Runtime } from 'effect';
-
 import { AttachmentWriteCoordinator } from './attachment-write-coordinator.ts';
 
 const runtimes: ReturnType<typeof makeTestRuntime>[] = [];

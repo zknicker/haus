@@ -1,5 +1,4 @@
 import { useId } from 'react';
-
 import { builtInSkillIcon } from './built-in-skill-icons.tsx';
 
 /**

@@ -1,7 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-
 import { agentImageGenerationCreateInputSchema } from '@haus/api';
-
 import { costOfImageGeneration } from './image-generation-cost.ts';
 import { findImageGenerationModel } from './image-generation-registry.ts';
 import { resolveImageGenerationRequest } from './image-generation-request.ts';

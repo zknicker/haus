@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import type { DesktopTabsState } from './desktop-tabs-model.ts';
 import type { DesktopTabsStore } from './desktop-tabs-store.ts';
 import { browserTabStore, writeWindowTabs } from './desktop-tabs-window-store.ts';

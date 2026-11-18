@@ -8,7 +8,6 @@
 //   --json <file>  also write the computed stats as JSON.
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-
 import { lastChange, maxOf, stats } from './stats.mjs';
 
 const argv = process.argv.slice(2);

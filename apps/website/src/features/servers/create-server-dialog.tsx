@@ -1,6 +1,5 @@
 import { Button, Form, Modal } from '@heroui/react';
 import { ServerStack01Icon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { Icon } from '../../components/ui/icon.tsx';
 import { CreateServerFields, useCreateServerForm } from './create-server-form.tsx';
 

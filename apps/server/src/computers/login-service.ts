@@ -1,7 +1,5 @@
 import { randomBytes, randomInt } from 'node:crypto';
-
 import { and, eq } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {

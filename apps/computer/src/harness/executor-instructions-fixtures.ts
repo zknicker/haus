@@ -1,6 +1,5 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import type { HarnessTurnInput } from './executor.ts';

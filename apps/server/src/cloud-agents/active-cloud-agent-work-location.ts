@@ -1,6 +1,5 @@
 import type { ActiveCloudAgentWorkLocation } from '@haus/api';
 import { and, desc, eq, inArray } from 'drizzle-orm';
-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable, cloudAgentWorkLinksTable } from '../postgres/schema.ts';
 import { linkChatVisibleSql, linkParentChatsTable } from './cloud-agent-work-visibility.ts';

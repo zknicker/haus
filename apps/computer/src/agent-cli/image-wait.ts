@@ -1,7 +1,5 @@
 import path from 'node:path';
-
 import { agentImageGenerationGetReceiptSchema, type ImageGeneration } from '@haus/api';
-
 import { AgentApiTransportError } from './agent-api-client.ts';
 import { agentAttachmentViewResponseSchema } from './agent-api-schemas.ts';
 import { AgentCliError } from './agent-error.ts';

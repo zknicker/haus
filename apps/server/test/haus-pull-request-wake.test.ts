@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { buildInboxItems } from '../src/agent-delivery/inbox-items.ts';
 import { listInboxItemsByDedupeKeys } from '../src/agent-delivery/store.ts';

@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-
 import { checkThoughtPhrase, opensWithI, thoughtRepeat } from './thought-eval-checks.ts';
 
 test('flags the spot-tested bad lines', () => {

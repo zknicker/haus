@@ -1,6 +1,5 @@
 import { Drawer } from '@heroui/react';
 import type * as React from 'react';
-
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useAgentTurnActivityHistory } from '../../hooks/members/use-agent-activity-history.ts';
 import { useAgentTurn } from '../../hooks/members/use-agent-turns.ts';

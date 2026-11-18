@@ -1,7 +1,6 @@
 import { ItemCard, PressableFeedback } from '@heroui-pro/react';
 import { Chip } from '@heroui/react';
 import type * as React from 'react';
-
 import { Icon } from '../../../components/ui/icon.tsx';
 
 export interface HubCardStatus {

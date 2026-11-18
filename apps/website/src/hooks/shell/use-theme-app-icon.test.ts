@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-
 import type { AppIcon } from '../../lib/color-themes.ts';
 import { colorThemeDefinition } from '../../lib/color-themes.ts';
 import {

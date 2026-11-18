@@ -1,6 +1,5 @@
 import type { AgentExecutionJournalReasoning } from '@haus/api';
 import { BrainIcon } from '@hugeicons-pro/core-stroke-rounded';
-
 import { parseThinkingSummary } from '../chats/chat-transcript-system-step.tsx';
 import { messagePreviewLine } from '../chats/message-preview-line.ts';
 import { ReferenceMarkdown } from '../mentions/reference-markdown.tsx';

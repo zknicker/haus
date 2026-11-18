@@ -1,7 +1,6 @@
 import type { ComputerManagementCommand, ComputerSystemEvent } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import { check, foreignKey, index, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
-
 import { computersTable } from './computers.ts';
 import { serversTable } from './servers.ts';
 

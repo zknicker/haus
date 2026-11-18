@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';
 import type { MentionAppearance } from './mention-appearance.tsx';
 import {

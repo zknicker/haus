@@ -1,5 +1,4 @@
 import * as React from 'react';
-
 import type { UploadSource } from './upload-plan.ts';
 import { dropUploadSources } from './upload-sources.ts';
 

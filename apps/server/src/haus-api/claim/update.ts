@@ -1,5 +1,4 @@
 import { claimMutationSchema, claimUpdateInputSchema } from '@haus/api';
-
 import { updateClaim } from '../../claims/update-claim.ts';
 import { publishRealtime } from '../../realtime/topic.ts';
 import { claimProcedure } from './procedure.ts';

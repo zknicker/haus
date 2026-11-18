@@ -1,5 +1,4 @@
 import { expect, spyOn, test } from 'bun:test';
-
 import { type WarmProcess, WarmProcessPool } from './warm-pool.ts';
 
 class FakeProcess implements WarmProcess {

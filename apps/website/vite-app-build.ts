@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-
 import type { Plugin } from 'vite';
 
 /** The marker and renderer are emitted together, independent of release publication. */

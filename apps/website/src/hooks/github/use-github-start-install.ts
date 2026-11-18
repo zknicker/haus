@@ -1,6 +1,5 @@
 import { toast } from '@heroui/react';
 import * as React from 'react';
-
 import { hausTrpc } from '../../lib/haus-server.tsx';
 
 /**

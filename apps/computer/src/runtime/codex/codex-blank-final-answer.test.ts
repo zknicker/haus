@@ -1,6 +1,5 @@
 // Ported from botiverse/raft-source packages/daemon/src/drivers/codexBlankFinalAnswer.contract.test.ts (FSL-1.1-ALv2)
 import { describe, expect, test } from 'bun:test';
-
 import type { TurnEvent } from '../turn-event.ts';
 import {
     emitTurn,
