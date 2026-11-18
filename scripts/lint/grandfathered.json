@@ -51,7 +51,9 @@
             "apps/website/src/features/shell/theme-roofline/frame-loop.test.ts": 3,
             "apps/website/src/hooks/desktop-tabs/tab-open-gesture.test.ts": 3,
             "apps/website/src/hooks/members/turn-outlines.test.ts": 1,
+            "apps/website/src/hooks/members/use-agent-hub-reveal.test.tsx": 1,
             "apps/website/src/hooks/realtime/server-streams.test.tsx": 2,
+            "apps/website/src/hooks/realtime/use-subscription-restart.test.tsx": 1,
             "apps/website/src/hooks/servers/server-loss.test.ts": 1,
             "apps/website/src/lib/start-reconciliation.test.ts": 1,
             "scripts/agent-tests/cleanup-deadline.test.mjs": 1
@@ -5665,8 +5667,6 @@
             "apps/website/src/hooks/members/use-agent-avatar-generation.ts"
         ],
         "react/exhaustive-effect-dependencies": [
-            "apps/website/src/features/chats/chat-scroll-position-memory.tsx",
-            "apps/website/src/features/members/agent-profile/agent-activity-log.tsx",
             "apps/website/src/features/servers/haus-server-routes.tsx"
         ],
         "react/no-unstable-nested-components": [

@@ -68,10 +68,11 @@ Rules that keep runs cheap and honest:
   `bun scripts/lint/grandfather.ts`, which only shrinks it) and
   `scripts/source-size-policy.json`; line-count debt may not grow, and a
   grandfathered complexity ceiling only falls. The landmines rules
-  (`scripts/lint/landmines.mts`) keep new code free of prose comments,
-  explicit return types, test doubles, fixed sleeps and flake masking; files
-  that broke them at adoption are listed in the same file, so a new file is
-  clean from the start. Named
+  (Ultracite's `ultracite/oxlint/landmines` preset, with the repo's rule
+  options and path exemptions in `scripts/lint/landmines.mts`) keep new code
+  free of prose comments, explicit return types, test doubles, fixed sleeps
+  and flake masking; files that broke them at adoption are listed in
+  `grandfathered.json`, so a new file is clean from the start. Named
   exceptions are for declarative corpora or generated sources, require a
   reason, and retain a concrete ceiling. Do not add a blanket directory or
   file-type exemption.

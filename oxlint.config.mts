@@ -1,11 +1,12 @@
 import { defineConfig } from 'oxlint';
 import core from 'ultracite/oxlint/core';
+import landmines from 'ultracite/oxlint/landmines';
 import react from 'ultracite/oxlint/react';
 import { grandfatherOverrides } from './scripts/lint/grandfathered-overrides.mts';
-import { landminesOverrides, landminesPlugins, landminesRules } from './scripts/lint/landmines.mts';
+import { landminesOverrides, landminesRules } from './scripts/lint/landmines.mts';
 
 export default defineConfig({
-    extends: [core, react],
+    extends: [core, react, landmines],
     env: { ...core.env, node: true },
     globals: { Bun: 'readonly' },
     ignorePatterns: [
@@ -21,7 +22,7 @@ export default defineConfig({
     ],
     jsPlugins: [
         { name: 'haus', specifier: './scripts/lint/haus-rules/plugin.mjs' },
-        ...landminesPlugins,
+        ...landmines.jsPlugins,
     ],
     rules: {
         ...landminesRules,

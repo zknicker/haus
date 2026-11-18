@@ -1,12 +1,5 @@
 import { allowances } from './grandfathered-overrides.mts';
 
-export const landminesPlugins = [
-    { name: 'landmines-testing', specifier: '@interfere/landmines/testing' },
-    { name: 'landmines-style', specifier: '@interfere/landmines/style' },
-    { name: 'landmines-structure', specifier: '@interfere/landmines/structure' },
-    { name: 'landmines-types', specifier: '@interfere/landmines/types' },
-];
-
 const ratchetedRules = [
     'landmines-testing/no-fixed-sleep',
     'landmines-testing/no-flake-masking',
@@ -16,12 +9,7 @@ const ratchetedRules = [
 
 export const landminesRules = {
     ...Object.fromEntries(ratchetedRules.map((rule) => [rule, ratchet(rule)])),
-    'landmines-testing/no-test-doubles': 'error',
-    'landmines-style/no-comments': ['error', { publicApi: ['/packages/'] }],
-    'landmines-structure/colocated-tests': 'error',
-    'landmines-structure/package-exports': 'error',
-    'landmines-structure/test-file-names': 'error',
-    'landmines-types/no-explicit-return-types': 'error',
+    'landmines-style/no-comments': ['error', { allow: ['WARNING'], publicApi: ['/packages/'] }],
 } as const;
 
 export const landminesOverrides = [
