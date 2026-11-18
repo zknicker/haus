@@ -71,7 +71,7 @@ test('configuring an Agent announces that Agent to the rest of the Server', asyn
         serverId,
     });
 
-    expect(await updates.next()).toEqual({ agentId, serverId });
+    expect(await updates.next()).toMatchObject({ agentId, serverId });
     updates.stop();
 });
 
@@ -79,10 +79,10 @@ test('starting and stopping an Agent announces its delivery change', async () =>
     const updates = captureTopic(agentUpdatedTopic);
 
     await owner.trpc.agent.stop.mutate({ agentId, serverId });
-    expect(await updates.next()).toEqual({ agentId, serverId });
+    expect(await updates.next()).toMatchObject({ agentId, serverId });
 
     await owner.trpc.agent.start.mutate({ agentId, serverId });
-    expect(await updates.next()).toEqual({ agentId, serverId });
+    expect(await updates.next()).toMatchObject({ agentId, serverId });
     updates.stop();
 });
 

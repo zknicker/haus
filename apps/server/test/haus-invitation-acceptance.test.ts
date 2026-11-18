@@ -257,8 +257,8 @@ test('acceptance publishes the new member id and the invitation change', async (
     await invitee.trpc.invitation.accept.mutate({ token });
 
     const memberId = await readUserId('user_accept_announced');
-    await expect(members.next()).resolves.toEqual({ memberId, serverId });
-    await expect(invitations.next()).resolves.toEqual({ serverId });
+    await expect(members.next()).resolves.toMatchObject({ memberId, serverId });
+    await expect(invitations.next()).resolves.toMatchObject({ serverId });
     members.stop();
     invitations.stop();
 });

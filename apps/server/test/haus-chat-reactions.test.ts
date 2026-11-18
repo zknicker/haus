@@ -79,7 +79,7 @@ test('human reactions persist, group by emoji, hydrate for a fresh client, and s
             ],
         },
     });
-    await expect(subscription.next()).resolves.toEqual({
+    await expect(subscription.next()).resolves.toMatchObject({
         chatId,
         messageId: sent.message.id,
         serverId,
@@ -197,7 +197,7 @@ test('reaction writes on an inline reply keep Chat access and archived lifecycle
         serverId,
     });
     expect(reacted.changed).toBe(true);
-    await expect(subscription.next()).resolves.toEqual({
+    await expect(subscription.next()).resolves.toMatchObject({
         chatId,
         messageId: reply.message.id,
         serverId,

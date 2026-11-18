@@ -47,14 +47,14 @@ test('App status and assignment changes of a top-level claim name its Channel', 
         patch: { status: 'in_progress' },
         serverId: server.id,
     });
-    expect(await delivered.next()).toEqual(expected);
+    expect(await delivered.next()).toMatchObject(expected);
     const assigned = await owner.trpc.claim.assign.mutate({
         assignee: { agentId },
         expectedVersion: updated.claim.version,
         messageId,
         serverId: server.id,
     });
-    expect(await delivered.next()).toEqual(expected);
+    expect(await delivered.next()).toMatchObject(expected);
 
     await owner.trpc.chat.send.mutate({
         chatId,

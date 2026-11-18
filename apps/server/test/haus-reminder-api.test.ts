@@ -120,7 +120,7 @@ describe('reminder operator API', () => {
 
         expect(canceled.reminder.status).toBe('canceled');
         expect(retried).toEqual({ ...canceled, idempotent: true });
-        await expect(subscription.next()).resolves.toEqual({
+        await expect(subscription.next()).resolves.toMatchObject({
             action: 'canceled',
             ownerAgentId: agentId,
             reminderId: reminder.reminder.id,

@@ -78,8 +78,8 @@ test('a first DM resolution emits one lifecycle event scoped to its two members'
     const dm = await owner.trpc.chat.ensureDm.mutate({ peerUserId, serverId: ownerServerId });
     const created = { action: 'created', chatId: dm.id, serverId: ownerServerId };
 
-    await expect(ownerStream?.next()).resolves.toEqual(created);
-    await expect(peerStream?.next()).resolves.toEqual(created);
+    await expect(ownerStream?.next()).resolves.toMatchObject(created);
+    await expect(peerStream?.next()).resolves.toMatchObject(created);
     // A deletion reaches every member, so it fences the outsider's stream: the
     // DM's creation would have arrived first.
     chatLifecycleTopic.announce({

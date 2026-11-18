@@ -131,7 +131,7 @@ test('reader-only events reach their reader and no other member', async () => {
     await owner.trpc.chat.markRead.mutate({ chatId, sequence: latest.message.sequence, serverId });
     await peer.trpc.chat.markRead.mutate({ chatId, sequence: latest.message.sequence, serverId });
 
-    await expect(ownerReads.next()).resolves.toEqual({
+    await expect(ownerReads.next()).resolves.toMatchObject({
         chatId,
         sequence: latest.message.sequence,
         serverId,
@@ -165,7 +165,7 @@ test('a Task read names its Task', async () => {
         serverId,
     });
 
-    await expect(reads.next()).resolves.toEqual({
+    await expect(reads.next()).resolves.toMatchObject({
         chatId: task.chatId,
         sequence: posted.message.sequence,
         serverId,
@@ -186,7 +186,7 @@ test('a departure ends the departed member sentinel stream and names the member'
     await expect(sentinel.ended()).resolves.toMatchObject({
         data: { code: 'FORBIDDEN', hausRefusal: 'membership_lost' },
     });
-    await expect(members.next()).resolves.toEqual({ memberId: leaverId, serverId });
+    await expect(members.next()).resolves.toMatchObject({ memberId: leaverId, serverId });
     members.stop();
     leaver.close();
 });

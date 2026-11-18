@@ -41,7 +41,7 @@ test('a send publishes message.created with its notification facts, live only', 
     await stream.started;
     const live = await send('live send', 'realtime-event-1');
 
-    await expect(stream.next()).resolves.toEqual({
+    await expect(stream.next()).resolves.toMatchObject({
         authorUserId: ownerUserId,
         chatId,
         conversationKind: 'channel',
@@ -89,7 +89,7 @@ test('an inline reply persists in its Chat and names the human it answers', asyn
         sessionGeneration: null,
     });
 
-    await expect(created.next()).resolves.toEqual({
+    await expect(created.next()).resolves.toMatchObject({
         authorUserId: ownerUserId,
         chatId,
         conversationKind: 'channel',

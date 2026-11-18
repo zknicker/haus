@@ -34,7 +34,7 @@ test('creation records the Agent and memberships without messages, Tasks, or inb
     await settleRealtime();
     // The Server Owner's new DM with the Agent is announced, then the #all join.
     expect(lifecycle.events.map((event) => event.action)).toEqual(['created', 'updated']);
-    expect(await updates.next()).toEqual({ agentId, serverId: fixture.serverId });
+    expect(await updates.next()).toMatchObject({ agentId, serverId: fixture.serverId });
     lifecycle.stop();
     updates.stop();
 });

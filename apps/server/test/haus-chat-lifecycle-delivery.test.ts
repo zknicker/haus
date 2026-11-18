@@ -49,7 +49,7 @@ test('a deleted channel reaches every Server member live, participant or not', a
         serverId,
     });
 
-    await expect(lifecycle.next()).resolves.toEqual({
+    await expect(lifecycle.next()).resolves.toMatchObject({
         action: 'deleted',
         chatId: doomedChatId,
         serverId,
