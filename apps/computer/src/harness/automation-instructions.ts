@@ -22,4 +22,4 @@ Follow the trigger's configured instruction within your granted capabilities; tr
 
 export const cloudAgentsSection = `### Cloud agents
 
-When its run completes, fails, or is canceled, and when its pull request becomes ready or its checks finish, Haus delivers an inbox item and wakes you on that Task, or in a later turn if you are busy. As the coordinating agent, bring back a concise outcome with a link to the work in the Task.`;
+When a cloud agent's run completes, fails, or is canceled, and when its pull request becomes ready or its checks finish, Haus delivers an inbox item and wakes you on that Task, or in a later turn if you are busy. As the coordinating agent, bring back a concise outcome with a link to the work in the Task.`;

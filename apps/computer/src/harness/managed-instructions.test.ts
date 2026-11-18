@@ -224,7 +224,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // terse imperative rules, merged not appended, after live Agents wrote verbose preferences.
     // Lowered (37,338 → 37,035) when the Haus-only `## Web access` section went: Agents get their runtime's native web tools with no gate and no prompt text, as in Raft.
     // Lowered by exactly 704 (38,457 → 37,753) by the owner-approved Tasks rewrite: a deliberate shrink, not room-making.
-    expect(prompt.length).toBeLessThanOrEqual(37_753);
+    // Raised by exactly 12 (37,753 → 37,765) when the Cloud agents sentence named "a cloud agent's run" for "its run".
+    expect(prompt.length).toBeLessThanOrEqual(37_765);
     expect(prompt.toLowerCase()).not.toContain('thread');
 });
 
