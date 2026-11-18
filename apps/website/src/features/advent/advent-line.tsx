@@ -5,12 +5,10 @@ export function AdventLine({ runs }: { runs: readonly AdventLineRun[] }) {
     return runs.map((run, index) =>
         run.strong ? (
             // Runs never reorder; their position is their identity.
-            // biome-ignore lint/suspicious/noArrayIndexKey: a line's runs are fixed text
             <strong className="font-semibold text-foreground" key={index}>
                 {run.text}
             </strong>
         ) : (
-            // biome-ignore lint/suspicious/noArrayIndexKey: a line's runs are fixed text
             <span key={index}>{run.text}</span>
         )
     );

@@ -1,0 +1,146 @@
+{
+    "complexity": {
+        "apps/computer/src/agent-cli/image-generate.ts": 21,
+        "apps/computer/src/agent-command-frames.ts": 24,
+        "apps/computer/src/agent-inbox-input.ts": 22,
+        "apps/computer/src/harness/executor.ts": 37,
+        "apps/computer/src/harness/turn-stream.ts": 25,
+        "apps/computer/src/index.ts": 59,
+        "apps/computer/src/proxy.ts": 30,
+        "apps/computer/src/runtime/claude-code/claude-connection.ts": 25,
+        "apps/computer/src/usage/claude-local-usage.ts": 23,
+        "apps/server/src/agent-api/message-view.ts": 34,
+        "apps/server/src/agent-delivery/delivery.ts": 31,
+        "apps/server/src/automations/message-cause-read.ts": 22,
+        "apps/server/src/avatar-generation/normalization.ts": 33,
+        "apps/server/src/chats/send-agent-message.ts": 22,
+        "apps/server/src/computers/telemetry-payload.ts": 43,
+        "apps/server/src/github/event-projection/sample.ts": 21,
+        "apps/server/src/github/trigger-matching.ts": 35,
+        "apps/server/src/reminders/reminders.ts": 26,
+        "apps/server/src/server-agents/configure-agent.ts": 36,
+        "apps/server/src/server-agents/record-agent-turn.ts": 24,
+        "apps/server/test/controlled-oauth-mcp.ts": 21,
+        "apps/server/test/haus-deploy-workflow.test.ts": 33,
+        "apps/server/test/haus-inline-replies-claim.test.ts": 21,
+        "apps/website/src/components/haus-ghost-mark.tsx": 22,
+        "apps/website/src/features/chats/chat-transcript-model.ts": 24,
+        "apps/website/src/features/chats/chat-transcript-tool-intent-copy.ts": 25,
+        "apps/website/src/features/chats/chat-transcript-tool-intent-resolver.ts": 27,
+        "apps/website/src/features/chats/chat-transcript-tool-intents.ts": 25,
+        "apps/website/src/features/chats/chat-transcript-turn.tsx": 41,
+        "apps/website/src/features/chats/thinking-steps.tsx": 22,
+        "apps/website/src/features/chats/working-log.tsx": 28,
+        "apps/website/src/features/computers/cloud-agent-capability-model.ts": 23,
+        "apps/website/src/features/computers/computer-update-model.ts": 21,
+        "apps/website/src/features/members/agent-creation-form.tsx": 29,
+        "apps/website/src/features/members/agent-profile/agent-activity-turns.ts": 31,
+        "apps/website/src/features/members/agent-profile/agent-header.tsx": 22,
+        "apps/website/src/features/mentions/reference-chip-view.tsx": 22,
+        "apps/website/src/features/onboarding/cove-meet-step.tsx": 25,
+        "apps/website/src/features/shell/tab-drag/tab-drag-messages.ts": 21,
+        "apps/website/src/features/shell/tab-identity.ts": 27,
+        "apps/website/src/features/turn-trace/turn-trace-call-body.tsx": 25,
+        "apps/website/src/features/turn-trace/turn-trace-tool-label.ts": 21,
+        "apps/website/src/features/turn-trace/turn-trace-tool-model.ts": 22,
+        "apps/website/src/features/turn-trace/turn-trace.tsx": 23,
+        "apps/website/src/features/usage/agents-usage-overview.tsx": 21,
+        "apps/website/src/hooks/agents/current-agent-activity.ts": 21,
+        "apps/website/src/hooks/pane/use-pane-editor-host.ts": 23,
+        "apps/website/src/lib/desktop-browser.ts": 26,
+        "packages/agent-manual/src/product-topics.test.ts": 30,
+        "packages/haus-api/src/agent-activity.ts": 23,
+        "scripts/agent-tests/turns.mjs": 23,
+        "scripts/release/ios-provisioning-profile.mjs": 26
+    },
+    "rules": {
+        "import/no-cycle": [
+            "apps/computer/src/workspace-volumes/workspace-directory.ts",
+            "apps/computer/src/workspace-volumes/workspace-volume.ts",
+            "apps/server/src/postgres/schema/agents.ts",
+            "apps/server/src/postgres/schema/chat-messages.ts",
+            "apps/server/src/postgres/schema/chats.ts",
+            "apps/website/src/features/chats/chat-transcript-item-utils.ts",
+            "apps/website/src/features/chats/chat-transcript-model.ts"
+        ],
+        "import/no-duplicates": [
+            "apps/computer/src/proxy-lost-receipt.test.ts",
+            "apps/computer/src/proxy.test.ts"
+        ],
+        "no-empty": [
+            "apps/website/e2e/tests/servers.spec.ts"
+        ],
+        "no-new-func": [
+            "apps/website/electron/preload.test.cjs",
+            "packages/agent-workspace/src/visuals-fragments.test.ts"
+        ],
+        "no-unreachable-loop": [
+            "apps/computer/src/runtime/event-queue.test.ts"
+        ],
+        "no-unsafe-optional-chaining": [
+            "apps/computer/src/agent-cli/commands/agent-agent-create.test.ts",
+            "apps/computer/src/agent-cli/commands/agent-attachment.test.ts",
+            "apps/computer/src/agent-cli/commands/agent-cloud-agent-start.test.ts",
+            "apps/computer/src/agent-cli/commands/agent-task.test.ts",
+            "apps/computer/src/runtime/codex/codex-fixtures.test.ts",
+            "apps/computer/src/runtime/codex/codex-steering.test.ts",
+            "apps/server/src/image-generation/providers/image-adapters.test.ts",
+            "apps/server/src/server-mcp/safe-remote-fetch.test.ts",
+            "apps/server/test/haus-server-launchd.test.ts",
+            "apps/server/test/thread-migration-dataset-links.ts",
+            "apps/website/src/features/settings/layout/navigation.test.ts"
+        ],
+        "no-unused-vars": [
+            "apps/computer/src/runtime/runtime-context.test.ts"
+        ],
+        "prefer-const": [
+            "apps/computer/src/runtime/grok/fixtures/fake-grok.ts",
+            "apps/website/electron/native-auth-manager.cjs"
+        ],
+        "react/exhaustive-deps": [
+            "apps/website/src/features/members/create-agent-dialog.tsx",
+            "apps/website/src/features/servers/chat/chat-view.tsx",
+            "apps/website/src/features/servers/chat/use-chat-transcript.tsx",
+            "apps/website/src/features/servers/haus-server-routes.tsx",
+            "apps/website/src/features/servers/inbox/use-active-agent-rows.ts",
+            "apps/website/src/features/servers/inbox/use-happening-now-rows.ts",
+            "apps/website/src/features/stats/use-usage-spend.ts",
+            "apps/website/src/hooks/members/use-agent-avatar-generation.ts"
+        ],
+        "react/exhaustive-effect-dependencies": [
+            "apps/website/src/features/chats/chat-scroll-position-memory.tsx",
+            "apps/website/src/features/members/agent-profile/agent-activity-log.tsx",
+            "apps/website/src/features/servers/haus-server-routes.tsx"
+        ],
+        "react/no-unstable-nested-components": [
+            "apps/website/src/features/servers/chat/chat-view.tsx",
+            "apps/website/src/features/stats/token-configuration-grid.tsx",
+            "apps/website/src/features/stats/token-usage-chart.tsx",
+            "apps/website/src/features/tasks/conversation/task-conversation.tsx"
+        ],
+        "react/prefer-function-component": [
+            "apps/website/src/features/mentions/mention-editor.tsx"
+        ],
+        "react/rules-of-hooks": [
+            "apps/server/src/github/user-token.ts",
+            "apps/server/src/server-mcp/tool-header-bindings.test.ts",
+            "apps/website/src/features/chats/channel-agents-dialog.tsx",
+            "apps/website/src/features/chats/channel-appearance-dialog.tsx",
+            "apps/website/src/features/chats/channel-appearance-fields.tsx",
+            "apps/website/src/features/chats/channel-create-dialog.tsx",
+            "apps/website/src/features/chats/channel-details-dialog.tsx",
+            "apps/website/src/features/members/agent-creation-form.tsx"
+        ],
+        "typescript/no-explicit-any": [
+            "apps/computer/src/host-tools/mcp-server.test.ts",
+            "apps/computer/src/runtime/codex/codex-fixtures.test.ts",
+            "apps/server/test/haus-agent-avatar.test.ts",
+            "apps/server/test/haus-agent-manual-recovery.test.ts",
+            "apps/server/test/haus-agent-manual.test.ts",
+            "apps/server/test/haus-agent-task-last-write.test.ts",
+            "apps/server/test/haus-agent-task-routes.test.ts",
+            "apps/server/test/haus-task-places.test.ts",
+            "apps/server/test/haus-task-send-links.test.ts"
+        ]
+    }
+}

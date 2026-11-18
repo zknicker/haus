@@ -67,7 +67,6 @@ export function AttachmentImageTile({
                         src={image.url}
                     >
                         <ChatAttachment.Preview>
-                            {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: onError is a load failure, not a user interaction; it swaps in the file tile. */}
                             <img
                                 alt=""
                                 className="chat-attachment__preview-image"

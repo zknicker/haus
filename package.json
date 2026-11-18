@@ -77,10 +77,11 @@
     "visuals:lab": "bun scripts/visuals-lab/server.mjs"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.5",
     "@varlock/1password-plugin": "2.0.3",
+    "oxfmt": "0.78.0",
+    "oxlint": "1.93.0",
     "typescript": "5.9.3",
-    "ultracite": "7.3.0",
+    "ultracite": "8.2.1",
     "varlock": "1.16.1",
     "zod": "4.6.6"
   },

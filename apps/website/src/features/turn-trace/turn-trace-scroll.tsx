@@ -3,7 +3,7 @@ import * as React from 'react';
 type ScrollSnapshot = { anchor: HTMLElement; offset: number; scroller: HTMLElement } | null;
 
 /** Keep the inspected row at its offset through React commits and animated growth. */
-// biome-ignore lint/style/useReactFunctionComponents: React has no function-hook equivalent of getSnapshotBeforeUpdate.
+// oxlint-disable-next-line react/prefer-function-component -- React has no function-hook equivalent of getSnapshotBeforeUpdate.
 export class TurnTraceScroll extends React.Component<{ children: React.ReactNode }> {
     private readonly root = React.createRef<HTMLDivElement>();
     private observer: ResizeObserver | null = null;

@@ -58,7 +58,6 @@ function BrowserTabMark({ tab }: { tab: Pick<BrowserTab, 'faviconUrl' | 'loading
     } else if (tab.faviconUrl && tab.faviconUrl !== failedUrl) {
         const url = tab.faviconUrl;
         mark = (
-            // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Image load failure is not a user interaction.
             <img
                 alt=""
                 draggable={false}

@@ -100,7 +100,6 @@ function SiteMark({ site }: { site: BrowserRecentSite }) {
     return (
         <span aria-hidden="true" className="browser-start-site__mark">
             {url && url !== failedUrl ? (
-                // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Image load failure is not a user interaction.
                 <img
                     alt=""
                     draggable={false}

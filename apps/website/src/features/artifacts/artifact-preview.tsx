@@ -118,7 +118,6 @@ function ArtifactImage({
                 type="button"
             >
                 {/* Sized by its own pixels (once measured), so CSS can only shrink it. */}
-                {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: image load failures are not user interaction. */}
                 <img
                     alt={artifact.title}
                     height={artifact.image?.height}

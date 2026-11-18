@@ -127,7 +127,6 @@ function TraceThoughtStep({ step }: { step: TurnTraceThoughtStep }) {
                 <TraceBody>
                     <ul className="grid gap-0.5 text-muted text-sm">
                         {thoughts.map((thought, index) => (
-                            // biome-ignore lint/suspicious/noArrayIndexKey: thoughts are append-only.
                             <li className={traceBranchClass} key={index}>
                                 {thought}
                                 <TraceElbow at="line" />

@@ -195,7 +195,6 @@ function TimelineTurn({ block, startedAt }: { block: TimelineBlock; startedAt: s
                 {marks?.map((mark, index) => (
                     <span
                         className={cn('absolute inset-y-0 min-w-px', barTone(mark))}
-                        // biome-ignore lint/suspicious/noArrayIndexKey: marks follow the turn's step order.
                         key={index}
                         style={{ left: `${mark.start * 100}%`, width: `${mark.width * 100}%` }}
                     />

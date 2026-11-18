@@ -197,7 +197,7 @@ export function imageGenerationFixture() {
             method,
         });
         return {
-            // biome-ignore lint/suspicious/noExplicitAny: tests read nested receipt fields directly.
+            // oxlint-disable-next-line typescript/no-explicit-any -- tests read nested receipt fields directly.
             body: (await response.json()) as Record<string, any>,
             status: response.status,
         };

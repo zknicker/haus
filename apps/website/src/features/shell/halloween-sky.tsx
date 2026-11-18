@@ -53,7 +53,6 @@ function HalloweenSkyCanvas({ placement }: { placement: HalloweenSkyPlacement })
         return null;
     }
     return (
-        // biome-ignore lint/a11y/noAriaHiddenOnFocusable: a canvas with no tabIndex takes no focus; the sky is decoration.
         <canvas
             aria-hidden="true"
             className={`halloween-sky halloween-sky--${placement}`}

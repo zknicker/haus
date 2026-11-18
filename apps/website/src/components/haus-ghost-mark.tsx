@@ -50,7 +50,6 @@ export function HausFigureMark({
     const decorative = props['aria-hidden'] === true || props['aria-hidden'] === 'true';
 
     return (
-        // biome-ignore lint/a11y/noSvgWithoutTitle: the title is conditional, because a decorative instance names itself with `aria-hidden` instead
         <svg
             className={cn(
                 'haus-ghost',

@@ -56,7 +56,6 @@ export function TraceTrack({
                                   bar.status === 'running' && 'motion-safe:animate-pulse'
                               )}
                               data-trace-bar={bar.status === 'failed' ? 'danger' : bar.kind}
-                              // biome-ignore lint/suspicious/noArrayIndexKey: bars never reorder within one row.
                               key={index}
                               style={placeBar(bar, axisMs)}
                           />

@@ -15,7 +15,6 @@ export function ProductReferenceThumbnail({
     return (
         <span aria-hidden="true" className="reference-chip__mark inline-grid">
             {src && !failed ? (
-                // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Image load failure is not a user interaction.
                 <img
                     alt=""
                     className="size-full object-contain"

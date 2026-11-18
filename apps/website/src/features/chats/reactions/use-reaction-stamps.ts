@@ -30,7 +30,7 @@ export function useReactionStamps(
     const signature = keys.join('\n');
     const order = pile.stickers.map((sticker) => sticker.key).join('\n');
 
-    // biome-ignore lint/correctness/useExhaustiveDependencies: `signature` and `order` stand in for `keys` and `pile` by value
+    // oxlint-disable react-hooks/exhaustive-deps, react/exhaustive-effect-dependencies -- `signature` and `order` stand in for `keys` and `pile` by value
     React.useLayoutEffect(() => {
         const fresh = freshReactions.observe(messageId, keys, Date.now());
         const pileOrder = order.split('\n');
@@ -53,6 +53,7 @@ export function useReactionStamps(
             thud(pileRef.current?.closest('[data-message-id]'), delay + stampLandSeconds);
         }
     }, [messageId, order, signature]);
+    // oxlint-enable react-hooks/exhaustive-deps, react/exhaustive-effect-dependencies
 
     return stamps;
 }

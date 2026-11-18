@@ -8,7 +8,6 @@ import * as React from 'react';
  * moves every frame without re-rendering one.
  */
 export function usePaneRects(stage: React.RefObject<HTMLElement | null>, split: boolean) {
-    // biome-ignore lint/correctness/useExhaustiveDependencies: `split` adds or removes a pane element to observe.
     React.useLayoutEffect(() => {
         const root = stage.current;
         if (!root) {
@@ -33,5 +32,6 @@ export function usePaneRects(stage: React.RefObject<HTMLElement | null>, split: 
             observer.observe(pane);
         }
         return () => observer.disconnect();
+        // oxlint-disable-next-line react/exhaustive-effect-dependencies -- `split` adds or removes a pane element to observe.
     }, [stage, split]);
 }

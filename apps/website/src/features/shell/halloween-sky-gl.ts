@@ -40,7 +40,6 @@ export function createSkyRenderer(canvas: HTMLCanvasElement): SkyRenderer | null
         loseContext(gl);
         return null;
     }
-    // biome-ignore lint/correctness/useHookAtTopLevel: WebGL's useProgram, not a React hook.
     gl.useProgram(program);
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);

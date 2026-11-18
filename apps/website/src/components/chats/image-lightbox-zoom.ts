@@ -40,7 +40,7 @@ export function useLightboxZoom(image: ImageSize | null, resetKey: unknown) {
     const [zoom, setZoom] = React.useState<number | 'fit'>('fit');
     const [stage, setStage] = React.useState<ImageSize | null>(null);
     const observer = React.useRef<ResizeObserver | null>(null);
-    // biome-ignore lint/correctness/useExhaustiveDependencies: resetKey names the image shown.
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- resetKey names the image shown.
     React.useEffect(() => setZoom('fit'), [resetKey]);
     const stageRef = React.useCallback((element: HTMLElement | null) => {
         observer.current?.disconnect();

@@ -9,7 +9,6 @@ import { useDesktopShell } from './use-tab-navigator.ts';
  * `errorElement`s never fire there; this keeps a failing page inside its tab
  * and resets when the tab moves to another history entry.
  */
-// biome-ignore lint/style/useReactFunctionComponents: React has no function-hook error boundary.
 export class TabErrorBoundary extends React.Component<
     { children: React.ReactNode; resetKey: string },
     { error: unknown; failedKey: string | null }

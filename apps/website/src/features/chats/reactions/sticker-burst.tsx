@@ -16,7 +16,6 @@ export function StickerBurst({ seed }: { seed: number }) {
             {particles.map((particle, index) => (
                 <i
                     className={`reaction-burst__${particle.kind}`}
-                    // biome-ignore lint/suspicious/noArrayIndexKey: a fixed, positional particle list
                     key={index}
                     style={
                         {

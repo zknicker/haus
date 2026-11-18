@@ -50,7 +50,7 @@ so `docs:list` routes future agents correctly.
 ## Coding Rules
 
 1. Keep TypeScript strictness enabled.
-2. Follow the repo-standard Ultracite and Biome config. Use `bun run lint`.
+2. Follow the repo-standard Ultracite config on Oxlint and Oxfmt. Use `bun run lint`.
 3. Build types and contracts first before implementation details.
 4. Make illegal states unrepresentable with narrow unions and runtime validation.
 5. Keep modules focused and composable. Split files when responsibilities diverge.
@@ -108,8 +108,9 @@ so `docs:list` routes future agents correctly.
 - Use HeroUI components stock. Customize through component props (`variant`, `size`, semantic
   states) and compound parts before adding CSS. Do not restyle HeroUI components at call sites.
   Read a compound component's anatomy before wrapping its parts in your own layout, and never
-  cancel its padding or gap with a `className`. Both are enforced: Biome plugins in
-  `apps/website/lint/` and `apps/website/src/lib/heroui-composition-contract.test.ts`.
+  cancel its padding or gap with a `className`. Both are enforced: GritQL rules in
+  `apps/website/lint/` (being ported to Oxlint) and
+  `apps/website/src/lib/heroui-composition-contract.test.ts`.
 - When a stock dependency misbehaves, first reproduce the failure at the dependency boundary and
   check its upstream issues, releases, and source. Prefer a verified upgrade or a bounded package
   patch with a regression test over reimplementing the dependency in product code. Use a local

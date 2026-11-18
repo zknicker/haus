@@ -12,7 +12,7 @@ export interface Imports {
     typeLocals: Set<string>;
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: import aliases require explicit conservative cases
+// oxlint-disable-next-line complexity -- import aliases require explicit conservative cases
 export function readImports(file: ts.SourceFile): Imports {
     const imports: Imports = {
         effect: false,

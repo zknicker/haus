@@ -54,7 +54,6 @@ export function TriggerGithubConfigGroup({
                         {githubScopeSummary(github)}
                     </AutomationFactRow>
                     {github.events.map((entry, index) => (
-                        // biome-ignore lint/suspicious/noArrayIndexKey: Read-only match groups have ordinal identity, including identical alternatives.
                         <Fragment key={`${entry.event}-${index}`}>
                             <Separator />
                             <ItemCard>

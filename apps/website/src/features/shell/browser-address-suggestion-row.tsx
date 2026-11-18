@@ -64,7 +64,6 @@ function Favicon({ url }: { url: string | null }) {
         return <Icon aria-hidden="true" icon={Globe02Icon} size={markSize} />;
     }
     return (
-        // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Image load failure is not a user interaction.
         <img
             alt=""
             draggable={false}

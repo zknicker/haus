@@ -72,7 +72,7 @@ module.exports = {
     ],
     extraResources: macAppIcon.extraResources,
     mac: {
-        // biome-ignore lint/suspicious/noTemplateCurlyInString: electron-builder artifact macros are literal strings.
+        // oxlint-disable-next-line no-template-curly-in-string -- electron-builder artifact macros are literal strings.
         artifactName: '${productName}_${version}_${arch}.${ext}',
         category: 'public.app-category.productivity',
         darkModeSupport: true,

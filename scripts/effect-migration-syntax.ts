@@ -48,7 +48,6 @@ export function analyzeSource(source: string, path = 'fixture.ts'): SourceReport
     let staticRuntime = 0;
     let unknownErrorChannel = 0;
     let customSettlement = 0;
-    // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: one AST visitor keeps all migration findings in one pass
     walk(file, (node) => {
         if (ts.isIdentifier(node)) {
             used.add(node.text);

@@ -41,7 +41,7 @@ export function useRowFlip(
         last.current = key;
         first.current = list.current ? visualRects(list.current) : null;
     }
-    // biome-ignore lint/correctness/useExhaustiveDependencies: `key` is the trigger; the rects ride a ref.
+    // oxlint-disable react-hooks/exhaustive-deps, react/exhaustive-effect-dependencies -- `key` is the trigger; the rects ride a ref.
     React.useLayoutEffect(() => {
         const element = list.current;
         const before = first.current;
@@ -54,6 +54,7 @@ export function useRowFlip(
             flipRow(element, before, { ...drag, dragging, dropped, gathering });
         }
     }, [key]);
+    // oxlint-enable react-hooks/exhaustive-deps, react/exhaustive-effect-dependencies
 }
 
 function flipRow(

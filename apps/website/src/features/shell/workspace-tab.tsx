@@ -61,7 +61,6 @@ export function WorkspaceTabLabel({ children }: { children: string }) {
     // each title gets a fresh observer: its first notification measures it. Read
     // only there, after layout; a read here would force a synchronous layout in
     // the commit of every tab switch that renames a tab.
-    // biome-ignore lint/correctness/useExhaustiveDependencies: re-observe per title, see above.
     React.useLayoutEffect(() => {
         const label = ref.current;
         if (!label) {
@@ -71,6 +70,7 @@ export function WorkspaceTabLabel({ children }: { children: string }) {
         const observer = new ResizeObserver(measure);
         observer.observe(label);
         return () => observer.disconnect();
+        // oxlint-disable-next-line react/exhaustive-effect-dependencies -- re-observe per title, see above.
     }, [children]);
     return (
         <span

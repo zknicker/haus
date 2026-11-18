@@ -84,7 +84,7 @@ export function useSubscriptionRestart(
         })
     );
 
-    // biome-ignore lint/correctness/useExhaustiveDependencies: `key` is the trigger; a new input owns no pending restart.
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- `key` is the trigger; a new input owns no pending restart.
     React.useEffect(() => restart.dispose, [key, restart]);
     // tRPC completes a subscription it unsubscribes itself (unmount, a disabled
     // or changed input) synchronously inside the subscription's effect cleanup.
