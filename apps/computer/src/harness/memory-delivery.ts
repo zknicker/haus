@@ -88,23 +88,26 @@ function capNotice(length: number): string {
 
 /** The longest run of whole lines within the cap; a single overlong first line is cut at the cap. */
 function cutAtLine(body: string): string {
-    const head = body.slice(0, memoryCharacterCap);
-    const lastBreak = head.lastIndexOf('\n');
-    return (lastBreak > 0 ? head.slice(0, lastBreak) : head).trimEnd();
+    // A break exactly at the cap still ends a whole line within it.
+    const lastBreak = body.lastIndexOf('\n', memoryCharacterCap);
+    return (lastBreak > 0 ? body.slice(0, lastBreak) : body.slice(0, memoryCharacterCap)).trimEnd();
 }
 
 function memoryDigest(content: string): string {
     return createHash('sha256').update(content).digest('hex');
 }
 
+/** The file's content; null when it is missing or unreadable, which never fails a turn. */
 async function readMemory(workspaceDir: string): Promise<string | null> {
     try {
         return await readFile(join(workspaceDir, memoryFileName), 'utf8');
     } catch (error) {
         const code = (error as NodeJS.ErrnoException | null)?.code;
-        if (code === 'ENOENT' || code === 'ENOTDIR') {
-            return null;
+        if (code !== 'ENOENT' && code !== 'ENOTDIR') {
+            process.stderr.write(
+                `${memoryFileName} is unreadable (${code ?? String(error)}); delivering none.\n`
+            );
         }
-        throw error;
+        return null;
     }
 }

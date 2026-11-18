@@ -105,8 +105,8 @@ Computer artifact must publish before the Server is promoted
 ([release prerequisites](../operations/releases.md#prerequisites)). App protocol 8 gates the unread Inbox, the removal of Needs you
 and Done, and the shared notification facts. Haus App 5.0.0 and iPhone 5.0.0 send that version.
 Older installed clients require an update, and an already-open hosted App requires a reload.
-App protocol 10 adds the chatless dream run: `agent.onLifecycle` may carry `chatId: null` and a
-turn trigger may be `{ kind: 'dream' }`.
+App protocol 10 added the chatless dream run; heartbeats retired it (ADR 0052), so no turn trigger
+is `{ kind: 'dream' }` any more, while `agent.onLifecycle` may still carry `chatId: null`.
 App protocol 11 links Cloud Agent work instead of embedding it
 ([ADR 0044](../adr/0044-cloud-agent-work-is-referenced-not-embedded.md)): Messages no longer
 carry a `cloud-agent-work` body, and each `cloudAgentWork.listActive` row drops its launch

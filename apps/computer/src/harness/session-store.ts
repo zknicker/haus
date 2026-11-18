@@ -107,6 +107,17 @@ export async function writeAgentSessionState(
 }
 
 /**
+ * Clears the memory receipt after a compaction outside any turn (idle compaction), so the next
+ * turn carries MEMORY.md again. No stored session means nothing to clear.
+ */
+export async function clearDeliveredMemoryDigest(agentRoot: string): Promise<void> {
+    const stored = await readAgentSessionState(agentRoot);
+    if (stored?.deliveredMemoryDigest) {
+        await writeAgentSessionState(agentRoot, { ...stored, deliveredMemoryDigest: null });
+    }
+}
+
+/**
  * Resolves the session this turn runs against. A fresh Agent, or one whose
  * stored `effectiveModel` no longer matches the assigned runtime/model, starts a
  * new generation with no resume state (cold start); otherwise the current
