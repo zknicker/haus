@@ -191,6 +191,7 @@ function EventFieldset({
                 </Disclosure>
                 {spec.authors ? (
                     <ChoiceTags
+                        description={spec.authorsHint}
                         disallowEmpty
                         isDisabled={isDisabled}
                         label="Authors"
@@ -227,6 +228,7 @@ function EventFieldset({
 
 /** A closed set of GitHub values as toggle tags; an empty filter matches anything. */
 function ChoiceTags({
+    description,
     disallowEmpty = false,
     isDisabled,
     label,
@@ -235,6 +237,7 @@ function ChoiceTags({
     options,
     selected,
 }: {
+    description?: string;
     disallowEmpty?: boolean;
     isDisabled: boolean;
     label: string;
@@ -255,6 +258,7 @@ function ChoiceTags({
             size="sm"
         >
             <Label>{label}</Label>
+            {description ? <Description>{description}</Description> : null}
             <TagGroup.List>
                 {options.map((option) => (
                     <Tag id={option} key={option} textValue={githubValueLabel(option)}>

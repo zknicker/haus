@@ -1,4 +1,4 @@
-import { triggerPayloadExcerptMaxChars, universalLineBreak } from '@haus/api';
+import { createLineBreakPattern, triggerPayloadExcerptMaxChars } from '@haus/api';
 import { automationReplyLine } from '../automations/automation-envelope.ts';
 /**
  * The Server-built lines a connection-backed fire (`github`) adds
@@ -96,5 +96,5 @@ function indentPayload(excerpt: string): string[] {
     if (excerpt.length === 0) {
         return [];
     }
-    return excerpt.split(universalLineBreak).map((line) => `  ${line}`);
+    return excerpt.split(createLineBreakPattern()).map((line) => `  ${line}`);
 }
