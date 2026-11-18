@@ -50,14 +50,14 @@ export async function waitForReadyCluster(
     );
 }
 
-export function resolvePostgresBinaries(): PostgresBinaries {
+export function resolvePostgresBinaries() {
     const explicitRoot = process.env.HAUS_POSTGRES_BIN;
     const searchRoots = explicitRoot
         ? [explicitRoot]
         : ['/opt/homebrew/opt/postgresql@16/bin', '/usr/local/opt/postgresql@16/bin', ''];
 
     for (const searchRoot of searchRoots) {
-        const candidate = {
+        const candidate: PostgresBinaries = {
             createdb: join(searchRoot, 'createdb'),
             initdb: join(searchRoot, 'initdb'),
             pgIsReady: join(searchRoot, 'pg_isready'),
@@ -74,14 +74,9 @@ export function resolvePostgresBinaries(): PostgresBinaries {
     );
 }
 
-/**
- * PostgreSQL 16 on macOS aborts at startup when it inherits no locale, which is
- * what a non-interactive shell provides — without this the whole lane is
- * unrunnable. The rule lives with the development cluster's; collation-sensitive
- * tests pin their own ordering through `icuLocale`.
- */
-export function clusterEnvironment(): NodeJS.ProcessEnv {
-    return { ...process.env, ...postgresLocaleEnvironment() };
+export function clusterEnvironment() {
+    const environment: NodeJS.ProcessEnv = { ...process.env, ...postgresLocaleEnvironment() };
+    return environment;
 }
 
 export function runServer(binary: string, args: string[]) {
@@ -99,7 +94,7 @@ export function run(command: string, args: string[]) {
     }
 }
 
-export function reserveLoopbackPort(): number {
+export function reserveLoopbackPort() {
     const socket = Bun.listen({
         hostname: '127.0.0.1',
         port: 0,

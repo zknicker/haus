@@ -138,8 +138,11 @@ function countReported(output: string, outcome: 'fail' | 'pass') {
     return Number(new RegExp(`^\\s*(\\d+) ${outcome}$`, 'mu').exec(output)?.[1] ?? 0);
 }
 
-function readPreviousDurations(): Record<string, number> {
-    return existsSync(durationsPath) ? JSON.parse(readFileSync(durationsPath, 'utf8')) : {};
+function readPreviousDurations() {
+    const durations: Record<string, number> = existsSync(durationsPath)
+        ? JSON.parse(readFileSync(durationsPath, 'utf8'))
+        : {};
+    return durations;
 }
 
 function writeDurations(finished: FileResult[]) {
