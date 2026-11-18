@@ -114,12 +114,10 @@ test('Server messages and durable events keep stable Server and Chat identity', 
         conversationKind: 'channel',
         mentionedUserIds: [],
         messageId: message.id,
-        parentChatId: null,
         replyToAuthorUserId: null,
         sequence: message.sequence,
         serverId: message.serverId,
-        threadAnchorAuthorUserId: null,
-        threadAnchorMessageId: null,
+        taskId: null,
     });
     expect(created).toMatchObject({ messageId: 'msg_one', sequence: 1 });
     // Events carry ids and facts only: the App reads the row, never a payload copy.
@@ -131,20 +129,17 @@ test('Server messages and durable events keep stable Server and Chat identity', 
         messageReactionUpdatedEventSchema.parse({
             chatId: message.chatId,
             messageId: message.id,
-            parentChatId: null,
             serverId: message.serverId,
         })
     ).toEqual({
         chatId: 'cht_all',
         messageId: 'msg_one',
-        parentChatId: null,
         serverId: 'srv_main',
     });
     expect(() =>
         messageReactionUpdatedEventSchema.parse({
             chatId: message.chatId,
             messageId: message.id,
-            parentChatId: null,
             reactions: message.reactions,
             serverId: message.serverId,
         })
@@ -158,44 +153,25 @@ test('Server messages and durable events keep stable Server and Chat identity', 
     ).toEqual({ action: 'archived', chatId: 'cht_all', serverId: 'srv_main' });
 });
 
-test('A Thread reply names its parent and anchor together, never a summary', () => {
-    const reply = {
+test('A Task message and a Task read name the Task, and nothing names a parent anchor', () => {
+    const created = {
         authorUserId: 'usr_human',
-        chatId: 'cht_thread',
-        conversationKind: 'channel',
+        chatId: 'cht_task',
+        conversationKind: 'channel' as const,
         mentionedUserIds: [],
         messageId: 'msg_reply',
-        parentChatId: 'cht_all',
         replyToAuthorUserId: null,
         sequence: 3,
         serverId: 'srv_main',
-        threadAnchorAuthorUserId: 'usr_anchor',
-        threadAnchorMessageId: 'msg_anchor',
+        taskId: 'tsk_one',
     };
-    expect(messageCreatedEventSchema.parse(reply)).toMatchObject({
-        threadAnchorMessageId: 'msg_anchor',
-    });
+    expect(messageCreatedEventSchema.parse(created)).toEqual(created);
     expect(() =>
-        messageCreatedEventSchema.parse({ ...reply, threadAnchorMessageId: null })
+        messageCreatedEventSchema.parse({ ...created, parentChatId: 'cht_all' })
     ).toThrow();
-    expect(() => messageCreatedEventSchema.parse({ ...reply, parentChatId: null })).toThrow();
-    expect(() => messageCreatedEventSchema.parse({ ...reply, thread: null })).toThrow();
-});
-
-test('A Thread read names its parent and anchor together', () => {
-    const read = {
-        chatId: 'cht_thread',
-        parentChatId: 'cht_all',
-        sequence: 3,
-        serverId: 'srv_main',
-        threadAnchorMessageId: 'msg_anchor',
-    };
+    const read = { chatId: 'cht_task', sequence: 3, serverId: 'srv_main', taskId: 'tsk_one' };
     expect(chatReadEventSchema.parse(read)).toEqual(read);
-    expect(
-        chatReadEventSchema.parse({ ...read, parentChatId: null, threadAnchorMessageId: null })
-    ).toMatchObject({ threadAnchorMessageId: null });
-    expect(() => chatReadEventSchema.parse({ ...read, threadAnchorMessageId: null })).toThrow();
-    expect(() => chatReadEventSchema.parse({ ...read, parentChatId: null })).toThrow();
+    expect(() => chatReadEventSchema.parse({ ...read, parentChatId: 'cht_all' })).toThrow();
 });
 
 test('A message page reports how far its scan reached', () => {
@@ -204,14 +180,14 @@ test('A message page reports how far its scan reached', () => {
         nextAfterSequence: null,
         nextBeforeSequence: null,
         scannedThroughSequence: 42,
-        threads: [],
+        tasks: [],
     };
     expect(chatMessagePageSchema.parse(page)).toEqual(page);
     const { scannedThroughSequence: _scanned, ...withoutScan } = page;
     expect(() => chatMessagePageSchema.parse(withoutScan)).toThrow();
 });
 
-test('chat.message reads one entity with its viewer Thread summary, or null', () => {
+test('chat.message reads one entity with its Task previews, or null', () => {
     const input = { chatId: 'cht_all', messageId: 'msg_one', serverId: 'srv_main' };
     expect(chatMessageInputSchema.parse(input)).toEqual(input);
     expect(() => chatMessageInputSchema.parse({ ...input, messageIds: ['msg_one'] })).toThrow();
@@ -227,19 +203,8 @@ test('chat.message reads one entity with its viewer Thread summary, or null', ()
         sequence: 1,
         serverId: 'srv_main',
     });
-    const thread = {
-        anchorMessageId: 'msg_one',
-        followed: true,
-        latestReplyAt: '2026-07-26T12:01:00.000Z',
-        recentReplies: [],
-        replyCount: 2,
-        threadChatId: 'cht_thread',
-        unreadCount: 1,
-    };
-    expect(chatMessageReadSchema.parse({ message, thread })).toMatchObject({
-        thread: { unreadCount: 1 },
-    });
-    expect(chatMessageReadSchema.parse({ message, thread: null })?.thread).toBeNull();
+    expect(chatMessageReadSchema.parse({ message })).toEqual({ message, tasks: [] });
+    expect(() => chatMessageReadSchema.parse({ message, thread: null })).toThrow();
     expect(chatMessageReadSchema.parse(null)).toBeNull();
 });
 

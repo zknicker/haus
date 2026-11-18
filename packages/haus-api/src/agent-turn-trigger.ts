@@ -33,7 +33,7 @@ export type AgentTurnTriggerPreview = z.infer<typeof agentTurnTriggerPreviewSche
  * - `greeting`: a new Agent's one-time wake to introduce itself in `#all`, when it led
  *   the run alone.
  * - `subagent`: background work the Agent started finished or stopped; no Chat.
- * - `task`: a board Task assigned to the Agent (`task_assignment`); no Chat. Boards are
+ * - `task`: a Task assigned to the Agent (`task_assignment`); no Chat. Tasks are
  *   visible to every member, so it carries the Task's key and title for the row title.
  *   Assignments coalesce into one run: this is the oldest, and `more` counts the others.
  * - `private`: the turn has a recorded trigger in a Chat the reader cannot see.

@@ -41,11 +41,12 @@ test('a work update names the work and its Message, never their rows', () => {
     const event = {
         chatId: 'cht_product',
         messageId: 'msg_1234567890abcdef',
-        parentChatId: null,
         serverId: 'srv_1',
+        taskId: 'tsk_1',
         workId: work.id,
     };
     expect(cloudAgentWorkUpdatedEventSchema.parse(event)).toEqual(event);
+    expect(() => cloudAgentWorkUpdatedEventSchema.parse({ ...event, taskId: undefined })).toThrow();
     expect(() => cloudAgentWorkUpdatedEventSchema.parse({ ...event, work })).toThrow();
 });
 

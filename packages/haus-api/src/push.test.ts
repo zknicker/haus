@@ -20,7 +20,8 @@ const payload = {
         name: 'Orbit',
     },
     serverId: 'srv_main',
-    threadAnchorMessageId: null,
+    taskId: null,
+    taskKey: null,
 };
 
 describe('iPhone push payload contract', () => {

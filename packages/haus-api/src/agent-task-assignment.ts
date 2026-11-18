@@ -1,5 +1,4 @@
 import * as z from 'zod';
-import { boardColumnNameSchema, boardNameSchema } from './board.ts';
 import { idSchema } from './chat-contract-primitives.ts';
 import { taskPrioritySchema, taskTitleSchema } from './task.ts';
 import { taskKeySchema } from './task-key.ts';
@@ -8,7 +7,7 @@ import { taskKeySchema } from './task-key.ts';
 export const agentTaskAssignmentBatchLimit = 50;
 
 /**
- * One board Task assigned to the Agent (ADR 0051), as it stood when assigned. `id` is its inbox
+ * One Task assigned to the Agent (ADR 0052), as it stood when assigned. `id` is its inbox
  * identity (`task-assign:<taskId>:<version>`). `assignedBy` is the assigner's handle, null for a
  * member who has not claimed one. `assignedByAgent` marks Agent-authored work, which spends the
  * automation chain the way an Agent's message does; a person's assignment resets it.
@@ -17,8 +16,6 @@ export const agentTaskAssignmentSchema = z
     .object({
         assignedBy: z.string().min(1).max(128).nullable(),
         assignedByAgent: z.boolean(),
-        board: boardNameSchema,
-        column: boardColumnNameSchema,
         id: idSchema,
         key: taskKeySchema,
         priority: taskPrioritySchema,

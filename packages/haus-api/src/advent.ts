@@ -35,8 +35,8 @@ export const adventFacts = [
     'night-owl',
     // The DM the member wrote in most.
     'closest-dm',
-    // The longest thread the member took part in, by replies.
-    'longest-thread',
+    // The longest inline reply chain the member took part in, by replies.
+    'longest-conversation',
     // Tokens the member's Agents used this year.
     'tokens-used',
     // The member's fastest reply to another participant.
@@ -49,8 +49,8 @@ export const adventFacts = [
     'new-channels',
     // The month the member sent fewest messages.
     'quiet-month',
-    // Threads the member started that got a reply.
-    'threads-resolved',
+    // Top-level messages the member wrote that someone else replied to inline.
+    'conversations-started',
     // The reaction the member used most.
     'favorite-reaction',
     // The Agent with the most turns for the member.

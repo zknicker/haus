@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
 import { agentNoticeCommandSchema, agentStartCommandSchema } from './agent-delivery-frames.ts';
 import {
+    agentTaskAssignInputSchema,
     agentTaskListQuerySchema,
-    agentTaskMoveInputSchema,
     agentTaskUpdateInputSchema,
 } from './agent-task.ts';
 import {
@@ -84,8 +84,6 @@ test('a burst push names no Task and carries at least two', () => {
 const assignment = {
     assignedBy: 'ada',
     assignedByAgent: false,
-    board: 'Security',
-    column: 'In progress',
     id: 'task-assign:tsk_one:2',
     key: 'SEC-12',
     priority: 'high',
@@ -134,14 +132,11 @@ test('a notice carries inbox work, Task assignments, or both, never neither', ()
     ).toBe(true);
 });
 
-test('Agent task inputs take a category list, names, and at least one field to update', () => {
-    expect(agentTaskListQuerySchema.parse({ category: 'todo,done' }).category).toEqual([
-        'todo',
-        'done',
-    ]);
-    expect(agentTaskListQuerySchema.safeParse({ category: 'todo,nope' }).success).toBe(false);
+test('Agent task inputs take a state list, names, and at least one field to update', () => {
+    expect(agentTaskListQuerySchema.parse({ state: 'todo,done' }).state).toEqual(['todo', 'done']);
+    expect(agentTaskListQuerySchema.safeParse({ state: 'todo,nope' }).success).toBe(false);
     expect(agentTaskListQuerySchema.safeParse({ assignee: 'zero' }).success).toBe(false);
-    expect(agentTaskMoveInputSchema.safeParse({ column: 'Done', key: 'sec-12' }).success).toBe(
+    expect(agentTaskAssignInputSchema.safeParse({ assignee: null, key: 'sec-12' }).success).toBe(
         false
     );
     expect(agentTaskUpdateInputSchema.safeParse({ key: 'SEC-12' }).success).toBe(false);

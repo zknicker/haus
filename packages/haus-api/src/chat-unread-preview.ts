@@ -1,6 +1,8 @@
 import * as z from 'zod';
 import { chatMessageSchema } from './chat.ts';
 import { idSchema } from './chat-contract-primitives.ts';
+import { taskKeySchema } from './task-key.ts';
+import { taskStateSchema } from './task-state.ts';
 
 /** How many waiting messages an Inbox row carries before "N earlier". */
 export const unreadPreviewMessageLimit = 3;
@@ -8,7 +10,7 @@ export const unreadPreviewMessageLimit = 3;
 /**
  * `chat.unreadPreviews`: the waiting messages behind every unread Inbox row on
  * one Server, in one read. The row set is exactly `chat.list`'s unread Chats
- * plus `thread.listUnread`'s Threads; this read only adds what each row says.
+ * plus the caller's unread followed Tasks; this read only adds what each row says.
  */
 export const chatUnreadPreviewsInputSchema = z
     .object({
@@ -16,20 +18,35 @@ export const chatUnreadPreviewsInputSchema = z
     })
     .strict();
 
+/** What an unread Task row names beyond its messages. */
+export const chatUnreadPreviewTaskSchema = z
+    .object({
+        key: taskKeySchema,
+        originChatId: idSchema,
+        state: taskStateSchema,
+        taskId: idSchema,
+        title: z.string().min(1),
+    })
+    .strict();
+
 /**
- * One unread Chat or Thread's newest counted messages, oldest first: the same
- * messages its `unreadCount` counts (someone else's, past the read marker;
- * for a Thread, followed or mentioning the reader). `chatId` is the Channel,
- * DM, or Thread's own Chat id, which keys it to its Inbox row.
+ * One unread Chat's newest counted messages, oldest first: the same messages
+ * its `unreadCount` counts (someone else's, past the read marker; for a Task,
+ * followed or mentioning the reader). `chatId` is the Channel, DM, or Task's
+ * own Chat id, which keys it to its Inbox row.
  */
 export const chatUnreadPreviewSchema = z
     .object({
-        /** A Thread's anchor, which its row names ("on Beacon: …"); null for a Channel or DM. */
-        anchor: chatMessageSchema.nullable(),
         chatId: idSchema,
         /** Counted messages older than `messages`, which "N earlier" opens. */
         earlierUnreadCount: z.number().int().nonnegative(),
         messages: z.array(chatMessageSchema).min(1).max(unreadPreviewMessageLimit),
+        /**
+         * Set on a followed Task's row (ADR 0052 decision 9): `chatId` is then the
+         * Task's own Chat, and the row names the Task by key and title. Null for a
+         * Channel or DM row.
+         */
+        task: chatUnreadPreviewTaskSchema.nullable().default(null),
     })
     .strict();
 
@@ -41,4 +58,5 @@ export const chatUnreadPreviewListSchema = z
 
 export type ChatUnreadPreviewsInput = z.infer<typeof chatUnreadPreviewsInputSchema>;
 export type ChatUnreadPreview = z.infer<typeof chatUnreadPreviewSchema>;
+export type ChatUnreadPreviewTask = z.infer<typeof chatUnreadPreviewTaskSchema>;
 export type ChatUnreadPreviewList = z.infer<typeof chatUnreadPreviewListSchema>;

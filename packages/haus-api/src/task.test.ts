@@ -11,7 +11,6 @@ import {
 } from './task.ts';
 import {
     taskAssignInputSchema,
-    taskCreateInputSchema,
     taskGetInputSchema,
     taskListInputSchema,
     taskUpdateInputSchema,
@@ -20,9 +19,7 @@ import { formatTaskKey, parseTaskKey, taskKeySchema, taskLinkSchema } from './ta
 
 const task: Task = {
     assignee: { agentId: 'agt_zero', kind: 'agent' },
-    boardId: 'brd_sec',
-    category: 'todo',
-    columnId: 'col_todo',
+    chatId: 'cht_task',
     completedAt: null,
     createdAt: '2026-11-04T12:00:00.000Z',
     createdBy: { kind: 'user', userId: 'usr_zach' },
@@ -30,10 +27,13 @@ const task: Task = {
     dueOn: '2026-11-07',
     id: 'tsk_12',
     key: 'SEC-12',
+    keyId: 'brd_sec',
     labelIds: ['lbl_security'],
     number: 12,
+    origin: { chatId: 'cht_security', messageId: 'msg_origin' },
     priority: 'high',
     serverId: 'srv_1',
+    state: 'todo',
     title: 'Rotate the deploy key',
     updatedAt: '2026-11-04T12:00:00.000Z',
     version: 3,
@@ -76,16 +76,17 @@ test('a Task has at most one assignee, a person or an Agent', () => {
     ).toBe(false);
 });
 
-test('completedAt is set exactly while a Task sits in a closed column', () => {
+test('completedAt is set exactly while a Task is done or canceled', () => {
     const doneAt = '2026-11-05T09:00:00.000Z';
-    expect(taskSchema.safeParse({ ...task, category: 'done', completedAt: doneAt }).success).toBe(
+    expect(taskSchema.safeParse({ ...task, completedAt: doneAt, state: 'done' }).success).toBe(
         true
     );
-    expect(
-        taskSchema.safeParse({ ...task, category: 'canceled', completedAt: doneAt }).success
-    ).toBe(true);
-    expect(taskSchema.safeParse({ ...task, category: 'done' }).success).toBe(false);
+    expect(taskSchema.safeParse({ ...task, completedAt: doneAt, state: 'canceled' }).success).toBe(
+        true
+    );
+    expect(taskSchema.safeParse({ ...task, state: 'done' }).success).toBe(false);
     expect(taskSchema.safeParse({ ...task, completedAt: doneAt }).success).toBe(false);
+    expect(taskSchema.safeParse({ ...task, columnId: 'col_todo' }).success).toBe(false);
 });
 
 test('a Task record keeps its derived key consistent and its fields bounded', () => {
@@ -101,8 +102,12 @@ test('a Task record keeps its derived key consistent and its fields bounded', ()
     expect(
         taskDetailSchema.parse({
             ...task,
+            attachedWork: [],
             descriptionContent: task.description,
             descriptionTaskLinks: [],
+            followed: true,
+            pullRequests: [],
+            unreadCount: 0,
             mentions: [
                 {
                     authorLabel: 'Zero',
@@ -114,7 +119,6 @@ test('a Task record keeps its derived key consistent and its fields bounded', ()
                         chatId: 'cht_security',
                         chatKind: 'channel',
                         chatName: 'security',
-                        threadAnchorMessageId: null,
                     },
                 },
             ],
@@ -124,6 +128,7 @@ test('a Task record keeps its derived key consistent and its fields bounded', ()
                     kind: 'once',
                     nextFireAt: '2026-11-07T15:00:00.000Z',
                     reminderId: 'rem_1',
+                    setBy: { agentId: 'agt_forge', displayName: 'Forge' },
                     title: 'Check SEC-12',
                 },
             ],
@@ -136,7 +141,6 @@ test("a message's place names a Channel and never a DM's peer", () => {
         chatId: 'cht_security',
         chatKind: 'channel',
         chatName: 'security',
-        threadAnchorMessageId: 'msg_anchor',
     };
     const dm = { ...channel, chatKind: 'dm', chatName: null };
     expect(taskMessagePlaceSchema.safeParse(channel).success).toBe(true);
@@ -146,17 +150,18 @@ test("a message's place names a Channel and never a DM's peer", () => {
 });
 
 test('task inputs reject illegal assignments and empty patches', () => {
-    const create = { boardId: 'brd_sec', serverId: 'srv_1', title: '  Rotate the key  ' };
-    expect(taskCreateInputSchema.parse(create).title).toBe('Rotate the key');
-    expect(taskCreateInputSchema.safeParse({ ...create, title: '   ' }).success).toBe(false);
+    const mutation = { expectedVersion: 3, serverId: 'srv_1', taskId: 'tsk_12' };
     expect(
-        taskCreateInputSchema.safeParse({ ...create, labelIds: ['lbl_1', 'lbl_1'] }).success
-    ).toBe(false);
-    expect(
-        taskCreateInputSchema.safeParse({ ...create, assignee: { agentId: 'a', userId: 'u' } })
+        taskAssignInputSchema.safeParse({ ...mutation, assignee: { agentId: 'a', userId: 'u' } })
             .success
     ).toBe(false);
-    const mutation = { expectedVersion: 3, serverId: 'srv_1', taskId: 'tsk_12' };
+    expect(
+        taskUpdateInputSchema.safeParse({ ...mutation, patch: { labelIds: ['lbl_1', 'lbl_1'] } })
+            .success
+    ).toBe(false);
+    expect(taskUpdateInputSchema.safeParse({ ...mutation, patch: { title: '   ' } }).success).toBe(
+        false
+    );
     expect(taskAssignInputSchema.safeParse({ ...mutation, assignee: null }).success).toBe(true);
     expect(taskAssignInputSchema.safeParse(mutation).success).toBe(false);
     expect(taskUpdateInputSchema.safeParse({ ...mutation, patch: {} }).success).toBe(false);
@@ -186,7 +191,8 @@ test('tasks are addressed by id or key, and listed by one assignee filter', () =
             serverId: 'srv_1',
         }).success
     ).toBe(false);
-    expect(taskListInputSchema.safeParse({ categories: [], serverId: 'srv_1' }).success).toBe(
+    expect(taskListInputSchema.safeParse({ states: [], serverId: 'srv_1' }).success).toBe(false);
+    expect(taskListInputSchema.safeParse({ boardId: 'brd_sec', serverId: 'srv_1' }).success).toBe(
         false
     );
 });

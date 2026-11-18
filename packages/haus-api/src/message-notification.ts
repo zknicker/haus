@@ -4,11 +4,10 @@
  * the same way and cannot drift.
  *
  * A human is notified about a message they did not write when it is in a DM
- * they belong to (directly or in a Thread on it) — every message — or, in a
- * Channel or Thread, when it @mentions them, inline-replies to their message,
- * or sits in a Thread anchored on their message. Notifications are decoupled
- * from the Inbox: the Inbox is unread state, and reading a Chat clears it
- * without touching this rule.
+ * they belong to — every message — or, in a Channel or Task, when it
+ * @mentions them or inline-replies to their message. Notifications are
+ * decoupled from the Inbox: the Inbox is unread state, and reading a Chat
+ * clears it without touching this rule.
  *
  * The caller owns access: the rule assumes the human can see the Chat. A DM
  * is only visible to its members, so a DM message seen by a human is theirs.
@@ -20,13 +19,11 @@ export type MessageNotificationReason = (typeof messageNotificationReasons)[numb
 /** The addressing facts `message.created` carries for a new message. */
 export interface MessageNotificationFacts {
     authorUserId: string | null;
-    /** The Channel or DM the message belongs to; a Thread reports its parent's kind. */
+    /** The Channel or DM the message belongs to; a Task reports its Channel's kind. */
     conversationKind: 'channel' | 'dm';
     mentionedUserIds: readonly string[];
     /** The human author of the message this one inline-replies to. */
     replyToAuthorUserId: string | null;
-    /** The human author of the anchor of the Thread this message is in. */
-    threadAnchorAuthorUserId: string | null;
 }
 
 /**
@@ -46,7 +43,7 @@ export function messageNotificationReason(
     if (message.mentionedUserIds.includes(userId)) {
         return 'mention';
     }
-    if (message.replyToAuthorUserId === userId || message.threadAnchorAuthorUserId === userId) {
+    if (message.replyToAuthorUserId === userId) {
         return 'reply';
     }
     return null;
@@ -61,7 +58,6 @@ export function messageNotificationCandidates(message: MessageNotificationFacts)
     const named = new Set([
         ...message.mentionedUserIds,
         ...(message.replyToAuthorUserId ? [message.replyToAuthorUserId] : []),
-        ...(message.threadAnchorAuthorUserId ? [message.threadAnchorAuthorUserId] : []),
     ]);
     return [...named].filter((userId) => messageNotificationReason(message, userId) !== null);
 }

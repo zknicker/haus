@@ -7,7 +7,7 @@ const timestampSchema = z.iso.datetime({ offset: true });
 /** Fire history is retained for the same bounded window across automations. */
 export const AUTOMATION_HISTORY_RETENTION_DAYS = 30;
 
-/** Largest trigger payload the thread context card carries. */
+/** Largest trigger payload the context card carries. */
 export const automationPayloadExcerptMaxChars = 8192;
 /** Largest instruction, script, and anchor snippet the provenance surfaces carry. */
 export const automationSnippetMaxChars = 200;
@@ -95,7 +95,7 @@ export const automationFireContextInputSchema = z
 export type AutomationFireContextInput = z.infer<typeof automationFireContextInputSchema>;
 
 /**
- * The Thread pane's context card for one caused message. Kind-specific fields
+ * The context card for one caused message. Kind-specific fields
  * are null for the other kind: `payload`, `payloadBytes`, and `contentType`
  * belong to a Trigger fire; `repeat`, `nextFireAt`, `anchorMessageId`, and
  * `anchorExcerpt` belong to a Reminder fire.

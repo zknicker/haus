@@ -3,16 +3,12 @@ import { idSchema } from './chat-contract-primitives.ts';
 
 /**
  * Moves the caller's read marker in one Chat forward to `sequence`, clamped
- * to its newest message. Viewing a Chat or Thread while Haus is in view sends
- * it, and so does Mark read on an Inbox Thread row (the Thread's own id). Mark
- * read on a Channel or DM row sends `includeThreads` too, which also reads
- * every Thread under the Chat through its newest message, so that Chat's
- * Thread rows leave the Inbox with it.
+ * to its newest message. Viewing a Channel, DM, or Task while Haus is in view
+ * sends it, and so does Mark read on an Inbox row.
  */
 export const chatMarkReadInputSchema = z
     .object({
         chatId: idSchema,
-        includeThreads: z.boolean().optional(),
         sequence: z.number().int().nonnegative(),
         serverId: idSchema,
     })
@@ -33,8 +29,8 @@ export type ChatReadReceipt = z.infer<typeof chatReadReceiptSchema>;
 
 /**
  * How many unread Inbox rows the caller has across every Server they belong
- * to: `chat.list` rows with `unreadCount > 0` plus `thread.listUnread` rows,
- * summed. The app icon badge, and the same number iPhone push sets as
+ * to: `chat.list` rows with `unreadCount > 0` plus their unread followed
+ * Tasks, summed. The app icon badge, and the same number iPhone push sets as
  * `aps.badge`.
  */
 export const unreadChatCountSchema = z.object({ count: z.number().int().nonnegative() }).strict();

@@ -15,6 +15,7 @@ import {
 } from './cloud-agent-shared.ts';
 import { cloudAgentStallCodeSchema } from './cloud-agent-stall.ts';
 import type { components } from './generated/openapi.d.ts';
+import { taskKeySchema } from './task-key.ts';
 
 type HausAgentMessage = components['schemas']['AgentMessage'];
 
@@ -23,20 +24,20 @@ const timestampSchema = z.iso.datetime({ offset: true });
 export const cloudAgentWorkListForChatInputSchema = z
     .object({ serverId: idSchema, chatId: idSchema })
     .strict();
-export const threadCloudAgentWorkSchema = z
+/** One work linked in a Chat, under the linking Message its card sits beneath. */
+export const chatCloudAgentWorkSchema = z
     .object({ anchorMessageId: idSchema, work: cloudAgentWorkSchema })
     .strict();
-export const threadCloudAgentWorkListSchema = z.array(threadCloudAgentWorkSchema);
-export type ThreadCloudAgentWork = z.infer<typeof threadCloudAgentWorkSchema>;
+export const chatCloudAgentWorkListSchema = z.array(chatCloudAgentWorkSchema);
+export type ChatCloudAgentWork = z.infer<typeof chatCloudAgentWorkSchema>;
 
 export const cloudAgentWorkLinksInputSchema = z
     .object({ serverId: idSchema, workIds: z.array(idSchema).max(50) })
     .strict();
 
-/** A conversation linking some work: a Chat, or one of its Threads by its anchor. */
+/** A conversation linking some work. */
 export const cloudAgentWorkLinkSchema = z
     .object({
-        anchorMessageId: idSchema.nullable(),
         chatId: idSchema,
         workId: idSchema,
     })
@@ -50,14 +51,15 @@ export type CloudAgentWorkLink = z.infer<typeof cloudAgentWorkLinkSchema>;
  * newly linked. The Server publishes one event for each linking Message in a
  * live Chat (ADR 0044), Chat access scoped: `chatId`/`messageId` name that
  * linking Message. Ids only: the App invalidates that Message
- * (`chat.message`) and the work lists.
+ * (`chat.message`), the work lists, and the Task the work is attached to.
  */
 export const cloudAgentWorkUpdatedEventSchema = z
     .object({
         chatId: idSchema,
         messageId: idSchema,
-        parentChatId: idSchema.nullable(),
         serverId: idSchema,
+        /** The Task the work is attached to (ADR 0052 decision 6); null for older work. */
+        taskId: idSchema.nullable(),
         workId: idSchema,
     })
     .strict();
@@ -80,6 +82,12 @@ export const agentCloudAgentStartInputSchema = z
         replyToMessageId: idSchema.optional(),
         startingRef: cloudAgentRefSchema.nullable().default(null),
         target: z.string().trim().min(1).max(200),
+        /**
+         * The Task the work attaches to and reports to (ADR 0052 decision 6).
+         * The Server refuses a launch without one with `CLOUD_AGENT_TASK_REQUIRED`
+         * once Tasks are places; `target` keeps working until then.
+         */
+        task: taskKeySchema.optional(),
         title: cloudAgentTitleSchema,
     })
     .strict();
@@ -221,37 +229,24 @@ export const cloudAgentWorkCancelInputSchema = z
     .strict();
 
 /**
- * Where "Happening now" opens one work (ADR 0044, Q4). `work-thread`: the
- * launch work Thread, when the viewer can read it. `message`: otherwise the
- * newest visible linking Message. Its `chatId` is always the Channel or DM;
- * `threadChatId` is the Thread the Message sits in or anchors, which is what
- * opens when set. Otherwise the Message is revealed in `chatId`. Opening
- * never creates or follows a Thread.
+ * Where "Happening now" opens one work (ADR 0044, Q4): the launch Message when
+ * the viewer can read it, otherwise the newest visible linking Message,
+ * revealed in its Chat (a Channel, DM, or Task's Chat).
  */
-export const activeCloudAgentWorkLocationSchema = z.discriminatedUnion('kind', [
-    z
-        .object({
-            anchorMessageId: idSchema,
-            kind: z.literal('work-thread'),
-            threadChatId: idSchema,
-        })
-        .strict(),
-    z
-        .object({
-            chatId: idSchema,
-            kind: z.literal('message'),
-            messageId: idSchema,
-            threadChatId: idSchema.nullable(),
-        })
-        .strict(),
-]);
+export const activeCloudAgentWorkLocationSchema = z
+    .object({
+        chatId: idSchema,
+        kind: z.literal('message'),
+        messageId: idSchema,
+    })
+    .strict();
 
 export type ActiveCloudAgentWorkLocation = z.infer<typeof activeCloudAgentWorkLocationSchema>;
 
 /**
  * One queued or running work visible to the viewer, with everything the Inbox
  * "Happening now" section needs to name it and open its conversation. The
- * Chat facts always name the Channel or DM, never a Thread.
+ * Chat facts always name the Channel or DM, a Task's through its Channel.
  */
 export const activeCloudAgentWorkSchema = z
     .object({
@@ -263,9 +258,17 @@ export const activeCloudAgentWorkSchema = z
         conversationChatId: idSchema,
         /** Where opening this row goes. */
         location: activeCloudAgentWorkLocationSchema,
+        /** The Task the work is attached to (ADR 0052 decision 6); null for older work. */
+        taskId: idSchema.nullable(),
+        /** That Task's key, such as `SEC-12`; null exactly when `taskId` is. */
+        taskKey: z.string().min(1).nullable(),
         work: cloudAgentWorkSchema,
     })
-    .strict();
+    .strict()
+    .refine((row) => (row.taskId === null) === (row.taskKey === null), {
+        message: 'A Task id and its key come together.',
+        path: ['taskKey'],
+    });
 
 export const activeCloudAgentWorkListSchema = z.array(activeCloudAgentWorkSchema);
 

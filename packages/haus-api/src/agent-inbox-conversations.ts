@@ -8,7 +8,7 @@ export type AgentInboxView = z.infer<typeof agentInboxViewSchema>;
 
 /**
  * One conversation an Agent belongs to with unread past its read position
- * (`haus inbox check`). Channels, DMs, and followed Threads are separate rows.
+ * (`haus inbox check`). Channels, DMs, and followed Tasks are separate rows.
  * `activityKey` is an opaque key built from the conversation's newest message
  * (its `created_at`, then id): unique per row, ordered newest first by the
  * Server, and the keyset `before` pages by. Clients never parse or compare it.
@@ -19,7 +19,7 @@ export const agentInboxConversationSchema = z
     .object({
         activityKey: agentInboxActivityKeySchema,
         chatId: z.string().min(1),
-        kind: z.enum(['channel', 'dm', 'thread']),
+        kind: z.enum(['channel', 'dm', 'task']),
         lastReadSequence: z.number().int().nonnegative(),
         latestAt: z.iso.datetime({ offset: true }).nullable(),
         latestSenderHandle: z.string().min(1).nullable(),

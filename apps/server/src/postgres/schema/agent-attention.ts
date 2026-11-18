@@ -36,29 +36,30 @@ export const agentChannelMutesTable = pgTable(
     ]
 );
 
-export const agentThreadFollowsTable = pgTable(
-    'agent_thread_follows',
+/** One Agent following, or explicitly unfollowing, one Task's Chat (ADR 0052 decision 9). */
+export const agentTaskFollowsTable = pgTable(
+    'agent_task_follows',
     {
         agentId: text('agent_id').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         followed: boolean('followed').notNull().default(true),
         serverId: text('server_id').notNull(),
-        threadChatId: text('thread_chat_id').notNull(),
-        threadChatKind: text('thread_chat_kind').notNull().default('thread'),
+        taskChatId: text('task_chat_id').notNull(),
+        taskChatKind: text('task_chat_kind').notNull().default('task'),
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     },
     (table) => [
-        primaryKey({ columns: [table.serverId, table.agentId, table.threadChatId] }),
+        primaryKey({ columns: [table.serverId, table.agentId, table.taskChatId] }),
         foreignKey({
             columns: [table.serverId, table.agentId],
             foreignColumns: [agentsTable.serverId, agentsTable.id],
-            name: 'agent_thread_follows_agent_fk',
+            name: 'agent_task_follows_agent_fk',
         }).onDelete('cascade'),
         foreignKey({
-            columns: [table.serverId, table.threadChatId, table.threadChatKind],
+            columns: [table.serverId, table.taskChatId, table.taskChatKind],
             foreignColumns: [chatsTable.serverId, chatsTable.id, chatsTable.kind],
-            name: 'agent_thread_follows_thread_fk',
+            name: 'agent_task_follows_task_fk',
         }).onDelete('cascade'),
-        check('agent_thread_follows_kind', sql`${table.threadChatKind} = 'thread'`),
+        check('agent_task_follows_kind', sql`${table.taskChatKind} = 'task'`),
     ]
 );

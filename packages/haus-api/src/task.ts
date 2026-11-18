@@ -1,8 +1,9 @@
 import * as z from 'zod';
-import { type ColumnCategory, columnCategorySchema, isClosedColumnCategory } from './board.ts';
 import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
+import { cloudAgentPullRequestReadingSchema, cloudAgentWorkSchema } from './cloud-agent-shared.ts';
 import { taskKeySchema, taskLinkSchema } from './task-key.ts';
 import { taskPriorities } from './task-labels.ts';
+import { isClosedTaskState, type TaskState, taskStateSchema } from './task-state.ts';
 
 export const TASK_TITLE_MAX_CHARS = 200;
 export const TASK_DESCRIPTION_MAX_CHARS = 20_000;
@@ -25,13 +26,19 @@ export const taskAssigneeSchema = taskActorSchema;
 export type TaskActor = z.infer<typeof taskActorSchema>;
 export type TaskAssignee = z.infer<typeof taskAssigneeSchema>;
 
+/** The Channel Message a Task started from (ADR 0052 decision 3). */
+export const taskOriginSchema = z.object({ chatId: idSchema, messageId: idSchema }).strict();
+
+export type TaskOrigin = z.infer<typeof taskOriginSchema>;
+
 const taskFields = {
     assignee: taskAssigneeSchema.nullable(),
-    boardId: idSchema,
-    /** The category of `columnId`'s column, derived when read. */
-    category: columnCategorySchema,
-    columnId: idSchema,
-    /** Set while the Task sits in a `done` or `canceled` column. */
+    /**
+     * The Task's own conversation: a `task` Chat (ADR 0052). Null for a Task
+     * from before Tasks were places, kept as read-only history.
+     */
+    chatId: idSchema.nullable(),
+    /** Set exactly while the Task is `done` or `canceled`. */
     completedAt: timestampSchema.nullable(),
     createdAt: timestampSchema,
     createdBy: taskActorSchema,
@@ -39,10 +46,15 @@ const taskFields = {
     dueOn: taskDueOnSchema.nullable(),
     id: idSchema,
     key: taskKeySchema,
+    /** The key-ledger entry numbering this Task (`taskKey.list`). */
+    keyId: idSchema,
     labelIds: z.array(idSchema),
     number: z.number().int().positive(),
+    /** The Channel Message it started from; null for a Task from before ADR 0052. */
+    origin: taskOriginSchema.nullable(),
     priority: taskPrioritySchema,
     serverId: idSchema,
+    state: taskStateSchema,
     title: taskTitleSchema,
     updatedAt: timestampSchema,
     version: z.number().int().positive(),
@@ -54,19 +66,16 @@ export type Task = z.infer<typeof taskSchema>;
 
 /**
  * Where a message that references a Task lives, named without a second read:
- * the Channel or DM it sits in or under, and the Thread when it is a Thread
- * reply. A Thread reply's own Chat is outside `chat.list`, so this is what
- * labels it `#security · Thread` and opens or answers it.
+ * the Channel or DM it sits in, or for a message in a Task's own Chat, the
+ * Channel that Task started in.
  */
 export const taskMessagePlaceSchema = z
     .object({
-        /** The Channel or DM: the message's own Chat, or the one its Thread hangs off. */
+        /** The Channel or DM: the message's own Chat, or its Task's origin Channel. */
         chatId: idSchema,
         chatKind: z.enum(['channel', 'dm']),
         /** The Channel's name. Null for a DM, which a context label never names by its peer. */
         chatName: z.string().min(1).nullable(),
-        /** The message the Thread hangs off when this is a Thread reply; null otherwise. */
-        threadAnchorMessageId: idSchema.nullable(),
     })
     .strict()
     .refine((place) => (place.chatKind === 'dm') === (place.chatName === null), {
@@ -80,7 +89,7 @@ export type TaskMessagePlace = z.infer<typeof taskMessagePlaceSchema>;
 export const taskMentionSchema = z
     .object({
         authorLabel: z.string().min(1),
-        /** The message's own Chat: a Thread's Chat for a Thread reply. */
+        /** The message's own Chat: a Task's Chat for a message in a Task. */
         chatId: idSchema,
         createdAt: timestampSchema,
         excerpt: z.string().max(500),
@@ -89,7 +98,10 @@ export const taskMentionSchema = z
     })
     .strict();
 
-/** A Reminder whose description references the Task: its **Reminders**. */
+/**
+ * A Reminder on the Task: set on it (anchored in its own Chat, ADR 0052
+ * decision 16) or one whose description references it. Its **Reminders**.
+ */
 export const taskReminderRefSchema = z
     .object({
         anchorChatId: idSchema,
@@ -97,6 +109,8 @@ export const taskReminderRefSchema = z
         /** Null once a one-shot fired or the Reminder was canceled. */
         nextFireAt: timestampSchema.nullable(),
         reminderId: idSchema,
+        /** The Agent that set it; a retired Agent keeps its stored name. */
+        setBy: z.object({ agentId: idSchema, displayName: z.string().min(1) }).strict(),
         title: z.string().min(1),
     })
     .strict();
@@ -104,6 +118,8 @@ export const taskReminderRefSchema = z
 export const taskDetailSchema = z
     .object({
         ...taskFields,
+        /** Cloud Agent work attached to this Task, newest first (ADR 0052 decision 6). */
+        attachedWork: z.array(cloudAgentWorkSchema),
         /**
          * The description as clients render it, resolved when read: the bare
          * `@handle`, `#channel`, and `#channel:shortid` tokens an Agent's Message
@@ -113,8 +129,14 @@ export const taskDetailSchema = z
         descriptionContent: z.string(),
         /** The Task references in `descriptionContent`, like a Message's `taskLinks`. */
         descriptionTaskLinks: z.array(taskLinkSchema),
+        /** Whether the viewer follows the Task, so it can be unread for them (decision 9). */
+        followed: z.boolean(),
         mentions: z.array(taskMentionSchema),
+        /** Pull requests attached to this Task, as the Server last read them. */
+        pullRequests: z.array(cloudAgentPullRequestReadingSchema),
         reminders: z.array(taskReminderRefSchema),
+        /** The viewer's unread messages in the Task's Chat; zero unless followed. */
+        unreadCount: z.number().int().nonnegative(),
     })
     .strict()
     .superRefine(checkTaskRecord);
@@ -130,13 +152,14 @@ export const taskMutationResultSchema = z.object({ task: taskSchema }).strict();
 export type TaskMutationResult = z.infer<typeof taskMutationResultSchema>;
 
 /**
- * `task.onCreated` / `task.onUpdated`: a Task was created, or edited, moved,
- * or assigned. Every member. Ids only: the App invalidates that Task and its
- * board's lists.
+ * `task.onCreated` / `task.onUpdated`: a Task was created, or edited, had its
+ * state changed, or was assigned. Every member. Ids only: the App invalidates
+ * that Task and the Task lists.
  */
 export const taskCreatedEventSchema = z
     .object({
-        boardId: idSchema,
+        /** The Task's own Chat; null for a chatless history Task (see `Task.chatId`). */
+        chatId: idSchema.nullable(),
         serverId: idSchema,
         taskId: idSchema,
         version: z.number().int().positive(),
@@ -145,17 +168,31 @@ export const taskCreatedEventSchema = z
 
 export const taskUpdatedEventSchema = taskCreatedEventSchema;
 
+/**
+ * `task.onFollowUpdated`: the subscriber followed or unfollowed a Task. Reader
+ * only. Names the Task's Chat so the App invalidates that Task and its unread.
+ */
+export const taskFollowUpdatedEventSchema = z
+    .object({
+        chatId: idSchema,
+        followed: z.boolean(),
+        serverId: idSchema,
+        taskId: idSchema,
+    })
+    .strict();
+
 export type TaskCreatedEvent = z.infer<typeof taskCreatedEventSchema>;
 export type TaskUpdatedEvent = z.infer<typeof taskUpdatedEventSchema>;
+export type TaskFollowUpdatedEvent = z.infer<typeof taskFollowUpdatedEventSchema>;
 
 function checkTaskRecord(
-    task: { category: ColumnCategory; completedAt: string | null; key: string; number: number },
+    task: { completedAt: string | null; key: string; number: number; state: TaskState },
     context: z.RefinementCtx
 ) {
-    if ((task.completedAt !== null) !== isClosedColumnCategory(task.category)) {
+    if ((task.completedAt !== null) !== isClosedTaskState(task.state)) {
         context.addIssue({
             code: 'custom',
-            message: 'completedAt is set exactly while the Task is in a done or canceled column.',
+            message: 'completedAt is set exactly while the Task is done or canceled.',
             path: ['completedAt'],
         });
     }

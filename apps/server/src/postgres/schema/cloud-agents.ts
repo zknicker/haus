@@ -13,6 +13,7 @@ import { check, foreignKey, index, pgTable, text, timestamp, unique } from 'driz
 import { agentsTable } from './agents.ts';
 import { bunJsonb } from './bun-jsonb.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
+import { tasksTable } from './tasks.ts';
 
 const statuses =
     "('queued', 'running', 'pending_input', 'completed', 'failed', 'cancelled', 'expired')";
@@ -50,12 +51,23 @@ export const cloudAgentWorkTable = pgTable(
         startedAt: timestamp('started_at', { withTimezone: true }),
         startingRef: text('starting_ref'),
         status: text('status').notNull().default('queued').$type<CloudAgentStatus>(),
+        /** The Task this work attaches to and reports to (ADR 0052); null before Tasks. */
+        taskId: text('task_id'),
         terminalAt: timestamp('terminal_at', { withTimezone: true }),
         title: text('title').notNull(),
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     },
     (table) => [
         unique('cloud_agent_work_server_id_key').on(table.serverId, table.id),
+        // Not cascade: work outlives nothing but its Server; 0122 defers the check.
+        foreignKey({
+            columns: [table.serverId, table.taskId],
+            foreignColumns: [tasksTable.serverId, tasksTable.id],
+            name: 'cloud_agent_work_task_fk',
+        }),
+        index('cloud_agent_work_task_idx')
+            .on(table.serverId, table.taskId)
+            .where(sql`${table.taskId} is not null`),
         index('cloud_agent_work_launch_message_idx').on(table.serverId, table.launchMessageId),
         foreignKey({
             columns: [table.serverId, table.agentId],

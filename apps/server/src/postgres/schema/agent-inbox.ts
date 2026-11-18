@@ -171,12 +171,16 @@ export const agentInboxTable = pgTable(
         addressedReason: text('addressed_reason').$type<AddressedReason>(),
         agentId: text('agent_id').notNull(),
         /**
-         * Null exactly for the chatless attentions: a `subagent` wake and a `task_assignment`.
+         * Null exactly for the chatless `subagent` wake. A `task_assignment` names its Task's
+         * Chat when it has one.
          */
         chatId: text('chat_id'),
         /** Why a `cloud_agent_work` row reached this Agent. */
-        cloudAgentNotice: text('cloud_agent_notice').$type<'settled' | 'stall'>(),
-        /** The Run a `cloud_agent_work` row describes; `dedupe_key` stays opaque. */
+        cloudAgentNotice: text('cloud_agent_notice').$type<'settled' | 'stall' | 'pull_request'>(),
+        /**
+         * The Run a `cloud_agent_work` row describes; `dedupe_key` stays opaque.
+         * Null only on a `pull_request` notice for a Task with no cloud work.
+         */
         cloudAgentRunId: text('cloud_agent_run_id'),
         content: text('content').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -202,8 +206,8 @@ export const agentInboxTable = pgTable(
             .notNull()
             .default('queued')
             .$type<'queued' | 'accepted' | 'served' | 'seen'>(),
-        /** A direct Thread mention changed this recipient's explicit unfollow back to followed. */
-        threadFollowReactivated: boolean('thread_follow_reactivated').notNull().default(false),
+        /** A direct Task mention changed this recipient's explicit unfollow back to followed. */
+        taskFollowReactivated: boolean('task_follow_reactivated').notNull().default(false),
         /** Why this row settled `seen` without ever reaching the model. */
         undeliveredReason: text('undelivered_reason'),
     },
@@ -225,10 +229,13 @@ export const agentInboxTable = pgTable(
         }).onDelete('cascade'),
         check(
             'agent_inbox_cloud_agent_notice',
-            sql`(${table.source} = 'cloud_agent_work') = (${table.cloudAgentRunId} is not null)
-                and (${table.cloudAgentRunId} is null) = (${table.cloudAgentNotice} is null)
+            sql`(${table.source} = 'cloud_agent_work') = (${table.cloudAgentNotice} is not null)
                 and (${table.cloudAgentNotice} is null
-                    or ${table.cloudAgentNotice} in ('settled', 'stall'))`
+                    or ${table.cloudAgentNotice} in ('settled', 'stall', 'pull_request'))
+                and (${table.cloudAgentRunId} is null or ${table.cloudAgentNotice} is not null)
+                and (${table.cloudAgentRunId} is not null
+                    or ${table.cloudAgentNotice} is null
+                    or ${table.cloudAgentNotice} = 'pull_request')`
         ),
         uniqueIndex('agent_inbox_dedupe_key').on(table.serverId, table.agentId, table.dedupeKey),
         index('agent_inbox_queue_idx').on(table.serverId, table.agentId, table.createdAt),
@@ -256,9 +263,12 @@ export const agentInboxTable = pgTable(
             sql`${table.addressedReason} is null
                 or ${table.addressedReason} in ('dm', 'mention', 'routing', 'sole')`
         ),
+        // ADR 0052: a `task_assignment` may name its Task's Chat, or no Chat for a
+        // Task from before Tasks were places.
         check(
             'agent_inbox_chat',
-            sql`(${table.chatId} is null) = (${table.source} in ('subagent', 'task_assignment'))`
+            sql`${table.source} = 'task_assignment'
+                or (${table.chatId} is null) = (${table.source} in ('subagent'))`
         ),
         check(
             'agent_inbox_undelivered_shape',

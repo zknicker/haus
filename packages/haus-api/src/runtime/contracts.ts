@@ -1110,7 +1110,7 @@ export const agentRuntimeAgentInboxSchema = z.object({
             target: z.string().min(1),
         })
     ),
-    followedThreads: z.array(z.string().min(1)),
+    followedTasks: z.array(z.string().min(1)),
     muted: z.array(z.string().min(1)),
     rows: z.array(
         z.object({
@@ -1121,7 +1121,7 @@ export const agentRuntimeAgentInboxSchema = z.object({
             mentioned: z.boolean(),
             pendingCount: z.number().int().positive(),
             target: z.string().min(1),
-            thread: z.boolean(),
+            task: z.boolean(),
         })
     ),
 });

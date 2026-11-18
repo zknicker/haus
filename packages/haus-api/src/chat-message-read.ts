@@ -1,5 +1,6 @@
 import * as z from 'zod';
-import { chatMessageSchema, idSchema, threadSummarySchema } from './chat.ts';
+import { chatMessageSchema, idSchema } from './chat.ts';
+import { taskPreviewSchema } from './task-preview.ts';
 
 /**
  * `chat.message`: one message entity (specs/realtime-events.md, "Normalized
@@ -19,14 +20,14 @@ export const chatMessageInputSchema = z
 export type ChatMessageInput = z.infer<typeof chatMessageInputSchema>;
 
 /**
- * The message exactly as `chat.messages` projects it, with the viewer's Thread
- * summary when the message anchors one (the same per-viewer `followed` and
- * `unreadCount`). Null when the id no longer resolves in `chatId`.
+ * The message exactly as `chat.messages` projects it, with the previews of the
+ * Tasks started from it, as a `chat.messages` page carries them (ADR 0052
+ * decision 7). Null when the id no longer resolves in `chatId`.
  */
 export const chatMessageEntitySchema = z
     .object({
         message: chatMessageSchema,
-        thread: threadSummarySchema.nullable(),
+        tasks: z.array(taskPreviewSchema).default([]),
     })
     .strict();
 

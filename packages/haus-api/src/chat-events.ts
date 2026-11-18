@@ -2,7 +2,7 @@ import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
 
 /**
- * Chat and Thread realtime events (specs/realtime-events.md). Each has its own
+ * Chat realtime events (specs/realtime-events.md). Each has its own
  * subscription taking `serverStreamInputSchema`. Events carry ids and small
  * facts, never rows: the App answers each one with a read: a tail read
  * (`chat.messages` after its cached tail) or invalidating `chat.message` entries, so the read
@@ -11,30 +11,23 @@ import { idSchema } from './chat-contract-primitives.ts';
 
 /**
  * `chat.onMessageCreated`: a message committed. `sequence` lets the App skip
- * a tail read its cache already covers. A Thread reply names the parent's
- * anchor so the App invalidates the anchor entry (its Thread summary). The author, kind, and
- * reply/anchor authors are the facts `messageNotificationReason` reads.
+ * a tail read its cache already covers. The author, kind, and reply author are
+ * the facts `messageNotificationReason` reads.
  */
 export const messageCreatedEventSchema = z
     .object({
         authorUserId: idSchema.nullable(),
         chatId: idSchema,
-        conversationKind: z.enum(['channel', 'dm']), // A Thread reports its parent's kind.
+        conversationKind: z.enum(['channel', 'dm']), // A Task reports its Channel's kind.
         mentionedUserIds: z.array(idSchema),
         messageId: idSchema,
-        parentChatId: idSchema.nullable(),
         replyToAuthorUserId: idSchema.nullable(),
         sequence: z.number().int().positive(),
         serverId: idSchema,
-        threadAnchorAuthorUserId: idSchema.nullable(),
-        /** The parent-Chat anchor of a Thread reply; null outside a Thread. */
-        threadAnchorMessageId: idSchema.nullable(),
+        /** The Task whose Chat this message is in (ADR 0052); null outside a Task. */
+        taskId: idSchema.nullable(),
     })
-    .strict()
-    .refine((event) => (event.parentChatId === null) === (event.threadAnchorMessageId === null), {
-        message:
-            'A Thread reply names both its parent Chat and its anchor; other messages neither.',
-    });
+    .strict();
 
 export type MessageCreatedEvent = z.infer<typeof messageCreatedEventSchema>;
 
@@ -43,56 +36,24 @@ export const messageReactionUpdatedEventSchema = z
     .object({
         chatId: idSchema,
         messageId: idSchema,
-        parentChatId: idSchema.nullable(),
         serverId: idSchema,
     })
     .strict();
 
 export type MessageReactionUpdatedEvent = z.infer<typeof messageReactionUpdatedEventSchema>;
 
-/**
- * `chat.onRead`: the subscriber's own read marker moved. Delivered to the reader only.
- * A Thread read names the parent's anchor so the App invalidates its summary's unread
- * count without needing the Thread context cached.
- */
+/** `chat.onRead`: the subscriber's own read marker moved. Delivered to the reader only. */
 export const chatReadEventSchema = z
     .object({
         chatId: idSchema,
-        parentChatId: idSchema.nullable(),
         sequence: z.number().int().nonnegative(),
         serverId: idSchema,
-        /** The parent-Chat anchor of a Thread read; null outside a Thread. */
-        threadAnchorMessageId: idSchema.nullable(),
+        /** The Task whose Chat was read (ADR 0052); null outside a Task. */
+        taskId: idSchema.nullable(),
     })
-    .strict()
-    .refine((event) => (event.parentChatId === null) === (event.threadAnchorMessageId === null), {
-        message: 'A Thread read names both its parent Chat and its anchor; other reads neither.',
-    });
+    .strict();
 
 export type ChatReadEvent = z.infer<typeof chatReadEventSchema>;
-
-/**
- * `thread.onFollowUpdated`: the subscriber followed or unfollowed a Thread.
- * Reader only. Names the anchor so the App invalidates that one entry.
- */
-export const threadFollowUpdatedEventSchema = z
-    .object({
-        anchorMessageId: idSchema,
-        followed: z.boolean(),
-        parentChatId: idSchema,
-        serverId: idSchema,
-        threadChatId: idSchema,
-    })
-    .strict();
-
-export type ThreadFollowUpdatedEvent = z.infer<typeof threadFollowUpdatedEventSchema>;
-
-/** `thread.onClosedUpdated`: the subscriber closed or reopened a Thread. Reader only. */
-export const threadClosedUpdatedEventSchema = z
-    .object({ closed: z.boolean(), serverId: idSchema, threadChatId: idSchema })
-    .strict();
-
-export type ThreadClosedUpdatedEvent = z.infer<typeof threadClosedUpdatedEventSchema>;
 
 /**
  * `chat.onLifecycle`: one Chat's existence changed. `created` for a new

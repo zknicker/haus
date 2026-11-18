@@ -1,5 +1,4 @@
 import * as z from 'zod';
-import { columnCategorySchema } from './board.ts';
 import { idSchema } from './chat-contract-primitives.ts';
 import {
     taskAssigneeSchema,
@@ -9,6 +8,7 @@ import {
     taskTitleSchema,
 } from './task.ts';
 import { taskKeySchema } from './task-key.ts';
+import { taskStateSchema } from './task-state.ts';
 
 const expectedVersionSchema = z.number().int().positive();
 
@@ -27,9 +27,48 @@ export const taskListAssigneeFilterSchema = z.union([
 export const taskListInputSchema = z
     .object({
         assignee: taskListAssigneeFilterSchema.optional(),
-        boardId: idSchema.optional(),
-        categories: z.array(columnCategorySchema).min(1).optional(),
+        /** Tasks numbered by this key-ledger entry (ADR 0052 decision 11). */
+        keyId: idSchema.optional(),
         serverId: idSchema,
+        /** Tasks in any of these states; the Tasks page reads all four. */
+        states: z.array(taskStateSchema).min(1).optional(),
+    })
+    .strict();
+
+/**
+ * `task.listOpen`: every `open` Task on the Server, for the sidebar (decision 8).
+ * Answers with `taskListSchema`.
+ */
+export const taskListOpenInputSchema = z.object({ serverId: idSchema }).strict();
+
+/**
+ * `task.setState`. Anyone who can see the Task may change its state. Closing
+ * cancels its pending reminders; reopening does not restore them (decision 16).
+ * Answers with `taskMutationResultSchema`.
+ */
+export const taskSetStateInputSchema = z
+    .object({
+        expectedVersion: expectedVersionSchema,
+        serverId: idSchema,
+        state: taskStateSchema,
+        taskId: idSchema,
+    })
+    .strict();
+
+/** `task.setFollow`: follow or unfollow a Task by hand (decision 9). */
+export const taskSetFollowInputSchema = z
+    .object({
+        followed: z.boolean(),
+        serverId: idSchema,
+        taskId: idSchema,
+    })
+    .strict();
+
+export const taskFollowReceiptSchema = z
+    .object({
+        followed: z.boolean(),
+        serverId: idSchema,
+        taskId: idSchema,
     })
     .strict();
 
@@ -38,26 +77,6 @@ export const taskGetInputSchema = z.union([
     z.object({ serverId: idSchema, taskId: idSchema }).strict(),
     z.object({ key: taskKeySchema, serverId: idSchema }).strict(),
 ]);
-
-/**
- * `task.create`. `columnId` defaults to the board's first `todo` column. With
- * `sourceMessageId` (Convert to Task) the description defaults to that
- * message's content and the message is recorded in Mentioned in.
- */
-export const taskCreateInputSchema = z
-    .object({
-        assignee: taskAssigneeSchema.optional(),
-        boardId: idSchema,
-        columnId: idSchema.optional(),
-        description: taskDescriptionSchema.optional(),
-        dueOn: taskDueOnSchema.optional(),
-        labelIds: taskLabelIdsSchema.optional(),
-        priority: taskPrioritySchema.optional(),
-        serverId: idSchema,
-        sourceMessageId: idSchema.optional(),
-        title: taskTitleSchema,
-    })
-    .strict();
 
 export const taskUpdateInputSchema = z
     .object({
@@ -77,16 +96,6 @@ export const taskUpdateInputSchema = z
     })
     .strict();
 
-/** Move within the Task's own board; there is no cross-board move. */
-export const taskMoveInputSchema = z
-    .object({
-        columnId: idSchema,
-        expectedVersion: expectedVersionSchema,
-        serverId: idSchema,
-        taskId: idSchema,
-    })
-    .strict();
-
 /** `assignee: null` unassigns. */
 export const taskAssignInputSchema = z
     .object({
@@ -97,10 +106,41 @@ export const taskAssignInputSchema = z
     })
     .strict();
 
+/**
+ * `POST /api/agent/tasks/start` (openapi `AgentTaskStartRequest`): an Agent
+ * starts a Task from Message `from` in Channel `target` (ADR 0052 decision 4).
+ */
+export const agentTaskStartInputSchema = z
+    .object({
+        /** `me` or an @handle; defaults to the calling Agent. */
+        assignee: z.string().trim().min(1).max(64).optional(),
+        description: taskDescriptionSchema.optional(),
+        dueOn: taskDueOnSchema.optional(),
+        from: idSchema,
+        priority: taskPrioritySchema.optional(),
+        state: z.enum(['todo', 'open']).optional(),
+        target: z.string().trim().min(1).max(200),
+        title: taskTitleSchema,
+    })
+    .strict();
+
+/** `POST /api/agent/tasks/state` (openapi `AgentTaskStateRequest`). */
+export const agentTaskStateInputSchema = z
+    .object({
+        expectedVersion: expectedVersionSchema.optional(),
+        key: taskKeySchema,
+        state: taskStateSchema,
+    })
+    .strict();
+
+export type AgentTaskStartInput = z.infer<typeof agentTaskStartInputSchema>;
+export type AgentTaskStateInput = z.infer<typeof agentTaskStateInputSchema>;
 export type TaskListAssigneeFilter = z.infer<typeof taskListAssigneeFilterSchema>;
 export type TaskListInput = z.infer<typeof taskListInputSchema>;
 export type TaskGetInput = z.infer<typeof taskGetInputSchema>;
-export type TaskCreateInput = z.infer<typeof taskCreateInputSchema>;
 export type TaskUpdateInput = z.infer<typeof taskUpdateInputSchema>;
-export type TaskMoveInput = z.infer<typeof taskMoveInputSchema>;
 export type TaskAssignInput = z.infer<typeof taskAssignInputSchema>;
+export type TaskListOpenInput = z.infer<typeof taskListOpenInputSchema>;
+export type TaskSetStateInput = z.infer<typeof taskSetStateInputSchema>;
+export type TaskSetFollowInput = z.infer<typeof taskSetFollowInputSchema>;
+export type TaskFollowReceipt = z.infer<typeof taskFollowReceiptSchema>;

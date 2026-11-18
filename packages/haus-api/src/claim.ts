@@ -1,5 +1,5 @@
 import * as z from 'zod';
-import { chatMessageSchema, idSchema, threadSummarySchema } from './chat.ts';
+import { chatMessageSchema, idSchema } from './chat.ts';
 import { claimStatuses, messageClaimSchema } from './claim-shared.ts';
 
 export const claimListInputSchema = z
@@ -18,7 +18,6 @@ export const claimListItemSchema = z
         chatPeerUserId: idSchema.nullable(),
         claim: messageClaimSchema,
         message: chatMessageSchema,
-        threadSummary: threadSummarySchema,
     })
     .strict();
 
@@ -44,7 +43,7 @@ export const claimAssigneesInputSchema = z
 /**
  * Who a claim may be handed to: an Agent member of the claim's Chat. Humans are
  * never assignees (ADR 0037); an Agent hands work to a human by @mentioning
- * them in the claim Thread.
+ * them in the conversation.
  */
 export const claimAssigneeSchema = z
     .object({
@@ -113,8 +112,7 @@ export const claimMutationSchema = z
 /**
  * `claim.onChanged`: a claim was created on, or changed on, its Message. Chat
  * access scoped. Ids only: the App invalidates that Message entry (`chat.message`)
- * and `claim.list`. `chatId` is the Message's Chat: for a Thread claim, its
- * Thread, not the claim's own top-level `chatId`.
+ * and `claim.list`. `chatId` is the Message's Chat.
  */
 export const claimChangedEventSchema = z
     .object({

@@ -14,7 +14,7 @@ import { serversTable } from './servers.ts';
 
 /**
  * The Server's live reading of each pull request some Cloud Agent work
- * reported (specs/open-threads.md). A row is evidence, not a Haus lifecycle.
+ * reported (ADR 0052 decision 6). A row is evidence, not a Haus lifecycle.
  * `refresh_requested_at` marks a row a webhook or a new report made stale; the
  * refresher reads GitHub and clears it. Rows for other pull requests never exist.
  */

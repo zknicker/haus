@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { agentIdempotencyKeySchema } from './agent-idempotency.ts';
+import { TASK_TARGET_PATTERN } from './agent-task-refusals.ts';
 import { AUTOMATION_HISTORY_RETENTION_DAYS } from './automation.ts';
 import { idSchema } from './chat.ts';
 
@@ -174,15 +175,25 @@ export const agentReminderScheduleInputSchema = z
         /** Opt-in: wake once on the Nth consecutive script failure, then quiet until it wakes again. */
         failAfter: failAfterSchema.optional(),
         fireAt: z.iso.datetime().optional(),
-        messageId: z.string().min(1),
+        /** The anchor message; exactly one of `messageId` and `target` is given. */
+        messageId: z.string().min(1).optional(),
         repeat: z.string().min(1).optional(),
         script: z.string().min(1).optional(),
+        /**
+         * `task:SEC-12`: anchor on a Task (ADR 0052 decision 16), one-time only. The
+         * reminder anchors on the Task's newest message.
+         */
+        target: z.string().regex(TASK_TARGET_PATTERN).optional(),
         title: z.string().min(1),
         timezone: z.string().min(1).optional(),
         /** Opt-in: a waking output equal to the last one that woke the Agent is a quiet tick. */
         wakeOnChange: z.boolean().optional(),
     })
-    .strict();
+    .strict()
+    .refine((input) => (input.messageId === undefined) !== (input.target === undefined), {
+        message: 'Give exactly one anchor: messageId, or a task: target.',
+        path: ['messageId'],
+    });
 
 /** The optimistic, idempotent envelope every Agent reminder change carries. */
 export const agentReminderCommandSchema = z

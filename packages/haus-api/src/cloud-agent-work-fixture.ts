@@ -58,17 +58,16 @@ export const linkedMessage: ChatMessage = {
     taskLinks: [],
 };
 
-/** Both arms of "Happening now"'s `location`. */
+/** "Happening now"'s `location`: the launch Message, or a newer link elsewhere. */
 export const activeWorkLocations = {
+    launch: {
+        chatId: linkedWork.chatId,
+        kind: 'message',
+        messageId: linkedWork.messageId,
+    },
     message: {
         chatId: 'cht_tech_ops',
         kind: 'message',
         messageId: 'msg_linking_elsewhere',
-        threadChatId: null,
-    },
-    workThread: {
-        anchorMessageId: linkedWork.messageId,
-        kind: 'work-thread',
-        threadChatId: 'cht_work_thread',
     },
 } as const satisfies Record<string, ActiveCloudAgentWorkLocation>;

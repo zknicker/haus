@@ -23,8 +23,6 @@ describe('Haus OpenAPI contract', () => {
         expect(Object.keys(document.paths ?? {})).toEqual([
             '/api/chats',
             '/api/chats/{chat_id}',
-            '/api/chats/{chat_id}/threads',
-            '/api/chats/{chat_id}/follow',
             '/api/chats/{chat_id}/messages',
             '/api/chats/{chat_id}/messages/search',
             '/api/chats/{chat_id}/timeline',
@@ -72,13 +70,11 @@ describe('Haus OpenAPI contract', () => {
             '/api/agent/reminders/cancel',
             '/api/agent/tasks',
             '/api/agent/tasks/show',
-            '/api/agent/tasks/create',
-            '/api/agent/tasks/move',
             '/api/agent/tasks/update',
             '/api/agent/tasks/assign',
-            '/api/agent/boards',
-            '/api/agent/boards/create',
-            '/api/agent/boards/columns',
+            '/api/agent/tasks/start',
+            '/api/agent/tasks/state',
+            '/api/agent/tasks/attach-pr',
             '/api/triggers/{trigger_id}',
             '/api/agent/triggers',
             '/api/agent/triggers/{id}',
@@ -165,7 +161,6 @@ describe('Haus OpenAPI contract', () => {
         expect(document.components?.schemas).toHaveProperty('ChatArtifact');
         expect(document.components?.schemas).toHaveProperty('ChatEvent');
         expect(document.components?.schemas).toHaveProperty('ChatMessageReceipt');
-        expect(document.components?.schemas).toHaveProperty('ThreadSummary');
         expect(document.components?.schemas).toHaveProperty('AgentSendResponse');
         expect(document.components?.schemas).toHaveProperty('AgentHistoryResponse');
         expect(document.components?.schemas).toHaveProperty('AgentManualTopic');

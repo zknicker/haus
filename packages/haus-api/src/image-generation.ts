@@ -112,7 +112,6 @@ export const imageGenerationUpdatedEventSchema = z
         chatId: idSchema,
         generationId: idSchema,
         messageId: idSchema,
-        parentChatId: idSchema.nullable(),
         serverId: idSchema,
     })
     .strict();

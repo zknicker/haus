@@ -39,40 +39,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/chats/{chat_id}/threads": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Ensure the thread anchored on a chat message exists. */
-        post: operations["ensureThread"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/chats/{chat_id}/follow": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Set a participant's follow state for a thread chat. */
-        put: operations["setThreadFollow"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/chats/{chat_id}/messages": {
         parameters: {
             query?: never;
@@ -442,7 +408,7 @@ export interface paths {
         };
         /**
          * List the Agent's conversations with unread past its read position.
-         * @description Joined channels, DMs, and followed Threads, newest activity first, from one snapshot. A muted channel counts only mentions and appears only while it has one. Any failure is a retryable 503 `INBOX_UNAVAILABLE`, never a partial list.
+         * @description Joined channels, DMs, and followed Tasks, newest activity first, from one snapshot. A muted channel counts only mentions and appears only while it has one. Any failure is a retryable 503 `INBOX_UNAVAILABLE`, never a partial list.
          */
         get: operations["listAgentInboxConversations"];
         put?: never;
@@ -868,7 +834,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List board Tasks on the calling agent's Server. */
+        /** List Tasks on the calling agent's Server. */
         get: operations["listAgentTasks"];
         put?: never;
         post?: never;
@@ -889,40 +855,6 @@ export interface paths {
         get: operations["showAgentTask"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agent/tasks/create": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Create one Task on a board. */
-        post: operations["createAgentTask"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agent/tasks/move": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Move one Task to another column on its board. */
-        post: operations["moveAgentTask"];
         delete?: never;
         options?: never;
         head?: never;
@@ -963,24 +895,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/agent/boards": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List the Server's unarchived boards with their columns and open counts. */
-        get: operations["listAgentBoards"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agent/boards/create": {
+    "/api/agent/tasks/start": {
         parameters: {
             query?: never;
             header?: never;
@@ -989,15 +904,18 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create a board with the default columns. */
-        post: operations["createAgentBoard"];
+        /**
+         * Start a Task from a Message in a Channel.
+         * @description Starts a Task, a place for one piece of work, from an origin Message in a Channel (ADR 0052). The Task takes the Channel's key. Refuses with `TASK_ORIGIN_DM` when the origin Message is in a DM.
+         */
+        post: operations["startAgentTask"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/agent/boards/columns": {
+    "/api/agent/tasks/state": {
         parameters: {
             query?: never;
             header?: never;
@@ -1006,8 +924,25 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Replace a board's whole ordered column list. */
-        post: operations["setAgentBoardColumns"];
+        /** Set one Task's state; done or canceled ends it. */
+        post: operations["setAgentTaskState"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent/tasks/attach-pr": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Attach a GitHub pull request to one Task. */
+        post: operations["attachAgentTaskPullRequest"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1408,9 +1343,6 @@ export interface components {
         };
         AgentMessage: components["schemas"]["ChatMessage"] & {
             sender: components["schemas"]["AgentSender"];
-            threadId?: string;
-            replyCount?: number;
-            replyTarget?: string;
         };
         AgentSearchResult: components["schemas"]["AgentMessage"] & {
             target: string;
@@ -1572,7 +1504,7 @@ export interface components {
                 after: number;
                 unread_after: number;
             };
-            thread_follow_reactivated_message_ids?: string[];
+            task_follow_reactivated_message_ids?: string[];
             /** @description `unread=true` only: the read position this page starts after. */
             unread_after_seq?: number;
             /** @description `unread=true` only: the read position after this page. */
@@ -1583,7 +1515,7 @@ export interface components {
             activityKey: string;
             chatId: string;
             /** @enum {string} */
-            kind: "channel" | "dm" | "thread";
+            kind: "channel" | "dm" | "task";
             lastReadSequence: number;
             /** Format: date-time */
             latestAt: string | null;
@@ -2014,10 +1946,11 @@ export interface components {
         };
         AgentReminderScheduleRequest: {
             commandId: string;
+            target?: string;
             description?: string;
             /** Format: date-time */
             fireAt?: string;
-            messageId: string;
+            messageId?: string;
             repeat?: string;
             script?: string;
             timezone?: string;
@@ -2046,12 +1979,17 @@ export interface components {
             expectedVersion: number;
             id: string;
         };
-        /** @description A board key, like SEC. */
-        AgentBoardKey: string;
-        /** @description A Task key, its board key and number, like SEC-12. */
+        /** @description A Task key-ledger entry, like SEC. */
+        AgentTaskKeyPrefix: string;
+        /** @description One or more Task states, comma-separated. */
+        AgentTaskStateList: string;
+        /** @description A Task key, its ledger key and number, like SEC-12. */
         AgentTaskKey: string;
-        /** @enum {string} */
-        AgentTaskCategory: "backlog" | "todo" | "active" | "done" | "canceled";
+        /**
+         * @description A Task's state (ADR 0052); done and canceled end it.
+         * @enum {string}
+         */
+        AgentTaskState: "todo" | "open" | "done" | "canceled";
         /** @enum {string} */
         AgentTaskPriority: "none" | "urgent" | "high" | "medium" | "low";
         /** @description A person or Agent of the Server, by handle. */
@@ -2060,54 +1998,9 @@ export interface components {
             /** @enum {string} */
             type: "human" | "agent";
         };
-        AgentBoardColumn: {
-            category: components["schemas"]["AgentTaskCategory"];
-            id: string;
-            name: string;
-            position: number;
-        };
-        AgentBoard: {
-            /** Format: date-time */
-            archivedAt: string | null;
-            columns: components["schemas"]["AgentBoardColumn"][];
-            id: string;
-            key: components["schemas"]["AgentBoardKey"];
-            name: string;
-            openTaskCount: number;
-            /** @description The board revision; pass it as expectedVersion to act only on this state. */
-            version: number;
-        };
-        AgentBoardListResponse: {
-            boards: components["schemas"]["AgentBoard"][];
-        };
-        AgentBoardSingleResponse: {
-            board: components["schemas"]["AgentBoard"];
-        };
-        AgentBoardCreateRequest: {
-            key: components["schemas"]["AgentBoardKey"];
-            name: string;
-        };
-        /** @description The full ordered column list. A column with an id keeps it; one without is created; an existing column left out is removed. A removed column that holds Tasks needs a moveTasks entry naming the column they move to. */
-        AgentBoardColumnsRequest: {
-            board: components["schemas"]["AgentBoardKey"];
-            columns: {
-                category: components["schemas"]["AgentTaskCategory"];
-                id?: string;
-                name: string;
-            }[];
-            /** @description Apply only if the board is still at this version; omit to use the current one. */
-            expectedVersion?: number;
-            /** @description Removed column id to the column id its Tasks move to. */
-            moveTasks?: {
-                [key: string]: string;
-            };
-        };
         AgentTaskRow: {
             assignee: components["schemas"]["AgentTaskActor"] | null;
-            board: components["schemas"]["AgentBoardKey"];
-            category: components["schemas"]["AgentTaskCategory"];
-            column: string;
-            columnId: string;
+            state: components["schemas"]["AgentTaskState"];
             /** Format: date-time */
             completedAt: string | null;
             /** Format: date-time */
@@ -2135,7 +2028,7 @@ export interface components {
             createdAt: string;
             excerpt: string;
             messageId: string;
-            /** @description Where the message is, as a send target (a Channel, DM, or Thread). */
+            /** @description Where the message is, as a send target (a Channel, DM, or Task). */
             target: string;
         };
         AgentTaskReminder: {
@@ -2156,35 +2049,6 @@ export interface components {
         };
         AgentTaskSingleResponse: {
             task: components["schemas"]["AgentTaskRow"];
-        };
-        AgentTaskMoveResponse: {
-            /** @description Open Tasks still assigned to the calling agent, by category. */
-            queue: {
-                active: number;
-                todo: number;
-            };
-            task: components["schemas"]["AgentTaskRow"];
-        };
-        AgentTaskCreateRequest: {
-            /** @description `me` or an @handle of a person or Agent of the Server. */
-            assignee?: string;
-            board: components["schemas"]["AgentBoardKey"];
-            /** @description A column name or id on the board; defaults to its first todo column. */
-            column?: string;
-            description?: string;
-            /** Format: date */
-            dueOn?: string;
-            /** @description Label names from the Server's task label catalog. */
-            labels?: string[];
-            priority?: components["schemas"]["AgentTaskPriority"];
-            title: string;
-        };
-        AgentTaskMoveRequest: {
-            /** @description A column name or id on the Task's board. */
-            column: string;
-            /** @description Apply only if the Task is still at this version; omit to use the current one. */
-            expectedVersion?: number;
-            key: components["schemas"]["AgentTaskKey"];
         };
         AgentTaskUpdateRequest: {
             description?: string;
@@ -2207,6 +2071,54 @@ export interface components {
             /** @description Apply only if the Task is still at this version; omit to use the current one. */
             expectedVersion?: number;
             key: components["schemas"]["AgentTaskKey"];
+        };
+        AgentTaskStartRequest: {
+            /** @description `me` or an @handle of a person or Agent of the Server; defaults to the caller. */
+            assignee?: string;
+            description?: string;
+            /** Format: date */
+            dueOn?: string;
+            /** @description The origin Message id. It must be in `target`; a DM origin is refused with `TASK_ORIGIN_DM`. */
+            from: string;
+            priority?: components["schemas"]["AgentTaskPriority"];
+            /**
+             * @description Defaults to open.
+             * @enum {string}
+             */
+            state?: "todo" | "open";
+            /** @description The Channel holding the origin Message, as a send target like `#security`. */
+            target: string;
+            title: string;
+        };
+        AgentTaskStartResponse: {
+            /** @description The Task's send target, like `task:SEC-12`. */
+            target: string;
+            task: components["schemas"]["AgentTaskRow"];
+        };
+        AgentTaskStateRequest: {
+            /** @description Apply only if the Task is still at this version; omit to use the current one. */
+            expectedVersion?: number;
+            key: components["schemas"]["AgentTaskKey"];
+            state: components["schemas"]["AgentTaskState"];
+        };
+        AgentTaskAttachPullRequestRequest: {
+            key: components["schemas"]["AgentTaskKey"];
+            /**
+             * Format: uri
+             * @description A GitHub pull request URL.
+             */
+            url: string;
+        };
+        AgentTaskAttachedPullRequest: {
+            number: number;
+            /** @description The repository as owner/name. */
+            repository: string;
+            /** Format: uri */
+            url: string;
+        };
+        AgentTaskAttachPullRequestResponse: {
+            pullRequest: components["schemas"]["AgentTaskAttachedPullRequest"];
+            task: components["schemas"]["AgentTaskRow"];
         };
         AgentAttachment: {
             byteSize: number;
@@ -2385,7 +2297,7 @@ export interface components {
         Chat: {
             id: components["schemas"]["ChatId"];
             /** @enum {string} */
-            kind: "channel" | "dm" | "task" | "thread";
+            kind: "channel" | "dm" | "task";
             title: string | null;
             parent_chat_id: components["schemas"]["ChatId"] | null;
             anchor_message_id: components["schemas"]["MessageId"] | null;
@@ -2405,14 +2317,6 @@ export interface components {
             title?: string | null;
             participants?: components["schemas"]["Participant"][];
             metadata?: components["schemas"]["JsonObject"];
-        };
-        EnsureThreadRequest: {
-            anchor_message_id: components["schemas"]["MessageId"];
-        };
-        SetThreadFollowRequest: {
-            /** @description Follows track human and agent attention only; system and external participants never follow threads. */
-            participant_id: string;
-            follow: boolean;
         };
         ListChatsResponse: {
             chats: components["schemas"]["Chat"][];
@@ -2618,18 +2522,9 @@ export interface components {
             responses: components["schemas"]["ChatResponse"][];
             activity: components["schemas"]["ResponseActivity"][];
             artifacts: components["schemas"]["ChatArtifact"][];
-            threads: components["schemas"]["ThreadSummary"][];
             /** @description Cursor for the next older page; null at the start of history. */
             next_before_sequence: number | null;
             total_messages: number;
-        };
-        ThreadSummary: {
-            thread_chat_id: components["schemas"]["ChatId"];
-            anchor_message_id: components["schemas"]["MessageId"];
-            reply_count: number;
-            latest_reply_at: components["schemas"]["Timestamp"] | null;
-            unread_count: number;
-            followed: boolean;
         };
         ResponseActivity: {
             id: components["schemas"]["ActivityId"];
@@ -2933,62 +2828,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Chat"];
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    ensureThread: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                chat_id: components["parameters"]["ChatId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EnsureThreadRequest"];
-            };
-        };
-        responses: {
-            /** @description Existing or newly created thread chat. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Chat"];
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    setThreadFollow: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                chat_id: components["parameters"]["ChatId"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SetThreadFollowRequest"];
-            };
-        };
-        responses: {
-            /** @description Current follow state. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        followed: boolean;
-                    };
                 };
             };
             default: components["responses"]["Error"];
@@ -4244,12 +4083,12 @@ export interface operations {
     listAgentTasks: {
         parameters: {
             query?: {
-                /** @description A board key; omit for every unarchived board. */
-                board?: components["schemas"]["AgentBoardKey"];
                 /** @description `me`, an @handle of a person or Agent, or `none` for unassigned Tasks. */
                 assignee?: string;
-                /** @description Comma-separated column categories; defaults to the open ones, backlog,todo,active. */
-                category?: string;
+                /** @description A Task key-ledger entry, such as `SEC`; only Tasks numbered by it. */
+                key?: components["schemas"]["AgentTaskKeyPrefix"];
+                /** @description Task states, comma-separated or repeated (`state=done&state=canceled`); defaults to todo,open. */
+                state?: components["schemas"]["AgentTaskStateList"] | components["schemas"]["AgentTaskStateList"][];
             };
             header?: never;
             path?: never;
@@ -4287,56 +4126,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentTaskShowResponse"];
-                };
-            };
-            default: components["responses"]["AgentError"];
-        };
-    };
-    createAgentTask: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AgentTaskCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Created Task. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AgentTaskSingleResponse"];
-                };
-            };
-            default: components["responses"]["AgentError"];
-        };
-    };
-    moveAgentTask: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AgentTaskMoveRequest"];
-            };
-        };
-        responses: {
-            /** @description Moved Task and what is still waiting for the calling agent. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AgentTaskMoveResponse"];
                 };
             };
             default: components["responses"]["AgentError"];
@@ -4392,28 +4181,7 @@ export interface operations {
             default: components["responses"]["AgentError"];
         };
     };
-    listAgentBoards: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Boards. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AgentBoardListResponse"];
-                };
-            };
-            default: components["responses"]["AgentError"];
-        };
-    };
-    createAgentBoard: {
+    startAgentTask: {
         parameters: {
             query?: never;
             header?: never;
@@ -4422,23 +4190,23 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AgentBoardCreateRequest"];
+                "application/json": components["schemas"]["AgentTaskStartRequest"];
             };
         };
         responses: {
-            /** @description Created board. */
+            /** @description The started Task and its send target. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AgentBoardSingleResponse"];
+                    "application/json": components["schemas"]["AgentTaskStartResponse"];
                 };
             };
             default: components["responses"]["AgentError"];
         };
     };
-    setAgentBoardColumns: {
+    setAgentTaskState: {
         parameters: {
             query?: never;
             header?: never;
@@ -4447,17 +4215,42 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AgentBoardColumnsRequest"];
+                "application/json": components["schemas"]["AgentTaskStateRequest"];
             };
         };
         responses: {
-            /** @description The board with its new columns. */
+            /** @description Updated Task. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AgentBoardSingleResponse"];
+                    "application/json": components["schemas"]["AgentTaskSingleResponse"];
+                };
+            };
+            default: components["responses"]["AgentError"];
+        };
+    };
+    attachAgentTaskPullRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentTaskAttachPullRequestRequest"];
+            };
+        };
+        responses: {
+            /** @description The Task and the attached pull request. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentTaskAttachPullRequestResponse"];
                 };
             };
             default: components["responses"]["AgentError"];

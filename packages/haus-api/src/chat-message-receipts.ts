@@ -1,5 +1,4 @@
 import * as z from 'zod';
-import { idSchema } from './chat-contract-primitives.ts';
 
 export function createChatMessageReceipts<T extends z.ZodType>(message: T) {
     return {
@@ -7,7 +6,6 @@ export function createChatMessageReceipts<T extends z.ZodType>(message: T) {
             .object({
                 idempotent: z.boolean(),
                 message,
-                threadChatId: idSchema.nullable(),
             })
             .strict(),
         reaction: z

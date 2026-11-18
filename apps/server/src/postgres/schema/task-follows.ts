@@ -11,29 +11,33 @@ import {
 import { chatsTable } from './chats.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
 
-export const threadFollowsTable = pgTable(
-    'thread_follows',
+/**
+ * One person following, or explicitly unfollowing, one Task's Chat (ADR 0052
+ * decision 9). A Task is unread only for its followers.
+ */
+export const taskFollowsTable = pgTable(
+    'task_follows',
     {
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         followed: boolean('followed').notNull().default(true),
         serverId: text('server_id').notNull(),
-        threadChatId: text('thread_chat_id').notNull(),
-        threadChatKind: text('thread_chat_kind').notNull().default('thread'),
+        taskChatId: text('task_chat_id').notNull(),
+        taskChatKind: text('task_chat_kind').notNull().default('task'),
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
         userId: text('user_id').notNull(),
     },
     (table) => [
-        primaryKey({ columns: [table.serverId, table.threadChatId, table.userId] }),
+        primaryKey({ columns: [table.serverId, table.taskChatId, table.userId] }),
         foreignKey({
-            columns: [table.serverId, table.threadChatId, table.threadChatKind],
+            columns: [table.serverId, table.taskChatId, table.taskChatKind],
             foreignColumns: [chatsTable.serverId, chatsTable.id, chatsTable.kind],
-            name: 'thread_follows_thread_fk',
+            name: 'task_follows_task_fk',
         }).onDelete('cascade'),
         foreignKey({
             columns: [table.serverId, table.userId],
             foreignColumns: [serverMembershipsTable.serverId, serverMembershipsTable.userId],
-            name: 'thread_follows_membership_fk',
+            name: 'task_follows_membership_fk',
         }).onDelete('cascade'),
-        check('thread_follows_kind', sql`${table.threadChatKind} = 'thread'`),
+        check('task_follows_kind', sql`${table.taskChatKind} = 'task'`),
     ]
 );

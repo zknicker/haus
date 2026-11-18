@@ -2,13 +2,13 @@ import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
 
 /**
- * A Task's key, `SEC-12`: its board's key and its per-board number. Derived
- * when read and never stored, so re-keying a board re-keys its Tasks.
+ * A Task's key, `SEC-12`: its key-ledger entry's key and its number under that
+ * entry. Derived when read and never stored. (`boardKey` is the ledger key.)
  */
 export const TASK_KEY_PATTERN = /^([A-Z][A-Z0-9]{1,4})-([1-9][0-9]*)$/u;
 
 export const taskKeySchema = z.string().trim().regex(TASK_KEY_PATTERN, {
-    message: 'A task key is a board key and a number, like SEC-12.',
+    message: 'A task key is a key like SEC and a number, like SEC-12.',
 });
 
 export function formatTaskKey(boardKey: string, number: number): string {

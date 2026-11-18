@@ -16,16 +16,8 @@ export const chatSearchInputSchema = z
     .strict();
 
 export const chatSearchResultSchema = chatMessageSchema.extend({
-    /** When the Message's Channel or DM was archived; a Thread reads its parent's. */
+    /** When the Message's Channel or DM was archived; a Task reads its Channel's. */
     chatArchivedAt: timestampSchema.nullable(),
-    /** Where a Thread Message sits; null for a Message in a Channel or DM. */
-    thread: z
-        .object({
-            anchorMessageId: idSchema,
-            parentChatId: idSchema,
-        })
-        .strict()
-        .nullable(),
 });
 
 export type ChatSearchResult = z.infer<typeof chatSearchResultSchema>;

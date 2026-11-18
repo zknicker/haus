@@ -26,4 +26,4 @@ export {
     type HausClientOptions,
     type HausEventSocketOptions,
     type HausRequestOptions,
-} from './client';
+} from './client.ts';

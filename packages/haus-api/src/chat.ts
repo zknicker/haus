@@ -23,6 +23,7 @@ import {
 } from './cloud-agent-work-link.ts';
 import { imageGenerationSchema } from './image-generation.ts';
 import { taskLinkSchema } from './task-key.ts';
+import { taskPreviewSchema } from './task-preview.ts';
 
 export { idSchema } from './chat-contract-primitives.ts';
 export * from './chat-message-context.ts';
@@ -68,37 +69,10 @@ export const chatMessageSchema = z
 
 export type ChatMessage = z.infer<typeof chatMessageSchema>;
 
-/**
- * One reply as the anchor's Thread preview quotes it. Authors stay as ids so
- * every surface names them through the Agent list and member directory.
- */
-export const threadReplyPreviewSchema = z
-    .object({
-        authorAgentId: idSchema.nullable(),
-        authorUserId: idSchema.nullable(),
-        content: z.string(),
-        createdAt: timestampSchema,
-        id: idSchema,
-    })
-    .strict();
-
-export type ThreadReplyPreview = z.infer<typeof threadReplyPreviewSchema>;
-
-export const threadSummarySchema = z
-    .object({
-        anchorMessageId: idSchema,
-        followed: z.boolean(),
-        latestReplyAt: timestampSchema.nullable(),
-        // The newest replies, oldest first, for the anchor's preview block.
-        recentReplies: z.array(threadReplyPreviewSchema),
-        replyCount: z.number().int().nonnegative(),
-        threadChatId: idSchema,
-        // Unread replies the viewer attends to: any, when following; else only those mentioning them.
-        unreadCount: z.number().int().nonnegative(),
-    })
-    .strict();
-
-export type ThreadSummary = z.infer<typeof threadSummarySchema>;
+export {
+    type TaskReplyPreview,
+    taskReplyPreviewSchema,
+} from './task-reply-preview.ts';
 
 const chatSendBaseSchema = z
     .object({
@@ -115,7 +89,6 @@ export const chatSendInputSchema = z
     .union([
         chatSendBaseSchema.extend({
             chatId: idSchema,
-            thread: z.object({ anchorMessageId: idSchema }).strict().optional(),
         }),
         chatSendBaseSchema.extend({
             agentId: idSchema,
@@ -164,7 +137,12 @@ export const chatSchema = z
         peerAgentRetired: z.boolean(),
         peerUserId: idSchema.nullable(),
         serverId: idSchema,
-        // The Chat's own unread messages from others; Thread replies count on the Thread (ADR 0043).
+        /**
+         * The key-ledger entry a Channel's Tasks take (ADR 0052 decision 11).
+         * Null for a DM, and for a Channel not yet configured with one.
+         */
+        taskKeyId: idSchema.nullable().default(null),
+        // The Chat's own unread messages from others.
         unreadCount: z.number().int().nonnegative(),
     })
     .strict();
@@ -269,10 +247,10 @@ export const chatMessagePageSchema = z
          * starts here instead of rescanning (specs/realtime-events.md).
          */
         scannedThroughSequence: z.number().int().nonnegative(),
-        threads: z.array(threadSummarySchema),
+        /** Tasks started from messages on this page, each under its origin (ADR 0052 decision 7). */
+        tasks: z.array(taskPreviewSchema).default([]),
     })
     .strict();
 
 export * from './chat-channel-lifecycle.ts';
 export * from './chat-composition.ts';
-export * from './chat-thread-follow.ts';

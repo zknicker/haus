@@ -99,14 +99,14 @@ describe('Cloud Agent work Message annotation', () => {
 });
 
 describe('Happening now location', () => {
-    it('accepts both arms and rejects mixed shapes', () => {
+    it('names a Message and its Chat, and nothing else', () => {
         for (const location of Object.values(activeWorkLocations)) {
             expect(activeCloudAgentWorkLocationSchema.parse(location)).toEqual(location);
         }
         expect(
             activeCloudAgentWorkLocationSchema.safeParse({
-                ...activeWorkLocations.workThread,
-                messageId: 'msg_x',
+                ...activeWorkLocations.launch,
+                anchorMessageId: 'msg_x',
             }).success
         ).toBe(false);
     });
@@ -119,15 +119,20 @@ describe('Happening now location', () => {
             chatPeerUserId: null,
             conversationChatId: linkedWork.chatId,
             location: activeWorkLocations.message,
+            taskId: 'tsk_work',
+            taskKey: 'SEC-12',
             work: linkedWork,
         };
         expect(activeCloudAgentWorkSchema.parse(row).location).toEqual(activeWorkLocations.message);
+        expect(activeCloudAgentWorkSchema.safeParse({ ...row, taskKey: null }).success).toBe(false);
+        expect(
+            activeCloudAgentWorkSchema.safeParse({ ...row, taskId: null, taskKey: null }).success
+        ).toBe(true);
         expect(activeCloudAgentWorkSchema.safeParse({ ...row, location: undefined }).success).toBe(
             false
         );
         expect(
-            activeCloudAgentWorkSchema.safeParse({ ...row, threadChatId: 'cht_work_thread' })
-                .success
+            activeCloudAgentWorkSchema.safeParse({ ...row, parentChatId: 'cht_parent' }).success
         ).toBe(false);
     });
 });

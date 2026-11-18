@@ -22,10 +22,7 @@ export const messageClaimSchema = z
     .object({
         /** Claims are Agent work (ADR 0037): only an Agent ever holds one. */
         assigneeAgentId: claimIdSchema.nullable(),
-        /**
-         * The claim's top-level Channel or DM, which numbers it. A claim on a
-         * Thread message names that Thread's parent here.
-         */
+        /** The Chat the claimed message sits in, which numbers the claim. */
         chatId: claimIdSchema,
         claimedAt: z.iso.datetime({ offset: true }).nullable(),
         createdAt: z.iso.datetime({ offset: true }),
@@ -37,12 +34,6 @@ export const messageClaimSchema = z
         number: z.number().int().positive(),
         origin: z.enum(claimOrigins),
         status: z.enum(claimStatuses),
-        /**
-         * Where the claim's work happens: the Thread its message sits in, or for
-         * a top-level message the Thread anchored on it (empty until a reply).
-         * A Thread claim's message has `chatId !== claim.chatId`.
-         */
-        threadChatId: claimIdSchema,
         tier: z.enum(claimTiers),
         updatedAt: z.iso.datetime({ offset: true }),
         version: z.number().int().positive(),
@@ -83,7 +74,8 @@ export const claimConflictBlockedActionCopy: Record<string, string> = {
 /**
  * The sentence that keeps a claim conflict a concurrency lock rather than a
  * verdict. Haus has no reassignment-request command, so the routing fix is
- * the original Thread; the clause naming one is deliberately absent.
+ * the original conversation; the clause naming one is deliberately absent.
+ * The sentence is Raft's verbatim, so its last word stays Raft's.
  */
 export const CLAIM_CONFLICT_ROUTING_NOTE =
     'This is not a ruling on who owns or leads this lane. If you are its canonical owner or believe it is misrouted: correct the routing in the original thread.';
@@ -94,7 +86,7 @@ export type ClaimOrigin = (typeof claimOrigins)[number];
 export type ClaimTier = (typeof claimTiers)[number];
 
 /**
- * An `in_review` claim whose thread has been quiet this long is closed as stale
+ * An `in_review` claim whose conversation has been quiet this long is closed as stale
  * by Server. Closing is reversible; a human can reopen it.
  */
 export const CLAIM_IN_REVIEW_STALE_DAYS = 7;

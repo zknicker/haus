@@ -21,19 +21,14 @@ export const messageClaimsTable = pgTable(
         /** Claims are Agent work (ADR 0037): only an Agent ever holds one. */
         assigneeAgentId: text('assignee_agent_id'),
         /**
-         * The claim's top-level Channel or DM: it owns the claim number, the
-         * assignee pool, and access. A claim on a Thread message still names its
-         * parent here and records the Thread in `threadChatId`.
+         * The Chat the claim's message lives in: it owns the claim number, the
+         * assignee pool, and access.
          */
         chatId: text('chat_id').notNull(),
         claimedAt: timestamp('claimed_at', { withTimezone: true }),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         createdByAgentId: text('created_by_agent_id'),
         createdByUserId: text('created_by_user_id'),
-        /** The Chat the claim's message lives in: its Thread, or its top-level Chat. */
-        messageChatId: text('message_chat_id')
-            .notNull()
-            .generatedAlwaysAs(sql`coalesce(thread_chat_id, chat_id)`),
         messageId: text('message_id').notNull(),
         number: integer('number').notNull(),
         origin: text('origin').notNull().$type<'claimed' | 'composed' | 'converted'>(),
@@ -42,12 +37,6 @@ export const messageClaimsTable = pgTable(
             .notNull()
             .default('todo')
             .$type<'todo' | 'in_progress' | 'in_review' | 'done' | 'closed'>(),
-        /**
-         * The Thread the claim's message was posted in, which is also its work
-         * surface; null for a claim on a top-level message, whose work surface is
-         * the Thread anchored on it (ADR 0015).
-         */
-        threadChatId: text('thread_chat_id'),
         /**
          * When this claim stopped being a background claim for a reason its
          * current row cannot show: the Agent asked for review, or its claiming
@@ -71,19 +60,13 @@ export const messageClaimsTable = pgTable(
             name: 'message_claims_chat_fk',
         }).onDelete('cascade'),
         foreignKey({
-            columns: [table.serverId, table.messageChatId, table.messageId],
+            columns: [table.serverId, table.chatId, table.messageId],
             foreignColumns: [
                 chatMessagesTable.serverId,
                 chatMessagesTable.chatId,
                 chatMessagesTable.id,
             ],
             name: 'message_claims_message_fk',
-        }).onDelete('cascade'),
-        // A Thread claim's Thread must be a child of the claim's own Chat.
-        foreignKey({
-            columns: [table.serverId, table.threadChatId, table.chatId],
-            foreignColumns: [chatsTable.serverId, chatsTable.id, chatsTable.parentChatId],
-            name: 'message_claims_thread_fk',
         }).onDelete('cascade'),
         foreignKey({
             columns: [table.serverId, table.createdByUserId],

@@ -3,9 +3,9 @@ import { idSchema } from './chat-contract-primitives.ts';
 import { type TaskActor, taskActorSchema } from './task.ts';
 
 /**
- * Who a Task assignment notifies (ADR 0051), the sibling of the message rule in
- * `message-notification.ts`. One rule, so the Server's iPhone push and the
- * person's Task Inbox item read the same facts the same way and cannot drift.
+ * Who a Task assignment notifies, the sibling of the message rule in
+ * `message-notification.ts`: the Server's iPhone push reads it. The person also
+ * follows the Task (ADR 0052 decision 9); there is no separate Inbox item.
  *
  * Only a person is notified, and only about work someone else handed them: an
  * Agent hears through its inbox, and assigning yourself tells you nothing new.
@@ -32,7 +32,7 @@ export function taskAssignmentNotificationTitle(input: {
 /**
  * The one alert for several assignments landing together: an Agent filing a
  * queue for one person raises this once, never one per Task, and it opens the
- * Inbox, which still holds one card per Task. `assignerName` is null when the
+ * Inbox, where each followed Task shows when unread. `assignerName` is null when the
  * assignments came from more than one assigner, or the assigner has no name.
  */
 export function taskAssignmentBurstNotificationTitle(input: {

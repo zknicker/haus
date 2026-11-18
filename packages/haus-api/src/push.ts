@@ -75,8 +75,10 @@ export const pushNotificationConversationSchema = z.discriminatedUnion('kind', [
  * pushes; the custom keys route a tap. `aps.mutable-content` lets the
  * Notification Service extension turn the alert into a Communication
  * Notification from `sender` and `conversation`; the plain alert is the
- * fallback when it cannot. `threadAnchorMessageId` is non-null
- * when the message is in a Thread, whose Chat is then `chatId`. `reason` is
+ * fallback when it cannot. `taskId` and
+ * `taskKey` are non-null exactly when the message is in a Task's own Chat
+ * (ADR 0052), which is then `chatId` under its origin Channel
+ * `conversationChatId`, so a tap opens the Task. `reason` is
  * why the message notifies the human (`messageNotificationReason`); the
  * extension maps it to Focus donation metadata (`mention`, `reply`).
  */
@@ -92,7 +94,7 @@ export const pushNotificationPayloadSchema = z
                     .strict(),
                 /**
                  * The human's unread Inbox rows across every Server: unread
-                 * Chats and Threads, and uncleared Task items.
+                 * Chats and followed Tasks.
                  */
                 badge: z.number().int().nonnegative().optional(),
                 'mutable-content': z.literal(1),
@@ -107,9 +109,14 @@ export const pushNotificationPayloadSchema = z
         reason: z.enum(messageNotificationReasons),
         sender: pushNotificationSenderSchema,
         serverId: idSchema,
-        threadAnchorMessageId: idSchema.nullable(),
+        taskId: idSchema.nullable(),
+        taskKey: taskKeySchema.nullable(),
     })
-    .strict();
+    .strict()
+    .refine((payload) => (payload.taskId === null) === (payload.taskKey === null), {
+        message: 'A Task push names both its Task id and key.',
+        path: ['taskKey'],
+    });
 
 const pushTaskAlertApsSchema = z
     .object({

@@ -2,8 +2,8 @@ import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
 
 /**
- * The task label and priority vocabulary. Claims carry it today; the board
- * Tasks product owns it (ADR 0051), so it keeps the `task` name.
+ * The task label and priority vocabulary. Claims carry it today; the Tasks
+ * product owns it (ADR 0052), so it keeps the `task` name.
  */
 export const taskPriorities = ['none', 'urgent', 'high', 'medium', 'low'] as const;
 export const taskLabelColors = [

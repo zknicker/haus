@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import type { HausCreateMessageRequest } from '@haus/api';
-import { createHausClient } from './client';
+import { createHausClient } from './client.ts';
 
 describe('Haus SDK client', () => {
     it('posts chat messages through the OpenAPI path', async () => {
@@ -52,28 +52,6 @@ describe('Haus SDK client', () => {
         expect(requests[0].method).toBe('POST');
         expect(requests[0].url).toBe('http://runtime.test/api/chats/cht_1/messages');
         expect(await requests[0].json()).toEqual(body);
-    });
-
-    it('ensures threads and updates follow state through chat paths', async () => {
-        const requests: Request[] = [];
-        const client = createHausClient({
-            baseUrl: 'http://runtime.test/',
-            fetch: (async (input, init) => {
-                requests.push(new Request(input, init));
-                return Response.json({ followed: true });
-            }) as typeof fetch,
-        });
-
-        await client.chat.ensureThread('cht_parent', { anchor_message_id: 'msg_anchor' });
-        await client.chat.setThreadFollow('cht_thr_anchor', {
-            follow: true,
-            participant_id: 'usr_haus',
-        });
-
-        expect(requests.map((request) => [request.method, request.url])).toEqual([
-            ['POST', 'http://runtime.test/api/chats/cht_parent/threads'],
-            ['PUT', 'http://runtime.test/api/chats/cht_thr_anchor/follow'],
-        ]);
     });
 
     it('opens realtime sockets as live notification streams', () => {

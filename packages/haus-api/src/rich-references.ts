@@ -44,8 +44,14 @@ export function formatChatReferenceTarget(chatId: string) {
     return `chat://${encodeReferenceId(chatId)}`;
 }
 
-export function formatChatThreadReferenceTarget(chatId: string, anchorMessageId: string) {
-    return `${formatChatReferenceTarget(chatId)}?thread=${encodeReferenceId(anchorMessageId)}`;
+/**
+ * `chat://<chatId>?thread=<messageId>`: one Message in a Channel or DM. The
+ * query key is the wire form stored bodies already carry from when the link
+ * opened a side conversation on that Message (ADR 0052 folded those into
+ * inline replies under it), so every stored link keeps opening its Message.
+ */
+export function formatChatMessageReferenceTarget(chatId: string, messageId: string) {
+    return `${formatChatReferenceTarget(chatId)}?thread=${encodeReferenceId(messageId)}`;
 }
 
 /** `cloud-agent://<workId>`. Build whole links with `formatCloudAgentWorkLink`. */
@@ -62,7 +68,7 @@ export function formatSkillReferenceTarget(skillId: string) {
     return `skill://${encodeReferenceId(skillId)}`;
 }
 
-/** `task://<taskId>`: a board Task (ADR 0051). Agents write bare keys like `SEC-12` instead. */
+/** `task://<taskId>`: a Task (ADR 0052). Agents write bare keys like `SEC-12` instead. */
 export function formatTaskReferenceTarget(taskId: string) {
     return `task://${encodeReferenceId(taskId)}`;
 }
@@ -84,9 +90,9 @@ export function parseAppReferenceTarget(target: string) {
 }
 
 export function parseChatReferenceTarget(target: string) {
-    const thread = parseChatThreadReferenceTarget(target);
-    if (thread) {
-        return thread.chatId;
+    const message = parseChatMessageReferenceTarget(target);
+    if (message) {
+        return message.chatId;
     }
     if (target.includes('?')) {
         return null;
@@ -94,14 +100,12 @@ export function parseChatReferenceTarget(target: string) {
     return parseSchemeReferenceTarget(target, 'chat');
 }
 
-export function parseChatThreadReferenceTarget(target: string) {
+/** The Message a `formatChatMessageReferenceTarget` link names, or null. */
+export function parseChatMessageReferenceTarget(target: string) {
     const match = /^chat:\/\/([^?]+)\?thread=([^&?#]+)$/u.exec(target);
-    if (!match) {
-        return null;
-    }
-    const chatId = decodeReferenceId(match[1]);
-    const anchorMessageId = decodeReferenceId(match[2]);
-    return chatId && anchorMessageId ? { anchorMessageId, chatId } : null;
+    const chatId = match ? decodeReferenceId(match[1]) : null;
+    const messageId = match ? decodeReferenceId(match[2]) : null;
+    return chatId && messageId ? { chatId, messageId } : null;
 }
 
 export function parseCloudAgentWorkReferenceTarget(target: string) {

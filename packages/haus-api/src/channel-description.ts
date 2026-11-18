@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { channelColorSchema, channelIconSchema } from './channel-appearance.ts';
+import { idSchema } from './chat-contract-primitives.ts';
 
 /** A channel's purpose, shown to people and to Agents in `haus server info`. */
 export const channelDescriptionMaxLength = 500;
@@ -24,4 +25,6 @@ export const channelEditInputFields = {
     color: channelColorSchema.nullable().optional(),
     description: channelDescriptionInputSchema,
     icon: channelIconSchema.nullable().optional(),
+    /** The key-ledger entry this Channel's Tasks take (ADR 0052). `undefined` keeps it. */
+    taskKeyId: idSchema.optional(),
 };

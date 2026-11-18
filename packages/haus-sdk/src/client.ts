@@ -12,7 +12,6 @@ import type {
     HausCreateDeliveryRequest,
     HausCreateMessageRequest,
     HausDeleteResponseReceipt,
-    HausEnsureThreadRequest,
     HausEventList,
     HausListChatsResponse,
     HausListMessagesResponse,
@@ -20,7 +19,6 @@ import type {
     HausMarkReadRequest,
     HausResponseActivity,
     HausResponseEvidence,
-    HausSetThreadFollowRequest,
     HausTurnFileChangeEvidence,
     HausTurnPromptEvidence,
     HausUpsertArtifactRequest,
@@ -168,20 +166,6 @@ class HausChatClient {
         return this.#client.request<HausChat>(`/api/chats/${encodeURIComponent(chatId)}`, {
             query: { reader_id: input.readerId },
         });
-    }
-
-    ensureThread(chatId: string, input: HausEnsureThreadRequest) {
-        return this.#client.request<HausChat>(`/api/chats/${encodeURIComponent(chatId)}/threads`, {
-            body: input,
-            method: 'POST',
-        });
-    }
-
-    setThreadFollow(chatId: string, input: HausSetThreadFollowRequest) {
-        return this.#client.request<{ followed: boolean }>(
-            `/api/chats/${encodeURIComponent(chatId)}/follow`,
-            { body: input, method: 'PUT' }
-        );
     }
 
     messages(

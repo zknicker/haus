@@ -82,55 +82,6 @@ paths:
                 $ref: '#/components/schemas/Chat'
         default:
           $ref: '#/components/responses/Error'
-  /api/chats/{chat_id}/threads:
-    post:
-      operationId: ensureThread
-      tags: [Chats]
-      summary: Ensure the thread anchored on a chat message exists.
-      parameters:
-        - $ref: '#/components/parameters/ChatId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/EnsureThreadRequest'
-      responses:
-        '200':
-          description: Existing or newly created thread chat.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Chat'
-        default:
-          $ref: '#/components/responses/Error'
-  /api/chats/{chat_id}/follow:
-    put:
-      operationId: setThreadFollow
-      tags: [Chats]
-      summary: Set a participant's follow state for a thread chat.
-      parameters:
-        - $ref: '#/components/parameters/ChatId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SetThreadFollowRequest'
-      responses:
-        '200':
-          description: Current follow state.
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties: false
-                required: [followed]
-                properties:
-                  followed:
-                    type: boolean
-        default:
-          $ref: '#/components/responses/Error'
   /api/chats/{chat_id}/messages:
     get:
       operationId: listChatMessages
@@ -656,7 +607,7 @@ paths:
       tags: [Agent CLI]
       summary: List the Agent's conversations with unread past its read position.
       description: >-
-        Joined channels, DMs, and followed Threads, newest activity first, from
+        Joined channels, DMs, and followed Tasks, newest activity first, from
         one snapshot. A muted channel counts only mentions and appears only
         while it has one. Any failure is a retryable 503 `INBOX_UNAVAILABLE`,
         never a partial list.
@@ -1213,23 +1164,29 @@ paths:
     get:
       operationId: listAgentTasks
       tags: [Agent CLI]
-      summary: List board Tasks on the calling agent's Server.
+      summary: List Tasks on the calling agent's Server.
       parameters:
-        - name: board
-          in: query
-          description: A board key; omit for every unarchived board.
-          schema:
-            $ref: '#/components/schemas/AgentBoardKey'
         - name: assignee
           in: query
           description: '`me`, an @handle of a person or Agent, or `none` for unassigned Tasks.'
           schema: { type: string, pattern: '^(me|none|@\S+)$' }
-        - name: category
+        - name: key
           in: query
-          description: Comma-separated column categories; defaults to the open ones, backlog,todo,active.
+          description: A Task key-ledger entry, such as `SEC`; only Tasks numbered by it.
           schema:
-            type: string
-            pattern: '^(backlog|todo|active|done|canceled)(,(backlog|todo|active|done|canceled))*$'
+            $ref: '#/components/schemas/AgentTaskKeyPrefix'
+        - name: state
+          in: query
+          description: >-
+            Task states, comma-separated or repeated (`state=done&state=canceled`); defaults to
+            todo,open.
+          schema:
+            oneOf:
+              - $ref: '#/components/schemas/AgentTaskStateList'
+              - type: array
+                minItems: 1
+                items:
+                  $ref: '#/components/schemas/AgentTaskStateList'
       responses:
         '200':
           description: Matching Tasks, by priority then age.
@@ -1257,46 +1214,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AgentTaskShowResponse'
-        default:
-          $ref: '#/components/responses/AgentError'
-  /api/agent/tasks/create:
-    post:
-      operationId: createAgentTask
-      tags: [Agent CLI]
-      summary: Create one Task on a board.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AgentTaskCreateRequest'
-      responses:
-        '200':
-          description: Created Task.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AgentTaskSingleResponse'
-        default:
-          $ref: '#/components/responses/AgentError'
-  /api/agent/tasks/move:
-    post:
-      operationId: moveAgentTask
-      tags: [Agent CLI]
-      summary: Move one Task to another column on its board.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AgentTaskMoveRequest'
-      responses:
-        '200':
-          description: Moved Task and what is still waiting for the calling agent.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AgentTaskMoveResponse'
         default:
           $ref: '#/components/responses/AgentError'
   /api/agent/tasks/update:
@@ -1339,58 +1256,68 @@ paths:
                 $ref: '#/components/schemas/AgentTaskSingleResponse'
         default:
           $ref: '#/components/responses/AgentError'
-  /api/agent/boards:
-    get:
-      operationId: listAgentBoards
-      tags: [Agent CLI]
-      summary: List the Server's unarchived boards with their columns and open counts.
-      responses:
-        '200':
-          description: Boards.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AgentBoardListResponse'
-        default:
-          $ref: '#/components/responses/AgentError'
-  /api/agent/boards/create:
+  /api/agent/tasks/start:
     post:
-      operationId: createAgentBoard
+      operationId: startAgentTask
       tags: [Agent CLI]
-      summary: Create a board with the default columns.
+      summary: Start a Task from a Message in a Channel.
+      description: >-
+        Starts a Task, a place for one piece of work, from an origin Message in a Channel
+        (ADR 0052). The Task takes the Channel's key. Refuses with `TASK_ORIGIN_DM` when the
+        origin Message is in a DM.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AgentBoardCreateRequest'
+              $ref: '#/components/schemas/AgentTaskStartRequest'
       responses:
         '200':
-          description: Created board.
+          description: The started Task and its send target.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AgentBoardSingleResponse'
+                $ref: '#/components/schemas/AgentTaskStartResponse'
         default:
           $ref: '#/components/responses/AgentError'
-  /api/agent/boards/columns:
+  /api/agent/tasks/state:
     post:
-      operationId: setAgentBoardColumns
+      operationId: setAgentTaskState
       tags: [Agent CLI]
-      summary: Replace a board's whole ordered column list.
+      summary: Set one Task's state; done or canceled ends it.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AgentBoardColumnsRequest'
+              $ref: '#/components/schemas/AgentTaskStateRequest'
       responses:
         '200':
-          description: The board with its new columns.
+          description: Updated Task.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AgentBoardSingleResponse'
+                $ref: '#/components/schemas/AgentTaskSingleResponse'
+        default:
+          $ref: '#/components/responses/AgentError'
+  /api/agent/tasks/attach-pr:
+    post:
+      operationId: attachAgentTaskPullRequest
+      tags: [Agent CLI]
+      summary: Attach a GitHub pull request to one Task.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentTaskAttachPullRequestRequest'
+      responses:
+        '200':
+          description: The Task and the attached pull request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentTaskAttachPullRequestResponse'
         default:
           $ref: '#/components/responses/AgentError'
   /api/triggers/{trigger_id}:
@@ -1994,9 +1921,6 @@ components:
           properties:
             sender:
               $ref: '#/components/schemas/AgentSender'
-            threadId: { type: string, minLength: 1 }
-            replyCount: { type: integer, minimum: 0 }
-            replyTarget: { type: string, minLength: 1 }
     AgentSearchResult:
       allOf:
         - $ref: '#/components/schemas/AgentMessage'
@@ -2265,7 +2189,7 @@ components:
           properties:
             after: { type: integer, minimum: 0 }
             unread_after: { type: integer, minimum: -1 }
-        thread_follow_reactivated_message_ids:
+        task_follow_reactivated_message_ids:
           type: array
           items: { type: string, minLength: 1 }
         unread_after_seq:
@@ -2290,7 +2214,7 @@ components:
             Opaque key of the conversation's newest message (created time, then
             id). Unique per row; pass it back as `before`, never parse it.
         chatId: { type: string, minLength: 1 }
-        kind: { type: string, enum: [channel, dm, thread] }
+        kind: { type: string, enum: [channel, dm, task] }
         lastReadSequence: { type: integer, minimum: 0 }
         latestAt: { type: [string, 'null'], format: date-time }
         latestSenderHandle: { type: [string, 'null'], minLength: 1 }
@@ -3067,12 +2991,16 @@ components:
     AgentReminderScheduleRequest:
       type: object
       additionalProperties: false
-      required: [commandId, messageId, title]
+      required: [commandId, title]
       properties:
         # Idempotency key, scoped to the authoring Agent. The same key and
         # request replay the original reminder; a different request under it is
         # refused with IDEMPOTENCY_KEY_REUSED.
         commandId: { type: string, minLength: 1, maxLength: 128 }
+        # The anchor: exactly one of messageId and target. A `task:KEY-n`
+        # target anchors on that Task's newest message, one-time only
+        # (TASK_RECURRING_REMINDER otherwise).
+        target: { type: string, pattern: '^task:[A-Z][A-Z0-9]{1,4}-[1-9][0-9]*$' }
         description: { type: string, minLength: 1 }
         # Required for one-shots and every: repeats. A daily@ or weekly: repeat
         # may omit it: the Server derives the next slot in timezone. A supplied
@@ -3117,17 +3045,22 @@ components:
         commandId: { type: string, minLength: 1, maxLength: 128 }
         expectedVersion: { type: integer, minimum: 1 }
         id: { type: string, minLength: 1 }
-    AgentBoardKey:
+    AgentTaskKeyPrefix:
       type: string
       pattern: '^[A-Z][A-Z0-9]{1,4}$'
-      description: A board key, like SEC.
+      description: A Task key-ledger entry, like SEC.
+    AgentTaskStateList:
+      type: string
+      pattern: '^(todo|open|done|canceled)(,(todo|open|done|canceled))*$'
+      description: One or more Task states, comma-separated.
     AgentTaskKey:
       type: string
       pattern: '^[A-Z][A-Z0-9]{1,4}-[1-9][0-9]*$'
-      description: A Task key, its board key and number, like SEC-12.
-    AgentTaskCategory:
+      description: A Task key, its ledger key and number, like SEC-12.
+    AgentTaskState:
       type: string
-      enum: [backlog, todo, active, done, canceled]
+      enum: [todo, open, done, canceled]
+      description: A Task's state (ADR 0052); done and canceled end it.
     AgentTaskPriority:
       type: string
       enum: [none, urgent, high, medium, low]
@@ -3139,99 +3072,11 @@ components:
       properties:
         handle: { type: [string, 'null'] }
         type: { type: string, enum: [human, agent] }
-    AgentBoardColumn:
-      type: object
-      additionalProperties: false
-      required: [category, id, name, position]
-      properties:
-        category:
-          $ref: '#/components/schemas/AgentTaskCategory'
-        id: { type: string, minLength: 1 }
-        name: { type: string, minLength: 1, maxLength: 40 }
-        position: { type: integer, minimum: 0 }
-    AgentBoard:
-      type: object
-      additionalProperties: false
-      required: [archivedAt, columns, id, key, name, openTaskCount, version]
-      properties:
-        archivedAt: { type: [string, 'null'], format: date-time }
-        columns:
-          type: array
-          items:
-            $ref: '#/components/schemas/AgentBoardColumn'
-        id: { type: string, minLength: 1 }
-        key:
-          $ref: '#/components/schemas/AgentBoardKey'
-        name: { type: string, minLength: 1, maxLength: 60 }
-        openTaskCount: { type: integer, minimum: 0 }
-        version:
-          type: integer
-          minimum: 1
-          description: The board revision; pass it as expectedVersion to act only on this state.
-    AgentBoardListResponse:
-      type: object
-      additionalProperties: false
-      required: [boards]
-      properties:
-        boards:
-          type: array
-          items:
-            $ref: '#/components/schemas/AgentBoard'
-    AgentBoardSingleResponse:
-      type: object
-      additionalProperties: false
-      required: [board]
-      properties:
-        board:
-          $ref: '#/components/schemas/AgentBoard'
-    AgentBoardCreateRequest:
-      type: object
-      additionalProperties: false
-      required: [key, name]
-      properties:
-        key:
-          $ref: '#/components/schemas/AgentBoardKey'
-        name: { type: string, minLength: 1, maxLength: 60 }
-    AgentBoardColumnsRequest:
-      type: object
-      additionalProperties: false
-      description: >
-        The full ordered column list. A column with an id keeps it; one without
-        is created; an existing column left out is removed. A removed column that
-        holds Tasks needs a moveTasks entry naming the column they move to.
-      required: [board, columns]
-      properties:
-        board:
-          $ref: '#/components/schemas/AgentBoardKey'
-        columns:
-          type: array
-          minItems: 1
-          items:
-            type: object
-            additionalProperties: false
-            required: [category, name]
-            properties:
-              category:
-                $ref: '#/components/schemas/AgentTaskCategory'
-              id: { type: string, minLength: 1 }
-              name: { type: string, minLength: 1, maxLength: 40 }
-        expectedVersion:
-          type: integer
-          minimum: 1
-          description: Apply only if the board is still at this version; omit to use the current one.
-        moveTasks:
-          type: object
-          description: Removed column id to the column id its Tasks move to.
-          additionalProperties: { type: string, minLength: 1 }
     AgentTaskRow:
       type: object
       additionalProperties: false
       required:
         - assignee
-        - board
-        - category
-        - column
-        - columnId
         - completedAt
         - createdAt
         - createdBy
@@ -3239,6 +3084,7 @@ components:
         - key
         - labels
         - priority
+        - state
         - title
         - updatedAt
         - version
@@ -3247,12 +3093,8 @@ components:
           oneOf:
             - $ref: '#/components/schemas/AgentTaskActor'
             - type: 'null'
-        board:
-          $ref: '#/components/schemas/AgentBoardKey'
-        category:
-          $ref: '#/components/schemas/AgentTaskCategory'
-        column: { type: string, minLength: 1 }
-        columnId: { type: string, minLength: 1 }
+        state:
+          $ref: '#/components/schemas/AgentTaskState'
         completedAt: { type: [string, 'null'], format: date-time }
         createdAt: { type: string, format: date-time }
         createdBy:
@@ -3296,7 +3138,7 @@ components:
         target:
           type: string
           minLength: 1
-          description: Where the message is, as a send target (a Channel, DM, or Thread).
+          description: Where the message is, as a send target (a Channel, DM, or Task).
     AgentTaskReminder:
       type: object
       additionalProperties: false
@@ -3332,60 +3174,6 @@ components:
       properties:
         task:
           $ref: '#/components/schemas/AgentTaskRow'
-    AgentTaskMoveResponse:
-      type: object
-      additionalProperties: false
-      required: [queue, task]
-      properties:
-        queue:
-          description: Open Tasks still assigned to the calling agent, by category.
-          type: object
-          additionalProperties: false
-          required: [active, todo]
-          properties:
-            active: { type: integer, minimum: 0 }
-            todo: { type: integer, minimum: 0 }
-        task:
-          $ref: '#/components/schemas/AgentTaskRow'
-    AgentTaskCreateRequest:
-      type: object
-      additionalProperties: false
-      required: [board, title]
-      properties:
-        assignee:
-          type: string
-          minLength: 1
-          description: '`me` or an @handle of a person or Agent of the Server.'
-        board:
-          $ref: '#/components/schemas/AgentBoardKey'
-        column:
-          type: string
-          minLength: 1
-          description: A column name or id on the board; defaults to its first todo column.
-        description: { type: string, maxLength: 20000 }
-        dueOn: { type: string, format: date }
-        labels:
-          type: array
-          description: Label names from the Server's task label catalog.
-          items: { type: string, minLength: 1 }
-        priority:
-          $ref: '#/components/schemas/AgentTaskPriority'
-        title: { type: string, minLength: 1, maxLength: 200 }
-    AgentTaskMoveRequest:
-      type: object
-      additionalProperties: false
-      required: [column, key]
-      properties:
-        column:
-          type: string
-          minLength: 1
-          description: A column name or id on the Task's board.
-        expectedVersion:
-          type: integer
-          minimum: 1
-          description: Apply only if the Task is still at this version; omit to use the current one.
-        key:
-          $ref: '#/components/schemas/AgentTaskKey'
     AgentTaskUpdateRequest:
       type: object
       additionalProperties: false
@@ -3430,6 +3218,92 @@ components:
           description: Apply only if the Task is still at this version; omit to use the current one.
         key:
           $ref: '#/components/schemas/AgentTaskKey'
+    AgentTaskStartRequest:
+      type: object
+      additionalProperties: false
+      required: [from, target, title]
+      properties:
+        assignee:
+          type: string
+          minLength: 1
+          description: '`me` or an @handle of a person or Agent of the Server; defaults to the caller.'
+        description: { type: string, maxLength: 20000 }
+        dueOn: { type: string, format: date }
+        from:
+          type: string
+          minLength: 1
+          description: >-
+            The origin Message id. It must be in `target`; a DM origin is refused with
+            `TASK_ORIGIN_DM`.
+        priority:
+          $ref: '#/components/schemas/AgentTaskPriority'
+        state:
+          description: Defaults to open.
+          type: string
+          enum: [todo, open]
+        target:
+          type: string
+          minLength: 1
+          description: The Channel holding the origin Message, as a send target like `#security`.
+        title: { type: string, minLength: 1, maxLength: 200 }
+    AgentTaskStartResponse:
+      type: object
+      additionalProperties: false
+      required: [target, task]
+      properties:
+        target:
+          type: string
+          pattern: '^task:[A-Z][A-Z0-9]{1,4}-[1-9][0-9]*$'
+          description: The Task's send target, like `task:SEC-12`.
+        task:
+          $ref: '#/components/schemas/AgentTaskRow'
+    AgentTaskStateRequest:
+      type: object
+      additionalProperties: false
+      required: [key, state]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 1
+          description: Apply only if the Task is still at this version; omit to use the current one.
+        key:
+          $ref: '#/components/schemas/AgentTaskKey'
+        state:
+          $ref: '#/components/schemas/AgentTaskState'
+    AgentTaskAttachPullRequestRequest:
+      type: object
+      additionalProperties: false
+      required: [key, url]
+      properties:
+        key:
+          $ref: '#/components/schemas/AgentTaskKey'
+        url:
+          type: string
+          format: uri
+          maxLength: 2000
+          pattern: '^https://github\.com/[^/]+/[^/]+/pull/[1-9][0-9]*/?$'
+          description: A GitHub pull request URL.
+    AgentTaskAttachedPullRequest:
+      type: object
+      additionalProperties: false
+      required: [number, repository, url]
+      properties:
+        number: { type: integer, minimum: 1 }
+        repository:
+          type: string
+          minLength: 1
+          maxLength: 300
+          description: The repository as owner/name.
+        url: { type: string, format: uri, maxLength: 2000 }
+    AgentTaskAttachPullRequestResponse:
+      type: object
+      additionalProperties: false
+      required: [pullRequest, task]
+      properties:
+        pullRequest:
+          $ref: '#/components/schemas/AgentTaskAttachedPullRequest'
+        task:
+          $ref: '#/components/schemas/AgentTaskRow'
     AgentAttachment:
       type: object
       additionalProperties: false
@@ -3794,7 +3668,7 @@ components:
           $ref: '#/components/schemas/ChatId'
         kind:
           type: string
-          enum: [channel, dm, task, thread]
+          enum: [channel, dm, task]
         title:
           type: [string, 'null']
         parent_chat_id:
@@ -3850,26 +3724,6 @@ components:
             $ref: '#/components/schemas/Participant'
         metadata:
           $ref: '#/components/schemas/JsonObject'
-    EnsureThreadRequest:
-      type: object
-      additionalProperties: false
-      required: [anchor_message_id]
-      properties:
-        anchor_message_id:
-          $ref: '#/components/schemas/MessageId'
-    SetThreadFollowRequest:
-      type: object
-      additionalProperties: false
-      required: [participant_id, follow]
-      properties:
-        participant_id:
-          type: string
-          pattern: '^(usr_|agt_)'
-          description: >-
-            Follows track human and agent attention only; system and external
-            participants never follow threads.
-        follow:
-          type: boolean
     ListChatsResponse:
       type: object
       additionalProperties: false
@@ -4446,7 +4300,6 @@ components:
         - responses
         - activity
         - artifacts
-        - threads
         - next_before_sequence
         - total_messages
       properties:
@@ -4466,43 +4319,12 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ChatArtifact'
-        threads:
-          type: array
-          items:
-            $ref: '#/components/schemas/ThreadSummary'
         next_before_sequence:
           type: [integer, 'null']
           description: Cursor for the next older page; null at the start of history.
         total_messages:
           type: integer
           minimum: 0
-    ThreadSummary:
-      type: object
-      additionalProperties: false
-      required:
-        - thread_chat_id
-        - anchor_message_id
-        - reply_count
-        - latest_reply_at
-        - unread_count
-        - followed
-      properties:
-        thread_chat_id:
-          $ref: '#/components/schemas/ChatId'
-        anchor_message_id:
-          $ref: '#/components/schemas/MessageId'
-        reply_count:
-          type: integer
-          minimum: 0
-        latest_reply_at:
-          oneOf:
-            - $ref: '#/components/schemas/Timestamp'
-            - type: 'null'
-        unread_count:
-          type: integer
-          minimum: 0
-        followed:
-          type: boolean
     ResponseActivity:
       type: object
       additionalProperties: false

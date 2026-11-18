@@ -10,7 +10,6 @@ const channel: MessageNotificationFacts = {
     conversationKind: 'channel',
     mentionedUserIds: [],
     replyToAuthorUserId: null,
-    threadAnchorAuthorUserId: null,
 };
 
 test('every DM message notifies its other member, whoever it names', () => {
@@ -31,9 +30,6 @@ test('a Channel message notifies only the humans it mentions or answers', () => 
         messageNotificationReason({ ...channel, replyToAuthorUserId: 'usr_ada' }, 'usr_ada')
     ).toBe('reply');
     expect(
-        messageNotificationReason({ ...channel, threadAnchorAuthorUserId: 'usr_ada' }, 'usr_ada')
-    ).toBe('reply');
-    expect(
         messageNotificationReason(
             { ...channel, mentionedUserIds: ['usr_ada'], replyToAuthorUserId: 'usr_ada' },
             'usr_ada'
@@ -50,7 +46,6 @@ test('a human is never notified about their own message', () => {
         authorUserId: 'usr_ada',
         mentionedUserIds: ['usr_ada'],
         replyToAuthorUserId: 'usr_ada',
-        threadAnchorAuthorUserId: 'usr_ada',
     };
     expect(messageNotificationReason(own, 'usr_ada')).toBeNull();
     expect(messageNotificationReason({ ...own, conversationKind: 'dm' }, 'usr_ada')).toBeNull();
@@ -64,7 +59,6 @@ test('candidates are the named humans the rule notifies, once each', () => {
             authorUserId: 'usr_bo',
             mentionedUserIds: ['usr_ada', 'usr_bo', 'usr_cass'],
             replyToAuthorUserId: 'usr_ada',
-            threadAnchorAuthorUserId: 'usr_dee',
         })
-    ).toEqual(['usr_ada', 'usr_cass', 'usr_dee']);
+    ).toEqual(['usr_ada', 'usr_cass']);
 });
