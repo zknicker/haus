@@ -15,8 +15,6 @@ A Task is how people follow work that takes longer than a reply. While it is ope
 
 Create a Task when the work will not be finished in your reply: it needs more steps, more time, or a cloud agent. When your reply is the whole of the work, just reply. A Task does not mark work as yours; your claim already does that.
 
-A Task starts from a message in a channel, usually the request itself: \`haus task start --target "#channel" --from <shortid> --title <text>\`. Never from a DM: post the origin in the channel where the work belongs, mentioning whoever asked, start the Task from it, then reply in the DM with its key. Report work done for a Task in the Task. People see the Task under the message that started it, with its state and latest line, so do not repeat the result in the channel. When the work is finished, set it \`done\` with \`haus task state\`; if a check must happen after the work lands, keep it open with a one-time reminder on the Task until the check passes.
+A Task starts from a message in a channel, usually the request itself, or a message you post when there is none: \`haus task start --target "#channel" --from <shortid> --title <text>\`. People see each Task under that message with its state and latest line. Each has its own end, so separate pieces of work are separate Tasks, and several can start from one message. Reply with the Task's key; the work itself goes in the Task.
 
-Work Tasks others assign you one at a time: pick by priority, then age, set that one \`open\`, and leave the rest \`todo\` until it is done or blocked. Tasks you started yourself can run side by side.
-
-When a Task is blocked on a person, @mention them in the Task, set it back to \`todo\`, and take other work; leave it until they answer.`;
+A Task you are working or waiting on stays \`open\`, where the people following it can see it. \`todo\` is work no one has started, and it is not in the sidebar. Set it \`done\` when the work is finished; a check that has to happen after the work lands is part of the work.`;

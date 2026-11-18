@@ -33,7 +33,10 @@ test('work reports in the Task, pull requests and cloud agents attach to it, and
     expect(body).not.toContain('post a line in the Task and anchor the reminder on it');
     expect(body).toContain('Closing a Task cancels its pending reminders');
     expect(getManualTopic('reminder')?.body).toContain('pass `--target task:SEC-12` instead');
-    expect(body).toContain('**Blocked on a person.**');
+    expect(body).toContain(
+        '**Waiting on a person.** @mention them in the Task with one question and take other work; the Task stays `open`, so it stays in their sidebar.'
+    );
+    expect(body).not.toContain('`haus task state SEC-12 todo`');
 });
 
 test('the result stays in the Task, and only Tasks others assign are paced one at a time', () => {

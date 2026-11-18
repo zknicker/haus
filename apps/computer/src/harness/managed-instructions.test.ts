@@ -223,7 +223,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // Raised by exactly 29 (37,309 → 37,338): the Standing Preferences placeholder now says
     // terse imperative rules, merged not appended, after live Agents wrote verbose preferences.
     // Lowered (37,338 → 37,035) when the Haus-only `## Web access` section went: Agents get their runtime's native web tools with no gate and no prompt text, as in Raft.
-    expect(prompt.length).toBeLessThanOrEqual(38_457);
+    // Lowered by exactly 704 (38,457 → 37,753) by the owner-approved Tasks rewrite: a deliberate shrink, not room-making.
+    expect(prompt.length).toBeLessThanOrEqual(37_753);
     expect(prompt.toLowerCase()).not.toContain('thread');
 });
 

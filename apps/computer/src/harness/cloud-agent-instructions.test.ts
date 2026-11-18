@@ -13,10 +13,9 @@ const prompt = renderAgentInstructions({
 });
 const section = prompt.split('### Cloud agents\n')[1]?.split('### ')[0] ?? '';
 
-test('a cloud agent works for a Task, and the launch names it', () => {
-    expect(section).toContain(
-        'A cloud agent works for a Task: start the Task first, then `haus cloud-agent start --task <KEY-n>`.'
-    );
+test('launch mechanics stay out of the section', () => {
+    expect(section).not.toContain('A cloud agent works for a Task');
+    expect(section).not.toContain('haus cloud-agent start');
     expect(section).not.toContain('launch card');
     expect(section).not.toContain('work thread');
     expect(section).not.toContain('a launch never opens a new thread');

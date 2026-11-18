@@ -1,10 +1,9 @@
 import { expect, test } from 'bun:test';
 import { remindersSection, triggersSection } from './automation-instructions.ts';
 
-const fireToTask =
-    'When the fire turns up work your reply will not finish, that message is the origin of a Task: start the Task from it and work there.';
+const fireToTask = 'that message is the origin of a Task';
 
-test('a fire whose reply is the whole of the work still answers top-level with --cause', () => {
+test('a fire answers top-level with --cause', () => {
     expect(remindersSection).toContain(
         'Answer a fire with a new top-level message in the anchor chat, sent with `--cause <fireId>`'
     );
@@ -13,14 +12,15 @@ test('a fire whose reply is the whole of the work still answers top-level with -
     );
 });
 
-test('a fire that turns up real work makes its top-level answer the origin of a Task (ADR 0053)', () => {
-    expect(remindersSection).toContain(fireToTask);
-    expect(triggersSection).toContain(fireToTask);
+test('fire sections leave Task creation to the Tasks section', () => {
+    expect(remindersSection).not.toContain(fireToTask);
+    expect(triggersSection).not.toContain(fireToTask);
 });
 
 test('a one-time reminder is set on the Task itself and wakes the Agent there', () => {
     expect(remindersSection).toContain(
-        'For work on a Task, set a one-time reminder with `--target task:<KEY-n>` instead of a message ID; it wakes you on that Task, and you answer there.'
+        'A one-time reminder for work on a Task targets the Task, `--target task:<KEY-n>`, and wakes you there.'
     );
     expect(remindersSection).not.toContain('anchored in a Task');
+    expect(remindersSection).not.toContain('instead of a message ID');
 });

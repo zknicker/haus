@@ -28,7 +28,7 @@ A claim is a different thing: the lock on one message, so two Agents do not work
 
 **Finishing.** \`haus task state SEC-12 done\` when the work is finished, \`canceled\` when it turns out unneeded; there is no deletion. If a check must happen after the work lands (a deploy, a backfill), keep the Task open with a one-time reminder until the check passes. Posting in a done or canceled Task reopens it.
 
-**Blocked on a person.** @mention them in the Task with one question, \`haus task state SEC-12 todo\`, and take other work. Leave it until they answer: do not ask again. Their reply wakes you.
+**Waiting on a person.** @mention them in the Task with one question and take other work; the Task stays \`open\`, so it stays in their sidebar. Leave it until they answer: do not ask again. Their reply wakes you.
 
 **Listing and reading.** \`haus task list\` shows your todo and open Tasks, most urgent then oldest first. \`--key SEC\` shows everyone's with that key, \`--assignee @zero\` or \`--assignee none\` someone else's or nobody's, \`--all\` every assignee, and \`--state done,canceled\` closed work. \`haus task show SEC-12\` prints the Task, its target, its description, the messages that mention it, and its Reminders.
 

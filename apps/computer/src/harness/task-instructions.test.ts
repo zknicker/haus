@@ -26,42 +26,31 @@ test('a Task is described by what people see, not by a placement ladder (ADR 005
     expect(prompt).toContain('A failed claim is a concurrency lock');
 });
 
-test('a Task starts from a channel message, never a DM, with the command shape beside it', () => {
+test('a Task starts from a channel message, with the command shape beside it', () => {
     expect(tasks).toContain(
-        'A Task starts from a message in a channel, usually the request itself: `haus task start --target "#channel" --from <shortid> --title <text>`.'
+        'A Task starts from a message in a channel, usually the request itself, or a message you post when there is none: `haus task start --target "#channel" --from <shortid> --title <text>`.'
     );
-    expect(tasks).toContain(
-        'Never from a DM: post the origin in the channel where the work belongs, mentioning whoever asked, start the Task from it, then reply in the DM with its key.'
-    );
+    expect(tasks).not.toContain('Never from a DM');
 });
 
-test('work for a Task reports there, and an after-the-fact check keeps it open', () => {
-    expect(tasks).toContain('Report work done for a Task in the Task.');
+test('each Task has its own end, and the work goes in the Task', () => {
     expect(prompt).toContain('Work for a Task is posted with `--target task:<KEY-n>`.');
     expect(tasks).toContain(
-        'When the work is finished, set it `done` with `haus task state`; if a check must happen after the work lands, keep it open with a one-time reminder on the Task until the check passes.'
+        "People see each Task under that message with its state and latest line. Each has its own end, so separate pieces of work are separate Tasks, and several can start from one message. Reply with the Task's key; the work itself goes in the Task."
     );
 });
 
-test('the result lives in the Task, which the channel already previews', () => {
+test('a Task being worked or waited on stays open, and an after-the-fact check is part of the work', () => {
     expect(tasks).toContain(
-        'Report work done for a Task in the Task. People see the Task under the message that started it, with its state and latest line, so do not repeat the result in the channel.'
+        'A Task you are working or waiting on stays `open`, where the people following it can see it. `todo` is work no one has started, and it is not in the sidebar. Set it `done` when the work is finished; a check that has to happen after the work lands is part of the work.'
     );
-});
-
-test('Tasks others assign are paced one at a time; self-started Tasks run side by side', () => {
-    expect(tasks).toContain(
-        'Work Tasks others assign you one at a time: pick by priority, then age, set that one `open`, and leave the rest `todo` until it is done or blocked. Tasks you started yourself can run side by side.'
-    );
-    expect(tasks.indexOf('Work Tasks others assign you one at a time')).toBeLessThan(
-        tasks.indexOf('When a Task is blocked on a person')
-    );
-});
-
-test('a Task blocked on a person goes back to todo while other work goes on', () => {
-    expect(tasks).toContain(
-        'When a Task is blocked on a person, @mention them in the Task, set it back to `todo`, and take other work; leave it until they answer.'
-    );
+    for (const gone of [
+        'Work Tasks others assign you one at a time',
+        'set it back to `todo`',
+        'do not repeat the result in the channel',
+    ]) {
+        expect(tasks).not.toContain(gone);
+    }
 });
 
 test('no board, column, or card-moving pacing language survives', () => {
