@@ -28,14 +28,6 @@ jobs:
         with:
           bun-version: '1.4.4'
 
-      # Oxlint loads its TypeScript config and JS plugins in Node, and the
-      # Oxlint RuleTester behind the repo's rule cases runs only under Node.
-      # Ultracite 8 requires Node ^22.22.2 or >=24.15.
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-
       # The licensed @hugeicons-pro scope 401s without its key, so the install
       # itself needs a real credential. It is an @internal schema item, resolved
       # here from the Development vault through the deploy identity. The plugin
