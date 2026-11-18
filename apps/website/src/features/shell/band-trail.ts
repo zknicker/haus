@@ -9,6 +9,8 @@ export interface BandCrumb {
     /** The crumb takes drops from its page (Files moves dragged items into a folder crumb). */
     drop?: BandCrumbDrop;
     href?: string;
+    /** A record's short identifier (a Task's key) drawn before the label; it never truncates. */
+    identifier?: string;
     /** Plain text: a folded crumb lists it in a menu, and it is the tooltip-free name. */
     label: string;
     /** A record's face (an Agent, a member) drawn before the label; never folded. */

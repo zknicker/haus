@@ -313,6 +313,20 @@
         .browser-loading-line { transition: none; }
     }
 
+    .breadcrumbs__item[data-current] {
+        min-width: 0;
+        flex-shrink: 1;
+    }
+
+    .breadcrumbs__item[data-current] > .breadcrumbs__link {
+        display: block;
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
     /*
      * A page's one top bar (`PageToolbar`, features/shell/page-toolbar.tsx):
      * a browser tab, the new tab page, a workspace page, the Agent Workspace.

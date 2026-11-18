@@ -16,6 +16,7 @@ import { TaskAssigneeSelect, TaskStateSelect } from './task-properties.tsx';
 import { taskStateLabels } from './task-state.ts';
 import { TaskStateDisc } from './task-state-disc.tsx';
 import { showTaskUpdateError } from './task-update-error.ts';
+import { TaskWorkPanel } from './work/task-work-panel.tsx';
 
 export function TaskBandControls({
     detailsInBand,
@@ -69,8 +70,12 @@ function DetailsButton({ task }: { task: TaskDetail }) {
                 Details
             </Button>
             <Popover.Content className="w-80 max-w-[calc(100vw-2rem)]" placement="bottom end">
-                <Popover.Dialog aria-label="Details">
+                <Popover.Dialog
+                    aria-label="Details"
+                    className="flex max-h-[min(36rem,80vh)] flex-col gap-3 overflow-y-auto"
+                >
                     <TaskDetails task={task} />
+                    <TaskWorkPanel task={task} />
                 </Popover.Dialog>
             </Popover.Content>
         </Popover>

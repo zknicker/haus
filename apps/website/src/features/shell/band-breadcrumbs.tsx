@@ -63,16 +63,20 @@ function linkedCrumb(crumb: BandCrumb) {
  * the crumb's accessible name.
  */
 function CrumbLabel({ crumb }: { crumb: BandCrumb }) {
-    const label = crumb.mark ? (
-        <span className="flex min-w-0 items-center gap-1.5">
-            <span aria-hidden="true" className="contents">
-                {crumb.mark}
+    const label =
+        (crumb.mark ?? crumb.identifier) ? (
+            <span className="flex min-w-0 items-center gap-1.5">
+                {crumb.mark ? (
+                    <span aria-hidden="true" className="contents">
+                        {crumb.mark}
+                    </span>
+                ) : null}
+                {crumb.identifier ? <span className="shrink-0">{crumb.identifier}</span> : null}
+                <span className="min-w-0 truncate">{crumb.label}</span>
             </span>
-            <span className="min-w-0 truncate">{crumb.label}</span>
-        </span>
-    ) : (
-        crumb.label
-    );
+        ) : (
+            crumb.label
+        );
     return crumb.drop ? <CrumbDropTarget drop={crumb.drop}>{label}</CrumbDropTarget> : label;
 }
 

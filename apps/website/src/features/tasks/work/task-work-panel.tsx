@@ -18,7 +18,7 @@ export function TaskWorkPanel({
     return (
         <aside aria-label="Attached work" className="flex min-w-0 flex-col gap-3">
             {task.attachedWork.map((work) => (
-                <div data-work-id={work.id} key={work.id}>
+                <div className="scroll-my-4" data-work-id={work.id} key={work.id} tabIndex={-1}>
                     <CloudAgentWorkCard work={work}>
                         <CloudAgentRunSummary work={work} />
                     </CloudAgentWorkCard>

@@ -37,6 +37,17 @@ test('a done job states how long it took, not how long ago it was', () => {
     expect(cloudAgentJobText(completed.job, now)).toBe('Done · 1h 12m');
 });
 
+test('a done job under a second or with no known span names only its outcome', () => {
+    const done = (start: null | string, settledAt: null | string) =>
+        cloudAgentJobText({ followUp: null, settledAt, startedAt: start, state: 'done' }, now);
+
+    expect(done(startedAt, startedAt)).toBe('Done');
+    expect(done(startedAt, '2026-09-04T12:00:00.900Z')).toBe('Done');
+    expect(done(null, startedAt)).toBe('Done');
+    expect(done(startedAt, null)).toBe('Done');
+    expect(done(startedAt, '2026-09-04T12:00:01.000Z')).toBe('Done · 1s');
+});
+
 test('a follow-up queued behind a finished Run keeps the job done', () => {
     const followedUp = work({
         runs: [

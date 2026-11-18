@@ -3,7 +3,7 @@ import type * as React from 'react';
 import { cn } from '../../../lib/utils.ts';
 import { claimVisibleInChat, useShowClaimsInChat } from '../../claims/show-claims-in-chat.ts';
 import { TranscriptClaimChip } from '../../claims/transcript-claim-chip.tsx';
-import { CloudAgentWorkCard } from '../../cloud-agents/cloud-agent-work-card.tsx';
+import { MessageCloudAgentWork } from '../../cloud-agents/docked-cloud-agent-work.tsx';
 import { TaskOriginPreviews } from '../../tasks/preview/task-origin-previews.tsx';
 import {
     type TranscriptMessageRow,
@@ -46,7 +46,7 @@ export function MessageSurface({
                 </div>
             ) : null}
             {linked.map((work) => (
-                <CloudAgentWorkCard key={work.id} work={work} />
+                <MessageCloudAgentWork key={work.id} work={work} />
             ))}
             {row.taskPreviews && context?.turnDetails?.serverId ? (
                 <TaskOriginPreviews

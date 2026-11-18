@@ -36,7 +36,7 @@ export function TaskPageRoute() {
             <PageBand>
                 <PageBand.Trail
                     crumbs={[{ href: tasksRoute(server.slug), label: 'Tasks' }]}
-                    current={current}
+                    current={task ? { identifier: task.key, label: task.title } : current}
                 />
                 <PageBand.Controls>
                     <React.Suspense fallback={null}>

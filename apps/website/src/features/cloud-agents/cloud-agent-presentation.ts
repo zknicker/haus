@@ -100,8 +100,10 @@ export function cloudAgentJobText(job: CloudAgentWork['job'], now: number): stri
         return elapsed === null ? label : `${label} · ${elapsed}`;
     }
     if (job.state === 'done') {
-        const duration = spanBetween(job.startedAt, job.settledAt);
-        return duration === null ? label : `${label} · ${duration}`;
+        const took = spanMs(job.startedAt, job.settledAt);
+        return took === null || took < 1000
+            ? label
+            : `${label} · ${formatCloudAgentDuration(took)}`;
     }
     return label;
 }
@@ -222,11 +224,11 @@ export function elapsedSince(startedAt: null | string, now: number): null | stri
     return formatCloudAgentDuration(Math.max(0, now - started));
 }
 
-export function spanBetween(startedAt: null | string, terminalAt: null | string): null | string {
+function spanMs(startedAt: null | string, terminalAt: null | string) {
     const started = startedAt === null ? Number.NaN : Date.parse(startedAt);
     const ended = terminalAt === null ? Number.NaN : Date.parse(terminalAt);
     if (!(Number.isFinite(started) && Number.isFinite(ended))) {
         return null;
     }
-    return formatCloudAgentDuration(Math.max(0, ended - started));
+    return Math.max(0, ended - started);
 }
