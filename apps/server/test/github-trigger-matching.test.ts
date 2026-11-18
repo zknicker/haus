@@ -3,6 +3,7 @@ import { type GithubTriggerEvents, githubTriggerEventsSchema } from '@haus/api';
 import type { Payload } from '../src/github/event-projection/payload.ts';
 import { matchesGithubEvents, repositoryInScope } from '../src/github/trigger-matching.ts';
 import {
+    checkRunPayload,
     checkSuitePayload,
     deploymentStatusPayload,
     issuesPayload,
@@ -10,6 +11,7 @@ import {
     pullRequestReviewPayload,
     pushPayload,
     releasePayload,
+    workflowJobPayload,
     workflowRunPayload,
 } from './github-delivery-fixtures.ts';
 
@@ -96,6 +98,55 @@ const cases: Case[] = [
         'check_suite',
         checkSuitePayload(),
         true,
+    ],
+    [
+        'workflow_run from a fork head repository is untrusted by default',
+        [{ event: 'workflow_run' }],
+        'workflow_run',
+        workflowRunPayload({ headRepository: 'forker/api' }),
+        false,
+    ],
+    [
+        'workflow_run authors anyone admits a fork head repository',
+        [{ authors: 'anyone', event: 'workflow_run' }],
+        'workflow_run',
+        workflowRunPayload({ headRepository: 'forker/api' }),
+        true,
+    ],
+    [
+        'check_suite with a null head_branch (fork) is untrusted by default',
+        [{ event: 'check_suite' }],
+        'check_suite',
+        checkSuitePayload({ headBranch: null }),
+        false,
+    ],
+    [
+        'check_run with a non-null head_branch passes by default',
+        [{ event: 'check_run' }],
+        'check_run',
+        checkRunPayload(),
+        true,
+    ],
+    [
+        'check_run with a null head_branch (fork) is untrusted by default',
+        [{ event: 'check_run' }],
+        'check_run',
+        checkRunPayload({ headBranch: null }),
+        false,
+    ],
+    [
+        'workflow_job with a non-null head_branch passes by default',
+        [{ event: 'workflow_job' }],
+        'workflow_job',
+        workflowJobPayload(),
+        true,
+    ],
+    [
+        'workflow_job with a null head_branch (fork) is untrusted by default',
+        [{ event: 'workflow_job' }],
+        'workflow_job',
+        workflowJobPayload({ headBranch: null }),
+        false,
     ],
     [
         'deployment_status state and environment',
@@ -210,6 +261,19 @@ describe('github Trigger matching', () => {
             expect(matchesGithubEvents(events(entries), event, payload)).toBe(expected);
         });
     }
+});
+
+test('push, release, and deployment_status refuse an authors field', () => {
+    expect(
+        githubTriggerEventsSchema.safeParse([{ authors: 'anyone', event: 'push' }]).success
+    ).toBe(false);
+    expect(
+        githubTriggerEventsSchema.safeParse([{ authors: 'anyone', event: 'release' }]).success
+    ).toBe(false);
+    expect(
+        githubTriggerEventsSchema.safeParse([{ authors: 'anyone', event: 'deployment_status' }])
+            .success
+    ).toBe(false);
 });
 
 test('a repository must be in the access cache and, when selected, in the selection', () => {

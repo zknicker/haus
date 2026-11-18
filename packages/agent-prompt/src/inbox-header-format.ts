@@ -79,10 +79,7 @@ export function shortInboxId(id: string): string {
 const bodyContinuationPrefix = '  │ ';
 
 export function indentContinuationLines(text: string): string {
-    return text.replace(
-        universalLineBreak,
-        (separator) => `${separator}${bodyContinuationPrefix}`
-    );
+    return text.replace(universalLineBreak, (separator) => `${separator}${bodyContinuationPrefix}`);
 }
 
 /**

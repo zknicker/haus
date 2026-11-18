@@ -80,7 +80,14 @@ test('a stored github Trigger reads as the github variant with no URL', async ()
         disabledAt: null,
         fireCount: 0,
         github: {
-            events: [{ actions: ['completed'], conclusions: ['failure'], event: 'workflow_run' }],
+            events: [
+                {
+                    actions: ['completed'],
+                    authors: 'collaborators',
+                    conclusions: ['failure'],
+                    event: 'workflow_run',
+                },
+            ],
             installationId: installationRowId,
             installationLogin: 'acme',
             problem: 'sign_in_required',

@@ -96,7 +96,7 @@ export const TRIGGER_SUBCOMMANDS: SubCommand[] = [
             '  --branch: those four, push, and pull_request (its base branch)',
             '  --state: deployment_status, pull_request_review   --environment: deployment_status',
             '  --label: pull_request, issues   --workflow: workflow_run (file path)   --check-name: check_run',
-            '  --authors: pull_request, pull_request_review, issues (default collaborators)',
+            '  --authors: pull_request, pull_request_review, issues, workflow_run, workflow_job, check_suite, check_run (default collaborators)',
             'Name filters support * within a path segment, ** across /, and ? for one character. Branch @default follows the repository default branch.',
             'Use --exclude-branch, --exclude-workflow, --exclude-check-name, --exclude-environment, --exclude-repo, or --exclude-actor. Exclusions win inside each group.',
             '--actor filters sender.login; --workflow-event filters workflow_run.event (e.g. push). --match-repo filters full owner/name within the authorized scope.',

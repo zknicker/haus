@@ -146,7 +146,7 @@ test('webhooks mark a known pull request by number or head, whatever the Trigger
 
     await refresh();
     expect((await reading())?.refresh_requested_at).toBeNull();
-    await ingest('check_suite', checkSuitePayload('failure'));
+    await ingest('check_suite', checkSuitePayload({ conclusion: 'failure' }));
     expect((await reading())?.refresh_requested_at).not.toBeNull();
 });
 
