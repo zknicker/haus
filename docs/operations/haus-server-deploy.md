@@ -283,13 +283,13 @@ scheduled backup exists. Computer must publish and verify first, and any Compute
 ### Shipping Channels and Tasks (ADR 0053)
 
 The Channels-and-Tasks release ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md))
-runs migrations 0124–0128 and raises Computer protocol to 37 and App protocol to 13. Migration
+runs migrations 0124–0128 and raises Computer protocol to 38 and App protocol to 13. Migration
 0126 moves every Thread's Messages into inline replies on its anchor and deletes the Threads;
 0127 converts legacy Tasks and drops boards; 0128 removes the Thread schema. It is forward-only:
 the previous Server cannot run on the migrated schema, and activation rollback restores only the
 binary. Run it in this order:
 
-1. **Computer artifact first.** Publish and verify the protocol 37 Computer artifact before the
+1. **Computer artifact first.** Publish and verify the protocol 38 Computer artifact before the
    Server release, as for any protocol raise ([Releases](releases.md#prerequisites)).
 2. **iPhone build on TestFlight.** A protocol 13 iPhone build must be processed on TestFlight
    ([iOS TestFlight](ios-testflight.md)) before the Server is promoted, because the new Server
@@ -324,7 +324,7 @@ binary. Run it in this order:
    It checks the structural invariants, that every Channel or DM that received moved Messages
    reads as read for everyone who can read it, that unread elsewhere is unchanged, and that no
    queued inbox item names a moved Message. It exits 1 on any failure.
-9. **Upgrade the Mac mini Computer** right after the deploy; a Computer below protocol 37 stays
+9. **Upgrade the Mac mini Computer** right after the deploy; a Computer below protocol 38 stays
    idle until upgraded.
 
 `apps/server/scripts/reverse-thread-migration.ts` is a dev-only tool that replays 0126's audit
