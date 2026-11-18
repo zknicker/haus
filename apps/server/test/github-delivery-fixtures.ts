@@ -80,7 +80,9 @@ export function checkSuitePayload(
     });
 }
 
-export function checkRunPayload(overrides: { conclusion?: string; headBranch?: string | null } = {}) {
+export function checkRunPayload(
+    overrides: { conclusion?: string; headBranch?: string | null } = {}
+) {
     return envelope({
         action: 'completed',
         check_run: {
