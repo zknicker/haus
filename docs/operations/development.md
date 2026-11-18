@@ -40,9 +40,7 @@ rerun `bun run setup:worktree` and start the stack again.
 Upgrading `@heroui-pro/react` means bumping its peers in the same install:
 `@heroui/react`, `@heroui/styles`, `react-aria-components`, `react-aria`,
 `react-stately`, and `@react-aria/interactions` are all declared peers and
-`auto = "disable"` never installs them for us. A HeroUI release published
-inside the three-day `minimumReleaseAge` window needs its package added to
-`minimumReleaseAgeExcludes` in `bunfig.toml`; installing with
+`auto = "disable"` never installs them for us. Installing with
 `frozenLockfile = false` is a temporary flip that gets restored in the same
 change. Rerun `bun run setup:worktree` afterwards.
 

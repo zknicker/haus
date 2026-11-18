@@ -4,13 +4,6 @@ frozenLockfile = true
 auto = "disable"
 ignoreScripts = true
 saveTextLockfile = true
-minimumReleaseAge = 259200
-minimumReleaseAgeExcludes = [
-    "@heroui-pro/react",
-    # Required peers of @heroui-pro/react 1.0.0-beta.9 (>=3.2.5).
-    "@heroui/react",
-    "@heroui/styles",
-]
 
 [install.scopes]
 '@hugeicons-pro' = { token = '$MERCHBASE_HUGEICONS_LICENSE_KEY', url = 'https://npm.hugeicons.com/' }
