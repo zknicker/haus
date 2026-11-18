@@ -30,7 +30,7 @@ export default defineConfig({
         'haus/heroui-compound-children': 'error',
         'haus/heroui-dialog-form': 'error',
 
-        // Biome parity: the repo turned these Biome rules off.
+        // Turned off by the repo's previous lint config too.
         'default-case': 'off',
         'jsx-a11y/label-has-associated-control': 'off',
         'no-bitwise': 'off',
@@ -42,18 +42,17 @@ export default defineConfig({
         'require-await': 'off',
         'typescript/no-non-null-assertion': 'off',
         'typescript/parameter-properties': 'off',
-        // The repo keeps a few deliberate, reasoned hook-dependency
-        // suppressions that Biome allowed.
+        // The repo keeps a few deliberate, reasoned hook-dependency suppressions.
         'react/rule-suppression': 'off',
-        // Biome's noDoubleEquals allowed `== null`.
+        // `== null` stays allowed.
         eqeqeq: ['error', 'always', { null: 'ignore' }],
         'no-eq-null': 'off',
-        // Biome's cognitive-complexity ceiling of 20, carried over as the
+        // The previous cognitive-complexity ceiling of 20, carried over as the
         // closest Oxlint metric. Existing files keep generated ceilings.
         complexity: ['error', 20],
 
-        // Ultracite's Oxlint preset enables these; Biome did not enforce them
-        // and the tree has violations. Re-enable one at a time.
+        // Ultracite's Oxlint preset enables these; the previous config did not
+        // enforce them and the tree has violations. Re-enable one at a time.
         'accessor-pairs': 'off',
         'arrow-body-style': 'off',
         'class-methods-use-this': 'off',

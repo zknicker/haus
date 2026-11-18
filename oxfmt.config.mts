@@ -25,7 +25,7 @@ export default defineConfig({
         'assets/halloween-icon.icon',
         'assets/ios-icon/manifest.json',
         'assets/mac-icon.icon',
-        // Biome formatted only scripts and JSON; keep the same scope.
+        // The formatter's scope stays scripts and JSON.
         '**/*.css',
         '**/*.html',
         '**/*.md',
