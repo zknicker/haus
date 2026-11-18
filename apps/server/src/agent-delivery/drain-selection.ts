@@ -1,8 +1,8 @@
 import { type AgentCommand, isChatlessInboxSource } from '@haus/api';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { chatlessStartFrame } from './chatless-run.ts';
 import { type AgentDispatchConfig, startPromptFacts } from './dispatch-config.ts';
 import { attachQueuedGreeting, isGreetingRow, retireSpentGreeting } from './greeting.ts';
-import { chatlessStartFrame, heartbeatLeadGate } from './heartbeat-run.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import {
     isConcreteInboxSource as isConcreteSource,
@@ -49,7 +49,7 @@ export async function startFrame(
     const runRows = attachedRows.filter((row) => !isGreetingRow(row));
     const chatlessRows = runRows.filter((row) => isChatlessInboxSource(row.source));
     if (chatlessRows.length > 0) {
-        return await chatlessStartFrame(db, state, config, chatlessRows);
+        return chatlessStartFrame(state, config, chatlessRows);
     }
     const noticeRows =
         runRows.length === 0 && state.activeRunId
@@ -128,13 +128,11 @@ export async function claimRunItems(
 
 /**
  * The candidates a fresh drain chooses from, the row it prefers to lead, and
- * which rows may lead now. Attentions that may no longer run (a stale
- * heartbeat, a spent greeting) are retired first, so neither can lead an empty
- * run. `mayLead` applies to the candidates and again to the admitted lead,
- * since admission at the chain ceiling may widen to a row it was not offered.
+ * which rows may lead now. A spent greeting is retired first, so it cannot lead
+ * an empty run. `mayLead` applies to the candidates and again to the admitted
+ * lead, since admission at the chain ceiling may widen to a row it was not offered.
  */
 export async function readDrainCandidates(tx: HausDatabase, agentId: string) {
-    const heartbeatMayLead = await heartbeatLeadGate(tx, agentId);
     await retireSpentGreeting(tx, agentId);
     // Sequential: planning runs inside the transaction holding the Server
     // row, and overlapping reads on its one connection wedge it.
@@ -145,7 +143,7 @@ export async function readDrainCandidates(tx: HausDatabase, agentId: string) {
     ];
     const greetingWaits = queued.some(isGreetingRow);
     const mayLead = (row: Pick<store.InboxItemRow, 'source'>) =>
-        heartbeatMayLead(row) && !(greetingWaits && waitsForGreeting(row.source));
+        !(greetingWaits && waitsForGreeting(row.source));
     const candidates = queued.filter(mayLead);
     return { candidates, lead: preferredDrainLead(candidates), mayLead };
 }
@@ -166,12 +164,10 @@ function preferredDrainLead(rows: store.InboxItemRow[]): store.InboxItemRow | un
 }
 
 /**
- * A chatless run cannot carry the greeting, so while one waits a dream,
- * heartbeat, heartbeat report, or Task assignment does not lead: a report or an
- * assignment would otherwise open the new Agent's main session without it. A
- * sub-agent wake is never held (specs/heartbeat.md): it exists only after the
- * main session ran, and the greeting rides the next ordinary run, which shows it
- * warm or cold.
+ * A chatless run cannot carry the greeting, so while one waits a Task assignment
+ * does not lead: it would otherwise open the new Agent's main session without it.
+ * A sub-agent wake is never held: it exists only after the main session ran, and
+ * the greeting rides the next ordinary run, which shows it warm or cold.
  */
 function waitsForGreeting(source: string): boolean {
     return isChatlessInboxSource(source) && source !== 'subagent';

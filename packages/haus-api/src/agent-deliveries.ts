@@ -3,18 +3,11 @@ import { agentDetailInputSchema } from './agent.ts';
 import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
 
 /**
- * Inbox sources with no Chat: the nightly dream, a daytime heartbeat, a heartbeat's
- * report to the main session, the sub-agent wake, and a board Task assigned to the
- * Agent (ADR 0051). Each leads its own chatless run (specs/heartbeat.md), and the
- * Server schema's chat checks name exactly these sources.
+ * Inbox sources with no Chat: the sub-agent wake and a board Task assigned to the
+ * Agent (ADR 0051). Each leads its own chatless run, and the Server schema's chat
+ * checks name exactly these sources.
  */
-export const chatlessInboxSources = [
-    'dream',
-    'heartbeat',
-    'heartbeat_report',
-    'subagent',
-    'task_assignment',
-] as const;
+export const chatlessInboxSources = ['subagent', 'task_assignment'] as const;
 
 export function isChatlessInboxSource(source: string): boolean {
     return (chatlessInboxSources as readonly string[]).includes(source);
@@ -44,8 +37,7 @@ export const agentDeliveryRecordSchema = z
     })
     .strict()
     .refine((record) => (record.chatId === null) === isChatlessInboxSource(record.source), {
-        message:
-            'Only a dream, heartbeat, heartbeat report, sub-agent wake, or task assignment delivery is chatless.',
+        message: 'Only a sub-agent wake or task assignment delivery is chatless.',
         path: ['chatId'],
     });
 

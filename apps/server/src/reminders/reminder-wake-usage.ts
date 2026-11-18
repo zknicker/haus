@@ -5,11 +5,10 @@ import { agentRunTriggersTable, reminderFiresTable } from '../postgres/schema.ts
 
 /**
  * Links a settled turn's reported usage back to the reminder fire that woke
- * it, the same way `recordAgentDream` finds the dream a run belongs to:
- * `agent_run_triggers` already records the work (here, a fire id) that
+ * it: `agent_run_triggers` already records the work (here, a fire id) that
  * dispatched the run, under `source: 'reminder'`. Best-effort: a run merged
  * from several queued items only names the first, so a wake batched behind
- * other work goes unattributed here, same as a dream's usage would.
+ * other work goes unattributed here.
  */
 export async function recordReminderWakeUsage(
     db: HausDatabase,

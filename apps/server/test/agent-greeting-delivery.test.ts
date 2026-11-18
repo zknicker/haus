@@ -3,7 +3,6 @@ import type { AgentTurnSummary } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { enqueueAgentGreeting, greetingDedupeKey } from '../src/agent-delivery/greeting.ts';
-import { heartbeatReportDedupeKey } from '../src/agent-delivery/heartbeat-keys.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
@@ -124,36 +123,6 @@ test('the greeting is claimed once per Agent and survives a resend and a failed 
     await greet(seed);
     expect(await greetingRows(seed)).toHaveLength(1);
     expect(await greetingState(seed)).toBe('seen');
-});
-
-test('a queued heartbeat report never runs the main session ahead of the greeting', async () => {
-    const seed = await seedAgent(connection.db);
-    const allChannelId = await greet(seed);
-    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
-    // The Computer was offline at creation and reconnects near a heartbeat slot,
-    // so the heartbeat's report is already waiting for the main session.
-    await connection.db.transaction(async (tx) => {
-        await delivery.enqueue(tx, {
-            agentId: seed.agentId,
-            chatId: null,
-            content: 'Nothing needed attention.',
-            dedupeKey: heartbeatReportDedupeKey(`run_${seed.agentId}`),
-            serverId: seed.serverId,
-            source: 'heartbeat_report',
-        });
-    });
-
-    // The greeting leads, so the main session's first run is the one that greets.
-    const first = await wake();
-    expect(first).toMatchObject({ chatId: allChannelId, greets: true });
-    expect(first?.heartbeatReport).toBeUndefined();
-    await settle(delivery, seed, first?.runId ?? '');
-    expect(await greetingState(seed)).toBe('seen');
-
-    // The report runs next, carrying no greeting.
-    const report = transport.framesOfType('start').at(-1);
-    expect(report?.heartbeatReport).toBeDefined();
-    expect(report?.greets).toBeUndefined();
 });
 
 test('a sub-agent wake is never held behind a waiting greeting, which rides the next run', async () => {

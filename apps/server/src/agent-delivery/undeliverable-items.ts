@@ -92,7 +92,7 @@ export async function isolateUnrenderableItems(
 /**
  * Renders one row the way its run would. A chatless attention never becomes an
  * inbox envelope (its run frames it alone), so only a Task assignment, whose run
- * decodes its body, can fail here; a dream or heartbeat carries nothing to render.
+ * decodes its body, can fail here; a sub-agent wake carries nothing to render.
  */
 async function renderAlone(db: HausDatabase, row: store.InboxItemRow): Promise<void> {
     if (!isChatlessInboxSource(row.source)) {

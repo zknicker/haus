@@ -10,7 +10,6 @@ const agentRuntimeCoreCapabilityIds = [
     'codexOAuth',
     'memory',
     'memoryExtraction',
-    'memoryDreaming',
     'dashboardServer',
     'apiServer',
     'gateway',

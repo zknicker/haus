@@ -62,4 +62,6 @@ export const migrationsSince0060 = [
     '0119_rename-tasks-to-claims',
     '0120_task-boards',
     '0121_drop-claim-priority-labels',
+    '0122_cloud-agent-run-report',
+    '0123_retire-heartbeats',
 ];

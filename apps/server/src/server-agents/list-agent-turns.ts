@@ -84,8 +84,7 @@ export async function readSettledTurns(
 
     const triggers = await resolveAgentTurnTriggers(
         db,
-        // Callers required membership, so a null member never reaches here.
-        { serverId: query.serverId, userId: member?.id ?? '' },
+        query.serverId,
         rows.map((row) =>
             row.triggerSource && row.triggerWorkId
                 ? {

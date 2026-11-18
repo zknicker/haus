@@ -7,9 +7,9 @@ import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { agentDeliveryTable } from '../src/postgres/schema.ts';
 import { createTask } from '../src/tasks/task-create.ts';
-import { settledTurn } from './agent-dream-fixture.ts';
 import { offlineDelivery, type Seed } from './agent-inbox-harness.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { settledTurn } from './settled-turn-fixture.ts';
 import {
     addPeerAgent,
     assignNewTask,

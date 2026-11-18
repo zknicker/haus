@@ -6,7 +6,6 @@ import {
     BoardNotFoundError,
 } from '../boards/board-errors.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
-import { isHeartbeatRun } from '../heartbeat/run-source.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { TaskConflictError, TaskInvariantError, TaskNotFoundError } from '../tasks/task-errors.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
@@ -39,12 +38,7 @@ export function agentTaskRead<Schema extends z.ZodType>(
     });
 }
 
-/**
- * One board or Task write: authorize, validate the body, refuse a heartbeat run,
- * answer. A heartbeat is private work in a throwaway session whose main session
- * decides what anyone hears (ADR 0049), so it may read the boards but changes
- * nothing other people see; it reports what it found instead.
- */
+/** One board or Task write: authorize, validate the body, answer. */
 export function agentTaskWrite<Schema extends z.ZodType>(
     app: FastifyInstance,
     db: HausDatabase,
@@ -59,14 +53,6 @@ export function agentTaskWrite<Schema extends z.ZodType>(
         const parsed = route.body.safeParse(request.body);
         if (!parsed.success) {
             return sendInvalid(reply, parsed.error);
-        }
-        if (await isHeartbeatRun(db, runner)) {
-            return sendAgentApiError(
-                reply,
-                403,
-                'REGULAR_TURN_REQUIRED',
-                'Tasks and boards are read-only in a heartbeat run. Report what you found with haus heartbeat report.'
-            );
         }
         return await respond(reply, () => action(runner, parsed.data));
     });

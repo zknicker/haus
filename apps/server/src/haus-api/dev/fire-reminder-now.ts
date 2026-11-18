@@ -7,11 +7,11 @@ import { prepareReminderEvents } from '../../reminders/reminder-events.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
 import { lockServerRow } from '../../servers/server-lock.ts';
 import { memberProcedure } from '../server/procedure.ts';
-import { assertHeartbeatTestAllowed } from './heartbeat-test-routes.ts';
+import { assertDevTestRouteAllowed } from './dev-test-route-guard.ts';
 
 // Test-only: moves a scheduled reminder's fire time to now, so the next scheduler
 // tick (every 15 seconds) fires it through the product path. Gated like the other
-// heartbeat test routes: never in production, and only from a localhost request.
+// dev test routes: never in production, and only from a localhost request.
 
 const fireReminderNowInputSchema = z.object({
     reminderId: z.string().min(1),
@@ -21,7 +21,7 @@ const fireReminderNowInputSchema = z.object({
 export const fireReminderNowRoute = memberProcedure
     .input(fireReminderNowInputSchema)
     .mutation(async ({ ctx, input }) => {
-        assertHeartbeatTestAllowed(ctx.requestHost, ctx.developmentAuth !== null);
+        assertDevTestRouteAllowed(ctx.requestHost, ctx.developmentAuth !== null);
         await requireServerMembership(ctx.hausDb, ctx.member, input.serverId);
 
         const now = new Date();

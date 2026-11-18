@@ -21,21 +21,6 @@ export const agentTurnTriggerPreviewSchema = z
 export type AgentTurnTriggerPreview = z.infer<typeof agentTurnTriggerPreviewSchema>;
 
 /**
- * What a heartbeat filed: the head of its report, whether the main session posted
- * after reading it (`posted`, true whatever the reader can see), and the Chat it
- * posted in (null when it only read it, or the Chat is not one the reader can see).
- */
-export const agentTurnHeartbeatReportSchema = z
-    .object({
-        posted: z.boolean(),
-        postedChatId: idSchema.nullable(),
-        text: z.string().max(AGENT_TURN_TRIGGER_PREVIEW_MAX_LENGTH),
-    })
-    .strict();
-
-export type AgentTurnHeartbeatReport = z.infer<typeof agentTurnHeartbeatReportSchema>;
-
-/**
  * What woke an Agent turn: the inbox item the Server chose when it dispatched the
  * run. A message or claim trigger quotes its message (`preview`), so a turn row is
  * titled in the same read that lists it. The Server reads that quote only for a
@@ -47,12 +32,6 @@ export type AgentTurnHeartbeatReport = z.infer<typeof agentTurnHeartbeatReportSc
  *   with no message of its own.
  * - `greeting`: a new Agent's one-time wake to introduce itself in `#all`, when it led
  *   the run alone.
- * - `dream`: the Agent's private nightly memory pass; no Chat. `learned` is the first line
- *   of what it wrote down, and `added` / `removed` the memory lines it changed.
- * - `heartbeat`: a daytime look around; no Chat. `report` is what the run sent to the main
- *   session, null when it stayed quiet; `yielded` is a run the Server stopped for a message.
- * - `heartbeat_report`: a heartbeat's report arriving in the main session; no Chat.
- *   `heartbeatRunId` names the heartbeat run that sent it.
  * - `subagent`: background work the Agent started finished or stopped; no Chat.
  * - `task`: a board Task assigned to the Agent (`task_assignment`); no Chat. Boards are
  *   visible to every member, so it carries the Task's key and title for the row title.
@@ -82,22 +61,6 @@ export const agentTurnTriggerSchema = z.discriminatedUnion('kind', [
     z.object({ chatId: idSchema, kind: z.literal('cloud_agent') }).strict(),
     z.object({ chatId: idSchema, kind: z.literal('onboarding') }).strict(),
     z.object({ chatId: idSchema, kind: z.literal('greeting') }).strict(),
-    z
-        .object({
-            added: z.number().int().nonnegative(),
-            kind: z.literal('dream'),
-            learned: z.string().max(AGENT_TURN_TRIGGER_PREVIEW_MAX_LENGTH).nullable(),
-            removed: z.number().int().nonnegative(),
-        })
-        .strict(),
-    z
-        .object({
-            kind: z.literal('heartbeat'),
-            report: agentTurnHeartbeatReportSchema.nullable(),
-            yielded: z.boolean(),
-        })
-        .strict(),
-    z.object({ heartbeatRunId: idSchema, kind: z.literal('heartbeat_report') }).strict(),
     z.object({ kind: z.literal('subagent') }).strict(),
     z
         .object({

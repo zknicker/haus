@@ -136,7 +136,7 @@ export const agentActivitySchema = z.array(agentActivityEntrySchema);
 
 const agentLifecycleBaseSchema = z.object({
     agentId: idSchema,
-    /** The run's Chat; null only for a dream, heartbeat, or heartbeat-report run. */
+    /** The run's Chat; null only for a chatless run: a sub-agent wake or Task assignment. */
     chatId: idSchema.nullable(),
     emittedAt: timestampSchema,
     runId: idSchema,

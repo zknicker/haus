@@ -66,10 +66,10 @@ test('upgrades the preceding production schema without replaying migrations', as
         expect(presetConstraint.definition).toContain("'merchbase-fulfillment'");
         expect(presetConstraint.definition).toContain("'merchbase-atlas'");
         expect(presetConstraint.definition).toContain("'handmade'");
-        const [dreamConstraint] = await upgraded`SELECT pg_get_constraintdef(oid) AS definition
+        const [chatlessConstraint] = await upgraded`SELECT pg_get_constraintdef(oid) AS definition
             FROM pg_constraint WHERE conname = 'agent_inbox_chat'`;
-        expect(dreamConstraint.definition).toContain("'dream'");
-        expect(dreamConstraint.definition).toContain("'heartbeat_report'");
+        expect(chatlessConstraint.definition).toContain("'task_assignment'");
+        expect(chatlessConstraint.definition).not.toContain("'dream'");
         expect(await upgraded`SELECT display_name FROM users WHERE id = 'usr_upgrade'`).toEqual([
             { display_name: 'Before upgrade' },
         ]);

@@ -15,7 +15,6 @@ import { registerAgentClaimRoutes } from './claim-routes.ts';
 import { registerAgentCloudAgentRoutes } from './cloud-agent-routes.ts';
 import { registerAgentConnectionRoutes } from './connection-routes.ts';
 import { readAgentServerDirectory } from './directory.ts';
-import { registerAgentHeartbeatRoutes } from './heartbeat-routes.ts';
 import { registerAgentImageGenerationRoutes } from './image-generation-routes.ts';
 import { registerAgentInboxRoutes } from './inbox-routes.ts';
 import { registerAgentManualRoutes } from './manual.ts';
@@ -106,7 +105,6 @@ export function registerAgentApiRoutes(
         db: options.db,
         imageGeneration: options.imageGeneration,
     });
-    registerAgentHeartbeatRoutes(app, options);
     registerAgentInboxRoutes(app, options);
     registerAgentManualRoutes(app, options.db);
     registerAgentMcpRoutes(app, { db: options.db, runtime: options.mcpRuntime });

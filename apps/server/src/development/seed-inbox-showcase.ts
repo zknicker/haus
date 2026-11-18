@@ -150,7 +150,7 @@ async function seedTinyDmThread(tx: HausDatabase, context: InboxSeedContext, now
         messages: [
             {
                 authorUserId: context.userId,
-                content: 'Can you price out moving the nightly dream to the mini?',
+                content: 'Can you price out moving the nightly backup to the mini?',
                 createdAt: before(now, 2 * 60 * minute),
                 nonce: 'dev-inbox-showcase-dm-anchor',
             },
@@ -175,14 +175,14 @@ async function seedTinyDmThread(tx: HausDatabase, context: InboxSeedContext, now
             {
                 authorAgentId: context.tinyId,
                 content:
-                    'Priced it. The mini runs the dream in about **14 minutes** versus 9 on the laptop, and it frees the laptop overnight.',
+                    'Priced it. The mini runs the backup in about **14 minutes** versus 9 on the laptop, and it frees the laptop overnight.',
                 createdAt: before(now, 34 * minute),
                 nonce: 'dev-inbox-showcase-dm-tiny-1',
             },
             {
                 authorAgentId: context.tinyId,
                 content:
-                    'Two catches:\n\n1. The mini is two releases behind, so it needs `haus-computer upgrade` first.\n2. Its tailnet key expires Friday.\n\nWant me to do both tonight and move the dream after?',
+                    'Two catches:\n\n1. The mini is two releases behind, so it needs `haus-computer upgrade` first.\n2. Its tailnet key expires Friday.\n\nWant me to do both tonight and move the backup after?',
                 createdAt: before(now, 33 * minute),
                 nonce: 'dev-inbox-showcase-dm-tiny-2',
             },

@@ -58,7 +58,7 @@ export const remindersTable = pgTable(
         index('reminders_due_idx')
             .on(table.fireAt, table.id)
             .where(sql`${table.status} = 'scheduled'`),
-        // A dream's follow-ups: reminders an Agent created inside the run's window.
+        // Reads of one Agent's own reminders by creation time.
         index('reminders_owner_created_idx').on(
             table.serverId,
             table.ownerAgentId,

@@ -32,6 +32,7 @@ import { lockServerRow } from '../servers/server-lock.ts';
 import { publishCommittedAgentActivity } from './activity-events.ts';
 import { planBusyNotice } from './busy-notice.ts';
 import { admitQueuedAgentDrain, restartIdleAgentChain, settleAgentChain } from './chain-budget.ts';
+import { planChatlessRun } from './chatless-run.ts';
 import { advanceSeenForRun, markCursorSubsumedSeen } from './cursors.ts';
 import {
     configureFrame,
@@ -58,8 +59,6 @@ import {
 } from './drain-selection.ts';
 import type { EnqueueInput } from './enqueue-input.ts';
 import * as failureHold from './failure-hold.ts';
-import { planChatlessRun } from './heartbeat-run.ts';
-import { type YieldedHeartbeat, yieldHeartbeatToAddressed } from './heartbeat-yield.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
 import { interruptActiveRun, killedRun } from './interrupt-active-run.ts';
@@ -88,8 +87,6 @@ export interface DispatchPlan {
     frame: AgentCommand;
     serverId: string;
     suppressSend?: boolean;
-    /** A daytime heartbeat this plan stopped to make room for addressed work. */
-    yielded?: YieldedHeartbeat;
 }
 
 interface DispatchOptions {
@@ -788,26 +785,6 @@ export class AgentDelivery {
             return null;
         }
         await markCursorSubsumedSeen(tx, { agentId, serverId: state.serverId });
-        const yielded = await yieldHeartbeatToAddressed(tx, state);
-        if (yielded) {
-            const next = await this.planDispatch(tx, agentId);
-            const activities = [
-                ...(yielded.activity ? [yielded.activity] : []),
-                ...(next?.activities ?? []),
-            ];
-            return {
-                ...(next ?? {
-                    computerId: yielded.computerId,
-                    frame: { agentId, runId: yielded.runId, type: 'stop' as const },
-                    serverId: state.serverId,
-                    suppressSend: true,
-                }),
-                activities,
-                configuration: yielded.configuration ?? next?.configuration,
-                claimEvents: [...yielded.claimEvents, ...(next?.claimEvents ?? [])],
-                yielded,
-            };
-        }
         if (state.activeRunId && state.activeRunComputerId) {
             if (!state.acceptedAt || options?.resendActive) {
                 await store.markDispatched(tx, { agentId, runId: state.activeRunId });
@@ -889,10 +866,9 @@ export class AgentDelivery {
             return null;
         }
         const first = admitted.lead;
-        // A dream, heartbeat, report, sub-agent wake, or Task assignment is concrete work with
-        // no Chat: a chatless run. A heartbeat-family run resets the chain, so admission may
-        // also pick it as the lead at the ceiling. Each runs alone, except Task assignments,
-        // which coalesce: ten assignments wake the Agent once (ADR 0051).
+        // A sub-agent wake or Task assignment is concrete work with no Chat: a chatless run.
+        // A wake runs alone; Task assignments coalesce: ten assignments wake the Agent once
+        // (ADR 0051).
         if (isChatlessInboxSource(first.source)) {
             const rows = first.source === 'task_assignment' ? admitted.selected : [first];
             return await planChatlessRun(tx, { agentId, config, rows, state });
@@ -966,21 +942,6 @@ export class AgentDelivery {
             return;
         }
         publishRealtime(plan.claimEvents ?? []);
-        if (plan.yielded) {
-            publishAgentLifecycle({
-                agentId: plan.yielded.agentId,
-                chatId: null,
-                outcome: 'stopped',
-                phase: 'settled',
-                runId: plan.yielded.runId,
-                serverId: plan.serverId,
-            });
-            this.transport.send(plan.yielded.computerId, {
-                agentId: plan.yielded.agentId,
-                runId: plan.yielded.runId,
-                type: 'stop',
-            });
-        }
         for (const activity of plan.activities ?? []) {
             if (activity.category === 'starting_work' && activity.phase === 'started') {
                 continue;

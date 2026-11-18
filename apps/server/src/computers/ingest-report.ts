@@ -1,6 +1,5 @@
 import {
     agentDeliveryAckSchema,
-    agentDreamRecordSchema,
     agentEffectiveStateSchema,
     agentNoticeAckSchema,
     agentSkillFileResultSchema,
@@ -27,7 +26,6 @@ import { recordCoveApplyResult } from '../onboarding/create-cove.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentUpdatedTopic, computerUpdatedTopic } from '../realtime/topics.ts';
 import type { AgentThoughts } from '../server-agents/agent-thought.ts';
-import { recordAgentDream } from '../server-agents/record-agent-dream.ts';
 import { recordAgentEffectiveState } from '../server-agents/record-agent-effective-state.ts';
 import { ingestAgentIdleCompaction } from '../server-agents/record-agent-idle-compaction.ts';
 import { recordHausAgentState } from '../server-agents/record-haus-agent-state.ts';
@@ -148,15 +146,6 @@ export async function ingestReport(
     ) {
         return;
     }
-    const dreamRecord = agentDreamRecordSchema.safeParse(frame);
-    if (dreamRecord.success) {
-        // A dream record is observability only: a failed write must never close the socket.
-        await recordAgentDream(db, computerId, dreamRecord.data).catch((error: unknown) => {
-            console.error('[haus] dream record was not stored', error);
-        });
-        return;
-    }
-
     if (acceptComputerReply(connections, computerId, frame)) {
         return;
     }

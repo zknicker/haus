@@ -10,123 +10,6 @@ import { connectionChipKindSchema } from './connection-chips.ts';
 import { traceCarrierSchema } from './trace-context.ts';
 
 /**
- * One conversation that moved since the last heartbeat, as the digest shows it:
- * where, how much, who spoke, and whether the Agent was addressed. No bodies.
- */
-export const heartbeatDigestEntrySchema = z
-    .object({
-        addressed: z.boolean(),
-        afterSequence: z.number().int().nonnegative(),
-        chatId: idSchema,
-        kind: z.enum(['channel', 'dm', 'thread']),
-        lastSpeaker: z.string().max(256).nullable(),
-        messageCount: z.number().int().nonnegative(),
-        speakers: z.array(z.string().max(256)).max(50),
-        target: z.string().max(512),
-        title: z.string().max(512),
-    })
-    .strict();
-
-export type HeartbeatDigestEntry = z.infer<typeof heartbeatDigestEntrySchema>;
-
-/** Most digest entries one heartbeat carries; `more` counts the rest. */
-export const heartbeatDigestEntryLimit = 20;
-
-/** Most open leads, open reminders, and connection names one heartbeat carries inline. */
-export const heartbeatContextLimit = 10;
-
-/** One open lead on the team's list: what `haus lead list` shows for it. */
-export const heartbeatLeadSchema = z
-    .object({
-        agentHandle: z.string().min(1).max(128),
-        id: idSchema,
-        topic: z.string().min(1).max(200),
-    })
-    .strict();
-
-/** One of the Agent's scheduled reminders. */
-export const heartbeatReminderSchema = z
-    .object({ fireAt: timestampSchema, id: idSchema, title: z.string().min(1).max(512) })
-    .strict();
-
-/**
- * The heartbeat attention: a chatless, private turn for the Agent's daytime look
- * around or nightly dream. `id` is its inbox identity
- * (`dream:<agentId>:<localDate>` or `heartbeat:<agentId>:<localDate>:<slot>`);
- * `since` is the previous settled heartbeat's start, null for the first.
- * `connections`, `leads`, and `reminders` are what every run would otherwise
- * fetch first: the Agent's granted connection names and its open work, bounded.
- */
-export const agentHeartbeatAttentionSchema = z
-    .object({
-        connections: z.array(z.string().min(1).max(256)).max(heartbeatContextLimit).default([]),
-        createdAt: timestampSchema,
-        digest: z
-            .object({
-                entries: z.array(heartbeatDigestEntrySchema).max(heartbeatDigestEntryLimit),
-                more: z.number().int().nonnegative(),
-            })
-            .strict(),
-        id: idSchema,
-        kind: z.enum(['daytime', 'nightly']),
-        leads: z.array(heartbeatLeadSchema).max(heartbeatContextLimit).default([]),
-        reminders: z.array(heartbeatReminderSchema).max(heartbeatContextLimit).default([]),
-        since: timestampSchema.nullable(),
-    })
-    .strict();
-
-export type AgentHeartbeatAttention = z.infer<typeof agentHeartbeatAttentionSchema>;
-
-/**
- * A heartbeat's report, delivered to the main session as a chatless run
- * (`heartbeat-report:<heartbeatRunId>`).
- */
-export const agentHeartbeatReportAttentionSchema = z
-    .object({
-        createdAt: timestampSchema,
-        /** The kind of the heartbeat that filed the report; a nightly report waits for morning. */
-        heartbeatKind: z.enum(['daytime', 'nightly']),
-        heartbeatRunId: idSchema,
-        id: idSchema,
-        text: z.string().min(1).max(4000),
-    })
-    .strict();
-
-export type AgentHeartbeatReportAttention = z.infer<typeof agentHeartbeatReportAttentionSchema>;
-
-/** The daytime slot starts, local `HH:mm`, every three hours; the Computer derives its hours from these. */
-export const daytimeHeartbeatSlots = ['08:00', '11:00', '14:00', '17:00', '20:00'] as const;
-export const nightlyHeartbeatSlot = '03:00';
-
-/**
- * Computer→Server: a heartbeat slot is due for this Agent. `slot` is the local
- * `HH:mm` slot start (`03:00` for nightly). The Server queues at most one run per
- * Agent per `kind`, `localDate`, and `slot`, and applies its own skip and pause rules.
- */
-export const agentHeartbeatRequestSchema = z.discriminatedUnion('kind', [
-    z
-        .object({
-            agentId: idSchema,
-            kind: z.literal('daytime'),
-            localDate: z.iso.date(),
-            slot: z.enum(daytimeHeartbeatSlots),
-            type: z.literal('agent-heartbeat-request'),
-        })
-        .strict(),
-    z
-        .object({
-            agentId: idSchema,
-            kind: z.literal('nightly'),
-            localDate: z.iso.date(),
-            slot: z.literal(nightlyHeartbeatSlot),
-            type: z.literal('agent-heartbeat-request'),
-        })
-        .strict(),
-]);
-
-export type AgentHeartbeatRequest = z.infer<typeof agentHeartbeatRequestSchema>;
-
-/**
  * The sub-agent wake: a private turn for background work the Agent started on its runtime (a
  * Claude Code background sub-agent or shell) that finished or stopped after the turn that
  * started it ended. It has no Chat, sender, or body: the runtime's own report is already in the
@@ -143,8 +26,7 @@ export type AgentSubagentWakeAttention = z.infer<typeof agentSubagentWakeAttenti
  * kind, shells included (`tasks`), each listed Agent runs right now, past the turn that started
  * them. Sent for one Agent when either count changes, and for every Agent the Computer hosts on
  * each connect, so a restarted Computer clears counts its processes took with them. A count is
- * volatile runtime state; the Server stores only the latest. A report without `tasks` (an older
- * Computer) counts its sub-agents as its tasks.
+ * volatile runtime state; the Server stores only the latest sub-agent count and ignores `tasks`.
  */
 export const agentBackgroundWorkReportSchema = z
     .object({
@@ -185,7 +67,7 @@ export const agentStartCommandSchema = z
         agentConversationStyle: z.string().max(10_000).optional(),
         /** The Agent's pickup reaction; null means the Computer's default. */
         agentSignatureEmoji: z.string().min(1).max(64).nullable().default(null),
-        /** The run's Chat; null only for a chatless run: a heartbeat, report, wake, or assignment. */
+        /** The run's Chat; null only for a chatless run: a sub-agent wake or Task assignment. */
         chatId: idSchema.nullable(),
         /** Chips the Server's connections add to chat; the prompt teaches the ones an Agent must write. */
         connectionChips: z.array(connectionChipKindSchema).max(16).default([]),
@@ -193,10 +75,6 @@ export const agentStartCommandSchema = z
         drainItemIds: drainItemIdsSchema,
         /** This run carries the new Agent's one-time `#all` greeting (ADR 0028). */
         greets: z.literal(true).optional(),
-        /** Present only on a heartbeat run, which carries no inbox items. */
-        heartbeat: agentHeartbeatAttentionSchema.optional(),
-        /** Present only on a report run, which resumes the main session. */
-        heartbeatReport: agentHeartbeatReportAttentionSchema.optional(),
         homeTimezone: z.string().trim().min(1).max(128).optional(),
         inbox: z.array(agentInboxItemSchema).max(100).default([]),
         /** Bodies are projected only for typed system attention or crash replay. */
@@ -220,12 +98,9 @@ export const agentStartCommandSchema = z
     .strict()
     .refine(
         (frame) => {
-            const attentions = [
-                frame.heartbeat,
-                frame.heartbeatReport,
-                frame.subagentWake,
-                frame.taskAssignments,
-            ].filter((attention) => attention !== undefined).length;
+            const attentions = [frame.subagentWake, frame.taskAssignments].filter(
+                (attention) => attention !== undefined
+            ).length;
             if (attentions === 0) {
                 return frame.chatId !== null;
             }
@@ -240,7 +115,7 @@ export const agentStartCommandSchema = z
         },
         {
             message:
-                'Only a heartbeat, heartbeat-report, sub-agent wake, or Task assignment run is chatless, and it carries nothing but its attention.',
+                'Only a sub-agent wake or Task assignment run is chatless, and it carries nothing but its attention.',
             path: ['chatId'],
         }
     );

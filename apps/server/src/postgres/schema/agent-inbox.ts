@@ -171,8 +171,7 @@ export const agentInboxTable = pgTable(
         addressedReason: text('addressed_reason').$type<AddressedReason>(),
         agentId: text('agent_id').notNull(),
         /**
-         * Null exactly for the chatless attentions: `dream`, `heartbeat`, `heartbeat_report`,
-         * a `subagent` wake, and a `task_assignment`.
+         * Null exactly for the chatless attentions: a `subagent` wake and a `task_assignment`.
          */
         chatId: text('chat_id'),
         /** Why a `cloud_agent_work` row reached this Agent. */
@@ -259,7 +258,7 @@ export const agentInboxTable = pgTable(
         ),
         check(
             'agent_inbox_chat',
-            sql`(${table.chatId} is null) = (${table.source} in ('dream', 'heartbeat', 'heartbeat_report', 'subagent', 'task_assignment'))`
+            sql`(${table.chatId} is null) = (${table.source} in ('subagent', 'task_assignment'))`
         ),
         check(
             'agent_inbox_undelivered_shape',

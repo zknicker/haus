@@ -14,7 +14,7 @@ export const agentRunTriggersTable = pgTable(
     'agent_run_triggers',
     {
         agentId: text('agent_id').notNull(),
-        /** Null exactly for a chatless run (dream, heartbeat, heartbeat report, sub-agent wake, task assignment). */
+        /** Null exactly for a chatless run (sub-agent wake, task assignment). */
         chatId: text('chat_id'),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         runId: text('run_id').notNull(),
@@ -38,7 +38,7 @@ export const agentRunTriggersTable = pgTable(
         }).onDelete('cascade'),
         check(
             'agent_run_triggers_chat',
-            sql`(${table.chatId} is null) = (${table.source} in ('dream', 'heartbeat', 'heartbeat_report', 'subagent', 'task_assignment'))`
+            sql`(${table.chatId} is null) = (${table.source} in ('subagent', 'task_assignment'))`
         ),
     ]
 );

@@ -8,35 +8,29 @@ import {
     type AgentTurnTriggerRecord,
     agentTurnTrigger,
     agentTurnTriggerMessageRef,
-    agentTurnTriggerRunIds,
     previewHead,
 } from './agent-turn-trigger.ts';
-import { readAgentTurnOutcomes } from './agent-turn-trigger-outcomes.ts';
 
 /**
  * Names each record's trigger, quoting the waking messages in one read and
- * reading what heartbeat and dream runs came to and which Tasks woke a run in a
- * few more, none per run.
+ * reading which Tasks woke a run in one more, none per run.
  * Only visible triggers are quoted, so a Chat the reader cannot see never leaks
- * text; the caller must already have gated `visible` by Chat visibility. A
- * heartbeat's `postedChatId` is limited to Chats `userId` can see.
+ * text; the caller must already have gated `visible` by Chat visibility.
  */
 export async function resolveAgentTurnTriggers(
     db: HausDatabase,
-    input: { serverId: string; userId: string },
+    serverId: string,
     records: readonly (AgentTurnTriggerRecord | null)[]
 ): Promise<(AgentTurnTrigger | null)[]> {
-    const { serverId, userId } = input;
-    const [previews, outcomes, tasks] = await Promise.all([
+    const [previews, tasks] = await Promise.all([
         readTriggerPreviews(
             db,
             serverId,
             records.map(agentTurnTriggerMessageRef).filter((ref) => ref !== null)
         ),
-        readAgentTurnOutcomes(db, { ...agentTurnTriggerRunIds(records), serverId, userId }),
         readAgentTurnTaskTriggers(db, serverId, records),
     ]);
-    return records.map((record) => agentTurnTrigger(record, previews, outcomes, tasks));
+    return records.map((record) => agentTurnTrigger(record, previews, tasks));
 }
 
 async function readTriggerPreviews(

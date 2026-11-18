@@ -129,7 +129,7 @@ export const chatMessagesTable = pgTable(
         index('chat_messages_author_user_idx')
             .on(table.serverId, table.chatId, table.authorUserId, table.sequence)
             .where(sql`${table.authorUserId} is not null`),
-        // The heartbeat digest's "where did this Agent speak since the cutoff" read.
+        // Reads of one Agent's own Messages by time.
         index('chat_messages_author_agent_idx').on(
             table.serverId,
             table.authorAgentId,

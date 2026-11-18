@@ -1,5 +1,5 @@
-// The attentions with no Chat (dream, heartbeat, heartbeat report, sub-agent wake, Task
-// assignment) are a first-party contract; `@haus/api` owns the list.
+// The attentions with no Chat (sub-agent wake, Task assignment) are a first-party
+// contract; `@haus/api` owns the list.
 import { chatlessInboxSources } from '@haus/api';
 
 /**
@@ -21,9 +21,6 @@ export const concreteInboxSources = [
     'delivery_problem',
     'reminder',
     'claim_assignment',
-    'dream',
-    'heartbeat',
-    'heartbeat_report',
     'subagent',
     'task_assignment',
 ] as const;

@@ -18,7 +18,7 @@ import { ComputerSetupDeniedError, hashComputerSecret } from './service.ts';
 export interface ResolvedRunner {
     agentId: string;
     capabilities: string[];
-    /** The launch Chat; null for a dream run. */
+    /** The launch Chat; null for a chatless run. */
     chatId: string | null;
     computerId: string;
     runId: string;
