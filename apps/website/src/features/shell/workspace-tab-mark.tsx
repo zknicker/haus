@@ -3,7 +3,6 @@ import {
     File01Icon,
     Folder01Icon,
     Globe02Icon,
-    KanbanIcon,
     Task01Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
@@ -22,7 +21,7 @@ const identityMarkSize = 20;
 
 /**
  * A desktop tab's mark from its identity (ADR 0039): a channel box or an
- * avatar at identity size, a section, artifact, board, Task, Attachments, or new
+ * avatar at identity size, a section, artifact, Task, Attachments, or new
  * tab glyph, or a web page's favicon.
  */
 export function TabIdentityMark({ mark }: { mark: TabMark }) {
@@ -85,8 +84,6 @@ function glyphIcon(glyph: Extract<TabMark, { kind: 'glyph' }>['glyph']) {
     switch (glyph) {
         case 'artifact':
             return File01Icon;
-        case 'board':
-            return KanbanIcon;
         case 'files':
             return Folder01Icon;
         case 'newTab':

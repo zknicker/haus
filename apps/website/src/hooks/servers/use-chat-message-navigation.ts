@@ -26,8 +26,8 @@ interface NavigationSnapshot {
 }
 
 /**
- * The Chat's own transcript. A window holds many copies of a message (a Thread
- * page shows its root, hidden tabs keep their transcripts), so a reveal looks
+ * The Chat's own transcript. A window holds many copies of a message (a Task
+ * preview quotes it, hidden tabs keep their transcripts), so a reveal looks
  * only inside this one.
  */
 type Transcript = React.RefObject<ParentNode | null>;
@@ -121,13 +121,13 @@ export function revealLoadedMessage(
         return false;
     }
 
-    element.classList.add('chat-thread-flash');
+    element.classList.add('chat-message-flash');
     const item = element.closest<HTMLElement>('[data-slot="message-scroller-item"]');
     if (item?.dataset.messageId && scrollToMessage) {
         scrollToMessage(item.dataset.messageId);
     }
     element.scrollIntoView({ behavior: 'instant', block: 'center' });
-    window.setTimeout(() => element.classList.remove('chat-thread-flash'), 1500);
+    window.setTimeout(() => element.classList.remove('chat-message-flash'), 1500);
     return true;
 }
 

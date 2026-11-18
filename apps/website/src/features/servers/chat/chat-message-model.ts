@@ -1,20 +1,10 @@
-import type { Agent, ChatMessage, ThreadSummary } from '@haus/api';
+import type { Agent, ChatMessage } from '@haus/api';
 import type { ChatMessageLayout } from '../../../hooks/servers/chat-message-layout.ts';
 import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx';
 import type { TranscriptActor } from '../../chats/chat-transcript-model.ts';
 import type { TranscriptMessageRow } from '../../chats/transcript-contract.ts';
 import { messageCloudAgentWork } from '../../cloud-agents/message-cloud-agent-work.ts';
 import { messageImageGenerations } from '../../image-generation/message-image-generations.ts';
-
-export function mergeClaimAnchor<Message extends { id: string; sequence: number }>(
-    messages: readonly Message[] | undefined,
-    anchor: Message | undefined
-): readonly Message[] | undefined {
-    if (!(messages && anchor) || messages.some((message) => message.id === anchor.id)) {
-        return messages;
-    }
-    return [...messages, anchor].sort((left, right) => left.sequence - right.sequence);
-}
 
 export type ProjectedChatMessageRow = TranscriptMessageRow;
 
@@ -31,20 +21,14 @@ export function chatMessageDirectories(agents: readonly Agent[]): ChatMessageDir
 
 export function projectChatMessages(
     messages: readonly ChatMessage[],
-    threads: readonly ThreadSummary[],
     agents: readonly Agent[] = []
 ): ProjectedChatMessageRow[] {
-    const threadsByAnchor = new Map(threads.map((thread) => [thread.anchorMessageId, thread]));
     const directories = chatMessageDirectories(agents);
-
-    return messages.map((message) =>
-        projectChatMessage(message, threadsByAnchor.get(message.id) ?? null, directories)
-    );
+    return messages.map((message) => projectChatMessage(message, directories));
 }
 
 export function projectChatMessage(
     message: ChatMessage,
-    thread: ThreadSummary | null,
     directories: ChatMessageDirectories
 ): ProjectedChatMessageRow {
     const actor = messageActor(message);
@@ -79,7 +63,6 @@ export function projectChatMessage(
         },
         responseId: agentId ? message.id : undefined,
         runId: message.author.kind === 'agent' ? message.runId : null,
-        thread,
     };
 }
 
@@ -95,7 +78,7 @@ function messageClaim(
         claimed_at: claim.claimedAt,
         created_at: claim.createdAt,
         // Tier and liveness are what the transcript's marks read: whether this
-        // claim has a Thread surface at all, and whether anyone is on it now.
+        // claim shows at all, and whether anyone is on it now.
         live: claim.live,
         number: claim.number,
         origin: claim.origin,
@@ -155,7 +138,6 @@ export function projectChatMessageLayout(
         },
         responseId: agentId ? layout.id : undefined,
         runId: layout.author.kind === 'agent' ? layout.runId : null,
-        thread: null,
     };
 }
 

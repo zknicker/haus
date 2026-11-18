@@ -1,4 +1,4 @@
-import type { ChatMessage, ThreadSummary } from '@haus/api';
+import type { ChatMessage } from '@haus/api';
 import {
     type InfiniteData,
     InfiniteQueryObserver,
@@ -125,10 +125,16 @@ export function page(
         nextAfterSequence = null,
         nextBeforeSequence = null,
         scannedThroughSequence = messages.at(-1)?.sequence ?? 0,
-        threads = [],
-    }: Partial<Omit<ChatMessagePage, 'messages'>> & { threads?: ThreadSummary[] } = {}
+        tasks = [],
+    }: Partial<Omit<ChatMessagePage, 'messages'>> = {}
 ): ChatMessagePage {
-    return { messages, nextAfterSequence, nextBeforeSequence, scannedThroughSequence, threads };
+    return {
+        messages,
+        nextAfterSequence,
+        nextBeforeSequence,
+        scannedThroughSequence,
+        tasks,
+    };
 }
 
 export function message(

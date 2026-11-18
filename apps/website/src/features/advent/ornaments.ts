@@ -71,14 +71,14 @@ export const factOrnament: Readonly<Record<AdventFact, Ornament>> = {
     'files-shared': 'present-green',
     'night-owl': 'bauble-purple', // midnight
     'closest-dm': 'mitten', // a pair
-    'longest-thread': 'candy-cane', // the long one
+    'longest-conversation': 'candy-cane', // the long one
     'tokens-used': 'lantern', // burning through the oil
     'quickest-reply': 'peppermint', // a quick spin
     'busiest-day': 'pudding', // the feast day
     'tasks-closed': 'present-red', // wrapped up
     'new-channels': 'tree', // something planted
     'quiet-month': 'snowflake', // a quiet snowfall
-    'threads-resolved': 'wreath', // a loop closed
+    'conversations-started': 'wreath', // a loop begun
     'favorite-reaction': 'snowman', // a face
     'hardest-worker': 'bauble', // the centrepiece
     'in-demand': 'bauble-striped', // everyone's eye on it

@@ -9,21 +9,15 @@ import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.t
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useColorThemeDefinition } from '../../hooks/shell/use-color-theme.ts';
-import { useChatSearchResultRoute } from '../../hooks/threads/use-chat-search-result-route.ts';
-import { threadPageRoute } from '../../hooks/threads/use-thread-opener.ts';
 import type { ServerSummary } from '../../lib/haus-server.tsx';
 import { setShowClaimsInChat, useShowClaimsInChat } from '../claims/show-claims-in-chat.ts';
-import { serverSearchRoute } from '../servers/server-routes.ts';
-import { useShowOpenThreads } from '../threads/show-open-threads.ts';
+import { serverChatMessageRoute, serverSearchRoute } from '../servers/server-routes.ts';
 import { type AgentAvatarLookup, CommandMenuShell } from './command-menu.tsx';
 import { CommandMenuMessageResults } from './command-menu-messages.tsx';
-import { CommandMenuThreadResults } from './command-menu-threads.tsx';
 
 export function CommandMenu({ server }: { server: ServerSummary }) {
     const { pathname } = useLocation();
     const navigateRoute = useNavigate();
-    const resultRoute = useChatSearchResultRoute(server.slug);
-    const showOpenThreads = useShowOpenThreads();
     const { devMode, setDevMode } = useDevMode();
     const { forcedTheme, setTheme } = useTheme();
     const modeLocked = forcedTheme !== null;
@@ -79,22 +73,10 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
 
     return (
         <CommandMenuShell commandGroups={commandGroups} lookupAgentAvatarUrl={lookupAgentAvatarUrl}>
-            {showOpenThreads ? (
-                <CommandMenuThreadResults
-                    onOpen={(thread) =>
-                        navigate(
-                            threadPageRoute(
-                                server.slug,
-                                thread.parentChatId,
-                                thread.anchorMessageId
-                            )
-                        )
-                    }
-                    serverId={server.id}
-                />
-            ) : null}
             <CommandMenuMessageResults
-                onOpenResult={(result) => navigate(resultRoute(result))}
+                onOpenResult={(result) =>
+                    navigate(serverChatMessageRoute(server.slug, result.chatId, result.id))
+                }
                 onSeeAll={(query) => navigate(serverSearchRoute(server.slug, query))}
                 serverId={server.id}
             />

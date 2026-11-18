@@ -1,5 +1,10 @@
 import { Navigate, useLocation, useParams } from 'react-router-dom';
-import { agentProfileRoute, settingsHumanRoute } from '../../features/servers/server-routes.ts';
+import { redirectRetiredRoute } from '../../features/servers/retired-routes.ts';
+import {
+    agentProfileRoute,
+    serverRoute,
+    settingsHumanRoute,
+} from '../../features/servers/server-routes.ts';
 
 /** Computers moved into Settings; keep old deep links (and their ?computer=…) working. */
 export function LegacyComputersRedirect() {
@@ -31,6 +36,20 @@ export function LegacyMemberRedirect({ kind }: { kind: 'agents' | 'humans' }) {
 
 function slugFrom(pathname: string) {
     return pathname.split('/')[2] ?? '';
+}
+
+/**
+ * A retired conversation page (`redirectRetiredRoute`), a persisted desktop
+ * tab included, lands on its Chat at the Message; a malformed one on the Server.
+ */
+export function RetiredPageRedirect() {
+    const location = useLocation();
+    return (
+        <Navigate
+            replace
+            to={redirectRetiredRoute(location) ?? serverRoute(slugFrom(location.pathname))}
+        />
+    );
 }
 
 /** An Agent's bare address lands on its Home section. */

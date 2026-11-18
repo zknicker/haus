@@ -5,9 +5,7 @@ import { HistoryIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
-import { currentOpenGesture } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useAgentCloudAutomations } from '../../../hooks/members/use-agent-cloud-automations.ts';
-import { useThreadOpener } from '../../../hooks/threads/use-thread-opener.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { CloudAgentKeycapFace } from '../../cloud-agents/cloud-agent-provider-mark.tsx';
 import { useOpenCloudAgentWork } from '../../cloud-agents/use-open-cloud-agent-work.ts';
@@ -60,7 +58,7 @@ export function AgentCloudAutomations({ agent, server }: { agent: Agent; server:
                     query.data?.map((row, index) => (
                         <React.Fragment key={row.work.id}>
                             {index > 0 ? <Separator /> : null}
-                            <CloudAutomationRow now={now} row={row} serverSlug={server.slug} />
+                            <CloudAutomationRow now={now} row={row} />
                         </React.Fragment>
                     ))
                 )}
@@ -74,26 +72,10 @@ export function AgentCloudAutomations({ agent, server }: { agent: Agent; server:
     );
 }
 
-function CloudAutomationRow({
-    now,
-    row,
-    serverSlug,
-}: {
-    now: number;
-    row: CloudAgentAutomation;
-    serverSlug: string;
-}) {
-    const openThread = useThreadOpener(serverSlug);
+function CloudAutomationRow({ now, row }: { now: number; row: CloudAgentAutomation }) {
     const openWork = useOpenCloudAgentWork();
     const presentation = cloudAutomationPresentation(row, now);
-    const open = () => {
-        // History must open the actual Thread: the active-work peek excludes settled work.
-        if (row.location.kind === 'work-thread') {
-            openThread(row.conversationChatId, row.location.anchorMessageId, currentOpenGesture());
-        } else {
-            openWork({ id: row.work.id, location: row.location });
-        }
-    };
+    const open = () => openWork({ id: row.work.id, location: row.location });
     return (
         <ItemCard<'button'>
             className="relative w-full cursor-(--cursor-interactive) overflow-hidden text-left focus-visible:ring-2 focus-visible:ring-focus"

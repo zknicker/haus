@@ -42,10 +42,6 @@ export function agentDmDraftKey(serverId: string, agentId: string) {
     return `server:${serverId}:agent-dm:${agentId}`;
 }
 
-export function threadDraftKey(serverId: string, parentChatId: string, anchorMessageId: string) {
-    return `server:${serverId}:thread:${parentChatId}:${anchorMessageId}`;
-}
-
 export function readChatDraftState(key: string): ChatDraftState {
     return drafts.get(key) ?? emptyState;
 }

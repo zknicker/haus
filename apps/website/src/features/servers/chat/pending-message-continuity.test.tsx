@@ -72,7 +72,7 @@ function pendingRow() {
 }
 
 function durableRow() {
-    return projectChatMessage(durableMessage, null, chatMessageDirectories([]));
+    return projectChatMessage(durableMessage, chatMessageDirectories([]));
 }
 
 const durableMessage: ChatMessage = {
@@ -135,8 +135,6 @@ function renderTranscript(rows: TranscriptRow[]) {
         defaultOpenWorkGroups: false,
         flashMessageId: null,
         hiddenCount: 0,
-        onOpenThread: () => undefined,
-        onUnfollowThread: () => undefined,
         repliedRunIds: new Set(),
         // The host always resolves the viewer's own profile, for the pending
         // row and the durable one alike, from the same actor identity.
@@ -149,7 +147,6 @@ function renderTranscript(rows: TranscriptRow[]) {
             kind: 'participant',
             name: 'Zach',
         }),
-        threadActionsEnabled: false,
         viewerUserId: 'usr_zach',
     };
 

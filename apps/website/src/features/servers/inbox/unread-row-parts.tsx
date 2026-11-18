@@ -43,8 +43,7 @@ export function UnreadRowTime({ value }: { value: null | string }) {
 
 /**
  * A Chat's mark on an Unread row — its Channel box, or its DM's face, or its
- * initials once the Agent is gone. A Thread row wears its parent's, since the
- * parent is the place it names.
+ * initials once the Agent is gone.
  */
 export function UnreadChatMark({
     agent,

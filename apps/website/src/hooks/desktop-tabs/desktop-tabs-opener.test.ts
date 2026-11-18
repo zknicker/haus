@@ -90,10 +90,10 @@ describe("Chrome's opener rule for modified clicks", () => {
         });
     });
 
-    test('a modified click on a Thread opens beside its source, not on the right', () => {
-        const state = run(start(), tab(app('threads/c1/m1')));
+    test('a modified click on a Task opens beside its source, not on the right', () => {
+        const state = run(start(), tab(app('tasks/SEC-1')));
         expect(describeTabs(state)).toMatchObject({
-            primary: 'inbox* threads/c1/m1',
+            primary: 'inbox* tasks/SEC-1',
             secondary: '-',
         });
     });

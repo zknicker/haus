@@ -13,13 +13,12 @@ import {
 const app = (path: string) => ({ kind: 'app', path }) as const;
 
 test('page keys ignore drill-down but separate pages', () => {
-    expect(tabPageKey(app('/s/acme/chats/c1?thread=m1'))).toBe('chats/c1');
+    expect(tabPageKey(app('/s/acme/chats/c1?message=m1'))).toBe('chats/c1');
     expect(tabPageKey(app('/s/acme/agents/a1/setup'))).toBe('agents/a1');
     expect(tabPageKey(app('/s/acme/settings/members'))).toBe('settings');
     expect(tabPageKey(app('/s/acme/inbox'))).toBe('inbox');
     expect(tabPageKey(app('/s/acme/tasks'))).toBe('tasks');
-    expect(tabPageKey(app('/s/acme/tasks/SEC'))).toBe('tasks/SEC');
-    expect(tabPageKey(app('/s/acme/tasks/SEC/12'))).toBe('tasks/SEC/12');
+    expect(tabPageKey(app('/s/acme/tasks/SEC-12'))).toBe('tasks/SEC-12');
 });
 
 test('a page push to another page is Open; drill-down and redirects stay in the tab', () => {

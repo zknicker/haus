@@ -15,7 +15,7 @@ const page = {
     nextAfterSequence: null,
     nextBeforeSequence: null as number | null,
     scannedThroughSequence: 1,
-    threads: [],
+    tasks: [],
 };
 
 test('preload shares an in-flight read and preserves paginated history on a warm return', async () => {
@@ -68,10 +68,8 @@ test('a message during an inactive preload lands by one tail read after it', asy
         await started.promise;
         targetedReadCoalescer(queryClient, client).noteMessageCreated({
             chatId,
-            parentChatId: null,
             sequence: 2,
             serverId,
-            threadAnchorMessageId: null,
         });
         oldResponse.resolve(response({ ...page, nextBeforeSequence: 10 }));
         await preload;

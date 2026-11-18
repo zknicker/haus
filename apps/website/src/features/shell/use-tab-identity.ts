@@ -1,13 +1,10 @@
 import { useParams } from 'react-router-dom';
 import { useArtifact } from '../../hooks/artifacts/use-artifact.ts';
-import { useBoard } from '../../hooks/boards/use-board.ts';
 import { useBrowserViews } from '../../hooks/browser/browser-views-context.ts';
 import type { TabLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
-import { useThreadAnchor } from '../../hooks/threads/use-thread-anchor.ts';
-import { messagePreviewLine } from '../chats/message-preview-line.ts';
 import {
     parseTabPage,
     resolveTabIdentity,
@@ -19,13 +16,11 @@ import {
 /**
  * A tab's live identity from its current location. Reads the synced chat and
  * Agent lists every sidebar row already holds, so a tab costs no query of its
- * own; a Thread tab adds its anchor (see `useThreadTabExcerpt`), a shared
- * artifact tab its record's title (`useSharedArtifactTabTitle`), and a board
- * tab its name (`useBoardTabName`).
+ * own; a shared artifact tab adds its record's title (`useSharedArtifactTabTitle`).
  */
 export function useTabIdentity(
     location: TabLocation,
-    extras: Partial<Pick<TabIdentityRecords, 'artifactTitle' | 'boardName' | 'threadExcerpt'>> = {}
+    extras: Partial<Pick<TabIdentityRecords, 'artifactTitle'>> = {}
 ): TabIdentity {
     const serverId = useTabServerId();
     const chats = useChats(serverId);
@@ -36,18 +31,9 @@ export function useTabIdentity(
     return resolveTabIdentity(page, {
         agents: agents.data ?? null,
         artifactTitle: extras.artifactTitle ?? null,
-        boardName: extras.boardName ?? null,
         browserTab,
         chats: chats.data ?? null,
-        threadExcerpt: extras.threadExcerpt ?? null,
     });
-}
-
-/** A Thread page's root message as one line; mount only for Thread pages (it reads the chat's transcript). */
-export function useThreadTabExcerpt(page: Extract<TabPage, { kind: 'thread' }>): string | null {
-    const serverId = useTabServerId() ?? '';
-    const thread = useThreadAnchor(serverId, page.chatId, page.anchorMessageId);
-    return thread.anchor ? messagePreviewLine(thread.anchor.content) || 'Thread' : null;
 }
 
 /** A shared artifact page's title, from the record its page already reads; mount only for those tabs. */
@@ -57,11 +43,6 @@ export function useSharedArtifactTabTitle(
     const serverId = useTabServerId() ?? '';
     const artifact = useArtifact(serverId, shared.artifactId, shared.revisionId ?? undefined);
     return artifact.data?.artifact.title ?? null;
-}
-
-/** A board page's name, from the list its page already reads; mount only for those tabs. */
-export function useBoardTabName(page: Extract<TabPage, { kind: 'board' }>): string | null {
-    return useBoard(useTabServerId(), page.boardKey)?.name ?? null;
 }
 
 function useTabServerId(): string | undefined {

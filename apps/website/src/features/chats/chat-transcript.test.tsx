@@ -1567,15 +1567,6 @@ test('ChatTranscript shows only the cause line when a caused turn is also a repl
     assert.match(markup, /data-automation-keycap="trigger"/);
 });
 
-test('ChatTranscript drops the cause line where a context card already states it', () => {
-    const markup = renderTranscript([causedRow()], {
-        ...causedOverrides(),
-        causeLineHidden: true,
-    });
-
-    assert.doesNotMatch(markup, /data-automation-keycap|message-cause-line/);
-});
-
 function replyToZach(): NonNullable<TranscriptMessageRow['message']['reply']> {
     const profile = { avatarUrl: null, deleted: false, description: null, displayName: 'Zach' };
     const author = { kind: 'human' as const, profile, userId: 'usr_zach' };
@@ -1650,12 +1641,9 @@ function renderTranscript(rows: ChatRow[], overrides: Partial<TranscriptRenderCo
         defaultOpenWorkGroups: false,
         flashMessageId: null,
         hiddenCount: 0,
-        onOpenThread: () => undefined,
         onToggleReaction: () => undefined,
         openAgentProfile: () => undefined,
-        onUnfollowThread: () => undefined,
         repliedRunIds: new Set(),
-        threadActionsEnabled: false,
         ...overrides,
     };
     return renderWithTrpc(

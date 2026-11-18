@@ -47,7 +47,6 @@ export function projectPendingChatMessageRows(
                 // it, so the turn header's time never changes on confirmation.
                 timestamp: notBefore,
             },
-            thread: null,
         } satisfies ProjectedChatMessageRow;
     });
 }

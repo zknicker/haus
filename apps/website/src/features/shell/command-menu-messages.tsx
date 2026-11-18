@@ -9,7 +9,7 @@ import { useChatSearch } from '../../hooks/servers/use-chat-search.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { formatRelativeTime, truncate } from '../../lib/format.ts';
 import { messageAuthor } from '../servers/chat/chat-search.tsx';
-import { searchResultChatId, searchResultLabel } from '../servers/chat/chat-search-filters.tsx';
+import { searchResultLabel } from '../servers/chat/chat-search-filters.tsx';
 import { useCommandMenu } from './command-menu-provider.tsx';
 
 /** The palette previews the strongest matches; the Search page owns the rest. */
@@ -43,46 +43,35 @@ export function CommandMenuMessageResults({
         return null;
     }
 
-    const renderResult = (result: ChatSearchResult) => (
-        <MessageResult
-            chat={chatById.get(searchResultChatId(result))}
-            key={result.id}
-            onOpen={() => {
-                onOpenResult(result);
-                close();
-            }}
-            query={settled}
-            result={result}
-        />
-    );
-    const threadMatches = matches.filter((result) => result.thread);
-    const chatMatches = matches.filter((result) => !result.thread);
-
     return (
-        <>
-            {threadMatches.length > 0 ? (
-                <Command.Group heading="In threads">
-                    {threadMatches.map(renderResult)}
-                </Command.Group>
-            ) : null}
-            <Command.Group heading={chatMatches.length > 0 ? 'Messages' : undefined}>
-                {chatMatches.map(renderResult)}
-                <Command.Item
-                    id="message:see-all"
-                    {...opensPlace}
-                    onAction={() => {
-                        onSeeAll(settled);
+        <Command.Group heading="Messages">
+            {matches.map((result) => (
+                <MessageResult
+                    chat={chatById.get(result.chatId)}
+                    key={result.id}
+                    onOpen={() => {
+                        onOpenResult(result);
                         close();
                     }}
-                    textValue={`${settled} see all results`}
-                >
-                    <Icon aria-hidden="true" icon={ArrowRight01Icon} />
-                    <span className="flex-1 truncate font-medium">
-                        See all results for “{truncate(settled, 40)}”
-                    </span>
-                </Command.Item>
-            </Command.Group>
-        </>
+                    query={settled}
+                    result={result}
+                />
+            ))}
+            <Command.Item
+                id="message:see-all"
+                {...opensPlace}
+                onAction={() => {
+                    onSeeAll(settled);
+                    close();
+                }}
+                textValue={`${settled} see all results`}
+            >
+                <Icon aria-hidden="true" icon={ArrowRight01Icon} />
+                <span className="flex-1 truncate font-medium">
+                    See all results for “{truncate(settled, 40)}”
+                </span>
+            </Command.Item>
+        </Command.Group>
     );
 }
 
@@ -98,7 +87,7 @@ function MessageResult({
     result: ChatSearchResult;
 }) {
     const author = messageAuthor(result);
-    const label = searchResultLabel(result, chat);
+    const label = searchResultLabel(chat);
 
     return (
         <Command.Item

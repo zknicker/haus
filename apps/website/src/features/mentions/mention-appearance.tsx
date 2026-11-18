@@ -1,4 +1,3 @@
-import { parseChatThreadReferenceTarget } from '@haus/api';
 import type { IconSvgElement } from '@hugeicons/react';
 import {
     ChromeIcon,
@@ -14,11 +13,7 @@ import {
     Task01Icon,
     UserIcon,
 } from '@hugeicons-pro/core-solid-rounded';
-import {
-    GitPullRequestIcon,
-    Globe02Icon,
-    MessageMultiple02Icon,
-} from '@hugeicons-pro/core-stroke-rounded';
+import { GitPullRequestIcon, Globe02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
@@ -44,7 +39,6 @@ const mentionIconKeys = [
     'pull-request',
     'skill',
     'task',
-    'thread',
     'unknown',
     'user',
     'website',
@@ -99,7 +93,6 @@ const mentionIconMap = {
     'pull-request': GitPullRequestIcon,
     skill: AiSparklesIcon,
     task: Task01Icon,
-    thread: MessageMultiple02Icon,
     unknown: MagicWand01Icon,
     user: UserIcon,
     website: Globe02Icon,
@@ -178,12 +171,6 @@ function getMentionAppearanceOverride(input: MentionAppearanceInput) {
     }
 
     if (input.kind === 'chat') {
-        if (parseChatThreadReferenceTarget(input.id)) {
-            return {
-                icon: 'thread',
-                channelAppearance: undefined,
-            } satisfies MentionAppearanceOverride;
-        }
         return {
             channelAppearance: {
                 color: readString(input.metadata?.chatColor),

@@ -66,7 +66,7 @@ export function useChatMessages(
 }
 
 /**
- * Every transcript list (a chat, an inline-reply chain, a Thread) reads its
+ * Every transcript list (a chat, an inline-reply chain, a Task) reads its
  * pages through the coalescer, which seeds each page's `chat.message`
  * entities before the ids land and honours the read's abort signal.
  */

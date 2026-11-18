@@ -1,6 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
 import type { ChatMessage, ChatSendInput } from '@haus/api';
-import { threadInlineReplyMessages } from '../thread/thread-inline-replies.ts';
 import {
     chatDraftKey,
     readChatDraftState,
@@ -36,14 +35,6 @@ test('selecting a reply keeps the direct parent and existing chain root', () => 
     expect(target.root).toBe(root);
 });
 
-test('claim inspection keeps chain context while rendering its anchor once', () => {
-    const root = message('msg_root', 1);
-    const claim = message('msg_claim', 2);
-    const reply = message('msg_reply', 3);
-
-    expect(threadInlineReplyMessages([root, claim, reply], claim.id)).toEqual([root, reply]);
-});
-
 test('inline reply sends only the selected parent id and clears after success', async () => {
     updateChatDraftContent(draftKey, 'A response');
     const target = toChatInlineReplyTarget(message('msg_parent', 2));
@@ -67,7 +58,6 @@ test('inline reply sends only the selected parent id and clears after success', 
                 sent.push(input);
                 return {
                     message: { chatId: 'cht_inline', id: 'msg_reply' },
-                    threadChatId: null,
                 };
             },
         } as never,

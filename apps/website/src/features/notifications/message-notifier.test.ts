@@ -43,15 +43,10 @@ beforeEach(() => {
 function messageEvent(
     sequence: number,
     chatId: string,
-    parentChatId: string | null = null,
     facts: Partial<
         Pick<
             MessageCreatedEvent,
-            | 'authorUserId'
-            | 'conversationKind'
-            | 'mentionedUserIds'
-            | 'replyToAuthorUserId'
-            | 'threadAnchorAuthorUserId'
+            'authorUserId' | 'conversationKind' | 'mentionedUserIds' | 'replyToAuthorUserId'
         >
     > = {}
 ): MessageCreatedEvent {
@@ -61,16 +56,14 @@ function messageEvent(
         conversationKind: facts.conversationKind ?? 'channel',
         mentionedUserIds: facts.mentionedUserIds ?? [],
         messageId: `message_${sequence}`,
-        parentChatId,
         replyToAuthorUserId: facts.replyToAuthorUserId ?? null,
         sequence,
         serverId: 'server_one',
-        threadAnchorAuthorUserId: facts.threadAnchorAuthorUserId ?? null,
-        threadAnchorMessageId: parentChatId ? 'message_anchor' : null,
+        taskId: null,
     };
 }
 
-const dm = (sequence: number) => messageEvent(sequence, 'cht_dm', null, { conversationKind: 'dm' });
+const dm = (sequence: number) => messageEvent(sequence, 'cht_dm', { conversationKind: 'dm' });
 
 function notifier() {
     return createMessageNotifier({
@@ -98,27 +91,26 @@ test('every DM message notifies, tagged by its Chat so newer ones replace older'
     expect(opened).toEqual(['/open/dm']);
 });
 
-test('a Channel message notifies only for a mention, a reply, or a Thread on my message', async () => {
+test('a Channel message notifies only for a mention or a reply to my message', async () => {
     const subject = notifier();
     for (const event of [
         messageEvent(1, 'cht_product'),
-        messageEvent(2, 'cht_product', null, { mentionedUserIds: ['usr_bo'] }),
-        messageEvent(3, 'cht_product', null, { mentionedUserIds: ['usr_ada'] }),
-        messageEvent(4, 'cht_product', null, { replyToAuthorUserId: 'usr_ada' }),
-        messageEvent(5, 'cht_thread', 'cht_product', { threadAnchorAuthorUserId: 'usr_ada' }),
+        messageEvent(2, 'cht_product', { mentionedUserIds: ['usr_bo'] }),
+        messageEvent(3, 'cht_product', { mentionedUserIds: ['usr_ada'] }),
+        messageEvent(4, 'cht_product', { replyToAuthorUserId: 'usr_ada' }),
     ]) {
         await subject.messageCreated(event);
     }
-    expect(described).toEqual(['message_3', 'message_4', 'message_5']);
+    expect(described).toEqual(['message_3', 'message_4']);
 });
 
 test('my own messages never notify', async () => {
     const subject = notifier();
     await subject.messageCreated(
-        messageEvent(1, 'cht_dm', null, { authorUserId: 'usr_ada', conversationKind: 'dm' })
+        messageEvent(1, 'cht_dm', { authorUserId: 'usr_ada', conversationKind: 'dm' })
     );
     await subject.messageCreated(
-        messageEvent(2, 'cht_product', null, {
+        messageEvent(2, 'cht_product', {
             authorUserId: 'usr_ada',
             mentionedUserIds: ['usr_ada'],
         })

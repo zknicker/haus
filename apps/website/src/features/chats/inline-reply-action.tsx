@@ -5,8 +5,8 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { ActionTooltip } from './chat-action-tooltip.tsx';
 import type { TranscriptItem } from './chat-transcript-model.ts';
 import { useTranscriptRenderContextOptional } from './chat-transcript-render-context.tsx';
-import { isThreadAnchorRow } from './thread/thread-anchor.ts';
-import { ThreadMessageSurface } from './thread/thread-message-surface.tsx';
+import { isDurableMessageRow } from './message/durable-message-row.ts';
+import { MessageSurface } from './message/message-surface.tsx';
 import type { TranscriptMessageRow } from './transcript-contract.ts';
 
 interface InlineReplyHoverState {
@@ -39,7 +39,7 @@ export function getInlineReplyTargetRow(
     fallback: TranscriptMessageRow | null
 ): TranscriptMessageRow | null {
     const hoveredRow = getMessageRow(items, hoveredMessageId);
-    return hoveredRow && isThreadAnchorRow(hoveredRow) ? hoveredRow : fallback;
+    return hoveredRow && isDurableMessageRow(hoveredRow) ? hoveredRow : fallback;
 }
 
 export function InlineReplyHoverProvider({
@@ -63,12 +63,12 @@ export function InlineReplyMessageSurface({
     const hover = React.useContext(InlineReplyHoverContext);
 
     return (
-        <ThreadMessageSurface
+        <MessageSurface
             onMessageHover={hover ? () => hover.setHoveredMessageId(row.message.id) : undefined}
             row={row}
         >
             {children}
-        </ThreadMessageSurface>
+        </MessageSurface>
     );
 }
 
@@ -77,7 +77,7 @@ export function InlineReplyAction({ className }: { className?: string }) {
     const context = useTranscriptRenderContextOptional();
     const row = React.useContext(InlineReplyHoverContext)?.row;
 
-    if (!(context?.onSelectInlineReply && row && isThreadAnchorRow(row))) {
+    if (!(context?.onSelectInlineReply && row && isDurableMessageRow(row))) {
         return null;
     }
 

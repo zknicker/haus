@@ -26,10 +26,7 @@ function baseContext(
         defaultOpenWorkGroups: false,
         flashMessageId: null,
         hiddenCount: 0,
-        onOpenThread: () => undefined,
-        onUnfollowThread: () => undefined,
         repliedRunIds: new Set(),
-        threadActionsEnabled: false,
         ...overrides,
     };
 }

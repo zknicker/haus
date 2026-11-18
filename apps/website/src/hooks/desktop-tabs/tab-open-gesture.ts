@@ -42,7 +42,7 @@ export function currentOpenGesture(): OpenGesture {
 
 /**
  * The one opt-in for middle-click on a press target that is not a link (a reference chip,
- * an Inbox row, an avatar, a Thread or artifact button): the desktop window relays a middle
+ * an Inbox row, an avatar, a Task or artifact button): the desktop window relays a middle
  * click on it as a click, and that click's handler sees the background-tab gesture. Command-
  * and Shift-clicks need nothing: they reach the handler as ordinary clicks. Only elements
  * whose activation opens a page carry it, so a middle click never runs any other action.

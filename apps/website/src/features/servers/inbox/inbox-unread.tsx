@@ -1,8 +1,9 @@
-import { type BoardColumn, type Chat, parseTaskKey, type TaskInboxItem } from '@haus/api';
+import type { Chat } from '@haus/api';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { tabStayState } from '../../../hooks/desktop-tabs/tab-navigation.ts';
 import {
+    useFollowedTaskPreviews,
     useUnreadPreviewReader,
     useUnreadPreviewsSettled,
 } from '../../../hooks/inbox/use-unread-previews.ts';
@@ -13,51 +14,36 @@ import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts
 import { useMarkChatRead } from '../../../hooks/servers/use-mark-chat-read.ts';
 import { useMembers } from '../../../hooks/servers/use-members.ts';
 import { requestMessageReveal } from '../../../hooks/servers/use-pending-message-reveal.ts';
-import { useClearTaskInboxItem } from '../../../hooks/task-inbox/use-clear-task-inbox-item.ts';
-import { useThreadRoute } from '../../../hooks/threads/use-thread-opener.ts';
-import { useUnreadThreads } from '../../../hooks/threads/use-unread-threads.ts';
 import { chatNavigationName } from '../../shell/chat-navigation-name.ts';
 import type { ChatComposerHandle } from '../chat/chat-composer.tsx';
 import { useServerContext } from '../server-context.ts';
 import { serverChatRoute, taskRoute } from '../server-routes.ts';
 import { InboxSectionPending } from './inbox-section.tsx';
 import { InboxRowList } from './inbox-section-rows.tsx';
-import { UnreadChatRow, UnreadThreadRow } from './inbox-unread-row.tsx';
-import { withResolvedRow } from './task-inbox-model.ts';
-import { TaskResolvedRow } from './task-resolved-row.tsx';
-import { type UnreadRowRead, unreadRowReadInput } from './unread-row-model.ts';
+import { UnreadChatRow } from './inbox-unread-row.tsx';
+import { unreadRowReadInput } from './unread-row-model.ts';
 import { selectUnreadRows, type UnreadRow } from './unread-rows.ts';
-import { UnreadTaskRow } from './unread-task-row.tsx';
+import { UnreadTaskChatRow } from './unread-task-chat-row.tsx';
 import type { UnreadRowTriage } from './unread-triage-row.tsx';
-import { useTaskInboxFeed } from './use-task-inbox-feed.ts';
-import { useTaskInboxResolve } from './use-task-inbox-resolve.ts';
 import { useUnreadTriage } from './use-unread-triage.ts';
 import { type UnreadTriageCommand, useUnreadTriageKeys } from './use-unread-triage-keys.ts';
 
 /**
- * Every Chat and Thread with something unread and every Task assigned to the
- * reader, newest first, as one feed of open cards (ADR 0038, ADR 0043, ADR
- * 0050, ADR 0051): each shows what is waiting and a composer, and exactly one
- * is selected. The cards are the existing unread state, which this page only
- * reads: seeing a card never reads it. Mark read (E) or a reply from a
- * conversation's card reads it and selects the next; opening the conversation
- * reads it there, a Thread at its first unread reply. A Task's card clears by
- * Mark read, by opening the Task, or by resolving it, which leaves a slim row
- * with an Undo. J and K move the selection.
+ * Every Chat and followed Task with something unread, newest first, as one
+ * feed of open cards (ADR 0038, ADR 0050, ADR 0052): each shows what is
+ * waiting and a composer, and exactly one is selected. The cards are the
+ * existing unread state, which this page only reads: seeing a card never reads
+ * it. Mark read (E) or a reply from a card reads it and selects the next;
+ * opening the conversation reads it there. J and K move the selection.
  */
 export function InboxUnread() {
     const { server } = useServerContext();
     const navigate = useNavigate();
-    const threadRoute = useThreadRoute(server.slug);
     const chats = useChats(server.id);
-    const threads = useUnreadThreads(server.id);
     const agents = useAgents(server.id);
     const members = useMembers(server.id);
     const humans = useHumanDirectory(server.id);
     const markRead = useMarkChatRead();
-    const clearTaskItem = useClearTaskInboxItem();
-    const taskFeed = useTaskInboxFeed(server.id, chats.data);
-    const taskResolve = useTaskInboxResolve(server.id);
     const listRef = React.useRef<HTMLDivElement>(null);
     const composerRef = React.useRef<ChatComposerHandle>(null);
     const agentById = React.useMemo(
@@ -65,32 +51,17 @@ export function InboxUnread() {
         [agents.data]
     );
     const previewsSettled = useUnreadPreviewsSettled(server.id);
+    const taskPreviews = useFollowedTaskPreviews(server.id);
     const readPreview = useUnreadPreviewReader(server.id);
-    // Blank until the previews and Task items answer too: every card renders
-    // from them, and painting the cards first made each one grow a beat later.
-    const resolvedTaskId = taskResolve.resolved?.item.task.id;
+    // Blank until the previews answer too: every card renders from them, and
+    // painting the cards first made each one grow a beat later.
     const unread = React.useMemo(
-        () =>
-            chats.data && threads.data && previewsSettled && taskFeed.settled
-                ? selectUnreadRows(
-                      chats.data,
-                      threads.data,
-                      taskFeed.items.filter((item) => item.task.id !== resolvedTaskId)
-                  )
-                : null,
-        [
-            chats.data,
-            threads.data,
-            previewsSettled,
-            taskFeed.settled,
-            taskFeed.items,
-            resolvedTaskId,
-        ]
+        () => (chats.data && previewsSettled ? selectUnreadRows(chats.data, taskPreviews) : null),
+        [chats.data, previewsSettled, taskPreviews]
     );
     const triage = useUnreadTriage(server.id, unread, listRef);
     const viewerUserId = members.data?.viewerUserId ?? null;
     const viewerDisplayName = viewerUserId ? humans.name(viewerUserId) : null;
-    const authors = { agentById, humans };
 
     const agentOf = (chat: Chat) =>
         chat.peerAgentId ? (agentById.get(chat.peerAgentId) ?? null) : null;
@@ -99,14 +70,8 @@ export function InboxUnread() {
     // A Chat opens scrolled to the card's message, flashed: the newest waiting one
     // the card shows, unless the card names another ("N earlier" names its oldest).
     const openConversation = (row: UnreadRow, message?: ChatMessageJumpTarget) => {
-        if (row.kind === 'task') {
-            openTask(row.item);
-            return;
-        }
-        if (row.kind === 'thread') {
-            navigate(threadRoute(row.thread.parentChatId, row.thread.anchorMessageId), {
-                state: tabStayState(),
-            });
+        if (row.kind === 'task-chat') {
+            navigate(taskRoute(server.slug, row.preview.task.key), { state: tabStayState() });
             return;
         }
         const target = message ?? readPreview(row.chat.id)?.messages.at(-1);
@@ -115,41 +80,10 @@ export function InboxUnread() {
         }
         navigate(serverChatRoute(server.slug, row.chat.id), { state: tabStayState() });
     };
-    // The Task page clears the item as it shows, so Back finds the queue moved on.
-    const openTask = ({ task }: TaskInboxItem) => {
-        const address = parseTaskKey(task.key);
-        if (address) {
-            navigate(taskRoute(server.slug, address.boardKey, address.number), {
-                state: tabStayState(),
-            });
-        }
-    };
-    const openTaskContext = ({ contextMessage: message, contextPlace: place }: TaskInboxItem) => {
-        if (!(message && place)) {
-            return;
-        }
-        if (place.threadAnchorMessageId) {
-            navigate(threadRoute(place.chatId, place.threadAnchorMessageId), {
-                state: tabStayState(),
-            });
-            return;
-        }
-        requestMessageReveal(place.chatId, { id: message.id, sequence: message.sequence });
-        navigate(serverChatRoute(server.slug, place.chatId), { state: tabStayState() });
-    };
-    const read = (row: UnreadRow, reason: UnreadRowRead, byKey = false) => {
-        // A reply answers the conversation; the Task stays the reader's to resolve.
-        if (row.kind === 'task' && reason === 'reply') {
-            return;
-        }
+    const read = (row: UnreadRow, byKey = false) => {
         // Advance first, so the next card is selected while focus is still in the list.
         triage.leave(row, byKey);
-        taskResolve.dismiss();
-        if (row.kind === 'task') {
-            clearTaskItem.mutate({ serverId: server.id, taskId: row.item.task.id });
-        } else {
-            markRead.mutate(unreadRowReadInput(row, server.id, reason));
-        }
+        markRead.mutate(unreadRowReadInput(row, server.id));
     };
     const triageOf = (row: UnreadRow): UnreadRowTriage => {
         const isSelected = triage.selected?.id === row.id;
@@ -157,9 +91,9 @@ export function InboxUnread() {
             composerRef,
             isSelected,
             isRinged: isSelected && triage.ringed,
-            onMarkRead: () => read(row, 'mark-read'),
+            onMarkRead: () => read(row),
             onOpen: (message) => openConversation(row, message),
-            onReplySent: () => read(row, 'reply'),
+            onReplySent: () => read(row),
             onSelect: () => {
                 if (!isSelected) {
                     triage.select(row);
@@ -167,11 +101,6 @@ export function InboxUnread() {
             },
             takesFocus: isSelected && triage.carryFocus,
         };
-    };
-
-    const resolveTask = (row: Extract<UnreadRow, { kind: 'task' }>, column: BoardColumn) => {
-        triage.leave(row, false);
-        taskResolve.resolve(row.item, column, unread?.indexOf(row) ?? 0);
     };
 
     useUnreadTriageKeys(listRef, (command: UnreadTriageCommand) => {
@@ -185,7 +114,7 @@ export function InboxUnread() {
                 triage.step(command === 'next' ? 1 : -1);
                 return;
             case 'mark-read':
-                read(row, 'mark-read', true);
+                read(row, true);
                 return;
             case 'reply':
                 composerRef.current?.focus();
@@ -212,41 +141,20 @@ export function InboxUnread() {
                                     viewerDisplayName={viewerDisplayName}
                                 />
                             );
-                        case 'thread':
+                        default:
                             return (
-                                <UnreadThreadRow
-                                    agent={agentOf(row.parent)}
-                                    authors={authors}
-                                    name={chatNavigationName(row.parent, agentOf(row.parent))}
-                                    parent={row.parent}
-                                    thread={row.thread}
-                                    triage={triageOf(row)}
-                                    viewerDisplayName={viewerDisplayName}
-                                />
-                            );
-                        case 'task':
-                            return (
-                                <UnreadTaskRow
-                                    board={taskFeed.boardOf(row.item)}
-                                    item={row.item}
-                                    onOpenContext={() => openTaskContext(row.item)}
-                                    onResolve={(column) => resolveTask(row, column)}
-                                    replyPlace={taskFeed.replyPlaceOf(row.item)}
+                                <UnreadTaskChatRow
+                                    origin={chats.data?.find(
+                                        (chat) => chat.id === row.preview.task.originChatId
+                                    )}
+                                    preview={row.preview}
                                     serverId={server.id}
                                     triage={triageOf(row)}
                                 />
                             );
-                        default:
-                            return (
-                                <TaskResolvedRow
-                                    isUndoing={taskResolve.undoing}
-                                    onUndo={taskResolve.undo}
-                                    resolved={row.resolved}
-                                />
-                            );
                     }
                 }}
-                rows={withResolvedRow(unread, taskResolve.resolved)}
+                rows={unread}
                 variant="bare"
             />
         </div>

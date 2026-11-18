@@ -41,15 +41,12 @@ export function ServerChatComposer({
     onInlineReplyCancel,
     onInlineReplySent,
     onSend,
-    onThreadCreated,
     pendingChatId,
     placeholder,
     ref,
     serverId,
     status,
-    thread,
     target,
-    variant = 'primary',
 }: {
     /** Focus on mount and on a kept view's reveal; an Inbox row passes false and focuses via `ref`. */
     autoFocus?: boolean;
@@ -61,11 +58,9 @@ export function ServerChatComposer({
     onInlineReplyCancel?: () => void;
     onInlineReplySent?: (messageId: string) => void;
     onSend?: () => void;
-    onThreadCreated?: (threadChatId: string) => void;
     /**
      * The transcript that shows this composer's sends while they are in flight.
-     * A chat renders its own id; a Thread renders an anchor-owned key, because
-     * a first reply has no Thread chat id until its receipt returns.
+     * A chat renders its own id.
      */
     pendingChatId?: string;
     placeholder?: string;
@@ -73,14 +68,7 @@ export function ServerChatComposer({
     serverId: string;
     /** The typing row; the composer reserves its height above the shell. */
     status?: React.ReactNode;
-    thread?: { anchorMessageId: string };
     target: { agentId: string; kind: 'agent-dm' } | { chatId: string; kind: 'chat' };
-    /**
-     * The shell's surface styling. The primary shell is tinted for the page
-     * background; on a surface (a modal dialog) it would match its host
-     * exactly, so those callers pass `secondary`.
-     */
-    variant?: 'primary' | 'secondary';
 }) {
     // Mentions read who each Agent is, never its availability.
     const agentList = useAgentAppearances(serverId);
@@ -125,7 +113,6 @@ export function ServerChatComposer({
     });
     const send = useChatMessageSend();
     const upload = useUploadServerAttachment();
-    const activeInlineReply = thread ? null : inlineReply;
 
     React.useImperativeHandle(ref, () => ({ focus: mentionComposer.focusTextEditor }));
     useChatComposerCommands({
@@ -134,7 +121,6 @@ export function ServerChatComposer({
         focusOnReveal: autoFocus,
         focusTextEditor: mentionComposer.focusTextEditor,
         insertMention: mentionComposer.handleMentionSelect,
-        thread: Boolean(thread),
         updateContent,
     });
 
@@ -149,16 +135,14 @@ export function ServerChatComposer({
             draftKey,
             event,
             focusTextEditor: mentionComposer.focusTextEditor,
-            inlineReply: activeInlineReply,
+            inlineReply,
             onMaterialized,
             onInlineReplySent,
             onSend,
-            onThreadCreated,
             pendingChatId,
             send,
             serverId,
             target,
-            thread,
             upload,
         });
     }
@@ -184,13 +168,13 @@ export function ServerChatComposer({
             {status ? <div aria-hidden="true" className="h-8 shrink-0" /> : null}
             <PromptInput
                 data-expanded={isExpanded || undefined}
-                data-replying={Boolean(activeInlineReply) || undefined}
+                data-replying={Boolean(inlineReply) || undefined}
                 layout="compact"
                 onSubmit={() => {
                     void handleSubmit();
                 }}
                 value={draft}
-                variant={variant}
+                variant="primary"
             >
                 {/* One stack grows up from the shell over the transcript's
                     clearance: the reply bar joins the editor, and typing
@@ -205,7 +189,7 @@ export function ServerChatComposer({
                     {status}
                     <ChatInlineReplyReference
                         onCancel={onInlineReplyCancel ?? (() => undefined)}
-                        target={activeInlineReply ?? null}
+                        target={inlineReply ?? null}
                     />
                 </div>
                 <PromptInput.Shell onMouseDown={handleShellMouseDown}>

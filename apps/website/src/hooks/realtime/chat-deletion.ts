@@ -3,7 +3,6 @@ import { getQueryKey } from '@trpc/react-query';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import type { TargetedReadCoalescer } from '../../lib/targeted-read-coalescer.ts';
 import { runChatLoss } from '../servers/server-loss.ts';
-import { invalidateOpenThreads } from './open-thread-reads.ts';
 
 type ChatReadsCoalescer = Pick<TargetedReadCoalescer, 'invalidate' | 'purgeChat'>;
 
@@ -32,9 +31,8 @@ export function applyChatDeletion({
 /**
  * Cloud Agent work is visible through the Messages that link it (ADR 0044), so
  * a lost Chat can take work out of the active list, move its Happening now
- * location, or leave a parent's work list (a deleted Thread's links listed
- * there). Which lists named the Chat is unknown here, so every work list of
- * the Server refreshes; only mounted ones refetch.
+ * location, or leave a work list. Which lists named the Chat is unknown
+ * here, so every work list of the Server refreshes; only mounted ones refetch.
  */
 function invalidateLinkedCloudAgentWork(coalescer: ChatReadsCoalescer, serverId: string) {
     coalescer.invalidate({
@@ -60,8 +58,5 @@ export function invalidateChatLifecycleReads(
         queryKey: getQueryKey(hausTrpc.chat.get, chatId ? { chatId, serverId } : { serverId }),
     });
     coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.agent.chats, { serverId }) });
-    // A Thread row needs a listed parent: archiving, deleting, or hiding one drops its Threads.
-    coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.thread.listUnread, { serverId }) });
-    invalidateOpenThreads(coalescer, serverId);
     coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.chat.unreadPreviews, { serverId }) });
 }

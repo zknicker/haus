@@ -1,12 +1,11 @@
 import { usePrefetchInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useChat } from '../../../hooks/servers/use-chat.ts';
 import { chatMessagesQueryOptions } from '../../../hooks/servers/use-chat-messages.ts';
 import { useListedChat } from '../../../hooks/servers/use-chats.ts';
-import { useClaims } from '../../../hooks/servers/use-claims.ts';
 import { hausTrpc, type ServerDetail } from '../../../lib/haus-server.tsx';
-import { useClaimThread } from '../claims/use-claim-thread.ts';
+import { redirectRetiredRoute } from '../retired-routes.ts';
 import { serverChatRoute, serverRoute } from '../server-routes.ts';
 import { ChatPagePending } from './chat-page-pending.tsx';
 import { resolveChatPageChat } from './chat-page-state.ts';
@@ -15,30 +14,28 @@ import { KeptChatViews } from './kept-chat-views.tsx';
 
 /**
  * The chat route; recent chat views stay mounted (hidden) so returning to one
- * reveals it. Route reads (`?claim=`, navigate) stay up here and each kept view
- * is memoized on stable props, so a navigation re-renders only the views whose
- * visibility changed, not every hidden one.
+ * reveals it. Each kept view is memoized on stable props, so a navigation
+ * re-renders only the views whose visibility changed, not every hidden one. An
+ * address saved before ADR 0052 (`?thread=`, `?claim=`) is replaced by the
+ * Message it names first (`redirectRetiredRoute`).
  */
 export function ChatPage({ chatId, server }: { chatId: string; server: ServerDetail }) {
-    const [searchParams] = useSearchParams();
-    const claimMessageId = searchParams.get('claim');
+    const location = useLocation();
     // Stable across navigations, desktop tab routers included (patched React Router).
     const navigate = useNavigate();
     const onOpenChat = React.useCallback(
         (nextChatId: string) => navigate(serverChatRoute(server.slug, nextChatId)),
         [navigate, server.slug]
     );
+    const retired = redirectRetiredRoute(location);
+    if (retired) {
+        return <Navigate replace to={retired} />;
+    }
     return (
         <KeptChatViews
             chatId={chatId}
             renderChat={(id, active) => (
-                <ChatPageView
-                    active={active}
-                    chatId={id}
-                    claimMessageId={active ? claimMessageId : null}
-                    onOpenChat={onOpenChat}
-                    server={server}
-                />
+                <ChatPageView active={active} chatId={id} onOpenChat={onOpenChat} server={server} />
             )}
             serverId={server.id}
         />
@@ -50,13 +47,11 @@ const ChatPageView = React.memo(function ChatPageView({
     chatId,
     onOpenChat,
     server,
-    claimMessageId: routeClaimMessageId,
 }: {
     active: boolean;
     chatId: string;
     onOpenChat: (chatId: string) => void;
     server: ServerDetail;
-    claimMessageId: string | null;
 }) {
     const chatQuery = useChat(server.id, chatId);
     // The transcript needs only the route's ids, so its first page loads beside the chat
@@ -74,18 +69,6 @@ const ChatPageView = React.memo(function ChatPageView({
         isPending: chatQuery.isPending,
         listed,
     });
-    // The route's `?claim=` belongs to the shown chat; a hidden view keeps the one it last had.
-    const claimMessageId = useActiveValue(active, routeClaimMessageId);
-    // A `?claim=` link addresses one claim by id, so it reads the widened lens:
-    // a background-tier claim is hidden from the Board, never from its own link.
-    const claims = useClaims(server.id, chatId, {
-        enabled: claimMessageId !== null,
-        includeBackground: true,
-    });
-    const claim = claims.data?.claims.find((item) => item.claim.messageId === claimMessageId);
-    // A claim inside a Thread opens the Thread it sits in, never one of its own.
-    const initialClaim = useClaimThread(server.id, claim);
-
     if (!chat && chatQuery.isPending) {
         return <ChatPagePending />;
     }
@@ -97,12 +80,7 @@ const ChatPageView = React.memo(function ChatPageView({
 
     return (
         <React.Suspense fallback={<ChatPagePending chat={chat} />}>
-            <ChatViewModule
-                chat={chat}
-                initialClaim={initialClaim}
-                onOpenChat={onOpenChat}
-                server={server}
-            />
+            <ChatViewModule chat={chat} onOpenChat={onOpenChat} server={server} />
         </React.Suspense>
     );
 });
@@ -116,11 +94,3 @@ const ChatViewModule = React.memo(function ChatViewModule(
 });
 
 type ChatViewComponent = ReturnType<typeof useChatViewModule>['ChatView'];
-
-function useActiveValue<T>(active: boolean, value: T) {
-    const [held, setHeld] = React.useState(value);
-    if (active && held !== value) {
-        setHeld(value);
-    }
-    return active ? value : held;
-}

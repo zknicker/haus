@@ -1,21 +1,11 @@
-import type { ChatMessageEntity, CloudAgentWork } from '@haus/api';
+import type { ChatMessageEntity } from '@haus/api';
 import * as React from 'react';
 import type { TranscriptMessage } from './chat-transcript-message.tsx';
 import type { ConversationMessageLayout, TranscriptActor } from './chat-transcript-model.ts';
-import type {
-    TranscriptActorProfile,
-    TranscriptMessageRow,
-    TranscriptThreadSummary,
-} from './transcript-contract.ts';
+import type { TranscriptActorProfile, TranscriptMessageRow } from './transcript-contract.ts';
 import type { InlineReplyNavigation } from './transcript-reply-contract.ts';
 
 export type { TranscriptMessageRow } from './transcript-contract.ts';
-
-export function getTranscriptMessageThread(
-    row: TranscriptMessageRow
-): TranscriptThreadSummary | null {
-    return 'thread' in row ? (row.thread ?? null) : null;
-}
 
 /**
  * Resolves the text a message's Copy action should place on the clipboard,
@@ -32,39 +22,13 @@ export function getMessageCopyText(
 
 export interface TranscriptRenderContextValue {
     canRequestMention: boolean;
-    /**
-     * Suppresses the automation context line. A Thread opened on a caused
-     * message states the automation, its status, and the fire in the context
-     * card above the anchor, so repeating the line above the anchor says the
-     * same thing twice.
-     */
-    causeLineHidden?: boolean;
     chatId?: string;
-    /**
-     * The one Message whose claim chip a surrounding panel already states. A
-     * Thread opened on a Claim names it in the header and states its status,
-     * assignee, and creator in the metadata panel above the anchor, so that
-     * Claim's own chip — on the anchor, or on the reply an Agent claimed inside
-     * the Thread — would repeat all of it. Any other claimed reply in the
-     * Thread still wears its chip, by the Show claims in chat rule.
-     */
-    claimChipHiddenMessageId?: string;
     composerId?: string;
-    /**
-     * The Channel or DM this transcript belongs to, which for a Thread is its
-     * parent. Only a conversation can be linked to; a Thread has no route of
-     * its own.
-     */
-    conversationChatId?: string;
     conversationLayout: ConversationMessageLayout;
     currentSessionKey?: string | null;
     defaultOpenWorkGroups: boolean;
     flashMessageId: string | null;
     hiddenCount: number;
-    /**
-     * Cloud Agent work by Thread anchor, including completed delegations.
-     */
-    hoistedCloudAgentWork?: ReadonlyMap<string, readonly CloudAgentWork[]>;
     /**
      * The text a message's Copy action writes to the clipboard. Absent by
      * default, in which case `getMessageCopyText` falls back to the raw
@@ -76,7 +40,6 @@ export interface TranscriptRenderContextValue {
     onActorClick?: (actor: TranscriptActor) => void;
     /** Reveals the parent excerpt's message in the current Channel/DM. */
     onOpenInlineReply?: InlineReplyNavigation;
-    onOpenThread: (row: TranscriptMessageRow) => void;
     /** Selects a durable Channel/DM message as the next inline reply parent. */
     onSelectInlineReply?: (message: TranscriptMessage) => void;
     /**
@@ -84,7 +47,6 @@ export interface TranscriptRenderContextValue {
      * surface has no reaction support; all reaction UI hides with it.
      */
     onToggleReaction?: (input: { emoji: string; messageId: string; remove: boolean }) => void;
-    onUnfollowThread: (threadChatId: string) => void;
     /**
      * Agent avatars open the Agent's profile on click (ADR 0038). The surface
      * hands one stable opener down, so avatars never read the router: a
@@ -101,7 +63,7 @@ export interface TranscriptRenderContextValue {
     /**
      * A surface-owned block that belongs to one message but is not its body —
      * the Agent-created mark today. It mounts under the message and its
-     * attachments, beside the thread preview, so the transcript layer never
+     * attachments, beside the Task previews, so the transcript layer never
      * learns what any one block is, and so a block that needs Server data the
      * transcript never reads can still resolve it at the surface that does.
      */
@@ -110,7 +72,6 @@ export interface TranscriptRenderContextValue {
     repliedRunIds: ReadonlySet<string>;
     replyTargetMessageId?: string;
     resolveActorProfile?: (actor: TranscriptActor) => TranscriptActorProfile | null;
-    threadActionsEnabled: boolean;
     turnDetails?: {
         access: 'journal' | 'summary';
         serverId: string;

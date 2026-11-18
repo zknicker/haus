@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { ChatMessage } from '@haus/api';
+import type { ChatMessage, TaskPreview } from '@haus/api';
 import { getQueryKey } from '@trpc/react-query';
 import { visiblePendingChatMessages } from '../features/servers/chat/use-pending-messages.ts';
 import { mergeTranscriptPages } from '../hooks/servers/chat-message-layout.ts';
@@ -17,17 +17,9 @@ import { TranscriptListReads } from './transcript-list-reads.ts';
 const chatId = 'cht_tail';
 
 test('a list read seeds every entity in one batch and issues no entity request', async () => {
-    const thread = {
-        anchorMessageId: `msg_${chatId}_2`,
-        followed: true,
-        latestReplyAt: null,
-        recentReplies: [],
-        replyCount: 1,
-        threadChatId: 'cht_thread',
-        unreadCount: 0,
-    };
+    const task = taskPreview(`msg_${chatId}_2`, 1);
     const cache = createTranscriptCache(async () =>
-        page([message(chatId, 1), message(chatId, 2)], { threads: [thread] })
+        page([message(chatId, 1), message(chatId, 2)], { tasks: [task] })
     );
     const list = cache.observeList(chatId);
     await settle(() => cache.listIds(chatId)?.length === 2);
@@ -35,9 +27,9 @@ test('a list read seeds every entity in one batch and issues no entity request',
 
     expect(cache.entity(chatId, `msg_${chatId}_1`)?.data).toEqual({
         message: message(chatId, 1),
-        thread: null,
+        tasks: [],
     });
-    expect(cache.entity(chatId, `msg_${chatId}_2`)?.data?.thread).toEqual(thread);
+    expect(cache.entity(chatId, `msg_${chatId}_2`)?.data?.tasks).toEqual([task]);
     expect(cache.reads('chat.message')).toEqual([]);
     for (const row of [list, ...rows]) {
         row.close();
@@ -51,19 +43,7 @@ test('a search result never seeds an entity', async () => {
     const cache = createTranscriptCache(async (request) =>
         request.path === 'chat.search'
             ? [{ ...anchored, content: 'search projection' }]
-            : page([anchored], {
-                  threads: [
-                      {
-                          anchorMessageId: anchored.id,
-                          followed: false,
-                          latestReplyAt: null,
-                          recentReplies: [],
-                          replyCount: 3,
-                          threadChatId: 'cht_thread',
-                          unreadCount: 0,
-                      },
-                  ],
-              })
+            : page([anchored], { tasks: [taskPreview(anchored.id, 3)] })
     );
     const list = cache.observeList(chatId);
     await settle(() => cache.listIds(chatId)?.length === 1);
@@ -72,8 +52,8 @@ test('a search result never seeds an entity', async () => {
         queryKey: getQueryKey(hausTrpc.chat.search, { query: 'x', serverId }, 'query'),
     });
 
-    // The search row lacks the Thread summary; the entity keeps the canonical one.
-    expect(cache.entity(chatId, anchored.id)?.data?.thread?.replyCount).toBe(3);
+    // The search row lacks the Task previews; the entity keeps the canonical ones.
+    expect(cache.entity(chatId, anchored.id)?.data?.tasks[0]?.messageCount).toBe(3);
     expect(cache.entity(chatId, anchored.id)?.data?.message.content).toBe('Message 1');
     list.close();
 });
@@ -280,7 +260,7 @@ test('a tail read that never settles releases its list within the bound', async 
 });
 
 function created(sequence: number) {
-    return { chatId, parentChatId: null, sequence, serverId, threadAnchorMessageId: null };
+    return { chatId, sequence, serverId };
 }
 
 function tailReads(requests: readonly ReadRequest[]) {
@@ -289,4 +269,19 @@ function tailReads(requests: readonly ReadRequest[]) {
         .flatMap((request) =>
             typeof request.input.afterSequence === 'number' ? [request.input.afterSequence] : []
         );
+}
+
+function taskPreview(originMessageId: string, messageCount: number): TaskPreview {
+    return {
+        chatId: 'cht_task',
+        followed: true,
+        key: 'SEC-1',
+        messageCount,
+        originMessageId,
+        recentMessages: [],
+        state: 'open',
+        taskId: 'tsk_1',
+        title: 'Fix the deploy',
+        unreadCount: 0,
+    };
 }

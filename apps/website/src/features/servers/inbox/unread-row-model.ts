@@ -1,9 +1,6 @@
 import type { ChatMarkReadInput, ChatUnreadPreview } from '@haus/api';
 import type { UnreadRow } from './unread-rows.ts';
 
-/** How a row clears: its own Mark read, or the viewer replying from it. */
-export type UnreadRowRead = 'mark-read' | 'reply';
-
 /**
  * Which Unread card is selected (ADR 0050). Exactly one is, whenever any
  * card exists: `id` names it, and `index` is where it sat, so when it leaves
@@ -73,34 +70,23 @@ export function selectionAfterLeaving(
 
 /**
  * The `chat.markRead` that clears one Unread row, through the newest message
- * the row knows of. Mark read on a Channel or DM also reads every Thread under
- * it (ADR 0043), because that is what the row's action promises. A reply only
- * reads what the row showed, so a reply in a Channel leaves its Thread rows
- * alone. A Thread row reads the Thread's own Chat either way.
+ * the row knows of. Mark read and a reply clear it the same way.
  *
  * Sending never moves the sender's read marker on the Server — a Chat's
  * unread rule only skips the viewer's own messages — so a reply from the row
  * reads the row itself; otherwise the row would stay with its question
  * answered (ADR 0050).
  */
-export function unreadRowReadInput(
-    row: Exclude<UnreadRow, { kind: 'task' }>,
-    serverId: string,
-    read: UnreadRowRead
-): ChatMarkReadInput {
-    if (row.kind === 'thread') {
+export function unreadRowReadInput(row: UnreadRow, serverId: string): ChatMarkReadInput {
+    // A Task's Chat reads through the newest message its row shows, like a reply would.
+    if (row.kind === 'task-chat') {
         return {
-            chatId: row.thread.threadChatId,
-            sequence: row.thread.lastMessageSequence,
+            chatId: row.preview.chatId,
+            sequence: row.preview.messages.at(-1)?.sequence ?? 0,
             serverId,
         };
     }
-    return {
-        chatId: row.chat.id,
-        ...(read === 'mark-read' ? { includeThreads: true } : {}),
-        sequence: row.chat.lastMessageSequence,
-        serverId,
-    };
+    return { chatId: row.chat.id, sequence: row.chat.lastMessageSequence, serverId };
 }
 
 /**

@@ -6,21 +6,21 @@ import {
     type TargetedReadCoalescer,
     useTargetedReadCoalescer,
 } from '../../lib/targeted-read-coalescer.ts';
-import { taskDetailKeys } from '../tasks/task-cache.ts';
+import { refreshTaskReads } from './task-reads.ts';
 import { useSubscriptionRestart } from './use-subscription-restart.ts';
 
 /**
- * `task.onUpdated`: that Task's detail (its Mentioned in and Reminders too:
- * a new reference publishes this at the same version), its board's lists, the
- * board list's open count, and the Task Inbox, whose items embed the Task. A
- * start reconciles every Task read.
+ * `task.onUpdated`: a Task was retitled, moved to another state, or
+ * reassigned. Its detail and its origin preview (`refreshTaskReads`), every
+ * Tasks page list (a state filter can gain or lose it), the sidebar's open
+ * Tasks (a done or canceled Task leaves there), and the Inbox's unread Task
+ * rows, which name state and title. A start reconciles every Task read.
  */
 export function useTaskUpdatedStream(serverId: string | undefined) {
     const coalescer = useTargetedReadCoalescer();
     const queryClient = useQueryClient();
     const stream = useSubscriptionRestart('task.onUpdated', serverId, () => {
         if (serverId) {
-            coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.task.list, { serverId }) });
             coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.task.get, { serverId }) });
             invalidateServerReads(coalescer, serverId);
         }
@@ -41,16 +41,14 @@ export function useTaskUpdatedStream(serverId: string | undefined) {
 export function applyTaskUpdate(
     coalescer: TargetedReadCoalescer,
     queryClient: QueryClient,
-    { boardId, serverId, taskId }: TaskUpdatedEvent
+    { serverId, taskId }: TaskUpdatedEvent
 ) {
-    coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.task.list, { boardId, serverId }) });
-    for (const queryKey of taskDetailKeys(queryClient, serverId, (task) => task.id === taskId)) {
-        coalescer.invalidate({ exact: true, queryKey });
-    }
+    refreshTaskReads(coalescer, queryClient, { serverId, taskId });
     invalidateServerReads(coalescer, serverId);
 }
 
 function invalidateServerReads(coalescer: TargetedReadCoalescer, serverId: string) {
-    coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.board.list, { serverId }) });
-    coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.taskInbox.list, { serverId }) });
+    coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.task.list, { serverId }) });
+    coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.task.listOpen, { serverId }) });
+    coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.chat.unreadPreviews, { serverId }) });
 }

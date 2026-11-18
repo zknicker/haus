@@ -11,7 +11,7 @@ import { currentOpenGesture } from '../desktop-tabs/tab-open-gesture.ts';
  * the router places (ADR 0039), honoring the click's own open gesture. A
  * reference that carries no key is read for it on the press, never on render.
  * The opener keeps one identity for the caller's lifetime, and reads only the
- * route's slug, so it works in a Thread dialog or a desktop tab alike.
+ * route's slug, so it works on the web or in a desktop tab alike.
  */
 export function useOpenTaskReference(serverId: string) {
     const navigate = useNavigate();
@@ -22,11 +22,10 @@ export function useOpenTaskReference(serverId: string) {
     return useCallback(async ({ key, taskId }: { key?: string; taskId: string }) => {
         const gesture = currentOpenGesture();
         const current = route.current;
-        const address = parseTaskKey(
-            key ?? (await current.utils.task.get.fetch({ serverId: current.serverId, taskId })).key
-        );
-        if (address) {
-            current.navigate(taskRoute(current.slug, address.boardKey, address.number), {
+        const taskKey =
+            key ?? (await current.utils.task.get.fetch({ serverId: current.serverId, taskId })).key;
+        if (parseTaskKey(taskKey)) {
+            current.navigate(taskRoute(current.slug, taskKey), {
                 state: tabIntentState(gesture),
             });
         }

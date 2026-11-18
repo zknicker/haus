@@ -4,8 +4,8 @@ import { setChatSidePane, useChatSidePane } from '../../../hooks/pane/use-chat-s
 
 /**
  * Where a chat's Attachments open. Desktop opens the chat's Attachments page as a link
- * (ADR 0039). The website shares the chat side panel with the artifact and
- * thread panes; the latest opener wins the slot, and closing hands the slot
+ * (ADR 0039). The website shares the chat side panel with the artifact pane;
+ * the latest opener wins the slot, and closing hands the slot
  * back to the artifact pane.
  */
 export function useChatFilesPane(chatId: string) {

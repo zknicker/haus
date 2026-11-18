@@ -1,4 +1,4 @@
-import type { ChatMessageEntity, ChatMessageInput } from '@haus/api';
+import type { ChatMessageEntity, ChatMessageInput, TaskPreview } from '@haus/api';
 import { notifyManager, type Query, type QueryClient, type QueryKey } from '@tanstack/react-query';
 import { getQueryKey } from '@trpc/react-query';
 import { hausTrpc } from '../../lib/haus-server.tsx';
@@ -44,36 +44,50 @@ export function chatMessageQueryKey(serverId: string, chatId: string, messageId:
     return getQueryKey(hausTrpc.chat.message, { chatId, messageId, serverId }, 'query');
 }
 
+/**
+ * One entity read. The answer carries `tasks`, the previews of the Tasks
+ * started from this Message, which the entity owns (its projected row carries
+ * them to the preview), so a refreshed origin Message shows a new Task
+ * without rereading its Chat.
+ */
 export function chatMessageQueryOptions(
     client: ReturnType<typeof hausTrpc.createClient>,
     input: ChatMessageInput
 ) {
     return {
-        queryFn: ({ signal }: { signal: AbortSignal }) =>
-            client.chat.message.query(input, { signal }) as Promise<ChatMessageEntry>,
+        queryFn: ({ signal }: { signal: AbortSignal }): Promise<ChatMessageEntry> =>
+            client.chat.message.query(input, { signal }),
         queryKey: chatMessageQueryKey(input.serverId, input.chatId, input.messageId),
     };
 }
 
 /**
  * Seeds one canonical `chat.messages` read's entities in a single batch: one
- * entry per message with its Thread summary or null. Only canonical
+ * entry per message with the Tasks started from it. Only canonical
  * projections seed; a `chat.search` row never does (it carries no claim or
- * Thread summary). Structural sharing keeps an unchanged entity's object, so
+ * Task previews). Structural sharing keeps an unchanged entity's object, so
  * its row does not re-render.
  */
 export function seedChatMessageEntities(queryClient: QueryClient, page: ChatMessagePage) {
     ensureChatMessageDefaults(queryClient);
-    const threads = new Map(page.threads.map((thread) => [thread.anchorMessageId, thread]));
+    const tasksByOrigin = new Map<string, TaskPreview[]>();
+    for (const task of page.tasks) {
+        tasksByOrigin.set(task.originMessageId, [
+            ...(tasksByOrigin.get(task.originMessageId) ?? []),
+            task,
+        ]);
+    }
     notifyManager.batch(() => {
         for (const message of page.messages) {
             queryClient.setQueryData<ChatMessageEntry>(
                 chatMessageQueryKey(message.serverId, message.chatId, message.id),
-                { message, thread: threads.get(message.id) ?? null }
+                { message, tasks: tasksByOrigin.get(message.id) ?? noTasks }
             );
         }
     });
 }
+
+const noTasks: TaskPreview[] = [];
 
 /** The cached entity, without observing it: for event-time lookups (a click, a handler). */
 export function readChatMessageEntity(

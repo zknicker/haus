@@ -10,11 +10,11 @@ import type { ChatMessageLayout } from './chat-message-layout.ts';
 const noIds: ReadonlySet<string> = new Set();
 
 /**
- * The listed messages whose entity carries a claim or a Thread. It is the one
+ * The listed messages whose entity carries a claim or started a Task. It is the one
  * mutable fact the row model groups by: such a message stands as its own
  * turn so its block stays under its own prose. Read from the entity cache
  * without observing it, and re-rendered only when an id joins or leaves the
- * set, so a reaction or a Thread reply count never reaches the transcript root.
+ * set, so a reaction or a Task preview change never reaches the transcript root.
  */
 export function useAttachedWorkIds(entries: readonly ChatMessageLayout[]): ReadonlySet<string> {
     const queryClient = useQueryClient();
@@ -66,7 +66,7 @@ function createAttachedWorkStore(queryClient: QueryClient, entries: readonly Cha
 }
 
 function hasAttachedWork(entry: ChatMessageEntry | undefined) {
-    return Boolean(entry?.message.claim || entry?.thread);
+    return Boolean(entry?.message.claim || (entry?.tasks.length ?? 0) > 0);
 }
 
 function entityKey(target: { chatId: string; id?: string; messageId?: string; serverId: string }) {

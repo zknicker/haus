@@ -10,7 +10,7 @@ import { cloudAgentProviderPresentation } from './cloud-agent-provider-presentat
 /**
  * A Cloud Agent's mark everywhere it appears: the raised key Reminders and
  * Triggers use, at the exact box a surface gives it — 40px on the work card,
- * 32px in the Inbox, 20px on a Thread's job rows. Exact box, so it derives
+ * 32px in the Inbox. Exact box, so it derives
  * its radius the way every other fixed identity mark in the app does.
  *
  * `environmentName` is set only for a Claude launch pinned to a cloud

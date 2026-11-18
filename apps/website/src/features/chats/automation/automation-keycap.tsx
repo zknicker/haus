@@ -14,7 +14,7 @@ export type AutomationKeycapMark =
 
 /**
  * An automation's raised key at the exact box a surface gives it: 20px where it
- * stands for an author on a context line, 24px on the Thread context card. The
+ * stands for an author on a context line, 16px on its hover card. The
  * face, edge, highlight, and lip are theme tokens, so the key lifts off the
  * canvas in dark and sits on it in light. Exact box, so it derives its radius
  * the way every other fixed identity mark in the app does.

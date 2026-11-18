@@ -8,7 +8,7 @@ export interface EntityAvatarProps {
     name: string;
     /**
      * A stock step, or an exact pixel box for rail-scale slots (sidebar rows,
-     * mention chips, thread reply previews) below HeroUI's 32px floor.
+     * mention chips, Task preview messages) below HeroUI's 32px floor.
      */
     size?: EntityAvatarSize | number;
     src?: string | null;

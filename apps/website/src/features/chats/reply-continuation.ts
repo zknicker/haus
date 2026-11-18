@@ -14,7 +14,7 @@ const continuationMaxGapMs = 5 * 60 * 1000;
  *
  * Anything that would leave the follow-up reading as part of something else
  * breaks the group and the follow-up shows its own header and quote: another
- * entry in between (system entries included), or a Thread or claim on the
+ * entry in between (system entries included), or Task previews or a claim on the
  * previous message (its block sits between the two). A cause line on the
  * follow-up also keeps its header; the turn view decides that, since a
  * skeleton row does not carry the cause.
@@ -55,9 +55,9 @@ function continuesReply(previous: MessageRow, next: MessageRow) {
     );
 }
 
-// A skeleton row only knows whether its entity carries a claim or a Thread.
+// A skeleton row only knows whether its entity carries a claim or started a Task.
 function hasAttachedWork(row: MessageRow) {
-    return Boolean(row.entity?.attachedWork || row.thread || row.message.claim);
+    return Boolean(row.entity?.attachedWork || row.message.claim);
 }
 
 function withinGroupingWindow(previous: string, next: string) {

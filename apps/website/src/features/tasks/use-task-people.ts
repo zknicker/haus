@@ -4,7 +4,7 @@ import { useAgentAppearances } from '../../hooks/members/use-agents.ts';
 import { useHumanDirectory } from '../../hooks/servers/use-human-directory.ts';
 import { useMembers } from '../../hooks/servers/use-members.ts';
 import { humanDisplayName } from '../servers/human-identity.ts';
-import { assigneeKey } from './board-view.ts';
+import { assigneeKey } from './task-assignee.ts';
 
 /** Someone a Task can name: a person or an Agent, read the same way. */
 export interface TaskPerson {

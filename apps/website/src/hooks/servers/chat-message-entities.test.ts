@@ -28,7 +28,7 @@ test('a seeded-only entry takes the family policy, not the client default', () =
 test('an entity collected while its id stays listed fetches when a row observes it', async () => {
     const cache = createTranscriptCache(async (request) =>
         request.path === 'chat.message'
-            ? { message: message(chatId, 1, { content: 'refetched' }), thread: null }
+            ? { message: message(chatId, 1, { content: 'refetched' }), tasks: [] }
             : page([message(chatId, 1)])
     );
     const list = cache.observeList(chatId);

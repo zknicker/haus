@@ -7,7 +7,6 @@ export const appRoutes = {
     archivedChats: '/chats/archived',
     inbox: '/inbox',
     tasks: '/tasks',
-    threads: '/threads',
     activity: '/activity',
 
     settings: '/settings',

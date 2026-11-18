@@ -44,15 +44,15 @@ describe('Go: sidebar rows and the command menu (ADR 0039)', () => {
         expect(state.primary?.tabIds).toEqual(['t0']);
     });
 
-    test('no per-kind exceptions: a Thread, an Agent, a web page tab all just navigate', () => {
+    test('no per-kind exceptions: a Task, an Agent, a web page tab all just navigate', () => {
         const fromWeb = run(
             start(),
             { kind: 'navigate', location: web('v1'), mode: 'push', tabId: 't0' },
             go('agents/a1'),
-            go('threads/c1/m1')
+            go('tasks/SEC-1')
         );
         expect(describeTabs(fromWeb)).toMatchObject({
-            primary: 'threads/c1/m1*',
+            primary: 'tasks/SEC-1*',
             secondary: '-',
         });
         const back = run(fromWeb, { delta: -2, kind: 'go', tabId: 't0' });

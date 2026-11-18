@@ -8,30 +8,11 @@ import { serverRoute } from '../../features/servers/server-routes.ts';
 export type ArtifactPageTarget = HausResourceTarget & { agentId: string };
 
 /**
- * Page addresses (ADR 0039): a Thread, a chat's Attachments, and an Agent's
- * artifact are ordinary pages a tab can show. The web has the Thread page too,
- * and keeps the others in the chat side pane. Each second segment names the page,
- * so `tabPageKey` tells two Threads or two artifacts apart. A Thread opened on
- * a claim inside it carries that message in `?claim=`, so its page states the claim.
+ * Page addresses (ADR 0039): a chat's Attachments and an Agent's artifact are
+ * ordinary pages a desktop tab can show; the web keeps them in the chat side
+ * pane. Each second segment names the page, so `tabPageKey` tells two
+ * artifacts apart.
  */
-export function threadPagePath(
-    slug: string,
-    chatId: string,
-    anchorMessageId: string,
-    { claimMessageId, landingSequence }: { claimMessageId?: string; landingSequence?: number } = {}
-) {
-    const path = `${serverRoute(slug)}/threads/${encodeURIComponent(chatId)}/${encodeURIComponent(anchorMessageId)}`;
-    const params = new URLSearchParams();
-    if (claimMessageId) {
-        params.set('claim', claimMessageId);
-    }
-    if (landingSequence !== undefined) {
-        params.set('at', String(landingSequence));
-    }
-    const query = params.toString();
-    return query ? `${path}?${query}` : path;
-}
-
 export function filesPagePath(slug: string, chatId: string) {
     return `${serverRoute(slug)}/files/${encodeURIComponent(chatId)}`;
 }

@@ -14,8 +14,8 @@ test('navigation treats resolved infinite-query error results as failed pages', 
     expect(historyFetchFailed(undefined)).toBe(false);
 });
 
-// A Thread page shows its root message too: a document-wide lookup flashed that copy, so
-// View in chat left the chat's own row unmarked.
+// A window can show a message twice (a hidden tab keeps its transcript): a document-wide
+// lookup flashed the wrong copy and left the chat's own row unmarked.
 test('a reveal flashes the message in its own transcript, never another copy in the window', () => {
     const scope = globalThis as unknown as Record<string, unknown>;
     const saved = { CSS: scope.CSS, window: scope.window };
@@ -35,7 +35,7 @@ test('a reveal flashes the message in its own transcript, never another copy in 
             } as unknown as ParentNode,
         };
         expect(revealLoadedMessage(transcript, { id: 'm1', sequence: 1 })).toBe(true);
-        expect(flashed).toEqual(['chat-thread-flash']);
+        expect(flashed).toEqual(['chat-message-flash']);
         expect(revealLoadedMessage({ current: null }, { id: 'm1', sequence: 1 })).toBe(false);
     } finally {
         scope.CSS = saved.CSS;

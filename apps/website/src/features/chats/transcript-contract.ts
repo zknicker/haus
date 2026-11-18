@@ -4,6 +4,7 @@ import type {
     ImageGeneration,
     MessageCause,
     TaskLink,
+    TaskPreview,
 } from '@haus/api';
 import type { ClaimOrigin, MessageClaim } from '../claims/claim-presentation.ts';
 import type { TranscriptSystemRow } from './transcript-system-row.ts';
@@ -117,31 +118,13 @@ export interface TranscriptMessage {
     timestamp: string;
 }
 
-export interface TranscriptThreadReplyPreview {
-    authorAgentId: string | null;
-    authorUserId: string | null;
-    content: string;
-    createdAt: string;
-    id: string;
-}
-
-export interface TranscriptThreadSummary {
-    anchorMessageId: string;
-    followed: boolean;
-    latestReplyAt: string | null;
-    recentReplies?: TranscriptThreadReplyPreview[];
-    replyCount: number;
-    threadChatId: string;
-    unreadCount: number;
-}
-
 export interface TranscriptMessageRow {
     actor: TranscriptActor;
     connectsToNext: boolean;
     connectsToPrevious: boolean;
     /**
      * Set on a skeleton row only (specs/realtime-events.md): the `chat.message`
-     * entity it renders, and whether that entity carries a claim or a Thread.
+     * entity it renders, and whether that entity carries attached work.
      */
     entity?: { attachedWork: boolean; chatId: string; serverId: string };
     id: string;
@@ -150,7 +133,11 @@ export interface TranscriptMessageRow {
     message: TranscriptMessage;
     responseId?: string;
     runId?: string | null;
-    thread?: TranscriptThreadSummary | null;
+    /**
+     * The Tasks started from this Message (ADR 0052 decision 7), read off its
+     * `chat.message` entity, which owns them; empty for most Messages.
+     */
+    taskPreviews?: readonly TaskPreview[];
 }
 
 export interface TranscriptToolCall {

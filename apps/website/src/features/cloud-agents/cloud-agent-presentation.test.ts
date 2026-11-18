@@ -6,6 +6,7 @@ import {
     cloudAgentJobChipColor,
     cloudAgentJobText,
     cloudAgentJobTone,
+    cloudAgentRunStatusLabels,
     cloudAgentWorkBranch,
     cloudAgentWorkText,
     formatCloudAgentDuration,
@@ -198,4 +199,12 @@ test('launching reads Starting, a failed launch reads Stopped, and a requested s
     expect(cloudAgentWorkText(work({ cancelRequestedAt: new Date(now).toISOString() }), now)).toBe(
         'Stopping'
     );
+});
+
+test('every Run status reads as a person would say it, never the wire enum', () => {
+    expect(cloudAgentRunStatusLabels.pending_input).toBe('Waiting on you');
+    for (const label of Object.values(cloudAgentRunStatusLabels)) {
+        expect(label).not.toMatch(/_/u);
+        expect(label.charAt(0)).toBe(label.charAt(0).toUpperCase());
+    }
 });

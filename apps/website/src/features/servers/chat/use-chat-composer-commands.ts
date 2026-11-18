@@ -14,7 +14,7 @@ import type { MentionOption } from '../../mentions/mention-types.ts';
  * mention). A chat view kept mounted while hidden (`KeptChatViews`) keeps its
  * composer alive, so only the shown one answers, and a reveal focuses it as a
  * freshly mounted editor's autofocus would — so a composer that does not
- * autofocus is not refocused by a reveal either. Thread composers answer none.
+ * autofocus is not refocused by a reveal either.
  */
 export function useChatComposerCommands({
     agents,
@@ -22,7 +22,6 @@ export function useChatComposerCommands({
     focusOnReveal,
     focusTextEditor,
     insertMention,
-    thread,
     updateContent,
 }: {
     agents: readonly Agent[];
@@ -31,28 +30,27 @@ export function useChatComposerCommands({
     focusOnReveal: boolean;
     focusTextEditor: () => void;
     insertMention: (option: MentionOption) => void;
-    thread: boolean;
     updateContent: (update: (current: string) => string) => void;
 }) {
     const viewShown = useViewShown();
     useViewShownChange((shown) => {
-        if (shown && focusOnReveal && !thread) {
+        if (shown && focusOnReveal) {
             requestAnimationFrame(focusTextEditor);
         }
     });
-    useChatComposerFocusRequest(!thread, () => {
+    useChatComposerFocusRequest(() => {
         if (viewShown.isShown()) {
             focusTextEditor();
         }
     });
-    useChatComposerInsertRequest(!thread, (text) => {
+    useChatComposerInsertRequest((text) => {
         if (!viewShown.isShown()) {
             return;
         }
         updateContent((current) => appendComposerInsert(current, text));
         requestAnimationFrame(focusTextEditor);
     });
-    useChatComposerMentionRequest(thread ? null : (chatId ?? null), ({ agentId }) => {
+    useChatComposerMentionRequest(chatId ?? null, ({ agentId }) => {
         const agent = agents.find((candidate) => candidate.id === agentId);
         if (!(agent && viewShown.isShown())) {
             return;

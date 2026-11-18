@@ -15,9 +15,6 @@ const InboxActiveAgents = React.lazy(async () => ({
 const InboxUnread = React.lazy(async () => ({
     default: (await serverRouteModules.inbox()).InboxUnread,
 }));
-const CloudAgentWorkDialog = React.lazy(async () => ({
-    default: (await serverRouteModules.inbox()).CloudAgentWorkDialog,
-}));
 
 /**
  * The human Inbox: a lens over records that already exist elsewhere. It owns
@@ -79,9 +76,6 @@ export function InboxPage() {
                     </PageColumn>
                 </div>
             </div>
-            <React.Suspense fallback={null}>
-                <CloudAgentWorkDialog />
-            </React.Suspense>
         </>
     );
 }

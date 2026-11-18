@@ -4,6 +4,7 @@ import { CloudAgentKeycap } from '../../cloud-agents/cloud-agent-provider-mark.t
 import { CloudAgentStatusDisc } from '../../cloud-agents/cloud-agent-status-disc.tsx';
 import { AgentAvatar } from '../../members/agent-avatar.tsx';
 import type { HappeningNowRow } from './happening-now-rows.ts';
+import { happeningNowWorkSubline } from './happening-now-work.ts';
 import { InboxListMark, InboxListRow, inboxMarkSize } from './inbox-list-row.tsx';
 import { InboxRowList } from './inbox-section-rows.tsx';
 
@@ -49,7 +50,7 @@ export function HappeningNowList({
                         <ItemCard.Content>
                             <ItemCard.Title>{row.work.title}</ItemCard.Title>
                             <ItemCard.Description>
-                                {`${row.work.statusText} · ${row.work.chatLabel} · ${row.work.agentName}`}
+                                {happeningNowWorkSubline(row.work)}
                             </ItemCard.Description>
                         </ItemCard.Content>
                         <ItemCard.Action>

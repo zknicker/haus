@@ -24,15 +24,12 @@ import { earlierUnread } from './unread-row-model.ts';
  */
 export function UnreadRowContent({
     chatId,
-    conversationChatId,
     fallbackLine,
     onOpen,
     serverId,
 }: {
-    /** The Chat the waiting messages live in: the Channel or DM, or the Thread's own Chat. */
+    /** The Chat the waiting messages live in: the Channel, DM, or Task. */
     chatId: string;
-    /** The Channel or DM the messages belong to; a Thread names its parent. */
-    conversationChatId: string;
     fallbackLine: string;
     /** Opens the conversation scrolled to `message`, by default the card's newest waiting one. */
     onOpen: (message?: ChatMessageJumpTarget) => void;
@@ -71,7 +68,6 @@ export function UnreadRowContent({
             {revealed ? (
                 <UnreadRowMessages
                     chatId={chatId}
-                    conversationChatId={conversationChatId}
                     messages={preview.messages}
                     onOpenConversation={onOpen}
                     serverId={serverId}
@@ -79,7 +75,6 @@ export function UnreadRowContent({
             ) : (
                 <ClampedMessages
                     chatId={chatId}
-                    conversationChatId={conversationChatId}
                     messages={preview.messages.slice(-1)}
                     onOpen={onOpen}
                     serverId={serverId}
@@ -90,8 +85,8 @@ export function UnreadRowContent({
 }
 
 /**
- * The one message a card shows — the newest waiting one, or a Task's context
- * message — clamped to a few lines so every card is about the same height and
+ * The one message a card shows — the newest waiting one — clamped to a few
+ * lines so every card is about the same height and
  * the reader's eye moves card to card. The clamp is a clipping box around the
  * transcript's own rendering, never a restyle of it, fading out where it cuts;
  * "Show more" lifts it, and appears only when the message is actually taller
@@ -99,13 +94,11 @@ export function UnreadRowContent({
  */
 export function ClampedMessages({
     chatId,
-    conversationChatId,
     messages,
     onOpen,
     serverId,
 }: {
     chatId: string;
-    conversationChatId: string;
     messages: readonly ChatMessage[];
     onOpen: () => void;
     serverId: string;
@@ -130,7 +123,6 @@ export function ClampedMessages({
             >
                 <UnreadRowMessages
                     chatId={chatId}
-                    conversationChatId={conversationChatId}
                     messages={messages}
                     onOpenConversation={onOpen}
                     serverId={serverId}

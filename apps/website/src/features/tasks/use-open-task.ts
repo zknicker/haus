@@ -7,8 +7,5 @@ import { taskRoute } from '../servers/server-routes.ts';
 export function useOpenTask() {
     const { server } = useServerContext();
     const navigate = useNavigate();
-    return (task: Pick<Task, 'key' | 'number'>) => {
-        const boardKey = task.key.slice(0, task.key.lastIndexOf('-'));
-        navigate(taskRoute(server.slug, boardKey, task.number));
-    };
+    return (task: Pick<Task, 'key'>) => navigate(taskRoute(server.slug, task.key));
 }

@@ -87,7 +87,7 @@ const automationNoun = {
  * under it, the way an invite's body sits under its subject. The cadence
  * follows, one fact line carries status and history, and the standing
  * instruction or script is clipped to a glance. Managing the automation happens from the Agent's
- * Automations tab or the Thread context card, never from a hover.
+ * Automations tab, never from a hover.
  */
 export function MessageCauseHoverContent({ cause }: { cause: MessageCause }) {
     const attributionNote = messageCauseAttributionNote(cause);

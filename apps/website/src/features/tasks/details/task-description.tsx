@@ -1,0 +1,127 @@
+import { TASK_DESCRIPTION_MAX_CHARS, type TaskDetail } from '@haus/api';
+import { Button, Disclosure, TextArea, TextField } from '@heroui/react';
+import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useUpdateTask } from '../../../hooks/tasks/use-update-task.ts';
+import { messagePreviewLine } from '../../chats/message-preview-line.ts';
+import { ReferenceMarkdown } from '../../mentions/reference-markdown.tsx';
+import { readReferenceMentions } from '../../mentions/reference-mentions.ts';
+import { useReferenceDirectory } from '../../mentions/use-reference-directory.ts';
+import { useChatReferenceActivation } from '../../servers/chat/use-chat-reference-activation.ts';
+import { useServerContext } from '../../servers/server-context.ts';
+import { serverChatRoute } from '../../servers/server-routes.ts';
+import { SettingsRowError } from '../../settings/layout/settings-text.tsx';
+
+type DescribedTask = Pick<
+    TaskDetail,
+    'description' | 'descriptionContent' | 'descriptionTaskLinks' | 'id' | 'serverId' | 'version'
+>;
+
+/**
+ * The markdown description, collapsed to its first line until the reader
+ * opens it, and edited in place as source text: it is what an Agent reads and
+ * writes too. An empty description goes straight to the editor.
+ */
+export function TaskDescription({ task }: { task: DescribedTask }) {
+    const [draft, setDraft] = React.useState<null | string>(null);
+
+    if (draft !== null) {
+        return <DescriptionEditor draft={draft} onDraftChange={setDraft} task={task} />;
+    }
+    if (!task.description) {
+        return (
+            <Button onPress={() => setDraft('')} size="sm" variant="ghost">
+                Add description
+            </Button>
+        );
+    }
+    return (
+        <Disclosure>
+            <Disclosure.Heading>
+                <Button className="max-w-full" size="sm" slot="trigger" variant="ghost">
+                    <Disclosure.Indicator />
+                    <span className="min-w-0 truncate">{messagePreviewLine(task.description)}</span>
+                </Button>
+            </Disclosure.Heading>
+            <Disclosure.Content>
+                <Disclosure.Body className="flex flex-col items-start gap-2 pt-1">
+                    <DescriptionBody task={task} />
+                    <Button onPress={() => setDraft(task.description)} size="sm" variant="ghost">
+                        Edit description
+                    </Button>
+                </Disclosure.Body>
+            </Disclosure.Content>
+        </Disclosure>
+    );
+}
+
+function DescriptionEditor({
+    draft,
+    onDraftChange,
+    task,
+}: {
+    draft: string;
+    onDraftChange: (draft: null | string) => void;
+    task: DescribedTask;
+}) {
+    const update = useUpdateTask();
+    return (
+        <div className="flex flex-col gap-2">
+            <TextField aria-label="Description" fullWidth onChange={onDraftChange} value={draft}>
+                <TextArea autoFocus maxLength={TASK_DESCRIPTION_MAX_CHARS} rows={6} />
+            </TextField>
+            <SettingsRowError>{update.error?.message}</SettingsRowError>
+            <div className="flex items-center gap-2">
+                <Button
+                    isPending={update.isPending}
+                    onPress={() =>
+                        update.mutate(
+                            {
+                                expectedVersion: task.version,
+                                patch: { description: draft },
+                                serverId: task.serverId,
+                                taskId: task.id,
+                            },
+                            { onSuccess: () => onDraftChange(null) }
+                        )
+                    }
+                    size="sm"
+                >
+                    Save
+                </Button>
+                <Button onPress={() => onDraftChange(null)} size="sm" variant="ghost">
+                    Cancel
+                </Button>
+            </div>
+        </div>
+    );
+}
+
+/**
+ * The description reads like a message: the Server's resolved form renders
+ * through the chat path, so its references are the same chips with the same
+ * hover cards, and a press opens the Channel, Agent, or Task.
+ */
+export function DescriptionBody({ task }: { task: DescribedTask }) {
+    const { server } = useServerContext();
+    const navigate = useNavigate();
+    const directory = useReferenceDirectory(task.serverId);
+    const activateReference = useChatReferenceActivation((chatId) =>
+        navigate(serverChatRoute(server.slug, chatId))
+    );
+    const mentions = readReferenceMentions(
+        task.descriptionContent,
+        task.descriptionTaskLinks,
+        directory
+    );
+
+    return (
+        <ReferenceMarkdown
+            content={task.descriptionContent}
+            mentions={mentions}
+            onReferenceActivate={activateReference}
+            previewReferences
+            serverId={task.serverId}
+        />
+    );
+}

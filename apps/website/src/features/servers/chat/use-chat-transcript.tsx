@@ -7,14 +7,9 @@ import { useAttachedWorkIds } from '../../../hooks/servers/use-attached-work-ids
 import { useAttachmentDownload } from '../../../hooks/servers/use-attachment-download.ts';
 import { useChatMessageReaction } from '../../../hooks/servers/use-chat-message-reaction.ts';
 import { useChatAppearances } from '../../../hooks/servers/use-chats.ts';
-import { useChatCloudAgentWork } from '../../../hooks/servers/use-cloud-agent-work.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx';
-import type {
-    TranscriptMessageRow,
-    TranscriptRenderContextValue,
-} from '../../chats/chat-transcript-render-context.tsx';
-import { indexCloudAgentWorkByThreadAnchor } from '../../cloud-agents/hoisted-cloud-agent-work.ts';
+import type { TranscriptRenderContextValue } from '../../chats/chat-transcript-render-context.tsx';
 import { useResolveActorProfile } from './chat-actor-profiles.ts';
 import {
     emptyChatMessageLayouts,
@@ -32,20 +27,16 @@ const emptyPendingMessages: readonly PendingChatMessage[] = [];
 
 /** Rows and render context retain identity across unchanged refetches to avoid rerendering every turn. */
 export function useChatTranscript({
-    causeLineHidden,
     chatId,
-    conversationChatId,
     messages,
     onOpenArtifact,
     onOpenInlineReply,
-    onOpenThread,
     onReferenceActivate,
     onSelectInlineReply,
     onStartDm,
     pendingMessages = emptyPendingMessages,
     replyTargetMessageId,
     serverId,
-    claimChipHiddenMessageId,
     turnDetailsAccess = 'summary',
     viewerUserId,
 }: ChatTranscriptInput) {
@@ -85,14 +76,6 @@ export function useChatTranscript({
         () => new Map(agentList.map((agent) => [agent.id, agent])),
         [agentList]
     );
-    // All work delegated inside a Thread, indexed by that Thread's anchor: the
-    // transcript surface owns this read, and each row only looks its own
-    // Message up. `cloud-agent-work.updated` already invalidates the list.
-    const threadCloudAgentWork = useChatCloudAgentWork(serverId, conversationChatId ?? chatId);
-    const hoistedCloudAgentWork = React.useMemo(
-        () => indexCloudAgentWorkByThreadAnchor(threadCloudAgentWork.data),
-        [threadCloudAgentWork.data]
-    );
     // Reference chips read only a chat's mark; the list itself changes on every message.
     const chatsById = useChatAppearances(serverId);
     // Read through a ref: these lookups answer a click or a row's own render,
@@ -126,16 +109,6 @@ export function useChatTranscript({
         },
         [lookupRef, queryClient]
     );
-    const handleOpenThread = React.useCallback(
-        (row: TranscriptMessageRow) => {
-            const entity = readEntity(row.message.id);
-
-            if (entity) {
-                onOpenThread?.(entity.message, entity.thread);
-            }
-        },
-        [onOpenThread, readEntity]
-    );
     const handleSelectInlineReply = React.useCallback(
         (message: TranscriptMessage) => {
             const entity = readEntity(message.id);
@@ -151,7 +124,6 @@ export function useChatTranscript({
             ({
                 canRequestMention: true,
                 chatId,
-                conversationChatId: conversationChatId ?? chatId,
                 conversationLayout,
                 defaultOpenWorkGroups: false,
                 flashMessageId: null,
@@ -161,7 +133,6 @@ export function useChatTranscript({
                     serverId,
                 },
                 hiddenCount: 0,
-                hoistedCloudAgentWork,
                 onActorClick: onStartDm
                     ? (actor) => {
                           if (actor?.kind === 'participant') {
@@ -170,10 +141,8 @@ export function useChatTranscript({
                       }
                     : undefined,
                 onOpenInlineReply,
-                onOpenThread: handleOpenThread,
                 onSelectInlineReply: onSelectInlineReply ? handleSelectInlineReply : undefined,
                 onToggleReaction,
-                onUnfollowThread: () => undefined,
                 openAgentProfile,
                 projectMessageEntity,
                 renderMessageAttachments,
@@ -188,24 +157,16 @@ export function useChatTranscript({
                         serverId={serverId}
                     />
                 ),
-                causeLineHidden,
                 repliedRunIds: new Set<string>(),
                 resolveActorProfile,
-                claimChipHiddenMessageId,
-                threadActionsEnabled: Boolean(onOpenThread),
                 viewerUserId,
             }) satisfies TranscriptRenderContextValue,
         [
             agentsById,
-            causeLineHidden,
             chatId,
             chatsById,
-            conversationChatId,
-            handleOpenThread,
             handleSelectInlineReply,
-            hoistedCloudAgentWork,
             humans,
-            onOpenThread,
             onOpenInlineReply,
             onOpenArtifact,
             onReferenceActivate,
@@ -218,7 +179,6 @@ export function useChatTranscript({
             replyTargetMessageId,
             resolveActorProfile,
             serverId,
-            claimChipHiddenMessageId,
             turnDetailsAccess,
             viewerUserId,
         ]

@@ -3,7 +3,7 @@ import type { ClaimOrigin } from './claim-presentation.ts';
 
 /**
  * Per-device preference for showing Agent claims in the Chat transcript.
- * Thread replies do not override it; human-created claims remain visible.
+ * Human-created claims remain visible whatever it says.
  * An external store keeps the preference shared without a transcript provider.
  */
 const storageKey = 'haus.chat.showClaims';

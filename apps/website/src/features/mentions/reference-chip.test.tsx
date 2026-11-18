@@ -65,7 +65,7 @@ test('keeps the hover-card trigger span on the text baseline', () => {
     );
 });
 
-test('renders a readable thread chip without exposing its anchor id', () => {
+test('a link to one Message reads as its Chat, without exposing the Message id', () => {
     const markup = renderToStaticMarkup(
         <ReferenceChip
             id="chat://cht_product?thread=OB4fLQYW"
@@ -74,7 +74,7 @@ test('renders a readable thread chip without exposing its anchor id', () => {
             onActivate={() => undefined}
         />
     );
-    expect(markup).toContain('aria-label="Open product thread"');
+    expect(markup).toContain('aria-label="Open product"');
     expect(markup).toContain('data-slot="chip"');
     expect(markup).not.toContain('OB4fLQYW');
 });

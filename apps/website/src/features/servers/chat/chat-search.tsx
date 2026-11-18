@@ -16,7 +16,6 @@ import { PageBand } from '../../shell/page-band.tsx';
 import {
     ChatSearchFilterRow,
     defaultSearchFilterSelection,
-    searchResultChatId,
     searchResultLabel,
     useSearchApiFilters,
 } from './chat-search-filters.tsx';
@@ -111,7 +110,7 @@ export function ChatSearch({
                         />
                     ) : (
                         <SearchEmptyState
-                            description="Type to find messages in channels, threads, and DMs."
+                            description="Type to find messages in channels, Tasks, and DMs."
                             title="Search this Server"
                         />
                     )}
@@ -167,7 +166,7 @@ function SearchResults({
                 {matches.map((message) => (
                     <li key={message.id}>
                         <SearchResultRow
-                            chat={chatById.get(searchResultChatId(message))}
+                            chat={chatById.get(message.chatId)}
                             message={message}
                             onOpen={() => onOpenResult(message)}
                             query={query}
@@ -192,7 +191,7 @@ function SearchResultRow({
 }) {
     const author = messageAuthor(message);
     // A DM's agent is already the author; repeating it as the label stutters.
-    const rawLabel = searchResultLabel(message, chat);
+    const rawLabel = searchResultLabel(chat);
     const label = rawLabel === author.name ? null : rawLabel;
 
     // Stock ItemCard rendered as a button per its Pressable pattern. Its

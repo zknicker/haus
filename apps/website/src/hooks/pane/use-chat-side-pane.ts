@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-export type ChatSidePaneKind = 'artifact' | 'files' | 'thread';
+export type ChatSidePaneKind = 'artifact' | 'files';
 
 const activePanes = new Map<string, ChatSidePaneKind>();
 const listeners = new Set<() => void>();

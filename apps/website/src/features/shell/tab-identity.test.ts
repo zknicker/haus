@@ -6,7 +6,6 @@ const app = (path: string) => ({ kind: 'app', path }) as const;
 const records: TabIdentityRecords = {
     artifactTitle: null,
     agents: [{ avatarUrl: 'https://a/blippy.png', displayName: 'Blippy', id: 'ag1' }],
-    boardName: null,
     browserTab: null,
     chats: [
         {
@@ -28,20 +27,17 @@ const records: TabIdentityRecords = {
             peerAgentId: 'ag1',
         },
     ],
-    threadExcerpt: null,
 };
 
 test('app paths parse to the page they show', () => {
-    expect(parseTabPage(app('/s/acme/chats/c1?thread=m1'))).toEqual({ chatId: 'c1', kind: 'chat' });
+    expect(parseTabPage(app('/s/acme/chats/c1?message=m1'))).toEqual({
+        chatId: 'c1',
+        kind: 'chat',
+    });
     expect(parseTabPage(app('/s/acme/dm/ag1'))).toEqual({ agentId: 'ag1', kind: 'dm' });
     expect(parseTabPage(app('/s/acme/agents/ag1/setup'))).toEqual({
         agentId: 'ag1',
         kind: 'agent',
-    });
-    expect(parseTabPage(app('/s/acme/threads/c1/m1'))).toEqual({
-        anchorMessageId: 'm1',
-        chatId: 'c1',
-        kind: 'thread',
     });
     expect(parseTabPage(app('/s/acme/files/c1'))).toEqual({ chatId: 'c1', kind: 'files' });
     expect(parseTabPage(app('/s/acme/artifacts/workspaceFile%3Aag1%3Aplan.md?title=Plan'))).toEqual(
@@ -84,15 +80,11 @@ test('a page whose record has not loaded keeps an empty slot', () => {
     ).toEqual({ label: '', mark: { kind: 'none' }, place: null });
 });
 
-test('Thread and Attachments pages wear their chat mark and name it as context', () => {
-    const thread = resolveTabIdentity(parseTabPage(app('/s/acme/threads/c1/m1')), {
-        ...records,
-        threadExcerpt: 'Ship it',
-    });
-    expect(thread).toEqual({
-        label: 'Ship it',
+test('an Attachments page wears its chat mark and names it as context', () => {
+    expect(resolveTabIdentity(parseTabPage(app('/s/acme/files/c1')), records)).toEqual({
+        label: 'Attachments',
         mark: { color: 'blue', icon: 'Rocket01Icon', kind: 'channel' },
-        place: '#product › thread',
+        place: '#product › attachments',
     });
     expect(resolveTabIdentity(parseTabPage(app('/s/acme/files/d1')), records).place).toBe(
         'DM › attachments'
@@ -118,22 +110,8 @@ test('a shared artifact tab shows its file title once the record loads', () => {
     expect(resolveTabIdentity(workspace, records).label).toBe('Workspace');
 });
 
-test('a board tab reads its name; a Task tab reads its key from the address alone', () => {
-    const board = parseTabPage(app('/s/acme/tasks/SEC'));
-    expect(board).toEqual({ boardKey: 'SEC', kind: 'board' });
-    expect(resolveTabIdentity(board, { ...records, boardName: 'Security' })).toEqual({
-        label: 'Security',
-        mark: { glyph: 'board', kind: 'glyph' },
-        place: null,
-    });
-    // The glyph holds the slot while `board.list` loads.
-    expect(resolveTabIdentity(board, records)).toEqual({
-        label: '',
-        mark: { glyph: 'board', kind: 'glyph' },
-        place: null,
-    });
-
-    const task = parseTabPage(app('/s/acme/tasks/SEC/12'));
+test('a Task tab reads its key from the address alone', () => {
+    const task = parseTabPage(app('/s/acme/tasks/SEC-12'));
     expect(task).toEqual({ kind: 'task', taskKey: 'SEC-12' });
     expect(resolveTabIdentity(task, records)).toEqual({
         label: 'SEC-12',
@@ -141,7 +119,7 @@ test('a board tab reads its name; a Task tab reads its key from the address alon
         place: null,
     });
     // An address no key parses reads as the section it redirects to.
-    expect(parseTabPage(app('/s/acme/tasks/SEC/abc'))).toEqual({
+    expect(parseTabPage(app('/s/acme/tasks/SEC'))).toEqual({
         kind: 'section',
         section: 'tasks',
     });

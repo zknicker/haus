@@ -6,8 +6,8 @@ const preview = (chatId: string) =>
     ({ chatId, earlierUnreadCount: 0, messages: [] }) as unknown as ChatUnreadPreview;
 
 test('a row selects its own preview by Chat id', () => {
-    const thread = preview('cht_thread');
-    expect(findUnreadPreview({ previews: [preview('cht_a'), thread] }, 'cht_thread')).toBe(thread);
+    const task = preview('cht_task');
+    expect(findUnreadPreview({ previews: [preview('cht_a'), task] }, 'cht_task')).toBe(task);
 });
 
 test('a settled list that does not name the row yet answers null, not undefined', () => {

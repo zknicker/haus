@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { Chat, ChatMessage, UnreadThread } from '@haus/api';
+import type { Chat, ChatMessage } from '@haus/api';
 import {
     earlierUnread,
     initialUnreadSelection,
@@ -8,7 +8,7 @@ import {
     stepSelection,
     unreadRowReadInput,
 } from './unread-row-model.ts';
-import type { UnreadRow } from './unread-rows.ts';
+import type { FollowedTaskPreview, UnreadRow } from './unread-rows.ts';
 
 const serverId = 'srv_1';
 
@@ -18,15 +18,13 @@ const chatRow = {
     kind: 'chat',
 } satisfies UnreadRow;
 
-const threadRow = {
-    id: 'cht_thread',
-    kind: 'thread',
-    parent: { id: 'cht_a', lastMessageSequence: 12 } as Chat,
-    thread: {
-        lastMessageSequence: 4,
-        parentChatId: 'cht_a',
-        threadChatId: 'cht_thread',
-    } as UnreadThread,
+const taskRow = {
+    id: 'cht_task',
+    kind: 'task-chat',
+    preview: {
+        chatId: 'cht_task',
+        messages: [{ sequence: 3 }, { sequence: 4 }],
+    } as unknown as FollowedTaskPreview,
 } satisfies UnreadRow;
 
 function rowsOf(...ids: string[]): UnreadRow[] {
@@ -34,27 +32,20 @@ function rowsOf(...ids: string[]): UnreadRow[] {
 }
 
 describe('unreadRowReadInput', () => {
-    test('Mark read on a Chat reads it and every Thread under it', () => {
-        expect(unreadRowReadInput(chatRow, serverId, 'mark-read')).toEqual({
-            chatId: 'cht_a',
-            includeThreads: true,
-            sequence: 12,
-            serverId,
-        });
-    });
-
-    test('a reply in a Chat reads only the Chat, leaving its Thread rows unread', () => {
-        expect(unreadRowReadInput(chatRow, serverId, 'reply')).toEqual({
+    test('a Chat row reads its Chat through its newest message', () => {
+        expect(unreadRowReadInput(chatRow, serverId)).toEqual({
             chatId: 'cht_a',
             sequence: 12,
             serverId,
         });
     });
 
-    test('a Thread row reads the Thread’s own Chat either way, never its parent', () => {
-        const expected = { chatId: 'cht_thread', sequence: 4, serverId };
-        expect(unreadRowReadInput(threadRow, serverId, 'mark-read')).toEqual(expected);
-        expect(unreadRowReadInput(threadRow, serverId, 'reply')).toEqual(expected);
+    test('a Task row reads the Task’s Chat through the newest message it shows', () => {
+        expect(unreadRowReadInput(taskRow, serverId)).toEqual({
+            chatId: 'cht_task',
+            sequence: 4,
+            serverId,
+        });
     });
 });
 

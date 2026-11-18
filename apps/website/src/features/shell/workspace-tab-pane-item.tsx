@@ -8,12 +8,7 @@ import { isTabSelected } from '../../hooks/desktop-tabs/desktop-tabs-selection.t
 import { revealTab } from './tab-drag/tab-reveal.ts';
 import { useTabDragHandlers } from './tab-drag/tab-rows-drag.tsx';
 import { parseTabPage, type TabIdentity } from './tab-identity.ts';
-import {
-    useBoardTabName,
-    useSharedArtifactTabTitle,
-    useTabIdentity,
-    useThreadTabExcerpt,
-} from './use-tab-identity.ts';
+import { useSharedArtifactTabTitle, useTabIdentity } from './use-tab-identity.ts';
 import { WorkspaceTab, WorkspaceTabAction, WorkspaceTabLabel } from './workspace-tab.tsx';
 import { TabIdentityMark } from './workspace-tab-mark.tsx';
 
@@ -38,9 +33,6 @@ export function PaneTab({
     }
     const location = currentLocation(tab);
     const page = parseTabPage(location);
-    if (page.kind === 'thread') {
-        return <ThreadPaneTab dragging={dragging} location={location} page={page} tabId={tabId} />;
-    }
     if (page.kind === 'artifact' && page.shared) {
         return (
             <SharedArtifactPaneTab
@@ -50,9 +42,6 @@ export function PaneTab({
                 tabId={tabId}
             />
         );
-    }
-    if (page.kind === 'board') {
-        return <BoardPaneTab dragging={dragging} location={location} page={page} tabId={tabId} />;
     }
     return <PlainPaneTab dragging={dragging} location={location} tabId={tabId} />;
 }
@@ -67,17 +56,6 @@ function PlainPaneTab(props: PaneTabProps) {
     return <PaneTabView identity={useTabIdentity(props.location)} {...props} />;
 }
 
-/** A Thread tab reads its root message, so only Thread tabs mount the transcript query. */
-function ThreadPaneTab({
-    page,
-    ...props
-}: PaneTabProps & {
-    page: Extract<ReturnType<typeof parseTabPage>, { kind: 'thread' }>;
-}) {
-    const threadExcerpt = useThreadTabExcerpt(page);
-    return <PaneTabView identity={useTabIdentity(props.location, { threadExcerpt })} {...props} />;
-}
-
 /** A shared artifact tab reads its file's record for the title, as its page does. */
 function SharedArtifactPaneTab({
     shared,
@@ -87,17 +65,6 @@ function SharedArtifactPaneTab({
 }) {
     const artifactTitle = useSharedArtifactTabTitle(shared);
     return <PaneTabView identity={useTabIdentity(props.location, { artifactTitle })} {...props} />;
-}
-
-/** A board tab reads the board list for its name, as its page does. */
-function BoardPaneTab({
-    page,
-    ...props
-}: PaneTabProps & {
-    page: Parameters<typeof useBoardTabName>[0];
-}) {
-    const boardName = useBoardTabName(page);
-    return <PaneTabView identity={useTabIdentity(props.location, { boardName })} {...props} />;
 }
 
 function PaneTabView({

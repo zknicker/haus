@@ -35,7 +35,7 @@
     }
 }
 
-@keyframes chat-thread-flash {
+@keyframes chat-message-flash {
     0%,
     24% {
         background-color: var(--warning-soft);
@@ -47,8 +47,8 @@
     }
 }
 
-.chat-thread-flash {
-    animation: chat-thread-flash 1.5s ease-out both;
+.chat-message-flash {
+    animation: chat-message-flash 1.5s ease-out both;
 }
 
 /* Segments of one reply share the Markdown paragraph step. */
@@ -182,7 +182,7 @@
         transition: none !important;
     }
 
-    .chat-thread-flash {
+    .chat-message-flash {
         animation: none !important;
     }
 

@@ -4,8 +4,8 @@ import * as React from 'react';
  * Whether a kept view is on screen, readable without re-rendering. A chat view
  * kept mounted (and effect-alive) while hidden (`KeptChatViews`) gates its
  * imperative work on this: window listeners, animation loops, and timers check
- * `isShown()` when they fire, and reveal-time work (composer focus, Thread pane
- * sync) runs from `useViewShownChange`. A component that renders differently
+ * `isShown()` when they fire, and reveal-time work (composer focus, pending
+ * message reveal) runs from `useViewShownChange`. A component that renders differently
  * while hidden reads `useTabPresence().shown` instead, which re-renders it.
  */
 export interface ViewShown {

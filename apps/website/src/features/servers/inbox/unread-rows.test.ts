@@ -1,21 +1,9 @@
 import { expect, test } from 'bun:test';
-import type { Chat, TaskInboxItem, UnreadThread } from '@haus/api';
-import { countUnreadRows, selectUnreadRows, unreadChatFacts } from './unread-rows.ts';
+import type { Chat, ChatUnreadPreview } from '@haus/api';
+import { countUnreadChats, followedTaskPreviews, selectUnreadRows } from './unread-rows.ts';
 
 function chat(id: string, unreadCount: number, lastActivityAt: null | string): Chat {
     return { id, lastActivityAt, unreadCount } as Chat;
-}
-
-function thread(
-    threadChatId: string,
-    parentChatId: string,
-    lastActivityAt: null | string
-): UnreadThread {
-    return { lastActivityAt, parentChatId, threadChatId, unreadCount: 1 } as UnreadThread;
-}
-
-function taskItem(id: string, assignedAt: string): TaskInboxItem {
-    return { assignedAt, task: { id } } as TaskInboxItem;
 }
 
 const ids = (rows: ReturnType<typeof selectUnreadRows>) => rows.map((row) => row.id);
@@ -29,7 +17,7 @@ test('Unread is every Chat with anything unread, newest activity first', () => {
         chat('cht_offset', 1, '2026-10-01T11:00:00.000-04:00'),
         chat('cht_newer', 5, '2026-10-01T14:00:00.000Z'),
     ];
-    expect(ids(selectUnreadRows(chats, []))).toEqual([
+    expect(ids(selectUnreadRows(chats))).toEqual([
         'cht_offset',
         'cht_newer',
         'cht_older',
@@ -37,74 +25,38 @@ test('Unread is every Chat with anything unread, newest activity first', () => {
     ]);
 });
 
-test('unread Threads are their own rows, merged by activity, under a read parent too', () => {
-    const chats = [
-        chat('cht_read', 0, '2026-10-01T12:00:00.000Z'),
-        chat('cht_lit', 1, '2026-10-01T10:00:00.000Z'),
-    ];
-    const rows = selectUnreadRows(chats, [
-        thread('thr_new', 'cht_read', '2026-10-01T13:00:00.000Z'),
-        thread('thr_old', 'cht_lit', '2026-10-01T08:00:00.000Z'),
-    ]);
+test('the badge counts exactly the Chat rows the section lists', () => {
+    const chats = [chat('cht_read', 0, null), chat('cht_lit', 3, null), chat('cht_dm', 1, null)];
 
-    expect(ids(rows)).toEqual(['thr_new', 'cht_lit', 'thr_old']);
-    expect(rows[0]).toMatchObject({ kind: 'thread', parent: { id: 'cht_read' } });
-});
-
-test('Task items merge into the feed by their assignment, one card per Task', () => {
-    const chats = [chat('cht_lit', 1, '2026-10-01T10:00:00.000Z')];
-    const rows = selectUnreadRows(
-        chats,
-        [thread('thr_old', 'cht_lit', '2026-10-01T08:00:00.000Z')],
-        [
-            taskItem('tsk_new', '2026-10-01T12:00:00.000Z'),
-            // 05:00 at -04:00 is 09:00Z: between the Thread and the Chat.
-            taskItem('tsk_mid', '2026-10-01T05:00:00.000-04:00'),
-        ]
-    );
-
-    expect(ids(rows)).toEqual(['tsk_new', 'cht_lit', 'tsk_mid', 'thr_old']);
-    expect(rows[0]).toMatchObject({ kind: 'task', item: { task: { id: 'tsk_new' } } });
-});
-
-test('the badge counts Task items with the rows they sit among', () => {
-    const chats = [chat('cht_lit', 3, null)];
-    const items = [taskItem('tsk_a', '2026-10-01T12:00:00.000Z')];
-
-    const count = countUnreadRows(unreadChatFacts(chats), [], items.length);
-
-    expect(count).toBe(2);
-    expect(count).toBe(selectUnreadRows(chats, [], items).length);
-});
-
-test('a Thread whose parent the list does not hold yet waits for it', () => {
-    expect(selectUnreadRows([], [thread('thr_orphan', 'cht_missing', null)])).toEqual([]);
-});
-
-test('the badge counts exactly the rows the section lists', () => {
-    const chats = [chat('cht_read', 0, null), chat('cht_lit', 3, null)];
-    const threads = [
-        thread('thr_a', 'cht_read', null),
-        thread('thr_b', 'cht_lit', null),
-        thread('thr_orphan', 'cht_missing', null),
-    ];
-
-    const count = countUnreadRows(
-        unreadChatFacts(chats),
-        threads.map((entry) => entry.parentChatId)
-    );
-
-    expect(count).toBe(3);
-    expect(count).toBe(selectUnreadRows(chats, threads).length);
-});
-
-test('the badge facts hold still while a count moves inside an unread Chat', () => {
-    const before = unreadChatFacts([chat('cht_b', 1, null), chat('cht_a', 2, null)]);
-    const after = unreadChatFacts([chat('cht_a', 3, null), chat('cht_b', 1, null)]);
-
-    expect(after).toEqual(before);
+    expect(countUnreadChats(chats)).toBe(2);
+    expect(countUnreadChats(chats)).toBe(selectUnreadRows(chats).length);
 });
 
 test('nothing unread is an empty Unread', () => {
-    expect(selectUnreadRows([chat('cht_read', 0, null)], [])).toEqual([]);
+    expect(selectUnreadRows([chat('cht_read', 0, null)])).toEqual([]);
+});
+
+test('a followed Task with unread messages is a row like a Channel, by its newest message', () => {
+    const previews = [
+        { chatId: 'cht_lit', messages: [{ createdAt: '2026-10-01T09:00:00.000Z' }], task: null },
+        {
+            chatId: 'cht_task',
+            messages: [{ createdAt: '2026-10-01T10:00:00.000Z' }],
+            task: {
+                key: 'SEC-1',
+                originChatId: 'cht_lit',
+                state: 'open',
+                taskId: 'tsk_1',
+                title: 'T',
+            },
+        },
+    ] as ChatUnreadPreview[];
+    const tasks = followedTaskPreviews(previews);
+    const chats = [chat('cht_lit', 1, '2026-10-01T09:00:00.000Z')];
+
+    expect(tasks.map((preview) => preview.chatId)).toEqual(['cht_task']);
+    const rows = selectUnreadRows(chats, tasks);
+    expect(ids(rows)).toEqual(['cht_task', 'cht_lit']);
+    expect(rows[0]).toMatchObject({ kind: 'task-chat' });
+    expect(countUnreadChats(chats) + tasks.length).toBe(rows.length);
 });

@@ -28,6 +28,7 @@ export function testChat(overrides: Partial<Chat> = {}): Chat {
         peerAgentRetired: false,
         peerUserId: null,
         serverId: 'server_one',
+        taskKeyId: null,
         unreadCount: 0,
         ...overrides,
     };

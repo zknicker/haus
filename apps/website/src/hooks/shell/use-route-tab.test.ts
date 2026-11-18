@@ -9,7 +9,6 @@ describe('app route tab', () => {
             { id: 'activity', label: 'Activity', path: '/activity' },
             { id: 'inbox', label: 'Inbox', path: '/inbox' },
             { id: 'tasks', label: 'Tasks', path: '/tasks' },
-            { id: 'threads', label: 'Threads', path: '/threads' },
             { id: 'artifacts', label: 'Files', path: '/artifacts' },
             { id: 'members', label: 'Members', path: '/settings/members' },
         ]);

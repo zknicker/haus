@@ -103,13 +103,8 @@ async function describeMessage(
     if (!message) {
         return null;
     }
-    const anchorMessageId = event.parentChatId
-        ? (await client.thread.get.query({ serverId: event.serverId, threadChatId: event.chatId }))
-              .anchorMessageId
-        : null;
     return messageNotificationText({
-        anchorMessageId,
-        conversationChatId: event.parentChatId ?? event.chatId,
+        chatId: event.chatId,
         message,
         names: context.names,
         reason,

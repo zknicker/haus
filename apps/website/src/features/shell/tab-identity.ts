@@ -1,4 +1,4 @@
-import { type Agent, type Chat, formatTaskKey, parseTaskKey } from '@haus/api';
+import { type Agent, type Chat, parseTaskKey } from '@haus/api';
 import type { TabLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import type { BrowserTab } from '../../lib/desktop-browser.ts';
 import { parseArtifactPageKey } from '../../routes/app/desktop-page-paths.ts';
@@ -13,7 +13,7 @@ export interface TabIdentity {
     /** Empty while the record behind the page loads; the tab keeps its slot. */
     label: string;
     mark: TabMark;
-    /** A second tooltip line naming where the page sits (a URL, `#general › thread`). */
+    /** A second tooltip line naming where the page sits (a URL, `#general › attachments`). */
     place: string | null;
 }
 
@@ -21,7 +21,7 @@ export type TabMark =
     | { kind: 'avatar'; name: string; src: string | null }
     | { kind: 'channel'; color: string | null; icon: string | null }
     | { kind: 'favicon'; loading: boolean; url: string | null }
-    | { kind: 'glyph'; glyph: 'artifact' | 'board' | 'files' | 'newTab' | 'task' | AppSection }
+    | { kind: 'glyph'; glyph: 'artifact' | 'files' | 'newTab' | 'task' | AppSection }
     | { kind: 'none' };
 
 /** What a location shows, before any record is looked up. */
@@ -33,22 +33,19 @@ export type TabPage =
           shared: { artifactId: string; revisionId: string | null } | null;
           title: string | null;
       }
-    | { kind: 'board'; boardKey: string }
     | { kind: 'browser'; title: string; url: string; viewId: string }
     | { kind: 'chat'; chatId: string }
     | { kind: 'dm'; agentId: string }
     | { kind: 'files'; chatId: string }
     | { kind: 'newTab' }
     | { kind: 'section'; section: AppSection }
-    | { kind: 'task'; taskKey: string }
-    | { kind: 'thread'; anchorMessageId: string; chatId: string };
+    | { kind: 'task'; taskKey: string };
 
 /**
  * Parses a tab location. App paths are `/s/<slug>/<section>/<id>…`; desktop
- * Thread, Attachments, and artifact pages are `threads/<chatId>/<anchorId>`,
- * `files/<chatId>`, and `artifacts/<key>?title=…`; a shared library file is
- * `artifacts/<artifactId>`, titled from its record. A board is
- * `tasks/<boardKey>` and a Task `tasks/<boardKey>/<number>`.
+ * Attachments and artifact pages are `files/<chatId>` and
+ * `artifacts/<key>?title=…`; a shared library file is
+ * `artifacts/<artifactId>`, titled from its record. A Task is `tasks/<KEY>`.
  */
 export function parseTabPage(location: TabLocation): TabPage {
     if (location.kind === 'browser') {
@@ -73,10 +70,6 @@ export function parseTabPage(location: TabLocation): TabPage {
             return first ? { kind: 'dm', agentId: first } : sectionPage(pathname, slug);
         case 'agents':
             return first ? { kind: 'agent', agentId: first } : sectionPage(pathname, slug);
-        case 'threads':
-            return first && second
-                ? { kind: 'thread', anchorMessageId: second, chatId: first }
-                : sectionPage(pathname, slug);
         case 'files':
             return first ? { kind: 'files', chatId: first } : sectionPage(pathname, slug);
         case 'artifacts':
@@ -95,13 +88,9 @@ export interface TabIdentityRecords {
     agents: readonly Pick<Agent, 'avatarUrl' | 'displayName' | 'id'>[] | null;
     /** A shared artifact page's title, once its record loads. */
     artifactTitle: string | null;
-    /** A board page's name, once `board.list` loads. */
-    boardName: string | null;
     /** The live web view's state, when Electron has reported it. */
     browserTab: Pick<BrowserTab, 'faviconUrl' | 'loading' | 'title' | 'url'> | null;
     chats: readonly TabChat[] | null;
-    /** A Thread page's root message text. */
-    threadExcerpt: string | null;
 }
 
 export type TabChat = Pick<
@@ -136,7 +125,6 @@ export function resolveTabIdentity(page: TabPage, records: TabIdentityRecords): 
             const agent = findAgent(records, page.agentId);
             return agent ? { label: agent.displayName, mark: avatar(agent), place: null } : pending;
         }
-        case 'thread':
         case 'files':
             return chatChildIdentity(page, records);
         case 'artifact':
@@ -144,12 +132,6 @@ export function resolveTabIdentity(page: TabPage, records: TabIdentityRecords): 
                 // A shared file names itself once its record loads; until then the slot stays empty.
                 label: page.title ?? records.artifactTitle ?? (page.shared ? '' : 'Workspace'),
                 mark: { kind: 'glyph', glyph: 'artifact' },
-                place: null,
-            };
-        case 'board':
-            return {
-                label: records.boardName ?? '',
-                mark: { kind: 'glyph', glyph: 'board' },
                 place: null,
             };
         case 'task':
@@ -181,7 +163,6 @@ const sectionLabels: Record<AppSection, string> = {
     search: 'Search',
     settings: 'Settings',
     tasks: 'Tasks',
-    threads: 'Threads',
 };
 
 function chatIdentity(chat: TabChat, records: TabIdentityRecords): TabIdentity {
@@ -201,18 +182,16 @@ function chatIdentity(chat: TabChat, records: TabIdentityRecords): TabIdentity {
     };
 }
 
-/** Thread and Attachments pages wear their chat's mark and name it as context. */
+/** An Attachments page wears its chat's mark and names it as context. */
 function chatChildIdentity(
-    page: Extract<TabPage, { kind: 'files' | 'thread' }>,
+    page: Extract<TabPage, { kind: 'files' }>,
     records: TabIdentityRecords
 ): TabIdentity {
     const chat = records.chats?.find((item) => item.id === page.chatId) ?? null;
-    const thread = page.kind === 'thread';
-    const fallback: TabMark = thread ? { kind: 'none' } : { kind: 'glyph', glyph: 'files' };
     return {
-        label: thread ? (records.threadExcerpt ?? '') : 'Attachments',
-        mark: chat ? chatIdentity(chat, records).mark : fallback,
-        place: chat ? `${chatPlace(chat)} › ${thread ? 'thread' : 'attachments'}` : null,
+        label: 'Attachments',
+        mark: chat ? chatIdentity(chat, records).mark : { kind: 'glyph', glyph: 'files' },
+        place: chat ? `${chatPlace(chat)} › attachments` : null,
     };
 }
 
@@ -235,15 +214,8 @@ function artifactPage(key: string, search: URLSearchParams): TabPage {
 }
 
 /** Null for `/tasks` itself, and for an address no Task key can parse. */
-function tasksPage(boardKey: string, number: string): TabPage | null {
-    if (!boardKey) {
-        return null;
-    }
-    if (!number) {
-        return { kind: 'board', boardKey };
-    }
-    const parsed = parseTaskKey(`${boardKey}-${number}`);
-    return parsed ? { kind: 'task', taskKey: formatTaskKey(parsed.boardKey, parsed.number) } : null;
+function tasksPage(taskKey: string, rest: string): TabPage | null {
+    return taskKey && !rest && parseTaskKey(taskKey) ? { kind: 'task', taskKey } : null;
 }
 
 function sectionPage(pathname: string, slug: string): TabPage {

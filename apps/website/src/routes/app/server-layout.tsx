@@ -84,7 +84,7 @@ export function ServerLayout() {
     );
 }
 
-/** The web's one routed page, beside the chat side pane that hosts Threads, Attachments, and artifacts. */
+/** The web's one routed page, beside the chat side pane that hosts Attachments and artifacts. */
 function WebServerLayout({
     server,
     serverError,
@@ -115,7 +115,7 @@ function WebServerLayout({
 /**
  * The layout's chat-list work in a leaf: the list changes on every message
  * anywhere, and a read in the layout itself re-rendered the whole shell. The
- * Dock badge is the Inbox badge: unread Chats plus unread Threads.
+ * Dock badge is the Inbox badge: unread Chats plus followed unread Tasks.
  */
 function ChatListEffects({ serverId }: { serverId: string }) {
     const chats = useChats(serverId);

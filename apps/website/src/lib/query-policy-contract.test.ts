@@ -62,7 +62,7 @@ describe('query policy contract', () => {
     test('refetchOnMount: false stays inside query-policy.ts', () => {
         // Server events invalidate inactive queries without refetching them, so
         // a query that unmounts with navigation must keep its stale-gated mount
-        // refetch. Disabling it anywhere else reintroduces the stale-thread bug.
+        // refetch. Disabling it anywhere else reintroduces the stale-list bug.
         const offenders = files
             .filter((file) => file.path !== 'lib/query-policy.ts')
             .filter((file) => /refetchOnMount:\s*false/.test(file.content))

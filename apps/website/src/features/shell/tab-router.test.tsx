@@ -44,7 +44,7 @@ test('a tab router nests inside the window data router with its own location and
                     <>
                         <IsolatedTabRouter
                             entryKey="e1"
-                            location="/s/acme/chats/c1?thread=m1"
+                            location="/s/acme/chats/c1?message=m1"
                             navigator={noopNavigator}
                         >
                             <TabRoutes />
@@ -66,7 +66,7 @@ test('a tab router nests inside the window data router with its own location and
 
     const markup = renderToStaticMarkup(<RouterProvider router={router} />);
 
-    expect(markup).toContain('acme|c1|/s/acme/chats/c1?thread=m1');
+    expect(markup).toContain('acme|c1|/s/acme/chats/c1?message=m1');
     expect(markup).toContain('acme|c2|/s/acme/chats/c2');
 });
 
@@ -98,11 +98,11 @@ const at = (path: string) => ({ kind: 'app', path });
 
 test('a page push to its own page stays in the tab; another page is Open from the tab', () => {
     const { calls, navigator } = recordingNavigator('page');
-    navigator.push('/s/acme/chats/c1?thread=m1');
+    navigator.push('/s/acme/chats/c1?message=m1');
     navigator.push('/s/acme/inbox');
     navigator.replace('/s/acme/settings/profile');
     expect(calls).toEqual([
-        ['navigate', 't1', at('/s/acme/chats/c1?thread=m1'), 'push'],
+        ['navigate', 't1', at('/s/acme/chats/c1?message=m1'), 'push'],
         ['open', 't1', at('/s/acme/inbox')],
         ['navigate', 't1', at('/s/acme/settings/profile'), 'replace'],
     ]);
@@ -131,12 +131,12 @@ test('a gesture stated in router state (read before an await) wins over the in-f
 test('an Inbox card push that asks to stay navigates its own tab; a modified click still opens a tab', () => {
     const plain = recordingNavigator('page', '/s/acme/inbox');
     plain.navigator.push('/s/acme/chats/c2', tabStayState());
-    plain.navigator.push('/s/acme/threads/c3/m1', tabStayState());
+    plain.navigator.push('/s/acme/tasks/SEC-3', tabStayState());
     const modified = recordingNavigator('page', '/s/acme/inbox', () => 'backgroundTab');
     modified.navigator.push('/s/acme/chats/c2', tabStayState());
     expect(plain.calls).toEqual([
         ['navigate', 't1', at('/s/acme/chats/c2'), 'push'],
-        ['navigate', 't1', at('/s/acme/threads/c3/m1'), 'push'],
+        ['navigate', 't1', at('/s/acme/tasks/SEC-3'), 'push'],
     ]);
     expect(modified.calls).toEqual([
         ['openTab', 't1', at('/s/acme/chats/c2'), { background: true }],
@@ -147,12 +147,12 @@ test('a push takes the in-flight click gesture; a replace does not', () => {
     // A chip's press handler pushes: Command- or middle-click opens it in the background.
     const page = recordingNavigator('page', '/s/acme/chats/c1', () => 'backgroundTab');
     page.navigator.push('/s/acme/inbox');
-    page.navigator.replace('/s/acme/chats/c1?thread=m1');
+    page.navigator.replace('/s/acme/chats/c1?message=m1');
     const shift = recordingNavigator('page', '/s/acme/chats/c1', () => 'newTab');
     shift.navigator.push('/s/acme/tasks');
     expect(page.calls).toEqual([
         ['openTab', 't1', at('/s/acme/inbox'), { background: true }],
-        ['navigate', 't1', at('/s/acme/chats/c1?thread=m1'), 'replace'],
+        ['navigate', 't1', at('/s/acme/chats/c1?message=m1'), 'replace'],
     ]);
     expect(shift.calls).toEqual([['openTab', 't1', at('/s/acme/tasks'), { background: false }]]);
 });

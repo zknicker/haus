@@ -1,6 +1,7 @@
 import {
     type CloudAgentBranch,
     type CloudAgentJobState,
+    type CloudAgentRun,
     type CloudAgentStatus,
     type CloudAgentWork,
     cloudAgentPullRequestNumber,
@@ -25,6 +26,27 @@ export const cloudAgentJobLabels: Record<CloudAgentJobState, string> = {
     'pending-input': 'Needs input',
     working: 'Working',
 };
+
+/**
+ * One Run's status as a person reads it, never the wire enum: a Run that
+ * stopped to ask a question is waiting on whoever answers it.
+ */
+export const cloudAgentRunStatusLabels: Record<CloudAgentStatus, string> = {
+    cancelled: 'Stopped',
+    completed: 'Completed',
+    expired: 'Expired',
+    failed: 'Failed',
+    pending_input: 'Waiting on you',
+    queued: 'Queued',
+    running: 'Running',
+};
+
+/** The newest Run: a work record keeps its Runs newest first. */
+export function newestCloudAgentRun(work: {
+    runs: readonly CloudAgentRun[];
+}): CloudAgentRun | null {
+    return work.runs[0] ?? null;
+}
 
 /** A cancelled or expired job ended without failing, so it no longer asks for attention. */
 export function isEndedCloudAgentJob(state: CloudAgentJobState): boolean {

@@ -1,9 +1,8 @@
-import type { Board, Chat } from '@haus/api';
+import type { Chat } from '@haus/api';
 import { resolveAgentSectionParam } from '../../features/members/agent-profile/agent-section-route.ts';
 import type { AgentSection } from '../../features/members/agent-profile/agent-sections.ts';
-import { resolveEntryBoard, resolveEntryChat } from '../../features/servers/server-choice.ts';
+import { resolveEntryChat } from '../../features/servers/server-choice.ts';
 import {
-    boardRoute,
     serverChatRoute,
     serverRoute,
     serverSettingsRoute,
@@ -19,8 +18,7 @@ export type AppSection =
     | 'inbox'
     | 'search'
     | 'settings'
-    | 'tasks'
-    | 'threads';
+    | 'tasks';
 
 /**
  * Only Settings replaces the sidebar. Everywhere else the chat navigation
@@ -34,16 +32,6 @@ export function resolveSidebarPage(active: AppSection) {
 export function resolveChatSectionRoute(chats: Chat[], lastChatId: string | null, slug: string) {
     const chat = resolveEntryChat(chats, lastChatId);
     return chat ? serverChatRoute(slug, chat.id) : serverRoute(slug);
-}
-
-/** Where `/tasks` lands, or null with no board listed. Every Server keeps its General board. */
-export function resolveTasksSectionRoute(
-    boards: Board[],
-    lastBoardId: string | null,
-    slug: string
-): string | null {
-    const board = resolveEntryBoard(boards, lastBoardId);
-    return board ? boardRoute(slug, board.key) : null;
 }
 
 export function resolveActiveSection(pathname: string, slug: string): AppSection {
@@ -67,9 +55,6 @@ export function resolveActiveSection(pathname: string, slug: string): AppSection
     }
     if (suffix.startsWith('/tasks')) {
         return 'tasks';
-    }
-    if (suffix === '/threads') {
-        return 'threads';
     }
     if (suffix.startsWith('/activity')) {
         return 'activity';

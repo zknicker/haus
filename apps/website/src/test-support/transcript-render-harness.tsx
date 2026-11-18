@@ -1,4 +1,4 @@
-import type { Agent, Chat, ChatMessage, ThreadSummary } from '@haus/api';
+import type { Agent, Chat, ChatMessage } from '@haus/api';
 import { type InfiniteData, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createTRPCQueryUtils } from '@trpc/react-query';
 import { observable } from '@trpc/server/observable';
@@ -178,13 +178,13 @@ export function createTranscriptHarness() {
         queryClient,
         setChats: (chats: Chat[]) => utils.chat.list.setData({ serverId }, chats),
         /** What a list read lands: its entities seeded, then its one page of ids. */
-        setMessages: (chatId: string, messages: ChatMessage[], threads: ThreadSummary[] = []) => {
+        setMessages: (chatId: string, messages: ChatMessage[]) => {
             const page = {
                 messages,
                 nextAfterSequence: null,
                 nextBeforeSequence: null,
                 scannedThroughSequence: messages.at(-1)?.sequence ?? 0,
-                threads,
+                tasks: [],
             };
             seedChatMessageEntities(queryClient, page);
             queryClient.setQueryData<InfiniteData<TranscriptPage>>(
@@ -193,10 +193,10 @@ export function createTranscriptHarness() {
             );
         },
         /** What one entity refetch lands, e.g. after a reaction event. */
-        setEntity: (message: ChatMessage, thread: ThreadSummary | null = null) =>
+        setEntity: (message: ChatMessage) =>
             queryClient.setQueryData(
                 chatMessageQueryKey(message.serverId, message.chatId, message.id),
-                { message, thread }
+                { message, tasks: [] }
             ),
         setCloudAgentWork: (chatId: string) =>
             utils.cloudAgentWork.listForChat.setData({ chatId, serverId }, []),

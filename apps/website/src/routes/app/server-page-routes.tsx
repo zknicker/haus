@@ -5,6 +5,7 @@ import {
     AgentHomeRedirect,
     LegacyComputersRedirect,
     LegacyMemberRedirect,
+    RetiredPageRedirect,
 } from './legacy-redirects.tsx';
 import { readServerRouteShells } from './server-route-modules.ts';
 
@@ -23,10 +24,8 @@ export function serverPageRoutes({ desktop }: { desktop: boolean }): RouteObject
         { path: 'chats/:chatId', Component: serverRouteComponent('ChatRoute') },
         { path: 'dm/:agentId', Component: serverRouteComponent('ImplicitAgentDmRoute') },
         { path: 'inbox', Component: serverRouteComponent('InboxPage') },
-        { path: 'tasks', Component: serverRouteComponent('TasksIndexRoute') },
-        { path: 'tasks/:boardKey', Component: serverRouteComponent('BoardPageRoute') },
-        { path: 'tasks/:boardKey/:number', Component: serverRouteComponent('TaskPageRoute') },
-        { path: 'threads', Component: serverRouteComponent('ThreadsPage') },
+        { path: 'tasks', Component: serverRouteComponent('TasksPageRoute') },
+        { path: 'tasks/:taskKey', Component: serverRouteComponent('TaskPageRoute') },
         { path: 'activity', Component: serverRouteComponent('ActivityPage') },
         { path: 'artifacts', Component: serverRouteComponent('SharedArtifactsPage') },
         { path: 'artifacts/:artifactKey', Component: serverRouteComponent('SharedArtifactsPage') },
@@ -67,15 +66,13 @@ export function serverPageRoutes({ desktop }: { desktop: boolean }): RouteObject
                 },
             ],
         },
-        { path: 'threads/:chatId/:anchorMessageId', element: deferred(<ThreadPageRoute />) },
+        // ADR 0052 deleted this page; saved links and persisted tabs still resolve.
+        { path: 'threads/:chatId/:anchorMessageId', element: <RetiredPageRedirect /> },
         ...(desktop ? desktopPageRoutes : []),
         { path: '*', element: <ServerUnknownPage /> },
     ];
 }
 
-const ThreadPageRoute = React.lazy(async () => ({
-    default: (await import('./desktop-tab-pages.tsx')).ThreadPageRoute,
-}));
 const FilesPageRoute = React.lazy(async () => ({
     default: (await import('./desktop-tab-pages.tsx')).FilesPageRoute,
 }));

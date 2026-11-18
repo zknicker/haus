@@ -18,7 +18,7 @@ const ops26: TaskLink = { key: 'OPS-26', taskId: 'tsk_26', text: 'OPS-26' };
  * references, and resolved `OPS-26` into `descriptionTaskLinks`.
  */
 const descriptionContent = [
-    'From [#joy-haus-ops thread](chat://cht_ops?thread=msg_wHjAXiaR0000) and [#joy-haus-ops](chat://cht_ops) wHjAXiaR, asked by [@cove](agent://agt_cove).',
+    'From [#joy-haus-ops message](chat://cht_ops?thread=msg_wHjAXiaR0000) and [#joy-haus-ops](chat://cht_ops) wHjAXiaR, asked by [@cove](agent://agt_cove).',
     'Blocked on OPS-26 and merchbase-fulfillment PR 29 (d66f487).',
     'Not `OPS-26`, and `apps/server/src/tasks/task-read.ts` stays a path.',
 ].join('\n');
@@ -28,7 +28,7 @@ describe('a Task description renders like a message', () => {
         const mentions = readReferenceMentions(descriptionContent, [ops26], directory);
 
         expect(mentions.map(({ kind, label }) => ({ kind, label }))).toEqual([
-            { kind: 'chat', label: 'joy-haus-ops thread' },
+            { kind: 'chat', label: 'joy-haus-ops message' },
             { kind: 'chat', label: 'joy-haus-ops' },
             { kind: 'agent', label: 'cove' },
             { kind: 'task', label: 'OPS-26' },

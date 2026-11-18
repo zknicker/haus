@@ -1,10 +1,9 @@
 import { expect, test } from 'bun:test';
-import type { AutomationFireContext, MessageCause } from '@haus/api';
+import type { MessageCause } from '@haus/api';
 import type * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { TrpcTestProvider } from '../../../test-support/trpc-test-provider.tsx';
-import { AutomationFireContextCardView } from './automation-fire-context-card.tsx';
 import { MessageCauseHoverContent, MessageCauseLine } from './message-cause-line.tsx';
 
 // A Reminder's title is a short label; its description is what it stands for.
@@ -33,13 +32,6 @@ test('a hover card says a description once when the title or script repeats it',
 
     expect(backfilled.split(description)).toHaveLength(2);
     expect(scripted.split(description)).toHaveLength(2);
-});
-
-test('a Reminder context card carries its description under the title', () => {
-    const markup = render(<AutomationFireContextCardView context={reminderContext()} />);
-
-    expect(markup).toContain(description);
-    expect(markup.indexOf('Weekly Self-Review')).toBeLessThan(markup.indexOf(description));
 });
 
 function render(element: React.ReactElement) {
@@ -71,23 +63,5 @@ function reminderCause({ instruction = null }: { instruction?: string | null } =
         ownerAgentId: 'agt_blippy',
         summary: 'Every Monday at 09:00',
         title: 'Weekly Self-Review',
-    };
-}
-
-function reminderContext(): AutomationFireContext {
-    return {
-        anchorChatId: 'cht_dm',
-        anchorExcerpt: 'Remind me to write the weekly self-review',
-        anchorMessageId: 'msg_anchor',
-        cause: reminderCause(),
-        contentType: null,
-        firedAt: '2026-08-27T13:00:00.000Z',
-        fireOrdinal: 6,
-        fireTotal: 6,
-        nextFireAt: null,
-        payload: null,
-        payloadBytes: null,
-        payloadTruncated: false,
-        repeat: 'Every Monday at 09:00',
     };
 }

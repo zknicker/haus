@@ -1,7 +1,6 @@
 import type { IconSvgElement } from '@hugeicons/react';
 import {
     Activity03Icon,
-    BubbleChatIcon,
     Chat01Icon,
     CheckListIcon,
     File01Icon,
@@ -43,8 +42,6 @@ export function getRouteTabIcon(tab: RouteTab): IconSvgElement {
     switch (tab) {
         case 'tasks':
             return CheckListIcon;
-        case 'threads':
-            return BubbleChatIcon;
         case 'artifacts':
             return File01Icon;
         case 'inbox':

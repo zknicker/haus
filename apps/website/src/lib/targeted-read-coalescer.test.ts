@@ -19,13 +19,13 @@ test('a held direct entity fetch loses to the refetch a reaction event starts', 
         entityReads += 1;
         return entityReads === 1
             ? held.promise
-            : { message: message(chatId, 1, { reactions: [reaction('👍')] }), thread: null };
+            : { message: message(chatId, 1, { reactions: [reaction('👍')] }), tasks: [] };
     });
     const row = cache.observeEntity(chatId, target.messageId);
     await settle(() => entityReads === 1);
     cache.coalescer.noteMessageAnnotated(target);
     await settle(() => entityReads === 2);
-    held.resolve({ message: message(chatId, 1), thread: null });
+    held.resolve({ message: message(chatId, 1), tasks: [] });
     await settle(() => cache.entity(chatId, target.messageId)?.fetchStatus === 'idle');
 
     expect(cache.entity(chatId, target.messageId)?.data?.message.reactions).toEqual([
@@ -44,7 +44,7 @@ test('overlapping list reads keep the dirty id until the last settles, and the e
         if (request.path === 'chat.message') {
             return Promise.resolve({
                 message: message(chatId, 1, { reactions: fresh ? [reaction('🎉')] : [] }),
-                thread: null,
+                tasks: [],
             });
         }
         return request.input.replyRootMessageId ? reads.chain.promise : reads.full.promise;
@@ -89,7 +89,7 @@ test('a reaction on an absent entity lands after the list read in flight seeds i
         request.path === 'chat.message'
             ? Promise.resolve({
                   message: message(chatId, 1, { reactions: [reaction('👀')] }),
-                  thread: null,
+                  tasks: [],
               })
             : listRead.promise
     );
@@ -141,10 +141,8 @@ test('a Chat purge removes its lists and entities, aborts its tails, and tells l
     cache.coalescer.onChatPurged((scope) => purged.push(scope.chatId));
     cache.coalescer.noteMessageCreated({
         chatId,
-        parentChatId: null,
         sequence: 2,
         serverId,
-        threadAnchorMessageId: null,
     });
     await settle(() => cache.reads('chat.messages').length === 3);
     await cache.coalescer.purgeChat({ chatId, serverId });

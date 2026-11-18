@@ -83,6 +83,7 @@ function chat(id: string, lastActivityAt: string | null, unreadCount: number): C
         peerAgentRetired: false,
         peerUserId: null,
         serverId: 'srv_one',
+        taskKeyId: null,
         unreadCount,
     };
 }

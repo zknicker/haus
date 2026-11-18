@@ -97,9 +97,9 @@ test('a desktop tab keeps navigate and its derived callbacks stable across navig
     // The stable function still resolves against the tab's current location.
     await act(() => {
         latest?.navigate('../c9', { relative: 'path' });
-        latest?.setSearchParams({ thread: 'm1' });
+        latest?.setSearchParams({ message: 'm1' });
     });
-    expect(pushes).toEqual(['/s/acme/chats/c9', '/s/acme/chats/c3?thread=m1']);
+    expect(pushes).toEqual(['/s/acme/chats/c9', '/s/acme/chats/c3?message=m1']);
 
     await act(() => root?.unmount());
 });

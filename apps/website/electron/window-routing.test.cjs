@@ -25,7 +25,7 @@ test('isSafeWindowRoute only accepts in-app routes', () => {
 
 test('isSafeWindowRoute accepts Server routes and rejects other origins', () => {
     assert.equal(isSafeWindowRoute('/s/acme'), true);
-    assert.equal(isSafeWindowRoute('/s/acme/chats/c1?thread=m1'), true);
+    assert.equal(isSafeWindowRoute('/s/acme/chats/c1?message=m1'), true);
     assert.equal(isSafeWindowRoute('/s/acme-2/agents/a1#top'), true);
     assert.equal(isSafeWindowRoute('/s/'), false);
     assert.equal(isSafeWindowRoute('/s'), false);
@@ -65,8 +65,8 @@ test('buildWindowUrl seeds the hash route the desktop App router reads', () => {
         'http://localhost:3100/#/chats/abc'
     );
     assert.equal(
-        buildWindowUrl('http://localhost:3100/', '/s/acme/chats/c1?thread=m1'),
-        'http://localhost:3100/#/s/acme/chats/c1?thread=m1'
+        buildWindowUrl('http://localhost:3100/', '/s/acme/chats/c1?message=m1'),
+        'http://localhost:3100/#/s/acme/chats/c1?message=m1'
     );
     assert.equal(buildWindowUrl('https://haus.chat', undefined), 'https://haus.chat');
 });

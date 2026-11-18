@@ -177,14 +177,9 @@ export function tabPageKey(location: TabLocation): string {
     }
     const pathname = location.path.split(/[?#]/u)[0] ?? '';
     // `/s/<slug>/<section>/<id>…` → `<section>/<id>`; ids name the page, deeper segments drill in.
-    const [, , , section = '', id, anchor] = pathname.split('/');
-    // A Thread is `threads/<chatId>/<anchorId>` and a Task `tasks/<boardKey>/<number>`: both
-    // segments name it.
-    if ((section === 'threads' || section === 'tasks') && id && anchor) {
-        return `${section}/${id}/${anchor}`;
-    }
+    const [, , , section = '', id] = pathname.split('/');
     return idSections.has(section) && id ? `${section}/${id}` : section;
 }
 
 /** Sections whose second segment names a different page rather than a drill-down. */
-const idSections = new Set(['agents', 'artifacts', 'chats', 'dm', 'files', 'tasks', 'threads']);
+const idSections = new Set(['agents', 'artifacts', 'chats', 'dm', 'files', 'tasks']);

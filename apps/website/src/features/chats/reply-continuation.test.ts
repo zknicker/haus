@@ -65,15 +65,6 @@ test('a system entry in between starts a new group', () => {
     ).toEqual([false, false, null, false]);
 });
 
-test('a Thread on the previous reply keeps the follow-up out of its group', () => {
-    const threaded = withThread(reply('m2', agent, 'm1'));
-    expect(continuations([message('m1', human), threaded, reply('m3', agent, 'm1')])).toEqual([
-        false,
-        false,
-        false,
-    ]);
-});
-
 test('a skeleton row with attached work keeps the follow-up out of its group', () => {
     const skeleton = reply('m2', agent, 'm1');
     if (skeleton.kind === 'message') {
@@ -111,20 +102,6 @@ function continuations(rows: TranscriptRow[]) {
     return buildTranscriptEntries({ rows }).map((entry) =>
         entry.kind === 'turn' ? entry.continuesPrevious : null
     );
-}
-
-function withThread(row: TranscriptRow): TranscriptRow {
-    if (row.kind === 'message') {
-        row.thread = {
-            anchorMessageId: row.id,
-            followed: true,
-            latestReplyAt: row.message.timestamp,
-            replyCount: 1,
-            threadChatId: `thread-${row.id}`,
-            unreadCount: 0,
-        };
-    }
-    return row;
 }
 
 function systemMessage(id: string): TranscriptRow {

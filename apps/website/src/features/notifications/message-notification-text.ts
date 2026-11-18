@@ -1,7 +1,7 @@
 import type { Agent, Chat, ChatMessage, MessageNotificationReason } from '@haus/api';
 import { messagePreviewLine } from '../chats/message-preview-line.ts';
 import type { HumanDirectory } from '../servers/human-identity.ts';
-import { serverChatRoute, serverChatThreadRoute } from '../servers/server-routes.ts';
+import { serverChatRoute } from '../servers/server-routes.ts';
 import type { MessageNotificationText } from './message-notifier.ts';
 
 export interface MessageNotificationNames {
@@ -12,13 +12,11 @@ export interface MessageNotificationNames {
 
 /**
  * A notification's text: the author, then where they wrote when it is not
- * their DM with you (`#channel`, `#channel › thread`, `DM › thread`), and the
- * message flattened to one line. Pressing it opens the conversation, with the
- * Thread beside it for a Thread message.
+ * their DM with you (`#channel`), and the message flattened to one line.
+ * Pressing it opens the conversation.
  */
 export function messageNotificationText(input: {
-    anchorMessageId: null | string;
-    conversationChatId: string;
+    chatId: string;
     message: Pick<ChatMessage, 'author' | 'content'>;
     names: MessageNotificationNames;
     reason: MessageNotificationReason;
@@ -28,9 +26,7 @@ export function messageNotificationText(input: {
     const place = messagePlace(input);
     return {
         body: messagePreviewLine(input.message.content),
-        path: input.anchorMessageId
-            ? serverChatThreadRoute(input.slug, input.conversationChatId, input.anchorMessageId)
-            : serverChatRoute(input.slug, input.conversationChatId),
+        path: serverChatRoute(input.slug, input.chatId),
         title: place ? `${author} in ${place}` : author,
     };
 }
@@ -55,15 +51,13 @@ export function messageAuthorName(
 
 /** Null for a top-level DM message, or a Channel this reader's list cannot name. */
 function messagePlace(input: {
-    anchorMessageId: null | string;
-    conversationChatId: string;
+    chatId: string;
     names: Pick<MessageNotificationNames, 'chats'>;
     reason: MessageNotificationReason;
 }): null | string {
-    const thread = input.anchorMessageId ? ' › thread' : '';
     if (input.reason === 'dm') {
-        return thread ? `DM${thread}` : null;
+        return null;
     }
-    const channel = input.names.chats.find((chat) => chat.id === input.conversationChatId);
-    return channel?.name ? `#${channel.name}${thread}` : null;
+    const channel = input.names.chats.find((chat) => chat.id === input.chatId);
+    return channel?.name ? `#${channel.name}` : null;
 }

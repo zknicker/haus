@@ -12,7 +12,6 @@ import { useCloudAgentWorkStream } from './use-cloud-agent-work-stream.ts';
 import { useMessageCreatedStream } from './use-message-created-stream.ts';
 import { useMessageReactionStream } from './use-message-reaction-stream.ts';
 import { useTaskLabelStream } from './use-task-label-stream.ts';
-import { useThreadFollowStream } from './use-thread-follow-stream.ts';
 
 installRealtimeTestDom();
 
@@ -60,12 +59,10 @@ describe('Chat stream hooks', () => {
             conversationKind: 'channel',
             mentionedUserIds: [],
             messageId: 'msg_1',
-            parentChatId: null,
             replyToAuthorUserId: null,
             sequence: 4,
             serverId,
-            threadAnchorAuthorUserId: null,
-            threadAnchorMessageId: null,
+            taskId: null,
         };
         const { onEvent, onRecovery } = await drive(
             'chat.onMessageCreated',
@@ -80,48 +77,15 @@ describe('Chat stream hooks', () => {
             listKey('chat.unreadPreviews', { serverId }),
         ]);
         expect<unknown>(onRecovery[0]).toEqual(bulkLists);
-        // A missed Thread reply may have made a Thread unread (ADR 0043).
         expect(invalidated(onRecovery)).toEqual([
             listKey('chat.list', { serverId }),
             listKey('chat.search', { serverId }),
-            listKey('thread.listUnread', { serverId }),
-            listKey('thread.listOpen', { serverId }),
-            listKey('thread.listEarlier', { serverId }),
-            listKey('chat.unreadPreviews', { serverId }),
-        ]);
-    });
-
-    test('chat.onMessageCreated of a Thread reply also invalidates the unread Threads', async () => {
-        const event = {
-            authorUserId: null,
-            chatId: 'cht_thread',
-            conversationKind: 'channel',
-            mentionedUserIds: [],
-            messageId: 'msg_reply',
-            parentChatId: 'cht_a',
-            replyToAuthorUserId: null,
-            sequence: 2,
-            serverId,
-            threadAnchorAuthorUserId: null,
-            threadAnchorMessageId: 'msg_anchor',
-        };
-        const { onEvent } = await drive(
-            'chat.onMessageCreated',
-            (id) => useMessageCreatedStream(id),
-            event
-        );
-        expect(invalidated(onEvent)).toEqual([
-            listKey('chat.list', { serverId }),
-            listKey('chat.search', { serverId }),
-            listKey('thread.listUnread', { serverId }),
-            listKey('thread.listOpen', { serverId }),
-            listKey('thread.listEarlier', { serverId }),
             listKey('chat.unreadPreviews', { serverId }),
         ]);
     });
 
     test('chat.onMessageReactionUpdated invalidates the entity, search, active work, and claims', async () => {
-        const event = { chatId: 'cht_a', messageId: 'msg_1', parentChatId: null, serverId };
+        const event = { chatId: 'cht_a', messageId: 'msg_1', serverId };
         const { onEvent, onRecovery } = await drive(
             'chat.onMessageReactionUpdated',
             useMessageReactionStream,
@@ -138,61 +102,15 @@ describe('Chat stream hooks', () => {
         expect(invalidated(onRecovery)).toEqual(reads);
     });
 
-    test('chat.onRead of a Thread invalidates the unread Threads and the anchor summary', async () => {
-        const event = {
-            chatId: 'cht_thread',
-            parentChatId: 'cht_a',
-            sequence: 2,
-            serverId,
-            threadAnchorMessageId: 'msg_anchor',
-        };
+    test('chat.onRead of a Channel invalidates the Chat list and the unread previews', async () => {
+        const event = { chatId: 'cht_a', sequence: 2, serverId, taskId: null };
         const { onEvent, onRecovery } = await drive(
             'chat.onRead',
             (id) => useChatReadStream(id),
             event
         );
-        // A Thread is unread on its own: its read leaves the parent's row alone (ADR 0043).
-        expect(invalidated(onEvent)).toEqual([
-            listKey('thread.listUnread', { serverId }),
-            listKey('thread.listOpen', { serverId }),
-            listKey('thread.listEarlier', { serverId }),
-            listKey('chat.unreadPreviews', { serverId }),
-        ]);
-        expect<unknown>(onEvent.at(-1)).toEqual({
-            op: 'noteMessageAnnotated',
-            target: { chatId: 'cht_a', messageId: 'msg_anchor', serverId },
-        });
-        expect<unknown>(onRecovery[0]).toEqual(bulkLists);
-        expect(invalidated(onRecovery)).toEqual([
-            listKey('chat.list', { serverId }),
-            listKey('thread.listUnread', { serverId }),
-            listKey('thread.listOpen', { serverId }),
-            listKey('thread.listEarlier', { serverId }),
-            listKey('chat.unreadPreviews', { serverId }),
-        ]);
-    });
-
-    test('thread.onFollowUpdated invalidates the anchor entity and the unread Threads', async () => {
-        const event = {
-            anchorMessageId: 'msg_anchor',
-            followed: true,
-            parentChatId: 'cht_a',
-            serverId,
-            threadChatId: 'cht_thread',
-        };
-        const { onEvent, onRecovery } = await drive(
-            'thread.onFollowUpdated',
-            useThreadFollowStream,
-            event
-        );
-        expect<unknown>(onEvent[0]).toEqual({
-            op: 'noteMessageAnnotated',
-            target: { chatId: 'cht_a', messageId: 'msg_anchor', serverId },
-        });
         const reads = [
-            listKey('thread.listUnread', { serverId }),
-            listKey('thread.listOpen', { serverId }),
-            listKey('thread.listEarlier', { serverId }),
+            listKey('chat.list', { serverId }),
             listKey('chat.unreadPreviews', { serverId }),
         ];
         expect(invalidated(onEvent)).toEqual(reads);
@@ -216,9 +134,6 @@ describe('Chat stream hooks', () => {
             listKey('chat.listArchived', { serverId }),
             listKey('chat.get', { chatId: 'cht_a', serverId }),
             listKey('agent.chats', { serverId }),
-            listKey('thread.listUnread', { serverId }),
-            listKey('thread.listOpen', { serverId }),
-            listKey('thread.listEarlier', { serverId }),
             listKey('chat.unreadPreviews', { serverId }),
             // Linked Cloud Agent work may leave the viewer's lists (ADR 0044).
             listKey('cloudAgentWork.listAutomations', { serverId }),
@@ -251,11 +166,10 @@ describe('Chat stream hooks', () => {
         expect(invalidated(onRecovery)).toEqual(reads);
     });
 
-    test('cloudAgentWork.onUpdated invalidates the work entity and both Chats work lists', async () => {
+    test('cloudAgentWork.onUpdated invalidates the work entity and its Chat work list', async () => {
         const event = {
-            chatId: 'cht_thread',
+            chatId: 'cht_task',
             messageId: 'msg_work',
-            parentChatId: 'cht_a',
             serverId,
             workId: 'wrk_1',
         };
@@ -266,13 +180,10 @@ describe('Chat stream hooks', () => {
         );
         expect<unknown>(onEvent[0]).toEqual({
             op: 'noteMessageAnnotated',
-            target: { chatId: 'cht_thread', messageId: 'msg_work', serverId },
+            target: { chatId: 'cht_task', messageId: 'msg_work', serverId },
         });
         expect(invalidated(onEvent)).toEqual([
-            listKey('cloudAgentWork.listForChat', { chatId: 'cht_thread', serverId }),
-            listKey('cloudAgentWork.listForChat', { chatId: 'cht_a', serverId }),
-            listKey('thread.listOpen', { serverId }),
-            listKey('thread.listEarlier', { serverId }),
+            listKey('cloudAgentWork.listForChat', { chatId: 'cht_task', serverId }),
             listKey('cloudAgentWork.listLinks', { serverId }),
             listKey('cloudAgentWork.listAutomations', { serverId }),
             listKey('cloudAgentWork.listActive', { serverId }),
@@ -280,11 +191,10 @@ describe('Chat stream hooks', () => {
         expect<unknown>(onRecovery[0]).toEqual(bulkLists);
         expect(invalidated(onRecovery)).toEqual([
             listKey('cloudAgentWork.listForChat', { serverId }),
-            listKey('thread.listOpen', { serverId }),
-            listKey('thread.listEarlier', { serverId }),
             listKey('cloudAgentWork.listLinks', { serverId }),
             listKey('cloudAgentWork.listAutomations', { serverId }),
             listKey('cloudAgentWork.listActive', { serverId }),
+            listKey('task.get', { serverId }),
         ]);
     });
 });

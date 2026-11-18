@@ -25,7 +25,7 @@ function window() {
     return { middleClick, uninstall };
 }
 
-test('a middle-click survives the fetch before a Thread or a Message opens', async () => {
+test('a middle-click survives the fetch before the linking Message opens', async () => {
     const calls: unknown[][] = [];
     const settle = () => new Promise((resolve) => setTimeout(resolve, 5));
     const open = createCloudAgentWorkOpener({
@@ -34,34 +34,18 @@ test('a middle-click survives the fetch before a Thread or a Message opens', asy
             await settle();
             return 7;
         },
-        fetchThread: async () => {
-            await settle();
-            return { anchorMessageId: 'm1', parentChatId: 'c1' };
-        },
         navigate: (...args) => calls.push(['navigate', ...args]),
-        openThread: (...args) => calls.push(['openThread', ...args]),
-        openWork: (...args) => calls.push(['openWork', ...args]),
         slug: 'acme',
     });
     const { middleClick, uninstall } = window();
     middleClick(() =>
-        open({
-            id: 'w1',
-            location: { chatId: 'c1', kind: 'message', messageId: 'm2', threadChatId: 't1' },
-        })
+        open({ id: 'w1', location: { chatId: 'c2', kind: 'message', messageId: 'm3' } })
     );
-    middleClick(() =>
-        open({
-            id: 'w2',
-            location: { chatId: 'c2', kind: 'message', messageId: 'm3', threadChatId: null },
-        })
-    );
-    // The gesture's dispatch is long over by the time the fetches land.
+    // The gesture's dispatch is long over by the time the fetch lands.
     await settle();
     await settle();
     uninstall();
     expect(calls).toEqual([
-        ['openThread', 'c1', 'm1', 'backgroundTab'],
         ['navigate', '/s/acme/chats/c2', { state: tabIntentState('backgroundTab') }],
     ]);
 });

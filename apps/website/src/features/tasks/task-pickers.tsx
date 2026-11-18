@@ -1,29 +1,13 @@
-import type { BoardColumn } from '@haus/api';
 import { Label, ListBox } from '@heroui/react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
-import { ColumnCategoryDisc } from './column-category-disc.tsx';
 import { type TaskPriority, taskPriorityLabels, taskPriorityOrder } from './task-presentation.ts';
 import { TaskPriorityIcon } from './task-priority-icon.tsx';
 import type { TaskPerson } from './use-task-people.ts';
 
 /**
- * The option lists every Task surface shares, so a column, a person, and a
- * priority read the same in a filter, the New task dialog, and the Task page.
+ * The option lists every Task surface shares, so a person and a priority read
+ * the same in a Tasks page filter and on the Task page.
  */
-
-export function ColumnListBox({ columns }: { columns: readonly BoardColumn[] }) {
-    return (
-        <ListBox>
-            {columns.map((column) => (
-                <ListBox.Item id={column.id} key={column.id} textValue={column.name}>
-                    <ColumnCategoryDisc category={column.category} />
-                    <Label>{column.name}</Label>
-                    <ListBox.ItemIndicator />
-                </ListBox.Item>
-            ))}
-        </ListBox>
-    );
-}
 
 export function PersonListBox({
     leading,

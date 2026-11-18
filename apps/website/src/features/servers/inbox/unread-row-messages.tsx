@@ -5,26 +5,26 @@ import { TranscriptRenderProvider } from '../../chats/chat-transcript-render-con
 import { TranscriptEntryView } from '../../chats/chat-transcript-turn.tsx';
 import { useUnreadRowRenderContext } from './unread-row-render-context.tsx';
 
+const noTasks: never[] = [];
+
 /**
  * A card's waiting messages, rendered by the transcript's own entry view
  * so mentions, references, lists, attachments, and authors look exactly as
  * they do in the conversation (ADR 0050).
  *
  * The entries project straight from the preview's messages rather than from
- * `chat.message` entities: the preview carries no Thread summary, so seeding
- * entities from it would erase a parent's Thread preview in the transcript,
- * and reading entities per row is the per-Chat fan-out the one preview read
- * exists to avoid. The previews' own invalidation keeps these fresh.
+ * `chat.message` entities: the preview carries no Task previews, so seeding
+ * entities from it would erase an origin Message's Task previews in the
+ * transcript, and reading entities per row is the per-Chat fan-out the one
+ * preview read exists to avoid. The previews' own invalidation keeps these fresh.
  */
 export function UnreadRowMessages({
     chatId,
-    conversationChatId,
     messages,
     onOpenConversation,
     serverId,
 }: {
     chatId: string;
-    conversationChatId: string;
     /** Oldest first, as `chat.unreadPreviews` returns them. */
     messages: readonly ChatMessage[];
     onOpenConversation: () => void;
@@ -32,7 +32,6 @@ export function UnreadRowMessages({
 }) {
     const renderContext = useUnreadRowRenderContext({
         chatId,
-        conversationChatId,
         messages,
         onOpenConversation,
         serverId,
@@ -43,7 +42,7 @@ export function UnreadRowMessages({
             projectMessageEntity
                 ? buildTranscriptEntries({
                       rows: messages.map((message) =>
-                          projectMessageEntity({ message, thread: null })
+                          projectMessageEntity({ message, tasks: noTasks })
                       ),
                   })
                 : [],

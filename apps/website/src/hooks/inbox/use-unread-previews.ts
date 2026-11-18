@@ -1,19 +1,23 @@
 import type { ChatUnreadPreview, ChatUnreadPreviewList } from '@haus/api';
 import * as React from 'react';
+import {
+    type FollowedTaskPreview,
+    followedTaskPreviews,
+} from '../../features/servers/inbox/unread-rows.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
 /**
  * One unread Inbox row's waiting messages (`chat.unreadPreviews`), selected
  * from the one Server-wide read every row shares (ADR 0050). `chatId` is the
- * Channel or DM id, or a Thread's own `threadChatId`.
+ * Channel, DM, or Task Chat id.
  *
  * Undefined while the read has not settled; null when it settled without this
  * row, which happens for a moment when a row arrives before the previews
  * refetch that names it. Each row selects only its own preview, so a new
  * message re-renders the row it landed in, not the whole list. The read is
  * invalidated by the streams that already move unread state
- * (`message.created`, `chat.onRead`, Thread follows, Chat lifecycle).
+ * (`message.created`, `chat.onRead`, Task follows, Chat lifecycle).
  */
 export function useUnreadPreview(
     serverId: string,
@@ -74,4 +78,21 @@ export function findUnreadPreview(
     chatId: string
 ): ChatUnreadPreview | null {
     return list.previews.find((preview) => preview.chatId === chatId) ?? null;
+}
+
+/**
+ * The followed Tasks with unread messages (ADR 0052 decision 9): previews whose
+ * row names a Task. No Chat list holds a Task's Chat, so these previews are
+ * the rows themselves. Undefined until the read settles.
+ */
+export function useFollowedTaskPreviews(serverId: string): FollowedTaskPreview[] | undefined {
+    const { data } = hausTrpc.chat.unreadPreviews.useQuery(
+        { serverId },
+        { ...queryPolicy.syncedSnapshot, select: selectFollowedTaskPreviews }
+    );
+    return data;
+}
+
+function selectFollowedTaskPreviews({ previews }: ChatUnreadPreviewList) {
+    return followedTaskPreviews(previews);
 }

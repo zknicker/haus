@@ -5,16 +5,16 @@ import {
     ownsDropTarget,
 } from './composer-file-drop.ts';
 
-// Stand-ins for nested drop surfaces: a Thread pane inside a chat surface.
+// Stand-ins for nested drop surfaces: an inner pane inside a chat surface.
 const chatSurface = {} as Element;
-const threadSurface = {} as Element;
+const innerSurface = {} as Element;
 const targetIn = (surface: Element) => ({ closest: () => surface }) as unknown as EventTarget;
 
 test('a drop belongs only to the nearest drop surface of its target', () => {
     expect(ownsDropTarget(targetIn(chatSurface), chatSurface)).toBe(true);
-    // A drop over the Thread pane is the Thread composer's, not the chat's.
-    expect(ownsDropTarget(targetIn(threadSurface), chatSurface)).toBe(false);
-    expect(ownsDropTarget(targetIn(threadSurface), threadSurface)).toBe(true);
+    // A drop over the inner pane is its composer's, not the chat's.
+    expect(ownsDropTarget(targetIn(innerSurface), chatSurface)).toBe(false);
+    expect(ownsDropTarget(targetIn(innerSurface), innerSurface)).toBe(true);
     expect(ownsDropTarget(null, chatSurface)).toBe(false);
 });
 

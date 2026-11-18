@@ -10,7 +10,7 @@ const listeners = new Set<() => void>();
 
 /**
  * Asks a Chat's transcript to scroll to and flash one message the next time
- * it shows: "View in chat" from a surface outside the Chat (a Thread tab)
+ * it shows: "Started from" on a Task page, or another surface outside the Chat,
  * requests the reveal, then navigates. A later request replaces an unserved one.
  */
 export function requestMessageReveal(chatId: string, target: ChatMessageJumpTarget) {

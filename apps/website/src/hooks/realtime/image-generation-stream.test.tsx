@@ -29,7 +29,7 @@ test('one update per linking Message refreshes exactly that Message entity', asy
     });
     harness.emit(path, {
         ...generation,
-        chatId: 'cht_thread',
+        chatId: 'cht_task',
         messageId: 'msg_b',
         parentChatId: 'cht_a',
     });
@@ -43,7 +43,7 @@ test('one update per linking Message refreshes exactly that Message entity', asy
         },
         {
             op: 'noteMessageAnnotated',
-            target: { chatId: 'cht_thread', messageId: 'msg_b', serverId },
+            target: { chatId: 'cht_task', messageId: 'msg_b', serverId },
         },
     ]);
 });

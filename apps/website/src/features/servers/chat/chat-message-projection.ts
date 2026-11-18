@@ -11,7 +11,7 @@ import {
 } from './chat-message-model.ts';
 
 export interface TranscriptSkeletonInput {
-    /** Ids whose entity carries a claim or a Thread (`useAttachedWorkIds`). */
+    /** Ids whose entity carries a claim (`useAttachedWorkIds`). */
     attachedWork: ReadonlySet<string>;
     entries: readonly ChatMessageLayout[];
 }
@@ -41,7 +41,7 @@ export const emptyTranscriptSkeleton: TranscriptSkeleton = {
  * The transcript's row skeleton from ids and layout facts. Nothing on a
  * skeleton row changes once its message commits except `attachedWork`, so a
  * row keeps its object across list refetches, tail appends, and entity
- * changes alike; only a new id (or a claim or Thread appearing) makes a new
+ * changes alike; only a new id (or a claim appearing) makes a new
  * row. Rows compare their layout structurally: a refetch may hand back new
  * layout objects for unchanged messages. The previous array comes back when
  * nothing moved, so the downstream entry and render-row memos hold too.
@@ -99,10 +99,22 @@ export function useChatMessageEntityProjector(agents: readonly Agent[]) {
         return (entity: ChatMessageEntity) => {
             let row = rows.get(entity);
             if (!row) {
-                row = projectChatMessage(entity.message, entity.thread, directories);
+                row = projectChatMessageEntity(entity, directories);
                 rows.set(entity, row);
             }
             return row;
         };
     }, [agents]);
+}
+
+/**
+ * One entity's row. The entity owns its Task previews (ADR 0052 decision 7);
+ * the row only carries them to the preview under the Message.
+ */
+export function projectChatMessageEntity(
+    entity: ChatMessageEntity,
+    directories: ReturnType<typeof chatMessageDirectories>
+): ProjectedChatMessageRow {
+    const row = projectChatMessage(entity.message, directories);
+    return entity.tasks.length > 0 ? { ...row, taskPreviews: entity.tasks } : row;
 }

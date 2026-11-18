@@ -36,17 +36,6 @@ const listeners = new Set<() => void>();
 const noPendingMessages: readonly PendingChatMessage[] = [];
 
 /**
- * The transcript key a Thread's pending replies live under. A first reply has
- * no Thread chat id until its send receipt returns, so rows are keyed on the
- * anchor message, which is stable from the moment the panel opens: the row the
- * composer wrote is the row the Thread reads back, before and after the Thread
- * exists.  chat ids are opaque, so the prefix cannot collide with one.
- */
-export function pendingThreadReplyKey(anchorMessageId: string) {
-    return `thread:${anchorMessageId}`;
-}
-
-/**
  * The chat's pending rows, minus any whose durable message the transcript
  * already has. Rapid sends queue: each keeps its own row until its own message
  * lands. The send nonce is the match — it is known before the send resolves,

@@ -39,7 +39,7 @@ export function CloudAgentWorkActions({
     const { data: server } = useServer(slug, Boolean(slug));
     const context = useTranscriptRenderContextOptional();
     const cancel = useCloudAgentCancelAction(work);
-    const conversationChatId = context?.conversationChatId ?? context?.chatId ?? null;
+    const conversationChatId = context?.chatId ?? null;
     const providerLabel = openInCloudAgentProviderLabel(work.provider);
     const canOpenProvider = canOpenCloudAgentProvider(work);
 

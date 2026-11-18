@@ -14,16 +14,13 @@ export function serverChatRoute(slug: string, chatId: string) {
     return `${serverRoute(slug)}/chats/${encodeURIComponent(chatId)}`;
 }
 
-/** A Chat with one of its Threads open beside it, by the Thread's anchor message. */
-export function serverChatThreadRoute(
-    slug: string,
-    chatId: string,
-    anchorMessageId: string,
-    landingSequence?: number
-) {
-    const route = `${serverChatRoute(slug, chatId)}?thread=${encodeURIComponent(anchorMessageId)}`;
-    return landingSequence === undefined ? route : `${route}&at=${landingSequence}`;
+/** A Chat scrolled to one of its Messages, which flashes once it shows. */
+export function serverChatMessageRoute(slug: string, chatId: string, messageId: string) {
+    return `${serverChatRoute(slug, chatId)}?${chatMessageParam}=${encodeURIComponent(messageId)}`;
 }
+
+/** The search param naming the Message a Chat route reveals. */
+export const chatMessageParam = 'message';
 
 export function serverAgentDmRoute(slug: string, agentId: string) {
     return `${serverRoute(slug)}/dm/${encodeURIComponent(agentId)}`;
@@ -42,23 +39,14 @@ export function activityRoute(slug: string) {
     return `${serverRoute(slug)}/activity`;
 }
 
-/** Every Thread still in motion, plus Earlier (specs/open-threads.md). */
-export function threadsRoute(slug: string) {
-    return `${serverRoute(slug)}/threads`;
-}
-
-/** Tasks: resolves to the last-viewed board, or the Server's first. */
+/** The one flat Tasks page (ADR 0052 decision 10). */
 export function tasksRoute(slug: string) {
     return `${serverRoute(slug)}/tasks`;
 }
 
-export function boardRoute(slug: string, boardKey: string) {
-    return `${tasksRoute(slug)}/${encodeURIComponent(boardKey)}`;
-}
-
-/** One Task's page, `SEC-12` being board `SEC` and number 12. */
-export function taskRoute(slug: string, boardKey: string, number: number) {
-    return `${boardRoute(slug, boardKey)}/${number}`;
+/** One Task's page by its key: `tasks/SEC-12`. */
+export function taskRoute(slug: string, key: string) {
+    return `${tasksRoute(slug)}/${encodeURIComponent(key)}`;
 }
 
 /**

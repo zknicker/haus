@@ -156,12 +156,10 @@ describe('message notification callback', () => {
             conversationKind: 'dm',
             mentionedUserIds: [],
             messageId: 'msg_live',
-            parentChatId: null,
             replyToAuthorUserId: null,
             sequence: 1,
             serverId: lost.id,
-            threadAnchorAuthorUserId: null,
-            threadAnchorMessageId: null,
+            taskId: null,
         });
 
         harness.fail('chat.onMessageCreated', 'INTERNAL_SERVER_ERROR');

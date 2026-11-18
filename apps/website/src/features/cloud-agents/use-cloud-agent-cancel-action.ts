@@ -7,7 +7,7 @@ import { canCancelCloudAgentWork } from './cloud-agent-presentation.ts';
 
 /**
  * The one cancel path, pressed from the work card's control band wherever the
- * card renders — the Chat transcript and the Thread alike. Server records the
+ * card renders — the Chat transcript and the Task page alike. Server records the
  * request and the Run settles through the ordinary observation path, so
  * nothing here writes cache — the work reads as cancelling until
  * `cloud-agent-work.updated` arrives.

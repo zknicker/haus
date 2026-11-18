@@ -4,7 +4,6 @@ import {
     artifactPagePath,
     filesPagePath,
     parseArtifactPageKey,
-    threadPagePath,
     windowSeedPath,
 } from './desktop-page-paths.ts';
 import { serverPageRoutes } from './server-page-routes.tsx';
@@ -29,30 +28,20 @@ test('malformed artifact keys name no target', () => {
     });
 });
 
-test('two Threads in one chat are different pages; Attachments is its own page', () => {
-    const a = tabPageKey({ kind: 'app', path: threadPagePath('acme', 'c1', 'm1') });
-    const b = tabPageKey({ kind: 'app', path: threadPagePath('acme', 'c1', 'm2') });
-    expect(a).not.toBe(b);
+test('Attachments is its own page, one per chat', () => {
     expect(tabPageKey({ kind: 'app', path: filesPagePath('acme', 'c1') })).toBe('files/c1');
+    expect(tabPageKey({ kind: 'app', path: filesPagePath('acme', 'c2') })).toBe('files/c2');
 });
 
-test('a Thread opened on a claim inside it carries the claim and stays the same page', () => {
-    const plain = threadPagePath('acme', 'c1', 'm1');
-    const onClaim = threadPagePath('acme', 'c1', 'm1', { claimMessageId: 'msg_reply' });
-    expect(onClaim).toBe('/s/acme/threads/c1/m1?claim=msg_reply');
-    expect(tabPageKey({ kind: 'app', path: onClaim })).toBe(
-        tabPageKey({ kind: 'app', path: plain })
-    );
-});
-
-test('both surfaces route a Thread; only desktop tabs route Attachments and artifact pages', () => {
+test('only desktop tabs route Attachments and artifact pages; both redirect retired pages', () => {
     const paths = (desktop: boolean) =>
         serverPageRoutes({ desktop }).map((route) => route.path ?? '(index)');
-    const threadPage = 'threads/:chatId/:anchorMessageId';
+    // ADR 0052: a saved Thread page address still resolves, to its Chat.
+    const retiredPage = 'threads/:chatId/:anchorMessageId';
     const desktopOnly = ['files/:chatId', 'artifacts/:artifactKey'];
-    expect(paths(false)).toContain(threadPage);
+    expect(paths(false)).toContain(retiredPage);
     expect(paths(false)).not.toContain(desktopOnly[0]);
-    expect(paths(true)).toEqual(expect.arrayContaining([threadPage, ...desktopOnly]));
+    expect(paths(true)).toEqual(expect.arrayContaining([retiredPage, ...desktopOnly]));
     // The catch-all stays last on both.
     expect(paths(false).at(-1)).toBe('*');
     expect(paths(true).at(-1)).toBe('*');

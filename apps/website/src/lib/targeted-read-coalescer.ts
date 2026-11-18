@@ -11,7 +11,7 @@ import { type ChatScope, type HausClient, TranscriptListReads } from './transcri
 
 export type { ChatScope } from './transcript-list-reads.ts';
 
-/** One message whose annotations (reactions, Thread summary, claim, Cloud Agent work) changed. */
+/** One message whose annotations (reactions, Task previews, claim, Cloud Agent work) changed. */
 export interface MessageTarget extends ChatScope {
     messageId: string;
 }
@@ -35,22 +35,16 @@ export interface TargetedReadCoalescer {
     /** The list-read owner `chatMessagesQueryOptions` reads pages through. */
     readonly lists: TranscriptListReads;
     /**
-     * Reaction, Thread summary (reply, read, follow), claim, or Cloud Agent
+     * Reaction, Task previews, claim, or Cloud Agent
      * work changed one message: mark it dirty, cancel its in-flight fetch,
      * then invalidate its entity.
      */
     noteMessageAnnotated(target: MessageTarget): void;
     /**
-     * `chat.onMessageCreated`: tail-read every cached list of the Chat; a
-     * Thread reply also refreshes its parent anchor's entity (the summary).
+     * `chat.onMessageCreated`: tail-read every cached list of the Chat.
      * Invalidating `chat.list` and `chat.search` stays with the caller.
      */
-    noteMessageCreated(
-        event: Pick<
-            MessageCreatedEvent,
-            'chatId' | 'parentChatId' | 'sequence' | 'serverId' | 'threadAnchorMessageId'
-        >
-    ): void;
+    noteMessageCreated(event: Pick<MessageCreatedEvent, 'chatId' | 'sequence' | 'serverId'>): void;
     /** Runs `listener(scope)` after each Chat purge (kept views and pending rows drop theirs). */
     onChatPurged(listener: (scope: ChatScope) => void): () => void;
     /** `chat.onLifecycle` `deleted`: abort tails, cancel and remove the Chat's lists and entities. */
@@ -66,7 +60,7 @@ export interface TargetedReadCoalescer {
     reconcileStart(recover: () => void): void;
     /** Stream start: refetch the loaded pages of the Server's (or these Chats') lists. */
     recoverTranscriptLists(scope: { chatIds?: readonly string[]; serverId: string }): void;
-    /** A send receipt or other ack: the same tail read, without the anchor refresh. */
+    /** A send receipt or other ack: the same tail read. */
     requestTail(scope: ChatScope & { sequence: number }): void;
 }
 
@@ -157,16 +151,7 @@ export function createTargetedReadCoalescer({
         invalidate,
         lists,
         noteMessageAnnotated,
-        noteMessageCreated: (event) => {
-            lists.requestTail(event, event.sequence);
-            if (event.parentChatId && event.threadAnchorMessageId) {
-                noteMessageAnnotated({
-                    chatId: event.parentChatId,
-                    messageId: event.threadAnchorMessageId,
-                    serverId: event.serverId,
-                });
-            }
-        },
+        noteMessageCreated: (event) => lists.requestTail(event, event.sequence),
         onChatPurged: (listener) => subscribeChatPurges(queryClient, listener),
         purgeChat: async (scope) => {
             await purge(scope);

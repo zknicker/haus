@@ -6,7 +6,7 @@ import {
     cloudAgentWorkFixture,
 } from '../../cloud-agents/cloud-agent-work-fixture.ts';
 import { humanDirectory } from '../human-identity.ts';
-import { toHappeningNowWork } from './happening-now-work.ts';
+import { happeningNowWorkSubline, toHappeningNowWork } from './happening-now-work.ts';
 
 const humans = humanDirectory(
     [{ displayName: 'Zach', handle: 'zach', userId: 'user_me' } as never],
@@ -22,16 +22,33 @@ test('a channel work reads its title, ticking status, Chat, and live Agent name'
             chatLabel: '#product',
             id: 'caw_one',
             location: {
-                anchorMessageId: 'message_one',
-                kind: 'work-thread',
-                threadChatId: 'chat_thread',
+                chatId: 'chat_product',
+                kind: 'message',
+                messageId: 'message_one',
             },
             provider: 'cursor',
             state: 'working',
             statusText: 'Working · 7m',
+            task: null,
             title: 'Fix the failing migration',
         },
     ]);
+});
+
+test('work on a Task carries the Task, and its subline leads with the key', () => {
+    const [onTask] = toHappeningNowWork(
+        [activeWork({ taskId: 'tsk_12', taskKey: 'SEC-12' })],
+        humans,
+        agents,
+        now
+    );
+    const [loose] = toHappeningNowWork([activeWork()], humans, agents, now);
+
+    expect(onTask?.task).toEqual({ id: 'tsk_12', key: 'SEC-12' });
+    expect(onTask && happeningNowWorkSubline(onTask)).toBe(
+        'Working · 7m · SEC-12 · #product · Blippy'
+    );
+    expect(loose && happeningNowWorkSubline(loose)).toBe('Working · 7m · #product · Blippy');
 });
 
 test('a DM work names the human peer, and an Agent DM names neither', () => {
@@ -103,10 +120,12 @@ function activeWork(overrides: Partial<ActiveCloudAgentWork> = {}): ActiveCloudA
         chatPeerUserId: null,
         conversationChatId: 'chat_product',
         location: {
-            anchorMessageId: 'message_one',
-            kind: 'work-thread',
-            threadChatId: 'chat_thread',
+            chatId: 'chat_product',
+            kind: 'message',
+            messageId: 'message_one',
         },
+        taskId: null,
+        taskKey: null,
         work: workRecord(),
         ...overrides,
     };

@@ -16,7 +16,7 @@ import {
 export const ChatMessageSubscriptionContext = React.createContext(true);
 
 /**
- * One message entity, `{ message, thread }`, or null once the id no longer
+ * One message entity, `{ message, tasks }`, or null once the id no longer
  * resolves in its Chat; undefined while it has never loaded. List reads seed
  * it, so a row normally renders from the cache with no request; it fetches
  * only when invalidated while observed or missing (never seeded, or
@@ -32,7 +32,7 @@ export function useChatMessage(
     const queryClient = useQueryClient();
     const { client } = hausTrpc.useUtils();
     // Only an enabled read follows the view's shown state. A disabled one
-    // (ChatView's Thread pane with no Thread open) never fetches, so it skips
+    // (ChatView's linked Message with no `?message=`) never fetches, so it skips
     // the context and a reveal does not re-render its whole Chat view.
     const subscribed = enabled ? React.use(ChatMessageSubscriptionContext) : false;
     ensureChatMessageDefaults(queryClient);

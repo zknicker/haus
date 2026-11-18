@@ -2,7 +2,7 @@ import * as React from 'react';
 
 /**
  * Marks an element whose whole area attaches dropped files to the composer
- * inside it. Surfaces nest (a Thread pane inside a chat), so a drop belongs
+ * inside it. Surfaces may nest, so a drop belongs
  * to the nearest marked ancestor of its target and nothing else.
  */
 export const composerDropSurfaceProps = { 'data-composer-drop-surface': '' } as const;

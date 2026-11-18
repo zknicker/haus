@@ -1,10 +1,10 @@
-import type { AutomationFireContext, MessageCause, MessageCauseLive } from '@haus/api';
-import { formatByteSize, formatRelativeTime, formatTimestamp } from '../../../lib/format.ts';
+import type { MessageCause, MessageCauseLive } from '@haus/api';
+import { formatRelativeTime } from '../../../lib/format.ts';
 
 /**
  * How a caused message presents its provenance: the context line, its hover
- * card, and the Thread context card all read from here, so a Trigger and a
- * Reminder are told apart in one place rather than at three call sites.
+ * card read from here, so a Trigger and a
+ * Reminder are told apart in one place rather than at each call site.
  */
 
 /**
@@ -107,112 +107,3 @@ export function messageCauseArchivedNote(cause: MessageCause): string | null {
 export function messageCauseAttributionNote(cause: MessageCause): string | null {
     return cause.attribution === 'inferred' ? 'Attributed by Haus, not named by the Agent.' : null;
 }
-
-/**
- * One fact of the context card's meta line. `value` is the part that carries
- * the information and is inked in the foreground; the muted words around it
- * only say what it means.
- */
-export interface AutomationMetaPart {
-    prefix?: string;
-    suffix?: string;
-    value: string;
-}
-
-/**
- * `Webhook · Fired 4m ago · fire 12 of 12` for a Trigger,
- * `Every Monday at 09:00 · Next Mon 9:00 AM` for a Reminder.
- */
-export function fireContextMetaParts(
-    context: AutomationFireContext,
-    now = Date.now()
-): AutomationMetaPart[] {
-    const fired: AutomationMetaPart = {
-        prefix: 'Fired',
-        value: formatRelativeTime(context.firedAt, now),
-    };
-
-    // Archived: the cadence and the history are gone with the record, so the
-    // card states the two things the message still remembers.
-    if (!context.cause.live) {
-        return [{ value: context.cause.summary }, fired];
-    }
-
-    if (context.cause.kind === 'reminder') {
-        const parts: AutomationMetaPart[] = [{ value: context.repeat ?? context.cause.summary }];
-        if (context.nextFireAt) {
-            parts.push({ prefix: 'Next', value: formatUpcomingTime(context.nextFireAt) });
-        }
-        return parts;
-    }
-
-    const parts: AutomationMetaPart[] = [{ value: context.cause.summary }, fired];
-    if (context.fireOrdinal !== null && context.fireTotal !== null) {
-        parts.push({
-            prefix: 'fire',
-            suffix: `of ${context.fireTotal}`,
-            value: String(context.fireOrdinal),
-        });
-    }
-    return parts;
-}
-
-/**
- * The payload disclosure's summary. Bytes are the sender's, not the excerpt's,
- * so a truncated excerpt still reports what actually arrived.
- */
-export function fireContextPayloadLabel(context: AutomationFireContext): string | null {
-    if (context.payload === null || context.payloadBytes === null) {
-        return null;
-    }
-
-    const parts = ['Payload', formatByteSize(context.payloadBytes)];
-    if (context.contentType) {
-        parts.push(context.contentType);
-    }
-    return parts.join(' · ');
-}
-
-/**
- * Shiki's id for the excerpt. A sender's content type is a full media type
- * with parameters, so match on what it starts with rather than on equality;
- * anything unrecognized renders as plain text rather than mis-highlighted.
- */
-export function fireContextPayloadLanguage(contentType: string | null): string {
-    const media = (contentType ?? '').split(';')[0]?.trim().toLowerCase() ?? '';
-    if (media.endsWith('/json') || media.endsWith('+json')) {
-        return 'json';
-    }
-    if (media === 'text/html' || media.endsWith('/xml') || media.endsWith('+xml')) {
-        return 'xml';
-    }
-    return 'plaintext';
-}
-
-/** The message a Reminder was set from, quoted the way the hover card quotes it. */
-export function fireContextAnchorNote(context: AutomationFireContext): string | null {
-    return context.anchorExcerpt ? `Anchored on: “${context.anchorExcerpt}”` : null;
-}
-
-/**
- * A time that has not happened yet reads by weekday, not by date: "Mon 9:00 AM"
- * is what someone would say about the next fire, where "Sep 7, 9:00 AM" makes
- * them count days. Past a week the weekday stops being enough and the calendar
- * date takes over.
- */
-export function formatUpcomingTime(value: string, now = Date.now()): string {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-        return value;
-    }
-    if (date.getTime() - now > sevenDaysMs) {
-        return formatTimestamp(value);
-    }
-    return new Intl.DateTimeFormat('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        weekday: 'short',
-    }).format(date);
-}
-
-const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;

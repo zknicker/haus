@@ -10,7 +10,6 @@ import {
     resetChatDraftsForTest,
     restoreFailedChatDraft,
     takeChatDraftForSend,
-    threadDraftKey,
     updateChatDraftContent,
     updateChatDraftMentions,
 } from './chat-draft-store.ts';
@@ -19,19 +18,19 @@ afterEach(() => {
     resetChatDraftsForTest();
 });
 
-test('drafts persist by Chat and keep Threads and Agent DMs separate', () => {
+test('drafts persist by Chat and keep other Chats and Agent DMs separate', () => {
     const chatKey = chatDraftKey('srv_1', 'chat_1');
-    const threadKey = threadDraftKey('srv_1', 'chat_1', 'msg_anchor');
+    const otherKey = chatDraftKey('srv_1', 'chat_2');
     const dmKey = agentDmDraftKey('srv_1', 'agent_1');
 
     updateChatDraftContent(chatKey, 'channel work');
-    updateChatDraftContent(threadKey, 'thread work');
+    updateChatDraftContent(otherKey, 'task work');
     updateChatDraftContent(dmKey, 'dm work');
 
     expect(readChatDraftState(chatKey).draft.content).toBe('channel work');
-    expect(readChatDraftState(threadKey).draft.content).toBe('thread work');
+    expect(readChatDraftState(otherKey).draft.content).toBe('task work');
     expect(readChatDraftState(dmKey).draft.content).toBe('dm work');
-    expect(chatKey).not.toBe(threadKey);
+    expect(chatKey).not.toBe(otherKey);
     expect(chatKey).not.toBe(dmKey);
 });
 

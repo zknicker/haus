@@ -38,10 +38,10 @@ describe('Open: anything activated inside a page (ADR 0039)', () => {
             kind: 'select',
             tabId: 't1',
         });
-        const state = run(base, open(app('chats/c1?thread=m1')));
+        const state = run(base, open(app('chats/c1?message=m1')));
         expect(describeTabs(state)).toMatchObject({
             focused: 'secondary',
-            secondary: 'tasks chats/c1?thread=m1*',
+            secondary: 'tasks chats/c1?message=m1*',
         });
     });
 
@@ -50,14 +50,14 @@ describe('Open: anything activated inside a page (ADR 0039)', () => {
         expect(describeTabs(state)).toMatchObject({ primary: 'chats/a*', secondary: 'chats/a*' });
     });
 
-    test('a Thread, an Agent profile, and Settings all open on the right like any page', () => {
+    test('a Task, an Agent profile, and Settings all open on the right like any page', () => {
         const state = run(
             start(),
-            open(app('threads/c1/m1')),
+            open(app('tasks/SEC-1')),
             open(app('agents/a1')),
             open(app('settings/members'))
         );
-        expect(describeTabs(state).secondary).toBe('threads/c1/m1 agents/a1 settings/members*');
+        expect(describeTabs(state).secondary).toBe('tasks/SEC-1 agents/a1 settings/members*');
     });
 
     test('no source (notification, deep link, ⌘F): the right pane like any open', () => {

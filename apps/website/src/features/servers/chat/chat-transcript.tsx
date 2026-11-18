@@ -15,11 +15,14 @@ import { useChatTranscript } from './use-chat-transcript.tsx';
 export { useChatTranscript } from './use-chat-transcript.tsx';
 
 export function ChatTranscript({
+    leadingContent,
     onVisibleSequenceChange,
     renderWindowRef,
     scrollContentRef,
     ...input
 }: ChatTranscriptInput & {
+    /** Above the first row, once the oldest message is loaded (a Task's origin). */
+    leadingContent?: React.ReactNode;
     onVisibleSequenceChange?: (sequence: number | undefined) => void;
     renderWindowRef?: React.RefObject<TranscriptRenderWindowHandle | null>;
     scrollContentRef?: React.RefObject<HTMLDivElement | null>;
@@ -45,9 +48,12 @@ export function ChatTranscript({
             ) : null}
             <ChatTranscriptPresentation
                 leadingContent={
-                    downloadError ? (
-                        <p className="px-2 text-danger text-sm">{downloadError}</p>
-                    ) : undefined
+                    <>
+                        {leadingContent}
+                        {downloadError ? (
+                            <p className="px-2 text-danger text-sm">{downloadError}</p>
+                        ) : null}
+                    </>
                 }
                 renderContext={renderContext}
                 renderWindowRef={renderWindowRef}

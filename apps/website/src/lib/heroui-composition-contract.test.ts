@@ -26,8 +26,6 @@ const sourceRoot = join(import.meta.dir, '..');
 const spacingOverrideAllowlist: Record<string, string> = {
     'features/onboarding/cove-meet-step.tsx':
         'Card.Content hosts a two-column split whose halves each carry their own padding and divider',
-    'features/servers/thread/thread-peek-dialog.tsx':
-        'Modal.Dialog hosts a full-height chat thread, which owns its own scroll and composer geometry',
 };
 
 /** Components whose spacing is part of the design system, not a suggestion. */

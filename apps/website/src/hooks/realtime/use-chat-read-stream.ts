@@ -8,18 +8,16 @@ import {
     useTargetedReadCoalescer,
 } from '../../lib/targeted-read-coalescer.ts';
 import { readChangesUnreadList } from '../servers/chat-read-cache.ts';
-import { invalidateOpenThreads } from './open-thread-reads.ts';
+import { refreshTaskReads } from './task-reads.ts';
 import { useSubscriptionRestart } from './use-subscription-restart.ts';
 
-type ReadUtils = Pick<ReturnType<typeof hausTrpc.useUtils>, 'chat' | 'thread'>;
+type ReadUtils = Pick<ReturnType<typeof hausTrpc.useUtils>, 'chat'>;
 
 /**
- * `chat.onRead` (the viewer's own reads). A Chat read refreshes `chat.list`;
- * a Thread read refreshes `thread.listUnread` and its anchor's summary
- * (per-viewer unread count) — a Thread is unread on its own (ADR 0043). Each
- * skips the list when its settled row already shows the read; a read that
- * moves a list also refreshes the Inbox's unread previews. `onEvent` hears
- * each live read (message notifications).
+ * `chat.onRead` (the viewer's own reads). A Channel or DM read refreshes
+ * `chat.list`, skipped when its settled row already shows the read; a Task
+ * read refreshes its Task's reads. Either refreshes the Inbox's unread
+ * previews. `onEvent` hears each live read (message notifications).
  */
 export function useChatReadStream(
     serverId: string | undefined,
@@ -36,10 +34,6 @@ export function useChatReadStream(
         if (serverId) {
             coalescer.recoverTranscriptLists({ serverId });
             coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.chat.list, { serverId }) });
-            coalescer.invalidate({
-                queryKey: getQueryKey(hausTrpc.thread.listUnread, { serverId }),
-            });
-            invalidateOpenThreads(coalescer, serverId);
             coalescer.invalidate({
                 queryKey: getQueryKey(hausTrpc.chat.unreadPreviews, { serverId }),
             });
@@ -73,25 +67,16 @@ export function applyChatRead({
     utils: ReadUtils;
 }) {
     const { chatId, serverId } = event;
-    const list = event.parentChatId ? 'threads' : 'chats';
-    if (readChangesUnreadList({ chatId, list, queryClient, serverId, utils })) {
-        coalescer.invalidate({
-            queryKey:
-                list === 'chats'
-                    ? getQueryKey(hausTrpc.chat.list, { serverId })
-                    : getQueryKey(hausTrpc.thread.listUnread, { serverId }),
-        });
-        if (list === 'threads') {
-            invalidateOpenThreads(coalescer, serverId);
-        }
+    // A Task's Chat is in no Chat list: its unread lives on its detail, its origin
+    // preview, and its Inbox row (ADR 0052 decision 9).
+    if (event.taskId) {
+        refreshTaskReads(coalescer, queryClient, { serverId, taskId: event.taskId });
+        coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.chat.unreadPreviews, { serverId }) });
+        return;
+    }
+    if (readChangesUnreadList({ chatId, queryClient, serverId, utils })) {
+        coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.chat.list, { serverId }) });
         // A read short of the newest message leaves the row with fewer waiting messages.
         coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.chat.unreadPreviews, { serverId }) });
-    }
-    if (event.parentChatId && event.threadAnchorMessageId) {
-        coalescer.noteMessageAnnotated({
-            chatId: event.parentChatId,
-            messageId: event.threadAnchorMessageId,
-            serverId,
-        });
     }
 }

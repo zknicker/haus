@@ -8,7 +8,7 @@ function row(overrides: Partial<CloudAgentAutomation> = {}): CloudAgentAutomatio
     return {
         computerHealth: 'healthy',
         conversationChatId: 'cht_one',
-        location: { kind: 'message', chatId: 'cht_one', messageId: 'msg_one', threadChatId: null },
+        location: { kind: 'message', chatId: 'cht_one', messageId: 'msg_one' },
         notification: 'waiting',
         work: cloudAgentWorkFixture({ updatedAt: new Date(now).toISOString() }),
         ...overrides,

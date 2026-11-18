@@ -8,7 +8,7 @@ import { splitVisualFences, visualFallbackText } from '@haus/api/widgets/visual'
  * away, a backslash escape (`\&\&`, `\*`) reads as the character it protects,
  * and newlines or code fences collapse to single spaces.
  *
- * Every surface that quotes a message without rendering it — a Thread preview
+ * Every surface that quotes a message without rendering it — a Task preview
  * row, a Claim's title, the Inbox, a Cloud Agent work's detail line — shares
  * this so they cannot disagree about what a quoted line says.
  */

@@ -34,8 +34,8 @@
   --feed-card-ring: color-mix(in oklab, var(--foreground) 24%, transparent);
   /*
    * The one column every in-chat attachment under a message fills: Cloud Agent
-   * cards, thread previews, the working log, workspace changes. Each is
-   * `w-full` up to this cap, so a card stacked over a thread preview shares
+   * cards, Task previews, the working log, workspace changes. Each is
+   * `w-full` up to this cap, so a card stacked over a Task preview shares
    * both edges whatever the transcript width.
    */
   --chat-card-width: 36rem;
@@ -878,25 +878,6 @@
         height: 20px;
     }
 
-    /*
-     * HeroUI Pro 1.0.0-beta.9 ships a compact-layout shell rule that outranks
-     * the `secondary` variant and repaints the shell with `--field-background`,
-     * so a secondary composer sitting on a surface — the thread peek — paints
-     * surface on surface and vanishes. Restore the variant's own fill and edge
-     * under the compact layout. Remove once `.prompt-input__shell--secondary`
-     * wins over the compact rule upstream.
-     */
-    .prompt-input[data-layout="compact"]
-        .prompt-input__shell--compact.prompt-input__shell--secondary {
-        background-color: var(--default);
-        border-color: var(--border);
-    }
-
-    .prompt-input[data-layout="compact"]
-        .prompt-input__shell--compact.prompt-input__shell--secondary:hover {
-        background-color: var(--default-hover);
-    }
-
     .prompt-input[data-layout="compact"] .prompt-input__shell--compact {
         transition:
             background-color 150ms var(--ease-smooth),
@@ -1045,7 +1026,7 @@
 
     /*
      * An Unread card's header reads as one line (`features/servers/inbox/unread-row-header.tsx`):
-     * the place, then a note — `DM`, or the message a Thread hangs off —
+     * the place, then a note — `DM`, or the Channel a Task started from —
      * beside it rather than under it. So the description sheds the offset that
      * separates two stacked lines and takes the title's size, the line reading
      * as one sentence rather than a label and its caption.
@@ -2971,26 +2952,6 @@
         visibility: visible;
     }
 
-    /*
-     * A Thread over a page (Cloud Agent peeks). The transcript's edge
-     * bands sit on the dialog's surface, not the page: a rounded clip drops
-     * their mask, so the dialog stays unclipped, and they wash with its own
-     * colour. The bottom band reaches the dialog's corners, so it carries the
-     * rounding the clip would have given it.
-     */
-    .modal__dialog--thread-peek {
-        overflow: visible;
-    }
-
-    .modal__dialog--thread-peek .transcript-edge-blur {
-        background-color: var(--overlay);
-    }
-
-    .modal__dialog--thread-peek .transcript-edge-blur[data-side="bottom"] {
-        border-end-start-radius: min(32px, var(--radius-3xl));
-        border-end-end-radius: min(32px, var(--radius-3xl));
-    }
-
     /* Without translucency the blur goes and the wash alone fades the rows. */
     @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
         .transcript-edge-blur {
@@ -3579,8 +3540,8 @@
 
     /*
      * An Agent's page card is a stock ItemCard in the chat card
-     * material: the `nested-surface` fill and ring that thread previews and
-     * Action cards wear, the same shell corner, and the thread preview's
+     * material: the `nested-surface` fill and ring that Task previews and
+     * Action cards wear, the same shell corner, and the Task preview's
      * density so a stack of them reads as one column of objects. The paired
      * selector outranks the `transparent` variant it starts from.
      */

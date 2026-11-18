@@ -5,8 +5,8 @@ import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
 /**
  * A card's source line: where its waiting messages are from (ADR 0050). One
  * `ItemCard` line — the place's mark, its name in a fixed column so names and
- * notes line up card to card, a muted note (`DM`, or the message a Thread
- * hangs off), and a trailing cluster of the time, Mark read, and the count.
+ * notes line up card to card, a muted note (`DM`, or the Channel a Task
+ * started from), and a trailing cluster of the time, Mark read, and the count.
  *
  * It is not pressable and paints no fill: the card is already open. The name
  * itself opens the conversation, underlined on hover the way a transcript
@@ -32,7 +32,7 @@ export function UnreadRowHeader({
     label: string;
     /** The place's sidebar mark: its Channel box or its DM face. */
     mark: ReactNode;
-    /** Muted beside the name: "DM", or the message a Thread hangs off. */
+    /** Muted beside the name: "DM", or the Channel a Task started from. */
     note: ReactNode;
     /** Opens the conversation at the card's message. */
     onOpen: () => void;

@@ -1,6 +1,6 @@
 import type { Query } from '@tanstack/react-query';
 
-/** The input of a transcript list: a `chat.messages` infinite query (Chat, inline-reply chain, or Thread). */
+/** The input of a transcript list: a `chat.messages` infinite query (Chat, inline-reply chain, or Task). */
 export interface TranscriptListInput {
     chatId: string;
     limit: number;

@@ -118,7 +118,7 @@ test('a hidden kept view keeps the route it last had while shown', async () => {
     let navigate: NavigateFunction = () => undefined;
     function Probe({ chatId }: { chatId: string }) {
         const [params] = useSearchParams();
-        seen[chatId] = params.get('thread');
+        seen[chatId] = params.get('message');
         return null;
     }
     function ChatRoute() {
@@ -135,18 +135,18 @@ test('a hidden kept view keeps the route it last had while shown', async () => {
     const root = createRoot(document.createElement('div'));
     await act(() =>
         root.render(
-            <MemoryRouter initialEntries={['/chat/a?thread=t1']}>
+            <MemoryRouter initialEntries={['/chat/a?message=m1']}>
                 <Routes>
                     <Route element={<ChatRoute />} path="/chat/:chatId" />
                 </Routes>
             </MemoryRouter>
         )
     );
-    await act(() => navigate('/chat/b?thread=t2'));
-    // The hidden view never sees the shown chat's `?thread=`.
-    expect(seen).toEqual({ a: 't1', b: 't2' });
+    await act(() => navigate('/chat/b?message=m2'));
+    // The hidden view never sees the shown chat's `?message=`.
+    expect(seen).toEqual({ a: 'm1', b: 'm2' });
     await act(() => navigate('/chat/a'));
-    expect(seen).toEqual({ a: null, b: 't2' });
+    expect(seen).toEqual({ a: null, b: 'm2' });
 
     await act(() => root.unmount());
 });

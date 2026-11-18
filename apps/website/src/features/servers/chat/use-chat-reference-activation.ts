@@ -1,18 +1,18 @@
 import {
     parseAgentReferenceTarget,
+    parseChatMessageReferenceTarget,
     parseChatReferenceTarget,
-    parseChatThreadReferenceTarget,
 } from '@haus/api';
 import { useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profile.ts';
-import { useThreadOpener } from '../../../hooks/threads/use-thread-opener.ts';
 import type { ReferenceActivationTarget } from '../../mentions/mention-types.ts';
+import { serverChatMessageRoute } from '../server-routes.ts';
 
 export function useChatReferenceActivation(onOpenChat: (id: string) => void) {
     const openAgentProfile = useOpenAgentProfile();
+    const navigate = useNavigate();
     const { slug = '' } = useParams();
-    const openThread = useThreadOpener(slug);
     return useCallback(
         (reference: ReferenceActivationTarget) => {
             if (reference.kind === 'agent') {
@@ -23,9 +23,10 @@ export function useChatReferenceActivation(onOpenChat: (id: string) => void) {
                 return;
             }
             if (reference.kind === 'chat') {
-                const thread = parseChatThreadReferenceTarget(reference.id);
-                if (thread) {
-                    openThread(thread.chatId, thread.anchorMessageId);
+                // A link to one Message opens its Chat scrolled to that Message.
+                const message = parseChatMessageReferenceTarget(reference.id);
+                if (message) {
+                    navigate(serverChatMessageRoute(slug, message.chatId, message.messageId));
                     return;
                 }
                 const targetChatId = parseChatReferenceTarget(reference.id);
@@ -34,6 +35,6 @@ export function useChatReferenceActivation(onOpenChat: (id: string) => void) {
                 }
             }
         },
-        [onOpenChat, openAgentProfile, openThread]
+        [navigate, onOpenChat, openAgentProfile, slug]
     );
 }

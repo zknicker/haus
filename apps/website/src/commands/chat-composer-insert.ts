@@ -14,12 +14,8 @@ export function requestChatComposerInsert(text: string) {
     window.dispatchEvent(new CustomEvent(chatComposerInsertEventName, { detail: { text } }));
 }
 
-export function useChatComposerInsertRequest(enabled: boolean, insert: (text: string) => void) {
+export function useChatComposerInsertRequest(insert: (text: string) => void) {
     React.useEffect(() => {
-        if (!enabled) {
-            return;
-        }
-
         const listener = (event: Event) => {
             const detail = (event as CustomEvent<{ text?: unknown }>).detail;
             if (typeof detail?.text === 'string' && detail.text.length > 0) {
@@ -33,7 +29,7 @@ export function useChatComposerInsertRequest(enabled: boolean, insert: (text: st
             window.removeEventListener(chatComposerInsertEventName, listener);
             unregister();
         };
-    }, [enabled, insert]);
+    }, [insert]);
 }
 
 /** Whether any chat composer is currently accepting inserts. */

@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { ChatMessage } from '@haus/api';
+import type { ChatMessage, TaskPreview } from '@haus/api';
 import {
     type ChatMessageLayout,
     toChatMessageLayout,
 } from '../../../hooks/servers/chat-message-layout.ts';
+import { chatMessageDirectories } from './chat-message-model.ts';
 import {
     emptyTranscriptSkeleton,
+    projectChatMessageEntity,
     projectTranscriptSkeleton,
     type TranscriptSkeletonInput,
 } from './chat-message-projection.ts';
@@ -48,11 +50,10 @@ test('a skeleton row carries layout facts and nothing mutable', () => {
     assert.equal(row?.message.claim, undefined);
     assert.equal(row?.message.reactions, undefined);
     assert.equal(row?.message.cloudAgentWork, undefined);
-    assert.equal(row?.thread, null);
     assert.equal(row?.message.sendNonce, 'nonce_msg_1');
 });
 
-test('only a message gaining a claim or Thread gets a new row', () => {
+test('only a message gaining a claim or a Task gets a new row', () => {
     const entries = [layout('msg_1'), layout('msg_2')];
     const first = projectTranscriptSkeleton(input(entries), emptyTranscriptSkeleton);
     const second = projectTranscriptSkeleton(input(entries, ['msg_2']), first);
@@ -69,8 +70,22 @@ function input(
     return { attachedWork: new Set(attachedWork), entries };
 }
 
+test('an entity row carries the Task previews its entity owns, and only when it has some', () => {
+    const directories = chatMessageDirectories([]);
+    const tasks = [{ originMessageId: 'msg_1', taskId: 'tsk_a' } as TaskPreview];
+    const origin = projectChatMessageEntity({ message: message('msg_1'), tasks }, directories);
+    const plain = projectChatMessageEntity({ message: message('msg_2'), tasks: [] }, directories);
+
+    assert.equal(origin.taskPreviews, tasks);
+    assert.equal(plain.taskPreviews, undefined);
+});
+
 function layout(id: string): ChatMessageLayout {
-    const message: ChatMessage = {
+    return toChatMessageLayout(message(id));
+}
+
+function message(id: string): ChatMessage {
+    return {
         attachments: [],
         author: { kind: 'human', userId: 'usr_1' },
         body: { kind: 'text' },
@@ -90,5 +105,4 @@ function layout(id: string): ChatMessageLayout {
         taskLinks: [],
         claim: null,
     };
-    return toChatMessageLayout(message);
 }

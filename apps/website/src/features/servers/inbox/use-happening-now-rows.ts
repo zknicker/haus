@@ -1,13 +1,17 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { useOptionalCurrentAgentActivity } from '../../../hooks/agents/use-current-agent-activity.tsx';
 import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profile.ts';
+import { tabIntentState } from '../../../hooks/desktop-tabs/tab-navigation.ts';
+import { currentOpenGesture } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useActiveCloudAgentWork } from '../../../hooks/servers/use-cloud-agent-work.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { useOpenCloudAgentWork } from '../../cloud-agents/use-open-cloud-agent-work.ts';
 import { useAgentLifecycle } from '../agent-lifecycle.tsx';
 import { useServerContext } from '../server-context.ts';
+import { taskRoute } from '../server-routes.ts';
 import { type HappeningNowRow, toHappeningNowRows } from './happening-now-rows.ts';
 import { toHappeningNowWork } from './happening-now-work.ts';
 import { happeningNowAgentRows } from './inbox-agent-activity.ts';
@@ -46,14 +50,23 @@ export function useHappeningNowRows(): HappeningNowRow[] | null {
 }
 
 /**
- * Opening a row: Cloud Agent work opens its own place (`useOpenCloudAgentWork`),
- * and an Agent in a turn opens its profile.
+ * Opening a row: Cloud Agent work on a Task opens that Task's page (ADR 0052),
+ * other work opens its own place (`useOpenCloudAgentWork`), and an Agent in a
+ * turn opens its profile.
  */
 export function useOpenHappeningNowRow(): (row: HappeningNowRow) => void {
+    const { server } = useServerContext();
+    const navigate = useNavigate();
     const openAgentProfile = useOpenAgentProfile();
     const openWork = useOpenCloudAgentWork();
     return (row) => {
         if (row.kind === 'work') {
+            if (row.work.task) {
+                navigate(taskRoute(server.slug, row.work.task.key), {
+                    state: tabIntentState(currentOpenGesture()),
+                });
+                return;
+            }
             openWork(row.work);
             return;
         }

@@ -1,10 +1,10 @@
-import type { Board, Task } from '@haus/api';
+import type { Task } from '@haus/api';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
-import { useBoards } from '../../hooks/boards/use-boards.ts';
 import { useTask } from '../../hooks/tasks/use-task.ts';
-import { ColumnCategoryDisc } from '../tasks/column-category-disc.tsx';
 import { formatDueOn } from '../tasks/task-facts.tsx';
 import { taskPriorityLabels } from '../tasks/task-presentation.ts';
+import { taskStateLabels } from '../tasks/task-state.ts';
+import { TaskStateDisc } from '../tasks/task-state-disc.tsx';
 import { type TaskPerson, useTaskActor } from '../tasks/use-task-people.ts';
 import {
     ReferencePreviewHeader,
@@ -26,14 +26,12 @@ export function TaskHoverCardContent({
     taskId: string;
 }) {
     const read = useTask(serverId, { taskId });
-    const boards = useBoards(serverId);
     const task = read.data ?? null;
     const assignee = useTaskActor(serverId, task?.assignee ?? null);
 
     return (
         <TaskHoverCardView
             assignee={assignee}
-            board={boards.data?.find((candidate) => candidate.id === task?.boardId) ?? null}
             displayLabel={displayLabel}
             isUnavailable={Boolean(read.error)}
             task={task}
@@ -43,30 +41,27 @@ export function TaskHoverCardContent({
 
 export function TaskHoverCardView({
     assignee,
-    board,
     displayLabel,
     isUnavailable,
     task,
 }: {
     assignee: null | Pick<TaskPerson, 'avatarUrl' | 'label'>;
-    board: Pick<Board, 'columns' | 'name'> | null;
     displayLabel: string;
     isUnavailable: boolean;
-    task: null | Pick<Task, 'category' | 'columnId' | 'dueOn' | 'key' | 'priority' | 'title'>;
+    task: null | Pick<Task, 'dueOn' | 'key' | 'priority' | 'state' | 'title'>;
 }) {
-    const column = board?.columns.find((candidate) => candidate.id === task?.columnId);
     const facts = [assignee?.label, ...(task ? taskFacts(task) : [])].filter(Boolean);
 
     return (
         <ReferencePreviewHeader
             mark={
                 task ? (
-                    <ColumnCategoryDisc category={task.category} />
+                    <TaskStateDisc state={task.state} />
                 ) : (
                     <ReferencePreviewMark appearance={{ icon: 'task' }} />
                 )
             }
-            meta={[column?.name, board?.name].filter(Boolean).join(' · ') || null}
+            meta={task ? taskStateLabels[task.state] : null}
             title={task?.key ?? displayLabel}
         >
             {isUnavailable ? <ReferencePreviewText>Task unavailable</ReferencePreviewText> : null}

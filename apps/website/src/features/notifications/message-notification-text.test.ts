@@ -20,8 +20,7 @@ const message = {
 test('a DM names only its author and opens the DM', () => {
     expect(
         messageNotificationText({
-            anchorMessageId: null,
-            conversationChatId: 'cht_dm',
+            chatId: 'cht_dm',
             message,
             names,
             reason: 'dm',
@@ -30,18 +29,14 @@ test('a DM names only its author and opens the DM', () => {
     ).toEqual({ body: 'Should I run it?', path: '/s/hq/chats/cht_dm', title: 'Orbit' });
 });
 
-test('a Channel Thread message names the Channel and opens the Thread beside it', () => {
+test('a Channel message names the Channel and opens it', () => {
     expect(
         messageNotificationText({
-            anchorMessageId: 'msg_anchor',
-            conversationChatId: 'cht_product',
+            chatId: 'cht_product',
             message,
             names,
             reason: 'mention',
             slug: 'hq',
         })
-    ).toMatchObject({
-        path: '/s/hq/chats/cht_product?thread=msg_anchor',
-        title: 'Orbit in #product › thread',
-    });
+    ).toMatchObject({ path: '/s/hq/chats/cht_product', title: 'Orbit in #product' });
 });

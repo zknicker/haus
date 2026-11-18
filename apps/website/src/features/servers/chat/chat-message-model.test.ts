@@ -1,15 +1,7 @@
 import { expect, test } from 'bun:test';
 import type { ChatMessage } from '@haus/api';
 import { buildTranscriptEntries, getItemRunId } from '../../chats/chat-transcript-model.ts';
-import { mergeClaimAnchor, projectChatMessages } from './chat-message-model.ts';
-
-test('keeps an older claim anchor available when the latest transcript page omits it', () => {
-    const anchor = message('message_anchor', 1);
-    const latest = message('message_latest', 51);
-
-    expect(mergeClaimAnchor([latest], anchor)).toEqual([anchor, latest]);
-    expect(mergeClaimAnchor([anchor, latest], anchor)).toEqual([anchor, latest]);
-});
+import { projectChatMessages } from './chat-message-model.ts';
 
 test('projects Server messages into the preserved transcript contract', () => {
     const human = message('message_human', 1);
@@ -32,20 +24,7 @@ test('projects Server messages into the preserved transcript contract', () => {
         author: { agentId: 'agent_one', kind: 'agent' },
         runId: 'run_agent',
     };
-    const rows = projectChatMessages(
-        [human, agent],
-        [
-            {
-                anchorMessageId: human.id,
-                followed: true,
-                latestReplyAt: agent.createdAt,
-                recentReplies: [],
-                replyCount: 1,
-                threadChatId: 'thread_one',
-                unreadCount: 0,
-            },
-        ]
-    );
+    const rows = projectChatMessages([human, agent]);
     const humanRow = rows[0];
     const agentRow = rows[1];
 
@@ -56,7 +35,6 @@ test('projects Server messages into the preserved transcript contract', () => {
     });
     // Attachments render from the Server record at the surface, never as a projected file reference.
     expect(humanRow?.kind === 'message' ? 'attachments' in humanRow.message : null).toBe(false);
-    expect(humanRow?.kind === 'message' ? humanRow.thread?.threadChatId : null).toBe('thread_one');
     expect(humanRow?.kind === 'message' ? humanRow.message.reactions : null).toEqual([
         {
             actors: [{ handle: 'owner', id: 'user_one', kind: 'human' }],
@@ -95,7 +73,7 @@ test('preserves one global Agent run identity when messages come from multiple C
         runId,
     };
 
-    const rows = projectChatMessages([first, second], []);
+    const rows = projectChatMessages([first, second]);
 
     expect(
         rows
@@ -105,28 +83,25 @@ test('preserves one global Agent run identity when messages come from multiple C
 });
 
 test('renders an agent-created Message as its own content, with no extra row', () => {
-    const rows = projectChatMessages(
-        [
-            {
-                ...message('message_created', 1),
-                author: { agentId: 'agent_one', kind: 'agent' },
-                body: {
-                    agent: {
-                        agentId: 'agt_1234567890abcdef',
-                        avatarUrl: null,
-                        description: 'Keeps the release calendar honest.',
-                        displayName: 'Orbit',
-                        handle: 'orbit',
-                        retired: false,
-                    },
-                    kind: 'agent-created',
+    const rows = projectChatMessages([
+        {
+            ...message('message_created', 1),
+            author: { agentId: 'agent_one', kind: 'agent' },
+            body: {
+                agent: {
+                    agentId: 'agt_1234567890abcdef',
+                    avatarUrl: null,
+                    description: 'Keeps the release calendar honest.',
+                    displayName: 'Orbit',
+                    handle: 'orbit',
+                    retired: false,
                 },
-                content: 'Meet [@orbit](agent://agt_1234567890abcdef).',
-                runId: 'run_agent',
+                kind: 'agent-created',
             },
-        ],
-        []
-    );
+            content: 'Meet [@orbit](agent://agt_1234567890abcdef).',
+            runId: 'run_agent',
+        },
+    ]);
     const created = rows[0];
 
     expect(created?.kind === 'message' ? created.message.content : null).toBe(

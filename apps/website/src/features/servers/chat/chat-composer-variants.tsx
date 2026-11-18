@@ -1,11 +1,11 @@
 import type { ReactNode, Ref } from 'react';
 import { type ChatComposerHandle, ServerChatComposer } from './chat-composer.tsx';
-import { agentDmDraftKey, chatDraftKey, threadDraftKey } from './chat-draft-store.ts';
+import { agentDmDraftKey, chatDraftKey } from './chat-draft-store.ts';
 import type { ChatInlineReplyTarget } from './chat-inline-reply.tsx';
 
 export function ChatComposer(props: {
     agentDmId?: string;
-    /** See `ServerChatComposer`; a Chat or Thread view keeps the default. */
+    /** See `ServerChatComposer`; a Chat or Task view keeps the default. */
     autoFocus?: boolean;
     chatId: string;
     chatName: string;
@@ -13,20 +13,15 @@ export function ChatComposer(props: {
     onInlineReplyCancel?: () => void;
     onInlineReplySent?: (messageId: string) => void;
     onSend?: () => void;
-    onThreadCreated?: (threadChatId: string) => void;
     pendingChatId?: string;
     placeholder?: string;
     ref?: Ref<ChatComposerHandle>;
     serverId: string;
     status?: ReactNode;
-    thread?: { anchorMessageId: string };
-    variant?: 'primary' | 'secondary';
 }) {
-    const draftKey = props.thread
-        ? threadDraftKey(props.serverId, props.chatId, props.thread.anchorMessageId)
-        : props.agentDmId
-          ? agentDmDraftKey(props.serverId, props.agentDmId)
-          : chatDraftKey(props.serverId, props.chatId);
+    const draftKey = props.agentDmId
+        ? agentDmDraftKey(props.serverId, props.agentDmId)
+        : chatDraftKey(props.serverId, props.chatId);
 
     return (
         <ServerChatComposer

@@ -1,6 +1,7 @@
 import type { CloudAgentBranch, CloudAgentPullRequestReading, CloudAgentWork } from '@haus/api';
 import { Chip } from '@heroui/react';
 import { GitPullRequestIcon } from '@hugeicons-pro/core-stroke-rounded';
+import type * as React from 'react';
 import { ActionCard } from '../../components/chats/action-card.tsx';
 import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
@@ -18,7 +19,7 @@ import { useCloudAgentWorkAgentName } from './use-cloud-agent-work-agent-name.ts
 
 /**
  * The Cloud Agent work under each Message that links it — the same card in
- * the Chat transcript and inside a Thread. It presents the Server-owned work
+ * the Chat transcript and on a Task page. It presents the Server-owned work
  * record, not a separate Chat row.
  *
  * Four parts, top to bottom: the header (provider mark, title, the job's
@@ -34,7 +35,14 @@ import { useCloudAgentWorkAgentName } from './use-cloud-agent-work-agent-name.ts
  * actions (ADR 0044); none is primary. The delegating Agent, who sends any
  * follow-up, resolves from the work itself, never the linking Message's author.
  */
-export function CloudAgentWorkCard({ work }: { work: CloudAgentWork }) {
+export function CloudAgentWorkCard({
+    children,
+    work,
+}: {
+    /** Below the actions: the Task page's attached-work panel adds the newest Run's summary. */
+    children?: React.ReactNode;
+    work: CloudAgentWork;
+}) {
     const agentName = useCloudAgentWorkAgentName(work);
     const now = useRelativeNow(work.job.state === 'working' || work.job.followUp ? 5000 : 60_000);
     const branch = cloudAgentWorkBranch(work);
@@ -91,6 +99,7 @@ export function CloudAgentWorkCard({ work }: { work: CloudAgentWork }) {
                     work={work}
                 />
             </ActionCard.Actions>
+            {children}
         </ActionCard>
     );
 }

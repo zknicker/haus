@@ -13,7 +13,7 @@ export interface MessageClaimAssigneeProfile {
 }
 
 /**
- * One Claim as it reads in the header of its Message's recessed Thread surface:
+ * One Claim as it reads under its Message:
  * the number, a status disc, and the assignee whose work it is. Claim-chip
  * grammar — annotation scale, neutral throughout, with only the disc carrying
  * lifecycle color, the same shape the Cloud Agent work

@@ -22,9 +22,9 @@ import { clearPendingChatMessages } from './use-pending-messages.ts';
  * `aria-hidden`, so it takes no focus, input, or screen reader. It sees the
  * route it last had while shown, and its presence reads not shown: unread
  * clearing, the window title, typing streams, and keyboard and composer
- * commands gate on that, and reveal-time work (composer focus, Thread pane
- * sync) runs from `useViewShownChange`. Each view's band gets its own topbar
- * scope, hidden in the same commit as the view (see `KeptTopbarScope`).
+ * commands gate on that, and reveal-time work (composer focus, pending
+ * message reveal) runs from `useViewShownChange`. Each view's band gets its
+ * own topbar scope, hidden in the same commit as the view (see `KeptTopbarScope`).
  */
 export function KeptChatViews({
     chatId,
@@ -137,7 +137,7 @@ function KeptChatPresence({ active, children }: { active: boolean; children: Rea
 
 /**
  * A hidden view keeps the location and route match it last saw while shown.
- * The route's search params belong to the shown chat (`?thread=`, `?claim=`),
+ * The route's search params belong to the shown chat (`?message=`),
  * and a navigation changes both context values, which would otherwise
  * re-render every router reader in every hidden view on each switch.
  */

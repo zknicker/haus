@@ -55,10 +55,10 @@ import {
 } from './inline-reply-action.tsx';
 import { AgentWidget } from './legacy-widget-row.tsx';
 import { isLocalTimelineMessageMetadata } from './local-timeline-message.ts';
+import { MessageContextActionsProvider } from './message/message-context-actions.tsx';
+import { MessageReactionActions } from './message/message-reactions.tsx';
+import { MessageSurface } from './message/message-surface.tsx';
 import { ServerTurnDetailsDrawer } from './server-turn-details-drawer.tsx';
-import { MessageContextActionsProvider } from './thread/message-context-actions.tsx';
-import { MessageReactionActions } from './thread/message-reactions.tsx';
-import { ThreadMessageActions, ThreadMessageSurface } from './thread/thread-message-surface.tsx';
 import type { TranscriptActiveReply, TranscriptActorProfile } from './transcript-contract.ts';
 import { WorkspaceChangesChip } from './workspace-changes-chip.tsx';
 
@@ -105,7 +105,7 @@ export function TranscriptEntryView({
     if (entry.kind === 'system') {
         if (entry.item.kind === 'row' && entry.item.row.kind === 'message') {
             return (
-                <ThreadMessageSurface row={entry.item.row}>
+                <MessageSurface row={entry.item.row}>
                     {/* pl-11.5 + the surface's px-5 = avatar + gap: the message text column. */}
                     <p className="flex items-baseline gap-2 py-2 pr-5 pl-11.5 text-muted text-sm">
                         <span className="min-w-0 truncate" title={entry.item.row.message.content}>
@@ -116,7 +116,7 @@ export function TranscriptEntryView({
                             <RelativeTime value={entry.item.row.message.timestamp} />
                         </span>
                     </p>
-                </ThreadMessageSurface>
+                </MessageSurface>
             );
         }
         if (
@@ -256,10 +256,6 @@ function UserTurnPresentation({
                                 <TranscriptMessageActions
                                     value={getMessageCopyText(context, actionsRow.message)}
                                 />
-                                <ThreadMessageActions
-                                    className={turnActionClassName}
-                                    row={actionsRow}
-                                />
                                 <InlineReplyAction className={turnActionClassName} />
                             </ChatMessageActions>
                         ) : null}
@@ -342,14 +338,13 @@ function AgentTurnPresentation({
     const context = useTranscriptRenderContext();
     const {
         canRequestMention,
-        causeLineHidden,
         composerId,
         turnDetails,
         onToggleReaction,
         openAgentProfile,
         repliedRunIds,
     } = context;
-    const cause = causeLineHidden ? null : getTurnCause(items);
+    const cause = getTurnCause(items);
     // A follow-up with a cause line keeps its header: the cause is why it was said.
     const continues = entry.continuesPrevious && !cause;
     const showIdentity = layout.showAgentIdentity && !continues;
@@ -379,9 +374,6 @@ function AgentTurnPresentation({
                 <TranscriptMessageActions value={getMessageCopyText(context, lastMessage)} />
             ) : copyValue ? (
                 <TranscriptMessageActions disabled value={copyValue} />
-            ) : null}
-            {lastMessageRow ? (
-                <ThreadMessageActions className={turnActionClassName} row={lastMessageRow} />
             ) : null}
             <InlineReplyAction className={turnActionClassName} />
             <ActionTooltip label="View turn details">
@@ -701,7 +693,7 @@ function AgentTurnItem({
 
         if (streaming) {
             // A streaming post is not durable yet (a silent turn discards
-            // it), so it offers no thread affordances.
+            // it), so it offers no reply or reaction affordances.
             return (
                 <AssistantReplyBody
                     content={getActiveReplyDisplayText(row.message.content)}

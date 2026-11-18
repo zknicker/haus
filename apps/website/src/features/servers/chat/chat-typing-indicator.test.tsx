@@ -67,7 +67,7 @@ test('the indicator names engaged Agents from the cached roster', () => {
     expect(markup).toContain('Juniper and Cove are typing');
 });
 
-test('a Thread without its chat yet still reserves the strip', () => {
+test('a composer without its Chat yet still reserves the strip', () => {
     const markup = render(
         new QueryClient(),
         <ChatTypingIndicator chatId={undefined} serverId={serverId} />

@@ -150,6 +150,5 @@ function userRow(input: {
             claim: null,
             timestamp: input.timestamp,
         },
-        thread: null,
     };
 }

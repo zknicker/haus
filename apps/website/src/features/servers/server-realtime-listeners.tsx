@@ -2,7 +2,6 @@ import * as React from 'react';
 import type { RealtimeServer } from '../../hooks/realtime/realtime-server.ts';
 import { useAgentUpdateStream } from '../../hooks/realtime/use-agent-update-stream.ts';
 import { useArtifactUpdateStream } from '../../hooks/realtime/use-artifact-update-stream.ts';
-import { useBoardUpdateStream } from '../../hooks/realtime/use-board-update-stream.ts';
 import { useChatLifecycleStream } from '../../hooks/realtime/use-chat-lifecycle-stream.ts';
 import { useClaimChangeStream } from '../../hooks/realtime/use-claim-change-stream.ts';
 import { useCloudAgentSettingsStream } from '../../hooks/realtime/use-cloud-agent-settings-stream.ts';
@@ -14,10 +13,9 @@ import { useMcpUpdateStream } from '../../hooks/realtime/use-mcp-update-stream.t
 import { useMessageReactionStream } from '../../hooks/realtime/use-message-reaction-stream.ts';
 import { useReminderStream } from '../../hooks/realtime/use-reminder-stream.ts';
 import { useTaskCreatedStream } from '../../hooks/realtime/use-task-created-stream.ts';
+import { useTaskFollowStream } from '../../hooks/realtime/use-task-follow-stream.ts';
 import { useTaskLabelStream } from '../../hooks/realtime/use-task-label-stream.ts';
 import { useTaskUpdatedStream } from '../../hooks/realtime/use-task-updated-stream.ts';
-import { useThreadClosedStream } from '../../hooks/realtime/use-thread-closed-stream.ts';
-import { useThreadFollowStream } from '../../hooks/realtime/use-thread-follow-stream.ts';
 import { MessageNotifications } from '../notifications/message-notifications.tsx';
 
 /**
@@ -40,14 +38,12 @@ export const ServerRealtimeListeners = React.memo(function ServerRealtimeListene
         <>
             <MessageNotifications key={serverId} server={server} />
             <MessageReactionStream serverId={serverId} />
-            <ThreadFollowStream serverId={serverId} />
-            <ThreadClosedStream serverId={serverId} />
             <ChatLifecycleStream serverId={serverId} />
             <ClaimChangeStream serverId={serverId} />
             <TaskLabelStream serverId={serverId} />
-            <BoardUpdateStream serverId={serverId} />
             <TaskCreatedStream serverId={serverId} />
             <TaskUpdatedStream serverId={serverId} />
+            <TaskFollowStream serverId={serverId} />
             <CloudAgentWorkStream serverId={serverId} />
             <ImageGenerationStream serverId={serverId} />
             <AgentUpdateStream server={server} />
@@ -70,16 +66,6 @@ function MessageReactionStream({ serverId }: StreamProps) {
     return null;
 }
 
-function ThreadFollowStream({ serverId }: StreamProps) {
-    useThreadFollowStream(serverId);
-    return null;
-}
-
-function ThreadClosedStream({ serverId }: StreamProps) {
-    useThreadClosedStream(serverId);
-    return null;
-}
-
 function ChatLifecycleStream({ serverId }: StreamProps) {
     useChatLifecycleStream(serverId);
     return null;
@@ -95,11 +81,6 @@ function TaskLabelStream({ serverId }: StreamProps) {
     return null;
 }
 
-function BoardUpdateStream({ serverId }: StreamProps) {
-    useBoardUpdateStream(serverId);
-    return null;
-}
-
 function TaskCreatedStream({ serverId }: StreamProps) {
     useTaskCreatedStream(serverId);
     return null;
@@ -107,6 +88,11 @@ function TaskCreatedStream({ serverId }: StreamProps) {
 
 function TaskUpdatedStream({ serverId }: StreamProps) {
     useTaskUpdatedStream(serverId);
+    return null;
+}
+
+function TaskFollowStream({ serverId }: StreamProps) {
+    useTaskFollowStream(serverId);
     return null;
 }
 

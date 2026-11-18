@@ -4,7 +4,6 @@ import {
     type ArtifactPageTarget,
     artifactPagePath,
     filesPagePath,
-    threadPagePath,
 } from '../../routes/app/desktop-page-paths.ts';
 import { useOptionalDesktopTabs } from './desktop-tabs-context.ts';
 import { openWithGesture } from './tab-navigation.ts';
@@ -19,21 +18,14 @@ export interface DesktopPageOpeners {
      * that navigates after an `await` reads `currentOpenGesture()` first and passes it.
      */
     openPage: (path: string, gesture?: OpenGesture) => void;
-    /** `claimMessageId` names a claim message inside the Thread that the page states. */
-    openThread: (
-        chatId: string,
-        anchorMessageId: string,
-        gesture?: OpenGesture,
-        claimMessageId?: string
-    ) => void;
 }
 
 /**
- * Desktop's Open verb for code that opens a page without a router push: a Thread, a chat's
+ * Desktop's Open verb for code that opens a page without a router push: a chat's
  * Attachments, an artifact, or any path (ADR 0039). A plain open lands in the right pane (from its
  * tab, or with no source from window chrome: a sidebar row's menu); a modified click opens a
  * tab beside the source (`openWithGesture`). Null on the web, where the chat side pane hosts
- * Threads, Attachments, and artifacts.
+ * Attachments and artifacts.
  */
 export function useDesktopPageOpeners(): DesktopPageOpeners | null {
     const tabs = useOptionalDesktopTabs();
@@ -49,11 +41,6 @@ export function useDesktopPageOpeners(): DesktopPageOpeners | null {
             openArtifact: (target, title) => openPage(artifactPagePath(slug, target, title)),
             openFiles: (chatId) => openPage(filesPagePath(slug, chatId)),
             openPage,
-            openThread: (chatId, anchorMessageId, gesture, claimMessageId) =>
-                openPage(
-                    threadPagePath(slug, chatId, anchorMessageId, { claimMessageId }),
-                    gesture
-                ),
         };
     }, [slug, tabId, tabs]);
 }

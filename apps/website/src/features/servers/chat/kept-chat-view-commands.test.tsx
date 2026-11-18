@@ -39,7 +39,6 @@ test('selecting an inline reply focuses only the shown composer, including resel
             focusOnReveal: true,
             focusTextEditor: () => focuses.push(chatId),
             insertMention: () => undefined,
-            thread: false,
             updateContent: () => undefined,
         });
         return null;
@@ -77,7 +76,6 @@ test('a composer that does not autofocus is not focused by a reveal either', asy
             focusOnReveal: false,
             focusTextEditor: () => focuses.push(chatId),
             insertMention: () => undefined,
-            thread: false,
             updateContent: () => undefined,
         });
         return null;
@@ -103,7 +101,6 @@ test('only the shown kept composer answers commands, and a reveal focuses it', a
             focusOnReveal: true,
             focusTextEditor: () => focuses.push(chatId),
             insertMention: () => undefined,
-            thread: false,
             updateContent: (update) => {
                 drafts[chatId] = update(drafts[chatId] ?? '');
             },

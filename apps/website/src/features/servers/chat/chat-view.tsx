@@ -4,8 +4,6 @@ import { Message01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useOptionalDesktopTabs } from '../../../hooks/desktop-tabs/desktop-tabs-context.ts';
-import { useChatSidePane } from '../../../hooks/pane/use-chat-side-pane.ts';
-import { toChatMessageLayout } from '../../../hooks/servers/chat-message-layout.ts';
 import {
     type ScrollToMessage,
     useChatMessageNavigation,
@@ -19,8 +17,6 @@ import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { ChatDetailFrame } from '../../chats/chat-detail-frame.tsx';
 import type { TranscriptRenderWindowHandle } from '../../chats/use-transcript-render-window.ts';
 import { PageTopbar } from '../../shell/shell-topbar.tsx';
-import { ThreadPanel } from '../thread/thread-panel.tsx';
-import { mergeClaimAnchor } from './chat-message-model.ts';
 import { ChatReadState } from './chat-read-state.tsx';
 import { ChatTopbar } from './chat-topbar.tsx';
 import { ChatTranscript } from './chat-transcript.tsx';
@@ -31,31 +27,27 @@ import { useChatArtifactPanel } from './use-artifact-panel.ts';
 import { useChatFilesPane } from './use-chat-files-pane.ts';
 import { useChatInlineReply } from './use-chat-inline-reply.ts';
 import { useChatReferenceActivation } from './use-chat-reference-activation.ts';
-import { useChatThreadPane } from './use-chat-thread-pane.ts';
-import type { ChatInitialClaim } from './use-chat-thread-selection.ts';
+import { useChatRouteMessage } from './use-chat-route-message.ts';
 import { usePendingChatMessages } from './use-pending-messages.ts';
 import { useVisibleChatSequenceSource } from './use-visible-chat-sequence.ts';
 
 export function ChatView({
     chat,
-    initialClaim,
     onOpenChat,
     server,
 }: {
     chat: Chat;
-    initialClaim?: ChatInitialClaim;
     onOpenChat: (chatId: string) => void;
     server: ServerDetail;
 }) {
-    // Desktop opens Attachments, artifacts, and Threads as pages (ADR 0039), so the
+    // Desktop opens Attachments and artifacts as pages (ADR 0039), so the
     // chat renders no side panel there.
     const desktopTabs = useOptionalDesktopTabs() !== null;
     const filesPane = useChatFilesPane(chat.id);
     const artifactState = useChatArtifactPanel(chat.id);
-    const activeSidePane = useChatSidePane(chat.id);
     // Keep chat beside an open pane until the window is narrow enough
     // that the pane needs to take over the content area.
-    const threadTakeover = useViewportBelow(1024);
+    const paneTakeover = useViewportBelow(1024);
     const messages = useChatMessages(chat.serverId, chat.id);
     const { clearInlineReply, clearSentInlineReply, inlineReply, selectInlineReply } =
         useChatInlineReply(chat.id);
@@ -72,67 +64,30 @@ export function ChatView({
         messages: messages.data?.entries,
     });
     const pendingMessages = usePendingChatMessages(chat.id, messages.data?.entries);
-    const sourceMessages = messages.data?.entries;
-    const anchorMessage = initialClaim?.anchor;
-    // An older claim anchor joins the listed ids; its row reads (or fetches) its entity.
-    const anchorLayout = React.useMemo(
-        () => (anchorMessage ? toChatMessageLayout(anchorMessage) : undefined),
-        [anchorMessage]
-    );
-    // Memoized so the transcript keeps projecting against one array identity.
-    const transcriptMessages = React.useMemo(
-        () => mergeClaimAnchor(sourceMessages, anchorLayout),
-        [anchorLayout, sourceMessages]
-    );
-    const thread = useChatThreadPane({
+    const transcriptMessages = messages.data?.entries;
+    useChatRouteMessage({
         chatId: chat.id,
-        serverId: chat.serverId,
-        initialClaim,
         ready: transcriptMessages !== undefined,
         revealMessage,
+        serverId: chat.serverId,
     });
-    const threadSelection = thread.selection;
     const visibleSequence = useVisibleChatSequenceSource();
-    const threadCoversChat = Boolean(
-        threadSelection && threadTakeover && activeSidePane === 'thread'
-    );
     const ensureDm = useDmEnsure(onOpenChat);
     const humans = useHumanDirectory(chat.serverId);
     const peerRetired = chat.kind === 'dm' && chat.peerAgentRetired;
-    const readOnly = peerRetired || chat.archivedAt !== null;
     const chatName =
         chat.kind === 'channel'
             ? (chat.name ?? 'channel')
             : chat.peerAgentId
               ? (chat.peerAgentDisplayName ?? 'Agent')
               : `DM · ${humans.name(chat.peerUserId)}`;
-    const threadSummary = thread.summary ?? threadSelection?.initialSummary ?? null;
-    // Website: the chat-scoped pane and Thread share the side panel. The
-    // latest artifact opener wins and reveals the pane.
+    // Website: the latest artifact opener wins the side panel and reveals it.
     const openArtifact = artifactState.open;
     const startDm = React.useCallback(
         (peerUserId: string) => ensureDm.mutate({ peerUserId, serverId: chat.serverId }),
         [chat.serverId, ensureDm.mutate]
     );
     const handleReferenceActivate = useChatReferenceActivation(onOpenChat);
-    const threadPanel = threadSelection ? (
-        <ThreadPanel
-            active={activeSidePane === 'thread'}
-            anchor={thread.anchor ?? threadSelection.anchor}
-            chat={chat}
-            claimMessage={threadSelection.claimMessage}
-            initialThreadChatId={threadSelection.initialThreadChatId}
-            onClose={thread.close}
-            onExitComplete={thread.onExitComplete}
-            onOpenArtifact={openArtifact}
-            onReferenceActivate={handleReferenceActivate}
-            onViewInChannel={thread.viewInChannel}
-            readOnly={readOnly}
-            summary={threadSummary}
-            takeover={threadTakeover}
-            turnDetailsAccess={server.role === 'member' ? 'summary' : 'journal'}
-        />
-    ) : null;
     return (
         <section
             aria-label={chatName}
@@ -164,8 +119,7 @@ export function ChatView({
                     chat={chat}
                     filesPane={filesPane}
                     messages={messages.data?.entries}
-                    takeover={threadTakeover}
-                    threadPanel={threadPanel}
+                    takeover={paneTakeover}
                 />
             )}
             <ChatDetailFrame
@@ -194,7 +148,7 @@ export function ChatView({
                     <>
                         <ChatReadState
                             chatId={messages.data ? chat.id : undefined}
-                            enabled={!threadCoversChat}
+                            enabled
                             serverId={messages.data ? chat.serverId : undefined}
                             visibleSequence={visibleSequence}
                         />
@@ -223,7 +177,6 @@ export function ChatView({
                         messages={transcriptMessages}
                         onOpenArtifact={openArtifact}
                         onOpenInlineReply={revealMessage}
-                        onOpenThread={thread.open}
                         onReferenceActivate={handleReferenceActivate}
                         onSelectInlineReply={selectInlineReply}
                         onStartDm={startDm}

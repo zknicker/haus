@@ -23,12 +23,10 @@ export async function submitChatComposer({
     onMaterialized,
     onInlineReplySent,
     onSend,
-    onThreadCreated,
     pendingChatId,
     send,
     serverId,
     target,
-    thread,
     upload,
 }: {
     attachmentInput: React.RefObject<HTMLInputElement | null>;
@@ -42,12 +40,10 @@ export async function submitChatComposer({
     onInlineReplySent?: (messageId: string) => void;
     /** A non-empty send started; it is optimistic, so this does not wait for the receipt. */
     onSend?: () => void;
-    onThreadCreated?: (threadChatId: string) => void;
     pendingChatId?: string;
     send: Pick<ReturnType<typeof useChatMessageSend>, 'mutateAsync'>;
     serverId: string;
     target: { agentId: string; kind: 'agent-dm' } | { chatId: string; kind: 'chat' };
-    thread?: { anchorMessageId: string };
     upload: Pick<ReturnType<typeof useUploadServerAttachment>, 'mutateAsync'>;
 }) {
     event?.preventDefault();
@@ -111,7 +107,6 @@ export async function submitChatComposer({
                       nonce,
                       ...(inlineReply ? { replyToMessageId: inlineReply.messageId } : {}),
                       serverId,
-                      thread,
                   }
         );
         onMaterialized?.(receipt.message.chatId);
@@ -125,9 +120,6 @@ export async function submitChatComposer({
         }
         if (inlineReply) {
             onInlineReplySent?.(inlineReply.messageId);
-        }
-        if (receipt.threadChatId) {
-            onThreadCreated?.(receipt.threadChatId);
         }
     } catch {
         if (pendingChatId) {

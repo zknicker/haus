@@ -27,22 +27,19 @@ const noRepliedRuns: ReadonlySet<string> = new Set();
  * It reads nothing per Chat — no Cloud Agent work list, no message entities —
  * because a page of rows fanning out per-Chat reads is the request burst
  * that wedges a Server; every read here is a Server-wide list the page
- * already holds. And it is read-only: no reactions, no Thread or inline-reply
+ * already holds. And it is read-only: no reactions, no inline-reply
  * actions, no mention requests. Answering happens in the row's own composer,
  * and anything more opens the conversation. An artifact link opens it too,
  * since the Artifact Panel belongs to the Chat (ADR 0004).
  */
 export function useUnreadRowRenderContext({
     chatId,
-    conversationChatId,
     messages,
     onOpenConversation,
     serverId,
 }: {
-    /** The Chat the messages live in: the Channel or DM, or the Thread's own Chat. */
+    /** The Chat the messages live in: the Channel, DM, or Task. */
     chatId: string;
-    /** The Channel or DM a reference links to; a Thread names its parent. */
-    conversationChatId: string;
     messages: readonly ChatMessage[];
     onOpenConversation: () => void;
     serverId: string;
@@ -79,13 +76,10 @@ export function useUnreadRowRenderContext({
             ({
                 canRequestMention: false,
                 chatId,
-                conversationChatId,
                 conversationLayout,
                 defaultOpenWorkGroups: false,
                 flashMessageId: null,
                 hiddenCount: 0,
-                onOpenThread: () => undefined,
-                onUnfollowThread: () => undefined,
                 openAgentProfile,
                 projectMessageEntity,
                 renderMessageAttachments,
@@ -101,7 +95,6 @@ export function useUnreadRowRenderContext({
                 ),
                 repliedRunIds: noRepliedRuns,
                 resolveActorProfile,
-                threadActionsEnabled: false,
                 turnDetails: { access: 'summary', serverId },
                 viewerUserId,
             }) satisfies TranscriptRenderContextValue,
@@ -109,7 +102,6 @@ export function useUnreadRowRenderContext({
             agentsById,
             chatId,
             chatsById,
-            conversationChatId,
             humans,
             openAgentProfile,
             openArtifact,
