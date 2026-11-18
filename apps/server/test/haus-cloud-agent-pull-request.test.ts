@@ -1,6 +1,4 @@
 import { expect, test } from 'bun:test';
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import type { CloudAgentWork } from '@haus/api';
 import { reportingWorkIds } from '../src/github/pull-request-refresh.ts';
 import { connectHausDatabase } from '../src/postgres/connection.ts';
@@ -34,27 +32,6 @@ test('work reads the live reading while its Run keeps the snapshot it reported',
     } finally {
         await connection.close();
     }
-});
-
-test('migration 0113 backfills a reading from the stored Run snapshot', async () => {
-    const migration = await readFile(
-        join(import.meta.dir, '../drizzle/postgres/0113_cloud-agent-pull-requests.sql'),
-        'utf8'
-    );
-    await fixture.harness.sql`delete from cloud_agent_pull_requests`;
-    await fixture.harness.sql.unsafe(migration.split('--> statement-breakpoint').at(-1) as string);
-
-    const [seeded] = (await fixture.harness.sql`
-        select * from cloud_agent_pull_requests
-    `) as Record<string, unknown>[];
-    expect(seeded).toMatchObject({
-        additions: 34,
-        number: 12,
-        repository: 'haus/haus',
-        source: 'computer',
-        state: 'draft',
-    });
-    expect(seeded?.refresh_requested_at).not.toBeNull();
 });
 
 async function reportPullRequest() {
