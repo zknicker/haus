@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { assertEvalCleanupAllowed } from '../src/haus-api/dev/cleanup-eval-chats.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { startTestTask } from './task-place-fixture.ts';
 
 let harness: HausServerHarness | undefined;
 let owner: HausClient | undefined;
@@ -159,5 +160,43 @@ describe('dev.cleanupEvalChats', () => {
         expect(deletedReminders).toHaveLength(0);
         expect(deletedTriggers).toHaveLength(0);
         expect(preservedOtherChat?.id).toBe(otherChatId);
+    });
+
+    test('deletes a Channel with its Task Chats and cancels their open Tasks', async () => {
+        if (!(harness && owner)) {
+            throw new Error('Expected Server test harness and owner client.');
+        }
+        const server = await owner.trpc.server.create.mutate({
+            displayName: 'Eval Cleanup Tasks',
+            slug: 'eval-cleanup-tasks',
+        });
+        const channel = server.channels[0];
+        const task = await startTestTask(harness, owner, {
+            channelId: channel.id,
+            serverId: server.id,
+            title: 'Eval Task',
+        });
+        await owner.trpc.chat.send.mutate({
+            chatId: task.chatId,
+            content: 'Progress inside the Task',
+            nonce: 'eval-cleanup-task-progress',
+            serverId: server.id,
+        });
+
+        const result = await owner.trpc.dev.cleanupEvalChats.mutate({
+            chatIds: [channel.id],
+            serverId: server.id,
+        });
+
+        expect(result.deletedChatIds).toEqual([channel.id, task.chatId].sort());
+        expect(
+            await harness.sql`
+                select count(*)::int as count from chats
+                where id in (${channel.id}, ${task.chatId})
+            `
+        ).toEqual([{ count: 0 }]);
+        expect(
+            await owner.trpc.task.get.query({ serverId: server.id, taskId: task.id })
+        ).toMatchObject({ chatId: null, state: 'canceled' });
     });
 });

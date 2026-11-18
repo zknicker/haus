@@ -110,6 +110,37 @@ test('archiving then deleting a Channel takes its Task Chats and cancels their o
         title: 'Done before the Channel goes',
     });
     await harness.sql`update tasks set state = 'open' where id = ${open.id}`;
+    const progress = await owner.trpc.chat.send.mutate({
+        chatId: open.chatId,
+        content: 'Progress inside the Task',
+        nonce: 'tasks-go-progress',
+        serverId,
+    });
+    expect(
+        await harness.sql`
+            select count(*)::int as count from task_follows where task_chat_id = ${open.chatId}
+        `
+    ).toEqual([{ count: 1 }]);
+    await harness.sql`
+        insert into agent_task_follows (server_id, agent_id, task_chat_id, task_chat_kind)
+        values (${serverId}, ${agentId}, ${open.chatId}, 'task')
+    `;
+    await harness.sql`INSERT INTO reminders
+        (id, server_id, owner_agent_id, anchor_chat_id, anchor_message_id, title,
+         fire_at, timezone, status, created_at, updated_at)
+        VALUES ('rem_tasks_go', ${serverId}, ${agentId}, ${open.chatId}, ${progress.message.id},
+            'Check the Task', now() + interval '1 hour', 'UTC', 'scheduled', now(), now())`;
+    await harness.sql`
+        insert into cloud_agent_work
+            (id, server_id, agent_id, chat_id, computer_id, launch_message_id, provider,
+             repository, title, task_id, status, terminal_at)
+        values ('caw_tasksgo000000001', ${serverId}, ${agentId}, ${open.chatId}, 'cmp_tasks_go',
+            ${progress.message.id}, 'cursor', 'acme/api', 'Task work', ${open.id}, 'completed', now())
+    `;
+    await harness.sql`
+        insert into task_pull_requests (server_id, task_id, repository, number)
+        values (${serverId}, ${open.id}, 'acme/api', 7)
+    `;
     await owner.trpc.task.setState.mutate({
         expectedVersion: (await owner.trpc.task.get.query({ serverId, taskId: done.id })).version,
         serverId,
@@ -135,6 +166,18 @@ test('archiving then deleting a Channel takes its Task Chats and cancels their o
     const openAfter = await owner.trpc.task.get.query({ serverId, taskId: open.id });
     expect(openAfter).toMatchObject({ chatId: null, state: 'canceled' });
     expect(openAfter.completedAt).not.toBeNull();
+    expect(
+        await harness.sql`
+            select
+                (select count(*)::int from chat_messages where chat_id = ${open.chatId}) as messages,
+                (select count(*)::int from task_follows where task_chat_id = ${open.chatId}) as follows,
+                (select count(*)::int from agent_task_follows where task_chat_id = ${open.chatId})
+                    as agent_follows,
+                (select count(*)::int from reminders where id = 'rem_tasks_go') as reminders,
+                (select count(*)::int from cloud_agent_work where task_id = ${open.id}) as work,
+                (select count(*)::int from task_pull_requests where task_id = ${open.id}) as pulls
+        `
+    ).toEqual([{ agent_follows: 0, follows: 0, messages: 0, pulls: 1, reminders: 0, work: 1 }]);
     expect(await owner.trpc.task.get.query({ serverId, taskId: done.id })).toMatchObject({
         chatId: null,
         state: 'done',

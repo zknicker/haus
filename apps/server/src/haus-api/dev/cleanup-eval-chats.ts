@@ -2,7 +2,9 @@ import { TRPCError } from '@trpc/server';
 import { and, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { chatsTable, remindersTable, triggersTable } from '../../postgres/schema.ts';
+import { publishRealtime } from '../../realtime/topic.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
+import { detachTasksFromRemovedChats } from '../../tasks/task-chat-removal.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
 const localhostHostPattern = /^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/u;
@@ -26,8 +28,19 @@ export function createCleanupEvalChatsProcedure(
         assertEvalCleanupAllowed(ctx.requestHost, getProcedureDependencies());
         await requireServerMembership(ctx.hausDb, ctx.member, input.serverId);
 
-        const chatIds = [...new Set(input.chatIds)];
-        const deleted = await ctx.hausDb.transaction(async (tx) => {
+        const requestedChatIds = [...new Set(input.chatIds)];
+        const { deleted, taskEvents } = await ctx.hausDb.transaction(async (tx) => {
+            const taskChats = await tx
+                .select({ id: chatsTable.id })
+                .from(chatsTable)
+                .where(
+                    and(
+                        eq(chatsTable.serverId, input.serverId),
+                        inArray(chatsTable.parentChatId, requestedChatIds)
+                    )
+                );
+            const taskChatIds = taskChats.map((chat) => chat.id);
+            const chatIds = [...new Set([...requestedChatIds, ...taskChatIds])];
             await tx
                 .delete(remindersTable)
                 .where(
@@ -45,13 +58,35 @@ export function createCleanupEvalChatsProcedure(
                         inArray(triggersTable.anchorChatId, chatIds)
                     )
                 );
-            return await tx
+            const detached = await detachTasksFromRemovedChats(tx, {
+                chatIds,
+                serverId: input.serverId,
+            });
+            if (taskChatIds.length > 0) {
+                await tx
+                    .delete(chatsTable)
+                    .where(
+                        and(
+                            eq(chatsTable.serverId, input.serverId),
+                            inArray(chatsTable.id, taskChatIds)
+                        )
+                    );
+            }
+            const removed = await tx
                 .delete(chatsTable)
                 .where(
-                    and(eq(chatsTable.serverId, input.serverId), inArray(chatsTable.id, chatIds))
+                    and(
+                        eq(chatsTable.serverId, input.serverId),
+                        inArray(chatsTable.id, requestedChatIds)
+                    )
                 )
                 .returning({ id: chatsTable.id });
+            return {
+                deleted: [...removed, ...taskChatIds.map((id) => ({ id }))],
+                taskEvents: detached,
+            };
         });
+        publishRealtime(taskEvents);
         const deletedChatIds = deleted.map((chat) => chat.id).sort();
 
         return { count: deletedChatIds.length, deletedChatIds };
