@@ -68,7 +68,12 @@ export const githubReviewStateSchema = z.enum([
     'commented',
     'dismissed',
 ]);
-/** `collaborators` means `author_association` is OWNER, MEMBER, or COLLABORATOR. */
+/**
+ * `collaborators` means `author_association` is OWNER, MEMBER, or
+ * COLLABORATOR; for `workflow_run`, `workflow_job`, `check_suite`, and
+ * `check_run`, which carry no `author_association`, it means the run's
+ * commit lived in the base repository rather than a fork.
+ */
 export const githubTriggerAuthorsSchema = z.enum(['collaborators', 'anyone']);
 
 const filterText = z.string().trim().min(1).max(255);
@@ -106,6 +111,7 @@ export const githubTriggerEventSchema = z.discriminatedUnion('event', [
         .object({
             ...commonFilters,
             actions: actionList(['requested', 'in_progress', 'completed'], ['completed']),
+            authors,
             ...branchFilters,
             conclusions,
             event: z.literal('workflow_run'),
@@ -119,6 +125,7 @@ export const githubTriggerEventSchema = z.discriminatedUnion('event', [
         .object({
             ...commonFilters,
             actions: actionList(['queued', 'in_progress', 'completed', 'waiting'], ['completed']),
+            authors,
             ...branchFilters,
             conclusions,
             event: z.literal('workflow_job'),
@@ -128,6 +135,7 @@ export const githubTriggerEventSchema = z.discriminatedUnion('event', [
         .object({
             ...commonFilters,
             actions: actionList(['completed'], ['completed']),
+            authors,
             ...branchFilters,
             conclusions,
             event: z.literal('check_suite'),
@@ -137,6 +145,7 @@ export const githubTriggerEventSchema = z.discriminatedUnion('event', [
         .object({
             ...commonFilters,
             actions: actionList(['created', 'completed'], ['completed']),
+            authors,
             ...branchFilters,
             checkNames: filterList(filterText),
             checkNamesIgnore: filterList(filterText),

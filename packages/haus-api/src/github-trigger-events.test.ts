@@ -69,7 +69,7 @@ describe('github trigger events', () => {
                 { event: 'release' },
             ])
         ).toEqual([
-            { actions: ['completed'], event: 'workflow_run' },
+            { actions: ['completed'], authors: 'collaborators', event: 'workflow_run' },
             { actions: ['opened'], authors: 'collaborators', event: 'pull_request' },
             { event: 'push' },
             { actions: ['published'], event: 'release' },

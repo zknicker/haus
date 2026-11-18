@@ -27,7 +27,13 @@ function envelope<T extends object>(body: T, repository = fixtureRepository) {
 }
 
 export function workflowRunPayload(
-    overrides: { action?: string; conclusion?: string | null; branch?: string; path?: string } = {}
+    overrides: {
+        action?: string;
+        conclusion?: string | null;
+        branch?: string;
+        path?: string;
+        headRepository?: string;
+    } = {}
 ) {
     return envelope({
         action: overrides.action ?? 'completed',
@@ -39,6 +45,8 @@ export function workflowRunPayload(
             event: 'pull_request',
             head_branch: overrides.branch ?? 'main',
             head_commit: { id: 'acb5820ced9479c074f688cc328bf03f341a511d', message: 'Fix' },
+            // Same-repo by default; a fork run carries a different full_name here.
+            head_repository: { full_name: overrides.headRepository ?? 'acme/api', id: 7001 },
             head_sha: 'acb5820ced9479c074f688cc328bf03f341a511d',
             html_url: 'https://github.com/acme/api/actions/runs/30433642',
             id: 30_433_642,
@@ -53,17 +61,65 @@ export function workflowRunPayload(
     });
 }
 
-export function checkSuitePayload(conclusion = 'failure') {
+export function checkSuitePayload(
+    overrides: { conclusion?: string; headBranch?: string | null } = {}
+) {
     return envelope({
         action: 'completed',
         check_suite: {
             app: { id: 15_368, name: 'GitHub Actions', slug: 'github-actions' },
-            conclusion,
-            head_branch: 'main',
+            conclusion: overrides.conclusion ?? 'failure',
+            // null simulates GitHub's fork-detection behavior: a check whose
+            // commit lives only in a fork reports a null head_branch.
+            head_branch: overrides.headBranch === undefined ? 'main' : overrides.headBranch,
             head_sha: 'ec26c3e57ca3a959ca5aad62de7213c562f8c821',
             id: 118_578_147,
             pull_requests: [],
             status: 'completed',
+        },
+    });
+}
+
+export function checkRunPayload(overrides: { conclusion?: string; headBranch?: string | null } = {}) {
+    return envelope({
+        action: 'completed',
+        check_run: {
+            check_suite: {
+                head_branch: overrides.headBranch === undefined ? 'main' : overrides.headBranch,
+                id: 118_578_147,
+            },
+            completed_at: '2026-10-11T12:00:00Z',
+            conclusion: overrides.conclusion ?? 'failure',
+            head_sha: 'ec26c3e57ca3a959ca5aad62de7213c562f8c821',
+            html_url: 'https://github.com/acme/api/runs/30433642',
+            id: 30_433_642,
+            name: 'lint',
+            output: { summary: 'Lint failed on 3 files.', title: 'Lint' },
+            pull_requests: [],
+            status: 'completed',
+        },
+    });
+}
+
+export function workflowJobPayload(
+    overrides: { conclusion?: string; headBranch?: string | null } = {}
+) {
+    return envelope({
+        action: 'completed',
+        workflow_job: {
+            completed_at: '2026-10-11T12:00:00Z',
+            conclusion: overrides.conclusion ?? 'failure',
+            // null simulates GitHub's fork-detection behavior: a job whose
+            // commit lives only in a fork reports a null head_branch.
+            head_branch: overrides.headBranch === undefined ? 'main' : overrides.headBranch,
+            html_url: 'https://github.com/acme/api/runs/30433642',
+            id: 30_433_642,
+            name: 'build',
+            run_id: 30_433_642,
+            started_at: '2026-10-11T11:58:00Z',
+            status: 'completed',
+            steps: [],
+            workflow_name: 'CI',
         },
     });
 }
