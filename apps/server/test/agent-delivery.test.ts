@@ -1632,31 +1632,6 @@ test('resume rejection rotates on the Server and retries from a fresh session', 
     expect(await readRotations(seed.agentId)).toEqual([{ generation: 2, reason: 'recovery' }]);
 });
 
-test('a failed turn that produced output does not requeue its work', async () => {
-    const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
-
-    await delivery.deliver({
-        agentId: seed.agentId,
-        chatId: seed.chatId,
-        content: 'do a thing',
-        dedupeKey: 'msg-1',
-        serverId: seed.serverId,
-        source: 'onboarding',
-    });
-    const runId = transport.framesOfType('start')[0]?.runId ?? '';
-    await delivery.onAck({ agentId: seed.agentId, runId });
-
-    // The turn failed but already produced a durable send — requeuing would
-    // re-trigger that output, so the work is dropped, not requeued or replayed.
-    await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, runId, 'failed', true));
-    expect(await countUnsettledPending(seed.agentId)).toBe(0);
-    expect(transport.framesOfType('start')).toHaveLength(1);
-    expect((await readDeliveryState(connection.db, seed.agentId))?.activeRunId).toBeNull();
-});
-
 test('only a contiguous seen boundary subsumes queued work', async () => {
     const seed = await seedAgent();
     const messageId = createOpaqueId('msg');

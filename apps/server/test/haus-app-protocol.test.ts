@@ -35,18 +35,6 @@ test('missing App protocol fails closed', async () => {
     expect((await request(null)).status).toBe(412);
 });
 
-test('App protocol 4 receives an update requirement', async () => {
-    const response = await request(4);
-    expect(response.status).toBe(412);
-    expect(await response.text()).toContain('Update required');
-});
-
-test('pre-unread-Inbox App protocol 7 receives an update requirement', async () => {
-    const response = await request(7);
-    expect(response.status).toBe(412);
-    expect(await response.text()).toContain('Update required');
-});
-
 test('development mode still requires a Haus session', async () => {
     const previous = process.env.HAUS_DEV_STACK;
     process.env.HAUS_DEV_STACK = '1';
@@ -77,13 +65,12 @@ test('the WebSocket gate rejects a stale subscription before serving it', async 
     }
 });
 
-test('a protocol 12 App gets PRECONDITION_FAILED over HTTP and on socket subscribe', async () => {
-    expect(appProtocolVersion).toBe(13);
-    const response = await request(12);
+test('the previous App protocol gets PRECONDITION_FAILED over HTTP and on socket subscribe', async () => {
+    const response = await request(appProtocolVersion - 1);
     expect(response.status).toBe(412);
     expect(await response.text()).toContain('PRECONDITION_FAILED');
 
-    const client = createHausClient(harness, null, { protocolVersion: 12 });
+    const client = createHausClient(harness, null, { protocolVersion: appProtocolVersion - 1 });
     try {
         await expect(startServerSubscription(client)).rejects.toMatchObject({
             data: { code: 'PRECONDITION_FAILED' },

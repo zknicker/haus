@@ -101,7 +101,10 @@ test('a failed turn that produced output counts without requeueing its work', as
     const state = await readDeliveryState(connection.db, seed.agentId);
     expect(state?.consecutiveFailures).toBe(1);
     expect(state?.retryAfter?.getTime()).toBeGreaterThan(Date.now());
+    expect(state?.activeRunId).toBeNull();
     expect(await countUnsettledPending(seed.agentId)).toBe(0);
+    await delivery.sweep();
+    expect(transport.framesOfType('start')).toHaveLength(1);
 });
 
 async function onlineAgent() {

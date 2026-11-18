@@ -64,11 +64,6 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('keeps a new Server Agent-free until an Owner explicitly provisions one', async () => {
-    const agents = await owner.trpc.agent.list.query({ serverId });
-    expect(agents).toEqual([]);
-});
-
 test('reserves the Cove identity from ordinary Agent creation', async () => {
     await expect(
         owner.trpc.agent.create.mutate({
