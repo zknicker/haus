@@ -165,13 +165,17 @@ Server routes each delivery to the Server that bound the installation.
   takes its own filters (conclusion, branch, workflow file, label, state,
   environment, author), and the default action is the useful one, such as a
   completed workflow run. Pull request, review, and issue events default to
-  collaborators' activity only. Comment events are not offered: an Agent's own
-  replies would wake it.
+  collaborators' activity only; workflow runs and jobs and check suites and
+  runs default to the same-repository case, since a fork run reports no
+  collaborator standing to check. Pushes, deployment statuses, and releases
+  take no author filter — GitHub only emits them for an actor who already has
+  write or deploy access to the repository. Comment events are not offered: an
+  Agent's own replies would wake it.
 - **What the Agent sees.** The same `type=trigger` envelope as a webhook, plus a
-  Server-built `GitHub:` line such as
-  `workflow_run completed · failure · main · acme/api #1423`. The payload is a
-  trimmed, per-event projection of the delivery, never the raw body, and titles
-  and bodies appear only in the indented untrusted excerpt.
+  Server-built `GitHub:` line such as `workflow_run completed · acme/api #1423`.
+  The payload is a trimmed, per-event projection of the delivery, never the raw
+  body, and titles, bodies, and branch or tag names appear only in the indented
+  untrusted excerpt.
 - **Twenty-five per installation.** An installation holds at most 25 GitHub
   Triggers, so every delivery reaches all of its matches. A noisy Trigger over
   its rate limit is skipped and its suppressed count rises instead of a refusal;
