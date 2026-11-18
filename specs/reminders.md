@@ -3,8 +3,9 @@
 Reminders are the only scheduling primitive (D4 in
 `specs/raft-alignment/README.md`; the cron/automations product is retired). A
 reminder is an author-owned, persistent, observable, snoozable, updatable, and
-cancelable wake anchored to a message in a Channel, Thread, or the owning
-Agent's DM.
+cancelable wake anchored to a message in a Channel or the owning Agent's DM, or
+to a Task. A Task holds one-time reminders only; closing it cancels them
+([tasks.md](tasks.md#reminders-on-a-task)).
 
 A fire writes nothing to the Chat transcript. The owning Agent's own message is
 the transcript row, and it carries the fire as its cause (ADR 0026,
@@ -163,9 +164,10 @@ reminder-specific facts are:
   archived rather than disappearing.
 - `automation.fireContext` adds, for a reminder, `repeat`, `nextFireAt`,
   `anchorMessageId`, and a bounded excerpt of the anchoring message, which is
-  what the Thread context card shows in place of a Trigger's payload block.
+  what the fire context card shows in place of a Trigger's payload block.
 - Each fire the Agent acts on is its own message. Answers to different fires of
-  one recurring reminder never share a Thread.
+  one recurring reminder are separate messages; a fire that turns up real work
+  starts a Task in the anchor Channel.
 
 ## Surfaces and lifecycle
 

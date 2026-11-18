@@ -110,5 +110,7 @@ is `{ kind: 'dream' }` any more, while `agent.onLifecycle` may still carry `chat
 App protocol 11 links Cloud Agent work instead of embedding it
 ([ADR 0044](../adr/0044-cloud-agent-work-is-referenced-not-embedded.md)): Messages no longer
 carry a `cloud-agent-work` body, and each `cloudAgentWork.listActive` row drops its launch
-Message and Thread fields for a `location` plus the delegating Agent's stored `agentName`. A
-protocol-10 client gets the update-required response.
+Message fields for a `location` plus the delegating Agent's stored `agentName`. A protocol-10
+client gets the update-required response. App protocol 13 is the Channels-and-Tasks cutover
+([ADR 0052](../adr/0052-channels-and-tasks-are-the-only-places.md)): Threads, boards, and the Task
+Inbox are gone from the wire, and Tasks are places.

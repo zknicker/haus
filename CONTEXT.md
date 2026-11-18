@@ -23,14 +23,9 @@ The React product surface through which humans use one or more Haus Servers. It 
 or the Electron desktop shell; Electron adds native window, credential, deep-link, and update behavior.
 _Avoid_: Server UI, website, Electron-only App
 
-**Open Thread**:
-A Thread still in motion for one human: followed, or holding Cloud Agent work they have not
-unfollowed, and not yet expired or closed. A derived lens, not a record; only Close is stored.
-_Avoid_: Task, Needs you, tracked Thread
-
 **Pull request reading**:
-The Server's evidence of one pull request some Cloud Agent work reported, kept live from GitHub.
-Haus never acts on a pull request through it.
+The Server's evidence of one pull request some Cloud Agent work reported or a Task holds, kept live
+from GitHub. Haus never acts on a pull request through it.
 _Avoid_: Pull request record, PR state
 
 **Computer**:
@@ -254,25 +249,23 @@ identity, placement, lifecycle, or authorization of its own.
 _Avoid_: card record, Chat entry, Widget, artifact
 
 **Unread**:
-The Inbox section listing every Channel, DM, and Thread with something one human has not read,
-newest activity first. A Channel or DM counts only its own messages; a Thread counts its replies
-the human follows or is mentioned in, on its own row (ADR 0043). Viewing a Chat while Haus is in
-view clears it; **Mark read** clears it without opening it. There is no attention tier above
+The Inbox section listing every Channel, DM, and followed Task with something one human has not
+read, newest activity first. Each counts only its own messages, and a Task counts only for its
+followers (ADR 0052). Viewing a Chat while Haus is in view clears it; **Mark read** clears it without opening it. There is no attention tier above
 unread (ADR 0038).
 _Avoid_: Needs you, attention, Done, notification center
 
 **Message notification**:
 A platform alert (iPhone push, desktop or web notification) for a new message one human did not
-write: every message in their DMs, and in a Channel or Thread one that @mentions them, inline-replies
-to their message, or sits in a Thread on their message. One shared rule decides it; it is
+write: every message in their DMs, and in a Channel or Task one that @mentions them or
+inline-replies to their message. One shared rule decides it; it is
 independent of the Inbox. An @mention is how an Agent asks a person anything (ADR 0037).
 _Avoid_: Needs you alert, attention, escalation
 
 **Inbox**:
 The Haus App page below Search where one human sees the week's active Agents, their Unread Chats
-and Threads, the Tasks assigned to them, and Agent and Cloud Agent work running now. It is a lens
-over existing records; unread is the viewer's read marker, and a Task item clears by Mark read,
-opening the Task, or resolving it.
+and followed Tasks, and Agent and Cloud Agent work running now. It is a lens over existing
+records; unread is the viewer's read marker.
 _Avoid_: Agent inbox, notification center, activity feed, task list
 
 **Claim**:
@@ -283,22 +276,30 @@ number, or a status.
 _Avoid_: Task, message task
 
 **Task**:
-A standalone work item on a Board, keyed like `SEC-12`, with at most one assignee, a person or an
-Agent (ADR 0051). It is not a Message and adds none: it has no comments, its discussion happens in
-Chats that reference it, and those messages are its **Mentioned in**. It ends in a done or canceled
-column, never by deletion.
-_Avoid_: Claim, issue, ticket, message task
+A place for one piece of work: a Chat of kind `task`, started by an Agent from an origin Message in
+a Channel, with its own conversation, a state (`todo`, `open`, `done`, `canceled`), at most one
+assignee, and attached cloud agents and pull requests (ADR 0052). Only Agents start Tasks; a human
+asks one. It ends when an Agent or a person marks it done or canceled, never by deletion, and
+posting in it reopens it.
+_Avoid_: Claim, issue, ticket, Thread, work Thread, board card
 
-**Board**:
-A Server-wide list of Tasks with a short key (`SEC`) and ordered columns, numbering its Tasks
-itself. Every member and Agent sees every Board. Every Server has the fixed General board, `GEN`.
-_Avoid_: Project, workspace, team, list
+**Task key**:
+The `KEY-n` name of a Task, like `SEC-12`. The key comes from the Server's key ledger, where each
+entry numbers its own Tasks; each Channel is configured with one entry, Channels can share one, and
+every Server has `GEN`. A Task takes its origin Channel's key. `task:SEC-12` is its CLI target.
+_Avoid_: Board key, Task id, ticket number
 
-**Column category**:
-The fixed meaning of a Board column: `backlog`, `todo`, `active`, `done`, or `canceled`. The column
-name is presentation; code and Agents reason in categories, and a Board keeps at least one `todo`,
-`active`, and `done` column.
-_Avoid_: Status, column type
+**Origin Message**:
+The Channel Message a Task started from. The Task's page points back at it, and the Channel shows
+the Task's preview under it. One Message can carry several Tasks; Tasks have no parents or
+children.
+_Avoid_: anchor, parent Task, Thread anchor
+
+**Follower**:
+A person or Agent for whom a Task is unread: the origin Message's author, anyone it mentions,
+anyone who has posted in the Task, and the assignee. Anyone can follow or unfollow by hand. For
+everyone else a Task is a quiet sidebar row.
+_Avoid_: watcher, subscriber, member
 
 **Agent inbox**:
 The durable Server-owned delivery ledger of pending work for one Agent, with exact model
@@ -321,16 +322,16 @@ until they save it, and an Agent reaches it only through `haus agent create --av
 _Avoid_: avatar repository, automatic profile update, transient avatar file
 
 **Cloud Agent work**:
-Durable provider-hosted work delegated by a Haus Agent. It is a standalone Agent-owned record that
-belongs to no Message or Chat (ADR 0044): it owns its delegating Agent, one or more provider Runs,
-and its mutable lifecycle, and it survives deletion of the Chat that asked for it. Results reach
-the work Thread as ordinary Messages, references, attachments, and artifacts composed by the
+Durable provider-hosted work delegated by a Haus Agent for a Task. It is a standalone Agent-owned
+record attached to that Task (ADR 0044, ADR 0052): it owns its delegating Agent, one or more
+provider Runs, and its mutable lifecycle, and it survives deletion of the Chat that asked for it.
+Results reach the Task as ordinary Messages, references, attachments, and artifacts composed by the
 delegating Agent, which owns follow-up after terminal completion reaches its inbox.
-_Avoid_: Harness subagent, Haus Task, named teammate, Cursor Message
+_Avoid_: Harness subagent, named teammate, Cursor Message, work Thread
 
 **Cloud Agent work link**:
 A `cloud-agent://<workId>` rich reference in a Message's content, recorded by the Server when the
-Message is written. Every link shows the same live card; none is primary and none is a copy. The
+Message is written. The work's card lives on its Task's page; a link reads as a reference. The
 launch Message is simply the first link. Anyone who can read a live linking Message can see the
 work, and an author may link only work they can already see.
 _Avoid_: work copy, embedded work, origin card, primary card
@@ -369,9 +370,9 @@ and short failure category, excluding prompts, tool details, transcripts, and fi
 _Avoid_: Execution trace, Chat message, model-context compaction
 
 **Chat**:
-A durable Haus conversation container, shaped like a channel or DM, where humans, agents, system
-actors, and external actors can participate.
-_Avoid_: Hosted Chat, Agent session, thread, executor channel, transcript
+A durable Haus conversation container, shaped like a channel, DM, or Task, where humans, agents,
+system actors, and external actors can participate.
+_Avoid_: Hosted Chat, Agent session, Thread, executor channel, transcript
 
 **Channel**:
 A named multi-participant Chat in a Haus workspace.
@@ -379,7 +380,7 @@ _Avoid_: Room, group chat
 
 **DM**:
 A one-to-one Chat between one human and one Agent. Agents do not DM each other; they
-meet in the channels and threads they share.
+meet in the channels and Tasks they share.
 _Avoid_: Private channel, direct channel, agent-to-agent DM
 
 **Chat participant**:

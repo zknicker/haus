@@ -1,5 +1,5 @@
 ---
-summary: The human Inbox page — a sidebar lens over the day, every unread Chat and Thread as an open card (its newest waiting message, the conversation's own composer, Mark read) with one selected for the J/K/E/R/Return keys, the week's Agents as a strip of token chips with a spike flag, and live Agent work — plus the one rule for desktop, web, and iPhone message notifications.
+summary: The human Inbox page — a sidebar lens over the day, every unread Channel, DM, and followed Task as an open card (its newest waiting message, the conversation's own composer, Mark read) with one selected for the J/K/E/R/Return keys, the week's Agents as a strip of token chips with a spike flag, and live Agent work — plus the one rule for desktop, web, and iPhone message notifications.
 read_when:
   - changing the Inbox page, its sections, empty states, Mark read, or realtime invalidation
   - changing the Unread feed, its cards, their composers, the selection, or the keyboard keys
@@ -20,14 +20,13 @@ know right now ([ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)).
 
 The Inbox is a lens, not a store. It owns no state of its own, creates no records, and duplicates no
 lifecycle. Every row projects an existing Server record and links to that record's canonical place —
-a Chat, a Thread, or an Agent profile.
+a Channel, a DM, a Task, or an Agent profile.
 
 The agent-side concept with a similar name is the [Agent inbox](../../specs/inbox.md), the durable
 delivery ledger that wakes Agents. Say "Agent inbox" wherever the two could be confused.
 
-Threads still in motion for a human, Cloud Agent work and conversations they took part in, also
-sit in the sidebar's Threads section, read or not. That section is a lens with no badge; see
-[Open Threads](../../specs/open-threads.md). The Inbox stays an unread list.
+Open Tasks also sit in the sidebar, read or not, with no badge ([Tasks](tasks.md#sidebar)). The
+Inbox stays an unread list.
 
 ## Layout
 
@@ -108,19 +107,19 @@ hold theirs in one bordered group with a separator between each pair, inside the
 Unread sets its cards on the page (below). A quiet section says so in one muted row-shaped slot, so it keeps the section's shape
 rather than changing it to say so.
 
-**Unread** — every Channel, DM, and Thread with something the viewer has not read, and every Task
-assigned to them ([Task cards](#task-cards)), newest activity first, one row each. A Channel or DM row is `chat.list`'s `unreadCount` above zero: its
-own messages from others above the viewer's read marker. A Thread is unread on its own, never
-through its parent ([ADR 0043](../adr/0043-threads-are-unread-on-their-own.md)): a Thread row is a
-`thread.listUnread` row, a Thread with replies from others above the viewer's Thread marker that
-the viewer follows or that mention them. There is no attention tier above it — no "unanswered" state and no Done marker
+**Unread** — every Channel, DM, and followed Task with something the viewer has not read, newest
+activity first, one row each. A Channel or DM row is `chat.list`'s `unreadCount` above zero: its
+own messages from others above the viewer's read marker. A Task is unread only for its followers
+— the origin message's author, anyone it mentions, anyone who posted in the Task, and its
+assignee — and reads like an unread Channel ([Task cards](#task-cards)). There is no attention
+tier above it — no "unanswered" state and no Done marker
 ([ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)). An Agent asks a person by @mention,
-inline reply, a Thread on their message, or their DM
+inline reply, or their DM
 ([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)); that question is unread here like
 any other message, and it notifies them (see [Notifications](#notifications)).
 
 Unread is a **feed of open cards** ([ADR 0050](../adr/0050-the-inbox-renders-what-is-waiting.md)):
-every unread Chat and Thread is a card of its own, set straight on the page in a transparent stock
+every unread Chat and followed Task is a card of its own, set straight on the page in a transparent stock
 `ItemCardGroup` a few pixels apart, with no box around them and no dividers, so each card is one
 outline rather than an outline inside another. Nothing expands or collapses. A card takes the
 theme layer's feed-card fill and edge (`--feed-card`, `--feed-card-shadow`, keyed as
@@ -131,7 +130,7 @@ one quiet step off the page (`--background-secondary`) with a faint rim, because
 
 - Its **source line**: the place's mark and name (the one control that opens the conversation; a
   Chat opens scrolled to the card's message and flashes it), a
-  muted note (`DM`, or the message a Thread hangs off, `on Beacon: Thursday Christmas check…`),
+  muted note (`DM`, or for a Task the Channel it started from),
   then the time, **Mark read**, and the count.
 - Only the **newest waiting message**, rendered exactly as the transcript renders it
   (`TranscriptEntryView`, agent avatars and all), read-only. A long one is clamped inside a
@@ -140,10 +139,9 @@ one quiet step off the page (`--background-secondary`) with a faint rim, because
   messages the preview carries, in place; once those show, the older counted messages open the
   conversation at the oldest of them, with the older ones just above.
 - The conversation's own **composer**, always there to type into: the stock `ChatComposer` in the
-  Chat view's `primary` shell with the conversation's draft key (an Agent DM keys by its Agent, a
-  Thread by its anchor), so a draft started here waits there and the other way round. A Thread
-  card's says `Add a reply…` and is addressed as the Thread view's (`Message Thread — #all`). An
-  archived Channel or a retired Agent's DM shows none, as the Chat does. Every card mounts one;
+  Chat view's `primary` shell with the conversation's draft key (an Agent DM keys by its Agent),
+  so a draft started here waits there and the other way round. A Task card's composer posts into
+  the Task. An archived Channel or a retired Agent's DM shows none, as the Chat does. Every card mounts one;
   its only Server read (`chat.mentionOptions`) waits until "@" is typed, and drafts are local, so
   a feed of composers adds no request per card.
 
@@ -177,9 +175,9 @@ the card's message and flashes it. Back returns to the Inbox with the selection 
 the card that took the read card's place — scrolled into view.
 
 The messages come from one read, `chat.unreadPreviews({ serverId })`
-(`packages/haus-api/src/chat-unread-preview.ts`): each unread Chat's and Thread's newest counted
-messages, oldest first, how many are older, and a Thread's anchor, filtered by the same predicates
-as `chat.list`, `thread.listUnread`, and the badge. A card never reads messages of its own; a page
+(`packages/haus-api/src/chat-unread-preview.ts`): each unread Chat's and followed Task's newest
+counted messages, oldest first, how many are older, and for a Task its key, title, and state,
+filtered by the same predicates as `chat.list` and the badge. A card never reads messages of its own; a page
 of cards each reading a transcript is the request burst that wedges a Server. The feed paints
 nothing until the preview has settled as well as its rows, so the cards and their messages land in
 one frame instead of each card growing a beat later; hovering the sidebar's Inbox row prefetches
@@ -199,10 +197,9 @@ a collision does is drop or add a prefix.
 
 A card **clears** when the viewer reads the Chat — opening it while Haus is visible and focused —
 presses **Mark read** (or **E**), or replies from the card. Seeing a card in the Inbox never reads
-it, so a card never leaves while it is being read. A reply reads the Chat or Thread as its send starts;
-a failed send keeps its draft in that conversation's composer. Mark read on a Channel or DM row reads the Chat through its newest
-message and every Thread under it, so that Chat's Thread rows clear too; Mark read on a Thread row
-reads that Thread. Newer activity brings a row back.
+it, so a card never leaves while it is being read. A reply reads the conversation as its send
+starts; a failed send keeps its draft in that conversation's composer. Mark read reads the
+Channel, DM, or Task through its newest message. Newer activity brings a row back.
 
 Stalled claims are not here. A claim an Agent took and stopped short of finishing belongs to that
 Agent's profile, under **Stopped before finishing** ([Claims](claims.md)).
@@ -233,11 +230,11 @@ The source line is one line in `ItemCard`'s own grammar
 and reads left to right:
 
 - A 24px **mark**, the sidebar's own: the DM peer's avatar (initials once the Agent is gone) or the
-  Channel's icon box. A Thread card wears its parent's.
-- The **name** (`#product`, `Tiny`, `Thread in #product`) in a fixed 10rem column, truncating
-  inside it, so a feed of cards lines its notes up. It is the one control that opens the
+  Channel's icon box. A Task card wears its state mark.
+- The **name** (`#product`, `Tiny`, `SEC-12 Rotate the signing key`) in a fixed 10rem column,
+  truncating inside it, so a feed of cards lines its notes up. It is the one control that opens the
   conversation: a text button, underlined on hover the way a transcript author's name is, with a
-  `:focus-visible` ring, named for the place (`all`, `Thread in #all`).
+  `:focus-visible` ring, named for the place.
 - The **note** as `ItemCard.Description`, muted, filling what the name leaves and truncating first.
 - The **trailing cluster**, which never wraps or shrinks: the time, Mark read, and the unread count
   at the right edge.
@@ -253,52 +250,28 @@ work row's trailing status disc is 16px, the app's icon size.
 
 ### Task cards
 
-A Task assigned to the viewer by someone else is a card in the same feed, one per Task and never
-bundled ([ADR 0051](../adr/0051-tasks-are-boards-and-claims-are-the-lock.md),
-[`unread-task-row.tsx`](../../apps/website/src/features/servers/inbox/unread-task-row.tsx)). It
-sorts by its assignment and counts in the badge like any row, and J, K, E, R, and Return treat it
-as a queue item: E clears it, Return opens the Task, and R focuses its composer.
-
-The source line names the board, the key, and who assigned it. Under it sit the priority, title,
-due day, and the status picker; then the **context message**, the newest message referencing the
-Task, rendered as the transcript renders it under a line naming where it was written; then that
-message's Thread composer. A reply goes into that Thread and leaves the card waiting, because the
-Task is still the viewer's to resolve. With no context message there is no composer.
-
-**Start**, **Done**, and **Won't do** move the Task to the board's first `active`, `done`, or
-`canceled` column, and the picker reaches any column. A category the Task is already in is not
-offered. The card then gives way to a slim row where it sat, with an Undo that moves the Task back
-and restores the item. Only the newest resolve keeps its row: the next card worked takes it away.
-Mark read and opening the Task clear the card without moving the Task, and leave no row.
-
-The list paints once the Task items and the boards they need have settled, so no card grows under
-the reader. `taskInbox.list` names each context message's place (`#security · Thread`, its parent
-Channel or DM, and the Thread anchor), so a card opens and replies with no read of its own.
+A followed Task with unread messages is a card in the same feed and reads the way an unread
+Channel does ([ADR 0052](../adr/0052-channels-and-tasks-are-the-only-places.md) decision 9,
+[`unread-task-chat-row.tsx`](../../apps/website/src/features/servers/inbox/unread-task-chat-row.tsx)):
+its state mark, its key and title, the Channel it started from as the note, its waiting
+messages, and a composer that posts into the Task. Its name opens the Task page. Being assigned a
+Task makes you a follower, so an assignment shows here once the Task has messages you have not
+read; the assignment itself posts nothing. A Task you do not follow never appears here.
 
 ## Current stub
 
 The page is live at `/s/:slug/inbox`. An Unread Chat row opens its Chat at
-`/s/<slug>/chats/<chatId>`. An Unread Thread row is titled by its parent (`#channel`, or
-`DM`), quotes the newest counted reply (never the viewer's own) as
-`<author> replied in thread: …`, and opens the Thread itself — its page on desktop, its Chat
-with `?thread=<anchorMessageId>` on the web — landing on the first unread reply, as every Thread
-open does while the Thread is unread. A reply already in view from the Thread's start stays put
-with the anchor; one below the fold scrolls up to sit clear of the top fade, with the reply
-before it in view. A Cloud Agent work row opens its `location`: the launch work Thread
-when the viewer can read it (peeked at `?work=<workId>`, the same Thread timeline the Chat
-opens, work card and all), otherwise the newest linking Message the viewer can see, in its Thread
-when it has one; an Agent row in **Happening now** opens
-that Agent's page.
+`/s/<slug>/chats/<chatId>`. An Unread Task row opens the Task page at `/s/<slug>/tasks/<key>`. A
+Cloud Agent work row in **Happening now** opens the work's Task; an Agent row opens that Agent's
+page.
 
-Chat rows come from `chat.list({ serverId })` and Thread rows from
-`thread.listUnread({ serverId })` (`packages/haus-api/src/thread-unread.ts`). Mark read on a Chat
-row is `chat.markRead({ serverId, chatId, sequence: lastMessageSequence, includeThreads: true })`
-(`packages/haus-api/src/chat-read.ts`); on a Thread row it is the same procedure with the Thread's
-`threadChatId` and `lastMessageSequence`, without `includeThreads` — what an open transcript or
-Thread sends. It zeroes the Chat's count in the cached `chat.list` and drops the Thread rows it
-reads from the cached `thread.listUnread` at once, and reconciles on the refetch
+Chat rows come from `chat.list({ serverId })`, and followed Task rows from the Task entries of
+`chat.unreadPreviews`, which `chat.list` never names. Mark read is
+`chat.markRead({ serverId, chatId, sequence: lastMessageSequence })`
+(`packages/haus-api/src/chat-read.ts`) with the Channel's, DM's, or Task's own Chat id, what an
+open transcript sends. It zeroes the count in the cache at once and reconciles on the refetch
 ([`use-mark-chat-read.ts`](../../apps/website/src/hooks/servers/use-mark-chat-read.ts)). Viewing
-a Chat or Thread through its newest message clears its row the same way
+a conversation through its newest message clears its row the same way
 ([`chat-read-cache.ts`](../../apps/website/src/hooks/servers/chat-read-cache.ts)). The sidebar's
 Inbox badge counts the same rows
 ([`unread-rows.ts`](../../apps/website/src/features/servers/inbox/unread-rows.ts)).
@@ -307,9 +280,8 @@ Inbox badge counts the same rows
 
 One rule decides who a new message notifies, and it is independent of the Inbox
 ([ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)). A human is notified about a message
-they did not write when it is in a DM they belong to (directly or in a Thread on it) — every
-message — or, in a Channel or Thread, when it @mentions them, inline-replies to their message, or
-sits in a Thread anchored on their message. `messageNotificationReason` in
+they did not write when it is in a DM they belong to — every message — or, in a Channel or Task,
+when it @mentions them or inline-replies to their message. `messageNotificationReason` in
 `packages/haus-api/src/message-notification.ts` is that rule, over the facts `message.created`
 carries; the Server and the App both call it. Reading a Chat clears it from the Inbox but never
 stops the next notification; only a message already read is not notified.
@@ -317,8 +289,8 @@ stops the next notification; only a message already read is not notified.
 - **Desktop (Electron) and web** apply the rule to the `message.created` events their Chat event
   stream delivers, and use the platform `Notification` API while the window is hidden or
   unfocused. Only a message that passes is read for its text. The title names the author, plus
-  the place outside a DM (`#product`, `#product › thread`, `DM › thread`); the body is the
-  message as one line. Clicking it focuses the window and opens the conversation (or Thread).
+  the place outside a DM (`#product`, or a Task's key); the body is the message as one line.
+  Clicking it focuses the window and opens the conversation.
   Notifications are tagged by Chat, so a newer one replaces the older, and each message notifies
   once. Only live events notify: a cold stream starts at the event head, and a reconnect's
   catch-up replay refreshes caches without notifying, so messages that arrived while the App was
@@ -333,20 +305,17 @@ stops the next notification; only a message already read is not notified.
 - **iPhone** gets an APNs alert, even while Haus is closed, for every message the rule names: one
   push per human per message, to each device they registered, if they can still see the Chat. A
   push waits about 4 seconds and is skipped if the human has read the message by then anywhere —
-  typically a focused App window that has the Chat (or the Thread) open. The
+  typically a focused App window that has the conversation open. The
   title is the author, plus ` in #channel` outside a DM; the body is a plain-text preview cut to
-  180 characters; the badge is the human's unread Chats, unread Threads, and uncleared Task items
-  across every Server. The app sets its icon from the same Server count
+  180 characters; the badge is the human's unread Chats and followed Tasks across every Server. The app sets its icon from the same Server count
   (`chat.unreadChatCount`), so a badge never shrinks when the app opens. Pushes group by conversation and collapse by message id, and a
-  tap opens the conversation (or Thread). The human's own messages, Chats they cannot see, and
+  tap opens the conversation. The human's own messages, Chats they cannot see, and
   archived Chats never push. The Server sends only when an APNs key is configured; see
   [iPhone Push](../operations/ios-push.md). A Task someone else assigned the human pushes too,
-  titled `<assigner> assigned you SEC-12`, unless its Inbox item clears within the same wait.
-  Several assignments landing inside that wait are one push, `Zero assigned you 6 tasks`, and a tap
-  opens the Inbox, which still holds a card per Task. The desktop notification does the same for
-  assignments that arrive in one list read.
+  titled `<assigner> assigned you SEC-12`, unless they read it within the same wait. Several
+  assignments landing inside that wait are one push, `Zero assigned you 6 tasks`.
 - **iPhone Focus**: a push tells iOS why it addresses the human. A DM breaks through a Focus when
-  its sender is an allowed person; in a Channel or Thread, only a mention of the human or a reply
+  its sender is an allowed person; in a Channel or Task, only a mention of the human or a reply
   to their message does (for an allowed sender). Haus never marks pushes Time Sensitive.
 
 Deferred until the operator provides credentials: browser Web Push while Haus is closed (a VAPID
@@ -373,8 +342,8 @@ key pair and a service worker). A closed browser tab learns about new messages o
   the Server shell; the section bodies can arrive independently of navigation.
 - The page updates from the durable events the underlying records already emit —
   `message.created`, `chat.read`, `cloud-agent-work.updated`, and Agent activity and lifecycle —
-  through the existing invalidations; Unread is `chat.list`, refetched on `message.created` and
-  `chat.read`. The Inbox adds no event of its own. The strip's token figure is
+  through the existing invalidations; Unread is `chat.list` and `chat.unreadPreviews`, refetched
+  on `message.created` and `chat.read`. The Inbox adds no event of its own. The strip's token figure is
   the exception that needs none: it rides the usage snapshot's own freshness, the same one every
   other usage surface reads, while the live step on a card still comes from Agent activity.
 - The Inbox owns no read state of its own. Unread counts live in `chat_reads`; running work comes
@@ -390,8 +359,6 @@ key pair and a service worker). A closed browser tab learns about new messages o
   ([Haus for iPhone](../internals/ios.md)). **Happening now** is where Cloud Agent work gets its
   first iPhone presentation. One row differs, because the phone has nowhere else to send it: an
   Agent row in **Happening now** opens that Agent's DM rather than a profile page, which the phone
-  reaches from a Chat instead. A Cloud Agent work row opens the same `location` as the App, pushed
-  rather than peeked: its work Thread takes the work's title, and the parent Chat's inline replies
-  read among the Thread's own, the launch Message and its card with them. A Thread that cannot be
-  read raises a Retry alert, where the App shows a toast. The iPhone Inbox is also the cold-start
-  landing screen there, which the App has no counterpart for.
+  reaches from a Chat instead. A Cloud Agent work row opens the work's Task as a chat with its
+  attached-work header. The iPhone Inbox is also the cold-start landing screen there, which the
+  App has no counterpart for.

@@ -1,5 +1,9 @@
 # Raft alignment program
 
+> The Thread, task-Thread, and Convert to Task decisions below describe Raft and Haus as of
+> 2026-07. [ADR 0052](../../docs/adr/0052-channels-and-tasks-are-the-only-places.md) removed
+> Threads and made Tasks places; [specs/tasks.md](../tasks.md) is the current contract.
+
 Scoping research and **resolved decisions** for evolving Haus's agent chat to Raft's model
 (raft.build). Research produced 2026-07-20 from: Raft's system prompt and per-turn envelopes
 recovered verbatim from the local install ([raft-system-prompt.md](raft-system-prompt.md); the

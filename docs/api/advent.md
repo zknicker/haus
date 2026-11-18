@@ -32,7 +32,7 @@ there is no way to read another member's calendar.
 
 Each `fact` entry carries the door's fixed `title` and one `line` of runs. Numbers and names are
 `strong` runs; every other run is hand-written text. Dec 24 is the `recap` entry: up to eight
-`stats` tiles (Messages, Chats, Threads, Agents, Tasks closed, Tokens, Busiest hour, Most thanked),
+`stats` tiles (Messages, Chats, Conversations, Agents, Tasks closed, Tokens, Busiest hour, Most thanked),
 each omitted when it has no data, and a `closing` line naming the loudest channel. A year with
 nothing counted still shows one true tile, `Messages: 0`.
 
@@ -46,9 +46,9 @@ fallback line with no strong runs and no invented value.
 ## What each door counts
 
 Everything is scoped to the requesting member in this Server, within `year` as bounded by
-`timeZone`, and limited to live Chats the member can read: any channel, a DM they are a side of,
-and Threads under those. A Thread under a soft-deleted channel or DM is gone with it, though its
-own row is not. Thread messages count toward their parent channel or DM.
+`timeZone`, and limited to live Chats the member can read: any channel and any DM they are a side
+of (`apps/server/src/advent/year-scope.ts`). A conversation is an inline reply chain: its root
+message and the replies under it.
 
 | Day | Fact | Counts |
 | --- | --- | --- |
@@ -57,19 +57,19 @@ own row is not. Thread messages count toward their parent channel or DM.
 | 3 | `busiest-hour` | The local hour with most of their messages. |
 | 4 | `full-house` | Of channels they wrote in, the one with the largest current roster of people and Agents (at least two). |
 | 5 | `early-bird` | The median of each morning's first send, mornings being 4am to noon local. |
-| 6 | `agents-at-table` | Distinct Agents they addressed: an Agent DM (or Thread under it) or an `agent://` mention. |
+| 6 | `agents-at-table` | Distinct Agents they addressed: an Agent DM or an `agent://` mention. |
 | 7 | `most-thanked-agent` | The Agent most often addressed by a message matching a short thank-you word list. |
 | 8 | `files-shared` | Ready attachments they sent on a message. |
 | 9 | `night-owl` | Messages sent from midnight to 5am local. |
 | 10 | `closest-dm` | The DM, human or Agent, with most of their messages, named by the other side. |
-| 11 | `longest-thread` | Of Threads they wrote in, the one with the most messages. |
+| 11 | `longest-conversation` | Of inline reply chains they wrote in, the one with the most replies. |
 | 12 | `tokens-used` | Tokens on the daily usage cube for the member's Agents, by UTC usage date. |
 | 13 | `quickest-reply` | Their fastest message after someone else's in the same Chat, ignoring gaps under a second. |
 | 14 | `busiest-day` | The local date with most of their messages. |
-| 15 | `tasks-closed` | Tasks they created that reached `done` or `closed`, by `updated_at`. |
+| 15 | `tasks-closed` | Claims (`message_claims`) they created that reached `done` or `closed`, by `updated_at`. |
 | 16 | `new-channels` | Channels they created. |
 | 17 | `quiet-month` | The finished month, between their first and last active months, with fewest messages. |
-| 18 | `threads-resolved` | Threads whose first message was theirs and that someone else answered. |
+| 18 | `conversations-started` | Top-level messages of theirs that someone else replied to inline. |
 | 19 | `favorite-reaction` | The emoji they reacted with most. |
 | 20 | `hardest-worker` | The member's Agent with the most turns on the usage cube. |
 | 21 | `in-demand` | Messages by others that mention them. |
@@ -105,10 +105,9 @@ Queries run one after another, never fanned out across the Bun pool.
 
 The member's messages are read through one probe per readable Chat of the existing
 `chat_messages_author_user_idx`, fenced with `offset 0` so the planner cannot flatten it into a
-scan of every message in the Server. Probes grow with the Server's channels and their Threads,
-not with other people's DMs. Mentions use the `mentioned_user_ids` GIN index and usage reads the
-cube's primary key. No migration was needed. If Thread counts grow large enough to matter, an
-index on `(server_id, author_user_id, created_at)` would make the read independent of Chat count.
+scan of every message in the Server. Probes grow with the Server's channels, not with other
+people's DMs. Mentions use the `mentioned_user_ids` GIN index and usage reads the cube's primary
+key. No migration was needed. If Chat counts grow large enough to matter, an index on `(server_id, author_user_id, created_at)` would make the read independent of Chat count.
 
 ## Related Docs
 

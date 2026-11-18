@@ -8,7 +8,7 @@ read_when:
 # Triage labels
 
 The skills speak in terms of five canonical triage roles. This file maps those roles to the label
-strings used on Haus Tasks boards.
+strings used on Haus Tasks.
 
 | Label in mattpocock/skills | Label in Haus Tasks | Meaning |
 | --- | --- | --- |

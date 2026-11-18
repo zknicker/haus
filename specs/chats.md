@@ -37,11 +37,11 @@ Chats are Haus's shared conversation surfaces.
 - Archiving a chat hides it from normal Haus chat lists without deleting its chat row. Runtime
   session and message records may continue to reference that stable chat id.
 - Archived regular channels stay listable through an explicit archived chat list, stay readable
-  by id, and can be unarchived. While archived, the channel and its child threads accept no new
+  by id, and can be unarchived. While archived, the channel and its Tasks' chats accept no new
   writes. Undrained Agent work is canceled and is not replayed after restore.
 - Owner/Admin deletion of a regular channel is irreversible aggregate deletion. It removes the
-  channel, child threads, durable collaboration dependents, and attachment bytes. `#all`, DMs,
-  and threads do not expose independent archive or delete actions.
+  channel, its Tasks' chats, durable collaboration dependents, and attachment bytes. `#all`, DMs,
+  and Task chats do not expose independent archive or delete actions.
 - Runtime may observe agent sessions and messages that belong to a Haus chat.
   Those observations attach through the Runtime-owned agent participant for that chat.
 - External platform conversations, such as Discord channels or DMs, are separate first-class

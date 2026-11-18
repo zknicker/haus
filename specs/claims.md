@@ -2,36 +2,32 @@
 
 Chat-first claims implement D8 from `specs/raft-alignment/README.md`, where they were called tasks;
 [ADR 0051](../docs/adr/0051-tasks-are-boards-and-claims-are-the-lock.md) renamed them to claims so
-the coming board Tasks product can own the word *task*. A claim is one canonical hosted
-message plus Server-owned lifecycle metadata. Conversation continues inline in its channel or DM,
-or in a deliberately chosen child Thread. All claim views project the canonical message and metadata.
+the Tasks product can own the word *task*. A claim is one canonical hosted message plus
+Server-owned lifecycle metadata: the hidden, Agent-only lock on a Message. A Task does not mark
+ownership; the claim does ([ADR 0052](../docs/adr/0052-channels-and-tasks-are-the-only-places.md)
+decision 5). Conversation continues inline in its Channel or DM. All claim views project the
+canonical message and metadata.
 
 Claims are Agent work ([ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)). Only an
 Agent holds a claim; humans assign to Agents and change status, but never claim or hold one, and the
-App no longer creates or promotes one (ADR 0051 decision 9). An Agent that needs a person @mentions them in an inline reply where
-the request arrived (or in the Thread if it arrived inside one), never in a Thread on the claim
-message itself.
+App no longer creates or promotes one (ADR 0051 decision 9). An Agent that needs a person @mentions
+them in an inline reply where the request arrived.
 
 ## Hosted model
 
 `message_claims` keys metadata by `(server_id, message_id)` and also binds the canonical
 `chat_id`, always the top-level Channel or DM: monotonic per-Chat claim number (`chats.last_claim_number`), status, optional Agent assignee (`assignee_agent_id`) and claim time,
-origin, creator, monotonic version, and a nullable `tracked_at`. The work-surface Thread
-id is derived deterministically from the message id; it is not stored on the claim row, and the
-Thread itself does not exist until someone replies in it. A claim on a Thread message also records
-that Thread in `thread_chat_id`; the message's own Chat is the generated
-`message_chat_id = coalesce(thread_chat_id, chat_id)`, which the message foreign key uses, and a
-foreign key to `chats (id, parent_chat_id)` keeps the Thread a child of `chat_id`. The Thread it
-sits in is its work surface (`threadChatId` on the wire), since Threads never nest. Only an Agent's
-claim creates one; the number comes from the parent's counter.
+origin, creator, monotonic version, and a nullable `tracked_at`. The number comes from the
+Chat's counter. Migration 0124 moved every claim on a Thread message onto its parent with the
+message itself, so the message's own Chat is the claim's Chat.
 
 `origin` is `composed` (created as a claim for someone else: unassigned, or reserved for a peer),
 `converted` (`claim.promote` on an existing message), or `claimed` (an Agent claimed a message
 nobody had promoted, or created one already assigned to itself). Reads derive two
 more fields. `tier` is `background` for a `claimed` claim in `in_progress` or `done` that carries
-has no `tracked_at`. Inline and Thread messages leave the tier alone; everything else is `tracked`,
-and only the default Board and List lenses distinguish them. `live` is true while the assignee
-Agent's in-flight run holds the claim's message or Thread. `tracked_at` records what the current row
+has no `tracked_at`. Inline replies leave the tier alone; everything else is `tracked`, and only
+`claim.list`'s default distinguishes them. `live` is true while the assignee Agent's in-flight run
+holds the claim's message. `tracked_at` records what the current row
 cannot show — the status left `in_progress`/`done`, or the claiming run settled with the work open
 — so the tier predicate stays a pure function of one row, and only ever
 moves a claim from background to tracked.
@@ -41,18 +37,14 @@ their own finished work `done`, using `in_review` only for a requested sign-off 
 decision; claims left open when a run settles remain
 `in_progress` and become tracked, including completed, failed, interrupted, and stopped runs.
 
-A claim has no priority or labels; those belong to board Tasks ([tasks.md](tasks.md)). Composite
+A claim has no priority or labels; those belong to Tasks ([tasks.md](tasks.md)). Composite
 foreign keys keep claim, message, Chat, and assignee in one Server tenant. `chat_messages.claim` and
 claim-list reads project the same row.
 
-Channel or DM messages, including inline replies, can be promoted; an Agent can also claim a
-Thread message. Promotion is idempotent by canonical
-message identity. Atomic create uses the message nonce for replay and creates the message, claim,
-and durable events in one transaction — not the Thread. Creation and promotion do not append a
-user-visible state-change message; the canonical claim message is the record. A claim whose Thread was never needed still answers
-`thread.get`, `chat.messages`, and its `threadSummary` as an empty Thread, so deep links keep
-working; deliberately following such a Thread materializes it, and the claimant's follow attaches
-the moment it appears.
+Channel or DM messages, including inline replies, can be promoted. Promotion is idempotent by
+canonical message identity. Atomic create uses the message nonce for replay and creates the
+message, claim, and durable events in one transaction. Creation and promotion do not append a
+user-visible state-change message; the canonical claim message is the record.
 A direct Agent-to-Agent assignment writes no Chat message at all. It enqueues one `agent_inbox`
 item for the assignee — kind `claim_assignment`, keyed by the assignment identity, carrying
 `mentioned=true` — which reaches that Agent through the ordinary inbox ([inbox.md](inbox.md)) and
@@ -92,7 +84,7 @@ message (ADR 0026).
 - Revoked Server membership, lost parent-Chat access, cross-Server ids, and stale versions fail
   closed.
 - Agent retirement releases that Agent's claims and assignments with versioned `claim.updated`
-  events. Reinvitation or reactivation restores no old assignment or Thread access.
+  events. Reinvitation or reactivation restores no old assignment.
 
 Assignee and status are independent. Claiming an unassigned `todo` claim moves it to
 `in_progress`; releasing preserves status. Done claims cannot be claimed or released.
@@ -113,9 +105,9 @@ delivery and cursor catch-up after reconnect.
 
 - Hosted App: claims have no page. `claim.list` excludes background-tier claims by default and
   reports how many it hid (`includeBackground` widens it). The Agent profile lists `claimed` claims
-  whose run settled with the work open under **Stopped before finishing**. Opening a claim opens the
-  canonical message's hosted Thread, where a claim metadata header projects the number, status,
-  assignee, and creator. Status and assignment edits use the versioned claim mutations.
+  whose run settled with the work open under **Stopped before finishing**. Opening a claim reveals
+  the canonical message in its Channel or DM, where the claim chip projects the number, status,
+  and assignee. Status and assignment edits use the versioned claim mutations.
 - Managed CLI: `haus claim` (claim) and `haus claim list|create|release|assign|unassign|update` use
   the Computer's scoped runner authority and hosted Server claim API (`/api/agent/claims/*`). Agent
   identity comes from that runner credential. An Agent

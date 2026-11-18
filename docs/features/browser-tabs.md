@@ -1,10 +1,10 @@
 ---
-summary: Desktop tabs as equal pages (chats, sections, Agents, Threads, chat Attachments, workspace pages, web pages, the new tab page) with per-tab history, one or two panes, where clicks land (the sidebar and command menu navigate the left pane in place, anything inside a page opens a new tab on the right, modifiers open a tab beside the source, Settings is a singleton), shortcuts, per-window persistence, in-app browsing, and the boundary between the Haus browser and the user's personal browser.
+summary: Desktop tabs as equal pages (chats, sections, Agents, Tasks, chat Attachments, workspace pages, web pages, the new tab page) with per-tab history, one or two panes, where clicks land (the sidebar and command menu navigate the left pane in place, anything inside a page opens a new tab on the right, modifiers open a tab beside the source, Settings is a singleton), shortcuts, per-window persistence, in-app browsing, and the boundary between the Haus browser and the user's personal browser.
 read_when:
   - changing desktop tabs, panes, tab multi-select, tab drag, tear-off, cross-window drag, or where new tabs land
   - changing what the sidebar, command menu, a chip, an in-app link, Command-, Shift-, or middle-click (background versus selected new tabs), a notification, or a web link does on desktop
   - changing how desktop Settings, Inbox, Search, or Activity rows open
-  - changing desktop Thread, Attachments, workspace, or Agent pages, or the chat side panel versus desktop pages
+  - changing desktop Task, Attachments, workspace, or Agent pages, or the chat side panel versus desktop pages
   - changing desktop browser tabs, the new tab page, external-link opening, or browser session storage
   - changing tab identity, favicons, or tab row overflow
   - changing tab shortcuts, find in page, page zoom, reopening closed tabs, or the page context menu
@@ -16,19 +16,19 @@ read_when:
 
 The desktop App shows tabs in the window band ([ADR 0039](../adr/0039-desktop-tabs-are-equal-pages.md)).
 Every tab is an equal page with its own back and forward history: a channel, a DM, Inbox, Tasks,
-Search, Settings, an Agent profile, a Thread, a workspace page, a chat's Attachments, a web page, or the new
-tab page. No tab is
+Search, Settings, an Agent profile, a Task, a workspace page, a chat's Attachments, a web page, or
+the new tab page. No tab is
 primary, pinned, or unclosable, and a hidden tab keeps its state: scroll position, composer draft,
 open drill-down. The web App has no tabs: it keeps one routed page with the chat side panel for
-Threads, Attachments, and the Workspace pane.
+Attachments and the Workspace pane.
 
 ## Tabs and rows
 
 Every tab shares one anatomy: a compact rounded tab holding a leading mark, a title that ends in a
 fade when cut off, and a close button that shows on the selected tab and on hover or keyboard
 focus. The whole tab selects it. A tab's mark and title follow its current page and borrow what the
-sidebar shows: a channel's icon and color, a DM's or Agent's avatar, a section's glyph, a Thread's
-or Attachments page's chat mark (the tooltip adds `#name › thread`, or `DM › attachments`), the file glyph
+sidebar shows: a channel's icon and color, a DM's or Agent's avatar, a section's glyph, a Task's
+state mark, an Attachments page's chat mark (the tooltip adds `DM › attachments`), the file glyph
 (titled with the authored title for a workspace page, else "Workspace", or the file's title once a shared file's
 record in Files loads), or a web page's favicon (a spinner while it loads, a globe when it has none). A tab whose
 record is still loading keeps an empty mark slot and title.
@@ -42,7 +42,7 @@ width basis and shrinks evenly down to mark-only tabs, the selected tab keeps it
 the row's plus button stays pinned after the last tab. Each page keeps its own band at the top of
 its pane, under the rows: the same page band the web shows (Haus › section › … › page, then the
 page's controls). A conversation shows no band, so it starts at the top of its pane: a Chat, DM,
-Thread, Attachments, or workspace page. The Agent Workspace draws its bar (breadcrumb, file
+Attachments, or workspace page. The Agent Workspace draws its bar (breadcrumb, file
 controls, and "…" menu) over the content column in band chrome so the file rail reaches the top of
 the pane, and the band collapses. A Chat's actions live in its tab's
 context menu and in its sidebar row's context menu. A sidebar chat or DM row's menu offers Open,
@@ -133,7 +133,7 @@ Where a click lands depends on the surface you click, not on the destination
   **left pane's** selected tab in place and focuses the left pane, whichever pane you were in and
   whatever that tab shows (a web page or the new tab page included). Back returns. Go never opens
   a new tab and never jumps to a tab already showing that page.
-- **Open: anything inside a page.** A Thread, an Agent avatar, name, or chip, a chat or Thread
+- **Open: anything inside a page.** A Task preview or chip, an Agent avatar, name, or chip, a chat
   chip, a `haus://` link, a page card, a chat's Attachments, a web link, an Inbox row (not an Unread card), a Search
   result, an Activity row, a sidebar row's View profile, Attachments, or Tasks, a chat tab's menu
   actions, a notification, a deep link, and Command-F (Search) all open a new selected tab in the
@@ -163,13 +163,13 @@ Modifiers work the same on every link, chip, row, avatar, card, button, and menu
 | Web page menu: Open Link in New Tab | New background tab |
 
 For the sidebar and command menu, the tab you clicked from is the left pane's selected tab. A
-modified click never reuses an existing tab, and puts a Thread beside its source like any page.
+modified click never reuses an existing tab, and puts a Task beside its source like any page.
 Command means Control off macOS. Middle-click on a link or chip never autoscrolls.
 
-A **Thread** page shows the same Thread surface the web's side panel hosts, full width like a chat;
-View in chat opens the chat scrolled to the anchor, flashing it. A `?thread=` or `?task=`
-chat link strips its parameter, then opens the Thread page; a task inside a Thread opens the Thread
-it sits in with `?task=<messageId>` on the page, so the page states that task. A chat's **Attachments** page lists the
+A **Task** page ([Tasks](tasks.md#the-task-page)) shows the Task's conversation with its
+attached work beside it. An address saved before Threads were removed (a Thread page, or a chat's
+`?thread=` or `?claim=` link, in a persisted tab or a notification) opens its Channel or DM
+scrolled to that message (`features/servers/retired-routes.ts`). A chat's **Attachments** page lists the
 attachments in its loaded messages. A **workspace** page from an Agent workspace shows the Workspace pane's
 renderers (a file preview with copy, raw, and link actions, or the workspace browser); a target no
 Agent workspace holds shows "File unavailable". A shared file in Files (`artifacts/<id>`)

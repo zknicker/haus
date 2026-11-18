@@ -318,7 +318,7 @@ An Owner or Admin retires an Agent with **Delete Agent** in the profile header's
 actions menu, typing its name to confirm. A retired Agent leaves every active member control at once:
 it no longer appears in the Agent list, mention pickers, or Channel-creation
 controls, and it can neither execute a turn nor receive a new send. A send to its
-DM, a reply in one of that DM's Threads, or a new task message is rejected.
+DM, an inline reply in that DM, or a new claim message is rejected.
 
 Its implicit roster row leaves active navigation and is not an App destination after retirement. Canonical
 collaboration records remain durable Server history. Historical messages visible in other Chats

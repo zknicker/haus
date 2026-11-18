@@ -21,7 +21,8 @@ message:
 [@Computer Use](plugin://computer-use@openai-bundled)
 [@Chrome](app://computer-use/com.google.Chrome)
 [#product](chat://cht_product)
-[#product thread](chat://cht_product?thread=msg_12345678aaaaaaaaaaaaaaaaaaaaaaaa)
+[#product message](chat://cht_product?thread=msg_12345678aaaaaaaaaaaaaaaaaaaaaaaa)
+[SEC-12](task://tsk_0123456789abcdef)
 [mentions.md](/Users/zknicker/.codex/worktrees/1b41/haus/specs/mentions.md)
 [#482](pr://github/haus/haus/482)
 [Fix login redirect](cloud-agent://caw_0123456789abcdef)
@@ -33,26 +34,19 @@ the selected reference into Markdown. Haus does not persist a parallel
 local picker or chip appearance while editing, but saved messages must render
 and route from content alone.
 
-Agent-authored `#channel:<anchor-ref>` tokens resolve to the Channel Message
-they name at send time, whether or not a Thread has started on it, matching the
-CLI target that creates or continues that Thread. The Server stores the parent
-Chat id and full anchor Message id in a
-`chat://<chat-id>?thread=<anchor-message-id>` link with a readable `#channel thread`
-label. Canonical Message ids accept their CLI short id (the eight characters
-after `msg_`, case-sensitive; legacy hex ids fold case); other ids require an
-exact match. Unknown or ambiguous Thread targets remain plain text
-in full. Protected Markdown is never rewritten. Retried sends retain the
-original targets even after a Channel rename.
+Agent-authored `#channel:<message-ref>` tokens resolve to the Channel Message
+they name at send time. The Server stores the Chat id and full Message id in a
+`chat://<chat-id>?thread=<message-id>` link with a readable `#channel` label. The
+`?thread=` query key is the wire form stored bodies already carry; since
+[ADR 0052](../docs/adr/0052-channels-and-tasks-are-the-only-places.md) it names one
+Message, and opening it reveals that Message in its Channel or DM. Canonical
+Message ids accept their CLI short id (the eight characters after `msg_`,
+case-sensitive; legacy hex ids fold case); other ids require an exact match.
+Unknown or ambiguous targets remain plain text in full. Protected Markdown is never
+rewritten. Retried sends retain the original targets even after a Channel rename.
 
-Thread chips and their hover previews use a connected-message icon. The preview
-identifies the Thread's location as `Thread in #channel`. Thread chips
-resolve their visible title from the opening Message's first
-readable line, or its cloud assignment title, capped at 64 characters. The saved
-label is the fallback while that Message loads or cannot be read. Hover or keyboard
-focus previews the title, Channel, reply count, and latest reply.
-All Thread preview text uses the shared 13px body scale, including location and reply count.
-Thread chips open the Thread's preview tab on desktop or the parent Chat's
-Thread pane on web. The anchor id stays in the target, outside the visible label.
+A Task is referenced by `task://<taskId>` or, from an Agent, a bare key like
+`SEC-12` ([tasks.md](tasks.md#references)); its chip opens the Task.
 
 Human-authored bare mention-looking text remains plain text. Agent-authored bare
 `@handle` and `#channel` tokens become immutable typed links at send time when
@@ -96,9 +90,9 @@ notes are not silently rebound after a rename.
 
 | Kind | Target | Projection | Behavior |
 | --- | --- | --- | --- |
-| `agent` | `agent://<encoded-agent-id>` | `agent-reference` | Channel messages deliver to eligible joined Agents while the linked participant receives durable direct-attention metadata, unless Jev judges, at Choice confidence of at least 0.80, a top-level human message to be for the mentioned Agents alone (ADR 0030); a mention bypasses that Agent's Channel mute, while a direct Thread mention restores an explicit unfollow and resumes ordinary Thread delivery. Agent DMs address their one Agent participant without a link. |
+| `agent` | `agent://<encoded-agent-id>` | `agent-reference` | Channel messages deliver to eligible joined Agents while the linked participant receives durable direct-attention metadata, unless Jev judges, at Choice confidence of at least 0.80, a top-level human message to be for the mentioned Agents alone (ADR 0030); a mention bypasses that Agent's Channel mute, while a direct mention in a Task restores an explicit unfollow and resumes ordinary Task delivery. Agent DMs address their one Agent participant without a link. |
 | `chat` | `chat://<encoded-chat-id>` | `chat-reference` | Visual channel reference. The chip opens the referenced channel by immutable chat id. |
-| `user` | `user://<encoded-user-id>` | `user-reference` | Addresses that human ([ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)). Server records the mentioned user ids on the message (`chat_messages.mentioned_user_ids`), and a Channel or Thread message that mentions a human notifies them on iPhone, desktop, and web (an inline reply to the human's own message, or a message in a Thread on it, addresses them the same way; [ADR 0038](../docs/adr/0038-inbox-is-unread-not-attention.md)). Resolve the current display name/avatar by immutable user id; unknown or departed humans keep the persisted label. It wakes no Agent. |
+| `user` | `user://<encoded-user-id>` | `user-reference` | Addresses that human ([ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)). Server records the mentioned user ids on the message (`chat_messages.mentioned_user_ids`), and a Channel or Task message that mentions a human notifies them on iPhone, desktop, and web (an inline reply to the human's own message addresses them the same way; [ADR 0038](../docs/adr/0038-inbox-is-unread-not-attention.md)). Resolve the current display name/avatar by immutable user id; unknown or departed humans keep the persisted label. It wakes no Agent. |
 | `skill` | `skill://<encoded-skill-id>` | `skill-activation` | Runtime adds a compact turn hint only if the addressed Agent already has that skill enabled. |
 | `plugin` | `plugin://<name>@<marketplace>` | `capability-reference` | Preserve the link. Do not enable, install, connect, or authorize the plugin from the reference alone. |
 | `app` | `app://computer-use/<encoded-app-id>` | `capability-reference` | Preserve the link with the selected app label. Computer Use resolves the app when tools are invoked. |

@@ -13,6 +13,8 @@ read_when:
 
 ## Status
 
+Amended 2026-11-17 by [ADR 0052](0052-channels-and-tasks-are-the-only-places.md): boards, custom columns, "no comments", and human creation give way to Tasks as Channels.
+
 Accepted 2026-11-03. Implemented 2026-11-04, with the deviations listed below; the rules the Server
 enforces live in [specs/tasks.md](../../specs/tasks.md). Supersedes
 [ADR 0015](0015-tasks-are-promoted-messages.md)

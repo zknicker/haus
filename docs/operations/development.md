@@ -121,13 +121,15 @@ database stays current with main. If that migration step fails, the database
 predates the checked-in migration baseline: move
 `~/.haus/dev/<worktree-id>/postgres` aside and rerun to bootstrap fresh. On first use, Server creates one demo Server with
 the Agents Blippy and Tiny, avatars for them and for you, the `#all` and
-`#product` Channels, starter messages, a Thread, two tasks, and one MCP
-connection — enough to open any surface without hand-building data. It then
+`#product` Channels, starter messages with inline replies, four `GEN` Tasks started from Channel
+messages (one in flight and one waiting with the Agents, two handed to you), and one MCP
+connection — enough to open any surface without hand-building data
+(`seed-server.ts`, `seed-demo-tasks.ts`). It then
 seeds the activity the Inbox is a lens over: unread lines in both Channels and
 both Agent DMs (Tiny's DM ends on its unanswered stale-copy question; Blippy's DM line already has
 your reply), and Cove @mentioning you with its rename question in `#onboarding-owner`. It also
 seeds one claim Blippy left stalled (shown
-on the Tasks page under **Stopped before finishing**), one
+on Blippy's profile under **Stopped before finishing**), one
 settled Cloud Agent work, and seven days of Agent turns. That activity is idempotent and separate,
 in `apps/server/src/development/seed-inbox-activity.ts`.
 
@@ -138,11 +140,10 @@ both files into Blippy's workspace under `HAUS_COMPUTER_DATA_ROOT` when they are
 card, the link, and desktop workspace tabs have real files to open.
 
 A separate idempotent seed adds **#ui-gallery** to fresh and existing demo workspaces. Its
-anchor messages cover human @mentions in Channels and Threads, all task statuses,
-hidden claims, claims with replies, all cloud-work statuses, cancelling/stale work, follow-ups
-waiting or running behind a finished Run and waiting behind a failed one, ordinary
-threads, and a task thread containing multiple cloud runs and an inline human @mention. Toggle **Show tasks
-in chat** to compare hidden claims. Cloud branch and diff evidence is synthetic; its pull request link points at a nonexistent
+messages cover human @mentions in Channels and Tasks, every Task state, hidden claims, claims
+with replies, every cloud-work status, cancelling and stale work, follow-ups waiting or running
+behind a finished Run and waiting behind a failed one, and a Task holding several cloud agents
+and an inline human @mention. Toggle **Show tasks in chat** to compare hidden claims. Cloud branch and diff evidence is synthetic; its pull request link points at a nonexistent
 `demo/ui-gallery` repository. The gallery's queued/running work appears in Inbox too.
 
 Gallery runs belong to a dedicated **UI gallery (unattached samples)** Computer whose randomly
@@ -170,7 +171,7 @@ if none is set yet, so a key set in Settings is never overwritten.
 
 Seeding runs once per Server. To pick up changes to
 `apps/server/src/development/seed-server.ts`, delete the demo Server row
-(its Threads and messages first, since both reference it) and reload the App.
+(its Task Chats and messages first, since both reference it) and reload the App.
 
 The dev stack uses worktree-isolated development state by default:
 

@@ -24,8 +24,7 @@ rows at all.
 ## Timeline Contract
 
 - The chat timeline projection (`chat.log.list`) returns conversation units
-  only: human and Agent messages with their attachments, thread anchors
-  (reply counts), and date boundaries.
+  only: human and Agent messages with their attachments, and date boundaries.
 - Execution rows — tool calls, reasoning, narration, turn lifecycle —
   never appear. There are no work groups, no streaming message states, no
   per-turn response rows.

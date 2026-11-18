@@ -107,7 +107,7 @@ projections emit.
   `<Avatar.Image>` only when `src` is set and an always-present initials
   fallback. `className` is for layout offsets only, never for restyling.
   Pass a **number** for slots below HeroUI's 32px floor (contextual sidebar rows
-  at 24px, mention chips at 18px, thread reply previews at 20px); the exact box
+  at 24px, mention chips at 18px, Task preview rows at 20px); the exact box
   arrives as inline style, which is the one place this primitive reaches past
   the variant. Do not add a second avatar component for small sizes.
 - Servers currently use initials rather than an uploaded image. Every Server

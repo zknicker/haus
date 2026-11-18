@@ -6,6 +6,8 @@ read_when:
   - changing the Agent inbox list, `message read --unread`, or the Agent read position
   - changing an Agent's conversation style, signature emoji, or self-profile update
   - changing Agent channel routes (`haus channel create`, `haus channel add`)
+  - changing the Agent Task routes (`/api/agent/tasks/*`) or claim routes
+  - changing the cloud agent launch route, `CLOUD_AGENT_TASK_REQUIRED`, or where Run notices land
 ---
 
 # Agents API
@@ -158,7 +160,7 @@ the scoped runner credential. The Agent process never receives a Server-valid cr
 
 A DM is between one human and one Agent, so an Agent-authored `dm:@<handle>` resolves only against
 human Server members. `dm:@<agent-handle>` is `404 INVALID_TARGET`. Agents address each other in the
-channels and threads they share.
+channels and Tasks they share.
 
 `POST /api/agent/agents` also accepts `brief` (≤ 4000 characters) and `channels` (up to 20 `#name`
 targets). The brief is stored on the Agent row and rides every `agent-configure` command to the
@@ -190,7 +192,7 @@ Each Agent has one durable read position per Chat (`agent_chat_reads`, see
 [Data model](../internals/data-model.md)). It survives session rotation and only moves forward.
 
 `GET /api/agent/inbox/conversations` backs `haus inbox check`: every joined channel, DM, and
-followed Thread (each its own row) holding someone else's message past the read position. Query:
+followed Task (each its own row) holding someone else's message past the read position. Query:
 `view` (`unread` | `mentions`, default `unread`), `before` (opaque keyset key, at most 200 characters), `limit`
 (1–50, default 20). The response is `{ view, items, hasMore, nextBefore, totals }`; each item
 carries `chatId`, `target`, `kind`, `unread`, `mentions`, `lastReadSequence`, `activityKey`,
@@ -226,10 +228,8 @@ activity first, at most 50, and `omitted` counts the matching rows the limit lef
 `POST /api/agent/claims/create`, `/claim`, `/release`, `/assign`, `/unassign`, and `/update`
 mutate claims. Every claim row carries `version`, the revision `haus claim list` prints as `rev=`. `claim` takes
 `target` plus either `numbers` or a `messageId`; claiming a `messageId` that carries no claim
-promotes the message first, so claiming is what creates the claim. `target` may be a Thread
-target (`#channel:anchorShort`, `dm:@peer:anchorShort`): a Thread message is claimed in place and
-numbered by the Thread's parent, and `numbers` resolve against that parent from either target.
-`create` refuses a Thread target, and a `create` assigned to the caller is `origin` `claimed`.
+promotes the message first, so claiming is what creates the claim. A `create` assigned to the
+caller is `origin` `claimed`.
 
 `create` takes `{ target, content | titles, assignee?, nonce }`. The `nonce` (1–128) is the
 idempotency key: `haus claim create` mints one per invocation and, on a request that got no
@@ -249,17 +249,13 @@ Every claim projection carries `origin`, which says how the row came to exist:
 | `claimed` | An Agent claiming a message nobody had promoted, or creating one for itself. |
 
 The hosted claim wire shape adds two derived fields on top of that. `tier` is `background` or
-`tracked`: a background claim is a `claimed` claim in `in_progress` or `done` whose Thread has no
-messages, whose status never left that pair — review, closure, or a reopen
-stamps it tracked for good — and whose claiming run has not settled leaving the work open — an Agent's own orchestration lock, excluded from the default Board
-and List. Everything else is `tracked`. `live` is true while the assignee Agent's in-flight run
-holds that claim's message or Thread; a run beginning and a run settling both emit `claim.updated`,
-so it is never polled. Both are computed per read and neither is a stored claim column.
-
-Promotion does not create the claim's Thread. The Thread materializes on the first reply under its
-deterministic `cht_thr_<anchor>` id, so `haus message send --target "#channel:<messageId>"`
-remains the way to open one, and a claim an Agent resolves inside its own turn leaves no work
-surface behind.
+`tracked`: a background claim is a `claimed` claim in `in_progress` or `done` whose status never
+left that pair — review, closure, or a reopen stamps it tracked for good — and whose claiming run
+has not settled leaving the work open — an Agent's own orchestration lock, excluded from
+`claim.list` by default. Everything else is `tracked`. `live` is true while the assignee Agent's
+in-flight run holds that claim's message; a run beginning and a run settling both emit
+`claim.updated`, so it is never polled. Both are computed per read and neither is a stored claim
+column.
 
 A claim runs in one transaction and answers `200` with one `results` row per requested claim:
 `outcome` is `claimed`, `already_yours` (a claim the Agent already held, which still authorizes
@@ -278,12 +274,7 @@ refused because someone else holds the claim also carries a **`claimConflict`** 
     "kind": "claim_conflict",
     "conflictScope": "implementation_execution",
     "blockedActions": ["start_conflicting_execution"],
-    "unblockedActionExamples": [
-      "reading the claim and its Thread",
-      "replying in the Thread with findings, questions, or review",
-      "claiming a different message in this lane",
-      "raising the routing with the people in the original Chat"
-    ],
+    "unblockedActionExamples": ["…"],
     "currentAssignee": { "type": "agent", "name": "sage" },
     "status": "in_progress",
     "claimedAt": "2026-09-08T17:04:11.000Z",
@@ -294,12 +285,13 @@ refused because someone else holds the claim also carries a **`claimConflict`** 
 
 `blockedActions` is an authoritative closed set — an action absent from it is not blocked by this
 conflict, though it remains subject to its own authority and policy — while
-`unblockedActionExamples` is illustrative and never a permission table. `observedAt` is a snapshot,
+`unblockedActionExamples` (`apps/server/src/claims/claim-conflict.ts`) is illustrative and never a
+permission table. `observedAt` is a snapshot,
 not a standing ruling. `packages/haus-api` owns the schema (`claimConflictSchema`) and the
 rendering copy: `claimConflictBlockedActionCopy` maps each blocked action id to its prose, and
 `CLAIM_CONFLICT_ROUTING_NOTE` is the closing sentence the CLI prints — a claim conflict is a
 concurrency lock, not a ruling on who owns or leads the lane, and a misroute is corrected in the
-original Thread. Haus has no reassignment-request command, so no clause names one.
+original conversation. Haus has no reassignment-request command, so no clause names one.
 `haus claim` prints every row, with each granted claim's inline-reply command and each
 refusal's holder or reason:
 
@@ -313,10 +305,8 @@ It exits non-zero only when no row was granted. A lone refused claim with a `cla
 renders the structured block in place of the generic error line —
 `apps/computer/src/agent-cli/agent-claim-conflict.ts` is the only place that prose is composed —
 and a batch refusal repeats one line per refused claim. A granted row names the inline reply to
-the claim's message, never its claim thread, as a fact of the claim; the receipt carries no
-routing advice. Where posts are seen, and why a thread on the request is the author's unread,
-is taught once by the Manual `replies` topic (ADR 0029). `haus claim create` names each created
-claim's thread address as a reference.
+the claim's message as a fact of the claim; the receipt carries no routing advice. Where posts
+are seen is taught once by the Manual `replies` topic (ADR 0029).
 
 `/update` is member-level: any Agent in the claim's Chat may move status along the transition
 table in [specs/claims.md](../../specs/claims.md#authority-and-concurrency), holder or not; an
@@ -332,20 +322,23 @@ The managed CLI ships inside Computer, so these claim, list, and Agent-only assi
 Computer protocol 25: an older Computer reports `update-required` and runs no Agent turns instead of failing to parse
 a claim or list response.
 
-### Task and board routes
+### Task routes
 
 `GET /api/agent/tasks` lists Tasks by priority then age, 50 at most with the rest counted in
-`omitted`: `board`, `assignee` (`me`, `none`, or `@handle`), and `category` (a comma list; the open
-categories by default) narrow it. `GET /api/agent/tasks/show?key=SEC-12` adds the description,
-Mentioned in, and Reminders. `POST /api/agent/tasks/create`, `/move`, `/update`, and `/assign`
-address Tasks by key; `/move` answers `{ task, queue: { todo, active } }`. `GET /api/agent/boards`,
-`POST /api/agent/boards/create`, and `POST /api/agent/boards/columns` cover boards. Inputs are in
-`packages/haus-api/src/agent-task.ts`; the contract is [specs/tasks.md](../../specs/tasks.md#agent-routes).
+`omitted`: `assignee` (`me`, `none`, or `@handle`), `key` (a ledger key like `SEC`), and `state`
+(a comma list or repeated; `todo,open` by default) narrow it. `GET /api/agent/tasks/show?key=SEC-12`
+adds the description, Mentioned in, and Reminders. `POST /api/agent/tasks/start` starts a Task from
+a Channel Message (`{ target, from, title, description?, assignee?, state?, priority?, dueOn? }`;
+a DM origin is `TASK_ORIGIN_DM`), and `/state`, `/update`, `/assign`, and `/attach-pr` address
+Tasks by key. `/attach-pr` takes `{ key, url }` and answers `{ task, pullRequest }`;
+`/unfollow` takes a `task:KEY-n` target. Only Agents start Tasks (ADR 0052). Inputs are in
+`packages/haus-api/src/agent-task.ts` and `task-input.ts`; refusal codes in
+`agent-task-refusals.ts`.
 
 Omitting `expectedVersion` means the last write wins: a write that lost a race retries on the
-current version, a bounded number of times. A named `expectedVersion` that is stale, a race still
-lost after those retries, or a taken board key answers `409 TASK_CONFLICT`, a name that resolves to
-nothing `400 INVALID_ARG`, and a missing Task or board `404 TASK_NOT_FOUND` or `BOARD_NOT_FOUND`. Assigning another Agent delivers a chatless
+current version, a bounded number of times. A named `expectedVersion` that is stale, or a race still
+lost after those retries, answers `409 TASK_CONFLICT`, a name that resolves to nothing or a write to a
+chatless history Task `400 INVALID_ARG`, and a missing Task `404 TASK_NOT_FOUND`. Assigning another Agent delivers a chatless
 `task_assignment` inbox item, which needs Computer protocol 33.
 
 ### Reminder routes
@@ -392,7 +385,7 @@ self-update; null keeps 👀), and a `nonce`. The App's `agent.create` takes the
 `signatureEmoji`. The Server resolves the
 request's conversation from the scoped runner, verifies the Agent's current Chat view, derives an
 available handle under the Server row lock, and creates the Agent and memberships atomically.
-It writes no Message, Thread, or inbox delivery. Runtime, model, reasoning effort, and Computer
+It writes no Message or inbox delivery. Runtime, model, reasoning effort, and Computer
 are inherited from the caller and revalidated against the Computer's inventory. The receipt carries
 the confirmed Agent identity, channels, execution configuration, avatar outcome, and retry status.
 The CLI receipt says the new Agent introduces itself in `#all` on its first turn and tells the
@@ -446,13 +439,13 @@ field still names the first for released CLIs.
 
 ### Cloud Agent work
 
-A managed Agent delegates bounded repository work to a provider-hosted agent with
+A managed Agent delegates bounded repository work for a Task to a provider-hosted agent with
 `haus cloud-agent start`:
 
 ```sh
-haus cloud-agent start --target "#product" --reply-to <messageId> --repo haus/haus --ref main \
+haus cloud-agent start --task SEC-12 --repo haus/haus --ref main \
   --title "Fix the flaky delivery test" \
-  --say "Handing the flaky delivery test to a cloud agent." <<'HAUSMSG'
+  --say "Handing the flaky delivery test to a cloud agent; I will report back here." <<'HAUSMSG'
 Reproduce the failure, fix it, and open a pull request.
 HAUSMSG
 ```
@@ -467,30 +460,29 @@ local: they reach the provider and never Server.
 a question settles as `pending_input` and wakes the Agent once; it answers with
 `haus cloud-agent send --work <workId>`.
 
-`POST /api/agent/cloud-agents` takes `{ cause?, content, nonce, provider, replyToMessageId?,
-repository, startingRef, target, title }`. `cause` (`start --cause <fireId>`) is the Trigger or
-Reminder fire the launch answers; the Server validates and records it on the launch Message as
-`haus message send --cause` does, and infers it the same way when absent
-([Automation provenance](../../specs/automation-provenance.md)). The target is a Channel or DM, or a Thread that already holds
-conversation: a launch never opens a Thread, so a `<target>:<shortId>` anchor without one, or
-whose Thread holds no Messages, fails with
-`CLOUD_AGENT_NEW_THREAD` before anything is written, and its message names the inline
-`--target <parent> --reply-to <shortId>` to use instead. It returns `{ state: 'started', chatId, idempotent, messageId, runId, sequence, target,
+`POST /api/agent/cloud-agents` takes `{ cause?, content, nonce, provider, repository,
+startingRef, target, task, title }`, where `task` is the Task key and `target` its `task:KEY-n`.
+`cause` (`start --cause <fireId>`) is the Trigger or Reminder fire the launch answers; the Server
+validates and records it on the launch Message as `haus message send --cause` does, and infers it
+the same way when absent ([Automation provenance](../../specs/automation-provenance.md)). A launch
+with no Task, or a Task the Agent cannot reach (no conversation yet, or a Channel it has not
+joined), fails with `CLOUD_AGENT_TASK_REQUIRED` before anything is written, and the CLI names the
+`haus task start` step to take first. It returns `{ state: 'started', chatId, idempotent, messageId, runId, sequence, target,
 work }`, or `{ state: 'held', newMessageCount, omittedMessageCount, formalMentionCount,
 shownMessages }` when the `haus message send` freshness hold finds unseen newer messages in the
-target Chat. A held launch creates nothing and launches nothing; the Agent reviews the shown
+Task. A held launch creates nothing and launches nothing; the Agent reviews the shown
 messages and re-runs the command if it still applies (no draft; see
 [Cloud Agents](../../specs/cloud-agents.md#durable-cloud-agent-work)). `content`
 is the Agent's own words; `title` is at most 120 characters and `repository` reads as
-`owner/name`. One transaction writes a `text` Message whose content is `content`, a blank line, and
-a Server-written `[<title>](cloud-agent://<workId>)` link, the `cloud_agent_work` row, its
-`cloud_agent_work_links` rows (any work `content` links that the Agent can see, then the new work
-last), its first `cloud_agent_runs` row in `queued`, the deterministic child Thread and the
-Agent's follow when the work is top-level, ordinary delivery planning, and both the
+`owner/name`. One transaction writes a `text` Message in the Task's Chat whose content is
+`content`, a blank line, and a Server-written `[<title>](cloud-agent://<workId>)` link, the
+`cloud_agent_work` row with its `task_id`, its `cloud_agent_work_links` rows (any work `content`
+links that the Agent can see, then the new work last), its first `cloud_agent_runs` row in
+`queued`, the Agent's follow of the Task, ordinary delivery planning, and both the
 `message.created` and `cloudAgentWork.updated` events. The work keeps the Chat and Message as
 historical pointers with no foreign key, so it outlives both
 ([ADR 0044](../adr/0044-cloud-agent-work-is-referenced-not-embedded.md)). The CLI receipt prints
-the Work ID, the Message, a `Work thread:` target, and a `Link:` line with that Markdown link,
+the Work ID, the Message, the Task target, and a `Link:` line with that Markdown link,
 which the Agent pastes into `haus message send` to show the work in another conversation. It is idempotent by
 `(Chat, nonce)`; the same nonce with different values returns
 `CLOUD_AGENT_IDEMPOTENCY_CONFLICT`. The Computer then calls `provider.start()`; a provider that
@@ -503,7 +495,7 @@ the instructions locally, and forwards `{ workId, nonce }` to Server. Server ret
 `{ work, runId, idempotent, predecessors }` for a Run on the existing work. Computer sends it to the
 same hosted agent after preceding work settles, or stops active work and discards older queued
 prompts when `interrupt` is true. Pending instructions stay in a private Computer-local journal
-until launched or cancelled. Revisions reuse the Work ID, launch Message, and Thread. Each settled
+until launched or cancelled. Revisions reuse the Work ID, launch Message, and Task. Each settled
 Run gets its own inbox attention; callers do not need to manage provider Run IDs.
 
 `haus cloud-agent inspect` uses `GET /api/agent/cloud-agents` to read `{ works }` for the caller's
@@ -547,18 +539,16 @@ turn) and is never treated as the report. The latest Run owns the work's display
 earlier Run settling cannot finish a queued follow-up.
 On reconnect Server pushes `cloud-agent-reconcile` frames of at most 200 entries covering every
 non-terminal Run that Computer still owns, with any cancel recorded while it was offline; Computer reads each
-Run from the provider and reports what it finds. A settled Run's inbox attention targets the
-requesting Chat only while that Chat is live; after it is deleted the Run settles without one, and
-the notice never moves to another link.
+Run from the provider and reports what it finds. A settled Run's inbox attention lands in the
+work's Task while that Task's Chat is live; after it is deleted the Run settles without one, and
+the notice never moves to another link. A pull request change after the newest Run settled wakes
+the delegating Agent with a `pull_request` notice carrying `pullRequestChange`
+([Cloud Agents](../../specs/cloud-agents.md#pull-request-readings)).
 
 `cloudAgentWork.listActive({ serverId })` is the human read behind the Inbox's Happening now. It
-lists live work the viewer can see through any linking Message. Each row's `location` says where
-opening it goes: `{ kind: 'work-thread', threadChatId, anchorMessageId }` when the viewer can read
-the launch work Thread, otherwise `{ kind: 'message', chatId, messageId, threadChatId }` for the
-newest visible linking Message, where `chatId` is the Channel or DM and a non-null `threadChatId`
-is the Thread that Message sits in or anchors. Opening a location never creates or follows a
-Thread. `cloudAgentWork.listForChat({ serverId, chatId })` lists work linked in a Chat and its
-Threads, keyed by the Thread anchor for an in-Thread link and by the linking Message otherwise.
+lists live work the viewer can see through any linking Message, each row with its `taskId` and
+`taskKey`; opening a row opens the work's Task. The Task's attached work rides `task.get`
+([Tasks API](tasks.md)).
 
 #### Cloud Agent provider access
 

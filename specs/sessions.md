@@ -1,7 +1,7 @@
 # Sessions
 
 One agent owns one persistent runtime session spanning every chat it
-participates in. Chats and threads are routing and presentation surfaces —
+participates in. Channels, DMs, and Tasks are routing and presentation surfaces —
 never session boundaries. Different agents are fully isolated. Normative per
 [ADR 0011](../docs/adr/0011-agents-own-one-global-session.md) as amended by
 [ADR 0014](../docs/adr/0014-cli-is-the-agents-only-output-channel.md);
@@ -182,6 +182,6 @@ can talk to it.
 ## Non-goals
 
 - No per-chat model overrides.
-- No context forking for threads; runtime sub-agents remain an engine
+- No context forking per Task; runtime sub-agents remain an engine
   execution detail, not a session contract.
 - No migration shims: cutover starts every agent on a fresh global session.

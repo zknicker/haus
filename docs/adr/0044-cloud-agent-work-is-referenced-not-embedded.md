@@ -12,6 +12,8 @@ read_when:
 
 ## Status
 
+Amended 2026-11-17 by [ADR 0052](0052-channels-and-tasks-are-the-only-places.md): cloud work attaches to a Task, not to Messages or Threads.
+
 Accepted, 2026-10-11; amended 2026-10-12 (a launch never opens a Thread), below. Amends [ADR 0025](0025-messages-carry-typed-product-bodies.md) for Cloud
 Agent work. [ADR 0041](0041-cloud-agent-cards-mirror-cursor.md) still governs what the card shows.
 

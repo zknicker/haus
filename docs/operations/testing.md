@@ -196,7 +196,7 @@ Chat E2E should prove identity and recovery, not styling details:
 * accepted user message appears once
 * reload and websocket reconnect recover without duplicates, missing rows, or
   ordering bugs
-* completed messages and Threads remain available as durable history
+* completed messages and Tasks remain available as durable history
 * Agent-authored effects use the public runner contract rather than a real model
 
 The App test wrapper runs preflight before Playwright starts service readiness
@@ -320,19 +320,22 @@ are opt-in because they need something the default dev stack lacks; `--include-o
 them, and `bun run eval` always passes it:
 
 * `cloud-launch-and-link` spends a real Cursor Cloud Agent run on a read-only Haus README review
-  and needs connected Cursor access to `zknicker/haus`. It gates on one work item launched as an
-  inline reply to the request, with at most a pickup note before it and nothing else from the
-  launch turn, cancels it, and then gates on the Agent linking the same work
-  from a second channel. The completion wake is Server plumbing and is not re-proved live.
+  and needs connected Cursor access to `zknicker/haus`. It gates on one Task started from a
+  message in the requesting channel with one work item attached, cancels it, and then gates on
+  the Agent linking the same work from a second channel while it stays attached to the Task. The
+  completion wake is Server plumbing and is not re-proved live. The `task-intake-cloud-*`
+  scenarios are opt-in for the same reason.
 * `memory-feedback-implicit` and `memory-feedback-control` overwrite a test Agent's `MEMORY.md`
   on the stack's own Computer.
 * `cove-composes-agent-creation` is a standalone Cove smoke outside every eval (below).
 
-Scenarios that place answers (`placement-*`, `ack-reaction-thanks`,
-`thread-reply-stays-in-thread`, `solo-progress-threads-on-ack`, `mention-wakes-only-addressed`,
-`task-thread-routing`, `thread-claim-dm`, `thread-claim-channel`, `cloud-launch-and-link`, `github-trigger-*`) preserve every child conversation and all
-available execution journals under `.context/agent-tests/evidence/<stamp>/` before cleanup, so
-the eval grader can read placement and `--done` flags. One clean run is limited evidence.
+Scenarios that place answers or start work (`placement-*`, `ack-reaction-thanks`,
+`mention-wakes-only-addressed`, `claim-then-inline-reply`, `cloud-launch-and-link`,
+`github-trigger-*`, `room-*`, `side-work-stays-beside-channel`, `task-intake-*`, `task-pacing-*`)
+preserve every chat they touched, the Tasks started from those chats, and all available
+execution journals under `.context/agent-tests/evidence/<stamp>/` before cleanup, so the eval
+grader can tell an inline reply from a Task post and read `--done` flags. One clean run is
+limited evidence.
 
 `mcp-granted-lookup` asks for a private Audit Ledger record before any grant (no call, an honest
 reply, at most four discovery tools beyond turn bookkeeping such as the claim, reaction, and
@@ -349,7 +352,7 @@ installation anchored in the channel, no webhook Trigger, no `grtt_` secret, and
 the channel. Fire creates the Trigger through the Agent route on a human FYI, POSTs a
 `workflow_run` failure to `/api/github/webhook` signed with `HAUS_GITHUB_APP_WEBHOOK_SECRET`, and
 gates on one recorded fire, one top-level post in the anchor channel whose cause is that fire with
-`explicit` attribution, no Thread posts, and a journaled `haus message send --cause <fireId>`.
+`explicit` attribution, no off-anchor posts, and a journaled `haus message send --cause <fireId>`.
 Both need the varlock environment, so run them by hand as
 `bunx varlock run -- bun scripts/agent-tests/cli.mjs --only github-trigger --lanes 1`.
 
@@ -430,7 +433,7 @@ Two rules keep assertions honest:
   turn record to settle through `agent.turns`, then the scenario asserts against
   the collaboration that turn produced.
 * Assert structural Server state plus literal marker containment — the exact
-  chat, thread, task state, assignee, message count, ordering, and a random
+  chat, Task, claim or Task state, assignee, message count, ordering, and a random
   marker string the prompt asked for. Never assert phrasing, tone, or length.
 
 Silence is proven, not assumed: a settled turn with `outputProduced` false, no
@@ -481,14 +484,15 @@ rendered as the report's "What was changed" section). The registry is
 
 | Eval | Measures |
 | --- | --- |
-| `placement` | An answer lands where the asker looks (inline reply, or the Thread they chose), says only what was asked, and stops; a one-off off-topic question in a purpose channel is still one inline reply. |
-| `attention` | A mention wakes only the addressed Agent and its unmentioned inline follow-up stays with it; an FYI DM gets a seen, silent turn; an irreversible publish waits for the human's pick; an explicit task is claimed and answered inline; tool-using work asked in a DM or Channel Thread is claimed on that Thread message and answered in the Thread with a `--done` send and no `--reply-to`; a reminder fires once. Serial. |
-| `tasks` | Three Tasks assigned to one Agent are worked one card at a time, most urgent first, each moved to an active column and then done; the done receipt's queue line carries it to the next, and no message goes out before the last one finishes. |
+| `placement` | An answer lands inline where the asker looks, says only what was asked, and stops; a one-off off-topic question in a purpose channel is still one inline reply. |
+| `attention` | A mention wakes only the addressed Agent and its unmentioned inline follow-up stays with it; an FYI DM gets a seen, silent turn; an irreversible publish waits for the human's pick; an explicit task is claimed and answered inline in the channel it arrived in; a reminder fires once. Serial. |
 | `memory` | Passing feedback becomes a Standing Preference that survives a session reset; with no feedback, nothing changes. Score rule quality with `memory-feedback-grade.mjs`. |
 | `triggers` | GitHub Triggers on an `acme` GitHub installation seeded on the eval stack (no GitHub account): a plain "wake me when CI fails on main" ask becomes one failure-filtered CI `github` Trigger with a short confirmation; a signed `workflow_run` failure gets one top-level `--cause` answer naming the workflow and branch. Serial. |
-| `room` | Two Agents and a human share a channel, and each scenario carries a decoy the Manual warns against: a multi-step pickup gets the signature reaction and at most one inline "on it" note while the bystander stays silent; a task a peer claimed is left to that peer; a peer handoff carrying its evidence is delivered without re-asking the human; a peer's guess at a pending question to the human is not taken as the human's answer; a reminder fire during a live Thread exchange is answered at its anchor with `--cause`, not in the Thread; a chart request gets one SVG visual fence, no table inside it, with text beyond a caption. Serial. |
-| `side-work` | Two peers carry a live finance discussion while a human pulls the Agent into a code-review sidebar and replies inline through three substantial write-ups: each reaches the human, and the Agent authors at most two posts in the channel itself. A control keeps a one-off off-topic answer to a single inline reply with no Thread (`placement-off-topic-quick-question`). Placement is the Agent's judgment, so read the multi-round rate, not a single run. |
-| `tools` | Work that leaves the chat: a Cloud Agent launch and cross-channel link (Cursor), granted-only MCP use with a hot grant, a webhook Trigger whose secret stays out of chat, and a file shared with the team without naming Files (one `haus files push` of a `.md` file whose stable URL is linked, not attached). |
+| `room` | Two Agents and a human share a channel, and each scenario carries a decoy the Manual warns against: a multi-step pickup gets the signature reaction and at most one inline "on it" note while the bystander stays silent; a task a peer claimed is left to that peer; a peer handoff carrying its evidence is delivered without re-asking the human; a peer's guess at a pending question to the human is not taken as the human's answer; a reminder fire during a live inline exchange is answered top level in the anchor chat with `--cause`, not inside the exchange; a chart request gets one SVG visual fence, no table inside it, with text beyond a caption. Serial. |
+| `side-work` | Two peers carry a live finance discussion while a human pulls the Agent into a code-review sidebar and replies inline through three substantial write-ups: each reaches the human, and the Agent authors at most two posts in the channel itself, taking the review to a Task. A control keeps a one-off off-topic answer to a single inline reply with no Task (`placement-off-topic-quick-question`). Placement is the Agent's judgment, so read the multi-round rate, not a single run. |
+| `task-intake` | Task or reply: work the reply will not finish (several steps, more time, a cloud agent) becomes a Task opened by the Agent's own top-level message where the work belongs, whatever the source (a human ask, a Reminder fire, a GitHub Trigger fire, several findings, one Task each); work the reply finishes is just answered, and a claim, not a Task, marks ownership. A DM request becomes a Task started from an origin message in the channel where the work belongs, and the DM gets the key. The two cloud scenarios (launch on a Task, report the finish in it) are opt-in because they spend real Cursor runs. Serial; the Trigger scenarios need the varlock environment. |
+| `task-pacing` | Tasks a person assigns are worked one at a time, most urgent first, skipping one blocked on a person; Tasks the Agent starts itself may run side by side. Serial. |
+| `tools` | Work that leaves the chat: a Cloud Agent launched on a Task and linked from a second channel (Cursor), granted-only MCP use with a hot grant, a webhook Trigger whose secret stays out of chat, and a file shared with the team without naming Files (one `haus files push` of a `.md` file whose stable URL is linked, not attached). |
 
 The Files-backed scenarios (`placement-found-the-kit-files` in `placement`,
 `shared-artifact-discovery` in `tools`) run on the eval stack's own local Files storage gateway, so
@@ -526,8 +530,10 @@ phrases ("want me to", "happy to", …), question counts, placement of the resul
 it was skipped. Placement helpers shared with the scenarios live in
 `scripts/agent-tests/placement.mjs` and `placement-kit.mjs`. `placement-found-the-kit-local`, the
 storage-free workspace variant of the kit scenario, is not in the `placement` eval; run it by hand
-with `bun run test:agents --only placement-found-the-kit-local`. The `attention` profiles grade
-`mention-wakes-only-addressed` and `task-thread-routing` the same way. The `triggers` profiles
+with `bun run test:agents --only placement-found-the-kit-local`. The `attention` profile grades
+`mention-wakes-only-addressed` the same way. Every graded post is labeled an inline reply, a
+top-level channel post, a post in a Task started from the channel, or a post elsewhere, which
+fails the profile. The `triggers` profiles
 grade each setup confirmation as an inline reply (one post, no question, no URL) and each fire
 answer from its first fire-caused post (one post in the anchor chat naming the GitHub workflow and
 branch); `memory`, `room`, and `tools` are graded on runner verdicts alone.

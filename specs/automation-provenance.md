@@ -14,7 +14,7 @@ An Agent that speaks because a fire woke it sends with
 under the same validation and inference. The fire id is the
 one the wake envelope's final `reply with:` line printed. It never appears in the
 envelope header's `msg=` slot, which is `-` for a fire: a fire has no Chat
-message to read, thread on, or name as `--message-id`.
+message to read, reply to, or name as `--message-id`.
 
 `cause` is optional on the send route (`POST /api/agent/messages/send`) and the
 Cloud Agent launch route (`POST /api/agent/cloud-agents`); a
@@ -34,9 +34,12 @@ different opaque prefixes, so `--cause` resolves the kind from the id rather tha
 from a second flag.
 
 One fire, one message. Each fire an Agent acts on produces its own message. A
-long-lived automation fires many times with different context, and those answers
-never share a Thread; an Agent does not reply into an earlier fire's Thread to
-answer a later fire.
+long-lived automation fires many times with different context, and an Agent
+does not reply to an earlier fire's answer to answer a later fire. A fire whose
+reply is the whole of the work answers top-level in the anchor Channel. A fire
+that turns up real work gets an origin Message there and a Task started from it,
+and the Agent reports in the Task
+([ADR 0052](../docs/adr/0052-channels-and-tasks-are-the-only-places.md) decision 4).
 
 ## Explicit and inferred attribution
 
@@ -97,7 +100,7 @@ in a later migration only after every supported rollback target writes snapshots
 Clients that do not know the field ignore it; the iPhone app decodes it as
 optional and a missing or unknown shape never fails a message page.
 
-## Thread context
+## Fire context
 
 `automation.fireContext({ serverId, messageId })` returns the fire context for
 one caused message. It is authorized by access to that message — anyone who can
@@ -139,12 +142,10 @@ reminder, `Archived · Fired 4m ago` once the record is gone — then the
 or the reminder's script. A description that only repeats the title, or an
 instruction that only repeats the description, is shown once. The cause line
 itself shows only the title. It is a preview, not a control: it carries no link.
-Managing the automation starts from the Thread context card or the owning
-Agent's Automations tab. The reminder's anchor note is not here; it belongs to
-the Thread context card, where there is room to quote it.
+Managing the automation starts from the owning Agent's Automations tab.
 
-**Thread context card.** Opening a caused message as a Thread renders a context
-card above the anchored message, from `automation.fireContext`: the glyph, the
+**Fire context card.** `features/chats/automation/automation-fire-context-card.tsx`
+renders a caused message's fire context from `automation.fireContext`: the glyph, the
 title, and a status chip on the first line; a reminder's description under it;
 then the automation's line —
 `Webhook · Fired 4m ago · fire 12 of 12` for a Trigger, `Every Monday at 09:00 ·
@@ -153,7 +154,9 @@ bounded payload block labelled with the byte count and content type for a
 Trigger, or the anchoring note for a reminder — `Anchored on: “<excerpt>”`,
 the only surface that quotes the message a reminder was set from — and the same
 **Manage in Automations** link. The card renders nothing until the read
-resolves; it never flashes an empty state.
+resolves; it never flashes an empty state. Its host was the Thread opened on a
+caused message; with Threads gone ([ADR 0052](../docs/adr/0052-channels-and-tasks-are-the-only-places.md)),
+no surface mounts it yet.
 
 ## What stays invisible
 

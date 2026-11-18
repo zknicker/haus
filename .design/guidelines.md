@@ -702,7 +702,7 @@ Rows scrolling under a transcript's top or bottom edge blur progressively and
 dissolve into the content plane, modelled on the Codex room view.
 `MessageScroller` (`components/chats/message-scroller.tsx`) renders two inert,
 `aria-hidden` `.transcript-edge-blur` bands over its viewport,
-`data-side="top"` and `data-side="bottom"`, so the chat, DM, and thread
+`data-side="top"` and `data-side="bottom"`, so the chat, DM, and Task
 transcripts all get them; the theme layer owns the look. After Skiper UI's
 progressive blur, each band is ONE element carrying three things together:
 `backdrop-filter: blur(var(--edge-blur))`, a mask fading it out from
@@ -852,7 +852,7 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
 - **Files:** The library has no page title. The shell band carries the folder trail ("Haus › Files › <folder> › <folder>") and every control (search, a file-type menu, a Created by menu, list/grid, then a secondary `sm` Upload menu), so the column below is only content. Each date group is a muted label over standalone secondary `ListView` rows (list: no rules, ×2 rounded hover and selected fills) or stock `Card` tiles (grid); rows keep their stock inline padding, and group labels, folder artwork, and grid card edges take that same inset (`--artifact-library-inset`), so every icon shares one edge and row fills grow outward from it to the column edge. Folder tiles stay boxless, Finder-style, with a hover fill that grows outward; pressing one opens the folder. Upload progress is a stock `sm` `ProgressBar` at the top of the column, and problems a danger `Alert`. While two or more items are selected, the band's controls give way to a stock `Toolbar` in the same place: a muted tabular summary ("4 selected · 120 MB"), ghost `sm` action buttons with their verb icons (labels fold to icon buttons with tooltips below 58rem; Delete… is `danger-soft`), and an icon-only Clear. Selected items take the accent-soft fill in both layouts. A file drag over the library washes the scroll area in the accent with an inset ring (`.artifact-library-drop`), never moving content; a drag of library items lights only the folder tile it can land in (`.artifact-tile[data-move-target]`, accent-soft with an inset accent ring) or the trail crumb under it (`.band-crumb-drop[data-drop-target]`). The viewer fills the remaining app height and keeps file details and revisions beside the asset.
 - **Amazon references:** Product chips reuse the inline reference shell with an 18px transparent cutout thumbnail from RankWrangler and a short name (ASIN fallback) capped at 16rem. The image fits inside its box without cropping, zoom, or background blending. Missing or failed cutouts use the product icon. Their landscape hover card uses the shared hover-card material at 384px and shows a compact text surface with a two-line title, closely spaced brand, and price, with a 72px transparent cutout floating to its right at −5°. The text column opens with the ASIN in `font-mono text-muted text-xs` in every lookup state, the title line appears only when RankWrangler returns one, and the card is a pointer-following preview. Copy ASIN lives in the chip's right-click menu, since a following card cannot host controls. A 1.2-second pop-in with diminishing scale and rotation overshoot settles at −5°; a delayed sparkle fades out. Both respect reduced-motion preferences. Feature bullets are omitted.
 - **Chat message width:** The transcript pane owns the horizontal gutter. Message bodies have
-  no additional end padding, so text and thread previews use the space beside the avatar rail.
+  no additional end padding, so text and Task previews use the space beside the avatar rail.
   Human and Agent message bodies use the full available width, without an Agent-only width cap.
 - **Chat transcript rhythm:** Three steps, each clearly larger than the last: list items
   (`--spacing` ×1), paragraphs and reply segments (×2, about half a line), and messages (×4,
@@ -878,14 +878,14 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   hour it fired. A Trigger's key carries a solid bolt in `--automation-keycap-ink-trigger`. Only
   the key carries ink; the elbow is a reply's neutral one. A turn shows one context line: when it
   has a cause, the cause line replaces its reply line.
-  The same key marks an automation everywhere: 24px on the Thread context card, 16px in the cause
+  The same key marks an automation everywhere: 20px on the cause line, 16px in the cause
   line's hover card, and in the Automations list (Agent profile) the ItemCard icon slot itself
   becomes the key (`automation-mark` in `default-theme.css`), keeping its stock box and radius. A
   listed Reminder's key shows its next hour in the viewer's zone; a listed Trigger's key shows its
   source glyph (GitHub or webhook) in the trigger ink instead of the bolt.
   A Cloud Agent is the same key everywhere it appears (`CloudAgentKeycap`): a solid terminal in
   `--cloud-agent-mark`, with its provider's logo badged in the lower corner on keys 28px and up
-  (the 40px work card, the 32px Inbox row, the Automations list). A Thread's 20px job rows print the
+  (the 40px work card, the 32px Inbox row, the Automations list). Keys under 28px print the
   terminal alone. A cloud agent reference chip uses the same terminal glyph, without the key.
   The recipient and cancel action remain visible; the original excerpt is available on hover.
   The header uses the lighter background token, with cancel aligned above Send. The selected
@@ -898,29 +898,29 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   The bar occupies the reserved transcript space above the input without changing layout or
   scrolling messages. The typing row rides above the bar in the same stack, so both stay visible; while the bar is open the stack paints `background`, so transcript text never shows behind the typing row. Its cancel button preserves pointer focus instead of flashing input focus;
   keyboard focus remains available.
-- **Composer file drop:** A file drag over a chat or Thread recedes that surface behind a 90%
+- **Composer file drop:** A file drag over a chat or Task recedes that surface behind a 90%
   `background` scrim and draws an inset dashed `accent` frame at the shell radius tier
   (`.card-shell`), with a filled accent icon, "Drop files to attach", and a muted limit line.
   It fades on `springs.moderate`, the frame settles from 98% scale, reduced motion fades only,
   and it never takes pointer events. Only file drags show it, only on the pane under the
   pointer. Composer attachments stay stock `ChatAttachment` tiles and cards; file cards read
   "PDF · 243 KB", and tiles pop in and out while neighbors slide closed.
-- **Chat card backgrounds:** Thread/task previews and Cloud Agent cards share
+- **Chat card backgrounds:** Task previews and Cloud Agent cards share
   `nested-surface`: `rgb(189 189 219 / 10%)` in dark mode and solid `surface` in light mode.
   The dark tint is calibrated to composite to the original blue-gray `surface` over `background`.
   Recalibrate it when those colors change.
-  **In-chat column:** every attachment under a message — Action cards (Cloud Agent work), thread
+  **In-chat column:** every attachment under a message — Action cards (Cloud Agent work), Task
   previews, page cards, the working log, workspace changes — is `w-full` up to one shared cap,
   `--chat-card-width` (36rem) in `default-theme.css`, on every message whether or not other
   attachments are present, so stacked attachments share both edges. Use `max-w-(--chat-card-width)`;
   never a per-component literal. Inline chips (task and artifact chips) stay content-sized.
   An Agent's HTML fence card is a stock `ItemCard`
   with `.item-card--message-object`: the `nested-surface` fill and ring, the shell corner, the
-  thread preview's density, and the library's 40px kind icon as mark. A linked shared-library file
-  is a media strip tile instead (see Chat attachments). The Cloud Agent card is the same card in the transcript and the
-  Thread. Message hover lightens the fill without dimming content;
-  clickable thread previews strengthen to 12% opacity on hover. Light-mode canvas rows use
-  `--background-hover`: a 50% `background-secondary` wash, including messages in task and thread views.
+  Task preview's density, and the library's 40px kind icon as mark. A linked shared-library file
+  is a media strip tile instead (see Chat attachments). The Cloud Agent card is the same card in the transcript and on the
+  Task page. Message hover lightens the fill without dimming content;
+  clickable Task previews strengthen to 12% opacity on hover. Light-mode canvas rows use
+  `--background-hover`: a 50% `background-secondary` wash, including messages in Task views.
 - **Image generation tile:** one fixed tile box, the attachment tile's (`--chat-media-tile-*`,
   `rounded-xl`), in every state and in a lone card or a strip; the image is `object-cover` and the
   viewer shows it whole. Pending is the `Skeleton` shimmer on `surface-secondary`. Failed is the
@@ -928,7 +928,7 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   text fading out toward the bottom; no frame, no glyph. The two-line footer is model name, then
   elapsed time, `resolution · cost`, or "Didn't render" (plus cost when billed). Cards sit at the
   Action card header step, `mt-1.5`.
-- **Thread transcript fade:** Task and thread views fade messages over the final 4rem,
+- **Transcript fade:** Channel, DM, and Task views fade messages over the final 4rem,
   reaching transparency 0.75rem above the composer so content clears its rounded edges.
 - **Workspace tabs:** Desktop only, in the window band. One anatomy for the primary tab and every
   browser and workspace tab (`WorkspaceTab`, base rules on `.workspace-tab` and Codex's window-tab
@@ -1081,10 +1081,11 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   sits on its label text in muted `sm` at the prose measure, with the transcript's Markdown
   block spacing; like every other step it is one line (its first line as muted detail) until
   opened, never a fade or a Show more button.
-- **Tasks board:** A stock `Kanban` under the band, with assignee and label `InlineSelect`s and the board's one line of state above it. Column headers carry the category disc (`ColumnCategoryDisc`), name, and count; a card carries its key and assignee mark, its title, then priority, labels, and due date, and nothing else. In dark a card fills with `--default`, because stock `--overlay` lands on the column wash's exact tone. The Task page is a column beside a `dl` rail of inline controls; every interactive fact is an `InlineSelect`, so values share one left edge. Board settings is one Modal of `ItemCardGroup` rows and a `ListView` column editor.
-- **Tasks in Chat:** A task states itself in the header of the recessed Thread surface beneath its
-  message and nowhere else; a task an Agent claimed for itself states nothing there at all unless
-  the reader has turned **Show tasks in chat** on.
+- **Task page:** The conversation on the left, read like a Channel, with a quiet ghost "Started from" line at its top; the band carries state, assignee, follow, and copy. On a pane 900px or wider an 18rem right panel sits on the page background behind a gutter, never a dividing border: the Details card (a `dl` of inline controls, every fact an `InlineSelect` on one left edge) then one card per Cloud Agent with its newest Run's summary, attached pull requests, and pending reminders as muted lines. Narrower, a band Details popover carries the facts. A chatless legacy Task is read-only history: its facts as text in one `PageColumn`, no composer. The Tasks page is one stock `ListView` with no create control.
+- **Task previews and sidebar:** Under its origin Message each Task is a recessed card at preview density: state disc, key, title, counts, then up to three reply lines; a Task with no messages yet shows the header alone, never a placeholder line. The sidebar lists open Tasks only, at channel-row density with the state disc as icon and the key muted before the title, and an unread count only for a follower.
+- **Claims in Chat:** A claim states itself as a chip beneath its
+  message and nowhere else; a claim an Agent made for itself states nothing there at all unless
+  the reader has turned **Show claims in chat** on.
 - **Turn headers:** The author line is the name and the time — nothing else; provenance sits on
   the context lines above it. What an Agent is generally for belongs to its hover card and
   profile, not to every message it writes, and what a message *is* states itself below the header,

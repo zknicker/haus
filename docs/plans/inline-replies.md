@@ -1,11 +1,15 @@
 ---
-summary: Accepted inline replies, scoped Agent attention, and background task coordination, with implementation and verification gates.
+summary: Historical implementation plan (Haus 4.1.0) for inline replies, scoped Agent attention, and background task coordination; its Thread parts were superseded by ADR 0052.
 read_when:
-  - implementing inline replies or changing Agent reply delivery
-  - reviewing the conversation and task separation plan
+  - reading the history behind ADR 0029's inline replies
 ---
 
 # Inline replies and background work
+
+Historical record, linked from [ADR 0029](../adr/0029-inline-replies-preserve-conversation.md).
+Its Threads, task Threads, and board-era Tasks were removed by
+[ADR 0052](../adr/0052-channels-and-tasks-are-the-only-places.md); current inline reply behavior
+lives in [Chat](../features/chat.md) and [Agent Inbox](../../specs/inbox.md#inline-reply-attention).
 
 Status: implemented and verified for Haus 4.1.0. The release checks below record current proof and retained failures. Fable review is recorded below.
 Product changes require no new routing model or execution-session architecture.

@@ -103,11 +103,11 @@ the owning Agent.
   the Trigger's history. Silence means the Agent had nothing to add, not that
   nothing fired.
 - **One fire, one message.** A busy Trigger produces one message per fire it
-  acts on, each with its own Thread. Answers to different fires never pile into
-  one conversation.
-- **Where the payload went.** Opening the message's Thread shows the context
-  card, whose expandable block holds the payload itself with its size and content
-  type. The mark and its hover preview work the same for every automation — see
+  acts on. A fire that turns up real work starts a Task in the anchor Channel,
+  and the Agent reports there.
+- **Where the payload went.** `automation.fireContext` returns the payload
+  with its size and content type to anyone who can read the message; with
+  Threads gone no App surface shows it yet. The mark and its hover preview work the same for every automation — see
   [Chat](chat.md#in-the-box).
 - **An archived Trigger keeps its mark.** Once the Trigger or the fire itself is
   gone — removed and later swept after 30 days, or a fire swept after 30 days —
@@ -145,7 +145,7 @@ the owning Agent.
   delete. History includes retained fires from removed Triggers.
 - **Members** do not see Triggers on an Agent profile and cannot change one. In
   a conversation they are in, they see the Agent's messages with the Trigger's
-  mark, its hover preview, and the Thread context card — reading why a message
+  mark and its hover preview — reading why a message
   was sent needs only access to the message.
 - **Agents** create and manage only their own Triggers, whoever created them, and
   are the ones woken when one fires.

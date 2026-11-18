@@ -8,7 +8,7 @@ Write specs in present tense, use the nouns in `CONTEXT.md`, and remove supersed
 of preserving them as live alternatives. Cross-boundary first-party types belong in
 `packages/haus-api`.
 
-Core contracts cover agents, chats, messages, threads, tasks, reminders, Triggers, automation
+Core contracts cover agents, chats, messages, tasks, reminders, Triggers, automation
 provenance, identity, permissions, skills, tools, MCP connections, execution configuration, and
 Computer release/update behavior.
 Use `bun run docs:list` for routed documentation and `docs/adr/` for durable architectural

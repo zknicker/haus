@@ -19,7 +19,7 @@ proxy.
 | Agent and Computer control | [Agents](agents.md) |
 | MCP connections | [Connections](connections.md) |
 | Inbound Triggers | [Triggers](triggers.md) |
-| Boards and Tasks | [Tasks](tasks.md) |
+| Tasks and Task keys | [Tasks](tasks.md) |
 | Agent manual | [Manual](manual.md) |
 | Agent skills | [Skills](skills.md) |
 | Usage and health | [Usage](stats.md) |

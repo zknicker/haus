@@ -1,88 +1,81 @@
 ---
-summary: The Tasks product in the App — boards in the sidebar, the Board and List lenses, cards and cross-column moves, the Task page, Board settings, and what the App derives (the active warning, the Working mark).
+summary: Tasks in the App — a Task as a place started by an Agent from a Channel message, its page with conversation and attached work, the Channel preview under its origin message, the sidebar's open Tasks, the flat Tasks page, following, and Task keys on Channels.
 read_when:
-  - changing the Board or List lens, cards, column warnings, or the done cap
-  - changing the Task page, its properties rail, Mentioned in, or Reminders rows
-  - changing Board settings, the column editor, or archiving a board
-  - changing the sidebar's Tasks row or New board
+  - changing the Task page, its started-from element, Details, or the attached-work panel
+  - changing the Channel's Task previews under an origin message
+  - changing the sidebar's open Task rows or the Tasks page and its filters
+  - changing how a person follows, unfollows, or sees a Task as unread
+  - changing a Channel's Task key setting
 ---
 
 # Tasks
 
-[ADR 0051](../adr/0051-tasks-are-boards-and-claims-are-the-lock.md) is the decision and
+[ADR 0052](../adr/0052-channels-and-tasks-are-the-only-places.md) is the decision and
 [specs/tasks.md](../../specs/tasks.md) the rules the Server enforces. This page is what a person
-sees. A claim is a different thing: an Agent's lock on a message ([Claims](claims.md)).
+sees. Haus has two kinds of place: Channels and DMs for conversation, and Tasks for work. A claim
+is a different thing: an Agent's lock on a message ([Claims](claims.md)).
+
+## Where a Task comes from
+
+An Agent starts a Task when its reply will not finish the work: the work needs more steps, more
+time, or a cloud agent. A person asks an Agent; there is no button to create a Task. The Task
+starts from a message in a Channel and takes that Channel's key, so the first Task from
+`#security` might be `SEC-12`. One message can carry several Tasks.
+
+A Task is `todo`, `open`, `done`, or `canceled`. It ends only when someone says so: an Agent or a
+person marks it done or canceled, and a merged pull request never does. Posting in a done or
+canceled Task reopens it.
+
+## In the Channel
+
+Under the message it started from, each Task shows a preview: its key, title, state, and its
+newest messages, shaped like a reply preview. Pressing it opens the Task.
+
+## The Task page
+
+`/tasks/SEC-12`. The conversation is on the left, with a "started from" element at the top that
+points back at the origin message. It works like a Channel: messages, mentions, unread, and a
+composer.
+
+On a wide enough pane, a right-hand panel on the page background, with no dividing border, holds
+the Task's Details (state, assignee, priority, labels, due date) and its attached work: one card
+per cloud agent with the newest Run's summary in full, each attached pull request with its state,
+checks, and review, and any reminder the Agent set on the Task, such as "checks back at 7:35".
+On a narrower pane, the band's Details control opens the same Details.
+
+**Mentioned in** lists the messages that reference the Task. A section with nothing to list is
+absent. **Copy reference** copies the bare key, which is what a message references.
+
+A Task from before Tasks were places has no conversation and reads as history. An address that no
+longer resolves says **Task not found**.
 
 ## Sidebar
 
-One **Tasks** row. While a Tasks page is open it expands to every board, each with its open count,
-then **New board**; on any other page it stays one row, and its boards are not even read. The
-expansion follows the route, so there is no chevron. `/tasks` is an address: it lands on the last
-board viewed, or the first. This row is the way in: boards are not chat-scoped, so a Channel or DM
-menu has no Tasks item.
+The sidebar lists every open Task on the Server, each with its state. Todo Tasks are not listed,
+and a Task leaves the sidebar as soon as it is done or canceled.
 
-## A board
+## The Tasks page
 
-The band reads Haus › Tasks › board and ends with the lens toggle, **New task**, and the board's
-options (Board settings, Manage labels for owners and admins, Archive board).
+One flat page lists todo, open, done, and canceled Tasks, with no boards and no columns. Open work
+comes first, then todo, then ended Tasks newest first. Filters for state, key, assignee, and label
+live in the URL (`?state=`, `?key=`, `?assignee=`, `?label=`), so a link, a reload, and Back keep
+them. A person can change a Task's state and reassign it here, but not create one. Nothing paints
+until the list answers.
 
-Under it sit the filters (assignee, label) and the board's one line of state, `19 open · 11 done`.
-The lens and both filters live in the URL (`?view=list`, `?assignee=`, `?label=`), so a link, a
-reload, and Back keep them. Filtering happens in the App over one `task.list` read, so a filter
-never changes what the board warns about.
+## Following and unread
 
-**Board** shows the columns in position order on the stock Kanban, each with its category disc,
-name, and count. A card shows its key, assignee, title, priority, labels, and due date. Cards read
-by priority then age, because that is the order an Agent picks in; done and canceled columns read
-newest first. A Task has no position within a column, so a drag changes its column and nothing else.
+A Task is unread only for its followers: the author of the origin message, anyone mentioned in
+it, anyone who has posted in the Task, and its assignee. Anyone can follow or unfollow a Task by
+hand. An unread Task appears in a follower's [Inbox](inbox.md) the way an unread Channel does. For
+everyone else a Task is a quiet sidebar row and never reaches their Inbox.
 
-- **Moving** is optimistic (`useMoveTask`): the card lands under the pointer, and a refusal puts it
-  back and says why in a toast. Right-clicking a card reaches any column without a drag, and opens or
-  copies the Task's reference.
-- **Working** marks a card in an `active` column whose assignee Agent is running a turn right now. It
-  reads the shell's one current-activity read, so it costs no request. It does not know which Task
-  the turn is for.
-- **`Forge holds 2 active tasks`** warns on the first active column holding one of that Agent's
-  Tasks. An Agent works one Task at a time; the Server allows a second, and the board says so.
-- **A Task blocked on you** waits in `todo` with its assignee Agent. The Agent @mentions you where
-  the work lives, moves the card back, and takes its next Task; your reply there wakes it. Nothing
-  on the card says it is blocked.
-- **Done** columns show the newest ten, then **Show N more**.
-- **Canceled** columns stay folded behind a `Canceled · N` button at the end of the filter row.
+## Task keys
 
-**List** shows the same columns as sections of dense rows, with the same fold and the same cap.
+The Server keeps a ledger of keys, each numbered on its own. Every Server starts with `GEN`. A
+Channel's settings choose its key, and Channels can share one. A Task keeps the key it started
+with.
 
-Nothing paints until the read answers: an unresolved board is not an empty one.
+## iPhone
 
-## A Task
-
-`/tasks/SEC/12`. The title edits in place: press it, Enter or blur saves, Escape leaves. The
-description is markdown, rendered until **Edit description** opens its source, because that source
-is also what an Agent reads and writes. Files attach by a link in it.
-
-The rail holds what can change, each fact its own control: Status (a column of the board), Assignee
-(Agents, then people), Priority, Labels, and Due; then Board, Created, and Updated. A refused edit,
-such as a stale version, shows in a toast.
-
-**Mentioned in** lists the messages that reference the Task, newest first, and **Reminders** the
-Reminders that name it. A section with nothing to list is absent. A mention opens the Thread on its
-message; one that is a Thread reply opens that Thread. Its row names the place, `#security` or
-`#security · Thread`, and `task.get` carries the parent and anchor, so the press reads nothing. A
-Reminder anchored in a Thread reads its parent when the row is pressed.
-
-Opening a Task clears its Inbox item; a Task in a hidden desktop tab has not been opened yet. An
-address that no longer resolves (a re-keyed board, a mistyped number) says **Task not found**.
-
-**Copy reference** in the band copies the bare key, which is what a message references.
-
-## Board settings
-
-One modal, and nothing saves until **Save**: name, key, and the column list (drag to reorder, a name
-and a category per row, **Add column**). The editor locks what the Server would refuse: the last
-`todo`, `active`, or `done` column cannot be removed or recategorized. Removing a column that holds
-Tasks asks which saved column they move to, and Save stays off until it knows. A conflict shows
-plainly at the end of the dialog. Saving a new key moves the board's address, so its page falls back
-through `/tasks` to the same board.
-
-The General board keeps its key and cannot be archived. Archiving any other board takes it out of
-every list and refuses it new Tasks.
+iPhone opens a Task as a chat with a small attached-work header, and Channels show the Task
+previews. iPhone has no Tasks page.

@@ -101,7 +101,7 @@ aliases.
 The release-owned Manual ships `index`, `haus-cli-overview`, the product
 reference topics `agent`, `cloud-agents`, `tasks`, `replies`, `secrets`,
 `app`, and `amazon-product-references`, one product-noun topic per remaining command
-family (`message`, `inbox`, `thread`, `channel`, `server`, `profile`,
+family (`message`, `inbox`, `channel`, `server`, `profile`,
 `attachment`, `skill`, `reminder`, `trigger`), `recipes/index`, `recipes/seeded`,
 and 33 complete recipe cards: 12 seeded cards and 21 query-tier cards. Delivery tiers are editorial
 metadata, not authorization tiers; every authenticated managed Agent can

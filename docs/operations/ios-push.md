@@ -12,8 +12,8 @@ read_when:
 The Haus Server pushes an iPhone alert for every message that notifies a human under the shared
 message notification rule ([Inbox](../features/inbox.md#notifications),
 [ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)): every message from someone else in
-their DMs, and in a Channel or Thread one that @mentions them, inline-replies to their message, or
-sits in a Thread on their message. Reading a Chat never stops the next push, but a push waits a
+their DMs, and in a Channel or Task one that @mentions them or inline-replies to their message.
+Reading a Chat never stops the next push, but a push waits a
 short grace period and is skipped if you have already read that message anywhere.
 Haus Server owns the device registrations and the APNs connection; the iPhone only registers.
 
@@ -31,9 +31,10 @@ Haus Server owns the device registrations and the APNs connection; the iPhone on
   off, and clears delivered notifications and the badge, so the next account opts in itself.
 - Payload: `aps.alert.title` (author, plus ` in #channel` outside a DM), `aps.alert.body` (plain
   preview, mentions as display names, at most 180 characters), `aps.sound: "default"`,
-  `aps.thread-id` = conversation Chat id, `aps.badge` = unread Chats plus unread Threads across every Server, and the
-  tap-routing keys `serverId`, `chatId`, `conversationChatId`, `threadAnchorMessageId` (null outside
-  a Thread), `messageId`. For Communication Notifications (sender avatar banners) it also carries
+  `aps.thread-id` (APNs' grouping key) = conversation Chat id, `aps.badge` = unread Chats plus
+  followed unread Tasks across every Server, and the tap-routing keys `serverId`, `chatId`,
+  `conversationChatId`, `messageId`, and `taskId` and `taskKey` (non-null exactly when the message
+  is in a Task's own Chat, so a tap opens the Task). For Communication Notifications (sender avatar banners) it also carries
   `aps.mutable-content: 1`, `sender` (`id`, `kind` `agent` | `human`, `name` cut to 80 characters,
   `avatarUrl` absolute on `HAUS_APP_ORIGIN` or null when the sender has none — avatar routes are
   public by opaque id), and `conversation` (`{ kind: "channel", name }` without `#`, or
@@ -57,15 +58,15 @@ pushes nobody, and the author is never pushed. Each message waits `pushReadGrace
 before its recipients are read, and a human whose read marker in the message's own Chat already
 covers it (`chat_reads.sequence >= message.sequence`) is skipped: the App marks an open Chat read
 as messages arrive in a visible, focused window, so a message read on the desktop does not also
-buzz the phone. A Thread message checks the Thread's own marker, which the open Thread pane or the
-Inbox's Mark read advances; reading the Channel alone does not. The wait sits in the in-memory push
+buzz the phone. A Task message checks the Task's own marker; reading its Channel does not. The
+wait sits in the in-memory push
 queue and holds no send slot. Like the rest of the queue it is lost on restart, and shutdown waits
 it out before sending. Sends run off the send path and never fail it, at most four messages at a
 time (a backlog past 1,000, counting messages still waiting, drops new pushes). The badge is the human's
 unread Inbox rows across every Server they belong to — each Server's `chat.list` Chats with an
-`unreadCount` above zero plus its `thread.listUnread` Threads, counted by `countUnreadInboxRows`
-(`apps/server/src/chats/unread-chat-count.ts`) from the same `listedChats`, `chatUnreadCount`, and
-`unreadThreads` predicates those lists use.
+`unreadCount` above zero plus its followed Tasks with unread messages, counted by
+`countUnreadInboxRows` (`apps/server/src/chats/unread-chat-count.ts`) from the same predicates
+those lists use.
 The iPhone app badges its icon from the same count through `chat.unreadChatCount`.
 
 APNs uses token auth: an ES256 JWT (`kid` = key id, `iss` = team id, `iat`) reused for 40 minutes

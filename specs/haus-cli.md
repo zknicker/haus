@@ -108,13 +108,16 @@ presentation plus a Server-scoped handle for addressing and mentions.
 ```
 #channel                 channel by handle
 dm:@human                the caller's DM with that human (auto-created on first send)
-#channel:<shortId>       thread anchored at message <shortId> in channel   (WS3)
-dm:@human:<shortId>      thread anchored in the DM                         (WS3)
+task:<KEY-n>             a Task's own conversation, like task:SEC-12       (ADR 0052)
 ```
 
 - **A DM is human ↔ Agent.** `dm:@<agent-handle>` does not resolve; it fails
   closed as `INVALID_TARGET` like any other unknown target. Agents reach each
-  other in the channels and threads they share.
+  other in the channels and Tasks they share.
+- **A side conversation is inline replies** (`--reply-to <messageId>`) in its
+  Channel or DM. Haus has no Threads, so `<target>:<shortId>` does not resolve.
+- **A Task target** resolves only when the Agent has joined the Task's origin
+  Channel.
 
 - **Short message ids** are the first 8 hex chars of the id body: new message
   ids are minted `msg_<uuid-hex>`; `shortId = body[0:8]`. Server-side
@@ -122,10 +125,7 @@ dm:@human:<shortId>      thread anchored in the DM                         (WS3)
   (`AMBIGUOUS_ID`, Next action: use the full id). Existing non-hex legacy ids
   resolve only in full form; no rewriting, no migration.
 - **Sequences**: the existing per-chat `sequence` is the per-target seq domain.
-  Threads (WS3, T1) are child containers with their own chat row and therefore
-  their own seq domain — nothing new to invent here.
-- `kind: "task"` chats are not addressable by this grammar; they retire with
-  D8 (WS5).
+  A Task is its own `task` chat row and therefore its own seq domain.
 
 ## 4. Envelopes and message lines
 
@@ -140,7 +140,7 @@ Copied byte-for-byte from shipped Raft formatting (audited), renamed, except tha
 **History line** (`message read`):
 
 ```
-[seq=42 msg=msg_1a2b3c4d… time=2026-07-21 14:02:11 UTC type=agent threadId=… replyCount=2 replyTarget=#general:1a2b3c4d] Haus — resident generalist: done
+[seq=42 msg=msg_1a2b3c4d… time=2026-07-21 14:02:11 UTC type=agent] Haus — resident generalist: done
 ```
 
 Rules:
@@ -154,10 +154,7 @@ Rules:
 - Sender sliver: `handle — <description>` when the sender has a description,
   bare `handle` otherwise. No `@`: in model input `@` marks only real mentions.
 - Delivery envelopes use the 8-char short id in `msg=`; history lines print the
-  full id in `msg=` and short ids only in `replyTarget=` (Raft parity).
-- `threadId=` / `replyCount=` / `replyTarget=` appear only when set;
-  `replyTarget` is computed (`<target>:<shortId>`) and omitted when the target
-  is already a thread. (Populated from WS3 on; absent before.)
+  full id in `msg=`.
 - Suffixes, in order: attachments
   (`[2 attachments: a.png (id:att_…), … — use haus attachment view to download]`, WS5),
   claim (`[claim #N status=… assignee=…]`, WS5; named task until ADR 0051),
@@ -178,8 +175,8 @@ Rules:
   `latest_run` with its status, summary, error code, and branches), so a reader
   can act without a second call. The single `cloud_agent_work` field still names
   the first for released CLIs.
-- `haus cloud-agent start` prints the Work ID, the posted message, a
-  `Work thread:` target, and a `Link: [<title>](cloud-agent://<workId>)` line;
+- `haus cloud-agent start` prints the Work ID, the posted message, the Task
+  target, and a `Link: [<title>](cloud-agent://<workId>)` line;
   `haus cloud-agent inspect` prints the same `Link:` line per work. An Agent
   pastes that line into `haus message send` to show the work in another
   conversation and never builds a link itself.
@@ -196,14 +193,11 @@ must earn its place. Required teachings in v1:
 
 - `message send` success: `Message sent to <target>. Message ID: <full id>`
   plus one placement line stating where the message landed and who is
-  notified (an inline reply to a human's message notifies its author; a
-  channel thread post shows in the channel only as a one-line preview,
-  followers see it as unread, and only the anchor's author and @mentions are
-  notified; every DM message notifies the peer; a `--done` send adds that it
-  closes the reply to the request, or in this thread). A non-thread send then
-  states the sent message's own thread target as a fact,
-  `Thread on this message: <target>:<shortId>`; a thread send has none,
-  since threads cannot nest. The receipt never suggests where to post next. Then a `--- New messages you may have missed ---` section
+  notified (an inline reply to a human's message notifies its author; a Task
+  post is unread for the Task's followers and notifies anyone it @mentions;
+  every DM message notifies the peer; a `--done` send adds that it closes the
+  reply to the request, or the reply in this Task). The receipt never suggests
+  where to post next. Then a `--- New messages you may have missed ---` section
   when unseen rows exist for other targets, drive-by tips where applicable.
 - `message read`: `## Message History for <target> (N messages)` header, a
   last-read teaching line (`--after <seq> to see only unread messages`), and
@@ -212,7 +206,7 @@ must earn its place. Required teachings in v1:
   moves it, and says `More unread remain` when the same command should run
   again; it cannot combine with `--before`, `--after`, or `--around`.
 - `inbox check`: `Inbox: N unread conversations (X DMs, Y with mentions). Newest
-  activity first.`, then one row per unread channel, DM, or followed thread
+  activity first.`, then one row per unread channel, DM, or followed Task
   (`<target> · N unread · mentions you · latest @sender 3m ago`) with an
   `  open: haus message read --target "<target>" --after <lastReadSeq>` line;
   pending rows not yet handed to the Agent (`N new, not yet delivered`) come
@@ -301,7 +295,7 @@ Flow for `message send --target <t>`:
 3. **Stale** → the send is **held as a server-side draft** and nothing is
    delivered. Only messages delivered to this Agent count in a Channel (its
    `agent_inbox` rows, Raft's attention facts), so history from before it joined
-   never holds it; a Thread counts every reply, as Raft's does. Response carries
+   never holds it; a Task counts every message, as Raft's threads do. Response carries
    bounded catch-up: latest N (≤3, Raft's held-context limit) unseen peer
    messages as history lines, counts (`Freshness hold: showing latest N of M
    newer messages.`), an omitted-earlier note when M > N, a formal-mention
@@ -358,7 +352,7 @@ is how an Agent is certain; inference is not something to rely on.
 
 Reminder and Trigger fire ids carry different prefixes, so the flag needs no
 companion `--kind`. Each fire an Agent acts on gets its own message; answers to
-different fires never share a Thread. See `specs/automation-provenance.md`.
+different fires never share a message. See `specs/automation-provenance.md`.
 
 ### 6b. Finishing a reply with `--done`
 
@@ -402,15 +396,13 @@ per family:
 | | `join` `leave` | WS3/4 | Membership verbs; need attention rules to be honest |
 | | `add` | ADR 0028 (landed) | `add --target <t> --agent @handle` puts another active Agent in a channel; idempotent, wakes nothing, refuses Cove |
 | | `mute` `unmute` | WS4 | Attention stores land with the inbox |
-| thread | `unfollow` | WS3 | T1 follows model |
-| claim | bare `claim`, `list create release assign unassign update` | WS5 (landed); renamed from `task` by [ADR 0051](../docs/adr/0051-tasks-are-boards-and-claims-are-the-lock.md) | D8 model: the bare group claims (`haus claim --target <t> --number N`): a first argument that is a flag runs the group's own action. `list [--target] [--mine] [--status all\|…]` defaults to unfinished work and caps at 50 rows with a `Truncated: N more` line; the bare claim takes `--number` (repeatable) or `--message-id` (converts + claims), one transaction answering one row per claim (claimed, already yours, refused) and exiting non-zero only when nothing was granted; `release` puts down a claim you hold (formerly `unclaim`); `create` takes repeatable `--title` or a stdin body and names each claim's thread address; `assign --assignee @agent` / `unassign` move ownership to any Agent member of the Chat without touching status (optional `--expected-revision`, shown as `rev=` in `list`; one uniform not-assignable refusal, which the CLI pairs with the @mention hand-off because humans never hold claims, [ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)); `update` is member-level along the status transition table |
-| task | `list show create move update assign` | [ADR 0051](../docs/adr/0051-tasks-are-boards-and-claims-are-the-lock.md) (landed) | Board Tasks, addressed by key (`SEC-12`). `list [--all] [--board <key>] [--assignee <me\|none\|@handle>] [--category <categories>]` always sends a category list and sends `assignee=me` unless `--all`, `--board`, or `--assignee` asks about other people's work, printing most urgent then oldest, at most 50 rows with a `Truncated: N more` line; `show <key>` prints the Task, its board's columns with categories, description, Mentioned in, and Reminders; `create --board <key> --title <text> [--description <text\|->] [--column <name>] [--assignee <me\|@handle>] [--priority <priority>] [--labels <names>] [--due <date>]` is not idempotent; `move <key> --column <name>` prints a receipt, and every move into a `done` or `canceled` column adds the caller's queue (`3 more assigned to you in todo`), printing no line when it is empty; `update <key>` takes `--title --description --priority --labels --due`, with `none` clearing `--labels` or `--due`; `assign <key> <handle\|me\|none>`. `move`, `update`, and `assign` take `--expected-version <n>` and otherwise last write wins. `--description -` reads stdin. |
-| board | `list create columns` | [ADR 0051](../docs/adr/0051-tasks-are-boards-and-claims-are-the-lock.md) (landed) | `list` prints each board's key, name, open count, and columns with categories; `create --key <key> --name <text>` starts the default columns; `columns <key> add --name <text> --category <category> [--position <n>] \| rename --column <name> --name <text> \| move --column <name> --position <n> \| remove --column <name> [--move-to <column>]` computes the whole ordered list client-side and sends it with the version it read, so a change that landed first fails closed. A new column without `--position` lands after the last column of its category; removing a column that holds Tasks without `--move-to` is `INVALID_ARG` naming the flag |
+| claim | bare `claim`, `list create release assign unassign update` | WS5 (landed); renamed from `task` by [ADR 0051](../docs/adr/0051-tasks-are-boards-and-claims-are-the-lock.md) | D8 model: the bare group claims (`haus claim --target <t> --number N`): a first argument that is a flag runs the group's own action. `list [--target] [--mine] [--status all\|…]` defaults to unfinished work and caps at 50 rows with a `Truncated: N more` line; the bare claim takes `--number` (repeatable) or `--message-id` (converts + claims), one transaction answering one row per claim (claimed, already yours, refused) and exiting non-zero only when nothing was granted; `release` puts down a claim you hold (formerly `unclaim`); `create` takes repeatable `--title` or a stdin body; `assign --assignee @agent` / `unassign` move ownership to any Agent member of the Chat without touching status (optional `--expected-revision`, shown as `rev=` in `list`; one uniform not-assignable refusal, which the CLI pairs with the @mention hand-off because humans never hold claims, [ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)); `update` is member-level along the status transition table |
+| task | `start list show state attach-pr update assign unfollow` | [ADR 0052](../docs/adr/0052-channels-and-tasks-are-the-only-places.md) | Tasks as places, addressed by key (`SEC-12`) with their own conversation at `task:SEC-12` (`message send`/`read --target task:SEC-12`). `start --target <#channel> --from <messageId> --title <text> [--description <text\|->] [--assignee <me\|@handle>] [--state <todo\|open>] [--priority <priority>] [--due <date>]` starts a Task from a message in a channel, `open` and assigned to the caller by default, and prints its `task:` target; it is not idempotent, and a `dm:` or `task:` origin is refused before any request with `TASK_ORIGIN_DM` (the Server refuses a DM origin the same way). `list [--all] [--key <KEY>] [--assignee <me\|none\|@handle>] [--state <states>]` defaults to the caller's `todo` and `open` Tasks, printing most urgent then oldest, at most 50 rows with a `Truncated: N more` line; it sends `state` (always, defaulting to `todo,open`) and `key` straight to the route. `show <key>` prints the Task, its target, description, Mentioned in, and Reminders. `state <key> <todo\|open\|done\|canceled>` sets the state; `done` and `canceled` cancel the Task's pending reminders, and a post reopens it. `attach-pr <key> <url>` attaches a pull request opened another way; its changes wake the caller on the Task. `update <key>` takes `--title --description --priority --labels --due`, with `none` clearing `--labels` or `--due`; `assign <key> <handle\|me\|none>`. `unfollow --target task:<KEY-n>` stops following a Task, so its ordinary messages no longer wake the caller; direct @mentions still do. `state`, `update`, and `assign` take `--expected-version <n>` and otherwise last write wins. `--description -` reads stdin. `task create`, `task move`, and the whole `board` family went with boards and are unknown commands; `start` and `state` replace them |
 | attachment | `upload view` | WS5 (landed) | `upload --path [--mime-type]` returns an id; the send carries it via `--attachment-id` (divergence: no `--target` on upload, see §10) |
 | profile | `show update` | WS5 (landed) | Agent-facing `show [@handle]`, `update --description` (≤280 chars); human display names and handles are edited in App Settings |
-| reminder | `schedule list snooze update cancel log` | WS5 (landed) | D4 model: `schedule --title [--description] (--delay-seconds \| --fire-at) [--repeat] --message-id [--script]`; `--title` is a short label (60 chars, one line) and `--description` the full instruction; `update` changes one thing, with title and description counting as one; message anchors only |
+| reminder | `schedule list snooze update cancel log` | WS5 (landed) | D4 model: `schedule --title [--description] (--delay-seconds \| --fire-at) [--repeat] (--message-id <id> \| --target task:<KEY-n>) [--script]`; `--title` is a short label (60 chars, one line) and `--description` the full instruction; `update` changes one thing, with title and description counting as one. Exactly one anchor: a message, or a Task ([ADR 0052](../docs/adr/0052-channels-and-tasks-are-the-only-places.md) decision 16), which the Server anchors itself and which wakes the Agent on that Task. A Task holds one-time reminders only: `--repeat` with a Task target is refused before any request, and the Server's refusal of a recurring Task reminder (on `schedule` or `update`), with `TASK_RECURRING_REMINDER`, gains the next action that recurring reminders belong on a Channel |
 | trigger | `create update preview list show enable disable rotate delete log` | ADR 0027, ADR 0045 (landed) | Outside-event wakes: `create --title --message-id [--instruction] [--kind webhook\|github]`; `--kind` defaults to `webhook` and any other value is `INVALID_ARG` naming the supported kinds. `--kind github` takes `(--repo <owner/name>... \| --org <login>) --event <name>...` plus filters `--action --conclusion --branch --label --state --environment --workflow --check-name --authors`; repeatable flags also split on commas, each filter applies to every listed event that takes it and each value lands on the events that accept it, and a flag or value no listed event takes is `INVALID_ARG`. The CLI sends the repository owner or `--org` login as `account` without a lookup; the Server resolves the installation and its refusal names the reachable accounts and who installs the App. `create --help` carries the GitHub events, filters, and `--events-json` keys; an unknown `--events-json` key is `INVALID_ARG` listing that event's allowed keys. Flags only another kind takes are `INVALID_ARG` naming the kind. `update` reads the Trigger's kind first, then replaces its whole GitHub configuration. `list`/`show` print `[kind · status]`, adding `· degraded: <problem>` and, for `github`, scope, events, and the suppressed count (`show` also names the human fix); message anchors only and never a schedule; a webhook `create` and `rotate` require `--output <new-private-path>`, checked and created exclusively with mode 0600 before any request, write the bearer secret only to that file, and print the URL, the file, a test command that reads the file, and the rule never to post it in any chat, never the secret or the Server's `curl` line ([Triggers](triggers.md#surfaces-and-lifecycle)); `--output` on a `github` create is `INVALID_ARG`; `rotate` on `github` is the Server's `INVALID_ARG`; `delete` removes active use while retaining recent fire history for 30 days; mutations are not idempotent ([GitHub Triggers](github-triggers.md#agent-cli-and-manual)) |
-| cloud-agent | `start send inspect stop cancel` | Cloud Agents (landed) | `start --target <target> [--reply-to <messageId>] --repo <owner/name> --ref <ref> --title <text> --say <text> [--provider cursor\|claude]` with the provider instructions on stdin; `send --work <workId> [--interrupt]` continues the same work with stdin instructions, queued while it is busy; `inspect [--work <workId>]` lists the Agent's work or shows one with its recorded results; `stop --work <workId>` asks the provider to stop, and `cancel` is its compatibility alias; the Computer checks provider readiness before Server records anything and the instructions never leave it ([Cloud Agents](cloud-agents.md)) |
+| cloud-agent | `start send inspect stop cancel` | Cloud Agents (landed); launch on a Task by [ADR 0052](../docs/adr/0052-channels-and-tasks-are-the-only-places.md) | `start --task <KEY-n> --repo <owner/name> --ref <ref> --title <text> --say <text> [--cause <fireId>] [--provider cursor\|claude]` with the provider instructions on stdin; the work attaches to that Task, `--say` posts in it, and a launch with no `--task` (or the Server's `CLOUD_AGENT_TASK_REQUIRED`) is refused with the start-a-Task step; `--target` and `--reply-to` are gone; `send --work <workId> [--interrupt]` continues the same work with stdin instructions, queued while it is busy; `inspect [--work <workId>]` lists the Agent's work or shows one with its recorded results; `stop --work <workId>` asks the provider to stop, and `cancel` is its compatibility alias; the Computer checks provider readiness before Server records anything and the instructions never leave it ([Cloud Agents](cloud-agents.md)) |
 | image | `models generate wait` | ADR 0047 (landed) | `models` lists the curated image models with sizing rules, prices, and availability; `generate --model <id> [--size <WxH> \| --aspect <A:B> --resolution <1K\|2K\|4K>] [--quality] [--background opaque\|transparent] [--reference <attachment id \| path>]...` takes the prompt on stdin and returns at once; `wait <generation id> [--out <dir>] [--timeout <seconds>]` saves the finished image ([Image Generation](image-generation.md)) |
 | agent | `create update avatar` | ADR 0028 (landed) | `create --target <current-chat> --name <name> --description <text> [--brief <text>] [--channel "#name"] [--avatar-concept <text>] [--emoji <emoji>]` creates the Agent without a Message and returns its confirmed `@handle`, channels, and a line saying the new Agent introduces itself in `#all` on its first turn while the creator answers the human in the requesting conversation, inheriting the caller's runtime, model, reasoning effort, and Computer; `--brief` is the standing instruction seeded into its memory, `--channel` repeats and always comes on top of `#all`; `--emoji` sets its signature emoji; `--emoji` sets its signature pickup reaction (default 👀); `update --agent @handle --description <text>` and `avatar --agent @handle --concept <text>` edit an existing Agent and refuse Cove. Flags only, no stdin ([Agents](../docs/features/agents.md)) |
 | connection | `list grant revoke` | Connection admins (landed) | Only for an Agent an Owner or Admin made a connection admin; everyone else gets `CONNECTION_ADMIN_REQUIRED`. `list` prints each connection's name, id, connected state, and the `@handles` that can use it; `grant`/`revoke --agent <id \| @handle \| display name> --connection <id \| name>` change one Agent's access, the caller's own included, and report `Nothing changed` on a repeat ([Connections API](../docs/api/connections.md#agent-connection-admins)) |
@@ -457,7 +449,7 @@ POST /api/agent/agents             { avatarConcept?, content, description, displ
 POST /api/agent/agents/update      { agent, description } → { agent }
 POST /api/agent/agents/avatar      { agent, concept } → { agent, avatar }
 POST /api/agent/cloud-agents       { content, nonce, provider, repository, startingRef,
-                                     target, title }
+                                     target, task, title, cause? }
                                    → { chatId, idempotent, messageId, runId, sequence,
                                        target, work }
 POST /api/agent/cloud-agents/cancel { workId } → { work }
@@ -468,17 +460,21 @@ POST /api/agent/claims/release     { target, number } → { claim }
 POST /api/agent/claims/update      { target, number, status } → { claim }
 POST /api/agent/claims/assign      { target, number, assignee, expectedRevision? } → { claim }
 POST /api/agent/claims/unassign    { target, number, expectedRevision? } → { claim }
-GET  /api/agent/tasks              ?board=&assignee=&category= → { tasks, omitted }
+GET  /api/agent/tasks              ?key=&assignee=&state= → { tasks, omitted }
 GET  /api/agent/tasks/show         ?key= → { task, description, mentions, reminders }
-POST /api/agent/tasks/create       { board, title, description?, column?, assignee?, priority?,
-                                     labels?, dueOn? } → { task }
-POST /api/agent/tasks/move         { key, column, expectedVersion? } → { task, queue }
+POST /api/agent/tasks/start        { target, from, title, description?, assignee?, state?,
+                                     priority?, dueOn? } → { task, target }
+                                   (400 TASK_ORIGIN_DM)
+POST /api/agent/tasks/state        { key, state, expectedVersion? } → { task }
+POST /api/agent/tasks/attach-pr    { key, url } → { task, pullRequest }
 POST /api/agent/tasks/update       { key, title?, description?, priority?, labels?, dueOn?,
                                      expectedVersion? } → { task }
 POST /api/agent/tasks/assign       { key, assignee, expectedVersion? } → { task }
-GET  /api/agent/boards             → { boards }
-POST /api/agent/boards/create      { key, name } → { board }
-POST /api/agent/boards/columns     { board, columns, moveTasks?, expectedVersion? } → { board }
+POST /api/agent/tasks/unfollow     { target } → { target, unfollowed }
+POST /api/agent/reminders/schedule { commandId, title, description?, fireAt?, repeat?,
+                                     timezone?, script?, failAfter?, wakeOnChange?,
+                                     messageId | target: "task:KEY-n" } → { reminder }
+                                   (400 TASK_RECURRING_REMINDER)
 GET  /api/agent/connections        (connection admins only; 403 CONNECTION_ADMIN_REQUIRED)
                                    → { connections: [{ id, name, connected, agents }] }
 POST /api/agent/connections/grant  { agent, connection }
@@ -542,11 +538,11 @@ All approved by operator ruling W1 (program contract, 2026-07-21).
 | `HAUSMSG` delimiter | Naming parity with `RAFTMSG` (current npm), ours. |
 | Chat typing outside message sends | The Server derives typing from exact run visibility (ADR 0035); the CLI has no typing verb or composition id. |
 | `attachment upload` takes no `--target` (Raft's does) | Upload is decoupled from posting; the message send carries `--attachment-id`, so an upload never implies a visible post (WS5). |
-| Reminder and Trigger fires post no receipt in chat, and the Agent answers with `haus message send --cause <fireId>` | Not a divergence: Raft delivers a fire as a transient `msg=-` notice and a typed app inbox item, not a durable chat row, and the receipt sentence in its prompt was never corroborated. The divergence is `--cause`, which Raft has no equivalent of: a Haus answer names the exact fire it answers, and that provenance feeds the cause line, hover card, and Thread context card (ADR 0026). |
-| `reminder schedule` has no `--channel` anchor variant | The prompt teaches message anchors explicitly (anchorless reminders lose their context); Raft's `--channel` flag semantics are unverified in the wire layer (WS5). |
+| Reminder and Trigger fires post no receipt in chat, and the Agent answers with `haus message send --cause <fireId>` | Not a divergence: Raft delivers a fire as a transient `msg=-` notice and a typed app inbox item, not a durable chat row, and the receipt sentence in its prompt was never corroborated. The divergence is `--cause`, which Raft has no equivalent of: a Haus answer names the exact fire it answers, and that provenance feeds the cause line and hover card (ADR 0026). |
+| `reminder schedule` has no `--channel` anchor variant; its only non-message anchor is a Task (`--target task:KEY-n`) | The prompt teaches message anchors explicitly (anchorless reminders lose their context); Raft's `--channel` flag semantics are unverified in the wire layer (WS5). A Task anchor is Haus-owned ([ADR 0052](../docs/adr/0052-channels-and-tasks-are-the-only-places.md) decision 16). |
 | `claim create` requires `--target` | Raft's surface listing omits it, but a stateless CLI cannot infer "the current channel"; unverified against live Raft (WS5). |
-| Raft's `task` family is `haus claim`: the bare group claims, `release` is Raft's `unclaim`, and history and drain lines say `claim #N` / `claim=#N` | Haus keeps the word *task* for its board product and calls the message lock a claim ([ADR 0051](../docs/adr/0051-tasks-are-boards-and-claims-are-the-lock.md)); behavior is unchanged. |
-| `task` and `board` families are Haus-owned | Raft has no board product; `haus task` is the board Task tracker of [ADR 0051](../docs/adr/0051-tasks-are-boards-and-claims-are-the-lock.md), where Raft's `task` is Haus's `claim`. |
+| Raft's `task` family is `haus claim`: the bare group claims, `release` is Raft's `unclaim`, and history and drain lines say `claim #N` / `claim=#N` | Haus keeps the word *task* for its Task product and calls the message lock a claim ([ADR 0051](../docs/adr/0051-tasks-are-boards-and-claims-are-the-lock.md)); behavior is unchanged. |
+| `task` family is Haus-owned | Raft has no Task place; `haus task` is the Task of [ADR 0052](../docs/adr/0052-channels-and-tasks-are-the-only-places.md) (boards went with it), where Raft's `task` is Haus's `claim`. |
 | `skill` family is Haus-owned | Raft has no skill verbs; family 9 replaces our retired `skills_*` engine tools (D5/W2). |
 
 ## 11. Manual cutover checklist (WS1)

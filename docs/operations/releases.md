@@ -149,6 +149,10 @@ Use the [Computer login cutover](computer-login-cutover.md) for the expanded-Ser
 final-Server sequence. Each distinct checkpoint follows the one-PR/one-workflow release procedure;
 the sequence and rollback order are not replaced by ordinary target selection.
 
+The Channels-and-Tasks release (Computer protocol 37, App protocol 13, the Thread migration) has
+its own operator order: see
+[Shipping Channels and Tasks](haus-server-deploy.md#shipping-channels-and-tasks-adr-0052).
+
 Use [iOS TestFlight](ios-testflight.md) for App Store Connect setup, build-number continuity,
 processing, automatic internal distribution, and real-device smoke. The release workflow records
 the exact Apple processing state. A processed TestFlight build is published evidence; internal

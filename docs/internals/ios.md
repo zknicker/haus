@@ -1,7 +1,8 @@
 ---
-summary: Ownership, dependency, navigation, and rendering boundaries for the native Haus iPhone app.
+summary: Ownership, dependency, navigation, and rendering boundaries for the native Haus iPhone app, including how it opens Tasks (chat screen, read-only legacy details, origin previews, Inbox rows, push routing).
 read_when:
   - changing the iPhone app, mobile navigation, or native rendering architecture
+  - changing how iPhone shows or opens a Task, its origin preview, its Inbox row, or a Task push
   - deciding whether mobile behavior belongs in shared logic, native UI, or an artifact web canvas
   - adding a dependency to apps/ios-swift
 ---
@@ -24,7 +25,7 @@ The app is split into four focused layers:
 - `HausModels` owns small Codable projections of the existing first-party wire contracts.
 - `HausTransport` owns authenticated tRPC HTTP operations, SSE subscriptions, app protocol headers,
   native OAuth, Cloudflare token renewal, Keychain credentials, and Haus AppSession access.
-- `HausUI` owns reusable SwiftUI shell, Chat, thread, and settings presentation with stock semantic
+- `HausUI` owns reusable SwiftUI shell, Chat, Task, and settings presentation with stock semantic
   controls.
 - `HausApp` composes authentication, Server state, event streams, cache-like snapshots, navigation,
   and presentation adapters.
@@ -51,7 +52,7 @@ messages arrive through `chat.onMessageCreated` and its start reconciliation (se
 streams" below), so human and Agent sends recover the same way. Message rows
 always come from Server reads, never from lifecycle text.
 
-The open Chat and the open Thread show who is answering them in their header, the App's ADR
+The open Chat and the open Task show who is answering them in their header, the App's ADR
 0035/0036 feature in a phone shape. `HeaderEngagement` hangs a compact row just under the title as
 an overlay, never as a row in the layout, so it comes and goes without moving the transcript
 scrolling beneath it; the row sits on a band of bar material so a passing message never reads
@@ -61,9 +62,8 @@ thought drops as one glass bubble (`EngagementThoughtBubble`, "**Blippy** Found 
 one line, cut at 300 points) from under the row over the oldest visible messages, and the speaking
 Agent's avatar lifts slightly while it shows. In an Agent DM the title already names the Agent, so
 the row is that Agent's latest thought as a one-line secondary subtitle, crossfading as thoughts
-change, with the dots trailing (only the dots before a first thought). A Thread puts the same row
-just under its navigation bar's subtitle, channel style in a channel and subtitle style in a DM;
-there the band reaches up to the screen top, because the system bar draws no material. The band's
+change, with the dots trailing (only the dots before a first thought). A Task puts the same row
+just under its header band, roster style. The band's
 feathers are fixed lengths at its edges, never fractions of its height, so the row always sits on
 full material. Tapping the row opens Working now (`WorkingNowSheet`); a bubble passes touches
 through, so it never blocks a link or message under it. Working now is a small-detent sheet with
@@ -246,7 +246,7 @@ A stored body's edge whitespace is never layout. `MessagePresentation.body(conte
 is the single presentation boundary that decides what a row says, and it trims leading and trailing
 whitespace and newlines there, so both the row's `content` and its `richBlocks` derive from the
 same trimmed body — an Agent reply ending in a newline no longer pays a blank text line of gap
-before the next row or before its thread card. The persisted Markdown is untouched, and interior
+before the next row or before the cards under it. The persisted Markdown is untouched, and interior
 blank lines stay exactly as written.
 
 A message body is Markdown, and the phone reads the block grammar the App renders for a settled
@@ -351,7 +351,7 @@ on which a transparent image is painted without its ground.
 Tapping an image opens the attachment viewer, presented by the screen rather than the row.
 Transcript rows are hosted in `UIHostingConfiguration` cells, which own no view controller, so a row
 writes an `AttachmentPreview` request into a screen-owned binding and `MessageTimelineView` and
-`ThreadDetailView` present from there. The card's motion is UIKit's zoom transition
+`TaskChatView` present from there. The card's motion is UIKit's zoom transition
 (`preferredTransition = .zoom`): it grows out of the tapped tile, follows a finger anywhere over the
 still-visible Chat as a rounding, shrinking card, and springs back or falls into its tile on
 release — interruptible, retargetable, and Reduce Motion aware because UIKit drives it. That
@@ -473,7 +473,7 @@ inside the flipped table, which re-hosts a visible row only when its own item ch
 screen's `rowRevision` does (`TranscriptRowReconfiguration`, driven from `updateUIView`) — a height
 measured inside a cell has nowhere to go. So `VisualHeightRegistry` holds measured heights keyed
 by message id and fence ordinal, exactly as `AttachmentImageTileRegistry` holds tile anchors, and
-`MessageTimelineView` and `ThreadDetailView` each own one. The screen folds the registry's
+`MessageTimelineView` and `TaskChatView` each own one. The screen folds the registry's
 `revision` into `rowRevision`, which is what turns a frame's report into a re-render, a reconfigure,
 and a row at its new height. A visual draws no shell — transparent, unbordered, filling the message
 column, the same inline frame as the web (ADR 0031) — and uses natural document height,
@@ -531,7 +531,7 @@ so the line is a statement, not a control. `ChatMessageCause` decodes the Server
 
 An Agent-created Agent reaches the transcript as the creating Agent's own sentence and nothing else.
 The `--say` text is the Message body, so every surface that renders a body — the Chat transcript and
-a Thread's anchor — reads the same trimmed text with the ordinary mention resolver, and the `@handle`
+a Task — reads the same trimmed text with the ordinary mention resolver, and the `@handle`
 the announcement is required to carry resolves through `RichMessageParser` into the same reference
 chip any other Agent mention gets. There is no provenance row and no `Open` control: the way to the
 new Agent is its mention, and an Agent profile on the phone is reached through that Agent's own Chat,
@@ -541,12 +541,12 @@ The `.agentCreated` body case stays as provenance, and `HausStoreMessageLoading`
 an Agent the directory does not list yet and refetch. Transcript rows are hosted in
 `UIHostingConfiguration` cells, which do not inherit the enclosing SwiftUI hierarchy's custom
 environment values, so row-level actions travel as explicit closures through `MessageTimelineView`
-and `ThreadDetailView` into the one shared `MessageTimelineRow`, never through `@Environment`.
+and `TaskChatView` into the one shared `MessageTimelineRow`, never through `@Environment`.
 
 The app deploys to iOS 18 and progressively adopts iOS 26 Liquid Glass for functional
 chrome. System navigation and sheet controls inherit the platform treatment; custom menu, search,
 and composer controls use native glass only on iOS 26 and retain an opaque semantic fallback on older
-systems. Transcript rows, Thread previews, Task metadata, sidebars, and settings groups stay opaque.
+systems. Transcript rows, Task previews, Task metadata, sidebars, and settings groups stay opaque.
 Glass is a navigation hierarchy, not a general content-card material.
 
 Every touch answers. On iOS 26 a live glass surface owns its whole press response — fill, rim, and
@@ -583,8 +583,7 @@ The composer keeps the plain inset and a hard edge on purpose: the clearance it 
 transcript's own scroll bound, so no sharp row ever reaches past it, and the rows that reach its
 glass are already being refracted. `HausChrome.transcriptBottomRunway` is the breathing room the
 transcript holds above that clearance — a scroll bound too, not composer padding — and it runs wider
-than the inter-message rhythm because the composer's glass rim sits inside the region it reserves. The Thread transcript wears the same mask under its system
-navigation bar.
+than the inter-message rhythm because the composer's glass rim sits inside the region it reserves. The Task transcript wears the same mask under its header.
 
 Every floating chrome control is one control. `GlassChromeButton` owns the 44-point circle, the
 22-point app icon, and the glass or material treatment, and `ChromeHeader` owns the 56-point
@@ -715,14 +714,13 @@ transcript's load-older accessory turns into a quiet "Couldn't load earlier mess
 (`TranscriptLoadOlderButton`). Background work (tail reads, foreground refresh, stream reconciliation,
 history refresh, Cloud Agent refresh) logs instead: the header already speaks for connectivity.
 Lost connectivity is header state, never a banner over the transcript (`ConnectionOutage`): once the
-Server connection has been down for two seconds the Chat header's title, or a Thread's navigation
+Server connection has been down for two seconds the Chat header's title, or a Task's navigation
 subtitle, reads "Connecting…" until it returns, so a stream that drops and reconnects says nothing.
 The Server connection is the Store's `isConnected`, which follows the live streams: the transport
 retries transport failures inside a subscription, so an outage never ends the stream, and
 `subscribe` reports each failed attempt or dropped stream (`onDisconnected`) and each reconnect
 (`onConnected`) instead (`TRPCSubscriptionOutageTests`).
-A file the composer could not stage is a native "Couldn’t Add Attachment" alert. The jump-to-message alert and the Thread's inline replies Retry keep their own failure
-states.
+A file the composer could not stage is a native "Couldn’t Add Attachment" alert. The jump-to-message alert keeps its own failure state.
 
 Search focuses its field as the sheet opens, so the keyboard is already up. Each result marks the
 matched term in label ink and semibold, and a message whose match falls late starts its excerpt at a
@@ -751,7 +749,7 @@ a leading swipe action: a row's swipe actions sit on the trailing edge (swipe-le
 Mark read and Archived's Restore do, so one drag never both reveals a row action and moves the drawer. Putting something on the canvas is the only action that closes the drawer:
 selecting a Chat, or a route from outside the sidebar such as a Task's mention or a tapped
 notification (`closeForCanvasRoute`), which would otherwise land behind a drawer left open under a
-pushed Task. Every sidebar entry point that presents another surface — Search, Tasks, Settings,
+pushed Task. Every sidebar entry point that presents another surface — Search, Settings,
 Archived, New channel — leaves the drawer open behind it, so dismissing returns to the open drawer
 and no presentation ever runs against the closing spring.
 
@@ -791,8 +789,8 @@ by the sidebar or a canvas screen must be added there. The sidebar host keeps th
 safe area and ignores the keyboard; the canvas host has no safe area at all, because its screens take
 their insets as values and read the keyboard themselves.
 
-The sidebar marks what is on screen — Tasks while it is pushed, the Inbox while it is the canvas,
-otherwise the selected Chat — with one selection capsule. A Chat row's long press offers **Mark
+The sidebar marks what is on screen — the Inbox while it is the canvas, otherwise the selected
+Chat — with one selection capsule. A Chat row's long press offers **Mark
 Read** (when unread, through the Inbox's own `chat.markRead` path) and the Chat's details sheet.
 There is no Archive or Copy link there: the phone has no archive action for a Chat, and no app
 origin to build a shareable link from. Row heights, the glyph column, and section labels scale with
@@ -818,7 +816,7 @@ shell per destination and reaches the screen as a binding or by reference; a rem
 presentation state (an open portal, a frozen keyboard inset, an error notice). A page arriving for a Chat that was showing nothing is that Chat's first paint and settles
 at the bottom without animation; only genuine appends animate.
 
-Both transcripts — the Chat timeline and a Thread's replies — sit on `TranscriptListView`, the
+Both transcripts — the Chat timeline and a Task's messages — sit on `TranscriptListView`, the
 flipped-table substrate in `HausUI/Platform`: a `UITableView` scaled by `-1` vertically, each
 cell's `contentView` scaled back, data reversed so the newest item is row zero. This is the
 mechanism production chat clients use instead of SwiftUI's scroll-position primitives, and it was
@@ -838,13 +836,13 @@ with the newest message still visible, which is the keyboard behavior the produc
 
 What remains above the substrate is intent, not position management. `TranscriptListUpdate`
 classifies each snapshot change exactly (refresh, append, prepend, reset — pinned in
-`TranscriptListUpdateTests`), `MessageTimelineTailScroll` / `ThreadReplyReveal` still decide what an
+`TranscriptListUpdateTests`), `MessageTimelineTailScroll` still decides what an
 append may do to the viewport, and reveals arrive as one-shot `TranscriptReveal` tokens. A
 viewer's own send eases in whole (`animateToNewest`), once: when the send is confirmed and its
 optimistic row hands over to the durable row under a new id, that tail insertion replaces a row rather
 than adding one (`TranscriptListUpdate.replacedTailCount`), so nothing is staged again and a travel
-already in flight finishes; staging it replayed the send from one row lower, which in a short Thread
-showed the anchor and hid the reply. Anyone else's reply arriving while the
+already in flight finishes; staging it replayed the send from one row lower, which in a short
+transcript hid the reply. Anyone else's reply arriving while the
 reader is at the tail is followed from its top (`followNewest`): once it is taller than the
 viewport its top is held just below the header as it streams in, the way Claude reads a long
 answer, until a drag, a reveal, or a newer item ends the hold. A reader who scrolled up is never
@@ -853,14 +851,14 @@ below them and sizing itself a moment after the update — re-applies it until a
 the viewport (`TranscriptListView+AnchorHold`).
 
 An update costs what it changes. The screens memoize their row items per page
-(`MessageTimelineProjection`, `ThreadTranscriptProjection`), so the body that runs on every frame of
+(`MessageTimelineProjection`, `TaskTranscriptProjection`), so the body that runs on every frame of
 a drawer pan or keyboard rise hands the list the same array storage and the list's comparison is an
 identity check. A visible row is re-hosted and re-measured (`reconfigureRows`) only when its item
 changed — which is how a row that grew in place, a streamed reply, gets its new height — or when
 `rowRevision`, everything rows read beyond their item (a press tint, a registry's revision, history
 load state), changed. An inset-only update re-hosts nothing; `TranscriptListBehaviorTests` pins it. The list
-passes the previous snapshot to append policy: a Thread's anchor and task metadata are not prior
-replies, so its first fetched reply page settles immediately rather than animating through history.
+passes the previous snapshot to append policy: a Task's "Started from" row is not a prior message,
+so its first fetched page settles immediately rather than animating through history.
 
 Whether the newest item is on screen — the answer behind the scroll-to-latest chevron — is published
 only from settled geometry. A landing transcript passes through intermediate offsets inside one
@@ -904,7 +902,7 @@ An inline reply in a Channel or DM leads its identity block with one quiet paren
 name, and a one-line excerpt, with no card, bar, or icon. The whole line jumps to the parent.
 `TranscriptRowGrouping` also opens each calendar day with a quiet divider (`TranscriptDayDivider`:
 Today, Yesterday, a weekday within the week, then the date) and never lets an identity block run
-across one; a Thread places the same divider between replies as items of its own. Row timestamps
+across one; a Task places the same divider between its messages as items of its own. Row timestamps
 stay times of day.
 `TranscriptRowGrouping` owns the App's `markRepeatedReplyReferences` rule: a reply from the same
 author to the same parent as the row above skips the line and joins that row's block, so an
@@ -918,116 +916,86 @@ Admin inspect, connect, or disconnect Cursor on a selected Computer. Connecting 
 sign-in browser on that Computer, not on the phone; iOS never receives the credential.
 
 Each Message's `cloudAgentWork` annotation supplies one inline cloud-agent card per linked work in
-a Chat or Thread (`ChatMessageCloudAgentWork.swift`); the card names the Agent from the work's
-`agentId`, and `RichMessageParser` reads `cloud-agent://` links as reference chips.
-The parent Chat's preview carries the Thread's cloud agents from `cloudAgentWork.listForChat` as
-cards beside the ingress button, never inside it (`ThreadCloudAgentStackView`). One job is just its
-card. Two or more collapse like an iOS notification group: `N cloud agents` with a counts line
-(problems first and tinted — `1 failed · 2 no update · 6 working · 1 done`), a Show all control,
-the full card of the job that most needs attention on top (the first failed job, else the first
-with no update, else the first started — `ThreadCloudAgentStack`), and up to two fixed-height edges
-peeking beneath it for the next jobs in start order. Jobs keep the order they were started (work
-`createdAt`, ties in the Server's order), so nothing re-sorts while agents work; the top card changes
-only when a job's state does. Show all lists every job in start order — a calm working job without
-a pull request as a compact header-only card that opens the Thread, every other job as the full
-card — with Show less above and below. Expansion lives in the session's
-`ThreadCloudAgentStackExpansion` (owned by `HausStore`, read through the environment), keyed by
-anchor Message id, so it survives the row scrolling away and the Chat reopening; stacks start
-collapsed. Toggling animates with a spring (a 150ms ease under Reduce Motion). The Thread connector keeps running down the left of the cards and turns in beside the top
-card, or beside the bottom Show less when expanded. Cards follow the
+a Chat or Task (`ChatMessageCloudAgentWork.swift`); the card names the Agent from the work's
+`agentId`, and `RichMessageParser` reads `cloud-agent://` links as reference chips. Cards follow the
 [card contract](../../specs/cloud-agents.md): the Server's `job` headlines in Cursor's vocabulary
 (never "Queued"), an optional PR row, exactly one single-line status line
 (`CloudAgentStatusLine`), and View PR / Open in Cursor / a chevron menu with Copy link and, for
 Owners/Admins, Cancel run. Missing diff evidence stays absent, not zero.
-`cloudAgentWork.updated`, sent once per linking Message, refreshes that Message's loaded Chat and
-parent through the normal durable event/reconnect path; a deleted Chat reloads the active work
+`cloudAgentWork.updated`, sent once per linking Message, refreshes that Message through the normal durable event/reconnect path; a deleted Chat reloads the active work
 list, since linked work outlives it. Cards scroll with their Messages and follow-ups update the same card.
 
-An anchor message owns one unboxed Thread ingress, joined to its avatar rail by a rounded connector.
-The reply count and chevron lead, followed by the latest Server-projected reply's avatar, author,
-and one-line snippet. Claim status remains a secondary note; cloud agents sit below as cards (above).
-The whole ingress opens the Thread, including before a claim's first reply. Every row uses an 18pt
-identity mark. Reply and claim rows enter, exit, and swap with a 220ms slide/fade; Reduce Motion uses
-a 150ms crossfade. The count stays in place. The anchor
-message remains the claim's title and is never duplicated inside the ingress.
+There are no Threads ([ADR 0052](../adr/0052-channels-and-tasks-are-the-only-places.md)): a side
+conversation is inline replies in its Channel or DM, and work lives in Tasks. A message row offers no
+way into a side conversation and the drawer's only reply action is the inline **Reply**.
 
-Chat honors the App's own claim visibility rule (`ClaimVisibility.visibleInChat` in `HausModels`,
-applied through `ThreadPreviewProjection.ingressClaim`). An **empty** claim an Agent made for itself
-states nothing in Chat unless the reader asked for it: no note, no ingress, no reserved space. A
-claim a human composed or converted always states itself, and so does any claim whose Thread has
-replies — the App's own `hasReplies || claimVisibleInChat(…)` rule. Once people are talking in a
-Thread its card is on screen anyway, and which work they are talking about is part of reading it,
-so the ingress states `Claim #N · status` even under a hidden claim. The preference is per device,
-like appearance — `@AppStorage` under the App's own `haus.chat.showClaims` key — and Settings →
-Preferences → **Show claims in chat** is the switch.
+A claim is the Agent's lock on a message, not a place, so a message states its claim with one quiet
+`MessageClaimMark` under its cards (`Claim #N · status` beside a status disc), in a Chat or a Task.
+Chat honors the App's own claim visibility rule (`ClaimVisibility.visibleInChat` in `HausModels`): a
+claim an Agent made for itself states nothing unless the reader asked for it, and a claim a human
+composed or converted always states itself. The preference is per device, like appearance —
+`@AppStorage` under the App's own `haus.chat.showClaims` key — and Settings → Preferences → **Show
+claims in chat** is the switch. A stopped claim opened from an Agent profile opens its message in the
+Channel or DM that numbers it (`claim.chatID`, revealing `claim.messageID`).
 
-A claim an Agent made on a Thread reply (`message.chatID != claim.chatID`) has no Thread of its
-own, so it builds no preview; the reply itself carries `ThreadClaimMark` (`Claim #N · status`) under
-the same visibility rule. Opening such a claim goes through `ClaimOpening`: it resolves the Thread's
-real anchor with `thread.get` and lands on the claim message, where a top-level claim opens the
-Thread anchored on itself.
+A Task is a place ([ADR 0052](../adr/0052-channels-and-tasks-are-the-only-places.md)): a Channel
+for one piece of work, started by an Agent from a Message in a Channel, with a state (todo, open,
+done, canceled) and its own `task` Chat. There are no boards or columns, and the phone has no Tasks
+page, no create, and no state or assignee controls (decision 15). The phone holds Tasks apart from
+Chat state: `TaskSnapshots` is its own observable on the Store, holding each opened Task's
+`task.get` (`TaskDetail`, whose `TaskRecord` is the Task), the label catalog, and the followed
+unread Tasks. Every list stays nil until its first read, so "nothing here" is never "not yet known",
+and a durable event refreshes only what is held. `TaskRecord` requires only the Task's identity and
+state and decodes everything else leniently, so a Server that drops or adds a field never costs a
+Task its screen. `HausUI/Tasks` owns the screens; `TaskChatAdapters.swift` and
+`TaskPresentationAdapters.swift` are the seams.
 
-Tasks are boards ([ADR 0051](../adr/0051-tasks-are-boards-and-claims-are-the-lock.md)), and the
-phone holds them apart from Chat state. `TaskSnapshots` is its own observable on the Store: the
-boards, each board's Tasks, Task details, the label catalog, and the reader's Inbox items. Every list
-stays nil until its first read, so "nothing here" is never "not yet known", a durable event refreshes
-only what is held, and a move repaints the board without touching anything that watches Chats.
-`pendingMoves` and `settlingInboxTaskIDs` are the app-local part: a settling move shows the Task in
-the column it is going to, and the read snapshots only ever hold Server answers. `land(_:)` puts a
-mutation's answer wherever a copy of that Task lives, and an older version never overwrites a newer
-one. `HausUI/Tasks` owns the screens; `TaskPresentationAdapters.swift` is the seam
-(`TaskBoardSource`).
+A Task opens as one push on the root navigation stack, from its origin preview, a chip, its Unread
+row, a Happening now row for work attached to it, or a push, so Back returns to whichever canvas is
+showing; it never selects the canvas Chat. Until the Store holds a record that says whether the Task
+has a Chat, the screen is blank rather than guessing. A Task with a Chat opens as `TaskChatView`:
+the Chat timeline's own rows and the iPhone composer, under `TaskChatHeader`, a band in the layout
+above the transcript (never over it) with the Task's title, which wraps at every size, its state
+disc and words, and the work attached to it — each cloud agent with its newest Run's status and
+summary, expanding in place to the full `CloudAgentCard`, and each pull request no cloud agent card
+already shows. At large text sizes the band stops growing at a fraction of the screen and scrolls
+inside itself. A quiet **Started from #channel** row heads the transcript once its oldest page is
+loaded and opens the origin Message in its Channel. The Task's Chat is the open Chat while the
+screen shows, so what the reader sees there is what reads it, and opening it clears the
+notifications its messages sent. The composer mentions from the origin Channel's roster, and an
+archived origin Channel leaves the Task readable without a composer. The message drawer offers
+reactions and copying only.
 
-Tasks are Server work, not a settings screen. The sidebar's Tasks row opens the board picker as a
-push on the root navigation stack, a board pushes over it, and a Task over that, so Back walks Task
-→ board → boards → whichever canvas is showing. A Task has no Chat of its own, so none of these
-selects one. A Thread opened from a Task's **Mentioned in** pushes on top and pops back to that Task;
-a top-level mention opens its Chat at the message. `TaskMention.place` names the Channel or DM and
-the Thread anchor, so a row reads `#security · Thread` and opens with no `thread.get`: only an anchor
-the parent page does not hold costs one `chat.messages` read. A Reminder row still resolves a
-Thread anchor with `thread.get`, because `TaskReminderRef` names only its anchor Chat. Opening a Task
-clears its Inbox item and its delivered notification, from whichever surface opened it; being seen
-in a list never does.
+A Task from before Tasks were places has no Chat (`chatId: null`) and is read-only history. It
+opens `TaskDetailView`, a read-only details screen with no composer and no control that writes: the
+title and description (drawn like a message body, so its references are chips), native fact rows
+(state, assignee, priority, due day, labels, creator, created, updated), **Mentioned in**, and
+**Reminders**, with **Copy reference** the one menu action. A **Mentioned in** row opens its Channel
+or DM at the message; `TaskMention.place` names that Channel or DM, so a row reads `#security` or
+`DM`. A Reminder anchored on a Task's own Chat opens that Task.
 
-A pushed Thread leaves the canvas selection alone — its route carries the parent Chat id and the
-row carries the child Chat id, so selecting the parent would mark a channel the user never visited
-as read and strand them there once the push pops. A pushed Thread owns the open Chat while it is on
-screen, and the shell's Chat selection resumes ownership when it pops; the covered canvas Chat stays
-named so its page keeps refreshing underneath, but read acknowledgements belong to the deepest
-surface alone.
+A Channel Message an Agent started Tasks from shows each one under it (`TaskPreviewStack`, one
+`TaskPreviewCard` per Task) at inline density: the state disc, key, and title, which
+wraps rather than truncating, then `Open · 9 messages · 2 new`, then up to three newest messages.
+The whole card opens the Task through `InAppReferenceRoutes.openTask`, because hosted rows have no
+environment. Previews ride `chat.messages` pages as `tasks`; a preview this build cannot read drops
+itself, never the page. When an event says a previewed Task changed (a new message, a read, a state
+or title change, a follow), the held origin Message re-reads through `chat.message`, whose answer
+carries that Message's `tasks`; an answer without the key, from an older Server, falls back to one
+`chat.messages` read around the Message (`HausStoreTaskPlaces.swift`).
 
-A Thread is titled "Thread", "Claim #N" for a claim's Thread, or the work's title when Cloud Agent
-work opened it, with its conversation ("#design", or "DM") as the subtitle (`ThreadOpening`). Every
-Thread reads as one conversation by time: the anchor's claim metadata when it has any, the anchor,
-then the parent Chat's inline replies to it among the Thread's replies, as in the App
-(`ThreadTranscriptItem.items`). A Thread is a Chat view, not its own row kind: the anchor, replies,
-and inline replies draw through the Chat timeline's `MessageTimelineRow` at the Chat's text size and
-spacing, and each carries the same `TranscriptRowGrouping` against the message above it, the anchor
-included. The row's `MessageRowThreadMark` is the only difference: a reply states its own claim
-(`ThreadClaimMark`) and no row offers a Thread ingress. Like the App's Thread, the anchor is a plain
-first row with no card or replies divider. A reply to the anchor states no reference, since the
-anchor heads the Thread (`TranscriptRowGrouping`'s `implicitReplyID`); references to any other
-message still show. An inline-reply reference reveals and briefly highlights
-its target when the Thread holds it. The composer mentions from the parent Chat's `chat.mentionOptions`
-roster and shows a DM peer's stopped notice (`ChatComposerStatus`); it offers no inline reply, which
-the App's Thread composer does not either. One the anchor says has replies opens blank until its first
-reply page lands — at most `ThreadOpening.holdLimit` — so the push never draws the anchor first and
-then snaps to the newest reply.
+A pushed Task owns the open Chat while it is on screen, and the shell's Chat selection resumes
+ownership when it pops; the covered canvas Chat stays named so its page keeps refreshing underneath,
+but read acknowledgements belong to the deepest surface alone.
 
 A message's Task references read as chips. A written `[SEC-12](task://id)` is already a reference
 by the time `RichMessageParser` runs; a bare `SEC-12` is not, because the Server records it without
 rewriting the content. `TaskLinkChips` turns the bare keys a message's `taskLinks` resolved into
 chips, working on the parsed runs rather than the Markdown, so code spans, code blocks, Markdown
 links, and autolinked URLs never reach it and a key the Server did not resolve stays text. The chip
-reads the Task's current key, since a re-keyed board re-keys its Tasks while the message keeps the
-words it was written with. A tapped chip pushes the Task.
-
-**Convert to Task** sits in the message action drawer, and in a row's accessibility actions, for any
-sent message (`MessageActionRoutes.convertToTask`). It presents `ConvertToTaskSheet`, offers the
-message's first line as the title, and leaves the description empty so the Server defaults it to
-the content and records the reference. The reader stays in the conversation; a line floats over the
-top of the screen for six seconds as the way into the new Task, as an overlay so nothing in the
-transcript moves.
+reads the Task's current key, since a Task can be re-keyed while the message keeps the words it was
+written with. A tapped chip pushes the Task. There is no Convert to Task: only Agents start Tasks
+(decision 4), so the message drawer offers none.
 
 The Inbox is the phone's landing screen and the sidebar's anchor. It mirrors the App page section
 for section — header, **Active this week**, **Unread**, **Happening now** —
@@ -1046,19 +1014,22 @@ than to either of them: the leading chrome button sits where it sits on a Chat s
 and the edge pan are the same ones. `showsInbox` is App-owned state (`AuthenticatedHausView`) and
 the shell clears it whenever a Chat is selected; the sidebar's Inbox row sets it back. The last-open
 Chat is still restored for the drawer's selection, and selecting one swaps the canvas the way it
-always did. `HausRootRoute` therefore carries only `.tasks` (the board picker), `.board`, `.task`,
-and `.thread`. A Cloud Agent work row
-opens the row's `location`: the launch work Thread when the viewer can read it, else the Thread of
-the newest visible linking Message (by `threadChatId`), carrying the conversation's Chat id and the
-anchor Message — the same pair a Thread composer sends to — and leaving the canvas selection alone
-for the same reason any pushed Thread does. A location the phone cannot open is skipped; an Unread row opens its DM or Channel.
-Unread and **Happening now** rows share one Messages-style two-line row (`InboxRowView`): a 44pt
-mark, the title with its perishable fact trailing, and the context below in secondary. Each line is
-capped at one, so every row in both sections is the same height at a given text size. At
-accessibility sizes the title may wrap and the trailing fact stacks under it instead of squeezing the
-title to a letter, and the mark scales with the text up to 64 points. Every row's separator starts
-under its title, whatever its mark drew. An Unread row
-is the Chat's name, its age, and the quoted line truncated to one line. A Cloud Agent work row is
+always did. `HausRootRoute` therefore carries only `.task`. A Cloud Agent work row attached to a
+Task (`taskId`, ADR 0052 decision 6) opens that Task. Older work opens the row's `location`, the
+newest visible linking Message, revealed in its Channel or DM. A location kind the phone does not
+know (an older Server's `work-thread`) skips that row; an Unread row opens its DM, Channel, or Task.
+Unread and **Happening now** rows share one Messages-style row (`InboxRowView`): a 44pt mark, the
+title with its perishable fact trailing, and the context below in secondary. A conversation's lines
+are each capped at one, so those rows are the same height at a given text size. At accessibility
+sizes the title may wrap and the trailing fact stacks under it instead of squeezing the title to a
+letter, and the mark scales with the text up to 64 points. Every row's separator starts under its
+title, whatever its mark drew. An Unread row
+is the Chat's name, its age, and the quoted line truncated to one line. A followed Task's Unread row
+follows the native-rows rule instead of squeezing two facts into one line: its first line is the
+Task's title alone, which wraps at word boundaries at every text size and is never truncated or
+hyphenated (SwiftUI `Text` breaks lines at words and does not hyphenate); a secondary line under it
+carries the key and state, `SEC-12 · Open`, and wraps rather than truncates at the largest sizes;
+then the quote. Like every Unread row it carries no count — being in the section is the dot. A Cloud Agent work row is
 the work's title (`Cloud work` when untitled), its job status (`Working · 3m`, `Working · 1h 59m`,
 or `Follow-up waiting · 2m` for a settled job listed only for its live follow-up —
 `CloudAgentPresentation.duration`, the App's `formatCloudAgentDuration`, whose hours never roll
@@ -1073,8 +1044,8 @@ read with one `claim.list` per profile opened; claims have no list of their own.
 has nowhere else: an Agent in **Happening now** opens that Agent's DM rather than a profile page. The sidebar's first row is the
 Inbox, wearing the iridescent Haus ghost at 26 points in the same glyph
 column every other row uses — a deliberate exception to the column's 26-point boxed glyphs, because
-this mark is the logo rather than a screen's icon, and it grows inside the shared column so the
-`Inbox` label stays on the `Tasks` label's edge. It marks
+this mark is the logo rather than a place's icon, and it grows inside the shared column so the
+`Inbox` label stays on the Chat labels' edge. It marks
 `unreadChatCount` with the unread dot the Chat rows wear — absent at zero, which is also
 what it reads while the count is still unknown. Its mesh drifts, and drifts quicker while an Agent
 on this Server is working: `HausStore.agentActivityGhostTempo` resolves the App's own rule through
@@ -1082,65 +1053,49 @@ on this Server is working: `HausStore.agentActivityGhostTempo` resolves the App'
 `agent.onActivity` rewrites on every tool call, so a busy Server does not invalidate the shell.
 
 What the Inbox stands on is Server-wide and Store-owned rather than screen-owned. `HausStoreInbox`
-reads the Chat list's unread Chats, the unread Threads (`thread.listUnread`), the reader's Task items
-(`taskInbox.list`), the Cloud Agent work running right now
+reads the Chat list's unread Chats, the followed unread Tasks (`chat.unreadPreviews`' rows that name a Task), the Cloud Agent work running right now
 (`cloudAgentWork.listActive`), and the Server's token-usage snapshot (`stats.live`), and each stays
 nil until its first load. That nil is load-bearing: `unreadChatCount` is nil until the Chat list
 has landed, so "nothing unread" is never confused with "not yet known". The count is the number of
-Unread rows on the active Server — Chats with an `unreadCount` above zero, listed unread
-Threads, and uncleared Task items, the same rows the App lists — and it
+Unread rows on the active Server — Chats with an `unreadCount` above zero and followed unread
+Tasks, the same rows the App lists — and it
 drives the sidebar's Inbox dot. The app icon badge is not that count: it is the Server's cross-Server
 `chat.unreadChatCount`, the number push puts on `aps.badge`. `HausStoreIconBadge` reads it into
 `iconBadgeCount` wherever the Chat list reloads (Server load, snapshot refresh on foreground or
 reconnect, every `reloadChats`) and on becoming active without a background trip. Durable events refresh only what this
 client already holds, the way the App's invalidation only refetches a live query:
 `message.created` and `chat.read` reload the Chat list, `claim.onChanged` reloads the affected Chat
-page, `taskInbox.onChanged` reloads the Task items and the icon badge, a `task.onUpdated` for a held
-item reloads them too, `cloudAgentWork.updated` reloads the active
+page, a Task message, read, change, or follow reloads the followed unread Tasks once held,
+`cloudAgentWork.updated` reloads the active
 work list beside its own, and a settled Agent turn or a Computer update reloads the usage snapshot.
 A failed Inbox read keeps the previous snapshot and is logged — a stale row is honest, while a
 Chat-level send alert raised by a background read is not.
 
 An Unread row ([ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)) is one Chat from the
-Chat list with an `unreadCount` above zero, or one unread Thread
-([ADR 0043](../adr/0043-threads-are-unread-on-their-own.md)): a Chat's count is its own messages,
-and each Thread with unread replies the viewer follows or is mentioned in is its own row from
-`thread.listUnread` (`HausStoreUnreadThreads`), merged by activity. A Thread row wears its parent's
-mark, is titled `#channel` or `DM`, and quotes `<Author> replied in thread: <reply>`; one whose
-parent the Chat list does not hold is hidden. Opening a Chat row reads it the way any open
-transcript does; opening a Thread row pushes the Thread, which lands on its first unread reply —
-staying put when that reply already reads from the newest edge, otherwise bringing its top under
-the navigation bar (`TranscriptLanding`) — decided once per open, so reading never moves it.
-**Mark read** sends `chat.markRead` with the row's `lastMessageSequence`: a Chat row adds
-`includeThreads: true`, which reads every Thread under it, so its Thread rows leave with it; a
-Thread row marks the Thread's own Chat. Newer activity brings the row back. The unread Threads are
-read beside every Chat-list read (so `message.created`, `thread.onFollowUpdated`, and
-`chat.onLifecycle` refresh them), and a `chat.onRead` for a Thread re-reads them and the badge
-alone, never the parent's Chat-list row. The sidebar's Inbox dot counts Chat rows, Thread rows, and
-Task items alike, matching the icon badge (`chat.unreadChatCount`).
+Chat list with an `unreadCount` above zero, merged by activity with the followed Task rows below.
+Opening a Chat row reads it the way any open transcript does. **Mark read** sends `chat.markRead`
+with the row's `lastMessageSequence`; newer activity brings the row back. The sidebar's Inbox dot
+counts Chat rows and Task rows alike, matching the icon badge (`chat.unreadChatCount`).
 There is no question screen, card, or marker — the mention chip in the transcript is the whole
 presentation of a question ([Inbox](../features/inbox.md#notifications)).
 
-A Task assigned to the reader is an Unread row too, one per Task and never bundled, merged into the
-feed by its assignment time (`InboxTaskRow`). Where a conversation row is two lines that open
-somewhere, this one carries the work: the board, key, and assigner; the title, priority, and due
-day; its context message under `<author> in #security · Thread`; a composer; **Start**, **Done**,
-and **Won't do**; the status menu; and **Open Task** and **Mark Read** under the more menu. Each is
-its own hit target, because a List row's tap would swallow them; the title is the way into the Task.
-`TaskInboxItem.contextPlace` names the context message's Channel or DM and Thread anchor, so the
-label, the reply, and the read-only check all come from the row: a reply goes through
-`sendThreadReply` to that parent with no `thread.get`, into the Thread the message sits in or the
-one on it, and leaves the Task waiting. A resolve moves the Task, a Mark read clears the item, and
-either leaves a notice bar over the feed with its Undo; `settlingInboxTaskIDs` takes the row away at
-once and a failure puts it back.
+A Task is unread only for its followers (ADR 0052 decision 9), and being assigned a Task makes the
+assignee a follower, so an assigned Task simply shows as unread; there is no separate assignment
+item. Each followed Task with messages waiting is its own Unread row (`InboxUnreadTaskChat`), never
+bundled, merged by activity and wearing its origin Channel's mark. Opening it pushes the Task; Mark
+read sends `chat.markRead` for the Task's own Chat through the newest message the row quotes, and
+the row leaves at once and comes back if the read fails.
 
-A Task assignment reaches the phone as a `task_assignment` push: a plain alert, which the Notification
-Service extension never rewrites, grouped under the Task id, so opening the Task clears it.
-`PushOpenRequest` is what a tapped notification names, decoded from `userInfo`: `.message`, `.task`,
-or `.taskBurst`. Several assignments inside the Server's read grace arrive as one
-`task_assignment_burst` push (`Zero assigned you 6 tasks`) that names no Task, and a tap opens the
-Inbox, which still holds a row per Task. A request for another Server opens nothing, and a malformed
-one decodes to nil.
+A tapped notification is a `PushNotificationPayload` decoded from `userInfo`; keys this build does
+not know are ignored, and its `route` is the whole decision. A push for a Message in a Task's Chat
+carries `taskId` and `taskKey`, routes to `.task`, and pushes the Task over whatever is showing,
+whatever its conversation ids say; one without opens its conversation, the Channel or DM, on the canvas.
+The rule is one pure function, `PushNotificationRoute.opening(chatID:conversationChatID:taskID:)`:
+a push sent before ADR 0052 that names a side conversation's own Chat as `chatId` beside its parent
+`conversationChatId` opens the parent Channel, where those messages now live as inline replies, and
+the payload reads its `chatId` as that parent so a reader already on it is not bannered. A push for another Server opens nothing, and a malformed one (or a retired
+`task_assignment` push, which names no message) decodes to nil. A Task push arriving while its Task
+screen is up is suppressed like any push for the Chat on screen.
 
 An "Active this week" card keeps its figure and sparkline
 on one row at standard text sizes; at accessibility sizes it widens, stacks the header, figure, and
@@ -1150,8 +1105,7 @@ UTC days, because ranking a week is a question about every Agent at once and a p
 never its shape. A Chat row's quoted last line is Server's own `lastMessage` projection and stays
 raw Markdown; collapsing it to one plain line is the reader's job.
 
-Swift optimistic Chat and Thread rows remain app-local and keyed by the client nonce. Thread replies
-use the canonical parent Chat plus anchor-message contract. A failed mutation keeps its row, marked
+Swift optimistic Chat and Task rows remain app-local and keyed by the client nonce. A failed mutation keeps its row, marked
 "Not sent", for Try Again or Delete, while a successful row remains pending until a refreshed Server
 page contains the matching nonce. The transcript is the durable page in Server order followed by
 `OptimisticMessageRow.unsettled` rows in send order; pages load as whole snapshots, so a message
@@ -1170,7 +1124,7 @@ short window (`ChatEventCoalescer`) before the batch applier runs, so a burst la
 read fan-out rather than one per frame. The batch tail-reads affected loaded lists concurrently,
 and every event-driven `chat.list` read shares one coalesced refresh with a 150ms gather window, so
 the `chat.read` echo of the acknowledgement a `message.created` batch made does not read the list
-again. Events carry no unread count (it includes followed Thread replies and excludes the reader's
+again. Events carry no unread count (it includes followed Task messages and excludes the reader's
 own), so the client never patches unread locally.
 
 A cold launch paints from an on-disk launch snapshot before the network answers
@@ -1181,8 +1135,16 @@ up to three bounded latest-message pages (the canvas and open Chats first), writ
 directory excluded from iCloud and Finder backups; Application Support rather than Caches so storage
 pressure cannot purge the paint), off the main actor, at most once per two
 seconds and again when the app leaves the foreground. It is a cache: scoped to the signed-in Haus
-user, discarded on a version, user, or decode mismatch, cleared on sign-out, and replaced by the
-live load. The live launch is `server.list`, then the Chat list, Agent list, and identity-synced
+user and to the App protocol (`HausAppProtocol.version`) of the build that wrote it, discarded on a
+format-version, protocol, user, or decode mismatch, cleared on sign-out, and replaced by the live
+load. The protocol scope is the only on-device state a contract change has to clear: transcripts,
+read positions (`ChatReadLedger`), and composer drafts live in memory, and the last-open destination
+is a Channel or DM id that a deleted Chat simply fails to restore. Protocol 13 ships with ADR 0052's
+one-time migration, which moved side conversations into their parent Channels as inline replies,
+renumbered those Channels' sequences, and marked them read; a snapshot from protocol 12 holds pages,
+sequences, and unread counts that are no longer true and would report stale visible sequences to the
+read ledger before the live load replaced them, so it is deleted unread
+(`LaunchSnapshotTests.protocolMismatchIsDiscarded`). The live launch is `server.list`, then the Chat list, Agent list, and identity-synced
 member list together, then the mounted pages, then the streams, whose first starts reconcile
 against those reads; Computers and the badge load after the shell is up. A painted launch whose live load fails stays on the painted state, reports
 offline, and retries with backoff.
@@ -1196,13 +1158,10 @@ cache check so a cached answer leaves the calling view subscribed to exactly wha
 would. Rows are cheap to rebuild; body parsing is not, so each message's parsed body (visual fences,
 rich blocks, resolved reference chips) is memoized by id, content, and a reference revision
 (`MessageBodyMemo`, `ReferenceDirectory`) that moves only when a chip-visible name, avatar, or
-channel appearance changes. A Thread chip's label comes from another page — its anchor's first line
-in the parent Chat — so a parsed body also records each Thread chip's resolved label and reparses
-when it would now differ, and a page write retires the rows of every Chat that links into that page
-(`ReferenceReferrers`). Presence and unread churn rebuild rows from cached bodies, and a page,
+channel appearance changes. Presence and unread churn rebuild rows from cached bodies, and a page,
 optimistic-row, or cloud-work write retires only the Chats whose values changed. Optimistic rows adopt the canonical Server message id from the send receipt, so a pending
 row's presentation id is a real Server id from that moment and its ForEach identity never changes
-when the durable row arrives. Chat and Thread timelines keep a 200-message window in Server sequence
+when the durable row arrives. Chat and Task timelines keep a 200-message window in Server sequence
 order. `chat.messages` reads 50 rows using exclusive `beforeSequence`, `afterSequence`, or
 `aroundMessageId` selectors. Moving either direction evicts the opposite edge and leaves a cursor
 for reloading it. UIKit reuses visible cells; a surviving visible row and its pixel offset anchor
@@ -1227,10 +1186,9 @@ its newest page when the reader returns.
 contract and `specs/realtime-events.md` the normative spec; this is the iPhone's shape of it.
 
 `HausStoreEventStreams.swift` runs one focused subscription per `RealtimeStream`:
-`chat.onMessageCreated`, `chat.onMessageReactionUpdated`, `chat.onRead`, `thread.onFollowUpdated`,
+`chat.onMessageCreated`, `chat.onMessageReactionUpdated`, `chat.onRead`,
 `chat.onLifecycle`, `cloudAgentWork.onUpdated`, `claim.onChanged`, `taskLabel.onUpdated`,
-`board.onUpdated`, `task.onCreated`, `task.onUpdated`, `taskInbox.onChanged`,
-`agent.onLifecycle`, `agent.onActivity`, `computer.onUpdated`, and `server.onUpdated`, the
+`task.onCreated`, `task.onUpdated`, `task.onFollowUpdated`, `agent.onLifecycle`, `agent.onActivity`, `computer.onUpdated`, and `server.onUpdated`, the
 membership sentinel. `computer.onUpdated` owns Agent presence beside the lifecycle stream: after a
 Server restart the streams resubscribe before the Computer reattaches, so their start reads an
 offline Agent list, and only the attach's `computer.updated` says presence came back. Its events
@@ -1240,9 +1198,9 @@ stream ends and restarts alone with capped backoff (1 s doubling to 30 s, reset 
 connected); a sibling never notices. The connection indicator follows only the message and Agent
 lifecycle streams. Chat events coalesce into targeted reads (`ChatRealtimeEffects`): a tail read per
 loaded list for a new message, a `chat.message` read per changed annotation, one shared Chat list
-read. Task events coalesce the same way against `TaskSnapshots` (`applyTaskEffects`): only a held
-board, detail, or label list reads, and the Task Inbox reads on `taskInbox.onChanged` or a change to
-a held item.
+read. Task events coalesce the same way against `TaskSnapshots` (`applyTaskEffects`,
+`applyTaskPlaceEffects`): only a held Task or label list reads, a changed Task's held origin preview
+re-reads through `chat.message`, and the followed unread Tasks read again once held.
 
 Recovery is anchored to the subscription start (`RealtimeReconciliation`). A read that finished
 before a stream subscribed can miss a commit whose event fired before the subscription existed, so
@@ -1251,14 +1209,14 @@ reconciles the projections that stream owns (`RealtimeStream.ownedProjections`).
 latest landed read began after that start is skipped, and starts landing together (a launch, a
 foreground, a dropped socket) share one pass, so each open list reloads once. The message stream
 keeps its cheap path: every start tail-reads each loaded list, and only its restart adds the bulk
-reload, which also repairs a Thread anchor whose reply event it missed. Bulk transcript recovery
+reload, which also repairs a Task preview whose message event it missed. Bulk transcript recovery
 reloads the open lists' loaded pages and marks off-screen lists to reload when shown. The same
 clock makes the newest-started `chat.list` and `server.list` read win, so a slow foreground
 snapshot never overwrites a reconciliation that already landed.
 
 No message carries a label, so `taskLabel.onUpdated` owns only the label catalog. The Task streams
-own `boards`, `boardTasks`, and `taskInbox` (`RealtimeProjection`); the Task Inbox is shell state like
-the Chat list, so a start always reads it, because the Inbox dot counts it.
+own `taskDetails` and `unreadTasks` (`RealtimeProjection`); the message and read streams own
+`unreadTasks` too, because a Task message or read moves a followed Task's Unread row.
 
 Refusals follow the coded `hausRefusal` only, never a bare tRPC code. `membership_lost` is final
 for the Server: every stream stops, in-flight reads are cancelled (a cancelled read writes nothing),
@@ -1311,7 +1269,7 @@ created channel uses, because both reappear only on the next Server chat list. C
 the live Agent directory and `chat.createChannel`. These sheets receive narrow async closures from
 `HausApp` so `HausUI` remains independent of tRPC and does not invent mobile-only ids or records.
 
-Swift Chat and Thread composers use the system inline Photos picker and Files importer plus a focused
+Swift Chat and Task composers use the system inline Photos picker and Files importer plus a focused
 AVFoundation camera surface on physical iPhones. Photos and Camera expand from the composer into one
 rounded, local attachment portal; they do not create routes or full-screen covers. The portal card is
 painted to the true screen bottom and the keyboard simply stays up *behind* it — the portal never
@@ -1333,29 +1291,29 @@ that leaves while the screen is mid-transition. Each reading carries its own tra
 keyboard's curve (`ComposerKeyboardMotion.travel`) when UIKit animates the keyboard, none while a
 finger drags it — so the composer rides the keyboard's top edge through the rise, the fall, and a
 drag in either direction. A keyboard frame counts only while something is first responder: after a cancelled back
-swipe out of a Thread, UIKit keeps reporting a 233-point keyboard that is not on screen.
+swipe out of a Task, UIKit keeps reporting a 233-point keyboard that is not on screen.
 
 Do not go back to SwiftUI's keyboard safe area read through the shell's `GeometryReader`: it
 floated the composer a growing gap above the keyboard as a draft grew (about 57pt at six lines),
-went stale across a Thread pop so a returning keyboard covered the composer, shrank the sidebar
+went stale across a pushed screen's pop so a returning keyboard covered the composer, shrank the sidebar
 under a keyboard still up, and, with a spring on every step, trailed the finger through a drag.
 
 Three gestures put the keyboard away. Dragging the transcript down into the keyboard dismisses it
 interactively (`keyboardDismissMode = .interactive` on the flipped table) and is cancellable by
 dragging back up. A tap on the transcript that lands on no row control resigns the composer
-(`onContentTap`, the Thread's existing rule); links and controls still act on that tap, and a long
+(`onContentTap`); links and controls still act on that tap, and a long
 press still opens the message drawer. And anything that covers the composer resigns it first: the
 drawer as soon as it is open or under a finger (`HausDrawerState.isEngaged`, published to the screen
-as `hausDrawerEngaged`), and a pushed Thread. Neither raises the keyboard again when it goes away;
+as `hausDrawerEngaged`), and a pushed Task. Neither raises the keyboard again when it goes away;
 a sheet, which takes the keyboard for itself, hands it back on dismissal the way UIKit does. A
-pushed screen such as Thread keeps the system bar and native keyboard avoidance, and needs none of
+pushed Task keeps the system bar and native keyboard avoidance, and needs none of
 this.
 
 The card overlaps the keyboard because it is drawn in a window of its own. The keyboard is not part of
 the app's window — iOS paints it in `UIRemoteKeyboardWindow`, above everything the app draws — so a
 portal layered inside the app window is cut off wherever the two meet, whatever its z-order. The
 screen still owns the state: `ComposerInteraction` stays the single source of truth and the screen
-registers itself with `ComposerPortalPresenter` on appear and resigns on disappear (Chat and Thread
+registers itself with `ComposerPortalPresenter` on appear and resigns on disappear (Chat and Task
 both host portals, never at once, and a leaving screen only clears a registration still its own).
 `ComposerPortalWindowController` mounts one `ComposerAttachmentPortal` from that registration in a
 full-screen overlay window whose level is overridden on the *getter*, because UIKit clamps an assigned
@@ -1416,17 +1374,14 @@ the slower decode finishes. Selected files stay in a composer-owned temporary di
 until the message succeeds, and imported security-scoped URLs are copied while access is active rather
 than retained or buffered into memory. Chat-canvas staging belongs to the Chat, not the screen: it
 survives a Chat switch and a push-over, and is discarded only by a successful send, by removing the
-tile, or by the destination leaving the Server list. A Thread composer is screen-owned, so a popped
-Thread abandons its staged files to the temporary directory. Sending reserves each file
+tile, or by the destination leaving the Server list. A Task composer is screen-owned, so a popped
+Task abandons its staged files to the temporary directory. Sending reserves each file
 through the existing `attachment.reserve` procedure, uploads bytes through the authenticated raw
 attachment route, then associates the returned attachment ids through `chat.send`; no native-only
-attachment record exists. A file is reserved in the Chat its composer is anchored in, which for a
-Thread reply is the parent Chat — a first reply has no Thread chat id yet, and Server re-homes the
-attachment to the Thread the reply lands in. A Thread with no replies therefore accepts an attachment
-on its first reply, exactly as the web composer does. Pending rows show the selected files while
+attachment record exists. A file is reserved in the Chat its composer sends to. Pending rows show the selected files while
 upload is unresolved, with no upload indicator; a failed send keeps the text and files on its
 "Not sent" row for Try Again, and successful Server attachments render identically in
-main timelines and Thread replies. Opening an image attachment opens the attachment viewer described
+Chat and Task timelines. Opening an image attachment opens the attachment viewer described
 above; every other kind resolves its cached file and presents the native Quick Look surface. The
 client enforces the Server's 50 MiB limit before reservation.
 
@@ -1443,7 +1398,7 @@ mode, matching the App's `--reaction-diecut` token; bitmaps cache per emoji and 
 message and `message.reaction.updated` refetches the affected lenses. Tapping a sticker toggles the
 viewer's own emoji.
 
-Long-pressing a durable message, in a Chat or a Thread, opens the message drawer
+Long-pressing a durable message, in a Chat or a Task, opens the message drawer
 (`Sources/HausUI/Chat/MessageActions/`): a stock sheet with the grabber and system dimming, its
 height a custom detent measured from the actions list so it ends at the last card for any Dynamic Type
 size. The sheet sits over the transcript, which never scrolls or insets for it, so the pressed row may
@@ -1453,8 +1408,8 @@ four plus 🔥 and 👋 — tinted where the viewer already reacted, so pressing
 smiley tile. When the message has reactions, a "6 reactions · You, Blippy, Cove" row pushes the
 reactors list inside the sheet, one line per sticker, the viewer's own first with a checkmark and
 removed on press, which is iOS's place for what the App shows on hover. Inset grouped cards follow:
-Reply (where the Chat has inline replies) and Reply in Thread or Open Thread, then Copy Text. The
-Thread's drawer keeps reactions and Copy Text. A chosen action runs after the sheet has gone, so a
+Reply (where the Chat has inline replies — the only reply, since there are no Threads), then Copy
+Text. A Task's drawer keeps reactions and Copy Text. A chosen action runs after the sheet has gone, so a
 push or the composer's focus never races the dismissal. VoiceOver cannot reach the row's long press, so each
 message's identity block reads as one element — author, time, body — carrying the drawer's actions
 as rotor actions (React opens the drawer; `MessageRowAccessibility`).
@@ -1521,7 +1476,7 @@ then Channels, then Skills) so no row has to caption itself. A Skill row wears t
 the transcript chip's own purple ink, inside the neutral box and `box / 3` corner a channel row's
 `ChannelIconBox` uses. The first row carries a soft highlight, the list caps at four and a half rows
 and dissolves its bottom edge over the cut row, and the whole card springs up out of the composer
-edge on arrival and fades quickly on the way out (opacity only under Reduce Motion). Chat and Thread rows parse that
+edge on arrival and fades quickly on the way out (opacity only under Reduce Motion). Chat and Task rows parse that
 markdown into chips and resolve live identity by immutable id — an Agent or human by avatar and current
 name, a channel by its `ChannelIconBox` glyph and configured color from the Chat list — falling back to
 the persisted label when the target is unresolvable. Chip and picker labels carry no `@`, `#`, or `$`: the mark
@@ -1594,19 +1549,19 @@ run's words and over a chip's whole run, the mark's spacer included, so the mark
 rather than sitting in a dead margin before it. Only the schemes the system routes qualify, which is `http`, `https`, `mailto`,
 and `tel`: a website or pull-request chip opens its address, a `haus://` resource draws as a link
 and stays inert because nothing on the phone routes one yet, and an Agent or Channel chip carries no
-`.link` at all, where the App opens a profile or a channel. A Thread chip is an in-app route: the
-Server rewrites an Agent's Thread mention to `chat://<chatId>?thread=<anchorMessageId>`, which
-`ThreadReferenceTarget` reads ahead of the Channel form (a shared artifact chip is the other in-app
+`.link` at all, where the App opens a profile or a channel. A Message chip is an in-app route: a
+stored body may still carry the legacy `chat://<chatId>?thread=<messageId>` form the Server once
+wrote for a side conversation, which `MessageReferenceTarget` reads ahead of the Channel form (a shared artifact chip is the other in-app
 route, described with pages above) (any other query on `chat://` is no reference,
-as in the shared parser). It wears the App's thread glyph, names its anchor's first line once the parent
-page holds the anchor, and keeps that wire target as its `.link`; the coordinator asks
-`InAppReferenceRoutes` before handing any URL to the system, and the App's installed route pushes the
-Thread over its parent Chat, fetching the anchor when the page is not loaded. A table cell is SwiftUI
+as in the shared parser). It wears the message glyph, keeps the link's own words, and keeps that wire
+target as its `.link`; the coordinator asks `InAppReferenceRoutes` before handing any URL to the
+system, and the App's installed route opens the Channel or DM on the canvas, revealing the Message,
+where that conversation now lives as inline replies (ADR 0052). A table cell is SwiftUI
 `Text` rather than the text view, and a `Text` link inside a hosted transcript row never receives its
 tap. So a cell carrying exactly one link is that link as a whole: it drops the dead `.link`, takes a
 tap gesture that calls `openURL`, and gives up text selection, which would take the tap.
-`RichMessageTableView` installs `inAppReferenceRoutes()` on that `openURL`, so a Thread chip in a
-cell opens its Thread the same way. A cell with two or more links still draws them, and they stay
+`RichMessageTableView` installs `inAppReferenceRoutes()` on that `openURL`, so a Message chip in a
+cell opens its Message the same way. A cell with two or more links still draws them, and they stay
 inert on the phone. UIKit's own link machinery decides the
 tap, and `RichMessageLinkCoordinator` — the representable's `UITextViewDelegate` — decides only what
 it means: `textView(_:primaryActionFor:defaultAction:)` returns a `UIAction` that hands the address
@@ -1718,39 +1673,11 @@ next visibility change or foreground retries it; and nothing acknowledges at all
 **frontmost**, the phone's reading of the web App's document-visible-and-window-focused gate.
 Returning to active re-evaluates the open Chat's current mark. Reads still belong to the deepest
 surface alone: every mounted transcript reports what it is showing, including a canvas Chat a pushed
-Thread covers, but only `openChatID` acknowledges — and while the Inbox is the canvas there is no
+Task covers, but only `openChatID` acknowledges — and while the Inbox is the canvas there is no
 Chat screen mounted to report at all. The durable `chat.read` event — which Server writes only when
 the read moved and addresses to the reader alone — owns the `chat.list` refresh, exactly as the web
 App's `useChatRead` does, so one acknowledgement produces one list refresh and unread counts remain
 Server projections rather than local durable state.
-
-Native Thread routes are anchored by the parent message id, which exists before the child Chat is
-created. The route also carries the parent Chat id and may carry a resolved Thread Chat id. Opening an
-unthreaded message therefore needs no speculative Server write: the first reply sends the parent Chat
-id plus the anchor message id, adopts the returned child Chat id, and continues on the same screen.
-Thread optimistic rows stay keyed by the anchor across that transition; once Server names the child
-Chat, the Store records the provisional key's adoption (`adoptedChatIDs`) and `threadChatID` answers
-with it, so the open screen reads the Chat the row moved into before the parent page refetches. Existing Threads reuse the
-same route and shared timeline presentation with their child Chat id already resolved. If another
-client creates the Thread while that route is open, the refreshed parent summary supplies the child
-Chat id and the native screen adopts it without remounting. Back navigation carries the parent Chat id
-explicitly so app reloads cannot return to a default Chat, while ordinary stack navigation preserves
-the mounted parent timeline and scroll position. Task metadata renders on its canonical anchor message;
-the native timeline does not invent a second task receipt row.
-
-A Thread screen carries the App's follow action on its navigation bar's trailing rail
-(`ThreadFollowControl`). The App keeps the same action in the Thread header's name dropdown, where two
-other actions keep it company; a pushed phone screen has no such menu, so the action is the bar item
-itself and it wears the same words and the same pair of bells — **Follow thread** with
-`Notification01Icon`, **Stop following thread** with `NotificationOff01Icon`, both stating what a press
-will do. Follow state lives on the parent page's `ThreadSummary` (ADR 0013), so a Thread Server has not
-created yet has no summary and shows no control until its first reply lands.
-
-`HausStoreThreads` owns the write. `setThreadFollow` patches that summary optimistically through
-`ThreadFollowPatch` in `HausModels`, sends `thread.setFollow`, keeps whatever the receipt says, and on
-failure rolls the summary back to the value the press replaced and logs the error. It keeps no second
-copy of the state: the durable `thread.follow.updated` event already refetches the parent Chat page and
-the Chat list, which is what converges this client with every other one.
 
 Haus starts Google sign-in in `ASWebAuthenticationSession` by opening Server `/auth/start` with a
 random state and an S256 PKCE challenge. The exact custom callback is `haus://sso-callback`; the app
@@ -1781,7 +1708,7 @@ the human taps "Sign in to local Server".
 
 ## Native surface
 
-The app shell, navigation, chat timeline, composer, and threads are native SwiftUI. An interactive
+The app shell, navigation, chat timeline, composer, and Tasks are native SwiftUI. An interactive
 artifact may use an isolated web canvas inside a native route when the artifact runtime requires
 browser APIs; that canvas would receive a narrow serialized contract and would not own authentication,
 navigation, Server queries, or durable app state. A ```` ```page ```` page is the one such
@@ -1798,8 +1725,9 @@ own surfaces and portal keep their measured corners for now.
 
 Settings stay inside one native sheet and `NavigationStack`. Settings is entered from the sidebar's
 floating gear control, pinned bottom-trailing over the scrolling chat list. The sidebar navigation
-carries the App's own order: Server-wide destinations lead — the Inbox row first, then Tasks — then
-Channels, then DMs. The sidebar's
+carries the App's own order: the Inbox row first, then Channels, then DMs. The phone has no Tasks
+page ([ADR 0052](../adr/0052-channels-and-tasks-are-the-only-places.md) decision 15): a Task opens
+from its origin preview, a chip, its Unread row, or a push. The sidebar's
 Server header is the Server menu; archived chats open from there
 rather than spending a navigation row. That header carries the Server's name and nothing else —
 Agent and member counts are a Settings readout, not standing sidebar chrome — so `ServerPresentation`

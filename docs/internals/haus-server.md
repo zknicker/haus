@@ -137,9 +137,10 @@ PostgreSQL owns the hosted collaboration tables
 | `computer_login_grants` / `computer_login_sessions` | Hashed one-use device codes, short-code approval state, origin-bound hashed management credentials, expiry, polling state, canonical Haus User owner, and the CLI's post-persistence acknowledgement |
 | `computers` | Server-scoped Computer credentials (hash only), durable attachment idempotency, last authenticated handshake facts, and attachment-visible update progress |
 | `server_invitations` | Email-bound, single-use invitations by SHA-256 token hash |
-| `chats` | Server-owned Channels, canonical sorted two-human DMs, Owner↔Agent DMs (`dm_agent_id`), and hidden child Threads |
+| `chats` | Server-owned Channels (each with a `task_key_id`), canonical sorted two-human DMs, Owner↔Agent DMs (`dm_agent_id`), and each Task's own `task` Chat under its origin Channel and Message |
+| `tasks` / `task_keys` / `task_pull_requests` | Tasks with their state, assignee, and origin; the per-Server key ledger; pull requests attached to a Task ([specs/tasks.md](../../specs/tasks.md)) |
 | `channel_participants` | One human's participation in one Channel |
-| `thread_follows` | Per-human Thread attention; never membership |
+| `thread_follows` | Per-human Task follows (`thread_chat_kind = 'task'`); never membership |
 | `agents` / `channel_agent_participants` | Hosted Agent identity and uploaded avatar (`avatar_id`), immutable Computer assignment, Server-owned desired runtime/model, the Computer-reported effective snapshot, the creating human or Agent plus the announcement Message an Agent-created Agent anchors to, and Channel access for reminder authorship |
 | `agent_delivery` / `agent_inbox` | One-row-per-Agent Stop flag and single in-flight run (the per-Agent serialization boundary), and the agent inbox drained into runs — the only agent-only lane, including the items with no backing message: automation fires, claim assignments, Task assignments, and sub-agent wakes |
 | `agent_turns` | Compact per-run turn summary reported by a Computer after a launch settles |
@@ -283,7 +284,7 @@ See [Skills](../features/skills.md) and [Skills API](../api/skills.md).
 `apps/server/drizzle/postgres/` contains its ordered Drizzle migration history.
 Fresh bootstrap applies that history to an empty database; it does not maintain
 a second handwritten schema. The migration history carries the one composite
-Thread-anchor foreign key that cannot live in the typed modules without a
+anchor-Message foreign key (a Task Chat's origin) that cannot live in the typed modules without a
 `chats`/`chat_messages` initializer cycle. Each production activation applies
 pending checked-in migrations before switching releases. The Server application
 role retains table DML authority but no DDL authority; only the root-scoped
@@ -428,8 +429,7 @@ parent is now tombstoned, so a removed Trigger cannot keep waking an Agent while
 an in-flight turn still settles safely.
 
 **Stale `in_review` claim close** (`CLAIM_IN_REVIEW_STALE_DAYS`, 7) closes each
-`in_review` claim whose own row has not changed and whose Thread — the one
-anchored on the claim message — has taken no new message inside the window. Each
+`in_review` claim whose own row has not changed inside the window. Each
 close is its own transaction taking the Server row and the claim row, re-checking
 staleness under the lock, bumping the version, and publishing `claim.changed`
 after commit, so App caches invalidate exactly as they do for an operator's
@@ -524,9 +524,9 @@ A returning human reuses their existing membership row because authored
 messages and historical DM pairs point at it. Acceptance resets it to `member`
 with a new `joined_at`, increments its `stint`, and joins only `#all`. A DM
 records both participants' stint numbers: the returning human cannot read the
-former DM or its Threads, while the peer who did not leave retains that
-history. Removal clears `channel_participants`, `chat_reads`, and
-`thread_follows`, and live composition state for every departed Chat, including Threads.
+former DM, while the peer who did not leave retains that history. Removal
+clears `channel_participants`, `chat_reads`, and `thread_follows`, and live
+composition state for every departed Chat, including Task Chats.
 
 The invitation address is a target, never an identity. Cloudflare's signed
 email claim is compared to the exact aliases in `user_verified_emails`; the
@@ -583,7 +583,7 @@ Server query, mutation, and subscription resolves membership through it:
   middleware, so a non-member is refused at registration with the coded
   `membership_lost` refusal and never reaches event delivery.
 - `chat.*` resolves current membership and Chat participation before every
-  read or write. Thread access resolves through the parent Channel or DM.
+  read or write. Task access resolves through the origin Channel.
   Realtime and composition subscriptions recheck that access for each event delivery.
 - `claim.*` resolves current membership and parent-Chat access. Assignment also
   requires Owner/Admin authority and filters targets to active humans with that
@@ -591,7 +591,7 @@ Server query, mutation, and subscription resolves membership through it:
   before authorizing, then serialize versioned changes against the claim row.
 - Membership removal releases the departing human's claims and
   assignments and publishes `claim.changed` for each. Reinvitation restores neither those
-  links nor private claim/Thread access from the former stint.
+  links nor private claim access from the former stint.
 - Realtime delivery skips events for inaccessible Chats without ending the
   stream. Revoked Server membership ends the stream with `membership_lost`.
 
@@ -603,17 +603,16 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
 - `/` signs the human in, then opens the last Server they used or their first
   current membership. Server switching and creation live in the Haus App sidebar.
 - `/s/<slug>` opens Server-owned Chats, transcript, composer, reads, search,
-  attachments, and the hosted task Board/List. It reserves and streams local
+  attachments, Tasks, and the Tasks page. It reserves and streams local
   files to the hosted Server, renders only attachment metadata in messages,
   and performs authenticated downloads.
   An author already visible in the transcript is the entry point for their DM.
   A retired Agent's implicit DM row leaves active navigation and is not an App destination.
   Canonical collaboration records remain durable Server history; the retired Agent is absent from
   every member control and receives no new sends or claim messages.
-  Message replies open hidden child Threads in the resizable side pane; Threads
-  never enter the hosted sidebar Chat list.
-  Claim rows open the canonical message's existing child Thread. Claim controls
-  call the hosted API directly; `claim.onChanged` owns exact cache invalidation.
+  Message replies are inline replies in the same Chat. Open Tasks list in the
+  sidebar; a Task opens its own page. Claim controls call the hosted API
+  directly; `claim.onChanged` owns exact cache invalidation.
 - `/s/<slug>/members` manages humans and invitations.
 - `/s/<slug>/computers` is the Owner/Admin Computer inventory. It shows
   the reported machine name, attachment health, reported runtimes/models,
@@ -669,9 +668,9 @@ is the membership sentinel: Server deletion and member departure publish it so
 the departed viewer's sentinel ends with `membership_lost`. Any other failure
 ends only that stream, is logged, and surfaces as `INTERNAL_SERVER_ERROR`.
 
-Chat-scoped events carry `parentChatId`, nullable for top-level Chats, so the
-App can refetch a Thread and its exact parent summary without carrying anchor or
-message content in the event.
+Chat-scoped events carry `parentChatId`, nullable for top-level Chats and the
+origin Channel for a Task's Chat, so the App can refetch a Task and its preview
+without carrying message content in the event.
 
 ## Production
 

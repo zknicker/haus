@@ -25,6 +25,9 @@ Computer-local implementation choices.
 Use product nouns directly:
 
 - A `chat` is the durable conversation container.
+- Channels and DMs hold conversation; a `task` is the place for one piece of work, a child chat
+  an Agent starts from a Channel message. There are no Threads; side conversation is inline
+  replies (docs/adr/0052-channels-and-tasks-are-the-only-places.md).
 - A `session` is one agent's single ongoing global execution context spanning
   every chat it participates in (specs/sessions.md).
 - A `turn` is one execution inside a session.
@@ -75,7 +78,7 @@ so `docs:list` routes future agents correctly.
 - Keep API procedures thin: validate input, call product logic, and return a narrow result.
 - Put business logic under product nouns. Keep external-system code behind adapters.
 - Define server-to-client event contracts in `packages/haus-api`, one payload schema per event
-  type: Chat and Thread events in `src/chat-events.ts`, Server-level notices in
+  type: Chat events in `src/chat-events.ts`, Task events in `src/task.ts`, Server-level notices in
   `src/realtime-events.ts` (see `specs/realtime-events.md`).
 - One focused subscription per event type, such as `chat.onMessageCreated` or `agent.onActivity`;
   never a union stream or generic event bucket.
@@ -255,7 +258,7 @@ report, use `.agents/skills/tune-agent-behavior/SKILL.md`.
 
 ### Issue tracker
 
-Issues live in Haus Tasks (`haus task` / `haus board`). See `docs/agents/issue-tracker.md`.
+Issues live in Haus Tasks (`haus task`). See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

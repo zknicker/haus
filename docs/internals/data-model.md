@@ -3,6 +3,7 @@ summary: Current persistence ownership across Server PostgreSQL, Computer state,
 read_when:
   - changing database schema, persistence ownership, or durable product records
   - deciding whether state belongs in Server, Computer, or App
+  - changing the Task tables, the key ledger, Task follows, or the 0122–0126 Task and Thread migrations
 ---
 
 # Data model
@@ -15,7 +16,7 @@ the migration command.
 
 | Store | Owner | Contents |
 | --- | --- | --- |
-| Server PostgreSQL | Haus Server | Users, Servers, membership, Chats, Messages, message reactions, threads, Claims, task labels, Reminders, Agents, desired execution configuration, Computer attachments and reports, MCP connections, image generations (`image_generations`), their Message links (`image_generation_links`) and per-provider keys (`image_generation_keys`), GitHub installations, Triggers and their fire history, automation provenance on Agent messages, and authorization. |
+| Server PostgreSQL | Haus Server | Users, Servers, membership, Chats, Messages, message reactions, Tasks and their key ledger, follows, and attached pull requests, Claims, task labels, Reminders, Agents, desired execution configuration, Computer attachments and reports, MCP connections, image generations (`image_generations`), their Message links (`image_generation_links`) and per-provider keys (`image_generation_keys`), GitHub installations, Triggers and their fire history, automation provenance on Agent messages, and authorization. |
 | Computer data root | Haus Computer | Attachment credentials, delivery queues, logs, Agent homes, skills, workspaces, runtime state, cached provider-usage snapshots, and effective execution evidence. |
 | Browser/App storage | Haus App | Cache, local preferences, desktop presentation state, and optimistic rows. |
 
@@ -64,8 +65,8 @@ aggregate cascades its reactions.
 
 `chat_messages.mentioned_user_ids` is the set of human user ids a Message's content mentions
 through `user://` references, written on every send path from the same parse that follows
-mentioned humans into Threads and GIN-indexed. With the inline parent's and Thread anchor's
-authors and DM membership, it is what decides a message notification
+mentioned humans into Tasks as followers and GIN-indexed. With the inline parent's author and DM
+membership, it is what decides a message notification
 ([ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)). `chat_reads.sequence` is the viewer's
 read marker, the only Inbox state: a Chat is unread while it holds someone else's message above it.
 There is no Ask table and no Done marker.
@@ -77,8 +78,8 @@ ledger. Unread for an Agent is someone else's message above the position. The po
 forward (`greatest`):
 
 - Membership opens it at the Chat's last message — channel join, DM creation, a new or restored
-  Thread follow — except that a message which caused the membership (a mention following the Agent
-  into a Thread) stays unread. Migration `0062_agent_chat_reads` backfilled current memberships the
+  Task follow — except that a message which caused the membership (a mention following the Agent
+  into a Task) stays unread. Migration `0062_agent_chat_reads` backfilled current memberships the
   same way. A missing row reads as 0.
 - `message read --unread` moves it through the returned page; a plain history page moves it only
   when no message sits between the position and the page start.
@@ -96,6 +97,22 @@ lock serializes allocation through commit and no reader can see N+1 before N.
 human assignee. A claim is only the lock on its message, so it has no priority or labels: those
 live on `tasks`. `task_labels` is the Server's label catalog and `task_label_assignments` links it
 to Tasks. Members create catalog entries; Owners and Admins rename, recolor, or delete them.
+
+A Task ([specs/tasks.md](../../specs/tasks.md)) is a `tasks` row plus its own `chats` row of kind
+`task`, whose `parent_chat_id` is the origin Channel and `anchor_message_id` the origin Message;
+`tasks.chat_id` links them, one Chat per Task, and is null only for legacy history Tasks.
+`tasks.state` is `todo`, `open`, `done`, or `canceled`. `task_keys` is the key ledger, each entry
+with its own `next_number`; `tasks.key_id` names a Task's entry and `chats.task_key_id` a
+Channel's. `task_pull_requests` attaches pull requests by repository and number, and
+`cloud_agent_work.task_id` attaches cloud work. Followers ride `thread_follows` (people) and
+`agent_thread_follows` (Agents) with `thread_chat_kind = 'task'`. Migrations 0122–0126 made Tasks
+places: 0122 added the ledger, states, and Task Chats (every board became a ledger entry); 0123
+let reminders anchor on a Task; 0124 turned every Thread into inline replies on its anchor and
+marked each affected Channel read for everyone who can read it, keeping audit tables
+(`thread_migration_map`, `thread_migration_rows`) for `apps/server/scripts/verify-thread-migration.ts`;
+0125 converted unfinished legacy Tasks with an Agent assignee into places, canceled the rest, kept
+done and canceled ones as read-only history, and dropped boards, columns, and the Task Inbox;
+0126 removes the Thread schema.
 
 `cloud_agent_work` is the standalone Cloud Agent work record (ADR 0044). Its `chat_id`,
 `launch_message_id`, and `computer_id` name the requesting Chat, launch Message, and launching
@@ -132,7 +149,7 @@ An Agent created by another Agent (ADR 0028) records `created_by_agent_id`,
 `creation_nonce`, and `creation_request_hash` on `agents`. The nonce is unique per
 (Server, creating Agent); the hash covers the request with channel order and repeats normalized.
 Retries find that Agent under the Server lock, independently of later conversation.
-Creation writes no Message or Thread. The nullable `creation_message_id` and its foreign key remain
+Creation writes no Message. The nullable `creation_message_id` and its foreign key remain
 only for existing production announcements and rollback; new creations leave it null.
 Deleting a historical announcement clears that link without deleting the Agent.
 `agents` carries no `role`; Server authority is a human membership property.

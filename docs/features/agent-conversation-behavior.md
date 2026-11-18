@@ -1,11 +1,11 @@
 ---
-summary: The cross-cutting contract for how a Haus Agent behaves in conversation (reply placement, voice, reactions, formatting, who answers, visible work, and quiet Task pacing), with the source that owns each trait and the guard that keeps it from regressing.
+summary: The cross-cutting contract for how a Haus Agent behaves in conversation (reply placement, voice, reactions, formatting, who answers, visible work, and when work becomes a Task), with the source that owns each trait and the guard that keeps it from regressing.
 read_when:
   - changing the Agent prompt's voice, personality, conversation style, signature emoji, or formatting guidance
   - changing where Agents post acknowledgments, progress, or answers, or when they react instead of replying
-  - changing mention routing, sole-addressee narrowing, or thread context delivered to a mentioned Agent
+  - changing mention routing or sole-addressee narrowing
   - changing the typing strip, thought phrasing, or mid-turn notices
-  - changing how an Agent paces its assigned Tasks or what it says about them
+  - changing when an Agent starts a Task, where it reports Task work, or what wakes it on a Task
   - editing specs/raft-alignment/prompt-divergences.md rows for Personality, Communication style, Startup step 4, Sending messages, Conversation etiquette, or Formatting
   - reviewing an Agent transcript that "feels off" and looking for which contract it broke
 ---
@@ -25,77 +25,44 @@ in the channel: "On it. I'm pulling last year's Halloween ad numbers for the sam
 shortly 🎃". Juniper, also in the channel, stayed quiet. Earlier that day Beacon's ads digest was a
 table for the numbers, a few short sections, and plain prose around them.
 
-What makes it right: the acknowledgment lands where the question was asked, not in a claim thread;
+What makes it right: the acknowledgment lands where the question was asked;
 it names exactly what is being fetched without narrating a plan; it sounds like a teammate, with a
 seasonal emoji that fits the moment; only the addressed Agent speaks; and structure appears only
 where the content is data. Every section below is one of those properties.
 
-## 1. Answer inline where the requester is looking; working notes thread on the pickup note
+## 1. Answer inline where the requester is looking; work that outlasts a reply goes in a Task
 
 The prompt teaches placement as what a human sees, not as message categories: an inline reply
-(`--reply-to` in a channel or DM) stays in the channel and notifies the parent's author, while a
-thread shows only as a one-line preview: its followers see it as unread, and only its anchor's
-author (for every post) and anyone @mentioned are notified. Every DM message notifies the other
-person, thread or not. So the requester gets what they asked for where they are looking, an inline
-reply in a channel or DM or a post in the thread it arrived in (no `--reply-to` there), with
-`--done` on the message that answers it. Work that needs real digging gets the Agent's
+(`--reply-to` in a channel or DM) stays in the channel and notifies the parent's author, and every
+DM message notifies the other person. A Task post is unread for the Task's followers and notifies
+anyone @mentioned. So the requester gets what they asked for where they are looking, an inline
+reply in a channel or DM, or a post in the Task when the request arrived there, with `--done` on
+the message that answers it. Work that needs real digging gets the Agent's
 signature-emoji reaction on the request and, when it takes several steps, a one-line pickup note
 with no plan. A question answerable from what the Agent has or one quick look-up is simply
-answered, with no reaction first. The Agent's working notes and progress, even when someone asked
-to be kept posted, go in a thread on its own pickup note in a channel, never in a thread on the
-request (that notifies its author for every post) and never in a claim thread; in a DM they stay
-private. A result or question left only there
-has not reached the requester. When done, the Agent answers what was asked and stops: no
-obligatory summary or closing offer. CLI receipts carry no placement advice: the send receipt
-says where a message landed and who was notified. The description is paired with a command-shaped
-mechanics paragraph (`--reply-to` and `--done` on the answer, working notes at the pickup note's
-thread target), and every non-thread send receipt states the message's own thread target
-(`Thread on this message: <target>:<shortId>`), because the 2026-10-15 live gate showed the
-description alone lost `--done` and `--reply-to`.
-
-Sidebars are the one place the prompt instructs rather than describes: a back-and-forth or a long
-write-up about something other than what the channel is for goes in a thread on the message that
-started it, whose author is notified for every post. A quick answer is not a sidebar and stays
-inline. Threads opens on Raft's "discuss a topic without cluttering the main channel". A
-descriptive sentence alone did not move placement in the `side-work` eval (0/3, the same as
-baseline); the instruction did (3/3) with `placement` unchanged, on `codex/gpt-5.6-sol`
-(2026-11-05).
+answered, with no reaction first. A side conversation stays in its channel as inline replies.
+Progress, questions, and the result of work done for a Task go in that Task, which whoever asked
+follows ([ADR 0052](../adr/0052-channels-and-tasks-are-the-only-places.md)). When done, the Agent answers what was asked and stops: no obligatory summary or closing offer.
+CLI receipts carry no placement advice: the send receipt says where a message landed and who was
+notified. The description is paired with a command-shaped mechanics paragraph (`--reply-to` and
+`--done` on the answer, `--target task:<KEY-n>` for Task work), because the 2026-10-15 live gate
+showed the description alone lost `--done` and `--reply-to`.
 
 - Owner: [ADR 0029](../adr/0029-inline-replies-preserve-conversation.md) and its 2026-10-02,
   2026-10-06, and 2026-10-14 amendments; `sendingMessagesSection` (the visibility paragraphs) and
   the pickup and "When done" bullets of `communicationStyleSection` in
   `apps/computer/src/harness/managed-instructions.ts`; Manual topic `replies` in
   `packages/agent-manual/src/product-topics.ts`.
-- Guards: the `side-work` eval (`side-work-stays-beside-channel` and its one-off control), the `placement` eval (`placement-quick-fact`, `placement-recommendation`, `placement-off-topic-quick-question`,
-  `thread-reply-stays-in-thread`, `solo-progress-threads-on-ack`, and the kit scenarios) and
-  `task-thread-routing` in the `attention` eval (`scripts/agent-tests/scenarios/`);
-  `thread-instructions.test.ts` (visibility paragraphs, "When done, answer what was asked, then
-  stop."), `managed-instructions.test.ts` ("the inline reply that answers the request carries
+- Guards: the `side-work` eval (`side-work-stays-beside-channel` and its one-off control), the
+  `placement` eval (`placement-quick-fact`, `placement-recommendation`,
+  `placement-off-topic-quick-question`, and the kit scenarios), and the `task-intake` eval
+  (`scripts/agent-tests/scenarios/`); `managed-instructions.test.ts` ("the inline reply that answers the request carries
   --done", "claim updates follow the requesting conversation"),
   `personality-instructions.test.ts` ("the pickup bullet replaces the Raft acknowledge-and-outline
   and progress bullets"); `packages/agent-manual/src/product-topics.test.ts`; register rows
   "Sending messages" and "Communication style".
 
-**Known flake (investigated 2026-10-08).** `solo-progress-threads-on-ack` fails intermittently on
-"progress in a thread on own acknowledgment". Repeated runs on one stack: Codex `gpt-5.6-terra`
-(the eval default) 2/4, Claude Code `claude-opus-5-5` 3/4, Codex `gpt-5.6-sol` 3/3. In 11 valid
-runs no model posted progress at the top level or in the request thread; every failure is
-*missing* progress, never misplaced progress. The workload collapses into one
-`seq | awk` command, so a model that runs it in one call has no intermediate step to report. The
-prompt then permits silence: "skip updates that change nothing", the Manual's "One-step work
-needs no thread", and the pickup bullet's "one quick look-up, just answer". The failing terra
-runs sent the acknowledgment and the whole computation in one or two shell calls. The failing
-Opus run sent no acknowledgment at all, only `--done` with the answer. Passing terra runs added a
-single thread post before or just after that one command. Sol ran each step as its own command
-and threaded each result. The CLI was not the cause: at the time every send receipt named the
-`#channel:<shortId>` thread target (it no longer does; see the 2026-10-14 amendment). The scenario was then reshaped so each step's instructions are
-gzip+base64-sealed inside the previous step, forcing one observed shell call per step; after that,
-terra passed 4/4 and Opus 1/2, and the Opus miss ran every step separately yet posted nothing
-before `--done`. That is a real "keep me posted" miss, not a collapsed workload. If it recurs,
-read the run's journal in `.context/agent-tests/evidence/<stamp>/solo-progress-threads-on-ack.json`.
-Steps run as separate calls with no thread post is that behavior miss; a single collapsed command
-means the sealing regressed. A post at the top level or in the request thread is a real
-regression. Never run two `test:agents` processes against one stack: each
+Never run two `test:agents` processes against one stack: each
 startup sweeps the other's Agents, and the victim fails within seconds with `No Agent exists`.
 
 ## 2. House personality, conversation style, signature emoji
@@ -158,25 +125,19 @@ to its sole addressee when one is clear, and an explicit @mention can be judged 
 mentioned Agents alone. Announcements about a mentioned Agent joining, taking on work, or
 sharing a status update preserve channel delivery even without an explicit "everyone" or
 request to act; the mentioned subject is not necessarily the addressee. Agents also respect
-an ongoing back-and-forth they are not part of. An
-Agent mentioned in a thread receives a thread context package and reads the thread before
-replying.
+an ongoing back-and-forth they are not part of.
 
 - Owner: [ADR 0030](../adr/0030-semantic-channel-addressing.md);
   `apps/server/src/message-routing/` (`route-human-message.ts`, `mention-scope.ts`, `jev.ts`);
-  `apps/server/src/agent-delivery/thread-context.ts` and
-  `apps/computer/src/thread-context-format.ts` ([Agent Inbox](../../specs/inbox.md));
-  [ADR 0034](../adr/0034-addressed-messages-ride-the-wake.md) for which bodies a wake carries;
+  [Agent Inbox](../../specs/inbox.md); [ADR 0034](../adr/0034-addressed-messages-ride-the-wake.md) for which bodies a wake carries;
   Conversation etiquette and @Mentions sections of `managed-instructions.ts`.
 - Guards: live scenario `mention-wakes-only-addressed` (one inline reply, an unmentioned inline
   follow-up answered by the same Agent, bystander silent; it logs whether Jev narrowed the
-  follow-up or the bystander chose silence); `apps/server/test/haus-chat-threads.test.ts` (a
-  direct mention restores a Thread unfollow); `apps/server/src/message-routing/mention-scope.test.ts`,
+  follow-up or the bystander chose silence); `apps/server/src/message-routing/mention-scope.test.ts`,
   `jev.test.ts`; `apps/server/test/haus-message-routing-mention.test.ts`,
   `haus-message-routing-sole.test.ts`, `haus-message-routing-mention-offline.test.ts`,
   `haus-message-routing-continuation.test.ts` (the golden two-Agent exchange: a confident Jev
   judgment narrows the unmentioned follow-up to Beacon; a non-narrowing one delivers to both);
-  `apps/server/test/agent-thread-context.test.ts`; `apps/computer/src/thread-context-format.test.ts`;
   labeled eval `scripts/mention-scope-eval.ts` over
   `apps/server/src/message-routing/evals/mention-scope-cases.json`.
 
@@ -213,7 +174,7 @@ can steer as an inbox notice, so the settled reply reflects it.
 In a channel shared with other Agents and a human, an Agent leaves a peer's claim to that
 peer, acts on a peer's handoff from the evidence it carries instead of re-asking the human, never
 takes a peer's guess as the human's answer to a pending question, answers a reminder fire at its
-anchor even while a Thread exchange is live, and draws a requested chart the way the visuals skill
+anchor even while another exchange is live, and draws a requested chart the way the visuals skill
 teaches.
 
 - Owner: Manual cards `task-claim-lock`, `discuss-then-assign`, `evidence-handoff`,
@@ -230,7 +191,7 @@ Live scenarios that exercise each Manual card or managed skill, as of 2026-10-20
 
 | Card or skill | Scenarios |
 | --- | --- |
-| `task-claim-lock`, `discuss-then-assign` | `task-thread-routing`, `room-task-claimed-by-peer` |
+| `task-claim-lock`, `discuss-then-assign` | `task-intake-peer-quick-claim`, `room-task-claimed-by-peer` |
 | `evidence-handoff` | `room-peer-handoff-with-evidence` |
 | `when-to-ask-human`, `sent-zero` | `human-ask-reply-wakes`, `room-pending-ask-peer-guesses` |
 | `reminder-cron` | `reminder-schedule-and-fire`, `room-reminder-fires-mid-conversation` |
@@ -243,39 +204,45 @@ Live scenarios that exercise each Manual card or managed skill, as of 2026-10-20
 The uncovered cards are mostly multi-Agent orchestration and verification recipes that need
 several turns or outside systems.
 
-## 9. Tasks are worked quietly, one at a time
+## 9. A Task holds work a reply will not finish
 
-A Task is queued work on a board, and it takes no claim: a claim is the lock on a message. An Agent
-keeps one Task active at a time, picks by priority and then age, moves that card to an active
-column, and works it. Moving the card is the status update, so nobody hears about the pickup; the
-Agent posts only when it needs a person or has a result worth sharing. Finishing moves the card to
-a done column, and that move's receipt names what is still waiting, so the Agent carries on without
-a scheduler. A Task blocked on a person does not hold up the queue: the Agent @mentions them with
-its key where the work lives, moves the card back to todo, takes the next Task, and leaves it until
-they answer. Work split for other Agents is Tasks on a board, assigned; claims stay for work inside
-a conversation. Chat requests interleave between turns while the active card holds its place. A
-Task's assignment arrives in the Agent inbox with no Chat, so a run started by one has no
-conversation to answer in unless the Agent picks one. Discussion about a Task stays in the Channels
-and Threads that reference its key, and a reference is written as the bare key (`SEC-12`).
+A Task is a place for one piece of work: its own conversation, a state (`todo`, `open`, `done`,
+`canceled`), and the cloud agents and pull requests attached to it. An Agent starts one when its
+reply will not finish the work (more steps, more time, or a cloud agent) and otherwise just
+replies. A Task does not mark ownership; the claim on the request still does. It starts from a
+message in a channel, usually the request; a DM request, a reminder or Trigger fire, or the
+Agent's own finding first gets an origin message in the channel where the work belongs, and
+several findings become sibling Tasks from one message. Progress, questions, and the result go in
+the Task, where its followers see them as unread. Run notices, pull request changes, and a
+one-time reminder set on the Task (`haus reminder schedule --target task:<KEY-n>`) wake the Agent
+there. A Task blocked on a person gets an @mention in the Task and goes back to `todo` while the
+Agent takes other work.
 
-- Owner: [ADR 0051](../adr/0051-tasks-are-boards-and-claims-are-the-lock.md) decisions 6 and 7;
-  `tasksSection` in `apps/computer/src/harness/task-instructions.ts`; the `tasks` Manual topic in
-  `packages/agent-manual/src/product-topics.ts`; the move receipt's queue line
-  ([specs/tasks.md](../../specs/tasks.md#agent-routes)).
-- Guards: `apps/computer/src/harness/task-instructions.test.ts`; the `tasks` eval (`bun run eval
-  tasks`), whose `task-queue-pacing` scenario assigns three Tasks and proves they are worked most
-  urgent first with no message before the last one finishes, and whose `task-blocked-takes-next`
-  scenario proves a Task only a person can decide gets an @mention and goes back to todo while the
-  other is worked to done.
+Tasks others assign are worked one at a time: by priority, then age, with that one `open` and the
+rest `todo` until it is done or blocked. Tasks an Agent started itself, such as sibling Tasks from
+one findings message, can run side by side.
+
+- Owner: [ADR 0052](../adr/0052-channels-and-tasks-are-the-only-places.md); `tasksSection` and
+  `splittingWorkSection` in `apps/computer/src/harness/task-instructions.ts`; the fire-to-Task
+  sentences in `apps/computer/src/harness/automation-instructions.ts`; the `tasks` and
+  `cloud-agents` Manual topics in `packages/agent-manual/src/work-topics.ts`.
+- Guards: `task-instructions.test.ts`, `automation-instructions.test.ts`,
+  `cloud-agent-instructions.test.ts`; `packages/agent-manual/src/work-topics.test.ts`; the
+  `task-intake` eval (`bun run eval task-intake`, scenarios `task-intake-*` in
+  `scripts/agent-tests/scenarios/`): quick facts and in-turn fixes are just answered, multi-step
+  work, a fire that finds work, a DM request, and several findings open Tasks where the work
+  belongs, and a peer's quick claim is left alone. Its two cloud scenarios are opt-in because they
+  spend real Cursor runs. The `task-pacing` eval (`task-pacing-*`) covers an assigned queue, a
+  blocked Task, and self-started Tasks side by side. Not yet run against this build.
 
 ## Anti-patterns this replaced
 
 - Service-desk voice ("Great question!") and closing offers ("Let me know if...").
 - Em dashes and bold-label walls in ordinary chat replies.
 - Acknowledge-and-outline-the-plan messages before starting work.
-- Progress spam in the request's thread or the claim thread.
-- A deliverable posted only in the thread on the Agent's own pickup note, where the requester
-  sees a one-line preview and gets no notification.
+- Progress spam where the request was made.
+- A deliverable posted somewhere the requester does not look and is not notified.
+- A cloud agent's outcome reported at the Channel root instead of in its Task.
 - An obligatory recap after finishing.
 - A full reply to "thanks", or the same 👀 on every acknowledgment.
 - Two Agents answering one mention, or a bystander chiming in on someone else's exchange.

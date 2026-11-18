@@ -106,8 +106,8 @@ API key intentionally cannot mutate or inspect beta-group membership.
 
 Manual operator action is exceptional. Request it only when Apple reports failed processing or an
 export-compliance warning, or when a processed build is observed not to auto-distribute. A real
-iPhone smoke of sign-in, Server discovery, Chat send and realtime receive, photo attachment, Thread
-reply, and foreground recovery is useful release verification, but absence of that optional proof
+iPhone smoke of sign-in, Server discovery, Chat send and realtime receive, photo attachment, inline
+reply, opening a Task, and foreground recovery is useful release verification, but absence of that optional proof
 does not turn a routine internal release into an operator blocker.
 
 TestFlight builds expire after 90 days. Never reuse a build number.

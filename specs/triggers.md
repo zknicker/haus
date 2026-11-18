@@ -229,7 +229,8 @@ Trigger-specific facts are:
   Trigger's fires. This is the surface a person reads a payload from without the
   operator-only `trigger.runs`.
 - Each fire the Agent acts on is its own message. Answers to different fires of
-  one long-lived Trigger never share a Thread.
+  one long-lived Trigger are separate messages; a fire that turns up real work
+  starts a Task in the anchor Channel.
 - The wire `Trigger` reports `anchorMessageId: string | null`, so every client
   that builds a link from it handles the human-authored case where the anchor is
   the Chat alone.

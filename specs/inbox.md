@@ -30,14 +30,14 @@ ordinary Chat work, the rendered envelope as its content, and the recipient Agen
 | Kind (`source`) | What it is | Identity | Lane |
 | --- | --- | --- | --- |
 | `human` | An ordinary Chat delivery of a durable message | The message id | Notice; concrete when addressed on a cold start, or on any wake of a live session |
-| `cloud_agent_work` | One settled Cloud Agent Run's terminal attention for the Agent that delegated it | The Run id | Concrete |
+| `cloud_agent_work` | One Cloud Agent notice for the Agent that delegated it, in the work's Task: a settled Run, a stall, or a pull request change (`cloud_agent_notice` `settled`, `stall`, `pull_request`) | The Run id for a settled Run; the stall window for a stall; `<repo>#<number>:<change>:<headSha>` for a pull request change | Concrete |
 | `claim_assignment` | A direct claim assignment to this Agent | The assignment identity | Concrete |
 | `reminder` | One reminder fire | The fire id | Concrete |
 | `trigger` | One Trigger fire | The fire id | Concrete |
 | `onboarding` | Cove's one-shot bootstrap instruction | Its own bootstrap identity | Concrete |
 | `greeting` | A newly created Agent's one-time `#all` greeting wake (ADR 0028) | `greeting:<agentId>`, so one per Agent | No lane of its own: attached to the next ordinary run whatever leads it (setting the start frame's `greets`), and leads a run only when nothing else waits (a sub-agent wake still leads, since it is never held and the greeting rides the next ordinary run). Retired as `seen`, queued or attached, once the Agent has a message in its `#all`, so neither a Stop nor a reconnect replay makes it show twice. Bodiless; never listed in a notice, the digest, or `haus inbox check` |
 | `subagent` | A wake for background work the Agent started on its runtime that finished or stopped ([runtime-drivers.md](runtime-drivers.md#background-work)); no Chat | `subagent:<agentId>:<wake id>` | Concrete; at most one queued per Agent, only for the current session generation. Never in a notice, the digest, or `haus inbox check`. Spends the automation chain; refused, not queued, at the chain ceiling. Retired by Stop, a session reset, or a run that adopted the turn it was for |
-| `task_assignment` | A board Task assigned to this Agent ([tasks.md](tasks.md)); no Chat | `task-assign:<taskId>:<version>` | Concrete, and the one kind that coalesces: every queued assignment rides one run in the main session, up to 50. A busy Agent gets a count in its notice, never a row. Not in the digest or `haus inbox check`. Retired by reassigning or unassigning before a run takes it |
+| `task_assignment` | A Task assigned to this Agent ([tasks.md](tasks.md)); no Chat | `task-assign:<taskId>:<version>` | Concrete, and the one kind that coalesces: every queued assignment rides one run in the main session, up to 50. A busy Agent gets a count in its notice, never a row. Not in the digest or `haus inbox check`. Retired by reassigning or unassigning before a run takes it |
 
 Only ordinary Chat work is backed by a `chat_messages` row; the rest exist solely
 here, because a fact only an Agent needs is never written to a transcript humans read
@@ -63,8 +63,7 @@ nothing otherwise:
 1. the sending run's served item set contains exactly one item and that item is a
    reminder or Trigger fire — a fire the run was woken with is served the moment the
    Computer accepts that run, so the rule holds without any pull; and
-2. the send's target Chat is that fire's anchor Chat — a Thread target resolves to its
-   parent Chat first.
+2. the send's target Chat is that fire's anchor Chat.
 
 Then `message_causes` records that fire with `attribution = 'inferred'`. A run offered a
 fire alongside anything else — another fire, a Chat message, an attention — infers
@@ -77,7 +76,7 @@ mark that names the wrong cause.
 Across all Servers with the TypeSafe credential configured, [ADR 0030](../docs/adr/0030-semantic-channel-addressing.md)
 permits semantic narrowing of unaddressed human top-level channel messages. The final
 recipient set is committed with the message; kept, uncertain, failed or stale judgments
-retain ordinary delivery. This does not change explicit mention, reply, Thread or DM rules. In a
+retain ordinary delivery. This does not change explicit mention, reply, Task, or DM rules. In a
 channel with one eligible Agent, the message is addressed to it as `sole` when the author is
 the channel's only human member. With more human members, Jev judges whether the one Agent is
 the addressee, and recipients stay unchanged either way.
@@ -85,14 +84,14 @@ the addressee, and recipients stay unchanged either way.
 A durable `message.created` is planned once by Server delivery
 (`apps/server/src/agent-delivery/`):
 
-- Ordinary delivery reaches joined channels, followed threads, and DMs.
+- Ordinary delivery reaches joined channels, followed Tasks, and DMs.
   The author never receives their own message.
 - A channel mute (`agent_channel_mutes`, agent-owned via `haus channel
   mute`) suppresses ordinary delivery from that channel itself. Followed
-  threads keep delivering independently, so the Agent unfollows a specific
-  thread to stop its ordinary delivery.
+  Tasks keep delivering independently, so the Agent unfollows a specific
+  Task (`haus task unfollow`) to stop its ordinary delivery.
 - Personal @mentions (rich reference or plain `@handle`) bypass Channel mutes without unmuting the
-  Channel. In a Thread, a direct mention restores an explicit unfollow and the recipient's exact
+  Channel. In a Task, a direct mention restores an explicit unfollow and the recipient's exact
   pending delivery carries that replay-safe restoration fact.
 - Mention identity is resolved once when delivery is planned and persists independently from
   suppression. An ordinarily delivered mention still tells only the named Agent `you were mentioned`;
@@ -107,11 +106,14 @@ A durable `message.created` is planned once by Server delivery
   ask a question (`pending_input`) settles the same way, with the question as its summary and a
   pointer to answer with `haus cloud-agent send`. It settles like the
   other concrete kinds; the result the human sees is whatever ordinary Message the woken Agent
-  decides to post.
-- Assigning a board Task to another Agent queues one `task_assignment` item for that Agent, with
+  decides to post. The notice lands in the work's Task, so a plain send in that turn goes there.
+  A pull request becoming ready for review or its checks finishing after the newest Run settled is
+  a `pull_request` notice carrying `pullRequestChange`; one on a Task with no cloud work wakes the
+  Task's assignee Agent with no Run behind it ([Cloud Agents](cloud-agents.md#pull-request-readings)).
+- Assigning a Task to another Agent queues one `task_assignment` item for that Agent, with
   `mentioned=true`. It has no Chat, so the row holds its typed attention as JSON rather than an
-  envelope: the Task's key, title, board, column, priority, and the assigner's handle as they stood
-  when assigned. Self-assignment queues nothing. Reassigning or unassigning retires a queued item;
+  envelope: the Task's key, title, priority, and the assigner's handle as they stood when
+  assigned. Self-assignment queues nothing. Reassigning or unassigning retires a queued item;
   a run that already holds it keeps it, and a failed run forgets it on requeue
   (`retireStaleRequeuedItems`), as it does when the same Agent already holds a newer assignment of
   the Task. An assignment an Agent made is Agent-authored traffic and spends the automation chain;
@@ -142,15 +144,6 @@ A durable `message.created` is planned once by Server delivery
   what it composed as exact run visibility before the model streams, so the freshness hold never
   treats the message the Agent is answering as news. The composed receipt leaves inbox rows
   offered; settlement attaches them and advances `seen`, and the turn summary is its fallback.
-- **A Thread mention arrives with its Thread when the Agent cannot see it.** When a drainable
-  human item is the first in its Thread to @mention this Agent, and the Agent has no model-visible
-  context for that Thread this session (no verified boundary, no settled exact visibility), the
-  Server attaches a `threadContext` package: parent and Thread targets, the parent message, and
-  up to ten replies before the mention, within 4,000 quoted characters and marked `truncated` when
-  earlier replies are left out. The drain budget counts the package's size whether or not it is
-  omitted, so resends rebuild the same sets. The Computer renders it once per Thread target in
-  cold and warm drains, never in a content-free notice, and attests the quoted messages it
-  showed whole as exact run visibility (Raft's `thread_join_context`).
 - **Every wake ends with the unread-elsewhere digest.** The frame carries per-chat counts of queued
   work no row of that frame represents: a chat with a notice row states its own pending count and is
   left out, while a drained item represents only itself, so same-chat work past the drain budget
@@ -188,7 +181,7 @@ session generation or was served to the current run. A verified contiguous bound
 consume the gaps between them. Its `held_through_sequence` is the one exception, and only for
 freshness: a hold records the newest message it showed, so earlier messages it omitted do not
 hold the next send, while they stay queued and unseen. The shown messages' queued rows are served
-to the active run, so delivery never brings them again. Outside a Thread, freshness counts only
+to the active run, so delivery never brings them again. Outside a Task, freshness counts only
 messages delivered to the Agent. Notices and wakes advance nothing, ever.
 
 ## Notice turns and system attention (I1)
@@ -222,7 +215,7 @@ new run explicitly reoffers it so a terminal result is model-visible at most onc
 
 Idle and busy agents receive only the content-free inbox notice (turn-shapes §4):
 batched target rows with counts, first/latest short ids, latest sender, and
-`· thread / · dm / · claim #N / · you were mentioned` tags — never bodies, from
+`· dm / · claim #N / · you were mentioned` tags — never bodies, from
 one formatting owner. Rows are
 deduped by exact offered identities and repeat only when the pending set
 changes. Busy injection is acknowledged only after Computer durably caches the
@@ -278,7 +271,7 @@ identities before Computer returns the bodies.
 ## Unread conversations and read position
 
 `haus inbox check` is the Agent's counterpart of the human Inbox, ported from Raft
-1.21.2: it lists every channel, DM, and followed thread the Agent is in that has
+1.21.2: it lists every channel, DM, and followed Task the Agent is in that has
 unread messages, newest activity first, from a durable per-chat Agent read position
 on the Server (`GET /api/agent/inbox/conversations`). Each row prints the target, the
 unread count, whether it mentions the Agent, and the latest sender, with an `open:`
@@ -343,7 +336,6 @@ turn starts when its creator sends the working brief.
 | A queued greeting never holds or stales a send and survives the seen advance; the first send into a channel the Agent just created is not held | `apps/server/test/agent-freshness-new-chats.test.ts` |
 | Addressing is decided at enqueue and survives stale, uncertain or kept routing | `apps/server/test/message-routing-addressing.test.ts`, `apps/server/test/agent-inbox-lanes.test.ts` |
 | A single-Agent channel addresses `sole` without Jev for one human and judges it at the gate for more | `apps/server/test/haus-message-routing-sole.test.ts` |
-| A Thread mention without visible context carries a bounded, budgeted package rendered once per Thread | `apps/server/test/agent-thread-context.test.ts`, `apps/computer/src/thread-context-format.test.ts` |
 | The unread digest excludes notice-row chats and drained ids, so a bounded drain's remainder still shows | `apps/server/test/agent-inbox-digest.test.ts` |
 | Assignments coalesce into one main-session run, a busy Agent gets a count then the Tasks, and reassigning retires a queued item | `apps/server/test/haus-task-agent-delivery.test.ts`, `apps/computer/src/harness/task-assignment-turn.test.ts`, `apps/computer/src/inbox-store-task-assignments.test.ts` |
 

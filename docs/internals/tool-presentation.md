@@ -195,7 +195,7 @@ both pure and both proved on their own:
   command — the Agent CLI names in `apps/computer/src/agent-cli.ts` — reads as the
   product action it is, from its parsed arguments (`turn-trace-haus-command.ts`):
   `Sent a message to #product`, `Sent a message to DM` (never the peer's name),
-  `Replied in DM` for `--reply-to`, `Replied in thread` for a `:<shortId>` target,
+  `Replied in DM` for `--reply-to`,
   `Claimed a task`, `Reacted`, `Set a reminder`. The muted bookkeeping row already
   says it is Haus, so no label says "with haus". A `haus message send` opens to the
   message itself — its place and its heredoc or here-string body as markdown under

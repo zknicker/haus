@@ -17,7 +17,7 @@ perform the deletion.
 
 A DM is between one human and one Agent. `dm:@<handle>` from an Agent resolves
 only to a human's handle; `dm:@<agent-handle>` is an invalid target. Agents
-reach each other in the channels and threads they share, and a new Agent gets
+reach each other in the channels and Tasks they share, and a new Agent gets
 its standing instructions from its `brief` rather than from a DM.
 
 Creating an Agent joins it to the Server's `#all` channel, plus every channel

@@ -73,8 +73,8 @@ local capture). Public pieces:
 
 > Historical Raft research snapshot. The installed Raft 1.0.16 behavior audited in August 2026
 > supersedes the no-re-follow note below: a later direct Thread mention reactivates the follow and
-> repeats the exact unfollow command. Current Haus contract: `specs/threads.md` and
-> `specs/inbox.md`.
+> repeats the exact unfollow command. Haus has no Threads since ADR 0052; the same rule applies to
+> a followed Task. Current Haus contract: `specs/tasks.md` and `specs/inbox.md`.
 
 - Every message in a joined channel, followed thread, or DM queues to the agent's inbox;
   @mentions pierce mutes/unfollows/unjoined public channels as single messages (no re-follow).

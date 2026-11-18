@@ -29,19 +29,17 @@ ids and small facts, never rows.
 
 | Procedure | App hook | App response |
 | --- | --- | --- |
-| `chat.onMessageCreated` | `useMessageCreatedStream` | Tail read every cached transcript list of the Chat (a Thread reply also refreshes its parent anchor's entity); invalidate `chat.list`, `chat.search`, `chat.unreadPreviews`; a Thread reply also invalidates `thread.listUnread` |
+| `chat.onMessageCreated` | `useMessageCreatedStream` | Tail read every cached transcript list of the Chat; invalidate `chat.list`, `chat.search`, `chat.unreadPreviews`; a Task message (`taskId`) also refreshes the Task's reads (`hooks/realtime/task-reads.ts`: its `task.get` and the origin Channel's loaded pages, which carry its preview) |
 | `chat.onMessageReactionUpdated` | `useMessageReactionStream` | Invalidate the `chat.message` entity, `chat.search`, `cloudAgentWork.listActive`, `claim.list` |
-| `chat.onRead` (reader only) | `useChatReadStream` | Invalidate `chat.list` unless the settled list already shows zero; a Thread read refreshes its anchor entity and invalidates `thread.listUnread`; any read that moves a list invalidates `chat.unreadPreviews` |
-| `thread.onFollowUpdated` (follower only) | `useThreadFollowStream` | Invalidate the anchor entity, `thread.listUnread`, `chat.unreadPreviews`, and the Open Threads reads |
-| `thread.onClosedUpdated` (closer only) | `useThreadClosedStream` | Invalidate `thread.listOpen` and `thread.listEarlier` |
-| `chat.onLifecycle` | `useChatLifecycleStream` | Invalidate `chat.list`, `chat.listArchived`, `chat.get`, `agent.chats`, `thread.listUnread`, `chat.unreadPreviews`; `deleted` runs the Chat-loss purge and invalidates `cloudAgentWork.listActive` and every `cloudAgentWork.listForChat`, since linked work outlives the Chat |
+| `chat.onRead` (reader only) | `useChatReadStream` | Invalidate `chat.list` unless the settled list already shows zero; a Task read refreshes the Task's reads; any read that moves a list invalidates `chat.unreadPreviews` |
+| `chat.onLifecycle` | `useChatLifecycleStream` | Invalidate `chat.list`, `chat.listArchived`, `chat.get`, `agent.chats`, `chat.unreadPreviews`; `deleted` runs the Chat-loss purge and invalidates `cloudAgentWork.listActive` and the cached Task reads, since linked work outlives the Chat |
 | `claim.onChanged` | `useClaimChangeStream` | Invalidate the claim Message's entity and `claim.list` |
 | `taskLabel.onUpdated` | `useTaskLabelStream` | Abort the Server's in-flight tail reads, then refetch its transcript lists and entities carrying the label; invalidate `taskLabel.list`, `claim.list` |
-| `board.onUpdated` | `useBoardUpdateStream` | That board's `task.list` and its Tasks' `task.get` (a re-key changes every key); `board.list`, `taskInbox.list` |
-| `task.onCreated` | `useTaskCreatedStream` | That board's `task.list` and `board.list`'s open count |
-| `task.onUpdated` | `useTaskUpdatedStream` | That Task's `task.get`, its board's `task.list`, `board.list`, `taskInbox.list` |
-| `taskInbox.onChanged` (reader only) | `useTaskInboxStream` | Invalidate `taskInbox.list`, and hand each live event to the desktop assignment notifier |
-| `cloudAgentWork.onUpdated` | `useCloudAgentWorkStream` | One event per linking Message in a live Chat. Invalidate that Message's entity, `cloudAgentWork.listForChat` (Chat and parent), `cloudAgentWork.listActive` |
+| `task.onCreated` | `useTaskCreatedStream` | `task.list`, `task.listOpen`, and the origin Channel's loaded pages so the new preview shows |
+| `task.onUpdated` | `useTaskUpdatedStream` | The Task's reads, `task.list`, `task.listOpen` |
+| `task.onFollowUpdated` (follower only) | `useTaskFollowStream` | The Task's reads (its `followed` and unread) |
+| `cloudAgentWork.onUpdated` | `useCloudAgentWorkStream` | One event per linking Message in a live Chat. Invalidate that Message's entity, the work's Task (`task.get` carries its attached work), `cloudAgentWork.listActive` |
+| `imageGeneration.onUpdated` | `useImageGenerationStream` | One event per linking Message in a live Chat. Invalidate that Message's entity |
 | `reminder.onUpdated` (Owner/Admin) | `useReminderStream` | Invalidate the owner Agent's `reminder.list`, `reminder.history`, and the reminder's `reminder.runs` |
 | `agent.onUpdated` | `useAgentUpdateStream` | The Server detail, the named Agent's reads (or every Agent read), `agent.list`, `chat.list` |
 | `computer.onUpdated` | `useComputerUpdateStream` | The Server detail, Computer list and log, Agent activity and delivery, `agent.list`, `stats.live`, `cloudAgentSettings.get` |
@@ -72,7 +70,7 @@ for the active Server (`features/servers/server-realtime-listeners.tsx`, one tin
 hook); `reminder.onUpdated` and `invitation.onUpdated` mount only for Owners and Admins. The
 Server shell hoists the one `agent.onLifecycle` and `agent.onActivity`. Each mounted Chat view
 adds `chat.onEngagement`, `chat.onThought`, and `chat.onComposition`. With three Servers and two
-mounted Chat views that is 33 streams for a member and 35 for an Admin, pinned by
+mounted Chat views that is 30 streams for a member and 32 for an Admin, pinned by
 `features/servers/realtime-budget.test.tsx`.
 
 ### Transcript cache
@@ -153,20 +151,18 @@ reordered events, a hidden kept tab, and Chat deletion.
 **Message notifications** ([ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)) ride the
 single `chat.onMessageCreated` and `chat.onRead` subscriptions through the hooks' `onEvent`
 callback (`features/notifications/message-notifications.tsx`). The event carries the notification
-facts (`authorUserId`, `conversationKind`, `mentionedUserIds`, `replyToAuthorUserId`,
-`threadAnchorAuthorUserId`) that `messageNotificationReason` reads. Only live events notify; a
+facts (`authorUserId`, `conversationKind`, `mentionedUserIds`, `replyToAuthorUserId`) that
+`messageNotificationReason` reads. Only live events notify; a
 restart's recovery reads never do, and a message whose Chat is read through it stays silent.
 
 **iPhone push** is a Server-side consumer of the in-process `message.created` and `task.assigned`
 topics after commit (`apps/server/src/push/`), with the same rule for messages. Delivery is best-effort; see
 [iPhone push](../operations/ios-push.md).
 
-The [Inbox](../features/inbox.md)'s Unread section and badge are `chat.list` plus
-`thread.listUnread` ([ADR 0043](../adr/0043-threads-are-unread-on-their-own.md)) and add no event;
-its Task items are `taskInbox.list`, refreshed by `taskInbox.onChanged`. Every change to
-an unread Thread already has an event: `chat.onMessageCreated` and `chat.onRead` with a non-null
-`parentChatId` (a Thread reply, a Thread read), `thread.onFollowUpdated`, and `chat.onLifecycle`
-(a parent archived, deleted, or hidden).
+The [Inbox](../features/inbox.md)'s Unread section and badge are `chat.list` plus the followed
+Tasks in `chat.unreadPreviews`, and add no event. Every change to an unread Task already has an
+event: `chat.onMessageCreated` and `chat.onRead` with a `taskId`, `task.onFollowUpdated`, and
+`chat.onLifecycle` (its Channel archived, deleted, or hidden).
 `chat.markRead` returns `advanced`; false means the marker was already there and no `chat.onRead`
 follows, so a locally zeroed row refetches the list itself a second later.
 

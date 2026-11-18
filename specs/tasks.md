@@ -1,125 +1,152 @@
 ---
-summary: The board Tasks contract — boards with keys, columns mapped to fixed categories, Task numbering and versions, references from messages and Reminders, what an assignment does to a person and an Agent, the Agent routes, and where each rule lives in the Server.
+summary: The Tasks contract — a Task is a `task` Chat started by an Agent from a Channel Message, with a state, a key from the per-Server ledger, followers, attached cloud agents and pull requests, one-time reminders, and the Server rules for each.
 read_when:
-  - changing boards, columns, column categories, or `board.setColumns`
-  - changing Task fields, numbering, keys, moves, `completedAt`, or assignment
-  - changing Task references (`task://` links, bare keys), Mentioned in, or Task Reminders
-  - changing the person Task Inbox, Task assignment delivery to an Agent, or the assignment push
-  - changing the `/api/agent/tasks` or `/api/agent/boards` routes
+  - changing Task fields, states, keys, the key ledger, or Channel key configuration
+  - changing how an Agent starts a Task, the origin Message, or the `task:KEY-n` target
+  - changing Task followers, Task unread, the sidebar's open Tasks, the Tasks page, or Channel Task previews
+  - changing attached cloud agents, attached pull requests, or what wakes an Agent on a Task
+  - changing Task references (`task://` links, bare keys), Mentioned in, or reminders on a Task
+  - changing the `/api/agent/tasks` routes or Task assignment delivery
 ---
 
 # Tasks
 
-[ADR 0051](../docs/adr/0051-tasks-are-boards-and-claims-are-the-lock.md) is the product contract:
-a **Task** is a standalone Server record on a **board**; a **claim** is the Agent-only lock on a
-message ([claims.md](claims.md)). This file pins the rules the Server enforces. Wire shapes live in
-`packages/haus-api/src/{board,task,task-input,task-key,task-inbox}.ts`; the tRPC surface is
-[docs/api/tasks.md](../docs/api/tasks.md).
+[ADR 0052](../docs/adr/0052-channels-and-tasks-are-the-only-places.md) is the product contract:
+Haus has two kinds of place, Channels (and DMs) for conversation and Tasks for work. A **Task** is
+a Channel for one piece of work. A **claim** is still the Agent-only lock on a Message
+([claims.md](claims.md)); a Task does not mark ownership. Wire shapes live in
+`packages/haus-api/src/{task,task-input,task-state,task-key,task-key-ledger,task-preview,agent-task-refusals}.ts`.
+The tRPC surface is [docs/api/tasks.md](../docs/api/tasks.md); the Agent routes are in
+[docs/api/agents.md](../docs/api/agents.md#task-routes).
 
-## Boards and columns
+## A Task is a place
 
-- A board has a `key` (`^[A-Z][A-Z0-9]{1,4}$`, unique per Server even while archived, editable), a
-  `name` (1–60), an optional `archivedAt`, and a `version`. Archived boards leave default lists and
-  refuse new Tasks.
-- Every Server has the **General** board, key `GEN`, created in the transaction that creates the
-  Server (`insertGeneralBoard`, also the dev seed); migration 0120 backfilled existing Servers. It
-  keeps its key and is never archived; it can be renamed.
-- Each column has a `name` (1–40, unique per board case-insensitively), a `position`, and a fixed
-  `category`: `backlog | todo | active | done | canceled`. A board keeps at least one `todo`,
-  `active`, and `done` column. New boards start with Backlog, Todo, In progress, Done, Canceled.
-- `board.setColumns` replaces the whole ordered list in one transaction (`boards/column-plan.ts`
-  checks every invariant first). Kept ids are updated in place, drafts without an id are created,
-  and a removed column that holds Tasks needs `moveTasks[removedId] = keptId`. Moved Tasks, and Tasks
-  whose kept column changed between open and closed categories, gain or lose `completedAt` and bump
-  their version, each with a `task.updated`.
-
-## Tasks
-
-- Fields: board, per-board `number`, `title` (1–200), markdown `description` (≤ 20,000), column
-  and derived `category`, at most one assignee (an active member or a non-retired Agent), priority,
-  labels from the task label catalog, display-only `dueOn`, exactly one creator, timestamps, and
+- A Task is a `tasks` row plus its own Chat of kind `task`. The Chat hangs under the origin
+  Channel (`parent_chat_id`, `parent_chat_kind = 'channel'`) and the origin Message
+  (`anchor_message_id`). It has messages, mentions, unread, notifications, and a composer like a
+  Channel. `tasks.chat_id` links the two, one Chat per Task.
+- Fields: key and number, `title` (1–200), markdown `description` (≤ 20,000), `state`, at most one
+  assignee (an active member or a non-retired Agent), priority, labels from the task label catalog,
+  display-only `dueOn`, exactly one creator, `origin` (`{ chatId, messageId }`), timestamps, and
   `version`.
-- The key is `<board.key>-<number>`, derived when read: re-keying a board re-keys its Tasks.
-- Numbers come from `boards.next_number` under the board row lock, after the Server row lock.
-- `completedAt` is set exactly while the Task is in a `done` or `canceled` column: entering one
-  sets it, leaving clears it, closed to closed keeps it.
-- Every mutation takes `expectedVersion` and fails closed with a conflict. Moving to the current
-  column or assigning the current assignee changes nothing. There is no deletion and no
-  cross-board move.
-- Every human member and Agent reads and writes every board and Task (`requireTaskActor`).
+- `state` is `todo`, `open`, `done`, or `canceled` (`task-state.ts`). `completedAt` is set exactly
+  while the Task is `done` or `canceled`. A merged pull request never closes a Task; an Agent or a
+  human sets the state. Posting in a closed Task reopens it.
+- Every mutation takes `expectedVersion` and fails closed with a conflict. There is no deletion.
+- A Task with no Chat and no origin is history from before Tasks were places (migration 0125). It
+  reads like any Task and refuses every write.
+
+## Starting a Task
+
+- Only Agents start Tasks (`tasks/task-start.ts`). Humans ask an Agent; there is no human create
+  and no Convert to Task. Reminders and Triggers never start a Task themselves: they wake an Agent,
+  which decides.
+- A Task starts from a Message in a Channel, never a DM (`TASK_ORIGIN_DM`). One Message can carry
+  several Tasks; Tasks have no parents or children. When no suitable Message exists, the Agent
+  posts an origin Message in the Channel where the work belongs, mentions whoever asked, and
+  starts the Task from it. A request made in a DM gets a reply carrying the Task chip.
+- An Agent starts a Task when its reply will not finish the work: more steps, more time, or a
+  cloud agent. A reply that is the whole of the work stays a reply. The Agent prompt's Tasks
+  section teaches this ([ADR 0052](../docs/adr/0052-channels-and-tasks-are-the-only-places.md)
+  decision 5).
+- `task:KEY-n` is a Task's target. `haus message send --target task:SEC-12` posts in it,
+  `haus message read --target task:SEC-12` reads it, and an Agent reaches it only when it has
+  joined the origin Channel (`agent-api/resolve-task-target.ts`).
+
+## Keys
+
+- The Server keeps a ledger of keys (`task_keys`): `key` matches `^[A-Z][A-Z0-9]{1,4}$`, is unique
+  per Server, and carries its own `next_number`. Numbers are allocated under the entry's row lock,
+  after the Server row lock (`tasks/task-key-ledger.ts`). A Task's key is `<key>-<number>`.
+- Every Server has the General entry, `GEN`, made with the Server. Each Channel is configured with
+  one entry (`chats.task_key_id`); Channels can share one, and a Channel without one takes General.
+  A DM has none. A Task takes the key of its origin Channel when it starts and keeps it.
+- `taskKey.create` adds an entry. Migration 0122 turned every board into a ledger entry with the
+  same id, key, and counter, so existing keys and numbers carried over.
+
+## Followers and unread
+
+- A Task is unread only for its **followers** (`tasks/task-follows.ts`): the origin Message's
+  author, anyone mentioned in it, the assignee, and anyone who posts in the Task. Anyone can follow
+  or unfollow by hand (`task.setFollow`); a hand unfollow sticks until they follow again.
+  Follows ride `thread_follows` and `agent_thread_follows` with `thread_chat_kind = 'task'`.
+- An unread Task appears in a follower's Inbox the way an unread Channel does. For everyone else it
+  is a quiet row with its state and never reaches their Inbox. There is no attention tier
+  ([ADR 0038](../docs/adr/0038-inbox-is-unread-not-attention.md)).
+
+## Where Tasks show
+
+- **Sidebar:** every `open` Task on the Server that the reader can see (`task.listOpen`). Todo
+  Tasks are not listed, and a Task leaves as soon as it is done or canceled.
+- **Tasks page:** one flat list of todo, open, done, and canceled Tasks, with no boards and no
+  columns. Humans change state and reassign there; they cannot create.
+- **Channel previews:** under its origin Message, each Task shows its key, title, state, message
+  count, the viewer's unread, and its newest messages (`TaskPreview`, at most three), riding
+  `chat.messages` pages as `tasks`.
+- **Task page:** the conversation on the left, with a "started from" element pointing at the
+  origin Message, and the attached-work panel on the right: one card per cloud agent with its
+  newest Run's summary, each attached pull request no card already names, and pending reminders.
+- **iPhone** opens a Task as a chat with a small attached-work header and renders Channel
+  previews. It has no Tasks page.
+
+## Attached work and wakes
+
+- Cloud agents attach to a Task (`cloud_agent_work.task_id`). `haus cloud-agent start` requires
+  `--task`, and the Server refuses a launch without one (`CLOUD_AGENT_TASK_REQUIRED`). The launch
+  Message posts in the Task. See [cloud-agents.md](cloud-agents.md).
+- Pull requests attach in `task_pull_requests` (repository and number). A pull request a cloud
+  agent opens for the Task attaches on its own; `haus task attach-pr` attaches one opened another
+  way. The Task page reads the Server's stored pull request readings.
+- Run notices, pull request changes, and reminders set on a Task wake the Agent on that Task, and
+  a plain send in that turn goes to the Task. A pull request becoming ready for review or its
+  checks finishing after the Run settled is a new wake: a `pull_request` notice carrying
+  `pullRequestChange` (`github/pull-request-wake.ts`), once per change and head commit. A pull
+  request attached to a todo or open Task with no cloud work wakes the Task's assignee Agent the
+  same way, with no Run behind the notice (`github/pull-request-task-wakes.ts`).
+
+## Reminders on a Task
+
+A Task holds one-time reminders only (`--target task:KEY-n`); a recurring one is refused with
+`TASK_RECURRING_REMINDER` and belongs on a Channel. A reminder on a Task wakes the Agent there and
+shows on the Task page. Closing a Task cancels its pending reminders
+(`tasks/task-close-reminders.ts`), and reopening does not restore them. See
+[reminders.md](reminders.md).
 
 ## References
 
-- A message or Reminder description references a Task by an explicit `task://<taskId>` link or a
-  **bare key** (`SEC-12`): case-sensitive, word-bounded, and ignored inside inline code, fences,
-  Markdown links, and plain URLs (`tasks/task-reference-scan.ts`). It must match a Task on the
-  Server; anything else stays plain text. Content is never rewritten.
+- A message or reminder description references a Task by a `task://<taskId>` link or a **bare
+  key** (`SEC-12`): case-sensitive, word-bounded, and ignored inside inline code, fences, Markdown
+  links, and plain URLs (`tasks/task-reference-scan.ts`). It must match a Task on the Server.
+  Content is never rewritten.
 - Messages resolve at write time inside the insert transaction (`chats/message-links.ts`) and
-  record `task_message_links`, the Task's **Mentioned in**. Every mapped `ChatMessage` carries
-  `taskLinks: [{ taskId, key, text }]` in content order, `text` being the exact matched substring;
-  the Agent message view carries the same as `task_links`. A new link publishes `task.updated` at
-  the Task's current version, so an open Task refetches Mentioned in.
-- A Task description resolves when read, never when written (`tasks/task-description-references.ts`):
-  `task.get` returns `descriptionContent`, the description with its bare `@handle`, `#channel`, and
-  `#channel:shortid` tokens rewritten into references exactly as an Agent's Message is when sent,
-  and `descriptionTaskLinks` for the Task references in it. Clients render both through the
-  Message path, so a description shows the same chips as chat; `description` stays the edited
-  source, and a description is never a Task's Mentioned in.
-- Convert to Task (`task.create` with `sourceMessageId`) works on any message the actor can read,
-  defaults the description to its content, and records it with the key as link text.
-- Mentioned in lists only messages in Chats the reader can read (`actorVisibleChats`), and the
-  Task's Reminders list only those anchored in such a Chat, so a DM never leaks through a Task.
-- A mention and an Inbox context message name their **place** (`taskMessagePlaceSchema`): the
-  Channel or DM id, kind, and name (null for a DM), and the Thread anchor for a Thread reply. It is
-  read in the same batched query as the message (`tasks/task-message-place.ts`), so a client labels
-  `#security · Thread`, opens, and replies with no read of its own.
-- Reminder create and description update re-record `task_reminder_links`, the Task's
-  **Reminders**; a snooze keeps them. Every Reminder change that moves that list (schedule, edit,
-  snooze, cancel, fire, a deleted anchor Channel or owner Agent, the retention sweep) publishes
-  `task.updated` at the Task's current version for the Tasks it linked or unlinked.
+  record `task_message_links`, the Task's **Mentioned in**. Every `ChatMessage` carries
+  `taskLinks: [{ taskId, key, text }]`; the Agent message view carries `task_links`. A new link
+  publishes `task.updated` at the Task's current version.
+- A Task description resolves when read (`tasks/task-description-references.ts`): `task.get`
+  returns `descriptionContent` with `@handle` and `#channel` tokens rewritten into references, and
+  `descriptionTaskLinks`.
+- Mentioned in and a Task's reminders list only what the reader can read (`actorVisibleChats`),
+  so a DM never leaks through a Task. Each mention names its place (`taskMessagePlaceSchema`).
 
 ## Assignment
 
 `applyTaskAssignmentChange` (`tasks/task-assignment.ts`) runs inside every transaction that
-changes an assignee (`task.create` with an assignee, `task.assign`, and a departure: deleting an
-Agent or removing a member unassigns every Task they hold, closed ones too, in that same
-transaction through `tasks/clear-task-assignments.ts`). It is the one seam for assignment effects:
+changes an assignee: a start with an assignee, `task.assign`, and a departure (deleting an Agent or
+removing a member unassigns every Task they hold, in the same transaction).
 
-- **Person:** assigning someone other than yourself upserts their `task_inbox_items` row (fresh,
-  uncleared, stamped with the new version and assigner); reassigning away deletes it. The assignee
-  moving the Task clears it, and so do `taskInbox.clear` and opening the Task; `taskInbox.restore`
-  is the App's Undo. Each change publishes `taskInbox.changed` to that person only.
-- **Push:** the same assignment publishes the Server-internal `task.assigned`, and iPhone push
-  sends the assignee `<assigner> assigned you SEC-12` after the read grace, unless the item was
-  cleared or withdrawn by then. `taskAssignmentNotifiedUserId` in `@haus/api` is the one rule for
-  both: a person, assigned by someone else.
-- **Bursts:** the first assignment opens a per-person window of one read grace; it never extends.
-  What is still news when it closes is one push: a single assignment stays as above, and several
-  are one `task_assignment_burst` push (`Zero assigned you 6 tasks`, or `6 tasks assigned to you`
-  from several assigners) that opens the Inbox. The desktop notifier collapses the same way over
-  the assignments one `taskInbox.list` read brings. The Inbox stays one item per Task.
-- **Agent:** assigning another Agent queues a chatless `task_assignment` item and a wake;
+- The assignee follows the Task. An assignment posts nothing in it.
+- **Person:** assigning someone other than yourself publishes the Server-internal `task.assigned`,
+  and iPhone push tells the assignee after the read grace. `taskAssignmentNotifiedUserId` in
+  `@haus/api` is the one rule.
+- **Agent:** assigning another Agent queues a `task_assignment` inbox item and a wake;
   reassigning away retires one still queued ([inbox.md](inbox.md#item-kinds-and-lifecycle)). An
   Agent assigning itself queues nothing. An assignment from another Agent spends the automation
   chain; a person's resets it.
 
-The Task Inbox list (`tasks/task-inbox.ts`) returns each uncleared item with its Task, board name,
-assigner, and context message: the newest `task_message_links` message the reader can read,
-through `actorVisibleChats`, projected like a transcript message, beside its `contextPlace`.
-`chat.unreadChatCount` adds
-uncleared items, so the badge counts them and the App refreshes it on `taskInbox.onChanged`.
-
 ## Agent routes
 
-`agent-api/task-routes.ts` and `board-routes.ts` serve `haus task` and `haus board` (the
-`/api/agent/tasks` and `/api/agent/boards` paths in `openapi.yaml`, inputs in
-`packages/haus-api/src/agent-task.ts`). They address Tasks by key, boards by key, assignees by
-`me` or handle, labels by name, and columns by name or id. `expectedVersion` is optional: without
-it the last write wins, so a write that lost the race to the version it read reads again and
-retries, a bounded number of times (`withImplicitVersion`). A named version fails closed.
-`POST /api/agent/tasks/move` answers with `queue: { todo, active }`, the caller's open Tasks.
-
-The Server has no blocked state. A Task an Agent is waiting on a person for sits in `todo` with no
-field to mark it, and the receipt's `queue` still counts it. Agent behavior reads past it: the
-Agent's @mention, listed under Mentioned in, is the only record (ADR 0051 decisions 6 and 7).
-
+`agent-api/task-routes.ts`, `task-place-routes.ts`, and `pull-request-attach-route.ts` serve
+`haus task` (`list`, `show`, `start`, `state`, `update`, `assign`, `attach-pr`). They address
+Tasks by key, assignees by `me` or handle, and labels by name. `expectedVersion` is optional:
+without it the last write wins after bounded retries (`withImplicitVersion`); a named version
+fails closed.

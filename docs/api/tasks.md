@@ -1,66 +1,58 @@
 ---
-summary: The board, Task, and Task Inbox tRPC procedures (`board.*`, `task.*`, `taskInbox.*`), their inputs, results, refusal codes, and realtime events.
+summary: The Task and Task key tRPC procedures (`task.*`, `taskKey.*`), their inputs, results, refusal codes, and realtime events. Boards, columns, Convert to Task, and the Task Inbox are gone (ADR 0052).
 read_when:
-  - calling or changing `board.list`, `board.create`, `board.update`, or `board.setColumns`
-  - calling or changing `task.list`, `task.get`, `task.create`, `task.update`, `task.move`, or `task.assign`
-  - calling or changing `taskInbox.list`, `taskInbox.clear`, or `taskInbox.restore`
-  - subscribing to `board.onUpdated`, `task.onCreated`, `task.onUpdated`, or `taskInbox.onChanged`
+  - calling or changing `task.list`, `task.listOpen`, `task.get`, `task.update`, `task.setState`, `task.assign`, or `task.setFollow`
+  - calling or changing `taskKey.list` or `taskKey.create`
+  - subscribing to `task.onCreated`, `task.onUpdated`, or `task.onFollowUpdated`
 ---
 
 # Tasks API
 
-Boards and Tasks ([specs/tasks.md](../../specs/tasks.md), ADR 0051) on the App's tRPC surface.
-Every procedure runs for an active member of `serverId`; every member reads and writes every board
-and Task. Inputs and results are the schemas in `packages/haus-api/src/board.ts`, `task.ts`,
-`task-input.ts`, and `task-inbox.ts`. Server code lives in
-`apps/server/src/haus-api/{board,task,task-inbox}/`, over the domain in
-`apps/server/src/{boards,tasks}/`.
+Tasks ([ADR 0052](../adr/0052-channels-and-tasks-are-the-only-places.md)) on the App's tRPC
+surface. Every procedure runs for an active member of `serverId`; every member reads every Task.
+Only Agents start Tasks (`POST /api/agent/tasks/start`, [agents.md](agents.md)); there is no
+human create. Inputs and results are the schemas in `packages/haus-api/src/task.ts`,
+`task-input.ts`, `task-state.ts`, and `task-key-ledger.ts`. Server code lives in
+`apps/server/src/haus-api/{task,task-key}/`, over the domain in `apps/server/src/tasks/`.
 
-## Boards
-
-| Procedure | Input | Result |
-| --- | --- | --- |
-| `board.list` (query) | `boardListInputSchema`: `serverId`, `includeArchived` (default false) | `Board[]` in creation order, each with ordered `columns` and `openTaskCount` |
-| `board.create` | `boardCreateInputSchema`: `serverId`, `key`, `name` | `{ board }` with the default columns |
-| `board.update` | `boardUpdateInputSchema`: `serverId`, `boardId`, `expectedVersion`, `patch { name?, key?, archived? }` | `{ board }` |
-| `board.setColumns` | `boardSetColumnsInputSchema`: `serverId`, `boardId`, `expectedVersion`, `columns [{ id?, name, category }]`, `moveTasks?` | `{ board }` |
+`tasks.state` (`todo`, `open`, `done`, `canceled`) is a Task's only state; `completedAt` is set
+exactly while it is `done` or `canceled`. A Task is numbered by its key-ledger entry
+(`keyId`), which alone counts. A Task with no `chatId` is history from before Tasks were places
+(migration 0125): it reads like any Task but refuses every write.
 
 ## Tasks
 
 | Procedure | Input | Result |
 | --- | --- | --- |
-| `task.list` (query) | `taskListInputSchema`: `serverId`, `boardId?`, `assignee?` (`{ userId }`, `{ agentId }`, `'none'`), `categories?` | `Task[]`, oldest first; without `boardId`, archived boards are left out |
-| `task.get` (query) | `taskGetInputSchema`: `{ serverId, taskId }` or `{ serverId, key }` | `TaskDetail`: the Task plus `mentions` (newest first, readable Chats only, each with its `place`: the Channel or DM id, kind, and name, and the Thread anchor for a Thread reply) and `reminders` |
-| `task.create` | `taskCreateInputSchema`: `serverId`, `boardId`, `title`, `description?`, `columnId?` (default: first `todo`), `assignee?`, `priority?`, `labelIds?`, `dueOn?`, `sourceMessageId?` | `{ task }` |
+| `task.list` (query) | `taskListInputSchema`: `serverId`, `assignee?` (`{ userId }`, `{ agentId }`, `'none'`), `keyId?`, `states?` | `Task[]`, oldest first |
+| `task.listOpen` (query) | `taskListOpenInputSchema`: `serverId` | Every `open` Task with a Chat whose origin Channel the reader can see |
+| `task.get` (query) | `taskGetInputSchema`: `{ serverId, taskId }` or `{ serverId, key }` | `TaskDetail`: the Task plus `mentions`, `reminders`, attached work, pull requests, and the reader's `followed` and `unreadCount` |
 | `task.update` | `taskUpdateInputSchema`: `serverId`, `taskId`, `expectedVersion`, `patch { title?, description?, priority?, labelIds?, dueOn? }` | `{ task }` |
-| `task.move` | `taskMoveInputSchema`: `serverId`, `taskId`, `expectedVersion`, `columnId` (same board) | `{ task }` |
-| `task.assign` | `taskAssignInputSchema`: `serverId`, `taskId`, `expectedVersion`, `assignee` (null unassigns) | `{ task }` |
+| `task.setState` | `taskSetStateInputSchema`: `serverId`, `taskId`, `expectedVersion`, `state` | `{ task }`; closing cancels its pending one-time reminders |
+| `task.assign` | `taskAssignInputSchema`: `serverId`, `taskId`, `expectedVersion`, `assignee` (null unassigns) | `{ task }`; the assignee follows the Task, and the assignment posts nothing |
+| `task.setFollow` | `taskSetFollowInputSchema`: `serverId`, `taskId`, `followed` | `{ serverId, taskId, followed }` |
 
-## Task Inbox
-
-The reader's own Task items, the `Inbox` feed's assignment rows.
+## Task keys
 
 | Procedure | Input | Result |
 | --- | --- | --- |
-| `taskInbox.list` (query) | `taskInboxListInputSchema`: `serverId` | `{ items }`, newest assignment first: `task`, `boardName`, `assignedBy { id, kind, label }`, `assignedAt`, `contextMessage` (the newest referencing message the reader can read, or null), `contextPlace` (where it lives, null exactly when it is) |
-| `taskInbox.clear` | `taskInboxClearInputSchema`: `serverId`, `taskId` | `{ changed }`, false when it was already clear or is gone |
-| `taskInbox.restore` | `taskInboxRestoreInputSchema`: `serverId`, `taskId` | `{ changed }`, the App's Undo |
+| `taskKey.list` (query) | `taskKeyListInputSchema`: `serverId` | Every ledger entry, by key, with `nextNumber` |
+| `taskKey.create` | `taskKeyCreateInputSchema`: `serverId`, `key` | `{ taskKey }` |
 
 ## Refusals
 
 | Code | When |
 | --- | --- |
 | `FORBIDDEN` / `NOT_FOUND` | Not a member of the Server, or the Server is gone |
-| `NOT_FOUND` | No board or Task with that id or key on the Server |
-| `CONFLICT` | A stale `expectedVersion`, or a board key another board already uses (archived included) |
-| `BAD_REQUEST` | A broken invariant: column list rules, an archived board, a column from another board, an inactive assignee, a foreign label, an unreadable source message, or changing the General board's key or archiving it |
+| `NOT_FOUND` | No Task with that id or key on the Server |
+| `CONFLICT` | A stale `expectedVersion`, or a key another ledger entry already uses |
+| `BAD_REQUEST` | A broken invariant: an inactive assignee, a foreign label, or a write to a chatless history Task |
 
 ## Events
 
-Mutations publish after commit: `board.updated` for every board write, `task.created` and
-`task.updated` for Task writes (`board.setColumns` adds one `task.updated` per Task it moved or
-re-categorized, and a message's new reference adds one at the same version), and
-`taskInbox.changed` to the affected person when their Task Inbox item is created, withdrawn,
-cleared, or restored. Subscribe with `board.onUpdated`, `task.onCreated`, `task.onUpdated` (every
-member), and `taskInbox.onChanged` (that person). See
+Mutations publish after commit: `task.created` and `task.updated` for Task writes (a message's
+new reference adds one `task.updated` at the same version), and `task.follow.updated` to the
+person whose follow changed, assignment included. Subscribe with `task.onCreated`,
+`task.onUpdated` (every member), and `task.onFollowUpdated` (that person). Assigning a person
+also publishes the Server-internal `task.assigned` that iPhone push reads. See
 [specs/realtime-events.md](../../specs/realtime-events.md).

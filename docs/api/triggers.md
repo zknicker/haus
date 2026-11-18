@@ -297,7 +297,7 @@ cause?: {
 }
 ```
 
-`automation.fireContext({ serverId, messageId })` returns the Thread context for
+`automation.fireContext({ serverId, messageId })` returns the fire context for
 one caused message. It is authorized by access to the message rather than by
 operator role, and answers `NOT_FOUND` only when the message has no cause at
 all. It returns the `cause` fields plus, for a Trigger, the `payload` bounded to

@@ -44,10 +44,10 @@ model session. Per-turn message delivery is an inbox concern; see
   Missing tools call for the specific connection or grant to be repaired; local configuration
   searches do not establish Server-owned MCP access. General capability selection still considers
   other authorized execution methods, and requested setup troubleshooting can inspect local state.
-- Ordinary requests continue in the Chat or Thread where they were asked, from acknowledgment to
-  result, following the human's lead across turns. Cloud Agent work Threads hold implementation
-  details and revisions; the coordinating Agent brings a concise outcome and link back to the
-  requester conversation. Questions to a person are @mentions where the work lives, and automation placement follows its own contract.
+- Ordinary requests continue in the Chat where they were asked, from acknowledgment to result,
+  following the human's lead across turns. Work that outlasts a reply, cloud agent work included,
+  goes in a Task, which holds its progress and result
+  ([ADR 0052](../adr/0052-channels-and-tasks-are-the-only-places.md)). Questions to a person are @mentions where the work lives, and automation placement follows its own contract.
 - Sessions never rotate because of age or idle time.
 - A session launches on the current composed instructions, but no runtime re-reads them on resume.
   When a resumed session's delivered-instruction fingerprint differs or is missing, its next

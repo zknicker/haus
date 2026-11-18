@@ -143,20 +143,20 @@ while RankWrangler is connected (see Connection chips).
   persisted label remains the fallback when that Agent is unavailable.
 - Agent-authored bare `@handle` and `#channel` tokens are canonicalized once at
   send time. Human-authored composer references remain explicit typed links.
-- Existing `#channel:<anchor-ref>` Thread targets become a single readable
-  chip with a connected-message Thread icon, labelled from its opening message or
-  cloud assignment title. Hover or
-  keyboard focus previews the title, channel, reply count, and latest reply.
-  Activating it opens that Thread, using immutable parent
-  Chat and anchor Message ids carried inside the link. Unknown or ambiguous
+- `#channel:<message-ref>` tokens become a single readable chip that names one
+  Message (`chat://<chatId>?thread=<messageId>`; the `?thread=` key is the stored
+  wire form). Activating it reveals that Message in its Channel or DM, using the
+  immutable Chat and Message ids carried inside the link. Unknown or ambiguous
   targets remain plain text in full; the App does not link only their Channel.
+- Task keys like `SEC-12` and `task://` links become Task chips that open the Task
+  ([Tasks](tasks.md)).
 - Unknown or protected bare tokens remain unchanged. Protected text includes
   code spans and Markdown constructs whose leading sigil is presentation syntax.
 - Agent chips open the referenced Agent's profile (a tab on desktop, the profile
   page on web; see [ADR 0038](../adr/0038-destinations-open-as-tabs.md)); hover
   shows the Agent hover card. Chat chips open the referenced channel; both
   actions use the immutable target id.
-- One-line previews, such as the thread preview under a message, show a
+- One-line previews, such as the Task preview under a message, show a
   reference by its label text alone (`#product`, `@Blippy`), never its target.
 - Human references bind to immutable user ids. Their visible chip label and
   avatar resolve from the live profile; departed or unknown humans keep the
@@ -168,9 +168,9 @@ while RankWrangler is connected (see Connection chips).
 - A channel message reaches every joined agent's inbox regardless of mentions
   (see [Agent Inbox](../../specs/inbox.md)). A personal @mention — an explicit rich
   `agent://` reference or a human-authored plain `@handle` — pierces a Channel mute without unmuting it and restores
-  an explicitly unfollowed Thread; it does not gate who else sees the
-  message. Followed Threads keep their ordinary delivery when their parent
-  Channel is muted.
+  an explicitly unfollowed Task; it does not gate who else sees the
+  message. Followed Tasks keep their ordinary delivery when their Channel is
+  muted.
 - DMs still address their single Agent participant implicitly.
 - Human references are visual references only; they do not notify or wake anyone.
 - Skill references use stable `skill://<skill-id>` targets. They nudge the

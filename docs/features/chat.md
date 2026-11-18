@@ -1,7 +1,8 @@
 ---
-summary: Agent chat experience — durable messages, artifacts, and channel/DM structure. Execution evidence stays outside the timeline.
+summary: Agent chat experience — durable messages, inline replies, artifacts, channel/DM structure, and where Task previews and cloud work show. Execution evidence stays outside the timeline.
 read_when:
   - changing the main agent conversation experience
+  - changing inline replies or the Task preview under an origin message
   - changing durable messages, composer behavior, or artifacts
   - changing the typing strip above the composer
   - changing channel/DM structure, archiving, or chat appearance
@@ -20,19 +21,19 @@ and [Agent Inbox](../../specs/inbox.md).
   The composer shows the selected parent and a cancel action; the sent reference opens that parent
   in history. A reply that directly follows its author's own reply to the same parent drops the
   repeated reference, so an acknowledgment and its follow-up read as one answer; it is still a
-  reply everywhere else. Reply in thread remains a separate choice. Agent attention follows the
+  reply everywhere else. Agent attention follows the
   reply chain: the request's claimant receives follow-ups even when the human replies to their own request.
   Task completion preserves that attention. Ordinary channel messages and human unread counts
   retain their existing behavior. See [Agent Inbox](../../specs/inbox.md#inline-reply-attention).
 
 * **Durable messages.** Every row is authored by a person or an Agent — Haus
   writes none of its own — and stays as history. The timeline carries
-  conversation units only — messages, artifacts, notices, thread anchors — and
+  conversation units only — messages, artifacts, notices, Task previews — and
   nothing turn-shaped. See [chat-timeline](../../specs/chat-timeline.md).
 * **Message reactions.** Emoji reactions are durable Server records attributed
   to the human or Agent actor. Messages hydrate their grouped reactions from
   PostgreSQL, and a reaction change reaches every client through the durable
-  Chat event stream. Reactions follow the message's Chat/Thread access and
+  Chat event stream. Reactions follow the message's Chat access and
   archive lifecycle; they are removed with a deleted Chat aggregate. Humans
   react with any emoji text. An Agent acknowledges a human message that needs no
   reply (thanks, an ack, a sign-off) with one reaction instead of a filler
@@ -64,86 +65,33 @@ and [Agent Inbox](../../specs/inbox.md).
   parent line: a small lightning or clock avatar in the automation's color, then
   its title. Hovering previews the automation; pressing opens the owning Agent's
   Automations tab. When the answer is also an inline reply, the cause line
-  replaces the reply line. A fire's Thread carries a context card with the payload
-  or the anchoring note instead of the line. A fire or an assignment the Agent
+  replaces the reply line. A fire or an assignment the Agent
   never speaks about leaves the conversation untouched. **A cause line outlives
   its automation.** Title, glyph, and summary are snapshotted onto the message,
   so a message whose Trigger, reminder, or fire has since been archived still
-  says what woke the Agent; its hover card and context card then state only what
+  says what woke the Agent; its hover card then states only what
   the message remembers and drop the live facts and the way into Automations. See
   [automation provenance](../../specs/automation-provenance.md).
 * **New Agent introductions.** Creation posts nothing. The creating Agent introduces
   the returned identity through ordinary `haus message send`, usually in `#all`.
   Its `@handle` mention opens the profile and its session stamp follows ordinary send.
   Historical `agent-created` Message bodies remain readable as provenance.
-* **Open Threads.** The sidebar's Threads section lists a human's Cloud Agent work and the
-  conversations they took part in, one line each, and hides itself when there are none. The
-  Threads page lists every open Thread with its
-  status, grouped by who holds it. Close files one under Earlier until someone else writes. See
-  [Open Threads](../../specs/open-threads.md).
-* **Message attachments and Threads.** Visible tasks use a compact, content-width attachment
-  beneath their message before anyone replies. It opens the existing Thread destination without a
-  zero-reply count. Once replies exist, one recessed Thread card holds the task metadata, hoisted
-  Cloud Agent rows, reply count, and recent replies. Agent-claimed task metadata stays hidden when
-  Show tasks in chat is off, including on cards with replies. Cloud Agent work is not an attachment:
-  it renders as its full work card (below). These attachment rules apply to the web App.
-
+* **Tasks.** Haus has two kinds of place: Channels and DMs for conversation, and
+  [Tasks](tasks.md) for work. A side conversation stays in its Channel as inline replies. When an
+  Agent's reply will not finish the work, it starts a Task from a message in the Channel; under
+  that message the Channel shows a preview of each Task with its state and newest messages.
 * **Questions to a person.** An Agent asks a human by @mentioning them in an ordinary Message
   ([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)); the mention chip is the only
   transcript mark, and the question notifies them ([Inbox](inbox.md#notifications)).
   There is no question card, option buttons, or answered state.
-* **Cloud Agent work.** A Message that links
-  [Cloud Agent work](../../specs/cloud-agents.md) reads as an ordinary Message followed by one
-  work card per linked work — the same card in the Chat transcript, inside the Thread (below), and
-  in any other Chat or Thread whose Message links that work. A final paragraph made only of links
-  the Server recorded on that Message is hidden, since the card states it
-  ([Rich References](rich-references.md)). The card is
-  content-sized up to the in-chat card measure, never full transcript width, and carries every
-  action inline; there is no detached overflow menu. The card has no Thread button: before any
-  reply the Message's ordinary hover thread action opens the Thread, and once replies exist the
-  ordinary Thread preview beneath the card is the way in and does not repeat the work's header.
-* **Hoisted work status.** Cloud Agent work inside a Thread gets one row per
-  job beneath its anchor's Task header, always named after the job's title,
-  with `#<n>` once it has a pull request and the card's job state (Working ·
-  elapsed with a spinner, Done, Failed, Cancelled or Expired dimmed, or
-  `No update in <d>` as a warning; never queued). Rows keep the order the
-  jobs were started, oldest first, so they never move as jobs change state. The
-  Server's conversation-scoped work list supplies these rows, grouped by
-  Thread anchor. The preview's reply rows are the newest
-  conversational replies and leave out work announcements, so each work
-  appears once. The whole preview opens the Thread; summary rows are not click
-  targets.
-* **The work card.** In the Chat and inside the Thread, the work Message renders as
-  the Agent's own words followed immediately by the work card, in sequence
-  right where the Agent handed the work off. The card is presentation of the
-  same work through later prompts and status updates; it never moves to the end
-  of the conversation. There is no pinned cloud section or carousel. It shows the
-  Server-owned record, never a Chat row, and nothing on it is named after any
-  one provider. It has one type size and four parts: a header (the provider's
-  own mark, the title with a job-state chip, the repository); a pull request
-  row once one exists (`PR #<n>`, its state, files changed, additions in
-  success and deletions in danger); exactly one status line; and the actions
-  (**View PR** first once there is a pull request, then a split button for
-  **Open in `<provider>`** with Copy link and, for Owners and Admins while a
-  Run is live, Cancel run behind the chevron). The chip mirrors Cursor's own
-  status for the newest Run Cursor has received: `Working · <elapsed>` with a
-  spinner, `Done · <duration>`, `Failed`, `Cancelled`, or `Expired`, plus
-  `Needs input` for a Claude Run that stopped to ask; it never says Queued. A follow-up still in Haus's queue is not a Cursor Run yet, so it
-  only shows as the follow-up note: the job still reads Done, and stays Done if
-  that follow-up is cancelled before Cursor receives it. The status line is always one line and shows
-  the most urgent fact: the failure reason, `No update in <d>` once a live Run
-  has been quiet for ten minutes, a pending stop, `<Agent> asked for changes ·
-  waiting <d>` (or `· running <d>`), else the latest activity, or when the job last updated or settled (a
-  job that needs input shows only `Updated <relative>`, never the question). Because that line never appears or disappears, the card changes
-  height only when its pull request row first appears. The launch Message's
-  author line above the card says who delegated it and when, so the card
-  carries no receipt. The Run report is not on the card. Every card for the
-  work updates in place from `cloudAgentWork.updated`; the work never writes
-  a second Message.
+* **Cloud Agent work.** [Cloud Agent work](../../specs/cloud-agents.md) attaches to a Task. Its
+  card lives in the Task page's attached-work panel ([Tasks](tasks.md#the-task-page)), not in the
+  transcript. A Message that links the work reads as an ordinary Message, and the link reads as a
+  reference.
 * **Hosted attachments.** Humans and Agents can attach files to hosted Server
   messages. Humans pick files with the composer's attachment button, paste them (a screenshot, a
   copied image, or files copied in Finder; rich text that carries a rendered image stays a text
-  paste), or drop them anywhere on the open chat or Thread; each drops into its own composer, so
+  paste), or drop them anywhere on the open chat or Task; each drops into its own composer, so
   split panes never cross. A file drop outside any chat never navigates the window. The App
   streams human-selected bytes directly to that Server, and Agents upload through their scoped
   Server credential with `haus attachment upload`.
@@ -170,10 +118,7 @@ and [Agent Inbox](../../specs/inbox.md).
   `private, max-age=31536000, immutable`, because bytes never change under an id. A pending send
   renders its attachments through the same strip from the staged File, so an image send shows
   the image at once and the confirmed row reuses that decode; nothing flashes or jumps when the
-  Server confirms. The Attachments pane lists the same cards with image thumbnails. A Thread reply stages its attachments in the
-  parent Chat, because a first reply has no Thread yet; the Server accepts a
-  parent-staged attachment on a Thread reply and re-homes it to the Thread the
-  reply lands in.
+  Server confirms. The Attachments pane lists the same cards with image thumbnails.
   Attachment bytes never ride message-list payloads.
   Hosted attachments are not Chat artifacts.
 * **Sending.** A human send is instant, and it looks sent. The draft leaves the
@@ -191,11 +136,9 @@ and [Agent Inbox](../../specs/inbox.md).
   attachments, and mention metadata available for recovery. Newer text entered
   while that send was in flight remains in the current draft; failed sends and
   newer work are recovered independently. Drafts are app-local and scoped to
-  their Chat or Thread, with no restart persistence. Thread replies send the
-  same way, including the first reply, whose pending row belongs to the anchor
-  message until the Thread it creates exists. Pending rows are never written
+  their Chat, with no restart persistence. Pending rows are never written
   into durable chat history.
-* **Typing.** A strip above the composer of every channel, DM, and Thread shows
+* **Typing.** A strip above the composer of every channel, DM, and Task shows
   the Agents answering it as up to three 16px avatars and a three-dot pulse
   that respects reduced motion, aligned with transcript message text. It has no
   visible words; screen readers hear "Juniper is typing", "Juniper and Cove are
@@ -276,7 +219,7 @@ and [Agent Inbox](../../specs/inbox.md).
   "Still" line, is dropped.
   Thoughts are never stored or recovered
   ([ADR 0036](../adr/0036-agent-thoughts-surface-as-condensed-phrases.md)).
-* **Composer overlay.** In channels, DMs, and Threads the composer floats over
+* **Composer overlay.** In channels, DMs, and Tasks the composer floats over
   the transcript, which scrolls behind it and blurs out into the page background
   under a progressive edge blur. The transcript's end
   clearance, the bottom edge blur, and the jump-to-latest button follow the
@@ -378,20 +321,20 @@ and [Agent Inbox](../../specs/inbox.md).
   Archived chats entry that opens the archived channel view (`/s/:slug/archived`), where
   a channel can be reopened or restored. An open archived channel shows an
   Archived badge and a restore bar in place of the composer. Its history,
-  search results, deep link, and child Threads remain readable, but new
+  search results, deep link, and Tasks remain readable, but new
   messages, tasks, reactions, attachments, and reminder output
   in the aggregate are rejected. Archive cancels undrained
   Agent inbox work for the aggregate; already accepted turns cannot send back
   after the transition. Restore permits new work without replaying canceled
   envelopes.
   Delete channel is a separate irreversible Owner/Admin action guarded by the
-  exact channel name. It removes the regular channel, child Threads, messages,
+  exact channel name. It removes the regular channel, its Tasks' conversations, messages,
   tasks, reads, reactions, reminders, Triggers anchored in it (with their fire
   history), delivery rows, search state, attachment metadata, and attachment
   bytes. The committed deletion is the outcome: a failed cleanup is retried by
   the Server's startup sweep, never reported as a failed delete. The
   onboarding channel (`#onboarding-owner`) can be archived but not deleted,
-  because the durable onboarding record names it. `#all`, DMs, and Threads
+  because the durable onboarding record names it. `#all`, DMs, and Tasks
   have no independent archive/delete action. New workspaces
   start with no user channels. Each active Agent has one implicit sidebar DM
   per human Server member and Agents address those pairs by the human's Server
@@ -403,33 +346,27 @@ and [Agent Inbox](../../specs/inbox.md).
   Right-clicking a sidebar chat or its topbar name exposes the same contextual
   actions without replacing the ordinary click target. Channel menus offer the
   Name & description, Icon & color, and participant dialogs (color is chosen only in Icon &
-  color); DM menus link to their scoped tasks and Agent profile.
-* **Message and Thread context.** Right-clicking a durable message offers copy,
-  reply-in-Thread, and quick reactions. Right-clicking a link in a message also
-  offers Copy link, which copies its destination URL. Agent messages additionally open Turn
-  Details. A Thread header offers View in chat, Copy reference, and Follow/Stop
-  following through both its name dropdown and its context menu. iOS carries the
-  same Follow/Stop following action on the Thread screen's navigation bar.
+  color); DM menus link to the Agent profile.
+* **Message context.** Right-clicking a durable message offers copy, reply, and quick
+  reactions. Right-clicking a link in a message also offers Copy link, which copies its
+  destination URL. Agent messages additionally open Turn Details.
 * **Chat appearance and instructions.** Haus chats can carry durable channel
   color, a channel description, and trusted chat-specific agent instructions.
 * **Offline catch-up.** Haus Server keeps chat history while the App is
   closed; the app reloads messages and their reactions from durable rows and
   refetches on reconnect.
-* **Attention.** Agents join channels, follow threads, and mute channels
+* **Attention.** Agents join channels, follow Tasks, and mute channels
   themselves. A Channel mute suppresses that Channel's ordinary delivery while
-  followed Threads keep delivering independently; a personal @mention pierces
-  a Channel mute without unmuting it and restores an explicitly unfollowed Thread. Humans steer agent attention
+  followed Tasks keep delivering independently; a personal @mention pierces
+  a Channel mute without unmuting it and restores an explicitly unfollowed Task. Humans steer agent attention
   by asking in chat, not by muting on the agent's behalf — see
   [Agent Inbox](../../specs/inbox.md).
 * **Agent profile.** Hovering an Agent's transcript avatar or chip shows its
   hover card; clicking opens the Agent's profile (a tab on desktop, the profile
   page on web) — see [ADR 0038](../adr/0038-destinations-open-as-tabs.md).
-  The chat's right pane holds only the Workspace, Attachments, and Thread panes, which
+  The chat's right pane holds only the Workspace and Attachments panes, which
   share one visible slot and width per chat; the latest opener wins without
-  clearing another pane's state. Desktop renders no chat side pane: every
-  Thread opener (reply counts, Thread cards, Reply in thread, Inbox and
-  notification links, `?thread=` and `?task=` links) opens the Thread page as
-  a new tab in the right pane — see
+  clearing another pane's state. On desktop a Task opens as a tab — see
   [Desktop tabs](browser-tabs.md#where-things-open). Clicking the transcript name
   inserts an Agent mention, while the DM topbar name remains inert. Session
   resets stay agent-wide in Agent settings (specs/sessions.md) and draw nothing
@@ -473,8 +410,8 @@ surface never drops out between selections.
 Every `chat.list` record carries `lastMessage`: the newest top-level message in
 that chat as `authorDisplayName`, raw markdown `content`, and `createdAt`, or
 null when the chat holds no message or its author no longer resolves to a name.
-Thread replies live in the thread's own chat, so they never become the parent
-chat's last message, and the author name resolves exactly as a message author
+A Task's messages live in the Task's own chat, so they never become the
+Channel's last message, and the author name resolves exactly as a message author
 does in the chat timeline. The app already invalidates `chat.list` on
 `message.created`, so the line refreshes with the timeline.
 
@@ -489,7 +426,7 @@ without gaps or duplicates.
 ## Chat Appearance
 
 Channel icon and color are durable Haus chat metadata on the `Chat` record
-(`icon`, `color`; both null on DMs and threads). `icon` names one entry from the
+(`icon`, `color`; both null on DMs and Tasks). `icon` names one entry from the
 curated hugeicons catalog generated by
 `apps/website/scripts/generate-channel-icon-catalog.ts` (about 1,600 solid
 glyphs, one per icon family, chrome and brand families excluded); null renders

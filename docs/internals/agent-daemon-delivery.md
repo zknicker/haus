@@ -118,17 +118,6 @@ eligible human body; a cold start drains only the addressed ones and notices the
 rest in the same prompt (ADR 0034). Every start and notice frame also carries
 `unreadElsewhere`, per-chat counts for work no row of that frame represents.
 
-A start frame's first human row that @mentions the Agent in a Thread carries a
-`threadContext` package when the Agent has no model-visible context for that
-Thread in its current session generation — no verified boundary and no settled
-exact visibility. The package names the parent and Thread targets and quotes
-the parent message and up to ten earlier replies, bounded to 4,000 quoted
-characters (Raft's `thread_join_context`). Drain selection reserves the
-package's size whether or not visibility omits it, so a resend rebuilds the
-same drain sets. The Computer renders it once per Thread target, before that
-mention's envelope, in cold and warm drains and never in a notice, and attests
-the quoted messages it showed whole alongside the drained bodies.
-
 A fresh session uses its initial content-free notice as the first prompt;
 `Start.` is used only when no delivery is pending. A reset recovery line
 precedes whichever first prompt applies. A different notice arriving during
@@ -136,7 +125,7 @@ cold startup remains durable and is offered after that turn instead of racing
 a mid-turn injection. Idle and busy Agents durably receive full envelopes but
 project only target/count/id/sender metadata. Message bodies enter the model
 only through explicit `haus message check`, history/hold context, a composed
-start drain and its thread context package, or the typed non-Chat
+start drain, or the typed non-Chat
 system-attention lane. A committed action's concrete projection
 includes its action identity, originating Chat, created Agent identity, and
 executed result; its result is never exposed by the ordinary message-check path.
@@ -185,16 +174,15 @@ only reoffers it when a failed new run is explicitly materialized.
 
 Claim messages use the same exact inbox path as ordinary messages and carry their
 canonical claim number, state, priority, and assignee metadata. A mention may bypass a Channel mute
-without unmuting it. A direct Thread mention restores an explicit unfollow; the recipient's pending
-row persists the `threadFollowReactivated` effect so Computer can repeat the restoration notice and
-exact unfollow command on replay without changing canonical Chat content. Muting or unfollowing purges already-queued
-ambient work on that exact target while preserving personal mentions, assigned claims, and reminder
-wakes by their canonical domain relationships. Muting a parent Channel does not purge or suppress
-ordinary work from its followed Threads.
+without unmuting it. A direct mention in a Task restores an explicit unfollow; the recipient's
+pending row persists the `taskFollowReactivated` effect so Computer can repeat the restoration
+notice and exact unfollow command on replay without changing canonical Chat content. Muting or
+unfollowing purges already-queued ambient work on that exact target while preserving personal
+mentions, assigned claims, and reminder wakes by their canonical domain relationships. Muting a
+Channel does not purge or suppress ordinary work from the Tasks the Agent follows there.
 
 An Agent-created peer assignment creates the canonical claim message once, reserves
-its single ownership slot for the peer, follows the deterministic claim Thread
-for that peer, and enqueues that exact claim for the assigned Agent even when ambient Channel
+its single ownership slot for the peer, and enqueues that exact claim for the assigned Agent even when ambient Channel
 delivery is muted. A separate assignee-only pending row, source `claim_assignment` and keyed by the
 assignment identity rather than by a message, points the Agent back to that canonical claim and
 carries the personal-attention signal without creating a second claim or a Chat message. Neither
@@ -427,7 +415,6 @@ composition bubble remains tied only to an explicit in-flight message and its co
 | Exact message envelopes and content-free notices | `apps/computer/src/inbox-format.test.ts` |
 | Session continuity picks the drain lane; a composed drain attests and consumes itself | `apps/computer/src/harness/turn-prompt.test.ts`, `apps/computer/src/harness/executor.test.ts` |
 | A composed drain reaches the Server before the model streams and exempts its messages from the freshness hold | `apps/computer/src/harness/composed-drain-receipt.test.ts`, `apps/computer/src/visibility-receipt.test.ts`, `apps/server/test/agent-composed-drain-visibility.test.ts` |
-| A Thread mention without visible context carries a bounded, budgeted package rendered once per Thread | `apps/server/test/agent-thread-context.test.ts`, `apps/computer/src/thread-context-format.test.ts` |
 | Addressed drains, warm drain candidates, and the unread digest partition | `apps/server/test/agent-inbox-lanes.test.ts`, `apps/server/test/agent-inbox-digest.test.ts` |
 | Every model-visible identity consumes one local notice contribution | `apps/computer/src/inbox-store.test.ts`, `apps/computer/src/proxy.test.ts` |
 | Live notice injection cannot race accepted-run consumption | `apps/computer/src/inbox-store.test.ts`, `apps/computer/src/harness/executor.test.ts` |
@@ -446,8 +433,7 @@ composition bubble remains tied only to an explicit in-flight message and its co
 | A typed provider failure fails the turn; a rejected credential ends it at the first retry; the runtime issue clears on success | `apps/computer/src/harness/runtime-session-failure.test.ts`, `apps/computer/src/harness/runtime-session-failure-turn.test.ts`, `apps/computer/src/launch-runtime-auth.test.ts`, `apps/computer/src/runtime/codex/codex-turn-failures.test.ts` |
 | Dispatch, acceptance, and settlement project semantic lifecycle phases | `apps/server/test/agent-delivery.test.ts` |
 | A claim enters the inbox with canonical claim metadata | `apps/server/test/haus-agent-run.test.ts`, `apps/computer/src/inbox-format.test.ts` |
-| Fresh Agent Thread replies materialize the authorized anchor | `apps/server/test/haus-agent-run.test.ts` |
-| Mute purges ordinary work without blocking personal mentions; a Thread mention restores an unfollow | `apps/server/test/haus-agent-run.test.ts` |
+| Mute purges ordinary work without blocking personal mentions; a mention in a Task restores an unfollow | `apps/server/test/haus-agent-run.test.ts` |
 | Freshness validation and Agent send commit share one Server lock | `apps/server/test/haus-agent-run.test.ts` |
 | Agent claims share one ownership lock; humans never claim | `apps/server/test/haus-agent-run.test.ts` |
 | Agent peer assignment is idempotent and delivers the exact canonical claim identity to a muted peer | `apps/server/test/haus-agent-run.test.ts` |

@@ -252,9 +252,9 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   gates mark-read and window-level key handlers; the web default is always shown. Presence
   flips on every tab or kept-view show and hide, so a reader that needs only the tab id uses
   `useTabId()`, and a large view puts its presence read in a leaf (`ChatReadState`). Desktop-only
-  openers (`useDesktopPageOpeners` for Threads, chat Attachments, and artifacts) are null on the web, where
-  the chat's side panel (`useChatThreadPane`, `useChatFilesPane`) hosts them; a list's Go reaches the
-  web's own Thread page (`threadPageRoute`). A page that can be a
+  openers (`useDesktopPageOpeners` for chat Attachments and artifacts) are null on the web, where
+  the chat's side panel (`useChatFilesPane`) hosts them. A Task opens its own page
+  (`features/tasks/task-page.tsx`, route `tasks/:taskKey`) on both. A page that can be a
   tab renders host-agnostically (no outlet context from outside its tab router) and works at
   420px. Native web views and their placement belong to `BrowserViewsProvider`
   (`hooks/browser/`); a divider drag covers them (`beginDesktopPointerDrag`), and so does a tab
@@ -270,7 +270,7 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   differences read `useTabPresence().shown` in a leaf (window title, visible-sequence reporting,
   typing streams), and imperative work reads `useViewShown()` (`hooks/desktop-tabs/view-shown.ts`):
   window listeners and animation loops check `isShown()` when they fire, and reveal-time work
-  (composer focus, Thread pane sync to the route, pending message reveal) runs from
+  (composer focus, side pane sync to the route, pending message reveal) runs from
   `useViewShownChange`. A hidden view's queries stay observed, so it re-renders on its own chat's
   events and reads fresh at reveal, except message entities: `KeptChatPresence` provides
   `ChatMessageSubscriptionContext` false, so its rows hold no `chat.message` observers and
@@ -532,7 +532,7 @@ pass.
   identity into a feature page. Data-aware leaves call the focused query or
   mutation hooks they need; React Query shares cached reads across those leaves.
   Keep state at a feature root only when multiple sibling regions must coordinate
-  it, such as Chat view selection, the active Thread, or one shared realtime
+  it, such as Chat view selection, the selected inline reply, or one shared realtime
   lifecycle stream.
 * Do not fetch a feature's full data graph in a route, place it in context, or
   forward it through controller props. Context is for a stable cross-cutting
@@ -569,7 +569,7 @@ holds whole-App renders per interaction to the ratchet in
   that rows read through `useEntityTranscriptEntry` / `useChatMessage`. The
   root builds a row skeleton from layout facts
   (`features/servers/chat/chat-message-projection.ts`), so a reaction, task,
-  Cloud Agent work, or Thread summary change re-renders only the row whose
+  Cloud Agent work, or Task preview change re-renders only the row whose
   entity changed. Hidden kept views read entities with `subscribed: false`.
   `lib/targeted-read-coalescer.ts` owns tail reads, entity invalidation, and
   transcript recovery; nothing else patches lists or entities.

@@ -10,8 +10,10 @@ read_when:
 # Reminders
 
 Reminders are the only scheduling primitive. An Agent owns a reminder anchored
-to a message in a Channel, Thread, or its DM. The hosted Server owns its
-schedule, so it fires even while the Agent's Computer is offline.
+to a message in a Channel or its DM, or to a Task. A reminder on a Task is one-time only, shows on
+the Task page, and is canceled when the Task closes ([Tasks](tasks.md)); recurring reminders anchor
+on a Channel. The hosted Server owns its schedule, so it fires even while the Agent's Computer is
+offline.
 
 For a schedule that may be retried after a process restart, persist its complete
 input and use `haus reminder schedule --command-id <saved-id> --fire-at <saved-time>`.
@@ -35,13 +37,13 @@ new command id.
   calendar invite subject — "Monday Advertising Review" — and is all the cause
   line shows. Its description is the full instruction ("Check advertising and
   flag campaigns that need bid adjustments"); the fire hands it back to the
-  Agent, and the hover card, Thread context card, and Agent profile show it
+  Agent, and the hover card and Agent profile show it
   under the title. Agents set titles of at most 60 characters; older reminders
   kept their sentence titles and copied them into the description.
-- **Why a message arrived.** The mark, its hover preview, and the Thread context
-  card behind it work the same for every automation — see
-  [Chat](chat.md#in-the-box). Each fire the Agent acts on is its own message;
-  answers to a recurring reminder never pile into one Thread.
+- **Why a message arrived.** The mark and its hover preview work the same for
+  every automation — see [Chat](chat.md#in-the-box). Each fire the Agent acts on
+  is its own message; a fire that turns up real work starts a Task in the anchor
+  Channel and the Agent reports there.
 - **Clear schedule times.** A reminder is one of two kinds, one-time or
   recurring, and every profile surface says which first. Rows, the detail, and
   history read in your own time: the timezone saved on your Profile, or the
@@ -106,9 +108,9 @@ new command id.
   seeing it is what starts its clock. The Agent's answers stay in the transcript
   as ordinary messages and keep their cause line: title, description, cadence, and fire time are
   snapshotted onto the message, so the mark reads the same after the record
-  goes. Its hover card and Thread context card then state that snapshot and that
-  it is archived, and drop the live facts — status, fire count, last fire, the
-  script, the anchoring note — and the context card's link into Automations. A
+  goes. Its hover card then states that snapshot and that it is archived, and
+  drops the live facts — status, fire count, last fire, the script, the
+  anchoring note — and the link into Automations. A
   deleted reminder's run history reads as not found rather than empty.
 - **Computer-local scripts.** A script payload is at most 16 KiB. The Server
   stores it but never runs or interprets it. The assigned Computer executes it

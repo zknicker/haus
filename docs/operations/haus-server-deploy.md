@@ -4,6 +4,7 @@ read_when:
   - deploying or operating the hosted Haus Server
   - changing haus.chat ingress, PostgreSQL roles, or the delivered Server environment
   - preparing a Haus Server release artifact
+  - shipping the Channels-and-Tasks release (migrations 0122–0126, the Thread migration verifier)
 ---
 
 # Haus Server deployment
@@ -278,6 +279,57 @@ it cannot run on the migrated schema: automatic activation rollback restores onl
 recovery is a forward fix. Take a manual `pg_dump` right before merging the release PR, because no
 scheduled backup exists. Computer must publish and verify first, and any Computer below protocol
 36 stays idle until upgraded, so upgrade the Mac mini right after the deploy.
+
+### Shipping Channels and Tasks (ADR 0052)
+
+The Channels-and-Tasks release ([ADR 0052](../adr/0052-channels-and-tasks-are-the-only-places.md))
+runs migrations 0122–0126 and raises Computer protocol to 37 and App protocol to 13. Migration
+0124 moves every Thread's Messages into inline replies on its anchor and deletes the Threads;
+0125 converts legacy Tasks and drops boards; 0126 removes the Thread schema. It is forward-only:
+the previous Server cannot run on the migrated schema, and activation rollback restores only the
+binary. Run it in this order:
+
+1. **Computer artifact first.** Publish and verify the protocol 37 Computer artifact before the
+   Server release, as for any protocol raise ([Releases](releases.md#prerequisites)).
+2. **iPhone build on TestFlight.** A protocol 13 iPhone build must be processed on TestFlight
+   ([iOS TestFlight](ios-testflight.md)) before the Server is promoted, because the new Server
+   refuses older App protocols.
+3. **Check production before migrating.** Against production, with the migration credential, run
+   the read-only verifier and keep its snapshot:
+
+   ```sh
+   varlock run --include-internal -- \
+     sh -c 'bun apps/server/scripts/verify-thread-migration.ts --database-url "$HAUS_DATABASE_MIGRATION_URL" --before thread-migration-before.json'
+   ```
+
+   Resolve everything it flags before going on. A soft-deleted Thread aborts migration 0124
+   (`a soft-deleted Thread needs an operator decision first`), as does a Thread with no anchor
+   Message in its parent; decide each one with the operator first.
+4. **Stop and drain.** Stop every Computer after its local inbox store has drained (no run in
+   flight and no pending notice queued), then stop the Server, so no delivery names a Thread
+   while the migration moves its Messages.
+5. **Take a database dump.** No scheduled backup exists ([Off-machine backup](#off-machine-backup)),
+   so take a manual `pg_dump` right before merging the release PR.
+6. **Deploy Server and web App together.** They are one artifact; merging the release PR runs the
+   migrations on activation.
+7. **Clear App caches.** Desktop and web App caches hold Thread-shaped data; clear them (or sign
+   out and back in) on every client after the deploy.
+8. **Verify after.** Run the verifier against the snapshot from step 3:
+
+   ```sh
+   varlock run --include-internal -- \
+     sh -c 'bun apps/server/scripts/verify-thread-migration.ts --database-url "$HAUS_DATABASE_MIGRATION_URL" --after thread-migration-before.json'
+   ```
+
+   It checks the structural invariants, that every Channel or DM that received moved Messages
+   reads as read for everyone who can read it, that unread elsewhere is unchanged, and that no
+   queued inbox item names a moved Message. It exits 1 on any failure.
+9. **Upgrade the Mac mini Computer** right after the deploy; a Computer below protocol 37 stays
+   idle until upgraded.
+
+`apps/server/scripts/reverse-thread-migration.ts` is a dev-only tool that replays 0124's audit
+tables backwards on a development database and refuses once 0126 has run. It is not a
+production rollback. A failure after the migration is fixed forward on the new schema.
 
 Migration 0064 keeps the physical `agents.personality` column for rollback to Server 7.1.0.
 The current Server maps its conversation-style field onto that same column, so both versions
