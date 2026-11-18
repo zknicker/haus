@@ -1,11 +1,9 @@
 import {
     agentBackgroundWorkReportSchema,
-    agentHeartbeatRequestSchema,
     agentSubagentWakeRequestSchema,
     agentSubagentWakeRetireSchema,
 } from '@haus/api';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import { requestAgentHeartbeat } from '../agent-delivery/heartbeat-request.ts';
 import {
     requestSubagentWake,
     retireSubagentWake,
@@ -16,9 +14,9 @@ import { recordAgentBackgroundWork } from '../server-agents/record-agent-backgro
 import type { ComputerConnections } from './connections.ts';
 
 /**
- * A Computer's work outside any run: a turn it cannot start itself (a heartbeat slot or a
- * sub-agent wake, whose admission is answered on the same socket), a wake a non-wake run made
- * moot, or the background sub-agents its Agents run between turns. Returns whether `frame` was
+ * A Computer's work outside any run: a turn it cannot start itself (a sub-agent wake, whose
+ * admission is answered on the same socket), a wake a non-wake run made moot, or the
+ * background sub-agents its Agents run between turns. Returns whether `frame` was
  * one.
  */
 export async function ingestBackgroundWorkFrame(
@@ -34,26 +32,9 @@ export async function ingestBackgroundWorkFrame(
     const { computerId, frame, serverId } = input;
     const counts = agentBackgroundWorkReportSchema.safeParse(frame);
     if (counts.success) {
-        for (const { agentId, idle } of await recordAgentBackgroundWork(
-            db,
-            computerId,
-            counts.data
-        )) {
+        for (const agentId of await recordAgentBackgroundWork(db, computerId, counts.data)) {
             agentUpdatedTopic.announce({ agentId, serverId });
-            // A heartbeat or dream that waited for the work can lead now (specs/heartbeat.md).
-            if (idle) {
-                await delivery.dispatchAgent(agentId, serverId);
-            }
         }
-        return true;
-    }
-    const heartbeatRequest = agentHeartbeatRequestSchema.safeParse(frame);
-    if (heartbeatRequest.success) {
-        await requestAgentHeartbeat(db, delivery, {
-            computerId,
-            request: heartbeatRequest.data,
-            serverId,
-        });
         return true;
     }
     const subagentWake = agentSubagentWakeRequestSchema.safeParse(frame);

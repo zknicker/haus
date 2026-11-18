@@ -52,7 +52,7 @@ test('Unread reads the demo Chats with their last line', async () => {
         dms.map((chat) => chat.lastMessage?.content).filter((content) => content !== undefined)
     ).toEqual(
         expect.arrayContaining([
-            expect.stringContaining('Can you price out moving the nightly dream to the mini?'),
+            expect.stringContaining('Can you price out moving the nightly backup to the mini?'),
             'Sounds right — badge PR first, then the reminders.',
         ])
     );
@@ -66,7 +66,7 @@ test('Unread holds Tiny’s DM question; the claim is on Claims', async () => {
     const tiny = chats.find((chat) => chat.peerAgentId === agentId('tiny'));
     expect(tiny?.unreadCount).toBeGreaterThan(0);
     expect(tiny?.lastMessage?.content).toContain(
-        'Can you price out moving the nightly dream to the mini?'
+        'Can you price out moving the nightly backup to the mini?'
     );
 
     const blippyId = agents.find((agent) => agent.handle === 'blippy')?.id;
@@ -126,10 +126,10 @@ test('the roster reads seven days of turns for every demo Agent', async () => {
         turnsByHandle.set(agent.handle, turns.length);
         expect(turns.every((turn) => turn.summary !== null && turn.summary.length > 0)).toBe(true);
     }
-    // The Inbox seed's turns plus the heartbeat and dream runs of the Heartbeats seed.
-    expect(turnsByHandle.get('blippy')).toBe(13 + 6);
-    expect(turnsByHandle.get('tiny')).toBe(9 + 5);
-    expect(turnsByHandle.get('cove')).toBe(2 + 2);
+    // The Inbox seed's turns.
+    expect(turnsByHandle.get('blippy')).toBe(13);
+    expect(turnsByHandle.get('tiny')).toBe(9);
+    expect(turnsByHandle.get('cove')).toBe(2);
 
     const blippyId = agents.find((agent) => agent.handle === 'blippy')?.id ?? '';
     const blippyTurns = await owner.trpc.agent.turns.query({

@@ -60,8 +60,6 @@ export type TelemetrySpanName =
     | 'haus.agent.turn'
     | 'haus.browser.operation'
     | 'haus.computer_secrets.operation'
-    | 'haus.heartbeat.check'
-    | 'haus.heartbeat.request'
     | 'haus.mcp.operation'
     | 'haus.hosted-mcp.lifecycle'
     | 'haus.hosted-mcp.request'

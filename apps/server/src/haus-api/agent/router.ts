@@ -9,8 +9,6 @@ import { createAgentProcedure } from './create.ts';
 import { deleteAgentProcedure } from './delete.ts';
 import { agentDeliveriesProcedure } from './deliveries.ts';
 import { agentDeliveryStateProcedure } from './delivery-state.ts';
-import { agentDreamProcedure } from './dream.ts';
-import { agentDreamsProcedure } from './dreams.ts';
 import { agentExecutionJournalProcedure } from './execution-journal.ts';
 import { agentExecutionOutlinesProcedure } from './execution-outlines.ts';
 import { getAgentProcedure } from './get.ts';
@@ -50,8 +48,6 @@ export const agentRouter = createRouter({
     delete: deleteAgentProcedure,
     deliveries: agentDeliveriesProcedure,
     deliveryState: agentDeliveryStateProcedure,
-    dream: agentDreamProcedure,
-    dreams: agentDreamsProcedure,
     executionJournal: agentExecutionJournalProcedure,
     executionOutlines: agentExecutionOutlinesProcedure,
     get: getAgentProcedure,

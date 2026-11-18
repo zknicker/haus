@@ -2,13 +2,14 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { agentCommandSchema, agentTurnTriggerSchema } from '@haus/api';
 import { eq } from 'drizzle-orm';
 import type { AgentDelivery } from '../src/agent-delivery/delivery.ts';
+import { enqueueAgentGreeting } from '../src/agent-delivery/greeting.ts';
 import { bootstrapHausDatabase } from '../src/postgres/bootstrap.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { agentRunTriggersTable } from '../src/postgres/schema.ts';
 import { resolveAgentTurnTriggers } from '../src/server-agents/agent-turn-trigger-previews.ts';
-import { settledTurn } from './agent-dream-fixture.ts';
-import { deliverHuman, offlineDelivery, type Seed } from './agent-inbox-harness.ts';
+import { addChannel, deliverHuman, offlineDelivery, type Seed } from './agent-inbox-harness.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { settledTurn } from './settled-turn-fixture.ts';
 import {
     assignNewTask,
     seedTaskBoard,
@@ -57,7 +58,7 @@ test('ten assignments to an idle Agent wake it once, with one typed attention', 
         inbox: [],
         inboxDelivery: 'concrete',
     });
-    expect(start).not.toHaveProperty('heartbeat');
+    expect(start).not.toHaveProperty('subagentWake');
     expect(start?.taskAssignments).toHaveLength(10);
     expect(start?.taskAssignments?.[0]).toEqual({
         assignedBy: seed.humanHandle,
@@ -86,19 +87,15 @@ test('ten assignments to an idle Agent wake it once, with one typed attention', 
         source: 'task_assignment',
         workId: `task-assign:${results[0]?.task.id}:1`,
     });
-    const [named] = await resolveAgentTurnTriggers(
-        connection.db,
-        { serverId: seed.serverId, userId: seed.userId },
-        [
-            {
-                chatId: null,
-                runId,
-                source: 'task_assignment',
-                visible: false,
-                workId: trigger?.workId ?? '',
-            },
-        ]
-    );
+    const [named] = await resolveAgentTurnTriggers(connection.db, seed.serverId, [
+        {
+            chatId: null,
+            runId,
+            source: 'task_assignment',
+            visible: false,
+            workId: trigger?.workId ?? '',
+        },
+    ]);
     expect(agentTurnTriggerSchema.parse(named)).toEqual({
         key: 'GEN-1',
         kind: 'task',
@@ -123,10 +120,10 @@ test('a busy Agent gets a content-free count, then the concrete Tasks on its nex
     await delivery.deliver({
         agentId: seed.agentId,
         chatId: null,
-        content: 'The Q4 thread is stuck.',
-        dedupeKey: 'heartbeat-report:run_task_busy',
+        content: '',
+        dedupeKey: `subagent:${seed.agentId}:wake_task_busy`,
         serverId: seed.serverId,
-        source: 'heartbeat_report',
+        source: 'subagent',
     });
     const runId = transport.framesOfType('start')[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
@@ -190,20 +187,43 @@ test('other chatless work still runs alone, apart from the Task batch', async ()
     await delivery.enqueue(connection.db, {
         agentId: seed.agentId,
         chatId: null,
-        content: 'The Q4 thread is stuck.',
-        dedupeKey: 'heartbeat-report:run_task_batch',
+        content: '',
+        dedupeKey: `subagent:${seed.agentId}:wake_task_batch`,
         serverId: seed.serverId,
-        source: 'heartbeat_report',
+        source: 'subagent',
     });
     await assignNew(delivery, board, 'One');
     await assignNew(delivery, board, 'Two');
 
-    const report = await wake();
-    expect(report).toMatchObject({ heartbeatReport: { text: 'The Q4 thread is stuck.' } });
-    expect(report).not.toHaveProperty('taskAssignments');
+    const subagentWake = await wake();
+    expect(subagentWake?.subagentWake).toBeDefined();
+    expect(subagentWake).not.toHaveProperty('taskAssignments');
 
-    await delivery.onTurnSettled(seed.computerId, settledTurn(seed, report?.runId ?? ''));
+    await delivery.onTurnSettled(seed.computerId, settledTurn(seed, subagentWake?.runId ?? ''));
     const tasks = transport.framesOfType('start').at(-1);
     expect(tasks?.taskAssignments).toHaveLength(2);
-    expect(tasks).not.toHaveProperty('heartbeatReport');
+    expect(tasks).not.toHaveProperty('subagentWake');
+});
+
+test('a queued assignment never runs the main session ahead of the greeting', async () => {
+    const board = await seedBoard();
+    const { seed } = board;
+    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const allChannelId = await addChannel(connection.db, seed, 'all');
+    await enqueueAgentGreeting(connection.db, {
+        agentId: seed.agentId,
+        allChannelId,
+        serverId: seed.serverId,
+    });
+    await assignNew(delivery, board, 'Say hello');
+
+    // The greeting leads, so the main session's first run is the one that greets.
+    const first = await wake();
+    expect(first).toMatchObject({ chatId: allChannelId, greets: true });
+    await delivery.onAck({ agentId: seed.agentId, runId: first?.runId ?? '' });
+    await delivery.onTurnSettled(seed.computerId, settledTurn(seed, first?.runId ?? ''));
+
+    const assignment = transport.framesOfType('start').at(-1);
+    expect(assignment?.taskAssignments).toHaveLength(1);
+    expect(assignment?.greets).toBeUndefined();
 });

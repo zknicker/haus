@@ -1,7 +1,6 @@
 import { agentReasoningEffortSchema } from '@haus/api';
 import type { OtlpSignal } from '@haus/effect';
 import { z } from 'zod';
-import { isRelayableHeartbeatAttribute } from './telemetry-heartbeat-attributes.ts';
 import {
     metricsPayloadSchema,
     type TelemetryAttributes,
@@ -19,12 +18,7 @@ export interface TelemetryComputer {
     readonly serverId: string;
 }
 
-const spanNames = new Set([
-    'haus.agent.turn',
-    'haus.browser.operation',
-    'haus.heartbeat.check',
-    'haus.mcp.operation',
-]);
+const spanNames = new Set(['haus.agent.turn', 'haus.browser.operation', 'haus.mcp.operation']);
 const metricNames = new Set([
     'haus.operation.count',
     'haus.operation.duration',
@@ -225,12 +219,6 @@ function safeSpanAttributes(
                     return failures.has(value.stringValue ?? '');
                 case 'haus.reasoning.effort':
                     return agentReasoningEffortSchema.safeParse(value.stringValue).success;
-                case 'haus.heartbeat.kind':
-                case 'haus.heartbeat.local_date':
-                case 'haus.heartbeat.outcome':
-                case 'haus.heartbeat.skip_reason':
-                case 'haus.heartbeat.slot':
-                    return isRelayableHeartbeatAttribute(key, value.stringValue ?? '');
                 case 'haus.memory.bytes':
                     return /^\d{1,12}$/u.test(value.intValue ?? String(value.doubleValue));
                 case 'haus.turn.harness_ready_ms':

@@ -229,36 +229,7 @@ describe('show', () => {
     });
 });
 
-describe('heartbeat runs', () => {
-    test('read Tasks and boards but change nothing', async () => {
-        const task = await create({ title: 'Seen by a heartbeat' });
-        const runId = 'run_agent_task_heartbeat';
-        await fixture.harness.sql`
-            insert into agent_run_triggers (server_id, agent_id, run_id, source, work_id, chat_id)
-            values (${fixture.serverId}, ${fixture.orbitAgentId}, ${runId}, 'heartbeat',
-                ${`work:${runId}`}, null)
-        `;
-        const heartbeat = await fixture.mintRunner(runId, fixture.orbitAgentId, undefined, false);
-
-        expect((await call('/api/agent/tasks', undefined, heartbeat)).status).toBe(200);
-        expect((await call('/api/agent/boards', undefined, heartbeat)).status).toBe(200);
-        for (const [path, body] of [
-            ['/api/agent/tasks/create', { board: 'GEN', title: 'No' }],
-            ['/api/agent/tasks/move', { column: 'Done', key: task.key }],
-            ['/api/agent/tasks/update', { key: task.key, title: 'No' }],
-            ['/api/agent/tasks/assign', { assignee: 'me', key: task.key }],
-            ['/api/agent/boards/create', { key: 'HB', name: 'No' }],
-            ['/api/agent/boards/columns', { board: 'GEN', columns: [] }],
-        ] as const) {
-            const refused = await call(path, body, heartbeat);
-            // The empty column list fails validation first; every other write reaches the rule.
-            expect(refused.status).toBe(path.endsWith('columns') ? 400 : 403);
-            if (refused.status === 403) {
-                expect(refused.body.code).toBe('REGULAR_TURN_REQUIRED');
-            }
-        }
-    });
-
+describe('authorization', () => {
     test('a request without a runner credential is refused', async () => {
         const response = await fetch(new URL('/api/agent/tasks', fixture.harness.url));
         expect(response.status).toBe(401);

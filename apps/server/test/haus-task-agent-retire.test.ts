@@ -13,9 +13,9 @@ import {
 import { assignTask } from '../src/tasks/task-assign.ts';
 import { createTask } from '../src/tasks/task-create.ts';
 import { moveTask } from '../src/tasks/task-move.ts';
-import { settledTurn } from './agent-dream-fixture.ts';
 import { offlineDelivery, type Seed } from './agent-inbox-harness.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { settledTurn } from './settled-turn-fixture.ts';
 import {
     addPeerAgent,
     assignNewTask,

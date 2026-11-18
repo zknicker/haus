@@ -14,11 +14,11 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import { agentInboxTable, agentRunTriggersTable, agentsTable } from '../src/postgres/schema.ts';
 import { agentTurnTrigger } from '../src/server-agents/agent-turn-trigger.ts';
 import { recordAgentBackgroundWork } from '../src/server-agents/record-agent-background-work.ts';
-import { settledTurn } from './agent-dream-fixture.ts';
 import { deliverHuman, offlineDelivery, type Seed, seedAgent } from './agent-inbox-harness.ts';
 import { type PostgresCluster, startPostgresCluster } from './postgres-cluster.ts';
+import { settledTurn } from './settled-turn-fixture.ts';
 
-/** Sub-agent wakes (specs/runtime-drivers.md "Background work"), modeled on the dream run. */
+/** Sub-agent wakes (specs/runtime-drivers.md "Background work"). */
 let cluster: PostgresCluster;
 let connection: HausConnection;
 
@@ -77,7 +77,7 @@ test('an idle Agent gets one chatless wake run, recorded with a sub-agent trigge
         inboxDelivery: 'concrete',
         subagentWake: { id: `subagent:${seed.agentId}:wake_000000000001` },
     });
-    expect(start).not.toHaveProperty('dream');
+    expect(start).not.toHaveProperty('taskAssignments');
     const [trigger] = await connection.db
         .select()
         .from(agentRunTriggersTable)
@@ -161,7 +161,7 @@ test('a Computer’s sub-agent counts are stored for its own Agents and projecte
             agents: [{ agentId: seed.agentId, subagents }],
             type: 'agent-background-work',
         });
-    expect(await report(seed.computerId, 2)).toEqual([{ agentId: seed.agentId, idle: false }]);
+    expect(await report(seed.computerId, 2)).toEqual([seed.agentId]);
     // An unchanged count announces nothing; another Computer's claim changes nothing.
     expect(await report(seed.computerId, 2)).toEqual([]);
     expect(await report('cmp_someoneelse00', 0)).toEqual([]);
@@ -170,7 +170,7 @@ test('a Computer’s sub-agent counts are stored for its own Agents and projecte
         .from(agentsTable)
         .where(eq(agentsTable.id, seed.agentId));
     expect(row?.count).toBe(2);
-    expect(await report(seed.computerId, 0)).toEqual([{ agentId: seed.agentId, idle: true }]);
+    expect(await report(seed.computerId, 0)).toEqual([seed.agentId]);
 });
 
 test('at the automation chain ceiling a wake is refused unless reset work leads first', async () => {

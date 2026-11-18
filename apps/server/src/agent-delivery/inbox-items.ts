@@ -23,8 +23,8 @@ import type * as store from './store.ts';
 import { readThreadContexts, withoutVisibleThreads } from './thread-context.ts';
 
 /**
- * Renders queued Chat-backed rows (never a chatless dream, whose run frames it
- * separately) as the canonical envelopes the Computer projects. Bodies
+ * Renders queued Chat-backed rows (never a chatless attention, whose run frames
+ * it separately) as the canonical envelopes the Computer projects. Bodies
  * always ride the frame; which of them reach the model is the lane decision.
  * A frame that may drain these rows names its Agent, so a Thread mention it has
  * no visible context for carries that Thread's context package.

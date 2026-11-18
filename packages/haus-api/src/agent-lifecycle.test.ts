@@ -17,7 +17,7 @@ describe('Agent lifecycle contract', () => {
         });
     });
 
-    test('a dream run publishes with a null chatId', () => {
+    test('a chatless run publishes with a null chatId', () => {
         const settled = { ...base, chatId: null, outcome: 'completed', phase: 'settled' } as const;
         expect(agentLifecycleEventSchema.parse(settled)).toEqual(settled);
         // Null is explicit: an omitted chatId is still rejected.

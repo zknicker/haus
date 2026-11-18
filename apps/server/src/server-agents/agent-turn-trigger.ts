@@ -3,11 +3,6 @@ import {
     type AgentTurnTrigger,
     type AgentTurnTriggerPreview,
 } from '@haus/api';
-import {
-    heartbeatReportDedupeKey,
-    heartbeatRunIdOfReport,
-} from '../agent-delivery/heartbeat-keys.ts';
-import type { AgentTurnOutcomes } from './agent-turn-trigger-outcomes.ts';
 
 const claimAssignmentKeyPattern = /^claim-assign:([^:]+):\d+$/u;
 
@@ -15,9 +10,9 @@ const claimAssignmentKeyPattern = /^claim-assign:([^:]+):\d+$/u;
 export interface AgentTurnTriggerRecord {
     /** The run's Agent, which narrows a read of its settled inbox rows to that Agent's index. */
     readonly agentId?: string;
-    /** Null only for a chatless run: a dream, heartbeat, report, wake, or Task assignment. */
+    /** Null only for a chatless run: a sub-agent wake or Task assignment. */
     readonly chatId: string | null;
-    /** The run this trigger woke; a heartbeat needs it to find its report. */
+    /** The run this trigger woke. */
     readonly runId?: string;
     readonly source: string;
     readonly visible: boolean;
@@ -34,58 +29,23 @@ export type AgentTurnTaskTriggers = ReadonlyMap<
 >;
 
 const noPreviews: AgentTurnTriggerPreviews = new Map();
-const noOutcomes: AgentTurnOutcomes = {
-    dreams: new Map(),
-    reports: new Map(),
-    yielded: new Set(),
-};
-
-/** The run ids of a page's dreams and daytime heartbeats, whose outcomes the Log reads. */
-export function agentTurnTriggerRunIds(records: readonly (AgentTurnTriggerRecord | null)[]): {
-    dreamRunIds: string[];
-    heartbeatRunIds: string[];
-} {
-    const runIdsOf = (source: string) =>
-        records.flatMap((record) =>
-            record?.source === source && record.runId ? [record.runId] : []
-        );
-    return { dreamRunIds: runIdsOf('dream'), heartbeatRunIds: runIdsOf('heartbeat') };
-}
 
 /**
  * Names a turn's recorded trigger in the narrow API shape. A trigger in a Chat the
  * reader cannot see is `private`; one with no record, or a source this Server
  * does not recognize, is absent (null) rather than guessed. A message or claim
- * trigger quotes its message from `previews`. A dream or sub-agent wake has no Chat to
- * gate on: it names only itself, so any reader who may see the Agent's turns sees it. A
- * dream and a heartbeat carry what the run came to from `outcomes`. A Task assignment has
- * no Chat either, and every member sees every board, so `tasks` names it ungated.
+ * trigger quotes its message from `previews`. A sub-agent wake has no Chat to gate
+ * on: it names only itself, so any reader who may see the Agent's turns sees it. A
+ * Task assignment has no Chat either, and every member sees every board, so `tasks`
+ * names it ungated.
  */
 export function agentTurnTrigger(
     record: AgentTurnTriggerRecord | null,
     previews: AgentTurnTriggerPreviews = noPreviews,
-    outcomes: AgentTurnOutcomes = noOutcomes,
     tasks: AgentTurnTaskTriggers = new Map()
 ): AgentTurnTrigger | null {
     if (!record) {
         return null;
-    }
-    if (record.source === 'dream') {
-        const dream = record.runId ? outcomes.dreams.get(record.runId) : undefined;
-        return { added: 0, learned: null, removed: 0, ...dream, kind: 'dream' };
-    }
-    if (record.source === 'heartbeat') {
-        return {
-            kind: 'heartbeat',
-            report: (record.runId && outcomes.reports.get(record.runId)) || null,
-            yielded: record.runId !== undefined && outcomes.yielded.has(record.runId),
-        };
-    }
-    if (record.source === 'heartbeat_report') {
-        // A report with no recoverable heartbeat run is unknown, not guessed.
-        return isReportKey(record.workId)
-            ? { heartbeatRunId: heartbeatRunIdOfReport(record.workId), kind: 'heartbeat_report' }
-            : null;
     }
     if (record.source === 'subagent') {
         return { kind: 'subagent' };
@@ -149,11 +109,6 @@ function triggerFor(
         default:
             return null;
     }
-}
-
-function isReportKey(workId: string): boolean {
-    const prefix = heartbeatReportDedupeKey('');
-    return workId.startsWith(prefix) && workId.length > prefix.length;
 }
 
 const highSurrogateAtEnd = /[\uD800-\uDBFF]$/u;
