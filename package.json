@@ -76,6 +76,7 @@
         "visuals:lab": "bun scripts/visuals-lab/server.mjs"
     },
     "devDependencies": {
+        "@interfere/landmines": "0.0.0",
         "@varlock/1password-plugin": "2.0.3",
         "oxfmt": "0.78.0",
         "oxlint": "1.93.0",

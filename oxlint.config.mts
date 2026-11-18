@@ -3,6 +3,7 @@ import core from 'ultracite/oxlint/core';
 import react from 'ultracite/oxlint/react';
 
 import { grandfatherOverrides } from './scripts/lint/grandfathered-overrides.mts';
+import { landminesOverrides, landminesPlugins, landminesRules } from './scripts/lint/landmines.mts';
 
 export default defineConfig({
     extends: [core, react],
@@ -19,8 +20,12 @@ export default defineConfig({
         'apps/website/src-tauri/gen/schemas',
         'apps/website/src/components/charts',
     ],
-    jsPlugins: [{ name: 'haus', specifier: './scripts/lint/haus-rules/plugin.mjs' }],
+    jsPlugins: [
+        { name: 'haus', specifier: './scripts/lint/haus-rules/plugin.mjs' },
+        ...landminesPlugins,
+    ],
     rules: {
+        ...landminesRules,
         // The repo's own rules (scripts/lint/haus-rules).
         'haus/cloud-agent-status-writes': 'error',
         'haus/heroui-compound-children': 'error',
@@ -203,6 +208,7 @@ export default defineConfig({
                 ],
             },
         },
+        ...landminesOverrides,
         ...grandfatherOverrides(),
     ],
 });
