@@ -48,9 +48,9 @@ ALTER TABLE "agent_inbox" ADD CONSTRAINT "agent_inbox_cloud_agent_notice" CHECK 
                 and ("agent_inbox"."cloud_agent_notice" is null
                     or "agent_inbox"."cloud_agent_notice" in ('settled', 'stall', 'pull_request')));--> statement-breakpoint
 ALTER TABLE "agent_inbox" ADD CONSTRAINT "agent_inbox_chat" CHECK ("agent_inbox"."source" = 'task_assignment'
-                or ("agent_inbox"."chat_id" is null) = ("agent_inbox"."source" in ('dream', 'heartbeat', 'heartbeat_report', 'subagent')));--> statement-breakpoint
+                or ("agent_inbox"."chat_id" is null) = ("agent_inbox"."source" in ('subagent')));--> statement-breakpoint
 ALTER TABLE "agent_run_triggers" ADD CONSTRAINT "agent_run_triggers_chat" CHECK ("agent_run_triggers"."source" = 'task_assignment'
-                or ("agent_run_triggers"."chat_id" is null) = ("agent_run_triggers"."source" in ('dream', 'heartbeat', 'heartbeat_report', 'subagent')));--> statement-breakpoint
+                or ("agent_run_triggers"."chat_id" is null) = ("agent_run_triggers"."source" in ('subagent')));--> statement-breakpoint
 ALTER TABLE "chats" ADD CONSTRAINT "chats_task_key_shape" CHECK ("chats"."task_key_id" is null or "chats"."kind" = 'channel');--> statement-breakpoint
 ALTER TABLE "chats" ADD CONSTRAINT "chats_kind" CHECK ("chats"."kind" in ('channel', 'dm', 'thread', 'task'));--> statement-breakpoint
 ALTER TABLE "chats" ADD CONSTRAINT "chats_shape" CHECK ((

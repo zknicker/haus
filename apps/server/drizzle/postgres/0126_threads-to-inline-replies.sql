@@ -172,8 +172,6 @@ UNION ALL SELECT 'agent_runner_credentials', to_jsonb(t) FROM "agent_runner_cred
     WHERE ("server_id", "chat_id") IN (SELECT "server_id", "chat_id" FROM "migrating_chats")
 UNION ALL SELECT 'agent_delivery', to_jsonb(t) FROM "agent_delivery" t
     WHERE ("server_id", "active_run_chat_id") IN (SELECT "server_id", "chat_id" FROM "migrating_chats")
-UNION ALL SELECT 'agent_leads', to_jsonb(t) FROM "agent_leads" t
-    WHERE ("server_id", "anchor_chat_id") IN (SELECT "server_id", "chat_id" FROM "migrating_chats")
 UNION ALL SELECT 'message_causes', to_jsonb(t) FROM "message_causes" t
     WHERE ("server_id", "anchor_chat_id") IN (SELECT "server_id", "chat_id" FROM "migrating_chats");--> statement-breakpoint
 -- 2. Keys that name a Message by (Chat, id) are checked at commit while the
@@ -351,8 +349,6 @@ UPDATE "agent_runner_credentials" t SET "chat_id" = thread."parent_chat_id" FROM
 WHERE t."server_id" = thread."server_id" AND t."chat_id" = thread."thread_id";--> statement-breakpoint
 UPDATE "agent_delivery" t SET "active_run_chat_id" = thread."parent_chat_id" FROM "migrating_threads" thread
 WHERE t."server_id" = thread."server_id" AND t."active_run_chat_id" = thread."thread_id";--> statement-breakpoint
-UPDATE "agent_leads" t SET "anchor_chat_id" = thread."parent_chat_id" FROM "migrating_threads" thread
-WHERE t."server_id" = thread."server_id" AND t."anchor_chat_id" = thread."thread_id";--> statement-breakpoint
 UPDATE "message_causes" t SET "anchor_chat_id" = thread."parent_chat_id" FROM "migrating_threads" thread
 WHERE t."server_id" = thread."server_id" AND t."anchor_chat_id" = thread."thread_id";--> statement-breakpoint
 -- 7. A Channel has no per-Message follow, and Open Threads closures end with

@@ -18,7 +18,7 @@ human create. Inputs and results are the schemas in `packages/haus-api/src/task.
 `tasks.state` (`todo`, `open`, `done`, `canceled`) is a Task's only state; `completedAt` is set
 exactly while it is `done` or `canceled`. A Task is numbered by its key-ledger entry
 (`keyId`), which alone counts. A Task with no `chatId` is history from before Tasks were places
-(migration 0125): it reads like any Task but refuses every write.
+(migration 0127): it reads like any Task but refuses every write.
 
 ## Tasks
 

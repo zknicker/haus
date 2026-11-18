@@ -124,14 +124,6 @@ function addAnchoredRecords(tables: DatasetTables, threads: DatasetChat[]) {
                 title: `Trigger ${index}`,
                 updated_at: at,
             });
-            addRows(tables, 'agent_leads', {
-                agent_id: owner,
-                anchor_chat_id: chat.id,
-                anchor_message_id: message(1),
-                id: `lead_${index}`,
-                server_id: serverId,
-                topic: `Lead ${index}`,
-            });
             addRows(tables, 'agent_run_triggers', {
                 agent_id: owner,
                 chat_id: chat.id,

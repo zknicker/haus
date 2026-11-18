@@ -48,7 +48,7 @@ export class TaskOriginDmError extends Error {
 }
 
 /**
- * A Task from before Tasks were places that 0125 left without a Chat is
+ * A Task from before Tasks were places that 0127 left without a Chat is
  * read-only history: nothing changes its state, assignee, or fields.
  */
 export function requireTaskPlace<Task extends { chatId: string | null }>(

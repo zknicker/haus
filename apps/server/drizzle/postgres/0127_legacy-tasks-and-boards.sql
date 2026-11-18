@@ -28,7 +28,7 @@ SET "state" = CASE board_column."category"
 END
 FROM "board_columns" board_column
 WHERE task."chat_id" IS NULL AND board_column."id" = task."column_id";--> statement-breakpoint
--- 2. Every board is a ledger entry under its own id (0122 and every board
+-- 2. Every board is a ledger entry under its own id (0124 and every board
 -- written since), and the ledger alone counts: each entry's next number passes
 -- its board's counter and every number already taken.
 INSERT INTO "task_keys" ("id", "server_id", "key", "next_number", "created_at")
@@ -48,7 +48,7 @@ SET "next_number" = greatest(
         WHERE task."server_id" = entry."server_id" AND task."key_id" = entry."id"
     ), 1)
 );--> statement-breakpoint
--- A Channel without a key takes its Server's General one, by 0122's rule.
+-- A Channel without a key takes its Server's General one, by 0124's rule.
 UPDATE "chats"
 SET "task_key_id" = general."id"
 FROM (
@@ -196,7 +196,7 @@ UPDATE "agent_inbox"
 SET "content" = ("content"::jsonb - 'board' - 'column')::text
 WHERE "source" = 'task_assignment';--> statement-breakpoint
 DROP FUNCTION pg_temp.legacy_task_id(text, text);--> statement-breakpoint
--- Check the deferred links now (0122's), so the table changes below run with
+-- Check the deferred links now (0124's), so the table changes below run with
 -- no pending trigger events.
 SET CONSTRAINTS ALL IMMEDIATE;--> statement-breakpoint
 -- The Task foreign keys go first, so dropping the tables cascades to nothing.

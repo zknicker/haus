@@ -33,7 +33,7 @@ The tRPC surface is [docs/api/tasks.md](../docs/api/tasks.md); the Agent routes 
   while the Task is `done` or `canceled`. A merged pull request never closes a Task; an Agent or a
   human sets the state. Posting in a closed Task reopens it.
 - Every mutation takes `expectedVersion` and fails closed with a conflict. There is no deletion.
-- A Task with no Chat and no origin is history from before Tasks were places (migration 0125). It
+- A Task with no Chat and no origin is history from before Tasks were places (migration 0127). It
   reads like any Task and refuses every write.
 
 ## Starting a Task
@@ -61,7 +61,7 @@ The tRPC surface is [docs/api/tasks.md](../docs/api/tasks.md); the Agent routes 
 - Every Server has the General entry, `GEN`, made with the Server. Each Channel is configured with
   one entry (`chats.task_key_id`); Channels can share one, and a Channel without one takes General.
   A DM has none. A Task takes the key of its origin Channel when it starts and keeps it.
-- `taskKey.create` adds an entry. Migration 0122 turned every board into a ledger entry with the
+- `taskKey.create` adds an entry. Migration 0124 turned every board into a ledger entry with the
   same id, key, and counter, so existing keys and numbers carried over.
 
 ## Followers and unread

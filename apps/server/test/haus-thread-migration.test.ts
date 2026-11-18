@@ -18,13 +18,13 @@ import {
 } from './thread-migration-dataset.ts';
 
 /**
- * ADR 0053 decision 14 on a production-shaped dataset: 0124 turns every Thread
+ * ADR 0053 decision 14 on a production-shaped dataset: 0126 turns every Thread
  * into inline replies on its anchor, the verifier's invariants hold, every
  * affected Chat reads clean while every other Chat keeps its unread, Task
  * Chats are untouched, and the dev reverse script
  * restores the database exactly.
  */
-test('0124 folds every Thread into its parent and reverses exactly', async () => {
+test('0126 folds every Thread into its parent and reverses exactly', async () => {
     const cluster = await startPostgresCluster();
     const folder = await mkdtemp(join(tmpdir(), 'haus-thread-migration-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
@@ -37,7 +37,7 @@ test('0124 folds every Thread into its parent and reverses exactly', async () =>
                 ...journal,
                 entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= idx),
             });
-        await writeFile(journalPath, through(123));
+        await writeFile(journalPath, through(125));
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
         const dataset = await seedThreadMigrationDataset(database);
         expect(await shape(database)).toEqual({
@@ -51,14 +51,14 @@ test('0124 folds every Thread into its parent and reverses exactly', async () =>
 
         const original = await dumpDatabase(database);
         const before = await takeThreadMigrationSnapshot(cluster.databaseUrl);
-        await writeFile(journalPath, through(124));
+        await writeFile(journalPath, through(126));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
-            '0124_threads-to-inline-replies',
+            '0126_threads-to-inline-replies',
         ]);
 
         const result = await verifyThreadMigration(cluster.databaseUrl, before);
         expect(result.invariants.filter((invariant) => !invariant.ok)).toEqual([]);
-        console.info('0124 unread on the generated dataset', JSON.stringify(result.unread));
+        console.info('0126 unread on the generated dataset', JSON.stringify(result.unread));
         // Affected Chats read clean, every other Chat keeps its unread, and no
         // queued delivery wakes an Agent to moved history.
         expect(result.unread).toMatchObject({
@@ -77,21 +77,21 @@ test('0124 folds every Thread into its parent and reverses exactly', async () =>
         await reverseThreadMigration(cluster.databaseUrl);
         expect(await dumpDatabase(database)).toEqual(original);
 
-        // 0126 drops the Thread schema on the migrated dataset, keeps every Task
+        // 0128 drops the Thread schema on the migrated dataset, keeps every Task
         // follow under its Task name, and the reverse script refuses from then on.
-        await writeFile(journalPath, through(125));
+        await writeFile(journalPath, through(127));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
-            '0124_threads-to-inline-replies',
-            '0125_legacy-tasks-and-boards',
+            '0126_threads-to-inline-replies',
+            '0127_legacy-tasks-and-boards',
         ]);
         const follows = await database`SELECT
             (SELECT array_agg(server_id || ' ' || thread_chat_id || ' ' || user_id || ' ' || followed ORDER BY 1)
                 FROM thread_follows) AS people,
             (SELECT array_agg(server_id || ' ' || thread_chat_id || ' ' || agent_id || ' ' || followed ORDER BY 1)
                 FROM agent_thread_follows) AS agents`;
-        await writeFile(journalPath, through(126));
+        await writeFile(journalPath, through(128));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
-            '0126_threads-are-gone',
+            '0128_threads-are-gone',
         ]);
         expect(
             await database`SELECT
@@ -107,7 +107,7 @@ test('0124 folds every Thread into its parent and reverses exactly', async () =>
                 AND table_name NOT LIKE 'thread_migration_%'`
         ).toEqual([]);
         await expect(reverseThreadMigration(cluster.databaseUrl)).rejects.toThrow(
-            '0126_threads-are-gone has run'
+            '0128_threads-are-gone has run'
         );
     } finally {
         await database.close();

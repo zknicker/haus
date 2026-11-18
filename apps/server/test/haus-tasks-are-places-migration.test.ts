@@ -7,12 +7,12 @@ import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { startPostgresCluster } from './postgres-cluster.ts';
 
 /**
- * ADR 0053 over rows 0121 left: boards become key-ledger entries with the same
+ * ADR 0053 over rows 0123 left: boards become key-ledger entries with the same
  * ids and counters, Tasks take their board's key and a state from their column,
  * Channels take the General board's key, and a `task` Chat may hang off a
  * Channel Message beside others on the same anchor.
  */
-test('0122 copies boards into the key ledger and backfills Task state and Channel keys', async () => {
+test('0124 copies boards into the key ledger and backfills Task state and Channel keys', async () => {
     const cluster = await startPostgresCluster();
     const folder = await mkdtemp(join(tmpdir(), 'haus-tasks-places-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
@@ -25,7 +25,7 @@ test('0122 copies boards into the key ledger and backfills Task state and Channe
                 ...journal,
                 entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= idx),
             });
-        await writeFile(journalPath, through(121));
+        await writeFile(journalPath, through(123));
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
 
         await database.begin(async (tx) => {
@@ -53,9 +53,9 @@ test('0122 copies boards into the key ledger and backfills Task state and Channe
                 VALUES ('cht_dm', 'srv_one', 'dm', 'usr_one', 1, 'agt_one')`;
         });
 
-        await writeFile(journalPath, through(122));
+        await writeFile(journalPath, through(124));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
-            '0122_tasks-are-places',
+            '0124_tasks-are-places',
         ]);
 
         expect(await database`SELECT id, key, next_number FROM task_keys ORDER BY key`).toEqual([

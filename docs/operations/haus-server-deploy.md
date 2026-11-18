@@ -4,7 +4,7 @@ read_when:
   - deploying or operating the hosted Haus Server
   - changing haus.chat ingress, PostgreSQL roles, or the delivered Server environment
   - preparing a Haus Server release artifact
-  - shipping the Channels-and-Tasks release (migrations 0122–0126, the Thread migration verifier)
+  - shipping the Channels-and-Tasks release (migrations 0124–0128, the Thread migration verifier)
 ---
 
 # Haus Server deployment
@@ -283,9 +283,9 @@ scheduled backup exists. Computer must publish and verify first, and any Compute
 ### Shipping Channels and Tasks (ADR 0053)
 
 The Channels-and-Tasks release ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md))
-runs migrations 0122–0126 and raises Computer protocol to 37 and App protocol to 13. Migration
-0124 moves every Thread's Messages into inline replies on its anchor and deletes the Threads;
-0125 converts legacy Tasks and drops boards; 0126 removes the Thread schema. It is forward-only:
+runs migrations 0124–0128 and raises Computer protocol to 37 and App protocol to 13. Migration
+0126 moves every Thread's Messages into inline replies on its anchor and deletes the Threads;
+0127 converts legacy Tasks and drops boards; 0128 removes the Thread schema. It is forward-only:
 the previous Server cannot run on the migrated schema, and activation rollback restores only the
 binary. Run it in this order:
 
@@ -302,7 +302,7 @@ binary. Run it in this order:
      sh -c 'bun apps/server/scripts/verify-thread-migration.ts --database-url "$HAUS_DATABASE_MIGRATION_URL" --before thread-migration-before.json'
    ```
 
-   Resolve everything it flags before going on. A soft-deleted Thread aborts migration 0124
+   Resolve everything it flags before going on. A soft-deleted Thread aborts migration 0126
    (`a soft-deleted Thread needs an operator decision first`), as does a Thread with no anchor
    Message in its parent; decide each one with the operator first.
 4. **Stop and drain.** Stop every Computer after its local inbox store has drained (no run in
@@ -327,8 +327,8 @@ binary. Run it in this order:
 9. **Upgrade the Mac mini Computer** right after the deploy; a Computer below protocol 37 stays
    idle until upgraded.
 
-`apps/server/scripts/reverse-thread-migration.ts` is a dev-only tool that replays 0124's audit
-tables backwards on a development database and refuses once 0126 has run. It is not a
+`apps/server/scripts/reverse-thread-migration.ts` is a dev-only tool that replays 0126's audit
+tables backwards on a development database and refuses once 0128 has run. It is not a
 production rollback. A failure after the migration is fixed forward on the new schema.
 
 Migration 0064 keeps the physical `agents.personality` column for rollback to Server 7.1.0.

@@ -1,7 +1,7 @@
 import type { SQL } from 'bun';
 
 /**
- * Rows 0124 can hold, one legacy Task per 0125 case: worked by an Agent and
+ * Rows 0126 can hold, one legacy Task per 0127 case: worked by an Agent and
  * linked from Channels (and earlier from a DM), worked by an Agent with no
  * link (twice, to order the `#all` posts), a column that disagrees with its
  * state, assigned to a person, unassigned, done, canceled, and a Task that is

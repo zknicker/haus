@@ -18,7 +18,7 @@ them in an inline reply where the request arrived.
 `message_claims` keys metadata by `(server_id, message_id)` and also binds the canonical
 `chat_id`, always the top-level Channel or DM: monotonic per-Chat claim number (`chats.last_claim_number`), status, optional Agent assignee (`assignee_agent_id`) and claim time,
 origin, creator, monotonic version, and a nullable `tracked_at`. The number comes from the
-Chat's counter. Migration 0124 moved every claim on a Thread message onto its parent with the
+Chat's counter. Migration 0126 moved every claim on a Thread message onto its parent with the
 message itself, so the message's own Chat is the claim's Chat.
 
 `origin` is `composed` (created as a claim for someone else: unassigned, or reserved for a peer),

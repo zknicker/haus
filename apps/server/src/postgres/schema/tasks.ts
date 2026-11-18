@@ -33,7 +33,7 @@ export const tasksTable = pgTable(
         assigneeUserId: text('assignee_user_id'),
         /**
          * The Task's own `task` Chat (ADR 0053), one per Task. Null for a Task
-         * from before Tasks were places that 0125 archived as read-only history.
+         * from before Tasks were places that 0127 archived as read-only history.
          */
         chatId: text('chat_id'),
         completedAt: timestamp('completed_at', { withTimezone: true }),
@@ -64,7 +64,7 @@ export const tasksTable = pgTable(
         unique('tasks_server_id_key').on(table.serverId, table.id),
         uniqueIndex('tasks_key_number_key').on(table.keyId, table.number),
         uniqueIndex('tasks_chat_key').on(table.chatId),
-        // Not cascade: a Task's Chat goes only with its Server, and 0122 defers
+        // Not cascade: a Task's Chat goes only with its Server, and 0124 defers
         // this check to commit so a Server purge removes both together.
         foreignKey({
             columns: [table.serverId, table.chatId],

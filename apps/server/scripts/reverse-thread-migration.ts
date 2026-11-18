@@ -4,17 +4,17 @@ import { parseArgs } from 'node:util';
 import { SQL } from 'bun';
 
 /**
- * DEV ONLY: replays migration 0124's audit tables backwards, restoring every
+ * DEV ONLY: replays migration 0126's audit tables backwards, restoring every
  * Thread, its Messages' Chat, sequence, nonce, and reply links, and the
  * before-image of every other row the migration changed or deleted. Rows
  * written after the migration in those Chats are overwritten or removed, so
- * this never runs against a database anyone uses. It refuses once 0126 has
+ * this never runs against a database anyone uses. It refuses once 0128 has
  * dropped the Thread schema.
  *
  *   bun scripts/reverse-thread-migration.ts --database-url <url> --i-am-on-a-dev-database
  */
-const migrationTag = '0124_threads-to-inline-replies';
-const threadSchemaDroppedTag = '0126_threads-are-gone';
+const migrationTag = '0126_threads-to-inline-replies';
+const threadSchemaDroppedTag = '0128_threads-are-gone';
 const sequenceOffset = 1_000_000_000;
 
 /** Tables whose rows are deleted in the moving Chats and reinserted whole, with their Chat column. */
@@ -44,7 +44,6 @@ const restoredTables = [
     'agent_run_triggers',
     'agent_runner_credentials',
     'agent_delivery',
-    'agent_leads',
     'message_causes',
 ] as const;
 
@@ -61,7 +60,7 @@ export async function reverseThreadMigration(databaseUrl: string) {
             throw new Error('No thread migration audit tables here; nothing to reverse.');
         }
         const migratedAt = await readMigrationTime(migrationTag);
-        // 0126 deleted the Thread schema the before-images need, so the audit
+        // 0128 deleted the Thread schema the before-images need, so the audit
         // tables can no longer be replayed once it has run.
         const schemaDroppedAt = await readMigrationTime(threadSchemaDroppedTag);
         const [dropped] = (await client`
@@ -192,7 +191,7 @@ async function main() {
         process.exit(2);
     }
     await reverseThreadMigration(databaseUrl);
-    console.log('Reversed 0124_threads-to-inline-replies.');
+    console.log('Reversed 0126_threads-to-inline-replies.');
 }
 
 if (import.meta.main) {

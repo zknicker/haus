@@ -3,7 +3,7 @@ summary: Current persistence ownership across Server PostgreSQL, Computer state,
 read_when:
   - changing database schema, persistence ownership, or durable product records
   - deciding whether state belongs in Server, Computer, or App
-  - changing the Task tables, the key ledger, Task follows, or the 0122–0126 Task and Thread migrations
+  - changing the Task tables, the key ledger, Task follows, or the 0124–0128 Task and Thread migrations
 ---
 
 # Data model
@@ -105,14 +105,14 @@ A Task ([specs/tasks.md](../../specs/tasks.md)) is a `tasks` row plus its own `c
 with its own `next_number`; `tasks.key_id` names a Task's entry and `chats.task_key_id` a
 Channel's. `task_pull_requests` attaches pull requests by repository and number, and
 `cloud_agent_work.task_id` attaches cloud work. Followers ride `thread_follows` (people) and
-`agent_thread_follows` (Agents) with `thread_chat_kind = 'task'`. Migrations 0122–0126 made Tasks
-places: 0122 added the ledger, states, and Task Chats (every board became a ledger entry); 0123
-let reminders anchor on a Task; 0124 turned every Thread into inline replies on its anchor and
+`agent_thread_follows` (Agents) with `thread_chat_kind = 'task'`. Migrations 0124–0128 made Tasks
+places: 0124 added the ledger, states, and Task Chats (every board became a ledger entry); 0125
+let reminders anchor on a Task; 0126 turned every Thread into inline replies on its anchor and
 marked each affected Channel read for everyone who can read it, keeping audit tables
 (`thread_migration_map`, `thread_migration_rows`) for `apps/server/scripts/verify-thread-migration.ts`;
-0125 converted unfinished legacy Tasks with an Agent assignee into places, canceled the rest, kept
+0127 converted unfinished legacy Tasks with an Agent assignee into places, canceled the rest, kept
 done and canceled ones as read-only history, and dropped boards, columns, and the Task Inbox;
-0126 removes the Thread schema.
+0128 removes the Thread schema.
 
 `cloud_agent_work` is the standalone Cloud Agent work record (ADR 0044). Its `chat_id`,
 `launch_message_id`, and `computer_id` name the requesting Chat, launch Message, and launching

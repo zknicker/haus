@@ -8,12 +8,12 @@ import { seedLegacyTasks } from './legacy-tasks-seed.ts';
 import { startPostgresCluster } from './postgres-cluster.ts';
 
 /**
- * ADR 0053 over rows 0124 left: a legacy Task an Agent is working becomes a
+ * ADR 0053 over rows 0126 left: a legacy Task an Agent is working becomes a
  * place (its earliest linking Channel Message, else a "Tracking" post in
  * `#all`), every other unfinished legacy Task is canceled into history, closed
  * ones stay as they are, and boards, columns, and the Task Inbox are gone.
  */
-test('0125 turns worked legacy Tasks into places and archives the rest', async () => {
+test('0127 turns worked legacy Tasks into places and archives the rest', async () => {
     const cluster = await startPostgresCluster();
     const folder = await mkdtemp(join(tmpdir(), 'haus-legacy-tasks-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
@@ -26,13 +26,13 @@ test('0125 turns worked legacy Tasks into places and archives the rest', async (
                 ...journal,
                 entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= idx),
             });
-        await writeFile(journalPath, through(124));
+        await writeFile(journalPath, through(126));
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
         await seedLegacyTasks(database);
 
-        await writeFile(journalPath, through(125));
+        await writeFile(journalPath, through(127));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
-            '0125_legacy-tasks-and-boards',
+            '0127_legacy-tasks-and-boards',
         ]);
 
         const tasks = await database`
@@ -61,7 +61,7 @@ test('0125 turns worked legacy Tasks into places and archives the rest', async (
             string,
             number
         >[];
-        console.info('0125 legacy Task cases', JSON.stringify(counts[0]));
+        console.info('0127 legacy Task cases', JSON.stringify(counts[0]));
         expect(counts[0]).toEqual({ canceled_now: 2, history: 5, places: 4 });
 
         // Two posts by each assignee, appended to #all in Task age order.

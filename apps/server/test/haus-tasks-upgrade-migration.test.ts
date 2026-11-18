@@ -124,7 +124,7 @@ async function upgradeFrom(
         const [task] = await database`SELECT id FROM tasks WHERE number = 1`;
         expect(assignment.chat_id).toBeNull();
         expect(assignment.dedupe_key).toBe(`task-assign:${task.id}:1`);
-        // As 0120 stored it; 0125 later drops its board and column names.
+        // As 0120 stored it; 0127 later drops its board and column names.
         expect(JSON.parse(assignment.content)).toMatchObject({
             assignedBy: 'ada',
             key: 'GEN-1',

@@ -1,12 +1,12 @@
--- ADR 0053 decisions 1 and 14: after 0124 folded every Thread into inline
+-- ADR 0053 decisions 1 and 14: after 0126 folded every Thread into inline
 -- replies, nothing Thread-shaped remains in the schema. Task follows keep their
 -- rows under Task names, Open Threads closures go, and a claim's Message always
--- sits in the claim's own Chat. 0124's audit tables stay.
+-- sits in the claim's own Chat. 0126's audit tables stay.
 SET CONSTRAINTS ALL IMMEDIATE;--> statement-breakpoint
 DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM "chats" WHERE "kind" = 'thread') THEN
-        RAISE EXCEPTION 'threads are gone: a Thread Chat remains; run 0124 first';
+        RAISE EXCEPTION 'threads are gone: a Thread Chat remains; run 0126 first';
     END IF;
     IF EXISTS (SELECT 1 FROM "message_claims" WHERE "thread_chat_id" IS NOT NULL) THEN
         RAISE EXCEPTION 'threads are gone: a claim still names a Thread';
@@ -84,7 +84,7 @@ ALTER TABLE "message_claims" DROP COLUMN "message_chat_id";--> statement-breakpo
 ALTER TABLE "message_claims" DROP COLUMN "thread_chat_id";--> statement-breakpoint
 ALTER TABLE "message_claims" ADD CONSTRAINT "message_claims_message_fk" FOREIGN KEY ("server_id","chat_id","message_id") REFERENCES "public"."chat_messages"("server_id","chat_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "chats" DROP CONSTRAINT "chats_server_id_parent_key";--> statement-breakpoint
--- Task follows: the Thread follow tables were already Task follows (0122);
+-- Task follows: the Thread follow tables were already Task follows (0124);
 -- they take Task names and only the Task kind.
 ALTER TABLE "thread_follows" RENAME TO "task_follows";--> statement-breakpoint
 ALTER TABLE "task_follows" RENAME COLUMN "thread_chat_id" TO "task_chat_id";--> statement-breakpoint

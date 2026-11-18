@@ -7,12 +7,12 @@ import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { startPostgresCluster } from './postgres-cluster.ts';
 
 /**
- * ADR 0053 decisions 6 and 16 over rows 0122 left: a reminder's anchor Message
+ * ADR 0053 decisions 6 and 16 over rows 0124 left: a reminder's anchor Message
  * key no longer names its anchor Chat, so a reminder on a Task with no posts
  * anchors on the origin Message in the Channel above it; and a `pull_request`
  * notice may wake a Task's assignee without any cloud agent Run.
  */
-test('0123 keeps existing reminders and lets a Task reminder anchor on its origin', async () => {
+test('0125 keeps existing reminders and lets a Task reminder anchor on its origin', async () => {
     const cluster = await startPostgresCluster();
     const folder = await mkdtemp(join(tmpdir(), 'haus-reminder-task-anchors-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
@@ -25,13 +25,13 @@ test('0123 keeps existing reminders and lets a Task reminder anchor on its origi
                 ...journal,
                 entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= idx),
             });
-        await writeFile(journalPath, through(122));
+        await writeFile(journalPath, through(124));
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
         await seedWorld(database);
 
-        await writeFile(journalPath, through(123));
+        await writeFile(journalPath, through(125));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
-            '0123_reminder-task-anchors',
+            '0125_reminder-task-anchors',
         ]);
 
         expect(await database`SELECT id, anchor_chat_id, anchor_message_id FROM reminders`).toEqual(

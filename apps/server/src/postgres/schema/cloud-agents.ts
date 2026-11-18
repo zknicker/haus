@@ -59,7 +59,7 @@ export const cloudAgentWorkTable = pgTable(
     },
     (table) => [
         unique('cloud_agent_work_server_id_key').on(table.serverId, table.id),
-        // Not cascade: work outlives nothing but its Server; 0122 defers the check.
+        // Not cascade: work outlives nothing but its Server; 0124 defers the check.
         foreignKey({
             columns: [table.serverId, table.taskId],
             foreignColumns: [tasksTable.serverId, tasksTable.id],

@@ -5,7 +5,7 @@ import { serversTable } from './servers.ts';
 /**
  * The Server's ledger of Task keys (ADR 0053 decision 11). Each entry numbers
  * its own Tasks through `next_number`, allocated under this row's lock. A key
- * stays unique per Server and is never reused. Migration 0122 copied every
+ * stays unique per Server and is never reused. Migration 0124 copied every
  * board into this ledger with the board's id, key, and counter.
  */
 export const taskKeysTable = pgTable(

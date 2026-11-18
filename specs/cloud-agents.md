@@ -684,7 +684,7 @@ since a live Run still reports on its own. The notice is a `cloud_agent_work` in
 { change, url }`. Its dedupe key is `<repo>#<number>:<change>:<headSha>`, so each change wakes once
 per head commit (`github/pull-request-wake.ts`, `pull-request-change.ts`). A pull request attached
 to a todo or open Task with an Agent assignee and no cloud work wakes that assignee in the Task
-with no Run behind the notice (`github/pull-request-task-wakes.ts`). Migration 0123 relaxed the
+with no Run behind the notice (`github/pull-request-task-wakes.ts`). Migration 0125 relaxed the
 inbox check so a `pull_request` notice may carry no Run id.
 
 ## Claude provider
