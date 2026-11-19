@@ -1,0 +1,127 @@
+---
+status: accepted
+summary: Humans create Projects, and each Project is its channel; there are no freestanding channels. A Project carries one key, repos, rules, its Agents, and the default place for Workers. Every Task belongs to one Project explicitly. Each Agent belongs to one Project, hears everything there and only @mentions elsewhere; Agents in the Haus project are generalists. Humans can file a Task assigned to an Agent. Amends ADR 0053. Accepted 2026-11-19, not yet implemented.
+read_when:
+  - creating, configuring, or listing channels or Projects, or changing Project keys
+  - deciding which Project a Task belongs to, or who can create a Task
+  - changing which messages reach an Agent (ordinary delivery, mutes, mentions) across channels
+  - changing an Agent's home Project, generalist Agents, or handoffs between Agents
+  - changing the sidebar, Agent tiles, or the Agent page Overview
+---
+
+# ADR 0055: Projects Own Agents and Tasks
+
+## Status
+
+Accepted 2026-11-19. Not yet implemented. Part of the direction in
+[the Capy and Amp proposal](../proposals/capy-product-model.md), with
+[ADR 0054](0054-drive-holds-what-agents-know-and-follow.md) (Drive) and
+[ADR 0056](0056-agents-run-quiet-workers-anywhere.md) (Workers). Amends
+[ADR 0053](0053-channels-and-tasks-are-the-only-places.md) and
+[ADR 0011](0011-agents-own-one-global-session.md).
+
+## Context
+
+A channel is half a project. It has a Task key, but no repos, no rules, and no place for its work
+to run. Agents float: each one hears every channel it has joined, so a room with three Agents
+hears every message three times, and nobody can say which Agent owns an area. ADR 0053 ties a
+Task to the channel its origin Message happened to be in, and lets only Agents create Tasks, so a
+person has to write a chat message to file work.
+
+Capy scopes each Captain to one project and teaches "one Captain per area". Amp leaves its
+coordinators unbound because it is built for one person, and its Space agent ignores people until
+someone @mentions it. Haus is a team, so it takes Capy's ownership and Amp's quiet.
+
+## Decision
+
+1. **Only humans create Projects, and each Project is its channel.** "New project" creates the
+   channel; there is no "New channel". Every existing channel becomes a Project, and `#all`
+   becomes the Haus project.
+
+2. **A Project's settings** sit behind the channel header menu: its key, its Agents, its repos and
+   which Computers have each one linked, its `AGENTS.md`
+   ([ADR 0054](0054-drive-holds-what-agents-know-and-follow.md)), and the default place for its
+   Workers ([ADR 0056](0056-agents-run-quiet-workers-anywhere.md)). There is no separate Overview
+   pane.
+
+3. **One key per Project.** It prefixes the Project's Task numbers. Existing keys and numbers carry
+   over.
+
+4. **A Task belongs to one Project, explicitly.** The Agent picks it when it starts the Task,
+   defaulting to the Project it was asked in. Where the request came from (a channel message, a
+   DM, a reminder) is only where the Task started. The Project gives the Task its key and gives its
+   Workers their repos, rules and default place.
+
+5. **Humans can file a Task.** "New task" asks for a Project, a title and an Agent, which defaults
+   to the Project's Agent. The Agent picks it up like an assignment. Every Task still has an Agent
+   working it.
+
+6. **An Agent belongs to one Project.** It is listed under it, and that Project's rules always
+   apply to it. Moving an Agent to another Project is a setting. Its one global session and the
+   machine its tools run on are unchanged ([ADR 0057](0057-agents-run-on-the-server-and-machines-run-their-tools.md)).
+
+7. **An Agent hears its own Project and @mentions elsewhere.** It receives every message in its
+   Project's channel and Tasks, and is that Project's first responder. In other Projects and their
+   Tasks it receives only @mentions and assignments. DMs always reach it.
+
+8. **Work stays in its Project.** An Agent starts Tasks in its own Project. Work that belongs
+   elsewhere it hands to that Project's Agent in that Project's channel, by @mention or assignment,
+   where everyone can see it.
+
+9. **The Haus project holds generalists.** An Agent there can start Tasks in any Project and loads
+   a Project's rules when it acts there. Cove lives here.
+
+10. **The sidebar leads with Agents.** Search and Inbox, then Agent tiles (a dot means working;
+    a click opens your DM with its Overview), then Projects with their Agents' faces, then open
+    Tasks, then a footer with Tasks, Drive, Activity and Settings. Agent DMs are the tiles; the
+    Direct messages section goes, and person-to-person DMs are reached from the Inbox and Search.
+
+11. **The Agent page** is your DM on the left and an Overview on the right: Working (its open Tasks
+    with their Workers, places and PR state), Drive (its folder), and Rules (links to the rule
+    files that load for it). A Tasks tab lists every Task assigned to it.
+
+## Considered and rejected
+
+- **Unbound Agents, as Amp's coordinators are.** That works for one person. In a team it blurs who
+  owns what, and every Agent hears every room.
+- **A Task's Project taken from its origin Message.** That made an accident of chat placement
+  decide the key, repos and rules.
+- **Projects created by Agents.** Capy keeps project creation with people, and a Project carries
+  repos and machine links that people own.
+- **A Project Overview pane.** Capy has none; open Tasks live in the sidebar.
+- **Keys shared across channels.** One key per Project keeps a number's home obvious.
+
+## Prior art
+
+Capy: a project is mostly settings (repos, setup, secrets, members, the thread-number code), only
+humans create one, and each Captain belongs to one project with its crew. Amp: a thread belongs to
+at most one project, a project carries a Default Orb, a Space is bound to at most one project but
+can start threads in others, and the Space agent ignores people talking among themselves until
+@mentioned. Haus takes Capy's ownership and Amp's mention gating, and keeps channels where several
+Agents and people work in the open.
+
+## Consequences
+
+Amended:
+
+- [ADR 0053](0053-channels-and-tasks-are-the-only-places.md): "Only Agents create Tasks" is
+  reversed by decision 5. A Task's key comes from its Project, not its origin Message's channel,
+  and the shared key ledger becomes one key per Project. Tasks may start from a DM request, filed
+  in the right Project.
+- [ADR 0011](0011-agents-own-one-global-session.md): one global session stands. What reaches it
+  narrows to the home Project, @mentions, assignments and DMs.
+- `specs/inbox.md`: ordinary delivery reaches the home Project, not every joined channel. Channel
+  mutes lose most of their purpose. ADR 0030's semantic narrowing still applies inside a Project
+  with several Agents.
+
+Deleted:
+
+- Freestanding channels and "New channel".
+- The Direct messages sidebar section.
+
+Follow-up:
+
+- Write a Projects spec, and update `specs/tasks.md`, `specs/inbox.md` and `specs/chats.md`.
+- Decide what happens to an Agent's existing channel memberships at migration: its home Project
+  is the channel it is most active in, unless a person picks.
+- The prompt's placement and handoff text goes through the guarded prompt contract.
