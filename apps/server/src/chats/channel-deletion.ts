@@ -11,6 +11,7 @@ import {
 } from '../postgres/schema.ts';
 import { requireHausProjectId } from '../projects/haus-project.ts';
 import { publishRealtime } from '../realtime/topic.ts';
+import { remindersAnchoredIn } from '../reminders/anchored-reminders.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { deleteTasksOfRemovedChats } from '../tasks/task-chat-removal.ts';
 import { prepareTaskLinkEvents, readReminderTaskIds } from '../tasks/task-reference-links.ts';
@@ -99,10 +100,7 @@ export async function purgeDeletedChannel(
             return [];
         }
 
-        const anchored = and(
-            eq(remindersTable.serverId, input.serverId),
-            inArray(remindersTable.anchorChatId, chatIds)
-        );
+        const anchored = remindersAnchoredIn(tx, { chatIds, serverId: input.serverId });
         // The links cascade with the Reminders, so read them first.
         const reminders = await tx
             .select({ id: remindersTable.id })

@@ -323,7 +323,8 @@ and [Agent Inbox](../../specs/inbox.md).
   envelopes.
   Delete project is a separate irreversible Owner/Admin action guarded by the
   exact channel name. It removes the regular channel, its Tasks' conversations, messages,
-  tasks, reads, reactions, reminders, Triggers anchored in it (with their fire
+  tasks, reads, reactions, reminders anchored in it or on its messages (even
+  from a Task in another Project), Triggers anchored in it (with their fire
   history), delivery rows, search state, attachment metadata, and attachment
   bytes. The committed deletion is the outcome: a failed cleanup is retried by
   the Server's startup sweep, never reported as a failed delete. The

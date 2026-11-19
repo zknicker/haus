@@ -185,6 +185,52 @@ test('archiving then deleting a Project deletes its Tasks and their Chats; cloud
     ).toEqual([{ agent_follows: 0, follows: 0, messages: 0, pulls: 0, reminders: 0, work: 1 }]);
 });
 
+test('purging a Project deletes a reminder anchored there from a Task in another Project', async () => {
+    const origin = await createTestProject(harness, owner, {
+        agentIds: [agentId],
+        name: 'origin-goes',
+        serverId,
+    });
+    const home = await createTestProject(harness, owner, {
+        agentIds: [agentId],
+        name: 'task-stays',
+        serverId,
+    });
+    const request = await owner.trpc.chat.send.mutate({
+        chatId: origin.id,
+        content: 'Please chase the vendor',
+        nonce: 'origin-goes-request',
+        serverId,
+    });
+    const task = await startTestTask(harness, owner, {
+        channelId: home.id,
+        serverId,
+        title: 'Chase the vendor',
+    });
+    await harness.sql`INSERT INTO reminders
+        (id, server_id, owner_agent_id, anchor_chat_id, anchor_message_id, title,
+         fire_at, timezone, status, created_at, updated_at)
+        VALUES ('rem_origin_goes', ${serverId}, ${agentId}, ${task.chatId}, ${request.message.id},
+            'Chase again', now() + interval '1 hour', 'UTC', 'scheduled', now(), now())`;
+
+    await expect(
+        owner.trpc.chat.deleteChannel.mutate({
+            chatId: origin.id,
+            confirmation: 'origin-goes',
+            serverId,
+        })
+    ).resolves.toEqual({ chatId: origin.id, serverId });
+
+    expect(
+        await harness.sql`
+            select
+                (select count(*)::int from chats where id = ${origin.id}) as origin,
+                (select count(*)::int from chats where id = ${task.chatId}) as task,
+                (select count(*)::int from reminders where id = 'rem_origin_goes') as reminders
+        `
+    ).toEqual([{ origin: 0, reminders: 0, task: 1 }]);
+});
+
 async function insertTrigger(id: string, anchorChatId: string, removedAt: Date | null) {
     await harness.sql`INSERT INTO triggers
         (id, server_id, owner_agent_id, anchor_chat_id, kind, status, title, secret_hash,
