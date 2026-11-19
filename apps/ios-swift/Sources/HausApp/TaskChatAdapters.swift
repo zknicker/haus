@@ -57,7 +57,7 @@ extension HausStore {
 
     func taskStartedFrom(taskID: String) -> TaskStartedFromPresentation? {
         guard let origin = taskOrigin(taskID: taskID) else { return nil }
-        let place = chatsByID[origin.chatID]?.name.map { "#\($0)" } ?? "its Channel"
+        let place = chatsByID[origin.chatID]?.name.map { "#\($0)" } ?? "its project"
         let message = messagesByChatID[origin.chatID]?.messages.first { $0.id == origin.messageID }
         let excerpt = message.flatMap { message -> String? in
             let line = RichMessageParser.oneLinePreview(message.displayContent)

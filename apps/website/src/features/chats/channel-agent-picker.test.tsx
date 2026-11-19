@@ -72,28 +72,28 @@ test('only an empty roster describes how to add an agent', () => {
     const filled = renderToStaticMarkup(picker({ selectedAgentIds: ['agent_cove'] }));
     const empty = renderToStaticMarkup(picker({ selectedAgentIds: [] }));
 
-    expect(filled).not.toContain('No agents yet');
+    expect(filled).not.toContain('No Captains yet');
     expect(filled).not.toMatch(/<fieldset[^>]*aria-describedby/);
-    expect(empty).toContain('No agents yet');
-    expect(describedText(empty)).toBe('Add an agent above.');
+    expect(empty).toContain('No Captains yet');
+    expect(describedText(empty)).toBe('Add a Captain above.');
 });
 
 test('a Server with no Agents says so instead of asking for one it cannot offer', () => {
     const markup = renderToStaticMarkup(picker({ agents: [], selectedAgentIds: [] }));
 
-    expect(markup).toContain('No agents available.');
-    expect(markup).not.toContain('Add an agent above.');
+    expect(markup).toContain('No Captains available.');
+    expect(markup).not.toContain('Add a Captain above.');
 });
 
 test('a hidden label names the group without drawing it', () => {
     const hidden = renderToStaticMarkup(picker({ label: 'hidden' }));
     const visible = renderToStaticMarkup(picker({ label: 'visible' }));
 
-    expect(hidden).toContain('aria-label="Agents"');
+    expect(hidden).toContain('aria-label="Captains"');
     expect(hidden).not.toContain('<label');
     expect(visible).toContain('<label');
     expect(visible).toContain('aria-labelledby=');
-    expect(visible).not.toContain('aria-label="Agents"');
+    expect(visible).not.toContain('aria-label="Captains"');
 });
 
 test('a pending Agents list waits instead of claiming the roster is empty', () => {
@@ -101,8 +101,8 @@ test('a pending Agents list waits instead of claiming the roster is empty', () =
         picker({ agents: [], agentsPending: true, selectedAgentIds: [] })
     );
 
-    expect(markup).toContain('Loading agents');
-    expect(markup).not.toContain('No agents yet');
+    expect(markup).toContain('Loading Captains');
+    expect(markup).not.toContain('No Captains yet');
     expect(markup).not.toContain(rule);
 });
 

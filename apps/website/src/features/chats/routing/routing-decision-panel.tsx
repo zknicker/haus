@@ -66,7 +66,7 @@ export function RoutingDecisionPanel({
                 </div>
             ) : null}
             <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-base">
-                <dt className="text-muted">{audit.model ? 'Candidates' : 'Eligible agents'}</dt>
+                <dt className="text-muted">{audit.model ? 'Candidates' : 'Eligible Captains'}</dt>
                 <dd className="text-right break-words">{names(audit.candidateAgentIds)}</dd>
                 <dt className="text-muted">Excluded by Jev</dt>
                 <dd className="text-right break-words">{names(excluded)}</dd>
@@ -97,7 +97,7 @@ export function RoutingDecisionPanel({
                 )}
             </dl>
             <p className="text-muted text-base">
-                Inbox delivery only. Reading and agent activity are tracked separately.
+                Inbox delivery only. Reading and Captain activity are tracked separately.
             </p>
         </div>
     );

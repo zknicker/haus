@@ -26,7 +26,7 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
     return (
         <PageColumn>
             <SettingsPageHeader
-                description="Identity, Agent settings, and permanent actions for this Server."
+                description="Identity, Captain settings, and permanent actions for this Server."
                 title="Server"
             />
             <ItemCardGroup variant="transparent">
@@ -85,7 +85,7 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
                     {deleting ? (
                         <DeleteDialog
                             confirmation={server.slug}
-                            description="This immediately disables the Server and permanently deletes its Server data. Offline Computers do not block deletion."
+                            description="This immediately disables the Server and permanently deletes its Server data. Offline devices do not block deletion."
                             onConfirm={() =>
                                 remove.mutate({
                                     confirmation: server.slug,

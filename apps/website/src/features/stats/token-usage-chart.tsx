@@ -38,7 +38,7 @@ export function TokenUsageChart({ view }: { view: TokenUsageView }) {
                         <BarChart.Bar dataKey="empty" fill="transparent" />
                     </BarChart>
                     <p className="text-muted text-sm">
-                        Token usage will appear after a Haus Agent completes a model turn.
+                        Token usage will appear after a Captain completes a model turn.
                     </p>
                 </Widget.Content>
             </Widget>

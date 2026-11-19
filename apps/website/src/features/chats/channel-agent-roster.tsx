@@ -44,7 +44,7 @@ export function ChannelAgentRoster({
                             <EmptyState.Media variant="icon">
                                 <Icon icon={UserMultiple02Icon} />
                             </EmptyState.Media>
-                            <EmptyState.Title>No agents yet</EmptyState.Title>
+                            <EmptyState.Title>No Captains yet</EmptyState.Title>
                             <EmptyState.Description id={emptyDescriptionId}>
                                 {emptyDescription}
                             </EmptyState.Description>

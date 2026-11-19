@@ -98,7 +98,7 @@ function HostSkillDetails({ entry }: { entry: HostSkill }) {
                         </SettingsFact>
                     </HostSkillFact>
                     <Separator />
-                    <HostSkillFact label="Computer">
+                    <HostSkillFact label="Device">
                         <SettingsFact className="block truncate">
                             {entry.computer.name}
                         </SettingsFact>
@@ -155,7 +155,7 @@ function HostSkillUsedBy({
                     </span>
                 </>
             ) : (
-                'Not used by any Agent yet'
+                'Not used by any Captain yet'
             )}
         </p>
     );

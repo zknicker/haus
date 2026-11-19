@@ -91,7 +91,7 @@ export function CloudAgentProviderCapability({
         try {
             const checked = await connect.mutateAsync(target);
             if (!checked.ready) {
-                toast.info('Claude Code is not signed in on this Computer yet');
+                toast.info('Claude Code is not signed in on this device yet');
             }
         } catch (error) {
             toast.danger('Couldn’t check Claude Code', { description: errorMessage(error) });
@@ -143,7 +143,7 @@ export function CloudAgentProviderCapability({
             />
             {signInOpen ? (
                 <CloudAgentSignInDialog
-                    computerName={computer?.name ?? 'this Computer'}
+                    computerName={computer?.name ?? 'this device'}
                     error={
                         cancel.error
                             ? errorMessage(cancel.error)

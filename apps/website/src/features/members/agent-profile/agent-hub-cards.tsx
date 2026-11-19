@@ -72,7 +72,7 @@ export function AgentHubCards({
             <AgentHubCard
                 fact={
                     settled
-                        ? `${computer ? computerLabel(computer) : 'Computer unavailable'} · ${
+                        ? `${computer ? computerLabel(computer) : 'Device unavailable'} · ${
                               execution.model
                                   ? execution.modelLabel
                                   : `${execution.modelLabel} not installed`

@@ -41,7 +41,7 @@ test('a sole-agent bypass reads as addressed with its reason', () => {
         </Popover>
     );
     expect(markup).toContain('Addressed');
-    expect(markup).toContain('sole agent and human');
+    expect(markup).toContain('sole Captain and human');
 });
 
 test('a mention-scope narrowing reads as narrowed with the excluded agent and scope choice', () => {
@@ -63,8 +63,8 @@ test('a mention-scope narrowing reads as narrowed with the excluded agent and sc
         </Popover>
     );
     expect(markup).toContain('Narrowed');
-    expect(markup).toContain('Mentioned agents only');
-    expect(markup).toContain('for the mentioned agents alone');
+    expect(markup).toContain('Mentioned Captains only');
+    expect(markup).toContain('for the mentioned Captains alone');
     expect(markup).toContain('Cove');
 });
 
@@ -98,9 +98,9 @@ test('an uncertain mention-scope judgment names the confidence threshold', () =>
 
 test('confident non-narrowing answers say what Jev judged, not uncertainty', () => {
     for (const [overrides, copy] of [
-        [{ choice: 'multiple' }, 'Jev judged this was for everyone in the channel.'],
+        [{ choice: 'multiple' }, 'Jev judged this was for everyone in the project.'],
         [{ choice: 'human' }, 'Jev judged this was for a human.'],
-        [{ ...mentionScope, choice: 'others' }, 'Jev judged this was for other agents too'],
+        [{ ...mentionScope, choice: 'others' }, 'Jev judged this was for other Captains too'],
     ] as const) {
         const markup = renderPanel({ ...overrides, confidence: 0.99, outcome: 'kept' });
         expect(markup).toContain('Normal delivery');
@@ -118,6 +118,6 @@ test('a stored pre-kept uncertain audit with a confident shared choice reads as 
         threshold: 0.9,
     };
     expect(routingOutcomeLabel(legacy)).toBe('Jev: for everyone');
-    expect(routingExplanation(legacy)).toContain('for everyone in the channel');
+    expect(routingExplanation(legacy)).toContain('for everyone in the project');
     expect(routingOutcomeLabel({ ...legacy, confidence: 0.85 })).toBe('uncertain');
 });

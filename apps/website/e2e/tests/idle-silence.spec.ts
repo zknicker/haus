@@ -71,7 +71,7 @@ test.describe('an idle App stays silent', () => {
     test('on an Agent profile', async ({ page }) => {
         const traffic = await openIdleApp(page, 'idle-profile', { withAgent: true });
         await page.getByRole('row', { exact: true, name: 'Orbit' }).click({ button: 'right' });
-        await page.getByRole('menuitem', { exact: true, name: 'View agent profile' }).click();
+        await page.getByRole('menuitem', { exact: true, name: 'View Captain profile' }).click();
         await expect(page.getByRole('heading', { exact: true, name: 'Orbit' })).toBeVisible();
         await expectIdleSilence(page, traffic);
     });

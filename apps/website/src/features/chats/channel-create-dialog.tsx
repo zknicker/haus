@@ -99,9 +99,9 @@ function ChannelCreateForm({
                 <Modal.Icon>
                     <ChannelIconBox color={appearance.color} icon={appearance.icon} size="modal" />
                 </Modal.Icon>
-                <Modal.Heading>New channel</Modal.Heading>
+                <Modal.Heading>New project</Modal.Heading>
                 <p className="text-muted text-sm leading-5">
-                    Name the channel and choose its agents.
+                    Name the project and choose its Captains.
                 </p>
             </Modal.Header>
             <Modal.Body>
@@ -120,7 +120,7 @@ function ChannelCreateForm({
                         value={name}
                         variant="secondary"
                     >
-                        <Label>Channel name</Label>
+                        <Label>Project name</Label>
                         <InputGroup className="channel-name-field" fullWidth variant="secondary">
                             <InputGroup.Prefix className="ps-1">
                                 <ChannelAppearancePicker

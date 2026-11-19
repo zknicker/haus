@@ -79,7 +79,7 @@ function KeyForm({
             <Modal.Header>
                 <Modal.Heading>{`${replacing ? 'Replace' : 'Add'} ${name} key`}</Modal.Heading>
                 <p className="text-muted mt-1.5 text-sm leading-5">
-                    Agents on this Server generate images with your own {name} account.
+                    Captains on this Server generate images with your own {name} account.
                 </p>
             </Modal.Header>
             <Modal.Body>

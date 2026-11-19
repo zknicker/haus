@@ -91,7 +91,7 @@ export function memberChangeDescription(
     }
 
     if (action.kind === 'remove') {
-        return `${who} is currently ${target.role}. They lose access to /${slug} immediately, and their Channel memberships and read markers are cleared. Messages they wrote stay.`;
+        return `${who} is currently ${target.role}. They lose access to /${slug} immediately, and their project memberships and read markers are cleared. Messages they wrote stay.`;
     }
 
     return `${who} goes from ${target.role} to ${action.nextRole ?? target.role} on /${slug}.`;

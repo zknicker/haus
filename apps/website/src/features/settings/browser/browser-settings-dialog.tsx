@@ -35,7 +35,7 @@ export function BrowserSettingsDialog({
 }) {
     return (
         <BrowserDialog
-            description="Connect Agents to an existing Chrome browser on this Computer."
+            description="Connect Captains to an existing Chrome browser on this device."
             footer={
                 <Button
                     form={BROWSER_DIALOG_FORM_ID}
@@ -60,7 +60,7 @@ export function BrowserSettingsDialog({
                 <ItemCardGroup className="overflow-hidden">
                     <ItemCard>
                         <ItemCard.Content>
-                            <ItemCard.Title>Allow Agent access</ItemCard.Title>
+                            <ItemCard.Title>Allow Captain access</ItemCard.Title>
                         </ItemCard.Content>
                         <ItemCard.Action className="flex items-center gap-2">
                             <Tooltip delay={0}>
@@ -101,7 +101,7 @@ export function BrowserSettingsDialog({
                     <ItemCard>
                         <ItemCard.Content>
                             <ItemCard.Description className="whitespace-normal">
-                                Agents share this browser’s accounts and tabs. Its current owner
+                                Captains share this browser’s accounts and tabs. Its current owner
                                 keeps it running; disconnecting Haus leaves it open.
                             </ItemCard.Description>
                             {settings.browsers.length ? null : (

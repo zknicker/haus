@@ -101,7 +101,7 @@ struct ServerSearchView: View {
 
     private var prompt: String {
         if scope == .chat, let scopeChat { return "Search \(scopeLabel(scopeChat))" }
-        return "Channels, Agents, and messages"
+        return "Projects, Captains, and messages"
     }
 
     private func scopeLabel(_ chat: ChatPresentation) -> String {
@@ -144,14 +144,14 @@ struct ServerSearchView: View {
                         "No matches",
                         systemImage: "text.magnifyingglass",
                         description: Text(scopedChatID == nil
-                            ? "Try a channel, an Agent name, or a different phrase."
+                            ? "Try a project, a Captain name, or a different phrase."
                             : "Try a different phrase, or search everywhere.")
                     )
                 } else if query.isEmpty {
                     ContentUnavailableView(
                         "Search Haus",
                         systemImage: "magnifyingglass",
-                        description: Text("Find a channel or Agent, or a message anyone has sent.")
+                        description: Text("Find a project or Captain, or a message anyone has sent.")
                     )
                 }
                 searchProgress

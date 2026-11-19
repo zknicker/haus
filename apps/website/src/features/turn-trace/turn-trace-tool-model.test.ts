@@ -130,7 +130,7 @@ test('classifyTraceTool explains why an interrupted call stopped', () => {
 
     assert.equal(interrupted.state, 'output-available');
     assert.equal(interrupted.interrupted, true);
-    assert.match(interrupted.interruption ?? '', /Computer restarted/);
+    assert.match(interrupted.interruption ?? '', /device restarted/);
     assert.equal(
         classifyTraceTool(tool({ status: 'interrupted', toolName: 'bash' })).interruption,
         'The call stopped before it finished.'

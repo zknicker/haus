@@ -157,9 +157,9 @@ struct AgentRuntimeConfigurationView: View {
 
     private var unavailableMessage: String {
         if configuration.runtimes.isEmpty {
-            return "The assigned Computer inventory is unavailable. Reconnect the Computer before saving."
+            return "The assigned device inventory is unavailable. Reconnect the device before saving."
         }
-        return "This selection is not reported by the assigned Computer. Choose an installed runtime, model, and supported reasoning effort."
+        return "This selection is not reported by the assigned device. Choose an installed runtime, model, and supported reasoning effort."
     }
 
     private func selectRuntime(_ nextRuntimeID: String) {

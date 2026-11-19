@@ -33,7 +33,7 @@ export function buildHostSkillSections(
         .map((computer) => ({
             id: computer.id,
             skills: hostSkillsOf(computer),
-            title: computer.name ?? 'Computer',
+            title: computer.name ?? 'Device',
         }))
         .filter((section) => section.skills.length > 0);
     if (sections.length === 1) {
@@ -53,7 +53,7 @@ function hostSkillsOf(computer: ReportingComputer): HostSkill[] {
             agentIdsBySkillName.set(skill.name, agentIds);
         }
     }
-    const owner = { health: computer.health, id: computer.id, name: computer.name ?? 'Computer' };
+    const owner = { health: computer.health, id: computer.id, name: computer.name ?? 'Device' };
     return (inventory?.importableSkills ?? [])
         .map((skill) => ({
             agentIds: agentIdsBySkillName.get(skill.name) ?? [],

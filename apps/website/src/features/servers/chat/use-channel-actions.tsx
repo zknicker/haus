@@ -77,9 +77,9 @@ export function useChannelActions({
         const mutation = key === 'restore' ? unarchive : archive;
         mutation
             .mutateAsync({ chatId: chat.id, serverId: chat.serverId })
-            .then(() => toast.success(key === 'restore' ? 'Channel restored' : 'Channel archived'))
+            .then(() => toast.success(key === 'restore' ? 'Project restored' : 'Project archived'))
             .catch((error: Error) =>
-                toast.danger('Channel update failed', { description: error.message })
+                toast.danger('Project update failed', { description: error.message })
             );
     };
 
@@ -100,7 +100,7 @@ export function useChannelActions({
             {deleting ? (
                 <DeleteDialog
                     confirmation={deleting.name ?? ''}
-                    description="This permanently deletes the channel, its messages, claims, reminders, reactions, and attachments. This cannot be undone."
+                    description="This permanently deletes the project, its messages, claims, reminders, reactions, and attachments. This cannot be undone."
                     error={deleteChannel.error?.message}
                     onConfirm={() => {
                         deleteChannel
@@ -121,7 +121,7 @@ export function useChannelActions({
                         }
                     }}
                     pending={deleteChannel.isPending}
-                    title="Delete Channel"
+                    title="Delete project"
                 />
             ) : null}
         </>

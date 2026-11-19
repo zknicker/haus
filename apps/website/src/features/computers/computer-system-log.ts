@@ -16,14 +16,14 @@ function commandEventLabel(
 ) {
     switch (command) {
         case 'start':
-            return 'Computer started';
+            return 'Device started';
         case 'stop':
-            return 'Computer stopped';
+            return 'Device stopped';
         case 'restart':
-            return 'Computer restarted';
+            return 'Device restarted';
         case 'upgrade':
-            return 'Computer upgraded';
+            return 'Device upgraded';
         case 'rollback':
-            return 'Computer rolled back';
+            return 'Device rolled back';
     }
 }

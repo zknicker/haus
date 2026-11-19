@@ -102,7 +102,7 @@ describe('happeningNowAgentRows', () => {
             'Blippy'
         );
         expect(happeningNowAgentRows([activity()], noLifecycles, [], now)[0]?.name).toBe(
-            'Agent blippy'
+            'Captain blippy'
         );
     });
 

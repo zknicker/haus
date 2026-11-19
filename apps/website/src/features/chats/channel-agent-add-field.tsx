@@ -62,7 +62,7 @@ export function ChannelAgentAddField({
             <CloseExhaustedAgentMenu isExhausted={isExhausted} />
             {label}
             <ComboBox.InputGroup>
-                <Input placeholder={isExhausted ? 'All agents added' : 'Add an agent…'} />
+                <Input placeholder={isExhausted ? 'All Captains added' : 'Add a Captain…'} />
                 <ComboBox.Trigger />
             </ComboBox.InputGroup>
             <ComboBox.Popover>
@@ -70,7 +70,7 @@ export function ChannelAgentAddField({
                     so typing narrows without a custom filter. */}
                 <ListBox
                     items={agents}
-                    renderEmptyState={() => <EmptyState>No agents match.</EmptyState>}
+                    renderEmptyState={() => <EmptyState>No Captains match.</EmptyState>}
                 >
                     {(agent) => (
                         <ListBox.Item id={agent.id} key={agent.id} textValue={agent.name}>
@@ -84,7 +84,7 @@ export function ChannelAgentAddField({
     );
 }
 
-const addFieldLabel = 'Add an agent';
+const addFieldLabel = 'Add a Captain';
 
 function CloseExhaustedAgentMenu({ isExhausted }: { isExhausted: boolean }) {
     const state = React.useContext(ComboBoxStateContext);

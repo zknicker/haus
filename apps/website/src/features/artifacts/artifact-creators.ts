@@ -17,7 +17,7 @@ export function artifactCreatorDirectory(
     const byId = new Map(agents.map((agent) => [agent.id, agent]));
     const isSelf = (creator: ArtifactCreator) =>
         creator.type === 'user' && humans.isSelf(creator.user_id);
-    const agentName = (agentId: string) => byId.get(agentId)?.displayName ?? 'Removed Agent';
+    const agentName = (agentId: string) => byId.get(agentId)?.displayName ?? 'Removed Captain';
     return {
         avatar: (creator) =>
             creator.type === 'agent'

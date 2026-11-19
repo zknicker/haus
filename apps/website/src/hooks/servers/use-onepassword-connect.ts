@@ -44,7 +44,7 @@ export function useOnePasswordConnect(target: ComputerSecretsTarget, computerNam
             setState({ message: reply.message, step: 'failed' });
         } else if (reply.vaults.length === 0) {
             setState({
-                message: 'No vault can be shared. Create a vault for Agents in 1Password first.',
+                message: 'No vault can be shared. Create a vault for Captains in 1Password first.',
                 step: 'failed',
             });
         } else {
@@ -101,5 +101,5 @@ export function useOnePasswordConnect(target: ComputerSecretsTarget, computerNam
 }
 
 function errorMessage(error: unknown) {
-    return error instanceof Error ? error.message : 'Could not deliver the token to the Computer.';
+    return error instanceof Error ? error.message : 'Could not deliver the token to the device.';
 }

@@ -79,29 +79,29 @@ export function failureCountPhrase(count: number): string {
 const codeSentences: Record<AgentTurnFailureCode, (runtime: string) => string> = {
     'authentication-required': (runtime) => `Couldn't sign in to ${runtime}.`,
     'compaction-failed': () => 'The conversation got too long to compact.',
-    'configuration-invalid': () => "The Agent's runtime settings aren't valid.",
+    'configuration-invalid': () => "The Captain's runtime settings aren't valid.",
     'context-too-large': () => 'The conversation got too long for the model.',
-    'launch-failed': () => "The Agent couldn't launch.",
+    'launch-failed': () => "The Captain couldn't launch.",
     'model-unavailable': () => "The model isn't available on this runtime.",
     'provider-error': () => 'The provider kept erroring.',
     'provider-unavailable': () => 'The provider was unreachable.',
     'rate-limited': () => 'The provider kept hitting its rate limit.',
-    'runner-credential-failed': () => "The Computer couldn't hand the Agent its credentials.",
-    'runtime-not-installed': () => "The runtime isn't installed on this Computer.",
-    'session-resume-rejected': () => "The Agent's session couldn't be resumed.",
+    'runner-credential-failed': () => "The device couldn't hand the Captain its credentials.",
+    'runtime-not-installed': () => "The runtime isn't installed on this device.",
+    'session-resume-rejected': () => "The Captain's session couldn't be resumed.",
     'start-rejected': () => 'The runtime refused to start the run.',
     'turn-stalled': () => 'The run stalled.',
 };
 
 const kindSentences: Record<FailureKind, (runtime: string) => string> = {
     authentication: (runtime) => `Couldn't sign in to ${runtime}.`,
-    configuration: () => "The Agent's runtime settings aren't valid.",
-    input: () => "The runtime couldn't accept the Agent's input.",
+    configuration: () => "The Captain's runtime settings aren't valid.",
+    input: () => "The runtime couldn't accept the Captain's input.",
     'rate-limit': () => 'The provider kept hitting its rate limit.',
-    'session-resume': () => "The Agent's session couldn't be resumed.",
+    'session-resume': () => "The Captain's session couldn't be resumed.",
     timeout: () => 'The run stalled.',
     transport: () => 'The provider was unreachable.',
-    unknown: () => 'Something went wrong running the Agent.',
+    unknown: () => 'Something went wrong running the Captain.',
 };
 
 function runtimeLabel(runtimeId: string): string {

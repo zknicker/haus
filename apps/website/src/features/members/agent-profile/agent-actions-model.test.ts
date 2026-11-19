@@ -24,7 +24,7 @@ test('a lifecycle mutation in flight makes the whole menu inert', () => {
 test('describes the factory state restored for each Agent kind', () => {
     expect(fullResetCopy('ordinary')).toEqual({
         confirmation:
-            "This starts a fresh session and permanently wipes the Agent's workspace, MEMORY.md, skills, and runtime-local state. A minimal MEMORY.md and factory-managed skills are restored. Identity, Chat history, model configuration, and connections are kept.",
+            "This starts a fresh session and permanently wipes the Captain's workspace, MEMORY.md, skills, and runtime-local state. A minimal MEMORY.md and factory-managed skills are restored. Identity, Chat history, model configuration, and connections are kept.",
         description: 'Start fresh and restore a minimal MEMORY.md and factory-managed skills.',
     });
     expect(fullResetCopy('cove')).toEqual({

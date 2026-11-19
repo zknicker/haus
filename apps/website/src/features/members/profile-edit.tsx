@@ -135,7 +135,7 @@ export function ProfileEdit({
                     {voice ? (
                         <>
                             <ProfileTextField
-                                info="Adds a voice on top of the Agent's default personality. The Agent can also change this when you ask it to."
+                                info="Adds a voice on top of the Captain's default personality. The Captain can also change this when you ask it to."
                                 isDisabled={!voiceReady}
                                 label="Conversation style"
                                 limit={{

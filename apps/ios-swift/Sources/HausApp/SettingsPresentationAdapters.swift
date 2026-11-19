@@ -138,7 +138,7 @@ extension HausStore {
 
     private func computerLabel(_ computer: ComputerSummary) -> String {
         if let name = computer.name?.nilIfBlank { return name }
-        return "\(operatingSystemLabel(computer.operatingSystem) ?? "") Computer"
+        return "\(operatingSystemLabel(computer.operatingSystem) ?? "") Device"
             .trimmingCharacters(in: .whitespaces)
     }
 

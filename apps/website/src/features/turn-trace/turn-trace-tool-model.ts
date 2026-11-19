@@ -73,7 +73,7 @@ export interface TurnTraceTool extends TurnTraceToolFields {
 }
 
 const interruptionReasons: Record<string, string> = {
-    computer_restart: 'the Computer restarted',
+    computer_restart: 'the device restarted',
     stream_abort: 'the run was stopped',
     stream_error: 'the execution stream failed',
 };

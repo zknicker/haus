@@ -5,8 +5,8 @@ test('channel icon fades follow overflow and the name field has no inner divider
     page,
 }) => {
     await createTestServer(page, { displayName: 'Channel appearance', slug: 'channel-appearance' });
-    await page.getByRole('button', { name: 'New channel', exact: true }).click();
-    const name = page.getByRole('textbox', { name: 'Channel name', exact: true });
+    await page.getByRole('button', { name: 'New project', exact: true }).click();
+    const name = page.getByRole('textbox', { name: 'Project name', exact: true });
     await name.fill('planning');
     await expect(page.locator('.channel-name-field .input-group__prefix')).toHaveCSS(
         'border-inline-end-width',

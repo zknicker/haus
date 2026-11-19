@@ -164,7 +164,7 @@ struct CloudAgentModelChoiceTests {
         let empty = CloudAgentModelChoice(settings: CloudAgentSettings(model: .auto, catalog: nil, savedModelUnavailable: false))
         #expect(empty.sections().flatMap(\.options).map(\.name) == ["Auto"])
         #expect(!empty.isEditable(canManage: true))
-        #expect(empty.footer(canManage: true, now: now).contains("appears once a Computer connected to Cursor reports it"))
+        #expect(empty.footer(canManage: true, now: now).contains("appears once a device connected to Cursor reports it"))
         let saved = CloudAgentModelChoice(settings: CloudAgentSettings(model: .model(id: "gpt-4o", params: .modelDefaults), catalog: nil, savedModelUnavailable: true))
         #expect(saved.isEditable(canManage: true))
         #expect(saved.value == "Unavailable")

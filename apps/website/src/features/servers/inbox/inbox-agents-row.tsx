@@ -60,7 +60,7 @@ export function InboxAgentsRow({
                 </span>
                 <span className="flex min-w-0 items-center gap-3">
                     <Meter
-                        aria-label={`${name}'s week against the busiest Agent's`}
+                        aria-label={`${name}'s week against the busiest Captain's`}
                         className="min-w-0 flex-1"
                         color={isLive ? 'accent' : 'default'}
                         size="sm"

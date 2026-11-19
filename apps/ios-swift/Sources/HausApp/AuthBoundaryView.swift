@@ -89,7 +89,7 @@ private struct SignInView: View {
             VStack(spacing: 6) {
                 Text("Welcome to Haus")
                     .font(.title2.weight(.semibold))
-                Text("Sign in to open your team and Agents.")
+                Text("Sign in to open your team and Captains.")
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }

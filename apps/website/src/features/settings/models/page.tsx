@@ -46,7 +46,7 @@ export function ModelsSettings({
         return (
             <PageColumn>
                 <SettingsPageHeader
-                    description="Models reported by runtimes detected on your Computers."
+                    description="Models reported by runtimes detected on your devices."
                     title="Models"
                 />
                 {/* The model is a Server setting every member reads, even one
@@ -55,7 +55,7 @@ export function ModelsSettings({
                 <Alert role="alert" status="danger">
                     <Alert.Indicator />
                     <Alert.Content>
-                        <Alert.Title>Computer inventory unavailable</Alert.Title>
+                        <Alert.Title>Device inventory unavailable</Alert.Title>
                         <Alert.Description>{computers.error.message}</Alert.Description>
                     </Alert.Content>
                 </Alert>
@@ -66,7 +66,7 @@ export function ModelsSettings({
     return (
         <PageColumn>
             <SettingsPageHeader
-                description="Models reported by runtimes detected on your Computers."
+                description="Models reported by runtimes detected on your devices."
                 title="Models"
             />
 
@@ -89,7 +89,7 @@ export function ModelsSettings({
                     />
                 ) : (
                     <p className="text-muted text-sm">
-                        No runtimes detected. Attach a Computer with a detected runtime.
+                        No runtimes detected. Attach a device with a detected runtime.
                     </p>
                 )}
             </ItemCardGroup>
@@ -167,7 +167,7 @@ const runtimeColumns: DataGridColumn<RuntimeRow>[] = [
         accessorKey: 'computer',
         allowsSorting: true,
         cellClassName: 'text-muted',
-        header: 'Computer',
+        header: 'Device',
         id: 'computer',
         minWidth: 160,
     },
@@ -242,7 +242,7 @@ const modelColumns: DataGridColumn<ModelCatalogItem>[] = [
         align: 'end',
         allowsSorting: true,
         cellClassName: 'text-muted tabular-nums',
-        header: 'Computers',
+        header: 'Devices',
         id: 'computerCount',
         minWidth: 110,
     },

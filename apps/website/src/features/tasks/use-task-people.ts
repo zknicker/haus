@@ -53,6 +53,6 @@ export function useTaskActor(serverId: string, actor: TaskActor | null): null | 
     return {
         avatarUrl: agent?.avatarUrl ?? null,
         key: assigneeKey(actor),
-        label: agent?.displayName ?? `Agent ${actor.agentId.slice(-6)}`,
+        label: agent?.displayName ?? `Captain ${actor.agentId.slice(-6)}`,
     };
 }

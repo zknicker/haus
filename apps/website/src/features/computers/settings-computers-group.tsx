@@ -36,11 +36,11 @@ export function SettingsComputersGroup({
         <Sidebar.Group>
             <div className="flex w-full items-center justify-between">
                 <Sidebar.GroupLabel>
-                    Computers{computers.data ? ` · ${items.length}` : ''}
+                    Devices{computers.data ? ` · ${items.length}` : ''}
                 </Sidebar.GroupLabel>
                 <Tooltip delay={0}>
                     <Button
-                        aria-label="Add Computer"
+                        aria-label="Add device"
                         isIconOnly
                         onPress={() => setAdding(true)}
                         size="sm"
@@ -48,21 +48,21 @@ export function SettingsComputersGroup({
                     >
                         <Icon aria-hidden="true" icon={PlusSignIcon} size={16} />
                     </Button>
-                    <Tooltip.Content>Add Computer</Tooltip.Content>
+                    <Tooltip.Content>Add device</Tooltip.Content>
                 </Tooltip>
             </div>
             {!computers.data && computers.isPending ? (
                 <div aria-busy="true">
-                    <span className="sr-only">Loading Computers</span>
+                    <span className="sr-only">Loading devices</span>
                 </div>
             ) : computers.error && !computers.data ? (
                 <p className="text-muted px-2 py-1 text-sm" role="alert">
-                    Couldn’t load Computers
+                    Couldn’t load devices
                 </p>
             ) : items.length === 0 ? (
-                <p className="text-muted px-2 py-1 text-sm">No Computers attached.</p>
+                <p className="text-muted px-2 py-1 text-sm">No devices attached.</p>
             ) : (
-                <Sidebar.Menu aria-label="Computers">
+                <Sidebar.Menu aria-label="Devices">
                     {items.map((computer) => (
                         <Sidebar.MenuItem
                             href={`${route}?computer=${computer.id}`}

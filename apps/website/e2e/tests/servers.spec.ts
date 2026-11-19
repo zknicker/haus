@@ -34,7 +34,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
     await page.getByRole('button', { name: 'Create Server' }).click();
 
     await expect(page).toHaveURL(/\/s\/haus-hq$/u);
-    await expect(page.getByRole('heading', { level: 1, name: 'Connect a Computer' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Connect a device' })).toBeVisible();
     await expect(
         page.getByText('curl -fsSL https://releases.haus.chat/computer/install.sh | sh')
     ).toBeVisible();
@@ -43,7 +43,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
 
     // Even a direct destination stays behind the route-level gate.
     await page.goto('/s/haus-hq/members');
-    await expect(page.getByRole('heading', { level: 1, name: 'Connect a Computer' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Connect a device' })).toBeVisible();
     await expect(page.getByRole('heading', { level: 1, name: 'Members' })).toHaveCount(0);
 
     const openingGhost = await page.locator('.activation-mark').elementHandle();
@@ -67,7 +67,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
             ).toBeVisible();
             await expect(
                 approvalPage.getByRole('heading', {
-                    name: 'Computer connected',
+                    name: 'Device connected',
                 })
             ).toHaveCount(0);
 
@@ -79,7 +79,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
             ).toBe(0o600);
             await expect(
                 approvalPage.getByRole('heading', {
-                    name: 'Computer connected',
+                    name: 'Device connected',
                 })
             ).toBeVisible();
             await expect(
@@ -96,7 +96,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
                 )
                 .toBe('awaiting-cove');
             await expect(
-                page.getByRole('heading', { level: 1, name: 'Connect a Computer' })
+                page.getByRole('heading', { level: 1, name: 'Connect a device' })
             ).toBeVisible();
             await page.context().setOffline(false);
             await expect(page.getByRole('heading', { level: 1, name: 'Meet Cove' })).toBeVisible();
@@ -127,7 +127,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
         await expect(page.getByRole('heading', { level: 1, name: 'Tasks' })).toHaveCount(0);
 
         socket.close();
-        await expect(page.getByRole('alert')).toContainText('This Computer is offline');
+        await expect(page.getByRole('alert')).toContainText('This device is offline');
         await expect(page.getByRole('alert')).toContainText('haus-computer start');
         const reconnected = await connectComputer(attachment.credential);
         await expect(page.getByRole('alert')).toHaveCount(0);
@@ -293,10 +293,10 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
             type: 'agent-reset',
         });
 
-        await runAgentAction(page, 'Cove', 'Delete Agent');
-        const deleteDialog = page.getByRole('alertdialog', { name: 'Delete Agent' });
+        await runAgentAction(page, 'Cove', 'Delete Captain');
+        const deleteDialog = page.getByRole('alertdialog', { name: 'Delete Captain' });
         await deleteDialog.getByLabel(/Type Cove to confirm/iu).fill('Cove');
-        await deleteDialog.getByRole('button', { name: 'Delete Agent' }).click();
+        await deleteDialog.getByRole('button', { name: 'Delete Captain' }).click();
         await expect(page.getByRole('link', { name: 'Cove' })).toHaveCount(0);
         await page.goto('/s/haus-hq');
         await expect(page).toHaveURL(/\/s\/haus-hq\/chats\//u);

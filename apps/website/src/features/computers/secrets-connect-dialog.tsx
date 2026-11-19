@@ -47,7 +47,7 @@ export function SecretsConnectDialog({
                         </Modal.Icon>
                         <Modal.Heading>Connect 1Password</Modal.Heading>
                         <p className="text-muted mt-1.5 text-sm leading-5">
-                            Every Agent on {computerName} gets read-only access to one vault.
+                            Every Captain on {computerName} gets read-only access to one vault.
                         </p>
                     </Modal.Header>
                     <Modal.Body>
@@ -154,11 +154,11 @@ function stepDescription(state: OnePasswordConnectStep): string {
         case 'approving':
             return 'Approve the request in the 1Password app.';
         case 'creating':
-            return 'Approve listing its items, then the new read-only service account, in 1Password. Setting up the Computer can take a minute.';
+            return 'Approve listing its items, then the new read-only service account, in 1Password. Setting up the device can take a minute.';
         case 'connected':
-            return 'Agents run commands with these secrets through haus-secrets.';
+            return 'Captains run commands with these secrets through haus-secrets.';
         case 'failed':
-            return 'Nothing was saved on this Computer.';
+            return 'Nothing was saved on this device.';
         case 'choosing':
             return '';
     }

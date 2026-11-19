@@ -77,8 +77,8 @@ export function ComputerUpdateCard({
                                     <Tooltip.Arrow />
                                     <p className="max-w-xs">
                                         {view.unconfirmed
-                                            ? 'Reconnect this Computer to confirm the installed version.'
-                                            : 'Reconnect this Computer to check for updates.'}
+                                            ? 'Reconnect this device to confirm the installed version.'
+                                            : 'Reconnect this device to check for updates.'}
                                     </p>
                                 </Tooltip.Content>
                             </Tooltip>

@@ -70,13 +70,13 @@ describe('selectMentionOptionsForQuery', () => {
             })
         ).toEqual([
             {
-                description: 'Agent in this chat',
+                description: 'Captain in this chat',
                 id: 'agent://agent%3Aplanner',
                 insertText: '@Planner',
                 kind: 'agent',
                 label: 'Planner',
                 projection: 'agent-reference',
-                sourceLabel: 'Agents',
+                sourceLabel: 'Captains',
             },
         ]);
     });

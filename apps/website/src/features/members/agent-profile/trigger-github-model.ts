@@ -86,7 +86,7 @@ export function githubInstallationRemedy(
         case 'sign_in_required':
             return 'Sign in to GitHub again in Settings → Connections';
         case 'agent_access_required':
-            return `Grant ${agentName} access under the GitHub connection’s Agent Access`;
+            return `Grant ${agentName} access under the GitHub connection’s Captain access`;
         default:
             return blocker satisfies never;
     }
@@ -132,7 +132,7 @@ export function githubScopeSummary(view: Pick<GithubTriggerView, 'repositories'>
 }
 
 const problemTitles: Record<GithubTriggerProblem, string> = {
-    agent_access_revoked: 'Agent access revoked',
+    agent_access_revoked: 'Captain access revoked',
     installation_removed: 'Installation removed',
     installation_suspended: 'Installation suspended',
     permissions_missing: 'Permissions missing',
@@ -160,7 +160,7 @@ export function githubProblemFix(
         case 'permissions_missing':
             return `The installation on ${context.login} has not accepted a permission these events need. An owner must accept the Haus App’s permission update on GitHub.`;
         case 'agent_access_revoked':
-            return `${context.agentName} no longer has access to the GitHub connection. Turn it back on under the connection’s Agent Access.`;
+            return `${context.agentName} no longer has access to the GitHub connection. Turn it back on under the connection’s Captain access.`;
         case 'sign_in_required':
             return 'GitHub needs a fresh sign-in. Sign in again from Settings → Connections → GitHub.';
         default:

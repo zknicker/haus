@@ -45,7 +45,7 @@ test('a cold Agent profile keeps identity and navigation available before its co
     );
     try {
         await row.click({ button: 'right' });
-        await page.getByRole('menuitem', { name: 'View agent profile', exact: true }).click();
+        await page.getByRole('menuitem', { name: 'View Captain profile', exact: true }).click();
         await expect(page.getByRole('heading', { name: 'Iris', exact: true })).toBeVisible();
         await page.getByRole('button', { name: /^Automations/u }).click();
         await expect(page.getByRole('list', { name: 'Breadcrumbs' })).toContainText('Automations');

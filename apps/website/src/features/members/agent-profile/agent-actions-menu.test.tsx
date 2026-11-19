@@ -23,7 +23,7 @@ function renderMenu(role: ServerDetail['role'], onOpenSection?: (section: AgentS
                     onOpenSection={onOpenSection}
                     server={{ ...server, role }}
                 >
-                    <Dropdown.Menu aria-label="Agent actions">
+                    <Dropdown.Menu aria-label="Captain actions">
                         <AgentActionsSections />
                     </Dropdown.Menu>
                 </AgentActions>
@@ -37,7 +37,7 @@ test('an Owner or Admin opens Permissions from the hub menu, ahead of the lifecy
         const markup = renderMenu(role, () => undefined);
         expect(markup).toContain('Permissions');
         expect(markup.indexOf('Permissions')).toBeLessThan(markup.indexOf('Stop'));
-        expect(markup.indexOf('Stop')).toBeLessThan(markup.indexOf('Delete Agent'));
+        expect(markup.indexOf('Stop')).toBeLessThan(markup.indexOf('Delete Captain'));
     }
 });
 

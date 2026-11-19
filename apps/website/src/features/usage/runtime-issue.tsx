@@ -78,7 +78,7 @@ export function RuntimeIssueHelpContent({
         return (
             <ReferencePreviewHeader mark={mark} meta="Usage unavailable" title={title}>
                 <ReferencePreviewText>
-                    Couldn’t refresh plan limits. Agents can still run; meters show the last
+                    Couldn’t refresh plan limits. Captains can still run; meters show the last
                     reported values.
                 </ReferencePreviewText>
             </ReferencePreviewHeader>
@@ -90,7 +90,7 @@ export function RuntimeIssueHelpContent({
             <ReferencePreviewHeader mark={mark} meta="Sign-in failed" title={title}>
                 <ReferencePreviewText>
                     The last attempt failed on {computerName}. If {title} already works there, retry
-                    the Agent’s request. Otherwise sign in from a terminal
+                    the Captain’s request. Otherwise sign in from a terminal
                     {command ? ' there:' : ' there.'}
                 </ReferencePreviewText>
             </ReferencePreviewHeader>

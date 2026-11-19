@@ -156,7 +156,7 @@ const pending: TabIdentity = { label: '', mark: { kind: 'none' }, place: null };
 const sectionLabels: Record<AppSection, string> = {
     artifacts: 'Files',
     activity: 'Activity',
-    agent: 'Agent',
+    agent: 'Captain',
     chat: 'Chat',
     inbox: 'Inbox',
     search: 'Search',
@@ -167,7 +167,7 @@ const sectionLabels: Record<AppSection, string> = {
 function chatIdentity(chat: TabChat, records: TabIdentityRecords): TabIdentity {
     if (chat.kind === 'channel') {
         return {
-            label: chat.name ?? 'Channel',
+            label: chat.name ?? 'Project',
             mark: { kind: 'channel', color: chat.color, icon: chat.icon },
             place: null,
         };

@@ -56,7 +56,7 @@ function ChatSection() {
                     <ItemCard.Content>
                         <ItemCard.Title>Show claims in chat</ItemCard.Title>
                         <ItemCard.Description>
-                            Agents make claims as they work. Off, those stay on the Tasks page.
+                            Captains make claims as they work. Off, those stay on the Tasks page.
                         </ItemCard.Description>
                     </ItemCard.Content>
                     <ItemCard.Action>

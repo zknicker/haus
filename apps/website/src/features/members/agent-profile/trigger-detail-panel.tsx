@@ -218,7 +218,7 @@ export function TriggerDetailPanel({
                 onOpenChange={(open) => !open && setConfirm(null)}
             />
             <AutomationConfirmDialog
-                body="This removes the trigger immediately. Recent fire history stays in Agent history for 30 days, and messages already posted keep their provenance mark."
+                body="This removes the trigger immediately. Recent fire history stays in Captain history for 30 days, and messages already posted keep their provenance mark."
                 confirmLabel="Delete Trigger"
                 heading={`Delete ${trigger.title}?`}
                 isOpen={confirm === 'delete'}

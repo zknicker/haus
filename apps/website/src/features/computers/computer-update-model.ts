@@ -13,7 +13,7 @@ const phaseLabels = {
     requested: 'Download requested',
     restarting: 'Restarting Haus Computer',
     verifying: 'Verifying signature and integrity',
-    'waiting-for-agents': 'Waiting for active Agents…',
+    'waiting-for-agents': 'Waiting for active Captains…',
 } as const satisfies Record<ComputerUpdatePhase, string>;
 
 const updateInFlightPhases: ComputerUpdatePhase[] = [

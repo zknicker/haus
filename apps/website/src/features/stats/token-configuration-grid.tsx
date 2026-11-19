@@ -24,7 +24,7 @@ export function TokenConfigurationGrid({ rows }: { rows: ConfigurationUsage[] })
                     </div>
                 </div>
             ),
-            header: 'Agent',
+            header: 'Captain',
             id: 'agentName',
             isRowHeader: true,
             minWidth: 160,
@@ -79,7 +79,7 @@ export function TokenConfigurationGrid({ rows }: { rows: ConfigurationUsage[] })
             </ItemCardGroup.Header>
             {rows.length > 0 ? (
                 <DataGrid
-                    aria-label="Token usage by agent, runtime, and model"
+                    aria-label="Token usage by Captain, runtime, and model"
                     columns={columns}
                     contentClassName="min-w-[800px]"
                     data={rows}
@@ -100,8 +100,8 @@ export function TokenConfigurationGrid({ rows }: { rows: ConfigurationUsage[] })
                                 </EmptyState.Media>
                                 <EmptyState.Title>No token usage yet</EmptyState.Title>
                                 <EmptyState.Description className="max-w-sm text-pretty">
-                                    Once an Agent processes tokens in this range, this breaks the
-                                    total down by Agent, runtime, and model.
+                                    Once a Captain processes tokens in this range, this breaks the
+                                    total down by Captain, runtime, and model.
                                 </EmptyState.Description>
                             </EmptyState.Header>
                         </EmptyState>

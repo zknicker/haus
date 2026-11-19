@@ -24,7 +24,7 @@ export function McpAgentAccessSection({
     const granted = new Set(connection.affectedAgents.map((agent) => agent.id));
 
     return (
-        <ConnectionSection title="Agent Access">
+        <ConnectionSection title="Captain access">
             <ItemCardGroup variant="outline">
                 {agents.length > 0 ? (
                     agents.map((agent, index) => (
@@ -42,7 +42,7 @@ export function McpAgentAccessSection({
                     <ItemCard>
                         <ItemCard.Content>
                             <ItemCard.Description>
-                                No Agents on this Server yet.
+                                No Captains on this Server yet.
                             </ItemCard.Description>
                         </ItemCard.Content>
                     </ItemCard>

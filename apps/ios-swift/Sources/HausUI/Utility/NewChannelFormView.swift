@@ -44,7 +44,7 @@ public enum NewChannelNameValidation: Equatable, Sendable {
         case .valid:
             nil
         case .empty:
-            "Enter a channel name."
+            "Enter a project name."
         case .tooLong:
             "Use 32 characters or fewer."
         case .invalidCharacters:
@@ -97,13 +97,13 @@ public struct NewChannelFormView: View {
             Form {
                 Section {
 #if os(iOS)
-                    TextField("Channel name", text: $name)
+                    TextField("Project name", text: $name)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .submitLabel(.done)
                         .focused($isNameFocused)
 #else
-                    TextField("Channel name", text: $name)
+                    TextField("Project name", text: $name)
                         .focused($isNameFocused)
 #endif
 
@@ -115,7 +115,7 @@ public struct NewChannelFormView: View {
                             .foregroundStyle(.red)
                     }
                 } header: {
-                    Text("Channel")
+                    Text("Project")
                 } footer: {
                     Text("Use up to 32 characters: letters, numbers, hyphens, and underscores.")
                 }
@@ -142,12 +142,12 @@ public struct NewChannelFormView: View {
                         .buttonStyle(.plain)
                     }
                 } header: {
-                    Text("Agents")
+                    Text("Captains")
                 } footer: {
-                    Text("Choose at least one Agent for this channel.")
+                    Text("Choose at least one Captain for this project.")
                 }
             }
-            .navigationTitle("New channel")
+            .navigationTitle("New project")
             .hausInlineNavigationTitle()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -166,7 +166,7 @@ public struct NewChannelFormView: View {
                     .disabled(!canSubmit)
                 }
             }
-            .alert("Couldn’t create channel", isPresented: hasSubmitError) {
+            .alert("Couldn’t create project", isPresented: hasSubmitError) {
                 Button("OK") { submitError = nil }
             } message: {
                 Text(submitError ?? "Try again.")
@@ -237,7 +237,7 @@ private enum NewChannelPreviewFixtures {
     ]
 }
 
-#Preview("New channel") {
+#Preview("New project") {
     NewChannelFormView(
         agents: NewChannelPreviewFixtures.agents,
         create: { draft in

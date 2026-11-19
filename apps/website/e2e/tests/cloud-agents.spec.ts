@@ -120,7 +120,7 @@ test('Cloud Agent work reads as one card in the Chat and the Inbox', async ({ pa
 
     // Settled work leaves "Happening now", which lists only live work.
     await page.goto('/s/cloud-agent-work/inbox');
-    await expect(page.getByRole('complementary', { name: 'Agent activity' })).toBeVisible();
+    await expect(page.getByRole('complementary', { name: 'Captain activity' })).toBeVisible();
     await expect(page.getByRole('button', { name: /running now$/u })).toHaveCount(0);
     computer.close();
 });

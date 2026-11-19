@@ -18,7 +18,7 @@ export function ConnectionNotice({
     return (
         <div className="card-shell bg-surface-secondary text-muted shadow-surface absolute top-2 right-3 z-20 px-2 py-1 text-sm">
             {agents.error && !agents.data
-                ? 'Agent directory unavailable'
+                ? 'Captain directory unavailable'
                 : 'Server reconnecting · showing the latest data'}
         </div>
     );

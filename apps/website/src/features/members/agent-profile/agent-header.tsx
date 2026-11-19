@@ -92,12 +92,12 @@ export function AgentHeader({
                     {canEditIdentity ? (
                         <ProfileEdit
                             description={agent.description ?? ''}
-                            descriptionInfo="Its role in one or two sentences. Other Agents see it on every message this Agent sends."
+                            descriptionInfo="Its role in one or two sentences. Other Captains see it on every message this Captain sends."
                             descriptionMaxLength={AGENT_DESCRIPTION_MAX_LENGTH}
                             displayName={agent.displayName}
-                            entityLabel="Agent profile"
+                            entityLabel="Captain profile"
                             isDisabled={updateIdentity.isPending || updateVoice.isPending}
-                            namePlaceholder="Agent name"
+                            namePlaceholder="Captain name"
                             onSave={saveProfile}
                             voice={voiceField}
                         />
@@ -122,7 +122,7 @@ export function AgentHeader({
                                     : 'Not configured on this Server.'
                             }
                             isDisabled={setAvatar.isPending}
-                            label="Agent photo"
+                            label="Captain photo"
                             name={agent.displayName}
                             onError={setAvatarError}
                             onGenerate={canGenerate ? () => setGenerateOpen(true) : undefined}

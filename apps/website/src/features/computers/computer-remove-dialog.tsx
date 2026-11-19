@@ -15,7 +15,7 @@ export function ComputerRemoveDialog({
     return (
         <DeleteDialog
             confirmation="REMOVE"
-            description="This immediately revokes this Computer’s credential and removes it from the Server."
+            description="This immediately revokes this device’s credential and removes it from the Server."
             error={remove.error?.message}
             onConfirm={() =>
                 remove.mutate({
@@ -26,7 +26,7 @@ export function ComputerRemoveDialog({
             }
             onOpenChange={onOpenChange}
             pending={remove.isPending}
-            title="Remove Computer"
+            title="Remove device"
         />
     );
 }

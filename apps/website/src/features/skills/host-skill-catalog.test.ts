@@ -41,7 +41,7 @@ describe('buildHostSkillSections', () => {
                 reportedInventory: { importableSkills: [skill('alpha')] },
             },
         ]);
-        expect(sections.map((section) => section.title)).toEqual(['Studio', 'Computer']);
+        expect(sections.map((section) => section.title)).toEqual(['Studio', 'Device']);
     });
 });
 

@@ -81,7 +81,7 @@ extension HausStore {
         case .channel:
             return .durableChat(ChatPresentation(
                 id: chat.id,
-                title: chat.name ?? (chat.isAll ? "all" : "Channel"),
+                title: chat.name ?? (chat.isAll ? "all" : "Project"),
                 kind: .channel,
                 unreadCount: chat.unreadCount,
                 appearance: ChannelAppearance(icon: chat.icon, color: chat.color),
@@ -90,7 +90,7 @@ extension HausStore {
         case .dm:
             if let agentID = chat.peerAgentID {
                 let agent = agentsByID[agentID]
-                let name = agent?.displayName ?? chat.peerAgentDisplayName ?? "Former Agent"
+                let name = agent?.displayName ?? chat.peerAgentDisplayName ?? "Former Captain"
                 let presentation = agent.map(agentPresentation)
                     ?? AgentPresentation(id: agentID, name: name, avatarURL: nil, presence: .offline)
                 return .durableChat(ChatPresentation(

@@ -41,7 +41,7 @@ test('web: idle, realtime messages, a warm switch, and a profile stay within bud
     expect(switchRenders.byName.MemberUpdateStream ?? 0).toBe(0);
     await budget.measure('open-agent-profile', async () => {
         await sidebarRow(page, 'Orbit').click({ button: 'right' });
-        await page.getByRole('menuitem', { exact: true, name: 'View agent profile' }).click();
+        await page.getByRole('menuitem', { exact: true, name: 'View Captain profile' }).click();
         await expect(page.getByRole('heading', { exact: true, name: 'Orbit' })).toBeVisible();
     });
 

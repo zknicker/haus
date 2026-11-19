@@ -122,7 +122,7 @@ test('default channel marks leave the icon catalog unloaded until the picker ope
     await expect(page.getByRole('row', { name: 'all', exact: true })).toBeVisible();
     await warmed;
     expect(catalogRequests).toEqual([]);
-    await page.getByRole('button', { name: 'New channel', exact: true }).click();
+    await page.getByRole('button', { name: 'New project', exact: true }).click();
     await page.getByRole('button', { name: 'Icon and color', exact: true }).click();
     await expect.poll(() => catalogRequests.length).toBe(1);
     await page.getByRole('searchbox', { name: 'Search icons' }).fill('rocket');

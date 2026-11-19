@@ -37,7 +37,7 @@ export function ConnectionDestructiveDialog({
                                 ? 'Removes this connection and its saved credentials from this Haus Server. '
                                 : null}
                             {connection.affectedAgents.length === 0
-                                ? 'No Agents currently use this connection.'
+                                ? 'No Captains currently use this connection.'
                                 : action === 'replace-credentials'
                                   ? `${connection.affectedAgents.map((agent) => agent.name).join(', ')} keep access and will use the new credentials.`
                                   : `${connection.affectedAgents.map((agent) => agent.name).join(', ')} will lose access to this connection.`}

@@ -75,16 +75,16 @@ public enum AgentWakePauseCopy {
         switch code {
         case "authentication-required": "Couldn't sign in to \(runtime)."
         case "compaction-failed": "The conversation got too long to compact."
-        case "configuration-invalid": "The Agent's runtime settings aren't valid."
+        case "configuration-invalid": "The Captain's runtime settings aren't valid."
         case "context-too-large": "The conversation got too long for the model."
-        case "launch-failed": "The Agent couldn't launch."
+        case "launch-failed": "The Captain couldn't launch."
         case "model-unavailable": "The model isn't available on this runtime."
         case "provider-error": "The provider kept erroring."
         case "provider-unavailable": "The provider was unreachable."
         case "rate-limited": "The provider kept hitting its rate limit."
-        case "runner-credential-failed": "The Computer couldn't hand the Agent its credentials."
-        case "runtime-not-installed": "The runtime isn't installed on this Computer."
-        case "session-resume-rejected": "The Agent's session couldn't be resumed."
+        case "runner-credential-failed": "The device couldn't hand the Captain its credentials."
+        case "runtime-not-installed": "The runtime isn't installed on this device."
+        case "session-resume-rejected": "The Captain's session couldn't be resumed."
         case "start-rejected": "The runtime refused to start the run."
         case "turn-stalled": "The run stalled."
         default: nil
@@ -94,13 +94,13 @@ public enum AgentWakePauseCopy {
     private static func kindSentence(_ kind: String, runtime: String) -> String {
         switch kind {
         case "authentication": "Couldn't sign in to \(runtime)."
-        case "configuration": "The Agent's runtime settings aren't valid."
-        case "input": "The runtime couldn't accept the Agent's input."
+        case "configuration": "The Captain's runtime settings aren't valid."
+        case "input": "The runtime couldn't accept the Captain's input."
         case "rate-limit": "The provider kept hitting its rate limit."
-        case "session-resume": "The Agent's session couldn't be resumed."
+        case "session-resume": "The Captain's session couldn't be resumed."
         case "timeout": "The run stalled."
         case "transport": "The provider was unreachable."
-        default: "Something went wrong running the Agent."
+        default: "Something went wrong running the Captain."
         }
     }
 

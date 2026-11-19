@@ -26,7 +26,7 @@ export const appTopic: ManualNavigationTopic = {
     related: ['index', 'secrets', 'agent', 'reminder', 'trigger'],
     body: `# Where things are in Haus App
 
-When someone asks where to find or change something, give the path below exactly as written. Each step is a label they will see, and a step in parentheses is their own choice, such as which Computer.
+When someone asks where to find or change something, give the path below exactly as written. Each step is a label they will see, and a step in parentheses is their own choice, such as which device.
 
 - Name only places this topic lists. If it is not here, say you are not sure where it lives rather than guessing a path.
 - Say who can do it. When the asker lacks that role, name who can: an Owner or Admin, or the Server Owner.

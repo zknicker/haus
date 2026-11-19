@@ -52,7 +52,7 @@ export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: (
                 serverId: chat.serverId,
                 ...(taskKeyChanged && taskKeyId ? { taskKeyId } : {}),
             });
-            toast.success('Channel updated');
+            toast.success('Project updated');
             onClose();
         } catch {
             // The dialog stays open and shows the failure inline.
@@ -65,10 +65,10 @@ export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: (
                 <Modal.Dialog>
                     <Modal.CloseTrigger />
                     <Modal.Header>
-                        <Modal.Heading>Edit channel</Modal.Heading>
+                        <Modal.Heading>Edit project</Modal.Heading>
                         <p className="text-muted text-sm leading-5">
-                            Agents address the channel by its name and read the description to learn
-                            what belongs here.
+                            Captains address the project by its name and read the description to
+                            learn what belongs here.
                         </p>
                     </Modal.Header>
                     <Modal.Body>
@@ -85,7 +85,7 @@ export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: (
                                 value={name}
                                 variant="secondary"
                             >
-                                <Label>Channel name</Label>
+                                <Label>Project name</Label>
                                 <Input autoFocus={!chat.isAll} placeholder="planning" type="text" />
                                 {handleIssue ? <FieldError>{handleIssue}</FieldError> : null}
                             </TextField>
@@ -100,7 +100,7 @@ export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: (
                                 <TextArea
                                     autoFocus={chat.isAll}
                                     maxLength={channelDescriptionMaxLength}
-                                    placeholder="What this channel is for"
+                                    placeholder="What this project is for"
                                     rows={3}
                                 />
                             </TextField>

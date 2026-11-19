@@ -65,7 +65,7 @@ export function AgentHoverCardContent({
         return (
             <span className="haus-hover-card__section text-muted flex min-h-12 items-center justify-center gap-2 text-xs">
                 <Spinner color="current" size="sm" />
-                Loading Agent…
+                Loading Captain…
             </span>
         );
     }
@@ -73,8 +73,8 @@ export function AgentHoverCardContent({
     if (!agent.data) {
         return (
             <div className="haus-hover-card__section">
-                <ReferencePreviewHeader mark={null} meta="Agent" title={agentName}>
-                    <ReferencePreviewText>Agent details are unavailable.</ReferencePreviewText>
+                <ReferencePreviewHeader mark={null} meta="Captain" title={agentName}>
+                    <ReferencePreviewText>Captain details are unavailable.</ReferencePreviewText>
                 </ReferencePreviewHeader>
             </div>
         );

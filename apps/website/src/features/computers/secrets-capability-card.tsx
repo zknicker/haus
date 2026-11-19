@@ -28,7 +28,7 @@ export function SecretsCapabilityCard({
     const target = { computerId, serverId };
     const computers = useComputers(serverId);
     const computer = computers.data?.find((candidate) => candidate.id === computerId);
-    const computerName = computer?.name ?? 'this Computer';
+    const computerName = computer?.name ?? 'this device';
     const status = computer?.reportedInventory?.secrets ?? null;
     const flow = useOnePasswordConnect(target, computerName);
     const refresh = useComputerSecretsRefresh(target);
@@ -51,7 +51,7 @@ export function SecretsCapabilityCard({
             });
             toast.success('1Password items refreshed', {
                 description: next.connected
-                    ? `Agents can use ${next.items.length === 1 ? '1 item' : `${next.items.length} items`} from “${next.vault.name}”.`
+                    ? `Captains can use ${next.items.length === 1 ? '1 item' : `${next.items.length} items`} from “${next.vault.name}”.`
                     : undefined,
             });
         } catch (error) {
