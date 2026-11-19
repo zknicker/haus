@@ -52,14 +52,14 @@ export function DmActions({
                     <Dropdown.Popover placement="bottom end">
                         <Dropdown.Menu onAction={runAction}>
                             <Dropdown.Section>
-                                <Header>Agent</Header>
+                                <Header>Captain</Header>
                                 <Dropdown.Item
                                     id="profile"
                                     isDisabled={!peerAgent}
-                                    textValue="View agent profile"
+                                    textValue="View Captain profile"
                                 >
                                     <Icon aria-hidden="true" icon={UserCircleIcon} size={16} />
-                                    <Label>View agent profile</Label>
+                                    <Label>View Captain profile</Label>
                                 </Dropdown.Item>
                             </Dropdown.Section>
                             <Separator />

@@ -161,7 +161,7 @@ test('the detail reads each event as what it narrows to', () => {
 });
 
 test('every problem has a title and a fix naming who acts', () => {
-    expect(githubProblemTitle('agent_access_revoked')).toBe('Agent access revoked');
+    expect(githubProblemTitle('agent_access_revoked')).toBe('Captain access revoked');
     expect(
         githubProblemFix('agent_access_revoked', { agentName: 'Blippy', login: 'acme' })
     ).toContain('Blippy');

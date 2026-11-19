@@ -105,7 +105,7 @@ struct CloudAgentSignInView: View {
             Label {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Ready for Cloud Agents")
-                    Text(email.map { "Connected as \($0)." } ?? "This Computer can now start Cloud Agents.")
+                    Text(email.map { "Connected as \($0)." } ?? "This device can now start Cloud Agents.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -128,8 +128,8 @@ struct CloudAgentSignInView: View {
         case .offline:
             Label {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Computer offline")
-                    Text("Reconnect your Computer to continue.")
+                    Text("Device offline")
+                    Text("Reconnect your device to continue.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -238,9 +238,9 @@ struct CloudAgentSignInView: View {
     private func failureMessage(for operation: CloudAgentConnectionOperation) -> String {
         switch operation {
         case .get:
-            "Could not check Cursor sign-in status. Check that this Computer is online and try again."
+            "Could not check Cursor sign-in status. Check that this device is online and try again."
         case .connect:
-            "Could not start Cursor sign-in. Check that this Computer is online and try again."
+            "Could not start Cursor sign-in. Check that this device is online and try again."
         case .cancelSignIn:
             "Could not cancel sign-in. Try again."
         case .disconnect:

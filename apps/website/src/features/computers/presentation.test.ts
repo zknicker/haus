@@ -57,7 +57,7 @@ test('uses a neutral platform label before a Computer reports its name', () => {
             name: null,
             operatingSystem: 'darwin',
         })
-    ).toBe('Mac Computer');
+    ).toBe('Mac Device');
 });
 
 test('does not silently substitute another runtime or model', () => {

@@ -30,16 +30,16 @@ export function useComputerRemovalAvailability(
 
 export function computerRemovalDescription(availability: ComputerRemovalAvailability) {
     if (availability.status === 'ready') {
-        return 'This immediately revokes this Computer’s credential.';
+        return 'This immediately revokes this device’s credential.';
     }
     if (availability.status === 'checking') {
-        return 'Checking for assigned Agents…';
+        return 'Checking for assigned Captains…';
     }
     if (availability.status === 'error') {
-        return 'Assigned Agents could not be verified. Try again.';
+        return 'Assigned Captains could not be verified. Try again.';
     }
     if (availability.agentNames.length === 1) {
-        return `Delete ${availability.agentNames[0]} before removing this Computer.`;
+        return `Delete ${availability.agentNames[0]} before removing this device.`;
     }
-    return `Delete all ${availability.agentNames.length} assigned Agents before removing this Computer.`;
+    return `Delete all ${availability.agentNames.length} assigned Captains before removing this device.`;
 }

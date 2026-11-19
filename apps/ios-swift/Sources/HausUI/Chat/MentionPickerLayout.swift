@@ -106,8 +106,8 @@ enum MentionPickerLayout {
 
     static func title(for kind: MentionPresentationKind) -> String {
         switch kind {
-        case .agent: "Agents"
-        case .channel: "Channels"
+        case .agent: "Captains"
+        case .channel: "Projects"
         case .human: "Humans"
         case .skill: "Skills"
         // Reference-only kinds never reach a picker section.

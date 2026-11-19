@@ -37,8 +37,8 @@ export function SecretsDisconnectDialog({
                     </AlertDialog.Header>
                     <AlertDialog.Body>
                         <p>
-                            Agents on {computerName} lose access to the vault right away. Haus can’t
-                            delete the service account, so delete “{serviceAccountName}” on
+                            Captains on {computerName} lose access to the vault right away. Haus
+                            can’t delete the service account, so delete “{serviceAccountName}” on
                             1password.com under Developer → Service Accounts.
                         </p>
                     </AlertDialog.Body>

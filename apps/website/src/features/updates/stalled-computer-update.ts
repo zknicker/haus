@@ -51,8 +51,8 @@ function stalledDetail(phase: ComputerUpdatePhase) {
         case 'checking':
             return 'The update check did not finish.';
         case 'requested':
-            return 'This Computer did not respond to the update request.';
+            return 'This device did not respond to the update request.';
         default:
-            return 'This Computer stopped reporting update progress.';
+            return 'This device stopped reporting update progress.';
     }
 }

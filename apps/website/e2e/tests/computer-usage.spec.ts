@@ -39,7 +39,7 @@ test('old provider usage stays labeled until a fresh Computer snapshot arrives',
             JSON.stringify({ type: 'usage-report', usage: planUsage('2026-08-19T04:08:16.193Z') })
         );
         await page.goto('/s/usage-hq/computers');
-        const rows = page.getByRole('grid', { name: 'Runtimes on this Computer' });
+        const rows = page.getByRole('grid', { name: 'Runtimes on this device' });
         await expect(rows.getByText('Usage out of date')).toBeVisible({ timeout: 20_000 });
         await expect(rows.getByText('22%', { exact: true })).toBeVisible();
         await expect(rows.getByText(/^Resets /)).toHaveCount(0);
@@ -141,7 +141,7 @@ test('manual runtime refresh updates capacity and Agent model choices without re
         );
         await expect(page.getByText('Runtimes refreshed', { exact: true })).toBeVisible();
         await expect(
-            page.getByRole('grid', { name: 'Runtimes on this Computer' }).getByText('Grok Build')
+            page.getByRole('grid', { name: 'Runtimes on this device' }).getByText('Grok Build')
         ).toBeVisible();
         await expect(page.getByText('Not detected: Claude Code')).toBeVisible();
         await page.screenshot({ path: test.info().outputPath('refreshed-runtimes.png') });

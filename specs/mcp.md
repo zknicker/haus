@@ -1,8 +1,10 @@
 ---
-summary: Normative product contract for Server-owned remote MCP connections, credentials, discovery, and Agent access.
+summary: Normative product contract for Server-owned remote MCP connections, credentials, discovery, and Agent access through the runner's execute tool, plus agent-browser relayed from the Agent's machine behind execute. User-configured local MCP servers are descoped.
 read_when:
   - changing Connections settings or Agent Tools
   - changing MCP storage, auth, client lifecycle, or invocation
+  - changing execute, its catalog, or its limits
+  - changing agent-browser for Agents, or proposing local or stdio MCP servers
 ---
 
 # MCP connections
@@ -68,9 +70,9 @@ connection state before reading the account-scoped cache.
   each Agent-made change is logged by id.
 - Tool discovery changes the read-only tool list; it does not create a second grant layer.
 - Server rechecks the connection grant before every upstream call.
-- Computer receives only safe names, descriptions, and input schemas for granted tools.
-- Computer sends invocation through its scoped per-run Server credential. MCP credentials and
-  upstream sessions never enter Computer, Agent prompts, or tool arguments.
+- The runner receives only safe names, descriptions, and input schemas for granted tools.
+- The runner sends invocation through the run's scoped Server credential. MCP credentials and
+  upstream sessions never enter the runner, a Computer, Agent prompts, or tool arguments.
 - Server owns discovery independently of Agent activity and grants. Startup loads connected
   accounts, notifications refresh changed catalogs, and a jittered five-minute reconciliation
   recovers missing notifications and legacy servers. Failures back off up to fifteen minutes.
@@ -125,32 +127,28 @@ connection state before reading the account-scoped cache.
 
 ## Agent execution
 
-Computer registers one fixed `execute` tool in every new Agent session, including Agents with no
-MCP grants. Headless Executor (`@executor-js/runtime-quickjs`) runs its JavaScript in a disposable
-QuickJS child process. Haus supplies `tools.search({query})`, `tools.describe({name})`, and
-`tools.call({name,args})`; each must be awaited. Search and schema lookup read current Server grants,
-and invocation uses the same authenticated Server authority as ordinary MCP calls. The harness
-schema and description never contain the changing connection inventory.
+The runner registers one fixed `execute` tool in every new Agent session, including Agents with
+no MCP grants ([runtime-drivers.md](runtime-drivers.md#execute)). Headless Executor
+(`@executor-js/runtime-quickjs`) runs its JavaScript in a disposable QuickJS child process on the
+runner. Haus supplies `tools.search({query})`, `tools.describe({name})`, and
+`tools.call({name,args})`; each must be awaited. Search and schema lookup read current Server
+grants, and invocation uses the run's Server credential, the same authority as ordinary MCP
+calls. Each `tools.call` is a dispatch with its own id, recorded as accepted on the runner and on
+the Server before upstream is called, and never sent upstream twice
+([runtime-drivers.md](runtime-drivers.md#mcp-calls)). The harness schema and description never contain the changing connection inventory.
 
 Only humans add MCP servers. An Agent's MCP access is exactly the Server connections an Owner or
-Admin granted it, reached through `execute`; runtime-local MCP configuration is ignored, so an Agent
-cannot give itself servers by editing its execution runtime's config (`claude mcp add`,
-`codex mcp add`, `grok mcp add`, `.mcp.json`, and the like). Each runtime enforces this at launch,
-outside any file the Agent can edit:
+Admin granted it, reached through `execute`. Neither harness reads MCP configuration the Agent can
+edit:
 
-- Claude Code runs with `--strict-mcp-config` and the Haus host-tool server as its only
-  `--mcp-config` entry: only that server loads, never user, project, plugin, or
-  agent-frontmatter MCP config. The Agent home keeps its own Claude Code state file, never a link
-  to the operator's `~/.claude.json` ([Context Management](../docs/features/context-management.md)).
-- Codex: the Codex driver reads every server Codex's config layers declare
-  (`$CODEX_HOME/config.toml`, project `.codex/config.toml`) through `config/read` and overrides
-  each with a disabled entry on the thread request (`codexMcpServers`), leaving the Haus host-tool
-  server (`haus`) the only enabled one; a config layer that declares that name cannot replace it.
-  Thread config also sets `features.apps = false` and `features.plugins = false`, so ChatGPT apps
-  (the operator's connectors, served as `codex_apps`) and plugin MCP servers never load.
-- Grok Build launches with its Claude Code, Cursor, Codex, and xAI-managed MCP sources off. Known
-  gap: the Grok CLI has no per-process switch for its own `$GROK_HOME/config.toml`, trusted
-  project, or plugin MCP servers, so a server an Agent adds there loads in its next Grok session.
+- The Claude Agent SDK runs with `strictMcpConfig` and the in-process `haus` server as its only
+  MCP server, and loads no settings source, so no user, project, plugin, or agent-frontmatter MCP
+  config exists for it.
+- Pi Durable has no MCP client. Its only tools are the ones Haus registers.
+- The Agent's machine runs no harness, so `claude mcp add`, `.mcp.json`, and similar files there
+  configure nothing for the Agent.
+
+Workers run native harnesses on machines, and the Workers contract (W1) owns what MCP they load.
 
 Server is the MCP client, so it picks one form of every tool result instead of forwarding both. A
 result carrying `structuredContent` reaches the Agent without the text block that duplicates it as
@@ -159,19 +157,52 @@ them, so an error keeps its message.
 
 Grants, revocations, new tools, and temporary outages do not change the harness catalog or reset
 its session. Search returns up to 50 matches plus the total; the Agent narrows its query when needed.
-Generated JavaScript has no runner token, MCP credentials, host environment, network, filesystem,
-or persistent state. Computer embeds the worker and WASM in its standalone executable; no Executor
-Cloud, additional service, database, or dashboard is required.
+Generated JavaScript has no run credential, MCP credentials, host environment, network,
+filesystem, or persistent state. The runner bundles the worker and WASM; no Executor Cloud,
+additional service, database, or dashboard is required.
 
 Each execution is limited to 60 seconds, 50 dispatches, 64 KiB of code, 1 MiB per protocol message,
-64 MiB of QuickJS memory, and five seconds of uninterrupted CPU work. Computer also bounds Server
-response bodies to 1 MiB. Stop kills the child and explicitly requests cancellation of pending MCP
-operations through Server. Network loss may prevent acknowledgment, and cancellation cannot undo
-upstream work already performed. Cancelling one request does not retire the shared MCP client used
-by another Agent.
+64 MiB of QuickJS memory, and five seconds of uninterrupted CPU work. The runner also bounds
+Server response bodies to 1 MiB. Stop kills the child and explicitly requests cancellation of
+pending MCP operations and open invocations through Server. Network loss may prevent
+acknowledgment, and cancellation cannot undo upstream work already performed. Cancelling one
+request does not retire the shared MCP client used by another Agent.
 
-Protocol 20 requires the fixed Executor tool and cancellable MCP request contract. Publish and verify
-the compatible Computer before Server promotion; older Computers remain in update-required mode. Deployment requires a one-time operator reset of existing Agent sessions to install `execute`.
-Computer does not silently reset or attempt to migrate old tool catalogs. Subsequent MCP access
-changes require no reset. The Computer release check runs the embedded worker and a round-trip
-host call before the artifact can ship.
+R3 moves `execute` from the Computer to the runner, and R4 deletes the Computer's copy. The
+release check that runs the embedded worker and a round-trip host call moves to the runner
+artifact. The tool's name, schema, and description stay the same, and R4's cutover starts every
+Agent on a fresh runner session ([runtime-drivers.md](runtime-drivers.md#cutover)).
+
+## Agent browser
+
+agent-browser is built in and managed by Haus. It runs on the Agent's machine against the Chrome
+that the Computer's Browser settings select, and the Agent reaches it through `execute` as the
+built-in `browser` tool. `browser` appears in `tools.search` and `tools.describe` beside the
+granted MCP tools and needs no grant.
+
+- Its input is today's: `{ args: string[] }`, an agent-browser page command such as
+  `["tab","new","https://example.com"]`, `["snapshot","-i"]`, or `["click","@e1"]`.
+- The Computer checks the same command allowlist before running it. Connection overrides and
+  browser-wide lifecycle commands are refused.
+- Each call is one invocation of kind `browser`
+  ([runtime-drivers.md](runtime-drivers.md#invocations)), with the invocation's id, ledger,
+  outcomes, and 60-second timeout. An offline machine answers `offline` at once, and the
+  `tools.call` promise rejects with that outcome.
+- A Computer runs one browser command at a time across its Agents, as its command queue does
+  today. Agents share the signed-in browser and keep to their own tabs.
+- A screenshot or PDF is written on the machine, and the result names its path. The Agent views
+  it with its edit tool's `view` or `view_image`.
+
+The separate `browser` host tool and the Computer's host-tool MCP server are deleted in R4.
+Browser settings stay a Computer setting carried by `browser-request` and `browser-result`.
+
+agent-desktop and the per-Computer "Computer use allowed" switch ship later (C1) behind the same
+`execute` relay.
+
+## Local MCP
+
+User-configured local MCP servers are descoped
+([ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md) decision 11).
+Haus runs no stdio or local MCP server for an Agent, and the Agent cannot add one. If they
+return, they follow Capy: a launch recipe in Project settings, run on the working machine as an
+invocation, with availability shown per Computer.

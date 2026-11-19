@@ -70,7 +70,7 @@ extension SettingsSheet {
                     }
                 )
             } else {
-                SettingsUnavailableView(title: "Agent profile")
+                SettingsUnavailableView(title: "Captain profile")
             }
         case .agentRuntime(let id):
             if let agent = data.agents.first(where: { $0.id == id }),

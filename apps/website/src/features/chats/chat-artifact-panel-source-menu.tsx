@@ -32,8 +32,8 @@ export function ArtifactPanelSourceMenu({
                                 <Label>Workspace</Label>
                                 <Description>
                                     {agentId
-                                        ? 'Browse files in this agent workspace'
-                                        : 'No active agent workspace'}
+                                        ? 'Browse files in this Captain workspace'
+                                        : 'No active Captain workspace'}
                                 </Description>
                             </div>
                         </Dropdown.Item>

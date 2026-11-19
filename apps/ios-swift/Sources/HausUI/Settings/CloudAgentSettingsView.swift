@@ -50,7 +50,7 @@ struct CloudAgentSettingsView: View {
             CloudAgentModelSection(canManage: canManage, actions: actions)
             Section {
                 if let computers {
-                    if computers.isEmpty { Text("Attach a Computer to connect Cursor.") }
+                    if computers.isEmpty { Text("Attach a device to connect Cursor.") }
                     if canManage {
                         ForEach(computers) { computer in
                             CursorConnectionRow(computer: computer, canManage: canManage, actions: actions)
@@ -59,12 +59,12 @@ struct CloudAgentSettingsView: View {
                         Text("An owner or admin can manage Cursor connections.")
                     }
                 } else {
-                    Text("Computer connections are unavailable.")
+                    Text("Device connections are unavailable.")
                 }
             } header: {
-                Text("Computers")
+                Text("Devices")
             } footer: {
-                Text("Connect opens a short-lived Cursor sign-in link. Credentials stay on the selected Computer, and its agents can use Cursor from any Haus device.")
+                Text("Connect opens a short-lived Cursor sign-in link. Credentials stay on the selected device, and its Captains can use Cursor from any Haus device.")
             }
         }
         .navigationTitle("Cloud agents")
@@ -128,7 +128,7 @@ private struct CursorConnectionRow: View {
         .confirmationDialog("Disconnect Cursor on \(computer.name)?", isPresented: $confirmDisconnect) {
             Button("Disconnect", role: .destructive) { Task { await perform(.disconnect) } }
         } message: {
-            Text("Agents on this Computer will need Cursor reconnected before starting more cloud work.")
+            Text("Captains on this device will need Cursor reconnected before starting more cloud work.")
         }
     }
 
@@ -142,7 +142,7 @@ private struct CursorConnectionRow: View {
         } catch is CancellationError {
             return
         } catch {
-            failure = "Could not \(requested == .get ? "check Cursor" : requested == .cancelSignIn ? "cancel sign-in" : requested.rawValue). Check that this Computer is online and try again."
+            failure = "Could not \(requested == .get ? "check Cursor" : requested == .cancelSignIn ? "cancel sign-in" : requested.rawValue). Check that this device is online and try again."
         }
     }
 
@@ -150,7 +150,7 @@ private struct CursorConnectionRow: View {
         switch reason {
         case "not-connected": "Not connected"
         case "expired": "Sign-in expired. Reconnect Cursor."
-        default: "Cursor is unavailable on this Computer."
+        default: "Cursor is unavailable on this device."
         }
     }
 }

@@ -55,7 +55,7 @@ export function InboxStrip({
     const running = happeningNow?.length ?? 0;
 
     return (
-        <aside aria-label="Agent activity" className="min-w-0">
+        <aside aria-label="Captain activity" className="min-w-0">
             <div className="flex min-w-0 items-center gap-3">
                 <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
                     <span className="text-muted me-1.5 shrink-0 text-xs">
@@ -74,8 +74,8 @@ export function InboxStrip({
                     )}
                     {folded > 0 ? (
                         <InboxStripPopover
-                            heading="Agents"
-                            label={`Show all ${entries.length} active Agents`}
+                            heading="Captains"
+                            label={`Show all ${entries.length} active Captains`}
                             trigger={`+${folded}`}
                         >
                             {(close) => (

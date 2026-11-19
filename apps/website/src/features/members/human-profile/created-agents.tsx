@@ -16,7 +16,7 @@ export function CreatedAgents({ serverId, userId }: { serverId: string; userId: 
         <ItemCardGroup variant="transparent">
             <ItemCardGroup.Header>
                 <ItemCardGroup.Title>
-                    Created Agents
+                    Created Captains
                     {agents.data ? (
                         <span className="text-muted ms-2 tabular-nums">{created.length}</span>
                     ) : null}
@@ -25,7 +25,7 @@ export function CreatedAgents({ serverId, userId }: { serverId: string; userId: 
             {/* Blank while loading — the app shows no skeletons on synced surfaces. */}
             {!agents.data && agents.isPending ? (
                 <div aria-busy="true" className="min-h-24">
-                    <span className="sr-only">Loading created Agents</span>
+                    <span className="sr-only">Loading created Captains</span>
                 </div>
             ) : (
                 <ItemCardGroup className="overflow-hidden">
@@ -34,8 +34,8 @@ export function CreatedAgents({ serverId, userId }: { serverId: string; userId: 
                             <ItemCard.Content>
                                 <ItemCard.Description>
                                     {agents.error && !agents.data
-                                        ? 'Unable to load created Agents.'
-                                        : 'No Agents created by this human yet.'}
+                                        ? 'Unable to load created Captains.'
+                                        : 'No Captains created by this human yet.'}
                                 </ItemCard.Description>
                             </ItemCard.Content>
                         </ItemCard>

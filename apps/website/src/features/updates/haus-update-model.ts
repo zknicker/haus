@@ -49,7 +49,7 @@ export function projectHausUpdate(input: HausUpdateInput): HausUpdateView {
               .filter((step): step is ComputerUpdateStep => step !== null)
         : [];
     const computerSteps = projectedComputerSteps
-        .map((step) => ({ ...step, label: `Computer · ${step.label}` }))
+        .map((step) => ({ ...step, label: `Device · ${step.label}` }))
         .sort(compareComputerSteps);
     const desktopStep = projectDesktopStep(input.desktop, input.release.components.desktopApp);
     const steps = desktopStep ? [...computerSteps, desktopStep] : computerSteps;

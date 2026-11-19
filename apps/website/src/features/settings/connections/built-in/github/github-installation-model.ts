@@ -66,7 +66,7 @@ export function githubRemovalBody(login: string, dependents: readonly Trigger[])
     }
     const names = dependents.map((trigger) => trigger.title).join(', ');
     const verb = dependents.length === 1 ? 'stops' : 'stop';
-    return `${names} ${verb} firing, and ${dependents.length === 1 ? 'its Agent is' : 'their Agents are'} told why. ${stays}`;
+    return `${names} ${verb} firing, and ${dependents.length === 1 ? 'its Captain is' : 'their Captains are'} told why. ${stays}`;
 }
 
 export interface GithubSetupNotice {
@@ -107,7 +107,7 @@ const refusalNotices: Record<string, Omit<GithubSetupNotice, 'status'>> = {
 export function githubSetupNotice(outcome: string): GithubSetupNotice {
     if (outcome === 'bound') {
         return {
-            description: 'Agents with access to this connection can use it now.',
+            description: 'Captains with access to this connection can use it now.',
             status: 'success',
             title: 'Installation added',
         };

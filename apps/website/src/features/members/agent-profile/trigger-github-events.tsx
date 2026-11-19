@@ -128,8 +128,8 @@ function EventFieldset({
         <Fieldset>
             <Fieldset.Legend>{spec.label}</Fieldset.Legend>
             <Description>
-                All filters in this group must match. Any matching group wakes the Agent once. Names
-                accept *, **, and ?. Exclusions win in this group.
+                All filters in this group must match. Any matching group wakes the Captain once.
+                Names accept *, **, and ?. Exclusions win in this group.
             </Description>
             <Fieldset.Group>
                 {spec.actions.length > 1 ? (

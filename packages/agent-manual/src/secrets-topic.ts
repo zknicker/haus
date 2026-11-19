@@ -23,7 +23,7 @@ Never print, echo, log, or \`env\` a secret, write it to a file, memory, skill, 
 
 ## When a key is missing or there is no vault
 
-If the key you need is not in \`haus-secrets --list\`, ask the Server Owner to add it to the connected vault in 1Password as an API Credential, Password, or Login item, then choose Refresh items in the desktop App at Settings → Computers → (your Computer) → Secrets so this Computer picks it up. Check the list again afterward. Never ask anyone to paste a secret value in chat.
+If the key you need is not in \`haus-secrets --list\`, ask the Server Owner to add it to the connected vault in 1Password as an API Credential, Password, or Login item, then choose Refresh items in the desktop App at Settings → Devices → (your device) → Secrets so this Computer picks it up. Check the list again afterward. Never ask anyone to paste a secret value in chat.
 
-If \`haus-secrets\` is not found, or it says this Computer has no 1Password connection, the Computer has no vault connected. Say so, and ask the Server Owner to connect one from the desktop App at Settings → Computers → (your Computer) → Secrets.`,
+If \`haus-secrets\` is not found, or it says this Computer has no 1Password connection, the Computer has no vault connected. Say so, and ask the Server Owner to connect one from the desktop App at Settings → Devices → (your device) → Secrets.`,
 };

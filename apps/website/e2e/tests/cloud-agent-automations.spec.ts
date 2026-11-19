@@ -102,7 +102,7 @@ test('Automations exposes automatic cloud handoffs and keeps delivered work in h
     await page.reload();
     await expect(row).toHaveCount(0);
     await page.getByRole('button', { name: 'View cloud agent history' }).click();
-    await expect(row).toContainText('Result delivered to the agent');
+    await expect(row).toContainText('Result delivered to the Captain');
     await expect(row).toContainText('Done');
     await page.mouse.move(5, 5);
     await page.screenshot({ path: `${screenshots}/history.png` });

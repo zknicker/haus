@@ -38,7 +38,7 @@ enum VoiceAudioError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .permissionDenied: "Allow microphone access in Settings to call your Agent."
+        case .permissionDenied: "Allow microphone access in Settings to call your Captain."
         case .formatUnavailable: "The microphone or speaker could not start. Please call again."
         case .playbackBehind: "The audio connection fell behind. Please call again."
         }

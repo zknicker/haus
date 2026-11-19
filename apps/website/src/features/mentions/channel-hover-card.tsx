@@ -120,7 +120,7 @@ function ChannelParticipantStack({
 
     return (
         <div className="haus-hover-card__faces flex min-w-0 items-center">
-            <ul aria-label="Channel members" className="m-0 flex shrink-0 list-none -space-x-2 p-0">
+            <ul aria-label="Project members" className="m-0 flex shrink-0 list-none -space-x-2 p-0">
                 {visible.map((participant) => (
                     <li key={participant.id}>
                         <EntityAvatar
@@ -164,7 +164,7 @@ function resolveChannelParticipants({
         return {
             avatarUrl: agent?.avatarUrl ?? null,
             id: agentId,
-            name: agent?.displayName ?? `Agent ${agentId.slice(-6)}`,
+            name: agent?.displayName ?? `Captain ${agentId.slice(-6)}`,
         };
     });
 

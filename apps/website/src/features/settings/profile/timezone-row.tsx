@@ -8,7 +8,7 @@ import { SettingsRowError } from '../layout/settings-text.tsx';
 
 /** The Timezone row's explanation, shared by the live and pending rows. */
 export const timezoneInfo =
-    'Agents schedule your daily and weekly reminders in this zone. Haus sets it from your device.';
+    'Captains schedule your daily and weekly reminders in this zone. Haus sets it from your device.';
 
 /**
  * The human's timezone. It follows the Identity rows, so it brings its own

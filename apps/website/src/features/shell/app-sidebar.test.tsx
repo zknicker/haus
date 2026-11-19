@@ -20,16 +20,16 @@ test('hides a retired Agent DM from active navigation', () => {
     expect(markup).not.toContain('Retired');
 });
 
-test('hides the New agent action when no handler is given', () => {
+test('hides the New Captain action when no handler is given', () => {
     const markup = renderNavigation({});
 
-    expect(markup).not.toContain('aria-label="New agent"');
+    expect(markup).not.toContain('aria-label="New Captain"');
 });
 
-test('shows the New agent action on Direct messages for a manager', () => {
+test('shows the New Captain action on Direct messages for a manager', () => {
     const markup = renderNavigation({ onCreateAgent: () => undefined });
 
-    expect(markup).toContain('aria-label="New agent"');
+    expect(markup).toContain('aria-label="New Captain"');
 });
 
 test('renders each DM from its own Agent availability', () => {

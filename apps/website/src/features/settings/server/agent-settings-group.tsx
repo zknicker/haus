@@ -13,7 +13,7 @@ export function AgentSettingsGroup({ isOwner, serverId }: { isOwner: boolean; se
     return (
         <ItemCardGroup variant="transparent">
             <ItemCardGroup.Header>
-                <ItemCardGroup.Title>Agents</ItemCardGroup.Title>
+                <ItemCardGroup.Title>Captains</ItemCardGroup.Title>
             </ItemCardGroup.Header>
             <ItemCardGroup className="overflow-hidden">
                 <ItemCard>

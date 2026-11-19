@@ -472,7 +472,7 @@ work }`, or `{ state: 'held', newMessageCount, omittedMessageCount, formalMentio
 shownMessages }` when the `haus message send` freshness hold finds unseen newer messages in the
 Task. A held launch creates nothing and launches nothing; the Agent reviews the shown
 messages and re-runs the command if it still applies (no draft; see
-[Cloud Agents](../../specs/cloud-agents.md#durable-cloud-agent-work)). `content`
+[Workers](../../specs/workers.md#the-cli)). `content`
 is the Agent's own words; `title` is at most 120 characters and `repository` reads as
 `owner/name`. One transaction writes a `text` Message in the Task's Chat whose content is
 `content`, a blank line, and a Server-written `[<title>](cloud-agent://<workId>)` link, the
@@ -543,7 +543,7 @@ Run from the provider and reports what it finds. A settled Run's inbox attention
 work's Task while that Task's Chat is live; after it is deleted the Run settles without one, and
 the notice never moves to another link. A pull request change after the newest Run settled wakes
 the delegating Agent with a `pull_request` notice carrying `pullRequestChange`
-([Cloud Agents](../../specs/cloud-agents.md#pull-request-readings)).
+([Workers](../../specs/workers.md#pull-request-readings)).
 
 `cloudAgentWork.listActive({ serverId })` is the human read behind the Inbox's Happening now. It
 lists live work the viewer can see through any linking Message, each row with its `taskId` and

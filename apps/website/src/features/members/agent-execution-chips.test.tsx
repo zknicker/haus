@@ -90,7 +90,7 @@ test('hover names a saved model switch until the Computer confirms it', () => {
     expect(resolveAgentHoverModelChange(pending)).toBe('next turn');
     expect(resolveAgentHoverModelChange({ ...pending, availability: 'working' })).toBe('next turn');
     expect(resolveAgentHoverModelChange({ ...pending, availability: 'offline' })).toBe(
-        'when Computer reconnects'
+        'when device reconnects'
     );
     expect(resolveAgentHoverModelChange({ ...pending, status: 'degraded' })).toBe(
         'needs attention'

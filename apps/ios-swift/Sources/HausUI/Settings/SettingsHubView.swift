@@ -16,7 +16,7 @@ struct SettingsHubView: View {
                 )
 
                 if !data.agents.isEmpty {
-                    SettingsSection("Agent profiles") {
+                    SettingsSection("Captain profiles") {
                         SettingsListGroup {
                             ForEach(Array(data.agents.enumerated()), id: \.element.id) { index, agent in
                                 SettingsAgentRow(
@@ -43,7 +43,7 @@ struct SettingsHubView: View {
                             action: { onNavigate(.people) }
                         )
                         DisclosureRow(
-                            "Computers",
+                            "Devices",
                             icon: .computer,
                             showsDivider: false,
                             action: { onNavigate(.computers) }

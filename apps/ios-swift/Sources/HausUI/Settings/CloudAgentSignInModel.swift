@@ -49,7 +49,7 @@ public enum CloudAgentSignInModel {
                 return .failed(message: message)
             }
             if capability.reason == "provider-unavailable" {
-                return .failed(message: "This Computer cannot reach Cursor’s Cloud Agents.")
+                return .failed(message: "This device cannot reach Cursor’s Cloud Agents.")
             }
         }
         if let errorMessage, !errorMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {

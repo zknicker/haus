@@ -86,7 +86,7 @@ export async function openChannel(page: Page, name: string) {
  * Delete Agent the same way.
  */
 export async function runAgentAction(page: Page, agentName: string, action: string) {
-    await page.getByRole('button', { name: `${agentName} — Agent actions` }).click();
+    await page.getByRole('button', { name: `${agentName} — Captain actions` }).click();
     const item = page.getByRole('menuitem', { exact: true, name: action });
     // Every item is inert while a lifecycle mutation is still in flight.
     await expect(item).toBeEnabled();

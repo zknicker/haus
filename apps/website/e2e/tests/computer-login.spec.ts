@@ -17,7 +17,7 @@ test('Computer login preserves its code and finishes after approval', async ({ p
     await page.goto(tamperedVerificationUrl.toString());
     await expect(page.getByRole('heading', { name: 'Approve Haus Computer?' })).toBeVisible();
     // The OTP input holds the eight characters; the hyphen is display format only.
-    await expect(page.getByLabel('Computer login code')).toHaveValue(
+    await expect(page.getByLabel('Device login code')).toHaveValue(
         started.userCode.replace('-', '')
     );
     await expect(
@@ -43,8 +43,8 @@ test('Computer login preserves its code and finishes after approval', async ({ p
     });
     expect(completed.status).toBe(200);
     await expect(page.getByRole('heading', { name: 'Haus Computer signed in' })).toBeVisible();
-    await expect(page.getByLabel('Computer login code')).toHaveCount(0);
-    await expect(page.getByRole('heading', { name: 'Computer connected' })).toHaveCount(0);
+    await expect(page.getByLabel('Device login code')).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Device connected' })).toHaveCount(0);
 });
 
 async function beginLogin(origin: string): Promise<DeviceGrant> {

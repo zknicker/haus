@@ -86,7 +86,7 @@ function renderSecretReceipt(result: AgentTriggerSecretResult, filePath: string)
     return [
         describeTrigger(trigger),
         `Secret: written to ${filePath} (new file, mode 0600). It is not shown anywhere else; haus trigger rotate --id ${trigger.id} --output <new-path> replaces it.`,
-        'Install it: pass the file to the destination’s secret store or config, then trash the file. Never post the secret in any chat, DM included. To hand it to a person instead, share only the URL and have them reveal a fresh secret in the App (Agent profile → Automations → Rotate).',
+        'Install it: pass the file to the destination’s secret store or config, then trash the file. Never post the secret in any chat, DM included. To hand it to a person instead, share only the URL and have them reveal a fresh secret in the App (Captain profile → Automations → Rotate).',
         `Test from your own run only; this reads the file and prints only the status (202 means the fire landed): ${testCommand(url, filePath)}`,
         `Then confirm the fire with haus trigger log --id ${trigger.id}.`,
         '',

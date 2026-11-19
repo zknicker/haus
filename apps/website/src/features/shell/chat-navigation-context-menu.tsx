@@ -135,7 +135,7 @@ function ChannelRowMenu({
                 the chat's own commands follow in their usual order. */}
             <ContextMenu.Item id="open" textValue={`Open ${chatName}`}>
                 <Icon aria-hidden="true" icon={ArrowUpRight01Icon} size={16} />
-                <Label>Open channel</Label>
+                <Label>Open project</Label>
             </ContextMenu.Item>
             {tabOpeners ? <RowTabItems /> : null}
             <ContextMenu.Separator />

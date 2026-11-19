@@ -15,6 +15,6 @@ export function channelHandleIssue(value: string) {
     const trimmed = value.trim();
 
     return trimmed.length > 0 && !isValidChannelHandle(trimmed)
-        ? 'Channel names are single handles: letters, numbers, dashes, or underscores — no spaces, up to 32 characters.'
+        ? 'Project names are single handles: letters, numbers, dashes, or underscores — no spaces, up to 32 characters.'
         : null;
 }

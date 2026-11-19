@@ -14,7 +14,7 @@ const settled = {
 
 test('an unresolvable ?agent= is a removable filter, not a silent drop', () => {
     expect(usageFilterChips({ ...settled, requestedAgentId: 'agt_gone' })).toEqual([
-        { key: 'agent', label: 'Agent: Unavailable' },
+        { key: 'agent', label: 'Captain: Unavailable' },
     ]);
 });
 
@@ -39,12 +39,12 @@ test('Computer and runtime chips keep their labels', () => {
             runtimeId: 'claude-code',
         })
     ).toEqual([
-        { key: 'computer', label: "Computer: Zach's Mac" },
+        { key: 'computer', label: "Device: Zach's Mac" },
         { key: 'runtime', label: 'Runtime: Claude Code' },
     ]);
     expect(
         usageFilterChips({ ...settled, computersPending: true, requestedComputerId: 'cmp_1' })
-    ).toEqual([{ key: 'computer', label: 'Computer: Loading…' }]);
+    ).toEqual([{ key: 'computer', label: 'Device: Loading…' }]);
 });
 
 test('every chip renders as its own remove control', () => {
@@ -52,13 +52,13 @@ test('every chip renders as its own remove control', () => {
         <ActiveUsageFilters
             chips={[
                 { key: 'computer', label: 'Computer: Unavailable' },
-                { key: 'agent', label: 'Agent: Unavailable' },
+                { key: 'agent', label: 'Captain: Unavailable' },
             ]}
             onRemove={() => undefined}
         />
     );
 
     expect(html).toContain('Active usage filters');
-    expect(html).toContain('Agent: Unavailable');
+    expect(html).toContain('Captain: Unavailable');
     expect(html.match(/<button/g)).toHaveLength(2);
 });

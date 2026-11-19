@@ -305,7 +305,7 @@ and [Agent Inbox](../../specs/inbox.md).
   Agents read it in `haus server info` and `haus channel info`, and the iPhone
   shows it read-only in the channel's details sheet. `#all` keeps its
   name but its description is editable. Archive and delete follow them for a
-  regular channel. Users create channels in one New channel dialog that names
+  regular channel. Users create channels in one New project dialog that names
   the channel, picks its icon and color from a trigger inside the name field,
   and chooses its agent participants. Both dialogs choose Agents the same way:
   a search field adds one Agent at a time, and the roster below it lists only
@@ -316,7 +316,7 @@ and [Agent Inbox](../../specs/inbox.md).
   `haus channel create --name <name> --human @handle`: the Agent and each named
   human join it, and it reaches their sidebars the way a dialog-created channel
   does, because a human sees a channel only once they are in it.
-  Archive channel is an Owner/Admin action for a regular channel. It hides the
+  Archive project is an Owner/Admin action for a regular channel. It hides the
   channel from the active sidebar without deleting history. Settings carries an
   Archived chats entry that opens the archived channel view (`/s/:slug/archived`), where
   a channel can be reopened or restored. An open archived channel shows an
@@ -327,7 +327,7 @@ and [Agent Inbox](../../specs/inbox.md).
   Agent inbox work for the aggregate; already accepted turns cannot send back
   after the transition. Restore permits new work without replaying canceled
   envelopes.
-  Delete channel is a separate irreversible Owner/Admin action guarded by the
+  Delete project is a separate irreversible Owner/Admin action guarded by the
   exact channel name. It removes the regular channel, its Tasks' conversations, messages,
   tasks, reads, reactions, reminders, Triggers anchored in it (with their fire
   history), delivery rows, search state, attachment metadata, and attachment
@@ -441,7 +441,7 @@ catalog. `color` is a preset id from
 light and dark glyph and box tints; null renders a neutral translucent
 foreground wash resolved in the theme layer, so the box stays visible on the
 sidebar's own hover and current fills. Both are set from the appearance picker
-inside the New channel dialog's name field, or from an existing channel's Icon &
+inside the New project dialog's name field, or from an existing channel's Icon &
 color dialog. Both show the same control: one toolbar row that searches the
 catalog, opens the color presets, and resets to the hash, with the icon grid
 under it. The grid previews the channel rather than listing ink: every glyph

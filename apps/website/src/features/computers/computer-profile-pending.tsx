@@ -5,14 +5,14 @@ import { PageColumn } from '../shell/page-column.tsx';
 export function ComputerProfilePending() {
     return (
         <PageColumn>
-            <SettingsPageHeader title="Computer" />
+            <SettingsPageHeader title="Device" />
             {[
                 'Runtimes',
                 'Browser',
                 'Cloud Agents',
-                'Agents on This Computer',
+                'Captains on this device',
                 'System Log',
-                'Computer Management',
+                'Device management',
             ].map((title) => (
                 <section key={title}>
                     <ItemCardGroup variant="transparent">

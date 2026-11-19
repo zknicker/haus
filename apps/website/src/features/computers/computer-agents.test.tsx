@@ -22,8 +22,8 @@ test('Computer Agents render as a HeroUI Pro data grid', () => {
     );
 
     expect(html).toContain('data-slot="data-grid"');
-    expect(html).toContain('aria-label="Agents on this Computer"');
-    expect(html).toContain('Agent');
+    expect(html).toContain('aria-label="Captains on this device"');
+    expect(html).toContain('Captain');
     expect(html).toContain('Runtime');
     expect(html).toContain('Model');
     expect(html).toContain('Status');
@@ -41,13 +41,13 @@ test('Computer Agents keep the data grid shell when empty', () => {
     );
 
     expect(html).toContain('data-slot="data-grid"');
-    expect(html).toContain('Agent');
+    expect(html).toContain('Captain');
     expect(html).toContain('Runtime');
     expect(html).toContain('Model');
     expect(html).toContain('Status');
     expect(html).toContain('data-slot="empty-state"');
     expect(html).toContain('min-h-64');
-    expect(html).toContain('No Agents assigned');
+    expect(html).toContain('No Captains assigned');
 });
 
 test('Computer Agents show a loading state before first data', () => {
@@ -55,9 +55,9 @@ test('Computer Agents show a loading state before first data', () => {
         <ComputerAgentGrid onOpenAgent={() => undefined} rows={[]} state={{ status: 'loading' }} />
     );
 
-    expect(html).toContain('Loading Agents');
+    expect(html).toContain('Loading Captains');
     expect(html).toContain('min-h-64');
-    expect(html).not.toContain('No Agents assigned');
+    expect(html).not.toContain('No Captains assigned');
 });
 
 test('Computer Agents distinguish an unavailable directory from an empty one', () => {
@@ -69,8 +69,8 @@ test('Computer Agents distinguish an unavailable directory from an empty one', (
         />
     );
 
-    expect(html).toContain('Agents unavailable');
+    expect(html).toContain('Captains unavailable');
     expect(html).toContain('min-h-64');
     expect(html).toContain('Try again');
-    expect(html).not.toContain('No Agents assigned');
+    expect(html).not.toContain('No Captains assigned');
 });

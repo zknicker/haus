@@ -158,7 +158,7 @@ test('previews Channels with activity beside the title and overlapping member av
     expect(markup).toContain('#product');
     expect(markup).toContain('· Active 1d ago');
     expect(markup).toContain('haus-hover-card__faces');
-    expect(markup).toContain('Channel members');
+    expect(markup).toContain('Project members');
     expect(markup).toContain('-space-x-2');
     expect(markup).toContain('ZK');
     expect(markup).toContain('BL');
@@ -188,7 +188,7 @@ test('keeps Channel preview data dormant while its hover card is closed', () => 
     );
 
     expect(markup).toContain('#product');
-    expect(markup).not.toContain('Channel members');
+    expect(markup).not.toContain('Project members');
 });
 
 test('previews a Skill with a compact identity row and smaller mark', () => {

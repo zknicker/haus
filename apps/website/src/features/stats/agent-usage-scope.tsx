@@ -63,7 +63,7 @@ export function AgentUsageScopePicker({
                         ) : (
                             <span className="flex min-w-0 items-center gap-2">
                                 <AllAgentsMark agents={agents} size={triggerMarkSize} />
-                                <span className="truncate">All Agents</span>
+                                <span className="truncate">All Captains</span>
                             </span>
                         )
                     }
@@ -72,9 +72,9 @@ export function AgentUsageScopePicker({
             </Select.Trigger>
             <Select.Popover>
                 <ListBox>
-                    <ListBox.Item id={ALL_AGENTS} textValue="All Agents">
+                    <ListBox.Item id={ALL_AGENTS} textValue="All Captains">
                         <EveryAgentMark />
-                        <Label>All Agents</Label>
+                        <Label>All Captains</Label>
                         <ListBox.ItemIndicator />
                     </ListBox.Item>
                     {agents.map((agent) => (

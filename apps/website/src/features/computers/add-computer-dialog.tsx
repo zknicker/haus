@@ -21,9 +21,9 @@ export function AddComputerDialog({
                         <Modal.Icon className="bg-default text-foreground">
                             <Icon className="size-5" icon={ComputerIcon} />
                         </Modal.Icon>
-                        <Modal.Heading>Add Computer</Modal.Heading>
+                        <Modal.Heading>Add device</Modal.Heading>
                         <p className="text-muted mt-1.5 text-sm leading-5">
-                            Run Agents on an Apple Silicon Mac you control.
+                            Run Captains on an Apple Silicon Mac you control.
                         </p>
                     </Modal.Header>
                     <Modal.Body>

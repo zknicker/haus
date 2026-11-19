@@ -61,7 +61,7 @@ extension HausStore {
                 guard let archivedAt = chat.archivedAt else { return nil }
                 return ArchivedChannelPresentation(
                     id: chat.id,
-                    name: chat.name ?? (chat.isAll ? "all" : "Channel"),
+                    name: chat.name ?? (chat.isAll ? "all" : "Project"),
                     archivedAt: archivedAt,
                     appearance: ChannelAppearance(icon: chat.icon, color: chat.color)
                 )
@@ -87,7 +87,7 @@ extension HausStore {
     private func searchChatPresentation(_ chat: ChatSummary) -> (String, MessageSearchChatKind) {
         switch chat.kind {
         case .channel:
-            return (chat.name ?? (chat.isAll ? "all" : "Channel"), .channel)
+            return (chat.name ?? (chat.isAll ? "all" : "Project"), .channel)
         case .dm:
             let name = chat.peerAgentID.flatMap { agentsByID[$0]?.displayName }
                 ?? chat.peerAgentDisplayName ?? "DM"

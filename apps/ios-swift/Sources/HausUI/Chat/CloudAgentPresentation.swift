@@ -20,7 +20,7 @@ public struct CloudAgentPresentation: Identifiable, Hashable, Sendable {
     public init(work: CloudAgentWork, conversationLink: URL? = nil, agentName: String? = nil) {
         self.work = work
         self.conversationLink = conversationLink
-        self.agentName = agentName ?? "Agent \(work.agentId.suffix(6))"
+        self.agentName = agentName ?? "Captain \(work.agentId.suffix(6))"
     }
 
     public var providerName: String { Self.providerName(work.provider) }

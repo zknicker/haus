@@ -53,7 +53,7 @@ export function happeningNowAgentRows(
             agent,
             id: activity.agentId,
             label: stepWithElapsed(step, activity.runStartedAt, now),
-            name: agent?.displayName ?? `Agent ${activity.agentId.slice(-6)}`,
+            name: agent?.displayName ?? `Captain ${activity.agentId.slice(-6)}`,
             step: withoutEllipsis(step),
         };
     });

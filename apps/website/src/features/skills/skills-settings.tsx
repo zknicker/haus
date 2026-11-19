@@ -31,7 +31,7 @@ export function SkillsSettings({ serverId }: { serverId: string }) {
             <SettingsPageHeader
                 description={
                     <span className="inline-flex items-center gap-1">
-                        Skills installed on your Computers.
+                        Skills installed on your devices.
                         <SkillsInfo />
                     </span>
                 }
@@ -39,7 +39,7 @@ export function SkillsSettings({ serverId }: { serverId: string }) {
             />
             {computers.error && !computers.data ? (
                 <SkillsMessage
-                    description="Haus couldn’t load the Computer skill inventory. Try opening this page again."
+                    description="Haus couldn’t load the device skill inventory. Try opening this page again."
                     title="Skills unavailable"
                 />
             ) : computers.data ? (
@@ -53,7 +53,7 @@ export function SkillsSettings({ serverId }: { serverId: string }) {
                     ))
                 ) : (
                     <SkillsMessage
-                        description="Skills installed on a Computer appear here once it reports them."
+                        description="Skills installed on a device appear here once it reports them."
                         title="No skills installed"
                     />
                 )
@@ -80,7 +80,7 @@ function SkillsInfo() {
                 <Icon aria-hidden="true" icon={InformationCircleIcon} size={16} />
             </Button>
             <Tooltip.Content>
-                To give an Agent one of these skills, add it from the Agent’s Profile.
+                To give a Captain one of these skills, add it from the Captain’s Profile.
             </Tooltip.Content>
         </Tooltip>
     );

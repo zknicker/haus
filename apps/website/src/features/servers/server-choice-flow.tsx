@@ -53,7 +53,7 @@ function ServerChoiceStep({
             description={
                 hasServers
                     ? 'Open a joined Server, or start another.'
-                    : 'A Server is home base for you, your people, and your Agents. Create your own to get started, or join one with an invitation.'
+                    : 'A Server is home base for you, your people, and your Captains. Create your own to get started, or join one with an invitation.'
             }
             footer={
                 <>
@@ -81,7 +81,7 @@ function CreateServerStep({ onBack }: { onBack: () => void }) {
 
     return (
         <ActivationStep
-            description="Start a new place for your people and Agents."
+            description="Start a new place for your people and Captains."
             footer={
                 <>
                     <BackButton onPress={onBack} />

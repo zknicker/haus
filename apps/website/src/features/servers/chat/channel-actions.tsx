@@ -41,7 +41,7 @@ export function ChannelActions({
                     <Dropdown>
                         <Tooltip>
                             <Button
-                                aria-label={`${chatName} — channel actions`}
+                                aria-label={`${chatName} — project actions`}
                                 isIconOnly
                                 size="sm"
                                 variant="ghost"
@@ -53,7 +53,7 @@ export function ChannelActions({
                                     size={15}
                                 />
                             </Button>
-                            <Tooltip.Content>Channel actions</Tooltip.Content>
+                            <Tooltip.Content>Project actions</Tooltip.Content>
                         </Tooltip>
                         <Dropdown.Popover placement="bottom end">
                             <ChannelActionsMenu

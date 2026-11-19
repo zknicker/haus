@@ -23,7 +23,7 @@ test('the last error is named from its code, falling back to the failure kind', 
         'The provider was unreachable.'
     );
     expect(wakePauseFailureSentence({ code: null, kind: 'unknown' })).toBe(
-        'Something went wrong running the Agent.'
+        'Something went wrong running the Captain.'
     );
 });
 

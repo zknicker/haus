@@ -38,11 +38,11 @@ public enum ArtifactPageUnavailable: Error, Equatable, Sendable {
     public var message: String {
         switch self {
         case .computerUnreachable:
-            "This page lives on the Agent’s Computer, which isn’t reachable right now. Try again once it’s back online."
+            "This page lives on the Captain’s device, which isn’t reachable right now. Try again once it’s back online."
         case .offline:
             "Haus can’t reach the Server from this phone right now. Try again once you’re back online."
         case .forbidden:
-            "You don’t have access to this Agent’s workspace."
+            "You don’t have access to this Captain’s workspace."
         case .notAPage:
             "This file isn’t an HTML page, so it can’t be opened here."
         case .failed:

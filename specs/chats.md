@@ -1,3 +1,10 @@
+---
+summary: Chats contract — the durable conversation container, its kinds (Project channels, DMs, Task Chats), loading and handoffs, config and lifecycle, identity and labels, and participants. Every channel is a Project.
+read_when:
+  - changing chat kinds, chat lifecycle, archive or delete, or chat identity and labels
+  - changing how a channel relates to its Project
+---
+
 # Chats
 
 Chats are Haus's shared conversation surfaces.
@@ -13,6 +20,16 @@ Chats are Haus's shared conversation surfaces.
   rather than through a separate create-chat flow.
 - The chats surface reads like a wall of live conversation columns rather than a thin list of
   transport records.
+
+## Channels Are Projects
+
+- Haus-owned Chats come in three kinds: `channel`, `dm`, and `task`. Every `channel` Chat is a
+  [Project](projects.md), and a Project's id is its channel's Chat id. People create one with "New
+  project"; nothing creates a bare channel.
+- `#all` is the Haus project's channel, renamed `haus`. Every member belongs to it.
+- A `task` Chat hangs under its Project's channel ([tasks.md](tasks.md#a-task-is-a-place)).
+- A channel's human members are its members as today. Its Agents are the Agents whose home it is,
+  and any Agent on the Server can read and post in it ([projects.md](projects.md#what-an-agent-may-do-outside-its-home)).
 
 ## Chat Loading And Handoffs
 
@@ -40,8 +57,10 @@ Chats are Haus's shared conversation surfaces.
   by id, and can be unarchived. While archived, the channel and its Tasks' chats accept no new
   writes. Undrained Agent work is canceled and is not replayed after restore.
 - Owner/Admin deletion of a regular channel is irreversible aggregate deletion. It removes the
-  channel, its Tasks' chats, durable collaboration dependents, and attachment bytes. `#all`, DMs,
-  and Task chats do not expose independent archive or delete actions.
+  Project, its Tasks and their Chats, durable collaboration dependents, and attachment bytes. The
+  Haus project, DMs, and Task chats do not expose independent archive or delete actions. A Project
+  that is any Agent's home cannot be archived or deleted until its Agents move
+  (`PROJECT_HAS_AGENTS`).
 - Runtime may observe agent sessions and messages that belong to a Haus chat.
   Those observations attach through the Runtime-owned agent participant for that chat.
 - External platform conversations, such as Discord channels or DMs, are separate first-class

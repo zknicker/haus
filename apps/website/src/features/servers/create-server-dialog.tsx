@@ -25,7 +25,7 @@ export function CreateServerDialog({
                         </Modal.Icon>
                         <Modal.Heading>Create a Server</Modal.Heading>
                         <p className="text-muted mt-1.5 text-sm leading-5">
-                            Start a new place for your people and Agents.
+                            Start a new place for your people and Captains.
                         </p>
                     </Modal.Header>
                     <Modal.Body>

@@ -11,7 +11,7 @@ struct TimezoneSection: View {
     var body: some View {
         SettingsSection(
             nil,
-            footer: "Agents schedule your daily and weekly reminders in this zone. Haus sets it from your device."
+            footer: "Captains schedule your daily and weekly reminders in this zone. Haus sets it from your device."
         ) {
             SettingsListGroup {
                 DisclosureRow(

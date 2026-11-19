@@ -47,7 +47,7 @@ export function ComputerSystemLog({
                         <Alert.Content>
                             <Alert.Title>Frequent disconnects</Alert.Title>
                             <Alert.Description>
-                                This Computer disconnected at least five times in the last five
+                                This device disconnected at least five times in the last five
                                 minutes.
                             </Alert.Description>
                         </Alert.Content>
@@ -119,7 +119,7 @@ export function ComputerSystemLogGrid({
 }) {
     return (
         <DataGrid
-            aria-label="Computer system log"
+            aria-label="Device system log"
             columns={systemEventColumns}
             data={rows}
             getRowId={(item) => item.id}

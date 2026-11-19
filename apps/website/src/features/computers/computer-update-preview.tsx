@@ -21,7 +21,7 @@ export const computerUpdatePreviewStates: {
     { id: 'downloading', label: 'Downloading · 42%' },
     { id: 'downloading-indeterminate', label: 'Downloading · unknown size' },
     { id: 'verifying', label: 'Verifying' },
-    { id: 'waiting-for-agents', label: 'Waiting for Agents' },
+    { id: 'waiting-for-agents', label: 'Waiting for Captains' },
     { id: 'installing', label: 'Installing' },
     { id: 'restarting', label: 'Restarting' },
     { id: 'complete', label: 'Complete' },

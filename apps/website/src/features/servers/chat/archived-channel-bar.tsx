@@ -7,14 +7,14 @@ export function ArchivedChannelBar({ canManage, chat }: { canManage: boolean; ch
 
     return (
         <div className="text-muted mx-auto flex w-full items-center justify-between gap-4 px-9 pb-4 text-sm">
-            <p>This channel is archived. Its history is read-only.</p>
+            <p>This project is archived. Its history is read-only.</p>
             {canManage ? (
                 <Button
                     isPending={unarchive.isPending}
                     onPress={() =>
                         unarchive
                             .mutateAsync({ chatId: chat.id, serverId: chat.serverId })
-                            .then(() => toast.success('Channel restored'))
+                            .then(() => toast.success('Project restored'))
                             .catch((error: Error) =>
                                 toast.danger('Restore failed', { description: error.message })
                             )

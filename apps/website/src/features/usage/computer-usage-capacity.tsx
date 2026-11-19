@@ -22,7 +22,7 @@ export function ComputerUsageCapacity({
     return (
         <ComputerUsageCapacityView
             computer={computer}
-            computerName={host ? computerLabel(host) : 'this Computer'}
+            computerName={host ? computerLabel(host) : 'this device'}
             detectedRuntimeIds={detectedRuntimeIds}
             error={usage.data ? undefined : usage.error?.message}
             isPending={!usage.data && usage.isPending}
@@ -57,8 +57,8 @@ export function ComputerUsageCapacityView({
             <CapacityMessage
                 description={
                     computer?.health === 'healthy'
-                        ? 'This Computer has not completed its first usage report.'
-                        : 'Reconnect this Computer to collect a usage report.'
+                        ? 'This device has not completed its first usage report.'
+                        : 'Reconnect this device to collect a usage report.'
                 }
                 title={computer?.health === 'healthy' ? 'Collecting usage' : 'Usage not reported'}
             />

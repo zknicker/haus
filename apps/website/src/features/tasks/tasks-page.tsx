@@ -112,7 +112,7 @@ function TasksEmpty({
                 <EmptyState.Title>{title}</EmptyState.Title>
                 {unavailable || filtered ? null : (
                     <EmptyState.Description>
-                        Ask an Agent to start one from a message.
+                        Ask a Captain to start one from a message.
                     </EmptyState.Description>
                 )}
             </EmptyState.Header>

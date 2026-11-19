@@ -27,7 +27,7 @@ export function browserCapabilityView({
             canConfigure: false,
             canDisable: false,
             canEnable: false,
-            description: error ?? 'Reconnect this Computer to configure its Browser.',
+            description: error ?? 'Reconnect this device to configure its Browser.',
             status: 'unavailable',
             statusLabel: 'Unavailable',
         };
@@ -46,7 +46,7 @@ export function browserCapabilityView({
         return {
             ...actions,
             description:
-                'Connect Agents to an existing automation-enabled Chrome on this Computer.',
+                'Connect Captains to an existing automation-enabled Chrome on this device.',
             status: 'not-configured',
             statusLabel: 'Not configured',
         };
@@ -72,7 +72,7 @@ export function browserCapabilityView({
     }
     return {
         ...actions,
-        description: `Agents share ${selected?.name ?? 'the selected Chrome browser'} and its signed-in accounts. Disconnecting Haus leaves Chrome open.`,
+        description: `Captains share ${selected?.name ?? 'the selected Chrome browser'} and its signed-in accounts. Disconnecting Haus leaves Chrome open.`,
         status: 'ready',
         statusLabel: 'Connected',
     };

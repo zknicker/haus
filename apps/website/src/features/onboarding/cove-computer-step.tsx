@@ -24,14 +24,14 @@ export function CoveComputerStep({
 }) {
     return (
         <ActivationStep
-            description={`Connect a Computer to run the Agents in ${serverName}.`}
+            description={`Connect a device to run the Captains in ${serverName}.`}
             footer={<SwitchServerButton onPress={onSwitchServer} />}
-            title="Connect a Computer"
+            title="Connect a device"
         >
             <div className="grid min-w-0 gap-4">
                 <Tabs className="min-w-0" defaultSelectedKey="macos" variant="secondary">
                     <Tabs.ListContainer>
-                        <Tabs.List aria-label="Computer platform">
+                        <Tabs.List aria-label="Device platform">
                             {coveComputerPlatforms.map((platform) => (
                                 <Tabs.Tab
                                     id={platform.id}
@@ -68,7 +68,7 @@ function statusLines(
     if (view === 'detecting-runtimes') {
         return [
             { label: 'Request approved.', tone: 'done' },
-            { label: 'Computer connected.', tone: 'done' },
+            { label: 'Device connected.', tone: 'done' },
             { label: 'Detecting runtimes…', tone: 'waiting' },
         ];
     }

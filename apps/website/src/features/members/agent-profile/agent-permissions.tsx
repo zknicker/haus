@@ -44,7 +44,7 @@ function ManageConnectionsRow({ agent, serverId }: { agent: Agent; serverId: str
             <ItemCard.Content>
                 <ItemCard.Title>Manage connections</ItemCard.Title>
                 <ItemCard.Description>
-                    Can turn connection access on and off for any agent
+                    Can turn connection access on and off for any Captain
                 </ItemCard.Description>
             </ItemCard.Content>
             <ItemCard.Action>

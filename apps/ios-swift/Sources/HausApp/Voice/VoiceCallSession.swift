@@ -84,7 +84,7 @@ final class VoiceCallSession {
             if case .failed = state { return }
             if Task.isCancelled || closing { state = .ended }
             else if let audioError = error as? VoiceAudioError { state = .failed(audioError.localizedDescription) }
-            else { state = .failed("Couldn't connect the call. Check that the Agent's Computer is online and the Server supports voice calls.") }
+            else { state = .failed("Couldn't connect the call. Check that the Captain's device is online and the Server supports voice calls.") }
         }
     }
 

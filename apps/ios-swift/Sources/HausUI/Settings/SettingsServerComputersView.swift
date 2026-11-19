@@ -6,7 +6,7 @@ struct ServerComputersView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                SettingsSection("Computers") {
+                SettingsSection("Devices") {
                     SettingsListGroup {
                         if let computers, !computers.isEmpty {
                             ForEach(Array(computers.enumerated()), id: \.element.id) { index, computer in
@@ -17,10 +17,10 @@ struct ServerComputersView: View {
                             }
                         } else {
                             SettingsRow(
-                                title: computers == nil ? "Computers unavailable" : "No Computers attached",
+                                title: computers == nil ? "Devices unavailable" : "No devices attached",
                                 subtitle: computers == nil
-                                    ? "Haus couldn’t load this Server’s Computers."
-                                    : "No Computer has connected to this Server yet.",
+                                    ? "Haus couldn’t load this Server’s devices."
+                                    : "No device has connected to this Server yet.",
                                 icon: .computer,
                                 showsDivider: false
                             ) {
@@ -31,7 +31,7 @@ struct ServerComputersView: View {
                 }
 
                 if let computers, computers.count > 1 {
-                    Text("Computers are managed by the Haus Computer app.")
+                    Text("Devices are managed by the Haus Computer app.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 16)
@@ -44,7 +44,7 @@ struct ServerComputersView: View {
         }
         .scrollIndicators(.hidden)
         .background(HausPlatformColor.groupedBackground)
-        .navigationTitle("Computers")
+        .navigationTitle("Devices")
         .hausInlineNavigationTitle()
     }
 }
