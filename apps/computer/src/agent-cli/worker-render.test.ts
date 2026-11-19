@@ -107,9 +107,9 @@ test('the detail dump points to --report only for a Run whose stored report outg
     };
 
     const detail = renderWorkerDetail([outgrown, noMore, noReport]);
-    expect(detail).toContain('More: haus worker inspect --work caw_outgrown --report');
-    expect(detail).not.toContain('--work caw_no_more --report');
-    expect(detail).not.toContain('--work caw_no_report --report');
+    expect(detail).toContain('More: haus worker inspect --worker caw_outgrown --report');
+    expect(detail).not.toContain('--worker caw_no_more --report');
+    expect(detail).not.toContain('--worker caw_no_report --report');
 });
 
 test('findWorkerReportRun resolves the newest Run with a report by default, or one named by id', () => {

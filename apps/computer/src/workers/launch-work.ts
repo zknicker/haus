@@ -8,7 +8,6 @@ import {
     type WorkerTurnRef,
 } from './provider.ts';
 import { cloudAgentProvider } from './registry.ts';
-import { readDefaultCloudAgentProvider } from './settings.ts';
 import type { WorkerSupervisor } from './work-runner.ts';
 
 export interface WorkerStartRequest {
@@ -18,8 +17,8 @@ export interface WorkerStartRequest {
     /** The provider prompt. It stays on this Computer and never reaches Server. */
     instructions: string;
     nonce: string;
-    /** Absent means this Computer's default provider. */
-    provider?: CloudAgentProvider;
+    /** The place `--on` named. */
+    provider: CloudAgentProvider;
     replyToMessageId?: string;
     repository: string;
     startingRef: string | null;
@@ -60,10 +59,7 @@ export async function startWorker(input: {
     serverId: string;
     serverOrigin: string;
 }): Promise<AgentWorkerStartResponse> {
-    const provider = cloudAgentProvider(
-        input.request.provider ?? (await readDefaultCloudAgentProvider(input.dataRoot)),
-        input.dataRoot
-    );
+    const provider = cloudAgentProvider(input.request.provider, input.dataRoot);
     const readiness = await provider.readiness();
     if (!readiness.ready) {
         throw new CloudAgentProviderUnavailableError(readiness.reason);

@@ -57,7 +57,7 @@ test('inline reply guidance is discoverable and separates attention from ownersh
 
 test('cloud work keeps review rounds and requester outcomes in its Task', () => {
     const body = getManualTopic('workers')?.body;
-    expect(body).toContain('`haus worker send --work <workId>`');
+    expect(body).toContain('`haus worker send --worker <workId>`');
     expect(body).toContain(
         'keep review rounds, revision requests, and progress in the Task, and @mention the requester there only for a real state change'
     );
@@ -74,7 +74,7 @@ test('cloud work keeps review rounds and requester outcomes in its Task', () => 
     expect(body).toContain('a Cursor agent queues it until its active run finishes');
     // TECH-8: `summary` is a capped head; `--report` reads the full report it was cut from.
     expect(body).toContain('`summary` is only a capped head, up to 2000 characters');
-    expect(body).toContain('More: haus worker inspect --work <id> --report');
+    expect(body).toContain('More: haus worker inspect --worker <id> --report');
     expect(body).toContain('[clipped at 64 KiB]');
 });
 

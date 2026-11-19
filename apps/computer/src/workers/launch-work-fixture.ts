@@ -15,6 +15,7 @@ export const request = {
     content: 'Handing this to a Worker.',
     instructions: 'Reproduce the flake and open a pull request.',
     nonce: 'worker-nonce',
+    provider: 'cursor' as const,
     repository: 'haus/haus',
     replyToMessageId: 'msg_request',
     startingRef: 'main',

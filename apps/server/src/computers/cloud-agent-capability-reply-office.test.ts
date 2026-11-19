@@ -110,7 +110,6 @@ function capability(
         result: {
             accountEmail: null,
             expiresAt: null,
-            isDefault: true,
             provider: 'cursor',
             ready: false,
             reason: 'not-connected',

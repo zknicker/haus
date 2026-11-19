@@ -15,11 +15,11 @@ export function formatWorkerAttention(work: AgentWorkerAttention, target: string
         `url=${work.providerUrl ?? '-'}`,
         ...(work.status === 'pending_input'
             ? [
-                  `The Worker stopped to ask the question in summary. Answer it yourself when the request settles it, or ask the requester first; send the answer with: haus worker send --work ${work.workerId}`,
+                  `The Worker stopped to ask the question in summary. Answer it yourself when the request settles it, or ask the requester first; send the answer with: haus worker send --worker ${work.workerId}`,
               ]
             : []),
         ...((work.status === 'completed' || work.status === 'failed') && work.hasFullReport === true
-            ? [`More: haus worker inspect --work ${work.workerId} --report`]
+            ? [`More: haus worker inspect --worker ${work.workerId} --report`]
             : []),
         ...taskLine(target),
     ].join('\n');

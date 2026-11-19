@@ -24,6 +24,7 @@ test('starts one Worker with the stdin instructions and the Agent’s own words'
         content: 'Handing the flaky delivery test to a Worker.',
         instructions: 'Reproduce the flake and open a pull request.',
         nonce: 'worker-nonce',
+        provider: 'cursor',
         repository: 'haus/haus',
         startingRef: 'main',
         target: 'task:SEC-12',
@@ -51,6 +52,26 @@ test('a launch with no Task is refused before anything is sent, naming the next 
     ).rejects.toMatchObject({
         code: 'WORKER_TASK_REQUIRED',
         options: { nextAction: expect.stringContaining('haus task start') },
+    });
+    expect(seen).toHaveLength(0);
+});
+
+test('a start without --on is refused before anything is sent', async () => {
+    const seen: AgentApiRequest[] = [];
+    const deps = {
+        client: requester(seen),
+        mintNonce: () => 'no-place-nonce',
+        readStdin: () => Promise.resolve('Fix the reported failure.'),
+        stdinIsTty: false,
+        write: () => undefined,
+    };
+    await expect(runWorkerStart(args({ '--on': '' }), deps)).rejects.toMatchObject({
+        code: 'WORKER_PLACE_REQUIRED',
+        options: { nextAction: 'Add --on cursor or --on claude.' },
+    });
+    await expect(runWorkerStart(args({ '--on': 'mini' }), deps)).rejects.toMatchObject({
+        code: 'INVALID_ARG',
+        message: 'Invalid Worker place "mini".',
     });
     expect(seen).toHaveLength(0);
 });

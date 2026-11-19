@@ -215,7 +215,7 @@ export class CloudLaunchJournal {
 
     private directory(serverId: string): string {
         const partition = createHash('sha256').update(serverId).digest('hex');
-        return join(this.dataRoot, 'worker-launches', partition);
+        return join(this.dataRoot, 'cloud-agent-launches', partition);
     }
 
     private path(serverId: string, turnId: string): string {

@@ -10,8 +10,7 @@ const workerStartSchema = z.object({
     content: z.string().trim().min(1),
     instructions: z.string().trim().min(1),
     nonce: z.string().trim().min(1),
-    /** Absent means this Computer's default provider. */
-    provider: cloudAgentProviderSchema.optional(),
+    provider: cloudAgentProviderSchema,
     repository: z.string().trim().min(1),
     replyToMessageId: z.string().trim().min(1).optional(),
     startingRef: z.string().trim().min(1).nullable(),

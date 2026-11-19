@@ -1,37 +1,16 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { type CloudAgentProvider, cloudAgentProviderSchema } from '@haus/api';
 import * as z from 'zod';
 
-const settingsSchema = z
-    .object({
-        defaultProvider: cloudAgentProviderSchema,
-        /** This Computer's pinned Claude cloud environment; absent in files written before it existed. */
-        claudeEnvironmentId: z.string().trim().min(1).max(200).nullable().default(null),
-    })
-    .strict();
+// Not strict: files written before W2 still carry the retired `defaultProvider` key.
+const settingsSchema = z.object({
+    /** This Computer's pinned Claude cloud environment; absent in files written before it existed. */
+    claudeEnvironmentId: z.string().trim().min(1).max(200).nullable().default(null),
+});
 type Settings = z.infer<typeof settingsSchema>;
 
-/** Computers that never chose ran Cursor, the only provider they had. */
-const fallbackProvider: CloudAgentProvider = 'cursor';
-const fallbackSettings: Settings = { defaultProvider: fallbackProvider, claudeEnvironmentId: null };
-
-/**
- * The provider `haus worker start` uses on this Computer when the Agent
- * names none. It is Computer-local, like the provider connections it chooses
- * between, and holds no credential.
- */
-export async function readDefaultCloudAgentProvider(dataRoot: string): Promise<CloudAgentProvider> {
-    return (await readSettings(dataRoot)).defaultProvider;
-}
-
-export async function writeDefaultCloudAgentProvider(
-    dataRoot: string,
-    provider: CloudAgentProvider
-): Promise<void> {
-    await writeSettings(dataRoot, { ...(await readSettings(dataRoot)), defaultProvider: provider });
-}
+const fallbackSettings: Settings = { claudeEnvironmentId: null };
 
 /** The Claude cloud environment this Computer's Claude launches are pinned to; `null` is unpinned. */
 export async function readClaudeEnvironmentId(dataRoot: string): Promise<string | null> {
@@ -61,7 +40,6 @@ async function readSettings(dataRoot: string): Promise<Settings> {
     return settingsSchema.parse(JSON.parse(raw));
 }
 
-/** Read-merge-write keeps one setting's write from clobbering the other's current value. */
 async function writeSettings(dataRoot: string, settings: Settings): Promise<void> {
     await mkdir(dataRoot, { recursive: true, mode: 0o700 });
     const destination = settingsPath(dataRoot);
@@ -74,6 +52,7 @@ async function writeSettings(dataRoot: string, settings: Settings): Promise<void
     }
 }
 
+// The file keeps its pre-W2 name so an upgraded Computer keeps its Claude environment pin.
 function settingsPath(dataRoot: string): string {
-    return join(dataRoot, 'workers.json');
+    return join(dataRoot, 'cloud-agents.json');
 }

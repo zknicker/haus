@@ -36,6 +36,7 @@ export function args(overrides: Record<string, string> = {}): ParsedArgs {
         positionals: [],
         valueLists: {},
         values: {
+            '--on': 'cursor',
             '--ref': 'main',
             '--repo': 'haus/haus',
             '--say': 'Handing the flaky delivery test to a Worker.',

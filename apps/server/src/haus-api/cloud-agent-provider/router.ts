@@ -18,16 +18,13 @@ import {
 /**
  * Cloud Agent provider access on one Computer. `connect` runs the provider's
  * sign-in on that Computer and returns its browser link; Server never
- * sees, stores, or forwards the credential it mints. `makeDefault` names the
- * provider an Agent's `start` uses on that Computer when it names none.
- * `setEnvironment` pins (or unpins, with `null`) the Anthropic-hosted cloud
+ * sees, stores, or forwards the credential it mints. `setEnvironment` pins (or unpins, with `null`) the Anthropic-hosted cloud
  * environment that Computer's Claude launches run on.
  */
 export const cloudAgentProviderRouter = createRouter({
     cancelSignIn: actionProcedure('cancel-sign-in'),
     connect: actionProcedure('connect'),
     disconnect: actionProcedure('disconnect'),
-    makeDefault: actionProcedure('make-default'),
     get: memberProcedure
         .input(cloudAgentProviderGetInputSchema)
         .output(cloudAgentProviderOutputSchema)
@@ -40,7 +37,7 @@ export const cloudAgentProviderRouter = createRouter({
         ),
 });
 
-function actionProcedure(kind: 'connect' | 'disconnect' | 'cancel-sign-in' | 'make-default') {
+function actionProcedure(kind: 'connect' | 'disconnect' | 'cancel-sign-in') {
     return memberProcedure
         .input(cloudAgentProviderActionInputSchema)
         .output(cloudAgentProviderOutputSchema)

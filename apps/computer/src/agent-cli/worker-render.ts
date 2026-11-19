@@ -14,7 +14,7 @@ export function renderWorkerStart(
         : renderStarted(response, request);
 }
 
-/** `haus worker inspect` without `--work`: one line per work, each with its link. */
+/** `haus worker inspect` without `--worker`: one line per work, each with its link. */
 export function renderWorkerList(workers: readonly WorkerLinkSource[]): string {
     if (workers.length === 0) {
         return 'No Worker found.\n';
@@ -27,7 +27,7 @@ export function renderWorkerList(workers: readonly WorkerLinkSource[]): string {
     return `${rows.join('\n')}\n${linkSentence}\n`;
 }
 
-/** `haus worker inspect --work <id>`: the recorded work, then its link. */
+/** `haus worker inspect --worker <id>`: the recorded work, then its link. */
 export function renderWorkerDetail(workers: readonly WorkerLinkSource[]): string {
     const links = workers.map((work) => `Link: ${formatWorkerLink(work.title, work.id)}`);
     const reportPointers = workers
@@ -40,7 +40,7 @@ export function renderWorkerDetail(workers: readonly WorkerLinkSource[]): string
 }
 
 /**
- * The Run `haus worker inspect --work <id> --report` shows: the one
+ * The Run `haus worker inspect --worker <id> --report` shows: the one
  * named by `--run`, or else the newest Run on that work carrying a report.
  */
 export function findWorkerReportRun(
@@ -60,7 +60,7 @@ export function renderWorkerReportText(run: WorkerTurnReportSource): string {
 }
 
 function reportPointerLine(workerId: string): string {
-    return `More: haus worker inspect --work ${workerId} --report`;
+    return `More: haus worker inspect --worker ${workerId} --report`;
 }
 
 /** Mirrors `hasFullReport`: the full report outgrew the capped `summary` already shown. */

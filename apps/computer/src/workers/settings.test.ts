@@ -2,12 +2,7 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import {
-    readClaudeEnvironmentId,
-    readDefaultCloudAgentProvider,
-    writeClaudeEnvironmentId,
-    writeDefaultCloudAgentProvider,
-} from './settings.ts';
+import { readClaudeEnvironmentId, writeClaudeEnvironmentId } from './settings.ts';
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -17,56 +12,34 @@ afterEach(async () => {
 });
 
 async function dataRoot(): Promise<string> {
-    const root = await mkdtemp(join(tmpdir(), 'haus-cloud-settings-'));
+    const root = await mkdtemp(join(tmpdir(), 'haus-worker-settings-'));
     roots.push(root);
     return root;
 }
 
-test('an unconfigured Computer defaults to Cursor with no environment pin', async () => {
-    const root = await dataRoot();
-    expect(await readDefaultCloudAgentProvider(root)).toBe('cursor');
-    expect(await readClaudeEnvironmentId(root)).toBeNull();
-});
-
-test('writing the default provider leaves no environment pin set', async () => {
-    const root = await dataRoot();
-    await writeDefaultCloudAgentProvider(root, 'claude');
-    expect(await readDefaultCloudAgentProvider(root)).toBe('claude');
-    expect(await readClaudeEnvironmentId(root)).toBeNull();
-});
-
-test('writing the environment pin does not clobber the default provider', async () => {
-    const root = await dataRoot();
-    await writeDefaultCloudAgentProvider(root, 'claude');
-    await writeClaudeEnvironmentId(root, 'env_bidbeacon');
-    expect(await readClaudeEnvironmentId(root)).toBe('env_bidbeacon');
-    expect(await readDefaultCloudAgentProvider(root)).toBe('claude');
-});
-
-test('writing the default provider after a pin does not clobber the pin', async () => {
-    const root = await dataRoot();
-    await writeClaudeEnvironmentId(root, 'env_bidbeacon');
-    await writeDefaultCloudAgentProvider(root, 'claude');
-    expect(await readDefaultCloudAgentProvider(root)).toBe('claude');
-    expect(await readClaudeEnvironmentId(root)).toBe('env_bidbeacon');
+test('an unconfigured Computer has no environment pin', async () => {
+    expect(await readClaudeEnvironmentId(await dataRoot())).toBeNull();
 });
 
 test('unpinning writes null back', async () => {
     const root = await dataRoot();
     await writeClaudeEnvironmentId(root, 'env_bidbeacon');
+    expect(await readClaudeEnvironmentId(root)).toBe('env_bidbeacon');
     await writeClaudeEnvironmentId(root, null);
     expect(await readClaudeEnvironmentId(root)).toBeNull();
 });
 
-test('a file written before the environment pin existed still reads', async () => {
+test('a file that still names a default provider keeps its pin and drops the provider', async () => {
     const root = await dataRoot();
-    await writeFile(join(root, 'workers.json'), JSON.stringify({ defaultProvider: 'claude' }));
-    expect(await readDefaultCloudAgentProvider(root)).toBe('claude');
-    expect(await readClaudeEnvironmentId(root)).toBeNull();
+    const path = join(root, 'cloud-agents.json');
+    await writeFile(
+        path,
+        JSON.stringify({ claudeEnvironmentId: 'env_kept', defaultProvider: 'claude' })
+    );
+    expect(await readClaudeEnvironmentId(root)).toBe('env_kept');
 
     await writeClaudeEnvironmentId(root, 'env_default');
-    expect(JSON.parse(await readFile(join(root, 'workers.json'), 'utf8'))).toEqual({
-        defaultProvider: 'claude',
+    expect(JSON.parse(await readFile(path, 'utf8'))).toEqual({
         claudeEnvironmentId: 'env_default',
     });
 });

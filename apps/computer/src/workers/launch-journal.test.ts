@@ -140,7 +140,7 @@ async function directory() {
 }
 
 async function recordPath(root: string) {
-    const folder = join(root, 'worker-launches');
+    const folder = join(root, 'cloud-agent-launches');
     const [partition] = await readdir(folder);
     if (!partition) {
         throw new Error('Missing journal partition');

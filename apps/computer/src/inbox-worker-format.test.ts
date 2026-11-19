@@ -152,7 +152,7 @@ test('a settled Run whose stored report outgrew its summary points at --report',
     });
 
     expect(composeInboxDrain([attention])).toContain(
-        'More: haus worker inspect --work caw_1234567890abcdef --report'
+        'More: haus worker inspect --worker caw_1234567890abcdef --report'
     );
 });
 
@@ -210,7 +210,7 @@ test('a pending-input question keeps its own send pointer even when hasFullRepor
     });
 
     const drain = composeInboxDrain([attention]);
-    expect(drain).toContain('haus worker send --work caw_1234567890abcdef');
+    expect(drain).toContain('haus worker send --worker caw_1234567890abcdef');
     expect(drain).not.toContain('--report');
 });
 
@@ -241,7 +241,7 @@ test('a Worker question tells its Agent how to answer it', () => {
     const drain = composeInboxDrain([attention]);
     expect(drain).toContain('[Haus Worker attention status=pending_input');
     expect(drain).toContain('summary=Should the reminder default to 9am or 10am? (9am / 10am)');
-    expect(drain).toContain('haus worker send --work caw_1234567890abcdef');
+    expect(drain).toContain('haus worker send --worker caw_1234567890abcdef');
 });
 
 function item(overrides: Partial<AgentInboxItem> = {}): AgentInboxItem {

@@ -18,7 +18,6 @@ import { mapCloudAgentModelCatalog } from './model-catalog-mapping.ts';
 import { closeProviderSignIns } from './provider-sign-in.ts';
 import { unavailableCloudAgentProvider } from './provider.ts';
 import { setCloudAgentProvider } from './registry.ts';
-import { readDefaultCloudAgentProvider } from './settings.ts';
 
 const runtime = makeTestRuntime();
 afterAll(() => runtime.dispose());
@@ -46,10 +45,7 @@ function installDisconnectedCursor() {
     return transport;
 }
 
-function request(
-    kind: 'connect' | 'disconnect' | 'get' | 'make-default',
-    provider: 'claude' | 'cursor' = 'cursor'
-) {
+function request(kind: 'connect' | 'disconnect' | 'get', provider: 'claude' | 'cursor' = 'cursor') {
     return {
         operation: { kind },
         provider,
@@ -73,7 +69,6 @@ test('connecting stores the credential with Cursor and reports the account back'
         environmentId: null,
         environments: null,
         expiresAt: null,
-        isDefault: true,
         provider: 'cursor',
         ready: false,
         reason: 'not-connected',
@@ -85,7 +80,6 @@ test('connecting stores the credential with Cursor and reports the account back'
         environmentId: null,
         environments: null,
         expiresAt: '2026-12-03T21:03:33.000Z',
-        isDefault: true,
         provider: 'cursor',
         ready: true,
         reason: null,
@@ -121,7 +115,6 @@ test('the Computer inventory reports Cursor readiness truthfully', async () => {
     installDisconnectedCursor();
     expect((await detectFullInventory({ dataRoot })).cloudAgentProviders).toEqual([
         {
-            isDefault: true,
             models: null,
             provider: 'cursor',
             ready: false,
@@ -140,33 +133,17 @@ test('the Computer inventory reports Cursor readiness truthfully', async () => {
             provider: 'cursor',
             ready: true,
             reason: null,
-            isDefault: true,
         },
         claudeUnavailable,
     ]);
 });
 
-test('making a provider the default moves the inventory flag to it', async () => {
-    installDisconnectedCursor();
-    const made = await runCloudAgentCapabilityRequest(
-        request('make-default', 'claude'),
-        runtime,
-        dataRoot
-    );
-    expect(made.result).toMatchObject({ isDefault: true, provider: 'claude' });
-    expect(await readDefaultCloudAgentProvider(dataRoot)).toBe('claude');
-    expect(
-        (
-            await detectFullInventory({ dataRoot, defaultCloudAgentProvider: 'claude' })
-        ).cloudAgentProviders?.map((entry) => [entry.provider, entry.isDefault])
-    ).toEqual([
-        ['cursor', false],
-        ['claude', true],
-    ]);
+test('a make-default request from an older Server is not a capability request', () => {
+    const retired = { ...request('get'), operation: { kind: 'make-default' } };
+    expect(parseCloudAgentCapabilityRequest(retired)).toBeNull();
 });
 
 const claudeUnavailable = {
-    isDefault: false,
     models: null,
     provider: 'claude' as const,
     ready: false,

@@ -33,6 +33,7 @@ test('a Server freshness hold returns as-is and never asks the provider to launc
             content: 'Handing this to a Worker.',
             instructions: 'Reproduce the flake.',
             nonce: 'worker-nonce',
+            provider: 'cursor',
             repository: 'haus/haus',
             startingRef: 'main',
             target: '#product',

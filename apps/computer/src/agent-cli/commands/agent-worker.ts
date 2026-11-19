@@ -21,7 +21,7 @@ import { INSPECT_COMMAND, runWorkerInspect } from './agent-worker-inspect.ts';
 
 export { runWorkerInspect };
 
-const START_RECIPE = `haus worker start --task SEC-12 --repo haus/haus --ref main \\
+const START_RECIPE = `haus worker start --task SEC-12 --on cursor --repo haus/haus --ref main \\
   --title "Fix the flaky delivery test" \\
   --say "Handing the flaky delivery test to a Worker; I will report back here." <<'HAUSMSG'
 Reproduce apps/server/test/agent-delivery.test.ts locally, find the race, and open a pull request.
@@ -38,6 +38,7 @@ const START_COMMAND: SubCommand = {
             name: '--task',
             valueName: '<KEY-n>',
         },
+        { description: 'Where the Worker runs', name: '--on', valueName: '<cursor|claude>' },
         { description: 'Repository as owner/name', name: '--repo', valueName: '<owner/name>' },
         { description: 'Starting ref (branch, tag, or SHA)', name: '--ref', valueName: '<ref>' },
         { description: 'One-line title for the work', name: '--title', valueName: '<text>' },
@@ -47,51 +48,38 @@ const START_COMMAND: SubCommand = {
             name: '--cause',
             valueName: '<fireId>',
         },
-        {
-            description: "Cloud agent provider; omit for this Computer's default",
-            name: '--provider',
-            valueName: '<cursor|claude>',
-        },
     ],
     name: 'start',
     notes: ['A Worker needs a Task: start one with haus task start first.'],
     positionals: [],
     run: (args) => runWorkerStart(args, defaultDeps()),
     summary: 'Delegate bounded work for a Task to a Worker; the instructions come from stdin',
-    usage: 'haus worker start --task <KEY-n> --repo <owner/name> --ref <ref> --title <text> --say <text> [--cause <fireId>] [--provider <cursor|claude>]',
+    usage: 'haus worker start --task <KEY-n> --on <cursor|claude> --repo <owner/name> --ref <ref> --title <text> --say <text> [--cause <fireId>]',
 };
 
 const SEND_COMMAND: SubCommand = {
     examples: [
-        'printf "Address the review comments." | haus worker send --work caw_9f2c1a0b7d4e6f81',
+        'printf "Address the review comments." | haus worker send --worker caw_9f2c1a0b7d4e6f81',
     ],
     flags: [
-        { description: 'Existing work to continue', name: '--work', valueName: '<workerId>' },
+        { description: 'The Worker to continue', name: '--worker', valueName: '<workerId>' },
         { description: 'Replace active work and older queued prompts', name: '--interrupt' },
     ],
     name: 'send',
     positionals: [],
     run: (args) => runWorkerSend(args, defaultDeps()),
     summary: 'Send stdin instructions to the same Worker; queue while busy',
-    usage: 'haus worker send --work <workerId> [--interrupt]',
+    usage: 'haus worker send --worker <workerId> [--interrupt]',
 };
 
 const STOP_COMMAND: SubCommand = {
-    examples: ['haus worker stop --work caw_9f2c1a0b7d4e6f81'],
-    flags: [{ description: 'The work to stop', name: '--work', valueName: '<workerId>' }],
+    examples: ['haus worker stop --worker caw_9f2c1a0b7d4e6f81'],
+    flags: [{ description: 'The Worker to stop', name: '--worker', valueName: '<workerId>' }],
     name: 'stop',
     positionals: [],
-    run: (args) => runWorkerCancel(args, defaultDeps()),
-    summary: 'Ask the provider to stop work you delegated',
-    usage: 'haus worker stop --work <workerId>',
-};
-
-const CANCEL_COMMAND: SubCommand = {
-    ...STOP_COMMAND,
-    examples: ['haus worker cancel --work caw_9f2c1a0b7d4e6f81'],
-    name: 'cancel',
-    summary: 'Compatibility alias for worker stop',
-    usage: 'haus worker cancel --work <workerId>',
+    run: (args) => runWorkerStop(args, defaultDeps()),
+    summary: 'Ask the provider to stop a Worker you delegated',
+    usage: 'haus worker stop --worker <workerId>',
 };
 
 export const WORKER_SUBCOMMANDS: SubCommand[] = [
@@ -99,18 +87,17 @@ export const WORKER_SUBCOMMANDS: SubCommand[] = [
     SEND_COMMAND,
     INSPECT_COMMAND,
     STOP_COMMAND,
-    CANCEL_COMMAND,
 ];
 
 export async function runWorkerSend(args: ParsedArgs, deps: WorkerDeps): Promise<number> {
-    const workerId = requiredValue(args, '--work');
+    const workerId = requiredValue(args, '--worker');
     const instructions = deps.stdinIsTty ? '' : await deps.readStdin();
     if (!instructions.trim()) {
         throw new AgentCliError(
             'MISSING_CONTENT',
             'Follow-up instructions are required on stdin.',
             {
-                nextAction: `printf "Address the review comments." | haus worker send --work ${workerId}`,
+                nextAction: `printf "Address the review comments." | haus worker send --worker ${workerId}`,
             }
         );
     }
@@ -141,7 +128,7 @@ export async function runWorkerStart(args: ParsedArgs, deps: WorkerDeps): Promis
     const title = readTitle(args);
     const content = requiredValue(args, '--say');
     const startingRef = args.values['--ref']?.trim() || null;
-    const provider = readProvider(args);
+    const provider = readPlace(args);
     const cause = optionalCause(args);
 
     const instructions = deps.stdinIsTty ? '' : await deps.readStdin();
@@ -160,7 +147,7 @@ export async function runWorkerStart(args: ParsedArgs, deps: WorkerDeps): Promis
                 content: content.trim(),
                 instructions: instructions.trimEnd(),
                 nonce: deps.mintNonce(),
-                ...(provider ? { provider } : {}),
+                provider,
                 repository,
                 startingRef,
                 target,
@@ -183,7 +170,7 @@ export async function runWorkerStart(args: ParsedArgs, deps: WorkerDeps): Promis
 
 function readTask(args: ParsedArgs): string {
     if (!args.values['--task']?.trim()) {
-        throw taskRequired('A Worker workers for a Task, and this launch named none.');
+        throw taskRequired('A Worker works for a Task, and this launch named none.');
     }
     return taskKeyArgument(args.values['--task'], '--task');
 }
@@ -194,8 +181,8 @@ function taskRequired(message: string): AgentCliError {
     });
 }
 
-export async function runWorkerCancel(args: ParsedArgs, deps: WorkerDeps): Promise<number> {
-    const workerId = requiredValue(args, '--work');
+export async function runWorkerStop(args: ParsedArgs, deps: WorkerDeps): Promise<number> {
+    const workerId = requiredValue(args, '--worker');
     const receipt = await deps.client.request(
         '/api/agent/workers/cancel',
         agentWorkerCancelReceiptResponseSchema,
@@ -229,15 +216,17 @@ function readTitle(args: ParsedArgs): string {
     return parsed.data;
 }
 
-function readProvider(args: ParsedArgs): CloudAgentProvider | undefined {
-    const raw = args.values['--provider'];
-    if (raw === undefined) {
-        return;
+function readPlace(args: ParsedArgs): CloudAgentProvider {
+    const raw = args.values['--on']?.trim();
+    if (!raw) {
+        throw new AgentCliError('WORKER_PLACE_REQUIRED', 'A Worker start names where it runs.', {
+            nextAction: 'Add --on cursor or --on claude.',
+        });
     }
-    const parsed = cloudAgentProviderSchema.safeParse(raw.trim());
+    const parsed = cloudAgentProviderSchema.safeParse(raw);
     if (!parsed.success) {
-        throw new AgentCliError('INVALID_ARG', `Invalid cloud agent provider "${raw}".`, {
-            nextAction: 'Use --provider cursor or --provider claude, or omit it for the default.',
+        throw new AgentCliError('INVALID_ARG', `Invalid Worker place "${raw}".`, {
+            nextAction: 'Use --on cursor or --on claude.',
         });
     }
     return parsed.data;

@@ -36,7 +36,7 @@ export const workerAttentionSchema = z
         provider: cloudAgentProviderSchema,
         /**
          * Whether `summary` is only the head of a longer report (TECH-8): a
-         * reader who wants the rest runs `haus worker inspect --work
+         * reader who wants the rest runs `haus worker inspect --worker
          * <id> --report`. Optional, not defaulted, so an inbox item already
          * queued before this field existed still parses; its absence reads
          * as false (no known fuller report), never as true.

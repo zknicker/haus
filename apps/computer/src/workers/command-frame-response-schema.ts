@@ -24,7 +24,6 @@ const [
     connectOperation,
     cancelSignInOperation,
     disconnectOperation,
-    makeDefaultOperation,
     setEnvironmentOperation,
 ] = cloudAgentCapabilityRequestSchema.shape.operation.options;
 
@@ -35,7 +34,6 @@ export const cloudAgentCapabilityRequestResponseSchema = z.looseObject({
         z.looseObject(connectOperation.shape),
         z.looseObject(cancelSignInOperation.shape),
         z.looseObject(disconnectOperation.shape),
-        z.looseObject(makeDefaultOperation.shape),
         z.looseObject(setEnvironmentOperation.shape),
     ]),
 });

@@ -3,7 +3,7 @@ import type { AgentApiRequest, AgentApiRequester } from '../agent-api-client.ts'
 import { args, requester, work } from './agent-worker-fixture.ts';
 import {
     WORKER_SUBCOMMANDS,
-    runWorkerCancel,
+    runWorkerStop,
     runWorkerInspect,
     runWorkerSend,
 } from './agent-worker.ts';
@@ -11,8 +11,14 @@ import {
 test('cancel names the work it asked the provider to stop', async () => {
     const routes: string[] = [];
     const output: string[] = [];
-    const exitCode = await runWorkerCancel(
-        { flags: {}, help: false, positionals: [], valueLists: {}, values: { '--work': work.id } },
+    const exitCode = await runWorkerStop(
+        {
+            flags: {},
+            help: false,
+            positionals: [],
+            valueLists: {},
+            values: { '--worker': work.id },
+        },
         {
             client: requester([], routes),
             mintNonce: () => 'unused',
@@ -32,7 +38,7 @@ test('send reuses the work identity and defaults to queued delivery with optiona
         const seen: AgentApiRequest[] = [];
         const routes: string[] = [];
         const output: string[] = [];
-        const input = args({ '--work': work.id });
+        const input = args({ '--worker': work.id });
         input.flags['--interrupt'] = interrupt;
         await runWorkerSend(input, {
             client: requester(seen, routes),
@@ -56,7 +62,7 @@ test('send reuses the work identity and defaults to queued delivery with optiona
 test('send rejects missing instructions before accepting work', async () => {
     const seen: AgentApiRequest[] = [];
     await expect(
-        runWorkerSend(args({ '--work': work.id }), {
+        runWorkerSend(args({ '--worker': work.id }), {
             client: requester(seen),
             mintNonce: () => 'unused',
             readStdin: () => Promise.resolve(' '),
@@ -71,7 +77,7 @@ test('inspect lists owned work or requests recorded details for one work', async
     for (const workerId of [undefined, work.id]) {
         const seen: AgentApiRequest[] = [];
         const output: string[] = [];
-        await runWorkerInspect(args(workerId ? { '--work': workerId } : {}), {
+        await runWorkerInspect(args(workerId ? { '--worker': workerId } : {}), {
             client: requester(seen),
             mintNonce: () => 'unused',
             readStdin: () => Promise.resolve(''),
@@ -87,11 +93,10 @@ test('inspect lists owned work or requests recorded details for one work', async
         'send',
         'inspect',
         'stop',
-        'cancel',
     ]);
 });
 
-test('--report requires --work, with a clear usage error otherwise', async () => {
+test('--report requires --worker, with a clear usage error otherwise', async () => {
     const input = args();
     input.flags['--report'] = true;
     await expect(
@@ -102,7 +107,7 @@ test('--report requires --work, with a clear usage error otherwise', async () =>
             stdinIsTty: true,
             write: () => undefined,
         })
-    ).rejects.toThrow(/--report only workers alongside --work/);
+    ).rejects.toThrow(/--report only works alongside --worker/);
 });
 
 /** A work carrying one Run with a full report, for the `--report` tests below. */
@@ -137,7 +142,7 @@ function requesterWithReport(report: { clipped: boolean; text: string } | null):
 
 test('--report prints the full report text, with a clip marker only when clipped', async () => {
     const output: string[] = [];
-    const input = args({ '--work': work.id });
+    const input = args({ '--worker': work.id });
     input.flags['--report'] = true;
     await runWorkerInspect(input, {
         client: requesterWithReport({ clipped: true, text: 'Opened a pull request.' }),
@@ -150,7 +155,7 @@ test('--report prints the full report text, with a clip marker only when clipped
 });
 
 test('--report fails clearly when the work has no Run carrying a report', async () => {
-    const input = args({ '--work': work.id });
+    const input = args({ '--worker': work.id });
     input.flags['--report'] = true;
     await expect(
         runWorkerInspect(input, {
@@ -186,7 +191,7 @@ function requesterFromNewerServer(): AgentApiRequester {
 
 test('inspect and send read a newer Server response carrying a field this Computer build predates', async () => {
     const inspectOutput: string[] = [];
-    await runWorkerInspect(args({ '--work': work.id }), {
+    await runWorkerInspect(args({ '--worker': work.id }), {
         client: requesterFromNewerServer(),
         mintNonce: () => 'unused',
         readStdin: () => Promise.resolve(''),
@@ -196,7 +201,7 @@ test('inspect and send read a newer Server response carrying a field this Comput
     expect(inspectOutput.join('')).toContain(work.id);
 
     const sendOutput: string[] = [];
-    await runWorkerSend(args({ '--work': work.id }), {
+    await runWorkerSend(args({ '--worker': work.id }), {
         client: requesterFromNewerServer(),
         mintNonce: () => 'unused',
         readStdin: () => Promise.resolve('Address the review comments.\n'),
