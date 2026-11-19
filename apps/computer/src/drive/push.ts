@@ -50,9 +50,12 @@ export async function sendDrivePush(plan: DrivePushPlan, remote: DriveRemote, pu
     const writer = layout.writer;
     const failed: { message: string; path: string }[] = [];
     const isolate = async (path: string, send: () => Promise<void>) => {
-        await send().catch((error: unknown) => {
+        await send().catch(async (error: unknown) => {
             if (isFatal(error)) {
                 throw error;
+            }
+            if (error instanceof DriveRemoteError && error.code === 'IDEMPOTENCY_KEY_REUSED') {
+                await state.dropPendingCreate(path);
             }
             failed.push({ message: error instanceof Error ? error.message : String(error), path });
         });

@@ -122,7 +122,10 @@ A delete removes only a file whose name matches the path exactly, so the delete 
 case-only rename on a case-insensitive disk never removes the renamed file, and a folder that
 replaced a file stays. A request that fails for that one file, a local file error or a 4xx answer
 other than `PUSH_CLOSED` or 401, is logged and skipped, and the rest of the push goes on. A
-network failure, a 5xx, or a 401 stops the push. A push whose run already sent everything still
+network failure, a 5xx, or a 401 stops the push. A full Drive answers 507 `STORAGE_LIMIT`,
+which stops the push like `STORAGE_UNAVAILABLE`, so the edit stays and the next push sends it. A
+409 `IDEMPOTENCY_KEY_REUSED` on a create drops its stored request id, so the next push sends the
+create under a fresh one. A push whose run already sent everything still
 closes on a relaunch. One Computer process runs a folder's pulls and pushes one at a time.
 
 | Outcome | What the folder does |

@@ -12,7 +12,6 @@ const refusalReasons: Record<string, string> = {
     INVALID_PATH: 'not a Drive path',
     PATH_CONFLICT: 'a file and a folder share that path',
     SIZE_LIMIT: 'too large',
-    STORAGE_LIMIT: 'Drive storage is full',
 };
 
 export function composeDriveConflictInput(

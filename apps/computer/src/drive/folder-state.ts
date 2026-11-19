@@ -92,6 +92,12 @@ export async function openFolderState(layout: DriveFolderLayout) {
             const retired = { ...state.retired, [path]: forgotten.revision_id };
             return persist({ ...state, files, pendingCreates, retired });
         },
+        dropPendingCreate: (path: string) => {
+            const { [path]: _dropped, ...pendingCreates } = state.pendingCreates;
+            return path in state.pendingCreates
+                ? persist({ ...state, pendingCreates })
+                : Promise.resolve();
+        },
         notePendingCreate: (path: string, create: { request_id: string; sha256: string }) =>
             persist({ ...state, pendingCreates: { ...state.pendingCreates, [path]: create } }),
         markSeen: (path: string, head: string) => {

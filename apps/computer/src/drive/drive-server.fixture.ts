@@ -30,12 +30,14 @@ export function startDriveServer(options: { pageSize?: number } = {}) {
     const live = new Map<string, Revision>();
     const rows = new Map<string, Row>();
     const counters: Record<string, number> = Object.fromEntries(areas.map((a) => [a.area, 0]));
-    const replies = new Map<string, DrivePushOutcome>();
+    const replies = new Map<string, { change: string; outcome: DrivePushOutcome }>();
     const pushes = new Map<string, { closed: boolean; listed: DriveConflictFile[] }>();
     const failing = new Set<string>();
     const requests: string[] = [];
+    const requestIds: string[] = [];
     let pushesFail = false;
     let lostAnswers = 0;
+    let storageFull = false;
     let ids = 0;
 
     function write(path: string, text: string | Uint8Array, author: string) {
@@ -161,9 +163,18 @@ export function startDriveServer(options: { pageSize?: number } = {}) {
             push.closed = true;
             return Response.json({ listed: push.listed });
         }
+        const change = JSON.stringify([body.path, body.base_revision_id ?? null, isPut]);
         const stored = replies.get(body.request_id);
         if (stored) {
-            return Response.json(stored);
+            return stored.change === change
+                ? Response.json(stored.outcome)
+                : Response.json(
+                      { code: 'IDEMPOTENCY_KEY_REUSED', message: 'reused' },
+                      { status: 409 }
+                  );
+        }
+        if (storageFull && isPut) {
+            return Response.json({ code: 'STORAGE_LIMIT', message: 'full' }, { status: 507 });
         }
         if (push.closed) {
             return Response.json({ code: 'PUSH_CLOSED', message: 'closed' }, { status: 409 });
@@ -171,7 +182,8 @@ export function startDriveServer(options: { pageSize?: number } = {}) {
         const writer = request.headers.get('authorization')?.replace('Bearer ', '') ?? '';
         const bytes = isPut ? new Uint8Array(await request.arrayBuffer()) : null;
         const outcome: DrivePushOutcome = decide(writer, body.path, body.base_revision_id, bytes);
-        replies.set(body.request_id, outcome);
+        replies.set(body.request_id, { change, outcome });
+        requestIds.push(body.request_id);
         if (lostAnswers > 0) {
             lostAnswers -= 1;
             return Response.json({ code: 'STORAGE_UNAVAILABLE' }, { status: 503 });
@@ -209,6 +221,10 @@ export function startDriveServer(options: { pageSize?: number } = {}) {
         origin: `http://127.0.0.1:${server.port}`,
         failDownload: (revisionId: string) => failing.add(revisionId),
         healDownloads: () => failing.clear(),
+        requestIds,
+        fillStorage: (full: boolean) => {
+            storageFull = full;
+        },
         loseNextAnswers: (count: number) => {
             lostAnswers = count;
         },
