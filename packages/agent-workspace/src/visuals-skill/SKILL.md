@@ -38,8 +38,8 @@ You render two kinds of visual output in chat:
   to pick from — even when the user calls it a "report", a "view", or a "dashboard". A
   **page** when the user asks for a page, or the content outgrows one inline visual (long
   tables, many sections, a doc to edit) and a rich rendered view in the conversation suits it.
-  Something members must open, keep, or come back to belongs in Files, which renders HTML
-  files too (Manual topic `files`). When unsure between the two, a visual; between a visual
+  Something members must open, keep, or come back to belongs in Drive, which renders HTML
+  files too (Manual topic `drive`). When unsure between the two, a visual; between a visual
   and nothing, plain text.
 - Do not put a table in a visual — write it as a Markdown table in the reply. The exception is
   a table that needs interaction (sort, filter) or is part of a bounded record.
@@ -68,7 +68,7 @@ one JSON object, whose `path` is that cwd-relative path — no comments, no trai
 ```
 ````
 
-The card opens the file live, so it changes when the file does. The Manual topic `files` says
+The card opens the file live, so it changes when the file does. The Manual topic `drive` says
 who can open a page and how to share it with every member or keep a version.
 
 Rules:

@@ -1,11 +1,7 @@
 import {
     artifactCreatorSchema,
     artifactDownloadResultSchema,
-    artifactFolderEntrySchema,
-    artifactListResultSchema,
-    artifactListSummarySchema,
     artifactMetadataSchema,
-    artifactMoveResultSchema,
 } from '@haus/api';
 import * as z from 'zod';
 
@@ -30,16 +26,6 @@ export const artifactMetadataResponseSchema = z.looseObject({
     creator: artifactCreatorResponseSchema,
 });
 
-const artifactFolderEntryResponseSchema = z.looseObject(artifactFolderEntrySchema.shape);
-const artifactListSummaryResponseSchema = z.looseObject(artifactListSummarySchema.shape);
-
-export const artifactListResultResponseSchema = z.looseObject({
-    ...artifactListResultSchema.shape,
-    artifacts: z.array(artifactMetadataResponseSchema),
-    folders: z.array(artifactFolderEntryResponseSchema),
-    summary: artifactListSummaryResponseSchema,
-});
-
 export const artifactPublishResultResponseSchema = z.looseObject({
     artifact: artifactMetadataResponseSchema,
 });
@@ -47,8 +33,6 @@ export const artifactPublishResultResponseSchema = z.looseObject({
 export const artifactVersionsResultResponseSchema = z.looseObject({
     versions: z.array(artifactMetadataResponseSchema),
 });
-
-export const artifactMoveResultResponseSchema = z.looseObject(artifactMoveResultSchema.shape);
 
 export const artifactDownloadResultResponseSchema = z.looseObject({
     ...artifactDownloadResultSchema.shape,

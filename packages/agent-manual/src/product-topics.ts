@@ -35,10 +35,10 @@ Use \`haus image generate\` for any image people will see or that needs a specif
 
 **Sizes and options.** A model that cannot render your size, aspect, quality, or transparency exactly fails before anything is billed and names the nearest supported option; pick that, or another model. Nothing is silently adjusted.
 
-The card fills in with the image, its model, and its cost; that is the result. Never attach or re-post the generated image unless someone asks for the file. The saved file is also an ordinary attachment, so when asked you can send it with \`haus message send --attachment-id <id>\`; any other file goes in an attachment or in Files (see files). If you cannot make an image, say so plainly instead of describing one you did not make. Diagrams, charts, and figures built from data are visuals, not generated images; read the visuals skill and render them as an inline visual or a page.`,
+The card fills in with the image, its model, and its cost; that is the result. Never attach or re-post the generated image unless someone asks for the file. The saved file is also an ordinary attachment, so when asked you can send it with \`haus message send --attachment-id <id>\`; any other file goes in an attachment or in Drive (see drive). If you cannot make an image, say so plainly instead of describing one you did not make. Diagrams, charts, and figures built from data are visuals, not generated images; read the visuals skill and render them as an inline visual or a page.`,
         id: 'images',
         kind: 'overview',
-        related: ['attachment', 'files', 'message'],
+        related: ['attachment', 'drive', 'message'],
         summary:
             'Generate images with haus image: pick a curated model, then link the result in a message.',
         title: 'Images',

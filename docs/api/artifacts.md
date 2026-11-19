@@ -2,7 +2,7 @@
 summary: "Files, the Server-wide shared files (wire name: artifacts), with immutable revisions, explicit publication, and bounded Computer caching."
 read_when:
   - "changing Files (the shared artifact library), media or text previews, or revision viewer"
-  - "changing shared artifact APIs, revision storage, `haus files`, or Agent file sharing"
+  - "changing shared artifact APIs, revision storage, `haus drive`, or Agent file sharing"
   - "changing shared file caching or R2 authorization"
   - "changing shared artifact paths, folders, or compare-and-set writes (see specs/artifact-drive.md)"
   - "changing Drive areas, revision attribution, the change counter, pushes, merges, kept-both conflict copies, citations by revision, or the Drive page (see specs/artifact-drive.md)"
@@ -11,8 +11,9 @@ read_when:
 
 # Files
 
-Files is the product noun for the Server-wide shared files: the App's Files section and the Agent
-CLI's `haus files`. Wire names keep `artifact`: API routes and actions, the `artifact` tRPC router,
+Files is the product noun for the Server-wide shared files in the App's Files section. Agents see
+them as Drive: the `drive/` folder and `haus drive` ([ADR 0054](../adr/0054-drive-holds-what-agents-know-and-follow.md)
+renames the App side too). Wire names keep `artifact`: API routes and actions, the `artifact` tRPC router,
 JSON fields (`artifact_id`), error codes (`ARTIFACT_*`), `/artifacts/<id>` URLs, the DB schema, and
 local bookkeeping files. Below, "artifact" names one shared file record.
 
@@ -167,7 +168,7 @@ on the library; dropped folders keep their structure. Uploads land in the open f
 bytes move the App lists the paths under the folder (`recursive`, `order: 'path'`) and plans the
 upload: OS noise (`.DS_Store`, `Thumbs.db`, `._*`, `__MACOSX/`) is skipped, paths that break the
 path rules, collide inside the upload, or would land on a folder or under a file are refused, and
-files whose bytes match the current revision (SHA-256) are skipped, like `haus files push`. The
+files whose bytes match the current revision (SHA-256) are skipped, like an Agent's `drive/` push. The
 remaining existing names are gathered into one question ("Replace 3 files?", naming the first
 five): Replace sends those with `replace=true`, Skip keeps them, and new files upload either way
 without `replace`. A stock progress bar counts files and bytes beside Cancel, which stops the rest;
@@ -291,58 +292,31 @@ links answer a plain-text 404.
 
 ### Agent CLI
 
-Agents work on Files with explicit pulls and pushes; every command prints JSON.
+Agents edit shared files in their `drive/` folder with native file commands (`ls`, `cat`, `rg`,
+edits, `mv`, `rm`). The Computer pulls the folder when a turn starts and pushes it after the turn
+([Drive folder](../../specs/drive-folder.md)). `haus drive` keeps the read commands, and every
+command prints JSON.
 
 ```
-haus files list [<folder>] [--recursive] [--query <text>] [--mine] [--offset <n>]
-haus files pull <path> [<local-path>]
-haus files push <local-path> [<path>] [--replace] [--title <title>] [--dry-run]
-haus files mv <from> <to> [--base-revision-id <id>]
-haus files view <id|link|path> [--revision-id <id>] [--output <path>]
-haus files versions <id|link|path> [--offset <n>]
-haus files delete <id|link|path> [--revision-id <id>]
-haus files share <id|link|path> [--disable]
+haus drive versions <id|link|path> [--offset <n>]
+haus drive view <id|link|path> [--revision-id <id>] [--output <path>]
+haus drive share <id|link|path> [--disable]
 ```
 
+A target is an artifact id, a pasted `/artifacts/<id>` link, a `drive://<path>` citation, or a
+Drive path such as `haus/reports/q4.md`. A leading `drive/` folder prefix is accepted. A path
+resolves through `GET /api/agent/artifacts/by-path`. `versions` pages the retained revisions.
 `share` prints `{ artifact_id, url }` (`POST /api/agent/artifacts/:id/public-link`); `--disable`
 prints `{ artifact_id, disabled: true }` (`…/public-link/disable`).
 
-`list` prints `{ summary, folder, folders, files, next_offset }` over the Agent list route; `--mine` is the
-calling Agent's own files, and Agents get no creator directory (`artifact.creators` stays App-only).
-`pull` resolves a file with `by-path`, otherwise pages a recursive `order=path` listing of the
-folder, and copies each revision out of the Computer's verified cache (the `view` route) into the
-local folder, keeping relative paths. Local writes are atomic and refuse dot segments, symlinked
-folders, symlinked targets, and the manifest name. The pulled root holds `.haus-artifacts.json`:
+`haus files pull` and `push`, their `.haus-artifacts.json` manifests and `.haus-theirs` copies,
+and `haus files list`, `mv`, and `delete` are gone: the `drive/` folder replaces them.
 
-```json
-{ "version": 1, "folder": "starter-kit",
-  "files": { "scripts/check.py": { "path": "starter-kit/scripts/check.py",
-    "artifact_id": "art_…", "revision_id": "rev_…", "sha256": "…" } } }
-```
+The managed prompt's Drive family entry points at the `drive/` folder and the `drive` Manual
+topic. The topic carries when to share versus attach or use a workbench `page` fence, the three
+areas and who writes them, the conflict copy and `drive-refused/` outcomes, citing a file with
+`[label](drive://<path>)`, and the three `haus drive` commands.
 
-The nearest manifest at or above a file owns it. Re-pulling skips files whose bytes match, updates
-files with no local edits, keeps edited files when Files did not change, and otherwise writes
-the incoming revision beside the edited file as `<file>.haus-theirs` while recording it as the new
-base. Files that left the folder are deleted locally only when unedited.
-
-`push` walks regular files (no symlinks, `.git`, `node_modules`, `__pycache__`, `.DS_Store`,
-`*.haus-theirs`, or the manifest) and maps each to an explicit `<path>`, its recorded path,
-its manifest's folder, or the pushed folder's name. Unchanged files are skipped; recorded files
-publish with `base_revision_id`; new files create; `--replace` sends `replace=true`. Each success
-rewrites the manifest atomically. A `REVISION_CONFLICT` does not stop the batch: the summary
-(`{ created, updated, unchanged, conflicts, unmerged, errors, skipped }`) lists the file, its
-reason (`changed`, `exists`, `deleted`, `in_progress`), the current head's revision, path,
-`updated_at`, and creator, and the `haus files pull` command that stages it for a merge. A file
-with a pending `.haus-theirs` copy is reported as unmerged and not pushed. Any conflict, unmerged
-file, or error exits 1. When the head equals the base but the path moved, push follows the move.
-Request ids derive from path, content hash, base (or replace/create), title, and content type, so
-rerunning a push after `ARTIFACT_PUBLISH_UNCONFIRMED` returns the first attempt's revision; a spent
-id (`DELETED`, `IDEMPOTENCY_KEY_REUSED`, `UPLOAD_CONFLICT`) is retried once with a fresh one.
-
-The managed prompt's Files family names `list`, `pull`, and `push` and points at the `files` Manual topic,
-which carries when to share versus attach or use a workbench `page` fence, the pull-merge-push
-loop, sharing the `stable_url` in the message (the App renders a same-Server link as a file
-chip and tile), and resolving a pasted `/artifacts/<id>` link with `view`.
 Lists have 50 entries per offset page. Every path sits in a Drive area (`haus/`, `projects/<key>/`,
 `agents/<handle>/`); any other path is `INVALID_PATH`, and the area prefix is stored in its canonical
 spelling. Writing, deleting, and moving (at both ends) need write access to the area: people write
