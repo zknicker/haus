@@ -1,5 +1,5 @@
 import { ItemCardGroup, Segment } from '@heroui-pro/react';
-import { Button, Disclosure, Separator } from '@heroui/react';
+import { Disclosure, Separator } from '@heroui/react';
 import { Fragment, useMemo, useState } from 'react';
 import { useTheme } from '../../../components/theme-provider.tsx';
 import { updateCustomTheme } from '../../../hooks/shell/use-custom-themes.ts';
@@ -54,10 +54,12 @@ export function CustomThemeColors({ theme }: { theme: CustomTheme }) {
                 <ItemCardGroup className="overflow-hidden">{rows(coreRoles)}</ItemCardGroup>
                 <Disclosure>
                     <Disclosure.Heading>
-                        <Button size="sm" slot="trigger" variant="ghost">
-                            Advanced colors
-                            <Disclosure.Indicator />
-                        </Button>
+                        <Disclosure.Trigger>
+                            <span className="text-muted flex items-center gap-1 px-4 text-sm">
+                                Advanced colors
+                                <Disclosure.Indicator />
+                            </span>
+                        </Disclosure.Trigger>
                     </Disclosure.Heading>
                     <Disclosure.Content>
                         <ItemCardGroup className="overflow-hidden">

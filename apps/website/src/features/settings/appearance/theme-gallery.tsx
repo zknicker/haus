@@ -31,7 +31,7 @@ export function ThemeGallery() {
             </ItemCardGroup.Header>
             <RadioButtonGroup
                 aria-label="Theme"
-                className="theme-gallery grid-cols-6"
+                className="theme-gallery grid-cols-4"
                 layout="grid"
                 onChange={applyColorTheme}
                 value={theme}
@@ -40,7 +40,7 @@ export function ThemeGallery() {
                     <RadioButtonGroup.Item key={tile.id} value={tile.id}>
                         <RadioButtonGroup.ItemContent>
                             <ThemePreview mode={tile.forcedMode ?? resolvedTheme} theme={tile.id} />
-                            <Label className="line-clamp-2 max-w-full text-center break-words">
+                            <Label className="max-w-full truncate" title={tile.label}>
                                 {tile.label}
                             </Label>
                         </RadioButtonGroup.ItemContent>
