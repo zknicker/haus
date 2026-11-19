@@ -3,6 +3,7 @@ import { agentExecutionJournalAckSchema } from './agent-execution-journal-upload
 import { agentStopBackgroundCommandSchema, agentStopCommandSchema } from './agent-stop-commands.ts';
 import { agentSubagentWakeResultSchema } from './agent-subagent-wake-frames.ts';
 import { agentTurnRejectedItemSchema } from './agent-turn-rejected-item.ts';
+import { invocationCommandSchemas } from './agent-invocations.ts';
 import { browserRequestSchema } from './browser-frames.ts';
 import {
     cloudAgentCancelCommandSchema,
@@ -12,11 +13,13 @@ import {
 
 export * from './agent-delivery-frames.ts';
 export * from './agent-execution-journal.ts';
+export * from './agent-invocations.ts';
 export * from './agent-inbox.ts';
 export * from './agent-stop-commands.ts';
 export * from './agent-subagent-wake-frames.ts';
 export * from './browser-frames.ts';
 export * from './cloud-agent-protocol.ts';
+export * from './reminder-script-frames.ts';
 
 import * as z from 'zod';
 import { agentTurnActivitySummarySchema } from './agent-activity.ts';
@@ -37,6 +40,7 @@ import { idSchema } from './chat.ts';
 import { computerInventoryRefreshRequestSchema } from './computer-inventory-refresh.ts';
 import { computerSecretsRequestSchema } from './computer-secrets.ts';
 import { hostSkillFileRequestSchema } from './host-skill-file.ts';
+import { reminderScriptCommandSchema } from './reminder-script-frames.ts';
 import {
     serverDeleteCommandSchema,
     serverRuntimeSettingsCommandSchema,
@@ -127,20 +131,6 @@ export const agentSkillImportCommandSchema = z
 
 export type AgentSkillImportCommand = z.infer<typeof agentSkillImportCommandSchema>;
 
-/** Runs one persisted reminder script inside the owning Agent's Computer workspace. */
-export const reminderScriptCommandSchema = z
-    .object({
-        agentId: idSchema,
-        attentionId: idSchema,
-        fireId: idSchema,
-        reminderId: idSchema,
-        script: z.string().min(1).max(16_384),
-        type: z.literal('reminder-script'),
-    })
-    .strict();
-
-export type ReminderScriptCommand = z.infer<typeof reminderScriptCommandSchema>;
-
 /** Every typed frame the Server sends down a Computer attachment socket. */
 export const agentCommandSchema = z.discriminatedUnion('type', [
     computerInventoryRefreshRequestSchema,
@@ -167,6 +157,7 @@ export const agentCommandSchema = z.discriminatedUnion('type', [
     cloudAgentReconcileCommandSchema,
     serverDeleteCommandSchema,
     serverRuntimeSettingsCommandSchema,
+    ...invocationCommandSchemas,
 ]);
 
 export type AgentCommand = z.infer<typeof agentCommandSchema>;
@@ -222,23 +213,6 @@ export const coveApplyResultSchema = z.discriminatedUnion('status', [
 ]);
 
 export type CoveApplyResult = z.infer<typeof coveApplyResultSchema>;
-
-/** Idempotent Computer result for one reminder script attention row. */
-export const reminderScriptResultSchema = z
-    .object({
-        agentId: idSchema,
-        attentionId: idSchema,
-        /** Optional so an older Computer's result is still accepted without it. */
-        durationMs: z.number().int().nonnegative().optional(),
-        exitCode: z.number().int(),
-        fireId: idSchema,
-        output: z.string().max(65_536),
-        timedOut: z.boolean(),
-        type: z.literal('reminder-script-result'),
-    })
-    .strict();
-
-export type ReminderScriptResult = z.infer<typeof reminderScriptResultSchema>;
 
 export const agentSkillImportResultSchema = z.discriminatedUnion('status', [
     z
