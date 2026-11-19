@@ -164,8 +164,9 @@ function preferredDrainLead(rows: store.InboxItemRow[]): store.InboxItemRow | un
 }
 
 /**
- * A chatless run cannot carry the greeting, so while one waits a Task assignment
- * does not lead: it would otherwise open the new Agent's main session without it.
+ * A chatless run cannot carry the greeting, so while one waits a Task assignment or
+ * Drive conflict does not lead: it would otherwise open the new Agent's main session
+ * without it.
  * A sub-agent wake is never held: it exists only after the main session ran, and
  * the greeting rides the next ordinary run, which shows it warm or cold.
  */

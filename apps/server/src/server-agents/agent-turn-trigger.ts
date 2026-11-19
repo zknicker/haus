@@ -10,7 +10,7 @@ const claimAssignmentKeyPattern = /^claim-assign:([^:]+):\d+$/u;
 export interface AgentTurnTriggerRecord {
     /** The run's Agent, which narrows a read of its settled inbox rows to that Agent's index. */
     readonly agentId?: string;
-    /** Null only for a chatless run: a sub-agent wake or Task assignment. */
+    /** Null only for a chatless run: a sub-agent wake, Task assignment, or Drive conflict. */
     readonly chatId: string | null;
     /** The run this trigger woke. */
     readonly runId?: string;

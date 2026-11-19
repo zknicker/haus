@@ -8,6 +8,7 @@ import {
     requireMessageAttachments,
 } from '../attachments/message-attachments.ts';
 import { readLinkedCloudAgentWork } from '../cloud-agents/linked-cloud-agent-work.ts';
+import { recordDriveCitations } from '../drive/citations.ts';
 import { readLinkedImageGenerations } from '../image-generation/linked-image-generations.ts';
 import { applyMessageRouting } from '../message-routing/apply-message-routing.ts';
 import type { MessageRouter } from '../message-routing/jev.ts';
@@ -157,6 +158,11 @@ export async function sendChatMessage(
             messageId,
             serverId: input.serverId,
         });
+        const driveCitations = await recordDriveCitations(tx, {
+            content,
+            messageId,
+            serverId: input.serverId,
+        });
         const placeEvents = await applyPostFollows(
             tx,
             {
@@ -227,6 +233,7 @@ export async function sendChatMessage(
                         (await readLinkedCloudAgentWork(tx, input.serverId, [messageId])).get(
                             messageId
                         ) ?? [],
+                    driveCitations,
                     imageGenerations:
                         (await readLinkedImageGenerations(tx, input.serverId, [messageId])).get(
                             messageId
