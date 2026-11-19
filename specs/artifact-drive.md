@@ -433,8 +433,13 @@ becomes `haus/starter-kit/scripts/tm_check.py`. It rewrites paths only, like a m
 area's counter at the number of its files. Moving Agent workspaces into `agents/<handle>/` is D3,
 which writes each file as the Agent that owned the workspace, with no Task. It writes a fresh Agent's
 factory seed the same way, never over a path Drive already holds, and derives each `request_id` as
-the SHA-256 of `drive-migration`, the Agent id, the Drive path and the content hash (NUL-separated),
-so a rerun after a crash gets the first revision back ([workspace](workspace.md#migration)).
+the SHA-256 of `drive-migration`, the Agent id, the start frame's run id, the Drive path and the
+content hash (NUL-separated). Unlike a push, the id names the run: a relaunch of the same run gets
+its own answers back, and the next run makes a fresh attempt, so a reservation that failed or a
+revision since deleted cannot fail every later launch. A fresh attempt over equal bytes answers a
+conflict whose head matches, which counts as stored. A legacy file over other bytes keeps both
+with the copy name from [Pushes](#pushes), and a refused one moves to `drive-refused/` as a refused
+push does ([workspace](workspace.md#migration)).
 
 ## Deferred
 

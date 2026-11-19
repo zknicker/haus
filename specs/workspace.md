@@ -5,7 +5,8 @@ Haus Computer owns one isolated local root for each assigned Agent:
 ```text
 agents/<agent-id>/
   workspace/
-    drive/agents/<handle>/   the Agent's Drive area: MEMORY.md, notes/, pages/, skills/
+    drive/agents/<handle>/   the Agent's Drive area: MEMORY.md, notes/, workbench/, skills/
+    drive-refused/           files Drive refused, kept by their Drive path
   home/
   runtime/
 ```
@@ -58,8 +59,8 @@ For explicit offline conversion, stop Computer and run
 `haus-computer workspace-migrate /server-slug <agent-id>`. This command now
 removes an older cap; it never creates a capped image. `workspace-compact` is
 only for older unconverted images. Other platforms refuse to replace a macOS
-image they cannot mount. Full reset clears the active directory except `drive/`; session reset
-preserves it. Existing recovery images remain outside the active workspace.
+image they cannot mount. Full reset clears the active directory except what
+[Lifecycle](#lifecycle) keeps; session reset preserves it. Existing recovery images remain outside the active workspace.
 
 ## Durable knowledge
 
@@ -74,9 +75,15 @@ import):
 drive/agents/<handle>/
   MEMORY.md       capped memory, delivered in the turn input
   notes/          the deeper knowledge MEMORY.md indexes
-  pages/
+  workbench/      pages the Agent cards in chat
   skills/         the skill library
 ```
+
+A page is written under `drive/agents/<handle>/workbench/`, and its `page` fence names that
+cwd-relative path, which the App opens through the workspace read. A card written before Drive
+names `workbench/<file>`; when no such file exists in the workspace, the read resolves it under the
+Agent's area. That fallback (`apps/computer/src/legacy-workbench-path.ts`) is the one legacy path
+read Drive keeps, and it goes once pages open from Drive (D5).
 
 Everyone on the team can read the area, and Drive keeps every revision. The Agent's working
 directory stays `workspace/`; everything there outside `drive/` is local scratch, not Drive. The
@@ -133,23 +140,39 @@ the conflict visible as a failed update.
 
 ### Migration
 
-Agents created before Drive kept `MEMORY.md`, `notes/` and `pages/` at the workspace root and their
-skills in a sibling `agents/<agent-id>/skills/`. On the first launch after D3, before the seed is
-considered, the Computer moves them into the area:
+Agents created before Drive kept `MEMORY.md`, `notes/`, `pages/` and `workbench/` at the workspace
+root and their skills in a sibling `agents/<agent-id>/skills/`. On the first launch after D3, before
+the seed is considered, the Computer moves them into the area:
 
 1. It walks the legacy regular files, skipping symlinks, `.git`, `node_modules`, `__pycache__`,
    `.DS_Store`, and the retired `.ai-sdk-harness-skills.json`.
-2. It writes each one to Drive as the Agent, with no base and no Task, under a `request_id` derived
-   from the Agent, the Drive path and the content hash, so a rerun after a crash gets the first
-   revision back. A conflict whose head has the same bytes counts as done.
-3. Only when every write landed does it place the same bytes in the folder (keeping a folder copy
-   a pull already wrote), remove each legacy file, and remove the empty legacy directories and the
-   legacy skill library.
-4. It writes `runtime/drive-seed.json` with the `MEMORY.md` digest before the move, its Drive
-   revision, and the folder digest after, and logs the three digests to the turn trace.
+2. It writes each one to Drive as the Agent, with no base and no Task. The `request_id` hashes the
+   Agent, the start frame's run id, the Drive path and the content hash. A relaunch of the same run
+   replays its own answers, and the next run makes a fresh attempt, so an upload that failed or
+   whose revision was since deleted never blocks a later launch. A fresh attempt over equal bytes
+   answers a conflict whose head matches, so an answer lost in an earlier run converges with no
+   second revision.
+3. It settles each file by Drive's answer:
 
-Any other refusal fails the turn before the runtime starts, revokes the runner, and leaves every
-legacy file in place; the next delivery retries. Every step converges when rerun.
+   | Answer | Seed file | Legacy file |
+   | --- | --- | --- |
+   | Stored, or the path holds equal bytes | Placed in the folder | Placed in the folder, legacy copy removed |
+   | The path holds other bytes | Skipped; Drive's copy stands | Kept both: uploaded to `<stem>.conflict-<handle>.<ext>` beside it (then `-2`, `-3`, as in [Pushes](artifact-drive.md#pushes)), the copy placed, the legacy file removed, nothing placed at the original path |
+   | Refused for good (`INVALID_PATH`, `FORBIDDEN`, `SIZE_LIMIT`, `STORAGE_LIMIT`, `CONTENT_TYPE`, `IDEMPOTENCY_KEY_REUSED`, any other 4xx) | Skipped | Moved to `workspace/drive-refused/<Drive path>`, as a refused push |
+   | Transient (no answer, 5xx, `STORAGE_UNAVAILABLE`, `AUTH_UNAVAILABLE`, `UPLOAD_CONFLICT`, `DELETED`, 401, 404, 408, 429) | Fails the launch | Fails the launch |
+
+   A transient answer for any file fails the turn before the runtime starts, revokes the runner,
+   and changes nothing locally. The next run retries every file with fresh request ids. 401 and 404
+   are transient so a revoked runner or an older Server cannot move a whole workspace into
+   `drive-refused/`.
+4. It walks the legacy sources again. Only when none remain does it remove the empty legacy
+   directories and the legacy skill library, and write `runtime/drive-seed.json` with the
+   `MEMORY.md` digest before the move, its Drive revision, the folder digest after, every
+   conflict copy, and every refused file. A file that appeared during the run stays where it is,
+   the receipt waits, and the next launch moves it.
+
+The turn trace logs the three `MEMORY.md` digests, each conflict copy, each refused file, and any
+file left for the next launch. Every step converges when rerun.
 
 ### Memory
 
@@ -205,13 +228,22 @@ and host import) land in the folder, and the turn-end push publishes them.
 The local root survives ordinary idle periods, Computer restarts, model or
 runtime changes, and session reset. Session reset creates fresh model context
 without erasing the workspace or the area. Full reset keeps `workspace/drive/`, because memory,
-notes and skills live in Drive, and clears everything else: the rest of the workspace, `home/`,
-`runtime/` (with its seed receipt and the managed-skill record), `.agent-runs`, and
-`session.json`. It reseeds nothing. The next launch re-records the handle, finds `MEMORY.md` in
-the folder, and seeds nothing over it; a seed attempt would find the Drive paths occupied and keep
-them. A managed skill that changes between seeds queues a one-turn update notice
-([Skills](../docs/features/skills.md#factory-managed-skills)); after a full reset a held copy
-that matches the release queues none.
+notes and skills live in Drive, and `workspace/drive-refused/`. An Agent without
+`runtime/drive-seed.json` has not finished its migration, so full reset also keeps the legacy
+`workspace/MEMORY.md`, `notes/`, `pages/`, `workbench/` and `agents/<agent-id>/skills/`, and the
+next launch moves them; a reset never deletes a file that has not reached Drive. Full reset clears
+everything else: the rest of the workspace, `home/`, `runtime/` (with its seed receipt and the
+managed-skill record), `.agent-runs`, and `session.json`. It reseeds nothing. The next launch
+re-records the handle, finds `MEMORY.md` in the folder, and seeds nothing over it; a seed attempt
+would find the Drive paths occupied and keep them.
+
+Managed skills are seeded by comparing the bytes the Agent holds with the release, because the
+record does not survive a full reset. Each skill's held hash covers its regular files the way the
+release hash does (sorted relative paths, `path\0content\0`). A missing skill is written with no
+notice. A held copy equal to the release is left alone. A held copy equal to the release this
+Agent was last seeded with is updated and queues a one-turn update notice
+([Skills](../docs/features/skills.md#factory-managed-skills)). Anything else, a Drive edit or bytes
+that differ with no record, is left alone and queues nothing.
 Retirement removes the local execution host after Server retirement has
 completed.
 

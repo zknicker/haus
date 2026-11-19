@@ -71,16 +71,15 @@ overwriting it. Successful changes refresh from a Computer event, not a timer.
 ## Factory-managed skills
 
 Haus ships a small set of release-owned skills, presently `visuals`. Computer seeds them into an
-Agent's library at launch, writing their files only when the release changed them since the
-Agent's last seed, so an edit made in Drive stands until the next release. Agent-authored and
-imported skills are never touched.
+Agent's library at launch by comparing the bytes the Agent holds with the release, so an edit made
+in Drive always stands. Agent-authored and imported skills are never touched.
 
-Each seed hashes every file of each managed skill and records the hashes in the Agent's
-machine-local `runtime/managed-skills.json`. A managed skill whose hash differs from the recorded
-one is queued as changed. An identical reseed, a brand-new Agent, and a managed skill a release
-adds queue nothing; an Agent with no record (never seeded, or fully reset) is notified once for
-a skill it holds whose bytes differ from the release. Several changes before the Agent's next turn coalesce into one pending entry per
-skill.
+Each seed records the release hash of every managed skill in the Agent's machine-local
+`runtime/managed-skills.json`, then hashes each held copy the same way. A missing skill is written
+with no notice. A held copy equal to the release is left alone. A held copy equal to the release
+this Agent was last seeded with is updated and queued as changed. Anything else, an edit in Drive
+or bytes that differ with no record, is left alone and queues nothing. Several changes before the
+Agent's next turn coalesce into one pending entry per skill.
 
 The next turn carries one private notice in its event input, never a Chat message and never the
 standing system prompt:
@@ -92,8 +91,8 @@ standing system prompt:
 
 The notice clears only after a completed turn included it, so a turn that fails or is interrupted
 retries it. A skill that changes again after the notice was composed stays pending. Session reset
-keeps a pending notice; full reset discards the record, keeps the library in Drive, and the next
-launch reseeds without a notice when the held copy matches the release. The
+keeps a pending notice; full reset discards the record and keeps the library in Drive, and the
+next launch writes only missing skills and queues nothing. The
 visuals skill also tells Agents to mark anything they derive from it and rebuild it when the skill
 changes. Owner: `apps/computer/src/managed-skill-changes.ts`.
 
