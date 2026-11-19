@@ -143,14 +143,14 @@ A durable `message.created` is planned once by Server delivery
   human's representation of that fact is the claim chip on the message.
 - A settled Cloud Agent Run creates one terminal attention for only the Agent that delegated it,
   keyed by the Run id and carrying the work's title, repository, provider URL, and the Run's status,
-  summary, error code, and reported branches ([Cloud Agents](cloud-agents.md)). A Run that stopped to
+  summary, error code, and reported branches ([Workers](workers.md)). A Run that stopped to
   ask a question (`pending_input`) settles the same way, with the question as its summary and a
   pointer to answer with `haus cloud-agent send`. It settles like the
   other concrete kinds; the result the human sees is whatever ordinary Message the woken Agent
   decides to post. The notice lands in the work's Task, so a plain send in that turn goes there.
   A pull request becoming ready for review or its checks finishing after the newest Run settled is
   a `pull_request` notice carrying `pullRequestChange`; one on a Task with no cloud work wakes the
-  Task's assignee Agent with no Run behind it ([Cloud Agents](cloud-agents.md#pull-request-readings)).
+  Task's assignee Agent with no Run behind it ([Workers](workers.md#pull-request-readings)).
 - Assigning a Task to another Agent queues one `task_assignment` item for that Agent, with
   `mentioned=true`. It has no Chat, so the row holds its typed attention as JSON rather than an
   envelope: the Task's key, title, priority, and the assigner's handle as they stood when
@@ -417,3 +417,52 @@ exact run visibility, not of attachment ([ADR 0035](../docs/adr/0035-chat-engage
 detailed execution evidence remain separate Agent-level projections
 ([agent-activity.md](agent-activity.md)). Inbox visibility for humans is read-only (I4): pending
 targets, the home Project, and follows on the Agent profile; humans steer attention by asking in Chat.
+
+## Worker items
+
+[Workers](workers.md) reach their Agent through three item kinds. They replace the
+`cloud_agent_work` kind, its row in the item table, and the Cloud Agent bullets under delivery
+planning. W2 deletes those and migrates queued rows by their `cloud_agent_notice`.
+
+| Kind (`source`) | What it is | Recipient | Identity | Lane |
+| --- | --- | --- | --- | --- |
+| `worker_report` | One settled Worker turn: its report, or a failed outcome Haus recorded | The delegating Agent | `worker-report:<turnId>` | Concrete, in the Worker's Task. Queued reports of one Task coalesce into one run, up to 20 |
+| `worker_stall` | A live cloud turn that needs attention without settling ([Stalls](cloud-agents.md#stalls)) | The delegating Agent | `worker-stall:<turnId>:<window>` | Concrete, in the Worker's Task |
+| `pull_request` | A pull request on a Task became ready for review or its checks finished ([change wake](workers.md#pull-request-readings)) | The Agent of each settled Worker that reported it, else the Task's assignee Agent | `<repo>#<number>:<change>:<headSha>` | Concrete, in the Task |
+
+Each lands in its Task, so a plain send in that run goes there. Each spends the automation chain
+and, like `drive_conflict`, waits at the ceiling for the chain to reset instead of being refused,
+because a Worker's outcome must reach its Agent. Each retires as `seen` when its run settles.
+A `stopped` turn queues nothing, because the Agent or a person stopped it on purpose. Closing a
+Task is the exception: each closed Worker's final outcome queues one item
+([Closing](workers.md#closing)).
+
+`worker_report` is the one kind besides `task_assignment` that batches. Six Workers reporting on
+one Task wake an idle Agent once, with the start frame carrying them as `workerReports`. A busy
+Agent gets a count in its notice, `N Worker reports in <KEY-n>`, and the reports in its next run.
+Reports from different Tasks never share a run.
+
+The row holds the typed attention as JSON, `workerReport` in `packages/haus-api/src/agent-inbox.ts`:
+the Task key, the Worker id, title, and place, the turn id, the outcome, the report text and ask,
+the person a needs-you report named, its pull requests with their readings, its cited files with
+revisions, and the failure reason when Haus recorded the outcome. It never invents a person, a
+revision, or a reading. The turn input formatter renders it with its own guidance, so no standing
+prompt text teaches Worker reports:
+
+```text
+[worker report · ENG-41 · needs-you · Worker on macbook (wkr_…) · turn 2]
+The iPad baseline moves 2px with the fix. Is that intended?
+Asked @zach in the Task. An answer from the Worker's card reaches the Worker as its next turn.
+PR: https://github.com/acme/app/pull/412 · draft · checks pending
+Files: agents/forge/renders/ENG-41/ipad-before.png@rev_…
+The report is already posted in ENG-41. Post only what it does not say. Answer the Worker with haus worker send --worker wkr_…, or start a narrower Worker.
+```
+
+A failed outcome Haus recorded says that nothing was posted, so the Agent tells the Task what
+matters. A needs-you report with no person says the ask is for the Agent.
+
+| Contract | Guard |
+| --- | --- |
+| Each kind is queued once per identity, lands in its Task, and retires at settlement | `apps/server/test/worker-inbox-delivery.test.ts` (W2) |
+| Reports of one Task coalesce into one run, and a busy Agent gets a count then the reports | `apps/server/test/worker-inbox-delivery.test.ts` (W2) |
+| A pull request change wakes once per head commit, and only Agents of settled Workers or the assignee | `apps/server/test/pull-request-wake.test.ts` (W2) |

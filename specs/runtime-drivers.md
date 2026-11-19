@@ -8,7 +8,7 @@ read_when:
   - changing how inbox items, notices, steering, or turn reports move between the Server and the runner
   - changing model logins, runner settings, or which models an Agent can use
   - changing the Computer or runner protocol frames for Agents, drive pulls, or pushes
-  - changing the native Claude Code, Codex, or Grok Build drivers that run Workers on Computers
+  - changing the native Claude Code or Codex drivers that run Workers on Computers
 ---
 
 # Runtime drivers
@@ -539,11 +539,13 @@ protocol has no version of its own, since the runner ships with the Server.
 
 ## Workers
 
-Computers keep the native drivers for Workers: Claude Code, Codex, and Grok Build, with their
+Computers keep only the Claude Code and Codex native drivers for Workers, with their
 launch isolation, process groups, fixtures, and ported Raft tests as they stand at `cc8a8cd18`.
 A Worker runs a fresh native session in a worktree with that machine's logins
 ([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md) decision 7). The Workers
 contract (W1) owns what changes for them: their CLI scope, reports, and drive folder.
+Workers do not use Grok Build in v1, so R4 deletes the Grok Build driver with the Agent runtime
+([specs/workers.md](workers.md#deferred)).
 
 R4 deletes from Computers what only served Agent sessions: the Agent executor and turn runner,
 `session.json` and resume state, the Agent warm pool, idle compaction, the background-work
