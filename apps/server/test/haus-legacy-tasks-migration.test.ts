@@ -80,7 +80,22 @@ test('0127 turns worked legacy Tasks into places and archives the rest', async (
         ).toEqual([
             { id: 'tsk_linked', user_id: 'usr_ada' },
             { id: 'tsk_linked', user_id: 'usr_bo' },
+            { id: 'tsk_linked', user_id: 'usr_cy' },
             { id: 'tsk_tracked_b', user_id: 'usr_bo' },
+        ]);
+        expect(
+            await database`SELECT reader_user_id, sequence, done_sequence FROM chat_reads
+                WHERE chat_id = 'cht_all' ORDER BY reader_user_id`
+        ).toEqual([
+            { done_sequence: 4, reader_user_id: 'usr_ada', sequence: 4 },
+            { done_sequence: 1, reader_user_id: 'usr_bo', sequence: 1 },
+        ]);
+        expect(
+            await database`SELECT agent_id, sequence FROM agent_chat_reads
+                WHERE chat_id = 'cht_all' ORDER BY agent_id`
+        ).toEqual([
+            { agent_id: 'agt_one', sequence: 4 },
+            { agent_id: 'agt_two', sequence: 1 },
         ]);
         expect(
             await database`SELECT t.id, f.agent_id, r.sequence FROM agent_thread_follows f

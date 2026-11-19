@@ -5,9 +5,10 @@ export async function seedLegacyTasks(database: SQL) {
         await tx`SET LOCAL session_replication_role = replica`;
         await tx`INSERT INTO servers (id, slug, display_name) VALUES ('srv_one', 'one', 'One')`;
         await tx`INSERT INTO users (id, auth_subject) VALUES
-            ('usr_ada', 'subject-ada'), ('usr_bo', 'subject-bo')`;
+            ('usr_ada', 'subject-ada'), ('usr_bo', 'subject-bo'), ('usr_cy', 'subject-cy')`;
         await tx`INSERT INTO server_memberships (id, server_id, user_id, role) VALUES
-            ('mem_ada', 'srv_one', 'usr_ada', 'owner'), ('mem_bo', 'srv_one', 'usr_bo', 'member')`;
+            ('mem_ada', 'srv_one', 'usr_ada', 'owner'), ('mem_bo', 'srv_one', 'usr_bo', 'member'),
+            ('mem_cy', 'srv_one', 'usr_cy', 'admin')`;
         await tx`INSERT INTO agents (id, server_id, handle, display_name, home_timezone) VALUES
             ('agt_one', 'srv_one', 'one', 'One', 'UTC'), ('agt_two', 'srv_one', 'two', 'Two', 'UTC')`;
         await tx`INSERT INTO boards (id, server_id, key, name, next_number)
@@ -33,6 +34,10 @@ export async function seedLegacyTasks(database: SQL) {
                 ('msg_dm', 'srv_one', 'cht_dm', 'usr_ada', null, 'GEN-1 please', 'd1', 1, '2026-01-01T00:00:00Z'),
                 ('msg_ops_1', 'srv_one', 'cht_ops', 'usr_bo', null, 'GEN-1 is broken', 'o1', 1, '2026-01-02T00:00:00Z'),
                 ('msg_ops_2', 'srv_one', 'cht_ops', 'usr_ada', null, 'still GEN-1', 'o2', 2, '2026-01-03T00:00:00Z')`;
+        await tx`INSERT INTO chat_reads (server_id, chat_id, reader_user_id, sequence, done_sequence) VALUES
+            ('srv_one', 'cht_all', 'usr_ada', 2, 2), ('srv_one', 'cht_all', 'usr_bo', 1, 1)`;
+        await tx`INSERT INTO agent_chat_reads (server_id, agent_id, chat_id, sequence) VALUES
+            ('srv_one', 'agt_one', 'cht_all', 2), ('srv_one', 'agt_two', 'cht_all', 1)`;
         await tx`INSERT INTO chats (id, server_id, kind, parent_chat_id, parent_chat_kind, anchor_message_id)
             VALUES ('cht_task_place', 'srv_one', 'task', 'cht_ops', 'channel', 'msg_ops_1')`;
         await tx`INSERT INTO tasks (id, server_id, board_id, column_id, key_id, number, title, state,

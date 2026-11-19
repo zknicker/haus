@@ -66,6 +66,7 @@ CREATE TEMP TABLE "legacy_task_places" ON COMMIT DROP AS
 SELECT
     task."server_id",
     task."id" AS "task_id",
+    task."state",
     task."assignee_agent_id",
     task."created_by_user_id",
     task."created_at",
@@ -148,6 +149,31 @@ FROM (
     GROUP BY "server_id", "chat_id"
 ) posted
 WHERE all_channel."server_id" = posted."server_id" AND all_channel."id" = posted."chat_id";--> statement-breakpoint
+-- The posts are never unread: a person or Agent who had read `#all` through
+-- its newest Message before them (0126 left every affected Channel read) reads
+-- through the last post; a reader with unread there keeps their position.
+CREATE TEMP TABLE "legacy_task_post_ranges" ON COMMIT DROP AS
+SELECT "server_id", "chat_id", min("sequence") - 1 AS "before", max("sequence") AS "newest"
+FROM "legacy_task_posts"
+GROUP BY "server_id", "chat_id";--> statement-breakpoint
+UPDATE "chat_reads" reading
+SET
+    "sequence" = posted."newest",
+    "done_sequence" = CASE
+        WHEN reading."done_sequence" >= posted."before" THEN posted."newest"
+        ELSE reading."done_sequence"
+    END,
+    "updated_at" = now()
+FROM "legacy_task_post_ranges" posted
+WHERE reading."server_id" = posted."server_id"
+    AND reading."chat_id" = posted."chat_id"
+    AND reading."sequence" >= posted."before";--> statement-breakpoint
+UPDATE "agent_chat_reads" reading
+SET "sequence" = posted."newest", "updated_at" = now()
+FROM "legacy_task_post_ranges" posted
+WHERE reading."server_id" = posted."server_id"
+    AND reading."chat_id" = posted."chat_id"
+    AND reading."sequence" >= posted."before";--> statement-breakpoint
 UPDATE "legacy_task_places" place
 SET "origin_chat_id" = post."chat_id", "origin_message_id" = post."message_id"
 FROM "legacy_task_posts" post
@@ -162,19 +188,28 @@ FROM "legacy_task_places" place
 WHERE task."server_id" = place."server_id" AND task."id" = place."task_id";--> statement-breakpoint
 -- 6. Followers: the origin Message's author and the Task's creator when they
 -- are current members, and the assignee Agent, whose read position opens at
--- the empty Chat's start (`openAgentChatRead`).
+-- the empty Chat's start (`openAgentChatRead`). Agents created and mentioned
+-- every legacy Task, so an `open` one is also followed by the Server's owners
+-- and admins (every member can read a Channel; a Server's only member is its
+-- owner), so someone sees the work being done. A `todo` one gets no one more.
 INSERT INTO "thread_follows" ("server_id", "thread_chat_id", "thread_chat_kind", "user_id", "followed")
-SELECT DISTINCT place."server_id", place."chat_id", 'task', follower."user_id", true
+SELECT DISTINCT place."server_id", place."chat_id", 'task', member."user_id", true
 FROM "legacy_task_places" place
 JOIN "chat_messages" origin
     ON origin."server_id" = place."server_id" AND origin."id" = place."origin_message_id"
-CROSS JOIN LATERAL (
-    VALUES (origin."author_user_id"), (place."created_by_user_id")
-) AS follower("user_id")
 JOIN "server_memberships" member
-    ON member."server_id" = place."server_id"
-    AND member."user_id" = follower."user_id"
-    AND member."revoked_at" IS NULL;--> statement-breakpoint
+    ON member."server_id" = place."server_id" AND member."revoked_at" IS NULL
+WHERE member."user_id" IN (origin."author_user_id", place."created_by_user_id")
+    OR (
+        place."state" = 'open'
+        AND (
+            member."role" IN ('owner', 'admin')
+            OR (
+                SELECT count(*) FROM "server_memberships" peer
+                WHERE peer."server_id" = place."server_id" AND peer."revoked_at" IS NULL
+            ) = 1
+        )
+    );--> statement-breakpoint
 INSERT INTO "agent_thread_follows" ("server_id", "agent_id", "thread_chat_id", "thread_chat_kind", "followed")
 SELECT place."server_id", place."assignee_agent_id", place."chat_id", 'task', true
 FROM "legacy_task_places" place;--> statement-breakpoint
