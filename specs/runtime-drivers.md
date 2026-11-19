@@ -568,7 +568,9 @@ frame carries a reference: `{ kind: 'attachment', attachmentId, mediaType, sizeB
   runner upload route exists, a `haus` write of a file over 700 KiB is refused, and nothing is
   written.
 - The reference is bound to its invocation and Agent, and only that invocation's run reads it.
-  Bytes uploaded only to carry a payload expire with the invocation record. A webhook secret
+  A payload is not an attachment to anyone else: `GET /api/agent/attachments/:id` answers 404
+  for it, even for a later run of the same Agent, and an Agent cannot attach it to a message,
+  so the App's attachment routes never reach it either. Bytes uploaded only to carry a payload expire with the invocation record. A webhook secret
   written through `--output` always rides the frame, which it fits, so it is never stored.
 
 ### Computer ledger
@@ -704,7 +706,7 @@ settings, reminder scripts, host skill discovery, inventory, updates, and Worker
 | An Agent with no machine, a detached one, or one in update-required mode gets `offline` at once, recorded and with nothing sent, and a turn with only `haus` calls completes | `apps/server/test/agent-invocations-offline.test.ts` | R3 |
 | After an acknowledgement is lost and the Computer reconnects, an invocation already `unknown` is never sent again, a connected Computer that answers past the grace leaves it `unknown` as the runner saw it, and a late result is recorded without reaching the model | `apps/server/test/agent-invocations-unknown.test.ts` | R3 |
 | An invocation is sent once with its clamped timeout, its result is recorded, answered, and acknowledged, a repeated key sends nothing, a cancel reaches the Computer, and a reconnect resends unaccepted `invoke` frames and cancels a settled run's | `apps/server/test/agent-invocations-routing.test.ts` | R3 |
-| A payload is stored and read only under its invocation and Computer, its digest and size match, and a run reads only its own invocations' payloads | `apps/server/test/agent-invocation-payloads.test.ts`, `apps/runner/src/invocations/invocation-results.test.ts` | R3 |
+| A payload is stored and read only under its invocation and Computer, its digest and size match, a run reads only its own invocations' payloads, and no general attachment route reads or attaches one | `apps/server/test/agent-invocation-payloads.test.ts`, `apps/runner/src/invocations/invocation-results.test.ts` | R3 |
 | A result or write over 1 MiB moves as an attachment reference, and no frame exceeds 1 MiB | `apps/computer/src/invocations/large-payload.test.ts` | R2 |
 | A lone `haus` command runs on the runner, and a composed one is refused with `HAUS_NOT_ALONE` | `apps/runner/src/haus/haus-command.test.ts` | R3 |
 | A `haus` path argument never reads the runner's disk: workspace commands are refused, path flags read the machine, and every CLI command is classified | `apps/runner/src/haus/haus-cli.test.ts`, `command-access.test.ts` | R3 |

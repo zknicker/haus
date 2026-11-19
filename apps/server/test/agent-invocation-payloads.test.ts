@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
+import { onAgentLifecycle } from '../src/agent-delivery/lifecycle.ts';
 import {
     connectComputer,
     type FrameClient,
@@ -20,6 +21,8 @@ let setup: InvocationHarness;
 let runner: RunnerClient;
 let computer: FrameClient;
 let runCredential: string;
+let firstRunId: string;
+let chatId: string;
 let ownInvocationId: string;
 let otherInvocationId: string;
 
@@ -28,7 +31,7 @@ beforeAll(async () => {
     runner = connectRunner(setup.harness, testRunnerToken);
     await runner.next(frameOfType('runner-hello-accepted'));
     computer = await connectComputer(setup.harness, setup.computerCredential);
-    const chatId = (
+    chatId = (
         await setup.owner.trpc.chat.ensureAgentDm.mutate({
             agentId: setup.agentId,
             serverId: setup.serverId,
@@ -41,9 +44,9 @@ beforeAll(async () => {
         serverId: setup.serverId,
     });
     const start = await runner.next(frameOfType('runner-start'));
-    const { runId } = start.start as { runId: string };
+    firstRunId = (start.start as { runId: string }).runId;
     runCredential = String(start.runCredential);
-    ownInvocationId = await invoke(runId, 'toolu_view');
+    ownInvocationId = await invoke(firstRunId, 'toolu_view');
     otherInvocationId = await invoke('run_other', 'toolu_other');
 });
 
@@ -118,6 +121,65 @@ test('a run reads only payloads of its own invocations', async () => {
     ).toBe(401);
 });
 
+test('a payload never reads or attaches through the general attachment routes, even for a later run', async () => {
+    const payload = (await (
+        await upload(ownInvocationId, setup.computerCredential, image)
+    ).json()) as { attachmentId: string };
+    const general = `/api/agent/attachments/${payload.attachmentId}`;
+
+    expect((await download(general, runCredential)).status).toBe(404);
+    expect(
+        (await download(`/api/agent/invocation-payloads/${payload.attachmentId}`, runCredential))
+            .status
+    ).toBe(200);
+    const attached = await fetch(new URL('/api/agent/messages/send', setup.harness.url), {
+        body: JSON.stringify({
+            attachmentIds: [payload.attachmentId],
+            content: 'Here it is.',
+            nonce: 'payload_attach',
+            target: 'dm:@ada',
+        }),
+        headers: { authorization: `Bearer ${runCredential}`, 'content-type': 'application/json' },
+        method: 'POST',
+    });
+    expect({ body: await attached.json(), status: attached.status }).toEqual({
+        body: {
+            code: 'INVALID_ARG',
+            message:
+                'Every attachment must be ready, unassociated, and owned by this message author.',
+        },
+        status: 400,
+    });
+    expect(
+        await setup.harness.sql`
+            select message_id from attachments where id = ${payload.attachmentId}
+        `
+    ).toEqual([{ message_id: null }]);
+
+    const settled = new Promise<void>((resolve) => {
+        const stop = onAgentLifecycle((event) => {
+            if (event.runId === firstRunId && event.phase === 'settled') {
+                stop();
+                resolve();
+            }
+        });
+    });
+    runner.send({ agentId: setup.agentId, runId: firstRunId, type: 'ack' });
+    runner.send(settledTurn(firstRunId));
+    await settled;
+    await setup.owner.trpc.chat.send.mutate({
+        chatId,
+        content: 'And the next one?',
+        nonce: 'payload_turn_later',
+        serverId: setup.serverId,
+    });
+    const later = await runner.next(
+        (frame) =>
+            frame.type === 'runner-start' && (frame.start as { runId: string }).runId !== firstRunId
+    );
+    expect((await download(general, String(later.runCredential))).status).toBe(404);
+});
+
 async function invoke(runId: string, toolCallId: string) {
     runner.send(invocationRequest(setup.agentId, runId, toolCallId));
     const frame = await computer.next(frameOfType('invoke', { runId }));
@@ -140,6 +202,26 @@ async function download(path: string, credential: string) {
     return await fetch(new URL(path, setup.harness.url), {
         headers: { authorization: `Bearer ${credential}` },
     });
+}
+
+function settledTurn(runId: string) {
+    const now = new Date().toISOString();
+    return {
+        activity: { operations: [] },
+        agentId: setup.agentId,
+        endedAt: now,
+        messageCount: 0,
+        modelId: 'gpt-5.6-sol',
+        outputProduced: false,
+        runId,
+        runtimeId: 'codex',
+        startedAt: now,
+        status: 'completed',
+        summary: 'Looked at the screenshot.',
+        tokenUsage: null,
+        type: 'turn',
+        visibleMessages: [],
+    };
 }
 
 function digest(bytes: Buffer) {
