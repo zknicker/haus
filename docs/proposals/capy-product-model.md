@@ -382,6 +382,62 @@ Agents coordinate where people can see them:
 Kept: Agents with one global session and the inbox, Tasks as places, claims, Reminders, Triggers,
 the Inbox (unread only), Activity, harness sub-agents, MCP connections, and Cove.
 
+### Walkthroughs
+
+The cast: Zach and Priya; **Forge**, whose home is Engineering (`ENG`); **Cap**, whose home is
+Security (`SEC`); and **Cove**, a generalist in the Haus project. There are two Computers: the
+**mini**, Forge's and Cap's home, and Zach's **MacBook**. Both have "Workers can run here" on.
+Engineering's default place is the mini.
+
+**1. Six bugs, three machines.**
+- Zach, in Engineering: "@Forge Friday's QA list has six composer bugs. Fix them."
+- Forge replies once ("On it, ENG-41") and starts **ENG-41 Composer QA fixes** in Engineering.
+- In ENG-41 it starts six Workers:
+  - three on the mini, Engineering's default
+  - two on Cursor, because those bugs need no local state
+  - one on the MacBook, because that bug needs the iOS Simulator signed in there
+- The Task stays quiet while they work. Each Worker card shows live status, and the sidebar row
+  reads "Forge · 6 workers · mini, cursor, macbook".
+- Reports arrive one message each. Four are `done`, each with a draft PR and before/after renders
+  in `agents/forge/renders/`. One is `failed` with a flaky test, so Forge re-tasks that Worker
+  with a narrower brief. One is `needs-you`: "@Zach the iPad baseline moves 2px with the fix. Is
+  that intended?" ENG-41 goes unread for Zach, and his sidebar row reads "waiting on Zach".
+- Zach answers on that Worker's card: "Yes, match iPhone." The answer goes straight into the
+  Worker as a steer and posts in the Task as "Zach → Worker on macbook".
+- Every commit carries `Haus-Task: ENG-41`, so the six PRs attach to the Task themselves. Zach
+  merges them, then marks ENG-41 done.
+
+**2. A handoff in the open.**
+- While working ENG-41, a Worker's report notes that the composer debug log prints session
+  tokens.
+- Security isn't Forge's area, so Forge posts in the Security channel: "@Cap the composer debug
+  log prints session tokens since 18.1. Found in ENG-41. Yours?"
+- Cap, whose home is Security, hears every message there. It replies and starts **SEC-12 Stop
+  logging session tokens** from that message.
+- Everyone in Security sees the handoff, and ENG-41 links to SEC-12.
+- Cove, a generalist, doesn't answer: nobody @mentioned it.
+
+**3. Zach files a Task.**
+- In Security, Zach presses **New task**, types "Rotate the GitHub App private key", and leaves
+  the Agent at the Project's default, Cap.
+- SEC-13 opens with Cap assigned. Cap takes it like any assignment and posts a plan in the Task.
+- No chat message was needed to start the work.
+
+**4. "From now on."**
+- In ENG-41 Zach writes: "@Forge from now on, every Worker attaches before/after screenshots."
+- Forge adds a line to `agents/forge/WORKER.md`. Drive saves the change as a new version,
+  attributed "Forge, from Zach in ENG-41".
+- Zach opens the file from Forge's Agent page and uses Compare to see the one-line change.
+- Every Forge Worker reads `WORKER.md` on every turn, so the rule applies from the next run.
+
+**5. Who hears what.**
+- In Security, Priya and Zach discuss the rotation window. Cap hears it, because Security is its
+  home, and stays quiet because nobody asked it anything.
+- Forge doesn't hear it, because Security isn't its home.
+- Priya writes "@Forge does the composer hold the key anywhere?", and Forge answers in Security.
+- Later Zach DMs Cap: "What's your honest read on rotating before Friday?" A side conversation
+  with an Agent is a DM. Nothing forks.
+
 ---
 
 ## 5. Alternatives rejected
@@ -455,5 +511,7 @@ Each is marked (v2) above.
   Status still reads "Not yet implemented" and should say it landed.
 - **`specs/workers.md` uses "worker"** in an older sense, for background agent work. Reconcile it
   or rewrite it when Workers land.
-- **This proposal splits into three ADRs**: Drive, Projects and Workers. The Projects ADR carries
-  decisions 1, 2 and 5. The Workers ADR carries 3 and 4.
+- **This proposal is split into three ADRs:**
+  [ADR 0054, Drive](../adr/0054-drive-holds-what-agents-know-and-follow.md),
+  [ADR 0055, Projects](../adr/0055-projects-own-agents-and-tasks.md) (decisions 1, 2 and 5), and
+  [ADR 0056, Workers](../adr/0056-agents-run-quiet-workers-anywhere.md) (decisions 3, 4 and 6).
