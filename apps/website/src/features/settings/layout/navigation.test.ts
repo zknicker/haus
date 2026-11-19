@@ -15,16 +15,15 @@ test('the rail groups pages by whose settings they are', () => {
     assert.deepEqual(railShape({ canOperate: true, query: '' }), [
         { label: 'You', rows: ['Profile', 'Preferences', 'Servers'] },
         { label: 'Captains', rows: ['Models', 'Skills', 'Connections'] },
-        { label: 'Devices', rows: ['Devices'] },
-        { label: 'Haus', rows: ['General', 'Members', 'Usage', 'Archived chats'] },
+        { label: 'Haus', rows: ['General', 'Members', 'Devices', 'Usage', 'Archived chats'] },
     ]);
 });
 
-test('Devices is an operator page, so members never see its group', () => {
-    assert.deepEqual(
-        railShape({ canOperate: false, query: '' }).map((group) => group.label),
-        ['You', 'Captains', 'Haus']
-    );
+test('Devices is an operator page, so members never see it', () => {
+    assert.deepEqual(railShape({ canOperate: false, query: '' }).at(-1), {
+        label: 'Haus',
+        rows: ['General', 'Members', 'Usage', 'Archived chats'],
+    });
 });
 
 test('every registered item sits in exactly one rail group', () => {
@@ -40,6 +39,17 @@ test('search matches page titles, case-insensitively', () => {
     ]);
 });
 
+test('search matches at the start of a word, not inside one', () => {
+    assert.deepEqual(railShape({ canOperate: true, query: 'time' }), [
+        { label: 'You', rows: ['Profile · Timezone'] },
+    ]);
+    assert.deepEqual(railShape({ canOperate: true, query: 'runtimes' }), [
+        { label: 'Captains', rows: ['Models · Detected runtimes'] },
+        { label: 'Haus', rows: ['Devices · Runtimes'] },
+    ]);
+    assert.deepEqual(railShape({ canOperate: true, query: 'ember' }), []);
+});
+
 test('search finds a page by a row on it and names the row', () => {
     assert.deepEqual(railShape({ canOperate: true, query: 'timezone' }), [
         { label: 'You', rows: ['Profile · Timezone'] },
@@ -52,7 +62,7 @@ test('search finds a page by a row on it and names the row', () => {
 test('search does not reveal operator pages to members', () => {
     assert.deepEqual(railShape({ canOperate: false, query: '1password' }), []);
     assert.deepEqual(railShape({ canOperate: true, query: '1password' }), [
-        { label: 'Devices', rows: ['Devices · 1Password'] },
+        { label: 'Haus', rows: ['Devices · 1Password'] },
     ]);
 });
 

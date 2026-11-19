@@ -82,8 +82,7 @@ test('settings navigation names the page and reaches Server deletion', async ({
     await page.goto(`/s/${slug}/settings/profile`);
     const groups = {
         Captains: ['Models', 'Skills', 'Connections'],
-        Devices: ['Devices'],
-        Haus: ['General', 'Members', 'Usage', 'Archived chats'],
+        Haus: ['General', 'Members', 'Devices', 'Usage', 'Archived chats'],
         You: ['Profile', 'Preferences', 'Servers'],
     };
     for (const [group, rows] of Object.entries(groups)) {

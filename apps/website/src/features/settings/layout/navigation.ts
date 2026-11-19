@@ -123,8 +123,11 @@ export const settingsPages = settingsNavItems.filter(
 export const settingsNavSections = [
     { id: 'you', itemIds: ['profile', 'preferences', 'servers'], label: 'You' },
     { id: 'captains', itemIds: ['models', 'skills', 'connections'], label: 'Captains' },
-    { id: 'devices', itemIds: ['computers'], label: 'Devices' },
-    { id: 'haus', itemIds: ['general', 'members', 'usage', 'archived'], label: 'Haus' },
+    {
+        id: 'haus',
+        itemIds: ['general', 'members', 'computers', 'usage', 'archived'],
+        label: 'Haus',
+    },
 ] as const satisfies ReadonlyArray<{
     id: string;
     itemIds: readonly SettingsRouteTab[];
@@ -158,11 +161,16 @@ export function settingsNavGroups({ canOperate, query }: { canOperate: boolean; 
 }
 
 function matchItem(item: SettingsNavItem, needle: string) {
-    const titleMatches = needle.length === 0 || item.label.toLowerCase().includes(needle);
+    const titleMatches = needle.length === 0 || startsWord(item.label, needle);
     const rows: readonly string[] = item.rows;
     const row = titleMatches
         ? null
-        : (rows.find((candidate) => candidate.toLowerCase().includes(needle)) ?? null);
+        : (rows.find((candidate) => startsWord(candidate, needle)) ?? null);
     const matches: SettingsNavMatch[] = titleMatches || row ? [{ item, row }] : [];
     return matches;
+}
+
+function startsWord(text: string, needle: string) {
+    const normalized = text.toLowerCase();
+    return normalized.startsWith(needle) || normalized.includes(` ${needle}`);
 }
