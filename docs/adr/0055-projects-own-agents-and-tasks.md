@@ -77,8 +77,8 @@ someone @mentions it. Haus is a team, so it takes Capy's ownership and Amp's qui
     Direct messages section goes, and person-to-person DMs are reached from the Inbox and Search.
 
 11. **The Agent page** is your DM on the left and an Overview on the right: Working (its open Tasks
-    with their Workers, places and PR state), Drive (its folder), and Rules ("Loaded before the
-    first message"). A Tasks tab lists every Task assigned to it.
+    with their Workers, places and PR state), Drive (its folder), and Rules (links to the rule
+    files that load for it). A Tasks tab lists every Task assigned to it.
 
 ## Considered and rejected
 

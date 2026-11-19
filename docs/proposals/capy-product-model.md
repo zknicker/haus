@@ -213,7 +213,7 @@ Haus (Server)
   - the Haus `AGENTS.md`
   - the Task's Project `AGENTS.md`
   - the repo's own `AGENTS.md`
-  - the Agent's **`WORKER.md`**, on every turn
+  - the Agent's **`WORKER.md`**, at launch and again whenever it changes
 
   `WORKER.md` holds the Agent's standing rules for its Workers: draft PRs, before/after renders, a
   report format. The Agent edits it when told "from now on" about its Workers.
@@ -226,8 +226,11 @@ Haus (Server)
   - The Task gets one message per report.
   - Followers see the Task go unread only for reports and for people's posts.
 - **A follow-up keeps context.** Re-tasking a Worker continues its run, as Runs do today.
-- **(v2) Commits carry a `Haus-Task: ENG-41` trailer.** `git log` leads back to the Task, and a
-  pushed PR attaches itself to the Task.
+- **(v2) Commits carry a `Haus-Task: ENG-41` trailer** for tracing. PRs attach through Worker
+  reports.
+- **Workers are supervised.** Concurrency limits per Computer and provider, cancellation, and a
+  Worker that exits without a report counts as failed. A cloud Worker gets its rules inlined in its
+  brief, and its report comes from the provider's result.
 - **Cloud agents become Workers.** Places are `computer:<name>`, `cursor` and `claude`, under one
   noun and one status set. `haus cloud-agent start --task` becomes
   `haus worker start --task ENG-41 [--on macbook]`. Mapping today's records:
@@ -246,9 +249,10 @@ Haus (Server)
     Code or Codex session in a worktree of the project repo, with a credential scoped to that
     Worker.
   - Not in this round: moving a running Worker between machines.
-- **People talk to a Worker directly.**
-  - Each Worker card has its own composer. What you type goes into that Worker as a steer, or as a
-    follow-up if it's idle.
+- **People talk to a Worker between turns.**
+  - Each Worker card has its own composer. What you type goes into that Worker as a follow-up when
+    its turn ends, and a running Worker can be stopped from its card. Mid-turn steering is
+    deferred.
   - The message also posts in the Task, marked "→ Worker on mini", so the Agent sees it through its
     inbox.
   - A plain post in the Task goes to the Agent.
@@ -271,31 +275,29 @@ Haus (Server)
 
 ### Drive
 
-- **A full migration, copied closely from Capy.** Files and the durable files in every Agent
-  workspace (`MEMORY.md`, `notes/`, pages) move into Drive. The existing file-browsing UI becomes
-  the Drive browser:
-  - a Drive page listing scopes: Haus, each Project, each Agent
-  - files that open beside the chat
-  - History, Compare and Restore
-  - every version attributed to the Task, Worker, Agent or person that wrote it
-
-  An Agent's machine-local workspace remains as execution scratch and checkouts, with no human
-  surface.
-- **Mounted, not pushed.** Computers mount the Drive folders an Agent or Worker can see. Edits save
-  as attributed versions, concurrent writes merge or keep both, and mass deletes are held. ADR
-  0052's receipt still decides when `MEMORY.md` reaches the session.
+- **Drive is the existing Files drive, renamed and extended** ([ADR 0054](../adr/0054-drive-holds-what-agents-know-and-follow.md)).
+  It keeps its paths, folders, R2 revisions and compare-and-set writes, and gains:
+  - three areas: Haus, each Project, each Agent (memory, rules, notes, reports, skills)
+  - every revision attributed to the Agent, Worker or person and the Task
+  - a per-area change counter
+  - a Drive page with History and Restore, and files that open beside the chat
+- **A plain `drive/` folder on each machine.** It pulls what changed when a turn starts and pushes
+  changed files after the reply. Agents use native file commands only. The Server merges clean text
+  edits. A real conflict keeps both versions and sends the Agent a `drive_conflict` inbox item.
+  Compare, held mass deletes and mounts are deferred.
 - **Everyone can read everything.** There is no privacy layer and no personal folder.
 - **Attachments stay as they are.** An Agent or Worker shares a Drive file by reference, a path at
   a version.
 - **Layout:**
 
 ```
-AGENTS.md                        Haus rules
+haus/AGENTS.md                   Haus rules
 projects/<key>/AGENTS.md         project rules, plus project docs
 agents/<handle>/AGENTS.md        the Agent's own rules (replaces the Server "conversation style")
 agents/<handle>/WORKER.md        rules every Worker of this Agent reads
 agents/<handle>/MEMORY.md        capped memory (ADR 0052), now visible
 agents/<handle>/notes/ …         the rest of its durable workspace
+agents/<handle>/skills/          its skills
 agents/<handle>/reports/ renders/ handoffs/   Worker deliverables
 ```
 
@@ -304,8 +306,9 @@ agents/<handle>/reports/ renders/ handoffs/   Worker deliverables
     Project's `AGENTS.md`, its own `AGENTS.md`, and `MEMORY.md`.
   - A generalist in the Haus project also receives a Project's `AGENTS.md` the first time it acts
     in that Project in a session.
-  - A Worker gets its full stack at launch, and `WORKER.md` on every turn.
-  - The Agent page shows "Loaded before the first message".
+  - A Worker gets its full stack at launch, and `WORKER.md` again whenever it changes.
+  - The Agent page links its rule files. The "Loaded before the first message" token panel is
+    deferred.
 - **Where "from now on" goes.** A rule for the Agent goes in its `AGENTS.md`, a rule for its Workers
   in `WORKER.md`, and a rule for the Project in the Project's `AGENTS.md`. `MEMORY.md` holds facts.
   Both references show that rules people can edit outlast remembered facts.
@@ -347,12 +350,12 @@ Agent DMs are the tiles. Person-to-person DMs are reached from the Inbox and Sea
 **Agent page**: your DM on the left, and an **Overview** pane on the right:
 - **Working**: its open Tasks, each with its Workers, place and PR state.
 - **Drive**: its folder as thumbnails (`MEMORY.md`, `AGENTS.md`, `WORKER.md`, reports).
-- **Rules**: the "Loaded before the first message" token breakdown.
+- **Rules**: links to the rule files that load for it.
 
 A **Tasks** tab lists every Task assigned to it.
 
 **Task page**: the conversation, plus Worker cards. Each card shows its place, status, newest
-report, cited files and PR, and has its own composer.
+report, cited files and PR, and has a composer for follow-ups and a stop control.
 
 **Project page**: the channel, with settings behind the header menu.
 
@@ -362,12 +365,16 @@ report, cited files and PR, and has its own composer.
 Agents run, following Capy and Amp:
 - **The loop runs on the Server,** in a sandboxed runner. Claude plans use the Claude Agent SDK and
   every other model uses Pi Durable. Sessions stay on the runner's persistent volume.
+- **Each Agent is pinned to one harness.** The runner ships with one harness first and the second
+  follows. Switching harness is an explicit reset.
 - **Each Agent has one machine where its tools run:** `bash` and an edit tool, plus the one
-  `execute` tool. It can move between turns. v1 machines are Computers.
-- **The Agent keeps working with its machine offline.** Only its machine work waits.
-- **The Server holds the Agent's model logins.** Workers keep native harnesses and their machine's
-  logins.
-- **agent-desktop and agent-browser are built in.** User-configured local MCP is descoped.
+  `execute` tool. The machine is a setting changed while idle. v1 machines are Computers.
+- **The Agent keeps working with its machine offline.** A tool call to an offline machine answers
+  "offline" at once. A command interrupted by a crash shows an unknown outcome and never reruns.
+- **The Server holds the Agent's model logins,** in runner settings. Workers keep native harnesses
+  and their machine's logins.
+- **agent-browser is built in, and agent-desktop follows later.** User-configured local MCP is
+  descoped.
 
 ### Cross-agent communication
 
@@ -415,10 +422,10 @@ Engineering's default place is the mini.
   in `agents/forge/renders/`. One is `failed` with a flaky test, so Forge re-tasks that Worker
   with a narrower brief. One is `needs-you`: "@Zach the iPad baseline moves 2px with the fix. Is
   that intended?" ENG-41 goes unread for Zach, and his sidebar row reads "waiting on Zach".
-- Zach answers on that Worker's card: "Yes, match iPhone." The answer goes straight into the
-  Worker as a steer and posts in the Task as "Zach → Worker on macbook".
-- Every commit carries `Haus-Task: ENG-41`, so the six PRs attach to the Task themselves. Zach
-  merges them, then marks ENG-41 done.
+- Zach answers on that Worker's card: "Yes, match iPhone." The Worker gets it as its next turn,
+  and it posts in the Task as "Zach → Worker on macbook".
+- Each report names its PR, so the six PRs attach to the Task. Every commit carries
+  `Haus-Task: ENG-41` for tracing. Zach merges them, then marks ENG-41 done.
 
 **2. A handoff in the open.**
 - While working ENG-41, a Worker's report notes that the composer debug log prints session
@@ -440,8 +447,9 @@ Engineering's default place is the mini.
 - In ENG-41 Zach writes: "@Forge from now on, every Worker attaches before/after screenshots."
 - Forge adds a line to `agents/forge/WORKER.md`. Drive saves the change as a new version,
   attributed "Forge, from Zach in ENG-41".
-- Zach opens the file from Forge's Agent page and uses Compare to see the one-line change.
-- Every Forge Worker reads `WORKER.md` on every turn, so the rule applies from the next run.
+- Zach opens the file from Forge's Agent page and sees the change in its History.
+- Every Forge Worker gets the changed `WORKER.md` on its next turn, so the rule applies right
+  away.
 
 **5. Who hears what.**
 - In Security, Priya and Zach discuss the rotation window. Cap hears it, because Security is its
@@ -479,18 +487,20 @@ Engineering's default place is the mini.
 
 1. **The Tasks rework** (landed, ADR 0053). Threads are deleted, Tasks become places, and cloud
    agents attach to Tasks.
-2. **Drive.**
-   - Migrate Files and Agent workspaces, and mount Drive on Computers.
-   - Add attribution, History and Compare, and the Drive browser.
-   - Add `AGENTS.md` layers and "Loaded before the first message".
+2. **Minimal Drive.**
+   - Rename Files to Drive, add the three areas, attribution and the change counter, and migrate
+     Agent workspaces into it.
+   - The `drive/` folder on Computers, pulled at turn start and pushed after the reply, with
+     merges and `drive_conflict` inbox items.
+   - The Drive page with History and Restore, and the `AGENTS.md` layers.
    - *What you notice:* you can read and fix what an Agent knows and follows, and see who changed
      it.
 3. **Agents on the Server** ([ADR 0057](../adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)).
-   - Every Agent moves to the Server-side runner at once.
-   - The invocation contract, the result ledger, and built-in agent-desktop and agent-browser
-     come with it.
-   - *What you notice:* an Agent keeps talking when its Computer sleeps, and moves between
-     Computers.
+   - The runner ships with one harness, and the second follows once tool dispatch works.
+   - Every Agent moves to the runner in one cutover.
+   - The invocation contract, the result ledger and built-in agent-browser come with it.
+   - *What you notice:* an Agent keeps talking when its Computer sleeps, and you can change its
+     machine.
 4. **Projects.**
    - "New project" creates the channel, and channels become Projects.
    - Project settings: key, Agents, repos with per-Computer links, rules, and the default place.
@@ -500,11 +510,14 @@ Engineering's default place is the mini.
    - *What you notice:* the sidebar is about half as long, every effort has one home, and you know
      which Agent to ask.
 5. **Workers.**
-   - Cloud agents become Workers, with typed reports, `WORKER.md`, and quiet cards.
+   - Cloud agents become Workers, with typed reports, `WORKER.md`, quiet cards and supervision.
    - The "Workers can run here" switch, worktree runs on any granted Computer using its logins,
-     the direct-steer composer, and the `Haus-Task` trailer.
+     follow-ups and stop from the card, and the `Haus-Task` trailer.
    - *What you notice:* "fix these six bugs" becomes six Workers spread across the mini, the
      MacBook and the cloud. You hear about each one once, when it's done or needs you.
+6. **Computer use and richer Drive.**
+   - agent-desktop and the per-Computer "Computer use allowed" switch.
+   - Compare in Drive, and the "Loaded before the first message" token panel.
 
 Each phase that changes prompt text follows the guarded prompt contract in AGENTS.md: a
 divergence-register row, a cap raise, and a `tune-agent-behavior` baseline.
@@ -518,7 +531,7 @@ Each is marked (v2) above.
 1. **An Agent belongs to one Project.** The Haus project holds generalists.
 2. **An Agent hears everything in its home Project and only @mentions elsewhere.** It falls out of decision 1 and cuts noise in multi-agent rooms.
 3. **Quiet Workers:** no progress messages, one message per report.
-4. **A `Haus-Task` commit trailer.** It's cheap, and PRs attach themselves.
+4. **A `Haus-Task` commit trailer.** It's cheap and traces commits to Tasks. PRs attach through reports.
 5. **Humans can file a Task assigned to an Agent.** This reverses ADR 0053's "only Agents create
    Tasks". Every Task still has an Agent.
 6. **No forks.** A side conversation with an Agent is a DM, and an inline reply stays in the open

@@ -1,10 +1,11 @@
 ---
 status: accepted
-summary: An Agent's loop runs on the Server in a sandboxed runner, on the Claude Agent SDK for Claude plans and Pi Durable for every other model, with sessions on the runner's persistent volume. The Agent has one machine where its tools run and can move between turns; v1 machines are Computers. Its tools are bash and edit on that machine plus the one execute tool. Every invocation has an id and a Computer-side result ledger. The Server holds the Agent's model logins. Workers keep native harnesses on machines. User-configured local MCP is descoped. Accepted 2026-11-19, not yet implemented.
+summary: An Agent's loop runs on the Server in a sandboxed runner, on the Claude Agent SDK for Claude plans and Pi Durable for every other model, with sessions on the runner's persistent volume. Each Agent is pinned to one harness, and the first harness ships before the second. The Agent has one machine where its tools run, changed while idle; v1 machines are Computers. Its tools are bash and edit on that machine plus the one execute tool. Every invocation has an id, is recorded as accepted before it runs, and never reruns after an unknown outcome; an offline machine answers at once. Logins live in runner settings. Inbox items go to the runner. Workers keep native harnesses on machines. User-configured local MCP is descoped, and computer use ships later. Accepted 2026-11-19, not yet implemented.
 read_when:
   - changing where an Agent's loop runs, its harnesses, or where its session is stored
   - changing the Agent's machine, moving an Agent, or what an Agent can do while its machine is offline
-  - changing the Agent's tools, the invocation contract, or the Computer result ledger
+  - changing the Agent's tools, the invocation contract, timeouts, offline answers, or the Computer result ledger
+  - changing which harness an Agent runs on, or resetting an Agent's session
   - changing who holds model logins for Agents or Workers
   - changing agent-desktop, agent-browser, computer use, or local MCP support
   - changing the Computer protocol, prompt composition, or the runtime drivers
@@ -45,42 +46,54 @@ loops.
    off, and Haus tools bridged in. Pi Durable runs every other model, including ChatGPT plans and
    other providers. Each keeps its sessions in its own native storage on the runner's persistent
    volume, which is backed up with the Server's data. The session never moves: only the Agent's
-   machine does, so it only has to survive the runner restarting.
+   machine does, so it only has to survive the runner restarting. Each Agent is pinned to one
+   harness. Switching harness is an explicit reset that rebuilds the session from Drive and recent
+   history. Model logins live in runner settings in v1, with no sign-in screens.
 
 3. **One endless session per Agent.** ADR 0011 stands. The session now lives on the Server, not on
-   a Computer.
+   a Computer. The Server delivers inbox items to the runner.
 
-4. **An Agent has one machine where its tools run**, and it can move to another between turns. A
-   machine is a Computer or a Haus-hosted cloud machine. v1 supports Computers only.
+4. **An Agent has one machine where its tools run.** A machine is a Computer or a Haus-hosted cloud
+   machine, and v1 supports Computers only. The machine is a setting changed while the Agent is
+   idle. Nothing on the old machine is carried over.
 
 5. **The Agent's tools.** `bash` and an edit tool run on its machine through the invocation
    contract. They are built from Pi's MIT tool code, in the shapes the models are trained on:
    `bash` and the `str_replace` editor for Claude, `shell` and `apply_patch` for GPT models.
    Everything else sits behind the one `execute` tool: Haus actions, Server-held remote MCP, and
-   agent-desktop and agent-browser relayed from the machine.
+   agent-browser (and later agent-desktop) relayed from the machine. Skills load from Drive.
 
-6. **A machine offline is not an Agent offline.** The Agent still talks, plans, uses Drive through
-   the Server, and dispatches Workers. Its machine work waits for the machine.
+6. **A machine offline is not an Agent offline.** A tool call to an offline machine answers
+   "offline" at once, so the turn never stalls. The Agent still talks, plans, uses Drive through
+   the Server, and dispatches Workers.
 
-7. **Every tool invocation has an id.** Each Computer keeps a ledger of results, so a call whose
-   acknowledgement was lost never runs twice.
+7. **Every tool invocation has an id.** The Computer records a call as accepted before running it,
+   and keeps its result in a ledger, so a call whose acknowledgement was lost never runs twice. A
+   crash mid-command leaves the outcome "unknown", and Haus never reruns it on its own. Commands
+   have timeouts, cancellation and output limits.
 
-8. **The Server holds the Agent's model logins:** a Claude setup-token and a ChatGPT sign-in.
+8. **The Server holds the Agent's model logins:** a Claude setup-token and a ChatGPT sign-in, in
+   the runner's settings.
 
 9. **Workers keep the harness on the machine.** A Worker runs native Claude Code or Codex on a
    Computer with that machine's logins, or runs on a cloud service
    ([ADR 0056](0056-agents-run-quiet-workers-anywhere.md)). A dead machine is a failed Worker.
 
-10. **Drive is mounted on every machine.** The runner reads rules and memory from Drive directly
-    and composes each turn. Prompt composition moves from the Computer to the runner.
+10. **The runner composes each turn from Drive.** It reads rules and memory from the Server's
+    current revisions. Each machine keeps a plain `drive/` folder, pulled at turn start and pushed
+    after the reply ([ADR 0054](0054-drive-holds-what-agents-know-and-follow.md)). Prompt
+    composition moves from the Computer to the runner.
 
-11. **Built-in machine tools only.** agent-desktop and agent-browser are built in and managed by
-    Haus. A per-Computer "Computer use allowed" switch decides whether Agents may operate its apps.
+11. **Built-in machine tools only.** agent-browser is built in and managed by Haus. agent-desktop
+    and a per-Computer "Computer use allowed" switch, which decides whether Agents may operate its
+    apps, ship in a later phase.
     User-configured local MCP servers are descoped. If they return, they follow Capy: a launch
     recipe in Project settings, run on the working machine, with availability shown per Computer.
 
-12. **Ship order.** Tasks (landed), then Drive, then every Agent moves to the runner at once, then
-    Projects, then Workers. No Agent stays on a Computer after the move.
+12. **Ship order.** Tasks (landed), then minimal Drive, then Agents move to the runner, then
+    Projects, then Workers, then computer use (agent-desktop) and richer Drive (Compare). The runner
+    ships with one harness, and the second follows once tool dispatch works. Agents move in one
+    cutover, and no Agent stays on a Computer after it.
 
 ## Considered and rejected
 
@@ -100,6 +113,14 @@ loops.
   machine with heavy work.
 - **Some Agents on Computers and some on the Server.** Two runtime paths to keep working, and no
   final state.
+- **Both harnesses in the first release.** Twice the debugging surface before remote tool dispatch
+  is proven.
+- **Rerunning a command after an unknown outcome.** Shell commands are not idempotent, so a blind
+  replay can repeat a side effect.
+- **Carrying a session across harnesses.** Their native stores are incompatible, so a switch starts
+  fresh from Drive and recent history.
+- **Moving an Agent's checkouts and processes with it.** Moving machine-local state is its own
+  feature. Workers reach other machines today.
 
 ## Prior art
 
@@ -124,7 +145,9 @@ Amended:
 - [ADR 0019](0019-servers-own-collaboration-computers-own-execution.md): Computers own tool
   execution and Workers. They no longer run Agent sessions.
 - [ADR 0054](0054-drive-holds-what-agents-know-and-follow.md): the runner composes the prompt and
-  reads Drive directly, and Drive is mounted on every machine.
+  reads Drive from the Server. Machines keep a `drive/` folder pulled at turn start and pushed after
+  the reply.
+- `specs/inbox.md`: the Server delivers inbox items to the runner, not a Computer.
 - [ADR 0056](0056-agents-run-quiet-workers-anywhere.md): Workers keep machine logins and native
   harnesses. The Agent's runtime and tools live here.
 

@@ -1,11 +1,11 @@
 ---
 status: accepted
-summary: Agents run Workers, scoped parallel runs attached to a Task, on any Computer that allows them or on Cursor or Claude in the cloud. Workers replace cloud agents. Each one reads the rule stack plus its Agent's WORKER.md, uses its machine's own logins, stays quiet while working, and ends with a typed report (done, needs-you, failed). People can steer a Worker directly from its card. Commits carry a Haus-Task trailer. Agents coordinate only in the open, and there are no forks. Accepted 2026-11-19, not yet implemented.
+summary: Agents run Workers, scoped parallel runs attached to a Task, on any Computer that allows them or on Cursor or Claude in the cloud. Workers replace cloud agents. Each one gets the rule stack plus its Agent's WORKER.md at launch and on change, uses its machine's own logins, stays quiet while working, and ends with a typed report (done, needs-you, failed). People send a Worker follow-ups between turns and can stop it while it runs. PRs attach through reports, and commits carry a Haus-Task trailer for tracing. Agents coordinate only in the open, and there are no forks. Accepted 2026-11-19, not yet implemented.
 read_when:
   - changing cloud agents, Workers, Runs, or `haus cloud-agent` / `haus worker`
   - changing where delegated work runs, the Project default place, or per-Computer Worker access
   - changing what a Worker reads, how it reports, or what it posts in a Task
-  - changing how people or Agents talk to a running Worker
+  - changing how people or Agents talk to, stop, or supervise a Worker
   - changing agent-to-agent communication, commit trailers, or Worker deliverables
 ---
 
@@ -47,13 +47,16 @@ runs silent until they finish or are blocked.
    Worker card.
 
 3. **What a Worker reads.** The Haus `AGENTS.md`, its Task's Project `AGENTS.md`, the repo's own
-   `AGENTS.md`, and its Agent's `WORKER.md` on every turn
+   `AGENTS.md`, and its Agent's `WORKER.md`. It gets the stack at launch and `WORKER.md` again
+   whenever it changes, by receipt like memory
    ([ADR 0054](0054-drive-holds-what-agents-know-and-follow.md)). `WORKER.md` holds the Agent's
    standing rules for its Workers, such as draft PRs, before and after renders, or a report format.
+   A cloud Worker has no Drive folder, so its rules are inlined in its brief.
 
 4. **A typed report ends each run:** `done`, `needs-you` or `failed`, with a summary, an ask, its
    PRs, and Drive files cited by version. It posts in the Task and reaches the Agent through its
-   inbox. A `needs-you` report @mentions the person it needs.
+   inbox. A `needs-you` report @mentions the person it needs. The PRs a report names attach to the
+   Task. A cloud Worker's report comes from its provider's result.
 
 5. **Quiet by default.** A Worker never posts progress in the Task. Its card shows live status,
    place and newest report. The Task gets one message per report, and followers see it go unread
@@ -72,23 +75,27 @@ runs silent until they finish or are blocked.
    ([ADR 0057](0057-agents-run-on-the-server-and-machines-run-their-tools.md)). Moving a running
    Worker between machines is out of scope.
 
-8. **People talk to a Worker directly.** Each Worker card has its own composer. What you type goes
-   into that Worker as a steer, or as a follow-up when it is idle, and also posts in the Task
-   marked with the Worker and its place, so the Agent sees it through its inbox. A plain post in the
-   Task goes to the Agent. Workers have no inbox.
+8. **People talk to a Worker between turns.** Each Worker card has its own composer. What you type
+   goes into that Worker as a follow-up when its turn ends, and also posts in the Task marked with
+   the Worker and its place, so the Agent sees it through its inbox. A running Worker can be
+   stopped from its card. A plain post in the Task goes to the Agent. Workers have no inbox.
 
 9. **Deliverables go in the Agent's folder:** `agents/<handle>/reports/`, `renders/` and
    `handoffs/`. The Task page shows the files a report cites, at the cited version.
 
-10. **Commits carry a `Haus-Task: ENG-41` trailer.** `git log` leads back to the Task, and a pushed
-    PR attaches itself to the Task.
+10. **Commits carry a `Haus-Task: ENG-41` trailer** for tracing: `git log` leads back to the Task.
+    PRs attach through Worker reports, not by scanning commits.
 
-11. **Agents coordinate in the open.** One Agent reaches another by @mention in a Project or Task,
+11. **Workers are supervised.** Each Computer and each cloud provider has a concurrency limit, and
+    excess Workers queue. The Agent or a person can cancel a Worker. A Worker whose process exits
+    without a report counts as `failed`.
+
+12. **Agents coordinate in the open.** One Agent reaches another by @mention in a Project or Task,
     or by assigning it a Task. An Agent reaches its Workers through the brief, `haus worker send`,
     and `WORKER.md`. Workers never talk to each other. There are no agent-to-agent DMs and no
     background steers.
 
-12. **No forks.** A side conversation with an Agent is a DM, and an inline reply stays in the open
+13. **No forks.** A side conversation with an Agent is a DM, and an inline reply stays in the open
     on its message.
 
 ## Considered and rejected
@@ -103,6 +110,10 @@ runs silent until they finish or are blocked.
 - **No `WORKER.md`.** Standing habits for Workers span Tasks and shouldn't be pasted into every
   brief.
 - **A Worker inbox.** A Worker is scoped to one Task, so everything sent to it is for it.
+- **`WORKER.md` on every turn.** Repeating unchanged text adds context without strengthening the
+  rule, and native harnesses would need hooks to inject it.
+- **PRs found by scanning commit trailers.** Reliable discovery through commit ancestry is more
+  integration work than attaching what a report names.
 
 ## Prior art
 
@@ -137,6 +148,10 @@ Related:
 
 - [ADR 0057](0057-agents-run-on-the-server-and-machines-run-their-tools.md) holds the Agent's
   runtime and tools. Workers keep native harnesses and machine logins.
+
+Deferred:
+
+- Steering a running Worker mid-turn.
 
 Follow-up:
 
