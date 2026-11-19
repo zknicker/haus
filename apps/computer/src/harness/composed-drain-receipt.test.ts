@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import type { AgentInboxItem } from '../agent-inbox-item.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
+import { agentDrive } from '../drive/agent-drive.ts';
 import { fakeRuntimeDriver, finishedTurn } from '../runtime/testing/fake-runtime-driver.ts';
 import { type HarnessTurnInput, runHarnessTurn } from './executor.ts';
 
@@ -81,7 +82,7 @@ function turnInput(overrides: Partial<HarnessTurnInput>): HarnessTurnInput {
         runtimeId: 'codex',
         serverId: 'srv_receipt',
         sessionGeneration: 1,
-        skillsDir: join(agentRoot, 'skills'),
+        drive: agentDrive(agentRoot, 'agent'),
         tools: [],
         totalPending: 0,
         unreadElsewhere: [],

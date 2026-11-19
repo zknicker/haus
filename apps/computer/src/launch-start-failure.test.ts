@@ -6,6 +6,7 @@ import { makeTestRuntime } from '@haus/effect';
 import { TestClock } from 'effect';
 import { disposeServerLaunchHosts } from './agent-launch-host.ts';
 import { type DaemonRuntime, makeDaemonRuntime } from './daemon-runtime.ts';
+import { createDriveRoutes } from './drive-migration/testing/drive-server.ts';
 import type { HarnessTurnInput } from './harness/executor.ts';
 import { type AgentStartCommand, runAgentLaunch } from './launch.ts';
 import { RuntimeResumeRejectedError } from './runtime/resume-rejected.ts';
@@ -22,8 +23,16 @@ let server: ReturnType<typeof Bun.serve>;
 
 beforeEach(async () => {
     dataRoot = await mkdtemp(join(tmpdir(), 'haus-launch-start-'));
+    const drive = createDriveRoutes({
+        agentId: 'agt_launchstart',
+        runnerToken: `grtr_${'b'.repeat(43)}`,
+    });
     server = Bun.serve({
-        fetch: (request) => {
+        fetch: async (request) => {
+            const driven = await drive.handle(request);
+            if (driven) {
+                return driven;
+            }
             const { pathname } = new URL(request.url);
             if (pathname === '/computer/runner/mint') {
                 return Response.json({
@@ -159,13 +168,15 @@ test('a context-window overflow tells the owner to reset the session', async () 
 
 test('a turn stalled past the no-progress deadline fails as a retryable timeout', async () => {
     const testRuntime = makeTestRuntime();
+    const stalled = Promise.withResolvers<void>();
     try {
         const stalling = launch('run_stalled', {
+            onStalled: stalled.resolve,
             parts: [{ id: 'r1', type: 'reasoning-start' }],
             runtime: testRuntime,
             stall: true,
         });
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        await stalled.promise;
         await testRuntime.runPromise(TestClock.adjust('16 minutes'));
 
         expect(await stalling).toMatchObject({
@@ -185,6 +196,7 @@ function launch(
         parts?: TurnEvent[];
         runtime?: DaemonRuntime;
         signal?: AbortSignal;
+        onStalled?: () => void;
         /** Goes silent after `parts` until the turn is aborted. */
         stall?: boolean;
     } = {}
@@ -208,6 +220,7 @@ function launch(
         async *turn({ signal }) {
             yield* options.parts ?? finishedTurn();
             if (options.stall) {
+                options.onStalled?.();
                 if (!signal.aborted) {
                     await new Promise((resolve) =>
                         signal.addEventListener('abort', resolve, { once: true })

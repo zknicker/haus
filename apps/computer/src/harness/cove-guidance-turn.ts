@@ -1,5 +1,6 @@
 import { inspectCoveFactoryGuidance, reconcileCoveFactoryGuidance } from '@haus/agent-workspace';
 import type { AgentActivityRun } from '../agent-activity-run.ts';
+import type { AgentDrive } from '../drive/agent-drive.ts';
 import {
     coveGuidanceConflictNotice,
     coveGuidanceRefreshNotice,
@@ -24,7 +25,7 @@ export async function prepareCoveGuidanceForTurn(input: {
     activityKey: string;
     agentRoot: string;
     factoryKind: 'cove' | 'ordinary';
-    workspaceDir: string;
+    drive: AgentDrive;
 }): Promise<CoveGuidanceTurnState> {
     const state: CoveGuidanceTurnState = {
         notice: coveTurnGuidanceNotice(input.factoryKind),
@@ -55,7 +56,7 @@ export async function prepareCoveGuidanceForTurn(input: {
         await startActivity();
         state.notice = coveGuidanceRefreshNotice;
     }
-    const plan = await inspectCoveFactoryGuidance(input.workspaceDir);
+    const plan = await inspectCoveFactoryGuidance(input.drive.area);
     if (plan.kind === 'current') {
         return state;
     }
@@ -67,7 +68,7 @@ export async function prepareCoveGuidanceForTurn(input: {
     await markCoveGuidanceRefreshPending(input.agentRoot);
     state.refreshPending = true;
     state.refreshCanComplete = true;
-    const result = await reconcileCoveFactoryGuidance(input.workspaceDir);
+    const result = await reconcileCoveFactoryGuidance(input.drive.area);
     if (result.kind === 'conflict') {
         await conflict(result.files);
     } else {

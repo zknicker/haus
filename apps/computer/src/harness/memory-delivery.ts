@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 
 /**
  * Delivers the Agent's MEMORY.md in the turn input (ADR 0052), so the Agent never has to
@@ -30,10 +29,10 @@ export async function planMemoryDelivery(input: {
     isResume: boolean;
     receipt: string | null;
     wake: boolean;
-    workspaceDir: string;
+    memoryPath: string;
 }): Promise<MemoryDelivery> {
     const priorReceipt = input.isResume ? input.receipt : null;
-    const content = await readMemory(input.workspaceDir);
+    const content = await readMemory(input.memoryPath);
     if (content === null || memoryDigest(content) === priorReceipt) {
         return { block: null, known: true, priorReceipt };
     }
@@ -64,8 +63,8 @@ export function memoryReceiptAfterTurn(
 }
 
 /** The digest of MEMORY.md as it is now; null when the file is missing. */
-export async function readMemoryDigest(workspaceDir: string): Promise<string | null> {
-    const content = await readMemory(workspaceDir);
+export async function readMemoryDigest(memoryPath: string): Promise<string | null> {
+    const content = await readMemory(memoryPath);
     return content === null ? null : memoryDigest(content);
 }
 
@@ -98,9 +97,9 @@ function memoryDigest(content: string): string {
 }
 
 /** The file's content; null when it is missing or unreadable, which never fails a turn. */
-async function readMemory(workspaceDir: string): Promise<string | null> {
+async function readMemory(memoryPath: string): Promise<string | null> {
     try {
-        return await readFile(join(workspaceDir, memoryFileName), 'utf8');
+        return await readFile(memoryPath, 'utf8');
     } catch (error) {
         const code = (error as NodeJS.ErrnoException | null)?.code;
         if (code !== 'ENOENT' && code !== 'ENOTDIR') {

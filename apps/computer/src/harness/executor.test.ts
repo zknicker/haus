@@ -7,6 +7,7 @@ import { hausAgentVersion } from '@haus/api';
 import type { ClaudeUsageSnapshot } from '@haus/claude-usage';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
+import { agentDrive } from '../drive/agent-drive.ts';
 import { composeInboxDrain, composeInboxNotice } from '../inbox-format.ts';
 import { acceptRunInbox, replacePendingInbox } from '../inbox-store.ts';
 import { claudePlanUsageFromResponse } from '../runtime/claude-code/claude-plan-usage.ts';
@@ -129,10 +130,10 @@ async function* scriptedTurn(input: HarnessTurnInput, prompt: string): AsyncGene
     streamedPrompts.push(prompt);
     if (input.factoryKind === 'cove') {
         streamedCoveFaqs.push(
-            await readOptionalText(join(input.workspaceDir, 'notes', 'onboarding_knowledge_faq.md'))
+            await readOptionalText(join(input.drive.area, 'notes', 'onboarding_knowledge_faq.md'))
         );
         streamedCovePlaybooks.push(
-            await readOptionalText(join(input.workspaceDir, 'notes', 'onboarding_playbook.md'))
+            await readOptionalText(join(input.drive.area, 'notes', 'onboarding_playbook.md'))
         );
     }
     for (const [index, toolName] of streamToolNames.entries()) {
@@ -232,7 +233,7 @@ function turnInput(overrides: TestTurnOverrides = {}): HarnessTurnInput {
         runtimeId: 'codex',
         runtime,
         sessionGeneration: 1,
-        skillsDir: join(agentRoot, 'skills'),
+        drive: agentDrive(agentRoot, 'agent'),
         totalPending: 1,
         workspaceDir: join(agentRoot, 'workspace'),
         drainItemIds: [],
@@ -601,8 +602,6 @@ test('Restart resumes the same session and refreshes its current instructions on
     expect(refreshedBootstraps).toBe(1);
 });
 
-// Managed instruction drift on a resumed turn: executor-instructions-update.test.ts.
-
 test('version-only drift applies once on the same warm session', async () => {
     await runHarnessTurn(turnInput());
     const firstSession = await readSession();
@@ -770,14 +769,14 @@ test('an aborted Restart keeps the current public Haus Agent version current', a
 });
 
 test('Cove guidance drift migrates a warm session once and is current when the resumed turn streams', async () => {
-    const workspaceDir = join(agentRoot, 'workspace');
-    await seedCoveWorkspace(workspaceDir);
+    const area = agentDrive(agentRoot, 'agent').area;
+    await seedCoveWorkspace(area);
     await runHarnessTurn(turnInput({ factoryKind: 'cove' }));
     const firstSession = await readSession();
-    await writeFile(join(workspaceDir, 'MEMORY.md'), '# Cove\n\nLearned context.\n');
-    await writeFile(join(workspaceDir, 'notes', 'onboarding_objectives.md'), 'owner progress\n');
-    await writeFile(join(workspaceDir, 'notes', 'onboarding_playbook.md'), legacyCovePlaybook);
-    await writeFile(join(workspaceDir, 'notes', 'onboarding_knowledge_faq.md'), legacyCoveFaq);
+    await writeFile(join(area, 'MEMORY.md'), '# Cove\n\nLearned context.\n');
+    await writeFile(join(area, 'notes', 'onboarding_objectives.md'), 'owner progress\n');
+    await writeFile(join(area, 'notes', 'onboarding_playbook.md'), legacyCovePlaybook);
+    await writeFile(join(area, 'notes', 'onboarding_knowledge_faq.md'), legacyCoveFaq);
     const updateActivity: Array<{ category: string; phase: string }> = [];
 
     await runHarnessTurn(
@@ -792,11 +791,11 @@ test('Cove guidance drift migrates a warm session once and is current when the r
         sessionId: 'engine_session_1',
     });
     expect((await readSession()).generation).toBe(1);
-    expect(await readFile(join(workspaceDir, 'MEMORY.md'), 'utf8')).toContain('Learned context.');
-    expect(await readFile(join(workspaceDir, 'notes', 'onboarding_objectives.md'), 'utf8')).toBe(
+    expect(await readFile(join(area, 'MEMORY.md'), 'utf8')).toContain('Learned context.');
+    expect(await readFile(join(area, 'notes', 'onboarding_objectives.md'), 'utf8')).toBe(
         'owner progress\n'
     );
-    expect(await readFile(join(workspaceDir, 'notes', 'onboarding_playbook.md'), 'utf8')).toContain(
+    expect(await readFile(join(area, 'notes', 'onboarding_playbook.md'), 'utf8')).toContain(
         'haus agent create'
     );
     expect(streamedCovePlaybooks[1]).toContain('haus agent create');
@@ -833,11 +832,11 @@ test('Cove guidance drift migrates a warm session once and is current when the r
 });
 
 test('an aborted warm Cove guidance refresh keeps its receipt and rereads on retry', async () => {
-    const workspaceDir = join(agentRoot, 'workspace');
-    await seedCoveWorkspace(workspaceDir);
+    const area = agentDrive(agentRoot, 'agent').area;
+    await seedCoveWorkspace(area);
     await runHarnessTurn(turnInput({ factoryKind: 'cove' }));
-    await writeFile(join(workspaceDir, 'notes', 'onboarding_playbook.md'), legacyCovePlaybook);
-    await writeFile(join(workspaceDir, 'notes', 'onboarding_knowledge_faq.md'), legacyCoveFaq);
+    await writeFile(join(area, 'notes', 'onboarding_playbook.md'), legacyCovePlaybook);
+    await writeFile(join(area, 'notes', 'onboarding_knowledge_faq.md'), legacyCoveFaq);
     streamAborts = true;
     const abortedActivity: Array<{ category: string; phase: string }> = [];
 
@@ -894,9 +893,9 @@ test('an aborted warm Cove guidance refresh keeps its receipt and rereads on ret
 });
 
 test('preserves edited Cove guidance and records a failed operator-visible refresh', async () => {
-    const workspaceDir = join(agentRoot, 'workspace');
-    await mkdir(join(workspaceDir, 'notes'), { recursive: true });
-    await writeFile(join(workspaceDir, 'notes', 'onboarding_playbook.md'), 'owner customization\n');
+    const area = agentDrive(agentRoot, 'agent').area;
+    await mkdir(join(area, 'notes'), { recursive: true });
+    await writeFile(join(area, 'notes', 'onboarding_playbook.md'), 'owner customization\n');
     const activity: Array<{ category: string; phase: string }> = [];
 
     await runHarnessTurn(
@@ -906,7 +905,7 @@ test('preserves edited Cove guidance and records a failed operator-visible refre
         })
     );
 
-    expect(await readFile(join(workspaceDir, 'notes', 'onboarding_playbook.md'), 'utf8')).toBe(
+    expect(await readFile(join(area, 'notes', 'onboarding_playbook.md'), 'utf8')).toBe(
         'owner customization\n'
     );
     expect(activity).toContainEqual({ category: 'updating_instructions', phase: 'started' });
@@ -924,10 +923,10 @@ test('preserves edited Cove guidance and records a failed operator-visible refre
 });
 
 test('retries Cove guidance consumption after a refreshed turn fails', async () => {
-    const workspaceDir = join(agentRoot, 'workspace');
-    await mkdir(join(workspaceDir, 'notes'), { recursive: true });
-    await writeFile(join(workspaceDir, 'notes', 'onboarding_playbook.md'), legacyCovePlaybook);
-    await writeFile(join(workspaceDir, 'notes', 'onboarding_knowledge_faq.md'), legacyCoveFaq);
+    const area = agentDrive(agentRoot, 'agent').area;
+    await mkdir(join(area, 'notes'), { recursive: true });
+    await writeFile(join(area, 'notes', 'onboarding_playbook.md'), legacyCovePlaybook);
+    await writeFile(join(area, 'notes', 'onboarding_knowledge_faq.md'), legacyCoveFaq);
     streamFails = true;
     const failedActivity: Array<{ category: string; phase: string }> = [];
 
@@ -944,7 +943,7 @@ test('retries Cove guidance consumption after a refreshed turn fails', async () 
         category: 'updating_instructions',
         phase: 'failed',
     });
-    expect(await readFile(join(workspaceDir, 'notes', 'onboarding_playbook.md'), 'utf8')).toContain(
+    expect(await readFile(join(area, 'notes', 'onboarding_playbook.md'), 'utf8')).toContain(
         'haus agent create'
     );
 
@@ -1198,7 +1197,7 @@ test('a resumed DM greeting is not followed by its stale notice from prior task 
             agentRoot: resumedRoot,
             homeDir: join(resumedRoot, 'home'),
             inbox,
-            skillsDir: join(resumedRoot, 'skills'),
+            drive: agentDrive(resumedRoot, 'agent'),
             workspaceDir: join(resumedRoot, 'workspace'),
         });
     await runHarnessTurn(

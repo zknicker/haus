@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
+import { agentDrive } from '../drive/agent-drive.ts';
 import {
     type ManagedSkillFactory,
     managedSkillChangeText,
@@ -99,7 +100,7 @@ function turnInput(): HarnessTurnInput {
         runtimeId: 'codex',
         serverId: 'srv_skill_notice_test',
         sessionGeneration: 1,
-        skillsDir: join(agentRoot, 'skills'),
+        drive: agentDrive(agentRoot, 'agent'),
         tools: [],
         totalPending: 0,
         unreadElsewhere: [],
