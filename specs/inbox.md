@@ -2,6 +2,7 @@
 summary: Agent inbox — the `agent_inbox` item kinds and their one lifecycle, exact delivery planning, model-visibility accounting, notice turns, local-first pulls, and cause inference on send. Supersedes steering.md and addressing.md.
 read_when:
   - adding an agent inbox item kind, or changing an item's identity or lifecycle
+  - changing the drive_conflict item, who receives it, or its wording
   - changing which agents wake for a chat message, mute/follow semantics, or mention piercing
   - changing exact model visibility, freshness catch-up, or pull acknowledgement
   - changing mid-turn notices, drain batching, or chain limits
@@ -38,6 +39,7 @@ ordinary Chat work, the rendered envelope as its content, and the recipient Agen
 | `greeting` | A newly created Agent's one-time `#all` greeting wake (ADR 0028) | `greeting:<agentId>`, so one per Agent | No lane of its own: attached to the next ordinary run whatever leads it (setting the start frame's `greets`), and leads a run only when nothing else waits (a sub-agent wake still leads, since it is never held and the greeting rides the next ordinary run). Retired as `seen`, queued or attached, once the Agent has a message in its `#all`, so neither a Stop nor a reconnect replay makes it show twice. Bodiless; never listed in a notice, the digest, or `haus inbox check` |
 | `subagent` | A wake for background work the Agent started on its runtime that finished or stopped ([runtime-drivers.md](runtime-drivers.md#background-work)); no Chat | `subagent:<agentId>:<wake id>` | Concrete; at most one queued per Agent, only for the current session generation. Never in a notice, the digest, or `haus inbox check`. Spends the automation chain; refused, not queued, at the chain ceiling. Retired by Stop, a session reset, or a run that adopted the turn it was for |
 | `task_assignment` | A Task assigned to this Agent ([tasks.md](tasks.md)); no Chat | `task-assign:<taskId>:<version>` | Concrete, and the one kind that coalesces: every queued assignment rides one run in the main session, up to 50. A busy Agent gets a count in its notice, never a row. Not in the digest or `haus inbox check`. Retired by reassigning or unassigning before a run takes it |
+| `drive_conflict` | One Drive push that kept both versions of a file, kept an edit over a delete, or refused a file ([artifact-drive.md](artifact-drive.md#pushes)). It lists every such file of the push. A Worker's push goes to its Agent. No Chat | `drive-conflict:<pushId>`, where the push id is the pushing run's id, so one per push | Concrete. Queued when the push closes. Never in a notice, the digest, or `haus inbox check`. Spends the automation chain, and at the ceiling it waits for the chain to reset instead of being refused. Retired as `seen` when its run settles |
 
 Only ordinary Chat work is backed by a `chat_messages` row; the rest exist solely
 here, because a fact only an Agent needs is never written to a transcript humans read
@@ -118,6 +120,31 @@ A durable `message.created` is planned once by Server delivery
   (`retireStaleRequeuedItems`), as it does when the same Agent already holds a newer assignment of
   the Task. An assignment an Agent made is Agent-authored traffic and spends the automation chain;
   one a person made resets it ([chain budget](github-triggers.md#automation-chain-budget)).
+- A Drive push that closes with any `kept_both`, `kept_edit`, or `refused` outcome
+  ([artifact-drive.md](artifact-drive.md#pushes)) queues one `drive_conflict` item for the Agent
+  that pushed, or for a Worker's push, the Worker's Agent. It has no Chat, so the row holds its
+  typed attention as JSON, as a Task assignment's does. That attention is `driveConflict` in
+  `packages/haus-api/src/agent-inbox.ts`: the push id, the writer (the Agent, or a Worker with its
+  Task), up to 200 files, and `more`, the count past 200. Each file carries `path`, `outcome`,
+  `copyPath` for `kept_both`, `currentRevisionId`, the current revision author's handle, and
+  `reason` (`same_lines`, `binary`, `base_gone`, `edit_over_delete`, or the refusal code).
+  `drive_conflict` joins `chatlessInboxSources`, and the start frame carries the item as
+  `driveConflict`. An idle Agent gets it as the prompt of its own run. A push closes only after its
+  turn settles, so a busy Agent gets it as its next run, with no notice. An Agent's push is
+  Agent-authored traffic and spends the automation chain. At the ceiling the item stays queued and
+  wakes the Agent once the chain resets, because the copies it names stay in Drive until someone
+  merges them. The turn input formatter renders one line per file and the item's own guidance, so
+  no standing prompt text teaches it:
+
+  ```text
+  [drive conflict · 3 files · your push after run_8f2…]
+  agents/blippy/notes/launch.md · @ada changed the same lines · yours: agents/blippy/notes/launch.conflict-blippy.md
+  haus/logo.png · binary, changed by @tiny · yours: haus/logo.conflict-blippy.png
+  haus/old-plan.md · @ada edited it, so your delete did not happen
+  Each original holds the current version and each copy holds yours. Merge what you still want into the original with ordinary file commands in drive/, then delete the copy.
+  ```
+
+  A Worker's item names the Worker and its Task in the header line.
 - After planning, ordinary Chat work gives an idle Agent a notice turn and a busy Agent receives the
   same notice in its live turn. Concrete work — a settled Cloud Agent Run, an automation fire, a
   claim assignment — is the typed exception: an idle recipient receives the item's own envelope as
@@ -205,7 +232,7 @@ budget follows rows made model-visible, not notice-only turns.
 
 Non-Chat system attention is a separate typed concrete lane. Cove's one-shot
 bootstrap instruction, a settled Cloud Agent Run's terminal attention, reminder and Trigger fires,
-and claim assignments use that lane, settle against their own stable identities, and never enter Chat message
+claim assignments, and Drive conflicts use that lane, settle against their own stable identities, and never enter Chat message
 resolution or Chat cursor accounting. Each of those exists nowhere but its inbox row, so its
 envelope rides the wake instead of waiting behind a pull the Agent may never make. The
 Computer suppresses an already-consumed identity on accepted-run replay; a failed unsettled
@@ -338,6 +365,7 @@ turn starts when its creator sends the working brief.
 | A single-Agent channel addresses `sole` without Jev for one human and judges it at the gate for more | `apps/server/test/haus-message-routing-sole.test.ts` |
 | The unread digest excludes notice-row chats and drained ids, so a bounded drain's remainder still shows | `apps/server/test/agent-inbox-digest.test.ts` |
 | Assignments coalesce into one main-session run, a busy Agent gets a count then the Tasks, and reassigning retires a queued item | `apps/server/test/haus-task-agent-delivery.test.ts`, `apps/computer/src/harness/task-assignment-turn.test.ts`, `apps/computer/src/inbox-store-task-assignments.test.ts` |
+| One `drive_conflict` item per push lists every file, wakes an idle Agent, reaches a Worker's Agent, and waits at the chain ceiling instead of dropping (lands with D2) | `apps/server/test/drive-conflict-delivery.test.ts` |
 
 ## Presentation split (I1/I4)
 

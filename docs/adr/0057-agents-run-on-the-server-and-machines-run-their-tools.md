@@ -80,8 +80,8 @@ loops.
    ([ADR 0056](0056-agents-run-quiet-workers-anywhere.md)). A dead machine is a failed Worker.
 
 10. **The runner composes each turn from Drive.** It reads rules and memory from the Server's
-    current revisions. Each machine keeps a plain `drive/` folder, pulled at turn start and pushed
-    after the reply ([ADR 0054](0054-drive-holds-what-agents-know-and-follow.md)). Prompt
+    current revisions. Each Agent keeps a plain `drive/` folder on its machine, pulled at turn
+    start and pushed after the reply ([ADR 0054](0054-drive-holds-what-agents-know-and-follow.md)). Prompt
     composition moves from the Computer to the runner.
 
 11. **Built-in machine tools only.** agent-browser is built in and managed by Haus. agent-desktop
@@ -145,8 +145,8 @@ Amended:
 - [ADR 0019](0019-servers-own-collaboration-computers-own-execution.md): Computers own tool
   execution and Workers. They no longer run Agent sessions.
 - [ADR 0054](0054-drive-holds-what-agents-know-and-follow.md): the runner composes the prompt and
-  reads Drive from the Server. Machines keep a `drive/` folder pulled at turn start and pushed after
-  the reply.
+  reads Drive from the Server. Each Agent keeps a `drive/` folder on its machine, pulled at turn
+  start and pushed after the reply.
 - `specs/inbox.md`: the Server delivers inbox items to the runner, not a Computer.
 - [ADR 0056](0056-agents-run-quiet-workers-anywhere.md): Workers keep machine logins and native
   harnesses. The Agent's runtime and tools live here.

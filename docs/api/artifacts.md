@@ -5,6 +5,8 @@ read_when:
   - "changing shared artifact APIs, revision storage, `haus files`, or Agent file sharing"
   - "changing shared file caching or R2 authorization"
   - "changing shared artifact paths, folders, or compare-and-set writes (see specs/artifact-drive.md)"
+  - "changing Drive areas, revision attribution, the change counter, pushes, merges, kept-both conflict copies, citations by revision, or the Drive page (see specs/artifact-drive.md)"
+  - "changing the drive/ folder on a machine, turn-start pull, or the push after a turn (see specs/drive-folder.md)"
 ---
 
 # Files
