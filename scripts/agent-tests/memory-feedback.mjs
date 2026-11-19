@@ -18,7 +18,7 @@ import { computerAttachmentPath } from './author.mjs';
 import { authoredInChannel } from './channel-messages.mjs';
 import { isReady } from './provisioner.mjs';
 
-const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url));
+const repositoryRoot = path.resolve(fileURLToPath(new URL('../../', import.meta.url)));
 export const evidenceDirectory = path.join(
     repositoryRoot,
     '.context',

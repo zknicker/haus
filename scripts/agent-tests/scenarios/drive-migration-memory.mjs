@@ -7,7 +7,7 @@ import { authoredInChannel } from '../channel-messages.mjs';
 import { marker } from '../kit.mjs';
 import { defineScenario } from '../scenario.mjs';
 
-const repositoryRoot = fileURLToPath(new URL('../../../', import.meta.url));
+const repositoryRoot = path.resolve(fileURLToPath(new URL('../../../', import.meta.url)));
 
 export default defineScenario({
     agents: [{ kind: 'worker' }],
