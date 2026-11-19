@@ -1,13 +1,12 @@
 import type { ProjectUpdateInput } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-import { requireChatWritable } from '../chats/chat-access.ts';
+import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import { prepareLifecycleEvent } from '../chats/lifecycle-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { chatsTable, projectsTable, taskKeysTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { projectUpdatedTopic } from '../realtime/topics.ts';
-import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import {
@@ -27,8 +26,7 @@ export async function updateProject(
 ) {
     const changed = await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
-        await requireServerMembership(tx, member, input.serverId);
-        await requireChatWritable(tx, input);
+        await requireChatWriteAccess(tx, member, input);
         const [current] = await tx
             .select({
                 color: chatsTable.color,

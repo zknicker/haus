@@ -31,7 +31,9 @@ non-retired Agents whose home it is, oldest first).
   then `2`, `3`, ... appended on a collision, trimming the base to stay within 5 characters; a
   name with no letter or digit takes the next free `P2`, `P3`, .... Migration 0130 follows the
   same rule.
-- `project.update` renames the Project's ledger entry in place while no Task holds it.
+- `project.update` renames the Project's ledger entry in place while no Task holds it. It
+  needs the same access as a channel write: a member outside the channel gets `FORBIDDEN`, and an
+  archived channel `CONFLICT`, before anything commits.
 - Both publish `chat.onLifecycle` (`created`, or `updated` when a channel field changed) for the
   chat list, and `project.onUpdated`.
 - Archiving or deleting a Project goes through `chat.archiveChannel` and `chat.deleteChannel`.

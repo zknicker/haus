@@ -150,6 +150,47 @@ test('creating and each effective change publish project.updated; a no-op publis
     await expect(publishedSince(beforeNoop, serverId)).resolves.toEqual([]);
 });
 
+test('a member outside the Project channel cannot change its settings, and nothing commits', async () => {
+    harness.humans.setVerifiedEmails('user_projects_outsider', ['outsider-projects@haus.test']);
+    const outsider = createHausClient(
+        harness,
+        await harness.humans.mintSessionToken('user_projects_outsider')
+    );
+    const { token } = await owner.trpc.invitation.create.mutate({
+        email: 'outsider-projects@haus.test',
+        serverId,
+    });
+    await outsider.trpc.invitation.accept.mutate({ token });
+    const closed = await owner.trpc.project.create.mutate({ name: 'closed-door', serverId });
+    const before = captureAllTopics();
+
+    await expect(
+        outsider.trpc.project.update.mutate({
+            chatId: closed.chat.id,
+            description: 'Rewritten from outside',
+            key: 'OUT',
+            name: 'taken-over',
+            serverId,
+        })
+    ).rejects.toEqual(
+        expect.objectContaining({
+            data: expect.objectContaining({ code: 'FORBIDDEN' }),
+            message: 'You are not a participant in this Chat.',
+        })
+    );
+    outsider.close();
+
+    expect(
+        await harness.sql`
+            select chats.name, chats.description, task_keys.key from projects
+            join chats on chats.id = projects.chat_id
+            join task_keys on task_keys.id = projects.task_key_id
+            where projects.chat_id = ${closed.chat.id}
+        `
+    ).toEqual([{ description: null, key: closed.project.key, name: 'closed-door' }]);
+    await expect(publishedSince(before, serverId)).resolves.toEqual([]);
+});
+
 test('a taken channel name refuses create and rename', async () => {
     const a = await owner.trpc.project.create.mutate({ name: 'collide-a', serverId });
     await owner.trpc.project.create.mutate({ name: 'collide-b', serverId });
