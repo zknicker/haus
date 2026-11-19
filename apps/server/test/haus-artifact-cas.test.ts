@@ -85,6 +85,35 @@ test('two creators at one free path: the second fails fast and the first lands',
     expect((await first).artifact.path).toBe('haus/fresh/new.md');
 });
 
+test('a restore that races another write fails instead of merging onto the new head', async () => {
+    const path = 'haus/restore-race.md';
+    const first = await publish({ body: 'a\nb\nc\n', path });
+    const second = await publish({ base: first.artifact.revision_id, body: 'a\nB\nc\n', path });
+    const hold = storage.holdNextUpload();
+    const restore = state.owner.trpc.artifact.restore.mutate({
+        artifact_id: first.artifact.artifact_id,
+        revision_id: first.artifact.revision_id,
+        serverId: state.serverId,
+    });
+    await hold.started;
+    const third = await publish({ base: second.artifact.revision_id, body: 'a\nB\nc\nd\n', path });
+    hold.release();
+
+    await expect(restore).rejects.toMatchObject({
+        data: {
+            artifact: {
+                code: 'REVISION_CONFLICT',
+                current: { revision_id: third.artifact.revision_id },
+            },
+        },
+    });
+    const current = await state.owner.trpc.artifact.get.query({
+        artifact_id: first.artifact.artifact_id,
+        serverId: state.serverId,
+    });
+    expect(current.artifact.revision_id).toBe(third.artifact.revision_id);
+});
+
 test('a failed create frees its path for the next writer', async () => {
     storage.failUploads = true;
     await expect(publish({ path: 'haus/flaky.md' })).rejects.toThrow('R2 upload unavailable');

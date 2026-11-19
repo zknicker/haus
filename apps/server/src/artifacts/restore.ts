@@ -59,6 +59,7 @@ export async function restoreArtifactRevision(options: {
             // A default title is the file's name, so the restored revision takes today's name.
             ...(hasDefaultTitle(revision) ? {} : { title: revision.title }),
         },
+        merges: false,
         origin,
         storage,
         stream: chunksOf(storage.stream(revision.objectKey)),

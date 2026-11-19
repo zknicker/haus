@@ -65,6 +65,28 @@ test('a carriage return stays part of its line', () => {
     });
 });
 
+test('a change inside a run of equal lines lands at one spot on both sides', () => {
+    expect(mergeText('e\ne\nb\ne\ne\ne\n', 'e\nA\ne\nb\ne\ne\n', 'e\ne\nb\ne\ne\n')).toEqual({
+        status: 'merged',
+        text: 'e\nA\ne\nb\ne\ne\n',
+    });
+    expect(mergeText('a\na\ne\n', 'a\ne\n', 'X1\na\ne\nC\n')).toEqual({ status: 'conflict' });
+});
+
+test('more than a thousand edits on each side still merge when no two edits touch', () => {
+    const base = Array.from({ length: 2100 }, (_, index) => `line ${index}\n`);
+    const side = (tag: string, remainder: number) =>
+        base.map((line, index) => (index % 4 === remainder ? `${tag} ${index}\n` : line)).join('');
+    const expected = Array.from({ length: 525 }, (_, block) => {
+        const at = block * 4;
+        return `head ${at}\nline ${at + 1}\nincoming ${at + 2}\nline ${at + 3}\n`;
+    }).join('');
+    expect(mergeText(base.join(''), side('head', 0), side('incoming', 2))).toEqual({
+        status: 'merged',
+        text: expected,
+    });
+});
+
 test('megabyte inputs merge distant edits and conflict on wholesale rewrites', () => {
     const lines = Array.from({ length: 40_000 }, (_, index) => `line ${index} ${'x'.repeat(16)}`);
     const big = lines.join('\n');

@@ -14,8 +14,10 @@ import {
     artifactsTable as artifacts,
     artifactRevisionsTable as revisions,
 } from '../../postgres/schema.ts';
+import { writableDrivePath } from '../areas.ts';
 import { freeCopyPath } from './copy-path.ts';
-import { driveRevisionOf, recordOutcome, revisionOwner } from './outcomes.ts';
+import { driveRevisionOf, revisionOwner } from './outcomes.ts';
+import { type PushRequest, recordOutcome } from './replay.ts';
 import { type DrivePush, requireOpenPush } from './session.ts';
 
 type Artifact = typeof artifacts.$inferSelect;
@@ -28,6 +30,7 @@ export interface PushPutLanding {
     path: string;
     placed: string;
     push: DrivePush;
+    request: PushRequest;
     requestId: string;
     revision: Revision;
     storage: ArtifactStorage;
@@ -44,6 +47,7 @@ export async function landPushPut(db: HausDatabase, landing: PushPutLanding) {
         const { access, push } = landing;
         await lockLiveServer(tx, access.serverId);
         await requireOpenPush(tx, access, push.id);
+        await writableDrivePath(tx, access, landing.placed);
         const provisional = await readArtifact(tx, landing.revision.artifactId);
         const landed = await markUploaded(tx, provisional, landing.revision, landing.uploaded);
         const result = await decide(tx, landing, landed);
@@ -52,8 +56,10 @@ export async function landPushPut(db: HausDatabase, landing: PushPutLanding) {
         }
         await releasePendingPath(tx, provisional.id);
         const outcome = await recordOutcome(tx, access, {
+            contentSha256: landing.uploaded.sha256,
             outcome: result.outcome,
             pushId: push.id,
+            request: landing.request,
             requestId: landing.requestId,
         });
         return {

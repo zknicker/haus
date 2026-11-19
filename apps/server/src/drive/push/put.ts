@@ -20,14 +20,9 @@ import type { HausDatabase } from '../../postgres/connection.ts';
 import { agentsTable, artifactRevisionsTable as revisions } from '../../postgres/schema.ts';
 import { artifactUpdatedTopic } from '../../realtime/topics.ts';
 import { writableDrivePath } from '../areas.ts';
-import {
-    isRefusal,
-    pushRevisionRequestId,
-    recordRefusal,
-    requirePushPath,
-    storedOutcome,
-} from './outcomes.ts';
+import { isRefusal, pushRevisionRequestId, requirePushPath } from './outcomes.ts';
 import { landPushPut } from './put-land.ts';
+import { type PushRequest, putRequest, recordRefusal, replayPut, storedOutcome } from './replay.ts';
 import { type DrivePush, openPush, requireOpenPush } from './session.ts';
 
 export interface DrivePushOptions {
@@ -51,15 +46,17 @@ export async function pushPut(
     const input = putQuery.parse(request.query);
     const { db } = options;
     const access = await artifactAccess(db, { kind: 'agent', runner });
-    const stored = await storedOutcome(db, access, input.request_id);
+    const pushRequest = putRequest(input);
+    const stored = await storedOutcome(db, access, input.request_id, pushRequest);
     if (stored) {
-        return stored;
+        return await replayPut(stored, request.stream);
     }
     const storage = requireArtifactStorage(options.storage);
     const opened = await openPush(db, options.agentDelivery, access, input.push_id);
     options.wake(opened.wakes);
     const { push } = opened;
     let reserved: typeof revisions.$inferSelect | null = null;
+    let bodySha256: string | null = null;
     try {
         requireRawContentType(request.contentType, input.content_type);
         const path = requirePushPath(input.path);
@@ -69,10 +66,11 @@ export async function pushPut(
             contentType: input.content_type,
             path,
             push,
+            request: pushRequest,
             requestId: input.request_id,
         });
         if (reservation.stored) {
-            return reservation.stored;
+            return await replayPut(reservation.stored, request.stream);
         }
         reserved = reservation.revision;
         const uploaded = await storage.upload(
@@ -83,6 +81,7 @@ export async function pushPut(
         if (uploaded.size > artifactMaxBytes) {
             throw new ArtifactError('File exceeds the 256 MiB limit.', 413, 'SIZE_LIMIT');
         }
+        bodySha256 = uploaded.sha256;
         const landed = await landPushPut(db, {
             access,
             base: input.base_revision_id ?? null,
@@ -90,6 +89,7 @@ export async function pushPut(
             path,
             placed: reservation.placed,
             push,
+            request: pushRequest,
             requestId: input.request_id,
             revision: reserved,
             storage,
@@ -105,8 +105,10 @@ export async function pushPut(
         if (isRefusal(cause)) {
             return await refuse(db, access, {
                 cause,
+                contentSha256: bodySha256,
                 path: input.path,
                 pushId: push.id,
+                request: pushRequest,
                 requestId: input.request_id,
             });
         }
@@ -146,13 +148,14 @@ async function reservePut(
         contentType: string;
         path: string;
         push: DrivePush;
+        request: PushRequest;
         requestId: string;
     }
 ) {
     return await db.transaction(async (tx) => {
         await lockLiveServer(tx, access.serverId);
         await requireOpenPush(tx, access, write.push.id);
-        const stored = await storedOutcome(tx, access, write.requestId);
+        const stored = await storedOutcome(tx, access, write.requestId, write.request);
         if (stored) {
             return { stored };
         }
@@ -218,7 +221,7 @@ async function releaseRequestId(tx: HausDatabase, access: ArtifactAccess, reques
 async function refuse(
     db: HausDatabase,
     access: ArtifactAccess,
-    write: { cause: ArtifactError; path: string; pushId: string; requestId: string }
+    write: Parameters<typeof recordRefusal>[2]
 ) {
     return await db.transaction(async (tx) => {
         await lockLiveServer(tx, access.serverId);

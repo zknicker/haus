@@ -3,6 +3,7 @@ import {
     ARTIFACT_REVISION_RETENTION_DAYS,
     type ArtifactUpdatedEvent,
     artifactTextMaxBytes,
+    driveDeletedRetentionDays,
 } from '@haus/api';
 import { moveArtifacts } from '../src/artifacts/move.ts';
 import { deleteExpiredArtifactRevisions } from '../src/artifacts/retention.ts';
@@ -52,6 +53,30 @@ test('an old current revision with no successor is always kept', async () => {
     await age(only.artifact.revision_id, daysAgo(400));
     await deleteExpiredArtifactRevisions(state.connection.db, storage, now);
     expect(await revisionIds(only.artifact.artifact_id)).toEqual([only.artifact.revision_id]);
+});
+
+test('a deleted file keeps its large replaced revision until the deleted window ends', async () => {
+    const first = await publish({ body: large('one'), path: 'haus/prune/deleted.txt' });
+    const second = await publish({
+        base: first.artifact.revision_id,
+        body: 'two',
+        path: 'haus/prune/deleted.txt',
+    });
+    await ageFile(first.artifact.artifact_id, daysAgo(ARTIFACT_REVISION_RETENTION_DAYS + 3));
+    await deleteFile(first.artifact.artifact_id, daysAgo(driveDeletedRetentionDays - 1));
+
+    expect(await deleteExpiredArtifactRevisions(state.connection.db, storage, now)).toEqual([]);
+    expect(await revisionIds(first.artifact.artifact_id)).toEqual([
+        first.artifact.revision_id,
+        second.artifact.revision_id,
+    ]);
+
+    await deleteFile(first.artifact.artifact_id, daysAgo(driveDeletedRetentionDays + 1));
+    const pruned = await deleteExpiredArtifactRevisions(state.connection.db, storage, now);
+    expect(pruned.map((row) => row.id).toSorted()).toEqual(
+        [first.artifact.revision_id, second.artifact.revision_id].toSorted()
+    );
+    expect(await revisionIds(first.artifact.artifact_id)).toEqual([]);
 });
 
 test('a storage failure leaves the revision claimed for startup cleanup', async () => {
@@ -155,6 +180,12 @@ test('closing stops between revisions and hands unprocessed claims back', async 
 async function age(revisionId: string, createdAt: Date) {
     await state.harness.sql`
         update artifact_revisions set created_at = ${createdAt} where id = ${revisionId}
+    `;
+}
+
+async function deleteFile(artifactId: string, deletedAt: Date) {
+    await state.harness.sql`
+        update artifacts set deleted_at = ${deletedAt} where id = ${artifactId}
     `;
 }
 

@@ -7623,6 +7623,24 @@
           "primaryKey": false,
           "notNull": true
         },
+        "base_revision_id": {
+          "name": "base_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "content_sha256": {
+          "name": "content_sha256",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "content_type": {
+          "name": "content_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -7630,9 +7648,21 @@
           "notNull": true,
           "default": "now()"
         },
+        "operation": {
+          "name": "operation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "outcome": {
           "name": "outcome",
           "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "path_key": {
+          "name": "path_key",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -7707,7 +7737,12 @@
       },
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "drive_push_outcomes_request_shape": {
+          "name": "drive_push_outcomes_request_shape",
+          "value": "\"drive_push_outcomes\".\"operation\" in ('put', 'delete') and (\"drive_push_outcomes\".\"operation\" = 'put') = (\"drive_push_outcomes\".\"content_type\" is not null) and (\"drive_push_outcomes\".\"operation\" = 'put' or (\"drive_push_outcomes\".\"content_sha256\" is null and \"drive_push_outcomes\".\"base_revision_id\" is not null))"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.drive_pushes": {

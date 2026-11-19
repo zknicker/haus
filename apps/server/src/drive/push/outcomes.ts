@@ -1,12 +1,6 @@
 import { createHash } from 'node:crypto';
-import {
-    type ArtifactErrorCode,
-    artifactPathSchema,
-    type DrivePushOutcome,
-    type DriveRevision,
-} from '@haus/api';
+import { type ArtifactErrorCode, artifactPathSchema, type DriveRevision } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-import type { ArtifactAccess } from '../../artifacts/access.ts';
 import { liveArtifactAtPath } from '../../artifacts/path.ts';
 import { artifactCreator } from '../../artifacts/read.ts';
 import { ArtifactError } from '../../artifacts/storage.ts';
@@ -14,12 +8,10 @@ import type { HausDatabase } from '../../postgres/connection.ts';
 import {
     artifactsTable as artifacts,
     artifactRevisionsTable as revisions,
-    drivePushOutcomesTable,
 } from '../../postgres/schema.ts';
 
 type Artifact = typeof artifacts.$inferSelect;
 type Revision = typeof revisions.$inferSelect;
-type PushAccess = Pick<ArtifactAccess, 'authorKey' | 'serverId'>;
 
 const refusalCodes = new Set<ArtifactErrorCode>([
     'CONTENT_TYPE',
@@ -27,68 +19,10 @@ const refusalCodes = new Set<ArtifactErrorCode>([
     'INVALID_PATH',
     'PATH_CONFLICT',
     'SIZE_LIMIT',
-    'STORAGE_LIMIT',
 ]);
 
 export function isRefusal(cause: unknown): cause is ArtifactError {
     return cause instanceof ArtifactError && refusalCodes.has(cause.code);
-}
-
-export async function storedOutcome(db: HausDatabase, access: PushAccess, requestId: string) {
-    const [row] = await db
-        .select({ outcome: drivePushOutcomesTable.outcome })
-        .from(drivePushOutcomesTable)
-        .where(
-            and(
-                eq(drivePushOutcomesTable.serverId, access.serverId),
-                eq(drivePushOutcomesTable.authorKey, access.authorKey),
-                eq(drivePushOutcomesTable.requestId, requestId)
-            )
-        )
-        .limit(1);
-    return row?.outcome ?? null;
-}
-
-export async function recordOutcome(
-    tx: HausDatabase,
-    access: PushAccess,
-    write: { outcome: DrivePushOutcome; pushId: string; requestId: string }
-) {
-    const [stored] = await tx
-        .insert(drivePushOutcomesTable)
-        .values({
-            authorKey: access.authorKey,
-            outcome: write.outcome,
-            pushId: write.pushId,
-            requestId: write.requestId,
-            serverId: access.serverId,
-        })
-        .onConflictDoNothing()
-        .returning({ outcome: drivePushOutcomesTable.outcome });
-    return stored?.outcome ?? (await storedOutcome(tx, access, write.requestId)) ?? write.outcome;
-}
-
-export async function recordRefusal(
-    tx: HausDatabase,
-    access: PushAccess,
-    write: { cause: ArtifactError; path: string; pushId: string; requestId: string }
-) {
-    const prior = await storedOutcome(tx, access, write.requestId);
-    if (prior) {
-        return prior;
-    }
-    const live = await liveAt(tx, access.serverId, write.path);
-    return await recordOutcome(tx, access, {
-        outcome: {
-            code: write.cause.code,
-            current: live,
-            message: write.cause.message,
-            outcome: 'refused',
-            path: write.path,
-        },
-        pushId: write.pushId,
-        requestId: write.requestId,
-    });
 }
 
 export async function liveAt(tx: HausDatabase, serverId: string, path: string) {

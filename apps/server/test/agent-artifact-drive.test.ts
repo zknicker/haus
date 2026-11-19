@@ -3,7 +3,7 @@ import { artifactListResultSchema, artifactPublishResultSchema } from '@haus/api
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 import { MemoryArtifactStorage } from './artifact-drive-fixture.ts';
 
-const fixture = agentCreationFixture(undefined, new MemoryArtifactStorage());
+const fixture = agentCreationFixture(undefined, { artifactStorage: new MemoryArtifactStorage() });
 
 test('Agents browse folders, pull a prefix recursively, resolve paths, and move', async () => {
     const runner = await fixture.mintRunner('run_artifact_drive');

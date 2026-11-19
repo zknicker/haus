@@ -27,6 +27,7 @@ export interface ArtifactPublishOptions {
     storage: ArtifactStorage | null;
     budget?: number;
     input: ArtifactPublishInput;
+    merges?: boolean;
     stream: AsyncIterable<Uint8Array>;
     /** The Task the write was for; only a push names one. */
     taskId?: string | null;
@@ -41,7 +42,7 @@ export async function publishArtifact(options: ArtifactPublishOptions) {
     const reserved = await reserveArtifact(
         db,
         access,
-        { input, taskId: options.taskId ?? null },
+        { input, merges: options.merges ?? true, taskId: options.taskId ?? null },
         options.budget ?? artifactStorageBytes,
         origin
     );

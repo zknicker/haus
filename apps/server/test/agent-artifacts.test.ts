@@ -24,7 +24,7 @@ const storage: ArtifactStorage = {
         return { sha256: createHash('sha256').update(bytes).digest('hex'), size: bytes.length };
     },
 };
-const fixture = agentCreationFixture(undefined, storage);
+const fixture = agentCreationFixture(undefined, { artifactStorage: storage });
 
 test('raw CLI publication streams through runner auth and other Agents can publish revisions', async () => {
     const firstRunner = await fixture.mintRunner('run_artifact_author');
