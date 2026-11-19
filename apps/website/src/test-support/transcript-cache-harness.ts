@@ -148,6 +148,7 @@ export function message(
         body: { kind: 'text' },
         chatId,
         cloudAgentWork: [],
+        driveCitations: [],
         imageGenerations: [],
         content: `Message ${sequence}`,
         createdAt: new Date(Date.UTC(2026, 9, 9, 12, sequence)).toISOString(),

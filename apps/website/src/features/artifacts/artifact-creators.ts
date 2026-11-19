@@ -1,13 +1,13 @@
-import type { ArtifactCreator, ArtifactCreatorSummary } from '@haus/api';
+import type { ArtifactAuthor, ArtifactCreator, ArtifactCreatorSummary } from '@haus/api';
 import type { HumanDirectory } from '../servers/human-identity.ts';
 
 /** Who made what, named the way every other surface names them. */
 export interface ArtifactCreatorDirectory {
     /** The identity mark: the creator's real name (never "You") and uploaded image. */
-    avatar(creator: ArtifactCreator): { name: string; src: string | null };
-    isSelf(creator: ArtifactCreator): boolean;
+    avatar(creator: ArtifactAuthor): { name: string; src: string | null };
+    isSelf(creator: ArtifactAuthor): boolean;
     /** "You" for the viewer, else the Agent's or person's display name. */
-    name(creator: ArtifactCreator): string;
+    name(creator: ArtifactAuthor): string;
 }
 
 export function artifactCreatorDirectory(
@@ -15,21 +15,24 @@ export function artifactCreatorDirectory(
     humans: HumanDirectory
 ): ArtifactCreatorDirectory {
     const byId = new Map(agents.map((agent) => [agent.id, agent]));
-    const isSelf = (creator: ArtifactCreator) =>
+    const isSelf = (creator: ArtifactAuthor) =>
         creator.type === 'user' && humans.isSelf(creator.user_id);
     const agentName = (agentId: string) => byId.get(agentId)?.displayName ?? 'Removed Agent';
     return {
         avatar: (creator) =>
-            creator.type === 'agent'
-                ? {
+            creator.type === 'user'
+                ? { name: humans.name(creator.user_id), src: humans.avatarUrl(creator.user_id) }
+                : {
                       name: agentName(creator.agent_id),
                       src: byId.get(creator.agent_id)?.avatarUrl ?? null,
-                  }
-                : { name: humans.name(creator.user_id), src: humans.avatarUrl(creator.user_id) },
+                  },
         isSelf,
         name: (creator) => {
             if (creator.type === 'agent') {
                 return agentName(creator.agent_id);
+            }
+            if (creator.type === 'worker') {
+                return `Worker for ${agentName(creator.agent_id)}`;
             }
             return isSelf(creator) ? 'You' : humans.name(creator.user_id);
         },
