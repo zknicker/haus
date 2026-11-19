@@ -68,7 +68,7 @@ const resetContextLine =
  * The lines are Raft db5e399's `buildAllChannelAgenticGreetingInstruction`.
  */
 const firstTurnGreetingLine = [
-    'Post one short, natural self-introduction to #all so the team knows who you are and what you can help with.',
+    'Post one short, natural self-introduction to #haus so the team knows who you are and what you can help with.',
     'Write it in your own voice, one or two sentences. Do NOT paste a fixed template. If a conversation is already going there, read the room and keep it brief.',
     'This is a one-time greeting; after you post it, go back to normal work.',
 ].join('\n');

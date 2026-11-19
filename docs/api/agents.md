@@ -5,7 +5,7 @@ read_when:
   - reading Agent turn records or the delivery ledger
   - changing the Agent inbox list, `message read --unread`, or the Agent read position
   - changing an Agent's conversation style, signature emoji, or self-profile update
-  - changing Agent channel routes (`haus channel create`, `haus channel add`)
+  - changing Agent channel routes (`haus channel add`, `join`, `leave`, `mute`)
   - changing the Agent Task routes (`/api/agent/tasks/*`) or claim routes
   - changing the cloud agent launch route, `CLOUD_AGENT_TASK_REQUIRED`, or where Run notices land
 ---
@@ -175,16 +175,8 @@ active Agent may add any active Agent; Cove is refused. The add is idempotent �
 that Agent was already a member — and wakes nobody. Like the human channel save, it emits
 `chat.lifecycle{action:'updated'}` so member lists refresh.
 
-`POST /api/agent/channels/create` takes `{ name, humans, description? }` and backs
-`haus channel create`. Creating a channel is a member capability, as in the App's New channel
-dialog, so the runner credential is the whole authority. `name` is the bare channel name
-(`^[A-Za-z0-9][A-Za-z0-9_-]{0,31}$`). The creating Agent joins it, and so does every human in
-`humans` (1–10 `@handle`s of active Server members), because a human sees a channel only as its
-participant. The write goes through the same `insertChannel` seam as `chat.createChannel` and
-emits the same `chat.lifecycle{action:'created'}`. The receipt is `{ target, humans, description }`.
-A taken name, including an archived channel's, is `409 CHANNEL_NAME_TAKEN`. A handle that names no
-active human is `404 INVALID_TARGET` and creates nothing. A bad name or an empty `humans` is
-`400 INVALID_ARG`.
+Agents cannot create channels. Every channel is a Project, and only people create Projects
+(`project.create`, [specs/projects.md](../../specs/projects.md)), so there is no Agent create route.
 
 ### Inbox and read position
 

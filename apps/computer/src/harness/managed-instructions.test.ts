@@ -216,7 +216,9 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // Raised by exactly 12 (37,753 → 37,765) when the Cloud agents sentence named "a cloud agent's run" for "its run".
     // Raised by exactly 145 (37,765 → 37,910) when MEMORY.md and notes/ moved into Drive at drive/agents/<handle>/ (ADR 0054, D3).
     // Raised by exactly 13 (37,910 → 37,923) when the Files entry became Drive: edits happen in the drive/ folder, not haus files pull/push.
-    expect(prompt.length).toBeLessThanOrEqual(37_923);
+    // Lowered by exactly 79 (37,923 → 37,844): only people create Projects, so `haus channel create`
+    // and its Manual pointer went (-80), and the welcome rule names #haus for #all (+1).
+    expect(prompt.length).toBeLessThanOrEqual(37_844);
     expect(prompt.toLowerCase()).not.toContain('thread');
 });
 
