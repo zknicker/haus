@@ -48,6 +48,15 @@ export async function sendDrivePush(plan: DrivePushPlan, remote: DriveRemote, pu
     const { files, layout, state } = plan;
     const context: OutcomeContext = { files, layout, remote, state };
     const writer = layout.writer;
+    const failed: { message: string; path: string }[] = [];
+    const isolate = async (path: string, send: () => Promise<void>) => {
+        await send().catch((error: unknown) => {
+            if (isFatal(error)) {
+                throw error;
+            }
+            failed.push({ message: error instanceof Error ? error.message : String(error), path });
+        });
+    };
     await files.clearScratch();
     try {
         if (plan.stalePush !== null && plan.stalePush !== pushId) {
@@ -55,46 +64,49 @@ export async function sendDrivePush(plan: DrivePushPlan, remote: DriveRemote, pu
             await state.openPush(null);
         }
         if (plan.deletes.length === 0 && plan.puts.length === 0) {
-            return { listed: [], sent: 0 };
+            const closed =
+                plan.stalePush === pushId ? await ignorePushClosed(remote.close(pushId)) : null;
+            await state.openPush(null);
+            return { failed, listed: closed?.listed ?? [], sent: 0 };
         }
         await state.openPush(pushId);
         for (const record of plan.deletes) {
-            const outcome = await remote.delete({
-                base_revision_id: record.revision_id,
-                path: record.path,
-                push_id: pushId,
-                request_id: requestId([writer, record.path, record.revision_id, null]),
+            await isolate(record.path, async () => {
+                const outcome = await remote.delete({
+                    base_revision_id: record.revision_id,
+                    path: record.path,
+                    push_id: pushId,
+                    request_id: requestId([writer, record.path, record.revision_id, null]),
+                });
+                await applyPushOutcome(context, outcome, null);
             });
-            await applyPushOutcome(context, outcome, null);
         }
         for (const put of plan.puts) {
-            const head = new Uint8Array(
-                await Bun.file(files.absolute(put.path)).slice(0, 4096).arrayBuffer()
-            );
-            const outcome = await remote.put(
-                {
-                    base_revision_id: put.record?.revision_id,
-                    content_type: inferAttachmentMediaType(put.path, head),
-                    path: put.path,
-                    push_id: pushId,
-                    request_id: requestId([
-                        writer,
-                        put.path,
-                        put.record?.revision_id ?? createSlot(plan, put.path),
-                        put.sha256,
-                    ]),
-                },
-                files.absolute(put.path)
-            );
-            await applyPushOutcome(context, outcome, put.sha256);
+            await isolate(put.path, async () => {
+                const file = files.absolute(put.path);
+                const head = new Uint8Array(await Bun.file(file).slice(0, 4096).arrayBuffer());
+                const base = put.record?.revision_id ?? createSlot(plan, put.path);
+                const outcome = await remote.put(
+                    {
+                        base_revision_id: put.record?.revision_id,
+                        content_type: inferAttachmentMediaType(put.path, head),
+                        path: put.path,
+                        push_id: pushId,
+                        request_id: requestId([writer, put.path, base, put.sha256]),
+                    },
+                    file
+                );
+                await applyPushOutcome(context, outcome, put.sha256);
+            });
         }
         const closed = await ignorePushClosed(remote.close(pushId));
         await state.openPush(null);
-        return { listed: closed?.listed ?? [], sent: plan.deletes.length + plan.puts.length };
+        const sent = plan.deletes.length + plan.puts.length - failed.length;
+        return { failed, listed: closed?.listed ?? [], sent };
     } catch (error) {
         if (error instanceof DriveRemoteError && error.code === 'PUSH_CLOSED') {
             await state.openPush(null);
-            return { listed: [], sent: 0 };
+            return { failed, listed: [], sent: 0 };
         }
         throw error;
     } finally {
@@ -102,10 +114,18 @@ export async function sendDrivePush(plan: DrivePushPlan, remote: DriveRemote, pu
     }
 }
 
+function isFatal(error: unknown) {
+    if (error instanceof DriveRemoteError) {
+        return error.code === 'PUSH_CLOSED' || error.status === 401 || error.status >= 500;
+    }
+    return typeof (error as NodeJS.ErrnoException | null)?.syscall !== 'string';
+}
+
 function createSlot(plan: DrivePushPlan, path: string) {
-    const { areas, counters } = plan.state.current();
+    const { areas, counters, retired } = plan.state.current();
     const area = areaOfPath(areas, path);
-    return area ? `${area.area}@${counters[area.area] ?? 0}` : 'outside@0';
+    const slot = area ? `${area.area}@${counters[area.area] ?? 0}` : 'outside@0';
+    return `${slot}:${retired[path] ?? ''}`;
 }
 
 function requestId(parts: (string | null)[]) {

@@ -7,7 +7,34 @@ import { driveFolderLayout } from './folder-state.ts';
 import { pullDrive } from './pull.ts';
 import { planDrivePush, sendDrivePush } from './push.ts';
 
-export async function pullDriveBeforeTurn(
+const folderTurns = new Map<string, Promise<unknown>>();
+
+export function pullDriveBeforeTurn(
+    options: RunAgentLaunchOptions,
+    agentRoot: string,
+    runnerToken: string
+) {
+    return inFolderTurn(agentRoot, () => pullBeforeTurn(options, agentRoot, runnerToken));
+}
+
+export function pushDriveAfterTurn(options: RunAgentLaunchOptions, agentRoot: string) {
+    return inFolderTurn(agentRoot, () => pushAfterTurn(options, agentRoot));
+}
+
+async function inFolderTurn(agentRoot: string, run: () => Promise<void>) {
+    const previous = folderTurns.get(agentRoot) ?? Promise.resolve();
+    const next = previous.then(run);
+    folderTurns.set(agentRoot, next);
+    try {
+        await next;
+    } finally {
+        if (folderTurns.get(agentRoot) === next) {
+            folderTurns.delete(agentRoot);
+        }
+    }
+}
+
+async function pullBeforeTurn(
     options: RunAgentLaunchOptions,
     agentRoot: string,
     runnerToken: string
@@ -25,7 +52,7 @@ export async function pullDriveBeforeTurn(
     }
 }
 
-export async function pushDriveAfterTurn(options: RunAgentLaunchOptions, agentRoot: string) {
+async function pushAfterTurn(options: RunAgentLaunchOptions, agentRoot: string) {
     try {
         const plan = await planDrivePush(driveFolderLayout(agentRoot, options.command.agentId));
         if (plan.isEmpty) {
@@ -37,7 +64,10 @@ export async function pushDriveAfterTurn(options: RunAgentLaunchOptions, agentRo
                 serverOrigin: options.serverOrigin,
                 token: runner.runnerToken,
             });
-            await sendDrivePush(plan, remote, options.command.runId);
+            const pushed = await sendDrivePush(plan, remote, options.command.runId);
+            for (const file of pushed.failed) {
+                await warn(options, 'drive-push-file-failed', `${file.path}: ${file.message}`);
+            }
         } finally {
             await revokeRunner(options, runner.runnerId).catch(() => undefined);
         }

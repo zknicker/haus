@@ -40,6 +40,7 @@ const folderStateSchema = z.object({
     counters: z.record(z.string(), z.number().int().nonnegative()),
     files: z.record(z.string(), fileRecordSchema),
     openPush: z.string().min(1).nullable(),
+    retired: z.record(z.string(), z.string()),
     version: z.literal(1),
 });
 export type DriveFolderState = z.infer<typeof folderStateSchema>;
@@ -49,25 +50,36 @@ const emptyState: DriveFolderState = {
     counters: {},
     files: {},
     openPush: null,
+    retired: {},
     version: 1,
 };
 
 export async function openFolderState(layout: DriveFolderLayout) {
-    let state = await loadFolderState(layout);
+    let state = emptyState;
     const persist = async (next: DriveFolderState) => {
         await writeJsonAtomic(layout.stateFile, next);
         state = next;
     };
+    const loaded = await loadFolderState(layout);
+    if (loaded === 'orphaned') {
+        await persist(emptyState);
+    } else {
+        state = loaded;
+    }
     return {
         current: () => state,
-        record: (record: DriveFileRecord) =>
-            persist({ ...state, files: { ...state.files, [record.path]: record } }),
+        record: (record: DriveFileRecord) => {
+            const { [record.path]: _revived, ...retired } = state.retired;
+            return persist({ ...state, files: { ...state.files, [record.path]: record }, retired });
+        },
         forget: (path: string) => {
-            if (!(path in state.files)) {
+            const forgotten = state.files[path];
+            if (!forgotten) {
                 return Promise.resolve();
             }
             const { [path]: _forgotten, ...files } = state.files;
-            return persist({ ...state, files });
+            const retired = { ...state.retired, [path]: forgotten.revision_id };
+            return persist({ ...state, files, retired });
         },
         advance: (areas: DriveFolderArea[], counters: DriveAreaCounters) =>
             persist({ ...state, areas, counters }),
@@ -85,17 +97,17 @@ export function isReadOnlyArea(area: string | null, writer: string) {
 }
 
 async function loadFolderState(layout: DriveFolderLayout) {
-    const folder = await lstat(layout.folder).catch(() => null);
-    if (!folder?.isDirectory()) {
-        return emptyState;
-    }
     const raw = await readFile(layout.stateFile, 'utf8').catch((error: unknown) => {
         if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
             return null;
         }
         throw error;
     });
-    return raw === null ? emptyState : folderStateSchema.parse(JSON.parse(raw));
+    if (raw === null) {
+        return emptyState;
+    }
+    const folder = await lstat(layout.folder).catch(() => null);
+    return folder?.isDirectory() ? folderStateSchema.parse(JSON.parse(raw)) : ('orphaned' as const);
 }
 
 async function writeJsonAtomic(path: string, value: unknown) {

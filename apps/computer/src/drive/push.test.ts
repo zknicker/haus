@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
-import { chmod, copyFile, symlink } from 'node:fs/promises';
+import { chmod, copyFile, readdir, readFile, rename, symlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { writerFolder } from './drive-folder.test-utils.ts';
 import { type DriveServer, startDriveServer } from './drive-server.fixture.ts';
@@ -37,7 +37,7 @@ test('a push sends deletes before puts, renames as a delete plus an add, and rec
         join(alpha.layout.folder, 'haus', 'link.md')
     );
 
-    expect(await alpha.push('run_one')).toEqual({ listed: [], sent: 5 });
+    expect(await alpha.push('run_one')).toEqual({ failed: [], listed: [], sent: 5 });
 
     expect(pushRequests()).toEqual([
         'POST /api/agent/drive/push/delete',
@@ -137,4 +137,95 @@ test('a push left open by a crash is closed before the next push sends', async (
     ]);
     expect((await alpha.state()).openPush).toBeNull();
     expect(server.text('haus/a.md')).toBe('a');
+});
+
+test('a case-only rename with an edit lands the new name and keeps the bytes', async () => {
+    server = startDriveServer();
+    server.write('haus/notes.md', 'v1', 'usr');
+    const alpha = folderOf('agt_alpha');
+    await alpha.pull();
+    await rename(
+        join(alpha.layout.folder, 'haus', 'notes.md'),
+        join(alpha.layout.folder, 'haus', 'Notes.md')
+    );
+    await alpha.write('haus/Notes.md', 'v2');
+
+    expect(await alpha.push('run_case')).toMatchObject({ failed: [], sent: 2 });
+
+    expect(server.head('haus/notes.md')).toBeNull();
+    expect(server.text('haus/Notes.md')).toBe('v2');
+    expect(await readdir(join(alpha.layout.folder, 'haus'))).toEqual(['Notes.md']);
+    expect(await alpha.push('run_after')).toBeNull();
+});
+
+test('a file that became a folder deletes the file and sends what the folder holds', async () => {
+    server = startDriveServer();
+    server.write('haus/notes', 'flat', 'usr');
+    const alpha = folderOf('agt_alpha');
+    await alpha.pull();
+    await alpha.remove('haus/notes');
+    await alpha.write('haus/notes/today.md', 'nested');
+
+    expect(await alpha.push('run_folder')).toMatchObject({ failed: [], sent: 2 });
+
+    expect(server.head('haus/notes')).toBeNull();
+    expect(server.text('haus/notes/today.md')).toBe('nested');
+    expect(await alpha.push('run_after')).toBeNull();
+});
+
+test('a file deleted and created again with the same bytes is a new create', async () => {
+    server = startDriveServer();
+    const alpha = folderOf('agt_alpha');
+    await alpha.write('haus/idea.md', 'same');
+    await alpha.push('run_create');
+    await alpha.remove('haus/idea.md');
+    await alpha.push('run_delete');
+    await alpha.write('haus/idea.md', 'same');
+
+    await alpha.push('run_recreate');
+
+    expect(server.text('haus/idea.md')).toBe('same');
+});
+
+test('a relaunched run with nothing left to send still closes its push', async () => {
+    server = startDriveServer();
+    const alpha = folderOf('agt_alpha');
+    await alpha.pull();
+    await alpha.write('haus/a.md', 'a');
+    await alpha.push('run_once');
+    const state = JSON.parse(await readFile(alpha.layout.stateFile, 'utf8'));
+    await writeFile(alpha.layout.stateFile, JSON.stringify({ ...state, openPush: 'run_once' }));
+    server.requests.length = 0;
+
+    expect(await alpha.push('run_once')).toMatchObject({ sent: 0 });
+
+    expect(server.requests).toEqual(['POST /api/agent/drive/push/close']);
+    expect((await alpha.state()).openPush).toBeNull();
+});
+
+test('a second refusal at one path keeps both refused versions', async () => {
+    server = startDriveServer();
+    const alpha = folderOf('agt_alpha');
+    await alpha.pull();
+    await alpha.write('stray.txt', 'first draft');
+    await alpha.push('run_first');
+    await alpha.write('stray.txt', 'second draft');
+
+    await alpha.push('run_second');
+
+    expect(await alpha.readRefused('stray.txt')).toBe('first draft');
+    expect(await alpha.readRefused('stray.txt.2')).toBe('second draft');
+});
+
+test('a decomposed file name is pushed and recorded under its composed path', async () => {
+    server = startDriveServer();
+    const alpha = folderOf('agt_alpha');
+    const decomposed = 'café.md';
+    await alpha.write(`haus/${decomposed}`, 'menu');
+
+    expect(await alpha.push('run_nfd')).toMatchObject({ failed: [], sent: 1 });
+
+    expect(server.text('haus/café.md')).toBe('menu');
+    expect(Object.keys((await alpha.state()).files)).toEqual(['haus/café.md']);
+    expect(await alpha.push('run_after')).toBeNull();
 });

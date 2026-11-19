@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { chmod, lstat, mkdir, readdir, rename, rm, rmdir, unlink } from 'node:fs/promises';
-import { dirname, join, relative, sep } from 'node:path';
+import { chmod, link, lstat, mkdir, readdir, rename, rm, rmdir, unlink } from 'node:fs/promises';
+import { basename, dirname, join, relative, sep } from 'node:path';
 import type { DriveFileRecord, DriveFolderLayout } from './folder-state.ts';
 
 export interface LocalFile {
@@ -73,19 +73,30 @@ export function folderFiles(layout: DriveFolderLayout) {
         },
         async remove(path: string, readOnlyRoot: string | null) {
             const target = absolute(path);
+            if (!(await holdsExactFile(target))) {
+                return;
+            }
             await openParents(target, readOnlyRoot);
-            await unlink(target).catch((error: NodeJS.ErrnoException) => {
-                if (error.code !== 'ENOENT') {
-                    throw error;
-                }
-            });
+            await unlink(target);
             await pruneEmptyParents(layout.folder, target);
         },
-        async move(path: string, target: string, readOnlyRoot: string | null) {
+        async setAside(path: string, target: string, sha256: string, readOnlyRoot: string | null) {
             const source = absolute(path);
             await openParents(source, readOnlyRoot);
             await mkdir(dirname(target), { recursive: true });
-            await rename(source, target);
+            for (let attempt = 1; ; attempt += 1) {
+                const candidate = attempt === 1 ? target : `${target}.${attempt}`;
+                const existing = await lstat(candidate).catch(() => null);
+                if (existing?.isFile() && (await sha256File(candidate)) === sha256) {
+                    return candidate;
+                }
+                if (!existing) {
+                    await link(source, candidate);
+                    return candidate;
+                }
+            }
+        },
+        async release(target: string) {
             await chmod(target, 0o644);
             return (await lstat(target)).mtimeMs;
         },
@@ -127,17 +138,45 @@ async function walkFolder(folder: string) {
             if (skippedNames.has(entry.name)) {
                 continue;
             }
-            const name = `${prefix}${entry.name.normalize('NFC')}`;
+            const onDisk = await composeName(dir, entry.name);
+            const name = `${prefix}${onDisk}`;
             if (entry.isDirectory()) {
-                await visit(join(dir, entry.name), `${name}/`);
+                await visit(join(dir, onDisk), `${name}/`);
             } else if (entry.isFile()) {
-                const stat = await lstat(join(dir, entry.name));
+                const stat = await lstat(join(dir, onDisk));
                 files.set(name, { mtimeMs: stat.mtimeMs, size: stat.size });
             }
         }
     };
     await visit(folder, '');
     return files;
+}
+
+async function composeName(dir: string, name: string) {
+    const composed = name.normalize('NFC');
+    if (composed === name) {
+        return name;
+    }
+    const [raw, existing] = await Promise.all([
+        lstat(join(dir, name)),
+        lstat(join(dir, composed)).catch(() => null),
+    ]);
+    if (existing && existing.ino !== raw.ino) {
+        return name;
+    }
+    if (!existing) {
+        await rename(join(dir, name), join(dir, composed));
+    }
+    return composed;
+}
+
+async function holdsExactFile(target: string) {
+    const stat = await lstat(target).catch(() => null);
+    if (!stat?.isFile()) {
+        return false;
+    }
+    const names = await readdir(dirname(target));
+    return names.some((name) => name.normalize('NFC') === basename(target));
 }
 
 async function pruneEmptyParents(folder: string, target: string) {

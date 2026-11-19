@@ -22,36 +22,45 @@ export async function applyPushOutcome(
     outcome: DrivePushOutcomeEntry,
     ownSha256: string | null
 ) {
-    const { files, layout, state } = context;
-    const movesAside =
-        ownSha256 !== null && (outcome.outcome === 'kept_both' || outcome.outcome === 'refused');
-    const atPath = movesAside ? null : ownSha256;
+    const { files, state } = context;
     const { current, path } = outcome;
+    const lock = readOnlyRoot(context, path);
+    const asideTarget = asideTargetOf(context, outcome, ownSha256);
+    const atPath = asideTarget ? null : ownSha256;
     const incoming = current && atPath !== current.sha256 ? await download(context, current) : null;
-    if (outcome.outcome === 'kept_both' && movesAside) {
-        const mtimeMs = await files.move(
-            path,
-            files.absolute(outcome.copy.path),
-            readOnlyRoot(context, path)
-        );
-        await state.record(recordOf(outcome.copy, mtimeMs));
-    }
-    if (outcome.outcome === 'refused' && movesAside) {
-        await files.move(
-            path,
-            join(layout.refused, ...path.split('/')),
-            readOnlyRoot(context, path)
-        );
-    }
+    const aside =
+        asideTarget && ownSha256 ? await files.setAside(path, asideTarget, ownSha256, lock) : null;
     if (current === null) {
-        await files.remove(path, readOnlyRoot(context, path));
+        await files.remove(path, lock);
         await state.forget(path);
-        return;
+    } else {
+        const mtimeMs = incoming
+            ? await files.place(path, incoming, lock)
+            : (await lstat(files.absolute(path))).mtimeMs;
+        await state.record(recordOf(current, mtimeMs, path));
     }
-    const mtimeMs = incoming
-        ? await files.place(path, incoming, readOnlyRoot(context, path))
-        : (await lstat(files.absolute(path))).mtimeMs;
-    await state.record(recordOf(current, mtimeMs, path));
+    if (aside) {
+        const mtimeMs = await files.release(aside);
+        if (outcome.outcome === 'kept_both' && aside === asideTarget) {
+            await state.record(recordOf(outcome.copy, mtimeMs));
+        }
+    }
+}
+
+function asideTargetOf(
+    context: OutcomeContext,
+    outcome: DrivePushOutcomeEntry,
+    ownSha256: string | null
+) {
+    if (ownSha256 === null) {
+        return null;
+    }
+    if (outcome.outcome === 'kept_both') {
+        return context.files.absolute(outcome.copy.path);
+    }
+    return outcome.outcome === 'refused'
+        ? join(context.layout.refused, ...outcome.path.split('/'))
+        : null;
 }
 
 async function download(context: OutcomeContext, revision: DriveRevisionFacts) {

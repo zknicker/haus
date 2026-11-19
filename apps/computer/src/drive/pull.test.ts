@@ -158,3 +158,30 @@ test('a local folder where Drive has a file blocks only that change and holds th
     expect(await alpha.read('haus/a.md')).toBe('a1');
     expect(await alpha.state()).toMatchObject({ counters: {} });
 });
+
+test('a Drive delete over a local folder of the same name changes nothing and advances', async () => {
+    server = startDriveServer();
+    server.write('haus/notes', 'flat', 'usr');
+    server.remove('haus/notes');
+    const alpha = alphaFolder();
+    await alpha.write('haus/notes/today.md', 'nested');
+
+    expect(await alpha.pull()).toMatchObject({ advanced: true, blocked: 0 });
+    expect(await alpha.read('haus/notes/today.md')).toBe('nested');
+});
+
+test('bookkeeping orphaned by a removed folder is discarded for good, so no push deletes Drive', async () => {
+    server = startDriveServer();
+    server.write('haus/plan.md', 'team plan', 'usr');
+    const alpha = alphaFolder();
+    await alpha.pull();
+    await rm(alpha.layout.folder, { recursive: true });
+    server.failDownload(server.head('haus/plan.md')?.revision_id ?? '');
+    await expect(alpha.pull()).rejects.toThrow();
+    await alpha.write('haus/mine.md', 'new');
+
+    await alpha.push('run_after_reset');
+
+    expect(server.text('haus/plan.md')).toBe('team plan');
+    expect(server.text('haus/mine.md')).toBe('new');
+});

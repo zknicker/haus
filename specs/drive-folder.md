@@ -33,11 +33,13 @@ write, such as another Agent's area, are written read-only (files `0444`, folder
 folder persists between turns.
 
 The machine keeps its bookkeeping outside the folder, in `agents/<agent-id>/runtime/drive.json`.
-It holds each area's counter and root, the id of a push that has not closed yet, and, per file,
-`path`, `artifact_id`, `revision_id`, `sha256`, `size_bytes`, and the `mtime_ms` the file had when
-it was recorded. Downloads land in `runtime/drive-scratch/` and move into place by rename. Nothing
+It holds each area's counter and root, the id of a push that has not closed yet, the last revision
+of each path whose record was dropped, and, per file, `path`, `artifact_id`, `revision_id`,
+`sha256`, `size_bytes`, and the `mtime_ms` the file had when it was recorded. Downloads land in `runtime/drive-scratch/` and move into place by rename. Nothing
 inside `drive/` is Haus bookkeeping. A `drive.json` whose `drive/` folder is gone, as after a full
-reset that clears the workspace, is discarded, and the next pull starts from zero.
+reset that clears the workspace, is replaced with empty bookkeeping the moment the Computer sees it,
+so a folder that reappears never pushes deletes from stale records. A file name in decomposed
+Unicode is renamed to its NFC form, the form Drive paths take.
 `apps/computer/src/drive/` owns the folder.
 
 The Agent uses `ls`, `cat`, `rg`, its edit tool, `mv`, and `rm`. There are no sync commands. D4
@@ -101,7 +103,15 @@ A push with nothing to send makes no request at all, so a turn that left `drive/
 Server round trip. A push that has something to send mints its own runner credential for the
 turn's run and revokes it after the close, because a Stop revokes the run's own credential. The
 request id is `dp_` and the first 48 hex characters of the SHA-256 of the writer's Agent id, the
-path, the base revision (or, for a create, `<area>@<counter>`), and the content hash.
+path, the base revision (or, for a create, `<area>@<counter>:<last dropped revision>`), and the
+content hash. The dropped revision keeps a re-create distinct even while a counter cannot advance.
+
+A delete removes only a file whose name matches the path exactly, so the delete half of a
+case-only rename on a case-insensitive disk never removes the renamed file, and a folder that
+replaced a file stays. A request that fails for that one file, a local file error or a 4xx answer
+other than `PUSH_CLOSED` or 401, is logged and skipped, and the rest of the push goes on. A
+network failure, a 5xx, or a 401 stops the push. A push whose run already sent everything still
+closes on a relaunch. One Computer process runs a folder's pulls and pushes one at a time.
 
 | Outcome | What the folder does |
 | --- | --- |
@@ -114,7 +124,9 @@ path, the base revision (or, for a create, `<area>@<counter>`), and the content 
 A refused file leaves the folder, so the next push does not send it again and the conflict item
 that names it cannot repeat every turn. Any download an outcome needs happens before the writer's
 own bytes move aside, so a download that fails leaves the folder as it was, and the next push
-replays the stored outcome.
+replays the stored outcome. The writer's bytes are hard-linked aside and then the current version
+is renamed over the path, so the path is never empty at any crash point. A refused path that
+already has a different refused copy takes the next free `.2`, `.3` suffix.
 
 A push that cannot reach the Server changes nothing locally. The edits stay, the next pull keeps
 them, and the next push sends them. A machine that crashes mid-push sends the rest in its next push

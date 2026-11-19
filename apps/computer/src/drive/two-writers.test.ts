@@ -30,7 +30,7 @@ test('two folders that edit different lines of one file both land in one merged 
     const pushed = await beta.push('run_beta');
     await alpha.pull();
 
-    expect(pushed).toEqual({ listed: [], sent: 1 });
+    expect(pushed).toEqual({ failed: [], listed: [], sent: 1 });
     expect(server.text('haus/plan.md')).toBe('goal: ship\nowner\ndate: friday');
     expect(await beta.read('haus/plan.md')).toBe('goal: ship\nowner\ndate: friday');
     expect(await alpha.read('haus/plan.md')).toBe('goal: ship\nowner\ndate: friday');
@@ -65,7 +65,7 @@ test('two folders that edit the same line keep both versions and list the file o
 
     await beta.write('haus/plan.md', 'goal: ship, then wait\nowner');
     await beta.remove('haus/plan.conflict-beta.md');
-    expect(await beta.push('run_beta_resolve')).toEqual({ listed: [], sent: 2 });
+    expect(await beta.push('run_beta_resolve')).toEqual({ failed: [], listed: [], sent: 2 });
     await alpha.pull();
     expect(await alpha.read('haus/plan.md')).toBe('goal: ship, then wait\nowner');
     expect(await alpha.read('haus/plan.conflict-beta.md')).toBeNull();

@@ -56,15 +56,12 @@ async function applyChange(context: ChangeContext, change: DriveChangeEntry) {
     if (change.change === 'put' && record?.revision_id === change.revision_id) {
         return 'skipped';
     }
-    const local = await files.inspect(change.path, record);
-    if (local === 'blocked') {
-        return 'blocked';
+    if (change.change === 'delete' && !record) {
+        return 'skipped';
     }
+    const local = await files.inspect(change.path, record);
     if (change.change === 'delete') {
-        if (!record) {
-            return 'skipped';
-        }
-        if (local && local.sha256 !== record.sha256) {
+        if (local !== null && local !== 'blocked' && local.sha256 !== record?.sha256) {
             return 'kept';
         }
         return await blockedOnLocalPath(async () => {
@@ -72,6 +69,9 @@ async function applyChange(context: ChangeContext, change: DriveChangeEntry) {
             await state.forget(change.path);
             return 'applied';
         });
+    }
+    if (local === 'blocked') {
+        return 'blocked';
     }
     const facts = {
         artifact_id: change.artifact_id,
