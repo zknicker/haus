@@ -1,24 +1,84 @@
 ---
-summary: Normative contract for Files (the shared-artifact drive) paths, folders, compare-and-set writes, and moves.
+summary: Normative Drive contract. Drive is the Files drive extended with three areas (haus/, projects/<key>/, agents/<handle>/), revisions attributed to an Agent, Worker or person and a Task, a per-area change counter with a changes-since query, stale-base writes that merge clean text, pushes that keep both versions of a real conflict, citations by revision, retention, and the v1 Drive page. Paths, folders, compare-and-set writes, moves and batches carry over from Files.
 read_when:
-  - changing shared artifact paths, folders, listing, publish, or move behavior
-  - changing how the CLI or App reads or writes shared artifacts in bulk
+  - changing Drive (Files) paths, folders, listing, publish, move, delete, restore, or retention
+  - changing Drive areas, who may write an area, or revision attribution (author, Task, base, parent)
+  - changing the per-area change counter or the changes-since query (drive.changes)
+  - changing the Server three-way merge, kept-both conflict copies, or the drive push routes
+  - changing how a message cites a Drive file
+  - changing the Drive page, History, Compare, or Restore
   - changing the artifact path rules in packages/haus-api/src/artifact-path.ts
 ---
 
-# Artifact drive
+# Drive
 
-The product noun is **Files** (the App's Files section, `haus files` in the Agent CLI, the `files`
-Manual topic); wire names keep `artifact`. "Drive" in this spec is internal shorthand only.
+Drive holds what Agents know and follow
+([ADR 0054](../docs/adr/0054-drive-holds-what-agents-know-and-follow.md)). It is the Files drive,
+renamed and extended. The product noun is **Drive**. People see the App's Drive page, Agents use
+`haus drive` and the `drive` Manual topic. Wire names keep `artifact`.
 
-Shared artifacts stay Server-hosted with explicit reads and writes. There is no sync engine, no
-local mirror, and no background process: clients list, pull, and push on demand. The drive adds
-canonical paths, folders, and writes that cannot silently overwrite each other.
+Drive is Server-hosted and canonical. Each Agent also keeps a plain `drive/` folder on its machine.
+The folder pulls at turn start and pushes after the turn, and [Drive folder](drive-folder.md) owns
+that half. There is no background process, no mount, and no continuous sync.
+
+## What changes from Files
+
+- Every path lives in one of three areas. Existing root paths move under `haus/`.
+- Every revision records its author (an Agent, a Worker, or a person), its Task, its base, and its
+  parent.
+- Each area keeps a change counter, and `drive.changes` answers what changed since a counter.
+- A write with a stale base merges when the text merges cleanly. Files refused it with
+  `REVISION_CONFLICT`.
+- A push from a machine keeps both versions of a real conflict and queues one `drive_conflict`
+  inbox item.
+- Write access decides who may delete, and a deleted file stays restorable for 30 days. Files
+  purged a delete at once and limited it to the creator or a human Owner or Admin.
+- Revisions up to 1 MiB are kept for the life of the file. Files expired every replaced revision
+  after seven days.
+- A message that cites a Drive file binds the citation to a revision.
+- The Files page becomes the Drive page, with History, Compare, and Restore.
+
+Unchanged are the path rules, folders as prefixes, listing, the head check under the Server row
+lock, moves, batches, `request_id` idempotency, R2 object keys, `art_` links, and stable and
+version URLs.
+
+## Areas
+
+```text
+haus/AGENTS.md                                Haus rules
+haus/…                                        team files
+projects/<key>/AGENTS.md                      Project rules
+projects/<key>/…                              Project docs
+agents/<handle>/AGENTS.md                     the Agent's own rules
+agents/<handle>/WORKER.md                     rules every Worker of this Agent reads
+agents/<handle>/MEMORY.md                     capped memory (ADR 0052)
+agents/<handle>/notes/ …                      the rest of its durable workspace
+agents/<handle>/skills/                       its skills
+agents/<handle>/reports/ renders/ handoffs/   Worker deliverables
+```
+
+An area is identified by `driveAreaIdSchema` (`packages/haus-api/src/drive.ts`). Its values are
+`haus`, `project:<projectId>`, and `agent:<agentId>`. The folder name comes from the Project's key
+or the Agent's handle, and the Server maps a path to its area by that prefix.
+
+Every live path sits in an area. Its first segment is `haus`, `projects`, or `agents`. A path under
+`projects/` names a live Project's key, and a path under `agents/` names one of the Server's
+Agents, active or retired. No file sits directly in `projects/` or `agents/`. Any other path is
+`INVALID_PATH`. Projects arrive with ADR 0055, so `projects/` holds nothing until then.
+
+The rule and memory files are ordinary files. What reads them, and when, is ADR 0054 decisions 7
+and 8 and [context management](../docs/features/context-management.md). The memory cap stays ADR
+0052's.
+
+Everyone reads every area. People write every area. An Agent writes `haus/`, every Project, and its
+own `agents/<handle>/`. Another Agent's area is read-only to it, and a write there is `FORBIDDEN`.
+A Worker writes what its Agent writes. Deleting needs write access to the file, and a move needs
+it at both ends.
 
 ## Paths
 
-Every artifact has one canonical drive `path`, such as `starter-kit/scripts/tm_check.py`, unique
-among the Server's live artifacts. Artifact and revision ids, R2 object keys
+Every artifact has one canonical drive `path`, such as `haus/starter-kit/scripts/tm_check.py`,
+unique among the Server's live artifacts. Artifact and revision ids, R2 object keys
 (`servers/<server>/artifacts/<artifact>/<revision>`), stable URLs, and `art_` links never change
 when a path does. The metadata `filename` is the path's last segment.
 
@@ -60,34 +120,189 @@ Every page carries `summary`, exact totals for the listed folder under the same 
 independent of the page: `folders` (child folders), `files_in_folders` (files anywhere under them),
 and `files` (files directly in the folder). `recursive` changes the listed files, not the summary.
 
+## Revisions and attribution
+
+Each revision records four facts.
+
+- `author` is the writer. It is `{ type: 'agent', agent_id }`, `{ type: 'user', user_id }`, or
+  `{ type: 'worker', worker_id, agent_id }`. The Worker variant lands with Workers (W2).
+- `task_id` is the Task the write was for, or null. A push names its run, and the Server takes the
+  Task from that run. That is the Task whose chat the run answered in, or the Task a
+  `task_assignment` run carried. A Worker's write takes the Worker's Task. A person's write, and an
+  Agent's write outside a push, carry no Task.
+- `base_revision_id` is the revision the writer started from. It is null for a create and for a
+  `replace`.
+- `parent_revision_id` is the head the revision was committed on. It is null for a file's first
+  revision.
+
+A revision whose base is not its parent was merged. The writer comes from the caller's credential,
+never from the request body. The Server sets every id, counter, and timestamp.
+
+In `packages/haus-api`, `artifactAuthorSchema` widens `artifactCreatorSchema` with the Worker
+variant, and `artifactRecordSchema` gains `task_id`, `base_revision_id`, and `parent_revision_id`.
+`creator` still names who made the file. Agent artifact routes keep `artifactMetadataSchema` as it
+is, because deployed CLIs parse it strictly.
+
+## Change counter
+
+Each area keeps one counter that starts at zero and only grows. Every committed change in the area
+takes the next value. A new revision, a delete, and a restore are one change each. A move inside an
+area is a delete at the old path and a put at the new one, so it takes two values. A move across
+areas takes one value in each area, a delete in one and a put in the other. A batch takes what its
+files would take one at a time, so a batch move of n files inside one area takes 2n values and a
+batch delete takes n.
+
+The Server keeps one change row per live or deleted path key in each area, holding the latest
+sequence that touched it and its state. A delete leaves its row as a tombstone. Rows are never
+pruned, so any counter, however old, has an exact answer. Change rows and counters commit in the
+write's own transaction under the Server row lock, so no reader sees a counter without its changes.
+
+`drive.changes` (tRPC for the App and the runner, `GET /api/agent/drive/changes` for machines)
+answers what changed.
+
+```ts
+// packages/haus-api/src/drive.ts
+driveChangesInput  = { serverId, since: Record<DriveAreaId, number>,
+                       until?: Record<DriveAreaId, number> }
+driveChangesResult = {
+  areas:   { area: DriveAreaId, root: string, counter: number }[],
+  until:   Record<DriveAreaId, number>,
+  changes: { area: DriveAreaId, sequence: number, path: string, change: 'put' | 'delete',
+             artifact_id: string, revision_id: string | null, sha256: string | null,
+             size_bytes: number | null, content_type: string | null }[],
+  complete: boolean,
+}
+```
+
+An area missing from `since` reads from zero. `areas` lists every area with its current counter, so
+a caller learns of a new Agent or Project from any call. Changes come in area order, then sequence
+order, at most 1,000 per page. A call without `until` fixes it at each area's counter and returns
+it. When `complete` is false, the caller applies the page and asks again from the last sequence it
+applied in each area, passing the same `until`. Every page returns only changes at or below
+`until`, so writes that land while a caller pages cannot keep it from finishing. Those writes come
+in its next call. A delete carries null revision, hash, size, and type.
+
 ## Writes
 
-A write names a `path`. A free path creates an artifact and needs no base. An occupied path adds a
+A write names a `path`. A free path creates an artifact and needs no base. A free path whose base
+names a file deleted since brings that file back with the written bytes. An occupied path adds a
 revision only when:
 
 - `base_revision_id` equals its current head, or
-- `replace: true` deliberately overwrites whatever the head is (the App's Replace, the CLI's
-  `--replace`).
+- `base_revision_id` is an older revision of the same file and the merge below succeeds, or
+- `replace: true` deliberately overwrites whatever the head is (the App's Replace).
 
 Anything else fails with 409 `REVISION_CONFLICT` whose `current` is the live head the write lost
 to: the head of the artifact `base_revision_id` belongs to, wherever that artifact lives now (a
 moved file reports its new path), otherwise the artifact at the path. `current` is null when
-nothing has published there yet (a first upload still in flight, or a base at a free path that
-names no live artifact). The client merges onto `current` and retries with its revision as base.
+nothing has published there yet (a first upload still in flight, or a base that names no file this
+Server ever held). A push never gets this error. It keeps both versions instead (below).
 
 The head is checked twice: when the write reserves storage, before any bytes move, and again when
 the upload lands, under the same Server row lock that serializes every artifact insert, move, and
-delete. Two writers from one base both upload, and exactly one becomes the head; the other's
-revision fails, frees its reserved bytes, and returns the conflict. A create whose only upload
-fails frees its path. `request_id` retries return the first attempt's revision even after the head
-has moved; reusing a `request_id` for another path, title, or content type fails with
-`IDEMPOTENCY_KEY_REUSED`.
+delete. Two writers from one base both upload. The first to land becomes the head, and the second
+merges onto it or fails. A create whose only upload fails frees its path. `request_id` retries
+return the first attempt's revision even after the head has moved; reusing a `request_id` for
+another path, title, or content type fails with `IDEMPOTENCY_KEY_REUSED`.
 
 Writes travel as raw bytes with query metadata: Agents through
 `POST /api/agent/artifacts/publish-artifact-raw`, members through
 `PUT /artifacts/:serverId/publish` with a Haus AppSession. Both take `path`, optional
 `base_revision_id` or `replace=true`, `request_id`, and optional `title` (default: the file name)
-and `content_type`.
+and `content_type`. A write answers its revision, and `merged: true` when it merged.
+
+### Merging a stale base
+
+The Server merges base, head, and the incoming bytes when all three are text. Text means valid
+UTF-8 with no NUL byte and at most `artifactTextMaxBytes` (1 MiB), the same test `artifact.text`
+uses. Lines split on `\n`, so a `\r` stays part of its line. Changed regions that overlap or touch
+conflict, as `git merge-file` decides. The same change made on both sides is not a conflict.
+
+A clean merge commits the merged bytes as a new revision. Its author is the writer, its base is the
+stated base, and its parent is the head. The merge runs under the row lock against the head the
+lock sees, so no commit can land between the merge and its own commit.
+
+A merge fails when the regions conflict, when any of the three is not text, or when the base
+revision is gone. An edit always beats a delete. A write onto a file deleted since its base brings
+the file back with the written bytes, and a delete of a file changed since its base leaves it in
+place.
+
+## Pushes
+
+A machine sends one turn's changes as one push. The push id is the run id from the turn's start
+frame (`runId`). The Server takes the Agent and the Task from that run, so the machine names
+neither. A Worker's push uses its own run's id (W2).
+
+| Route (Agent API) | Input |
+| --- | --- |
+| `POST /api/agent/drive/push/put` | Raw bytes; query `push_id`, `path`, `request_id`, optional `base_revision_id`, `content_type` |
+| `POST /api/agent/drive/push/delete` | JSON `push_id`, `path`, `base_revision_id`, `request_id` |
+| `POST /api/agent/drive/push/close` | JSON `push_id`; answers `{ listed }`, the files the conflict item lists |
+
+Each put or delete answers one `drivePushOutcomeSchema` (`packages/haus-api/src/drive.ts`). Every
+outcome carries `current`, the revision now at the path with its author. When nothing is live at
+the path, as after a refused create, `current` is an explicit null. Drive never invents a revision
+or an author to fill it.
+
+| Outcome | When | What Drive holds after |
+| --- | --- | --- |
+| `committed` | The base is the head, or the path was free | The incoming bytes as the head |
+| `merged` | A stale base merged cleanly | The merged bytes as the head |
+| `unchanged` | The bytes equal the head | The head, untouched |
+| `deleted` | A delete whose base is the head | A tombstone |
+| `kept_both` | A put whose merge failed, or a create at a path someone else filled | The other version at the path, and the incoming bytes in a copy |
+| `kept_edit` | An edit met a delete, on either side | The edited file, live at its path |
+| `refused` | Path rules, area write access, size, or storage limits | Nothing new |
+
+A copy is named `<stem>.conflict-<handle>.<ext>`, splitting the file name at its last dot. A name
+with no dot, or only a leading dot, takes the suffix at its end, so `.env` becomes
+`.env.conflict-blippy`. The handle is the pushing Agent's, or the Worker's Agent's. A taken copy
+name takes `-2`, then `-3`, before the extension. The copy is an ordinary new file in the same
+folder, authored by the writer with the push's Task. It is resolved by merging into the original
+and deleting the copy.
+
+A machine sends deletes before puts, so a case-only rename frees its path key first. A rename is a
+delete plus an add. The added file is a new file, and History does not follow it yet.
+
+`request_id` derives from the change, never the run. It hashes the writer, the path, the base
+revision, and the content hash (null for a delete). A create has no base, so it hashes the area
+counter the folder had pulled in its place, so recreating a deleted file with the same bytes is a
+new request. A lost create replayed after a later pull finds the folder already recorded the file,
+and sends nothing. A request repeated after a lost answer, even under a
+later push, returns the stored outcome. It never makes a second copy or a second `drive_conflict`
+item, and it succeeds even after the push it first belonged to has closed.
+
+The Server records each file's outcome under the push id. A push closes on `close`, or when the
+same writer opens its next push, so a machine that crashed mid-push still reaches the Agent.
+Closing twice changes nothing. A new request for a closed push fails with `PUSH_CLOSED`, and the
+machine sends that file in its next push. On close, a push with any `kept_both`, `kept_edit`, or
+`refused` outcome queues one `drive_conflict` item ([Agent inbox](inbox.md)). A Worker's item goes
+to its Agent.
+
+## Citations
+
+A message cites a Drive file with a typed link, `[label](drive://<path>)`, which people insert from
+the composer and Agents write. At send, the Server resolves the path and stores a citation with the
+message. In `packages/haus-api`, the message gains `driveCitations: { path, artifactId, revisionId
+}[]`. The chip opens the cited revision, opens beside the chat, and says when a newer revision
+exists.
+
+An Agent cites files its turn wrote, and the push runs after the turn. The Server binds the
+citation to the head at send time. When the sending run's push closes, each citation whose path
+that push changed moves to the revision the push left. When the push kept both versions, the
+citation moves to the writer's own copy, because the copy holds what the Agent meant. A path that
+does not exist at send has null ids until the push creates it. A citation that never resolves renders its label as plain text.
+Citations keep artifact and revision ids, so they survive moves. A citation whose revision was
+purged opens the current revision and says the cited one is gone. Attachments stay as they are.
+
+## Retention
+
+The current revision is always kept. A replaced revision up to `artifactTextMaxBytes` is kept for
+the life of the file, so rule and memory history never expires. A larger replaced revision is
+deleted seven days after a newer revision took its place (`ARTIFACT_REVISION_RETENTION_DAYS`). A
+deleted file keeps every revision for 30 days (`driveDeletedRetentionDays`), then its revisions are
+purged and its tombstone stays. `delete-artifact-version` still removes one non-current revision at
+once.
 
 ## Moves
 
@@ -99,9 +314,8 @@ on a folder when moving a file (`PATH_CONFLICT`). Case-only renames are allowed.
 
 A single-file move accepts an optional `base_revision_id` that must equal the head. A folder move
 takes none (`INVALID_ARG`): it touches no bytes, and a client writing to an old path afterwards
-gets `REVISION_CONFLICT` naming each file's new path, so per-file checks add nothing. Any member
-who can publish can move. Deletion stays per artifact, limited to the creator or a human
-Owner/Admin.
+gets `REVISION_CONFLICT` naming each file's new path, so per-file checks add nothing. A move needs
+write access at both ends. Deletion needs write access to the file.
 
 ## Batches
 
@@ -115,13 +329,32 @@ A selection acts in one request per action, at most `artifactBatchMaxItems` (1,0
   one name are `PATH_TAKEN` before anything moves. The result lists each item's `from` and `to`
   plus `moved_count` (files whose path changed).
 - `artifact.deleteMany` (`{ artifact_ids }`) deletes, in one transaction, every named file the
-  caller may delete (creator, or human Owner/Admin) and reports `deleted`, `forbidden` (left in
-  place), and `missing` (already gone or never here). A file still taking an upload refuses the
-  batch (`UPLOAD_CONFLICT`). Storage objects are purged after the commit; a purge failure leaves
-  the revision `deleting` for startup cleanup rather than failing a committed delete.
+  caller may write and reports `deleted`, `forbidden` (left in place), and `missing` (already gone
+  or never here). A file still taking an upload refuses the batch (`UPLOAD_CONFLICT`). Revisions
+  stay restorable under the retention rules above.
 - `artifact.zip` plans a zip download of paths under one root ([Files](../docs/api/artifacts.md#zip-downloads)).
 
 Each committed move or delete batch announces one `artifact.onUpdated` with a null id.
+
+## Drive page
+
+The v1 Drive page replaces the Files page and keeps its library, viewer, and actions.
+
+- The root lists three folders, Haus, Projects, and Agents. Agents holds one folder per Agent.
+- History is the viewer's revision list. Each row names the author (an Agent, a Worker with its
+  Agent, or a person), links the Task, and marks a merged revision.
+- Compare renders any two revisions of a text file with `@pierre/diffs` from two `artifact.text`
+  reads, so it needs no Server work. It opens on a revision against its parent. A revision that is
+  not text offers no Compare.
+- Restore publishes an older revision as the new head through `artifact.restore`, unchanged. Each
+  folder's menu offers Recently deleted, which lists the folder's deleted files from the last 30
+  days (`artifact.listDeleted`) with Restore.
+- A person's save carries its base. A failed merge refuses the save and opens Compare between the
+  person's text and `current`, because the person is there to resolve it.
+- The Agent page links the Agent's `AGENTS.md`, `WORKER.md`, and `MEMORY.md`.
+
+The page stays live through `artifact.onUpdated`. Drive adds no subscription, and machines
+subscribe to nothing.
 
 ## Errors
 
@@ -130,7 +363,7 @@ Agent routes answer `{ code, message }`, plus `current` for `REVISION_CONFLICT`.
 API and `BAD_REQUEST` on tRPC. Codes: `INVALID_ARG`, `INVALID_PATH`, `NOT_FOUND`,
 `UNAUTHORIZED`, `FORBIDDEN`, `REVISION_CONFLICT`, `PATH_TAKEN`, `PATH_CONFLICT`,
 `IDEMPOTENCY_KEY_REUSED`, `UPLOAD_CONFLICT`, `DELETED`, `CURRENT_REVISION`, `CONTENT_TYPE`,
-`SIZE_LIMIT`, `STORAGE_LIMIT`, `STORAGE_UNAVAILABLE`, `AUTH_UNAVAILABLE`.
+`SIZE_LIMIT`, `STORAGE_LIMIT`, `STORAGE_UNAVAILABLE`, `AUTH_UNAVAILABLE`, `PUSH_CLOSED`.
 
 ## Migration
 
@@ -140,9 +373,18 @@ current revision's filename extension (letters, digits, `_+-`, at most 16 charac
 creation order, compared by the folded key. The `name` column, its index, and the create-only name
 contract are gone; the path is the identity.
 
+The Drive migration (D2) prefixes every live path with `haus/`, so `starter-kit/scripts/tm_check.py`
+becomes `haus/starter-kit/scripts/tm_check.py`. It rewrites paths only, like a move, and starts each
+area's counter at the number of its files. Moving Agent workspaces into `agents/<handle>/` is D3,
+which writes each file as the Agent that owned the workspace, with no Task.
+
+## Deferred
+
+- Fetching large files on first use. v1 pulls every changed file in full.
+- History that follows a rename. v1 records a rename as a delete plus an add.
+- Held mass deletes and the "Loaded before the first message" token panel.
+
 ## Out of scope
 
-Sync engines, local mirrors, background watchers, empty folders, and folder deletes beyond
-per-file delete. Revision retention is a fixed window, not thinning: a replaced revision is deleted
-seven days after a newer revision took its place, and the current revision is always kept
-([Files](../docs/api/artifacts.md)).
+Mounts, continuous sync, background watchers, empty folders, private folders, and a personal rules
+layer.

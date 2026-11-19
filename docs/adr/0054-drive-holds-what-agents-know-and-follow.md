@@ -1,6 +1,6 @@
 ---
 status: accepted
-summary: Drive is the existing Files drive, renamed and extended with three areas (Haus, each Project, each Agent), revisions attributed to an Agent, Worker or person and a Task, and a per-area change counter. It holds the rule layers (Haus, Project and Agent AGENTS.md, plus each Agent's WORKER.md), MEMORY.md, notes, reports and skills, and everyone can read everything. Machines keep a plain drive/ folder that pulls changes at turn start and pushes changes after the reply; the Server merges clean text edits and turns real conflicts into a kept-both copy plus a drive_conflict inbox item. The runner reads rules and memory from the Server. Accepted 2026-11-19, not yet implemented.
+summary: Drive is the existing Files drive, renamed and extended with three areas (Haus, each Project, each Agent), revisions attributed to an Agent, Worker or person and a Task, and a per-area change counter. It holds the rule layers (Haus, Project and Agent AGENTS.md, plus each Agent's WORKER.md), MEMORY.md, notes, reports and skills, and everyone can read everything. Each Agent keeps a plain drive/ folder on its machine that pulls changes at turn start and pushes changes after the reply; the Server merges clean text edits and turns real conflicts into a kept-both copy plus a drive_conflict inbox item. The runner reads rules and memory from the Server. Accepted 2026-11-19, not yet implemented.
 read_when:
   - changing Files, the artifact drive, Agent workspaces, or where MEMORY.md, notes and skills live
   - changing how rules (AGENTS.md, WORKER.md, conversation style) reach an Agent or a Worker
@@ -14,7 +14,11 @@ read_when:
 
 ## Status
 
-Accepted 2026-11-19. Not yet implemented. Part of the direction in
+Accepted 2026-11-19. Not yet implemented. Amended 2026-11-19 by the Drive contract
+([specs/artifact-drive.md](../../specs/artifact-drive.md),
+[specs/drive-folder.md](../../specs/drive-folder.md)) in decisions 4, 5, 6 and 11: one folder per
+writer, no pull without an online machine, large binaries fetched in full with lazy fetch deferred,
+people see conflicts instead of copies, and citations follow the turn's push. Part of the direction in
 [the Capy and Amp proposal](../proposals/capy-product-model.md), with
 [ADR 0055](0055-projects-own-agents-and-tasks.md) (Projects),
 [ADR 0056](0056-agents-run-quiet-workers-anywhere.md) (Workers) and
@@ -64,16 +68,18 @@ searchable threads. Rules people can edit outlast facts a model remembers.
    and the Task it was written for. Each area keeps a change counter, and the Server answers
    "what changed since counter N" for an area.
 
-4. **A plain `drive/` folder on each machine.** A machine keeps `drive/haus/`,
-   `drive/projects/<key>/` and `drive/agents/<handle>/` for the areas its Agents and Workers can see,
-   and the folder persists between turns. Agents use only native file commands on it: `ls`, `cat`,
-   `rg`, edits. There are no sync commands.
+4. **A plain `drive/` folder for each writer.** Each Agent keeps its own `drive/` folder on its
+   machine, and each Worker on a Computer keeps one, so every push belongs to one writer. A folder
+   holds `drive/haus/`, `drive/projects/<key>/` and `drive/agents/<handle>/` for every area, since
+   everyone can read everything, and it persists between turns. Agents use only native file
+   commands on it: `ls`, `cat`, `rg`, edits. There are no sync commands.
 
 5. **Pull at turn start, push after the reply.**
-   - When a turn starts, the Computer pulls only what changed since its last pull, while the turn
-     runs. Only a tool call on the machine waits for the pull, and a turn with no machine work
-     never pulls.
-   - Large binaries are listed and fetched the first time something opens them.
+   - When a turn starts, the Agent's machine pulls only what changed since its last pull, while the
+     turn runs. Only a tool call on the machine waits for the pull. An Agent whose machine is
+     offline or unset pulls nothing.
+   - The pull fetches every changed file. Fetching large binaries the first time something opens
+     them is deferred.
    - After the reply, the Computer pushes each changed file with the revision it started from. A
      deleted file records a delete, and a rename is a delete plus an add.
 
@@ -86,7 +92,8 @@ searchable threads. Rules people can edit outlast facts a model remembers.
      commands and deletes the copy.
    - A Worker's conflicts go to its Agent's inbox. The wording rides the inbox item, not the
      prompt.
-   - People editing in the app go through the same check.
+   - People editing in the app get the same merge. A real conflict refuses their save and shows
+     them Compare instead of saving a copy, because they are there to resolve it.
 
 7. **The runner reads the Server.** The Agent's runner
    ([ADR 0057](0057-agents-run-on-the-server-and-machines-run-their-tools.md)) reads rules and
@@ -108,7 +115,9 @@ searchable threads. Rules people can edit outlast facts a model remembers.
     `MEMORY.md` holds facts and stays under ADR 0052's cap.
 
 11. **References carry a revision.** Citing a Drive file in a message records the revision current
-    at send time, so the citation opens what the Agent meant. Attachments stay as they are.
+    at send time. A file the sending turn changed is pushed after the reply, so its citation moves
+    to the revision that push leaves. Either way the citation opens what the Agent meant.
+    Attachments stay as they are.
 
 12. **v1 Drive page.** History, Compare and Restore. Compare renders two stored revisions with
     `@pierre/diffs` (Apache-2.0), so it needs no Server work. The Agent page links its rule files.
@@ -167,11 +176,13 @@ Deleted:
 Deferred:
 
 - Held mass deletes, and mounts of any kind.
+- Fetching large binaries on first open, and History that follows a rename.
 - The "Loaded before the first message" token panel.
 
 Follow-up:
 
-- Extend `specs/artifact-drive.md` with areas, attribution, the change counter, and the pull, push
-  and conflict rules. Rewrite `specs/workspace.md` to this model.
+- Done: `specs/artifact-drive.md` carries areas, attribution, the change counter, pushes and
+  conflicts, and `specs/drive-folder.md` carries the machine folder, pull and push.
+- Rewrite `specs/workspace.md` to this model.
 - The prompt's memory and rule text changes go through the guarded prompt contract: the size cap,
   the divergence register, and a `tune-agent-behavior` baseline.
