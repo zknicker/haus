@@ -78,6 +78,19 @@ Settings sit behind the channel header menu. There is no Overview pane.
 - A key matches `^[A-Z][A-Z0-9]{1,4}$` and is unique on the Server. A key in use by another
   Project, or held by Tasks of another Project, is `TASK_KEY_TAKEN`.
 
+### Allocating a key
+
+The migration, and the key "New project" suggests, follow one total rule:
+
+1. Take the uppercase of every letter and digit in the name, in order. A name with none becomes
+   `P` plus the next free number (`P2`, `P3`, ...), and the rule stops.
+2. With fewer than 2 characters, pad with `X`. With more than 4, keep the first 4.
+3. If the result collides with a live key or a reserved ledger entry, append `2`, then `3`, and so
+   on, trimming the base from the end so the key stays within 5 characters.
+
+The result always matches `^[A-Z][A-Z0-9]{1,4}$` once the base starts with a letter. A base that
+starts with a digit is prefixed with `P` before step 2.
+
 ### Agents
 
 - An Agent's home Project is `agents.home_project_id`, not null. Every Agent has exactly one.
@@ -114,7 +127,9 @@ Settings sit behind the channel header menu. There is no Overview pane.
 
 ## The Haus project
 
-- `#all` becomes the Haus project. Its channel is renamed `haus` and shown as Haus. `#all` stops
+- `#all` becomes the Haus project. Its channel is renamed `haus` and shown as Haus. An existing
+  channel already named `haus` is first renamed `haus-2`, or the next free suffix, keeping its id
+  and Tasks. `#all` stops
   resolving as a target in the same wave, and the prompt's references move through the guarded
   prompt contract.
 - Every member of the Server belongs to the Haus project's channel, as they belong to `#all` today.
@@ -161,17 +176,20 @@ One migration in J2 turns channels into Projects. J3 sets home Projects. Both ar
 second run changes nothing.
 
 1. **Projects (J2).** Each live or archived channel gets a `projects` row. The `#all` channel is
-   the Haus project and is renamed `haus`.
+   the Haus project and is renamed `haus`, after any existing `haus` channel is renamed `haus-2`
+   or the next free suffix. The migration logs that rename.
 2. **Keys (J2).** Each Project takes its channel's ledger entry. Where several channels share one,
    the Haus project keeps it if it is among them. Otherwise the channel with the most Tasks under
    it keeps it, and the oldest channel wins a tie. Every other channel gets a new entry whose key
-   is the first four letters of its name, uppercased, with a digit appended on collision. Existing
-   Tasks keep their keys and numbers ([tasks.md](tasks.md#keys)).
+   follows the [key rule](#allocating-a-key). Existing Task identifiers never change
+   ([tasks.md](tasks.md#keys)).
 3. **Task Projects (J2).** Each Task's Project is its origin Message's channel. A Task from before
-   Tasks were places, with no origin, takes the Project that holds its key.
-4. **Home Projects (J3).** Each Agent's home is the Project where it authored the most messages in
-   the last 30 days, counting a Task's messages toward its Project. A tie goes to the Project with
-   its newest message. An Agent with no such messages, and Cove, go to the Haus project.
+   Tasks were places, with no origin, takes the Project that holds its key. When no channel holds
+   that key, the Task goes to the Haus project. Either way it keeps its key and number.
+4. **Home Projects (J3).** Each Agent's home is the unarchived Project where it authored the most
+   messages in the last 30 days, counting a Task's messages toward its Project. A tie goes to the
+   Project with its newest message. Archived Projects are never eligible. An Agent with no such
+   messages, and Cove, go to the Haus project.
 5. **Memberships (J3).** `channel_agent_participants` and `agent_channel_mutes` are dropped in the
    same migration that sets homes. Queued inbox items stay and drain under the rules they were
    planned with.

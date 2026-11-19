@@ -53,7 +53,7 @@ someone @mentions it. Haus is a team, so it takes Capy's ownership and Amp's qui
    Workers their repos, rules and default place.
 
 5. **Humans can file a Task.** "New task" asks for a Project, a title and an Agent, which defaults
-   to the Project's Agent. The Agent picks it up like an assignment. Every Task still has an Agent
+   to the Project's Agent. The Agent picks it up like an assignment. Every Task starts with an Agent
    working it.
 
 6. **An Agent belongs to one Project.** It is listed under it, and that Project's rules always

@@ -84,7 +84,7 @@ only what is addressed to it or what it follows. A message reaches an Agent when
 | Where the message is | It reaches the Agent when |
 | --- | --- |
 | Its home Project's channel | Always, as ordinary delivery |
-| A Task of its home Project | Always, unless the Agent unfollowed that Task |
+| A Task of its home Project | Always |
 | Another Project's channel, top level | It @mentions the Agent |
 | Another Project's channel, inline reply | It @mentions the Agent, or the Agent follows the reply chain |
 | A Task of another Project | It @mentions the Agent, or the Agent follows the Task |
@@ -104,7 +104,9 @@ only what is addressed to it or what it follows. A message reaches an Agent when
   for messages planned after the move. Items already queued stay queued.
 - There are no channel mutes. `agent_channel_mutes` and `haus channel mute` and `unmute` are
   deleted: a home Project is the place an Agent answers first, and other Projects already reach it
-  only by mention. An Agent stops hearing a Task by unfollowing it (`haus task unfollow`).
+  only by mention. Home hearing is absolute: a home Agent hears every message in its Project's
+  channel and Tasks, and unfollowing a home Task changes nothing for it. Outside its home, an Agent
+  stops hearing a Task by unfollowing it (`haus task unfollow`).
 
 Across all Servers with the TypeSafe credential configured, [ADR 0030](../docs/adr/0030-semantic-channel-addressing.md)
 permits semantic narrowing of unaddressed human top-level channel messages. Its eligible Agents in
@@ -114,6 +116,9 @@ explicit mention, reply, Task, or DM rules. In a Project with one home Agent, th
 addressed to it as `sole` when the author is the channel's only human member. With more human
 members, Jev judges whether the one Agent is the addressee, and recipients stay unchanged either
 way. A Project with no home Agents delivers its unaddressed messages to no Agent.
+
+ADR 0030 narrowing of top-level channel messages among several home Agents is the one exception
+to absolute home hearing.
 
 Hearing lands with J3. Each row of the table, and the generalist case, has a delivery test in
 `apps/server/test/agent-hearing.test.ts`, and the migration has one for each step of

@@ -76,7 +76,9 @@ they wake an Agent, which decides. There is no Convert to Task.
 - A filed Task starts `open` and assigned to that Agent. The assignment queues a
   `task_assignment` item exactly as a reassignment does ([Assignment](#assignment)), so the Agent
   picks it up like any assignment. Nothing posts in the Project channel.
-- After filing, the assignee changes like any Task's, to a person or an Agent.
+- Every Task starts with an Agent working it. After that, people may reassign it to a person or
+  unassign it, like any Task, and deleting the assigned Agent unassigns it. The Project's home
+  Agents still hear it through the home rule ([inbox.md](inbox.md#hearing)).
 
 ### The Task target
 
