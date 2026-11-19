@@ -109,6 +109,39 @@ test('an idle worker after a result completes with its summary and usage', () =>
     });
 });
 
+test('a settled result carries its final answer with the Haus lines read', () => {
+    const finished = result({
+        result: 'Opened https://github.com/zknicker/haus/pull/42 for review.\n\nHaus-Outcome: needs-you\nHaus-Person: @zach',
+    });
+    expect(observe([prompt, finished], session({ workerStatus: 'idle' })).result).toEqual({
+        outcome: 'needs-you',
+        personHandle: 'zach',
+        pullRequestUrls: ['https://github.com/zknicker/haus/pull/42'],
+        text: 'Opened https://github.com/zknicker/haus/pull/42 for review.',
+    });
+});
+
+test('an open question is the result text of the pending input', () => {
+    const asked = toolUse('t1', 'AskUserQuestion', {
+        questions: [{ options: [], question: 'Which branch should I rebase onto?' }],
+    });
+    expect(observe([prompt, asked], session({ workerStatus: 'requires_action' })).result).toEqual({
+        outcome: null,
+        personHandle: null,
+        pullRequestUrls: [],
+        text: 'Which branch should I rebase onto?',
+    });
+});
+
+test('an error with no result text has no final answer', () => {
+    expect(
+        observe(
+            [prompt, result({ is_error: true, result: null, subtype: 'error_max_turns' })],
+            session({ workerStatus: 'idle' })
+        ).result
+    ).toBeNull();
+});
+
 test('an error result fails the Run with Claude’s subtype', () => {
     expect(
         observe(

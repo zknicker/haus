@@ -1,5 +1,6 @@
 import { workerActivityMaxLength, workerSummaryMaxLength } from '@haus/api';
 import type { CloudAgentProviderObservation } from '../provider.ts';
+import { observedResultOf } from '../report-from-result.ts';
 import { boundedReport, boundedSummary } from '../report-text.ts';
 import type { ClaudeSession, ClaudeSessionEvent } from './controller.ts';
 import { evidence } from './evidence.ts';
@@ -125,10 +126,12 @@ function afterPrompt(
         return { ...base, status: 'cancelled', summary: 'Stopped from Haus.' };
     }
     if (session.workerStatus === 'requires_action') {
+        const question = questionOf(after, session.pendingAction);
         return {
             ...base,
+            result: observedResultOf(question, base.branches),
             status: 'pending_input',
-            summary: bounded(questionOf(after, session.pendingAction), workerSummaryMaxLength),
+            summary: bounded(question, workerSummaryMaxLength),
         };
     }
     const tasks = openTasks(after);
@@ -164,10 +167,12 @@ function answered(entries: ClaudeLogEntry[], requestId: string): boolean {
 }
 
 function resultObservation(base: Base, result: Entry<'result'>): CloudAgentProviderObservation {
+    const final = result.text ? observedResultOf(result.text, base.branches) : null;
     if (!result.isError) {
         const report = result.text ? boundedReport(result.text) : null;
         return {
             ...base,
+            result: final,
             status: 'completed',
             ...(report ? { report, summary: boundedSummary(report) } : {}),
         };
@@ -177,6 +182,7 @@ function resultObservation(base: Base, result: Entry<'result'>): CloudAgentProvi
         ...base,
         errorCode: `claude-${result.subtype}`.slice(0, 120),
         report,
+        result: final,
         status: 'failed',
         summary: boundedSummary(report),
     };

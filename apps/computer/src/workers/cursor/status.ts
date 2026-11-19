@@ -7,6 +7,7 @@ import {
     workerBranchRepositorySchema,
 } from '@haus/api';
 import type { CloudAgentProviderObservation } from '../provider.ts';
+import { observedResultOf } from '../report-from-result.ts';
 import { boundedReport, boundedSummary } from '../report-text.ts';
 import type { CursorBranchReading, CursorRunReading, CursorRunStatus } from './transport.ts';
 
@@ -50,6 +51,8 @@ export function observationOf(
     const usage = usageOf(reading);
     const branches = branchesOf(reading.branches);
     const errorCode = reading.errorCode ? bounded(collapse(reading.errorCode), 120) : '';
+    const status = workerStatusOf(reading.rawStatus);
+    const settledFromResult = status === 'completed' || status === 'failed';
     return {
         ...(branches.length > 0 ? { branches } : {}),
         ...(errorCode ? { errorCode } : {}),
@@ -59,8 +62,11 @@ export function observationOf(
         providerRunId: reading.runId,
         providerUrl: cursorAgentUrl(context.agentId),
         rawStatus: reading.rawStatus,
-        status: workerStatusOf(reading.rawStatus),
+        status,
         ...(report ? { report, summary: boundedSummary(report) } : {}),
+        ...(settledFromResult
+            ? { result: reading.result ? observedResultOf(reading.result, branches) : null }
+            : {}),
         ...(usage ? { usage } : {}),
     };
 }

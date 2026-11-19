@@ -144,6 +144,52 @@ test('an error message with no result also becomes the report and summary', () =
         text: 'The provider could not start the Agent.',
     });
     expect(observation.summary).toBe('The provider could not start the Agent.');
+    expect(observation.result).toBeNull();
+});
+
+test('a finished run carries its final answer with the Haus lines read and its pull request', () => {
+    const observation = observationOf(
+        {
+            branches: [
+                {
+                    branch: 'cursor/fix-race',
+                    prUrl: 'https://github.com/merchbaseco/tmterminal/pull/55',
+                    repoUrl: 'github.com/merchbaseco/tmterminal',
+                },
+            ],
+            errorCode: null,
+            errorMessage: null,
+            rawStatus: 'FINISHED',
+            result: 'Fixed the race.\n\nThe flake came from an unawaited close.\n\nHaus-Outcome: done',
+            runId: 'run_done',
+            usage: null,
+        },
+        { agentId: 'bc_done', observedAt: '2026-10-26T23:06:00.000Z' }
+    );
+
+    expect(observation.result).toEqual({
+        outcome: 'done',
+        personHandle: null,
+        pullRequestUrls: ['https://github.com/merchbaseco/tmterminal/pull/55'],
+        text: 'Fixed the race.\n\nThe flake came from an unawaited close.',
+    });
+});
+
+test('a run still working carries no final answer', () => {
+    const observation = observationOf(
+        {
+            branches: [],
+            errorCode: null,
+            errorMessage: null,
+            rawStatus: 'RUNNING',
+            result: null,
+            runId: 'run_working',
+            usage: null,
+        },
+        { agentId: 'bc_working', observedAt: '2026-10-26T23:06:00.000Z' }
+    );
+
+    expect(observation).not.toHaveProperty('result');
 });
 
 test('a Run first read after sleep retains its provider start time', () => {
