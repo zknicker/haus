@@ -198,4 +198,5 @@ D2 and D4 add these guards.
 | A push applies every outcome to the folder, and a refused file does not repeat | `apps/computer/src/drive/push.test.ts` |
 | Two folders editing one file merge different lines and keep both versions of the same line | `apps/computer/src/drive/two-writers.test.ts` |
 | A launch pulls before the turn and pushes the turn's edits under its run id | `apps/computer/src/drive/turn-sync.test.ts` |
+| Two Computer folders sync through the real Server routes: create, pull, merge, kept-both, refused | `apps/server/test/drive-folder-sync.test.ts` |
 | A start frame's `driveConflict` renders as the whole turn input | `apps/computer/src/harness/drive-conflict-turn.test.ts` |
