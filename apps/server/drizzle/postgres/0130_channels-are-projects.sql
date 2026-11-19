@@ -74,9 +74,19 @@ BEGIN
             taken."server_id", taken."id", free_name;
     END LOOP;
 END $$;--> statement-breakpoint
-ALTER TABLE "chats" DROP CONSTRAINT IF EXISTS "chats_shape";--> statement-breakpoint
-UPDATE "chats" SET "name" = 'haus' WHERE "is_all" AND "name" <> 'haus';--> statement-breakpoint
-ALTER TABLE "chats" ADD CONSTRAINT "chats_shape" CHECK ((
+-- 0130 drops `anchor_message_id` and writes the final shape, which keeps the
+-- Haus name clause, so a replay after it leaves the shape alone.
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_attribute
+        WHERE attrelid = 'chats'::regclass AND attname = 'anchor_message_id' AND NOT attisdropped
+    ) THEN
+        RETURN;
+    END IF;
+    ALTER TABLE "chats" DROP CONSTRAINT IF EXISTS "chats_shape";
+    UPDATE "chats" SET "name" = 'haus' WHERE "is_all" AND "name" <> 'haus';
+    ALTER TABLE "chats" ADD CONSTRAINT "chats_shape" CHECK ((
                 (
                     "chats"."kind" = 'channel'
                     and "chats"."name" is not null
@@ -130,7 +140,8 @@ ALTER TABLE "chats" ADD CONSTRAINT "chats_shape" CHECK ((
                     and "chats"."parent_chat_kind" = 'channel'
                     and "chats"."anchor_message_id" is not null
                 )
-            ));--> statement-breakpoint
+            ));
+END $$;--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "projects" (
 	"chat_id" text PRIMARY KEY NOT NULL,
 	"chat_kind" text DEFAULT 'channel' NOT NULL,

@@ -72,17 +72,42 @@ test('0131 puts every Task in a Project, moves its origin onto it, and homes eve
         const afterOriginDelete = await readTasks(database);
 
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([]);
-        const replayed = await readFile(join(folder, `${migrationTag}.sql`), 'utf8');
-        for (const statement of replayed.split('--> statement-breakpoint')) {
-            await database.unsafe(statement);
-        }
+        await replay(database, folder, migrationTag);
         expect(await readTasks(database)).toEqual(afterOriginDelete);
+
+        const migrated = await readSchemaState(database);
+        await replay(database, folder, '0129_channels-are-projects');
+        await replay(database, folder, migrationTag);
+        expect(await readSchemaState(database)).toEqual(migrated);
     } finally {
         await database.close();
         await cluster.stop();
         await rm(folder, { force: true, recursive: true });
     }
 });
+
+async function replay(database: SQL, folder: string, tag: string) {
+    const replayed = await readFile(join(folder, `${tag}.sql`), 'utf8');
+    for (const statement of replayed.split('--> statement-breakpoint')) {
+        await database.unsafe(statement);
+    }
+}
+
+async function readSchemaState(database: SQL) {
+    return {
+        agents: await database`SELECT id, home_project_id FROM agents ORDER BY id COLLATE "C"`,
+        chats: await database`SELECT id, name, parent_chat_id FROM chats ORDER BY id COLLATE "C"`,
+        constraints: await database`
+            SELECT conrelid::regclass::text AS "table", conname, pg_get_constraintdef(oid) AS definition
+            FROM pg_constraint
+            WHERE conrelid IN ('chats'::regclass, 'tasks'::regclass, 'projects'::regclass, 'agents'::regclass)
+            ORDER BY 1, 2`,
+        projects: await database`
+            SELECT chat_id, task_key_id FROM projects ORDER BY chat_id COLLATE "C"`,
+        taskKeys: await database`SELECT id, key FROM task_keys ORDER BY id COLLATE "C"`,
+        tasks: await readTasks(database),
+    };
+}
 
 async function readTasks(database: SQL) {
     return await database`
