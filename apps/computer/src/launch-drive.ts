@@ -1,6 +1,6 @@
 import { mkdir } from 'node:fs/promises';
 import { readAgentSeedConfiguration } from './agent-configuration.ts';
-import { driveMemoryTraceLine, prepareAgentDrive } from './drive-migration/prepare-agent-drive.ts';
+import { driveMigrationTrace, prepareAgentDrive } from './drive-migration/prepare-agent-drive.ts';
 import { ensureNativeSkillLinks } from './harness/native-skill-links.ts';
 import { driveFolderFailureReport } from './launch-failure-turns.ts';
 import { messageOf, writeTrace } from './launch-trace.ts';
@@ -22,6 +22,7 @@ export async function prepareLaunchDrive(input: {
             agentId: command.agentId,
             agentRoot: input.agentRoot,
             handle: command.agentName,
+            runId: command.runId,
             runnerToken: input.runner.runnerToken,
             seed: (await readAgentSeedConfiguration(input.agentRoot)) ?? {
                 agentDescription: command.agentDescription ?? null,
@@ -33,7 +34,7 @@ export async function prepareLaunchDrive(input: {
             serverOrigin: input.options.serverOrigin,
         });
         if (prepared.moved > 0) {
-            await writeTrace(trace, driveMemoryTraceLine(prepared.drive, prepared.memory));
+            await writeTrace(trace, driveMigrationTrace(prepared));
         }
         await mkdir(prepared.drive.skills, { mode: 0o755, recursive: true });
         await seedAgentManagedSkills(input.agentRoot, prepared.drive.skills);

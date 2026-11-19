@@ -83,6 +83,7 @@ test('full reset keeps Drive and the next launch reseeds nothing over it', async
             agentId,
             agentRoot,
             handle: 'scout',
+            runId: 'run_after_reset',
             runnerToken: 'runner-reset',
             seed: {
                 agentDescription: 'Onboarding guide',

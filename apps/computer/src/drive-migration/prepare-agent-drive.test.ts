@@ -5,8 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AgentSeedConfiguration } from '../agent-configuration.ts';
 import { agentDrive } from '../drive/agent-drive.ts';
+import { resolveEntries } from './drive-outcomes.ts';
 import { legacyEntries } from './drive-sources.ts';
-import { uploadEntries } from './drive-upload.ts';
 import { DriveMigrationError, prepareAgentDrive } from './prepare-agent-drive.ts';
 import { createDriveRoutes, serveDrive } from './testing/drive-server.ts';
 
@@ -24,12 +24,16 @@ const memory = '# Scout\n\n## Active Context\n\n- Bluebird launch on Friday.\n';
 let agentRoot: string;
 let routes: ReturnType<typeof createDriveRoutes>;
 let server: ReturnType<typeof serveDrive>;
-let refused: string | null;
+let failing: string | null;
 
 beforeEach(async () => {
     agentRoot = await mkdtemp(join(tmpdir(), 'haus-drive-migration-'));
-    refused = null;
-    routes = createDriveRoutes({ agentId, refuse: (path) => path === refused, runnerToken });
+    failing = null;
+    routes = createDriveRoutes({
+        agentId,
+        fault: (path) => (path === failing ? 'failed-reservation' : null),
+        runnerToken,
+    });
     server = serveDrive(routes);
 });
 afterEach(async () => {
@@ -42,6 +46,7 @@ function prepare(input: Partial<AgentSeedConfiguration> = {}) {
         agentId,
         agentRoot,
         handle: 'scout',
+        runId: 'run_prepare',
         runnerToken,
         seed: { ...seed, ...input },
         serverOrigin: `http://127.0.0.1:${server.port}`,
@@ -115,8 +120,9 @@ test('legacy memory, notes, pages and skills move into Drive and the folder', as
 test('a rerun after a crash before placement converges on the first revisions', async () => {
     await writeLegacyWorkspace();
     const drive = agentDrive(agentRoot, 'scout');
-    const firstUploads = await uploadEntries(await legacyEntries(agentRoot, drive), {
+    const firstOutcomes = await resolveEntries(await legacyEntries(agentRoot, drive), 'scout', {
         agentId,
+        runId: 'run_crashed',
         runnerToken,
         serverOrigin: `http://127.0.0.1:${server.port}`,
     });
@@ -125,16 +131,17 @@ test('a rerun after a crash before placement converges on the first revisions', 
     const result = await prepare();
 
     expect(routes.revisionCount()).toBe(revisionsAfterCrash);
+    const firstMemory = firstOutcomes.find((outcome) => outcome.entry.sha256 === digest(memory));
     expect(result.memory?.revisionId).toBe(
-        firstUploads.find((upload) => upload.sha256 === digest(memory))?.revisionId ?? ''
+        firstMemory?.kind === 'stored' ? firstMemory.revisionId : ''
     );
     expect(await readFile(drive.memory, 'utf8')).toBe(memory);
     await expect(stat(join(agentRoot, 'workspace', 'MEMORY.md'))).rejects.toThrow();
 });
 
-test('a Drive refusal leaves every legacy file in place and fails', async () => {
+test('a Drive outage leaves every legacy file in place and fails', async () => {
     await writeLegacyWorkspace();
-    refused = 'agents/scout/notes/clients/acme.md';
+    failing = 'agents/scout/notes/clients/acme.md';
 
     await expect(prepare()).rejects.toBeInstanceOf(DriveMigrationError);
 

@@ -1,14 +1,21 @@
 import { createHash } from 'node:crypto';
 import type { ArtifactMetadata } from '@haus/api';
 
+export type DriveFault = 'failed-reservation' | 'lost-answer';
+
+type Reservation = { artifact: ArtifactMetadata; state: 'ready' } | { state: 'failed' };
+
 export function createDriveRoutes(input: {
     agentId: string;
+    fault?: (path: string) => DriveFault | null;
+    onUpload?: (path: string) => Promise<void>;
     refuse?: (path: string) => boolean;
     runnerToken: string;
 }) {
     const heads = new Map<string, ArtifactMetadata>();
-    const byRequest = new Map<string, ArtifactMetadata>();
+    const byRequest = new Map<string, Reservation>();
     const bytes = new Map<string, Uint8Array>();
+    const deletedRevisions = new Set<string>();
     let revisions = 0;
 
     const commit = (path: string, body: Uint8Array, contentType: string) => {
@@ -47,6 +54,7 @@ export function createDriveRoutes(input: {
         const path = url.searchParams.get('path') ?? '';
         const requestId = url.searchParams.get('request_id') ?? '';
         const body = new Uint8Array(await request.arrayBuffer());
+        await input.onUpload?.(path);
         if (input.refuse?.(path)) {
             return Response.json(
                 { code: 'FORBIDDEN', message: `Writing ${path} is not allowed.` },
@@ -54,8 +62,20 @@ export function createDriveRoutes(input: {
             );
         }
         const replayed = byRequest.get(requestId);
+        if (replayed?.state === 'failed') {
+            return Response.json(
+                { code: 'UPLOAD_CONFLICT', message: 'Use a new request_id after a failed upload.' },
+                { status: 409 }
+            );
+        }
+        if (replayed && deletedRevisions.has(replayed.artifact.revision_id)) {
+            return Response.json(
+                { code: 'DELETED', message: 'That revision was since deleted.' },
+                { status: 409 }
+            );
+        }
         if (replayed) {
-            return Response.json({ artifact: replayed });
+            return Response.json({ artifact: replayed.artifact });
         }
         const head = heads.get(path);
         if (head && !url.searchParams.get('base_revision_id')) {
@@ -64,12 +84,23 @@ export function createDriveRoutes(input: {
                 { status: 409 }
             );
         }
+        const fault = input.fault?.(path) ?? null;
+        if (fault === 'failed-reservation') {
+            byRequest.set(requestId, { state: 'failed' });
+            return Response.json(
+                { code: 'STORAGE_UNAVAILABLE', message: 'Storage did not take the bytes.' },
+                { status: 503 }
+            );
+        }
         const artifact = commit(
             path,
             body,
             url.searchParams.get('content_type') ?? 'application/octet-stream'
         );
-        byRequest.set(requestId, artifact);
+        byRequest.set(requestId, { artifact, state: 'ready' });
+        if (fault === 'lost-answer') {
+            return new Response('upstream reset', { status: 502 });
+        }
         return Response.json({ artifact });
     };
 
@@ -79,6 +110,14 @@ export function createDriveRoutes(input: {
         heads,
         put: (path: string, text: string) =>
             commit(path, new TextEncoder().encode(text), 'text/markdown'),
+        remove: (path: string) => {
+            const head = heads.get(path);
+            if (head) {
+                deletedRevisions.add(head.revision_id);
+            }
+            heads.delete(path);
+            bytes.delete(path);
+        },
         revisionCount: () => revisions,
     };
 }

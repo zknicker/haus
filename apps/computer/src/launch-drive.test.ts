@@ -22,7 +22,7 @@ beforeEach(async () => {
     revoked = [];
     const drive = createDriveRoutes({
         agentId: 'agt_launchdrive',
-        refuse: (path) => path === 'agents/scout/MEMORY.md',
+        fault: (path) => (path === 'agents/scout/MEMORY.md' ? 'failed-reservation' : null),
         runnerToken,
     });
     server = Bun.serve({
@@ -52,7 +52,7 @@ afterEach(async () => {
     await rm(dataRoot, { force: true, recursive: true });
 });
 
-test('a Drive refusal fails the turn before the runtime starts and keeps the legacy files', async () => {
+test('a Drive outage fails the turn before the runtime starts and keeps the legacy files', async () => {
     const agentRoot = join(dataRoot, 'servers', 'srv_launchdrive', 'agents', 'agt_launchdrive');
     await mkdir(join(agentRoot, 'workspace', 'notes'), { recursive: true });
     await writeFile(join(agentRoot, 'workspace', 'MEMORY.md'), '# Scout\n');
@@ -74,7 +74,7 @@ test('a Drive refusal fails the turn before the runtime starts and keeps the leg
             inbox: [],
             inboxDelivery: 'notice',
             modelId: 'gpt-5.6-sol',
-            runId: 'run_drive_refused',
+            runId: 'run_drive_outage',
             runtimeId: 'codex',
             sessionGeneration: 1,
             totalPending: 0,
@@ -100,6 +100,6 @@ test('a Drive refusal fails the turn before the runtime starts and keeps the leg
         'Acme\n'
     );
     expect(
-        await readFile(join(agentRoot, 'runtime', 'turn-run_drive_refused.log'), 'utf8')
-    ).toContain('Drive preparation failed: Drive refused agents/scout/MEMORY.md: FORBIDDEN');
+        await readFile(join(agentRoot, 'runtime', 'turn-run_drive_outage.log'), 'utf8')
+    ).toContain('Drive preparation failed: Drive did not take agents/scout/MEMORY.md (');
 });

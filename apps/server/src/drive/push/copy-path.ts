@@ -1,15 +1,7 @@
-import { artifactPathBasename, artifactPathSchema } from '@haus/api';
+import { artifactConflictCopyPath, artifactPathSchema } from '@haus/api';
 import { liveArtifactAtPath, placeArtifactPath } from '../../artifacts/path.ts';
 import { ArtifactError } from '../../artifacts/storage.ts';
 import type { HausDatabase } from '../../postgres/connection.ts';
-
-export function conflictCopyPath(path: string, handle: string, n: number) {
-    const name = artifactPathBasename(path);
-    const folder = path.slice(0, path.length - name.length);
-    const dot = name.lastIndexOf('.');
-    const [stem, extension] = dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, ''];
-    return `${folder}${stem}.conflict-${handle}${n > 1 ? `-${n}` : ''}${extension}`;
-}
 
 export async function freeCopyPath(
     tx: HausDatabase,
@@ -18,7 +10,7 @@ export async function freeCopyPath(
     handle: string
 ) {
     for (let n = 1; ; n += 1) {
-        const candidate = copyPathWithinRules(path, conflictCopyPath(path, handle, n));
+        const candidate = copyPathWithinRules(path, artifactConflictCopyPath(path, handle, n));
         if (
             !(await liveArtifactAtPath(tx, serverId, candidate)) &&
             (await placeable(tx, serverId, candidate))
