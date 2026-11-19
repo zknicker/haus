@@ -6,7 +6,7 @@ import { type AgentDrive, agentDrive, recordAgentDriveHandle } from '../drive/ag
 import { exists } from '../workspace-volumes/workspace-volume.ts';
 import { type DriveEntryOutcome, resolveEntries } from './drive-outcomes.ts';
 import { applyOutcome, refusedLocation, removeLegacyDirectories } from './drive-placement.ts';
-import { legacyEntries, seedEntries, sha256Of } from './drive-sources.ts';
+import { legacyEntries, legacyFiles, seedEntries, sha256Of } from './drive-sources.ts';
 import { type DriveAuthority, DriveMigrationError } from './drive-upload.ts';
 
 export { DriveMigrationError } from './drive-upload.ts';
@@ -26,6 +26,7 @@ export interface DriveMemoryDigests {
 export interface DriveMigration {
     conflicts: { copy: string; path: string }[];
     drive: AgentDrive;
+    left: string[];
     memory: DriveMemoryDigests | null;
     moved: number;
     refused: { location: string; path: string; reason: string }[];
@@ -34,10 +35,11 @@ export interface DriveMigration {
 export async function prepareAgentDrive(input: PrepareAgentDriveInput) {
     await recordAgentDriveHandle(input.agentRoot, input.handle);
     const drive = agentDrive(input.agentRoot, input.handle);
-    if (await hasSeedReceipt(input.agentRoot)) {
+    if (await hasDriveSeedReceipt(input.agentRoot)) {
         return {
             conflicts: [],
             drive,
+            left: [],
             memory: null,
             moved: 0,
             refused: [],
@@ -54,7 +56,7 @@ export async function prepareAgentDrive(input: PrepareAgentDriveInput) {
     for (const outcome of outcomes) {
         await applyOutcome(input.agentRoot, drive, outcome);
     }
-    await removeLegacyDirectories(input.agentRoot);
+    const left = (await legacyFiles(input.agentRoot)).map((file) => file.areaPath);
     const migration = {
         conflicts: outcomes.flatMap((outcome) =>
             outcome.kind === 'kept-both'
@@ -62,6 +64,7 @@ export async function prepareAgentDrive(input: PrepareAgentDriveInput) {
                 : []
         ),
         drive,
+        left,
         memory: await memoryDigests(drive, outcomes),
         moved: entries.length,
         refused: outcomes.flatMap((outcome) =>
@@ -76,7 +79,10 @@ export async function prepareAgentDrive(input: PrepareAgentDriveInput) {
                 : []
         ),
     } satisfies DriveMigration;
-    await writeSeedReceipt(input.agentRoot, migration);
+    if (left.length === 0) {
+        await removeLegacyDirectories(input.agentRoot);
+        await writeSeedReceipt(input.agentRoot, migration);
+    }
     return migration;
 }
 
@@ -89,6 +95,9 @@ export function driveMigrationTrace(migration: DriveMigration) {
         ...migration.conflicts.map(
             (conflict) =>
                 `Drive kept both at ${conflict.path}; the legacy copy is ${conflict.copy}\n`
+        ),
+        ...migration.left.map(
+            (path) => `Drive migration left ${path} behind; the next launch moves it\n`
         ),
         ...migration.refused.map(
             (refusal) =>
@@ -124,7 +133,7 @@ function receiptPath(agentRoot: string) {
     return join(agentRoot, 'runtime', 'drive-seed.json');
 }
 
-async function hasSeedReceipt(agentRoot: string) {
+export async function hasDriveSeedReceipt(agentRoot: string) {
     return await exists(receiptPath(agentRoot));
 }
 

@@ -2,25 +2,32 @@ import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { runAgentWorkspaceRequest } from '../workspace-files.ts';
 import { DriveMigrationError, prepareAgentDrive } from './prepare-agent-drive.ts';
 import { createDriveRoutes, type DriveFault, serveDrive } from './testing/drive-server.ts';
 
 const agentId = 'agt_driveoutcomes';
 const runnerToken = 'runner-drive-outcomes';
 
+let dataRoot: string;
 let agentRoot: string;
 let routes: ReturnType<typeof createDriveRoutes>;
 let server: ReturnType<typeof serveDrive>;
 let faults: Map<string, DriveFault>;
 let refused: Set<string>;
+let onUpload: (path: string) => Promise<void>;
 
 beforeEach(async () => {
-    agentRoot = await mkdtemp(join(tmpdir(), 'haus-drive-outcomes-'));
+    dataRoot = await mkdtemp(join(tmpdir(), 'haus-drive-outcomes-'));
+    agentRoot = join(dataRoot, 'servers', 'srv_drive', 'agents', agentId);
+    await mkdir(agentRoot, { recursive: true });
     faults = new Map();
     refused = new Set();
+    onUpload = async () => undefined;
     routes = createDriveRoutes({
         agentId,
         fault: (path) => faults.get(path) ?? null,
+        onUpload: (path) => onUpload(path),
         refuse: (path) => refused.has(path),
         runnerToken,
     });
@@ -28,7 +35,7 @@ beforeEach(async () => {
 });
 afterEach(async () => {
     server.stop(true);
-    await rm(agentRoot, { force: true, recursive: true });
+    await rm(dataRoot, { force: true, recursive: true });
 });
 
 function prepare(runId: string) {
@@ -173,4 +180,60 @@ test('a refused legacy file moves to drive-refused and the migration completes',
             reason: 'FORBIDDEN Writing agents/scout/notes/leads.md is not allowed.',
         },
     ]);
+});
+
+test('pages in workbench/ move into Drive and their card paths still read', async () => {
+    await writeLegacy({
+        'MEMORY.md': '# Scout\n',
+        'workbench/pricing-plan.html': '<h1>Pricing</h1>',
+    });
+
+    await prepare('run_a');
+
+    expect(driveText('agents/scout/workbench/pricing-plan.html')).toBe('<h1>Pricing</h1>');
+    await expect(stat(join(agentRoot, 'workspace', 'workbench'))).rejects.toThrow();
+    const read = await runAgentWorkspaceRequest({
+        dataRoot,
+        request: {
+            agentId,
+            operation: { includeHidden: false, kind: 'read', path: 'workbench/pricing-plan.html' },
+            requestId: 'req_card',
+            type: 'agent-workspace-request',
+        },
+        serverId: 'srv_drive',
+    });
+    expect(read).toMatchObject({
+        result: {
+            kind: 'read',
+            value: {
+                content: '<h1>Pricing</h1>',
+                path: 'drive/agents/scout/workbench/pricing-plan.html',
+            },
+        },
+    });
+});
+
+test('a legacy file that appears mid-migration blocks the receipt until the next launch', async () => {
+    await writeLegacy({ 'MEMORY.md': '# Scout\n' });
+    const late = join(agentRoot, 'skills', 'digest', 'SKILL.md');
+    onUpload = async (path) => {
+        if (path === 'agents/scout/MEMORY.md') {
+            await mkdir(dirname(late), { recursive: true });
+            await writeFile(late, 'name: digest\n');
+        }
+    };
+
+    await prepare('run_a');
+
+    expect(await readFile(late, 'utf8')).toBe('name: digest\n');
+    await expect(stat(join(agentRoot, 'runtime', 'drive-seed.json'))).rejects.toThrow();
+    expect(await readFile(area('MEMORY.md'), 'utf8')).toBe('# Scout\n');
+
+    onUpload = async () => undefined;
+    await prepare('run_b');
+
+    expect(driveText('agents/scout/skills/digest/SKILL.md')).toBe('name: digest\n');
+    expect(await readFile(area('skills', 'digest', 'SKILL.md'), 'utf8')).toBe('name: digest\n');
+    await expect(stat(join(agentRoot, 'skills'))).rejects.toThrow();
+    expect((await receipt()).version).toBe(1);
 });

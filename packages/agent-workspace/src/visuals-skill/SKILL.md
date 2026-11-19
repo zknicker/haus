@@ -59,12 +59,12 @@ after `visual` on the fence line becomes the title:
 ````
 
 A page is a self-contained `.html` file (inline CSS/JS, no external assets) written under
-`workbench/`, then referenced with a bare `page` fence holding exactly one JSON object — no
-comments, no trailing commas:
+`drive/agents/<your handle>/workbench/`, then referenced with a bare `page` fence holding exactly
+one JSON object, whose `path` is that cwd-relative path — no comments, no trailing commas:
 
 ````
 ```page
-{"path":"workbench/pricing-plan.html","title":"Pricing plan"}
+{"path":"drive/agents/<your handle>/workbench/pricing-plan.html","title":"Pricing plan"}
 ```
 ````
 

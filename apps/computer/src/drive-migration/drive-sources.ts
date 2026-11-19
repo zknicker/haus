@@ -26,24 +26,31 @@ export function legacyRoots(agentRoot: string) {
         notes: join(workspace, 'notes'),
         pages: join(workspace, 'pages'),
         skills: join(agentRoot, 'skills'),
+        workbench: join(workspace, 'workbench'),
     };
 }
 
-export async function legacyEntries(agentRoot: string, drive: AgentDrive) {
+export async function legacyFiles(agentRoot: string) {
     const roots = legacyRoots(agentRoot);
-    const entries: DriveSeedEntry[] = [];
-    for (const [source, target] of [
-        [roots.notes, 'notes'],
-        [roots.pages, 'pages'],
-        [roots.skills, 'skills'],
-    ] as const) {
-        for (const relative of await regularFiles(source)) {
-            const legacyPath = join(source, ...relative.split('/'));
-            entries.push(await entryOf(drive, `${target}/${relative}`, legacyPath, legacyPath));
+    const files: { areaPath: string; source: string }[] = [];
+    for (const target of ['notes', 'pages', 'skills', 'workbench'] as const) {
+        for (const relative of await regularFiles(roots[target])) {
+            files.push({
+                areaPath: `${target}/${relative}`,
+                source: join(roots[target], ...relative.split('/')),
+            });
         }
     }
     if ((await lstat(roots.memory).catch(missingAs(null)))?.isFile()) {
-        entries.push(await entryOf(drive, 'MEMORY.md', roots.memory, roots.memory));
+        files.push({ areaPath: 'MEMORY.md', source: roots.memory });
+    }
+    return files;
+}
+
+export async function legacyEntries(agentRoot: string, drive: AgentDrive) {
+    const entries: DriveSeedEntry[] = [];
+    for (const file of await legacyFiles(agentRoot)) {
+        entries.push(await entryOf(drive, file.areaPath, file.source, file.source));
     }
     return entries;
 }

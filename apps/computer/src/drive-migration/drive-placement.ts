@@ -53,7 +53,9 @@ async function placeEntry(drive: AgentDrive, entry: DriveSeedEntry) {
 
 export async function removeLegacyDirectories(agentRoot: string) {
     const roots = legacyRoots(agentRoot);
-    await Promise.all([removeEmptyTree(roots.notes), removeEmptyTree(roots.pages)]);
+    await Promise.all(
+        [roots.notes, roots.pages, roots.workbench].map((root) => removeEmptyTree(root))
+    );
     await rm(roots.skills, { force: true, recursive: true });
 }
 
