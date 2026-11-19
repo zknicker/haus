@@ -1,0 +1,25 @@
+/*
+ * Nord: Snow Storm in light, Polar Night in dark, Frost accents. Base colors
+ * only; `palette-ground.css` derives the ladder. Palette by Arctic Ice
+ * Studio and Sven Greb (MIT), https://www.nordtheme.com.
+ */
+[data-color-theme="nord"][data-palette][data-theme="light"] {
+    --accent: #5e81ac;
+    --accent-foreground: #eceff4;
+    --background: #eceff4;
+    --foreground: #2e3440;
+    --sidebar-surface: #e5e9f0;
+    --default: #d8dee9;
+    --muted: #4c566a;
+    --border: #d8dee9;
+}
+
+[data-color-theme="nord"][data-palette][data-theme="dark"] {
+    --accent: #88c0d0;
+    --accent-foreground: #2e3440;
+    --background: #2e3440;
+    --foreground: #e5e9f0;
+    --surface: #3b4252;
+    --default: #434c5e;
+    --border: #4c566a;
+}
