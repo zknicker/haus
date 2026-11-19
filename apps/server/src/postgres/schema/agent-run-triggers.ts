@@ -38,7 +38,7 @@ export const agentRunTriggersTable = pgTable(
         check(
             'agent_run_triggers_chat',
             sql`${table.source} = 'task_assignment'
-                or (${table.chatId} is null) = (${table.source} in ('subagent'))`
+                or (${table.chatId} is null) = (${table.source} in ('subagent', 'drive_conflict'))`
         ),
     ]
 );

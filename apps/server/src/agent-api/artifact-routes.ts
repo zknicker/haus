@@ -14,6 +14,7 @@ import { registerAgentArtifactDriveRoutes } from './artifact-drive-routes.ts';
 import { sendArtifactError } from './artifact-errors.ts';
 import { registerAgentArtifactPublicLinkRoutes } from './artifact-public-link-routes.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
+import { registerAgentDriveChangesRoute } from './drive-changes-route.ts';
 
 export function registerAgentArtifactRoutes(
     app: FastifyInstance,
@@ -28,6 +29,7 @@ export function registerAgentArtifactRoutes(
     registerAgentArtifactActions(app, options);
     registerAgentArtifactDriveRoutes(app, options);
     registerAgentArtifactPublicLinkRoutes(app, options);
+    registerAgentDriveChangesRoute(app, options);
     for (const path of [
         '/api/agent/artifacts/publish-artifact-raw',
         '/api/agent/actions/publish-artifact-raw',

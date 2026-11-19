@@ -8,5 +8,5 @@ export const deleteManyArtifactProcedure = artifactProcedure
     .mutation(async ({ ctx, input }) => {
         const { serverId, ...selection } = input;
         const actor = { kind: 'human', member: ctx.member, serverId } as const;
-        return await deleteManyArtifacts(ctx.hausDb, actor, ctx.artifactStorage, selection);
+        return await deleteManyArtifacts(ctx.hausDb, actor, selection);
     });

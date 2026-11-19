@@ -1,7 +1,7 @@
 import { type ArtifactListFilters, artifactListInputSchema } from '@haus/api';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ArtifactActor } from './access.ts';
-import { deleteArtifact } from './delete.ts';
+import { deleteArtifact, deleteArtifactVersion } from './delete.ts';
 import { listArtifactDrive } from './list.ts';
 import { downloadArtifact, getArtifact, listArtifactVersions, toArtifactMetadata } from './read.ts';
 import { ArtifactError, type ArtifactStorage } from './storage.ts';
@@ -61,12 +61,18 @@ export async function runArtifactAction(options: {
                 input.revision_id
             );
         case 'delete':
-            return await deleteArtifact(db, actor, storage, input.artifact_id);
+            return await deleteArtifact(db, actor, origin, input.artifact_id);
         case 'deleteVersion': {
             if (!input.revision_id) {
                 throw new ArtifactError('revision_id is required.', 400, 'INVALID_ARG');
             }
-            return await deleteArtifact(db, actor, storage, input.artifact_id, input.revision_id);
+            return await deleteArtifactVersion(
+                db,
+                actor,
+                storage,
+                input.artifact_id,
+                input.revision_id
+            );
         }
         default: {
             const exhaustive: never = action;

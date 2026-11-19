@@ -1,30 +1,35 @@
 import { expect, test } from 'bun:test';
-import { ARTIFACT_REVISION_RETENTION_DAYS, type ArtifactUpdatedEvent } from '@haus/api';
+import {
+    ARTIFACT_REVISION_RETENTION_DAYS,
+    type ArtifactUpdatedEvent,
+    artifactTextMaxBytes,
+} from '@haus/api';
 import { moveArtifacts } from '../src/artifacts/move.ts';
 import { deleteExpiredArtifactRevisions } from '../src/artifacts/retention.ts';
 import { artifactUpdatedTopic } from '../src/realtime/topics.ts';
 import { artifactDriveFixture } from './artifact-drive-fixture.ts';
 
 /**
- * Revision retention counts from the moment a newer revision replaced a revision, never from
- * the revision's own age, and never touches a file's current revision.
+ * Retention of a replaced revision larger than text counts from the moment a newer revision
+ * replaced it, never from the revision's own age, and never touches a file's current revision.
  */
 const { publish, state, storage } = artifactDriveFixture('artifact-retention');
 const day = 24 * 60 * 60 * 1000;
 const now = new Date('2026-10-15T12:00:00.000Z');
 const daysAgo = (days: number) => new Date(now.getTime() - days * day);
+const large = (text: string) => text.padEnd(artifactTextMaxBytes + 1, '.');
 
 test('prunes revisions replaced before the window and keeps the current revision', async () => {
-    const first = await publish({ body: 'one', path: 'prune/report.txt' });
+    const first = await publish({ body: large('one'), path: 'haus/prune/report.txt' });
     const second = await publish({
         base: first.artifact.revision_id,
         body: 'two',
-        path: 'prune/report.txt',
+        path: 'haus/prune/report.txt',
     });
     const third = await publish({
         base: second.artifact.revision_id,
         body: 'three',
-        path: 'prune/report.txt',
+        path: 'haus/prune/report.txt',
     });
     await age(first.artifact.revision_id, daysAgo(40));
     await age(second.artifact.revision_id, daysAgo(ARTIFACT_REVISION_RETENTION_DAYS + 1));
@@ -43,18 +48,18 @@ test('prunes revisions replaced before the window and keeps the current revision
 });
 
 test('an old current revision with no successor is always kept', async () => {
-    const only = await publish({ body: 'alone', path: 'prune/alone.txt' });
+    const only = await publish({ body: 'alone', path: 'haus/prune/alone.txt' });
     await age(only.artifact.revision_id, daysAgo(400));
     await deleteExpiredArtifactRevisions(state.connection.db, storage, now);
     expect(await revisionIds(only.artifact.artifact_id)).toEqual([only.artifact.revision_id]);
 });
 
 test('a storage failure leaves the revision claimed for startup cleanup', async () => {
-    const first = await publish({ body: 'one', path: 'prune/stuck.txt' });
+    const first = await publish({ body: large('one'), path: 'haus/prune/stuck.txt' });
     const second = await publish({
         base: first.artifact.revision_id,
         body: 'two',
-        path: 'prune/stuck.txt',
+        path: 'haus/prune/stuck.txt',
     });
     await age(second.artifact.revision_id, daysAgo(30));
     const failing = Object.assign(Object.create(storage) as typeof storage, {
@@ -67,44 +72,48 @@ test('a storage failure leaves the revision claimed for startup cleanup', async 
 });
 
 test('a push based on a pruned revision of a moved file names the new path', async () => {
-    const first = await publish({ body: 'one', path: 'prune/before.txt' });
+    const first = await publish({ body: large('one'), path: 'haus/prune/before.txt' });
     const second = await publish({
         base: first.artifact.revision_id,
         body: 'two',
-        path: 'prune/before.txt',
+        path: 'haus/prune/before.txt',
     });
     await moveArtifacts(state.connection.db, state.actor, state.harness.appOrigin, {
-        from: 'prune/before.txt',
-        to: 'prune/after.txt',
+        from: 'haus/prune/before.txt',
+        to: 'haus/prune/after.txt',
     });
     await age(second.artifact.revision_id, daysAgo(30));
     await deleteExpiredArtifactRevisions(state.connection.db, storage, now);
     expect(await revisionState(first.artifact.revision_id)).toBe('deleted');
 
     await expect(
-        publish({ base: first.artifact.revision_id, body: 'stale', path: 'prune/before.txt' })
+        publish({ base: first.artifact.revision_id, body: 'stale', path: 'haus/prune/before.txt' })
     ).rejects.toMatchObject({
         code: 'REVISION_CONFLICT',
-        message: expect.stringContaining('`prune/after.txt`'),
+        message: expect.stringContaining('`haus/prune/after.txt`'),
     });
 });
 
 test('a request_id retry after its revision was pruned is recognized, not republished', async () => {
-    const first = await publish({ body: 'one', path: 'prune/retry.txt', requestId: 'prune-retry' });
-    await publish({ base: first.artifact.revision_id, body: 'two', path: 'prune/retry.txt' });
+    const first = await publish({
+        body: large('one'),
+        path: 'haus/prune/retry.txt',
+        requestId: 'prune-retry',
+    });
+    await publish({ base: first.artifact.revision_id, body: 'two', path: 'haus/prune/retry.txt' });
     await ageFile(first.artifact.artifact_id, daysAgo(30));
     await deleteExpiredArtifactRevisions(state.connection.db, storage, now);
 
     await expect(
-        publish({ body: 'one', path: 'prune/retry.txt', requestId: 'prune-retry' })
+        publish({ body: large('one'), path: 'haus/prune/retry.txt', requestId: 'prune-retry' })
     ).rejects.toMatchObject({ code: 'DELETED' });
     expect(await revisionIds(first.artifact.artifact_id)).toHaveLength(1);
 });
 
 test('a backlog drains in bounded batches with one event per Server', async () => {
-    const files = ['a', 'b', 'c', 'd', 'e'].map((name) => `prune/batch/${name}.txt`);
+    const files = ['a', 'b', 'c', 'd', 'e'].map((name) => `haus/prune/batch/${name}.txt`);
     for (const path of files) {
-        const first = await publish({ body: 'one', path });
+        const first = await publish({ body: large('one'), path });
         await publish({ base: first.artifact.revision_id, body: 'two', path });
         await ageFile(first.artifact.artifact_id, daysAgo(30));
     }
@@ -118,10 +127,10 @@ test('a backlog drains in bounded batches with one event per Server', async () =
 });
 
 test('closing stops between revisions and hands unprocessed claims back', async () => {
-    const paths = ['x', 'y', 'z'].map((name) => `prune/close/${name}.txt`);
+    const paths = ['x', 'y', 'z'].map((name) => `haus/prune/close/${name}.txt`);
     const firsts: string[] = [];
     for (const path of paths) {
-        const first = await publish({ body: 'one', path });
+        const first = await publish({ body: large('one'), path });
         firsts.push(first.artifact.revision_id);
         await publish({ base: first.artifact.revision_id, body: 'two', path });
         await ageFile(first.artifact.artifact_id, daysAgo(30));

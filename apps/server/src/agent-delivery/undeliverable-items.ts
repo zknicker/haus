@@ -3,7 +3,7 @@ import { and, asc, eq, inArray, ne } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { decodeTaskAssignment } from '../tasks/task-assignment-envelope.ts';
+import { chatlessAttention } from './chatless-run.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import * as store from './store.ts';
 
@@ -91,17 +91,14 @@ export async function isolateUnrenderableItems(
 
 /**
  * Renders one row the way its run would. A chatless attention never becomes an
- * inbox envelope (its run frames it alone), so only a Task assignment, whose run
- * decodes its body, can fail here; a sub-agent wake carries nothing to render.
+ * inbox envelope; its run frames the attention alone, decoded the same way here.
  */
 async function renderAlone(db: HausDatabase, row: store.InboxItemRow): Promise<void> {
-    if (!isChatlessInboxSource(row.source)) {
-        await buildInboxItems(db, [row]);
+    if (isChatlessInboxSource(row.source)) {
+        chatlessAttention({ activeRunId: null }, [row]);
         return;
     }
-    if (row.source === 'task_assignment') {
-        decodeTaskAssignment(row.content);
-    }
+    await buildInboxItems(db, [row]);
 }
 
 function itemLabel(row: { dedupeKey: string; source: string }): string {

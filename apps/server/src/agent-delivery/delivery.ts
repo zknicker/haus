@@ -866,9 +866,9 @@ export class AgentDelivery {
             return null;
         }
         const first = admitted.lead;
-        // A sub-agent wake or Task assignment is concrete work with no Chat: a chatless run.
-        // A wake runs alone; Task assignments coalesce: ten assignments wake the Agent once
-        // (ADR 0051).
+        // A sub-agent wake, Drive conflict, or Task assignment is concrete work with no Chat:
+        // a chatless run. A wake or conflict runs alone; Task assignments coalesce: ten
+        // assignments wake the Agent once (ADR 0051).
         if (isChatlessInboxSource(first.source)) {
             const rows = first.source === 'task_assignment' ? admitted.selected : [first];
             return await planChatlessRun(tx, { agentId, config, rows, state });
