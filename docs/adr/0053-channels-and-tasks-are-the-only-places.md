@@ -105,8 +105,8 @@ Agent when a pull request becomes ready after its Run settles, so that moment pa
     canceled. A merged pull request never closes it. Posting in a done or canceled Task reopens it.
 
 14. **Existing Threads become inline replies.** A one-time migration turns each Thread's messages
-    into inline replies on its anchor Message in the parent Channel. Production has 224 Threads
-    holding 1,276 of its 3,505 messages. Then all Thread code is deleted, and no history-only
+    into inline replies on its anchor Message in the parent Channel. Production had about 257
+    Threads holding about 1,350 messages at rehearsal time. Then all Thread code is deleted, and no history-only
     Thread surface remains.
 
 15. **iPhone ships in the same release, minimally.** A Task opens as a chat with a simple

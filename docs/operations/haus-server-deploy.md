@@ -4,7 +4,7 @@ read_when:
   - deploying or operating the hosted Haus Server
   - changing haus.chat ingress, PostgreSQL roles, or the delivered Server environment
   - preparing a Haus Server release artifact
-  - shipping the Channels-and-Tasks release (migrations 0124–0128, the Thread migration verifier)
+  - shipping the Channels-and-Tasks release (migrations 0123–0128, the Thread migration verifier)
 ---
 
 # Haus Server deployment
@@ -283,11 +283,17 @@ scheduled backup exists. Computer must publish and verify first, and any Compute
 ### Shipping Channels and Tasks (ADR 0053)
 
 The Channels-and-Tasks release ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md))
-runs migrations 0124–0128 and raises Computer protocol to 38 and App protocol to 13. Migration
-0126 moves every Thread's Messages into inline replies on its anchor and deletes the Threads;
-0127 converts legacy Tasks and drops boards; 0128 removes the Thread schema. It is forward-only:
-the previous Server cannot run on the migrated schema, and activation rollback restores only the
-binary. Run it in this order:
+runs migrations 0123–0128 (production's ledger is at 0122) and raises Computer protocol to 38 and
+App protocol to 13. Migration 0126 moves every Thread's Messages into inline replies on its anchor
+and deletes the Threads; 0127 converts legacy Tasks, posts a "Tracking KEY-n: title" origin
+Message in `#all` for each worked Task no Channel Message links, and drops boards; 0128 removes the
+Thread schema. Production had about 257 Threads and 1,350 messages at rehearsal time. It is
+forward-only: the previous Server cannot run on the migrated schema, and activation rollback
+restores only the binary.
+
+On a copy of production the migrations took about 2 seconds and a production `pg_dump` of about
+280 MB took about 2 minutes, so expect 5–10 minutes of downtime from stopping the Computers to the
+new Server serving. Run it in this order:
 
 1. **Computer artifact first.** Publish and verify the protocol 38 Computer artifact before the
    Server release, as for any protocol raise ([Releases](releases.md#prerequisites)).
@@ -323,7 +329,19 @@ binary. Run it in this order:
 
    It checks the structural invariants, that every Channel or DM that received moved Messages
    reads as read for everyone who can read it, that unread elsewhere is unchanged, and that no
-   queued inbox item names a moved Message. It exits 1 on any failure.
+   queued inbox item names a moved Message. It exits 1 on any failure. 0127's Tracking posts
+   (nonce `task-origin:*`) are not part of the Thread move, so the verifier leaves them out of the
+   message total and unread and says how many it left out. A correct run ends like this, with
+   every invariant `ok` and the counts of the day:
+
+   ```text
+   ok   total message count unchanged: N → N
+   ok   zero thread chats: 0
+   ...
+   excluded 8 0127 Tracking posts (nonce task-origin:*) from the message total and unread
+   unread: … reader/chat pairs; … affected chats … → 0 unread; 0 unaffected pairs changed (… unread kept); 0 queued inbox items left
+   OK
+   ```
 9. **Upgrade the Mac mini Computer** right after the deploy; a Computer below protocol 38 stays
    idle until upgraded.
 
