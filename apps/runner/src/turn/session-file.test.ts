@@ -84,3 +84,24 @@ test('a new generation, a model change, or no record starts fresh with nothing t
         })
     ).toEqual({ ...fresh, generation: 1, modelId: 'claude-haiku-4-5' });
 });
+
+test('a model change that crosses to Pi Durable is the same reset, and the Pi record round-trips', async () => {
+    const crossed = resolveTurnSession(stored, {
+        generation: 3,
+        harness: 'pi-durable',
+        modelId: 'gpt-5.6-sol',
+    });
+    const agentDir = join(root, 'agents', 'agent-3');
+    await writeAgentSession(agentDir, { ...crossed, nativeSessionId: 'pi-session-1' });
+
+    expect(crossed).toEqual({
+        ...fresh,
+        generation: 3,
+        harness: 'pi-durable',
+        modelId: 'gpt-5.6-sol',
+    });
+    expect(await readAgentSession(agentDir)).toEqual({
+        ...crossed,
+        nativeSessionId: 'pi-session-1',
+    });
+});

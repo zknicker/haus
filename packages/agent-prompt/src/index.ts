@@ -29,6 +29,7 @@ export { formatRulesBlock, type RulesChange } from './rules-block.ts';
 export {
     composeUnknownToolCalls,
     runnerMachineFacts,
+    runnerRuntimeVersions,
     runnerToolDescriptions,
 } from './runner-text.ts';
 export { renderSkillListing, type SkillListingEntry } from './skill-listing.ts';

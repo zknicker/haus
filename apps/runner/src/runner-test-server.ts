@@ -29,6 +29,16 @@ export interface StandInRequest {
     readonly path: string;
 }
 
+export function noLogins(dataDir: string) {
+    return {
+        claudeSetupToken: null,
+        dataDir,
+        geminiApiKey: null,
+        openrouterApiKey: null,
+        xaiApiKey: null,
+    };
+}
+
 export function live() {
     return new AbortController().signal;
 }
@@ -46,7 +56,7 @@ export async function attachRunner(
     const dataDir = await mkdtemp(join(tmpdir(), 'haus-runner-link-'));
     const host = turnHostDriver();
     const link = openServerLink({
-        config: { claudeSetupToken: null, runnerToken, serverUrl: server.url },
+        config: { ...noLogins(dataDir), runnerToken, serverUrl: server.url },
         ...options,
         ledger: openDispatchLedger(dataDir),
         log: () => undefined,
