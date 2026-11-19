@@ -20,6 +20,7 @@ import { mkdir } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createEvalProject } from './agent-tests/eval-project.mjs';
 import { designBattery } from './design-battery/battery.mjs';
 import { writeContactSheet } from './design-battery/contact-sheet.mjs';
 import { resolveDevPorts } from './dev-ports.mjs';
@@ -86,10 +87,10 @@ const outDir = path.join(
 );
 await mkdir(outDir, { recursive: true });
 
-const chat = await trpc('chat.createChannel', {
+const chat = await createEvalProject(harness, {
     agentIds: [agent.id],
     name: `design-battery-${stamp}`,
-    serverId,
+    repositoryRoot: path.join(here, '..'),
 });
 const chatId = chat.id;
 process.stdout.write(`battery chat: ${chatId} (${items.length} items, model ${runLabel})\n`);

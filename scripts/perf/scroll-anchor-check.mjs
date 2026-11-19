@@ -32,7 +32,7 @@ import {
 const args = parseArgs(process.argv.slice(2));
 const base = typeof args.base === 'string' ? args.base : defaultBase();
 const distDir = typeof args['serve-dist'] === 'string' ? args['serve-dist'] : null;
-const chat = typeof args.chat === 'string' ? args.chat : 'all';
+const chat = typeof args.chat === 'string' ? args.chat : 'haus';
 const shots = path.resolve(typeof args.shots === 'string' ? args.shots : perfOutputRoot);
 const viewportSelector =
     '[data-slot="chat-surface"]:visible [data-slot="message-scroller-viewport"]';

@@ -8,16 +8,3 @@ export function useTaskKeys(serverId: string) {
     );
     return { data, error, isPending };
 }
-
-export function useCreateTaskKey() {
-    const utils = hausTrpc.useUtils();
-    return hausTrpc.taskKey.create.useMutation({
-        onSuccess: ({ taskKey }) => {
-            utils.taskKey.list.setData({ serverId: taskKey.serverId }, (ledger) =>
-                ledger && !ledger.some((entry) => entry.id === taskKey.id)
-                    ? [...ledger, taskKey].sort((a, b) => a.key.localeCompare(b.key))
-                    : ledger
-            );
-        },
-    });
-}

@@ -14,7 +14,7 @@ test('Cloud Agent work reads as one card in the Chat and the Inbox', async ({ pa
     });
     const seeded = await seedCloudAgentWork({
         agentHandle: 'orbit',
-        channelName: 'all',
+        channelName: 'haus',
         computerCredential: credential,
         content: 'Delegating the migration fix to a Cloud Agent.',
         databaseUrl: session.databaseUrl,
@@ -34,7 +34,7 @@ test('Cloud Agent work reads as one card in the Chat and the Inbox', async ({ pa
     await expect(inboxRow).toBeVisible();
     // No Run has reported yet, so the queued launch reads as its stage.
     await expect(inboxRow).toContainText('Starting');
-    await expect(inboxRow).toContainText('#all');
+    await expect(inboxRow).toContainText('#haus');
     await expect(inboxRow).toContainText('Orbit');
 
     await page.goto(`/s/cloud-agent-work/tasks/${seeded.taskKey}`);

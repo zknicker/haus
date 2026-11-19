@@ -3,12 +3,13 @@ import { cloudAgentObservationFrame, seedCloudAgentWork } from './agent-cloud-ag
 import { createChannelAgent } from './channel-agent.ts';
 import { sendBootstrap, socketMessage, socketOpen } from './computer-socket.ts';
 import { installDesktopBrowserStub, openDesktopWindow } from './desktop-browser-stub.ts';
+import { createProjectWithAgents } from './project.ts';
 import { createClient, createTestServer, openChannel } from './server.ts';
 import { expect } from './test.ts';
 
 /**
  * The incident detector's scene (specs/realtime-events.md, "App e2e"): a
- * desktop window whose shown tab A is `#all` and whose kept, hidden tab B is
+ * desktop window whose shown tab A is `#haus` and whose kept, hidden tab B is
  * `#product`, which holds an inline reply anchor and a Cloud Agent work Message. Two
  * Agents with no model write through the Agent API, and a Computer reports
  * the work's progress over its attachment.
@@ -21,14 +22,15 @@ export async function createRealtimeScene(page: Page, slug: string) {
     });
     const computerCredential = `computer-${slug}-credential-0001`;
     const orbit = await createChannelAgent({
-        channelName: 'all',
+        channelName: 'haus',
         databaseUrl: session.databaseUrl,
         serverId: server.id,
         slug,
         token: session.accessToken,
     });
-    await client.chat.createChannel.mutate({
+    await createProjectWithAgents(client, {
         agentIds: [orbit.agentId],
+        databaseUrl: session.databaseUrl,
         name: 'product',
         serverId: server.id,
     });
@@ -55,9 +57,9 @@ export async function createRealtimeScene(page: Page, slug: string) {
     await openChannel(page, 'product');
     await expect(composer(page, 'product')).toBeVisible();
     await expect(visibleSurface(page).getByText('Product anchor for inline replies')).toBeVisible();
-    await page.getByRole('row', { exact: true, name: 'all' }).click({ modifiers: ['Meta'] });
+    await page.getByRole('row', { exact: true, name: 'haus' }).click({ modifiers: ['Meta'] });
     await expect(tabs(page)).toHaveCount(2);
-    await showTab(page, 'all');
+    await showTab(page, 'haus');
 
     // Changes 1 and 2 come from the human's other device; `agentReply` is a
     // real Agent send. An Agent send also announces a `sending` lifecycle, which
@@ -67,7 +69,7 @@ export async function createRealtimeScene(page: Page, slug: string) {
     const changes = {
         /** An Agent reply in `#product` (the kept tab) through the Agent API. */
         agentReply: (content: string, nonce: string) => orbit.send(content, nonce, '#product'),
-        /** Change 1: a reply in `#all`. */
+        /** Change 1: a reply in `#haus`. */
         allReply: (content: string, nonce: string) =>
             device.chat.send.mutate({ chatId: orbit.chatId, content, nonce, serverId: server.id }),
         inlineReply: (content: string, nonce: string) =>
@@ -121,7 +123,7 @@ export function visibleSurface(page: Page) {
 }
 
 /**
- * The convergence assertions: tab A shows the `#all` reply with no reload;
+ * The convergence assertions: tab A shows the `#haus` reply with no reload;
  * revealing tab B shows the inline reply and the updated Cloud Agent row.
  */
 export async function expectConverged(

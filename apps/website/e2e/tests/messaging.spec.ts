@@ -24,7 +24,7 @@ test.beforeAll(async () => {
     });
     const openedServer = await owner.server.bySlug.query({ slug: 'hosted-messages' });
     const serverId = openedServer.id;
-    const allChatId = openedServer.channels.find((channel) => channel.name === 'all')?.id;
+    const allChatId = openedServer.channels.find((channel) => channel.name === 'haus')?.id;
     const peerUserId = runPsql(databaseUrl, "select id from users where id = 'usr_e2e_peer'");
     assertOpaqueId(serverId);
     assertOpaqueId(allChatId);
@@ -53,7 +53,7 @@ test.beforeAll(async () => {
     seedReferenceFixture({ chatId: allChatId, databaseUrl, serverId });
 });
 
-test('a human messages in #all with only the hosted Server online', async ({ page }) => {
+test('a human messages in #haus with only the hosted Server online', async ({ page }) => {
     test.setTimeout(60_000);
     const localProductRequests: string[] = [];
     const retiredLocalOrigins = ['http://127.0.0.1:8080', 'http://127.0.0.1:18790'];
@@ -66,7 +66,7 @@ test('a human messages in #all with only the hosted Server online', async ({ pag
 
     await signInAsAppHuman(page);
     await page.goto('/s/hosted-messages');
-    await openChannel(page, 'all');
+    await openChannel(page, 'haus');
 
     const composer = page.getByRole('textbox', { name: 'Message all' });
     await composer.fill('/status check');
@@ -79,7 +79,7 @@ test('a human messages in #all with only the hosted Server online', async ({ pag
     const readState = page.getByTestId('read-state').filter({ visible: true }); // kept Chats hide
     await expect(readState).toContainText(/Read through \d+/u);
     await page.reload();
-    await openChannel(page, 'all');
+    await openChannel(page, 'haus');
     await expect(page.getByText('Browser-authored durable message')).toBeVisible();
     await composer.fill('Second durable human message');
     await page.getByRole('button', { name: 'Send' }).click();
@@ -113,7 +113,7 @@ test('a human messages in #all with only the hosted Server online', async ({ pag
     // channel, author, and time alongside the matched text.
     await expect(page.getByRole('button', { name: /First durable human message/ })).toBeVisible();
     await openSection(page, 'Chat');
-    await openChannel(page, 'all');
+    await openChannel(page, 'haus');
 
     const peerMessage = page.getByText('Peer-authored hosted message', { exact: true });
     await expect(peerMessage).toBeVisible();
@@ -134,7 +134,7 @@ test('an Agent-authored page fence in an inline reply opens the chat Workspace p
 }) => {
     await signInAsAppHuman(page);
     await page.goto('/s/hosted-messages');
-    await openChannel(page, 'all');
+    await openChannel(page, 'haus');
     await page.setViewportSize({ height: 720, width: 800 });
 
     const composer = page.getByRole('textbox', { name: 'Message all' });
@@ -154,7 +154,7 @@ test('an Agent-authored page fence in an inline reply opens the chat Workspace p
 test('inline replies reach an open Channel live and catch up after reconnect', async ({ page }) => {
     await signInAsAppHuman(page);
     await page.goto('/s/hosted-messages');
-    await openChannel(page, 'all');
+    await openChannel(page, 'haus');
 
     const anchorText = 'First durable human message';
     const anchorRow = page
@@ -173,9 +173,9 @@ test('inline replies reach an open Channel live and catch up after reconnect', a
     const owner = createClient(ownerFixture.accessToken);
     const peer = createClient(peerFixture.accessToken);
     const server = await owner.server.bySlug.query({ slug: 'hosted-messages' });
-    const chatId = server.channels.find((channel) => channel.name === 'all')?.id;
+    const chatId = server.channels.find((channel) => channel.name === 'haus')?.id;
     if (!chatId) {
-        throw new Error('The inline reply test did not resolve #all.');
+        throw new Error('The inline reply test did not resolve #haus.');
     }
     const snapshot = await owner.chat.messages.query({ chatId, serverId: server.id });
     const anchor = snapshot.messages.find((message) => message.content === anchorText);
@@ -212,7 +212,7 @@ test('Agent-authored typed references render as interactive Agent and Chat chips
 }) => {
     await signInAsAppHuman(page);
     await page.goto('/s/hosted-messages');
-    await openChannel(page, 'all');
+    await openChannel(page, 'haus');
 
     const message = page.locator('[data-message-id="msg_e2e_reference"]');
     await expect(message).toBeVisible();
@@ -364,7 +364,7 @@ test('Haus App never requests a retired local product endpoint', async ({ page }
 
     await signInAsAppHuman(page);
     await page.goto('/s/hosted-messages');
-    await openChannel(page, 'all');
+    await openChannel(page, 'haus');
     await expect(page.getByText('First durable human message')).toBeVisible();
     expect(localRequests).toEqual([]);
 });

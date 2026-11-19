@@ -8,7 +8,6 @@ import {
 } from '../../../hooks/servers/use-channel-lifecycle.ts';
 import { useServer } from '../../../hooks/servers/use-server.ts';
 import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
-import { ChannelAgentsDialog } from '../../chats/channel-agents-dialog.tsx';
 import { ChannelAppearanceDialog } from '../../chats/channel-appearance-dialog.tsx';
 import { ChannelDetailsDialog } from '../../chats/channel-details-dialog.tsx';
 
@@ -27,9 +26,9 @@ export interface ChannelActions {
     run: (chat: Chat, key: React.Key) => void;
 }
 
-// Editing a channel is three separate decisions, so each one gets its own
+// Editing a channel is two separate decisions, so each one gets its own
 // small dialog instead of one dialog that asks for everything at once.
-type ChannelEditDialog = 'agents' | 'appearance' | 'rename';
+type ChannelEditDialog = 'appearance' | 'rename';
 
 /**
  * Every channel menu's actions — the web topbar's •••, the sidebar row, and
@@ -62,7 +61,7 @@ export function useChannelActions({
             openFiles?.(chat.id);
             return;
         }
-        if (key === 'rename' || key === 'appearance' || key === 'agents') {
+        if (key === 'rename' || key === 'appearance') {
             setEditDialog({ chat, kind: key });
             return;
         }
@@ -93,9 +92,6 @@ export function useChannelActions({
             ) : null}
             {editDialog?.kind === 'appearance' ? (
                 <ChannelAppearanceDialog chat={editDialog.chat} onClose={closeEditDialog} />
-            ) : null}
-            {editDialog?.kind === 'agents' ? (
-                <ChannelAgentsDialog chat={editDialog.chat} onClose={closeEditDialog} />
             ) : null}
             {deleting ? (
                 <DeleteDialog

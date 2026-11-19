@@ -1,32 +1,20 @@
 import { Button, FieldError, Form, InputGroup, Label, Modal, TextField } from '@heroui/react';
 import * as React from 'react';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
-import {
-    type ChannelAgentOption,
-    ChannelAgentPicker,
-    normalizeChannelAgentIds,
-} from './channel-agent-picker.tsx';
 import type { ChannelAppearance } from './channel-appearance-fields.tsx';
 import { ChannelAppearancePicker } from './channel-appearance-picker.tsx';
 import { ChannelDialogError } from './channel-dialog-error.tsx';
 import { channelHandleIssue } from './channel-handle.ts';
 
 interface ChannelCreateDialogProps {
-    agents: ChannelAgentOption[];
-    agentsPending: boolean;
     errorMessage: string | null;
     isPending: boolean;
     onClose: () => void;
-    onSubmit: (input: {
-        agentIds: string[];
-        color: string | null;
-        icon: string | null;
-        name: string;
-    }) => Promise<void>;
+    onSubmit: (input: { color: string | null; icon: string | null; name: string }) => Promise<void>;
     open: boolean;
 }
 
-/** New channel: its name and face in one field, then the Agents it starts with. */
+/** New channel: its name and face in one field. A new Project starts with no Agents. */
 export function ChannelCreateDialog({ open, onClose, ...form }: ChannelCreateDialogProps) {
     return (
         <Modal.Backdrop
@@ -48,35 +36,15 @@ export function ChannelCreateDialog({ open, onClose, ...form }: ChannelCreateDia
 
 type ChannelCreateFormProps = Omit<ChannelCreateDialogProps, 'onClose' | 'open'>;
 
-function ChannelCreateForm({
-    agents,
-    agentsPending,
-    errorMessage,
-    isPending,
-    onSubmit,
-}: ChannelCreateFormProps) {
+function ChannelCreateForm({ errorMessage, isPending, onSubmit }: ChannelCreateFormProps) {
     const [name, setName] = React.useState('');
     const [appearance, setAppearance] = React.useState<ChannelAppearance>({
         color: null,
         icon: null,
     });
-    const [selectedAgentIds, setSelectedAgentIds] = React.useState<string[]>([]);
     const trimmedName = name.trim();
-    const agentIds = normalizeChannelAgentIds(selectedAgentIds);
     const handleIssue = channelHandleIssue(name);
-    const canSubmit = trimmedName.length > 0 && !handleIssue && agentIds.length > 0 && !isPending;
-
-    // Seed a default agent once; after that the selection is the user's,
-    // including an empty one (Create just disables).
-    const seededDefaultAgent = React.useRef(false);
-    React.useEffect(() => {
-        if (seededDefaultAgent.current || agents.length === 0) {
-            return;
-        }
-
-        seededDefaultAgent.current = true;
-        setSelectedAgentIds([agents[0]?.id ?? ''].filter(Boolean));
-    }, [agents]);
+    const canSubmit = trimmedName.length > 0 && !handleIssue && !isPending;
 
     const handleSubmit = React.useEffectEvent(async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -86,7 +54,6 @@ function ChannelCreateForm({
         }
 
         await onSubmit({
-            agentIds,
             color: appearance.color,
             icon: appearance.icon,
             name: trimmedName,
@@ -100,9 +67,6 @@ function ChannelCreateForm({
                     <ChannelIconBox color={appearance.color} icon={appearance.icon} size="modal" />
                 </Modal.Icon>
                 <Modal.Heading>New project</Modal.Heading>
-                <p className="text-muted text-sm leading-5">
-                    Name the project and choose its Captains.
-                </p>
             </Modal.Header>
             <Modal.Body>
                 <Form
@@ -133,14 +97,6 @@ function ChannelCreateForm({
                         </InputGroup>
                         {handleIssue ? <FieldError>{handleIssue}</FieldError> : null}
                     </TextField>
-                    <ChannelAgentPicker
-                        agents={agents}
-                        agentsPending={agentsPending}
-                        isDisabled={isPending}
-                        label="visible"
-                        onSelectedAgentIdsChange={setSelectedAgentIds}
-                        selectedAgentIds={selectedAgentIds}
-                    />
                     <ChannelDialogError message={errorMessage} />
                 </Form>
             </Modal.Body>

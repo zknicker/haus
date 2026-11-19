@@ -24,7 +24,7 @@ test('the window band drags from every empty spot and only its controls opt out'
         slug: 'window-drag-regions',
     });
     await openDesktopWindow(page, `/s/${server.slug}`);
-    await openChannel(page, 'all');
+    await openChannel(page, 'haus');
     // The region rules are scoped to the macOS desktop root class; set it on any host OS.
     await page.evaluate(() => document.documentElement.classList.add('macos-electron'));
     await expect(page.locator('.shell-window-band')).toBeVisible();

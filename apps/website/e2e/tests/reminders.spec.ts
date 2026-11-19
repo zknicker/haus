@@ -16,11 +16,11 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({
         credential: 'reminder-test-credential-1234567890',
         slug: 'reminders',
     });
-    await openChannel(page, 'all');
+    await openChannel(page, 'haus');
 
-    const chatId = server.channels.find((channel) => channel.name === 'all')?.id;
+    const chatId = server.channels.find((channel) => channel.name === 'haus')?.id;
     if (!chatId) {
-        throw new Error('The reminder fixture did not resolve #all.');
+        throw new Error('The reminder fixture did not resolve #haus.');
     }
     seedReminderState({
         chatId,
@@ -56,7 +56,7 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({
     await expect(sheet.getByText('Recurring reminder', { exact: true })).toBeVisible();
     await expect(sheet.getByText('Daily at 9:00 AM', { exact: true })).toBeVisible();
     await expect(sheet.getByText('New York time · Same as yours', { exact: true })).toBeVisible();
-    await expect(sheet.getByRole('link', { name: '#all' })).toHaveAttribute(
+    await expect(sheet.getByRole('link', { name: '#haus' })).toHaveAttribute(
         'href',
         `/s/reminders/chats/${chatId}`
     );

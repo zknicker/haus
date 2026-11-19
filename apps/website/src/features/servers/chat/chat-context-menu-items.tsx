@@ -8,7 +8,6 @@ import {
     Edit02Icon,
     PaintBrush03Icon,
     UserCircleIcon,
-    UserMultiple02Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { ChatContextSurfaceItems } from './chat-surface-items.tsx';
@@ -27,7 +26,6 @@ export function ChannelContextMenuItems({
     chat: Chat;
 }) {
     const archived = Boolean(chat.archivedAt);
-    const count = chat.participantAgentIds.length + chat.participantUserIds.length;
     return (
         <>
             <ContextMenu.Item id="rename" isDisabled={archived} textValue="Name and description">
@@ -37,11 +35,6 @@ export function ChannelContextMenuItems({
             <ContextMenu.Item id="appearance" isDisabled={archived} textValue="Icon and color">
                 <Icon aria-hidden="true" icon={PaintBrush03Icon} size={16} />
                 <Label>Icon &amp; color…</Label>
-            </ContextMenu.Item>
-            <ContextMenu.Item id="agents" isDisabled={archived} textValue="Captains">
-                <Icon aria-hidden="true" icon={UserMultiple02Icon} size={16} />
-                <Label>Captains</Label>
-                <span className="text-muted ms-auto shrink-0 text-xs tabular-nums">{count}</span>
             </ContextMenu.Item>
             {actions.filesAvailable ? (
                 <>
