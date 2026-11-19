@@ -1,12 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { TraceCarrier } from '@haus/effect';
-import type { AgentActivityRun } from './agent-activity-run.ts';
 import type { AgentStartCommand, AgentTurnFrame } from './agent-commands.ts';
-import {
-    readAgentSeedConfiguration,
-    readAppliedAgentConfiguration,
-} from './agent-configuration.ts';
 import { acquireAgentLaunchHost } from './agent-launch-host.ts';
 import { agentPath } from './agent-path.ts';
 import { createRunPresentation } from './agent-run-frames.ts';
@@ -16,13 +11,8 @@ import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import { createComputerTools } from './computer-tools.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
 import type { StoredNoticeReceipt } from './delivery.ts';
-import {
-    type NoticeSinkRegistrar,
-    runHarnessTurn,
-    type TurnDriverFactory,
-} from './harness/executor.ts';
-import type { AgentThoughtNarrator } from './harness/thought-narrator.ts';
-import { turnDeliveryOf } from './harness/turn-prompt.ts';
+import { pullDriveBeforeTurn, pushDriveAfterTurn } from './drive/turn-sync.ts';
+import type { NoticeSinkRegistrar, TurnDriverFactory } from './harness/executor.ts';
 import { readRunVisibleMessages } from './inbox-store.ts';
 import { prepareLaunchDrive } from './launch-drive.ts';
 import {
@@ -31,16 +21,13 @@ import {
     runtimeNotInstalledReport,
 } from './launch-failure-turns.ts';
 import { runFakeRuntime } from './launch-fake-runtime.ts';
+import { runRealRuntime } from './launch-real-runtime.ts';
 import { messageOf, writeTrace } from './launch-trace.ts';
 import { reportTurn, turnSummaryText } from './launch-turn-report.ts';
 import { mintRunner, revokeRunner } from './runner-authority.ts';
 import { resolveRuntimeById } from './runtime-discovery.ts';
 import { reportRuntimeOutcome } from './runtime-issues.ts';
-import {
-    type RuntimeTurnOutcome,
-    reportHarnessTurnFailure,
-    settledTurnOutcome,
-} from './turn-failure-report.ts';
+import type { RuntimeTurnOutcome } from './turn-failure-report.ts';
 import { type OpenTurnLedger, openTurnLedger } from './turn-ledger.ts';
 import { visibilityReceipt } from './visibility-receipt.ts';
 import { ensureAgentWorkspace } from './workspace-volumes/workspace-volume.ts';
@@ -144,6 +131,7 @@ async function runLedgeredLaunch(
     if (!prepared.ok) {
         return reportTurn(options, prepared.report);
     }
+    await pullDriveBeforeTurn(options, agentRoot, runner.runnerToken);
 
     const host = acquireAgentLaunchHost({
         agentId: command.agentId,
@@ -223,6 +211,7 @@ async function runLedgeredLaunch(
         proxy.setActivityRun(undefined);
         thoughts.close();
         await activity.close(result.status);
+        await pushDriveAfterTurn(options, agentRoot);
     }
 
     await reportRuntimeOutcome(
@@ -249,73 +238,4 @@ async function runLedgeredLaunch(
             command.runId
         ),
     });
-}
-
-interface RuntimeExecutionInput {
-    activity: AgentActivityRun;
-    agentEnv: Record<string, string>;
-    command: AgentStartCommand;
-    dataRoot: string;
-    dirs: { home: string; runtime: string; workspace: string };
-    drive: import('./drive/agent-drive.ts').AgentDrive;
-    onStoredNoticeDelivered?: (receipt: StoredNoticeReceipt) => void;
-    registerNoticeSink?: NoticeSinkRegistrar;
-    runtime: DaemonRuntime;
-    serverId: string;
-    signal?: AbortSignal;
-    turnTimings?: AgentTurnTimings;
-}
-
-/** Drives a real Harness executor; durable replies leave only through the managed CLI. */
-async function runRealRuntime(
-    input: RuntimeExecutionInput & {
-        agentRoot: string;
-        attestVisible: ReturnType<typeof visibilityReceipt>;
-        runtimeDriverFactory?: TurnDriverFactory;
-        thoughts?: AgentThoughtNarrator;
-        tools: ReturnType<typeof createComputerTools>;
-    }
-): Promise<RuntimeTurnOutcome> {
-    const { command } = input;
-    try {
-        const seed = await readAgentSeedConfiguration(input.agentRoot);
-        const turn = await runHarnessTurn({
-            turnTimings: input.turnTimings,
-            agentId: command.agentId,
-            attestVisible: input.attestVisible,
-            agentName: command.agentName,
-            agentRoot: input.agentRoot,
-            dataRoot: input.dataRoot,
-            env: input.agentEnv,
-            factoryKind: seed?.factoryKind ?? 'ordinary',
-            homeDir: input.dirs.home,
-            homeTimezone: command.homeTimezone ?? 'UTC',
-            runtimeDriverFactory: input.runtimeDriverFactory,
-            initialRole: command.agentDescription ?? null,
-            conversationStyle: command.agentConversationStyle ?? null,
-            signatureEmoji: command.agentSignatureEmoji ?? null,
-            modelId: command.modelId,
-            reasoningEffort:
-                (await readAppliedAgentConfiguration(input.agentRoot))?.reasoningEffort ?? 'medium',
-            ...turnDeliveryOf(command),
-            onStoredNoticeDelivered: input.onStoredNoticeDelivered,
-            activity: input.activity,
-            thoughts: input.thoughts,
-            registerNoticeSink: input.registerNoticeSink,
-            runtime: input.runtime,
-            runId: command.runId,
-            runtimeId: command.runtimeId,
-            sessionGeneration: command.sessionGeneration,
-            signal: input.signal,
-            serverId: input.serverId,
-            drive: input.drive,
-            workspaceDir: input.dirs.workspace,
-            tools: input.tools,
-        });
-        await writeTrace(input, 'Harness turn completed.\n');
-        return settledTurnOutcome(turn);
-    } catch (error) {
-        await writeTrace(input, `Harness turn failed: ${messageOf(error)}\n`);
-        return await reportHarnessTurnFailure(input.runtime, command, error, input.signal);
-    }
 }

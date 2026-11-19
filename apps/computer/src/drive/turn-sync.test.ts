@@ -1,0 +1,114 @@
+import { afterAll, afterEach, expect, test } from 'bun:test';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { makeDaemonRuntime } from '../daemon-runtime.ts';
+import type { HarnessTurnInput } from '../harness/executor.ts';
+import { runAgentLaunch } from '../launch.ts';
+import { fakeRuntimeDriver, finishedTurn } from '../runtime/testing/fake-runtime-driver.ts';
+import { type DriveServer, startDriveServer } from './drive-server.fixture.ts';
+
+const runtime = makeDaemonRuntime();
+afterAll(() => runtime.dispose());
+
+let drive: DriveServer;
+let front: ReturnType<typeof Bun.serve>;
+let dataRoot: string;
+afterEach(async () => {
+    drive.stop();
+    front.stop(true);
+    await rm(dataRoot, { force: true, recursive: true });
+});
+
+test('a turn starts on a pulled folder and its edits are pushed under its run id', async () => {
+    drive = startDriveServer();
+    drive.write('haus/AGENTS.md', 'be kind', 'usr');
+    const credentials: string[] = [];
+    front = Bun.serve({
+        port: 0,
+        fetch: async (request) => {
+            const url = new URL(request.url);
+            if (url.pathname === '/computer/runner/mint') {
+                credentials.push(`mint ${((await request.json()) as { runId: string }).runId}`);
+                return Response.json({
+                    runnerId: `arc_${credentials.filter((line) => line.startsWith('mint')).length}`,
+                    runnerToken: 'agt_alpha',
+                });
+            }
+            if (url.pathname === '/computer/runner/revoke') {
+                credentials.push(
+                    `revoke ${((await request.json()) as { runnerId: string }).runnerId}`
+                );
+                return Response.json({ revoked: true });
+            }
+            if (
+                !(
+                    url.pathname.startsWith('/api/agent/drive/') ||
+                    url.pathname.startsWith('/blob/') ||
+                    url.pathname.includes('/download')
+                )
+            ) {
+                return Response.json({ code: 'NOT_FOUND' }, { status: 404 });
+            }
+            return await fetch(new URL(`${url.pathname}${url.search}`, drive.origin), {
+                body: request.method === 'POST' ? await request.arrayBuffer() : undefined,
+                headers: request.headers,
+                method: request.method,
+            });
+        },
+    });
+    dataRoot = await mkdtemp(join(tmpdir(), 'haus-drive-launch-'));
+    let seenAtTurnStart = '';
+    const driver = fakeRuntimeDriver<HarnessTurnInput>({
+        async *turn({ input }) {
+            seenAtTurnStart = await readFile(
+                join(input.workspaceDir, 'drive', 'haus', 'AGENTS.md'),
+                'utf8'
+            );
+            await writeFile(join(input.workspaceDir, 'drive', 'haus', 'notes.md'), 'from the turn');
+            yield* finishedTurn();
+        },
+    });
+
+    const turn = await runAgentLaunch({
+        attachment: {
+            computerId: 'cmp_drive',
+            credential: 'computer-credential',
+            serverId: 'srv_drive',
+            serverOrigin: `http://127.0.0.1:${front.port}`,
+            slug: 'drive',
+        },
+        command: {
+            agentId: 'agt_alpha',
+            agentName: 'alpha',
+            chatId: 'cht_drive',
+            inbox: [],
+            inboxDelivery: 'concrete',
+            modelId: 'gpt-5.6-sol',
+            runId: 'run_drive_turn',
+            runtimeId: 'codex',
+            sessionGeneration: 1,
+            totalPending: 0,
+            type: 'start',
+        },
+        dataRoot,
+        runtime,
+        runtimeDriverFactory: driver.factory,
+        sendFrame: () => undefined,
+        serverOrigin: `http://127.0.0.1:${front.port}`,
+    });
+
+    expect(turn.status).toBe('completed');
+    expect(seenAtTurnStart).toBe('be kind');
+    expect(drive.text('haus/notes.md')).toBe('from the turn');
+    expect(credentials).toEqual([
+        'mint run_drive_turn',
+        'revoke arc_1',
+        'mint run_drive_turn',
+        'revoke arc_2',
+    ]);
+    expect(drive.requests.filter((request) => request.includes('/push/'))).toEqual([
+        'POST /api/agent/drive/push/put',
+        'POST /api/agent/drive/push/close',
+    ]);
+});
