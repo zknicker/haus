@@ -1,4 +1,4 @@
-import { cloudAgentProviderSchema } from '@haus/api';
+import { cloudAgentProviderSchema, taskKeySchema } from '@haus/api';
 import * as z from 'zod';
 import { CloudAgentLaunchFailedError, startCloudAgentWork } from './launch-work.ts';
 import { CloudAgentProviderUnavailableError } from './provider.ts';
@@ -16,6 +16,7 @@ const cloudAgentStartSchema = z.object({
     replyToMessageId: z.string().trim().min(1).optional(),
     startingRef: z.string().trim().min(1).nullable(),
     target: z.string().trim().min(1),
+    task: taskKeySchema.optional(),
     title: z.string().trim().min(1),
 });
 const cloudAgentSendSchema = z.object({
@@ -36,7 +37,7 @@ export async function handleCloudAgentStart(
     url: URL,
     input: {
         dataRoot?: string;
-        supervisor?: CloudAgentWorkSupervisor;
+        supervisor?: Pick<CloudAgentWorkSupervisor, 'reconcile' | 'report' | 'runLaunch' | 'watch'>;
         runnerToken: string;
         serverId?: string;
         serverOrigin: string;

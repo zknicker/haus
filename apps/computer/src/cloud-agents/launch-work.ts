@@ -28,6 +28,7 @@ export interface CloudAgentStartRequest {
     repository: string;
     startingRef: string | null;
     target: string;
+    task?: string;
     title: string;
 }
 
