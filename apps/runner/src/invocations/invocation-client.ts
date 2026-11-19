@@ -9,7 +9,8 @@ import {
     invocationTimeoutsMs,
 } from '@haus/api';
 import type { RunDispatches } from '../dispatch/dispatch-id.ts';
-import type { RunnerLink, ToolOutcome, ToolResultContent } from '../run-context.ts';
+import type { RunAuthority, RunnerLink, ToolOutcome, ToolResultContent } from '../run-context.ts';
+import { inlineInvocationPayload } from './invocation-payload.ts';
 
 export type InvocationClient = ReturnType<typeof createInvocationClient>;
 
@@ -23,6 +24,7 @@ export const invocationGraceMs = 30_000;
 
 export function createInvocationClient(input: {
     agentId: string;
+    authority: RunAuthority;
     dispatches: RunDispatches;
     graceMs: number;
     link: RunnerLink;
@@ -81,7 +83,11 @@ export function createInvocationClient(input: {
             });
             options.signal.removeEventListener('abort', onAbort);
             await input.dispatches.finish(key, frame.outcome);
-            return { frame, timeoutMs, timeoutNote } satisfies InvocationAnswer;
+            return {
+                frame: await inlineInvocationPayload(input.authority, frame, options.signal),
+                timeoutMs,
+                timeoutNote,
+            } satisfies InvocationAnswer;
         },
         receive(frame: InvocationResultFrame) {
             const id = dispatchIdOf(frame);
@@ -127,7 +133,7 @@ export function invocationOutputText(output: InvocationOutput) {
         case 'inline':
             return `The machine returned ${Buffer.from(output.base64, 'base64').byteLength} bytes of ${output.mediaType}.`;
         case 'attachment':
-            return `The result arrived as attachment ${output.attachmentId} (${output.mediaType}, ${output.sizeBytes} bytes), which this runner cannot read yet.`;
+            return `The result arrived as attachment ${output.attachmentId} (${output.mediaType}, ${output.sizeBytes} bytes).`;
         default:
             return output satisfies never;
     }

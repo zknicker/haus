@@ -29,6 +29,7 @@ export function createRunTools(input: {
     });
     const invocations = createInvocationClient({
         agentId: authority.agentId,
+        authority,
         dispatches,
         graceMs: input.invocationGraceMs,
         link: input.link,
