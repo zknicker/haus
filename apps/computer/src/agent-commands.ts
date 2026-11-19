@@ -4,6 +4,7 @@ import type {
     AgentTurnActivitySummary,
     AgentTurnFailureCode,
     ConnectionChipKind,
+    DriveConflictAttention,
 } from '@haus/api';
 import type { AgentInboxItem } from './agent-inbox-item.ts';
 import type { RuntimeFailureKind } from './runtime-failure.ts';
@@ -15,13 +16,16 @@ export interface AgentStartCommand {
     /** Server-owned Agent facts the Computer composes into the system prompt. */
     agentDescription?: string;
     agentId: string;
-    agentName?: string;
+    /** The Agent's handle, which also names its Drive area `agents/<handle>/`. */
+    agentName: string;
     /** Pickup reaction; null or absent means the prompt's default. */
     agentSignatureEmoji?: string | null;
-    /** The run's Chat; null only for a chatless run: a wake or assignment. */
+    /** The run's Chat; null only for a chatless run: a wake, an assignment, or a Drive conflict. */
     chatId: string | null;
     /** Chips the Server's connections add to chat; the prompt teaches the ones an Agent writes. */
     connectionChips?: ConnectionChipKind[];
+    /** One Drive push's conflicts; a chatless run in the main session, with no inbox. */
+    driveConflict?: DriveConflictAttention;
     /** Drainable on any start: concrete work, and human work addressed to this Agent. */
     drainItemIds?: string[];
     /** This run carries the new Agent's one-time `#all` greeting, claimed once by the Server. */

@@ -103,7 +103,7 @@ brew install postgresql@16 versitygw
 ```
 
 Files bytes go to a per-worktree [versitygw](https://github.com/versity/versitygw) S3 gateway
-instead of R2, so uploads, thumbnails, and `haus files` work in every worktree with no cloud
+instead of R2, so uploads, thumbnails, and Agent `drive/` folders work in every worktree with no cloud
 credential. The stack starts it on a private loopback port over
 `~/.haus/dev/<worktree-id>/object-storage`, creates the `haus-artifacts-development` bucket
 directory, and points Server at it with the fixed development key pair from `.env.schema`. The

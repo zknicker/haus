@@ -26,7 +26,8 @@ model session. Per-turn message delivery is an inbox concern; see
   context and prior data reads must be rechecked.
 - The model session spans every Chat the Agent participates in and resumes
   between deliveries and Computer restarts.
-- `MEMORY.md` at the workspace root is the Agent's memory, and the Computer delivers it: at turn
+- `MEMORY.md` in the Agent's Drive area (`drive/agents/<handle>/MEMORY.md` from its working
+  directory) is the Agent's memory, and the Computer delivers it: at turn
   start it reads the file and puts it in the turn input when its content differs from what this
   session last received. An unchanged file adds nothing to the turn; a missing file delivers
   nothing. Delivery is capped at 8,000 characters: a longer file is cut at a line boundary under
@@ -96,8 +97,8 @@ model session. Per-turn message delivery is an inbox concern; see
   Its next delivery uses the same refresh path without rotating the session generation or
   replaying `Start.`.
 - Session reset preserves workspace, memory, skills, identity, and Server
-  history. Full reset restores an ordinary Agent's minimal `MEMORY.md`, empty `notes/`, and
-  factory-managed skills.
+  history. Full reset keeps the Agent's Drive folder (memory, notes and skills) and clears the
+  rest of its local state without reseeding.
 
 The composed instructions are bounded by a size cap asserted in
 `apps/computer/src/harness/managed-instructions.test.ts`. It is a ratchet that forces a deliberate
@@ -105,8 +106,8 @@ decision, not a hard or runtime limit: a justified addition raises the cap with 
 and other prompt text is never cut just to make room. Raft-verbatim text is never trimmed. See
 AGENTS.md and [the divergence register](../../specs/raft-alignment/prompt-divergences.md).
 
-Durable Agent knowledge lives in the Agent-owned workspace (`MEMORY.md` and
-notes). Only `MEMORY.md` reaches the turn input, and only when it changed. Agents
+Durable Agent knowledge lives in the Agent's Drive area (`MEMORY.md`, notes and
+skills). Only `MEMORY.md` reaches the turn input, and only when it changed. Agents
 read older canonical Chat history through the `haus` CLI when inbox delivery is
 insufficient.
 

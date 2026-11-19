@@ -6,8 +6,9 @@
 // Rule grammar, merge, and post-reset application are model judgment, so each
 // run writes an evidence file that `memory-feedback-grade.mjs` scores.
 //
-// Opt-in: it overwrites the Agent's MEMORY.md on the dev Computer's disk, so the
-// Computer must run on this machine from this checkout's dev stack.
+// Opt-in: it overwrites the Agent's MEMORY.md in its drive/ folder on the dev
+// Computer's disk, so the Computer must run on this machine from this checkout's
+// dev stack.
 
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -17,7 +18,7 @@ import { computerAttachmentPath } from './author.mjs';
 import { authoredInChannel } from './channel-messages.mjs';
 import { isReady } from './provisioner.mjs';
 
-const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url));
+const repositoryRoot = path.resolve(fileURLToPath(new URL('../../', import.meta.url)));
 export const evidenceDirectory = path.join(
     repositoryRoot,
     '.context',
@@ -55,10 +56,12 @@ export async function runMemoryFeedback(variant, { agents, expect, kit, log, set
         'agents',
         worker.id,
         'workspace',
-        'MEMORY.md'
+        ...driveMemoryPath(worker.handle).split('/')
     );
     const seeded = renderSeedMemory(worker.displayName ?? worker.handle);
+    await kit.harness.waitForAgentQuiet(worker.id, 10_000, 300_000);
     log('seeding MEMORY.md');
+    await mkdir(path.dirname(memoryPath), { recursive: true });
     await writeFile(memoryPath, seeded);
 
     const conversation = await kit.createChannel({ agentIds: [worker.id] });
@@ -70,7 +73,7 @@ export async function runMemoryFeedback(variant, { agents, expect, kit, log, set
     await settled(expect, await settleTurn(worker.id), 'request turn', runIds);
     replies.request = await authoredInChannel(kit, conversation.id, worker.id, head);
     await kit.harness.waitForAgentQuiet(worker.id, 10_000, 300_000);
-    const afterFeedback = await readMemory(kit, worker.id);
+    const afterFeedback = await readMemory(kit, worker);
 
     log('resetting the session');
     await kit.trpc('agent.reset', { agentId: worker.id, kind: 'session', serverId: kit.serverId });
@@ -81,7 +84,7 @@ export async function runMemoryFeedback(variant, { agents, expect, kit, log, set
     await kit.harness.send(fresh.id, `@${worker.handle} ${probe}`);
     await settled(expect, await settleTurn(worker.id), 'probe turn', runIds);
     replies.probe = await authoredInChannel(kit, fresh.id, worker.id, head);
-    const afterProbe = await readMemory(kit, worker.id);
+    const afterProbe = await readMemory(kit, worker);
 
     const agent = await kit.trpc('agent.get', { agentId: worker.id, serverId: kit.serverId });
     await writeEvidence({
@@ -157,10 +160,14 @@ async function manualCommands(kit, agentId, runIds) {
     return commands;
 }
 
-async function readMemory(kit, agentId) {
+function driveMemoryPath(handle) {
+    return `drive/agents/${handle}/MEMORY.md`;
+}
+
+async function readMemory(kit, { handle, id }) {
     const file = await kit.trpc('agent.workspaceFile', {
-        agentId,
-        path: 'MEMORY.md',
+        agentId: id,
+        path: driveMemoryPath(handle),
         serverId: kit.serverId,
     });
     return file.content;

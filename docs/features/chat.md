@@ -259,7 +259,7 @@ and [Agent Inbox](../../specs/inbox.md).
   HTML page) becomes a card below its message (kind icon, title, `Page` and file
   name) that opens the page in the chat's Workspace pane, or its own tab on desktop; it keeps its place
   in the prose rather than joining the media strip. A link to a file in
-  this Server's Files (the `stable_url` `haus files push` prints)
+  this Server's Files (its `/artifacts/<id>` stable URL)
   reads inline as a reference chip (kind icon and title, dotted underline) and
   adds a tile to the message's media strip, after its attachments: a small
   image shows its thumbnail, anything else its kind icon, over the title and

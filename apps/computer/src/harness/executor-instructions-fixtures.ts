@@ -2,6 +2,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
+import { agentDrive } from '../drive/agent-drive.ts';
 import type { HarnessTurnInput } from './executor.ts';
 import type { AgentSessionState } from './session-store.ts';
 
@@ -59,7 +60,7 @@ export function instructionsTurnInput(
         runtimeId: 'claude-code',
         serverId: 'srv_test',
         sessionGeneration: 1,
-        skillsDir: join(agentRoot, 'skills'),
+        drive: agentDrive(agentRoot, 'cove'),
         tools: [],
         totalPending: 1,
         unreadElsewhere: [],

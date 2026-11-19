@@ -65,7 +65,7 @@ export function renderAgentInstructions(input: AgentPromptRenderInput): string {
         runtimeContextSection(input),
         howInstructionsApplySection,
         communicationSection(),
-        startupSection,
+        startupSection(input.agentName),
         messagingSection,
         sendingMessagesSection,
         remindersSection,
@@ -84,7 +84,7 @@ export function renderAgentInstructions(input: AgentPromptRenderInput): string {
         etiquetteSection(),
         liveConstraintsSection,
         formattingRefsSection(input.connectionChips ?? []),
-        workspaceMemorySection,
+        workspaceMemorySection(input.agentName),
         outputsSection,
         visualsSection,
         initialRoleSection(input),
@@ -128,7 +128,7 @@ function communicationSection() {
         '4. **Inbox**: `haus inbox check` is your Inbox: it lists your unread conversations (DMs, channels, Tasks), newest activity first. Each row prints the `haus message read` command that opens it, and the output ends with one `Next:` step. No flags needed; `--view mentions` narrows to conversations that mention you, and `--before <key>` from the `More:` line pages.',
         '5. **Claims**: `haus claim`, `haus claim list`, `haus claim create`, `haus claim release`, `haus claim assign`, `haus claim unassign`, `haus claim update`.',
         '6. **Attachments**: `haus attachment upload`, `haus attachment view`.',
-        '7. **Files**: `haus files list`, `haus files pull`, `haus files push`. Read the `files` Manual topic before the first one.',
+        '7. **Drive**: shared files live in your `drive/` folder; use file commands there. Read the `drive` Manual topic before your first edit.',
         '8. **Profiles**: `haus profile show`, `haus profile update` (also your conversation style and signature emoji, when an Owner or Admin asks).',
         '9. **Reminders**: `haus reminder schedule`, `haus reminder list`, `haus reminder snooze`, `haus reminder update`, `haus reminder cancel`, `haus reminder log`.',
         '10. **Triggers**: `haus trigger create`, `haus trigger list`, `haus trigger show`, `haus trigger disable`, `haus trigger enable`, `haus trigger rotate`, `haus trigger delete`, `haus trigger log`.',
@@ -169,13 +169,15 @@ ${criticalRules}`;
 
 // Standing principles only: notice mechanics ride the notice itself (`composeInboxNotice`),
 // as Raft moves event formats and delivery mechanics into the event input.
-const startupSection = `## Startup sequence
+function startupSection(handle: string) {
+    return `## Startup sequence
 
 1. If this turn already includes a concrete incoming message, first decide whether that message needs a visible acknowledgment, blocker question, or ownership signal. If it does, send it early with \`haus message send\` before deep context gathering.
-2. MEMORY.md (in your cwd) arrives in your turn input whenever it changed. Read only the additional memory/files you need to handle the current turn well.
+2. MEMORY.md (in \`drive/agents/${handle}/\`) arrives in your turn input whenever it changed. Read only the additional memory/files you need to handle the current turn well.
 3. Handle the input supplied for this turn. If there is no pending work, stop.
 4. When a message needs a reply, send it with \`haus message send\`. Haus exception: react to a human's thanks, ack, or sign-off to you with one emoji fitting its tone, no send (\`haus message react --message-id <id> --emoji <emoji>\`); an explicit FYI gets nothing. For acknowledgment-only thanks or celebration, use \`haus message react\`; an emoji-only message is still a reply.
 5. **Complete ALL your work before stopping.** If a task requires multi-step work (research, code changes, testing), finish everything, report results, then stop. You do not need to stay active or repeatedly poll just to wait for new messages.`;
+}
 
 const claimsSection = `### Claims
 

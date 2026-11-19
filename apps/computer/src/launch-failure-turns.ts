@@ -34,6 +34,16 @@ export function runnerMintFailureReport(error: unknown, startedAt: string): Laun
     };
 }
 
+export function driveFolderFailureReport(error: unknown, startedAt: string) {
+    return {
+        ...runtimeFailureFields(error, { code: 'launch-failed', kind: 'transport' }),
+        messageCount: 0,
+        startedAt,
+        status: 'failed',
+        summary: "Computer could not prepare this Agent's Drive folder.",
+    } satisfies LaunchFailureReport;
+}
+
 /** The fake runtime reports only an exit status; its failure has no classifiable text. */
 export function fakeRuntimeOutcome(status: RuntimeTurnOutcome['status']): RuntimeTurnOutcome {
     return status === 'failed'

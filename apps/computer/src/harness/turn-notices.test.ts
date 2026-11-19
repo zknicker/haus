@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
+import { agentDrive } from '../drive/agent-drive.ts';
 import type { RuntimeSession } from '../runtime/driver.ts';
 import { runHarnessTurn, type TurnDriverFactory } from './executor.ts';
 import { restorePendingNotice } from './stored-notice.ts';
@@ -80,7 +81,7 @@ function turnInput(root: string, factory: TurnDriverFactory) {
         runtimeId: 'codex',
         serverId: 'srv_test',
         sessionGeneration: 1,
-        skillsDir: join(root, 'skills'),
+        drive: agentDrive(root, 'agent'),
         tools: [],
         totalPending: 0,
         unreadElsewhere: [],

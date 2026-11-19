@@ -50,10 +50,15 @@ const factoryManagedSkillFiles: Record<string, Record<string, string>> = {
     [visualsSkillId]: { 'SKILL.md': defaultVisualsSkill, ...visualsSkillFiles },
 };
 
-/** Restores release-owned skill files while preserving every Agent-authored skill. */
-export async function seedFactoryManagedSkills(skillsDir: string): Promise<void> {
-    for (const [skillId, files] of Object.entries(factoryManagedSkillFiles)) {
-        for (const [relativePath, content] of Object.entries(files)) {
+/** Writes the named release-owned skills, every one by default, and leaves every other skill alone. */
+export async function seedFactoryManagedSkills(
+    skillsDir: string,
+    skillIds: readonly string[] = Object.keys(factoryManagedSkillFiles)
+): Promise<void> {
+    for (const skillId of skillIds) {
+        for (const [relativePath, content] of Object.entries(
+            factoryManagedSkillFiles[skillId] ?? {}
+        )) {
             const destination = path.join(skillsDir, skillId, ...relativePath.split('/'));
             await fs.mkdir(path.dirname(destination), { recursive: true });
             await fs.writeFile(destination, content, { mode: 0o600 });
@@ -67,15 +72,47 @@ export async function seedFactoryManagedSkills(skillsDir: string): Promise<void>
  */
 export function factoryManagedSkillHashes(): Record<string, string> {
     return Object.fromEntries(
-        Object.entries(factoryManagedSkillFiles).map(([skillId, files]) => {
-            const hash = createHash('sha256');
-            for (const relativePath of Object.keys(files).sort()) {
-                hash.update(relativePath)
-                    .update('\0')
-                    .update(files[relativePath] ?? '')
-                    .update('\0');
-            }
-            return [skillId, hash.digest('hex')];
-        })
+        Object.entries(factoryManagedSkillFiles).map(([skillId, files]) => [
+            skillId,
+            skillHash(Object.entries(files)),
+        ])
     );
+}
+
+/**
+ * The hash of an Agent's copy of a skill, computed like `factoryManagedSkillHashes` over its
+ * regular files, or null when it holds no such directory.
+ */
+export async function heldManagedSkillHash(skillsDir: string, skillId: string) {
+    const root = path.join(skillsDir, skillId);
+    const stat = await fs.stat(root).catch((error: NodeJS.ErrnoException) => {
+        if (error.code === 'ENOENT' || error.code === 'ENOTDIR') {
+            return null;
+        }
+        throw error;
+    });
+    if (!stat?.isDirectory()) {
+        return null;
+    }
+    const files: [string, Uint8Array][] = [];
+    for (const entry of await fs.readdir(root, { recursive: true, withFileTypes: true })) {
+        if (entry.isFile()) {
+            const absolute = path.join(entry.parentPath, entry.name);
+            files.push([
+                path.relative(root, absolute).split(path.sep).join('/'),
+                await fs.readFile(absolute),
+            ]);
+        }
+    }
+    return skillHash(files);
+}
+
+function skillHash(files: readonly (readonly [string, string | Uint8Array])[]) {
+    const hash = createHash('sha256');
+    for (const [relativePath, content] of [...files].sort(([left], [right]) =>
+        left < right ? -1 : Number(left > right)
+    )) {
+        hash.update(relativePath).update('\0').update(content).update('\0');
+    }
+    return hash.digest('hex');
 }

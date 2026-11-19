@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { agentDrive } from '../drive/agent-drive.ts';
 import {
     formatMemoryBlock,
     type MemoryDelivery,
@@ -11,14 +12,17 @@ import {
     readMemoryDigest,
 } from './memory-delivery.ts';
 
-let workspaceDir: string;
+let root: string;
+let memoryPath: string;
 
 beforeEach(async () => {
-    workspaceDir = await mkdtemp(join(tmpdir(), 'haus-memory-delivery-'));
+    root = await mkdtemp(join(tmpdir(), 'haus-memory-delivery-'));
+    memoryPath = agentDrive(root, 'kit').memory;
+    await mkdir(dirname(memoryPath), { recursive: true });
 });
 
 afterEach(async () => {
-    await rm(workspaceDir, { force: true, recursive: true });
+    await rm(root, { force: true, recursive: true });
 });
 
 test('a missing MEMORY.md delivers nothing', async () => {
@@ -26,20 +30,20 @@ test('a missing MEMORY.md delivers nothing', async () => {
         isResume: true,
         receipt: null,
         wake: false,
-        workspaceDir,
+        memoryPath,
     });
     expect(plan).toEqual({ block: null, known: true, priorReceipt: null });
-    expect(await readMemoryDigest(workspaceDir)).toBeNull();
+    expect(await readMemoryDigest(memoryPath)).toBeNull();
 });
 
 test('a resumed session whose receipt matches the file gets nothing; a changed file is delivered', async () => {
     await writeMemory('# Kit\n\n## Role\nRelease manager.\n');
-    const receipt = await readMemoryDigest(workspaceDir);
+    const receipt = await readMemoryDigest(memoryPath);
     const unchanged = await planMemoryDelivery({
         isResume: true,
         receipt,
         wake: false,
-        workspaceDir,
+        memoryPath,
     });
     expect(unchanged.block).toBeNull();
     expect(unchanged.known).toBe(true);
@@ -49,7 +53,7 @@ test('a resumed session whose receipt matches the file gets nothing; a changed f
         isResume: true,
         receipt,
         wake: false,
-        workspaceDir,
+        memoryPath,
     });
     expect(changed.block).toContain('Release manager and on-call.');
     expect(changed.block?.startsWith('<haus-memory>')).toBe(true);
@@ -58,8 +62,8 @@ test('a resumed session whose receipt matches the file gets nothing; a changed f
 
 test('a fresh launch ignores any stored receipt and carries the file', async () => {
     await writeMemory('# Kit\n');
-    const receipt = await readMemoryDigest(workspaceDir);
-    const plan = await planMemoryDelivery({ isResume: false, receipt, wake: false, workspaceDir });
+    const receipt = await readMemoryDigest(memoryPath);
+    const plan = await planMemoryDelivery({ isResume: false, receipt, wake: false, memoryPath });
     expect(plan.block).toContain('# Kit');
     expect(plan.priorReceipt).toBeNull();
 });
@@ -70,7 +74,7 @@ test('a sub-agent wake defers a changed file without claiming the session knows 
         isResume: true,
         receipt: 'older',
         wake: true,
-        workspaceDir,
+        memoryPath,
     });
     expect(plan).toEqual({ block: null, known: false, priorReceipt: 'older' });
 });
@@ -97,15 +101,15 @@ test('a line ending exactly at the cap is kept whole', () => {
 });
 
 test('an unreadable MEMORY.md is treated as missing', async () => {
-    await mkdir(join(workspaceDir, 'MEMORY.md'));
+    await mkdir(memoryPath);
     const plan = await planMemoryDelivery({
         isResume: true,
         receipt: 'older',
         wake: false,
-        workspaceDir,
+        memoryPath,
     });
     expect(plan.block).toBeNull();
-    expect(await readMemoryDigest(workspaceDir)).toBeNull();
+    expect(await readMemoryDigest(memoryPath)).toBeNull();
 });
 
 test('a file within the cap is delivered whole with no notice', () => {
@@ -132,5 +136,5 @@ test('the receipt clears on a compaction, follows the file after a completed tur
 });
 
 async function writeMemory(content: string) {
-    await writeFile(join(workspaceDir, 'MEMORY.md'), content);
+    await writeFile(memoryPath, content);
 }

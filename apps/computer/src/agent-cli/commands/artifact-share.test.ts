@@ -3,7 +3,7 @@ import type { AgentApiRequest, AgentApiRequester } from '../agent-api-client.ts'
 import { parseArgs } from '../parse.ts';
 import { ARTIFACT_SHARE_SUBCOMMAND, runArtifactShare } from './artifact-share.ts';
 
-const command = { ...ARTIFACT_SHARE_SUBCOMMAND, section: 'files' } as Parameters<
+const command = { ...ARTIFACT_SHARE_SUBCOMMAND, section: 'drive' } as Parameters<
     typeof parseArgs
 >[0];
 const stdout = spyOn(process.stdout, 'write').mockImplementation(() => true);

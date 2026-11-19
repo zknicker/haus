@@ -179,14 +179,21 @@ A durable `message.created` is planned once by Server delivery
   no standing prompt text teaches it:
 
   ```text
-  [drive conflict · 3 files · your push after run_8f2…]
+  [drive conflict · 4 files · your push after run_8f2…]
   agents/blippy/notes/launch.md · @ada changed the same lines · yours: agents/blippy/notes/launch.conflict-blippy.md
   haus/logo.png · binary, changed by @tiny · yours: haus/logo.conflict-blippy.png
   haus/old-plan.md · @ada edited it, so your delete did not happen
+  agents/tiny/notes/x.md · refused, you cannot write there · yours: drive-refused/agents/tiny/notes/x.md
   Each original holds the current version and each copy holds yours. Merge what you still want into the original with ordinary file commands in drive/, then delete the copy.
+  An edit always beats a delete. Delete the file again if you still mean to.
+  A refused file is not in Drive: your version is in drive-refused/ in your working directory, and drive/ holds what Drive has.
   ```
 
-  A Worker's item names the Worker and its Task in the header line.
+  Each guidance line appears only when the item has that outcome. A `base_gone` file reads "the
+  version you started from is gone", a `both_created` file reads "created it too", and an edit of
+  the Agent's own that beat someone's delete reads "it was deleted, and your edit brought it back".
+  A missing author handle reads "someone". A Worker's item names the Worker and its Task in the
+  header line (`apps/computer/src/inbox-drive-conflict-format.ts`).
 - After planning, ordinary Chat work gives an idle Agent a notice turn and a busy Agent receives the
   same notice in its live turn. Concrete work — a settled Cloud Agent Run, an automation fire, a
   claim assignment — is the typed exception: an idle recipient receives the item's own envelope as

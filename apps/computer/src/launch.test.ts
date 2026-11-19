@@ -1,13 +1,11 @@
 import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
-import { mkdir, mkdtemp, readdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, realpath, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parseResetCommand, parseStartCommand } from './agent-command-frames.ts';
-import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
+import { parseStartCommand } from './agent-command-frames.ts';
 import { disposeServerLaunchHosts } from './agent-launch-host.ts';
-import { resetAgentState } from './agent-reset.ts';
-import { applyCoveConfiguration } from './cove-configuration.ts';
 import { makeDaemonRuntime } from './daemon-runtime.ts';
+import { createDriveRoutes } from './drive-migration/testing/drive-server.ts';
 import type { HarnessTurnInput } from './harness/executor.ts';
 import type { HostToolSet } from './host-tools/host-tool.ts';
 import { type AgentStartCommand, type Attachment, runAgentLaunch } from './launch.ts';
@@ -33,6 +31,7 @@ test('rejects a typed attention whose envelope identity does not match it', () =
     expect(
         parseStartCommand({
             agentId: 'agt_launchtest',
+            agentName: 'launch',
             chatId: 'cht_origin',
             inbox: [
                 {
@@ -72,9 +71,14 @@ test('rejects a typed attention whose envelope identity does not match it', () =
 let dataRoot: string;
 beforeEach(async () => {
     dataRoot = await mkdtemp(join(tmpdir(), 'haus-launch-'));
+    const drive = createDriveRoutes({ agentId: 'agt_launchtest', runnerToken });
     const server = Bun.serve({
         fetch: async (request) => {
             const url = new URL(request.url);
+            const driveResponse = await drive.handle(request);
+            if (driveResponse) {
+                return driveResponse;
+            }
             if (url.pathname === '/computer/runner/mint') {
                 state.mintCount += 1;
                 return Response.json({ runnerId: 'arc_launchtest000000', runnerToken });
@@ -163,6 +167,7 @@ test('runs a deterministic Agent launch that lands a durable Server message', as
     };
     const command: AgentStartCommand = {
         agentId: 'agt_launchtest',
+        agentName: 'launch',
         chatId: 'cht_test',
         inbox: [
             {
@@ -207,7 +212,7 @@ test('runs a deterministic Agent launch that lands a durable Server message', as
     // The Agent reached the Server only through the loopback proxy, which
     // swapped the local proxy token for the scoped runner credential.
     expect(state.authHeaders).toEqual([`Bearer ${runnerToken}`]);
-    expect(state.mintCount).toBe(1);
+    expect(state.mintCount).toBe(2);
     expect(state.revokedRunnerId).toBe('arc_launchtest000000');
 
     expect(turnFrames).toHaveLength(1);
@@ -221,10 +226,19 @@ test('runs a deterministic Agent launch that lands a durable Server message', as
     expect(JSON.stringify(turnFrames[0])).not.toContain(runnerToken);
 
     const agentRoot = join(dataRoot, 'servers', attachment.serverId, 'agents', command.agentId);
-    for (const dir of ['home', 'skills', 'workspace', 'runtime']) {
+    for (const dir of ['home', 'workspace', 'runtime']) {
         expect((await stat(join(agentRoot, dir))).isDirectory()).toBe(true);
     }
-    const canonicalSkills = await realpath(join(agentRoot, 'skills'));
+    const canonicalSkills = await realpath(
+        join(agentRoot, 'workspace', 'drive', 'agents', 'launch', 'skills')
+    );
+    expect(await readdir(canonicalSkills)).toEqual(['visuals']);
+    expect(
+        await readFile(
+            join(agentRoot, 'workspace', 'drive', 'agents', 'launch', 'MEMORY.md'),
+            'utf8'
+        )
+    ).toContain('# launch');
     for (const nativeRoot of ['.agents', '.claude']) {
         expect(await realpath(join(agentRoot, 'home', nativeRoot, 'skills'))).toBe(canonicalSkills);
     }
@@ -248,6 +262,7 @@ test('reports a failed turn when the runtime is not installed', async () => {
         },
         command: {
             agentId: 'agt_launchtest',
+            agentName: 'launch',
             chatId: 'cht_test',
             inbox: [],
             inboxDelivery: 'notice',
@@ -278,6 +293,7 @@ test('the launch injects Server MCP and Computer Browser tools into the real Har
     };
     const base: AgentStartCommand = {
         agentId: 'agt_launchtest',
+        agentName: 'launch',
         chatId: 'cht_test',
         inbox: [
             {
@@ -328,199 +344,3 @@ test('the launch injects Server MCP and Computer Browser tools into the real Har
     expect(tools.map((tool) => tool.name)).toEqual(['execute', 'browser']);
     expect(invocationResult).toMatchObject({ value: { result: 'server:granted' } });
 });
-
-test('session reset rotates harness context while preserving Agent-owned state', async () => {
-    const { agentRoot, configuration, configurationJson } = await seedResetFixture();
-
-    expect(
-        parseResetCommand({
-            agentId: 'agt_reset',
-            kind: 'session',
-            sessionGeneration: 2,
-            type: 'agent-reset',
-        })
-    ).toEqual({
-        agentId: 'agt_reset',
-        kind: 'session',
-        sessionGeneration: 2,
-        type: 'agent-reset',
-    });
-    expect(
-        parseResetCommand({
-            agentId: 'agt_reset',
-            kind: 'unknown',
-            sessionGeneration: 2,
-            type: 'agent-reset',
-        })
-    ).toBe(null);
-
-    await resetAgentState({
-        agentId: configuration.agentId,
-        dataRoot,
-        kind: 'session',
-        serverId: 'srv_reset',
-    });
-
-    await expect(stat(join(agentRoot, 'session.json'))).rejects.toThrow();
-    await expect(stat(join(agentRoot, '.agent-runs'))).rejects.toThrow();
-    await expect(stat(join(agentRoot, 'runtime', 'inbox'))).rejects.toThrow();
-    await expect(stat(join(agentRoot, 'runtime', 'pending-notice.json'))).rejects.toThrow();
-    expect(await readFile(join(agentRoot, 'workspace', 'MEMORY.md'), 'utf8')).toBe(
-        '# Durable memory\n\nBluebird remains active.\n'
-    );
-    expect(await readFile(join(agentRoot, 'workspace', 'kept.txt'), 'utf8')).toBe('kept');
-    expect(await readFile(join(agentRoot, 'skills', 'custom-skill', 'SKILL.md'), 'utf8')).toBe(
-        'name: custom-skill\n'
-    );
-    expect(await readFile(join(agentRoot, 'configuration.json'), 'utf8')).toBe(configurationJson);
-});
-
-test('full reset independently clears harness context and restores the ordinary factory state', async () => {
-    const { agentRoot, configuration, configurationJson } = await seedResetFixture();
-
-    await resetAgentState({
-        agentId: configuration.agentId,
-        dataRoot,
-        kind: 'full',
-        serverId: 'srv_reset',
-    });
-
-    await expect(stat(join(agentRoot, 'session.json'))).rejects.toThrow();
-    await expect(stat(join(agentRoot, '.agent-runs'))).rejects.toThrow();
-    await expect(stat(join(agentRoot, 'workspace', 'kept.txt'))).rejects.toThrow();
-    await expect(stat(join(agentRoot, 'skills', 'custom-skill'))).rejects.toThrow();
-    expect(await readFile(join(agentRoot, 'configuration.json'), 'utf8')).toBe(configurationJson);
-    expect(await readFile(join(agentRoot, 'workspace', 'MEMORY.md'), 'utf8')).toContain(
-        'Onboarding guide'
-    );
-    expect(await readdir(join(agentRoot, 'workspace', 'notes'))).toEqual([]);
-    await expect(
-        readFile(join(agentRoot, 'skills', 'haus-agent', 'SKILL.md'), 'utf8')
-    ).rejects.toThrow();
-    await expect(
-        readFile(join(agentRoot, 'skills', 'visuals', 'SKILL.md'), 'utf8')
-    ).resolves.toContain('name: visuals');
-});
-
-test('Cove full reset restores its exact factory workspace and only visuals', async () => {
-    const agentId = 'agt_coveresetxxxxxxx';
-    const serverId = 'srv_cove_reset';
-    const command = {
-        agentDescription: 'Onboarding Assistant' as const,
-        agentId,
-        agentName: 'Cove' as const,
-        applicationId: 'cap_coveresetxxxxxx',
-        factoryKind: 'cove' as const,
-        modelId: 'gpt-5.6-sol',
-        runtimeId: 'codex',
-        sessionGeneration: 1,
-        type: 'cove-apply' as const,
-    };
-    await applyCoveConfiguration({
-        command,
-        dataRoot,
-        inventory: {
-            runtimes: [
-                {
-                    id: 'codex',
-                    label: 'Codex',
-                    models: [{ id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol' }],
-                },
-            ],
-        },
-        serverId,
-    });
-    const agentRoot = join(dataRoot, 'servers', serverId, 'agents', agentId);
-    await Promise.all([
-        writeFile(join(agentRoot, 'workspace', 'MEMORY.md'), '# Changed\n'),
-        writeFile(join(agentRoot, 'workspace', 'extra.md'), 'remove me\n'),
-        mkdir(join(agentRoot, 'skills', 'custom-skill'), { recursive: true }).then(() =>
-            writeFile(join(agentRoot, 'skills', 'custom-skill', 'SKILL.md'), 'name: custom-skill\n')
-        ),
-    ]);
-
-    await resetAgentState({ agentId, dataRoot, kind: 'full', serverId });
-
-    expect((await readdir(join(agentRoot, 'workspace'))).sort()).toEqual(['MEMORY.md', 'notes']);
-    expect((await readdir(join(agentRoot, 'workspace', 'notes'))).sort()).toEqual([
-        'onboarding_knowledge_faq.md',
-        'onboarding_objectives.md',
-        'onboarding_playbook.md',
-    ]);
-    const objectives = await readFile(
-        join(agentRoot, 'workspace', 'notes', 'onboarding_objectives.md'),
-        'utf8'
-    );
-    expect(objectives.match(/^### recipes\//gmu)).toHaveLength(12);
-    expect(objectives).not.toMatch(/save-as-a-skill|haus-agent|recipes\/archetype\//u);
-    expect(await readdir(join(agentRoot, 'skills'))).toEqual(['visuals']);
-    await expect(
-        readFile(join(agentRoot, 'skills', 'visuals', 'SKILL.md'), 'utf8')
-    ).resolves.toContain('name: visuals');
-});
-
-async function seedResetFixture() {
-    const agentId = 'agt_resetxxxxxxxxxxx';
-    const agentRoot = join(dataRoot, 'servers', 'srv_reset', 'agents', agentId);
-    const configuration = parseAgentConfigureCommand({
-        agentDescription: 'Onboarding guide',
-        agentId,
-        agentName: 'Scout',
-        factoryKind: 'ordinary',
-        modelId: 'gpt-5.6-sol',
-        runtimeId: 'codex',
-        sessionGeneration: 1,
-        sessionResetKind: 'full',
-        type: 'agent-configure',
-    });
-    if (!configuration) {
-        throw new Error('Reset configuration fixture did not parse.');
-    }
-    await applyAgentConfiguration({
-        command: configuration,
-        dataRoot,
-        inventory: {
-            runtimes: [
-                {
-                    id: 'codex',
-                    label: 'Codex',
-                    models: [{ id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol' }],
-                },
-            ],
-        },
-        serverId: 'srv_reset',
-    });
-    const configurationJson = await readFile(join(agentRoot, 'configuration.json'), 'utf8');
-    await Promise.all(
-        [
-            'home',
-            'skills',
-            'skills/custom-skill',
-            'workspace',
-            'runtime',
-            'runtime/inbox',
-            '.agent-runs',
-        ].map((dir) => mkdir(join(agentRoot, dir), { recursive: true }))
-    );
-    await Promise.all([
-        writeFile(
-            join(agentRoot, 'session.json'),
-            JSON.stringify({
-                effectiveModel: { modelId: 'gpt-5.6-sol', runtimeId: 'codex' },
-                generation: 1,
-                resumeState: { runtime: 'codex', threadId: 'native-reset-session', version: 1 },
-                runtimeSessionId: 'harness-reset-session',
-            })
-        ),
-        writeFile(join(agentRoot, '.agent-runs', 'old-run'), 'state'),
-        writeFile(join(agentRoot, 'runtime', 'inbox', 'pending.json'), '[]'),
-        writeFile(join(agentRoot, 'runtime', 'pending-notice.json'), '{"notice":"pending"}'),
-        writeFile(
-            join(agentRoot, 'workspace', 'MEMORY.md'),
-            '# Durable memory\n\nBluebird remains active.\n'
-        ),
-        writeFile(join(agentRoot, 'workspace', 'kept.txt'), 'kept'),
-        writeFile(join(agentRoot, 'skills', 'custom-skill', 'SKILL.md'), 'name: custom-skill\n'),
-    ]);
-    return { agentRoot, configuration, configurationJson };
-}

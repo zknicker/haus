@@ -6,14 +6,14 @@ import {
 } from './cove-guidance-refresh.ts';
 
 test('every Cove notice is bounded and preserves quiet reporting and destination consent', () => {
-    expect(coveTurnGuidanceNotice('ordinary')).toBeNull();
+    expect(coveTurnGuidanceNotice('ordinary', 'cove')).toBeNull();
     for (const notice of [
-        coveTurnGuidanceNotice('cove')!,
-        coveGuidanceRefreshNotice,
-        coveGuidanceConflictNotice([
-            'notes/onboarding_playbook.md',
-            'notes/onboarding_knowledge_faq.md',
-        ]),
+        coveTurnGuidanceNotice('cove', 'cove')!,
+        coveGuidanceRefreshNotice('cove'),
+        coveGuidanceConflictNotice(
+            ['notes/onboarding_playbook.md', 'notes/onboarding_knowledge_faq.md'],
+            'cove'
+        ),
     ]) {
         expect(notice.length).toBeLessThanOrEqual(2300);
         expect(notice).toContain('need no acknowledgment or completion post');
@@ -24,5 +24,16 @@ test('every Cove notice is bounded and preserves quiet reporting and destination
         expect(notice).toContain('rewritten in place; history stays in chats');
         expect(notice).not.toContain('save the message id');
     }
-    expect(coveGuidanceConflictNotice([])).toContain('before claiming a capability is unavailable');
+    expect(coveGuidanceConflictNotice([], 'cove')).toContain(
+        'before claiming a capability is unavailable'
+    );
+});
+
+test('Cove notices name the onboarding notes by their Drive path from the working directory', () => {
+    expect(coveTurnGuidanceNotice('cove', 'cove')).toContain(
+        'Read onboarding_playbook.md and coordination.md in drive/agents/cove/notes/ if present'
+    );
+    expect(coveGuidanceRefreshNotice('cove')).toContain(
+        're-read onboarding_playbook.md and onboarding_knowledge_faq.md in drive/agents/cove/notes/;'
+    );
 });

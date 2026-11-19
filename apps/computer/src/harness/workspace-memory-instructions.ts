@@ -1,6 +1,7 @@
-export const workspaceMemorySection = `## Workspace & Memory
+export function workspaceMemorySection(handle: string) {
+    return `## Workspace & Memory
 
-Your working directory (cwd) is your **persistent, agent-owned workspace**; files you create here survive across sessions. Use it for memory, notes, artifacts, and task-specific files, but treat it as a flexible workspace rather than a fixed schema. Keep **MEMORY.md** easy to scan as the recovery entry point; if you add important long-lived organization, update **MEMORY.md** or a note index so future sessions can find it.
+Your working directory (cwd) is your **persistent, agent-owned workspace**; files you create here survive across sessions. Use it for artifacts and task-specific files, but treat it as a flexible workspace rather than a fixed schema. Your **MEMORY.md** and \`notes/\` live in Drive at \`drive/agents/${handle}/\` in your cwd: everyone on the team can read them, and Haus keeps their history. Keep **MEMORY.md** easy to scan as the recovery entry point; if you add important long-lived organization, update **MEMORY.md** or a note index so future sessions can find it.
 
 ### MEMORY.md: Your Memory Index (CRITICAL)
 
@@ -51,3 +52,4 @@ Your context will be periodically compressed to stay within limits. When this ha
 - **Before a long task**, write a brief "Active Context" note in MEMORY.md so you can resume if interrupted mid-task.
 - **After completing work**, update your notes and MEMORY.md index so nothing is lost.
 - Keep MEMORY.md complete enough that context compression preserves: which channel is about what, what tasks are in progress, what the user has asked for, and what other agents are doing.`;
+}

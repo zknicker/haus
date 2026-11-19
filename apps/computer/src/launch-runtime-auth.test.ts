@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { disposeServerLaunchHosts } from './agent-launch-host.ts';
 import { makeDaemonRuntime } from './daemon-runtime.ts';
+import { createDriveRoutes } from './drive-migration/testing/drive-server.ts';
 import type { HarnessTurnInput } from './harness/executor.ts';
 import { type AgentStartCommand, runAgentLaunch } from './launch.ts';
 import { readRuntimeIssues } from './runtime-issues.ts';
@@ -26,8 +27,16 @@ let server: ReturnType<typeof Bun.serve>;
 
 beforeEach(async () => {
     dataRoot = await mkdtemp(join(tmpdir(), 'haus-launch-auth-'));
+    const drive = createDriveRoutes({
+        agentId: 'agt_launchauth',
+        runnerToken: `grtr_${'a'.repeat(43)}`,
+    });
     server = Bun.serve({
-        fetch: (request) => {
+        fetch: async (request) => {
+            const driven = await drive.handle(request);
+            if (driven) {
+                return driven;
+            }
             const { pathname } = new URL(request.url);
             if (pathname === '/computer/runner/mint') {
                 return Response.json({
@@ -67,6 +76,7 @@ test('a rejected Codex credential fails the turn, raises the runtime issue, and 
 function launch(runId: string, events: TurnEvent[]) {
     const command: AgentStartCommand = {
         agentId: 'agt_launchauth',
+        agentName: 'launchauth',
         chatId: 'cht_test',
         inbox: [],
         inboxDelivery: 'notice',

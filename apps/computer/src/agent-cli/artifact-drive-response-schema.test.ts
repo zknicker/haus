@@ -2,8 +2,7 @@ import { expect, test } from 'bun:test';
 import { artifactPublishResultSchema } from '@haus/api';
 import {
     artifactDownloadResultResponseSchema,
-    artifactListResultResponseSchema,
-    artifactMoveResultResponseSchema,
+    artifactPublishResultResponseSchema,
     artifactVersionsResultResponseSchema,
 } from './artifact-drive-response-schema.ts';
 
@@ -50,39 +49,14 @@ test('the Computer response schema parses artifact metadata carrying fields from
     });
 });
 
-test('the Computer response schema tolerates an unknown field on a drive listing', () => {
-    const payload = {
-        artifacts: [artifactWithUnknownFields],
-        folders: [
-            {
-                file_count: 2,
-                futureFolderField: true,
-                name: 'reports',
-                path: 'reports',
-                updated_at: '2026-09-04T12:00:00.000Z',
-            },
-        ],
-        futureListField: true,
-        next_offset: null,
-        summary: { files: 1, files_in_folders: 2, folders: 1, futureSummaryField: true },
-    };
-    const parsed = artifactListResultResponseSchema.parse(payload);
-    expect(parsed.artifacts).toHaveLength(1);
-    expect(parsed.folders).toHaveLength(1);
+test('the Computer response schema tolerates an unknown field on a path lookup', () => {
+    const payload = { artifact: artifactWithUnknownFields, futureLookupField: true };
+    expect(artifactPublishResultResponseSchema.parse(payload).artifact.artifact_id).toBe(
+        'art_1234567890'
+    );
 });
 
 test('the Computer response schema tolerates an unknown field on a versions result', () => {
     const payload = { futureVersionsField: true, versions: [artifactWithUnknownFields] };
     expect(artifactVersionsResultResponseSchema.parse(payload).versions).toHaveLength(1);
-});
-
-test('the Computer response schema tolerates an unknown field on a move result', () => {
-    const payload = {
-        from: 'reports/old.html',
-        futureMoveField: true,
-        kind: 'file' as const,
-        moved_count: 1,
-        to: 'reports/new.html',
-    };
-    expect(artifactMoveResultResponseSchema.parse(payload).to).toBe('reports/new.html');
 });

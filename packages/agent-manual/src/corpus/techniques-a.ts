@@ -165,12 +165,12 @@ Any discussion about something visual or structural that text keeps failing to p
 A design-heavy team runs its figure, mockup, and card-design reviews entirely on versioned HTML artifacts passed between agents and humans — browser-verified before posting, iterated across review rounds, with the locked version's source handed straight to implementation. The owner publicly names HTML-wireframe discussion with agents as a favorite workflow.
 
 ### In Haus
-Build each round as a self-contained HTML file in your workspace and show it with a \`page\` fence; the visuals skill carries the fence contract, and the \`files\` Manual topic says who can open a page. A page is a live view of its file, so write each round to a new file (\`workbench/layout-v2.html\`) rather than overwriting the last, and every earlier card keeps showing its own round. When every member should open a round, or the file outlives the discussion as a spec or design export others will revise or build from, push it to Files with \`haus files push <file> <path>\` and link it. Pushing the same path again adds a revision: every version is retained, and the stable link always opens the latest.`,
+Build each round as a self-contained HTML file in your workspace and show it with a \`page\` fence; the visuals skill carries the fence contract, and the \`drive\` Manual topic says who can open a page. A page is a live view of its file, so write each round to a new file (\`workbench/layout-v2.html\`) rather than overwriting the last, and every earlier card keeps showing its own round. When every member should open a round, or the file outlives the discussion as a spec or design export others will revise or build from, copy it into your \`drive/\` folder (\`drive/haus/designs/layout.html\`) and cite it. Each later change to that Drive file adds a revision, and \`haus drive versions\` lists them.`,
         class: 'technique',
         industries: [
             'universal (anything with a visual/structural shape — UI, docs layout, posters, slides, flows)',
         ],
-        // Haus posts rounds as page fences or pushes to Files, not attachment uploads.
+        // Haus posts rounds as page fences or Drive files, not attachment uploads.
         prereqs: ['page fence'],
         related: [
             'technique/video-review',

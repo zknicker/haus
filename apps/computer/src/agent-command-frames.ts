@@ -2,6 +2,7 @@ import {
     agentSubagentWakeAttentionResponseSchema,
     agentTaskAssignmentNoticeResponseSchema,
     agentTaskAssignmentsResponseSchema,
+    driveConflictAttentionResponseSchema,
 } from './agent-command-frames-response-schema.ts';
 import type {
     AgentNoticeCommand,
@@ -23,7 +24,7 @@ export function parseStartCommand(frame: unknown): AgentStartCommand | null {
     if (!isRecord(frame) || frame.type !== 'start') {
         return null;
     }
-    const idFields = ['agentId', 'modelId', 'runId', 'runtimeId'] as const;
+    const idFields = ['agentId', 'agentName', 'modelId', 'runId', 'runtimeId'] as const;
     for (const field of idFields) {
         if (typeof frame[field] !== 'string' || (frame[field] as string).length === 0) {
             return null;
@@ -74,6 +75,7 @@ export function parseStartCommand(frame: unknown): AgentStartCommand | null {
     return {
         ...facts,
         agentId: frame.agentId as string,
+        agentName: frame.agentName as string,
         ...runChat,
         connectionChips,
         drainItemIds,
@@ -204,14 +206,14 @@ export function parseStopBackgroundCommand(frame: unknown): AgentStopBackgroundC
 }
 
 /**
- * Only a sub-agent wake or Task assignment run is chatless, and it carries nothing but
- * its one attention.
+ * Only a sub-agent wake, Task assignment, or Drive conflict run is chatless, and it carries
+ * nothing but its one attention.
  */
 function parseRunChat(
     frame: Record<string, unknown>,
     itemCount: number
-): Pick<AgentStartCommand, 'chatId' | 'subagentWake' | 'taskAssignments'> | null {
-    const attentions = [frame.subagentWake, frame.taskAssignments].filter(
+): Pick<AgentStartCommand, 'chatId' | 'driveConflict' | 'subagentWake' | 'taskAssignments'> | null {
+    const attentions = [frame.driveConflict, frame.subagentWake, frame.taskAssignments].filter(
         (attention) => attention !== undefined
     ).length;
     if (attentions === 0) {
@@ -230,6 +232,10 @@ function parseRunChat(
     if (frame.taskAssignments !== undefined) {
         const assignments = agentTaskAssignmentsResponseSchema.safeParse(frame.taskAssignments);
         return assignments.success ? { chatId: null, taskAssignments: assignments.data } : null;
+    }
+    if (frame.driveConflict !== undefined) {
+        const conflict = driveConflictAttentionResponseSchema.safeParse(frame.driveConflict);
+        return conflict.success ? { chatId: null, driveConflict: conflict.data } : null;
     }
     const wake = agentSubagentWakeAttentionResponseSchema.safeParse(frame.subagentWake);
     return wake.success ? { chatId: null, subagentWake: wake.data } : null;

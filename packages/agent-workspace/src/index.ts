@@ -1,6 +1,7 @@
 export {
     type CoveFactoryGuidanceFile,
     type CoveFactoryGuidancePlan,
+    coveFactoryManifestSha256,
     coveSeededSummaries,
     coveWorkspaceFiles,
     inspectCoveFactoryGuidance,
@@ -11,6 +12,7 @@ export {
 export {
     defaultVisualsSkill,
     factoryManagedSkillHashes,
+    heldManagedSkillHash,
     seedFactoryManagedSkills,
     visualsSkillFiles,
     visualsSkillId,
