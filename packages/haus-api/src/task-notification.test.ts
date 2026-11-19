@@ -93,6 +93,7 @@ const assignment = {
 
 const taskStart = {
     agentId: 'agt_one',
+    agentName: 'one',
     chatId: null,
     inboxDelivery: 'concrete',
     modelId: 'model',

@@ -23,7 +23,7 @@ export function parseStartCommand(frame: unknown): AgentStartCommand | null {
     if (!isRecord(frame) || frame.type !== 'start') {
         return null;
     }
-    const idFields = ['agentId', 'modelId', 'runId', 'runtimeId'] as const;
+    const idFields = ['agentId', 'agentName', 'modelId', 'runId', 'runtimeId'] as const;
     for (const field of idFields) {
         if (typeof frame[field] !== 'string' || (frame[field] as string).length === 0) {
             return null;
@@ -74,6 +74,7 @@ export function parseStartCommand(frame: unknown): AgentStartCommand | null {
     return {
         ...facts,
         agentId: frame.agentId as string,
+        agentName: frame.agentName as string,
         ...runChat,
         connectionChips,
         drainItemIds,

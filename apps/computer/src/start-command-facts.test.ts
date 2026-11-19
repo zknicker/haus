@@ -4,6 +4,7 @@ import { turnDeliveryOf } from './harness/turn-prompt.ts';
 
 const frame = {
     agentId: 'agt_chipstest',
+    agentName: 'chips',
     chatId: 'cht_origin',
     drainItemIds: [],
     inbox: [],
@@ -29,4 +30,10 @@ test('a chip kind from a newer Server is dropped, and a malformed list rejects t
     ).toEqual(['amazon-product']);
     expect(parseStartCommand({ ...frame, connectionChips: 'amazon-product' })).toBeNull();
     expect(parseStartCommand({ ...frame, connectionChips: [7] })).toBeNull();
+});
+
+test('a start frame names the Agent handle, and a frame without one is rejected', () => {
+    expect(parseStartCommand(frame)?.agentName).toBe('chips');
+    expect(parseStartCommand({ ...frame, agentName: undefined })).toBeNull();
+    expect(parseStartCommand({ ...frame, agentName: '' })).toBeNull();
 });

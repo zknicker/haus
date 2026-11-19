@@ -87,6 +87,7 @@ function attentionContinuation() {
     };
     return agentStartCommandSchema.parse({
         agentId: 'agt_cove',
+        agentName: 'cove',
         chatId: 'cht_origin',
         inbox: [
             {

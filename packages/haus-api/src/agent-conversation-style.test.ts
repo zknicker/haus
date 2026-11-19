@@ -56,6 +56,7 @@ test('an Agent self-update names no target and must change something', () => {
 test('the start frame carries an optional conversation style and a nullable signature emoji', () => {
     const frame = {
         agentId: 'agt_1',
+        agentName: 'one',
         chatId: 'cht_1',
         inboxDelivery: 'notice',
         modelId: 'm',

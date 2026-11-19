@@ -191,6 +191,7 @@ function launch(
 ) {
     const command: AgentStartCommand = {
         agentId: 'agt_launchstart',
+        agentName: 'launchstart',
         chatId: 'cht_test',
         inbox: [],
         inboxDelivery: 'notice',

@@ -33,6 +33,7 @@ test('rejects a typed attention whose envelope identity does not match it', () =
     expect(
         parseStartCommand({
             agentId: 'agt_launchtest',
+            agentName: 'launch',
             chatId: 'cht_origin',
             inbox: [
                 {
@@ -163,6 +164,7 @@ test('runs a deterministic Agent launch that lands a durable Server message', as
     };
     const command: AgentStartCommand = {
         agentId: 'agt_launchtest',
+        agentName: 'launch',
         chatId: 'cht_test',
         inbox: [
             {
@@ -248,6 +250,7 @@ test('reports a failed turn when the runtime is not installed', async () => {
         },
         command: {
             agentId: 'agt_launchtest',
+            agentName: 'launch',
             chatId: 'cht_test',
             inbox: [],
             inboxDelivery: 'notice',
@@ -278,6 +281,7 @@ test('the launch injects Server MCP and Computer Browser tools into the real Har
     };
     const base: AgentStartCommand = {
         agentId: 'agt_launchtest',
+        agentName: 'launch',
         chatId: 'cht_test',
         inbox: [
             {

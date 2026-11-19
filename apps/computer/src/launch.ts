@@ -281,9 +281,7 @@ async function runRealRuntime(
             turnTimings: input.turnTimings,
             agentId: command.agentId,
             attestVisible: input.attestVisible,
-            // The Server owns the Agent handle/description; sensible defaults keep
-            // the managed contract intact when a facet is omitted.
-            agentName: command.agentName ?? command.agentId,
+            agentName: command.agentName,
             agentRoot: input.agentRoot,
             dataRoot: input.dataRoot,
             env: input.agentEnv,

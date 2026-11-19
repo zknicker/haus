@@ -72,6 +72,7 @@ test('an App-created Agent with no brief greets on the run the Server attached i
 function wakeFrame(): AgentStartCommand & Record<string, unknown> {
     return {
         agentId: 'agt_greeting',
+        agentName: 'greeter',
         chatId: 'cht_all',
         inbox: [],
         inboxDelivery: 'notice',

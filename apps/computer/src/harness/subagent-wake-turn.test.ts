@@ -11,6 +11,7 @@ const subagentWake = { createdAt: '2026-10-21T10:00:00.000Z', id: 'subagent:agt_
 
 const wakeFrame = {
     agentId: 'agt_test',
+    agentName: 'tester',
     chatId: null,
     drainItemIds: [],
     inbox: [],

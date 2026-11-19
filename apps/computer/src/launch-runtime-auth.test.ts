@@ -67,6 +67,7 @@ test('a rejected Codex credential fails the turn, raises the runtime issue, and 
 function launch(runId: string, events: TurnEvent[]) {
     const command: AgentStartCommand = {
         agentId: 'agt_launchauth',
+        agentName: 'launchauth',
         chatId: 'cht_test',
         inbox: [],
         inboxDelivery: 'notice',
