@@ -1,5 +1,5 @@
 ---
-summary: Proposal for a Capy- and Amp-informed Haus. v1 was grilled with Zach and settled on 2026-11-18. v2 (2026-11-19) adds Amp and asks why each product made its choices. Agents own an area, belong to one Project, and coordinate Workers. Workers are quiet, scoped parallel runs attached to a Task, and they run on any granted Computer or in the cloud. Humans create Projects, and each Project is its channel. One versioned Drive holds memory, AGENTS.md and WORKER.md rules, and reports. Agents coordinate in the open. Covers Capy, Amp, why they converge, the model, v2 decisions awaiting Zach, alternatives, ship order and housekeeping.
+summary: Proposal for a Capy- and Amp-informed Haus. v1 was grilled with Zach and settled on 2026-11-18. v2 (2026-11-19) adds Amp and asks why each product made its choices. Agents own an area, belong to one Project, and coordinate Workers. Workers are quiet, scoped parallel runs attached to a Task, and they run on any granted Computer or in the cloud. Humans create Projects, and each Project is its channel. One versioned Drive holds memory, AGENTS.md and WORKER.md rules, and reports. Agents coordinate in the open. Covers Capy, Amp, why they converge, the model, the v2 decisions Zach accepted, alternatives, ship order and housekeeping.
 read_when:
   - deciding Haus's product direction for projects, workers or parallel agent work, Drive, or layered instructions
   - changing Files, Agent workspaces, cloud agents, the sidebar, the Agent page, or Computers in a way that moves toward or away from this model
@@ -12,9 +12,9 @@ read_when:
 
 Status:
 - **v1 was settled on 2026-11-18.** It was grilled with Zach.
-- **v2 is a draft from 2026-11-19.** It adds Amp as a second reference and asks, for each choice,
+- **v2 was accepted by Zach on 2026-11-19.** It adds Amp as a second reference and asks, for each choice,
   why Capy or Amp made it and whether Haus has the same problem.
-- Most of v1 holds. v2 changes are marked **(v2)** and need Zach's yes. §7 lists them.
+- Most of v1 holds. v2 changes are marked **(v2)**, and §7 lists them.
 
 [ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md) landed on main on 2026-11-19.
 It deleted Threads, made Tasks places, and attached cloud agents to Tasks. This proposal treats it
@@ -148,7 +148,7 @@ Read from Amp's current docs and news feed, through 2026-11-17.
 | Progress | `working` reports stay in the crew thread | Silent until done or blocked | Watching agents work wastes the person. | **Quiet Workers** (v2) |
 | Memory | A paused experiment | None: threads, `AGENTS.md`, skills | Remembered facts go stale. Rules that people can edit last. | **`MEMORY.md` stays capped. "From now on" writes a rule file, and past Tasks are searchable.** (v1) |
 | Agent to agent | Background steers that people can't see | Explicit messages and file transfers | Coordination needs a channel. | **In the open:** @mentions and assignment in a Project or Task (v1) |
-| Pruning | — | Fork, handoff and the dial removed | Every feature is surface area. | **No forks and no side chats.** Inline replies cover side conversations. (v2) |
+| Pruning | — | Fork, handoff and the dial removed | Every feature is surface area. | **No forks.** A side chat is a DM with the Agent, and inline replies keep side conversations in the open. (v2) |
 
 **The pattern behind the table.** Capy and Amp both treat a coordinator as a *manager* and a run
 as a *contractor*. Neither treats agents as *colleagues*. Haus already does: agents share rooms
@@ -436,18 +436,18 @@ divergence-register row, a cap raise, and a `tune-agent-behavior` baseline.
 
 ---
 
-## 7. v2 decisions for Zach
+## 7. v2 decisions (accepted 2026-11-19)
 
-Each has a recommendation, and each is marked (v2) above.
+Each is marked (v2) above.
 
-1. **An Agent belongs to one Project.** The Haus project holds generalists. *Recommend yes.*
-2. **An Agent hears everything in its home Project and only @mentions elsewhere.** *Recommend
-   yes.* It falls out of decision 1 and cuts noise in multi-agent rooms.
-3. **Quiet Workers:** no progress messages, one message per report. *Recommend yes.*
-4. **A `Haus-Task` commit trailer.** *Recommend yes.* It's cheap, and PRs attach themselves.
+1. **An Agent belongs to one Project.** The Haus project holds generalists.
+2. **An Agent hears everything in its home Project and only @mentions elsewhere.** It falls out of decision 1 and cuts noise in multi-agent rooms.
+3. **Quiet Workers:** no progress messages, one message per report.
+4. **A `Haus-Task` commit trailer.** It's cheap, and PRs attach themselves.
 5. **Humans can file a Task assigned to an Agent.** This reverses ADR 0053's "only Agents create
-   Tasks". *Recommend yes*, because every Task still has an Agent.
-6. **No forks and no side chats.** *Recommend yes.* This confirms what Haus already does.
+   Tasks". Every Task still has an Agent.
+6. **No forks.** A side conversation with an Agent is a DM, and an inline reply stays in the open
+   on its message. Neither is a fork, and neither needs a new feature.
 
 ## 8. Housekeeping
 
