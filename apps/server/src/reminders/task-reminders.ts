@@ -1,7 +1,7 @@
 import type { AgentTaskRefusalCode } from '@haus/api';
 import { and, desc, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { chatMessagesTable, chatsTable, tasksTable } from '../postgres/schema.ts';
+import { chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 import { TaskInvariantError } from '../tasks/task-errors.ts';
 
 export class TaskRecurringReminderError extends Error {
@@ -30,20 +30,12 @@ export async function readTaskReminderAnchor(
         )
         .orderBy(desc(chatMessagesTable.sequence))
         .limit(1);
-    if (newest) {
-        return { anchorChatId: input.chatId, anchorMessageId: newest.id };
-    }
-    const [task] = await db
-        .select({ originMessageId: tasksTable.originMessageId })
-        .from(tasksTable)
-        .where(and(eq(tasksTable.serverId, input.serverId), eq(tasksTable.chatId, input.chatId)))
-        .limit(1);
-    if (!task?.originMessageId) {
+    if (!newest) {
         throw new TaskInvariantError(
-            'This Task has no messages yet, and a reminder anchors on one. Post in the Task first.'
+            'This Task has no messages yet, and a reminder on it anchors on one of its own. Post in the Task first.'
         );
     }
-    return { anchorChatId: input.chatId, anchorMessageId: task.originMessageId };
+    return { anchorChatId: input.chatId, anchorMessageId: newest.id };
 }
 
 export async function refuseRecurringTaskReminder(

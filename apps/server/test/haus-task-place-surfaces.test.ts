@@ -56,6 +56,11 @@ test('the Agent Task list filters by state, repeated or comma-separated, and by 
 
 test('a reminder set on a Task shows on it, naming the Agent that set it', async () => {
     const runner = await fixture.mintRunner('run_task_reminder_setby');
+    await agentPost(runner, '/api/agent/messages/send', {
+        content: 'Watching the flaky test.',
+        nonce: 'surfaces-reminder-post',
+        target: `task:${fixture.task.key}`,
+    });
     const scheduled = await agentPost(runner, '/api/agent/reminders/schedule', {
         commandId: 'surfaces-reminder',
         fireAt: new Date(Date.now() + 3_600_000).toISOString(),

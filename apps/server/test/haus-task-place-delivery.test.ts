@@ -154,52 +154,60 @@ test('a recurring reminder on a Task is refused; one-time is the only kind', asy
     expect(byTarget).toMatchObject({ body: { code: 'TASK_RECURRING_REMINDER' }, status: 400 });
 });
 
-test('a reminder on a Task with no posts anchors on its origin and still reports to the Task', async () => {
+test('a reminder on a Task with no posts is refused until someone posts in the Task', async () => {
     const empty = await startTestTask(fixture.harness, fixture.owner, {
         channelId: fixture.channelId,
         serverId: fixture.serverId,
         title: 'Not started yet',
     });
     const runner = await fixture.mintRunner('run_task_reminder_empty');
-    const fireAt = new Date(Date.now() + 7_200_000);
-    const scheduled = await agentPost(runner, '/api/agent/reminders/schedule', {
-        commandId: 'task-reminder-empty',
-        fireAt: fireAt.toISOString(),
-        target: `task:${empty.key}`,
-        title: 'Check back on the empty Task',
+    const schedule = (commandId: string) =>
+        agentPost(runner, '/api/agent/reminders/schedule', {
+            commandId,
+            fireAt: new Date(Date.now() + 7_200_000).toISOString(),
+            target: `task:${empty.key}`,
+            title: 'Check back on the empty Task',
+        });
+    expect(await schedule('task-reminder-empty')).toMatchObject({
+        body: { code: 'INVALID_ARG', message: expect.stringContaining('Post in the Task first.') },
+        status: 409,
     });
-    expect(scheduled).toMatchObject({
+
+    const posted = await agentPost(runner, '/api/agent/messages/send', {
+        content: 'Picking this up.',
+        nonce: 'task-reminder-empty-post',
+        target: `task:${empty.key}`,
+    });
+    expect(posted.status).toBe(200);
+    expect(await schedule('task-reminder-empty-posted')).toMatchObject({
         body: { reminder: { anchorTarget: `task:${empty.key}` } },
         status: 200,
     });
-    const [reminder] = (await fixture.harness.sql`
-        select anchor_chat_id, anchor_message_id from reminders
-        where title = 'Check back on the empty Task'
-    `) as { anchor_chat_id: string; anchor_message_id: string }[];
-    const [origin] = (await fixture.harness.sql`
-        select origin_message_id from tasks where chat_id = ${empty.chatId}
-    `) as { origin_message_id: string }[];
-    expect(reminder).toEqual({
-        anchor_chat_id: empty.chatId,
-        anchor_message_id: origin?.origin_message_id ?? '',
-    });
-
-    const delivery = new AgentDelivery(connection.db, { isOnline: () => false, send: () => false });
-    await tickReminders(connection.db, { now: () => new Date(fireAt.getTime() + 1000) }, delivery);
-    const fires = (await fixture.harness.sql`
-        select chat_id from agent_inbox
-        where agent_id = ${fixture.orbitAgentId} and source = 'reminder' and chat_id = ${empty.chatId}
-    `) as { chat_id: string }[];
-    expect(fires).toEqual([{ chat_id: empty.chatId }]);
+    expect(
+        await fixture.harness.sql`
+            select anchor_chat_id, anchor_message_id from reminders
+            where title = 'Check back on the empty Task'
+        `
+    ).toEqual([
+        {
+            anchor_chat_id: empty.chatId,
+            anchor_message_id: await messageId('task-reminder-empty-post'),
+        },
+    ]);
 });
 
-test('closing a Task cancels an origin-anchored reminder on it', async () => {
+test('closing a Task cancels a pending reminder on it', async () => {
     const task = await startTestTask(fixture.harness, fixture.owner, {
         channelId: fixture.channelId,
         serverId: fixture.serverId,
         title: 'Closes with a reminder',
     });
     const runner = await fixture.mintRunner('run_task_reminder_close');
+    await agentPost(runner, '/api/agent/messages/send', {
+        content: 'Watching this one.',
+        nonce: 'task-reminder-close-post',
+        target: `task:${task.key}`,
+    });
     const scheduled = await agentPost(runner, '/api/agent/reminders/schedule', {
         commandId: 'task-reminder-close',
         fireAt: new Date(Date.now() + 3_600_000).toISOString(),

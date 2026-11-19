@@ -154,8 +154,11 @@ the Task gets no join context quoting it.
 
 A Task holds one-time reminders only (`--target task:KEY-n`); a recurring one is refused with
 `TASK_RECURRING_REMINDER` and belongs on a Channel. A reminder anchors on the Task's newest
-message, else its origin; a filed Task with no messages yet refuses one until someone posts. A
-reminder on a Task wakes the Agent there and shows on the Task page. Closing a Task cancels its
+message and never outside the Task's own Chat: the origin can be a DM or another Project, and
+every reader of the Task would see the anchor through the fire. A Task with no messages yet,
+started or filed, refuses a reminder until someone posts there. The fire context shows an anchor's
+excerpt only to a reader who can read the anchor's own Chat. A reminder on a Task wakes the Agent
+there and shows on the Task page. Closing a Task cancels its
 pending reminders (`tasks/task-close-reminders.ts`), and reopening does not restore them. See
 [reminders.md](reminders.md).
 
