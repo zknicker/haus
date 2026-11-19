@@ -6,7 +6,13 @@ import { HausUpdateFooter } from './haus-update-footer.tsx';
 import { HausUpdateRestartDialog } from './haus-update-restart-dialog.tsx';
 import { useHausUpdate } from './use-haus-update.ts';
 
-export function HausUpdateFooterContainer({ slug }: { slug: string }) {
+export function HausUpdateFooterContainer({
+    devices = 'shown',
+    slug,
+}: {
+    devices?: 'hidden' | 'shown';
+    slug: string;
+}) {
     const update = useHausUpdate();
     const navigate = useNavigate();
     const reload = useReloadWebsite();
@@ -17,7 +23,7 @@ export function HausUpdateFooterContainer({ slug }: { slug: string }) {
         <>
             <HausUpdateFooter
                 isRunning={update.isRunning}
-                offlineComputers={update.offlineComputers}
+                offlineComputers={devices === 'shown' ? update.offlineComputers : undefined}
                 onAction={(action) =>
                     performHausUpdateAction(action, {
                         reload,
