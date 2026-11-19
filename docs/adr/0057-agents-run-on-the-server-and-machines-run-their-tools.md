@@ -43,7 +43,10 @@ loops.
 
 2. **Two harnesses.** The Claude Agent SDK runs Claude plans, with a setup-token, its native tools
    off, and Haus tools bridged in. Pi Durable runs every other model, including ChatGPT plans and
-   other providers. Both store sessions in Postgres.
+   other providers. Both store the full session in Postgres, not just an id: Pi through a Haus
+   storage backend that commits every turn, the SDK through its session storage adapter. The
+   SDK mirrors on a best-effort basis, so a crash mid-turn can lose the turn in flight; the runner
+   resumes from the last stored turn, and rebuilds from Drive and recent history if that fails.
 
 3. **One endless session per Agent.** ADR 0011 stands. The session now lives on the Server, not on
    a Computer.
