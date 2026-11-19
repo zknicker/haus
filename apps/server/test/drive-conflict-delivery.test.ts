@@ -1,17 +1,11 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { agentCommandSchema, type DriveConflictAttention } from '@haus/api';
-import { and, eq } from 'drizzle-orm';
-import { maxAgentChainTurns } from '../src/agent-delivery/chain-budget.ts';
-import type { AgentDelivery } from '../src/agent-delivery/delivery.ts';
-import * as store from '../src/agent-delivery/store.ts';
+import { agentCommandSchema } from '@haus/api';
+import { eq } from 'drizzle-orm';
 import { queueDriveConflict } from '../src/drive/conflict-item.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import {
-    agentDeliveryTable,
-    agentInboxTable,
-    agentRunTriggersTable,
-} from '../src/postgres/schema.ts';
-import { deliverHuman, offlineDelivery, type Seed, seedAgent } from './agent-inbox-harness.ts';
+import { agentRunTriggersTable } from '../src/postgres/schema.ts';
+import { deliverHuman, offlineDelivery, seedAgent } from './agent-inbox-harness.ts';
+import { conflictOf, driveConflictFixture } from './drive-conflict.fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { settledTurn } from './settled-turn-fixture.ts';
 
@@ -27,75 +21,9 @@ afterAll(async () => {
     await connection?.close();
     await cluster?.stop();
 });
-
-function conflictOf(pushId: string, writer: DriveConflictAttention['writer']) {
-    const attention: DriveConflictAttention = {
-        files: [
-            {
-                copyPath: 'agents/ada/notes/launch.conflict-ada.md',
-                currentAuthorHandle: 'tiny',
-                currentRevisionId: 'rev_launch_head',
-                outcome: 'kept_both',
-                path: 'agents/ada/notes/launch.md',
-                reason: 'same_lines',
-            },
-            {
-                copyPath: null,
-                currentAuthorHandle: 'tiny',
-                currentRevisionId: 'rev_plan_head',
-                outcome: 'kept_edit',
-                path: 'haus/old-plan.md',
-                reason: 'edit_over_delete',
-            },
-            {
-                copyPath: null,
-                currentAuthorHandle: null,
-                currentRevisionId: null,
-                outcome: 'refused',
-                path: 'agents/tiny/notes.md',
-                reason: 'FORBIDDEN',
-            },
-        ],
-        id: `drive-conflict:${pushId}`,
-        pushId,
-        writer,
-    };
-    return attention;
-}
-
-const queue = (delivery: AgentDelivery, seed: Seed, attention: DriveConflictAttention) =>
-    queueDriveConflict(connection.db, delivery, {
-        attention,
-        recipientAgentId: attention.writer.agentId,
-        serverId: seed.serverId,
-    });
-
-async function conflictRows(agentId: string) {
-    return await connection.db
-        .select({
-            chatId: agentInboxTable.chatId,
-            dedupeKey: agentInboxTable.dedupeKey,
-            mentioned: agentInboxTable.mentioned,
-            runId: agentInboxTable.runId,
-            state: agentInboxTable.state,
-        })
-        .from(agentInboxTable)
-        .where(
-            and(eq(agentInboxTable.agentId, agentId), eq(agentInboxTable.source, 'drive_conflict'))
-        );
-}
-
-async function setChain(seed: Seed, turns: number) {
-    await store.ensureDeliveryState(connection.db, seed);
-    await connection.db
-        .update(agentDeliveryTable)
-        .set({ agentChainAdvancedAt: new Date(), agentChainTurns: turns })
-        .where(eq(agentDeliveryTable.agentId, seed.agentId));
-}
-
-async function turnsOf(seed: Seed) {
-    return (await store.readDeliveryState(connection.db, seed.agentId))?.agentChainTurns;
-}
+const fixture = () => driveConflictFixture(connection.db);
+const queue: ReturnType<typeof fixture>['queue'] = (...args) => fixture().queue(...args);
+const conflictRows = (agentId: string) => fixture().conflictRows(agentId);
 
 test('one push queues one item that wakes an idle Agent as its own chatless run', async () => {
     const seed = await seedAgent(connection.db);
@@ -262,48 +190,4 @@ test('a failed run with no output requeues the item', async () => {
             state: 'queued',
         },
     ]);
-});
-
-test('the item spends the automation chain', async () => {
-    const seed = await seedAgent(connection.db);
-    await setChain(seed, 3);
-    const { delivery, wake } = offlineDelivery(connection.db, seed);
-    await queue(
-        delivery,
-        seed,
-        conflictOf('run_push_chain', { agentId: seed.agentId, type: 'agent' })
-    );
-    const start = await wake();
-    await delivery.onTurnSettled(seed.computerId, settledTurn(seed, start?.runId ?? ''));
-    expect(await turnsOf(seed)).toBe(4);
-});
-
-test('at the ceiling the item waits queued until a person speaks, then runs first', async () => {
-    const seed = await seedAgent(connection.db);
-    await setChain(seed, maxAgentChainTurns);
-    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
-    await queue(
-        delivery,
-        seed,
-        conflictOf('run_push_ceiling', { agentId: seed.agentId, type: 'agent' })
-    );
-
-    expect(await wake()).toBeUndefined();
-    await delivery.dispatchAgent(seed.agentId, seed.serverId);
-    expect(transport.framesOfType('start')).toEqual([]);
-    expect((await conflictRows(seed.agentId)).map((row) => row.state)).toEqual(['queued']);
-
-    await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
-    const [conflictRun] = transport.framesOfType('start');
-    expect(conflictRun?.driveConflict?.pushId).toBe('run_push_ceiling');
-    await delivery.onTurnSettled(seed.computerId, settledTurn(seed, conflictRun?.runId ?? ''));
-    expect(await turnsOf(seed)).toBe(1);
-
-    const humanRun = transport.framesOfType('start').at(-1);
-    expect(humanRun?.chatId).toBe(seed.dmChatId);
-    await delivery.onTurnSettled(seed.computerId, {
-        ...settledTurn(seed, humanRun?.runId ?? ''),
-        outputProduced: true,
-    });
-    expect(await turnsOf(seed)).toBe(0);
 });
