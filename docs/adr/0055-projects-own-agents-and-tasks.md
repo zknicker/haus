@@ -48,7 +48,7 @@ someone @mentions it. Haus is a team, so it takes Capy's ownership and Amp's qui
    over.
 
 4. **A Task belongs to one Project, explicitly.** The Agent picks it when it starts the Task,
-   defaulting to the Project it was asked in. Where the request came from (a channel message, a
+   defaulting to the Project it was asked in, or its home Project when asked in a DM. Where the request came from (a channel message, a
    DM, a reminder) is only where the Task started. The Project gives the Task its key and gives its
    Workers their repos, rules and default place.
 
@@ -61,8 +61,9 @@ someone @mentions it. Haus is a team, so it takes Capy's ownership and Amp's qui
    machine its tools run on are unchanged ([ADR 0057](0057-agents-run-on-the-server-and-machines-run-their-tools.md)).
 
 7. **An Agent hears its own Project and @mentions elsewhere.** It receives every message in its
-   Project's channel and Tasks, and is that Project's first responder. In other Projects and their
-   Tasks it receives only @mentions and assignments. DMs always reach it.
+   Project's channel and Tasks, and is that Project's first responder. In other Projects it
+   receives @mentions, assignments, and the Tasks and inline reply chains it follows, since
+   following is how it stays in work it was pulled into. DMs always reach it. Channel mutes go.
 
 8. **Work stays in its Project.** An Agent starts Tasks in its own Project. Work that belongs
    elsewhere it hands to that Project's Agent in that Project's channel, by @mention or assignment,
@@ -110,18 +111,20 @@ Amended:
   in the right Project.
 - [ADR 0011](0011-agents-own-one-global-session.md): one global session stands. What reaches it
   narrows to the home Project, @mentions, assignments and DMs.
-- `specs/inbox.md`: ordinary delivery reaches the home Project, not every joined channel. Channel
-  mutes lose most of their purpose. ADR 0030's semantic narrowing still applies inside a Project
-  with several Agents.
+- `specs/inbox.md`: ordinary delivery reaches the home Project, not every joined channel.
+  ADR 0030's semantic narrowing still applies inside a Project with several Agents.
 
 Deleted:
 
-- Freestanding channels and "New channel".
+- Freestanding channels and "New channel", and Agents creating channels.
+- Agent channel membership (join, leave, add) and channel mutes. An Agent reads and posts in every
+  Project, and what reaches it follows decision 7.
 - The Direct messages sidebar section.
 
 Follow-up:
 
-- Write a Projects spec, and update `specs/tasks.md`, `specs/inbox.md` and `specs/chats.md`.
-- Decide what happens to an Agent's existing channel memberships at migration: its home Project
-  is the channel it is most active in, unless a person picks.
+- Done: `specs/projects.md` holds Projects, keys, home Agents and the migration, and
+  `specs/tasks.md`, `specs/inbox.md` and `specs/chats.md` follow. At migration an Agent's home is
+  the Project it wrote the most in over the last 30 days, and a person moves it after.
+- `CONTEXT.md` gains Project, home Project and generalist when J2 lands.
 - The prompt's placement and handoff text goes through the guarded prompt contract.

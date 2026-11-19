@@ -3,7 +3,7 @@ summary: Agent inbox — the `agent_inbox` item kinds and their one lifecycle, e
 read_when:
   - adding an agent inbox item kind, or changing an item's identity or lifecycle
   - changing the drive_conflict item, who receives it, or its wording
-  - changing which agents wake for a chat message, mute/follow semantics, or mention piercing
+  - changing which agents wake for a chat message, home Project hearing, follow semantics, or mentions outside the home Project
   - changing exact model visibility, freshness catch-up, or pull acknowledgement
   - changing mid-turn notices, drain batching, or chain limits
   - changing how the Server infers which fire caused an Agent's message
@@ -75,32 +75,66 @@ mark that names the wrong cause.
 
 ## Delivery planning (I1)
 
+### Hearing
+
+[ADR 0055](../docs/adr/0055-projects-own-agents-and-tasks.md) narrows what reaches an Agent. Each
+Agent has one home [Project](projects.md#agents), hears everything there, and elsewhere hears
+only what is addressed to it or what it follows. A message reaches an Agent when any row holds:
+
+| Where the message is | It reaches the Agent when |
+| --- | --- |
+| Its home Project's channel | Always, as ordinary delivery |
+| A Task of its home Project | Always, unless the Agent unfollowed that Task |
+| Another Project's channel, top level | It @mentions the Agent |
+| Another Project's channel, inline reply | It @mentions the Agent, or the Agent follows the reply chain |
+| A Task of another Project | It @mentions the Agent, or the Agent follows the Task |
+| A DM with the Agent | Always |
+
+- A generalist's home is the Haus project, so it hears the Haus channel and its Tasks, and
+  mentions elsewhere, like any Agent.
+- An Agent follows a Task by the follower rules in [tasks.md](tasks.md#followers-and-unread):
+  being its assignee, authoring or being mentioned in its origin Message, posting in it, or
+  following by hand. So an assignment always reaches the Agent, in any Project, both as the
+  `task_assignment` item and as every later message in the Task.
+- An Agent follows a reply chain by the rules in [Inline reply attention](#inline-reply-attention).
+- Claim assignments, reminder and Trigger fires, Cloud Agent notices, and the other concrete
+  kinds reach their recipient wherever their Chat is. Hearing narrows only ordinary `human`
+  delivery.
+- Posting in a Project does not make an Agent hear it. Moving an Agent's home changes delivery
+  for messages planned after the move. Items already queued stay queued.
+- There are no channel mutes. `agent_channel_mutes` and `haus channel mute` and `unmute` are
+  deleted: a home Project is the place an Agent answers first, and other Projects already reach it
+  only by mention. An Agent stops hearing a Task by unfollowing it (`haus task unfollow`).
+
 Across all Servers with the TypeSafe credential configured, [ADR 0030](../docs/adr/0030-semantic-channel-addressing.md)
-permits semantic narrowing of unaddressed human top-level channel messages. The final
-recipient set is committed with the message; kept, uncertain, failed or stale judgments
-retain ordinary delivery. This does not change explicit mention, reply, Task, or DM rules. In a
-channel with one eligible Agent, the message is addressed to it as `sole` when the author is
-the channel's only human member. With more human members, Jev judges whether the one Agent is
-the addressee, and recipients stay unchanged either way.
+permits semantic narrowing of unaddressed human top-level channel messages. Its eligible Agents in
+a Project's channel are the Project's home Agents. The final recipient set is committed with the
+message; kept, uncertain, failed or stale judgments retain ordinary delivery. This does not change
+explicit mention, reply, Task, or DM rules. In a Project with one home Agent, the message is
+addressed to it as `sole` when the author is the channel's only human member. With more human
+members, Jev judges whether the one Agent is the addressee, and recipients stay unchanged either
+way. A Project with no home Agents delivers its unaddressed messages to no Agent.
+
+Hearing lands with J3. Each row of the table, and the generalist case, has a delivery test in
+`apps/server/test/agent-hearing.test.ts`, and the migration has one for each step of
+[projects.md](projects.md#migration-from-channels).
+
+### Planning
 
 A durable `message.created` is planned once by Server delivery
 (`apps/server/src/agent-delivery/`):
 
-- Ordinary delivery reaches joined channels, followed Tasks, and DMs.
-  The author never receives their own message.
-- A channel mute (`agent_channel_mutes`, agent-owned via `haus channel
-  mute`) suppresses ordinary delivery from that channel itself. Followed
-  Tasks keep delivering independently, so the Agent unfollows a specific
-  Task (`haus task unfollow`) to stop its ordinary delivery.
-- Personal @mentions (rich reference or plain `@handle`) bypass Channel mutes without unmuting the
-  Channel. In a Task, a direct mention restores an explicit unfollow and the recipient's exact
-  pending delivery carries that replay-safe restoration fact.
+- Ordinary delivery reaches the Agents that [hear](#hearing) the message. The author never
+  receives their own message.
+- Personal @mentions (rich reference or plain `@handle`) reach the named Agent in any Project. In
+  a Task, a direct mention restores an explicit unfollow and the recipient's exact pending
+  delivery carries that replay-safe restoration fact.
 - Mention identity is resolved once when delivery is planned and persists independently from
   suppression. An ordinarily delivered mention still tells only the named Agent `you were mentioned`;
   other eligible Channel participants retain ambient visibility without that attention flag.
 - A direct claim assignment to another Agent keeps the canonical claim message as ordinary work and
-  adds one `claim_assignment` item to only the assignee's inbox. It is `mentioned=true` so it stays
-  actionable through a mute, and renders in Agent inbox envelopes the way a reminder fire does. The
+  adds one `claim_assignment` item to only the assignee's inbox. It is `mentioned=true` so it
+  reaches the assignee outside its home Project, and renders in Agent inbox envelopes the way a reminder fire does. The
   human's representation of that fact is the claim chip on the message.
 - A settled Cloud Agent Run creates one terminal attention for only the Agent that delegated it,
   keyed by the Run id and carrying the work's title, repository, provider URL, and the Run's status,
@@ -186,11 +220,12 @@ by chat, root, and Agent, independently from the claim's single assignee.
 
 Root authors and mentions, reply authors and mentions, and successful claimants join that
 chain. Send and claim update follows in their existing transaction. Losing a claim adds no
-subscription. Ordinary top-level messages retain channel delivery; inline replies reach eligible
+subscription. Ordinary top-level messages follow [hearing](#hearing); inline replies reach eligible
 followers and direct mentions, excluding the author. Before any Agent has participated, human
-inline replies use ordinary channel delivery. An empty chain after unfollow does not broadcast.
+inline replies reach the Project's home Agents as ordinary delivery. An empty chain after
+unfollow does not broadcast.
 
-Followed chains deliver independently of channel mute. Unfollow suppresses ordinary chain
+Followed chains deliver in any Project, home or not. Unfollow suppresses ordinary chain
 delivery; an explicit follow, new post, successful claim, or direct mention restores it.
 Unfollowing a chain never joined is a no-op. Claim completion preserves follows. Parent access,
 Agent retirement, existing loop budgets, inbox queues, and exact visibility rules still apply.
@@ -300,7 +335,7 @@ identities before Computer returns the bodies.
 ## Unread conversations and read position
 
 `haus inbox check` is the Agent's counterpart of the human Inbox, ported from Raft
-1.21.2: it lists every channel, DM, and followed Task the Agent is in that has
+1.21.2: it lists every conversation that [reaches](#hearing) the Agent and has
 unread messages, newest activity first, from a durable per-chat Agent read position
 on the Server (`GET /api/agent/inbox/conversations`). Each row prints the target, the
 unread count, whether it mentions the Agent, and the latest sender, with an `open:`
@@ -310,7 +345,7 @@ the Agent (`N new, not yet delivered`) come first, and pending Cloud Agent resul
 print as one `Cloud Agent results · N pending · fetch with haus message check` line.
 The output pages with `More: haus inbox check --before <key>` and ends with exactly
 one `Next:` line. `--view mentions` keeps only conversations that mention the Agent;
-a muted channel appears only when it mentions the Agent. A 503 `INBOX_UNAVAILABLE`
+a channel outside its home Project appears only when it mentions the Agent. A 503 `INBOX_UNAVAILABLE`
 teaches a retry, and `haus message check` still drains. Listing advances nothing.
 
 The read position advances when `haus message read --unread` returns messages, when a
@@ -376,4 +411,4 @@ composing a reply. Chat renders only durable messages. The typing strip is a sep
 exact run visibility, not of attachment ([ADR 0035](../docs/adr/0035-chat-engagement-shows-as-typing.md)). Status dots, semantic Agent activity, and
 detailed execution evidence remain separate Agent-level projections
 ([agent-activity.md](agent-activity.md)). Inbox visibility for humans is read-only (I4): pending
-targets, mutes, and follows on the Agent profile; humans steer attention by asking in Chat.
+targets, the home Project, and follows on the Agent profile; humans steer attention by asking in Chat.
