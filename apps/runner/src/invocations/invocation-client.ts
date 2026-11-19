@@ -20,6 +20,13 @@ export interface InvocationAnswer {
     readonly timeoutMs: number;
 }
 
+interface OpenInvocation {
+    answered: boolean;
+    readonly key: DispatchKey;
+    readonly reading: AbortController;
+    settle(frame: InvocationResultFrame): void;
+}
+
 export function createInvocationClient(input: {
     agentId: string;
     authority: RunAuthority;
@@ -27,12 +34,13 @@ export function createInvocationClient(input: {
     graceMs: number;
     link: RunnerLink;
 }) {
-    const open = new Map<
-        string,
-        { key: DispatchKey; settle(frame: InvocationResultFrame): void }
-    >();
-    const cancel = (key: DispatchKey) =>
-        input.link.send({ ...key, agentId: input.agentId, type: 'invocation-cancel' });
+    const open = new Map<string, OpenInvocation>();
+    const halt = (pending: OpenInvocation) => {
+        if (!pending.answered) {
+            input.link.send({ ...pending.key, agentId: input.agentId, type: 'invocation-cancel' });
+        }
+        pending.reading.abort();
+    };
     const unknown = (key: DispatchKey) => {
         const frame: InvocationResultFrame = {
             ...key,
@@ -56,20 +64,39 @@ export function createInvocationClient(input: {
             );
             options.signal.throwIfAborted();
             const key = await input.dispatches.open(toolCallId, 'invocation');
-            const onAbort = () => cancel(key);
+            const id = dispatchIdOf(key);
+            const onAbort = () => {
+                const pending = open.get(id);
+                if (pending) {
+                    halt(pending);
+                }
+            };
             const frame = await new Promise<InvocationResultFrame>((resolve) => {
-                const id = dispatchIdOf(key);
-                const deadline = setTimeout(() => {
-                    open.delete(id);
-                    resolve(unknown(key));
-                }, timeoutMs + input.graceMs);
-                open.set(id, {
+                const pending: OpenInvocation = {
+                    answered: false,
                     key,
+                    reading: new AbortController(),
                     settle: (answer) => {
-                        clearTimeout(deadline);
-                        resolve(answer);
+                        pending.answered = true;
+                        void inlineInvocationPayload(
+                            input.authority,
+                            answer,
+                            pending.reading.signal
+                        ).then((read) => {
+                            clearTimeout(deadline);
+                            open.delete(id);
+                            resolve(read);
+                        });
                     },
-                });
+                };
+                const deadline = setTimeout(() => {
+                    pending.reading.abort();
+                    if (!pending.answered) {
+                        open.delete(id);
+                        resolve(unknown(key));
+                    }
+                }, timeoutMs + input.graceMs);
+                open.set(id, pending);
                 options.signal.addEventListener('abort', onAbort, { once: true });
                 input.link.send({
                     ...key,
@@ -81,22 +108,19 @@ export function createInvocationClient(input: {
             });
             options.signal.removeEventListener('abort', onAbort);
             await input.dispatches.finish(key, frame.outcome);
-            return {
-                frame: await inlineInvocationPayload(input.authority, frame, options.signal),
-                timeoutMs,
-                timeoutNote,
-            } satisfies InvocationAnswer;
+            return { frame, timeoutMs, timeoutNote } satisfies InvocationAnswer;
         },
         receive(frame: InvocationResultFrame) {
-            const id = dispatchIdOf(frame);
-            const pending = open.get(id);
-            open.delete(id);
-            pending?.settle(frame);
-            return pending !== undefined;
+            const pending = open.get(dispatchIdOf(frame));
+            if (!pending || pending.answered) {
+                return false;
+            }
+            pending.settle(frame);
+            return true;
         },
         cancelOpen() {
-            for (const { key } of open.values()) {
-                cancel(key);
+            for (const pending of open.values()) {
+                halt(pending);
             }
         },
     };

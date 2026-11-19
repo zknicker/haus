@@ -562,7 +562,10 @@ frame carries a reference: `{ kind: 'attachment', attachmentId, mediaType, sizeB
   its run credential as the bearer, and checks the digest and size against the reference
   (`readInvocationPayload` in `apps/runner/src/invocations/invocation-payload.ts`). The runner's
   invocation client swaps every attachment reference for its bytes before a tool sees the
-  result, so `view` images and `haus` machine-path reads take one shape.
+  result, so `view` images and `haus` machine-path reads take one shape. The invocation stays
+  open until its payload is read, so the download runs under the same timeout plus grace, and a
+  cancel or Stop aborts it. A download cut off that way keeps the outcome the Server recorded
+  and tells the model the bytes could not be read.
 - The runner has no upload path yet. The Server mints the invocation id only when the request
   arrives, so a payload cannot be bound to its invocation before `invoke` carries it. Until a
   runner upload route exists, a `haus` write of a file over 700 KiB is refused, and nothing is
