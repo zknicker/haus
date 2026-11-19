@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { parseResetCommand } from './agent-command-frames.ts';
 import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
 import { resetAgentState } from './agent-reset.ts';
@@ -100,6 +100,69 @@ test('full reset keeps Drive and the next launch reseeds nothing over it', async
 
     expect(routes.revisionCount()).toBe(1);
     expect(await readFile(drive.memory, 'utf8')).toBe(memory);
+});
+
+test('full reset of an unmigrated Agent keeps every legacy source for the next launch', async () => {
+    const { agentRoot } = await seedResetFixture();
+    await rm(join(agentRoot, 'runtime', 'drive-seed.json'));
+    await rm(join(agentRoot, 'workspace', 'drive'), { recursive: true });
+    const legacy = {
+        'skills/digest/SKILL.md': 'name: digest\n',
+        'workspace/MEMORY.md': memory,
+        'workspace/drive-refused/agents/scout/notes/big.bin': 'refused bytes',
+        'workspace/notes/leads.md': 'Acme\n',
+        'workspace/pages/launch.html': '<h1>Launch</h1>',
+        'workspace/workbench/pricing.html': '<h1>Pricing</h1>',
+    };
+    for (const [relative, text] of Object.entries(legacy)) {
+        await mkdir(dirname(join(agentRoot, relative)), { recursive: true });
+        await writeFile(join(agentRoot, relative), text);
+    }
+
+    await resetAgentState({ agentId, dataRoot, kind: 'full', serverId: 'srv_reset' });
+
+    for (const [relative, text] of Object.entries(legacy)) {
+        expect(await readFile(join(agentRoot, relative), 'utf8')).toBe(text);
+    }
+    await expect(stat(join(agentRoot, 'workspace', 'kept.txt'))).rejects.toThrow();
+    await expect(stat(join(agentRoot, 'session.json'))).rejects.toThrow();
+
+    const routes = createDriveRoutes({ agentId, runnerToken: 'runner-reset' });
+    const server = serveDrive(routes);
+    try {
+        await prepareAgentDrive({
+            agentId,
+            agentRoot,
+            handle: 'scout',
+            runId: 'run_after_reset',
+            runnerToken: 'runner-reset',
+            seed: {
+                agentDescription: 'Onboarding guide',
+                agentName: 'Scout',
+                brief: null,
+                briefAuthorHandle: null,
+                factoryKind: 'ordinary',
+            },
+            serverOrigin: `http://127.0.0.1:${server.port}`,
+        });
+    } finally {
+        server.stop(true);
+    }
+
+    expect([...routes.heads.keys()].sort()).toEqual([
+        'agents/scout/MEMORY.md',
+        'agents/scout/notes/leads.md',
+        'agents/scout/pages/launch.html',
+        'agents/scout/skills/digest/SKILL.md',
+        'agents/scout/workbench/pricing.html',
+    ]);
+    expect(await readFile(agentDrive(agentRoot, 'scout').memory, 'utf8')).toBe(memory);
+    expect(
+        await readFile(
+            join(agentRoot, 'workspace', 'drive-refused', 'agents', 'scout', 'notes', 'big.bin'),
+            'utf8'
+        )
+    ).toBe('refused bytes');
 });
 
 async function seedResetFixture() {
