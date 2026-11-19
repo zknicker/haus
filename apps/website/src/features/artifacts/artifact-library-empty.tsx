@@ -7,13 +7,19 @@ import {
     Upload04Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
+import {
+    driveAcceptsFiles,
+    driveFolderIsFixed,
+    drivePlace,
+    driveRootLabel,
+} from './drive-places.ts';
 
 /**
- * Shown only for a real zero. A filtered zero points at the filters; an
- * empty drive offers the upload that would fill it. Folders exist only while
- * a file sits in them, so an unfiltered zero below the root is a folder that
- * is not there (a stale link, or its last file moved away): it says so and
- * offers the way back up.
+ * Shown only for a real zero. A filtered zero points at the filters. An empty
+ * shelf says what fills it, and an empty area offers the upload that would.
+ * Any other folder exists only while a file sits in it, so an unfiltered zero
+ * there is a folder that is not there (a stale link, or its last file moved
+ * away): it says so and offers the way back up.
  */
 export function ArtifactLibraryEmpty({
     filtered,
@@ -26,7 +32,42 @@ export function ArtifactLibraryEmpty({
     onOpenFolder: (path: string) => void;
     onUpload: () => void;
 }) {
-    if (folder !== '' && !filtered) {
+    const place = drivePlace(folder);
+    if (filtered) {
+        return (
+            <EmptyState>
+                <EmptyState.Header>
+                    <EmptyState.Media variant="icon">
+                        <Icon icon={FolderLibraryIcon} />
+                    </EmptyState.Media>
+                    <EmptyState.Title>No matching files</EmptyState.Title>
+                    <EmptyState.Description>
+                        Try another file type, creator, or search.
+                    </EmptyState.Description>
+                </EmptyState.Header>
+            </EmptyState>
+        );
+    }
+    if (place.kind === 'shelf') {
+        return (
+            <EmptyState>
+                <EmptyState.Header>
+                    <EmptyState.Media variant="icon">
+                        <Icon icon={FolderLibraryIcon} />
+                    </EmptyState.Media>
+                    <EmptyState.Title>
+                        {place.shelf === 'projects' ? 'No projects yet' : 'No Captains yet'}
+                    </EmptyState.Title>
+                    <EmptyState.Description>
+                        {place.shelf === 'projects'
+                            ? 'Project folders arrive with Projects.'
+                            : 'Each Captain gets a folder here.'}
+                    </EmptyState.Description>
+                </EmptyState.Header>
+            </EmptyState>
+        );
+    }
+    if (folder !== '' && !driveFolderIsFixed(folder)) {
         return <MissingFolder folder={folder} onOpenFolder={onOpenFolder} />;
     }
     return (
@@ -35,23 +76,19 @@ export function ArtifactLibraryEmpty({
                 <EmptyState.Media variant="icon">
                     <Icon icon={FolderLibraryIcon} />
                 </EmptyState.Media>
-                <EmptyState.Title>
-                    {filtered ? 'No matching files' : 'No files yet'}
-                </EmptyState.Title>
-                <EmptyState.Description>
-                    {filtered
-                        ? 'Try another file type, creator, or search.'
-                        : 'Files Agents and members publish to this Server appear here. Drop files anywhere to upload.'}
-                </EmptyState.Description>
+                <EmptyState.Title>No files yet</EmptyState.Title>
+                {driveAcceptsFiles(folder) ? (
+                    <EmptyState.Description>Drop files anywhere to upload.</EmptyState.Description>
+                ) : null}
             </EmptyState.Header>
-            {filtered ? null : (
+            {driveAcceptsFiles(folder) ? (
                 <EmptyState.Content>
                     <Button onPress={onUpload} size="sm" variant="secondary">
                         <Icon aria-hidden="true" icon={Upload04Icon} size={16} />
                         Upload files
                     </Button>
                 </EmptyState.Content>
-            )}
+            ) : null}
         </EmptyState>
     );
 }
@@ -83,7 +120,7 @@ function MissingFolder({
                     </Button>
                 ) : null}
                 <Button onPress={() => onOpenFolder('')} size="sm" variant="secondary">
-                    Go to Files
+                    Go to {driveRootLabel}
                 </Button>
             </EmptyState.Content>
         </EmptyState>

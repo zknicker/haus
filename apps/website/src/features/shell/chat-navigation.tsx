@@ -109,7 +109,7 @@ export function ChatNavigation({
                         <RouteNavigationRow
                             href={`/s/${slug}/artifacts`}
                             isCurrent={location.pathname.startsWith(`/s/${slug}/artifacts`)}
-                            label="Files"
+                            label="Drive"
                             onPreload={() => preloadServerSection('artifacts')}
                             tab="artifacts"
                         />

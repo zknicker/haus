@@ -16,7 +16,7 @@ test('Files selects many items Finder-style and acts on the whole selection', as
     });
     await seedArtifactLibrary(page, session.databaseUrl, server.id);
     await page.goto(`/s/${slug}/artifacts`);
-    const library = page.getByRole('grid', { name: 'Files' });
+    const library = page.getByRole('grid', { name: 'Drive' });
     const items = libraryRows(library);
     const selected = library.locator('[role="row"][aria-selected="true"]');
     const bar = page.getByRole('toolbar', { name: 'Selected items' });
@@ -104,7 +104,7 @@ test('dragging items onto a folder tile or a trail crumb moves them; into itself
     });
     await seedArtifactLibrary(page, session.databaseUrl, server.id);
     await page.goto(`/s/${slug}/artifacts`);
-    const items = libraryRows(page.getByRole('grid', { name: 'Files' }));
+    const items = libraryRows(page.getByRole('grid', { name: 'Drive' }));
     const folders = librarySection(page, 'Folders');
     const docs = folders.getByRole('row', { name: 'docs' });
     const kit = folders.getByRole('row', { name: 'starter-kit' });
@@ -134,7 +134,7 @@ test('dragging items onto a folder tile or a trail crumb moves them; into itself
     const assets = librarySection(page, 'Folders').getByRole('row', { name: 'assets' });
     const crumb = page
         .getByRole('navigation', { name: 'Breadcrumb' })
-        .getByRole('link', { name: 'Files', exact: true });
+        .getByRole('link', { name: 'Drive', exact: true });
     // Several small moves, so the crumb sees dragenter and dragover as a pointer would give it.
     await assets.hover();
     await page.mouse.down();
@@ -162,7 +162,7 @@ test('bulk delete says how many of the selection this member may delete', async 
            and user_id = (select id from users where id = 'usr_e2e_human')`
     );
     await page.goto(`/s/${slug}/artifacts?folder=starter-kit%2Fscripts`);
-    const items = libraryRows(page.getByRole('grid', { name: 'Files' }));
+    const items = libraryRows(page.getByRole('grid', { name: 'Drive' }));
     await expect(items).toHaveCount(2);
     await page.keyboard.press('Tab');
     await items.first().click();

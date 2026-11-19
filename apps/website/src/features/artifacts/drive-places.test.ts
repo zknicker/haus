@@ -1,8 +1,11 @@
 import { expect, test } from 'bun:test';
 import {
     driveAcceptsFiles,
+    driveAgentName,
     driveAgentTiles,
+    driveFolderIsFixed,
     driveFolderLabel,
+    driveFolderTiles,
     drivePlace,
     driveRootTiles,
 } from './drive-places.ts';
@@ -49,18 +52,18 @@ test('top folders read by product name and an Agent folder by the Agent', () => 
     const agentName = (handle: string) => (handle === 'blippy' ? 'Blippy' : undefined);
     expect(driveFolderLabel('', agentName)).toBe('Drive');
     expect(driveFolderLabel('haus', agentName)).toBe('Haus');
-    expect(driveFolderLabel('agents', agentName)).toBe('Agents');
+    expect(driveFolderLabel('agents', agentName)).toBe('Captains');
     expect(driveFolderLabel('agents/blippy', agentName)).toBe('Blippy');
     expect(driveFolderLabel('agents/gone', agentName)).toBe('gone');
     expect(driveFolderLabel('agents/blippy/notes', agentName)).toBe('notes');
     expect(driveFolderLabel('projects/launch', agentName)).toBe('launch');
 });
 
-test('the root always shows Haus, Projects, and Agents, counting what is there', () => {
+test('the root always shows Haus, Projects, and Captains, counting what is there', () => {
     expect(driveRootTiles([listed('agents', 4)])).toEqual([
         { file_count: 0, name: 'Haus', path: 'haus', updated_at: null },
         { file_count: 0, name: 'Projects', path: 'projects', updated_at: null },
-        { ...listed('agents', 4), name: 'Agents' },
+        { ...listed('agents', 4), name: 'Captains' },
     ]);
 });
 
@@ -76,4 +79,37 @@ test('the Agents shelf holds a folder per Agent, then folders no Agent claims', 
         { ...listed('agents/tiny', 3), name: 'Tiny' },
         listed('agents/retired', 2),
     ]);
+});
+
+test('the root keeps pre-Drive folders after the three areas, and areas list what is there', () => {
+    const agents = [{ displayName: 'Blippy', handle: 'blippy' }];
+    expect(driveFolderTiles('', [listed('haus', 2), listed('starter-kit', 5)], agents)).toEqual([
+        { ...listed('haus', 2), name: 'Haus' },
+        { file_count: 0, name: 'Projects', path: 'projects', updated_at: null },
+        { file_count: 0, name: 'Captains', path: 'agents', updated_at: null },
+        listed('starter-kit', 5),
+    ]);
+    expect(driveFolderTiles('agents', [], agents)).toEqual([
+        { file_count: 0, name: 'Blippy', path: 'agents/blippy', updated_at: null },
+    ]);
+    expect(driveFolderTiles('haus/kit', [listed('haus/kit/scripts', 1)], agents)).toEqual([
+        listed('haus/kit/scripts', 1),
+    ]);
+});
+
+test('the shelves and each area root keep their place; folders inside an area do not', () => {
+    expect(driveFolderIsFixed('agents')).toBe(true);
+    expect(driveFolderIsFixed('projects')).toBe(true);
+    expect(driveFolderIsFixed('haus')).toBe(true);
+    expect(driveFolderIsFixed('agents/blippy')).toBe(true);
+    expect(driveFolderIsFixed('projects/launch')).toBe(true);
+    expect(driveFolderIsFixed('agents/blippy/notes')).toBe(false);
+    expect(driveFolderIsFixed('haus/kit')).toBe(false);
+    expect(driveFolderIsFixed('starter-kit')).toBe(false);
+});
+
+test('an Agent folder finds its Agent by handle, whatever the case', () => {
+    const name = driveAgentName([{ displayName: 'Blippy', handle: 'blippy' }]);
+    expect(name('Blippy')).toBe('Blippy');
+    expect(name('tiny')).toBeUndefined();
 });

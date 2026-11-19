@@ -13,6 +13,7 @@ import {
     Globe02Icon,
     Link01Icon,
     PlusSignIcon,
+    RestoreBinIcon,
     Unlink02Icon,
     WorkHistoryIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
@@ -48,10 +49,11 @@ export type FolderActionId =
     | 'copy-link'
     | 'copy-path'
     | 'rename'
-    | 'move';
+    | 'move'
+    | 'recently-deleted';
 
-/** The library's empty area: what lands in the open folder. */
-export type LibraryAreaActionId = 'upload-files' | 'upload-folder';
+/** The library's empty area: what lands in the open folder, and what left it. */
+export type LibraryAreaActionId = 'upload-files' | 'upload-folder' | 'recently-deleted';
 
 export interface ArtifactAction<Id extends string = string> {
     /** Destructive: drawn in the danger variant. */
@@ -124,7 +126,17 @@ export function fileActions(
     return actions.filter((action) => action !== null);
 }
 
-export function folderActions(context: ItemActionContext): ArtifactAction<FolderActionId>[] {
+const recentlyDeleted = {
+    icon: RestoreBinIcon,
+    id: 'recently-deleted',
+    label: 'Recently deleted',
+} as const;
+
+/** `isFixed`: a Drive shelf or area root, whose place and name Drive owns. */
+export function folderActions(
+    context: ItemActionContext & { isFixed: boolean }
+): ArtifactAction<FolderActionId>[] {
+    const rearrange = !context.isFixed;
     const actions: (ArtifactAction<FolderActionId> | null)[] = [
         { group: 0, icon: ArrowUpRight01Icon, id: 'open', label: 'Open' },
         context.canOpenInTab
@@ -136,8 +148,9 @@ export function folderActions(context: ItemActionContext): ArtifactAction<Folder
         { group: 1, icon: Download01Icon, id: 'download', label: 'Download as zip' },
         { group: 1, icon: CopyLinkIcon, id: 'copy-link', label: 'Copy link' },
         { group: 1, icon: Copy01Icon, id: 'copy-path', label: 'Copy path' },
-        { group: 2, icon: Edit02Icon, id: 'rename', label: 'Rename' },
-        { group: 2, icon: FolderTransferIcon, id: 'move', label: 'Move to…' },
+        rearrange ? { group: 2, icon: Edit02Icon, id: 'rename', label: 'Rename' } : null,
+        rearrange ? { group: 2, icon: FolderTransferIcon, id: 'move', label: 'Move to…' } : null,
+        { ...recentlyDeleted, group: 3 },
     ];
     return actions.filter((action) => action !== null);
 }
@@ -160,10 +173,19 @@ export function selectionActions(access: {
     return actions.filter((action) => action !== null);
 }
 
-export const libraryAreaActions: readonly ArtifactAction<LibraryAreaActionId>[] = [
-    { group: 0, icon: FileUploadIcon, id: 'upload-files', label: 'Upload files…' },
-    { group: 0, icon: FolderUploadIcon, id: 'upload-folder', label: 'Upload folder…' },
-];
+/** Uploads only where files may land: never the Drive root or a shelf. */
+export function libraryAreaActions(access: { acceptsFiles: boolean }) {
+    const actions: (ArtifactAction<LibraryAreaActionId> | null)[] = [
+        access.acceptsFiles
+            ? { group: 0, icon: FileUploadIcon, id: 'upload-files', label: 'Upload files…' }
+            : null,
+        access.acceptsFiles
+            ? { group: 0, icon: FolderUploadIcon, id: 'upload-folder', label: 'Upload folder…' }
+            : null,
+        { ...recentlyDeleted, group: 1 },
+    ];
+    return actions.filter((action) => action !== null);
+}
 
 /** Mirrors the Server's delete rule: the original author or a human Owner/Admin. */
 export function canDeleteArtifact(input: {

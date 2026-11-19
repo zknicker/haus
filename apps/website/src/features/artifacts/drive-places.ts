@@ -23,7 +23,7 @@ export interface DriveFolder {
 export const driveRootFolders = [
     { label: 'Haus', path: 'haus' },
     { label: 'Projects', path: 'projects' },
-    { label: 'Agents', path: 'agents' },
+    { label: 'Captains', path: 'agents' },
 ] as const;
 
 export const driveRootLabel = 'Drive';
@@ -94,6 +94,40 @@ export function driveAgentTiles(
         .filter((entry) => !claimed.has(artifactPathKey(entry.path)))
         .map((entry) => ({ ...entry }));
     return [...tiles, ...unclaimed];
+}
+
+export function driveFolderTiles(
+    folder: string,
+    listed: readonly ArtifactFolderEntry[],
+    agents: readonly { displayName: string; handle: string }[]
+) {
+    const place = drivePlace(folder);
+    if (place.kind === 'root') {
+        const tops = new Set(driveRootFolders.map((entry) => artifactPathKey(entry.path)));
+        const legacy = listed.filter((entry) => !tops.has(artifactPathKey(entry.path)));
+        const tiles: DriveFolder[] = [...driveRootTiles(listed), ...legacy];
+        return tiles;
+    }
+    if (place.kind === 'shelf' && place.shelf === 'agents') {
+        return driveAgentTiles(listed, agents);
+    }
+    const tiles: DriveFolder[] = [...listed];
+    return tiles;
+}
+
+export function driveFolderIsFixed(path: string) {
+    const place = drivePlace(path);
+    return (
+        place.kind === 'shelf' ||
+        (place.kind === 'area' &&
+            artifactPathKey(place.folder) === artifactPathKey(place.area.root))
+    );
+}
+
+export function driveAgentName(agents: readonly { displayName: string; handle: string }[]) {
+    return (handle: string) =>
+        agents.find((agent) => artifactPathKey(agent.handle) === artifactPathKey(handle))
+            ?.displayName;
 }
 
 function folderOrEmpty(listed: readonly ArtifactFolderEntry[], path: string, name: string) {

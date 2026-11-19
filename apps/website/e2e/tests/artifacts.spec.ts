@@ -21,7 +21,7 @@ test('a Server member opens the shared library and reloads its stable address', 
         slug,
     });
 
-    await openSection(page, 'Files');
+    await openSection(page, 'Drive');
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/artifacts$`, 'u'));
     await expect(page.getByRole('heading', { name: 'No files yet' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Upload files' })).toBeVisible();
@@ -42,7 +42,7 @@ test('a Server member opens the shared library and reloads its stable address', 
 
     await openSection(page, 'Inbox');
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/inbox$`, 'u'));
-    await openSection(page, 'Files');
+    await openSection(page, 'Drive');
     await expect(page.getByRole('heading', { name: 'No files yet' })).toBeVisible();
 });
 
@@ -58,7 +58,7 @@ test('members browse folders in Files, filter by kind and creator, search, and o
     const { conceptId } = await seedArtifactLibrary(page, session.databaseUrl, server.id);
     // The seeded Agent joins the shell's Agent list on a fresh load.
     await page.reload();
-    await openSection(page, 'Files');
+    await openSection(page, 'Drive');
 
     // The root holds its child folders, then only the files directly in it.
     const today = librarySection(page, 'Today');
@@ -81,7 +81,7 @@ test('members browse folders in Files, filter by kind and creator, search, and o
 
     // The band is the folder trail; each folder above is a way back.
     const trail = page.getByRole('navigation', { name: 'Breadcrumb' });
-    await expect(trail).toContainText('Files');
+    await expect(trail).toContainText('Drive');
     await expect(trail).toContainText('starter-kit');
     await expect(trail).toContainText('scripts');
 
@@ -99,7 +99,7 @@ test('members browse folders in Files, filter by kind and creator, search, and o
     await expect(page).toHaveURL(/folder=starter-kit$/u);
     await page.goBack();
     await expect(page).toHaveURL(/folder=starter-kit%2Fscripts$/u);
-    await trail.getByRole('link', { name: 'Files', exact: true }).click();
+    await trail.getByRole('link', { name: 'Drive', exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/artifacts$`, 'u'));
 
     // Search covers the whole subtree and names where each hit lives.
@@ -251,7 +251,7 @@ test('text artifacts render inline like workspace files, and oversize text offer
         slug,
     });
     await seedArtifactLibrary(page, session.databaseUrl, server.id);
-    await openSection(page, 'Files');
+    await openSection(page, 'Drive');
     const today = librarySection(page, 'Today');
     const preview = page.getByRole('region', { name: 'File preview' });
 
@@ -280,6 +280,6 @@ test('an unavailable fixed revision reports an error within the persistent Serve
     await expect(page.getByRole('row', { name: 'Inbox', exact: true })).toBeVisible();
     await page.reload();
     await expect(page.getByRole('alert')).toContainText('File or revision was not found.');
-    await openSection(page, 'Files');
+    await openSection(page, 'Drive');
     await expect(page.getByRole('heading', { name: 'No files yet' })).toBeVisible();
 });

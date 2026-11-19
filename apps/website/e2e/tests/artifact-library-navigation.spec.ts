@@ -49,7 +49,7 @@ test('Files selects on click, opens on double click or Return, and Back walks th
 
     // Every ancestor is a link; the middle of a deep trail folds into a menu; the open folder is not.
     const trail = page.getByRole('navigation', { name: 'Breadcrumb' });
-    await expect(trail.locator('a[href]')).toHaveText(['Haus', 'Files', 'b']);
+    await expect(trail.locator('a[href]')).toHaveText(['Haus', 'Drive', 'b']);
     await expect(trail.getByText('c', { exact: true })).toHaveAttribute('aria-current', 'page');
     await trail.getByRole('button', { name: 'Show enclosing places' }).click();
     const enclosing = page.getByRole('menu', { name: 'Enclosing places' });

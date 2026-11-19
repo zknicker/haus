@@ -62,7 +62,7 @@ const seededFiles: readonly SeededFile[] = [
 export const seededArtifactAgent = 'Drive Helper';
 
 /**
- * The library is one grid ("Files") whose sections are row groups: "Folders", then each date
+ * The library is one grid ("Drive") whose sections are row groups: "Folders", then each date
  * group ("Today") or, for other sorts, "All files".
  */
 export function librarySection(page: Page, name: string): Locator {
