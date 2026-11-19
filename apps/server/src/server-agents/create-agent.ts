@@ -7,6 +7,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, avatarsTable } from '../postgres/schema.ts';
+import { requireHausProjectId } from '../projects/haus-project.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { participantHandleConstraint } from '../servers/participant-handles.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
@@ -107,6 +108,7 @@ export async function createAgentInTransaction(
             desiredRuntimeId: input.runtimeId,
             displayName: input.displayName,
             handle: input.handle,
+            homeProjectId: await requireHausProjectId(db, input.serverId),
             homeTimezone: 'UTC',
             id: agentId,
             serverId: input.serverId,

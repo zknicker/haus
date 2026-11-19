@@ -29,8 +29,8 @@ beforeAll(async () => {
         select channel_id from server_onboarding where server_id = ${serverId}
     `) as Array<{ channel_id: string }>;
     onboardingChannelId = onboarding.channel_id;
-    await harness.sql`INSERT INTO agents (id, server_id, handle, display_name, home_timezone)
-        VALUES (${agentId}, ${serverId}, 'dependents-agent', 'Dependents Agent', 'UTC')`;
+    await harness.sql`INSERT INTO agents (id, server_id, handle, display_name, home_timezone, home_project_id)
+        VALUES (${agentId}, ${serverId}, 'dependents-agent', 'Dependents Agent', 'UTC', (select id from chats where server_id = ${serverId} and is_all))`;
 });
 
 afterAll(async () => {
@@ -94,7 +94,7 @@ test('deletes Triggers anchored in the channel aggregate with the channel', asyn
     expect(remaining).toEqual([{ chats: 0, fires: 0, triggers: 0 }]);
 });
 
-test('archiving then deleting a Channel takes its Task Chats and cancels their open Tasks', async () => {
+test('archiving then deleting a Project deletes its Tasks and their Chats; cloud work stays', async () => {
     const channel = await createTestProject(harness, owner, {
         agentIds: [agentId],
         name: 'tasks-go',
@@ -164,9 +164,12 @@ test('archiving then deleting a Channel takes its Task Chats and cancels their o
             where id in (${channel.id}, ${open.chatId}, ${done.chatId})
         `
     ).toEqual([{ count: 0 }]);
-    const openAfter = await owner.trpc.task.get.query({ serverId, taskId: open.id });
-    expect(openAfter).toMatchObject({ chatId: null, state: 'canceled' });
-    expect(openAfter.completedAt).not.toBeNull();
+    expect(
+        await harness.sql`select count(*)::int as count from tasks where id in (${open.id}, ${done.id})`
+    ).toEqual([{ count: 0 }]);
+    await expect(owner.trpc.task.get.query({ serverId, taskId: open.id })).rejects.toThrow(
+        'No task exists with that id on this Server.'
+    );
     expect(
         await harness.sql`
             select
@@ -175,14 +178,11 @@ test('archiving then deleting a Channel takes its Task Chats and cancels their o
                 (select count(*)::int from agent_task_follows where task_chat_id = ${open.chatId})
                     as agent_follows,
                 (select count(*)::int from reminders where id = 'rem_tasks_go') as reminders,
-                (select count(*)::int from cloud_agent_work where task_id = ${open.id}) as work,
+                (select count(*)::int from cloud_agent_work
+                    where id = 'caw_tasksgo000000001' and task_id is null) as work,
                 (select count(*)::int from task_pull_requests where task_id = ${open.id}) as pulls
         `
-    ).toEqual([{ agent_follows: 0, follows: 0, messages: 0, pulls: 1, reminders: 0, work: 1 }]);
-    expect(await owner.trpc.task.get.query({ serverId, taskId: done.id })).toMatchObject({
-        chatId: null,
-        state: 'done',
-    });
+    ).toEqual([{ agent_follows: 0, follows: 0, messages: 0, pulls: 0, reminders: 0, work: 1 }]);
 });
 
 async function insertTrigger(id: string, anchorChatId: string, removedAt: Date | null) {

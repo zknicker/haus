@@ -1,9 +1,8 @@
 import { and, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { projectsTable, taskKeysTable } from '../postgres/schema.ts';
+import { taskKeysTable } from '../postgres/schema.ts';
 
-type Reader = Pick<HausDatabase, 'select'>;
 type Writer = Pick<HausDatabase, 'select' | 'update'>;
 
 export async function insertTaskKeyEntry(
@@ -32,24 +31,4 @@ export async function allocateTaskNumber(
         .set({ nextNumber: ledger.next + 1 })
         .where(and(eq(taskKeysTable.serverId, input.serverId), eq(taskKeysTable.id, input.keyId)));
     return ledger.next;
-}
-
-export async function resolveChannelTaskKeyId(
-    db: Reader,
-    input: { channelId: string; serverId: string }
-): Promise<string> {
-    const [project] = await db
-        .select({ taskKeyId: projectsTable.taskKeyId })
-        .from(projectsTable)
-        .where(
-            and(
-                eq(projectsTable.serverId, input.serverId),
-                eq(projectsTable.chatId, input.channelId)
-            )
-        )
-        .limit(1);
-    if (!project) {
-        throw new Error(`Channel ${input.channelId} is not a Project.`);
-    }
-    return project.taskKeyId;
 }

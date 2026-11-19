@@ -1,4 +1,4 @@
-import { and, eq, or } from 'drizzle-orm';
+import { and, eq, or, sql } from 'drizzle-orm';
 import { isFollowedChatKind } from '../agent-delivery/followed-chat.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -103,8 +103,13 @@ async function readMessageAnchor(
                     eq(chatMessagesTable.chatId, chatsTable.id),
                     and(
                         eq(chatsTable.kind, 'task'),
-                        eq(chatsTable.anchorMessageId, chatMessagesTable.id),
-                        eq(chatMessagesTable.chatId, chatsTable.parentChatId)
+                        sql`exists (
+                            select 1 from tasks task
+                            where task.server_id = ${chatsTable.serverId}
+                                and task.chat_id = ${chatsTable.id}
+                                and task.origin_chat_id = ${chatMessagesTable.chatId}
+                                and task.origin_message_id = ${chatMessagesTable.id}
+                        )`
                     )
                 )
             )

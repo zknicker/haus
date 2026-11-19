@@ -10,7 +10,11 @@ import { projectUpdatedTopic } from '../realtime/topics.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { ChannelNameTakenError, ProjectNotFoundError } from './project-errors.ts';
+import {
+    ChannelNameTakenError,
+    HausProjectNameError,
+    ProjectNotFoundError,
+} from './project-errors.ts';
 import { renameProjectKey } from './project-key.ts';
 import { readProjectResult } from './project-read.ts';
 
@@ -30,6 +34,7 @@ export async function updateProject(
                 color: chatsTable.color,
                 description: chatsTable.description,
                 icon: chatsTable.icon,
+                isHaus: chatsTable.isAll,
                 key: taskKeysTable.key,
                 name: chatsTable.name,
                 taskKeyId: projectsTable.taskKeyId,
@@ -57,6 +62,9 @@ export async function updateProject(
             );
         if (!current) {
             throw new ProjectNotFoundError();
+        }
+        if (current.isHaus && input.name !== undefined && input.name !== current.name) {
+            throw new HausProjectNameError();
         }
 
         const edits = Object.fromEntries(

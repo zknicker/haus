@@ -102,7 +102,7 @@ describe('start', () => {
         });
     });
 
-    test('refuses an origin Message in a DM', async () => {
+    test('refuses an origin Message that is not in the target', async () => {
         const dm = await fixture.owner.trpc.chat.send.mutate({
             agentId: fixture.orbitAgentId,
             content: 'Can you look into the deploy?',
@@ -115,13 +115,10 @@ describe('start', () => {
             target: '#product',
             title: 'Wrong place',
         });
-        expect(refused.status).toBe(400);
-        const viaDm = await call('/api/agent/tasks/start', {
-            from: dm.message.id,
-            target: 'dm:@ada',
-            title: 'Wrong place',
+        expect(refused).toMatchObject({
+            body: { code: 'INVALID_ARG', message: 'The origin Message is not in that Chat.' },
+            status: 400,
         });
-        expect(viaDm).toMatchObject({ body: { code: 'TASK_ORIGIN_DM' }, status: 400 });
     });
 
     test('a Task Chat is never listed as a Channel', async () => {
@@ -171,7 +168,7 @@ describe('followers and unread', () => {
             serverId: fixture.serverId,
         });
         expect(adaPreviews.previews.find((row) => row.chatId === first.chatId)).toMatchObject({
-            task: { key: 'SEC-1', originChatId: fixture.channelId, state: 'open' },
+            task: { key: 'SEC-1', projectId: fixture.channelId, state: 'open' },
         });
         const detail = await cal.trpc.task.get.query({
             serverId: fixture.serverId,

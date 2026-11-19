@@ -4,6 +4,7 @@ import { emptySecret } from '../src/server-mcp/connection-secret.ts';
 import { McpOAuthRelay } from '../src/server-mcp/oauth-relay.ts';
 import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { makeServerRuntime } from '../src/server-runtime.ts';
+import { testAgentHome } from './agent-home.ts';
 import {
     approveControlledAuthorization,
     startControlledOAuthMcpProvider,
@@ -34,9 +35,10 @@ beforeAll(async () => {
         `insert into servers (id, display_name, slug)
          values ('${serverId}', 'OAuth Reauth', 'oauth-reauth')`
     );
+    const homeProjectId = await testAgentHome(connection.db, serverId);
     await connection.db.execute(
-        `insert into agents (id, server_id, handle, display_name, home_timezone)
-         values ('${agentId}', '${serverId}', 'reauth', 'Reauth', 'America/New_York')`
+        `insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
+         values ('${agentId}', '${serverId}', 'reauth', 'Reauth', 'America/New_York', '${homeProjectId}')`
     );
     await connection.db.execute(
         `insert into mcp_connections

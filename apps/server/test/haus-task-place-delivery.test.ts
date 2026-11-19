@@ -177,11 +177,11 @@ test('a reminder on a Task with no posts anchors on its origin and still reports
         where title = 'Check back on the empty Task'
     `) as { anchor_chat_id: string; anchor_message_id: string }[];
     const [origin] = (await fixture.harness.sql`
-        select anchor_message_id from chats where id = ${empty.chatId}
-    `) as { anchor_message_id: string }[];
+        select origin_message_id from tasks where chat_id = ${empty.chatId}
+    `) as { origin_message_id: string }[];
     expect(reminder).toEqual({
         anchor_chat_id: empty.chatId,
-        anchor_message_id: origin?.anchor_message_id ?? '',
+        anchor_message_id: origin?.origin_message_id ?? '',
     });
 
     const delivery = new AgentDelivery(connection.db, { isOnline: () => false, send: () => false });

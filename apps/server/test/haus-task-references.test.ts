@@ -33,8 +33,8 @@ beforeAll(async () => {
     serverId = server.id;
     chatId = server.channels[0]?.id ?? '';
     await harness.sql`
-        insert into agents (id, server_id, handle, display_name, home_timezone)
-        values (${agentId}, ${serverId}, 'refs-cove', 'Cove', 'America/New_York')
+        insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
+        values (${agentId}, ${serverId}, 'refs-cove', 'Cove', 'America/New_York', (select id from chats where server_id = ${serverId} and is_all))
     `;
     await harness.sql`
         insert into channel_agent_participants (server_id, chat_id, agent_id)

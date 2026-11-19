@@ -86,14 +86,14 @@ public struct ChatUnreadPreviewTask: Codable, Hashable, Sendable {
     public let key: String
     public let title: String
     public let state: TaskState
-    public let originChatID: String
+    public let projectID: String
 
-    public init(taskID: String, key: String, title: String, state: TaskState, originChatID: String) {
+    public init(taskID: String, key: String, title: String, state: TaskState, projectID: String) {
         self.taskID = taskID
         self.key = key
         self.title = title
         self.state = state
-        self.originChatID = originChatID
+        self.projectID = projectID
     }
 
     enum CodingKeys: String, CodingKey {
@@ -101,7 +101,7 @@ public struct ChatUnreadPreviewTask: Codable, Hashable, Sendable {
         case key
         case title
         case state
-        case originChatID = "originChatId"
+        case projectID = "projectId"
     }
 }
 

@@ -12,6 +12,7 @@ import {
     serversTable,
     usersTable,
 } from '../src/postgres/schema.ts';
+import { testAgentHome } from './agent-home.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 const conversationStyle = 'Terse. Plain words. Dry humor.';
@@ -151,6 +152,7 @@ async function seedAgent(agentConversationStyle: string | null, signatureEmoji: 
         homeTimezone: 'UTC',
         id: agentId,
         conversationStyle: agentConversationStyle,
+        homeProjectId: await testAgentHome(db, serverId),
         serverId,
         signatureEmoji,
     });

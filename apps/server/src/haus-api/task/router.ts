@@ -1,5 +1,6 @@
 import { createRouter } from '../trpc.ts';
 import { assignTaskProcedure } from './assign.ts';
+import { createTaskProcedure } from './create.ts';
 import { getTaskProcedure } from './get.ts';
 import { listOpenTasksProcedure } from './list-open.ts';
 import { listTasksProcedure } from './list.ts';
@@ -12,6 +13,7 @@ import { updateTaskProcedure } from './update.ts';
 
 export const taskRouter = createRouter({
     assign: assignTaskProcedure,
+    create: createTaskProcedure,
     get: getTaskProcedure,
     list: listTasksProcedure,
     listOpen: listOpenTasksProcedure,

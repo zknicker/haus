@@ -11,6 +11,7 @@ import { emptySecret } from '../src/server-mcp/connection-secret.ts';
 import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { modelToolName } from '../src/server-mcp/tool-catalog.ts';
 import { makeServerRuntime } from '../src/server-runtime.ts';
+import { testAgentHome } from './agent-home.ts';
 import { startControlledToolMcp } from './controlled-tool-mcp.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
@@ -30,6 +31,7 @@ beforeAll(async () => {
         .values({ id: serverId, displayName: 'Inventory', slug: 'inventory' });
     await connection.db.insert(agentsTable).values({
         id: agentId,
+        homeProjectId: await testAgentHome(connection.db, serverId),
         serverId,
         displayName: 'Inventory',
         handle: 'inventory',

@@ -61,7 +61,7 @@ extension HausStore {
                 key: task.key,
                 title: task.title,
                 state: task.state,
-                mark: .channel(chatsByID[task.originChatID].map {
+                mark: .channel(chatsByID[task.projectID].map {
                     ChannelAppearance(icon: $0.icon, color: $0.color)
                 } ?? ChannelAppearance(icon: nil, color: nil)),
                 lastActivityAt: newest?.createdAt,

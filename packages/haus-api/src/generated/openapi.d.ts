@@ -888,8 +888,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Start a Task from a Message in a Channel.
-         * @description Starts a Task, a place for one piece of work, from an origin Message in a Channel (ADR 0053). The Task takes the Channel's key. Refuses with `TASK_ORIGIN_DM` when the origin Message is in a DM.
+         * Start a Task from a Message in a Channel or DM.
+         * @description Starts a Task, a place for one piece of work, in a Project from an origin Message in a Channel or DM (ADR 0055). The Task takes its Project's key. A non-generalist Agent starting outside its home Project is refused with `TASK_PROJECT_NOT_HOME`.
          */
         post: operations["startAgentTask"];
         delete?: never;
@@ -2050,15 +2050,17 @@ export interface components {
             description?: string;
             /** Format: date */
             dueOn?: string;
-            /** @description The origin Message id. It must be in `target`; a DM origin is refused with `TASK_ORIGIN_DM`. */
+            /** @description The origin Message id. It must be in `target`. */
             from: string;
             priority?: components["schemas"]["AgentTaskPriority"];
+            /** @description The Task's Project by key, like `SEC`. Defaults to the origin's channel, or for a DM origin to the caller's home Project. */
+            project?: string;
             /**
              * @description Defaults to open.
              * @enum {string}
              */
             state?: "todo" | "open";
-            /** @description The Channel holding the origin Message, as a send target like `#security`. */
+            /** @description The Channel or DM holding the origin Message, as a send target like `#security` or `dm:@ada`. */
             target: string;
             title: string;
         };

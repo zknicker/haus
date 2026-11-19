@@ -135,7 +135,7 @@ export function InboxUnread() {
                             return (
                                 <UnreadTaskChatRow
                                     origin={chats.data?.find(
-                                        (chat) => chat.id === row.preview.task.originChatId
+                                        (chat) => chat.id === row.preview.task.projectId
                                     )}
                                     preview={row.preview}
                                     serverId={server.id}

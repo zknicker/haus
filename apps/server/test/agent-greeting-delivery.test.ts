@@ -6,13 +6,8 @@ import { enqueueAgentGreeting, greetingDedupeKey } from '../src/agent-delivery/g
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import { agentDeliveryTable, agentInboxTable, chatMessagesTable } from '../src/postgres/schema.ts';
-import {
-    addChannel,
-    deliverHuman,
-    offlineDelivery,
-    type Seed,
-    seedAgent,
-} from './agent-inbox-harness.ts';
+import { testAgentHome } from './agent-home.ts';
+import { deliverHuman, offlineDelivery, type Seed, seedAgent } from './agent-inbox-harness.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 let cluster: TestDatabase;
@@ -217,7 +212,7 @@ async function postAsAgent(seed: Seed, chatId: string, runId: string) {
 
 async function greet(seed: Seed): Promise<string> {
     const [existing] = await greetingRows(seed);
-    const allChannelId = existing?.chatId ?? (await addChannel(connection.db, seed, 'haus'));
+    const allChannelId = existing?.chatId ?? (await testAgentHome(connection.db, seed.serverId));
     await enqueueAgentGreeting(connection.db, {
         agentId: seed.agentId,
         allChannelId,

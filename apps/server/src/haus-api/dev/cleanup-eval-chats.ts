@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { chatsTable, remindersTable, triggersTable } from '../../postgres/schema.ts';
 import { publishRealtime } from '../../realtime/topic.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
-import { detachTasksFromRemovedChats } from '../../tasks/task-chat-removal.ts';
+import { deleteTasksOfRemovedChats } from '../../tasks/task-chat-removal.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
 const localhostHostPattern = /^(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/u;
@@ -58,7 +58,7 @@ export function createCleanupEvalChatsProcedure(
                         inArray(triggersTable.anchorChatId, chatIds)
                     )
                 );
-            const detached = await detachTasksFromRemovedChats(tx, {
+            const deletedTasks = await deleteTasksOfRemovedChats(tx, {
                 chatIds,
                 serverId: input.serverId,
             });
@@ -83,7 +83,7 @@ export function createCleanupEvalChatsProcedure(
                 .returning({ id: chatsTable.id });
             return {
                 deleted: [...removed, ...taskChatIds.map((id) => ({ id }))],
-                taskEvents: detached,
+                taskEvents: deletedTasks,
             };
         });
         publishRealtime(taskEvents);

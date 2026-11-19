@@ -44,7 +44,7 @@ test('a followed Task with unread messages is a row like a Channel, by its newes
             messages: [{ createdAt: '2026-10-01T10:00:00.000Z' }],
             task: {
                 key: 'SEC-1',
-                originChatId: 'cht_lit',
+                projectId: 'cht_lit',
                 state: 'open',
                 taskId: 'tsk_1',
                 title: 'T',

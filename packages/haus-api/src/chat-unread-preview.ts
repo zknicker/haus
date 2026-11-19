@@ -18,11 +18,11 @@ export const chatUnreadPreviewsInputSchema = z
     })
     .strict();
 
-/** What an unread Task row names beyond its messages. */
+/** What an unread Task row names beyond its messages: the Project names its place. */
 export const chatUnreadPreviewTaskSchema = z
     .object({
         key: taskKeySchema,
-        originChatId: idSchema,
+        projectId: idSchema,
         state: taskStateSchema,
         taskId: idSchema,
         title: z.string().min(1),

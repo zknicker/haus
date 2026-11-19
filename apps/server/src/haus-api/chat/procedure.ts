@@ -14,6 +14,7 @@ import { DmPeerNotFoundError, InvalidDmPeerError } from '../../chats/ensure-dm.t
 import { InvalidInlineReplyError } from '../../chats/reply-context.ts';
 import { ChatMessageNotFoundError } from '../../chats/select-message-page.ts';
 import { ChatNonceConflictError } from '../../chats/send-message.ts';
+import { ProjectRefusalError } from '../../projects/project-errors.ts';
 import { chatMissingError } from '../../realtime/refusal.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
@@ -75,7 +76,7 @@ export const chatProcedure = memberProcedure.use(async ({ next, type }) => {
         throw new TRPCError({ cause, code: 'FORBIDDEN', message: cause.message });
     }
 
-    if (cause instanceof ChannelLifecycleConflictError) {
+    if (cause instanceof ChannelLifecycleConflictError || cause instanceof ProjectRefusalError) {
         throw new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
     }
 

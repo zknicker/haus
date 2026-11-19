@@ -203,11 +203,7 @@ export async function sendAgentMessage(
         }
 
         const [writtenChat] = await tx
-            .select({
-                anchorMessageId: chatsTable.anchorMessageId,
-                kind: chatsTable.kind,
-                parentChatId: chatsTable.parentChatId,
-            })
+            .select({ kind: chatsTable.kind, parentChatId: chatsTable.parentChatId })
             .from(chatsTable)
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)))
             .limit(1);

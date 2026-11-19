@@ -182,7 +182,6 @@ export async function targetForChat(
 ): Promise<string> {
     const [chat] = await db
         .select({
-            anchorMessageId: chatsTable.anchorMessageId,
             kind: chatsTable.kind,
             dmMemberOneUserId: chatsTable.dmMemberOneUserId,
             name: chatsTable.name,

@@ -38,7 +38,7 @@ test('one Cloud Agent work writes its Message in its Task, record, first Run, an
     expect(work.runs[0]).toMatchObject({ runId: created.body.runId, status: 'queued' });
 
     const children = (await fixture.harness.sql`
-        select id from chats where anchor_message_id = ${created.body.messageId ?? ''}
+        select id from tasks where origin_message_id = ${created.body.messageId ?? ''}
     `) as { id: string }[];
     expect(children).toEqual([]);
 

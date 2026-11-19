@@ -13,6 +13,7 @@ import {
     serversTable,
     usersTable,
 } from '../src/postgres/schema.ts';
+import { testAgentHome } from './agent-home.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 let cluster: TestDatabase;
@@ -108,6 +109,7 @@ async function seedAgent() {
         handle: `orbit-${randomBytes(4).toString('hex')}`,
         homeTimezone: 'UTC',
         id: agentId,
+        homeProjectId: await testAgentHome(db, serverId),
         serverId,
     });
     await db.insert(chatsTable).values({

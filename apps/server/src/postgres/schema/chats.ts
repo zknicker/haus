@@ -39,7 +39,6 @@ export const chatsTable = pgTable(
         lastMessageSequence: integer('last_message_sequence').notNull().default(0),
         lastClaimNumber: integer('last_claim_number').notNull().default(0),
         name: text('name'),
-        anchorMessageId: text('anchor_message_id'),
         parentChatId: text('parent_chat_id'),
         parentChatKind: text('parent_chat_kind').$type<'channel'>(),
         serverId: text('server_id')
@@ -49,6 +48,7 @@ export const chatsTable = pgTable(
     (table) => [
         unique('chats_server_id_key').on(table.serverId, table.id),
         unique('chats_server_id_kind_key').on(table.serverId, table.id, table.kind),
+        unique('chats_server_id_parent_key').on(table.serverId, table.id, table.parentChatId),
         uniqueIndex('chats_server_channel_name_key')
             .on(table.serverId, table.name)
             .where(sql`${table.kind} = 'channel'`),
@@ -115,7 +115,6 @@ export const chatsTable = pgTable(
                     and ${table.dmMemberTwoUserId} is null
                     and ${table.parentChatId} is null
                     and ${table.parentChatKind} is null
-                    and ${table.anchorMessageId} is null
                     and (not ${table.isAll} or ${table.name} = 'haus')
                 )
                 or (
@@ -128,7 +127,6 @@ export const chatsTable = pgTable(
                     and ${table.dmMemberOneUserId} is not null
                     and ${table.parentChatId} is null
                     and ${table.parentChatKind} is null
-                    and ${table.anchorMessageId} is null
                     and (
                         (
                             ${table.dmAgentId} is null
@@ -156,7 +154,6 @@ export const chatsTable = pgTable(
                     and ${table.dmMemberTwoUserId} is null
                     and ${table.parentChatId} is not null
                     and ${table.parentChatKind} = 'channel'
-                    and ${table.anchorMessageId} is not null
                 )
             )`
         ),

@@ -25,6 +25,7 @@ import {
 } from '../src/postgres/schema.ts';
 import { createReminderScheduler } from '../src/reminders/reminder-scheduler.ts';
 import { tickReminders } from '../src/reminders/scheduler.ts';
+import { testAgentHome } from './agent-home.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 const appOrigin = 'https://app.haus.test';
@@ -406,11 +407,9 @@ async function seedOverdueReminder(haus: HausConnection) {
     const chatId = 'cht_scheduler';
     const agentId = 'agt_scheduler';
     const anchorMessageId = 'msg_scheduler_anchor';
-    await haus.db.insert(serversTable).values({
-        displayName: 'Scheduler Server',
-        id: serverId,
-        slug: 'scheduler-server',
-    });
+    await haus.db
+        .insert(serversTable)
+        .values({ displayName: 'Scheduler Server', id: serverId, slug: 'scheduler-server' });
     await haus.db.insert(chatsTable).values({
         id: chatId,
         isAll: true,
@@ -424,6 +423,7 @@ async function seedOverdueReminder(haus: HausConnection) {
         handle: 'scheduler-cove',
         homeTimezone: 'America/New_York',
         id: agentId,
+        homeProjectId: await testAgentHome(haus.db, serverId),
         serverId,
     });
     await haus.db.insert(chatMessagesTable).values({

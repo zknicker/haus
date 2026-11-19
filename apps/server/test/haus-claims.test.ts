@@ -705,9 +705,9 @@ async function addClaimAgent(serverId: string, chatId: null | string) {
     `;
     await harness.sql`
         insert into agents (id, server_id, computer_id, handle, display_name,
-            desired_model_id, desired_runtime_id, home_timezone)
+            desired_model_id, desired_runtime_id, home_timezone, home_project_id)
         values (${agentId}, ${serverId}, ${computerId}, ${handle}, 'Ada',
-            'fake-model', 'fake', 'UTC')
+            'fake-model', 'fake', 'UTC', (select id from chats where server_id = ${serverId} and is_all))
     `;
     if (chatId) {
         await harness.sql`

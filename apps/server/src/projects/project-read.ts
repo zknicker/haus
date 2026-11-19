@@ -36,6 +36,12 @@ async function readProjects(db: Reader, serverId: string, chatId?: string) {
     const rows = await db
         .select({
             chatId: projectsTable.chatId,
+            homeAgentIds: sql<string[]>`coalesce((
+                select array_agg(agent.id order by agent.created_at, agent.id) from agents agent
+                where agent.server_id = ${projectsTable.serverId}
+                    and agent.home_project_id = ${projectsTable.chatId}
+                    and agent.retired_at is null
+            ), '{}')`,
             isHaus: chatsTable.isAll,
             key: taskKeysTable.key,
             keyEditable: sql<boolean>`not exists (

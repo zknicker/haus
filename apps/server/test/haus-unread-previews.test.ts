@@ -76,7 +76,7 @@ test('chat.unreadPreviews previews exactly the unread Inbox rows with their coun
         inTask.message.id,
     ]);
     expect(byChat.get(task.chatId)?.task).toMatchObject({
-        originChatId: channelId,
+        projectId: channelId,
         taskId: task.id,
         title: 'Ship Friday',
     });

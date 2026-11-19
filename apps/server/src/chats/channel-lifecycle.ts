@@ -7,6 +7,7 @@ import {
 } from '../cloud-agents/cloud-agent-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable, chatsTable } from '../postgres/schema.ts';
+import { refuseProjectWithHomeAgents } from '../projects/project-homes.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
@@ -44,6 +45,7 @@ export async function archiveChannel(
         await lockServerRow(tx, input.serverId);
         await requireOperator(tx, member, input.serverId);
         const channel = await requireRegularChannel(tx, input);
+        await refuseProjectWithHomeAgents(tx, input);
         if (channel.archivedAt) {
             return {
                 event: null,
@@ -119,6 +121,7 @@ export async function deleteChannel(
                 'The onboarding channel cannot be deleted. Archive it instead.'
             );
         }
+        await refuseProjectWithHomeAgents(tx, input);
         if (channel.deletedAt) {
             return [];
         }

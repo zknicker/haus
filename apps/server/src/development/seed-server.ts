@@ -125,12 +125,9 @@ export async function seedDevelopmentServer(
             reportedInventory: demoInventory,
             serverId,
         });
-        await tx.insert(serverOnboardingTable).values({
-            channelId: onboardingChannelId,
-            computerId,
-            phase: 'complete',
-            serverId,
-        });
+        await tx
+            .insert(serverOnboardingTable)
+            .values({ channelId: onboardingChannelId, computerId, phase: 'complete', serverId });
         await tx.insert(agentsTable).values([
             demoAgent({
                 avatarId: avatarIds.blippy,
@@ -139,6 +136,7 @@ export async function seedDevelopmentServer(
                 description: 'Keeps the plan tight and surfaces decisions early.',
                 displayName: 'Blippy',
                 handle: 'blippy',
+                homeProjectId: channelId,
                 id: blippyId,
                 modelId: 'gpt-5.6-sol',
                 reportedAt: now,
@@ -151,6 +149,7 @@ export async function seedDevelopmentServer(
                 description: 'Pressure-tests the details and keeps the work grounded.',
                 displayName: 'Tiny',
                 handle: 'tiny',
+                homeProjectId: channelId,
                 id: tinyId,
                 modelId: 'gpt-5.6-terra',
                 reportedAt: now,

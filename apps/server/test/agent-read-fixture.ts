@@ -14,6 +14,7 @@ import {
     tasksTable,
 } from '../src/postgres/schema.ts';
 import { insertTaskKeyEntry } from '../src/tasks/task-key-ledger.ts';
+import { testAgentHome, testProject } from './agent-home.ts';
 import { FakeTransport, type Seed, seedAgent } from './agent-inbox-harness.ts';
 
 /** A seeded Agent already joined to `#product`, as the inbox and read position see it. */
@@ -92,8 +93,8 @@ export async function addTask(
     input: { anchorId: string; followed: boolean; parentChatId: string }
 ): Promise<{ chatId: string; target: string }> {
     const chatId = createOpaqueId('cht');
+    await testProject(db, seed.serverId, input.parentChatId);
     await db.insert(chatsTable).values({
-        anchorMessageId: input.anchorId,
         id: chatId,
         kind: 'task',
         parentChatId: input.parentChatId,
@@ -109,6 +110,9 @@ export async function addTask(
         id: createOpaqueId('tsk'),
         keyId,
         number: 1,
+        originChatId: input.parentChatId,
+        originMessageId: input.anchorId,
+        projectId: input.parentChatId,
         serverId: seed.serverId,
         title: 'Fixture Task',
     });
@@ -133,6 +137,7 @@ export async function addPeerAgent(db: HausDatabase, seed: Seed): Promise<string
         handle: `peer-${randomBytes(4).toString('hex')}`,
         homeTimezone: 'UTC',
         id,
+        homeProjectId: await testAgentHome(db, seed.serverId),
         serverId: seed.serverId,
     });
     return id;

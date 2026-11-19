@@ -15,6 +15,8 @@ export const projectNameSchema = z
 export const projectSchema = z
     .object({
         chatId: idSchema,
+        /** The non-retired Agents whose home this Project is. */
+        homeAgentIds: z.array(idSchema),
         isHaus: z.boolean(),
         key: taskKeyPrefixSchema,
         keyEditable: z.boolean(),
@@ -60,7 +62,17 @@ export const projectListInputSchema = z.object({ serverId: idSchema }).strict();
 
 export const projectListSchema = z.array(projectSchema);
 
-export const projectErrorCodeSchema = z.enum(['PROJECT_KEY_FIXED', 'TASK_KEY_TAKEN']);
+/**
+ * - `PROJECT_HAS_AGENTS`: archiving or deleting a Project that is still some
+ *   Agent's home; move them first.
+ * - `PROJECT_NAME_FIXED`: renaming the Haus project's channel, which is always `haus`.
+ */
+export const projectErrorCodeSchema = z.enum([
+    'PROJECT_HAS_AGENTS',
+    'PROJECT_KEY_FIXED',
+    'PROJECT_NAME_FIXED',
+    'TASK_KEY_TAKEN',
+]);
 
 export type ProjectErrorCode = z.infer<typeof projectErrorCodeSchema>;
 

@@ -2,15 +2,17 @@ import { and, eq, inArray, isNotNull, or } from 'drizzle-orm';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
+    agentsTable,
     attachmentsTable,
     chatsTable,
     remindersTable,
     serverOnboardingTable,
     triggersTable,
 } from '../postgres/schema.ts';
+import { requireHausProjectId } from '../projects/haus-project.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { detachTasksFromRemovedChats } from '../tasks/task-chat-removal.ts';
+import { deleteTasksOfRemovedChats } from '../tasks/task-chat-removal.ts';
 import { prepareTaskLinkEvents, readReminderTaskIds } from '../tasks/task-reference-links.ts';
 
 interface DeletedChannelTarget {
@@ -124,20 +126,40 @@ export async function purgeDeletedChannel(
                     inArray(triggersTable.anchorChatId, chatIds)
                 )
             );
-        const childIds = chatIds.filter((id) => id !== input.chatId);
-        const detachedTaskEvents = await detachTasksFromRemovedChats(tx, {
-            chatIds: childIds,
+        const deletedTaskEvents = await deleteTasksOfRemovedChats(tx, {
+            chatIds,
             serverId: input.serverId,
         });
+        await rehomeRetiredAgents(tx, input);
+        const childIds = chatIds.filter((id) => id !== input.chatId);
         if (childIds.length > 0) {
             await tx.delete(chatsTable).where(inArray(chatsTable.id, childIds));
         }
         await tx
             .delete(chatsTable)
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
-        return [...events, ...detachedTaskEvents];
+        return [...events, ...deletedTaskEvents];
     });
     publishRealtime(taskEvents);
+}
+
+/** Deletion refuses a Project with home Agents; a retired Agent homed here moves to Haus. */
+async function rehomeRetiredAgents(tx: HausDatabase, input: DeletedChannelTarget) {
+    const homedHere = and(
+        eq(agentsTable.serverId, input.serverId),
+        eq(agentsTable.homeProjectId, input.chatId)
+    );
+    const [homed] = await tx
+        .select({ id: agentsTable.id })
+        .from(agentsTable)
+        .where(homedHere)
+        .limit(1);
+    if (homed) {
+        await tx
+            .update(agentsTable)
+            .set({ homeProjectId: await requireHausProjectId(tx, input.serverId) })
+            .where(homedHere);
+    }
 }
 
 /** The durable onboarding record names this channel forever, so it is never purged. */

@@ -1,11 +1,15 @@
 import { TRPCError } from '@trpc/server';
+import { ChatArchivedError, ChatNotFoundError } from '../../chats/chat-access.ts';
 import { publishRealtime } from '../../realtime/topic.ts';
+import { memberTaskActor } from '../../tasks/task-actor.ts';
 import type { TaskWriteResult } from '../../tasks/task-assignment.ts';
 import {
     TaskConflictError,
     TaskInvariantError,
     TaskNotFoundError,
 } from '../../tasks/task-errors.ts';
+import { withVisibleOrigins } from '../../tasks/task-read.ts';
+import type { HausUser } from '../../users/haus-user.ts';
 import type { HausContext } from '../context.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
@@ -19,15 +23,22 @@ export const taskProcedure = memberProcedure.use(async ({ next }) => {
 
 /**
  * After a Task write commits: publish its events and wake the Agents its
- * assignment change enqueued. The response never waits on the wake.
+ * assignment change enqueued, then answer with the Task as the writer sees it.
+ * The response never waits on the wake.
  */
-export function commitTaskWrite(
-    ctx: Pick<HausContext, 'agentDelivery' | 'postCommitWork'>,
+export async function commitTaskWrite(
+    ctx: Pick<HausContext, 'agentDelivery' | 'hausDb' | 'postCommitWork'> & {
+        member: HausUser | null;
+    },
     result: TaskWriteResult
 ) {
     publishRealtime(result.events);
     void ctx.postCommitWork.wakeAgents(ctx.agentDelivery, result.wakes);
-    return { task: result.task };
+    const [task] = await withVisibleOrigins(ctx.hausDb, memberTaskActor(ctx.member), [result.task]);
+    if (!task) {
+        throw new Error(`Task ${result.task.id} vanished from its own write result.`);
+    }
+    return { task };
 }
 
 function toTaskError(cause: unknown): TRPCError | null {
@@ -39,6 +50,12 @@ function toTaskError(cause: unknown): TRPCError | null {
     }
     if (cause instanceof TaskInvariantError) {
         return new TRPCError({ cause, code: 'BAD_REQUEST', message: cause.message });
+    }
+    if (cause instanceof ChatNotFoundError) {
+        return new TRPCError({ cause, code: 'NOT_FOUND', message: cause.message });
+    }
+    if (cause instanceof ChatArchivedError) {
+        return new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
     }
     return null;
 }
