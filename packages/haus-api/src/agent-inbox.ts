@@ -3,6 +3,7 @@ import { chatMessageReplySchema, idSchema } from './chat.ts';
 import { messageClaimSchema } from './claim-shared.ts';
 import { driveConflictFileSchema } from './drive.ts';
 import { humanTimezoneSchema } from './membership.ts';
+import { workerReportAttentionSchema } from './worker-report-attention.ts';
 import {
     workerBranchSchema,
     cloudAgentProviderSchema,
@@ -141,11 +142,12 @@ export const agentInboxItemSchema = z
         target: z.string().trim().min(1).max(200),
         taskContext: agentTaskContextSchema.optional(),
         taskFollowReactivated: z.boolean().optional(),
+        workerReport: workerReportAttentionSchema.optional(),
     })
     .strict()
     .refine(
         (item) =>
-            item.worker || item.pullRequestNotice
+            item.worker || item.pullRequestNotice || item.workerReport
                 ? item.sequence === 0 && item.senderType === 'system'
                 : item.sequence > 0,
         {

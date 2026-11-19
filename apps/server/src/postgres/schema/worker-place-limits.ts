@@ -1,4 +1,4 @@
-import type { CloudAgentProvider } from '@haus/api';
+import type { WorkerPlace } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import { check, integer, pgTable, primaryKey, text } from 'drizzle-orm/pg-core';
 import { serversTable } from './servers.ts';
@@ -6,7 +6,7 @@ import { serversTable } from './servers.ts';
 export const workerPlaceLimitsTable = pgTable(
     'worker_place_limits',
     {
-        place: text('place').notNull().$type<CloudAgentProvider>(),
+        place: text('place').notNull().$type<WorkerPlace>(),
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),
@@ -22,7 +22,7 @@ export const workerPlaceLimitsTable = pgTable(
 export const pendingDefaultWorkerPlacesTable = pgTable(
     'pending_default_worker_places',
     {
-        place: text('place').notNull().$type<CloudAgentProvider>(),
+        place: text('place').notNull().$type<WorkerPlace>(),
         serverId: text('server_id')
             .primaryKey()
             .references(() => serversTable.id, { onDelete: 'cascade' }),

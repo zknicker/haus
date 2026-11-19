@@ -4,6 +4,7 @@ import {
     type HausAgentMessage,
     type HausAgentSendResponse,
     humanTimezoneSchema,
+    messageBodyKinds,
 } from '@haus/api';
 import * as z from 'zod';
 import { chatMessageReplyResponseSchema } from '../chat-message-reply-response-schema.ts';
@@ -54,7 +55,7 @@ export const agentMessageSchema = z.object({
         label: z.string().nullable(),
         metadata: jsonObjectSchema,
     }),
-    body_kind: z.enum(['text', 'agent-created']),
+    body_kind: z.enum(messageBodyKinds),
     chat_id: z.string().min(1),
     claim: messageClaimSchema.nullable().optional(),
     content: z.string(),

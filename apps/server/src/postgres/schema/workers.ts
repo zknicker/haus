@@ -1,4 +1,4 @@
-import type { CloudAgentProvider, WorkerTurnStatus } from '@haus/api';
+import type { WorkerPlace, WorkerTurnStatus } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import { check, foreignKey, index, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';
@@ -33,7 +33,7 @@ export const workersTable = pgTable(
         id: text('id').primaryKey(),
         launchMessageId: text('launch_message_id'),
         originChatId: text('origin_chat_id'),
-        place: text('place').notNull().$type<CloudAgentProvider>(),
+        place: text('place').notNull().$type<WorkerPlace>(),
         providerAgentId: text('provider_agent_id'),
         providerUrl: text('provider_url'),
         repository: text('repository').notNull(),

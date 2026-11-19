@@ -3807,7 +3807,7 @@ components:
           type: string
         body_kind:
           type: string
-          enum: [text, agent-created]
+          enum: [text, agent-created, worker-report, worker-follow-up]
         attachments:
           type: array
           items:

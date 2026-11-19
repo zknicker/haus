@@ -2,6 +2,7 @@ import * as z from 'zod';
 import { idSchema } from './chat.ts';
 import type { components } from './generated/openapi.d.ts';
 import { taskKeySchema } from './task-key.ts';
+import { workerObservedResultSchema } from './worker-outcome.ts';
 import {
     workerActivitySchema,
     workerBranchSchema,
@@ -168,6 +169,8 @@ export const workerObservationSchema = z.object({
     rawStatus: z.string().trim().min(1).max(120).optional(),
     /** The full report `summary` was cut from (TECH-8); absent before any Run observes one. */
     report: workerProviderResultSchema.optional(),
+    /** The settled turn's final answer, read from the provider result; null when it had none. */
+    result: workerObservedResultSchema.nullable().optional(),
     turnId: idSchema,
     /** Set on every reading of a stuck live Run; absent means it is not stalled. */
     stallCode: workerStallCodeSchema.optional(),

@@ -1,8 +1,10 @@
 import type {
     CloudAgentModelParamName,
     WorkerBranch,
+    WorkerOutcome,
     WorkerProviderResult,
     WorkerStallCode,
+    WorkerTurnInput,
     WorkerTurnModelParam,
     WorkerTurnStatus,
     WorkerUsage,
@@ -29,7 +31,7 @@ export const workerTurnsTable = pgTable(
         dispatchedAt: timestamp('dispatched_at', { withTimezone: true }),
         errorCode: text('error_code'),
         id: text('id').primaryKey(),
-        input: bunJsonb('input').$type<unknown[] | null>(),
+        input: bunJsonb('input').$type<WorkerTurnInput[] | null>(),
         /** Saved params the sent model no longer offered, so they took its default. */
         modelDroppedParams: bunJsonb('model_dropped_params')
             .notNull()
@@ -46,7 +48,7 @@ export const workerTurnsTable = pgTable(
         modelParams: bunJsonb('model_params').notNull().$type<WorkerTurnModelParam[]>().default([]),
         /** The Computer's newest applied observation, so a stale one is a no-op. */
         observedAt: timestamp('observed_at', { withTimezone: true }),
-        outcome: bunJsonb('outcome').$type<unknown>(),
+        outcome: bunJsonb('outcome').$type<WorkerOutcome | null>(),
         /** The full provider result `summary` is cut from (TECH-8), kept as evidence. */
         providerResult: bunJsonb('provider_result').$type<WorkerProviderResult | null>(),
         providerRunId: text('provider_run_id'),
