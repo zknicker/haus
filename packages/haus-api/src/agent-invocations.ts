@@ -23,6 +23,9 @@ export const invocationTimeoutsMs = {
     'view-image': { default: 30_000, max: 30_000 },
 } as const satisfies Record<InvocationOperationKind, { default: number; max: number }>;
 
+/** Past its timeout plus this grace, the runner and the Server both settle an invocation `unknown`. */
+export const invocationGraceMs = 30_000;
+
 /** Bytes that would push a frame past the limit, streamed through the attachment upload. */
 export const invocationPayloadReferenceSchema = z
     .object({

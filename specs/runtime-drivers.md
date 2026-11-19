@@ -463,7 +463,7 @@ same maximum again, so a bad frame cannot hold a command past it.
 | `failed` | The operation refused its input and changed nothing (no match for `old_str`, a bad patch, a missing file). | The refusal |
 | `timed-out` | The timeout fired and the process group was killed. | The partial output and the timeout |
 | `cancelled` | Stop or the turn's abort killed it. | The partial output |
-| `unknown` | Accepted or possibly accepted, with no result: the Computer crashed or disconnected past the grace. | It may or may not have run; check its effects before running it again |
+| `unknown` | Accepted or possibly accepted, with no result inside the grace: the Computer crashed, disconnected, or answered too late. | It may or may not have run; check its effects before running it again |
 | `offline` | The Server never sent `invoke`. Nothing ran. | The machine is offline; `haus` and `execute` still work |
 
 The outcome text rides the tool result, never the prompt.
@@ -484,15 +484,16 @@ does not deliver it to the model or change the outcome the model saw. Runner run
 execution journal yet, so the invocation record is the only place a late result lands; the
 journal gains it when runner runs start uploading one.
 
-**Grace.** When the Computer's socket drops with an invocation sent, the Server waits for the
-invocation's timeout plus 30 seconds for a reconnect. A reconnect inside it resends unacknowledged
-`invoke` frames and receives pending results. Past it the invocation turns `unknown` and the
-runner gets that answer. The grace is a timer per open invocation, armed when its Computer's
-socket closes. A reconnect cancels it for each invocation it resends or the Computer has
-accepted. An unaccepted invocation that was cancelled, or whose run has settled, is not resent:
-it gets `invoke-cancel` and keeps its grace, because only the Computer's ledger knows whether it
-ever arrived. The PostgreSQL record decides every race between a result and the grace, so exactly
-one of them answers the runner. A Server that starts turns every invocation still `sent` or
+**Grace.** Each invocation gets its timeout plus 30 seconds (`invocationGraceMs`), the same
+window the runner waits, so the record never disagrees with what the model saw. The window is a
+timer per open invocation, armed when the Server sends `invoke`. Past it the invocation turns
+`unknown` and the runner gets that answer, whether the Computer stayed connected or not; a result
+after that is late. A dropped socket neither shortens nor extends the window. It only adds the
+reconnect resend: a reconnect inside the window resends unaccepted `invoke` frames and receives
+pending results. An unaccepted invocation that was cancelled, or whose run has settled, is not
+resent: it gets `invoke-cancel` and runs out its window, because only the Computer's ledger knows
+whether it ever arrived. The PostgreSQL record decides every race between a result and the grace,
+so exactly one of them answers the runner. A Server that starts turns every invocation still `sent` or
 `accepted` `unknown`, because it keeps no operation to resend. An answer the runner socket cannot
 take waits in memory and goes out when the runner attaches again.
 
@@ -701,7 +702,7 @@ settings, reminder scripts, host skill discovery, inventory, updates, and Worker
 | Timeout and cancel kill the process group and return partial output | `apps/computer/src/invocations/run.test.ts` | R2 |
 | A Computer that restarts after recording `unknown` answers every resent `invoke` with `unknown` and never runs it | `apps/computer/src/invocations/ledger-crash.test.ts` | R2 |
 | An Agent with no machine, a detached one, or one in update-required mode gets `offline` at once, recorded and with nothing sent, and a turn with only `haus` calls completes | `apps/server/test/agent-invocations-offline.test.ts` | R3 |
-| After an acknowledgement is lost and the Computer reconnects, an invocation already `unknown` is never sent again, and a late result is recorded without reaching the model | `apps/server/test/agent-invocations-unknown.test.ts` | R3 |
+| After an acknowledgement is lost and the Computer reconnects, an invocation already `unknown` is never sent again, a connected Computer that answers past the grace leaves it `unknown` as the runner saw it, and a late result is recorded without reaching the model | `apps/server/test/agent-invocations-unknown.test.ts` | R3 |
 | An invocation is sent once with its clamped timeout, its result is recorded, answered, and acknowledged, a repeated key sends nothing, a cancel reaches the Computer, and a reconnect resends unaccepted `invoke` frames and cancels a settled run's | `apps/server/test/agent-invocations-routing.test.ts` | R3 |
 | A payload is stored and read only under its invocation and Computer, its digest and size match, and a run reads only its own invocations' payloads | `apps/server/test/agent-invocation-payloads.test.ts`, `apps/runner/src/invocations/invocation-results.test.ts` | R3 |
 | A result or write over 1 MiB moves as an attachment reference, and no frame exceeds 1 MiB | `apps/computer/src/invocations/large-payload.test.ts` | R2 |

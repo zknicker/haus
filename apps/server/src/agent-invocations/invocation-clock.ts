@@ -1,5 +1,3 @@
-export const invocationGraceMs = 30_000;
-
 export interface InvocationClock {
     schedule(callback: () => void, delayMs: number): { cancel(): void };
 }

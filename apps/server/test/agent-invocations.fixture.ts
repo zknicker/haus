@@ -26,14 +26,10 @@ export interface InvocationHarness {
 
 export function manualInvocationClock() {
     const scheduled: { callback: () => void; cancelled: boolean; delayMs: number }[] = [];
-    const waiters: (() => void)[] = [];
     const clock: InvocationClock = {
         schedule(callback, delayMs) {
             const timer = { callback, cancelled: false, delayMs };
             scheduled.push(timer);
-            for (const wake of waiters.splice(0)) {
-                wake();
-            }
             return { cancel: () => (timer.cancelled = true) };
         },
     };
@@ -47,12 +43,6 @@ export function manualInvocationClock() {
             }
         },
         live: () => live().map((timer) => timer.delayMs),
-        scheduledOnce: () =>
-            live().length > 0
-                ? Promise.resolve()
-                : new Promise<void>((resolve) => {
-                      waiters.push(resolve);
-                  }),
     };
 }
 

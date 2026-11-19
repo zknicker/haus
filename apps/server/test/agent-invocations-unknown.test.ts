@@ -41,7 +41,6 @@ test('an invocation unknown past the grace is never sent again, and its late res
 
     first.close();
     await first.closed;
-    await timers.scheduledOnce();
     expect(timers.live()).toEqual([35_000]);
     timers.fireAll();
 
@@ -102,4 +101,66 @@ test('an invocation unknown past the grace is never sent again, and its late res
     ]);
     second.close();
     await second.closed;
+});
+
+test('a connected Computer that answers past the window leaves the invocation unknown, as the runner saw it', async () => {
+    const computer = await connectComputer(setup.harness, setup.computerCredential);
+    runner.send({
+        ...invocationRequest(setup.agentId, 'run_slow', 'toolu_slow'),
+        timeoutMs: 5000,
+    });
+    const invoke = await computer.next(frameOfType('invoke', { runId: 'run_slow' }));
+    const invocationId = String(invoke.invocationId);
+    computer.send({ invocationId, type: 'invoke-accepted' });
+
+    expect(timers.live()).toEqual([35_000]);
+    timers.fireAll();
+    expect(
+        await runner.next(frameOfType('invocation-result', { toolCallId: 'toolu_slow' }))
+    ).toEqual({
+        agentId: setup.agentId,
+        invocationId,
+        outcome: 'unknown',
+        output: { kind: 'text', text: unknownText },
+        runId: 'run_slow',
+        seq: 0,
+        toolCallId: 'toolu_slow',
+        truncated: false,
+        type: 'invocation-result',
+    });
+
+    computer.send({
+        exitCode: 0,
+        invocationId,
+        outcome: 'completed',
+        output: { kind: 'text', text: 'drive\n' },
+        truncated: false,
+        type: 'invoke-result',
+    });
+    expect(await computer.next(frameOfType('invoke-result-ack', { invocationId }))).toEqual({
+        invocationId,
+        type: 'invoke-result-ack',
+    });
+
+    runner.send(invocationRequest(setup.agentId, 'run_slow', 'toolu_slow'));
+    await runner.next(
+        (frame) =>
+            frame.type === 'invocation-result' &&
+            runner.frames.filter((seen) => seen.toolCallId === 'toolu_slow').length === 2
+    );
+    expect(
+        runner.frames
+            .filter((frame) => frame.toolCallId === 'toolu_slow')
+            .map((frame) => frame.outcome)
+    ).toEqual(['unknown', 'unknown']);
+    expect(
+        await setup.harness.sql`
+            select state, outcome, late_outcome, late_exit_code
+            from agent_invocations where id = ${invocationId}
+        `
+    ).toEqual([
+        { late_exit_code: 0, late_outcome: 'completed', outcome: 'unknown', state: 'unknown' },
+    ]);
+    computer.close();
+    await computer.closed;
 });

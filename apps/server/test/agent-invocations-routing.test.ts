@@ -141,11 +141,10 @@ test('a reconnecting Computer gets every unacknowledged invoke again, and a canc
     const resend = await computer.next(frameOfType('invoke', { runId: 'run_resend' }));
     const settled = await computer.next(frameOfType('invoke', { runId: 'run_settled' }));
     computer.send({ invocationId: settled.invocationId, type: 'invoke-accepted' });
+    expect(timers.live()).toEqual([150_000, 150_000]);
 
     computer.close();
     await computer.closed;
-    await timers.scheduledOnce();
-    expect(timers.live()).toEqual([150_000, 150_000]);
     publishAgentLifecycle({
         agentId: setup.agentId,
         chatId: null,
@@ -162,5 +161,5 @@ test('a reconnecting Computer gets every unacknowledged invoke again, and a canc
         invocationId: settled.invocationId,
         type: 'invoke-cancel',
     });
-    expect(timers.live()).toEqual([]);
+    expect(timers.live()).toEqual([150_000, 150_000]);
 });

@@ -5,6 +5,7 @@ import {
     type InvocationResultFrame,
     type InvokeCommand,
     type InvokeResult,
+    invocationGraceMs,
     invokeAcceptedSchema,
     invokeResultSchema,
 } from '@haus/api';
@@ -13,11 +14,7 @@ import type { ComputerConnections } from '../computers/connections.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { RunnerLink } from '../runner/runner-link.ts';
 import { clampTimeoutMs, noticeAnswer, resultAnswer, settledAnswer } from './invocation-answers.ts';
-import {
-    type InvocationClock,
-    invocationGraceMs,
-    systemInvocationClock,
-} from './invocation-clock.ts';
+import { type InvocationClock, systemInvocationClock } from './invocation-clock.ts';
 import {
     readAgentMachine,
     recordAccepted,
@@ -42,7 +39,7 @@ interface OpenInvocation {
     cancelled: boolean;
     command: InvokeCommand;
     computerId: string;
-    grace: { cancel(): void } | null;
+    grace: { cancel(): void };
     key: DispatchKey;
     runSettled: boolean;
 }
@@ -78,19 +75,19 @@ function routeInvocations(input: RouterInput) {
 
     function forget(invocationId: string) {
         const invocation = open.get(invocationId);
-        invocation?.grace?.cancel();
+        invocation?.grace.cancel();
         open.delete(invocationId);
         if (invocation) {
             byDispatch.delete(dispatchIdOf(invocation.key));
         }
     }
 
-    function armGrace(invocationId: string, invocation: OpenInvocation) {
-        invocation.grace ??= clock.schedule(() => {
+    function armGrace(invocationId: string, timeoutMs: number) {
+        return clock.schedule(() => {
             void expire(invocationId).catch((error: unknown) =>
                 console.error('[haus] invocation grace failed', error)
             );
-        }, invocation.command.timeoutMs + invocationGraceMs);
+        }, timeoutMs + invocationGraceMs);
     }
 
     async function expire(invocationId: string) {
@@ -144,7 +141,7 @@ function routeInvocations(input: RouterInput) {
             cancelled: false,
             command,
             computerId,
-            grace: null,
+            grace: armGrace(record.id, timeoutMs),
             key: { runId: frame.runId, seq: frame.seq, toolCallId: frame.toolCallId },
             runSettled: false,
         });
@@ -193,22 +190,8 @@ function routeInvocations(input: RouterInput) {
                 }
                 if (invocation.runSettled || invocation.cancelled) {
                     computers.send(computerId, { invocationId, type: 'invoke-cancel' });
-                    if (invocation.accepted) {
-                        invocation.grace?.cancel();
-                        invocation.grace = null;
-                    }
-                    continue;
-                }
-                if (invocation.accepted || computers.send(computerId, invocation.command)) {
-                    invocation.grace?.cancel();
-                    invocation.grace = null;
-                }
-            }
-        },
-        computerDetached(computerId: string) {
-            for (const [invocationId, invocation] of open) {
-                if (invocation.computerId === computerId) {
-                    armGrace(invocationId, invocation);
+                } else if (!invocation.accepted) {
+                    computers.send(computerId, invocation.command);
                 }
             }
         },

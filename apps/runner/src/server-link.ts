@@ -1,4 +1,5 @@
 import {
+    invocationGraceMs,
     type RunnerDownFrame,
     type RunnerStartFrame,
     type RunnerUpFrame,
@@ -7,7 +8,6 @@ import {
 } from '@haus/api';
 import type { RunnerConfig } from './config.ts';
 import type { DispatchLedger } from './dispatch/ledger.ts';
-import { invocationGraceMs } from './invocations/invocation-client.ts';
 import { runnerInventory } from './logins.ts';
 import type { RunnerLink, TurnHost } from './run-context.ts';
 import { createRunTools, type RunToolset } from './tools/run-tools.ts';

@@ -20,8 +20,6 @@ export interface InvocationAnswer {
     readonly timeoutMs: number;
 }
 
-export const invocationGraceMs = 30_000;
-
 export function createInvocationClient(input: {
     agentId: string;
     authority: RunAuthority;

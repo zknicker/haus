@@ -248,7 +248,6 @@ export function startComputerAttachmentSocket(
             if (computerId && sockets.get(computerId) === socket) {
                 sockets.delete(computerId);
                 connections.unregister(computerId);
-                invocations.computerDetached(computerId);
             }
             // Generation-guarded, so a newer attachment's row is never touched.
             markClosedOffline();
