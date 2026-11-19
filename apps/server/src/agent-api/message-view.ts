@@ -229,15 +229,7 @@ export function visibleChatSql(runner: Pick<ResolvedRunner, 'agentId' | 'serverI
                   and cap.agent_id = ${runner.agentId}
             )
         )
-        or (
-            ${chatsTable.kind} = 'task'
-            and exists (
-                select 1 from channel_agent_participants cap
-                where cap.server_id = ${runner.serverId}
-                  and cap.chat_id = ${chatsTable.parentChatId}
-                  and cap.agent_id = ${runner.agentId}
-            )
-        )
+        or (${chatsTable.kind} = 'task' and ${chatsTable.serverId} = ${runner.serverId})
     )`;
 }
 

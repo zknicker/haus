@@ -184,7 +184,7 @@ Each Agent has one durable read position per Chat (`agent_chat_reads`, see
 [Data model](../internals/data-model.md)). It survives session rotation and only moves forward.
 
 `GET /api/agent/inbox/conversations` backs `haus inbox check`: every joined channel, DM, and
-followed Task (each its own row) holding someone else's message past the read position. Query:
+followed Task under a joined channel (each its own row) holding someone else's message past the read position. Query:
 `view` (`unread` | `mentions`, default `unread`), `before` (opaque keyset key, at most 200 characters), `limit`
 (1–50, default 20). The response is `{ view, items, hasMore, nextBefore, totals }`; each item
 carries `chatId`, `target`, `kind`, `unread`, `mentions`, `lastReadSequence`, `activityKey`,
@@ -459,8 +459,7 @@ startingRef, target, task, title }`, where `task` is the Task key and `target` i
 `cause` (`start --cause <fireId>`) is the Trigger or Reminder fire the launch answers; the Server
 validates and records it on the launch Message as `haus message send --cause` does, and infers it
 the same way when absent ([Automation provenance](../../specs/automation-provenance.md)). A launch
-with no Task, or a Task the Agent cannot reach (no conversation yet, or a Channel it has not
-joined), fails with `CLOUD_AGENT_TASK_REQUIRED` before anything is written, and the CLI names the
+with no Task, or a Task with no conversation yet, fails with `CLOUD_AGENT_TASK_REQUIRED` before anything is written, and the CLI names the
 `haus task start` step to take first. It returns `{ state: 'started', chatId, idempotent, messageId, runId, sequence, target,
 work }`, or `{ state: 'held', newMessageCount, omittedMessageCount, formalMentionCount,
 shownMessages }` when the `haus message send` freshness hold finds unseen newer messages in the

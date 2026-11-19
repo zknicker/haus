@@ -139,8 +139,9 @@ async function chatOf(messageId: string) {
 
 async function chatsUnder(parentChatId: string, anchorMessageId: string) {
     const rows = (await fixture.harness.sql`
-        select id from chats
-        where parent_chat_id = ${parentChatId} and anchor_message_id = ${anchorMessageId}
+        select chats.id from chats
+        join tasks on tasks.server_id = chats.server_id and tasks.chat_id = chats.id
+        where chats.parent_chat_id = ${parentChatId} and tasks.origin_message_id = ${anchorMessageId}
     `) as { id: string }[];
     return rows.map((row) => row.id);
 }
