@@ -162,7 +162,8 @@ switch is Server state on the Computer record, and the Server checks it at every
 follow-up. It is off for a newly attached Computer. Turning it on lets Agents run unattended Claude
 Code or Codex sessions there under that machine's logins ([Run](#run-a-turn)). Turning it off lets
 working turns finish, refuses new starts and follow-ups with `WORKER_PLACE_OFF`, and settles turns
-queued there as failed `place-off`.
+queued there as failed `place-off`. It also clears every Project default that names the Computer
+([Projects](projects.md#default-place-for-workers)).
 
 **Carrying a cloud place.** A cloud Worker's provider login lives on a Computer, as it does today.
 So each cloud Worker has a carrier Computer: one whose provider capability is ready. Carrying needs
