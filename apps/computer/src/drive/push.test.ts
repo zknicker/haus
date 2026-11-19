@@ -152,7 +152,7 @@ test('a case-only rename with an edit lands the new name and keeps the bytes', a
 
     expect(await alpha.push('run_case')).toMatchObject({ failed: [], sent: 2 });
 
-    expect(server.head('haus/notes.md')).toBeNull();
+    expect(server.head('haus/notes.md')?.path).toBe('haus/Notes.md');
     expect(server.text('haus/Notes.md')).toBe('v2');
     expect(await readdir(join(alpha.layout.folder, 'haus'))).toEqual(['Notes.md']);
     expect(await alpha.push('run_after')).toBeNull();
@@ -227,5 +227,29 @@ test('a decomposed file name is pushed and recorded under its composed path', as
 
     expect(server.text('haus/café.md')).toBe('menu');
     expect(Object.keys((await alpha.state()).files)).toEqual(['haus/café.md']);
+    expect(await alpha.push('run_after')).toBeNull();
+});
+
+test('a case-only rename with an edit survives another writer changing the original', async () => {
+    server = startDriveServer();
+    server.write('haus/notes.md', 'v1', 'usr');
+    const alpha = folderOf('agt_alpha');
+    await alpha.pull();
+    await rename(
+        join(alpha.layout.folder, 'haus', 'notes.md'),
+        join(alpha.layout.folder, 'haus', 'Notes.md')
+    );
+    await alpha.write('haus/Notes.md', 'mine');
+    server.write('haus/notes.md', 'theirs', 'usr');
+
+    await alpha.push('run_case_conflict');
+
+    expect(server.text('haus/notes.md')).toBe('theirs');
+    expect(server.text('haus/Notes.conflict-alpha.md')).toBe('mine');
+    expect((await readdir(join(alpha.layout.folder, 'haus'))).sort()).toEqual([
+        'Notes.conflict-alpha.md',
+        'notes.md',
+    ]);
+    expect(await alpha.read('haus/notes.md')).toBe('theirs');
     expect(await alpha.push('run_after')).toBeNull();
 });

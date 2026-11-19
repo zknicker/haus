@@ -96,6 +96,36 @@ export function folderFiles(layout: DriveFolderLayout) {
                 }
             }
         },
+        async occupant(path: string) {
+            const stat = await lstat(absolute(path)).catch(() => null);
+            if (!stat) {
+                return 'none' as const;
+            }
+            if (!stat.isFile()) {
+                return 'other' as const;
+            }
+            return (await holdsExactFile(absolute(path)))
+                ? ('exact' as const)
+                : ('variant' as const);
+        },
+        async respell(from: string, to: string, readOnlyRoot: string | null) {
+            const source = absolute(from);
+            const target = absolute(to);
+            const [fromStat, toStat] = await Promise.all([
+                lstat(source).catch(() => null),
+                lstat(target).catch(() => null),
+            ]);
+            if (!fromStat) {
+                return;
+            }
+            await openParents(target, readOnlyRoot);
+            if (!toStat || toStat.ino === fromStat.ino) {
+                await rename(source, target);
+                return;
+            }
+            await unlink(source);
+            await pruneEmptyParents(layout.folder, source);
+        },
         async release(target: string) {
             await chmod(target, 0o644);
             return (await lstat(target)).mtimeMs;

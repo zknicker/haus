@@ -24,20 +24,28 @@ export async function applyPushOutcome(
 ) {
     const { files, state } = context;
     const { current, path } = outcome;
-    const lock = readOnlyRoot(context, path);
+    const target = current?.path ?? path;
+    if (ownSha256 === null && (await files.occupant(target)) === 'variant') {
+        await state.forget(path);
+        return;
+    }
+    const lock = readOnlyRoot(context, target);
     const asideTarget = asideTargetOf(context, outcome, ownSha256);
     const atPath = asideTarget ? null : ownSha256;
     const incoming = current && atPath !== current.sha256 ? await download(context, current) : null;
     const aside =
-        asideTarget && ownSha256 ? await files.setAside(path, asideTarget, ownSha256, lock) : null;
+        asideTarget && ownSha256
+            ? await files.setAside(path, asideTarget, ownSha256, readOnlyRoot(context, path))
+            : null;
     if (current === null) {
         await files.remove(path, lock);
         await state.forget(path);
     } else {
-        const mtimeMs = incoming
-            ? await files.place(path, incoming, lock)
-            : (await lstat(files.absolute(path))).mtimeMs;
-        await state.record(recordOf(current, mtimeMs, path));
+        if (target !== path) {
+            await files.respell(path, target, lock);
+            await state.forget(path);
+        }
+        await converge(context, target, current, incoming, lock);
     }
     if (aside) {
         const mtimeMs = await files.release(aside);
@@ -45,6 +53,39 @@ export async function applyPushOutcome(
             await state.record(recordOf(outcome.copy, mtimeMs));
         }
     }
+}
+
+export async function catchUpSkippedHead(context: OutcomeContext, path: string) {
+    const { files, state } = context;
+    const head = await context.remote.head(path);
+    const record = state.current().files[path];
+    const occupant = await files.occupant(path);
+    const lock = readOnlyRoot(context, path);
+    if (head === null) {
+        if (record && occupant === 'exact') {
+            await files.remove(path, lock);
+        }
+        await state.forget(path);
+        return;
+    }
+    const replaceable = occupant === 'none' || (record !== undefined && occupant === 'exact');
+    if (record?.revision_id !== head.revision_id && replaceable) {
+        await converge(context, path, head, await download(context, head), lock);
+    }
+}
+
+async function converge(
+    context: OutcomeContext,
+    path: string,
+    current: DriveRevisionFacts,
+    incoming: string | null,
+    lock: string | null
+) {
+    const { files, state } = context;
+    const mtimeMs = incoming
+        ? await files.place(path, incoming, lock)
+        : (await lstat(files.absolute(path))).mtimeMs;
+    await state.record(recordOf(current, mtimeMs, path));
 }
 
 function asideTargetOf(

@@ -105,6 +105,18 @@ turn's run and revokes it after the close, because a Stop revokes the run's own 
 request id is `dp_` and the first 48 hex characters of the SHA-256 of the writer's Agent id, the
 path, the base revision (or, for a create, `<area>@<counter>:<last dropped revision>`), and the
 content hash. The dropped revision keeps a re-create distinct even while a counter cannot advance.
+A create's request id is stored in `drive.json` when it is first sent and reused until the create
+resolves, so a create whose answer was lost replays its stored outcome after a pull moved the
+counter, instead of making a second copy. A pull that sees a revision equal to a pending create's
+bytes records it as the file's base.
+
+A pull that keeps a locally edited file notes the newer revision it skipped. After that file's
+push outcome is applied, the folder reads the path's current head and moves to it when it differs,
+because a replayed stored outcome can name a revision older than one the pull already passed.
+
+Outcomes apply under Drive's spelling of the path. A delete's outcome never touches a file that
+only folds to its path, such as the renamed half of a case-only rename, so an edit made under the
+new spelling reaches Drive as its own put or as a conflict copy.
 
 A delete removes only a file whose name matches the path exactly, so the delete half of a
 case-only rename on a case-insensitive disk never removes the renamed file, and a folder that

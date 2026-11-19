@@ -3,6 +3,7 @@ import {
     driveChangesResponseSchema,
     driveDownloadResponseSchema,
     driveErrorResponseSchema,
+    driveHeadResponseSchema,
     drivePushCloseResponseSchema,
     drivePushOutcomeResponseSchema,
 } from './drive-response-schema.ts';
@@ -84,6 +85,18 @@ export function driveRemote(input: { serverOrigin: string; token: string }) {
                     `Revision ${revision.revision_id} did not match its hash.`
                 );
             }
+        },
+        async head(path: string) {
+            const query = new URLSearchParams({ path });
+            return await call(`/api/agent/artifacts/by-path?${query}`).then(
+                (body) => driveHeadResponseSchema.parse(body).artifact,
+                (error: unknown) => {
+                    if (error instanceof DriveRemoteError && error.status === 404) {
+                        return null;
+                    }
+                    throw error;
+                }
+            );
         },
         async put(
             request: {

@@ -62,6 +62,7 @@ async function applyChange(context: ChangeContext, change: DriveChangeEntry) {
     const local = await files.inspect(change.path, record);
     if (change.change === 'delete') {
         if (local !== null && local !== 'blocked' && local.sha256 !== record?.sha256) {
+            await state.markSeen(change.path, 'deleted');
             return 'kept';
         }
         return await blockedOnLocalPath(async () => {
@@ -84,8 +85,13 @@ async function applyChange(context: ChangeContext, change: DriveChangeEntry) {
         await state.record({ ...facts, mtime_ms: local.mtimeMs });
         return 'applied';
     }
+    if (!record && state.current().pendingCreates[change.path]?.sha256 === change.sha256) {
+        await state.record({ ...facts, mtime_ms: -1 });
+        return 'kept';
+    }
     const unedited = record ? local?.sha256 === record.sha256 : local === null;
     if (!unedited) {
+        await state.markSeen(change.path, change.revision_id);
         return 'kept';
     }
     const scratch = await files.scratchFile();

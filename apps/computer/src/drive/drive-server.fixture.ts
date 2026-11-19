@@ -3,6 +3,7 @@ import {
     type DriveConflictFile,
     type DrivePushOutcome,
     type DriveRevision,
+    artifactPathKey,
     driveChangesPageMax,
 } from '@haus/api';
 import { mergeLines } from './merge-lines.fixture.ts';
@@ -34,36 +35,39 @@ export function startDriveServer(options: { pageSize?: number } = {}) {
     const failing = new Set<string>();
     const requests: string[] = [];
     let pushesFail = false;
+    let lostAnswers = 0;
     let ids = 0;
 
     function write(path: string, text: string | Uint8Array, author: string) {
         const bytes = typeof text === 'string' ? new TextEncoder().encode(text) : text;
         ids += 1;
+        const existing = live.get(artifactPathKey(path));
         const revision: Revision = {
-            artifact_id: live.get(path)?.artifact_id ?? `art_${ids}`,
+            artifact_id: existing?.artifact_id ?? `art_${ids}`,
             author: { agent_id: author, type: 'agent' },
             content_type: 'text/plain',
-            path,
+            path: existing?.path ?? path,
             revision_id: `rev_${ids}`,
             sha256: createHash('sha256').update(bytes).digest('hex'),
             size_bytes: bytes.length,
         };
         blobs.set(revision.revision_id, bytes);
-        live.set(path, revision);
-        touch(path, revision.artifact_id, revision);
+        live.set(artifactPathKey(path), revision);
+        touch(revision.path, revision.artifact_id, revision);
         return revision;
     }
     function remove(path: string) {
-        const head = live.get(path);
+        const head = live.get(artifactPathKey(path));
         if (head) {
-            live.delete(path);
-            touch(path, head.artifact_id, null);
+            live.delete(artifactPathKey(path));
+            touch(head.path, head.artifact_id, null);
         }
     }
     function touch(path: string, artifactId: string, revision: Revision | null) {
         const area = areaOf(path)?.area ?? 'haus';
         counters[area] = (counters[area] ?? 0) + 1;
-        rows.set(path, { area, artifact_id: artifactId, path, revision, sequence: counters[area] });
+        const row = { area, artifact_id: artifactId, path, revision, sequence: counters[area] };
+        rows.set(artifactPathKey(path), row);
     }
     function decide(
         writer: string,
@@ -72,7 +76,7 @@ export function startDriveServer(options: { pageSize?: number } = {}) {
         bytes: Uint8Array | null
     ) {
         const area = areaOf(path);
-        const head = live.get(path) ?? null;
+        const head = live.get(artifactPathKey(path)) ?? null;
         if (!area || (area.area.startsWith('agent:') && area.area !== `agent:${writer}`)) {
             const code = area ? 'FORBIDDEN' : 'INVALID_PATH';
             return { code, current: head, message: code, outcome: 'refused', path } as const;
@@ -108,11 +112,19 @@ export function startDriveServer(options: { pageSize?: number } = {}) {
         if (merged !== null) {
             return { current: write(path, merged, writer), outcome: 'merged', path } as const;
         }
-        const copy = write(copyPath(path, handles[writer] ?? writer), bytes, writer);
+        const copy = write(freeCopyPath(path, handles[writer] ?? writer), bytes, writer);
         const reason = base ? 'same_lines' : 'both_created';
         return { copy, current: head, outcome: 'kept_both', path, reason } as const;
     }
 
+    function freeCopyPath(path: string, handle: string) {
+        for (let attempt = 1; ; attempt += 1) {
+            const candidate = copyPath(path, attempt === 1 ? handle : `${handle}-${attempt}`);
+            if (!live.has(artifactPathKey(candidate))) {
+                return candidate;
+            }
+        }
+    }
     function changes(url: URL) {
         const since = JSON.parse(url.searchParams.get('since') ?? '{}');
         const until = JSON.parse(url.searchParams.get('until') ?? 'null') ?? { ...counters };
@@ -160,6 +172,10 @@ export function startDriveServer(options: { pageSize?: number } = {}) {
         const bytes = isPut ? new Uint8Array(await request.arrayBuffer()) : null;
         const outcome: DrivePushOutcome = decide(writer, body.path, body.base_revision_id, bytes);
         replies.set(body.request_id, outcome);
+        if (lostAnswers > 0) {
+            lostAnswers -= 1;
+            return Response.json({ code: 'STORAGE_UNAVAILABLE' }, { status: 503 });
+        }
         const conflict = listed(outcome);
         if (conflict) {
             push.listed.push(conflict);
@@ -175,6 +191,12 @@ export function startDriveServer(options: { pageSize?: number } = {}) {
             if (url.pathname === '/api/agent/drive/changes') {
                 return changes(url);
             }
+            if (url.pathname === '/api/agent/artifacts/by-path') {
+                const head = live.get(artifactPathKey(url.searchParams.get('path') ?? ''));
+                return head
+                    ? Response.json({ artifact: head })
+                    : Response.json({ code: 'NOT_FOUND' }, { status: 404 });
+            }
             if (/^\/api\/agent\/artifacts\/[^/]+\/download$/u.test(url.pathname)) {
                 const revision = url.searchParams.get('revision_id') ?? '';
                 return Response.json({ download_url: `${url.origin}/blob/${revision}` });
@@ -187,15 +209,18 @@ export function startDriveServer(options: { pageSize?: number } = {}) {
         origin: `http://127.0.0.1:${server.port}`,
         failDownload: (revisionId: string) => failing.add(revisionId),
         healDownloads: () => failing.clear(),
+        loseNextAnswers: (count: number) => {
+            lostAnswers = count;
+        },
         failPushes: (fail: boolean) => {
             pushesFail = fail;
         },
         requests,
         text: (path: string) => {
-            const head = live.get(path);
+            const head = live.get(artifactPathKey(path));
             return head ? new TextDecoder().decode(blobs.get(head.revision_id)) : null;
         },
-        head: (path: string) => live.get(path) ?? null,
+        head: (path: string) => live.get(artifactPathKey(path)) ?? null,
         remove,
         stop: () => server.stop(true),
         write,

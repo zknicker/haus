@@ -27,6 +27,7 @@ const fileRecordSchema = z.object({
     mtime_ms: z.number(),
     path: z.string().min(1),
     revision_id: z.string().min(1),
+    seen_head: z.string().min(1).optional(),
     sha256: z.string().regex(/^[a-f0-9]{64}$/u),
     size_bytes: z.number().int().nonnegative(),
 });
@@ -40,6 +41,10 @@ const folderStateSchema = z.object({
     counters: z.record(z.string(), z.number().int().nonnegative()),
     files: z.record(z.string(), fileRecordSchema),
     openPush: z.string().min(1).nullable(),
+    pendingCreates: z.record(
+        z.string(),
+        z.object({ request_id: z.string().min(1), sha256: z.string().min(1) })
+    ),
     retired: z.record(z.string(), z.string()),
     version: z.literal(1),
 });
@@ -50,6 +55,7 @@ const emptyState: DriveFolderState = {
     counters: {},
     files: {},
     openPush: null,
+    pendingCreates: {},
     retired: {},
     version: 1,
 };
@@ -70,16 +76,32 @@ export async function openFolderState(layout: DriveFolderLayout) {
         current: () => state,
         record: (record: DriveFileRecord) => {
             const { [record.path]: _revived, ...retired } = state.retired;
-            return persist({ ...state, files: { ...state.files, [record.path]: record }, retired });
+            const { [record.path]: _resolved, ...pendingCreates } = state.pendingCreates;
+            const files = { ...state.files, [record.path]: record };
+            return persist({ ...state, files, pendingCreates, retired });
         },
         forget: (path: string) => {
             const forgotten = state.files[path];
+            const { [path]: _resolved, ...pendingCreates } = state.pendingCreates;
             if (!forgotten) {
-                return Promise.resolve();
+                return path in state.pendingCreates
+                    ? persist({ ...state, pendingCreates })
+                    : Promise.resolve();
             }
             const { [path]: _forgotten, ...files } = state.files;
             const retired = { ...state.retired, [path]: forgotten.revision_id };
-            return persist({ ...state, files, retired });
+            return persist({ ...state, files, pendingCreates, retired });
+        },
+        notePendingCreate: (path: string, create: { request_id: string; sha256: string }) =>
+            persist({ ...state, pendingCreates: { ...state.pendingCreates, [path]: create } }),
+        markSeen: (path: string, head: string) => {
+            const record = state.files[path];
+            return record && record.seen_head !== head
+                ? persist({
+                      ...state,
+                      files: { ...state.files, [path]: { ...record, seen_head: head } },
+                  })
+                : Promise.resolve();
         },
         advance: (areas: DriveFolderArea[], counters: DriveAreaCounters) =>
             persist({ ...state, areas, counters }),

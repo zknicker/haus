@@ -71,3 +71,5 @@ export const driveErrorResponseSchema = z.looseObject({
     error: z.string().optional(),
     message: z.string().optional(),
 });
+
+export const driveHeadResponseSchema = z.looseObject({ artifact: revision });
