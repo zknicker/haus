@@ -1,1050 +1,304 @@
 ---
-summary: Provider-hosted Cloud Agents (Cursor and Claude) as Agent-delegated work attached to a Task, stored as a standalone record that reports to its Task, read through stored pull request readings, and executed through Computer-local provider access.
+summary: Cloud places for Workers. How a Worker runs on `cursor` or `claude`, carried by a Computer that holds the provider login. Covers the provider boundary, turns on a hosted run with rules inlined in the brief, follow-up delivery and stalls, reports taken from the provider's result, the Claude adapter (sign-in, environment pin, monitoring, status mapping), Cursor readiness and the Cursor adapter, the per-provider model setting, and provider settings and usage.
 read_when:
-  - adding or changing Cloud Agent tools, providers, lifecycle, cards, results, or completion delivery
-  - changing how cloud work attaches to a Task, the `CLOUD_AGENT_TASK_REQUIRED` refusal, or where Run notices land
-  - changing pull request readings, the GitHub refresher, or the pull request change wake
-  - changing Cloud Agent work links, who may see Cloud Agent work, or what survives Chat deletion
-  - changing Cursor runtime discovery, Cursor Cloud Agent authentication, or Cursor usage reporting
-  - changing the Claude Cloud Agent adapter, its Claude Code sign-in, polling, or status mapping
-  - changing the Claude cloud environment pin, its fail-fast validation, or where it surfaces
-  - changing the default Cloud Agent provider, the `--provider` flag, or the `pending_input` Run status
-  - changing the Cloud Agent model setting, the per-provider model, the Cursor model catalog, or the model a Run requests
-  - changing typed Message bodies, the `agent-created` body, or record-backed Message rendering
-  - changing the freshness hold on `haus cloud-agent start` or the start response union
-  - deciding whether delegated work belongs to a Haus Agent, Harness subagent, Task, or provider-hosted Cloud Agent
-  - adding a field to the cloud-agent work record and keeping an unupgraded Computer working against it
+  - changing the `cursor` or `claude` Worker place, a provider adapter, or the provider boundary
+  - changing how a cloud Worker's report is derived from the provider result, or the `Haus-Outcome` line
+  - changing cloud follow-up delivery, stalls, or the Run tag
+  - changing the Claude adapter, its sign-in, environment pin, polling, or status mapping
+  - changing Cursor readiness, Cursor authentication, the Cursor SDK pin, or Cursor usage reporting
+  - changing the cloud model setting, the Cursor model catalog, or the model a turn requests
+  - looking for the former Cloud Agents spec (its contract is now specs/workers.md)
 ---
 
-# Cloud Agents
+# Cloud places
 
-Cloud Agents let any Haus Agent delegate bounded development work to a provider-hosted agent.
-The delegating Agent starts the work on a Task, receives completion through its inbox, inspects
-the result, and reports in the Task. Cursor and Claude are the providers.
-[ADR 0053](../docs/adr/0053-channels-and-tasks-are-the-only-places.md) decides where the work
-lives; [Tasks](tasks.md) owns the Task side.
+`cursor` and `claude` are [Worker](workers.md) places that run on a provider's hosted agent instead
+of a Haus Computer. Everything provider-neutral, including the record, the CLI, reports, follow-ups,
+stop, supervision, the card, and pull request readings, is in [Workers](workers.md). This spec
+covers what differs on a cloud place.
 
-## Product contract
+This file was the Cloud Agents spec. ADR 0056 made cloud agents Workers. The durable work record
+and pull request readings moved to [Workers](workers.md#record) and
+[Pull request readings](workers.md#pull-request-readings).
 
-- **Agent CLI verbs.** `haus cloud-agent start`, `send`, `inspect`, and `stop` are the Agent
-  surface, not a harness tool, because the Agent CLI is an Agent's only output channel
-  (ADR 0014). Every supported execution runtime may call them; the caller does not need to be a
-  Cursor-backed Agent. `start` takes `--task <KEY-n>`, `--repo`, an optional `--ref`, an optional
-  `--provider`, `--title`, an optional `--cause`, and `--say` — the Agent's own words, which
-  become the launch Message content — with the provider instructions on stdin.
-  `send --work <workId>` takes another prompt on stdin and continues the same hosted agent
-  (it is also how the Agent answers a `pending_input` question);
-  a busy agent queues it, and `--interrupt` stops active work and discards older queued prompts
-  before processing it.
-  `inspect` lists the caller's work, or reads recorded details with `--work <workId>`.
-  `stop --work <workId>` requests cancellation. The published `cancel` spelling remains a CLI
-  compatibility alias for existing callers.
-- **The work record tolerates fields an older Computer predates.** Computers do not
-  auto-upgrade, so a field this spec's work record gains later must reach an unupgraded Computer
-  without breaking `start`, `send`, `inspect`, or `stop`. [Haus CLI §8](haus-cli.md#8-server-api-apiagent)
-  has the rule and names `cloud-agent-work-response-schema.ts`, the Computer-side tolerant parser.
-- **Provider-neutral capability.** `cursor` and `claude` are the providers
-  (`packages/haus-api/src/cloud-agent-provider.ts`), and every Computer ships both adapters. Each
-  Computer keeps a local default provider in `${dataRoot}/cloud-agents.json` (`{ defaultProvider }`),
-  Cursor until a human changes it from Computer settings (**Make default** on a provider row, the
-  `make-default` capability operation behind `cloudAgentProvider.makeDefault`). Capability state
-  and the Computer inventory report `isDefault`. `haus cloud-agent start` uses that default unless
-  the Agent passes `--provider cursor|claude`.
-- **Agent-held repository context.** The Agent supplies the repository, starting ref, title,
-  instructions, and any other provider input it knows. Haus adds no repository registry.
-- **Work attaches to a Task.** Every launch names a Task (`cloud_agent_work.task_id`). A launch
-  without one, or naming a Task the Agent cannot reach (no Chat yet, or a Channel the Agent has
-  not joined), is refused with `CLOUD_AGENT_TASK_REQUIRED` before anything is written, and the
-  refusal says to start a Task first (`cloud-agents/cloud-agent-launch-task.ts`). A Task can hold
-  several cloud agents or none.
-- **Standalone work, linked from Messages.** Cloud Agent work is still its own Agent-owned record
-  ([ADR 0044](../docs/adr/0044-cloud-agent-work-is-referenced-not-embedded.md)). Messages link it
-  with the `cloud-agent://<workId>` rich reference. See [Links](#links).
-- **The launch Message posts in the Task.** Launch posts one ordinary `text` Message in the Task's
-  Chat. Its immutable `content` is the Agent's `--say` words followed by a blank line and a
-  Server-written link to the new work. The Task's conversation is where people steer and discuss
-  the work.
-- **One card, on the Task page.** The Task page's attached-work panel shows one card per work,
-  with the newest Run's summary in full. The card updates from queued or running into a terminal
-  report without automatic progress or completion Messages.
-- **Inbox completion.** Every settled provider run, including one that stopped to ask a question
-  (`pending_input`), creates at most one durable inbox attention for the delegating Agent, in the
-  Task. Completion does not keep the launch turn open. The resumed Agent owns any follow-up and
-  reports in the Task; a plain send in that turn goes there. Cloud Agent instructions explain the
-  automatic wake, so the Agent needs no reminder or polling to learn when the work finishes.
-- **Pull request changes wake the Agent.** A pull request becoming ready for review or its checks
-  finishing after the newest Run settled wakes the delegating Agent with a `pull_request` notice.
-  See [Pull request readings](#pull-request-readings).
-- **Provider-hosted lifecycle.** Cloud Agent work may outlive a turn, App session, or Computer
-  connection. Computer reconciles provider state after reconnect and reports bounded observations
-  to Server idempotently.
-- **Truthful launch failures.** Invalid input, unavailable capability, and missing authorization
-  fail before creating a Message. Once Server accepts and records a launch, a definite provider
-  refusal settles the same card as failed. Any launch error settles the recorded Run as failed and notifies its delegating Agent.
-  Provisioning has a five-minute deadline. Replaying that request never launches another run.
+## The carrier
 
-Computer journals launch intent and acknowledged provider IDs in its private data directory,
-without credentials. Pending follow-ups retain their instructions and preceding Run IDs in a
-Computer-local file with mode `0600`, so reconciliation can resume the queue after restart.
-Instructions are removed once launched, cancelled, or refused and never reach Server.
-Reconnect recovers acknowledged IDs even if their Server report
-was lost. An intent without an acknowledgement stops at its recorded launch deadline, or immediately on
-cancellation. A legacy intent with no deadline stops when reconciled. The daemon owns monitoring, retry delays and cancellation retries.
-Disconnect joins local monitoring without cancelling the hosted run.
+A cloud Worker's provider login lives on a Computer, never on the Server. Each cloud Worker has a
+carrier Computer, chosen once at start ([Places](workers.md#places)). The carrier runs the provider
+adapter for that Worker: launch, follow-ups, monitoring, stop, and reconciliation. Provider prompts
+in flight, credentials, raw transcripts, and hosted workspace files stay on the carrier or with the
+provider.
 
-Cursor SDK 1.0.30 has a pinned Bun patch bounding otherwise unbounded finite fetches to 30 seconds
-per request. Streams retain their caller-owned abort signal. The adapter joins local stream disposal;
-sequential SDK requests can take longer than one deadline. Recheck the patch and internal stream
-disposal bridge on SDK upgrades, and remove them when the public SDK supports bounded requests
-and abortable, joined subscriptions. Installed-SDK tests cover both contracts.
+The carrier journals launch intent and acknowledged provider ids in its private data directory,
+without credentials. Reconnect recovers acknowledged ids even when their report to the Server was
+lost. An intent without an acknowledgement stops at its five-minute launch deadline, or at once on
+stop. Disconnecting joins local monitoring without stopping the hosted run. While the carrier is
+offline the Worker reads **Status unconfirmed**. On reconnect the Server pushes reconcile frames, at
+most 200 entries each, naming every unsettled turn the carrier holds and any stop recorded while it
+was offline. Removing the carrier settles its cloud Workers' unsettled turns as failed
+`machine-removed`, with the provider URL kept so the Agent can still look.
 
-Cloud Agent work is not a Task. It has no assignee, claim, priority, label, or state of its own;
-it is attached work that reports to one. The Task's state belongs to the Agent and the humans on
-it: a merged pull request never closes the Task, and the Agent sets it `done` when the work is
-done.
+## The provider boundary
 
-## Automatic wakes in Automations
+`CloudProvider` (today `CloudAgentProvider` in `apps/computer/src/cloud-agents/`) is the whole
+provider interface: `readiness()`, `start()`, `read()`, `subscribe()`, `cancel()`, plus `connect()`
+and `disconnect()` for the credential the others depend on. Everything above it is provider-neutral.
+Everything below it, including credentials, prompts, and raw status mapping, belongs to the
+adapter. An in-memory fake with scripted transitions covers the whole path without a provider
+account.
 
-An Agent's Automations page includes **Cloud agents**, marked **Managed by Haus**. These
-rows are a read-only projection of visible, Agent-owned work and its per-Run inbox identities;
-no Trigger is created, so there is no separate trigger lifecycle to reconcile or clean up.
+The Server checks the carrier's reported readiness at start, so an unavailable provider writes
+nothing. Once the Server has recorded a turn, a definite provider refusal settles it failed
+`launch-refused`, and a launch that never confirms settles failed at its five-minute deadline.
 
-- Queued/running work remains current while its automatic completion notification is possible.
-  Offline or stale tracking reads **Status unconfirmed**, with its last update.
-- Any unsettled `cloud_agent_work` inbox identity keeps the work current as **Result queued**,
-  including an older Run's handoff while a follow-up runs. A result is delivered when its
-  identity reaches `seen`, after the Agent turn settles successfully, not merely when offered.
-- Delivered work moves to history. Retired Agents, removed tracking Computers, and deleted
-  requesting conversations move impossible future notifications to history with an explanation.
-  The recorded provider lifecycle is preserved; loss of tracking never fabricates a terminal state.
-- Current rows are unbounded by history; history reads the latest 100 records. Visibility follows
-  existing work links, and row navigation opens the work's Task, including for settled work.
-- Reassignment of the Haus Agent does not change the work's launching Computer or delegating Agent.
-  Computer reconnection retains the existing provider reconciliation and durable, per-Run deduplication.
-- Work observations, Chat deletion, Computer/Agent changes, and Agent turn settlement refresh the
-  projection through existing event owners. Stream recovery refreshes it without a polling loop.
+## A turn on a cloud place
 
-## Messages and cards
+The Server composes the turn's input ([What a Worker reads](workers.md#what-a-worker-reads)). For a
+cloud place, the rule files are inlined into the provider prompt, because a cloud Worker has no
+drive folder. The Haus Worker instructions for a cloud place add two things:
 
-A Message is the only Chat transcript item. Every Message has stable identity, authorship,
-conversation placement, sequence, and meaningful immutable content. A typed body augments that
-content; it never replaces the Message's authored meaning.
+- end each commit with `Haus-Task: <KEY-n>`, as on a Computer;
+- end the final message with a `Haus-Outcome:` line ([Reports from the provider](#reports-from-the-provider)).
 
-```ts
-type MessageBody =
-    | { kind: 'text' }
-    | { kind: 'agent-created'; agent: CreatedAgentSummary };
+A cloud Worker cannot call `haus worker report`. No Haus credential, hook, or callback runs inside
+the provider's environment.
 
-type Message = {
-    id: string;
-    chatId: string;
-    author: MessageAuthor;
-    sequence: number;
-    createdAt: string;
-    content: string;
-    body: MessageBody;
-    attachments: Attachment[];
-    claim?: MessageClaim;
-    /** Every Cloud Agent work this Message links and the viewer can see, in link order. */
-    cloudAgentWork: CloudAgentWork[];
-};
+Each prompt's first line is a Run tag, `HAUS_CLOUD_RUN=<workerId>/<turnId>`. The adapter uses it to
+find its own prompt in the provider's session log.
+
+### Reports from the provider
+
+A cloud turn's report comes from the provider's result. The adapter takes the final result text
+and reads its last lines:
+
+```text
+Haus-Outcome: needs-you
+Haus-Person: @zach
 ```
 
-Haus has no question body. An Agent asks a person by @mentioning them in an ordinary `text`
-Message ([ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)).
+| Provider result | Report |
+| --- | --- |
+| Finished, with `Haus-Outcome: done`, or with no `Haus-Outcome` line | `done` |
+| Finished, with `Haus-Outcome: needs-you` | `needs-you`, the text as its ask, `Haus-Person` as its person when the Server accepts it |
+| Finished, with `Haus-Outcome: failed` | `failed` |
+| Stopped to ask a question (Claude `requires_action`) | `needs-you`, the question as its ask, no person |
+| Error with result text | `failed` |
+| Error with no result text | No report, failed `provider-error` |
+| Expired | No report, failed `provider-expired` |
+| Cancelled by Haus | `stopped` |
 
-Body kinds name concrete Haus product acts, not generic mechanisms, rendered entities, or
-providers. Haus has no generic `prepared-action`, `cards[]`, or arbitrary JSON-block body. Agent
-creation uses `agent-created`. Delegated hosted work has no body kind: it is a record that `text`
-Messages link, and the provider is a field on that work. A pull request becomes a Message body
-only when a real workflow needs to author a pull-request Message independently.
+The `Haus-` lines are removed from the posted text. A `Haus-Person` the Server refuses leaves the
+ask for the Agent, and the Agent's inbox item says so. The text is clipped at 8,000 characters for
+the report. The full result, up to 64 KiB, stays on the turn as provider evidence, and
+`haus worker inspect --worker <id> --report` prints it. Branches and pull request URLs the provider
+reports become the report's pull requests.
 
-A card is presentation, not a durable noun. It owns no id, placement, lifecycle, authorization, or
-data. Haus App renders a Cloud Agent work card from the Task's `attachedWork` (`task.get`). A
-Message's `cloudAgentWork` annotation, which the Server projects from its recorded links, still
-names the work it links; in the transcript a link reads as a reference, not a card.
+A needs-you report from a provider question is answered with `haus worker send`, which is an
+ordinary follow-up turn. A person answering directly in the provider's own UI is not observed.
 
-Elapsed time uses the provider's Run creation timestamp when available, including after Computer
-reconnects. Observation timestamps track reporting freshness, not when hosted work began. A later
-provider reading can correct an earlier first-observed start; providers without a Run timestamp
-retain the first non-queued observation as the fallback. Claude's Run timestamp is when the session
-logged Haus's prompt. The job-state chip times the whole job from its first Run's start, so a
-follow-up never resets it; the follow-up note times the follow-up on its own.
+## Follow-up delivery
 
-**One card, on the Task page.** The Task page's attached-work panel, to the right of the
-conversation with no dividing border, shows one card per attached work, newest first, followed by
-each attached pull request no card already names and the Task's pending reminders
-(`features/tasks/work/task-work-panel.tsx`). Below the card's control band sits the newest Run's
-summary in full. Where the card names the delegating Agent, as in the follow-up note, it reads the
-work's `agentId`. Every work action sits inline in the card's control band. The card is
-presentation derived from the work record, never a Chat row, and nothing on it is named after any
-one provider. It has four parts and one type size (weight and color carry the hierarchy):
+A follow-up on a cloud place is sent to the same hosted agent. Each send uses the turn id as the
+provider idempotency key, so a retry after a lost answer never starts a second provider run.
 
-1. **Header** — the provider's own mark, the title with a job-state chip, and the repository.
-2. **Pull request row**, once a Run reports one — `PR #<n>`, the pull request's own state
-   (Draft, Open, Merged, Closed), checks, review, and files changed, from the work's stored
-   `pullRequest` reading, else the Run's own snapshot. The newest Run that reported a pull request
-   supplies it, so a follow-up Run that has not reported yet never hides it.
-3. **Exactly one status line**, always present, one line, truncated. The most urgent fact wins:
-   the failure reason (danger: the failed Run's summary, else its error code); `No update in <d>`
-   (warning) when the newest Run is queued or running and the work's `updatedAt` is older than ten
-   minutes (an observation from any of the work's Runs advances `updatedAt`, so an earlier Run
-   still reporting while a follow-up waits keeps the work fresh); `Stopping · requested <relative>` while a cancel is pending; the follow-up note
-   `<Agent> asked for changes · waiting <d>` or `· running <d>`; otherwise the latest `activity`
-   or `Updated <relative>` while working, `Updated <relative>` (muted, `settledAt` else `updatedAt`) when the job
-   needs input, `Finished <relative>` when done, and
-   `Cancelled · <relative>` or `Expired · <relative>` when the job was cancelled or expired.
-4. **Actions**, always present — **View PR** first once there is a pull request URL, then a split
-   button whose primary half is **Open in `<provider>`** and whose chevron holds Copy link, plus
-   Cancel run for Owners and Admins while a Run is live. There is no restart action.
+- **Cursor** takes one active run per hosted agent. The carrier sends a follow-up only after every
+  earlier turn is settled in any way. Waiting behind a run Cursor still reports running has no
+  deadline, because Cursor expires runs itself.
+- **Claude** takes a new prompt while a turn runs, the way local Claude Code does. The carrier
+  sends a follow-up as soon as the turn ahead of it was sent. A merged turn that answers both
+  prompts settles both turns from the one result, each with its own report and inbox item.
 
-**Job state mirrors the provider.** The chip states the Server-derived `job` (`deriveCloudAgentJob` in
-`packages/haus-api`): the provider's own status for the newest Run the provider has received (the
-Run carries a `providerRunId`), with no Haus logic layered on top. `Starting · <elapsed>` until the first Run leaves its queue, then `Working · <elapsed>` with HeroUI's
-spinner for CREATING or RUNNING, `Done · <duration>` in success for FINISHED (pull request merge
-state stays on the pull request row), `Failed` in danger for execution ERROR, `Stopped` for a launch failure or CANCELLED, and `Expired`
-muted for CANCELLED or EXPIRED, and `Needs input` in the warning tone for a Run that stopped to
-ask a question (Claude only; see [Claude provider](#claude-provider)). The card never shows the
-question: it is for the delegating Agent, which the inbox wakes to answer it, and a person who
-wants it opens the session in the provider. Once that answer is sent, the follow-up note replaces
-the `Updated <relative>` line, so the card keeps the same rows across every state. A follow-up still in Haus's local queue is not a provider Run yet:
-it never moves the headline and only shows as the follow-up note, so one cancelled before delivery
-leaves a done job Done, while one cancelled after delivery reads Stopped. `Queued` is never a
-headline: a first Run not yet received or still queued reads Starting.
-The Inbox's Happening now list shows only live work, so a job listed there only because a
-follow-up waits behind a settled Run reads `Follow-up waiting · <d>` with the working spinner. Because the status line never appears or disappears, the card
-changes height only when the pull request row first appears.
-Several Cloud Agents may run on one Task. Meaningful result announcements are new Messages in the
-Task; work observations update existing records rather than posting chatter.
+A failed send is classified by the adapter.
 
-Only status glyphs, the card's job-state chip, and the status line's danger and warning tones carry
-lifecycle color. Liveness reads from the work's own `updatedAt`, never from Computer connection
-state.
-iOS opens a Task as a chat with a small attached-work header built from the same `job` and
-status-line priority ([docs/internals/ios.md](../docs/internals/ios.md)). **Open in `<provider>`**
-there is a bordered button beside a chevron `Menu` rather than a split button, and Working uses the
-native indeterminate `ProgressView`. Copy link builds the App link from the configured Server
-origin, which is the App origin in production.
+- **Definite refusal.** Authentication, unknown agent, invalid input, or another 4xx except 408,
+  409, 425, and 429. The turn settles failed `launch-refused` with the provider's message.
+- **Retryable.** Those four statuses, 5xx, network, or SDK unavailable. The carrier retries with
+  backoff from 5 seconds, doubling to one minute, and journals attempts with the pending turn. A
+  busy provider never fails a turn. After two minutes of failures the carrier asks the provider to
+  interrupt whatever holds the session and retries once. If that also fails, the turn stays
+  `queued`, reports `stallCode: followup-auto-interrupt-failed` on every retry, and keeps retrying.
 
-Server has one Message reader that projects authors, attachments, Tasks, typed bodies, and linked
-Cloud Agent work for every consumer: Chat history, search, send receipts, Agent delivery, web, and
-iOS. Clients do not join feature records into the transcript or infer a body kind from optional
-top-level fields.
+While a follow-up waits, the carrier reports the turn `queued` with an `activity` line naming why.
 
-## Canonical representation and migrations
+A turn the Server recorded that the carrier never journaled never reached the provider. The
+carrier settles it failed `launch-refused` after a two-minute grace window, or `stopped` at once
+when stopped. A late acknowledgement cannot replace that settlement, and the carrier asks the
+provider to cancel the late run.
 
-Haus stores and emits exactly one current representation for each body kind. Body payloads carry
-no per-kind schema version, and readers do not retain historical variants indefinitely.
+### Stalls
 
-- Checked-in PostgreSQL migrations rewrite obsolete stored representations before new code depends
-  on them. A failed canonical migration blocks activation rather than hiding history.
-- Haus has no production users yet. The Message canonicalization ships as one breaking release
-  with a fresh production database; there is no expand/contract window, transitional wire field,
-  or staged client cutover.
-- Unknown body kinds degrade through immutable Message `content`. This supports a client that has
-  not yet learned a kind; it is not a historical payload reader.
-- Raw provider evidence may retain the provider's own revision at the Computer adapter. Provider
-  revisions never enter the Message domain.
-
-The prerequisite Message migration:
-
-1. Adds `body_kind` to `chat_messages`, defaulting existing Messages to `text`.
-2. Renames the Agent-creation domain, tables, routes, events, shared contracts, App and iOS types,
-   and documentation away from the legacy generic action terminology.
-3. Backfills Agent-creation Message rows and replaces historical empty content with Agent-authored
-   content. Agent-creation and Cloud Agent tools require Agent-authored Message content.
-4. Introduces the exhaustive `Message.body` contract and one Server Message reader, and deletes
-   the old top-level proposal field in the same change.
-5. Moves web and iOS to the body union and removes every client-side empty-content or copy
-   fallback.
-
-Cloud Agent work lands only after this pipeline is canonical so it cannot copy the empty-anchor
-pattern.
-
-Migration `0079_cloud_agent_work_links` moved Cloud Agent work to links (ADR 0044). It rewrote
-every `cloud-agent-work` Message into a `text` Message whose content ends with its work's link,
-recorded that link, and dropped the work's foreign keys to its Message and Chat. Migration
-`0080_message-body-drop-cloud-agent-work` then narrows `chat_messages.body_kind` to `text` and
-`agent-created`.
-
-## Durable Cloud Agent work
-
-Server stores one lifecycle-rich `CloudAgentWork` record for each delegation. The work owns its
-delegating Agent, provider Runs, and mutable execution state. Messages own authorship and Chat
-placement and point at the work through links. The
-[Run lifecycle](cloud-agent-run-lifecycle.md) owns Run transition rules.
-
-```ts
-type CloudAgentWork = {
-    id: string;
-    messageId: string; // the launch Message: a historical pointer, stored as `launch_message_id`
-    chatId: string; // the requesting Chat: a historical pointer, no foreign key
-    taskId: string | null; // the Task it reports to; null only for work from before ADR 0053
-    agentId: string;
-    computerId: string;
-    provider: 'cursor' | 'claude';
-    providerAgentId: string | null;
-    providerUrl: string | null;
-    title: string;
-    repository: string;
-    startingRef: string | null;
-    status: 'queued' | 'running' | 'pending_input' | 'completed' | 'failed' | 'cancelled' | 'expired';
-    startedAt: string | null;
-    terminalAt: string | null;
-    cancelRequestedAt: string | null;
-    cancelRequestedBy: { kind: 'agent' | 'user'; id: string } | null;
-    activity: { summary: string; at: string } | null;
-    runs: CloudAgentRun[];
-    /** Server-derived from `runs`: how the whole job reads, never `queued`. */
-    job: CloudAgentJob;
-    createdAt: string;
-    updatedAt: string;
-};
-
-type CloudAgentFollowUp = { state: 'waiting' | 'running'; since: string };
-
-// The state is the provider's status for the newest Run it has received (`providerRunId` set),
-// else the first Run's; a waiting or live newest Run that is not the work's first is the
-// follow-up. `startedAt`/`settledAt` belong to the Run the state comes from.
-type CloudAgentJob =
-    | { state: 'working'; startedAt: string | null; followUp: CloudAgentFollowUp | null }
-    | { state: 'pending-input'; question: string | null; startedAt: string | null; settledAt: string | null; followUp: CloudAgentFollowUp | null }
-    | { state: 'done'; startedAt: string | null; settledAt: string | null; followUp: CloudAgentFollowUp | null }
-    | { state: 'failed'; summary: string | null; errorCode: string | null; settledAt: string | null; followUp: CloudAgentFollowUp | null }
-    | { state: 'cancelled' | 'expired'; settledAt: string | null; followUp: CloudAgentFollowUp | null };
-
-type CloudAgentRun = {
-    runId: string;
-    providerRunId: string | null;
-    status: 'queued' | 'running' | 'pending_input' | 'completed' | 'failed' | 'cancelled' | 'expired';
-    rawStatus: string | null;
-    createdAt: string; // when the Run was queued
-
-    startedAt: string | null;
-    terminalAt: string | null;
-    summary: string | null; // capped at 2000 characters: the head `report` was cut from
-    report: { clipped: boolean; text: string } | null; // the full report, capped at 64 KiB
-    errorCode: string | null;
-    branches: {
-        repository: string;
-        branch: string;
-        pullRequestUrl: string | null;
-        pullRequest: {
-            number: number;
-            state: 'draft' | 'open' | 'merged' | 'closed';
-            changedFiles: number;
-            additions: number;
-            deletions: number;
-            observedAt: string;
-        } | null;
-    }[];
-    usage: { inputTokens: number; outputTokens: number; costUsd: number | null } | null;
-};
-```
-
-One work may contain several provider Runs. A follow-up, correction, or retry adds a Run to the
-same work, reactivates the same surface, and preserves earlier Run outcomes for inspection. A
-substantively separate assignment creates a new launch Message and Cloud Agent work record. Cursor permits
-only one active Run per provider Agent; Computer queues accepted follow-ups until preceding work
-settles. `send --interrupt` stops active work and discards older queued prompts before the follow-up
-runs. `stop` stops active work and discards the pending queue. Follow-up delivery never retries
-silently forever; see [Follow-up delivery](#follow-up-delivery). Revisions reuse
-the same Work ID and Task.
-A cancelled Run cannot resume, so continuing after cancellation creates another Run in the same
-work and retains the cancelled Run's partial evidence. `runs` is ordered newest first and is bounded
-at twenty; the work keeps recent Runs for inspection rather than an unbounded execution history.
-Each accepted follow-up adds a Run to the existing work without creating another Message or Task.
-
-**Summary and report (TECH-8).** `summary` is a capped head (2000 characters), the one short result
-the inbox attention and the chat card show inline. `report` is the full text it was cut from,
-capped separately at 64 KiB (`clipped` marks whether even that cap was hit); it is `null` until a
-Run observes one. The Computer derives both from the same source text, so `summary` is always a
-truncated-consistent prefix of `report.text`, never an independently cut sibling that can drift
-from it. For the Claude provider, the window's first `result` log entry is always the Run's own
-answer to its own prompt; any later one is a turn Claude Code started on its own (a
-self-started/adopted turn) and is never treated as the report. The inbox attention's
-`hasFullReport` is `true` exactly when the stored report is longer than the stored summary, so a
-reader knows there is more before fetching it; `haus cloud-agent inspect --work <id> --report`
-prints that Run's full `report.text` verbatim, with a trailing `[clipped at 64 KiB]` marker line
-when `clipped` is true. `GET /api/agent/cloud-agents` only ever sends a Run's full `report` on a
-single-work fetch (`workId` set); a routine list-all call (`workId` absent) nulls it out, so
-polling the list never embeds a potentially-64-KiB blob per Run.
-
-`pending_input` is settled, like `completed`: the cloud agent stopped to ask a question and the
-Run's `summary` is that question. It creates the same one `cloud_agent_work` inbox attention as any
-settled Run, so the delegating Agent wakes once, and the inbox item tells it to answer with
-`haus cloud-agent send --work <workId>`. The answer is an ordinary follow-up Run. The derived job
-reads `pending-input` with the `question`; while the answer has not been taken by the provider (no
-`providerRunId` yet) the job still reads pending-input with the follow-up waiting. Active work
-(`cloudAgentWork.listActive`, Happening now) includes `pending_input`.
-
-`activity` is one bounded line of at most 120 characters. Computer may update it from provider
-events no more than every few seconds. It is the work's current state in a sentence, never a
-transcript, and it yields to the latest Run summary once the work settles.
-
-`branches` and `pullRequestUrl` are Cursor's own terminal Run report, retained as evidence. Haus
-stores no branch entity, and a reported pull-request URL claims no ownership of GitHub lifecycle. The
-work's `pullRequest` is the Server's live reading of that pull request, kept current by GitHub webhooks
-([Pull request readings](#pull-request-readings)), and the card's pull request row prefers it
-over the Run's frozen snapshot.
-
-`pullRequest` is the Computer's own reading of that URL, and it is evidence on the Run for exactly
-the same reason. Cursor's API carries no diff statistics, so the Computer reads
-`GET https://api.github.com/repos/{owner}/{repo}/pulls/{n}` when an observation names a GitHub pull
-request, caching completed reads for 30 seconds, under one four-second deadline covering credential
-discovery, response consumption, and one retry on a 5xx. A failed read does not fail the Run; it
-reports without a snapshot after the bounded wait.
-The read happens before the observation is reported, because Server settles a Run on
-its first terminal observation and evidence arriving after that is correctly ignored. Server merges
-by `observedAt`: a report carrying no snapshot never erases a recorded one, a newer reading replaces
-an older one, and a settled Run stays final. The credential is the Computer's own: it asks the
-locally installed `gh` CLI for the token the human already signed in with, cached per attachment
-daemon and held in memory without being logged, stored, or reported to Server. The daemon owns
-the reader and its Effect deadline; cancellation aborts and joins the HTTP request, kills and
-reaps any credential subprocess, and suppresses the detached observation. Cancellation does not
-cache a missing credential or snapshot. A Computer without `gh` reads public pull requests
-unauthenticated, and an unreadable pull request simply has no snapshot.
-
-The snapshot's consumers today are the delegating Agent's surfaces: the terminal inbox attention
-states the branch's pull-request state and diff counts, and each Message linking the work reads
-back with `pr=#<n>` wherever messages are shown. The work card's pull request row shows `PR #<n>`, its state,
-and files changed, additions, and deletions when GitHub evidence is available. Missing evidence
-does not become a fabricated zero-line diff.
-
-A cancel request records `cancelRequestedAt` and `cancelRequestedBy` on every live Run and sends a
-cancel frame for each. A later follow-up keeps those requests, and the work reads them from its
-newest Run, so the presentation reads as cancelling until that Run settles. Inside Haus every hop is push: Computer reports
-observations over the attachment protocol, Server emits the durable event, and the App refetches
-the Message. Reconnect follows the same direction — Server pushes `cloud-agent-reconcile` frames
-of at most 200 entries naming every non-terminal Run that Computer still owns, including preceding
-Runs hidden by the bounded card history, along with any cancel recorded while it
-was offline, rather than adding a Computer-authenticated read. Only the provider edge pulls. Computer subscribes to Cursor's per-Run event stream
-while a Run is active and treats polling as reconciliation: a Run read every 5 seconds only while
-no stream is attached, backed off to 60 seconds after a provider failure, one full Run read on
-reconnect or restart, and nothing further once the Run is terminal.
-
-### Links
-
-`cloud_agent_work_links` records every link: one row per `(Message, work)` with the link's
-first-occurrence `ordinal` in the content. A row cascades from both its Message and its work, so
-losing a Message loses its links and never the work. The work's `chat_id` and
-`launch_message_id` (wire `chatId` and `messageId`) are plain historical pointers to the requesting
-Chat and launch Message, with no uniqueness, foreign key, or cascade. Purging the requesting
-Channel leaves the work and its other links intact. `computer_id` (wire `computerId`) is the same
-kind of pointer, so removing a Computer keeps its work, Runs, and links: live work there simply
-stops updating and reads as quiet, and cancel or follow-up refuses with `CLOUD_AGENT_COMPUTER_REMOVED`.
-
-Every Message writer resolves links at the Message boundary, in the transaction that inserts the
-Message: human send, Agent `haus message send`, and launch. Each
-`cloud-agent://` link is kept only when the work exists and the author can already see it; any
-other link is rewritten to its plain label text, so a link grants nothing on its own. Duplicates
-collapse to the first occurrence. Humans and Agents may both link; Agents copy the `Link:` line
-that `haus cloud-agent start` and `inspect` print rather than building one. A nonce replay
-rebuilds the expected content from the links recorded on the original Message, not from current
-authorization, so an identical retry stays idempotent and different content under the same nonce
-still conflicts.
-
-**Launch.** Creation is one Server transaction that writes the launch Message in the Task's Chat,
-the work with its `task_id`, its first Run, and every link row. The launching Agent follows the
-Task, so human posts there wake it. The start receipt names the Task target (`task:SEC-12`). Only
-the `--say` text is authored. The Server appends `\n\n` and the new work's link itself, outside
-the authorization path, as the Message's last link. Authored content stays capped at 32,000
-characters; stored content may exceed that by the generated link.
-
-**Start returns once recorded.** `haus cloud-agent start` returns its receipt as soon as Server has
-recorded the work and the Computer has claimed its first Run. The provider launch, including any
-repository checkout, finishes afterwards in the Computer's launch scope, which shutdown waits for.
-Its outcome lands on the work: the provider's address once it confirms, or a failed or cancelled
-Run whose inbox notice reaches the delegating Agent like any settled Run. A launch that never
-confirms settles at its five-minute launch deadline. Waiting on the provider inside the command let
-a slow launch outlive the command's timeout, and the Agent read that as a failure and launched the
-same work again. The receipt says the work is launching, never that it started.
-
-**Visibility.** A viewer may see Cloud Agent work when they can read a live Message that links it:
-the linking Chat, and a Task Chat's origin Channel, are not tombstoned, and the viewer can read
-that Chat by the canonical rule (a human also needs an active Server membership). The delegating
-Agent always sees its own work. One predicate (`cloud-agents/cloud-agent-work-visibility.ts`)
-answers this for link authorization, Message annotations, the Task's attached work,
-`cloudAgentWork.listActive`, and event delivery.
-
-**Completion target.** A settled Run's inbox notice goes to the work's Task Chat while that Chat
-and its origin Channel are live. Once it is deleted, the work settles without a notice. The notice
-is never retargeted to a later link.
-
-A launch posts a Message, so it passes the same freshness hold as `haus message send`, inside the
-creation transaction. When the Task's Chat has newer human or other-Agent
-messages this run has neither seen nor been served, `POST /api/agent/cloud-agents` returns
-`{ state: 'held', newMessageCount, omittedMessageCount, formalMentionCount, shownMessages }`
-instead of the `{ state: 'started', … }` receipt. A held launch creates no Message, work, or Run,
-and the Computer never asks the provider. The CLI prints the shown messages the way a held
-send does and says the launch did not start; the Agent re-runs the command when the launch still
-belongs there. There is no launch draft and no `--anyway`: the hold marks the shown messages served
-to the run (and the Computer proxy attests them like any held send), so the re-run, with any
-nonce, is not held for them again. A nonce that already committed replays its receipt before the
-check, and a held attempt writes nothing under its nonce, so a retry is never poisoned.
-
-The Server record stores provider-safe identifiers and bounded state only. Provider prompts,
-credentials, raw transcripts, tool traces, and hosted workspace files remain on Computer or with
-the provider. Safe Server observations are the provider Agent id and Run ids, normalized and raw
-terminal status, bounded result or error summary and error code, timestamps and duration, per-Run
-token and cost usage when present, the provider URL, and the Git branches and pull-request URLs
-Cursor reports. Streamed thinking, tool arguments, shell output, and interaction deltas are
-execution evidence, not collaboration state.
-
-Lifecycle changes and new links emit `cloudAgentWork.updated` once for each linking Message in a
-live Chat, carrying that Message's and the work's ids. Events notify; refetching the Message
-recovers. Cancel authority does not follow links: the delegating Agent may cancel through
-`haus cloud-agent stop`, and human Owners and Admins may cancel through `cloudAgentWork.cancel`,
-reached from the work card's control band. Rendering a card grants no action. Other participants
-ask for cancellation in the Task. Discussion and follow-up requests happen in the Task's
-conversation; the card has no reply controls of its own.
-
-### Follow-up delivery
-
-Computer delivers a queued Cursor follow-up only after every preceding Run is terminal. Waiting
-behind a Run Cursor still reports running is unbounded: hosted Runs can be long, and Cursor, which
-owns Run lifecycle, expires them itself. A predecessor that is terminal in any way — completed,
-failed, cancelled, expired, refused, or settled locally before reaching Cursor — unblocks the
-queue.
-
-**Claude never waits on a predecessor at all (TECH-7, round 4).** A hosted Claude session takes a
-new prompt the moment the one ahead of it was dispatched — exactly like a message sent mid-turn in
-local Claude Code, which is injected at the agent's next step rather than held until the running
-turn ends. Computer still only sends a follow-up *after* dispatching whatever precedes it (a
-still-`pending` predecessor still blocks, preserving delivery order), and an explicit `send
---interrupt` still clears the predecessor's own work first; short of that, Haus never middle-mans a
-follow-up behind a predecessor's turn. This replaces the round-3 `rawStatus: 'idle'` readiness
-check, which only unblocked a predecessor that had gone idle — Claude has no Run-level expiry of
-its own, so a Run whose foreground turn was genuinely still running (not just idle with an open
-background task) would have kept blocking under that check. Cursor has no equivalent capability —
-it cannot take a second prompt while a Run is active — so it keeps the original wait, unchanged.
-
-**Attribution: each follow-up stays its own Run, read from a bounded window.** Delivering
-immediately raises a bookkeeping question a waited-for predecessor never had to answer: once two
-Haus prompts can sit in the same hosted session with neither one's turn necessarily finished, which
-Run does a given piece of activity, result, or branch evidence belong to? Haus keeps every
-follow-up a fully separate Run (its own id, inbox attention, and summary — never absorbed into the
-Run it followed), and bounds each Run's own reading at the *next* Haus-tagged prompt in the session
-log (`isHausPrompt` in `session-events.ts`), not just at its own. Before this, a Run's window ran
-from its own prompt to the end of the log, which was safe only because no later Haus prompt could
-exist yet.
-
-A follow-up injected mid-turn commonly merges into one continuous turn: the session answers both
-prompts together and logs a single result after the follow-up's own prompt, not before it (TECH-7,
-round 5). The predecessor's own window never contains that result, so reading it alone would leave
-the predecessor `running` forever and its inbox attention would never fire — not a rare edge case,
-but the normal shape of a merged turn. When a Run's own window carries no result, Claude's adapter
-(`sharedTurnResult` in `observation.ts`) looks past the next Haus prompt for the turn's eventual
-result and settles the predecessor with it too, `completed` or `failed`, with a summary noting it
-continued in that follow-up and naming its Run id. Both Runs settle independently from the same
-provider result and each raises its own ordinary inbox attention; Haus does not deduplicate the two
-attentions, since they carry evidence for different Runs a human or Agent may be tracking
-separately. A Run only keeps reading `running` when nothing — its own window or any later one — has
-produced a result yet, which is exactly the state of work that is still genuinely in progress; the
-existing card-level "No update in `<d>`" liveness warning (from the work's own `updatedAt`, not from
-this reading) already covers a session that goes truly silent, so no new timer is added here.
-
-Once a predecessor is ready to send behind — terminal for Cursor, dispatched for Claude — each send
-uses the Run id as the provider idempotency key, so a retry after a lost response never starts a
-second provider Run. The Cursor adapter classifies a failed send:
-
-- **Definite refusal** — authentication, unknown Agent, invalid input, or any other 4xx except
-  request timeout (408), busy (409), too early (425), and rate limiting (429). The Run settles `failed` at once with
-  `followup-delivery-rejected` and a summary carrying Cursor's message and code. It has no
-  `providerRunId`, because Cursor never received it. A first launch refused the same way settles
-  with `provider-launch-rejected`.
-- **Retryable** — those four statuses, 5xx, network, or SDK unavailable. Computer retries with
-  backoff (5 seconds, doubling, capped at one minute) and journals the attempt count, first
-  attempt, and last error with the pending prompt, forever: a busy provider never fails the Run.
-  The clock starts at the first attempt, not at queueing. Once ready to send behind its predecessor,
-  a hosted session normally accepts a send right away even while otherwise busy (TECH-7's design
-  refinement — see the live-sessions note below); a send that still keeps failing two minutes in is
-  worth clearing the session's current work for. Computer then asks the provider
-  to interrupt whatever holds the session busy (`send --interrupt`'s own mechanism) and retries the
-  send once, right away. If that delivers, the launched observation carries a one-time note saying
-  so, and the Run proceeds normally — no deadline, no notice. If the interrupt itself fails, or the
-  retry right after it still fails, the still-`queued` observation carries `stallCode:
-  followup-auto-interrupt-failed` and a summary naming the last error, on every retry tick
-  thereafter, until the provider accepts the prompt or a human or the delegating Agent stops,
-  interrupts (`send --interrupt`), or relaunches it. This is a notice, never a failure: the Run
-  stays `queued`, the auto-interrupt is tried at most once, and Computer keeps retrying underneath
-  it.
-
-**Live sessions accept input while busy.** Claude Code's cloud sessions treat a message sent while
-the session is replying as an ordinary queued turn, not a refusal: the changelog documents this
-repeatedly (`claude.ai/code` sessions, `-p`/headless sessions, and `claude agents`'s own busy
-background sessions all accept new input mid-turn), and Haus's own adapter has no Claude-specific
-"busy" handling outside `requires_action` (`settleQuestion`). This is why the auto-interrupt above
-is a fallback, not the normal path: once a send is attempted at all, most of them just work,
-whatever else that session's worker is doing underneath.
-
-While a follow-up sits in Haus's local queue — waiting on a predecessor or between retries — Computer
-reports it `queued` with an `activity` line naming why (waiting on an earlier Run, or the attempt
-count and last error), so the work card's liveness reading and `haus cloud-agent inspect` both carry
-it instead of staying silent until it settles. Once an auto-interrupt still hasn't delivered it, the
-card's follow-up note reads `follow-up waiting: auto-interrupt failed` instead of the ordinary
-`waiting <d>` note (`job.followUp.state: 'stalled'`, `deriveCloudAgentJob` in `packages/haus-api`),
-and Server raises one inbox attention for it. A stuck follow-up keeps reporting the same `stallCode`
-on every tick, so Server dedupes repeats inside each two-hour window from the stall's start to that
-same attention and opens a fresh one each time a new window starts — one notice per stall, a sparse reminder if it is still
-stuck much later, never a flood from the 5-to-60-second retry cadence underneath it.
-
-A Run Server recorded but this Computer never journaled — the sender timed out or crashed between
-the two — never reached Cursor. Its monitor settles it `failed` with `launch-record-missing` after a
-two-minute grace window that covers an in-flight sender, or `cancelled` at once when stopped, and
-an interrupting follow-up claims it as cancelled. Each settlement is an exclusive journal claim, so
-a late sender loses and the outcome survives restart. A `launching` record without an
-acknowledgement settles failed at its persisted five-minute deadline, or cancelled when stopped.
-Settlement creates the ordinary deduplicated inbox attention. A late acknowledgement cannot
-replace that terminal journal record; Computer asks the provider to cancel the late execution.
-
-The delegating Agent, not the card, surfaces delivery failures. Every settled Run creates one inbox
-attention carrying its `errorCode` and `summary`; the Agent explains the failure in the work's
-conversation and decides whether to send again or `start` fresh work. A follow-up stalled past the
-delivery window creates the same kind of attention without settling anything: the Agent reads the
-stall code and summary, and decides whether to wait, stop it, interrupt it, or relaunch —
-nothing it does is forced, because the Run is still live underneath. The card keeps reading from the
-newest Run the provider received, so an undelivered follow-up leaves it as the earlier Run reads
-except for the stalled note described above.
-
-## Results are ordinary Messages
-
-Cloud Agent work is a lifecycle record. It has no outputs relation. When a Run settles, the
-delegating Agent receives the inbox attention with that Run's summary and evidence, inspects the
-work, and posts what it learned in the Task: text, a pull-request reference, attachments such as
-screenshots, or an artifact. It reports in the Task and does not repeat the report in the Channel;
-the Channel's Task preview under the origin Message already shows the Task's newest messages and
-state. Haus adds no output framework and no automatic result Message.
-
-A pull request is a rich reference (see [Rich References](../docs/features/rich-references.md) and
-[Rich References](mentions.md)). Anyone can paste one and any Agent can post one, so it stands on
-its own outside Cloud Agent work. The reference renders from its URL alone. Cursor never supplies
-pull request facts; the public Cloud Agents API reports no diff statistics.
-
-## Pull request readings
-
-A reading is evidence, not a Haus lifecycle: Haus never writes to a pull request. A reading exists
-for a pull request some Cloud Agent work reported or that is attached to a Task.
-
-```ts
-type CloudAgentPullRequestReading = {
-    repository: string; // owner/name, lower-cased
-    number: number;
-    url: string;
-    title: string | null; // null until GitHub is read
-    state: 'draft' | 'open' | 'merged' | 'closed';
-    headSha: string | null;
-    checks: 'none' | 'pending' | 'passing' | 'failing' | 'unknown';
-    review: 'none' | 'approved' | 'changes-requested' | 'unknown';
-    changedFiles: number;
-    additions: number;
-    deletions: number;
-    settledAt: string | null; // when GitHub merged or closed it
-    observedAt: string;
-    source: 'github' | 'computer';
-};
-```
-
-`cloud_agent_pull_requests` holds one row per Server, repository, and number, plus
-`refresh_requested_at`.
-
-- **Seeding.** A Run observation carrying a snapshot of a GitHub pull request upserts its row,
-  source `computer`, and marks it for a read. It replaces only an older Computer reading, never a
-  `github` one; Computer readings fill `checks` and `review` as `unknown`. A pull request reported
-  with no snapshot gets no row. `haus task attach-pr` reads GitHub once when no row covers the pull
-  request yet (`github/task-pull-request-attach.ts`); without an installation the attachment
-  stands with no reading.
-- **Projection.** `CloudAgentWork.pullRequest` is the row for the newest Run that reported one.
-  `TaskDetail.pullRequests` holds the readings of the Task's attached pull requests.
-- **Webhooks mark, they do not write.** After `ingestGithubDelivery` routes a delivery to an active
-  installation, and before Trigger matching, a `pull_request` or `pull_request_review` event sets
-  `refresh_requested_at` on the matching row by repository and number. `check_suite` and
-  `check_run` match `pull_requests[].number`, else `headSha`. This step runs whether or not any
-  Trigger matches and ignores pull requests with no row.
-- **One refresher.** A serial Server loop takes marked rows one at a time and reads
-  `pulls/{n}`, `pulls/{n}/reviews`, `commits/{sha}/check-runs`, and `commits/{sha}/status` with the
-  installation token. It coalesces repeated marks and never fans out, per the dev Server pool
-  hazard. A read clears only the mark it read, compared at millisecond precision. It writes source
-  `github` and emits `cloudAgentWork.updated` for linked work only when the reading changed.
-- **Rollups.** `checks` is `failing` if any completed check or status failed, else `pending` if any
-  is unfinished, else `passing`, else `none`. `review` takes each reviewer's latest non-comment
-  review: `changes-requested` beats `approved`.
-- **Failures.** A retryable failure keeps the mark and ends the pass. Any other failure keeps the
-  last reading and clears the mark. Nothing is fabricated. A repository no active installation
-  covers stays source `computer`. The Computer token stays local and is never sent to the Server.
-- **Recovery.** [Delivery recovery](github-triggers.md#recovery-and-the-development-pull) replays
-  missed deliveries through the same step.
-
-**The change wake.** When a refresh moves a reading from `draft` to `open` (`ready_for_review`) or
-its checks from `pending` to `passing` or `failing` (`checks_passing`, `checks_failing`), the
-Server wakes the delegating Agent of each work the pull request belongs to (work whose Runs
-reported it, and work on a Task it is attached to), but only once that work's newest Run settled,
-since a live Run still reports on its own. The notice is a `cloud_agent_work` inbox item with
-`cloud_agent_notice = 'pull_request'`, lands in the Task, and carries `pullRequestChange
-{ change, url }`. Its dedupe key is `<repo>#<number>:<change>:<headSha>`, so each change wakes once
-per head commit (`github/pull-request-wake.ts`, `pull-request-change.ts`). A pull request attached
-to a todo or open Task with an Agent assignee and no cloud work wakes that assignee in the Task
-with no Run behind the notice (`github/pull-request-task-wakes.ts`). Migration 0125 relaxed the
-inbox check so a `pull_request` notice may carry no Run id.
+A stall is a live turn that needs attention without settling: an auto-interrupt that failed, or a
+Claude prompt the adapter cannot find behind its scan bound (`claude-prompt-not-found`). The
+Server queues one `worker_stall` item ([inbox](inbox.md#worker-items)) per stall and two-hour
+window, so a stuck turn wakes its Agent once, then sparsely. A settled Worker raises no stall. The
+Agent decides whether to wait, stop, or interrupt with `haus worker send --interrupt`.
 
 ## Claude provider
 
 The Claude adapter (`apps/computer/src/cloud-agents/claude/`) drives Claude Code's cloud sessions.
 
-- **Sign-in.** It uses the same claude.ai subscription login this Computer's Claude Code Agents run
-  with: the host credentials file or keychain entry, refreshed as the Claude Code runtime refreshes
-  it. Every `claude` cloud command receives that login as `CLAUDE_CODE_OAUTH_TOKEN`, so a stale copy
-  in the CLI's own store is never read. Readiness asks Claude's OAuth profile whether the login still
-  works and takes the session controller's organization from it; `claude auth status` only proves a
-  login is stored. An API key is never a Claude Cloud login. Haus stores no Claude credential of its
-  own and never signs Claude Code out. No hook, callback,
-  network secret, or Haus credential runs inside Claude's environment; an earlier design that did
-  was dropped.
-- **Launch.** `claude --cloud <prompt>` runs in a throwaway checkout of the repository at the
-  starting ref; the folder-trust prompt is accepted automatically and the checkout is deleted
-  afterwards. The clone is blobless, so only the starting ref's files download, and the checkout
-  uses the GitHub CLI's sign-in as its only GitHub credential when the CLI is installed. Follow-ups run `claude -p --cloud <session> --output-format json <prompt>`.
-- **Environment pin.** Claude Code's own `--cloud` launcher used to pick whichever
-  Anthropic-hosted environment it wanted on each launch, and once picked a stray one that broke
-  1Password secret resolution scoped to the environment that launch actually needed. Every Claude
-  launch on a Computer now runs against one chosen environment, shown at
-  **Settings → Computers → (Computer) → Cloud Agents → the Claude row's environment picker**. A
-  Computer with no pin auto-pins one the first time it is read or launched: the account's
-  environment named **Default** (case-insensitively) if it has one, otherwise its oldest by
-  creation time — never its newest, which is exactly the unstable pick that caused the original
-  incident (`chooseDefaultClaudeEnvironment`,
-  `apps/computer/src/cloud-agents/claude/environments.ts`). That auto-pin is permanent: once
-  written, no later read or launch re-evaluates it, so the picker always shows a real chosen
-  environment and never an empty or warning state. An Owner or Admin can still repoint the pin to
-  any other environment from the picker at any time. The pin is Computer-local, stored beside the
-  default provider choice in `cloud-agents.json` (`claudeEnvironmentId`,
-  `apps/computer/src/cloud-agents/settings.ts`). Before `claude --cloud`
-  runs, Haus writes the pin into Claude Code's own `remote.defaultEnvironmentId` setting as
-  `.claude/settings.local.json` in the throwaway checkout (`writeClaudeEnvironmentPin`,
-  `apps/computer/src/cloud-agents/claude/native-commands.ts`) — the same key a human sets
-  interactively with `/remote-env`. Every launch checks the pin fresh against Anthropic's live
-  environment list (`GET /v1/environment_providers`,
-  `apps/computer/src/cloud-agents/claude/environments.ts`) before doing anything else; a pin
-  missing from that list, or reported archived, refuses the launch outright with
-  `CloudAgentLaunchRejectedError` naming the environment, with no silent fallback to Claude Code's
-  own default. A follow-up resolves no environment, because it targets a session Claude already
-  placed. The chosen environment's id and name ride the `CloudAgentLaunch` the adapter returns
-  (`environmentId`/`environmentName`, both `null` for Cursor and for a follow-up), flow through
-  the Computer's observation to Server the same way `providerAgentId`/`providerUrl`
-  do, and land on the `CloudAgentWork` record. `haus cloud-agent inspect` shows it: a `[name]`
-  marker on the one-line list, and the field in the JSON work detail. The work card's provider
-  mark tooltips **Pinned to `<name>`** when set.
-- **Run tag.** Each prompt's first line is `HAUS_CLOUD_RUN=<workId>/<runId>`. Launch returns no Run
-  id, so the tagged prompt's event id becomes the Run's `providerRunId` once Computer observes it.
-- **Monitoring.** Computer polls Claude's session controller API about every 10 seconds: session
+- **Sign-in.** It uses the carrier's claude.ai subscription login from the host credentials file
+  or keychain entry, refreshed as Claude Code refreshes it. Every `claude` cloud command receives
+  that login as `CLAUDE_CODE_OAUTH_TOKEN`. Readiness asks Claude's OAuth profile whether the login
+  still works and takes the session controller's organization from it. An API key is never a
+  Claude cloud login. Haus stores no Claude credential and never signs Claude Code out.
+- **Launch.** `claude --cloud <prompt>` runs in a throwaway blobless checkout of the repository at
+  the starting ref, deleted afterwards. The folder-trust prompt is accepted automatically, and the
+  checkout uses the GitHub CLI's sign-in when it is installed. Follow-ups run
+  `claude -p --cloud <session> --output-format json <prompt>`.
+- **Environment pin.** Every Claude launch on a carrier runs against one chosen environment, shown
+  in the Computer's Claude settings. A carrier with no pin auto-pins the account's environment
+  named **Default**, case-insensitively, else its oldest, never its newest. The auto-pin is
+  permanent, and an Owner or Admin can repoint it. The pin is Computer-local
+  (`claudeEnvironmentId`). Before `claude --cloud` runs, Haus writes it into
+  `.claude/settings.local.json` in the throwaway checkout as `remote.defaultEnvironmentId`. Every
+  launch checks the pin against Anthropic's live environment list
+  (`GET /v1/environment_providers`), and a missing or archived pin refuses the launch with no
+  fallback. A follow-up resolves no environment. The environment's id and name land on the Worker,
+  and `haus worker inspect` shows them.
+- **Monitoring.** The carrier polls the session controller about every 10 seconds: session
   `worker_status` (`running`, `idle`, `requires_action`), `status` (`active`, `archived`), and the
-  session event log. The event log is read newest-first, paginating backward until this Run's own
-  tagged prompt turns up, bounded so one undiscovered Run never pays for an unbounded scan. Once
-  found, Computer keeps that window in memory and later ticks resume from its newest event instead
-  of rescanning the whole history again, so a long, busy session costs no more per poll than a
-  short one (TECH-7). A restart loses that window but not the fact: a Run whose `providerRunId` is
-  already known needs no second discovery, so Computer reads the newest events as this Run's own
-  and settles it from them; Server merges branch evidence, so nothing earlier is lost. Only a Run
-  never found, or an idle session whose result lies past the scan, reports `running` with
-  `stallCode` `claude-prompt-not-found` and one inbox attention rather than `queued`, since reading
-  `queued` forever would leave the Run looking unaddressed even once it has long finished with no
-  sign anything was cut off. Work already settled raises no stall attention: nobody is left to act
-  on it. A notice's inbox row names its Run in `cloud_agent_run_id` and its reason in
-  `cloud_agent_notice`, and its `dedupe_key` stays opaque. The Server side also never lets a
-  non-terminal Run or its work record regress to `queued` once it has read anything else, so a
-  Run already known to be addressed keeps that status even while this gap persists.
+  event log. It reads the log newest first until it finds this turn's tagged prompt, with a bound
+  on the scan, then keeps that window and resumes from its newest event. The tagged prompt's event
+  id becomes the turn's `providerRunId`. Each turn's window ends at the next Haus-tagged prompt. A
+  turn whose own window has no result settles from the next result past it, noting that it
+  continued in that follow-up.
 - **Mapping.**
 
-  | Claude session state | Haus status |
+  | Claude session state | Turn |
   | --- | --- |
-  | Tagged prompt not yet in the log | `queued` (`expired` if the session is archived) |
-  | Tagged prompt never found behind the scan's bound | `running` with `stallCode` `claude-prompt-not-found` |
-  | Known Run, result past the scan's bound, session idle | `running` with `stallCode` `claude-prompt-not-found` |
-  | `requires_action` | `pending_input`; the open AskUserQuestion, or the tool Claude asks to use, is the summary |
-  | `idle` with no open background tasks after a result | `completed`, or `failed` with `errorCode` `claude-<subtype>` |
-  | Haus's own interrupt acknowledged and the worker not running | `cancelled` |
-  | Session archived | `expired` |
-  | Otherwise | `running`, with the latest activity |
+  | Tagged prompt not yet in the log | `queued`, or failed `provider-expired` if the session is archived |
+  | Tagged prompt never found, or result past the scan bound with the session idle | `working` with stall `claude-prompt-not-found` |
+  | `requires_action` | Settled `needs-you`, the open question or the requested tool as its ask |
+  | `idle` with no open background tasks after a result | Settled from the result ([Reports from the provider](#reports-from-the-provider)) |
+  | Haus's own interrupt acknowledged and the worker not running | `stopped` |
+  | Session archived | Failed `provider-expired` |
+  | Otherwise | `working`, with the latest activity |
 
-- **Cancel and answers.** Cancel stops open background tasks, then sends an interrupt with request
-  id `haus-cancel-<runId>`. Before delivering an answer to a session waiting on a question, Computer
-  interrupts the pending question and waits for the worker to go idle.
-- **Links.** Claude has no desktop-app deeplink, so **Open in Claude** opens claude.ai/code.
+- **Stop and answers.** Stop ends open background tasks, then sends an interrupt with request id
+  `haus-cancel-<turnId>`. Before delivering an answer to a session waiting on a question, the
+  carrier interrupts the pending question and waits for the worker to go idle.
+- **Links.** Claude has no desktop deeplink, so **Open in Claude** opens claude.ai/code.
 
-Known limits:
-
-- A human answering directly in Claude's own UI is not observed, because the `pending_input` Run is
-  already settled.
-- Claude's branch and pull request are inferred from its own `git push` command and the GitHub pull
-  request URL it writes, so they can be missed.
+Claude's branch and pull request are inferred from its own `git push` command and the pull request
+URL it writes, so they can be missed. A pull request URL in the final message is the reliable path, which is
+why the Haus Worker instructions ask cloud Workers to end with it.
 
 ## Cursor readiness and authentication
 
-Cursor runtime readiness and Cursor Cloud Agent readiness are related but independent Computer
-capabilities:
-
 | Capability | Ready when | Purpose |
 | --- | --- | --- |
-| Cursor runtime | `cursor-agent` is installed and its native session is usable | Local Cursor execution through a Haus runtime driver |
-| Cursor Cloud Agent | `@cursor/sdk` resolves a user API key from `CURSOR_API_KEY` or `~/.cursor/sdk/auth.json` | Provider-hosted execution |
+| Cursor runtime | `cursor-agent` is installed and its native session is usable | Local Cursor execution |
+| Cursor cloud place | `@cursor/sdk` resolves a user API key from `CURSOR_API_KEY` or `~/.cursor/sdk/auth.json` | Carrying `cursor` Workers |
 
-Readiness reports one of three reasons when it is not ready. `not-connected` — no credential
-resolves. `expired` — a stored credential resolved but its own expiry has passed, so reconnecting is
-the fix rather than installing anything. `provider-unavailable` — `@cursor/sdk` itself cannot be
-loaded or reached on this Computer, which is a platform fact, not a credential one. `CURSOR_API_KEY`
-is Cursor's own variable, read by the SDK and outside Haus's environment contract; a Computer that
-sets it is connected and carries no expiry Haus can date.
+When the cloud place is not ready, readiness reports `not-connected` (no credential resolves),
+`expired` (a stored credential is past its own expiry), or `provider-unavailable` (`@cursor/sdk`
+cannot load or reach Cursor). `CURSOR_API_KEY` is Cursor's own variable, outside Haus's environment
+contract.
 
-Haus reuses provider-native state already present on the Computer. It does not scrape Cursor's
-Keychain entries, copy credentials into Server, or invent a Haus credential format.
-`Cursor.auth.login()` is Cursor's supported one-time bootstrap when SDK authorization is absent; it
-supplies a Cursor sign-in link and stores a revocable, expiring user API key in the SDK credential
-store after approval. Haus disables Computer-local browser launch and opens the link on the user's
-current device. Computer polls Cursor for completion; no code needs to be pasted back. In its disconnected state, Computer settings presents Cursor Cloud Agent as an optional
-capability available to connect. An explicit human action starts the provider-owned browser flow;
-Haus never opens it during an Agent turn.
-
-A user API key bills SDK and Cloud Agent work to the user's Cursor plan. Cursor runtime and Cloud
-Agent readiness remain separate because the CLI and SDK use different credential stores even when
-they belong to the same account. Cloud Agent providers form a Computer-specific capability category
-separate from runtime harnesses; each Computer reports and onboards its own readiness.
-
-## Ownership
-
-| Layer | Owns |
-| --- | --- |
-| Haus Server | Messages, Cloud Agent work records, authorization, lifecycle projection, durable events, and inbox completion |
-| Haus Computer | Provider discovery, SDK credential access, launch, reconciliation, cancellation, and detailed provider evidence, all behind the `CloudAgentProvider` boundary in `apps/computer/src/cloud-agents/` |
-| Haus App | The Task page's attached-work cards, progress and terminal outcomes, and Computer capability status |
-| Cursor | Hosted Agent and Run lifecycle, repository checkout, workspace, transcript, branches, pull requests, artifacts, and billed usage |
-| GitHub | Pull-request identity and lifecycle |
-
-## The provider boundary
-
-`CloudAgentProvider` is the whole provider surface: `readiness()`, `start()`, `read()`,
-`subscribe()`, `cancel()`, plus `connect()` and `disconnect()` for the credential the other five
-depend on. Everything above it — the Agent CLI, the Server record, the durable
-events, the inbox attention — is provider-neutral, and everything below it, including credentials,
-prompts, and raw status mapping, belongs to the adapter. An in-memory fake with scripted transitions
-covers the whole path without a provider account.
-
-`haus cloud-agent start` runs on the Computer rather than upstream: it checks readiness before
-Server records anything, so an unavailable capability creates no Message, and it keeps the stdin
-instructions local. Once Server has accepted the launch the work exists, so a provider refusal is
-reported as a failed observation against that same work.
+Haus reuses provider-native state on the Computer. It never scrapes Cursor's keychain entries,
+copies credentials to the Server, or invents a credential format. `Cursor.auth.login()` is the
+one-time bootstrap: it supplies a sign-in link and stores a revocable, expiring user API key after
+approval. Haus opens the link on the person's current device and polls for completion. Only an
+explicit human action starts it, never an Agent turn. A user API key bills Cursor work to that
+person's Cursor plan.
 
 ## Cursor implementation
 
-The Cursor adapter uses the public `@cursor/sdk`, not Grok Bot's private services and not an
-inferred CLI cloud command. `Agent.create()` returns a handle before provider persistence; the
-initial `CloudAgent` operation performs the first `send()` that creates the hosted Run. Follow-ups
-call `send()` on the same provider Agent.
+The Cursor adapter uses the public `@cursor/sdk`. `Agent.create()` returns a handle, and the first
+`send()` creates the hosted run. Follow-ups call `send()` on the same hosted agent. Haus settles a
+turn from its run's `FINISHED`, `ERROR`, `CANCELLED`, or `EXPIRED` result, never from the hosted
+agent going `IDLE`.
 
-Cursor Agent state and Run state remain distinct. An `IDLE` Agent does not prove successful
-completion. Haus settles work from the corresponding Run's `FINISHED`, `ERROR`, `CANCELLED`, or
-`EXPIRED` result. Computer may consume provider events for live progress but always reconciles with
-a Run read after missed events, reconnect, or restart.
-
-One status table owns the mapping, and it is the only place Cursor's vocabulary appears:
-
-| Cursor Run status | Haus status |
+| Cursor run status | Turn |
 | --- | --- |
 | `QUEUED` | `queued` |
-| `CREATING`, `RUNNING` | `running` |
-| `FINISHED` | `completed` |
-| `ERROR` | `failed` |
-| `CANCELLED` | `cancelled` |
-| `EXPIRED` | `expired` |
+| `CREATING`, `RUNNING` | `working` |
+| `FINISHED` | Settled from the result |
+| `ERROR` | `failed` report with result text, else failed `provider-error` |
+| `CANCELLED` | `stopped` |
+| `EXPIRED` | Failed `provider-expired` |
 
-The raw string is preserved on every observation. The public SDK's `Run` handle normalizes `EXPIRED`
-into `error`, so a **read** recovers expiry only from the terminal error Cursor reports with it,
-while the per-Run **event stream** carries the unambiguous raw status on its `status` message. A Run
-that expires while nothing is streaming and is then read fresh after a Computer restart can
-therefore settle as `failed` rather than `expired`; that is a provider limit, not a mapping choice.
+The raw status is kept on every observation. The SDK's `Run` handle folds `EXPIRED` into an error,
+so a read recovers expiry only from the terminal error Cursor reports with it, while the event
+stream carries the raw status. A run that expires while nothing streams can therefore settle as
+`provider-error` instead of `provider-expired`. That is a provider limit.
 
-The end of a stream is never a settlement. The SDK's run handle stops streaming after its own
-client-side wait deadline and locally marks itself errored while the hosted Run keeps working, so a
-detached stream hands off to reconciliation instead: a Run read every 5 seconds until it is
-genuinely terminal, backed off to 60 seconds after a provider failure, and nothing further once it
-settles. A streamed terminal status does settle the Run, because that is where `EXPIRED` survives,
-but it settles through one observation carrying both that raw status and the Run's own evidence —
-Computer stops watching a Run the moment it settles, so a bare status followed by an evidence read
-would lose the evidence.
+The carrier subscribes to the run's event stream while it is active. The end of a stream is never
+a settlement. A detached stream hands off to a run read every 5 seconds, backed off to 60 seconds
+after a provider failure, until the run is terminal. A streamed terminal status settles the turn
+through one observation that carries both the status and the run's evidence.
 
-Cancellation retries still read and report the Run's status when the stop request fails. Cursor can
-reject a repeated stop with `run_not_cancellable` after the Run has already stopped; that rejection
-must not block terminal reconciliation. A failed stop against a still-active Run retains the
-60-second retry backoff.
+A stop that Cursor rejects with `run_not_cancellable` after the run already stopped never blocks
+reconciliation. A failed stop against an active run retries on the 60-second backoff.
 
-The SDK does not surface the hosted Agent's own `url`, so the adapter builds the "Open in Cursor"
-link as `https://cursor.com/agents?id=<agentId>`.
+The SDK does not expose the hosted agent's URL, so **Open in Cursor** links
+`https://cursor.com/agents?id=<agentId>`.
 
-Haus supplies Cursor's Agent and Send idempotency keys, but Cursor does not document exactly-once
-replay semantics for those headers. Haus's own nonce, durable ids, conflict handling, and
-reconciliation provide the product guarantee; provider idempotency is defense in depth.
+Cursor SDK `1.0.30` is pinned, with a Bun patch that bounds otherwise unbounded fetches to 30
+seconds per request. Streams keep their caller-owned abort signal. Recheck the patch and the stream
+disposal bridge on every SDK upgrade, and remove them once the public SDK bounds requests and joins
+subscriptions. Installed-SDK tests cover both.
 
-Cursor's Cloud Agents API is public beta. The adapter isolates provider requests, responses, and
-status mapping from Haus's durable contracts. Repository validation happens at that adapter: a
-repository is usable only when the Cursor account has the required source-control access.
+Cursor names a branch's repository in whatever shape its git metadata carries. Every form reads
+back to `owner/name` on GitHub, or `host/owner/name` elsewhere, and a reference with no repository
+is dropped. Git metadata is a hosted-workspace snapshot, not per-turn attribution.
 
 ## Model
 
-A human picks the Cloud Agent model once per Server for each provider; the default is **Auto**.
-For Cursor, Auto is the per-run model router. Haus sends Auto as Cursor's catalog id `default` on every Run, so the setting means
-the same thing whatever default model the Cursor account configured (sending no model would mean
-that account default, and no SDK API reports which model it is). For Claude, Auto sends no model,
-so the account default applies: Claude's catalog lists sonnet, opus, and haiku with
-`autoAvailable: false`. Agents cannot choose
-or override it: no Agent route, CLI flag, or start input carries a model.
+A person picks the cloud model once per Server for each provider. The default is **Auto**. Agents
+cannot choose it: no CLI flag or start input carries a model for a cloud place.
 
-**Catalog.** Cursor is the source of truth for which models exist. The Computer that holds the
-Cursor connection reads `Cursor.models.list()`, maps it, and reports the result inside its ordinary
-inventory, on the Cloud Agent provider line: `cloudAgentProviders[].models = { autoAvailable,
-models, refreshedAt }`, or `null` when it has none. Each model is `{ id, displayName, description, family,
-order, effort, fast }`. Cursor publishes no price or tier, so Haus carries none. The mapping
-(`apps/computer/src/cloud-agents/model-catalog-mapping.ts`):
+- For Cursor, Auto is Cursor's per-run router, sent as the catalog id `default`.
+- For Claude, Auto sends no model, so the account default applies.
 
-- turns Cursor's own `default` ("Auto") entry into `autoAvailable: true` instead of a model, since
-  Haus offers Auto as its own option;
-- keeps Cursor's order as `order`, the first valid listing of each id, and at most 200 models;
-- strips zero-width characters and collapses whitespace in every label;
-- derives `family` from the id and name: `claude`, `gpt` (Codex included), `gemini`, `grok`,
-  `composer`, `glm`, `kimi`, or `other`;
-- keeps only two user-facing parameters. `effort` normalizes Cursor's three spellings (`effort`,
-  `reasoning`, `reasoning_effort`) into `{ options: [{ value, displayName }], defaultValue,
-  providerParamId }`, where `providerParamId` is the spelling that model takes on the wire. `fast`
-  is `{ defaultValue }` when the model offers `fast` as true/false. Each `defaultValue` comes from
-  Cursor's `isDefault` variant. Context, thinking, and every other parameter are not offered and
-  never sent, so Cursor's defaults apply. A malformed parameter drops only that control.
+**Catalog.** The Computer that holds a Cursor connection reads `Cursor.models.list()` and reports
+it in its inventory as `cloudAgentProviders[].models = { autoAvailable, models, refreshedAt }`, or
+`null`. Each model is `{ id, displayName, description, family, order, effort, fast }`. The mapping
+(`apps/computer/src/cloud-agents/model-catalog-mapping.ts`) turns Cursor's `default` entry into
+`autoAvailable`, keeps Cursor's order and at most 200 models, cleans labels, derives `family`, and
+keeps only two parameters. `effort` normalizes Cursor's three spellings into
+`{ options, defaultValue, providerParamId }`, and `fast` is `{ defaultValue }`. Every other
+parameter is never sent. The Computer refreshes the catalog on start, on an account change, and
+daily, and keeps the previous catalog for the same account when a read fails.
 
-Computer caches the catalog per connected account and reads it again on start, whenever the
-account changes (a reconnect mints a key with a new expiry), and on a daily loop per attachment
-connection. A failed read keeps the previous catalog for the same account with its own
-`refreshedAt`; disconnecting reports `null`. Server stores it with the rest of the reported
-inventory on `computers.reported_inventory`.
+**Setting.** The setting is `{ kind: 'auto' } | { kind: 'model', id, params: { effort?, fast? } }`,
+one `cloud_agent_model_settings` row per Server and provider, read by any member through
+`cloudAgentSettings.get` and written by an Owner or Admin through `cloudAgentSettings.setModel`.
+A write refuses a model, `effort` value, or `fast` flag that the freshest catalog does not offer.
 
-**Setting.** The contract is the union `{ kind: 'auto' } | { kind: 'model', id, params: { effort?,
-fast? } }`. `auto` is Auto. An absent param means the model's own default, so `params: {}`
-is "this model as Cursor configures it". `cloud_agent_model_settings(server_id, provider,
-model_id, model_params)` holds one row per Server and provider; no row means Auto. (Migration
-`0089_cloud-agent-claude` moved the former `servers.cloud_agent_model_id` and
-`.cloud_agent_model_params` into the Cursor row.) Any member reads it through
-`cloudAgentSettings.get({ serverId, provider })`; only an Owner or Admin writes it through
-`cloudAgentSettings.setModel({ serverId, provider, model })`; `provider` defaults to `cursor`.
-The write refuses (`BAD_REQUEST`) an id that the
-freshest catalog on any of the Server's Computers does not list, an `effort` value that model does
-not offer, or `fast` on a model without it. The read returns `{ model, catalog,
-savedModelUnavailable }`. `catalog` is that freshest catalog, or `null` when no Computer has
-reported one. `savedModelUnavailable` is true when a saved model is missing from it.
-
-**Launch.** Server resolves the model whenever it creates a Run, for a first launch and for each
-follow-up. It sends the saved model only when the **launching Computer's** newest catalog lists it.
-Otherwise it falls back to Auto. Auto, chosen or fallen back to, is sent as `default` when that
-catalog has `autoAvailable`; without it (or without a catalog) Haus sends no model, the only
-option left. With a listed model it sends each saved
-param that model still offers, under the model's own `providerParamId`. A saved param it no longer
-offers (value gone, or control gone) is dropped, so that Run takes the model's default. Unset params
-are never sent. Every Run records the outcome as `model: { id, params, fallbackFrom, droppedParams }`
-(`cloud_agent_runs.model_id`, `.model_params`, `.model_fallback_from`, `.model_dropped_params`).
-`id` is the model Haus sent: a catalog id, `default` for Auto, or `null` when it sent none. `params` are
-`[{ name: 'effort' | 'fast', providerParamId, value }]` as sent. `fallbackFrom` names the saved model
-that fell back, so it sits only beside `default` or `null`, and `droppedParams` names the saved
-params that were dropped. A Run without a catalog model has neither params nor drops. Runs that predate the setting read
-`{ id: null, params: [], fallbackFrom: null, droppedParams: [] }`, which is accurate because Haus sent
-no model then either. Computer passes `agent.send(..., { model: { id, params: [{ id:
-providerParamId, value }] } })`, leaves out `params` when there are none (Auto sends `{ id: 'default' }`), and leaves out the
-option when the id is `null`. Computer protocol 26 carries the catalog and the Run model.
+**Turns.** The Server resolves the model for every cloud turn. It sends the saved model only when
+the carrier's newest catalog lists it, else Auto: `default` when the catalog has `autoAvailable`,
+else no model. It sends each saved parameter the model still offers under its `providerParamId`
+and drops the rest. Each turn records `model: { id, params, fallbackFrom, droppedParams }`.
 
 ## Settings and usage
 
-Settings → Models shows one model row per provider. Computer settings report Cursor runtime and Cursor Cloud Agent as separate capabilities even when
-they use the same Cursor account. Cursor appears alongside other detected execution runtimes, and
-the Cloud Agent capability is one row beside them with Connect and Disconnect behind its overflow
-menu once connected. Pending sign-in can be resumed from the row. The dialog offers Continue in
-Cursor, Copy sign-in link, cancellation, automatic completion, and retry after expiry or failure.
+Computer settings show the Cursor runtime and the Cursor cloud place as separate capabilities even
+on one Cursor account, because the CLI and the SDK use different credential stores. The cloud
+place row has Connect and Disconnect, and a pending sign-in can be resumed from it. The App reaches
+it through `cloudAgentProvider.get`, `.connect`, `.cancelSignIn`, and `.disconnect`, which the
+Server authorizes to Owners and Admins and relays to the Computer. Only readiness, account
+metadata, and the public sign-in link cross to the Server. The sign-in attempt lives on the
+Computer for five minutes, one per provider.
 
-The App reaches it through `cloudAgentProvider.get`, `.connect`, `.cancelSignIn`, and `.disconnect`, which Server
-authorizes to Owners and Admins and relays to the selected Computer over the attachment protocol —
-the same shape Browser settings use. No provider credential exists on Server to store or leak; only
-readiness, account metadata, and the public sign-in link cross the boundary. The link and status
-are ephemeral Computer state, with a five-minute lifetime and one active attempt per provider.
-The App polls the capability only while waiting; closing or reloading the App preserves the
-Computer-owned attempt. Computer protocol 21 requires this headless sign-in contract.
-Haus reports per-Agent and per-Run tokens and optional cost available through the public SDK; it
-does not claim personal plan capacity, remaining allowance, or reset time because Cursor exposes no
-supported public personal-account surface for them. Interactive CLI `/usage` reports activity and
-streak statistics, not billing capacity. Team or Organization Admin usage requires a separate
-administrative integration and is outside this Computer capability.
+Haus reports per-turn tokens and optional cost when the SDK provides them. It never claims plan
+capacity, remaining allowance, or reset time, because Cursor exposes no supported surface for them.
 
 ## Intentionally missing
 
-- No repository registry, repository setup flow, or per-Server repository allowlist in v1.
-- No requirement that the delegating Agent use the Cursor runtime.
-- No representation of a Cloud Agent as a named Haus teammate or Harness subagent.
-- No product-wide generic action, card, output, or provider framework.
-- No Server-hosted Cursor or Claude credential or raw provider transcript in Chat history.
-- No per-Server default provider: the default is Computer-local, and the Agent's only override is
-  `--provider`.
-- No GitHub-owned PR state, checks, reviews, or merge actions in v1.
-- No automatic completion Message; the delegating Agent decides whether the result deserves one.
-- No outputs relation, output table, or produced-by provenance; results are ordinary Messages and
-  references.
-- No pull-request facts sourced from Cursor. A Run's own `pullRequest` snapshot is the Computer
-  reading GitHub directly for the pull request row's state and diff counts; the pull-request
-  reference itself renders from its URL.
-- No per-launch human approval card. Launch approval, when a Server wants it, is an @mention:
-  the Agent @mentions the human with what it will launch and waits for an explicit yes in reply
-  before launching ([ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md)).
+- No provider credential or raw provider transcript on the Server.
+- No per-Computer default provider. The default place is the Project's
+  ([Places](workers.md#places)).
+- No Haus credential, hook, or callback inside a provider's environment.
+- No pull request facts taken from Cursor. Readings come from GitHub or the carrier's `gh`.
+- No Drive writes from a cloud Worker.
 
-## Implementation sequence
+## Regression guards
 
-1. Canonicalize Messages: add `body_kind`, the exhaustive `Message.body` contract, and the single
-   Server Message reader. Cloud Agent work blocks on this step. `body_kind`
-   defaults to `text`, and `toChatMessage` projects the typed record for every consumer that
-   returns a Message. The retired `ask` kind first introduced the column; ADR 0037 removed it.
-2. **Landed.** ADR 0028 retired prepared actions entirely: Agents create Agents directly, the
-   `agent-created` body joined this union, and the top-level `preparedAction` field is gone.
-3. Add Cursor runtime discovery and a Cursor runtime driver.
-4. Add Cursor Cloud Agent readiness, SDK bootstrap guidance, and truthful usage reporting.
-5. **Landed.** The `haus cloud-agent` verbs, the `CloudAgentProvider` boundary with an in-memory
-   fake, the durable work and Run records, and the launch Message.
-6. **Landed.** Lifecycle reporting, reconnect reconciliation, cancellation by Agent and by
-   Owner/Admin, `cloud-agent-work.updated`, and the terminal inbox attention. The combined Effect
-   and Cloud Agent contract uses Computer protocol 16.
-7. **Landed.** The Cursor adapter behind `CloudAgentProvider`, its readiness detection, and the
-   Computer settings connect flow. Every SDK type stops at a transport seam inside the adapter, so
-   the deterministic lanes run against recorded provider responses; one opt-in live lane
-   (`HAUS_RUN_LIVE_CURSOR_TEST=1` with `HAUS_LIVE_CURSOR_REPOSITORY=owner/name`) proves the
-   recordings still describe Cursor.
-8. **Landed with ADR 0053.** Work attaches to a Task; the card lives in the Task page's
-   attached-work panel with the newest Run's summary; pull requests attach to Tasks and their
-   changes wake the Agent; the Inbox's "Happening now" section over `cloudAgentWork.listActive`
-   opens the work's Task. iPhone shows the attached-work header on a Task chat, PR and provider
-   links, cancellation, and Computer-scoped Cursor connection settings.
-9. Run deterministic Server, API, Computer, App, and iOS coverage, then one opt-in live Cursor
-   lifecycle smoke.
-
-## Provider contract notes
-
-- Pin the public-beta `@cursor/sdk` version and isolate all status and field mapping in the Cursor
-  adapter. Live documentation and one downloadable OpenAPI snapshot currently disagree about the
-  raw `IDLE` Agent status; Haus reads no Agent status at all, so the disagreement cannot reach it.
-- The pinned version is `1.0.30`. The SDK carries platform-specific optional dependencies with
-  native binaries and still bundles into the Computer's `bun build --compile` artifact.
-- Cursor names a branch's repository in whatever shape its Git metadata carries: a live Run reports
-  the scheme-less `github.com/owner/name`, while other surfaces report an HTTPS clone URL or an SSH
-  remote. Every form reads back to one label — `owner/name` on GitHub, and the host-qualified
-  `host/owner/name` off it, so branch evidence survives on any host. A reference that names no
-  repository at all is dropped rather than reshaped. The work's own `repository`, which the Agent
-  supplies and Haus starts a Run against, stays `owner/name`.
-- Git metadata is an Agent-workspace snapshot, not guaranteed per-Run diff attribution.
-- Optional provider cost can arrive eventually and does not represent account-plan allowance.
-
-### Launch lifecycle presentation
-
-The first queued Run reads **Starting**, including elapsed time since the work was created.
-A cancellation request reads **Stopping**. A launch error or deadline reads **Stopped**, with
-its failure reason, and leaves Happening now. Internally a failed launch uses the existing terminal
-`failed` Run status; requested cancellation uses `cancelled`, also presented as **Stopped**.
-Provider execution failures after startup still read **Failed**. Follow-up queue presentation is
-unchanged. Both web and iPhone derive these labels from the existing work and Run fields.
+| Contract | Guard |
+| --- | --- |
+| A `Haus-Outcome` line types the report, and its absence reads `done` | `apps/computer/src/cloud-agents/report-from-result.test.ts` (W2) |
+| A provider question settles `needs-you` with the question as its ask and no person | `apps/computer/src/cloud-agents/claude/observation.test.ts` |
+| Cursor sends a follow-up only after every earlier turn settles, and Claude sends as soon as the earlier prompt was sent | `apps/computer/src/cloud-agents/send-delivery.test.ts` |
+| A carrier that reconnects reconciles every unsettled turn it holds | `apps/server/test/worker-reconcile.test.ts` (W2) |

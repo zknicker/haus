@@ -13,7 +13,11 @@ read_when:
 
 ## Status
 
-Accepted 2026-11-19. Not yet implemented. Part of the direction in
+Accepted 2026-11-19. Not yet implemented. Amended 2026-11-19 by the Workers contract
+([specs/workers.md](../../specs/workers.md), [specs/cloud-agents.md](../../specs/cloud-agents.md))
+in decisions 2, 4, 7 and 8: a Computer carries each cloud place, a report ends each turn and only
+a written report posts, starting a Worker posts nothing, v1 runtimes are Claude Code and Codex,
+and anyone who can read the Task can talk to or stop a Worker. Part of the direction in
 [the Capy and Amp proposal](../proposals/capy-product-model.md), with
 [ADR 0054](0054-drive-holds-what-agents-know-and-follow.md) (Drive) and
 [ADR 0055](0055-projects-own-agents-and-tasks.md) (Projects). Amends
@@ -44,7 +48,8 @@ runs silent until they finish or are blocked.
    noun and one status set. `haus cloud-agent start --task` becomes
    `haus worker start --task ENG-41 [--on macbook]`. A cloud agent work record becomes a Worker,
    its Runs become the Worker's turns, and its card in the Task's attached-work panel becomes the
-   Worker card.
+   Worker card. A cloud place is carried by a Computer that has the provider connected and allows
+   Workers, because the provider login stays on that machine. Starting a Worker posts no Message.
 
 3. **What a Worker reads.** The Haus `AGENTS.md`, its Task's Project `AGENTS.md`, the repo's own
    `AGENTS.md`, and its Agent's `WORKER.md`. It gets the stack at launch and `WORKER.md` again
@@ -53,10 +58,12 @@ runs silent until they finish or are blocked.
    standing rules for its Workers, such as draft PRs, before and after renders, or a report format.
    A cloud Worker has no Drive folder, so its rules are inlined in its brief.
 
-4. **A typed report ends each run:** `done`, `needs-you` or `failed`, with a summary, an ask, its
+4. **A typed report ends each turn:** `done`, `needs-you` or `failed`, with a summary, an ask, its
    PRs, and Drive files cited by version. It posts in the Task and reaches the Agent through its
-   inbox. A `needs-you` report @mentions the person it needs. The PRs a report names attach to the
-   Task. A cloud Worker's report comes from its provider's result.
+   inbox. A `needs-you` report @mentions the person it needs, or asks the Agent when it names
+   nobody. The PRs a report names attach to the Task. A cloud Worker's report comes from its
+   provider's result. An outcome Haus records because no report came (no report, a lost machine)
+   reaches the Agent and the card but posts nothing, because nobody wrote it.
 
 5. **Quiet by default.** A Worker never posts progress in the Task. Its card shows live status,
    place and newest report. The Task gets one message per report, and followers see it go unread
@@ -69,7 +76,7 @@ runs silent until they finish or are blocked.
    MacBook.
 
 7. **A Worker uses that machine's own logins** for its model runtime and git, so it can run any
-   model that machine can. It runs as a fresh Claude Code or Codex session in a worktree of the
+   model that machine can. It runs as a fresh Claude Code or Codex session, the two v1 runtimes, in a worktree of the
    Project repo, with a credential scoped to that Worker. Workers keep the harness on the machine,
    and a dead machine is a failed Worker. The Agent itself runs on the Server
    ([ADR 0057](0057-agents-run-on-the-server-and-machines-run-their-tools.md)). Moving a running
@@ -78,7 +85,7 @@ runs silent until they finish or are blocked.
 8. **People talk to a Worker between turns.** Each Worker card has its own composer. What you type
    goes into that Worker as a follow-up when its turn ends, and also posts in the Task marked with
    the Worker and its place, so the Agent sees it through its inbox. A running Worker can be
-   stopped from its card. A plain post in the Task goes to the Agent. Workers have no inbox.
+   stopped from its card. Anyone who can read the Task can do both. A plain post in the Task goes to the Agent. Workers have no inbox.
 
 9. **Deliverables go in the Agent's folder:** `agents/<handle>/reports/`, `renders/` and
    `handoffs/`. The Task page shows the files a report cites, at the cited version.
@@ -134,13 +141,15 @@ Amended:
   Workers, and the attached-work card becomes the Worker card with its own composer. Pull request
   cards and the ready-after-settle wake stand.
 - [ADR 0044](0044-cloud-agent-work-is-referenced-not-embedded.md): the work record stands as the
-  Worker record, and its card reads a typed report.
+  Worker record, and its card reads a typed report. Messages no longer link Workers: a Worker is
+  reached through its Task, and a report Message names its Worker in its body.
 - [ADR 0011](0011-agents-own-one-global-session.md): one session per Agent stands. Workers are
   separate, scoped sessions that report to it, not sessions of the Agent.
 
 Deleted:
 
 - "Cloud agent" as a noun and the `haus cloud-agent` CLI family.
+- The launch Message, `cloud-agent://` links, and their link table.
 - The per-Computer **Make default** provider setting, replaced by the Project's default place.
 - An Agent's lock to one machine for its work.
 
@@ -152,10 +161,11 @@ Related:
 Deferred:
 
 - Steering a running Worker mid-turn.
+- Grok Build as a Worker runtime, a Worker with no repo, and Drive files written by cloud Workers.
 
 Follow-up:
 
-- Rewrite `specs/cloud-agents.md` as a Workers spec. `specs/workers.md` uses "worker" in an older
-  sense; reconcile or retire it.
-- Design the Worker credential, the per-Computer switch, and worktree runs on a Computer.
+- Done: `specs/workers.md` is the Workers contract, replacing its older sense, and
+  `specs/cloud-agents.md` carries the cloud places. The Worker credential, the per-Computer switch,
+  and worktree runs on a Computer are in `specs/workers.md`.
 - The prompt's delegation and report text goes through the guarded prompt contract.
