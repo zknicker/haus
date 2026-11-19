@@ -3,10 +3,10 @@ import { chatMessageReplySchema, idSchema } from './chat.ts';
 import { messageClaimSchema } from './claim-shared.ts';
 import { driveConflictFileSchema } from './drive.ts';
 import { humanTimezoneSchema } from './membership.ts';
+import { workerPlaceSchema } from './worker-outcome.ts';
 import { workerReportAttentionSchema } from './worker-report-attention.ts';
 import {
     workerBranchSchema,
-    cloudAgentProviderSchema,
     workerTurnStatusSchema,
     workerSummaryMaxLength,
     workerTitleSchema,
@@ -26,15 +26,16 @@ export const workerPullRequestChangeSchema = z
 export type WorkerPullRequestChange = z.infer<typeof workerPullRequestChangeSchema>;
 
 /**
- * A settled Worker Run's terminal attention for the Agent that delegated
- * it. It exists nowhere but the inbox row, so it carries the Run outcome the
- * Agent needs to inspect the work and post results as ordinary Messages.
+ * A live Worker turn's stall, or a pull request change, for the Agent that
+ * delegated the Worker. It exists nowhere but the inbox row, so it carries the
+ * turn facts the Agent needs to decide whether to wait, stop, or follow up.
+ * A settled turn reaches its Agent as a `workerReport` instead.
  */
 export const workerAttentionSchema = z
     .object({
         branches: z.array(workerBranchSchema).max(50),
         errorCode: z.string().trim().min(1).max(120).nullable(),
-        provider: cloudAgentProviderSchema,
+        place: workerPlaceSchema,
         /**
          * Whether `summary` is only the head of a longer report (TECH-8): a
          * reader who wants the rest runs `haus worker inspect --worker
@@ -43,7 +44,7 @@ export const workerAttentionSchema = z
          * as false (no known fuller report), never as true.
          */
         hasFullReport: z.boolean().optional(),
-        notice: z.enum(['settled', 'stall', 'pull_request']),
+        notice: z.enum(['stall', 'pull_request']),
         providerUrl: z.url().max(2000).nullable(),
         pullRequestChange: workerPullRequestChangeSchema.optional(),
         repository: z.string().trim().min(1).max(200),

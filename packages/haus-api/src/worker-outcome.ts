@@ -121,6 +121,28 @@ export function workerOutcomeOf(input: WorkerOutcomeInput) {
     return outcomeByStatus[input.status](input);
 }
 
+/** A Worker's status, projected from its newest turn (specs/workers.md "Record"). */
+export function workerStatusOf(newest: {
+    outcome: WorkerOutcome | null;
+    status: WorkerTurnStatus;
+}) {
+    if (newest.status === 'queued') {
+        return 'queued' satisfies WorkerStatus;
+    }
+    if (newest.status === 'running' || newest.outcome === null) {
+        return 'working' satisfies WorkerStatus;
+    }
+    return newest.outcome.kind === 'report'
+        ? newest.outcome.report.outcome
+        : newest.outcome.kind === 'stopped'
+          ? 'stopped'
+          : 'failed';
+}
+
+export function isLiveWorkerStatus(status: WorkerStatus) {
+    return status === 'queued' || status === 'working';
+}
+
 const noPerson = { personId: null, personRefused: null };
 
 function report(input: WorkerOutcomeInput, outcome: WorkerReportOutcome) {

@@ -99,14 +99,14 @@ describe('Worker Message annotation', () => {
 });
 
 describe('Happening now location', () => {
-    it('names a Message and its Chat, and nothing else', () => {
+    it('names a Task and its Chat, and nothing else', () => {
         for (const location of Object.values(activeWorkLocations)) {
             expect(activeWorkerLocationSchema.parse(location)).toEqual(location);
         }
         expect(
             activeWorkerLocationSchema.safeParse({
-                ...activeWorkLocations.launch,
-                anchorMessageId: 'msg_x',
+                ...activeWorkLocations.task,
+                messageId: 'msg_x',
             }).success
         ).toBe(false);
     });
@@ -117,17 +117,15 @@ describe('Happening now location', () => {
             chatKind: 'channel',
             chatName: 'product',
             chatPeerUserId: null,
-            conversationChatId: linkedWork.chatId,
-            location: activeWorkLocations.message,
+            conversationChatId: 'cht_product',
+            location: activeWorkLocations.task,
             taskId: 'tsk_work',
             taskKey: 'SEC-12',
             worker: linkedWork,
         };
-        expect(activeWorkerSchema.parse(row).location).toEqual(activeWorkLocations.message);
+        expect(activeWorkerSchema.parse(row).location).toEqual(activeWorkLocations.task);
         expect(activeWorkerSchema.safeParse({ ...row, taskKey: null }).success).toBe(false);
-        expect(activeWorkerSchema.safeParse({ ...row, taskId: null, taskKey: null }).success).toBe(
-            true
-        );
+        expect(activeWorkerSchema.safeParse({ ...row, taskId: null }).success).toBe(false);
         expect(activeWorkerSchema.safeParse({ ...row, location: undefined }).success).toBe(false);
         expect(activeWorkerSchema.safeParse({ ...row, parentChatId: 'cht_parent' }).success).toBe(
             false

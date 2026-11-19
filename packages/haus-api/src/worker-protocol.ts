@@ -1,15 +1,16 @@
 import * as z from 'zod';
 import { idSchema } from './chat.ts';
 import { cloudAgentCapabilityStateSchema, cloudAgentProviderSchema } from './worker-shared.ts';
+import { workerPlaceSchema } from './worker-outcome.ts';
 import { workerObservationSchema, workerReconcileEntrySchema } from './worker.ts';
 
 /**
- * Server-recorded cancellation riding down to the Computer that owns the
- * provider access. The Run settles through the ordinary observation path.
+ * A Server-recorded stop riding down to the carrier that owns the provider
+ * access. The turn settles through the ordinary observation path.
  */
 export const workerStopCommandSchema = z
     .object({
-        provider: cloudAgentProviderSchema,
+        place: workerPlaceSchema,
         providerAgentId: z.string().trim().min(1).max(200).nullable(),
         providerRunId: z.string().trim().min(1).max(200).nullable(),
         turnId: idSchema,
@@ -21,9 +22,9 @@ export const workerStopCommandSchema = z
 export type WorkerStopCommand = z.infer<typeof workerStopCommandSchema>;
 
 /**
- * Every non-terminal work assigned to this Computer, sent once per reconnect.
- * The Computer reads each Run from the provider and reports an observation, so
- * work that settled while the socket was down still settles here.
+ * Every dispatched, unsettled turn this Computer carries, sent once per
+ * reconnect. The Computer reads each from the provider and reports an
+ * observation, so a turn that settled while the socket was down settles here.
  */
 export const workerReconcileCommandSchema = z
     .object({

@@ -38,12 +38,12 @@ export const linkedMessage: ChatMessage = {
     attachments: [],
     author: { agentId: linkedWork.agentId, kind: 'agent' },
     body: { kind: 'text' },
-    chatId: linkedWork.chatId,
+    chatId: 'cht_product',
     workers: [linkedWork],
     content: `On it, sending this to a Worker.\n\n${linkedWorkLink}`,
     createdAt: linkedWork.createdAt,
     driveCitations: [],
-    id: linkedWork.messageId,
+    id: 'msg_1234567890abcdef',
     imageGenerations: [],
     nonce: 'nonce_worker_launch',
     reactions: [],
@@ -55,16 +55,11 @@ export const linkedMessage: ChatMessage = {
     taskLinks: [],
 };
 
-/** "Happening now"'s `location`: the launch Message, or a newer link elsewhere. */
+/** "Happening now"'s `location`: the Worker's Task. */
 export const activeWorkLocations = {
-    launch: {
-        chatId: linkedWork.chatId,
-        kind: 'message',
-        messageId: linkedWork.messageId,
-    },
-    message: {
-        chatId: 'cht_tech_ops',
-        kind: 'message',
-        messageId: 'msg_linking_elsewhere',
+    task: {
+        chatId: 'cht_task_sec_12',
+        kind: 'task',
+        taskId: 'tsk_1234567890abcdef',
     },
 } as const satisfies Record<string, ActiveWorkerLocation>;

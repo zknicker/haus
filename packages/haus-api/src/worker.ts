@@ -2,30 +2,35 @@ import * as z from 'zod';
 import { idSchema } from './chat.ts';
 import type { components } from './generated/openapi.d.ts';
 import { taskKeySchema } from './task-key.ts';
-import { workerObservedResultSchema } from './worker-outcome.ts';
+import {
+    workerObservedResultSchema,
+    workerPlaceSchema,
+    workerTurnInputTextMaxLength,
+} from './worker-outcome.ts';
 import {
     workerActivitySchema,
     workerBranchSchema,
-    cloudAgentProviderSchema,
-    workerRefSchema,
     workerProviderResultSchema,
+    workerRefSchema,
     workerRepositorySchema,
-    workerTurnStatusSchema,
+    workerSchema,
     workerSummaryMaxLength,
     workerTitleSchema,
+    workerTurnStatusSchema,
     workerUsageSchema,
-    workerSchema,
 } from './worker-shared.ts';
 import { workerStallCodeSchema } from './worker-stall.ts';
 
 type HausAgentMessage = components['schemas']['AgentMessage'];
 
 const timestampSchema = z.iso.datetime({ offset: true });
+const nonceSchema = z.string().trim().min(1).max(128);
+const workerTextSchema = z.string().trim().min(1).max(workerTurnInputTextMaxLength);
 
 export const workerListForChatInputSchema = z
     .object({ serverId: idSchema, chatId: idSchema })
     .strict();
-/** One work linked in a Chat, under the linking Message its card sits beneath. */
+/** One read-only history Worker linked in a Chat, under the linking Message its card sits beneath. */
 export const chatWorkerSchema = z
     .object({ anchorMessageId: idSchema, worker: workerSchema })
     .strict();
@@ -36,7 +41,7 @@ export const workerLinksInputSchema = z
     .object({ serverId: idSchema, workerIds: z.array(idSchema).max(50) })
     .strict();
 
-/** A conversation linking some work. */
+/** A conversation linking some read-only history Worker. */
 export const workerLinkSchema = z
     .object({
         chatId: idSchema,
@@ -48,18 +53,14 @@ export const workerLinkListSchema = z.array(workerLinkSchema);
 export type WorkerLink = z.infer<typeof workerLinkSchema>;
 
 /**
- * `worker.onUpdated`: work was created, observed, asked to cancel, or
- * newly linked. The Server publishes one event for each linking Message in a
- * live Chat (ADR 0044), Chat access scoped: `chatId`/`messageId` name that
- * linking Message. Ids only: the App invalidates that Message
- * (`chat.message`), the work lists, and the Task the work is attached to.
+ * `worker.onUpdated`: a Worker record changed. Ids only, scoped to the readers
+ * of its Task's Chat (`chatId`). The App refetches `task.get` and `worker.get`.
  */
 export const workerUpdatedEventSchema = z
     .object({
         chatId: idSchema,
-        messageId: idSchema,
         serverId: idSchema,
-        taskId: idSchema.nullable(),
+        taskId: idSchema,
         workerId: idSchema,
     })
     .strict();
@@ -67,21 +68,18 @@ export const workerUpdatedEventSchema = z
 export type WorkerUpdatedEvent = z.infer<typeof workerUpdatedEventSchema>;
 
 /**
- * `haus worker start` — the Agent-scoped creation request the Computer
- * forwards after its provider readiness check passes. The instructions the
- * provider runs never appear here: they stay on the Computer.
+ * `haus worker start`: the brief and where it runs. A start without `place` or
+ * `task` is refused with `WORKER_PLACE_REQUIRED` or `WORKER_TASK_REQUIRED`
+ * before anything is written. `nonce` makes a retried start return the same
+ * Worker.
  */
 export const agentWorkerStartInputSchema = z
     .object({
-        /** The Trigger or Reminder fire the `--say` post answers, as on `haus message send`. */
-        cause: z.string().trim().min(1).max(200).optional(),
-        content: z.string().trim().min(1).max(32_000),
-        nonce: z.string().trim().min(1).max(128),
-        provider: cloudAgentProviderSchema,
+        brief: workerTextSchema,
+        nonce: nonceSchema,
+        place: workerPlaceSchema.optional(),
         repository: workerRepositorySchema,
-        replyToMessageId: idSchema.optional(),
         startingRef: workerRefSchema.nullable().default(null),
-        target: z.string().trim().min(1).max(200),
         task: taskKeySchema.optional(),
         title: workerTitleSchema,
     })
@@ -89,17 +87,14 @@ export const agentWorkerStartInputSchema = z
 
 export type AgentWorkerStartInput = z.infer<typeof agentWorkerStartInputSchema>;
 
-/** The launch committed: its Message, work, and first Run exist. */
+/**
+ * The Worker and its first turn exist. `started` means the turn went to its
+ * carrier; `queued` means it waits for a free slot on its place. Neither says
+ * the provider began work: launch outcomes land on the Worker.
+ */
 export const agentWorkerReceiptSchema = z
     .object({
-        state: z.literal('started'),
-        chatId: idSchema,
-        idempotent: z.boolean(),
-        messageId: idSchema,
-        /** The first Run, which the Computer launches against the provider. */
-        turnId: idSchema,
-        sequence: z.number().int().positive(),
-        target: z.string().trim().min(1),
+        state: z.enum(['started', 'queued']),
         worker: workerSchema,
     })
     .strict();
@@ -107,11 +102,10 @@ export const agentWorkerReceiptSchema = z
 export type AgentWorkerReceipt = z.infer<typeof agentWorkerReceiptSchema>;
 
 /**
- * The launch was held by the same freshness check `haus message send` runs:
- * the target Chat has newer human or Agent messages the Agent has not seen.
- * Nothing was created and no provider was asked; the Agent re-runs the
- * command if the launch is still right. `shownMessages` carries Agent
- * message views; the Agent CLI validates each one before rendering.
+ * The start was held by the same freshness check `haus message send` runs:
+ * the Task's Chat has newer messages the Agent has not seen. Nothing was
+ * created. `shownMessages` carries Agent message views; the Agent CLI
+ * validates each one before rendering.
  */
 export const agentWorkerHeldSchema = z
     .object({
@@ -136,19 +130,19 @@ export const agentWorkerStartResponseSchema = z.discriminatedUnion('state', [
 
 export type AgentWorkerStartResponse = z.infer<typeof agentWorkerStartResponseSchema>;
 
-/** `haus worker cancel` — the delegating Agent's cancellation request. */
-export const agentWorkerCancelInputSchema = z.object({ workerId: idSchema }).strict();
+/** `haus worker stop`: the delegating Agent stops its own Worker's working or queued turn. */
+export const agentWorkerStopInputSchema = z.object({ workerId: idSchema }).strict();
 
-export const agentWorkerCancelReceiptSchema = z.object({ worker: workerSchema }).strict();
+export const agentWorkerStopReceiptSchema = z.object({ worker: workerSchema }).strict();
 
-export type AgentWorkerCancelReceipt = z.infer<typeof agentWorkerCancelReceiptSchema>;
+export type AgentWorkerStopReceipt = z.infer<typeof agentWorkerStopReceiptSchema>;
 
 /**
- * One bounded Computer observation of a provider Run. Applying it is
+ * One bounded carrier observation of a provider turn. Applying it is
  * idempotent: a stale or duplicate observation changes nothing.
  *
  * Not `.strict()`: this is the one Computer-to-Server trust boundary in the
- * worker wire contract, and Computer and Server deploy independently.
+ * Worker wire contract, and Computer and Server deploy independently.
  * A `.strict()` schema rejects the whole frame on an unrecognized key, so a
  * newer Computer sending a field an older Server's schema does not know yet
  * would otherwise lose the entire observation instead of just that field.
@@ -161,18 +155,18 @@ export const workerObservationSchema = z.object({
     environmentName: z.string().trim().min(1).max(200).optional(),
     errorCode: z.string().trim().min(1).max(120).optional(),
     observedAt: timestampSchema,
-    /** Provider Run creation time; observation time is only the reporting clock. */
+    /** Provider run creation time; observation time is only the reporting clock. */
     startedAt: timestampSchema.optional(),
     providerAgentId: z.string().trim().min(1).max(200).optional(),
     providerRunId: z.string().trim().min(1).max(200).optional(),
     providerUrl: z.url().max(2000).optional(),
     rawStatus: z.string().trim().min(1).max(120).optional(),
-    /** The full report `summary` was cut from (TECH-8); absent before any Run observes one. */
+    /** The full result `summary` was cut from (TECH-8); absent before any turn observes one. */
     report: workerProviderResultSchema.optional(),
     /** The settled turn's final answer, read from the provider result; null when it had none. */
     result: workerObservedResultSchema.nullable().optional(),
     turnId: idSchema,
-    /** Set on every reading of a stuck live Run; absent means it is not stalled. */
+    /** Set on every reading of a stuck live turn; absent means it is not stalled. */
     stallCode: workerStallCodeSchema.optional(),
     status: workerTurnStatusSchema,
     summary: z.string().trim().min(1).max(workerSummaryMaxLength).optional(),
@@ -183,65 +177,84 @@ export const workerObservationSchema = z.object({
 export type WorkerObservation = z.infer<typeof workerObservationSchema>;
 
 /**
- * One non-terminal work the Computer must reconcile with the provider after a
- * reconnect, plus any cancel request recorded while it was offline.
+ * One dispatched, unsettled turn the carrier must reconcile with the provider
+ * after a reconnect, plus whether a stop was recorded while it was offline.
  */
 export const workerReconcileEntrySchema = z
     .object({
-        cancelRequested: z.boolean(),
-        provider: cloudAgentProviderSchema,
+        place: workerPlaceSchema,
         providerAgentId: z.string().trim().min(1).max(200).nullable(),
         providerRunId: z.string().trim().min(1).max(200).nullable(),
-        turnId: idSchema,
         status: workerTurnStatusSchema,
+        stopRequested: z.boolean(),
+        turnId: idSchema,
         workerId: idSchema,
     })
     .strict();
 
 export type WorkerReconcileEntry = z.infer<typeof workerReconcileEntrySchema>;
 
+/**
+ * `haus worker send`: queue a follow-up for the next turn. `interrupt` stops
+ * the working turn and drops older queued follow-ups first. Posts no Message.
+ */
 export const agentWorkerSendInputSchema = z
-    .object({ workerId: idSchema, nonce: z.string().trim().min(1).max(128) })
+    .object({
+        interrupt: z.boolean().default(false),
+        nonce: nonceSchema,
+        text: workerTextSchema,
+        workerId: idSchema,
+    })
     .strict();
 export type AgentWorkerSendInput = z.infer<typeof agentWorkerSendInputSchema>;
 export const agentWorkerSendReceiptSchema = z
     .object({
-        worker: workerSchema,
-        turnId: idSchema,
         idempotent: z.boolean(),
-        predecessors: z.array(workerReconcileEntrySchema),
+        /** The turn the follow-up rides: the waiting next turn, or a new one. */
+        turnId: idSchema,
+        worker: workerSchema,
     })
     .strict();
 export type AgentWorkerSendReceipt = z.infer<typeof agentWorkerSendReceiptSchema>;
 export const agentWorkerListInputSchema = z.object({ workerId: idSchema.optional() }).strict();
 export const agentWorkerListReceiptSchema = z.object({ workers: z.array(workerSchema) }).strict();
 
-/** Human reads. */
+/** Human reads and writes. */
 export const workerListActiveInputSchema = z.object({ serverId: idSchema }).strict();
 
-export const workerCancelInputSchema = z
-    .object({ serverId: idSchema, workerId: idSchema })
-    .strict();
+export const workerGetInputSchema = z.object({ serverId: idSchema, workerId: idSchema }).strict();
+
+export const workerStopInputSchema = z.object({ serverId: idSchema, workerId: idSchema }).strict();
 
 /**
- * Where "Happening now" opens one work (ADR 0044, Q4): the launch Message when
- * the viewer can read it, otherwise the newest visible linking Message,
- * revealed in its Chat (a Channel, DM, or Task's Chat).
+ * A person's follow-up from the Worker card: it posts a `worker-follow-up`
+ * Message in the Task, authored by the person, and queues the same text.
+ * `nonce` is the Message nonce, so a retried send posts and queues once.
  */
+export const workerSendFollowUpInputSchema = z
+    .object({
+        nonce: nonceSchema,
+        serverId: idSchema,
+        text: workerTextSchema,
+        workerId: idSchema,
+    })
+    .strict();
+
+/** Where "Happening now" opens one Worker: its Task. */
 export const activeWorkerLocationSchema = z
     .object({
         chatId: idSchema,
-        kind: z.literal('message'),
-        messageId: idSchema,
+        kind: z.literal('task'),
+        taskId: idSchema,
     })
     .strict();
 
 export type ActiveWorkerLocation = z.infer<typeof activeWorkerLocationSchema>;
 
 /**
- * One queued or running work visible to the viewer, with everything the Inbox
- * "Happening now" section needs to name it and open its conversation. The
- * Chat facts always name the Channel or DM, a Task's through its Channel.
+ * One queued or working Worker visible to the viewer, with what the Inbox
+ * "Happening now" section needs to name it and open its Task. The Chat facts
+ * name the Channel the Task lives in.
  */
 export const activeWorkerSchema = z
     .object({
@@ -251,17 +264,12 @@ export const activeWorkerSchema = z
         chatName: z.string().nullable(),
         chatPeerUserId: idSchema.nullable(),
         conversationChatId: idSchema,
-        /** Where opening this row goes. */
         location: activeWorkerLocationSchema,
-        taskId: idSchema.nullable(),
-        taskKey: z.string().min(1).nullable(),
+        taskId: idSchema,
+        taskKey: z.string().min(1),
         worker: workerSchema,
     })
-    .strict()
-    .refine((row) => (row.taskId === null) === (row.taskKey === null), {
-        message: 'A Task id and its key come together.',
-        path: ['taskKey'],
-    });
+    .strict();
 
 export const activeWorkerListSchema = z.array(activeWorkerSchema);
 

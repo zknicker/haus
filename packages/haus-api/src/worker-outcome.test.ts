@@ -4,6 +4,7 @@ import {
     type WorkerOutcomeInput,
     workerOutcomeOf,
     workerOutcomeSchema,
+    workerStatusOf,
 } from './worker-outcome.ts';
 
 const pullRequestUrl = 'https://github.com/acme/app/pull/12';
@@ -170,4 +171,22 @@ test.each<[string, WorkerOutcome, WorkerOutcome]>([
 test('report text is clipped at 8000 characters', () => {
     const outcome = settle({ result: result('x'.repeat(9000)), status: 'completed' });
     expect(outcome.kind === 'report' ? outcome.report.text.length : 0).toBe(8000);
+});
+
+test.each<[string, Parameters<typeof workerStatusOf>[0], ReturnType<typeof workerStatusOf>]>([
+    ['a queued turn reads queued', { outcome: null, status: 'queued' }, 'queued'],
+    ['a running turn reads working', { outcome: null, status: 'running' }, 'working'],
+    [
+        'a needs-you report reads needs-you',
+        { outcome: settle({ status: 'pending_input' }), status: 'pending_input' },
+        'needs-you',
+    ],
+    ['a stop reads stopped', { outcome: { kind: 'stopped' }, status: 'cancelled' }, 'stopped'],
+    [
+        'a recorded failure reads failed',
+        { outcome: settle({ status: 'expired' }), status: 'expired' },
+        'failed',
+    ],
+])('%s', (_name, newest, status) => {
+    expect(workerStatusOf(newest)).toBe(status);
 });

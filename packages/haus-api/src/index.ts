@@ -122,6 +122,7 @@ export * from './worker-link.ts';
 export * from './worker-outcome.ts';
 export * from './worker-report-attention.ts';
 export * from './worker-turn-frames.ts';
+export * from './worker-refusals.ts';
 export * from './computer-disk.ts';
 export * from './computer-inventory-refresh.ts';
 export * from './computer-runtime.ts';

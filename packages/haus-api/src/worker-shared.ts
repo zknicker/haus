@@ -1,7 +1,12 @@
 import * as z from 'zod';
 import { workerTurnModelSchema } from './cloud-agent-model.ts';
-import { cloudAgentProviderSchema } from './cloud-agent-provider.ts';
 import { workerJobSchema } from './worker-job.ts';
+import {
+    workerOutcomeSchema,
+    workerPlaceSchema,
+    workerStatusSchema,
+    workerTurnInputSchema,
+} from './worker-outcome.ts';
 import { workerProviderResultSchema } from './worker-provider-result.ts';
 import { pullRequestReadingSchema, workerPullRequestSchema } from './worker-pull-request.ts';
 import { workerStallCodeSchema } from './worker-stall.ts';
@@ -139,78 +144,91 @@ export const workerUsageSchema = z
     })
     .strict();
 
-/** Who asked for cancellation. Humans and the delegating Agent may both ask. */
-export const workerCancelRequestedBySchema = z.discriminatedUnion('kind', [
+/** Who asked to stop a turn: a person who can read the Task, or the delegating Agent. */
+export const workerStopRequestedBySchema = z.discriminatedUnion('kind', [
     z.object({ id: workerIdSchema, kind: z.literal('agent') }).strict(),
     z.object({ id: workerIdSchema, kind: z.literal('user') }).strict(),
 ]);
 
-/** One provider Run inside a work record. Newest first, and bounded. */
+/**
+ * One turn of a Worker, newest first and bounded. `status` is the provider's
+ * vocabulary; `outcome` is set exactly when the turn settled. `input` is null
+ * only on a migrated turn whose follow-up still sits on its carrier.
+ */
 export const workerTurnSchema = z
     .object({
+        acknowledgedAt: workerTimestampSchema.nullable(),
         branches: z.array(workerBranchSchema).max(50),
-        /** When the Run was queued: the job's start, or when a follow-up was sent. */
+        /** When the turn was queued. */
         createdAt: workerTimestampSchema,
+        /** When the Server sent the turn to its place; it holds a slot until it settles. */
+        dispatchedAt: workerTimestampSchema.nullable(),
         errorCode: z.string().trim().min(1).max(120).nullable(),
+        input: z.array(workerTurnInputSchema).nullable(),
         model: workerTurnModelSchema,
+        outcome: workerOutcomeSchema.nullable(),
         providerRunId: z.string().trim().min(1).max(200).nullable(),
         rawStatus: z.string().trim().min(1).max(120).nullable(),
-        /** The full report `summary` was cut from; null until a Run observes one. */
+        /** The full provider result `summary` was cut from; null until a turn observes one. */
         report: workerProviderResultSchema.nullable(),
-        turnId: workerIdSchema,
         startedAt: workerTimestampSchema.nullable(),
         stall: z
             .object({ code: workerStallCodeSchema, since: workerTimestampSchema })
             .strict()
             .nullable(),
         status: workerTurnStatusSchema,
+        stopRequestedAt: workerTimestampSchema.nullable(),
+        stopRequestedBy: workerStopRequestedBySchema.nullable(),
         summary: z.string().trim().min(1).max(workerSummaryMaxLength).nullable(),
         terminalAt: workerTimestampSchema.nullable(),
+        turnId: workerIdSchema,
         usage: workerUsageSchema.nullable(),
     })
     .strict();
 
 /**
- * The durable record one Worker Message anchors. The Message owns
- * authorship and Chat placement; this record owns execution state. It stores
- * provider-safe identifiers and bounded state only — prompts, credentials, raw
- * transcripts, and hosted workspace files never reach Server.
+ * One Worker (specs/workers.md "Record"): a scoped run attached to one Task.
+ * `taskId` is null only on read-only history from before ADR 0053, the one
+ * case `originChatId` and `launchMessageId` still point somewhere. It stores
+ * provider-safe identifiers and bounded state only: credentials, raw
+ * transcripts, and hosted workspace files never reach the Server.
  */
 export const workerSchema = z
     .object({
         activity: workerActivitySchema.nullable(),
         agentId: workerIdSchema,
-        cancelRequestedAt: workerTimestampSchema.nullable(),
-        cancelRequestedBy: workerCancelRequestedBySchema.nullable(),
-        chatId: workerIdSchema,
-        computerId: workerIdSchema,
+        carrierComputerId: workerIdSchema,
+        closedAt: workerTimestampSchema.nullable(),
+        closingAt: workerTimestampSchema.nullable(),
         createdAt: workerTimestampSchema,
-        /** The Claude cloud environment this work's session launched on; null off Claude. */
+        /** The Claude cloud environment this Worker's session launched on; null off Claude. */
         environmentId: z.string().trim().min(1).max(200).nullable(),
-        /** The environment's name, when the Computer could read it, for display. */
+        /** The environment's name, when the carrier could read it, for display. */
         environmentName: z.string().trim().min(1).max(200).nullable(),
         id: workerIdSchema,
-        /** The Server's reading of the whole job across its Runs (`deriveWorkerJob`). */
+        /** The Server's reading of the whole job across its turns (`deriveWorkerJob`). */
         job: workerJobSchema,
-        messageId: workerIdSchema,
-        /** The live reading of the pull request the newest reporting Run named. */
-        pullRequest: pullRequestReadingSchema.nullable(),
-        provider: cloudAgentProviderSchema,
+        launchMessageId: workerIdSchema.nullable(),
+        originChatId: workerIdSchema.nullable(),
+        place: workerPlaceSchema,
         providerAgentId: z.string().trim().min(1).max(200).nullable(),
         providerUrl: z.url().max(2000).nullable(),
+        /** The live reading of the pull request the newest reporting turn named. */
+        pullRequest: pullRequestReadingSchema.nullable(),
         repository: workerRepositorySchema,
-        turns: z.array(workerTurnSchema).max(workerTurnsRetained),
         startedAt: workerTimestampSchema.nullable(),
         startingRef: workerRefSchema.nullable(),
-        status: workerTurnStatusSchema,
+        status: workerStatusSchema,
+        taskId: workerIdSchema.nullable(),
         terminalAt: workerTimestampSchema.nullable(),
         title: workerTitleSchema,
+        turns: z.array(workerTurnSchema).max(workerTurnsRetained),
         updatedAt: workerTimestampSchema,
     })
     .strict();
 
 export type WorkerBranch = z.infer<typeof workerBranchSchema>;
-export type WorkerCancelRequestedBy = z.infer<typeof workerCancelRequestedBySchema>;
+export type WorkerStopRequestedBy = z.infer<typeof workerStopRequestedBySchema>;
 export type WorkerTurn = z.infer<typeof workerTurnSchema>;
 export type WorkerTurnStatus = z.infer<typeof workerTurnStatusSchema>;
 export type WorkerUsage = z.infer<typeof workerUsageSchema>;

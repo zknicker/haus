@@ -17,7 +17,11 @@ import {
 import { work } from './worker-record-fixture.ts';
 
 test('Worker stores bounded, provider-safe execution state', () => {
-    expect(workerSchema.parse(work)).toMatchObject({ status: 'running' });
+    expect(workerSchema.parse(work)).toMatchObject({ status: 'working' });
+    expect(workerSchema.safeParse({ ...work, status: 'running' }).success).toBe(false);
+    expect(
+        workerSchema.parse({ ...work, launchMessageId: null, originChatId: null })
+    ).toMatchObject({ launchMessageId: null, originChatId: null });
     expect(workerSchema.safeParse({ ...work, repository: 'haus' }).success).toBe(false);
     expect(workerSchema.safeParse({ ...work, status: 'idle' }).success).toBe(false);
     expect(workerSchema.safeParse({ ...work, title: 'a'.repeat(121) }).success).toBe(false);
@@ -32,38 +36,41 @@ test('Worker stores bounded, provider-safe execution state', () => {
 
 test('Worker is linked from text, never a Message body', () => {
     expect(messageBodySchema.safeParse({ kind: 'worker', work }).success).toBe(false);
-    expect(formatWorkerSuffix(workerSchema.parse(work))).toBe(
+    expect(formatWorkerSuffix({ status: 'running', title: work.title })).toBe(
         ' [worker status=running title=Fix the flaky delivery test]'
     );
 });
 
-test('a work update names the work and its Message, never their rows', () => {
+test('a Worker update names the Worker and its Task, never their rows', () => {
     const event = {
-        chatId: 'cht_product',
-        messageId: 'msg_1234567890abcdef',
+        chatId: 'cht_task',
         serverId: 'srv_1',
         taskId: 'tsk_1',
         workerId: work.id,
     };
     expect(workerUpdatedEventSchema.parse(event)).toEqual(event);
-    expect(() => workerUpdatedEventSchema.parse({ ...event, taskId: undefined })).toThrow();
+    expect(() => workerUpdatedEventSchema.parse({ ...event, taskId: null })).toThrow();
     expect(() => workerUpdatedEventSchema.parse({ ...event, work })).toThrow();
 });
 
-test('the Agent start input never carries provider instructions', () => {
+test('the Agent start input carries the brief and the place, never provider instructions', () => {
     const input = {
-        content: 'Handing the flaky test to a Worker.',
+        brief: 'Fix the flaky test.',
         nonce: 'worker-1',
-        provider: 'cursor',
+        place: 'cursor',
         repository: 'haus/haus',
-        target: '#product',
+        task: 'ENG-41',
         title: 'Fix the flaky delivery test',
     };
     expect(agentWorkerStartInputSchema.parse(input).startingRef).toBeNull();
+    expect(agentWorkerStartInputSchema.parse({ ...input, place: undefined }).place).toBeUndefined();
     expect(agentWorkerStartInputSchema.safeParse({ ...input, instructions: 'do it' }).success).toBe(
         false
     );
-    expect(agentWorkerStartInputSchema.safeParse({ ...input, content: '' }).success).toBe(false);
+    expect(agentWorkerStartInputSchema.safeParse({ ...input, brief: '' }).success).toBe(false);
+    expect(agentWorkerStartInputSchema.safeParse({ ...input, place: 'computer' }).success).toBe(
+        false
+    );
 });
 
 test('an observation is bounded and its frames ride the command union', () => {
@@ -78,7 +85,7 @@ test('an observation is bounded and its frames ride the command union', () => {
     ).toBe('completed');
     expect(
         agentCommandSchema.safeParse({
-            provider: 'cursor',
+            place: 'cursor',
             providerAgentId: 'bc_abc',
             providerRunId: 'run_abc',
             turnId: 'car_1234567890abcdef',
@@ -91,12 +98,12 @@ test('an observation is bounded and its frames ride the command union', () => {
             type: 'worker-reconcile',
             workers: [
                 {
-                    cancelRequested: true,
-                    provider: 'cursor',
+                    place: 'cursor',
                     providerAgentId: null,
                     providerRunId: null,
-                    turnId: 'car_1234567890abcdef',
                     status: 'queued',
+                    stopRequested: true,
+                    turnId: 'car_1234567890abcdef',
                     workerId: 'caw_1234567890abcdef',
                 },
             ],
@@ -104,7 +111,7 @@ test('an observation is bounded and its frames ride the command union', () => {
     ).toBe(true);
 });
 
-test('a Worker attention is a bodiless inbox item keyed by its Run', () => {
+test('a Worker stall is a bodiless inbox item keyed by its turn', () => {
     const attention = {
         branches: [
             {
@@ -114,14 +121,14 @@ test('a Worker attention is a bodiless inbox item keyed by its Run', () => {
             },
         ],
         errorCode: null,
-        notice: 'settled',
-        provider: 'cursor',
+        notice: 'stall',
+        place: 'cursor',
         providerUrl: 'https://cursor.com/agents/bc_abc',
         repository: 'haus/haus',
         turnId: 'car_1234567890abcdef',
-        stallCode: null,
-        status: 'completed',
-        summary: 'Opened a pull request.',
+        stallCode: 'followup-auto-interrupt-failed',
+        status: 'queued',
+        summary: null,
         title: 'Fix the flaky delivery test',
         workerId: 'caw_1234567890abcdef',
     };
@@ -139,6 +146,10 @@ test('a Worker attention is a bodiless inbox item keyed by its Run', () => {
     expect(agentInboxItemSchema.parse(item).worker?.workerId).toBe('caw_1234567890abcdef');
     expect(agentInboxItemSchema.safeParse({ ...item, id: 'opaque:key' }).success).toBe(true);
     expect(agentInboxItemSchema.safeParse({ ...item, sequence: 3 }).success).toBe(false);
+    expect(
+        agentInboxItemSchema.safeParse({ ...item, worker: { ...attention, notice: 'settled' } })
+            .success
+    ).toBe(false);
 });
 
 test('Computer inventory reports Cloud Agent provider readiness on the current protocol', () => {

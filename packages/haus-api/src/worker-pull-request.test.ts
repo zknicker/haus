@@ -4,7 +4,6 @@ import {
     workerPullRequestNumber,
     workerPullRequestSchema,
     workerPullRequestStates,
-    workerSchema,
     formatWorkerSuffix,
 } from './index.ts';
 import { work } from './worker-record-fixture.ts';
@@ -72,9 +71,9 @@ test('a pull-request snapshot states real counts, a live number, and a GitHub st
 });
 
 test('the work suffix names the pull request a Run opened', () => {
-    expect(formatWorkerSuffix({ ...workerSchema.parse(work), pullRequestNumber: 56 })).toBe(
-        ' [worker status=running title=Fix the flaky delivery test pr=#56]'
-    );
+    expect(
+        formatWorkerSuffix({ pullRequestNumber: 56, status: 'running', title: work.title })
+    ).toBe(' [worker status=running title=Fix the flaky delivery test pr=#56]');
     expect(workerPullRequestNumber('https://github.com/haus/haus/pull/56')).toBe(56);
     expect(workerPullRequestNumber('https://api.github.com/repos/haus/haus/pulls/56')).toBe(56);
     expect(workerPullRequestNumber('https://github.com/haus/haus/pull/56/files')).toBe(56);
