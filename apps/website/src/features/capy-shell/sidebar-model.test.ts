@@ -3,9 +3,18 @@ import type { Chat, ChatMessage, ChatUnreadPreview, Task } from '@haus/api';
 import {
     buildCapySidebar,
     type CapySidebarSources,
-    openTaskRows,
+    openTaskSlots,
+    projectIds,
+    waitingChatIds,
+} from './sidebar-layout.ts';
+import {
+    agentDm,
+    assigneeName,
+    captainTile,
+    openTaskRow,
     progressLineParts,
-    projectRows,
+    projectRow,
+    taskUnread,
 } from './sidebar-model.ts';
 
 const chat = (fields: Partial<Chat> & Pick<Chat, 'id' | 'kind'>) =>
@@ -39,15 +48,19 @@ const preview = (chatId: string, contents: string[]) =>
         task: null,
     }) as ChatUnreadPreview;
 
+const forge = {
+    availability: 'working',
+    avatarUrl: null,
+    displayName: 'Forge',
+    id: 'forge',
+} as const;
+const members = [{ avatarUrl: null, displayName: 'Zach', userId: 'zach' }];
+
 const sources = (fields: Partial<CapySidebarSources>) =>
     ({
-        agents: [
-            { availability: 'working', avatarUrl: null, displayName: 'Forge', id: 'forge' },
-            { availability: 'idle', avatarUrl: null, displayName: 'Cove', id: 'cove' },
-        ],
+        agentIds: ['forge', 'cove'],
         channelOrder: [],
         chats: [],
-        members: [{ avatarUrl: null, displayName: 'Zach', userId: 'zach' }],
         openTasks: [],
         unreadPreviews: [],
         viewerUserId: 'zach',
@@ -64,11 +77,11 @@ test('the sidebar runs Captains, Projects, open Tasks, then People', () => {
             openTasks: [task('t1', 'ENG-1', '2026-11-18T10:00:00.000Z')],
         })
     );
-    expect(sections.map((section) => section.kind)).toEqual([
-        'captains',
-        'projects',
-        'open-tasks',
-        'people',
+    expect(sections).toEqual([
+        { agentDmChatIds: {}, agentIds: ['forge', 'cove'], kind: 'captains' },
+        { chatIds: ['eng'], kind: 'projects' },
+        { kind: 'open-tasks', tasks: [{ chatId: null, key: 'ENG-1', taskId: 't1' }] },
+        { chatIds: ['dm-ada'], kind: 'people' },
     ]);
 });
 
@@ -85,77 +98,63 @@ test('People and open Tasks are hidden when there are none', () => {
 });
 
 test('a Captain tile is working while its Agent works and counts its DM unread', () => {
-    const [captains] = buildCapySidebar(
-        sources({
-            chats: [chat({ id: 'dm-forge', kind: 'dm', peerAgentId: 'forge', unreadCount: 3 })],
-        })
-    );
-    expect(captains).toEqual({
-        kind: 'captains',
-        tiles: [
-            {
-                agentId: 'forge',
-                avatarUrl: null,
-                dmChatId: 'dm-forge',
-                name: 'Forge',
-                unreadCount: 3,
-                working: true,
-            },
-            {
-                agentId: 'cove',
-                avatarUrl: null,
-                dmChatId: null,
-                name: 'Cove',
-                unreadCount: 0,
-                working: false,
-            },
-        ],
+    const chats = [chat({ id: 'dm-forge', kind: 'dm', peerAgentId: 'forge', unreadCount: 3 })];
+    expect(captainTile(forge, agentDm(chats, 'forge'))).toEqual({
+        agentId: 'forge',
+        avatarUrl: null,
+        dmChatId: 'dm-forge',
+        name: 'Forge',
+        unreadCount: 3,
+        working: true,
+    });
+    expect(captainTile({ ...forge, availability: 'idle' }, null)).toMatchObject({
+        dmChatId: null,
+        unreadCount: 0,
+        working: false,
     });
 });
 
 test("Projects follow the stored order and carry their channel's Captains as live data", () => {
-    const rows = projectRows(
-        sources({
-            channelOrder: ['sec'],
-            chats: [
-                chat({ id: 'eng', kind: 'channel', name: 'eng', participantAgentIds: ['forge'] }),
-                chat({ id: 'sec', kind: 'channel', name: 'sec', unreadCount: 4 }),
-            ],
-        })
-    );
-    expect(rows.map((row) => [row.name, row.captainIds, row.unreadCount])).toEqual([
-        ['sec', { source: 'live', value: [] }, 4],
-        ['eng', { source: 'live', value: ['forge'] }, 0],
-    ]);
+    const eng = chat({ id: 'eng', kind: 'channel', name: 'eng', participantAgentIds: ['forge'] });
+    const sec = chat({ id: 'sec', kind: 'channel', name: 'sec', unreadCount: 4 });
+    expect(projectIds([eng, sec], ['sec'])).toEqual(['sec', 'eng']);
+    expect(projectRow(eng).captainIds).toEqual({ source: 'live', value: ['forge'] });
+    expect(projectRow(sec).unreadCount).toBe(4);
 });
 
 test('a Task that @mentions you in an unread message waits on you and sorts first', () => {
-    const rows = openTaskRows(
-        sources({
-            openTasks: [
-                task('t1', 'ENG-1', '2026-11-18T12:00:00.000Z', 'c1'),
-                task('t2', 'SEC-2', '2026-11-18T09:00:00.000Z', 'c2'),
-                task('t3', 'ENG-3', '2026-11-18T11:00:00.000Z', 'c3'),
-            ],
-            unreadPreviews: [
-                preview('c2', ['[@Zach](user://zach) can you approve the rotation?']),
-                preview('c3', ['[@Ada](user://ada) take a look']),
-            ],
-        })
-    );
-    expect(rows.map((row) => [row.key, row.line.kind, row.unreadCount])).toEqual([
-        ['SEC-2', 'waiting', 2],
-        ['ENG-1', 'progress', 0],
-        ['ENG-3', 'progress', 2],
+    const previews = [
+        preview('c2', ['[@Zach](user://zach) can you approve the rotation?']),
+        preview('c3', ['[@Ada](user://ada) take a look']),
+    ];
+    const tasks = [
+        task('t1', 'ENG-1', '2026-11-18T12:00:00.000Z', 'c1'),
+        task('t2', 'SEC-2', '2026-11-18T09:00:00.000Z', 'c2'),
+        task('t3', 'ENG-3', '2026-11-18T11:00:00.000Z', 'c3'),
+    ];
+    expect(openTaskSlots(tasks, waitingChatIds(previews, 'zach')).map((slot) => slot.key)).toEqual([
+        'SEC-2',
+        'ENG-1',
+        'ENG-3',
     ]);
-    expect(rows[0]?.line).toEqual({ kind: 'waiting', on: 'Zach' });
+    const row = openTaskRow({
+        assignee: 'Forge',
+        task: tasks[1] as Task,
+        unread: taskUnread(previews[0], 'zach'),
+        viewerName: 'Zach',
+    });
+    expect([row.line, row.unreadCount]).toEqual([{ kind: 'waiting', on: 'Zach' }, 2]);
+    expect(taskUnread(previews[1], 'zach')).toEqual({ mentionsViewer: false, unreadCount: 2 });
 });
 
 test('Worker counts and places are placeholders marked for W2', () => {
-    const [row] = openTaskRows(
-        sources({ openTasks: [task('t2', 'ENG-2', '2026-11-18T12:00:00Z')] })
-    );
-    expect(row?.line).toEqual({
+    const row = openTaskRow({
+        assignee: assigneeName({ agentId: 'forge', kind: 'agent' }, [forge], members),
+        task: task('t2', 'ENG-2', '2026-11-18T12:00:00Z'),
+        unread: taskUnread(undefined, 'zach'),
+        viewerName: 'Zach',
+    });
+    expect(row.line).toEqual({
         assignee: 'Forge',
         kind: 'progress',
         workers: {

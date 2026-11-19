@@ -4,6 +4,7 @@ import * as React from 'react';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { UnreadCountChip } from '../../components/chats/unread-count-chip.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
+import { useAgentMark } from '../../hooks/members/use-agents.ts';
 import { usePreloadChat } from '../../hooks/servers/use-preload-chat.ts';
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import { usePressNavigationWith } from '../../hooks/shell/use-press-navigation.ts';
@@ -12,40 +13,34 @@ import { serverChatRoute, taskRoute } from '../servers/server-routes.ts';
 import { ChatNavigationContextMenu } from '../shell/chat-navigation-context-menu.tsx';
 import { TaskStateDisc } from '../tasks/task-state-disc.tsx';
 import { taskStateLabels } from '../tasks/task-state.ts';
-import {
-    type CaptainTile,
-    type OpenTaskRow,
-    type PersonRow,
-    type ProjectRow,
-    progressLineParts,
-} from './sidebar-model.ts';
+import { type OpenTaskRow, type ProjectRow, progressLineParts } from './sidebar-model.ts';
+import { useOpenTaskRow, usePersonRow, useProjectRow } from './use-capy-sidebar-rows.ts';
 
 const projectCaptainLimit = 3;
 
-export function ProjectNavigationRow({
-    captains,
-    currentPath,
-    row,
-    serverId,
-    slug,
-}: {
-    captains: ReadonlyMap<string, CaptainTile>;
-    currentPath: string;
-    row: ProjectRow;
+interface RowProps {
+    isCurrent: boolean;
     serverId: string;
     slug: string;
-}) {
-    const href = serverChatRoute(slug, row.chatId);
-    const isCurrent = currentPath === href;
-    const { preload, rowRef } = useRowNavigation(serverId, row.chatId, href);
-    const faces = row.captainIds.value
-        .flatMap((id) => captains.get(id) ?? [])
-        .slice(0, projectCaptainLimit);
+}
+
+export const ProjectNavigationRow = React.memo(function ProjectNavigationRow({
+    chatId,
+    isCurrent,
+    serverId,
+    slug,
+}: RowProps & { chatId: string }) {
+    const row = useProjectRow(serverId, chatId);
+    const href = serverChatRoute(slug, chatId);
+    const { preload, rowRef } = useRowNavigation(serverId, chatId, href);
+    if (!row) {
+        return null;
+    }
     return (
         <Sidebar.MenuItem
             data-captains-source={row.captainIds.source}
             href={href}
-            id={row.chatId}
+            id={chatId}
             isCurrent={isCurrent}
             onHoverStart={preload}
             ref={rowRef}
@@ -68,15 +63,10 @@ export function ProjectNavigationRow({
                     >
                         {row.name}
                     </Sidebar.MenuLabel>
-                    {faces.length > 0 ? (
+                    {row.captainIds.value.length > 0 ? (
                         <span aria-hidden="true" className="flex shrink-0 -space-x-1">
-                            {faces.map((captain) => (
-                                <EntityAvatar
-                                    key={captain.agentId}
-                                    name={captain.name}
-                                    size={16}
-                                    src={captain.avatarUrl}
-                                />
+                            {row.captainIds.value.slice(0, projectCaptainLimit).map((agentId) => (
+                                <CaptainFace agentId={agentId} key={agentId} serverId={serverId} />
                             ))}
                         </span>
                     ) : null}
@@ -85,26 +75,25 @@ export function ProjectNavigationRow({
             </ChatNavigationContextMenu>
         </Sidebar.MenuItem>
     );
-}
+});
 
-export function OpenTaskNavigationRow({
-    currentPath,
-    row,
+export const OpenTaskNavigationRow = React.memo(function OpenTaskNavigationRow({
+    isCurrent,
     serverId,
     slug,
-}: {
-    currentPath: string;
-    row: OpenTaskRow;
-    serverId: string;
-    slug: string;
-}) {
-    const href = taskRoute(slug, row.key);
-    const { preload, rowRef } = useRowNavigation(serverId, row.chatId ?? undefined, href);
+    taskId,
+}: RowProps & { taskId: string }) {
+    const row = useOpenTaskRow(serverId, taskId);
+    const href = row ? taskRoute(slug, row.key) : '';
+    const { preload, rowRef } = useRowNavigation(serverId, row?.chatId ?? undefined, href);
+    if (!row) {
+        return null;
+    }
     return (
         <Sidebar.MenuItem
             href={href}
-            id={row.taskId}
-            isCurrent={currentPath === href}
+            id={taskId}
+            isCurrent={isCurrent}
             onHoverStart={preload}
             ref={rowRef}
             textValue={`${row.key} ${row.title}`}
@@ -128,26 +117,25 @@ export function OpenTaskNavigationRow({
             </Sidebar.MenuItemContent>
         </Sidebar.MenuItem>
     );
-}
+});
 
-export function PersonNavigationRow({
-    currentPath,
-    row,
+export const PersonNavigationRow = React.memo(function PersonNavigationRow({
+    chatId,
+    isCurrent,
     serverId,
     slug,
-}: {
-    currentPath: string;
-    row: PersonRow;
-    serverId: string;
-    slug: string;
-}) {
-    const href = serverChatRoute(slug, row.chatId);
-    const { preload, rowRef } = useRowNavigation(serverId, row.chatId, href);
+}: RowProps & { chatId: string }) {
+    const row = usePersonRow(serverId, chatId);
+    const href = serverChatRoute(slug, chatId);
+    const { preload, rowRef } = useRowNavigation(serverId, chatId, href);
+    if (!row) {
+        return null;
+    }
     return (
         <Sidebar.MenuItem
             href={href}
-            id={row.chatId}
-            isCurrent={currentPath === href}
+            id={chatId}
+            isCurrent={isCurrent}
             onHoverStart={preload}
             ref={rowRef}
             textValue={row.name}
@@ -165,7 +153,20 @@ export function PersonNavigationRow({
             </Sidebar.MenuItemContent>
         </Sidebar.MenuItem>
     );
-}
+});
+
+const CaptainFace = React.memo(function CaptainFace({
+    agentId,
+    serverId,
+}: {
+    agentId: string;
+    serverId: string;
+}) {
+    const captain = useAgentMark(serverId, agentId);
+    return captain ? (
+        <EntityAvatar name={captain.displayName} size={16} src={captain.avatarUrl} />
+    ) : null;
+});
 
 function OpenTaskLineText({ line }: { line: OpenTaskRow['line'] }) {
     if (line.kind === 'waiting') {

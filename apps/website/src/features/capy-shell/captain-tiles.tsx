@@ -8,58 +8,68 @@ import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import { usePressNavigationWith } from '../../hooks/shell/use-press-navigation.ts';
 import { cn } from '../../lib/utils.ts';
 import { serverAgentDmRoute, serverChatRoute } from '../servers/server-routes.ts';
-import type { CaptainTile } from './sidebar-model.ts';
+import { useCaptainTile } from './use-capy-sidebar-rows.ts';
 
 const tileAvatarSize = 32;
 
 export function CaptainTiles({
-    currentPath,
+    agentDmChatIds,
+    agentIds,
+    selectedAgentDmId,
+    selectedChatId,
     serverId,
     slug,
-    tiles,
 }: {
-    currentPath: string;
+    agentDmChatIds: Readonly<Record<string, string>>;
+    agentIds: readonly string[];
+    selectedAgentDmId: string | undefined;
+    selectedChatId: string | undefined;
     serverId: string;
     slug: string;
-    tiles: readonly CaptainTile[];
 }) {
     return (
         <Sidebar.Group>
             <Sidebar.GroupLabel>Captains</Sidebar.GroupLabel>
             <ul aria-label="Captains" className="flex flex-wrap gap-1 px-1">
-                {tiles.map((tile) => {
-                    const href = tile.dmChatId
-                        ? serverChatRoute(slug, tile.dmChatId)
-                        : serverAgentDmRoute(slug, tile.agentId);
-                    return (
-                        <li key={tile.agentId}>
-                            <CaptainTileLink
-                                href={href}
-                                isCurrent={currentPath === href}
-                                serverId={serverId}
-                                tile={tile}
-                            />
-                        </li>
-                    );
-                })}
+                {agentIds.map((agentId) => (
+                    <li key={agentId}>
+                        <CaptainTileLink
+                            agentId={agentId}
+                            isCurrent={
+                                agentId === selectedAgentDmId ||
+                                (selectedChatId !== undefined &&
+                                    agentDmChatIds[agentId] === selectedChatId)
+                            }
+                            key={agentId}
+                            serverId={serverId}
+                            slug={slug}
+                        />
+                    </li>
+                ))}
             </ul>
         </Sidebar.Group>
     );
 }
 
 const CaptainTileLink = React.memo(function CaptainTileLink({
-    href,
+    agentId,
     isCurrent,
     serverId,
-    tile,
+    slug,
 }: {
-    href: string;
+    agentId: string;
     isCurrent: boolean;
     serverId: string;
-    tile: CaptainTile;
+    slug: string;
 }) {
-    const { preload } = usePreloadChat(serverId, tile.dmChatId ?? undefined);
+    const tile = useCaptainTile(serverId, agentId);
+    const dmChatId = tile?.dmChatId ?? undefined;
+    const { preload } = usePreloadChat(serverId, dmChatId);
+    const href = dmChatId ? serverChatRoute(slug, dmChatId) : serverAgentDmRoute(slug, agentId);
     const pressRef = usePressNavigationWith(useSidebarNavigate(), href, preload);
+    if (!tile) {
+        return null;
+    }
     const label = [
         tile.name,
         tile.working ? 'working' : null,

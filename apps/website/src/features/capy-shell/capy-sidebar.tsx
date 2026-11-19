@@ -5,6 +5,11 @@ import * as React from 'react';
 import { useLocation } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import { SidebarNavigateProvider } from '../../hooks/shell/sidebar-navigate.tsx';
+import {
+    resolveSelectedAgentDmId,
+    resolveSelectedChatId,
+} from '../../routes/app/server-route-state.ts';
+import { taskRoute } from '../servers/server-routes.ts';
 import { ChatGroup } from '../shell/chat-navigation-group.tsx';
 import { NewProjectDialog } from '../shell/new-project-dialog.tsx';
 import { sidebarActionIconSize } from '../shell/section-header.tsx';
@@ -16,8 +21,8 @@ import {
     PersonNavigationRow,
     ProjectNavigationRow,
 } from './capy-sidebar-rows.tsx';
-import type { CapySidebarSection, CaptainTile } from './sidebar-model.ts';
-import { useCapySidebar } from './use-capy-sidebar.ts';
+import type { CapySidebarSection } from './sidebar-layout.ts';
+import { useCapySidebarSections } from './use-capy-sidebar.ts';
 
 export function CapySidebar({
     lead,
@@ -28,13 +33,15 @@ export function CapySidebar({
     serverId: string;
     slug: string;
 }) {
-    const sections = useCapySidebar(serverId);
+    const sections = useCapySidebarSections(serverId);
     const { pathname } = useLocation();
     const [creatingProject, setCreatingProject] = React.useState(false);
-    const captains = React.useMemo(
-        () => new Map(captainTilesOf(sections).map((tile) => [tile.agentId, tile])),
-        [sections]
-    );
+    const openNewProject = React.useCallback(() => setCreatingProject(true), []);
+    const selection = {
+        pathname,
+        selectedAgentDmId: resolveSelectedAgentDmId(pathname, slug),
+        selectedChatId: resolveSelectedChatId(pathname, slug),
+    };
 
     return (
         <SidebarNavigateProvider>
@@ -42,11 +49,10 @@ export function CapySidebar({
             <ShellSidebarPageContent>
                 {sections?.map((section) => (
                     <CapySidebarSectionView
-                        captains={captains}
-                        currentPath={pathname}
                         key={section.kind}
-                        onCreateProject={() => setCreatingProject(true)}
+                        onCreateProject={openNewProject}
                         section={section}
+                        selection={selection}
                         serverId={serverId}
                         slug={slug}
                     />
@@ -63,24 +69,34 @@ export function CapySidebar({
 }
 
 function CapySidebarSectionView({
-    captains,
-    currentPath,
     onCreateProject,
     section,
+    selection,
     serverId,
     slug,
 }: {
-    captains: ReadonlyMap<string, CaptainTile>;
-    currentPath: string;
     onCreateProject: () => void;
     section: CapySidebarSection;
+    selection: {
+        pathname: string;
+        selectedAgentDmId: string | undefined;
+        selectedChatId: string | undefined;
+    };
     serverId: string;
     slug: string;
 }) {
-    const rowProps = { currentPath, serverId, slug };
     switch (section.kind) {
         case 'captains':
-            return <CaptainTiles {...rowProps} tiles={section.tiles} />;
+            return (
+                <CaptainTiles
+                    agentDmChatIds={section.agentDmChatIds}
+                    agentIds={section.agentIds}
+                    selectedAgentDmId={selection.selectedAgentDmId}
+                    selectedChatId={selection.selectedChatId}
+                    serverId={serverId}
+                    slug={slug}
+                />
+            );
         case 'projects':
             return (
                 <ChatGroup
@@ -98,12 +114,13 @@ function CapySidebarSectionView({
                     label="Projects"
                 >
                     <Sidebar.Menu aria-label="Projects">
-                        {section.rows.map((row) => (
+                        {section.chatIds.map((chatId) => (
                             <ProjectNavigationRow
-                                {...rowProps}
-                                captains={captains}
-                                key={row.chatId}
-                                row={row}
+                                chatId={chatId}
+                                isCurrent={chatId === selection.selectedChatId}
+                                key={chatId}
+                                serverId={serverId}
+                                slug={slug}
                             />
                         ))}
                     </Sidebar.Menu>
@@ -113,8 +130,14 @@ function CapySidebarSectionView({
             return (
                 <ChatGroup label="Open tasks">
                     <Sidebar.Menu aria-label="Open tasks">
-                        {section.rows.map((row) => (
-                            <OpenTaskNavigationRow {...rowProps} key={row.taskId} row={row} />
+                        {section.tasks.map((task) => (
+                            <OpenTaskNavigationRow
+                                isCurrent={selection.pathname === taskRoute(slug, task.key)}
+                                key={task.taskId}
+                                serverId={serverId}
+                                slug={slug}
+                                taskId={task.taskId}
+                            />
                         ))}
                     </Sidebar.Menu>
                 </ChatGroup>
@@ -123,16 +146,17 @@ function CapySidebarSectionView({
             return (
                 <ChatGroup label="People">
                     <Sidebar.Menu aria-label="People">
-                        {section.rows.map((row) => (
-                            <PersonNavigationRow {...rowProps} key={row.chatId} row={row} />
+                        {section.chatIds.map((chatId) => (
+                            <PersonNavigationRow
+                                chatId={chatId}
+                                isCurrent={chatId === selection.selectedChatId}
+                                key={chatId}
+                                serverId={serverId}
+                                slug={slug}
+                            />
                         ))}
                     </Sidebar.Menu>
                 </ChatGroup>
             );
     }
-}
-
-function captainTilesOf(sections: readonly CapySidebarSection[] | null) {
-    const captains = sections?.find((section) => section.kind === 'captains');
-    return captains?.kind === 'captains' ? captains.tiles : [];
 }

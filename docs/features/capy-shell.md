@@ -42,8 +42,11 @@ stored in `localStorage` under `haus.capy-shell` and follows into other open win
 
 Every sidebar field is typed `Sourced<T>` when it can be a placeholder
 (`features/capy-shell/placeholders.ts`): `{ source: 'live' }` or
-`{ source: 'placeholder', replacedBy }`. The view model is `buildCapySidebar` in
-`features/capy-shell/sidebar-model.ts`.
+`{ source: 'placeholder', replacedBy }`. The sidebar's structure (which sections, which ids,
+in what order) is `capySidebarSections` in `features/capy-shell/sidebar-layout.ts`; each row
+projects its own entry through `features/capy-shell/sidebar-model.ts` from a narrow `select`
+(`use-capy-sidebar-rows.ts`), so a message re-renders only the row it changes
+(`capy-sidebar-render-isolation.test.tsx`).
 
 | Field | Source today | Replaced by |
 | --- | --- | --- |

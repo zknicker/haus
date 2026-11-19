@@ -1,44 +1,67 @@
+import type { Agent, Chat, ChatUnreadPreviewList } from '@haus/api';
 import * as React from 'react';
-import { useAgents } from '../../hooks/members/use-agents.ts';
-import { useChats } from '../../hooks/servers/use-chats.ts';
-import { useMembers } from '../../hooks/servers/use-members.ts';
+import { useChatListSelection } from '../../hooks/servers/use-chats.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 import { readChannelOrder } from '../shell/channel-order.ts';
-import { buildCapySidebar } from './sidebar-model.ts';
+import {
+    agentDmChatIds,
+    capySidebarSections,
+    personChatIds,
+    projectIds,
+    sortedOpenTaskSlots,
+    waitingChatIds,
+    waitingFirst,
+} from './sidebar-layout.ts';
+import { useViewer } from './use-capy-sidebar-rows.ts';
 
-export function useCapySidebar(serverId: string) {
-    const agents = useAgents(serverId).data;
-    const chats = useChats(serverId).data;
+export function useCapySidebarSections(serverId: string) {
+    const agentIds = hausTrpc.agent.list.useQuery(
+        { serverId },
+        { ...queryPolicy.syncedSnapshot, select: selectAgentIds }
+    ).data;
+    const [channelOrder] = React.useState(() => storedChannelOrder(serverId));
+    const selectChatLayout = React.useCallback(
+        (chats: Chat[]) => ({
+            agentDmChatIds: agentDmChatIds(chats),
+            personChatIds: personChatIds(chats),
+            projectIds: projectIds(chats, channelOrder),
+        }),
+        [channelOrder]
+    );
+    const chatLayout = useChatListSelection(serverId, selectChatLayout);
     const openTasks = hausTrpc.task.listOpen.useQuery(
         { serverId },
-        queryPolicy.syncedSnapshot
+        { ...queryPolicy.syncedSnapshot, select: sortedOpenTaskSlots }
     ).data;
-    const unreadPreviews = hausTrpc.chat.unreadPreviews.useQuery(
+    const { viewerUserId } = useViewer(serverId);
+    const selectWaiting = React.useCallback(
+        (list: ChatUnreadPreviewList) => waitingChatIds(list.previews, viewerUserId),
+        [viewerUserId]
+    );
+    const waiting = hausTrpc.chat.unreadPreviews.useQuery(
         { serverId },
-        queryPolicy.syncedSnapshot
+        { ...queryPolicy.syncedSnapshot, select: selectWaiting }
     ).data;
-    const directory = useMembers(serverId).data;
-    const [channelOrder] = React.useState(() => storedChannelOrder(serverId));
 
     return React.useMemo(
         () =>
-            agents && chats
-                ? buildCapySidebar({
-                      agents,
-                      channelOrder,
-                      chats,
-                      members: directory?.members ?? [],
-                      openTasks: openTasks ?? [],
-                      unreadPreviews: unreadPreviews?.previews ?? [],
-                      viewerUserId: directory?.viewerUserId ?? null,
+            agentIds && chatLayout
+                ? capySidebarSections({
+                      ...chatLayout,
+                      agentIds,
+                      openTasks: waitingFirst(openTasks ?? [], waiting ?? []),
                   })
                 : null,
-        [agents, channelOrder, chats, directory, openTasks, unreadPreviews]
+        [agentIds, chatLayout, openTasks, waiting]
     );
 }
 
 export function storedChannelOrder(serverId: string) {
     const storage = globalThis.window?.localStorage;
     return storage ? readChannelOrder(storage, `haus.sidebar.channels.${serverId}`) : [];
+}
+
+function selectAgentIds(agents: Agent[]) {
+    return agents.map((agent) => agent.id);
 }
