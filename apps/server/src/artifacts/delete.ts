@@ -1,4 +1,6 @@
 import { and, eq, gt, inArray, isNotNull, or, sql } from 'drizzle-orm';
+import { type DrivePlacement, driveAreaOfPath, requireDriveWrite } from '../drive/areas.ts';
+import { type DriveChangeEntry, recordDriveChanges } from '../drive/changes.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     artifactsTable as artifacts,
@@ -6,7 +8,9 @@ import {
     serversTable,
 } from '../postgres/schema.ts';
 import { artifactUpdatedTopic } from '../realtime/topics.ts';
-import { type ArtifactAccess, type ArtifactActor, artifactAccess } from './access.ts';
+import { type ArtifactActor, artifactAccess } from './access.ts';
+import { revisionConflict } from './conflict.ts';
+import { lockLiveServer } from './move.ts';
 import { releasePendingPath } from './publish.ts';
 import {
     ArtifactError,
@@ -15,30 +19,55 @@ import {
     requireArtifactStorage,
 } from './storage.ts';
 
+type Artifact = typeof artifacts.$inferSelect;
+
+/**
+ * Deletes a file the caller may write. The file keeps its head and every revision, restorable
+ * until retention purges them. A `baseRevisionId` that is no longer the head leaves the file in
+ * place with `REVISION_CONFLICT`, so an edit always beats a delete.
+ */
 export async function deleteArtifact(
+    db: HausDatabase,
+    actor: ArtifactActor,
+    origin: string,
+    artifactId: string,
+    options: { baseRevisionId?: string } = {}
+) {
+    const access = await artifactAccess(db, actor);
+    await db.transaction(async (tx) => {
+        await lockLiveServer(tx, access.serverId);
+        const artifact = await liveArtifact(tx, access.serverId, artifactId);
+        if (options.baseRevisionId && options.baseRevisionId !== artifact.currentRevisionId) {
+            throw await revisionConflict(tx, access, origin, {
+                artifactId: artifact.id,
+                baseRevisionId: options.baseRevisionId,
+                path: artifact.path,
+            });
+        }
+        const placement = requireDriveWrite(
+            access,
+            await driveAreaOfPath(tx, access.serverId, artifact.path)
+        );
+        await softDeleteArtifacts(tx, access.serverId, [{ artifact, placement }]);
+    });
+    artifactUpdatedTopic.announce({ artifactId, serverId: access.serverId });
+    return { ok: true };
+}
+
+/** Purges one replaced revision of a live file at once; the head is never purged this way. */
+export async function deleteArtifactVersion(
     db: HausDatabase,
     actor: ArtifactActor,
     storage: ArtifactStorage | null,
     artifactId: string,
-    revisionId?: string
+    revisionId: string
 ) {
     const store = requireArtifactStorage(storage);
     const access = await artifactAccess(db, actor);
-    const keys = await db.transaction(async (tx) => {
-        await tx
-            .select({ id: serversTable.id })
-            .from(serversTable)
-            .where(eq(serversTable.id, access.serverId))
-            .for('update');
-        const [artifact] = await tx
-            .select()
-            .from(artifacts)
-            .where(and(eq(artifacts.serverId, access.serverId), eq(artifacts.id, artifactId)))
-            .limit(1);
-        if (!artifact || artifact.deletedAt) {
-            throw new ArtifactError('File was not found.', 404, 'NOT_FOUND');
-        }
-        requireDeleteAccess(access, artifact);
+    const revision = await db.transaction(async (tx) => {
+        await lockLiveServer(tx, access.serverId);
+        const artifact = await liveArtifact(tx, access.serverId, artifactId);
+        requireDriveWrite(access, await driveAreaOfPath(tx, access.serverId, artifact.path));
         if (revisionId === artifact.currentRevisionId) {
             throw new ArtifactError(
                 'Publish a replacement before deleting the current revision.',
@@ -46,43 +75,86 @@ export async function deleteArtifact(
                 'CURRENT_REVISION'
             );
         }
-        const selected = await tx
+        const [row] = await tx
             .select()
             .from(revisions)
             .where(
                 and(
                     eq(revisions.serverId, access.serverId),
                     eq(revisions.artifactId, artifactId),
-                    revisionId ? eq(revisions.id, revisionId) : undefined
+                    eq(revisions.id, revisionId),
+                    eq(revisions.state, 'ready')
                 )
             );
-        if (revisionId && !selected.some((row) => row.state === 'ready')) {
+        if (!row) {
             throw new ArtifactError('Revision was not found.', 404, 'NOT_FOUND');
         }
-        if (selected.some((row) => row.state === 'uploading')) {
-            throw new ArtifactError(
-                'Wait for active publications to settle before deleting.',
-                409,
-                'UPLOAD_CONFLICT'
-            );
-        }
-        if (!revisionId) {
-            await tx
-                .update(artifacts)
-                .set({ currentRevisionId: null, deletedAt: new Date() })
-                .where(eq(artifacts.id, artifactId));
-        }
-        const ids = selected.filter((row) => row.state !== 'deleted').map((row) => row.id);
-        if (ids.length) {
-            await tx.update(revisions).set({ state: 'deleting' }).where(inArray(revisions.id, ids));
-        }
-        return selected.filter((row) => row.state !== 'deleted');
+        await tx.update(revisions).set({ state: 'deleting' }).where(eq(revisions.id, row.id));
+        return { ...row, state: 'deleting' as const };
     });
     artifactUpdatedTopic.announce({ artifactId, serverId: access.serverId });
-    for (const row of keys) {
-        await purgeRevision(db, store, row);
-    }
+    await purgeRevision(db, store, revision);
     return { ok: true };
+}
+
+/**
+ * Marks live files deleted, keeping each head, and records one delete per published file. A file
+ * still taking an upload refuses the whole set. Call under the Server row lock.
+ */
+export async function softDeleteArtifacts(
+    tx: HausDatabase,
+    serverId: string,
+    files: readonly { artifact: Artifact; placement: DrivePlacement }[]
+) {
+    if (files.length === 0) {
+        return;
+    }
+    const ids = files.map((file) => file.artifact.id);
+    const [uploading] = await tx
+        .select({ id: revisions.id })
+        .from(revisions)
+        .where(
+            and(
+                eq(revisions.serverId, serverId),
+                inArray(revisions.artifactId, ids),
+                eq(revisions.state, 'uploading')
+            )
+        )
+        .limit(1);
+    if (uploading) {
+        throw new ArtifactError(
+            'Wait for active publications to settle before deleting.',
+            409,
+            'UPLOAD_CONFLICT'
+        );
+    }
+    // A restore must not quietly re-expose a public link the delete killed.
+    await tx
+        .update(artifacts)
+        .set({
+            deletedAt: new Date(),
+            publicLinkCreatedAt: null,
+            publicLinkCreatorAgentId: null,
+            publicLinkCreatorUserId: null,
+            publicToken: null,
+        })
+        .where(inArray(artifacts.id, ids));
+    await recordDriveChanges(
+        tx,
+        serverId,
+        files.flatMap(({ artifact, placement }): DriveChangeEntry[] =>
+            artifact.currentRevisionId
+                ? [
+                      {
+                          area: placement.area,
+                          artifactId: artifact.id,
+                          change: 'delete',
+                          path: artifact.path,
+                      },
+                  ]
+                : []
+        )
+    );
 }
 
 export async function reconcileArtifacts(db: HausDatabase, storage: ArtifactStorage | null) {
@@ -150,25 +222,14 @@ export async function purgeServerArtifacts(
     }
 }
 
-function requireDeleteAccess(access: ArtifactAccess, artifact: typeof artifacts.$inferSelect) {
-    if (mayDeleteArtifact(access, artifact)) {
-        return;
+async function liveArtifact(tx: HausDatabase, serverId: string, artifactId: string) {
+    const [artifact] = await tx
+        .select()
+        .from(artifacts)
+        .where(and(eq(artifacts.serverId, serverId), eq(artifacts.id, artifactId)))
+        .limit(1);
+    if (!artifact || artifact.deletedAt) {
+        throw new ArtifactError('File was not found.', 404, 'NOT_FOUND');
     }
-    throw new ArtifactError(
-        'Only the original author or a human Owner/Admin can delete this artifact.',
-        403,
-        'FORBIDDEN'
-    );
-}
-
-/** The delete rule: the artifact's creator, or a human Owner/Admin. */
-export function mayDeleteArtifact(
-    access: ArtifactAccess,
-    artifact: Pick<typeof artifacts.$inferSelect, 'creatorAgentId' | 'creatorUserId'>
-): boolean {
-    return (
-        access.isAdmin ||
-        (access.agentId !== null && artifact.creatorAgentId === access.agentId) ||
-        (access.userId !== null && artifact.creatorUserId === access.userId)
-    );
+    return artifact;
 }

@@ -9,7 +9,7 @@ import { createHausClient } from './haus-client.ts';
  * Public links (specs/artifact-public-links.md): an opt-in `/f/<token>` URL that serves a file's
  * current revision to anyone, with safe content types, until it is disabled or the file is deleted.
  */
-const { publish, state, storage } = artifactDriveFixture('artifact-public-links');
+const { publish, state } = artifactDriveFixture('artifact-public-links');
 const favicon = () =>
     Bun.file(new URL('../../website/public/favicon-32.png', import.meta.url)).bytes();
 
@@ -17,7 +17,7 @@ test('sharing creates one unguessable link that follows the current revision acr
     const first = await publish({
         body: await favicon(),
         contentType: 'image/png',
-        path: 'pod/a.png',
+        path: 'haus/pod/a.png',
     });
     const artifactId = first.artifact.artifact_id;
     const target = { artifact_id: artifactId, serverId: state.serverId };
@@ -66,25 +66,25 @@ test('sharing creates one unguessable link that follows the current revision acr
         base: first.artifact.revision_id,
         body: 'second',
         contentType: 'text/plain',
-        path: 'pod/a.png',
+        path: 'haus/pod/a.png',
     });
     await moveArtifacts(state.connection.db, state.actor, state.harness.appOrigin, {
-        from: 'pod/a.png',
-        to: 'pod/renamed.txt',
+        from: 'haus/pod/a.png',
+        to: 'haus/pod/renamed.txt',
     });
     const latest = await get(token);
     expect(await latest.text()).toBe('second');
     expect(latest.headers.get('content-disposition')).toStartWith('inline; filename="renamed.txt"');
 
     const page = await state.owner.trpc.artifact.list.query({
-        prefix: 'pod',
+        prefix: 'haus/pod',
         serverId: state.serverId,
     });
     expect(page.public_links[artifactId]?.url).toBe(link.url);
 });
 
 test('disabling answers 404 at once and re-enabling issues a new token', async () => {
-    const created = await publish({ body: 'notes', path: 'pod/notes.txt' });
+    const created = await publish({ body: 'notes', path: 'haus/pod/notes.txt' });
     const target = { artifact_id: created.artifact.artifact_id, serverId: state.serverId };
     const first = await tokenOf(state.owner.trpc.artifact.share.mutate(target));
     expect((await get(first)).status).toBe(200);
@@ -100,10 +100,15 @@ test('disabling answers 404 at once and re-enabling issues a new token', async (
 });
 
 test('deleting the file kills its link; every miss looks the same', async () => {
-    const created = await publish({ body: 'gone soon', path: 'pod/doomed.txt' });
+    const created = await publish({ body: 'gone soon', path: 'haus/pod/doomed.txt' });
     const target = { artifact_id: created.artifact.artifact_id, serverId: state.serverId };
     const token = await tokenOf(state.owner.trpc.artifact.share.mutate(target));
-    await deleteArtifact(state.connection.db, state.actor, storage, target.artifact_id);
+    await deleteArtifact(
+        state.connection.db,
+        state.actor,
+        state.harness.appOrigin,
+        target.artifact_id
+    );
     const misses = await Promise.all(
         [token, `${token}/thumbnail`, 'A'.repeat(32), 'short', `${token}x`].map((path) => get(path))
     );
@@ -116,30 +121,30 @@ test('deleting the file kills its link; every miss looks the same', async () => 
 test('user content is never served as HTML; unknown types download', async () => {
     const cases = [
         [
-            'pod/page.html',
+            'haus/pod/page.html',
             'text/html',
             '<script>alert(1)</script>',
             'text/plain; charset=utf-8',
             'inline',
         ],
-        ['pod/data.json', 'application/json', '{}', 'text/plain; charset=utf-8', 'inline'],
+        ['haus/pod/data.json', 'application/json', '{}', 'text/plain; charset=utf-8', 'inline'],
         [
-            'pod/art.svg',
+            'haus/pod/art.svg',
             'image/svg+xml',
             '<svg xmlns="http://www.w3.org/2000/svg"/>',
             'image/svg+xml',
             'inline',
         ],
-        ['pod/print.pdf', 'application/pdf', '%PDF-1.4', 'application/pdf', 'inline'],
+        ['haus/pod/print.pdf', 'application/pdf', '%PDF-1.4', 'application/pdf', 'inline'],
         [
-            'pod/blob.bin',
+            'haus/pod/blob.bin',
             'application/x-msdownload',
             'MZ',
             'application/octet-stream',
             'attachment',
         ],
         [
-            'pod/fake.png',
+            'haus/pod/fake.png',
             'text/html; charset=utf-8',
             '<html>',
             'text/plain; charset=utf-8',
@@ -163,7 +168,7 @@ test('user content is never served as HTML; unknown types download', async () =>
 });
 
 test('only Server members can create or read a link', async () => {
-    const created = await publish({ body: 'private', path: 'pod/private.txt' });
+    const created = await publish({ body: 'private', path: 'haus/pod/private.txt' });
     const outsider = createHausClient(
         state.harness,
         await state.harness.humans.mintSessionToken('artifact-public-links_outsider')

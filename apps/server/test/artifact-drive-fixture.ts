@@ -59,6 +59,7 @@ export interface DrivePublish {
     path: string;
     replace?: boolean;
     requestId?: string;
+    taskId?: string;
     thumbnails?: ArtifactThumbnails;
 }
 
@@ -115,6 +116,7 @@ export function artifactDriveFixture(slug: string) {
             origin: state.harness.appOrigin,
             storage,
             stream: bytes(write.body ?? write.path, write.gate),
+            taskId: write.taskId,
             thumbnails: write.thumbnails,
         });
     }

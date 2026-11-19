@@ -2,7 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
 import { artifactPublishInputSchema } from '@haus/api';
 import {
-    deleteArtifact,
+    deleteArtifactVersion,
     purgeServerArtifacts,
     reconcileArtifacts,
 } from '../src/artifacts/delete.ts';
@@ -156,37 +156,54 @@ test('failed uploads preserve the current revision and recover reserved capacity
     });
 });
 
-test('interrupted uploads and failed deletion recover on restart without exposing bytes', async () => {
-    const result = await publish('delete-recovery', 'recover.txt', 'recover');
+test('interrupted uploads and failed version deletion recover on restart without exposing bytes', async () => {
+    const first = await publish('delete-recovery', 'recover.txt', 'recover');
+    const second = await publish('delete-recovery-2', 'recover.txt', 'again', revise(first));
     failDelete = true;
     await expect(
-        deleteArtifact(connection.db, actor, storage, result.artifact.artifact_id)
+        deleteArtifactVersion(
+            connection.db,
+            actor,
+            storage,
+            first.artifact.artifact_id,
+            first.artifact.revision_id
+        )
     ).rejects.toThrow('R2 delete unavailable');
     failDelete = false;
     await reconcileArtifacts(connection.db, storage);
     const [deleted] =
-        await harness.sql`select state, reserved_bytes::int from artifact_revisions where id = ${result.artifact.revision_id}`;
+        await harness.sql`select state, reserved_bytes::int from artifact_revisions where id = ${first.artifact.revision_id}`;
     expect(deleted).toMatchObject({ reserved_bytes: 0, state: 'deleted' });
     await harness.restart();
     owner.close();
     owner = createHausClient(harness, await harness.humans.mintSessionToken('artifact_owner'));
-    const listed = await owner.trpc.artifact.list.query({ serverId });
-    expect(listed.artifacts.some((item) => item.artifact_id === result.artifact.artifact_id)).toBe(
-        false
-    );
+    const versions = await owner.trpc.artifact.versions.query({
+        artifact_id: first.artifact.artifact_id,
+        serverId,
+    });
+    expect(versions.versions.map((version) => version.revision_id)).toEqual([
+        second.artifact.revision_id,
+    ]);
 });
 
 test('cleanup never purges a live Server and reports pending cloud cleanup without breaking startup', async () => {
-    const result = await publish('cleanup-live', 'cleanup-live.txt', 'keep');
+    const first = await publish('cleanup-live', 'cleanup-live.txt', 'keep');
+    await publish('cleanup-live-2', 'cleanup-live.txt', 'newer', revise(first));
     const count = objects.size;
     await purgeServerArtifacts(connection.db, storage, serverId);
     expect(objects.size).toBe(count);
     failDelete = true;
     await expect(
-        deleteArtifact(connection.db, actor, storage, result.artifact.artifact_id)
+        deleteArtifactVersion(
+            connection.db,
+            actor,
+            storage,
+            first.artifact.artifact_id,
+            first.artifact.revision_id
+        )
     ).rejects.toThrow();
     const recovery = await reconcileArtifacts(connection.db, storage);
-    expect(recovery.failedRevisionIds).toContain(result.artifact.revision_id);
+    expect(recovery.failedRevisionIds).toEqual([first.artifact.revision_id]);
     failDelete = false;
     await reconcileArtifacts(connection.db, storage);
 });
@@ -197,7 +214,7 @@ test('unconfigured cloud storage refuses publication without local storage fallb
             actor,
             db: connection.db,
             input: artifactPublishInputSchema.parse({
-                path: 'disabled.txt',
+                path: 'haus/disabled.txt',
                 request_id: 'storage-disabled',
                 title: 'Disabled',
             }),
@@ -221,14 +238,14 @@ test('library search escapes wildcards and filters file types before pagination'
         query: string,
         kind: 'all' | 'images' | 'documents' | 'media' | 'other',
         offset = 0
-    ) => owner.trpc.artifact.list.query({ serverId, query, kind, offset });
+    ) => owner.trpc.artifact.list.query({ serverId, prefix: 'haus', query, kind, offset });
     expect((await list('filter_100%', 'all')).artifacts.map((item) => item.path)).toEqual([
-        'filter_100%.txt',
+        'haus/filter_100%.txt',
     ]);
     for (const [kind, path] of [
-        ['images', 'filter-image.png'],
-        ['media', 'filter-media.mp3'],
-        ['other', 'filter-other.zip'],
+        ['images', 'haus/filter-image.png'],
+        ['media', 'haus/filter-media.mp3'],
+        ['other', 'haus/filter-other.zip'],
     ] as const) {
         expect((await list('filter', kind)).artifacts.map((item) => item.path)).toEqual([path]);
     }
@@ -254,7 +271,7 @@ function publish(
         input: artifactPublishInputSchema.parse({
             ...(baseRevisionId ? { base_revision_id: baseRevisionId } : {}),
             content_type: contentType,
-            path,
+            path: `haus/${path}`,
             request_id: requestId,
             title: 'Report',
         }),
@@ -269,7 +286,7 @@ function publishWithBudget(requestId: string, budget: number) {
         budget,
         db: connection.db,
         input: artifactPublishInputSchema.parse({
-            path: 'budget.txt',
+            path: 'haus/budget.txt',
             request_id: requestId,
             title: 'Budget',
         }),
