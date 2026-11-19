@@ -31,13 +31,13 @@ export const appPlaces: readonly AppPlace[] = [
     {
         area: 'you',
         task: 'Change the theme or light and dark mode',
-        path: ['Settings', 'Preferences', 'Theme'],
+        path: ['Settings', 'Appearance', 'Theme'],
         who: 'anyone',
-        note: 'Mode sits beside it.',
+        note: 'Mode sits above it. Create theme makes a custom one.',
         anchors: [
             settingsEntry(),
-            settingsSection('preferences'),
-            label('features/settings/preferences/color-theme-row.tsx', 'Theme'),
+            settingsSection('appearance'),
+            label('features/settings/appearance/theme-gallery.tsx', 'Theme'),
         ],
     },
     {
