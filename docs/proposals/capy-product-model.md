@@ -216,16 +216,17 @@ Haus (Server)
 - **Only humans create Projects.** "New project" creates the channel; there is no "New channel".
   Every existing channel becomes a Project, and `#all` becomes the Haus project.
 - **A Project is its channel.** Its settings, behind the header menu, hold:
-  - its key, an entry from the Server's key ledger as it is today. Projects can share an entry,
-    and a Project without one takes `GEN`.
+  - its key (one per Project), which prefixes its Task numbers
   - its repos, with which Computers have each one linked
   - its `AGENTS.md`
   - its default place for Workers
 
   As in Capy, there is no separate Overview pane. Open Tasks live in the sidebar.
-- **Every Task already belongs to a Project.** ADR 0053 starts every Task from a Message in a
-  channel and never in a DM, so a Task's origin channel is its Project. That is where a Worker
-  finds its repos, rules and default place, and no new link is needed.
+- **A Task belongs to one Project, explicitly,** as a Capy thread does. The Agent picks the
+  Project when it starts the Task, defaulting to the Project it was asked in. Where the request
+  came from (a channel message, a DM, a reminder) is only where the Task started; it doesn't
+  decide the Project. The Project gives the Task its key and gives its Workers their repos, rules
+  and default place.
 
 ### Drive (decided)
 
