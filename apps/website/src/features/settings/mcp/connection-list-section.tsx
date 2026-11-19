@@ -36,11 +36,13 @@ export function ConnectionListSection({
     return (
         <SettingsCardGrid
             action={
-                <Button onPress={onExplore} size="sm" variant="secondary">
-                    Explore connections
-                </Button>
+                items.length > 0 ? (
+                    <Button onPress={onExplore} size="sm" variant="secondary">
+                        Explore connections
+                    </Button>
+                ) : null
             }
-            count={connections.data ? items.length : undefined}
+            count={items.length > 0 ? items.length : undefined}
             layout="list"
             status={connectionsStatus({ connections, count: items.length, onExplore })}
             title="Connected"

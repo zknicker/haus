@@ -2,18 +2,16 @@ import { DataGrid, type DataGridColumn } from '@heroui-pro/react';
 import { SearchField } from '@heroui/react';
 import * as React from 'react';
 import { isMacPlatform } from '../../../hooks/browser/browser-shortcut-keys.ts';
-import { useIsDesktopApp } from '../../../hooks/shell/use-is-desktop-app.ts';
-import { type Shortcut, visibleShortcuts } from '../../shortcuts/shortcut-registry.ts';
+import { matchingShortcuts, type Shortcut } from '../../shortcuts/shortcut-registry.ts';
 import { SettingsPageColumn } from '../layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { ShortcutChords } from './shortcut-chord.tsx';
 
 export function ShortcutsSettings() {
-    const desktop = useIsDesktopApp();
     const [query, setQuery] = React.useState('');
     const [isMac] = React.useState(isMacPlatform);
     const columns = React.useMemo(() => shortcutColumns(isMac), [isMac]);
-    const rows = visibleShortcuts({ desktop, query });
+    const rows = matchingShortcuts(query);
 
     return (
         <SettingsPageColumn width="table">
@@ -33,6 +31,7 @@ export function ShortcutsSettings() {
             <DataGrid
                 aria-label="Keyboard shortcuts"
                 columns={columns}
+                contentClassName="min-w-[560px]"
                 data={rows}
                 getRowId={(row) => row.id}
                 renderEmptyState={() => (

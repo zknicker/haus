@@ -57,18 +57,14 @@ export const shortcutRegistry = [
     row('hard-reload', 'Reload, ignoring cache', 'Web page', [cmd('R', 'shift')]),
     row('stop', 'Stop loading', 'Web page', [key('escape')]),
 ] satisfies readonly Shortcut[];
-export const desktopShortcutContexts: ReadonlySet<ShortcutContext> = new Set([
-    'Desktop app',
-    'Web page',
-]);
-export function visibleShortcuts({ desktop, query }: { desktop: boolean; query: string }) {
+
+export function matchingShortcuts(query: string) {
     const needle = query.trim().toLowerCase();
     return shortcutRegistry.filter(
         (shortcut) =>
-            (desktop || !desktopShortcutContexts.has(shortcut.context)) &&
-            (needle.length === 0 ||
-                shortcut.command.toLowerCase().includes(needle) ||
-                shortcut.context.toLowerCase().includes(needle))
+            needle.length === 0 ||
+            shortcut.command.toLowerCase().includes(needle) ||
+            shortcut.context.toLowerCase().includes(needle)
     );
 }
 

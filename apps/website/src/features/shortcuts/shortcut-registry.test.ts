@@ -11,7 +11,7 @@ import {
     type ShortcutContext,
     type ShortcutModifier,
     shortcutRegistry,
-    visibleShortcuts,
+    matchingShortcuts,
 } from './shortcut-registry.ts';
 
 interface MenuItem {
@@ -86,19 +86,10 @@ test('every Inbox key is listed', () => {
     expect(missing(answered)).toEqual([]);
 });
 
-test('the web shows only shortcuts that work outside the desktop App', () => {
-    expect(
-        new Set(visibleShortcuts({ desktop: false, query: '' }).map((row) => row.context))
-    ).toEqual(new Set(['Anywhere', 'Composer', 'Inbox']));
-    expect(visibleShortcuts({ desktop: true, query: '' })).toHaveLength(shortcutRegistry.length);
-});
-
 test('search matches a command or where it applies', () => {
-    expect(visibleShortcuts({ desktop: true, query: 'zoom' }).map((row) => row.id)).toEqual([
-        'zoom-in',
-        'zoom-out',
-    ]);
-    expect(visibleShortcuts({ desktop: false, query: 'inbox' }).map((row) => row.id)).toEqual([
+    expect(matchingShortcuts('')).toHaveLength(shortcutRegistry.length);
+    expect(matchingShortcuts('zoom').map((row) => row.id)).toEqual(['zoom-in', 'zoom-out']);
+    expect(matchingShortcuts('inbox').map((row) => row.id)).toEqual([
         'inbox-next',
         'inbox-previous',
         'inbox-mark-read',
