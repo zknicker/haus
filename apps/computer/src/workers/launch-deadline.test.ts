@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { makeTestRuntime } from '@haus/effect';
 import { TestClock } from 'effect';
 import { createFakeCloudAgentProvider } from './fake-provider.ts';
-import { CloudLaunchJournal } from './launch-journal.ts';
+import { WorkerTurnJournal } from './turn-journal.ts';
 import { WorkerSupervisor } from './work-runner.ts';
 
 test('a launch that outlasts its deadline stops once and survives restart', async () => {
@@ -19,37 +19,41 @@ test('a launch that outlasts its deadline stops once and survives restart', asyn
     });
     const stopped = Promise.withResolvers<void>();
     const statuses: string[] = [];
-    work.attach((observation) => {
-        statuses.push(observation.status);
-        if (observation.status === 'failed') {
-            expect(observation.errorCode).toBe('launch-timeout');
+    work.attach((frame) => {
+        if (frame.type !== 'worker-observation') {
+            return;
+        }
+        statuses.push(frame.observation.status);
+        if (frame.observation.status === 'failed') {
+            expect(frame.observation.errorCode).toBe('launch-timeout');
             stopped.resolve();
         }
     });
-    const ref = {
-        provider: 'claude' as const,
+    const entry = {
+        place: 'claude' as const,
         providerAgentId: null,
         providerRunId: null,
+        status: 'queued' as const,
+        stopRequested: false,
         turnId: 'car_deadline',
         workerId: 'caw_deadline',
-        status: 'queued' as const,
-        cancelRequested: false,
     };
+    const ref = { ...entry, provider: entry.place };
     try {
-        const journal = new CloudLaunchJournal(dataRoot);
+        const journal = new WorkerTurnJournal(dataRoot);
         await journal.claim('srv_cloud', ref, {
             phase: 'launching',
             workerId: ref.workerId,
             deadlineAt: new Date(5 * 60_000).toISOString(),
         });
-        await work.reconcile([ref]);
+        await work.reconcile([entry]);
         expect(statuses.at(-1)).toBe('queued');
         await runtime.runPromise(TestClock.adjust('5 minutes'));
         await stopped.promise;
         const count = statuses.length;
         await runtime.runPromise(TestClock.adjust('1 hour'));
         expect(statuses).toHaveLength(count);
-        expect((await new CloudLaunchJournal(dataRoot).read('srv_cloud', ref))?.phase).toBe(
+        expect((await new WorkerTurnJournal(dataRoot).read('srv_cloud', ref))?.phase).toBe(
             'rejected'
         );
     } finally {

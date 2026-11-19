@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { makeTestRuntime } from '@haus/effect';
 import { createFakeCloudAgentProvider } from './fake-provider.ts';
-import { CloudLaunchJournal } from './launch-journal.ts';
 import { WorkerSendQueue } from './send-queue.ts';
+import { WorkerTurnJournal } from './turn-journal.ts';
 
 const cleanup: Array<() => Promise<void>> = [];
 afterEach(async () => {
@@ -24,9 +24,20 @@ const next = { ...prior, turnId: 'next', providerRunId: null };
 
 const nanoLow = { id: 'gpt-5.4-nano', params: [{ id: 'reasoning', value: 'low' }] };
 
-async function fixture(interrupt = false) {
+function sending(input: string, predecessorTurnIds: string[], model: typeof nanoLow | null) {
+    return {
+        input,
+        model,
+        phase: 'sending' as const,
+        predecessorTurnIds,
+        providerAgentId: 'bc_same',
+        workerId: 'work',
+    };
+}
+
+async function fixture() {
     const root = await mkdtemp(join(tmpdir(), 'haus-send-'));
-    const journal = new CloudLaunchJournal(root);
+    const journal = new WorkerTurnJournal(root);
     const runtime = makeTestRuntime();
     const provider = createFakeCloudAgentProvider();
     let active = true;
@@ -35,13 +46,9 @@ async function fixture(interrupt = false) {
         status: active ? 'running' : 'completed',
         observedAt: new Date().toISOString(),
     });
-    provider.cancel = async () => {
-        active = false;
-    };
     provider.send = async (input) => {
         sent.push(input.instructions);
         expect(input.providerAgentId).toBe('bc_same');
-        // The fixture's own pending send carries the model Server resolved for its Run.
         expect(input.model).toEqual(input.instructions === 'Revise the same code' ? nanoLow : null);
         return {
             environmentId: null,
@@ -52,15 +59,16 @@ async function fixture(interrupt = false) {
             status: 'running',
         };
     };
-    await journal.claim('server', next, {
-        phase: 'pending',
-        workerId: 'work',
+    await journal.claim('server', prior);
+    await journal.record('server', prior, {
+        environmentId: null,
+        environmentName: null,
         providerAgentId: 'bc_same',
-        model: nanoLow,
-        instructions: 'Revise the same code',
-        interrupt,
-        predecessors: [prior],
+        providerRunId: 'r_prior',
+        providerUrl: null,
+        status: 'running',
     });
+    await journal.accept('server', next, sending('Revise the same code', ['prior'], nanoLow));
     const queue = new WorkerSendQueue(runtime, journal, 'server', () => provider);
     cleanup.push(async () => {
         await runtime.dispose();
@@ -79,9 +87,9 @@ async function fixture(interrupt = false) {
     };
 }
 
-test('a busy agent accepts a queued prompt, then sends once to the same agent', async () => {
+test('a follow-up waits for the earlier turn, then sends once to the same agent', async () => {
     const f = await fixture();
-    expect((await f.runtime.runPromise(f.queue.advance(next, () => false)))?.phase).toBe('pending');
+    expect((await f.runtime.runPromise(f.queue.advance(next, () => false)))?.phase).toBe('sending');
     expect(f.sent).toEqual([]);
     f.finish();
     await f.runtime.runPromise(f.queue.advance(next, () => false));
@@ -93,28 +101,19 @@ test('a busy agent accepts a queued prompt, then sends once to the same agent', 
     });
 });
 
-test('interrupt stops the previous run before sending the correction', async () => {
-    const f = await fixture(true);
-    await f.runtime.runPromise(f.queue.advance(next, () => false));
-    expect(f.sent).toEqual([]);
-    await f.runtime.runPromise(f.queue.advance(next, () => false));
-    expect(f.sent).toHaveLength(1);
-});
-
-test('stop discards the pending prompt after stopping active work', async () => {
+test('stop discards the follow-up without sending it', async () => {
     const f = await fixture();
-    await f.runtime.runPromise(f.queue.advance(next, () => true));
     await f.runtime.runPromise(f.queue.advance(next, () => true));
     expect(f.sent).toEqual([]);
     expect(await f.journal.read('server', next)).toEqual({ phase: 'cancelled', workerId: 'work' });
 });
 
-test('restart reloads a queued prompt from private Computer storage', async () => {
+test('restart reloads an accepted follow-up from private Computer storage', async () => {
     const f = await fixture();
     f.finish();
     const restored = new WorkerSendQueue(
         f.runtime,
-        new CloudLaunchJournal(f.root),
+        new WorkerTurnJournal(f.root),
         'server',
         () => f.provider
     );
@@ -122,43 +121,16 @@ test('restart reloads a queued prompt from private Computer storage', async () =
     expect(f.sent).toHaveLength(1);
 });
 
-test('multiple pending prompts preserve order', async () => {
+test('follow-ups go out in turn order', async () => {
     const f = await fixture();
     const last = { ...next, turnId: 'last' };
-    await f.journal.claim('server', last, {
-        phase: 'pending',
-        workerId: 'work',
-        providerAgentId: 'bc_same',
-        model: null,
-        instructions: 'Last correction',
-        interrupt: false,
-        predecessors: [prior, next],
-    });
+    await f.journal.accept('server', last, sending('Last correction', ['prior', 'next'], null));
     f.finish();
     await f.runtime.runPromise(f.queue.advance(last, () => false));
     expect(f.sent).toEqual([]);
     await f.runtime.runPromise(f.queue.advance(next, () => false));
     await f.runtime.runPromise(f.queue.advance(last, () => false));
     expect(f.sent).toEqual(['Revise the same code', 'Last correction']);
-});
-
-test('interrupt discards older queued prompts before sending the replacement', async () => {
-    const f = await fixture();
-    const replacement = { ...next, turnId: 'replacement' };
-    await f.journal.claim('server', replacement, {
-        phase: 'pending',
-        workerId: 'work',
-        providerAgentId: 'bc_same',
-        model: null,
-        instructions: 'Replacement',
-        interrupt: true,
-        predecessors: [prior, next],
-    });
-    await f.runtime.runPromise(f.queue.advance(replacement, () => false));
-    await f.runtime.runPromise(f.queue.advance(replacement, () => false));
-    await f.runtime.runPromise(f.queue.advance(next, () => false));
-    expect(f.sent).toEqual(['Replacement']);
-    expect(await f.journal.read('server', next)).toEqual({ phase: 'cancelled', workerId: 'work' });
 });
 
 test('concurrent queue ticks do not send twice', async () => {

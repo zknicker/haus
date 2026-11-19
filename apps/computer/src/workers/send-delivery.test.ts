@@ -7,9 +7,9 @@ import { makeTestRuntime } from '@haus/effect';
 import { type Duration, TestClock } from 'effect';
 import { recordedAgentBusyError } from './cursor/recorded-transport.ts';
 import { createFakeCloudAgentProvider } from './fake-provider.ts';
-import { CloudLaunchJournal } from './launch-journal.ts';
 import { WorkerLaunchRejectedError, type WorkerTurnRef } from './provider.ts';
 import { WorkerSendQueue } from './send-queue.ts';
+import { WorkerTurnJournal } from './turn-journal.ts';
 
 const cleanup: Array<() => Promise<void>> = [];
 afterEach(async () => {
@@ -27,9 +27,9 @@ const prior = {
 };
 const next = { ...prior, turnId: 'next', providerRunId: null };
 
-async function fixture(options: { predecessor?: WorkerTurnRef; interrupt?: boolean } = {}) {
+async function fixture(options: { predecessor?: WorkerTurnRef; recordPredecessor?: boolean } = {}) {
     const root = await mkdtemp(join(tmpdir(), 'haus-send-delivery-'));
-    const journal = new CloudLaunchJournal(root);
+    const journal = new WorkerTurnJournal(root);
     const runtime = makeTestRuntime();
     const provider = createFakeCloudAgentProvider();
     let priorStatus: WorkerTurnStatus = 'completed';
@@ -57,13 +57,24 @@ async function fixture(options: { predecessor?: WorkerTurnRef; interrupt?: boole
         cancels += 1;
         await baseCancel(ref, signal);
     };
-    await journal.claim('server', next, {
-        phase: 'pending',
-        workerId: 'work',
+    const predecessor = options.predecessor ?? prior;
+    if (options.recordPredecessor ?? true) {
+        await journal.claim('server', predecessor);
+        await journal.record('server', predecessor, {
+            environmentId: null,
+            environmentName: null,
+            providerAgentId: 'bc_same',
+            providerRunId: 'r_p',
+            providerUrl: null,
+            status: 'running',
+        });
+    }
+    await journal.accept('server', next, {
+        input: 'Revise the same code',
+        phase: 'sending',
+        predecessorTurnIds: [predecessor.turnId],
         providerAgentId: 'bc_same',
-        instructions: 'Revise the same code',
-        interrupt: options.interrupt ?? false,
-        predecessors: [options.predecessor ?? prior],
+        workerId: 'work',
     });
     const queue = new WorkerSendQueue(runtime, journal, 'server', () => provider);
     cleanup.push(async () => {
@@ -111,14 +122,14 @@ test('a busy agent retries with backoff under the same Run, then delivers', asyn
     const f = await fixture();
     f.failures.push(recordedAgentBusyError(), recordedAgentBusyError());
     expect(await f.advance()).toMatchObject({
-        phase: 'pending',
+        phase: 'sending',
         delivery: { attempts: 1, lastError: 'Agent already has an active run in progress' },
     });
     // Backoff holds the next attempt; a tick inside it sends nothing.
     await f.advance();
     expect(f.sends()).toBe(1);
     await f.wait('5 seconds');
-    expect(await f.advance()).toMatchObject({ phase: 'pending', delivery: { attempts: 2 } });
+    expect(await f.advance()).toMatchObject({ phase: 'sending', delivery: { attempts: 2 } });
     await f.wait('9 seconds');
     await f.advance();
     expect(f.sends()).toBe(2);
@@ -134,7 +145,7 @@ test('busy past the interrupt grace period is auto-interrupted, then keeps retry
     const f = await fixture();
     f.failures.push(...Array.from({ length: 100 }, () => recordedAgentBusyError()));
     let record = await f.advance();
-    for (let minute = 0; minute < 10 && record?.phase === 'pending'; minute += 1) {
+    for (let minute = 0; minute < 10 && record?.phase === 'sending'; minute += 1) {
         await f.wait('1 minute');
         record = await f.advance();
     }
@@ -142,7 +153,7 @@ test('busy past the interrupt grace period is auto-interrupted, then keeps retry
     // after it still failed (all 100 queued failures), and it keeps retrying past that.
     expect(record).toMatchObject({
         delivery: { interruptedAt: expect.any(String) },
-        phase: 'pending',
+        phase: 'sending',
     });
     expect(f.cancels()).toBe(1);
     const sendsAtInterrupt = f.sends();
@@ -159,14 +170,14 @@ test('once interrupted, a send that then succeeds delivers and is flagged auto-i
     let record = await f.advance();
     for (
         let minute = 0;
-        minute < 10 && record?.phase === 'pending' && !record.delivery?.interruptedAt;
+        minute < 10 && record?.phase === 'sending' && !record.delivery?.interruptedAt;
         minute += 1
     ) {
         await f.wait('1 minute');
         record = await f.advance();
     }
     expect(record).toMatchObject({
-        phase: 'pending',
+        phase: 'sending',
         delivery: { interruptedAt: expect.any(String) },
     });
     expect(f.cancels()).toBe(1);
@@ -182,13 +193,13 @@ test('when the auto-interrupt call itself fails, the follow-up still stays pendi
     f.failures.push(...Array.from({ length: 100 }, () => recordedAgentBusyError()));
     f.provider.cancel = () => Promise.reject(new Error('The provider refused to interrupt.'));
     let record = await f.advance();
-    for (let minute = 0; minute < 10 && record?.phase === 'pending'; minute += 1) {
+    for (let minute = 0; minute < 10 && record?.phase === 'sending'; minute += 1) {
         await f.wait('1 minute');
         record = await f.advance();
     }
     expect(record).toMatchObject({
         delivery: { interruptedAt: expect.any(String) },
-        phase: 'pending',
+        phase: 'sending',
     });
 });
 
@@ -200,12 +211,12 @@ test('the interrupt grace period and its outcome survive a Computer restart, sti
     // A Computer restart loses every in-memory timer: fresh objects, same journal file on disk.
     const restored = new WorkerSendQueue(
         f.runtime,
-        new CloudLaunchJournal(f.root),
+        new WorkerTurnJournal(f.root),
         'server',
         () => f.provider
     );
     let record = await f.advanceRestored(restored);
-    for (let minute = 0; minute < 10 && record?.phase === 'pending'; minute += 1) {
+    for (let minute = 0; minute < 10 && record?.phase === 'sending'; minute += 1) {
         await f.wait('1 minute');
         record = await f.advanceRestored(restored);
     }
@@ -213,7 +224,7 @@ test('the interrupt grace period and its outcome survive a Computer restart, sti
     // (not from the restart): auto-interrupted, still pending, never rejected.
     expect(record).toMatchObject({
         delivery: { interruptedAt: expect.any(String) },
-        phase: 'pending',
+        phase: 'sending',
     });
     const sendsSoFar = f.sends();
     await f.wait('5 minutes');
@@ -226,7 +237,7 @@ test('waiting behind a running predecessor never counts against the deadline', a
     f.setPriorStatus('running');
     await f.advance();
     await f.wait('3 hours');
-    expect(await f.advance()).toMatchObject({ phase: 'pending', delivery: null });
+    expect(await f.advance()).toMatchObject({ phase: 'sending', delivery: null });
     expect(f.sends()).toBe(0);
     f.setPriorStatus('completed');
     expect(await f.advance()).toMatchObject({ phase: 'launched' });
@@ -237,7 +248,7 @@ test('waiting behind a predecessor that runs for hours never counts against the 
     f.setPriorStatus('running');
     await f.advance();
     await f.wait('6 hours');
-    expect(await f.advance()).toMatchObject({ phase: 'pending', delivery: null });
+    expect(await f.advance()).toMatchObject({ phase: 'sending', delivery: null });
     expect(f.sends()).toBe(0);
     f.setPriorStatus('completed');
     expect(await f.advance()).toMatchObject({ phase: 'launched' });
@@ -247,7 +258,7 @@ test('a follow-up waits behind a running Claude predecessor exactly as behind Cu
     const claudePrior = { ...prior, provider: 'claude' as const };
     const f = await fixture({ predecessor: claudePrior });
     f.setPriorStatus('running');
-    expect(await f.advance()).toMatchObject({ phase: 'pending', delivery: null });
+    expect(await f.advance()).toMatchObject({ phase: 'sending', delivery: null });
     expect(f.sends()).toBe(0);
     f.setPriorStatus('completed');
     expect(await f.advance()).toMatchObject({ phase: 'launched' });
@@ -262,26 +273,20 @@ test('a predecessor that settled in any terminal state unblocks the follow-up', 
     }
 });
 
-test('a predecessor that failed before reaching the provider unblocks the follow-up', async () => {
-    const orphan = { ...prior, turnId: 'orphan', providerRunId: null };
-    const f = await fixture({ predecessor: orphan });
-    // No record yet: the predecessor's own monitor is still inside its grace window.
-    expect((await f.advance())?.phase).toBe('pending');
-    await f.journal.claim('server', orphan, {
-        phase: 'rejected',
-        workerId: 'work',
-        errorCode: 'launch-record-missing',
-        summary: 'Never sent.',
+test('a predecessor still launching holds the follow-up until its launch fails', async () => {
+    const launching = { ...prior, turnId: 'launching', providerRunId: null };
+    const f = await fixture({ predecessor: launching, recordPredecessor: false });
+    await f.journal.claim('server', launching);
+    expect((await f.advance())?.phase).toBe('sending');
+    await f.journal.reject('server', launching, {
+        errorCode: 'provider-launch-rejected',
+        summary: 'No repository access.',
     });
     expect((await f.advance())?.phase).toBe('launched');
 });
 
-test('interrupt claims an unrecorded predecessor as cancelled and sends', async () => {
-    const orphan = { ...prior, turnId: 'orphan', providerRunId: null };
-    const f = await fixture({ predecessor: orphan, interrupt: true });
+test('a predecessor this Computer never accepted settled on the Server and holds nothing back', async () => {
+    const f = await fixture({ recordPredecessor: false });
+    f.setPriorStatus('running');
     expect((await f.advance())?.phase).toBe('launched');
-    expect(await f.journal.read('server', orphan)).toEqual({
-        phase: 'cancelled',
-        workerId: 'work',
-    });
 });

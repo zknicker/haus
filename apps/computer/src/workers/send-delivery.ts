@@ -1,46 +1,32 @@
-import type { CloudLaunchRejection, CloudPendingSend } from './launch-journal.ts';
 import { WorkerLaunchRejectedError } from './provider.ts';
+import type { WorkerSendingTurn, WorkerTurnRejection } from './turn-record.ts';
 
 /**
  * How long a follow-up keeps retrying, after its first send attempt fails
  * retryably, before `send-queue.ts` tries the auto-interrupt fallback. The
- * clock starts at the first attempt, not at queueing: waiting behind a
- * predecessor Haus is actively tracking is legitimate for hours and is never
- * governed by this constant (see `previousReady`). Once no tracked predecessor
- * is blocking, a hosted session normally accepts a send right away even while
- * it is otherwise busy (TECH-7's design refinement); a send that still keeps
- * failing this long is worth clearing the session's current work for, rather
- * than waiting longer in silence.
+ * clock starts at the first attempt, not at acceptance: waiting behind an
+ * earlier turn that is still running is legitimate for hours and is never
+ * governed by this constant.
  */
 export const followUpInterruptGraceMs = 2 * 60_000;
 const firstBackoffMs = 5000;
 const maxBackoffMs = 60_000;
 
-/**
- * Codes a Run settles with when its prompt never reached the provider, or
- * rides a still-queued, still-retrying Run's `errorCode` when it hasn't
- * settled at all. They reach the delegating Agent's inbox attention with the
- * summary either way.
- */
+/** Codes a turn settles with when its prompt never reached the provider. */
 export const workerDeliveryFailure = {
     /** The provider definitely refused the launch. */
     launchRejected: 'provider-launch-rejected',
     /** The provider definitely refused the follow-up. */
     followUpRejected: 'followup-delivery-rejected',
-    /** Server recorded the Run but this Computer never stored its prompt. */
-    launchRecordMissing: 'launch-record-missing',
 } as const;
 
-/** How long a Run may lack any Computer record before it settles as never sent. */
-export const launchRecordGraceMs = 2 * 60_000;
-
 export type SendOutcome =
-    | { kind: 'reject'; rejection: CloudLaunchRejection }
-    | { kind: 'retry'; delivery: NonNullable<CloudPendingSend['delivery']> };
+    | { kind: 'reject'; rejection: WorkerTurnRejection }
+    | { kind: 'retry'; delivery: NonNullable<WorkerSendingTurn['delivery']> };
 
-/** What one failed follow-up send means for its pending prompt. */
+/** What one failed follow-up send means for its turn. */
 export function sendFailureOutcome(
-    pending: CloudPendingSend,
+    sending: WorkerSendingTurn,
     cause: unknown,
     now: number
 ): SendOutcome {
@@ -53,8 +39,8 @@ export function sendFailureOutcome(
             },
         };
     }
-    const attempts = (pending.delivery?.attempts ?? 0) + 1;
-    const firstAttemptAt = pending.delivery?.firstAttemptAt ?? new Date(now).toISOString();
+    const attempts = (sending.delivery?.attempts ?? 0) + 1;
+    const firstAttemptAt = sending.delivery?.firstAttemptAt ?? new Date(now).toISOString();
     const lastError = bounded(errorMessage(cause), 500);
     const backoff = Math.min(firstBackoffMs * 2 ** (attempts - 1), maxBackoffMs);
     return {
@@ -62,30 +48,24 @@ export function sendFailureOutcome(
         delivery: {
             attempts,
             firstAttemptAt,
-            interruptedAt: pending.delivery?.interruptedAt ?? null,
+            interruptedAt: sending.delivery?.interruptedAt ?? null,
             lastError,
             nextAttemptAt: new Date(now + backoff).toISOString(),
         },
     };
 }
 
-/** A pending prompt waits out its backoff before the next attempt. */
-export function deliveryDue(pending: CloudPendingSend, now: number): boolean {
-    return !pending.delivery || Date.parse(pending.delivery.nextAttemptAt) <= now;
+/** A follow-up waits out its backoff before the next attempt. */
+export function deliveryDue(sending: WorkerSendingTurn, now: number): boolean {
+    return !sending.delivery || Date.parse(sending.delivery.nextAttemptAt) <= now;
 }
 
-export function launchRejection(cause: unknown): CloudLaunchRejection {
+export function launchRejection(cause: unknown): WorkerTurnRejection {
     return {
         errorCode: workerDeliveryFailure.launchRejected,
         summary: bounded(`The provider rejected the launch: ${reasonOf(cause)}`),
     };
 }
-
-export const launchRecordMissing: CloudLaunchRejection = {
-    errorCode: workerDeliveryFailure.launchRecordMissing,
-    summary:
-        'This Computer has no record of the prompt for this Run, so it never reached the provider. Send it again if it is still needed.',
-};
 
 function reasonOf(cause: unknown): string {
     const message = errorMessage(cause);
@@ -99,7 +79,7 @@ function errorMessage(cause: unknown): string {
     return message.trim() || 'unknown error';
 }
 
-/** Run summaries are bounded at 2,000 characters on the wire. */
+/** Turn summaries are bounded at 2,000 characters on the wire. */
 function bounded(text: string, limit = 1000): string {
     return text.length > limit ? `${text.slice(0, limit - 1)}…` : text;
 }

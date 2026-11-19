@@ -40,7 +40,7 @@ const workerProviderResultResponseSchema = z.looseObject(workerProviderResultSch
 
 const workerTurnModelParamResponseSchema = z.looseObject(workerTurnModelParamSchema.shape);
 
-const workerTurnModelResponseSchema = z.looseObject({
+export const workerTurnModelResponseSchema = z.looseObject({
     ...workerTurnModelSchema.shape,
     params: z.array(workerTurnModelParamResponseSchema).max(2),
 });

@@ -931,7 +931,6 @@ async function connect(
                     }
                     return handleStartCommand({
                         attachment,
-                        workers: daemonWork.workers,
                         clearActiveRun,
                         command,
                         computerName,
@@ -1073,9 +1072,7 @@ async function connect(
                 if (bootstrap.mode === 'ordinary') {
                     journalUploads.connected();
                     invocations.connected();
-                    daemonWork.workers?.attach((observation) => {
-                        sendFrame({ observation, type: 'worker-observation' });
-                    });
+                    daemonWork.workers?.attach(sendFrame);
                     const initialReport = Promise.resolve().then(async () => {
                         await Promise.all([
                             sendComputerReport(sendFrame, attachment.serverId, computerName, true),
@@ -1450,7 +1447,6 @@ function safeSkillImportError(error: unknown) {
  */
 async function handleStartCommand(input: {
     attachment: Attachment;
-    workers?: WorkerSupervisor;
     command: AgentStartCommand;
     computerName: string;
     controller: AbortController;
@@ -1507,7 +1503,6 @@ async function handleStartCommand(input: {
                 runAgentLaunch({
                     turnTimings,
                     attachment,
-                    workers: input.workers,
                     command: launchCommand,
                     dataRoot,
                     onRuntimeReady: async () => {

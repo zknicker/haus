@@ -1,17 +1,15 @@
 import { Clock, Effect } from 'effect';
 import { type WorkerOperationError, foreign } from './foreign-operation.ts';
 import { abortWorkerLaunch } from './launch-attempt.ts';
-import type { CloudLaunchJournal, CloudLaunchRecord, CloudPendingSend } from './launch-journal.ts';
-import type { WorkerLaunch, CloudAgentProviderObservation, WorkerTurnRef } from './provider.ts';
-import { launchRecordGraceMs, launchRecordMissing } from './send-delivery.ts';
+import type { CloudAgentProviderObservation, WorkerLaunch, WorkerTurnRef } from './provider.ts';
 import type { WorkerSendQueue } from './send-queue.ts';
+import type { WorkerTurnJournal } from './turn-journal.ts';
+import type { WorkerHeldFollowUp, WorkerSendingTurn } from './turn-record.ts';
 
-/** A monitored Run the provider has not addressed yet. */
+/** A monitored turn the provider has not addressed yet. */
 export interface LocalRun {
     readonly cancelRequested: boolean;
     readonly ref: WorkerTurnRef;
-    /** When resolution first found no journal record for this Run. */
-    unrecordedSince?: number;
 }
 
 export type LocalRunState =
@@ -23,16 +21,20 @@ export type LocalRunState =
           autoInterrupted: boolean;
       }
     /** Not at the provider; report the observation when one is given. */
-    | { kind: 'unsent'; observation: CloudAgentProviderObservation | null };
+    | { kind: 'unsent'; observation: CloudAgentProviderObservation | null }
+    /** A follow-up from before Workers, waiting for the Server to take it. */
+    | { kind: 'held'; followUp: WorkerHeldFollowUp }
+    /** Never accepted here: the Server still holds it, or will start it again. */
+    | { kind: 'absent' };
 
 /**
- * Resolves a Run without a provider address from this Computer's journal:
- * advances its queued send, recovers an acknowledged launch, or reports the
- * outcome the journal settled — refused, cancelled, or never recorded.
+ * Resolves a turn without a provider address from this Computer's journal:
+ * advances its delivery, recovers an acknowledged launch, or reports the
+ * outcome the journal settled.
  */
 export class WorkerLocalRuns {
     constructor(
-        private readonly journal: CloudLaunchJournal,
+        private readonly journal: WorkerTurnJournal,
         private readonly serverId: string,
         private readonly sends: WorkerSendQueue
     ) {}
@@ -44,14 +46,20 @@ export class WorkerLocalRuns {
             const nowMs = yield* Clock.currentTimeMillis;
             const observedAt = new Date(nowMs).toISOString();
             switch (recorded?.phase) {
-                case 'pending': {
+                case 'sending': {
                     const { delivery } = recorded;
                     return unsent(
                         delivery?.interruptedAt
                             ? autoInterruptFailedQueued(observedAt, delivery)
-                            : queued(observedAt, pendingActivity(recorded))
+                            : queued(observedAt, sendingActivity(recorded))
                     );
                 }
+                case 'pending':
+                    if (run.cancelRequested) {
+                        yield* foreign(() => self.journal.cancel(self.serverId, run.ref));
+                        return yield* self.resolve(run);
+                    }
+                    return { followUp: recorded, kind: 'held' } as const;
                 case 'launched':
                     return {
                         autoInterrupted: recorded.autoInterrupted,
@@ -89,40 +97,28 @@ export class WorkerLocalRuns {
                     }
                     return unsent(queued(observedAt, 'Starting the Worker.'));
                 case undefined:
-                    return yield* self.settleUnrecorded(run, nowMs);
+                    return yield* self.settleUnaccepted(run);
             }
         });
     }
 
     /**
-     * A Run Server recorded but this Computer never journaled — the sender
-     * timed out or crashed between the two — never reached the provider. It
-     * settles failed after a grace window that covers an in-flight sender, or
-     * cancelled at once when stopped. The exclusive claim makes a late sender
-     * lose, so the settled outcome is durable across restarts.
+     * A stop for a turn this Computer never accepted claims it cancelled, so a
+     * start the Server sends again loses the exclusive claim. Without a stop
+     * the turn is the Server's until it starts it here.
      */
-    private settleUnrecorded(
-        run: LocalRun,
-        nowMs: number
-    ): Effect.Effect<LocalRunState, WorkerOperationError> {
+    private settleUnaccepted(run: LocalRun): Effect.Effect<LocalRunState, WorkerOperationError> {
+        if (!run.cancelRequested) {
+            return Effect.succeed({ kind: 'absent' });
+        }
         const self = this;
         return Effect.gen(function* () {
-            run.unrecordedSince ??= nowMs;
-            const settled: CloudLaunchRecord | null = run.cancelRequested
-                ? { phase: 'cancelled', workerId: run.ref.workerId }
-                : nowMs - run.unrecordedSince >= launchRecordGraceMs
-                  ? { phase: 'rejected', workerId: run.ref.workerId, ...launchRecordMissing }
-                  : null;
-            if (!settled) {
-                return unsent(
-                    queued(
-                        new Date(nowMs).toISOString(),
-                        'Waiting for this Computer to record the prompt.'
-                    )
-                );
-            }
-            yield* foreign(() => self.journal.claim(self.serverId, run.ref, settled));
-            // Claimed or not, the journal now holds a record; report what it says.
+            yield* foreign(() =>
+                self.journal.claim(self.serverId, run.ref, {
+                    phase: 'cancelled',
+                    workerId: run.ref.workerId,
+                })
+            );
             return yield* self.resolve(run);
         });
     }
@@ -132,18 +128,13 @@ function unsent(observation: CloudAgentProviderObservation | null): LocalRunStat
     return { kind: 'unsent', observation };
 }
 
-/**
- * Why a pending follow-up has not reached the provider yet, for the work card
- * and `haus worker inspect`. Before this, a blocked follow-up reported
- * nothing at all while waiting on a predecessor (TECH-7): the stall was
- * invisible everywhere except this Computer's own private journal file.
- */
-function pendingActivity(pending: CloudPendingSend): string {
-    if (pending.delivery) {
-        return `The provider has not accepted this follow-up yet (attempt ${pending.delivery.attempts}; last error: ${pending.delivery.lastError}).`;
+/** Why an accepted follow-up has not reached the provider yet, for the card and `inspect`. */
+function sendingActivity(sending: WorkerSendingTurn): string {
+    if (sending.delivery) {
+        return `The provider has not accepted this follow-up yet (attempt ${sending.delivery.attempts}; last error: ${sending.delivery.lastError}).`;
     }
-    return pending.predecessors.length > 0
-        ? 'Waiting for an earlier Run to finish before sending this follow-up.'
+    return sending.predecessorTurnIds.length > 0
+        ? 'Waiting for the earlier turn to finish before sending this follow-up.'
         : 'Waiting for the provider to accept this follow-up.';
 }
 
@@ -152,17 +143,13 @@ function queued(observedAt: string, summary: string): CloudAgentProviderObservat
 }
 
 /**
- * Reported every tick once `send-queue.ts`'s auto-interrupt fallback has been
- * tried and still didn't deliver: still queued, still retrying, but now
- * carrying the stall Server uses to raise exactly one inbox attention
- * (then sparse reminders) without failing the Run. TECH-7's design
- * refinement: a busy provider never fails the follow-up on its own, and
- * clearing the session's current work gets one automatic try before anyone
- * is asked to decide.
+ * Reported every tick once the auto-interrupt fallback was tried and the
+ * follow-up still did not go through: still queued and retrying, with the
+ * stall the Server raises one inbox item for.
  */
 function autoInterruptFailedQueued(
     observedAt: string,
-    delivery: NonNullable<CloudPendingSend['delivery']>
+    delivery: NonNullable<WorkerSendingTurn['delivery']>
 ): CloudAgentProviderObservation {
     return {
         activity: {
@@ -172,11 +159,11 @@ function autoInterruptFailedQueued(
         observedAt,
         stallCode: 'followup-auto-interrupt-failed',
         status: 'queued',
-        summary: `Haus automatically interrupted the session to deliver this follow-up, but it still didn't go through. Last error: ${delivery.lastError}. Haus keeps retrying; stop, interrupt, or relaunch if you want to act now.`,
+        summary: `Haus automatically interrupted the session to deliver this follow-up, but it still didn't go through. Last error: ${delivery.lastError}. Haus keeps retrying; stop the Worker or send with --interrupt if you want to act now.`,
     };
 }
 
-/** One-time: this Run's own monitor reports fresh activity from here on, so a later observation naturally supersedes it. */
+/** One-time: this turn's own monitor reports fresh activity from here on. */
 export function autoInterruptNote(autoInterrupted: boolean): { summary?: string } {
     return autoInterrupted
         ? { summary: 'Haus automatically interrupted the session to deliver this follow-up.' }

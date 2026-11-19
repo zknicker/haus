@@ -3,10 +3,15 @@ import {
     parseCloudAgentCapabilityRequest,
     runCloudAgentCapabilityRequest,
 } from './workers/capability-requests.ts';
-import { parseWorkerStopCommand, parseWorkerReconcileCommand } from './workers/frames.ts';
+import {
+    parseWorkerFollowUpDrainAck,
+    parseWorkerReconcileCommand,
+    parseWorkerStopCommand,
+    parseWorkerTurnStart,
+} from './workers/frames.ts';
 import type { WorkerSupervisor } from './workers/work-runner.ts';
 
-/** Adapts attachment frames to the daemon-owned Cloud Agent capability. */
+/** Adapts attachment frames to the daemon-owned Worker supervisor and provider capability. */
 export function handleWorkerFrame(
     frame: unknown,
     options: {
@@ -19,20 +24,9 @@ export function handleWorkerFrame(
         onFailure(error: unknown): void;
     }
 ): boolean {
-    const cancel = parseWorkerStopCommand(frame);
-    if (cancel) {
-        void options.track(
-            (options.workers?.cancel(cancel) ?? Promise.resolve()).catch(options.onFailure)
-        );
-        return true;
-    }
-    const reconcile = parseWorkerReconcileCommand(frame);
-    if (reconcile) {
-        void options.track(
-            (options.workers?.reconcile(reconcile.workers) ?? Promise.resolve()).catch(
-                options.onFailure
-            )
-        );
+    const work = workerOperation(frame, options.workers);
+    if (work) {
+        void options.track((work() ?? Promise.resolve()).catch(options.onFailure));
         return true;
     }
     const capability = parseCloudAgentCapabilityRequest(frame);
@@ -50,4 +44,27 @@ export function handleWorkerFrame(
             .catch(options.onFailure)
     );
     return true;
+}
+
+function workerOperation(
+    frame: unknown,
+    workers: WorkerSupervisor | undefined
+): (() => Promise<void> | undefined) | null {
+    const start = parseWorkerTurnStart(frame);
+    if (start) {
+        return () => workers?.accept(start);
+    }
+    const drained = parseWorkerFollowUpDrainAck(frame);
+    if (drained) {
+        return () => workers?.forgetDrainedFollowUp(drained.turnId);
+    }
+    const stop = parseWorkerStopCommand(frame);
+    if (stop) {
+        return () => workers?.stop(stop);
+    }
+    const reconcile = parseWorkerReconcileCommand(frame);
+    if (reconcile) {
+        return () => workers?.reconcile(reconcile.workers);
+    }
+    return null;
 }

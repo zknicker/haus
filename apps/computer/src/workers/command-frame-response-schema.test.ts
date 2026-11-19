@@ -1,36 +1,30 @@
 import { expect, test } from 'bun:test';
 import { workerStopCommandSchema } from '@haus/api';
 import {
-    workerStopCommandResponseSchema,
     cloudAgentCapabilityRequestResponseSchema,
     workerReconcileCommandResponseSchema,
+    workerStopCommandResponseSchema,
+    workerTurnStartResponseSchema,
 } from './command-frame-response-schema.ts';
 
-test('the canonical strict cancel command schema rejects a field it does not know', () => {
-    expect(() =>
-        workerStopCommandSchema.parse({
-            futureCancelField: true,
-            provider: 'cursor',
-            providerAgentId: 'bc_abc',
-            providerRunId: 'run_abc',
-            turnId: 'car_1234567890abcdef',
-            type: 'worker-stop',
-            workerId: 'caw_1234567890abcdef',
-        })
-    ).toThrow(/futureCancelField/);
+const stop = {
+    place: 'cursor',
+    providerAgentId: 'bc_abc',
+    providerRunId: 'run_abc',
+    turnId: 'wkt_1234567890abcdef',
+    type: 'worker-stop',
+    workerId: 'wkr_1234567890abcdef',
+};
+
+test('the canonical strict stop command schema rejects a field it does not know', () => {
+    expect(() => workerStopCommandSchema.parse({ ...stop, futureStopField: true })).toThrow(
+        /futureStopField/
+    );
 });
 
-test('the Computer response schema tolerates an unknown field on a cancel command', () => {
-    const parsed = workerStopCommandResponseSchema.parse({
-        futureCancelField: true,
-        provider: 'cursor',
-        providerAgentId: 'bc_abc',
-        providerRunId: 'run_abc',
-        turnId: 'car_1234567890abcdef',
-        type: 'worker-stop',
-        workerId: 'caw_1234567890abcdef',
-    });
-    expect(parsed.turnId).toBe('car_1234567890abcdef');
+test('the Computer response schema tolerates an unknown field on a stop command', () => {
+    const parsed = workerStopCommandResponseSchema.parse({ ...stop, futureStopField: true });
+    expect(parsed.turnId).toBe('wkt_1234567890abcdef');
 });
 
 test('the Computer response schema tolerates an unknown field on a reconcile command, at every nesting level', () => {
@@ -39,18 +33,42 @@ test('the Computer response schema tolerates an unknown field on a reconcile com
         type: 'worker-reconcile',
         workers: [
             {
-                cancelRequested: false,
                 futureEntryField: true,
-                provider: 'cursor',
+                place: 'cursor',
                 providerAgentId: 'bc_abc',
                 providerRunId: 'run_abc',
-                turnId: 'car_1234567890abcdef',
                 status: 'running',
-                workerId: 'caw_1234567890abcdef',
+                stopRequested: false,
+                turnId: 'wkt_1234567890abcdef',
+                workerId: 'wkr_1234567890abcdef',
             },
         ],
     });
-    expect(parsed.workers[0]?.workerId).toBe('caw_1234567890abcdef');
+    expect(parsed.workers[0]?.workerId).toBe('wkr_1234567890abcdef');
+});
+
+test('the Computer response schema tolerates an unknown field on a turn start, at every nesting level', () => {
+    const parsed = workerTurnStartResponseSchema.parse({
+        futureStartField: true,
+        input: 'Fix the flaky delivery test.',
+        model: {
+            droppedParams: [],
+            fallbackFrom: null,
+            futureModelField: true,
+            id: null,
+            params: [],
+        },
+        place: 'claude',
+        predecessorTurnIds: [],
+        providerAgentId: null,
+        repository: 'haus/haus',
+        startingRef: null,
+        title: 'Fix the flaky delivery test',
+        turnId: 'wkt_1234567890abcdef',
+        type: 'worker-turn-start',
+        workerId: 'wkr_1234567890abcdef',
+    });
+    expect(parsed.input).toBe('Fix the flaky delivery test.');
 });
 
 test('the Computer response schema tolerates an unknown field on a capability request, at every nesting level', () => {

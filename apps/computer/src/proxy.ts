@@ -17,8 +17,6 @@ import {
 import { handleSkillRequest } from './proxy-skills.ts';
 import { agentInboxLocation, awaitBestEffortAttestation, isAuthorized } from './proxy-support.ts';
 import { recordProxyVisibility } from './proxy-visibility.ts';
-import { handleWorkerStart } from './workers/proxy-route.ts';
-import type { WorkerSupervisor } from './workers/work-runner.ts';
 
 export interface LoopbackProxy {
     clearRunnerToken(): void;
@@ -38,7 +36,6 @@ export interface LoopbackProxy {
 /** Per-launch proxy that keeps scoped Server authority outside the Agent process. */
 export function startLoopbackProxy(input: {
     agentId?: string;
-    workers?: WorkerSupervisor;
     dataRoot?: string;
     proxyToken: string;
     runnerToken: string;
@@ -140,7 +137,6 @@ async function handleAuthorizedProxyRequest(
     url: URL,
     input: {
         agentId?: string;
-        workers?: WorkerSupervisor;
         dataRoot?: string;
         proxyToken: string;
         runId?: string;
@@ -176,30 +172,7 @@ async function handleAuthorizedProxyRequest(
     if (artifact) {
         return artifact;
     }
-    const worker = await handleWorkerStart(request, url, {
-        dataRoot: input.dataRoot,
-        supervisor: input.workers,
-        runnerToken,
-        serverId: input.serverId,
-        serverOrigin: input.serverOrigin,
-    });
     const location = agentInboxLocation(input);
-    if (worker) {
-        // A held launch showed the model newer messages, exactly as a held send does.
-        const launchBody = await worker.text();
-        await recordProxyVisibility({
-            activeRunId: state.getRunId(),
-            location,
-            mutation: true,
-            runnerToken,
-            serverOrigin: input.serverOrigin,
-            visible: worker.ok ? extractVisibleMessageIds(url.pathname, launchBody) : [],
-        });
-        return new Response(launchBody, {
-            headers: { 'content-type': 'application/json' },
-            status: worker.status,
-        });
-    }
     if (request.method === 'GET' && url.pathname === '/api/agent/events' && location) {
         const local = await serveLocalAgentEvents({
             location,
@@ -216,7 +189,11 @@ async function handleAuthorizedProxyRequest(
     const upstreamUrl = new URL(url.pathname, input.serverOrigin);
     upstreamUrl.search = url.search;
     const isMessageSend = url.pathname === '/api/agent/messages/send';
-    const isMessageMutation = isMessageSend || url.pathname === '/api/agent/messages/react';
+    // A held Worker start showed the model newer messages, exactly as a held send does.
+    const isMessageMutation =
+        isMessageSend ||
+        url.pathname === '/api/agent/messages/react' ||
+        (request.method === 'POST' && url.pathname === '/api/agent/workers');
     let upstream: Response;
     try {
         upstream = await fetch(upstreamUrl, {

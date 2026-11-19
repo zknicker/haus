@@ -6,19 +6,20 @@ import type { WorkerObservation } from '@haus/api';
 import { makeTestRuntime } from '@haus/effect';
 import { TestClock } from 'effect';
 import { createFakeCloudAgentProvider } from './fake-provider.ts';
-import { CloudLaunchJournal } from './launch-journal.ts';
 import type { EnrichObservation } from './observation-reports.ts';
+import { WorkerTurnJournal } from './turn-journal.ts';
 import { WorkerSupervisor } from './work-runner.ts';
 
 const entry = {
-    cancelRequested: false,
-    provider: 'cursor' as const,
+    place: 'cursor' as const,
     providerAgentId: 'bc_one',
     providerRunId: 'run_one',
-    turnId: 'car_1234567890abcdef',
     status: 'running' as const,
+    stopRequested: false,
+    turnId: 'car_1234567890abcdef',
     workerId: 'caw_1234567890abcdef',
 };
+const ref = { ...entry, provider: entry.place };
 const cleanup: Array<() => Promise<void>> = [];
 afterEach(async () => {
     for (const close of cleanup.splice(0).reverse()) {
@@ -39,7 +40,11 @@ async function fixture(enrich?: EnrichObservation) {
         enrich,
     });
     const observations: WorkerObservation[] = [];
-    work.attach((observation) => observations.push(observation));
+    work.attach((frame) => {
+        if (frame.type === 'worker-observation') {
+            observations.push(frame.observation);
+        }
+    });
     cleanup.push(async () => {
         await work.close();
         await runtime.dispose();
@@ -75,7 +80,7 @@ test('a failed cancellation keeps its retry owner until the provider settles', a
             observedAt: new Date(attempts * 60_000).toISOString(),
             status: attempts === 1 ? 'running' : 'cancelled',
         });
-    await f.work.cancel({ ...entry, type: 'worker-stop' });
+    await f.work.stop({ ...entry, type: 'worker-stop' });
     expect(f.observations.at(-1)?.status).toBe('running');
     await f.runtime.runPromise(TestClock.adjust('60 seconds'));
     expect(f.observations.at(-1)?.status).toBe('cancelled');
@@ -100,7 +105,7 @@ test('cancellation interrupts a live stream and waits for its cleanup before can
     };
     await f.work.reconcile([entry]);
     await started.promise;
-    await f.work.cancel({ ...entry, type: 'worker-stop' });
+    await f.work.stop({ ...entry, type: 'worker-stop' });
     await aborted.promise;
     expect(cancelCalls).toBe(0);
     release.resolve();
@@ -158,9 +163,9 @@ test('a detached stream polls every five seconds and closes with its connection'
 
 test('reconnect recovers a lost launch address from disk before cancelling', async () => {
     const f = await fixture();
-    const journal = new CloudLaunchJournal(f.dataRoot);
-    await journal.claim('srv_cloud', entry);
-    await journal.record('srv_cloud', entry, {
+    const journal = new WorkerTurnJournal(f.dataRoot);
+    await journal.claim('srv_cloud', ref);
+    await journal.record('srv_cloud', ref, {
         environmentId: 'env_fast',
         environmentName: 'Fast',
         providerAgentId: 'bc_recovered',
@@ -174,7 +179,7 @@ test('reconnect recovers a lost launch address from disk before cancelling', asy
     };
     f.provider.read = async () => ({ observedAt: new Date(1).toISOString(), status: 'cancelled' });
     await f.work.reconcile([
-        { ...entry, cancelRequested: true, providerAgentId: null, providerRunId: null },
+        { ...entry, providerAgentId: null, providerRunId: null, stopRequested: true },
     ]);
     expect(cancelled).toEqual(['bc_recovered']);
     expect(f.observations[0]?.providerUrl).toBe('https://cursor.com/agents?id=bc_recovered');
@@ -185,8 +190,8 @@ test('reconnect recovers a lost launch address from disk before cancelling', asy
 
 test('stopping a launch without a provider address settles instead of remaining queued', async () => {
     const f = await fixture();
-    // Claimed `launching` without an acknowledgement: the provider may hold the Run.
-    await new CloudLaunchJournal(f.dataRoot).claim('srv_cloud', entry);
+    // Accepted `launching` without a provider acknowledgement: the provider may hold the turn.
+    await new WorkerTurnJournal(f.dataRoot).claim('srv_cloud', ref);
     let called = false;
     f.provider.read = () => {
         called = true;
@@ -197,11 +202,11 @@ test('stopping a launch without a provider address settles instead of remaining 
         return Promise.resolve();
     };
     await f.work.reconcile([
-        { ...entry, cancelRequested: true, providerAgentId: null, providerRunId: null },
+        { ...entry, providerAgentId: null, providerRunId: null, stopRequested: true },
     ]);
     expect(called).toBe(false);
     expect(f.observations[0]?.status).toBe('cancelled');
-    expect((await new CloudLaunchJournal(f.dataRoot).read('srv_cloud', entry))?.phase).toBe(
+    expect((await new WorkerTurnJournal(f.dataRoot).read('srv_cloud', ref))?.phase).toBe(
         'cancelled'
     );
 });
@@ -266,7 +271,7 @@ test('a rejected repeat cancellation still observes the already stopped provider
         observedAt: new Date(++reads * 5000).toISOString(),
         status: reads === 1 ? 'running' : 'cancelled',
     });
-    await f.work.cancel({ ...entry, type: 'worker-stop' });
+    await f.work.stop({ ...entry, type: 'worker-stop' });
     expect(f.observations.at(-1)?.status).toBe('running');
     await f.runtime.runPromise(TestClock.adjust('5 seconds'));
     expect(f.observations.at(-1)?.status).toBe('cancelled');

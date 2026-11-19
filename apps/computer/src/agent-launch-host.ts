@@ -1,6 +1,5 @@
 import { randomBytes } from 'node:crypto';
 import { type LoopbackProxy, startLoopbackProxy } from './proxy.ts';
-import type { WorkerSupervisor } from './workers/work-runner.ts';
 
 interface AgentLaunchHost {
     proxy: LoopbackProxy;
@@ -11,7 +10,6 @@ const launchHosts = new Map<string, AgentLaunchHost>();
 
 export function acquireAgentLaunchHost(input: {
     agentId: string;
-    workers?: WorkerSupervisor;
     dataRoot: string;
     runnerToken: string;
     runId: string;
@@ -31,7 +29,6 @@ export function acquireAgentLaunchHost(input: {
     const created = {
         proxy: startLoopbackProxy({
             agentId: input.agentId,
-            workers: input.workers,
             dataRoot: input.dataRoot,
             proxyToken,
             runnerToken: input.runnerToken,
