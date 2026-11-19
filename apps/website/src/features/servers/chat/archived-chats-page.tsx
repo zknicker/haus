@@ -17,7 +17,7 @@ export function ArchivedChatsPage({ server }: { server: ServerDetail }) {
     const items = chats.data ?? [];
 
     return (
-        <section aria-label="Archived channels" className="flex min-h-0 flex-1 flex-col">
+        <section aria-label="Archived projects" className="flex min-h-0 flex-1 flex-col">
             {/* The Settings rail links here, so the trail runs through Settings. */}
             <PageBand>
                 <PageBand.Trail
@@ -28,7 +28,7 @@ export function ArchivedChatsPage({ server }: { server: ServerDetail }) {
             <div className="mx-auto min-h-0 w-full max-w-3xl flex-1 overflow-y-auto p-6 pt-8">
                 {chats.isPending ? (
                     <div aria-busy="true" className="min-h-full">
-                        <span className="sr-only">Loading archived channels</span>
+                        <span className="sr-only">Loading archived projects</span>
                     </div>
                 ) : items.length === 0 ? (
                     <EmptyState>
@@ -36,15 +36,15 @@ export function ArchivedChatsPage({ server }: { server: ServerDetail }) {
                             <EmptyState.Media variant="icon">
                                 <Icon aria-hidden="true" icon={ArchiveIcon} />
                             </EmptyState.Media>
-                            <EmptyState.Title>No archived channels</EmptyState.Title>
+                            <EmptyState.Title>No archived projects</EmptyState.Title>
                             <EmptyState.Description>
-                                Archived channels stay readable and can be restored here.
+                                Archived projects stay readable and can be restored here.
                             </EmptyState.Description>
                         </EmptyState.Header>
                     </EmptyState>
                 ) : (
                     <ListView
-                        aria-label="Archived channels"
+                        aria-label="Archived projects"
                         items={items}
                         onAction={(key) => navigate(serverChatRoute(server.slug, String(key)))}
                         variant="secondary"

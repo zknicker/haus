@@ -16,7 +16,7 @@ export type ComputerRuntimePresentation = ComputerInventory['runtimes'][number] 
 export function computerLabel(computer: ComputerPresentation) {
     return (
         computer.name?.trim() ||
-        `${operatingSystemLabel(computer.operatingSystem) ?? ''} Computer`.trim()
+        `${operatingSystemLabel(computer.operatingSystem) ?? ''} Device`.trim()
     );
 }
 

@@ -136,7 +136,7 @@ describe('Cove onboarding presentation boundary', () => {
             detail: 'Internal socket report detail.',
         });
 
-        expect(guidance.title).toBe('This Computer is offline');
+        expect(guidance.title).toBe('This device is offline');
         expect(guidance.command).toBe('haus-computer start');
         expect(guidance.note).toContain('continues automatically');
     });

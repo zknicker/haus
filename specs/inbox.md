@@ -3,7 +3,7 @@ summary: Agent inbox — the `agent_inbox` item kinds and their one lifecycle, e
 read_when:
   - adding an agent inbox item kind, or changing an item's identity or lifecycle
   - changing the drive_conflict item, who receives it, or its wording
-  - changing which agents wake for a chat message, mute/follow semantics, or mention piercing
+  - changing which agents wake for a chat message, home Project hearing, follow semantics, or mentions outside the home Project
   - changing exact model visibility, freshness catch-up, or pull acknowledgement
   - changing mid-turn notices, drain batching, or chain limits
   - changing how the Server infers which fire caused an Agent's message
@@ -75,43 +75,82 @@ mark that names the wrong cause.
 
 ## Delivery planning (I1)
 
+### Hearing
+
+[ADR 0055](../docs/adr/0055-projects-own-agents-and-tasks.md) narrows what reaches an Agent. Each
+Agent has one home [Project](projects.md#agents), hears everything there, and elsewhere hears
+only what is addressed to it or what it follows. A message reaches an Agent when any row holds:
+
+| Where the message is | It reaches the Agent when |
+| --- | --- |
+| Its home Project's channel | Always, as ordinary delivery |
+| A Task of its home Project | Always |
+| Another Project's channel, top level | It @mentions the Agent |
+| Another Project's channel, inline reply | It @mentions the Agent, or the Agent follows the reply chain |
+| A Task of another Project | It @mentions the Agent, or the Agent follows the Task |
+| A DM with the Agent | Always |
+
+- A generalist's home is the Haus project, so it hears the Haus channel and its Tasks, and
+  mentions elsewhere, like any Agent.
+- An Agent follows a Task by the follower rules in [tasks.md](tasks.md#followers-and-unread):
+  being its assignee, authoring or being mentioned in its origin Message, posting in it, or
+  following by hand. So an assignment always reaches the Agent, in any Project, both as the
+  `task_assignment` item and as every later message in the Task.
+- An Agent follows a reply chain by the rules in [Inline reply attention](#inline-reply-attention).
+- Claim assignments, reminder and Trigger fires, Cloud Agent notices, and the other concrete
+  kinds reach their recipient wherever their Chat is. Hearing narrows only ordinary `human`
+  delivery.
+- Posting in a Project does not make an Agent hear it. Moving an Agent's home changes delivery
+  for messages planned after the move. Items already queued stay queued.
+- There are no channel mutes. `agent_channel_mutes` and `haus channel mute` and `unmute` are
+  deleted: a home Project is the place an Agent answers first, and other Projects already reach it
+  only by mention. Home hearing is absolute: a home Agent hears every message in its Project's
+  channel and Tasks, and unfollowing a home Task changes nothing for it. Outside its home, an Agent
+  stops hearing a Task by unfollowing it (`haus task unfollow`).
+
 Across all Servers with the TypeSafe credential configured, [ADR 0030](../docs/adr/0030-semantic-channel-addressing.md)
-permits semantic narrowing of unaddressed human top-level channel messages. The final
-recipient set is committed with the message; kept, uncertain, failed or stale judgments
-retain ordinary delivery. This does not change explicit mention, reply, Task, or DM rules. In a
-channel with one eligible Agent, the message is addressed to it as `sole` when the author is
-the channel's only human member. With more human members, Jev judges whether the one Agent is
-the addressee, and recipients stay unchanged either way.
+permits semantic narrowing of unaddressed human top-level channel messages. Its eligible Agents in
+a Project's channel are the Project's home Agents. The final recipient set is committed with the
+message; kept, uncertain, failed or stale judgments retain ordinary delivery. This does not change
+explicit mention, reply, Task, or DM rules. In a Project with one home Agent, the message is
+addressed to it as `sole` when the author is the channel's only human member. With more human
+members, Jev judges whether the one Agent is the addressee, and recipients stay unchanged either
+way. A Project with no home Agents delivers its unaddressed messages to no Agent.
+
+ADR 0030 narrowing of top-level channel messages among several home Agents is the one exception
+to absolute home hearing.
+
+Hearing lands with J3. Each row of the table, and the generalist case, has a delivery test in
+`apps/server/test/agent-hearing.test.ts`, and the migration has one for each step of
+[projects.md](projects.md#migration-from-channels).
+
+### Planning
 
 A durable `message.created` is planned once by Server delivery
 (`apps/server/src/agent-delivery/`):
 
-- Ordinary delivery reaches joined channels, followed Tasks, and DMs.
-  The author never receives their own message.
-- A channel mute (`agent_channel_mutes`, agent-owned via `haus channel
-  mute`) suppresses ordinary delivery from that channel itself. Followed
-  Tasks keep delivering independently, so the Agent unfollows a specific
-  Task (`haus task unfollow`) to stop its ordinary delivery.
-- Personal @mentions (rich reference or plain `@handle`) bypass Channel mutes without unmuting the
-  Channel. In a Task, a direct mention restores an explicit unfollow and the recipient's exact
-  pending delivery carries that replay-safe restoration fact.
+- Ordinary delivery reaches the Agents that [hear](#hearing) the message. The author never
+  receives their own message.
+- Personal @mentions (rich reference or plain `@handle`) reach the named Agent in any Project. In
+  a Task, a direct mention restores an explicit unfollow and the recipient's exact pending
+  delivery carries that replay-safe restoration fact.
 - Mention identity is resolved once when delivery is planned and persists independently from
   suppression. An ordinarily delivered mention still tells only the named Agent `you were mentioned`;
   other eligible Channel participants retain ambient visibility without that attention flag.
 - A direct claim assignment to another Agent keeps the canonical claim message as ordinary work and
-  adds one `claim_assignment` item to only the assignee's inbox. It is `mentioned=true` so it stays
-  actionable through a mute, and renders in Agent inbox envelopes the way a reminder fire does. The
+  adds one `claim_assignment` item to only the assignee's inbox. It is `mentioned=true` so it
+  reaches the assignee outside its home Project, and renders in Agent inbox envelopes the way a reminder fire does. The
   human's representation of that fact is the claim chip on the message.
 - A settled Cloud Agent Run creates one terminal attention for only the Agent that delegated it,
   keyed by the Run id and carrying the work's title, repository, provider URL, and the Run's status,
-  summary, error code, and reported branches ([Cloud Agents](cloud-agents.md)). A Run that stopped to
+  summary, error code, and reported branches ([Workers](workers.md)). A Run that stopped to
   ask a question (`pending_input`) settles the same way, with the question as its summary and a
   pointer to answer with `haus cloud-agent send`. It settles like the
   other concrete kinds; the result the human sees is whatever ordinary Message the woken Agent
   decides to post. The notice lands in the work's Task, so a plain send in that turn goes there.
   A pull request becoming ready for review or its checks finishing after the newest Run settled is
   a `pull_request` notice carrying `pullRequestChange`; one on a Task with no cloud work wakes the
-  Task's assignee Agent with no Run behind it ([Cloud Agents](cloud-agents.md#pull-request-readings)).
+  Task's assignee Agent with no Run behind it ([Workers](workers.md#pull-request-readings)).
 - Assigning a Task to another Agent queues one `task_assignment` item for that Agent, with
   `mentioned=true`. It has no Chat, so the row holds its typed attention as JSON rather than an
   envelope: the Task's key, title, priority, and the assigner's handle as they stood when
@@ -127,7 +166,8 @@ A durable `message.created` is planned once by Server delivery
   `packages/haus-api/src/agent-inbox.ts`: the push id, the writer (the Agent, or a Worker with its
   Task), and every listed file of the push, uncapped because conflicts are rare. Each file carries
   `path`, `outcome`, `copyPath` for `kept_both`, `currentRevisionId`, `currentAuthorHandle`, and
-  `reason` (`same_lines`, `binary`, `base_gone`, `edit_over_delete`, or the refusal code). When
+  `reason` (`same_lines`, `binary`, `base_gone`, `both_created`, `edit_over_delete`, or the refusal
+  code). When
   nothing is live at the path, as after a refused create, `currentRevisionId` and
   `currentAuthorHandle` are explicit nulls. The item never invents a revision or an actor.
   `drive_conflict` joins `chatlessInboxSources`, and the start frame carries the item as
@@ -186,11 +226,12 @@ by chat, root, and Agent, independently from the claim's single assignee.
 
 Root authors and mentions, reply authors and mentions, and successful claimants join that
 chain. Send and claim update follows in their existing transaction. Losing a claim adds no
-subscription. Ordinary top-level messages retain channel delivery; inline replies reach eligible
+subscription. Ordinary top-level messages follow [hearing](#hearing); inline replies reach eligible
 followers and direct mentions, excluding the author. Before any Agent has participated, human
-inline replies use ordinary channel delivery. An empty chain after unfollow does not broadcast.
+inline replies reach the Project's home Agents as ordinary delivery. An empty chain after
+unfollow does not broadcast.
 
-Followed chains deliver independently of channel mute. Unfollow suppresses ordinary chain
+Followed chains deliver in any Project, home or not. Unfollow suppresses ordinary chain
 delivery; an explicit follow, new post, successful claim, or direct mention restores it.
 Unfollowing a chain never joined is a no-op. Claim completion preserves follows. Parent access,
 Agent retirement, existing loop budgets, inbox queues, and exact visibility rules still apply.
@@ -300,7 +341,7 @@ identities before Computer returns the bodies.
 ## Unread conversations and read position
 
 `haus inbox check` is the Agent's counterpart of the human Inbox, ported from Raft
-1.21.2: it lists every channel, DM, and followed Task the Agent is in that has
+1.21.2: it lists every conversation that [reaches](#hearing) the Agent and has
 unread messages, newest activity first, from a durable per-chat Agent read position
 on the Server (`GET /api/agent/inbox/conversations`). Each row prints the target, the
 unread count, whether it mentions the Agent, and the latest sender, with an `open:`
@@ -310,7 +351,7 @@ the Agent (`N new, not yet delivered`) come first, and pending Cloud Agent resul
 print as one `Cloud Agent results · N pending · fetch with haus message check` line.
 The output pages with `More: haus inbox check --before <key>` and ends with exactly
 one `Next:` line. `--view mentions` keeps only conversations that mention the Agent;
-a muted channel appears only when it mentions the Agent. A 503 `INBOX_UNAVAILABLE`
+a channel outside its home Project appears only when it mentions the Agent. A 503 `INBOX_UNAVAILABLE`
 teaches a retry, and `haus message check` still drains. Listing advances nothing.
 
 The read position advances when `haus message read --unread` returns messages, when a
@@ -367,7 +408,7 @@ turn starts when its creator sends the working brief.
 | A single-Agent channel addresses `sole` without Jev for one human and judges it at the gate for more | `apps/server/test/haus-message-routing-sole.test.ts` |
 | The unread digest excludes notice-row chats and drained ids, so a bounded drain's remainder still shows | `apps/server/test/agent-inbox-digest.test.ts` |
 | Assignments coalesce into one main-session run, a busy Agent gets a count then the Tasks, and reassigning retires a queued item | `apps/server/test/haus-task-agent-delivery.test.ts`, `apps/computer/src/harness/task-assignment-turn.test.ts`, `apps/computer/src/inbox-store-task-assignments.test.ts` |
-| One `drive_conflict` item per push lists every file, wakes an idle Agent, reaches a Worker's Agent, and waits at the chain ceiling instead of dropping (lands with D2) | `apps/server/test/drive-conflict-delivery.test.ts` |
+| One `drive_conflict` item per push lists every file, wakes an idle Agent, reaches a Worker's Agent, and waits at the chain ceiling instead of dropping | `apps/server/test/drive-conflict-delivery.test.ts`, `apps/server/test/drive-conflict-chain.test.ts` |
 
 ## Presentation split (I1/I4)
 
@@ -376,4 +417,53 @@ composing a reply. Chat renders only durable messages. The typing strip is a sep
 exact run visibility, not of attachment ([ADR 0035](../docs/adr/0035-chat-engagement-shows-as-typing.md)). Status dots, semantic Agent activity, and
 detailed execution evidence remain separate Agent-level projections
 ([agent-activity.md](agent-activity.md)). Inbox visibility for humans is read-only (I4): pending
-targets, mutes, and follows on the Agent profile; humans steer attention by asking in Chat.
+targets, the home Project, and follows on the Agent profile; humans steer attention by asking in Chat.
+
+## Worker items
+
+[Workers](workers.md) reach their Agent through three item kinds. They replace the
+`cloud_agent_work` kind, its row in the item table, and the Cloud Agent bullets under delivery
+planning. W2 deletes those and migrates queued rows by their `cloud_agent_notice`.
+
+| Kind (`source`) | What it is | Recipient | Identity | Lane |
+| --- | --- | --- | --- | --- |
+| `worker_report` | One settled Worker turn: its report, or a failed outcome Haus recorded | The delegating Agent | `worker-report:<turnId>` | Concrete, in the Worker's Task. Queued reports of one Task coalesce into one run, up to 20 |
+| `worker_stall` | A live cloud turn that needs attention without settling ([Stalls](cloud-agents.md#stalls)) | The delegating Agent | `worker-stall:<turnId>:<window>` | Concrete, in the Worker's Task |
+| `pull_request` | A pull request on a Task became ready for review or its checks finished ([change wake](workers.md#pull-request-readings)) | The Agent of each settled Worker that reported it, else the Task's assignee Agent | `<repo>#<number>:<change>:<headSha>` | Concrete, in the Task |
+
+Each lands in its Task, so a plain send in that run goes there. Each spends the automation chain
+and, like `drive_conflict`, waits at the ceiling for the chain to reset instead of being refused,
+because a Worker's outcome must reach its Agent. Each retires as `seen` when its run settles.
+A `stopped` turn queues nothing, because the Agent or a person stopped it on purpose. Closing a
+Task is the exception: each closed Worker's final outcome queues one item
+([Closing](workers.md#closing)).
+
+`worker_report` is the one kind besides `task_assignment` that batches. Six Workers reporting on
+one Task wake an idle Agent once, with the start frame carrying them as `workerReports`. A busy
+Agent gets a count in its notice, `N Worker reports in <KEY-n>`, and the reports in its next run.
+Reports from different Tasks never share a run.
+
+The row holds the typed attention as JSON, `workerReport` in `packages/haus-api/src/agent-inbox.ts`:
+the Task key, the Worker id, title, and place, the turn id, the outcome, the report text and ask,
+the person a needs-you report named, its pull requests with their readings, its cited files with
+revisions, and the failure reason when Haus recorded the outcome. It never invents a person, a
+revision, or a reading. The turn input formatter renders it with its own guidance, so no standing
+prompt text teaches Worker reports:
+
+```text
+[worker report · ENG-41 · needs-you · Worker on macbook (wkr_…) · turn 2]
+The iPad baseline moves 2px with the fix. Is that intended?
+Asked @zach in the Task. An answer from the Worker's card reaches the Worker as its next turn.
+PR: https://github.com/acme/app/pull/412 · draft · checks pending
+Files: agents/forge/renders/ENG-41/ipad-before.png@rev_…
+The report is already posted in ENG-41. Post only what it does not say. Answer the Worker with haus worker send --worker wkr_…, or start a narrower Worker.
+```
+
+A failed outcome Haus recorded says that nothing was posted, so the Agent tells the Task what
+matters. A needs-you report with no person says the ask is for the Agent.
+
+| Contract | Guard |
+| --- | --- |
+| Each kind is queued once per identity, lands in its Task, and retires at settlement | `apps/server/test/worker-inbox-delivery.test.ts` (W2) |
+| Reports of one Task coalesce into one run, and a busy Agent gets a count then the reports | `apps/server/test/worker-inbox-delivery.test.ts` (W2) |
+| A pull request change wakes once per head commit, and only Agents of settled Workers or the assignee | `apps/server/test/pull-request-wake.test.ts` (W2) |

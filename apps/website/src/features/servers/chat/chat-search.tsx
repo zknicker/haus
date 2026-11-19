@@ -110,7 +110,7 @@ export function ChatSearch({
                         />
                     ) : (
                         <SearchEmptyState
-                            description="Type to find messages in channels, Tasks, and DMs."
+                            description="Type to find messages in projects, Tasks, and DMs."
                             title="Search this Server"
                         />
                     )}
@@ -261,6 +261,6 @@ export function messageAuthor(message: ChatSearchResult): {
 
     return {
         avatarUrl: author.profile?.avatarUrl ?? null,
-        name: author.profile?.displayName ?? (author.kind === 'agent' ? 'Agent' : 'Member'),
+        name: author.profile?.displayName ?? (author.kind === 'agent' ? 'Captain' : 'Member'),
     };
 }

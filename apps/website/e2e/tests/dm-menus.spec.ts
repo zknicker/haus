@@ -22,7 +22,7 @@ test('agent DM menus work before the first message and on the selected conversat
     );
     await page.reload();
     const row = page.getByRole('row', { name: 'Marlow', exact: true });
-    const profile = page.getByRole('menuitem', { name: 'View agent profile', exact: true });
+    const profile = page.getByRole('menuitem', { name: 'View Captain profile', exact: true });
     const header = page.getByRole('button', { name: 'Marlow — chat actions', exact: true });
 
     await row.click({ button: 'right' });

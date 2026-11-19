@@ -8,8 +8,8 @@ const bypassLabels: Record<RoutingBypassReason, string> = {
     reply: 'explicit reply',
     mention: 'explicit mention',
     attachments: 'attachments',
-    'recipient-count': 'fewer than two agents',
-    sole: 'sole agent and human',
+    'recipient-count': 'fewer than two Captains',
+    sole: 'sole Captain and human',
     'context-limit': 'context limit',
     'no-context': 'no prior context',
 };
@@ -39,8 +39,8 @@ export function isMentionScopeJudgment(audit: MessageRoutingAudit) {
 }
 
 const mentionScopeChoices: Record<string, string> = {
-    mentioned: 'Mentioned agents only',
-    others: 'Other agents too',
+    mentioned: 'Mentioned Captains only',
+    others: 'Other Captains too',
     unclear: 'Unclear',
 };
 export function mentionScopeChoiceLabel(choice: string) {
@@ -77,7 +77,7 @@ const keptLabels: Record<string, string> = {
     multiple: 'for everyone',
     human: 'for a human',
     unclear: 'audience unclear',
-    others: 'other agents too',
+    others: 'other Captains too',
 };
 function keptLabel(audit: MessageRoutingAudit) {
     const choice = keptChoice(audit) ?? '';
@@ -88,12 +88,12 @@ function keptExplanation(audit: MessageRoutingAudit) {
     const choice = keptChoice(audit);
     if (isMentionScopeJudgment(audit)) {
         return choice === 'others'
-            ? 'Jev judged this was for other agents too, not only the mentioned ones. Every agent in the channel was notified.'
-            : 'Jev judged it unclear whether other agents were meant. Every agent in the channel was notified.';
+            ? 'Jev judged this was for other Captains too, not only the mentioned ones. Every Captain in the project was notified.'
+            : 'Jev judged it unclear whether other Captains were meant. Every Captain in the project was notified.';
     }
     switch (choice) {
         case 'multiple':
-            return 'Jev judged this was for everyone in the channel. Normal delivery was kept.';
+            return 'Jev judged this was for everyone in the project. Normal delivery was kept.';
         case 'human':
             return 'Jev judged this was for a human. Normal delivery was kept.';
         default:
@@ -106,17 +106,17 @@ export function routingExplanation(audit: MessageRoutingAudit) {
         return keptExplanation(audit);
     }
     if (isMentionScopeJudgment(audit) && audit.outcome === 'uncertain') {
-        return 'Jev’s confidence that the message was for the mentioned agents alone was below the threshold. Normal delivery was kept.';
+        return 'Jev’s confidence that the message was for the mentioned Captains alone was below the threshold. Normal delivery was kept.';
     }
     switch (audit.outcome) {
         case 'kept':
             return keptExplanation(audit);
         case 'mentioned':
-            return 'Jev judged the message was for the mentioned agents alone. Other agents in the channel were not notified.';
+            return 'Jev judged the message was for the mentioned Captains alone. Other Captains in the project were not notified.';
         case 'narrow':
             return audit.candidateAgentIds.length === 1
-                ? 'Jev identified the only eligible agent as the addressee. Recipients are unchanged; the message is addressed to that agent.'
-                : 'Jev identified one addressee. Only that agent received an inbox notification.';
+                ? 'Jev identified the only eligible Captain as the addressee. Recipients are unchanged; the message is addressed to that Captain.'
+                : 'Jev identified one addressee. Only that Captain received an inbox notification.';
         case 'uncertain':
             return 'Jev’s confidence was below the threshold, so it could not act on its answer. Normal delivery was kept.';
         case 'timeout':
@@ -126,10 +126,10 @@ export function routingExplanation(audit: MessageRoutingAudit) {
         case 'invalid':
             return 'The result failed validation. Normal delivery was preserved.';
         case 'stale':
-            return 'The conversation or eligible agents changed during inference. The judgment was discarded and current delivery rules were used.';
+            return 'The conversation or eligible Captains changed during inference. The judgment was discarded and current delivery rules were used.';
         case 'bypass':
             return audit.bypassReason === 'sole'
-                ? 'The only eligible agent and the only human share this channel, so the message is addressed to that agent without Jev.'
+                ? 'The only eligible Captain and the only human share this project, so the message is addressed to that Captain without Jev.'
                 : `Jev was skipped: ${routingOutcomeLabel(audit)}. Recipients came from the normal delivery rules.`;
     }
 }

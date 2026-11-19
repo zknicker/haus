@@ -33,7 +33,7 @@ export function SkoolConnectDialog({
                         {affectedAgentCount > 0 ? (
                             <p>
                                 Signing in again replaces the Skool account used by{' '}
-                                {affectedAgentCount} Agents.
+                                {affectedAgentCount} Captains.
                             </p>
                         ) : null}
                     </Modal.Body>

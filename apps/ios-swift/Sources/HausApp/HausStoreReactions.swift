@@ -71,7 +71,7 @@ extension HausStore {
             let agent = agentsByID[actor.id]
             return ReactorPresentation(
                 id: actor.id,
-                name: agent?.displayName ?? actor.handle ?? "Agent",
+                name: agent?.displayName ?? actor.handle ?? "Captain",
                 avatarURL: resolvedAvatarURL(agent?.avatarURL)
             )
         case .human:

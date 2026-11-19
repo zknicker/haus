@@ -66,7 +66,7 @@ export interface CoveRepairGuidance {
 }
 
 const reconnectResumesNote =
-    'Setup continues automatically once the Computer reconnects — no need to press anything.';
+    'Setup continues automatically once the device reconnects — no need to press anything.';
 
 /**
  * Human repair copy deliberately hides factory, seed, command, and
@@ -80,7 +80,7 @@ export function getCoveRepairGuidance(
             command: 'haus-computer start',
             note: reconnectResumesNote,
             remedy: 'Start Haus Computer on the Mac it runs on.',
-            title: 'This Computer is offline',
+            title: 'This device is offline',
         };
     }
     if (failure?.code === 'computer-incompatible') {
@@ -96,7 +96,7 @@ export function getCoveRepairGuidance(
             command: null,
             note: reconnectResumesNote,
             remedy: 'Sign in to Codex or Claude Code on that Mac, then restart Haus Computer.',
-            title: 'No runtime is available on this Computer',
+            title: 'No runtime is available on this device',
         };
     }
     if (failure?.code === 'inventory-invalid') {
@@ -104,21 +104,21 @@ export function getCoveRepairGuidance(
             command: 'haus-computer upgrade',
             note: reconnectResumesNote,
             remedy: 'Update Haus Computer on the Mac it runs on.',
-            title: 'This Computer needs an update before Cove can start',
+            title: 'This device needs an update before Cove can start',
         };
     }
     if (failure?.code === 'application-failed') {
         return {
             command: 'haus-computer logs',
             note: null,
-            remedy: 'Press Try again. If it fails again, check the Computer’s local logs on that Mac.',
+            remedy: 'Press Try again. If it fails again, check the device’s local logs on that Mac.',
             title: 'Cove’s setup didn’t finish',
         };
     }
     return {
         command: null,
         note: null,
-        remedy: 'Make sure this Computer is connected, then try again.',
+        remedy: 'Make sure this device is connected, then try again.',
         title: 'Cove needs another try',
     };
 }

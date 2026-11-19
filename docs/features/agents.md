@@ -65,7 +65,7 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
 - The hub's header states the Agent's photo, name, role, and current availability, offers
   **Edit Profile** (name, description, the private conversation style, and the signature emoji) for an ordinary Agent, and holds one `···` overflow menu for Owners and Admins:
   **Permissions** first, then the lifecycle verbs — Stop, Restart, Start fresh session, Full
-  reset, Delete Agent. Members see the header without that menu. A runtime sign-in issue leads under the header. When the Server has
+  reset, Delete Captain. Members see the header without that menu. A runtime sign-in issue leads under the header. When the Server has
   paused automatic wakes after repeated failed turns, the header status reads **Paused** and a
   warning Alert there names the failure streak, the last error as a plain sentence (from the
   failure code, never raw error text), and when Haus retries on its own; Owners and Admins also
@@ -238,7 +238,7 @@ sentences, a committed take, no closing offers, no em dashes. The conversation
 style layers a voice on top of it (up to 2000 characters) and wins on tone; it
 shapes only voice and banter, never rules, permissions, or how the Agent works. The signature emoji is the reaction an Agent leaves when it picks
 up a request that needs real work (default 👀). It can be picked at creation, in
-the App's Create Agent dialog or with `haus agent create --emoji`, and is null when omitted.
+the App's Create Captain dialog or with `haus agent create --emoji`, and is null when omitted.
 Owners and Admins set both in Edit
 Profile, and an Agent tunes its own with `haus profile update` only when an Owner
 or Admin asks, never at another Agent's or a member's request.
@@ -314,7 +314,7 @@ See [Context management](context-management.md) and
 
 ## Retirement
 
-An Owner or Admin retires an Agent with **Delete Agent** in the profile header's
+An Owner or Admin retires an Agent with **Delete Captain** in the profile header's
 actions menu, typing its name to confirm. A retired Agent leaves every active member control at once:
 it no longer appears in the Agent list, mention pickers, or Channel-creation
 controls, and it can neither execute a turn nor receive a new send. A send to its

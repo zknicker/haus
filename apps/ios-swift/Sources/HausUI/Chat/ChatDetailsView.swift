@@ -196,7 +196,7 @@ public struct ChatDetailsView: View {
     private var statusLine: some View {
         switch chat.kind {
         case .channel:
-            Text("Channel · \(server.name)")
+            Text("Project · \(server.name)")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         case .agentDirectMessage(let agent):

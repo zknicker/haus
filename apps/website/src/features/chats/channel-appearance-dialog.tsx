@@ -32,7 +32,7 @@ export function ChannelAppearanceDialog({ chat, onClose }: { chat: Chat; onClose
                 name: chat.name ?? '',
                 serverId: chat.serverId,
             });
-            toast.success('Channel appearance updated');
+            toast.success('Project appearance updated');
             onClose();
         } catch {
             // The dialog stays open and shows the failure inline.

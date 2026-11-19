@@ -48,7 +48,7 @@ struct SidebarChatRow: View {
     private var isUnread: Bool { chat.unreadCount > 0 }
 
     private var detailsTitle: String {
-        if case .channel = chat.kind { "Channel Details" } else { "Details" }
+        if case .channel = chat.kind { "Project details" } else { "Details" }
     }
 }
 

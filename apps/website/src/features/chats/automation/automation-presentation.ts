@@ -105,5 +105,7 @@ export function messageCauseArchivedNote(cause: MessageCause): string | null {
  * so — so only the inferred case carries one.
  */
 export function messageCauseAttributionNote(cause: MessageCause): string | null {
-    return cause.attribution === 'inferred' ? 'Attributed by Haus, not named by the Agent.' : null;
+    return cause.attribution === 'inferred'
+        ? 'Attributed by Haus, not named by the Captain.'
+        : null;
 }

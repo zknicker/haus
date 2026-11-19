@@ -16,7 +16,7 @@ struct ServerDetailsView: View {
 
                 SettingsSection("People") {
                     SettingsListGroup {
-                        ValueRow("Agents", value: String(server.agentCount), icon: .agents)
+                        ValueRow("Captains", value: String(server.agentCount), icon: .agents)
                         ValueRow("Members", value: String(server.memberCount), icon: .members, showsDivider: false)
                     }
                 }
@@ -47,7 +47,7 @@ struct AppInfoView: View {
                     }
                 }
 
-                Text("Haus for iPhone connects to your Haus Server and Computers.")
+                Text("Haus for iPhone connects to your Haus Server and devices.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 16)

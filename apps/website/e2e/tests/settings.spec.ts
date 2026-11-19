@@ -205,7 +205,7 @@ test('creates and deletes a custom Server MCP connection', async ({ page }) => {
     await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
     await removeConnectionFromPage(page, name);
     const confirmation = page.getByRole('alertdialog', { name: `Remove ${name} from Haus?` });
-    await expect(confirmation).toContainText('No Agents currently use this connection.');
+    await expect(confirmation).toContainText('No Captains currently use this connection.');
     await confirmation.getByRole('button', { name: 'Remove' }).click();
     // A removed connection's page hands the reader back to the list.
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/settings/connections$`, 'u'));

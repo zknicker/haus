@@ -34,7 +34,7 @@ interface SectionContext {
 const sections: Record<string, (context: SectionContext) => ReactNode> = {
     computers: ({ server }) => (
         <RequireOperator
-            description="Computers are attached and removed by Server operators."
+            description="Devices are attached and removed by Server operators."
             role={server.role}
         >
             <ComputerPage serverId={server.id} serverSlug={server.slug} />

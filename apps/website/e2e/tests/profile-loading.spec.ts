@@ -36,7 +36,7 @@ test('Human profile keeps its structure while identity is unresolved', async ({ 
         for (const label of ['Role', 'Email', 'Joined']) {
             await expect(page.getByText(label, { exact: true })).toBeVisible();
         }
-        await expect(page.getByRole('heading', { name: /Created Agents/u })).toBeVisible();
+        await expect(page.getByRole('heading', { name: /Created Captains/u })).toBeVisible();
     } finally {
         held.release();
     }
@@ -58,17 +58,17 @@ test('Computers reserves its sections until the first roster confirms an empty r
             'Runtimes',
             'Browser',
             'Cloud Agents',
-            'Agents on This Computer',
+            'Captains on this device',
             'System Log',
-            'Computer Management',
+            'Device management',
         ]) {
             await expect(page.getByRole('heading', { name: label, exact: true })).toBeVisible();
         }
-        await expect(page.getByText('Attach a Computer', { exact: true })).toBeHidden();
+        await expect(page.getByText('Attach a device', { exact: true })).toBeHidden();
     } finally {
         held.release();
     }
-    await expect(page.getByText('Attach a Computer', { exact: true })).toBeVisible();
+    await expect(page.getByText('Attach a device', { exact: true })).toBeVisible();
 });
 
 async function holdQuery(page: Page, ...procedures: string[]) {

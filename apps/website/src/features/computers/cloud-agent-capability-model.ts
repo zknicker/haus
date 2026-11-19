@@ -32,16 +32,16 @@ const providerAccess: Record<
 > = {
     claude: {
         connectLabel: 'Check again',
-        missing: 'Install Claude Code on this Computer to use Claude cloud agents.',
+        missing: 'Install Claude Code on this device to use Claude cloud agents.',
         notConnected:
-            'Sign in to Claude Code on this Computer with your Claude account, then check again.',
+            'Sign in to Claude Code on this device with your Claude account, then check again.',
         plan: 'Claude cloud sessions bill to that Claude plan.',
     },
     cursor: {
         connectLabel: 'Connect',
-        missing: 'This Computer cannot reach Cursor’s Cloud Agents.',
+        missing: 'This device cannot reach Cursor’s Cloud Agents.',
         notConnected:
-            'Connect this Computer to Cursor so Agents can delegate work to Cloud Agents.',
+            'Connect this device to Cursor so Captains can delegate work to Cloud Agents.',
         plan: 'Cloud Agent work bills to that Cursor plan.',
     },
 };
@@ -72,7 +72,7 @@ export function cloudAgentCapabilityView(input: {
             ...identity,
             canConnect: false,
             canDisconnect: false,
-            description: 'Reconnect this Computer to manage its Cloud Agent access.',
+            description: 'Reconnect this device to manage its Cloud Agent access.',
             status: 'unavailable',
             statusLabel: 'Unavailable',
         };
@@ -119,7 +119,7 @@ export function cloudAgentCapabilityView(input: {
             input.state.signIn?.status === 'failed'
                 ? input.state.signIn.message
                 : input.state.reason === 'expired'
-                  ? `This Computer’s ${identity.providerName} key expired. Connect again to renew it.`
+                  ? `This device’s ${identity.providerName} key expired. Connect again to renew it.`
                   : access.notConnected,
         status: 'not-connected',
         statusLabel:
@@ -158,7 +158,7 @@ export function reportedCloudAgentCapability(
 
 function connectedDescription(state: CloudAgentCapabilityState, plan: string): string {
     const account = state.accountEmail ? `Connected as ${state.accountEmail}.` : 'Connected.';
-    const assignment = 'Agents assigned to this Computer use this connection.';
+    const assignment = 'Captains assigned to this device use this connection.';
     const prefix = `${account} ${assignment}`;
     if (!state.expiresAt) {
         return `${prefix} ${plan}`;

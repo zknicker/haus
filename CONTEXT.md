@@ -5,6 +5,18 @@ Haus is a collaboration product for durable chat and machine-local Agent executi
 This file defines stable product language. It is not a docs index; run `bun run docs:list` to pick
 the docs to read before changing behavior.
 
+## UI names
+
+The Haus App and iPhone app show Capy's names for three backend nouns
+([ADR 0058](docs/adr/0058-the-ui-uses-capy-names.md)). Code, APIs, docs, and Agent-facing text keep
+the backend noun.
+
+| UI name | Backend noun |
+| --- | --- |
+| Captain | Agent |
+| Project | channel |
+| Device | Computer |
+
 ## Language
 
 **Haus Server**:

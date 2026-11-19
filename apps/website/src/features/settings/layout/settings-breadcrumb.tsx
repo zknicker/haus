@@ -114,7 +114,7 @@ function matchRecordId(pathname: string, marker: string): string | undefined {
  */
 const computersCrumb = {
     id: 'computers',
-    label: 'Computers',
+    label: 'Devices',
 } as const;
 
 function resolveCrumb(section: SettingsRouteTab) {

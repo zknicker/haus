@@ -44,7 +44,7 @@ struct AgentCallView: View {
                         call.hangUp()
                     }.buttonStyle(.borderedProminent)
                 }
-                Text("Voice preview · OpenAI audio\nDelegated requests and Agent replies stay in your DM.")
+                Text("Voice preview · OpenAI audio\nDelegated requests and Captain replies stay in your DM.")
                     .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
             }
             .padding(24)

@@ -95,7 +95,7 @@ export function useTabChatMenu(actions: TabChatActions, tabId: string | null) {
     } else if (chat || page?.kind === 'dm') {
         items = <DmContextMenuItems files hasAgent={Boolean(agent)} hasChat={Boolean(chat)} />;
     }
-    const label = chat?.kind === 'channel' ? 'Channel' : 'DM';
+    const label = chat?.kind === 'channel' ? 'Project' : 'DM';
 
     return {
         items: items ? (

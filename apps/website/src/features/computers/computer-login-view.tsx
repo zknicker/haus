@@ -116,7 +116,7 @@ export function ComputerLoginApproval({
             {status !== 'consumed' ? (
                 <div className="flex flex-col items-center gap-2">
                     <InputOTP
-                        aria-label="Computer login code"
+                        aria-label="Device login code"
                         autoFocus={codeFromUrl.length === 0}
                         className="justify-center"
                         inputMode="text"
@@ -184,7 +184,7 @@ function LoginActions({
         );
     }
     if (status === 'approved') {
-        return <Spinner aria-label="Finishing Computer login" size="sm" />;
+        return <Spinner aria-label="Finishing device login" size="sm" />;
     }
     if (status !== 'pending') {
         return null;

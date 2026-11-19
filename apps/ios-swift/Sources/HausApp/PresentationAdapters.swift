@@ -176,7 +176,7 @@ extension HausStore {
             let agent = agentsByID[agentID]
             return MessageAuthorPresentation(
                 id: agentID,
-                name: agent?.displayName ?? "Deleted agent",
+                name: agent?.displayName ?? "Deleted Captain",
                 avatarURL: resolvedAvatarURL(agent?.avatarURL),
                 presence: agent.map { presence(availability(for: $0)) }
             )
@@ -198,7 +198,7 @@ extension HausStore {
             let agent = agentsByID[agentID]
             return MessageAuthorPresentation(
                 id: agentID,
-                name: agent?.displayName ?? profile?.displayName ?? "Deleted agent",
+                name: agent?.displayName ?? profile?.displayName ?? "Deleted Captain",
                 avatarURL: resolvedAvatarURL(agent?.avatarURL ?? profile?.avatarURL),
                 presence: agent.map { presence(availability(for: $0)) }
             )

@@ -1,7 +1,7 @@
 import { toast } from '@heroui/react';
 
 /** Success note for settings that agents pick up once per session. */
-export const nextSessionNote = "Takes effect on each agent's next session.";
+export const nextSessionNote = "Takes effect on each Captain's next session.";
 
 export async function withSavingToast<T>(
     operation: () => Promise<T>,

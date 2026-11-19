@@ -12,7 +12,7 @@ struct InboxHappeningNowSection: View {
         if let rows {
             InboxSectionView(title: "Happening now") {
                 if rows.isEmpty {
-                    InboxSectionEmpty(description: "No agents are working right now.")
+                    InboxSectionEmpty(description: "No Captains are working right now.")
                 } else {
                     ForEach(rows) { row in
                         InboxRowView(

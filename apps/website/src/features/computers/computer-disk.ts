@@ -22,7 +22,7 @@ export function computerDiskWarning(computer: {
 }
 
 export const computerDiskWarningDescription =
-    'Agents may fail to save work or start when this disk fills up. Free up space on this Computer.';
+    'Captains may fail to save work or start when this disk fills up. Free up space on this device.';
 
 const severityRank = { under10: 1, under5: 2, under2: 3, under1: 4 };
 

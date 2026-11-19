@@ -61,7 +61,7 @@ export function ChannelAppearanceFields({
                 </SearchField>
                 <Popover isOpen={isColorOpen} onOpenChange={setIsColorOpen}>
                     <Tooltip delay={0} isDisabled={isColorOpen}>
-                        <Button aria-label="Channel color" isIconOnly variant="ghost">
+                        <Button aria-label="Project color" isIconOnly variant="ghost">
                             <ColorSwatch
                                 color={selectedOption?.value ?? defaultColorValue}
                                 shape="circle"

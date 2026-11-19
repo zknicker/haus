@@ -35,9 +35,18 @@ The Agent API follows Raft's published action names and parameters, implemented 
 | `delete-artifact-version` | JSON `artifact_id`, `revision_id` |
 
 A write names a `path` in Files. A free path creates an artifact. An occupied path adds a revision
-only with `base_revision_id` equal to its current head or with `replace=true`; otherwise it fails
-with 409 `REVISION_CONFLICT` and `current`, the head it lost to. The head is checked again when
-the upload lands, so of two writers from one base exactly one wins.
+with `base_revision_id` equal to its current head, with an older revision of the same file whose
+text merges cleanly onto the head, or with `replace=true`; otherwise it fails with 409
+`REVISION_CONFLICT` and `current`, the head it lost to. The head is checked again when the upload
+lands, so of two writers from one base the second merges onto the first or fails. A merged
+revision's base differs from its parent; a `request_id` retry compares the bytes the writer sent.
+
+After a turn, the machine pushes the turn's Drive changes under the run id:
+`POST /api/agent/drive/push/put` (raw bytes; query `push_id`, `path`, `request_id`, optional
+`base_revision_id`, `content_type`), `POST /api/agent/drive/push/delete` (JSON `push_id`, `path`,
+`base_revision_id`, `request_id`), and `POST /api/agent/drive/push/close` (JSON `push_id`). Each
+put or delete answers one push outcome and never a `REVISION_CONFLICT`; a failed merge keeps both
+versions in a `.conflict-<handle>` copy. The code is `apps/server/src/drive/push/`.
 [Artifact drive](../../specs/artifact-drive.md) owns path rules, folders, moves, error codes, and
 the migration from names. Raft's `name` upserts; Haus has no name, and a path never upserts
 blindly: `replace` is the only overwrite. Members publish through `PUT /artifacts/:serverId/publish`

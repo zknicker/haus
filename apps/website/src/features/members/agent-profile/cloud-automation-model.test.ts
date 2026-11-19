@@ -26,23 +26,23 @@ test('a healthy run promises notification; offline and stale tracking do not imp
 test('queued delivery remains explicit even after the provider finishes', () => {
     expect(cloudAutomationPresentation(row({ notification: 'pending' }), now)).toMatchObject({
         label: 'Result queued',
-        detail: 'Waiting for the agent to receive the result',
+        detail: 'Waiting for the Captain to receive the result',
     });
     expect(cloudAutomationPresentation(row({ notification: 'delivered' }), now).detail).toBe(
-        'Result delivered to the agent'
+        'Result delivered to the Captain'
     );
 });
 
 test('lost tracking and lost notification targets explain why no wake is coming', () => {
     expect(
         cloudAutomationPresentation(row({ notification: 'computer-removed' }), now).detail
-    ).toContain('Computer was removed');
+    ).toContain('device was removed');
     expect(
         cloudAutomationPresentation(row({ notification: 'chat-removed' }), now).detail
     ).toContain('conversation was deleted');
     expect(
         cloudAutomationPresentation(row({ notification: 'agent-retired' }), now).detail
-    ).toContain('agent was retired');
+    ).toContain('Captain was retired');
 });
 
 test('history keeps the provider outcome color after the handoff is delivered', () => {

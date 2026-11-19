@@ -43,7 +43,9 @@ export function messageAuthorName(
     if (author.kind === 'agent') {
         const agent = names.agents.find((candidate) => candidate.id === author.agentId);
         return (
-            agent?.displayName ?? author.profile?.displayName ?? `Agent ${author.agentId.slice(-6)}`
+            agent?.displayName ??
+            author.profile?.displayName ??
+            `Captain ${author.agentId.slice(-6)}`
         );
     }
     return author.profile?.displayName ?? names.humans.name(author.userId);

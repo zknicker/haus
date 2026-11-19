@@ -45,7 +45,7 @@ describe('secretsCapabilityView', () => {
             secretsCapabilityView({ canUseOnePassword: true, isOffline: false, status: null })
         ).toMatchObject({
             canConnect: false,
-            description: 'Update this Computer to connect a 1Password vault.',
+            description: 'Update this device to connect a 1Password vault.',
         });
     });
 
@@ -90,7 +90,7 @@ describe('secretsCapabilityView', () => {
                 status: { ...connected, issue: 'keychain-locked' },
             })
         ).toMatchObject({
-            description: "This Computer's Keychain is locked. Log in on the Computer to unlock it.",
+            description: "This device's Keychain is locked. Log in on the device to unlock it.",
             status: 'needs-attention',
             statusLabel: 'Keychain locked',
         });

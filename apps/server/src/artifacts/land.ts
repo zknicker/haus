@@ -9,9 +9,10 @@ import {
 } from '../postgres/schema.ts';
 import type { ArtifactAccess } from './access.ts';
 import { revisionConflict } from './conflict.ts';
+import { mergeOntoHead, storeMergedRevision } from './merge.ts';
 import { lockLiveServer } from './move.ts';
 import { liveArtifactAtPath, placeArtifactPath } from './path.ts';
-import { ArtifactError } from './storage.ts';
+import { ArtifactError, type ArtifactStorage } from './storage.ts';
 import type { ArtifactWriteExpectation } from './write-target.ts';
 
 type Artifact = typeof artifacts.$inferSelect;
@@ -21,6 +22,7 @@ export async function landArtifactRevision(
     db: HausDatabase,
     access: ArtifactAccess,
     origin: string,
+    storage: ArtifactStorage,
     landing: {
         artifactId: string;
         expect: ArtifactWriteExpectation;
@@ -28,57 +30,100 @@ export async function landArtifactRevision(
         uploaded: { sha256: string; size: number };
     }
 ) {
-    await db.transaction(async (tx) => {
+    return await db.transaction(async (tx) => {
         await lockLiveServer(tx, access.serverId);
-        const [artifact] = await tx
-            .select()
-            .from(artifacts)
-            .where(eq(artifacts.id, landing.artifactId))
-            .limit(1);
-        if (!artifact) {
-            throw new ArtifactError('File was deleted during publication.', 409, 'DELETED');
-        }
-        await tx
-            .update(revisions)
-            .set({
-                byteSize: landing.uploaded.size,
-                parentRevisionId: artifact.currentRevisionId,
-                requestSha256: landing.uploaded.sha256,
-                reservedBytes: landing.uploaded.size,
-                sha256: landing.uploaded.sha256,
-                state: 'ready',
-            })
-            .where(eq(revisions.id, landing.revision.id));
+        const artifact = await readArtifact(tx, landing.artifactId);
+        const landed = await markUploaded(tx, artifact, landing.revision, landing.uploaded);
         const { expect } = landing;
         if (expect.kind === 'revive') {
-            await revive(tx, access, origin, artifact, landing.revision, expect);
-            return;
+            await revive(tx, access, origin, artifact, landed, expect);
+            return landed;
         }
         if (artifact.deletedAt) {
             throw new ArtifactError('File was deleted during publication.', 409, 'DELETED');
         }
         if (expect.kind === 'head' && artifact.currentRevisionId !== expect.base) {
-            throw await staleHead(tx, access, origin, artifact, expect.base);
+            const merged = await staleHead(tx, access, origin, storage, {
+                artifact,
+                base: expect.base,
+                landed,
+            });
+            await advanceHead(tx, access.serverId, artifact, merged);
+            return merged;
         }
-        await advanceHead(tx, access.serverId, artifact, landing.revision);
+        await advanceHead(tx, access.serverId, artifact, landed);
+        return landed;
     });
+}
+
+export async function readArtifact(tx: HausDatabase, artifactId: string) {
+    const [artifact] = await tx
+        .select()
+        .from(artifacts)
+        .where(eq(artifacts.id, artifactId))
+        .limit(1);
+    if (!artifact) {
+        throw new ArtifactError('File was deleted during publication.', 409, 'DELETED');
+    }
+    return artifact;
+}
+
+export async function markUploaded(
+    tx: HausDatabase,
+    artifact: Artifact,
+    revision: Revision,
+    uploaded: { sha256: string; size: number }
+) {
+    const [landed] = await tx
+        .update(revisions)
+        .set({
+            byteSize: uploaded.size,
+            parentRevisionId: artifact.currentRevisionId,
+            requestSha256: uploaded.sha256,
+            reservedBytes: uploaded.size,
+            sha256: uploaded.sha256,
+            state: 'ready',
+        })
+        .where(eq(revisions.id, revision.id))
+        .returning();
+    if (!landed) {
+        throw new Error('Landing revision did not return its row.');
+    }
+    return landed;
 }
 
 async function staleHead(
     tx: HausDatabase,
     access: ArtifactAccess,
     origin: string,
-    artifact: Artifact,
-    base: string | null
+    storage: ArtifactStorage,
+    write: { artifact: Artifact; base: string | null; landed: Revision }
 ) {
-    return await revisionConflict(tx, access, origin, {
-        artifactId: artifact.id,
-        baseRevisionId: base,
-        path: artifact.path,
+    const { artifact, base, landed } = write;
+    const merge = base
+        ? await mergeOntoHead(tx, storage, {
+              artifact,
+              base,
+              incoming: landed,
+              incomingSize: landed.byteSize,
+          })
+        : null;
+    if (merge?.status !== 'merged') {
+        throw await revisionConflict(tx, access, origin, {
+            artifactId: artifact.id,
+            baseRevisionId: base,
+            path: artifact.path,
+        });
+    }
+    return await storeMergedRevision(tx, storage, {
+        artifact,
+        bytes: merge.bytes,
+        headNumber: merge.headNumber,
+        revision: landed,
     });
 }
 
-async function advanceHead(
+export async function advanceHead(
     tx: HausDatabase,
     serverId: string,
     artifact: Artifact,
@@ -118,7 +163,17 @@ async function revive(
             path: expect.path,
         });
     }
-    const path = await placeArtifactPath(tx, access.serverId, expect.path);
+    await reviveAt(tx, access.serverId, artifact, revision, expect.path);
+}
+
+export async function reviveAt(
+    tx: HausDatabase,
+    serverId: string,
+    artifact: Artifact,
+    revision: Revision,
+    at: string
+) {
+    const path = await placeArtifactPath(tx, serverId, at);
     await tx
         .update(artifacts)
         .set({
@@ -128,10 +183,11 @@ async function revive(
             pathKey: artifactPathKey(path),
         })
         .where(eq(artifacts.id, artifact.id));
-    await recordPut(tx, access.serverId, { ...artifact, currentRevisionId: revision.id, path });
+    await recordPut(tx, serverId, { ...artifact, currentRevisionId: revision.id, path });
+    return path;
 }
 
-async function recordPut(
+export async function recordPut(
     tx: HausDatabase,
     serverId: string,
     artifact: Pick<Artifact, 'id' | 'path'> & { currentRevisionId: string }

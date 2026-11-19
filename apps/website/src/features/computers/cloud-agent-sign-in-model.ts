@@ -18,7 +18,7 @@ export function cloudAgentSignInView({
     state: CloudAgentCapabilityState | null;
 }): CloudAgentSignInView {
     if (isOffline) {
-        return { status: 'offline', message: 'Reconnect this Computer to continue signing in.' };
+        return { status: 'offline', message: 'Reconnect this device to continue signing in.' };
     }
     if (isStarting) {
         return { status: 'starting' };

@@ -46,9 +46,9 @@ test('uses plain status language and explains offline pending config', () => {
     expect(runtimeConfigStatusLabel({ status: 'applied' }, 'healthy')).toBe('Current');
     expect(runtimeConfigStatusLabel({ status: 'degraded' }, 'healthy')).toBe('Needs attention');
     expect(runtimeConfigStatusLabel({ status: 'pending' }, 'offline')).toBe(
-        'Applies when Computer reconnects'
+        'Applies when device reconnects'
     );
     expect(runtimeConfigStatusLabel({ status: 'pending' }, 'update-required')).toBe(
-        'Waiting for Computer update'
+        'Waiting for device update'
     );
 });

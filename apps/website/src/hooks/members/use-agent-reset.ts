@@ -13,8 +13,8 @@ export function useAgentReset(serverId: string, agentId: string) {
             withSavingToast(() => mutation.mutateAsync({ agentId, kind, serverId }), {
                 successNote:
                     kind === 'full'
-                        ? 'The Agent will rebuild a minimal workspace with factory-managed skills.'
-                        : 'The Agent will use fresh context on its next turn.',
+                        ? 'The Captain will rebuild a minimal workspace with factory-managed skills.'
+                        : 'The Captain will use fresh context on its next turn.',
             }),
     };
 }

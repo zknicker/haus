@@ -35,7 +35,7 @@ describe('Haus update projection', () => {
             view.componentFacts.map(({ label, targetVersion }) => [label, targetVersion])
         ).toEqual([
             ['Haus App', '1.8.40'],
-            ['Computer · Home', '1.4.9'],
+            ['Device · Home', '1.4.9'],
         ]);
     });
 
@@ -50,14 +50,14 @@ describe('Haus update projection', () => {
         });
 
         expect(view.steps.map((step) => step.label)).toEqual([
-            'Computer · Office',
-            "Computer · Zach's MacBook Pro",
+            'Device · Office',
+            "Device · Zach's MacBook Pro",
             'Haus App',
         ]);
         expect(view.componentFacts.map((fact) => fact.label)).toEqual([
             'Haus App',
-            'Computer · Office',
-            "Computer · Zach's MacBook Pro",
+            'Device · Office',
+            "Device · Zach's MacBook Pro",
         ]);
         expect(view).toMatchObject({ phase: 'available', primaryAction: { kind: 'start' } });
     });
@@ -94,7 +94,7 @@ describe('Haus update projection', () => {
         });
 
         expect(view).toMatchObject({ phase: 'updating', primaryAction: null });
-        expect(view.steps[0]).toMatchObject({ label: 'Computer · Home', phase: 'restarting' });
+        expect(view.steps[0]).toMatchObject({ label: 'Device · Home', phase: 'restarting' });
     });
 
     test('turns a timed-out restart into a named failure with recovery guidance', () => {
@@ -113,8 +113,8 @@ describe('Haus update projection', () => {
 
         expect(view).toMatchObject({ phase: 'failed', primaryAction: null });
         expect(view.componentFacts.find((fact) => fact.id === 'cmp_studio')).toMatchObject({
-            detail: 'This Computer did not reconnect after installation. Reconnect it to confirm the installed version.',
-            label: 'Computer · Home',
+            detail: 'This device did not reconnect after installation. Reconnect it to confirm the installed version.',
+            label: 'Device · Home',
             status: 'failed',
         });
     });
@@ -144,7 +144,7 @@ describe('Haus update projection', () => {
         expect(recent.steps[0]).toMatchObject({ phase: 'downloading' });
         expect(expired.steps[0]).toMatchObject({
             connected: false,
-            detail: 'This Computer disconnected during the update. Reconnect it to confirm whether the update finished.',
+            detail: 'This device disconnected during the update. Reconnect it to confirm whether the update finished.',
             failedPhase: 'downloading',
             phase: 'failed',
         });
@@ -243,7 +243,7 @@ describe('Haus update projection', () => {
         const view = projectHausUpdate({ ...currentInput, desktop: { kind: 'web' } });
 
         expect(view.steps).toHaveLength(1);
-        expect(view.componentFacts.map((fact) => fact.label)).toEqual(['Computer · Home']);
+        expect(view.componentFacts.map((fact) => fact.label)).toEqual(['Device · Home']);
     });
 
     test('never offers a downgrade and omits ledger targets that are absent', () => {

@@ -35,10 +35,14 @@ export async function writeTarget(
         if (input.replace) {
             return target(occupant, { kind: 'replace' }, occupant.path);
         }
-        if (base && base === occupant.currentRevisionId) {
+        if (base && (await isMergeBase(tx, occupant, base))) {
             return target(occupant, { base, kind: 'head' }, occupant.path);
         }
-        throw await staleBase(tx, access, origin, { artifactId: occupant.id, base, path });
+        throw await revisionConflict(tx, access, origin, {
+            artifactId: occupant.id,
+            baseRevisionId: base,
+            path,
+        });
     }
     if (base) {
         const deleted = await deletedArtifactOwning(tx, access.serverId, base);
@@ -52,6 +56,19 @@ export async function writeTarget(
         const placed = await placeArtifactPath(tx, access.serverId, path);
         return target(deleted, { base, kind: 'revive', path: placed }, placed);
     }
+    const artifact = await createArtifactAt(tx, access, path);
+    return target(
+        artifact,
+        input.replace ? { kind: 'replace' } : { base: null, kind: 'head' },
+        artifact.path
+    );
+}
+
+export async function createArtifactAt(
+    tx: HausDatabase,
+    access: Pick<ArtifactAccess, 'agentId' | 'serverId' | 'userId'>,
+    path: string
+) {
     const placed = await placeArtifactPath(tx, access.serverId, path);
     const [artifact] = await tx
         .insert(artifacts)
@@ -67,11 +84,7 @@ export async function writeTarget(
     if (!artifact) {
         throw new Error('Artifact reservation did not return its row.');
     }
-    return target(
-        artifact,
-        input.replace ? { kind: 'replace' } : { base: null, kind: 'head' },
-        placed
-    );
+    return artifact;
 }
 
 function target(
@@ -82,20 +95,37 @@ function target(
     return { artifact, expect, path } satisfies ArtifactWriteTarget;
 }
 
-async function staleBase(
+async function isMergeBase(
     tx: HausDatabase,
-    access: ArtifactAccess,
-    origin: string,
-    write: { artifactId: string; base: string | null; path: string }
+    artifact: typeof artifacts.$inferSelect,
+    base: string
 ) {
-    return await revisionConflict(tx, access, origin, {
-        artifactId: write.artifactId,
-        baseRevisionId: write.base,
-        path: write.path,
-    });
+    if (!artifact.currentRevisionId) {
+        return false;
+    }
+    if (base === artifact.currentRevisionId) {
+        return true;
+    }
+    const [revision] = await tx
+        .select({ id: revisions.id })
+        .from(revisions)
+        .where(
+            and(
+                eq(revisions.serverId, artifact.serverId),
+                eq(revisions.artifactId, artifact.id),
+                eq(revisions.id, base),
+                eq(revisions.state, 'ready')
+            )
+        )
+        .limit(1);
+    return Boolean(revision);
 }
 
-async function deletedArtifactOwning(tx: HausDatabase, serverId: string, revisionId: string) {
+export async function deletedArtifactOwning(
+    tx: HausDatabase,
+    serverId: string,
+    revisionId: string
+) {
     const [row] = await tx
         .select({ artifact: artifacts })
         .from(revisions)

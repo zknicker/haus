@@ -27,8 +27,8 @@ test('Computer removal stays disabled while an Agent remains assigned', () => {
         />
     );
 
-    expect(html).toContain('Permanently remove this Computer. All Agents must be deleted first.');
-    expect(html).toContain('aria-label="Delete Cove before removing this Computer."');
+    expect(html).toContain('Permanently remove this device. All Captains must be deleted first.');
+    expect(html).toContain('aria-label="Delete Cove before removing this device."');
     expect(html).toContain('disabled=""');
 });
 
@@ -37,6 +37,6 @@ test('Computer removal becomes available after every Agent is deleted', () => {
         <ComputerRemovalAction availability={{ status: 'ready' }} onRemove={() => undefined} />
     );
 
-    expect(html).toContain('Permanently remove this Computer. All Agents must be deleted first.');
+    expect(html).toContain('Permanently remove this device. All Captains must be deleted first.');
     expect(html).not.toContain('disabled=""');
 });

@@ -113,7 +113,7 @@ function AgentSectionContent({
     return loaded ? (
         <loaded.AgentSectionBody agent={agent} section={section} server={server} />
     ) : (
-        <React.Suspense fallback={<AgentLoading label="Loading Agent section" />}>
+        <React.Suspense fallback={<AgentLoading label="Loading Captain section" />}>
             <LazyAgentSectionBody agent={agent} section={section} server={server} />
         </React.Suspense>
     );

@@ -93,5 +93,5 @@ test('keeps the form mounted with a recoverable creation error', () => {
     );
 
     expect(markup).toContain('The Computer no longer reports this model.');
-    expect(markup).toContain('Create Agent');
+    expect(markup).toContain('Create Captain');
 });

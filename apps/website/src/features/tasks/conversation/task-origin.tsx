@@ -92,7 +92,7 @@ function useMessageAuthorName(message: ChatMessage | null): string {
         return (
             agents.find((agent) => agent.id === author.agentId)?.displayName ??
             author.profile?.displayName ??
-            'Agent'
+            'Captain'
         );
     }
     return humans.member(author.userId)

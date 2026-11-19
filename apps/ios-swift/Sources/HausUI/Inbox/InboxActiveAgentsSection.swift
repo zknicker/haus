@@ -16,7 +16,7 @@ struct InboxActiveAgentsSection: View {
             InboxSectionView(title: "Active this week") {
                 Group {
                     if weeks.isEmpty {
-                        Text("No Agent activity this week.")
+                        Text("No Captain activity this week.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)

@@ -21,7 +21,7 @@ export function resolveAgentHoverModelChange(
     if (agent.status === 'degraded') {
         return 'needs attention';
     }
-    return agent.availability === 'offline' ? 'when Computer reconnects' : 'next turn';
+    return agent.availability === 'offline' ? 'when device reconnects' : 'next turn';
 }
 
 export type AgentHoverExecution =

@@ -76,9 +76,9 @@ export function ChatView({
     const peerRetired = chat.kind === 'dm' && chat.peerAgentRetired;
     const chatName =
         chat.kind === 'channel'
-            ? (chat.name ?? 'channel')
+            ? (chat.name ?? 'project')
             : chat.peerAgentId
-              ? (chat.peerAgentDisplayName ?? 'Agent')
+              ? (chat.peerAgentDisplayName ?? 'Captain')
               : `DM · ${humans.name(chat.peerUserId)}`;
     const openArtifact = artifactState.open;
     const startDm = React.useCallback(

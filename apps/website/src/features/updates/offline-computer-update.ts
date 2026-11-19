@@ -36,8 +36,8 @@ export function unconfirmedComputerUpdate(
     return {
         detail:
             computer.phase === 'restarting'
-                ? 'This Computer did not reconnect after installation. Reconnect it to confirm the installed version.'
-                : 'This Computer disconnected during the update. Reconnect it to confirm whether the update finished.',
+                ? 'This device did not reconnect after installation. Reconnect it to confirm the installed version.'
+                : 'This device disconnected during the update. Reconnect it to confirm whether the update finished.',
         failedPhase: computer.phase,
     };
 }

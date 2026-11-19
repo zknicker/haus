@@ -148,8 +148,7 @@ export function CoveMeetStep({
                                 </Select.Popover>
                             </Select>
                             <p className="text-muted text-sm">
-                                Both come from what the Computer reported. You can change them
-                                later.
+                                Both come from what the device reported. You can change them later.
                             </p>
                         </div>
                     </Card.Content>

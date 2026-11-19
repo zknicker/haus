@@ -33,7 +33,7 @@ struct AgentWakePauseCopyTests {
             runtimeLabel: nil,
             wakePause: pause(count: 1, code: "brand-new-code", kind: "brand-new-kind", nextProbeIn: nil)
         )
-        #expect(copy.description == "Cove failed once in a row: something went wrong running the Agent. Haus is trying again now…")
+        #expect(copy.description == "Cove failed once in a row: something went wrong running the Captain. Haus is trying again now…")
     }
 
     @Test func aDueRetrySaysAnyMomentNow() {

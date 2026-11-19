@@ -258,7 +258,7 @@ struct AuthenticatedHausView: View {
                 ContentUnavailableView(
                     "No chats yet",
                     systemImage: "bubble.left.and.bubble.right",
-                    description: Text("Create a channel from the sidebar, or message an Agent once one joins this Server.")
+                    description: Text("Create a project from the sidebar, or message a Captain once one joins this Server.")
                 )
             }
         }

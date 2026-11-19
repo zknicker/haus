@@ -14,7 +14,7 @@ test('an Owner confirms the immutable address and permanently deletes a Server',
     await page.getByRole('button', { name: 'Delete Server' }).click();
     const dialog = page.getByRole('alertdialog', { name: 'Delete Server' });
     await expect(dialog).toBeVisible();
-    await expect(dialog.getByText(/offline computers/iu)).toBeVisible();
+    await expect(dialog.getByText(/offline devices/iu)).toBeVisible();
     const confirmation = dialog.getByLabel(`Type ${slug} to confirm`);
     const deleteButton = dialog.getByRole('button', { name: 'Delete Server' });
     await expect(deleteButton).toBeDisabled();

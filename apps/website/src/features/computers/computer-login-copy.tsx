@@ -6,15 +6,15 @@ export function loginTitle(status: ComputerLoginStatus | undefined, setupFlow: b
         case 'approved':
             return 'Finishing the connection';
         case 'consumed':
-            return setupFlow ? 'Computer connected' : 'Haus Computer signed in';
+            return setupFlow ? 'Device connected' : 'Haus Computer signed in';
         case 'denied':
-            return 'Computer login denied';
+            return 'Device login denied';
         case 'expired':
-            return 'Computer login expired';
+            return 'Device login expired';
         case 'malformed':
             return 'Code not recognized';
         case 'not-found':
-            return 'Computer login not found';
+            return 'Device login not found';
         case 'pending':
             return 'Approve Haus Computer?';
         default:
@@ -34,14 +34,14 @@ export function loginDescription(
         case 'denied':
             return (
                 <>
-                    This Computer login was denied. Start <LoginCommand /> again to try another
+                    This device login was denied. Start <LoginCommand /> again to try another
                     request.
                 </>
             );
         case 'expired':
             return (
                 <>
-                    This Computer login code expired. Start <LoginCommand /> again for a new code.
+                    This device login code expired. Start <LoginCommand /> again for a new code.
                 </>
             );
         case 'malformed':
@@ -49,13 +49,13 @@ export function loginDescription(
         case 'not-found':
             return (
                 <>
-                    No Computer login is waiting for that code. Start <LoginCommand /> again.
+                    No device login is waiting for that code. Start <LoginCommand /> again.
                 </>
             );
         case 'pending':
             return signedIn
-                ? 'Check that this code matches the one on your Computer.'
-                : 'Sign in with the account that should own this Computer login.';
+                ? 'Check that this code matches the one on your device.'
+                : 'Sign in with the account that should own this device login.';
         default:
             return (
                 <>

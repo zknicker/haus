@@ -46,7 +46,7 @@ describe('Server command groups', () => {
 
         expect(groups.map((group) => group.title)).toEqual([
             'Navigation',
-            'Channels',
+            'Projects',
             'DMs',
             'Current Chat',
             'Settings',
@@ -54,7 +54,7 @@ describe('Server command groups', () => {
         ]);
         const titles = groups.flatMap((group) => group.commands.map((command) => command.title));
         expect(titles).toContain('Focus Composer');
-        expect(titles).toContain('Agent Profile');
+        expect(titles).toContain('Captain Profile');
         expect(titles).not.toContain('Reminders');
         expect(groups.find((group) => group.id === 'developer')?.commands).toHaveLength(2);
 

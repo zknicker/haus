@@ -71,7 +71,7 @@ export function ToolTimelineStep({
                     access={turnDetails.access}
                     agentAvatarUrl={actorProfile?.avatarUrl}
                     agentId={agentId}
-                    agentName={actorProfile?.name ?? 'Agent'}
+                    agentName={actorProfile?.name ?? 'Captain'}
                     onOpenChange={setIsOpen}
                     open={isOpen}
                     runId={row.runId}

@@ -47,19 +47,19 @@ export function ActivityAgentFilter({
 }) {
     const label =
         selected.length === 0
-            ? 'All Agents'
+            ? 'All Captains'
             : selected.length === 1
-              ? (agents.find((agent) => agent.id === selected[0])?.displayName ?? '1 Agent')
-              : `${selected.length} Agents`;
+              ? (agents.find((agent) => agent.id === selected[0])?.displayName ?? '1 Captain')
+              : `${selected.length} Captains`;
     return (
         <Dropdown>
-            <Button aria-label={`Filter by Agent: ${label}`} size="sm" variant="ghost">
+            <Button aria-label={`Filter by Captain: ${label}`} size="sm" variant="ghost">
                 {label}
                 <Icon aria-hidden="true" icon={ArrowDown01Icon} size={16} />
             </Button>
             <Dropdown.Popover placement="bottom end">
                 <Dropdown.Menu
-                    aria-label="Agents"
+                    aria-label="Captains"
                     onSelectionChange={(keys) =>
                         onSelectionChange(keys === 'all' ? [] : readAgentIds(keys, agents))
                     }

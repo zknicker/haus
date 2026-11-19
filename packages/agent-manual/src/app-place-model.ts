@@ -1,6 +1,6 @@
 /**
  * An App place's `path` holds UI labels exactly as rendered. A segment in
- * parentheses names a generic choice, such as "(your Computer)"; every other
+ * parentheses names a generic choice, such as "(your device)"; every other
  * segment is covered by an anchor that scripts/manual-app-places.test.ts
  * resolves against App source, so a renamed or removed control fails CI.
  */
@@ -26,7 +26,7 @@ export interface AppPlace {
 export type AppPlaceAnchor =
     /** An id in `settingsNavItems`; its label is the segment after "Settings". */
     | { kind: 'settings-section'; id: string }
-    /** An id in `agentSections`; its label is the segment after "Agent profile". */
+    /** An id in `agentSections`; its label is the segment after "Captain profile". */
     | { kind: 'agent-section'; id: string }
     /** A route in `serverPageRoutes`, under `/s/:slug`. Covers no segment. */
     | { kind: 'page'; path: string }
@@ -58,17 +58,17 @@ export function agentSection(id: string): AppPlaceAnchor {
 
 export function agentProfile(): AppPlaceAnchor[] {
     return [
-        label('features/members/agent-profile/agent-header.tsx', 'Agent profile'),
+        label('features/members/agent-profile/agent-header.tsx', 'Captain profile'),
         { kind: 'page', path: 'agents/:agentId/:section' },
     ];
 }
 
 export function channelActions(): AppPlaceAnchor {
-    return label('features/servers/chat/channel-actions.tsx', 'Channel actions');
+    return label('features/servers/chat/channel-actions.tsx', 'Project actions');
 }
 
 export function computers(): AppPlaceAnchor {
-    return label(computersGroup, 'Computers');
+    return label(computersGroup, 'Devices');
 }
 
 export function secrets(): AppPlaceAnchor {

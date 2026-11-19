@@ -121,7 +121,7 @@ its conversation.
 
 **Agent connection admins.** An Owner or Admin makes an Agent a connection admin by turning on
 **Manage connections** on the Agent profile's **Permissions** page, opened from the profile's
-`···` menu ("Can turn connection access on and off for any agent"); Members do not see
+`···` menu ("Can turn connection access on and off for any Captain"); Members do not see
 Permissions. A
 connection admin Agent manages the same switches from chat with `haus connection list`, `grant`,
 and `revoke`, for any Agent on the Server, itself included. It cannot add, sign in to, disconnect,
@@ -154,7 +154,7 @@ account** for a built-in service; hidden for servers that take no credentials), 
 connection that adds chat chips (RankWrangler's product chips, named with one line and an inert
 sample drawn by the real chip; see [Rich References](rich-references.md#connection-chips)), for
 GitHub **Installations** (see [GitHub App connection](../../specs/github-app-connection.md#app-ui)),
-**Agent Access** (one switch per Agent; a new grant waits for sign-in), then the reference material: **Tools** (name chips with a count, collapsed to the first few
+**Captain access** (one switch per Agent; a new grant waits for sign-in), then the reference material: **Tools** (name chips with a count, collapsed to the first few
 behind **Show all N**, expanding inline) and, for a custom connection only, **Information** (Server
 address and sign-in kind). The credentials form, the
 sign-in trust prompt, and the destructive confirmations stay dialogs over the page; Disconnect

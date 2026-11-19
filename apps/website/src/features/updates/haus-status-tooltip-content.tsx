@@ -55,7 +55,7 @@ export function OfflineComputersTooltipContent({
     return (
         <div className="grid gap-2.5 text-sm">
             <p className="text-foreground">
-                {computers.length === 1 ? 'Computer offline' : 'Computers offline'}
+                {computers.length === 1 ? 'Device offline' : 'Devices offline'}
             </p>
             <dl className="grid gap-2.5">
                 {computers.map((computer) => (

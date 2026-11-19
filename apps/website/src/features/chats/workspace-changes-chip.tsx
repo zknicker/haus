@@ -46,7 +46,7 @@ export function WorkspaceChangesChip({ row }: { chatId?: string; row: ToolStepRo
                     access={context.turnDetails.access}
                     agentAvatarUrl={actorProfile?.avatarUrl}
                     agentId={agentId}
-                    agentName={actorProfile?.name ?? 'Agent'}
+                    agentName={actorProfile?.name ?? 'Captain'}
                     onOpenChange={setOpen}
                     open={open}
                     runId={row.runId}

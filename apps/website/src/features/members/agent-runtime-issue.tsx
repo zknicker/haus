@@ -40,7 +40,7 @@ export function AgentRuntimeIssue({ agent, canRestart }: { agent: Agent; canRest
                                 className="text-accent underline"
                                 to={`${serverComputersRoute(slug)}?computer=${encodeURIComponent(computer.id)}`}
                             >
-                                View Computer
+                                View device
                             </Link>
                         </>
                     ) : null}

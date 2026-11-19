@@ -69,7 +69,7 @@ export function ChannelAgentPicker({
                 <ChannelAgentRosterBox>
                     <div className={rosterLineClassName}>
                         <Spinner color="current" size="sm" />
-                        Loading agents
+                        Loading Captains
                     </div>
                 </ChannelAgentRosterBox>
             ) : (
@@ -113,12 +113,12 @@ export function removeChannelAgentId(selectedAgentIds: string[], agentId: string
     return normalizeChannelAgentIds(selectedAgentIds).filter((id) => id !== agentId);
 }
 
-const agentGroupLabel = 'Agents';
+const agentGroupLabel = 'Captains';
 
 /** What the empty box asks for: the rule and its action, or why neither is on offer. */
 function emptyRosterDescription(agentCount: number) {
     if (agentCount === 0) {
-        return 'No agents available.';
+        return 'No Captains available.';
     }
-    return 'Add an agent above.';
+    return 'Add a Captain above.';
 }

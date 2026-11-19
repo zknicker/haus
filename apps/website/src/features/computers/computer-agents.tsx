@@ -51,7 +51,7 @@ export function ComputerAgents({ computerId, serverId }: { computerId: string; s
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header>
                     <ItemCardGroup.Title>
-                        Agents on This Computer
+                        Captains on this device
                         {agents.data ? (
                             <span className="text-muted ms-2 tabular-nums">{rows.length}</span>
                         ) : null}
@@ -74,7 +74,7 @@ export function ComputerAgentGrid({
 }) {
     return (
         <DataGrid
-            aria-label="Agents on this Computer"
+            aria-label="Captains on this device"
             columns={agentColumns}
             contentClassName={rows.length === 0 ? 'min-h-64 min-w-160' : 'min-w-160'}
             data={rows}
@@ -87,18 +87,18 @@ export function ComputerAgentGrid({
 
 function ComputerAgentGridEmptyState({ state }: { state: ComputerAgentGridState }) {
     if (state.status === 'loading') {
-        return <ComputerDataGridState label="Loading Agents" status="loading" />;
+        return <ComputerDataGridState label="Loading Captains" status="loading" />;
     }
     if (state.status === 'unavailable') {
         return (
             <ComputerDataGridState
-                label="Agents unavailable"
+                label="Captains unavailable"
                 onRetry={state.onRetry}
                 status="unavailable"
             />
         );
     }
-    return <ComputerDataGridState icon={InboxIcon} label="No Agents assigned" status="empty" />;
+    return <ComputerDataGridState icon={InboxIcon} label="No Captains assigned" status="empty" />;
 }
 
 function computerAgentRows(
@@ -133,7 +133,7 @@ const agentColumns: DataGridColumn<ComputerAgentRow>[] = [
                 <p className="truncate font-medium">{item.displayName}</p>
             </div>
         ),
-        header: 'Agent',
+        header: 'Captain',
         id: 'displayName',
         isRowHeader: true,
         minWidth: 180,

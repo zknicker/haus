@@ -133,7 +133,7 @@ function AgentsSection({
     if (!agents) {
         return (
             <div aria-busy="true" className="min-h-24">
-                <span className="sr-only">Loading Agents</span>
+                <span className="sr-only">Loading Captains</span>
             </div>
         );
     }
@@ -142,12 +142,12 @@ function AgentsSection({
         <ItemCardGroup variant="transparent">
             <ItemCardGroup.Header className="flex flex-wrap items-center justify-between gap-3">
                 <ItemCardGroup.Title>
-                    Agents
+                    Captains
                     <span className="text-muted ms-2 tabular-nums">{items.length}</span>
                 </ItemCardGroup.Title>
                 {canManage ? (
                     <Button
-                        aria-label="Create agent"
+                        aria-label="Create Captain"
                         isIconOnly
                         onPress={onCreateAgent}
                         size="sm"
@@ -162,7 +162,7 @@ function AgentsSection({
                     <ItemCard>
                         <ItemCard.Content>
                             <ItemCard.Description>
-                                No Agents on this Server yet.
+                                No Captains on this Server yet.
                             </ItemCard.Description>
                         </ItemCard.Content>
                     </ItemCard>

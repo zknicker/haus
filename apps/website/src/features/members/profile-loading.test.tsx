@@ -20,7 +20,7 @@ test('an unresolved human profile keeps identity labels and its independent Agen
             </Route>
         </Routes>
     );
-    for (const label of ['Profile', 'Role', 'Email', 'Joined', 'Created Agents']) {
+    for (const label of ['Profile', 'Role', 'Email', 'Joined', 'Created Captains']) {
         expect(markup).toContain(label);
     }
     expect(markup).not.toContain('No Agents created');
@@ -41,14 +41,14 @@ test('Computer profile reserves all its sections before its roster resolves', ()
         'Runtimes',
         'Browser',
         'Cloud Agents',
-        'Agents on This Computer',
+        'Captains on this device',
         'System Log',
-        'Computer Management',
+        'Device management',
     ]) {
         expect(markup).toContain(label);
     }
-    expect(markup).not.toContain('Attach a Computer');
-    expect(markup).not.toContain('No Agents assigned');
+    expect(markup).not.toContain('Attach a device');
+    expect(markup).not.toContain('No Captains assigned');
 });
 
 test('Agent usage reserves the tile and link without inventing a token total', () => {

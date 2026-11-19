@@ -127,8 +127,8 @@ export function ReferenceHoverCardContent({
 }
 
 const referenceKindLabel = {
-    agent: 'Agent',
-    chat: 'Channel',
+    agent: 'Captain',
+    chat: 'Project',
     skill: 'Skill',
 } satisfies Record<'agent' | 'chat' | 'skill', string>;
 

@@ -39,7 +39,7 @@ export function ComputerActions({
         <section className="grid gap-8">
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header className="flex items-center justify-between">
-                    <ItemCardGroup.Title>Computer Management</ItemCardGroup.Title>
+                    <ItemCardGroup.Title>Device management</ItemCardGroup.Title>
                     {import.meta.env.DEV ? (
                         <ComputerUpdatePreviewMenu
                             onChange={setUpdatePreviewState}
@@ -104,16 +104,16 @@ export function ComputerRemovalAction({
     const description = computerRemovalDescription(availability);
     const button = (
         <Button isDisabled={isBlocked} onPress={onRemove} size="sm" variant="danger-soft">
-            Remove Computer
+            Remove device
         </Button>
     );
 
     return (
         <ItemCard>
             <ItemCard.Content>
-                <ItemCard.Title>Remove Computer</ItemCard.Title>
+                <ItemCard.Title>Remove device</ItemCard.Title>
                 <ItemCard.Description>
-                    Permanently remove this Computer. All Agents must be deleted first.
+                    Permanently remove this device. All Captains must be deleted first.
                 </ItemCard.Description>
             </ItemCard.Content>
             <ItemCard.Action>

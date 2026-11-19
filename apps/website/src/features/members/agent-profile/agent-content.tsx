@@ -109,7 +109,7 @@ export function AgentWorkspace({
         return (
             <TabEmptyState
                 bar={unavailableBar}
-                description="Only workspace owners and admins can inspect raw Agent workspace files."
+                description="Only workspace owners and admins can inspect raw Captain workspace files."
                 icon={Folder01Icon}
                 title="Workspace Unavailable"
             />
@@ -120,9 +120,9 @@ export function AgentWorkspace({
         return (
             <TabEmptyState
                 bar={unavailableBar}
-                description={`Workspace files will be browsable again once ${agent.displayName}'s Computer reconnects.`}
+                description={`Workspace files will be browsable again once ${agent.displayName}'s device reconnects.`}
                 icon={ComputerIcon}
-                title="Computer Offline"
+                title="Device offline"
             />
         );
     }
