@@ -1,5 +1,5 @@
 ---
-summary: Proposal, grilled with Zach on 2026-11-18 and settled, to adopt Capy's connected product model in a Haus shape. Agents keep one global session and coordinate Workers, scoped parallel runs attached to a Task that can run on any granted Computer or in the cloud. Humans create Projects, each with one channel. A full Drive migration copies Capy's Drive and holds memory, AGENTS.md and WORKER.md rules, and reports. Builds on the Tasks-are-places rework (Threads deleted). Covers Capy's model, the settled decisions, deletions, alternatives, ship order and housekeeping.
+summary: Proposal, grilled with Zach on 2026-11-18 and settled, to adopt Capy's connected product model in a Haus shape. Agents keep one global session and coordinate Workers, scoped parallel runs attached to a Task that can run on any granted Computer or in the cloud. Humans create Projects, each with one channel. A full Drive migration copies Capy's Drive and holds memory, AGENTS.md and WORKER.md rules, and reports. Builds on ADR 0053 (Tasks are places, Threads deleted), landed 2026-11-19. Covers Capy's model, the settled decisions, deletions, alternatives, ship order and housekeeping.
 read_when:
   - deciding Haus's product direction for projects, workers or parallel agent work, Drive, or layered instructions
   - changing Files, Agent workspaces, cloud agents, the sidebar, the Agent page, or Computers in a way that moves toward or away from this model
@@ -10,10 +10,11 @@ read_when:
 # Proposal: a Capy-shaped Haus
 
 Status: **settled direction, 2026-11-18**. It was grilled with Zach and is ready to be split into
-ADRs, one each for Drive, Projects and Workers. It builds on the Tasks-are-places rework, which is
-accepted and being implemented in a sibling session: Threads are deleted, a Task is a channel for
-one piece of work, and cloud agents attach to Tasks. That rework is the first step of the order
-below.
+ADRs, one each for Drive, Projects and Workers. It builds on
+[ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md) and [specs/tasks.md](../../specs/tasks.md),
+which landed on main on 2026-11-19. Threads are deleted. A Task is a channel for one piece of work,
+started by an Agent from a Message in a channel. Cloud agents and pull requests attach to a Task
+and report to it. That rework was the first step of the order below.
 
 Research inputs are in the shared session notes folder, outside the repo:
 - `capy-bundle-findings.md`, from the Capy 0.9.2 client bundle
@@ -182,13 +183,19 @@ Haus (Server)
   and Drive files cited by version. The report posts in the Task and reaches the Agent through its
   inbox. A Task can hold several Workers.
 - **Cloud agents become Workers.** Places are `computer:<name>`, `cursor` and `claude`, under one
-  noun and one status set. `haus cloud-agent` becomes `haus worker start --task ENG-41
-  [--on macbook]`.
+  noun and one status set. `haus cloud-agent start --task` becomes `haus worker start --task ENG-41
+  [--on macbook]`, and `CLOUD_AGENT_TASK_REQUIRED` becomes the Worker refusal. As of ADR 0053:
+  - A cloud agent work record is a Worker.
+  - Its Runs are the Worker's turns, including follow-ups.
+  - Its card in the Task page's attached-work panel is the Worker card.
+  - The Run notices that wake the Agent on the Task carry the typed report.
+  - Pull request cards and the ready-after-settle wake stay as they are.
 - **Where it runs:**
   - Any Computer whose **"Workers can run here"** switch is on. The person who attached the
     Computer, or an Owner or Admin, sets it (Capy's per-device `agentAccess`).
   - The **default place lives on the Project** ("Engineering: Workers run on mini"), because repos
-    are linked per Project per Computer. The Agent can override it per Worker.
+    are linked per Project per Computer. The Agent can override it per Worker. This replaces
+    today's per-Computer **Make default** provider setting.
   - A Worker uses **that machine's own logins** for its model runtime and git, which Computer model
     access already allows. Its model is any model that machine can run.
   - The Agent's session, memory and skills never leave its home Computer. Only the Worker travels:
@@ -209,12 +216,16 @@ Haus (Server)
 - **Only humans create Projects.** "New project" creates the channel; there is no "New channel".
   Every existing channel becomes a Project, and `#all` becomes the Haus project.
 - **A Project is its channel.** Its settings, behind the header menu, hold:
-  - its key (one per Project)
+  - its key, an entry from the Server's key ledger as it is today. Projects can share an entry,
+    and a Project without one takes `GEN`.
   - its repos, with which Computers have each one linked
   - its `AGENTS.md`
   - its default place for Workers
 
   As in Capy, there is no separate Overview pane. Open Tasks live in the sidebar.
+- **Every Task already belongs to a Project.** ADR 0053 starts every Task from a Message in a
+  channel and never in a DM, so a Task's origin channel is its Project. That is where a Worker
+  finds its repos, rules and default place, and no new link is needed.
 
 ### Drive (decided)
 
@@ -259,8 +270,9 @@ agents/<handle>/reports/ renders/ handoffs/   Worker deliverables
 ### Attention (decided)
 
 **No Asks.** [ADR 0038](../adr/0038-inbox-is-unread-not-attention.md) stands. A question is an
-@mention, and a Task waiting on someone shows that in its sidebar row and on the Agent page. Revisit
-only if real use shows questions getting lost.
+@mention, and a Task waiting on someone shows that in its sidebar row and on the Agent page. ADR
+0053's followers carry the rest: a `needs-you` report that mentions the person makes the Task
+unread for them, and it reaches their Inbox. Revisit only if real use shows questions getting lost.
 
 ### Human surfaces (decided)
 
@@ -344,8 +356,8 @@ the Inbox (unread only), Activity, harness sub-agents, MCP connections, and Cove
 
 ## 5. Ship order
 
-1. **The Tasks rework** (in flight). Threads are deleted, Tasks become places, and cloud agents
-   attach to Tasks.
+1. **The Tasks rework** (landed, ADR 0053). Threads are deleted, Tasks become places, and cloud
+   agents attach to Tasks.
 2. **Drive.**
    - Migrate Files and Agent workspaces, and mount Drive on Computers.
    - Add attribution, History and Compare, and the Drive browser.
@@ -370,9 +382,8 @@ baseline.
 
 ## 6. Housekeeping
 
-- **The ADR number collides.** On main, 0052 is "Memory is one capped file; heartbeats retire".
-  The Tasks rework's uncommitted ADR is also numbered 0052 ("Channels and Tasks are the only
-  places"). Renumber it before it lands.
+- **ADR numbers are settled.** 0052 is memory, and the Tasks rework landed as 0053. ADR 0053's
+  Status still reads "Not yet implemented" and should say it landed.
 - **The internal "jobs" name** in `specs/jobs.md` no longer collides, because the noun chosen is
   Worker. `specs/workers.md` already uses "worker" for background agent work in an older
   sense; reconcile or rewrite it when Workers land.
