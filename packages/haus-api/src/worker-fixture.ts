@@ -45,7 +45,7 @@ export const linkedMessage: ChatMessage = {
     driveCitations: [],
     id: linkedWork.messageId,
     imageGenerations: [],
-    nonce: 'nonce_cloud_agent_launch',
+    nonce: 'nonce_worker_launch',
     reactions: [],
     reply: null,
     runId: 'run_launch',

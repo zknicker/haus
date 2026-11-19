@@ -37,7 +37,7 @@ export type WorkerReportOutcome = z.infer<typeof workerReportOutcomeSchema>;
 
 /**
  * One turn's report. `messageId` is the Task Message the report posted; it is
- * null only on reports migrated from cloud agent Runs, which posted none.
+ * null only on reports migrated from before Workers, which posted none.
  */
 export const workerReportSchema = z
     .object({

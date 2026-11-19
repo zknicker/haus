@@ -14,7 +14,7 @@ const inventory = (defaultProvider: 'claude' | 'cursor') =>
 
 const pullRequestUrl = 'https://github.com/acme/app/pull/12';
 
-export async function seedCloudAgentRows(database: SQL) {
+export async function seedPreWorkerRows(database: SQL) {
     await database.begin(async (tx) => {
         await tx`SET LOCAL session_replication_role = replica`;
         await tx`INSERT INTO servers (id, slug, display_name) VALUES ('srv_one', 'one', 'One')`;
