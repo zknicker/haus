@@ -340,6 +340,61 @@
                 "timer": 0
             }
         },
+        "apps/computer/src/invocations/bash.ts": {
+            "disposition": "external-adapter",
+            "reason": "Adapts one bash process group to an invocation: the abort listener and the five-second SIGKILL timer are cleared in lexical finally once the shell and its pipes settle.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 2,
+                "manualPromise": 0,
+                "timer": 2
+            }
+        },
+        "apps/computer/src/invocations/handler-run.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "The invocation timeout timer aborts the run's controller and is cleared in lexical finally when the operation returns or throws.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 1
+            }
+        },
+        "apps/computer/src/invocations/handler.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "One AbortController per active invocation carries cancel; the active entry is removed in finally after the finished record is durable, and every frame's work is tracked until settled().",
+            "risks": {
+                "abortController": 3,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/invocations/ledger.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Each ledger write closes its temp file handle in a lexical finally before the atomic rename; the ledger owns no background work.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 2,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/invocations/pi/shell.ts": {
+            "disposition": "external-adapter",
+            "reason": "Ported Pi child-process wait: one manual promise settles on exit or close, with a short post-exit idle timer cleared on settlement so detached descendants never hang it.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 1
+            }
+        },
         "apps/computer/src/launch.ts": {
             "disposition": "finite-cleanup",
             "reason": "The daemon traces and cancels the turn; this adapter releases its scoped runner authority and proxy sinks before returning.",

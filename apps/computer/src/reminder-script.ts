@@ -153,7 +153,7 @@ async function runExecution(
  * Owner's `haus-secrets` install, when connected, then the stable service PATH
  * (`agentPath` in agent-path.ts composes the full set for a live Agent turn).
  */
-function reminderScriptEnvironment(
+export function reminderScriptEnvironment(
     home: string,
     dataRoot: string,
     serverId: string

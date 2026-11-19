@@ -131,7 +131,10 @@ export const machineInvocationOutcomeSchema = z.enum([
 ]);
 export type MachineInvocationOutcome = z.infer<typeof machineInvocationOutcomeSchema>;
 
-export const invocationOutcomeSchema = z.enum([...machineInvocationOutcomeSchema.options, 'offline']);
+export const invocationOutcomeSchema = z.enum([
+    ...machineInvocationOutcomeSchema.options,
+    'offline',
+]);
 export type InvocationOutcome = z.infer<typeof invocationOutcomeSchema>;
 
 export const invocationOutcomeNotices = {
