@@ -24,8 +24,9 @@ holds; this module covers what changes. The skeleton is
 - **Layout.** Prose column about 48rem; tables and dashboards may go full
   width. Operational, not editorial: dense sections, hairline dividers,
   right-aligned numbers, mono for timestamps and ids.
-- Write the file under `workbench/`, then reference it with a bare `page`
-  fence holding exactly one JSON object.
+- Write the file under `drive/agents/<your handle>/workbench/`, then reference
+  it with a bare `page` fence holding exactly one JSON object whose `path` is
+  that cwd-relative path.
 - The card opens the file live, so it changes when the file does. The Manual
   topic `files` says who can open a page and how to share it with every member
   or keep a version.

@@ -1,6 +1,5 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { seedAgentWorkspace } from '@haus/agent-workspace';
 import {
     type AgentConfigureCommand,
     type AgentReasoningEffort,
@@ -9,7 +8,6 @@ import {
     type ComputerInventory,
     type CoveApplyCommand,
 } from '@haus/api';
-import { seedAgentManagedSkills } from './managed-skill-changes.ts';
 
 export interface AppliedAgentConfiguration {
     missingResources: string[];
@@ -46,13 +44,13 @@ export async function applyAgentConfiguration(input: {
     );
     await mkdir(agentRoot, { mode: 0o700, recursive: true });
     await Promise.all(
-        ['home', 'runtime', 'skills'].map((directory) =>
+        ['home', 'runtime'].map((directory) =>
             mkdir(join(agentRoot, directory), { mode: 0o700, recursive: true })
         )
     );
     if (!(await prepareAgentWorkspace(input, agentRoot))) {
-        // Nothing is seeded: a plain workspace directory would be adopted as an
-        // uncapped legacy workspace by the next apply.
+        // A plain workspace directory would be adopted as an uncapped legacy
+        // workspace by the next apply.
         const unavailable: AppliedAgentConfiguration = {
             missingResources: ['workspace'],
             modelId: null,
@@ -62,8 +60,6 @@ export async function applyAgentConfiguration(input: {
         await writeAppliedConfiguration(agentRoot, unavailable, input.command);
         return unavailable;
     }
-    await seedOrdinaryWorkspace(input.command, join(agentRoot, 'workspace'));
-    await seedAgentManagedSkills(agentRoot);
     const applied = resolveConfiguration(input.command, input.inventory);
     await writeAppliedConfiguration(agentRoot, applied, input.command);
     return applied;
@@ -156,25 +152,6 @@ export async function readAgentSeedConfiguration(
     } catch {
         return null;
     }
-}
-
-/**
- * The one place a Server-owned seed becomes workspace bytes, shared by the
- * configure path and by the full reset that re-seeds from the stored record.
- */
-export async function seedOrdinaryWorkspace(
-    seed: Pick<AgentSeedConfiguration, 'agentName' | 'brief' | 'briefAuthorHandle'> & {
-        agentDescription: string | null;
-    },
-    workspaceDir: string
-): Promise<void> {
-    await seedAgentWorkspace({
-        agentName: seed.agentName,
-        bio: seed.agentDescription,
-        brief: seed.brief,
-        briefAuthorHandle: seed.briefAuthorHandle,
-        workspaceDir,
-    });
 }
 
 export function resolveConfiguration(

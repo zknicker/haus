@@ -66,7 +66,8 @@ export const agentStartCommandSchema = z
     .object({
         agentId: idSchema,
         agentDescription: z.string().max(10_000).optional(),
-        agentName: z.string().trim().min(1).max(64).optional(),
+        /** The Agent's handle, which also names its Drive area `agents/<handle>/`. */
+        agentName: z.string().trim().min(1).max(64),
         /** Private voice layer for this Agent's own prompt; never part of an inbox item. */
         agentConversationStyle: z.string().max(10_000).optional(),
         /** The Agent's pickup reaction; null means the Computer's default. */

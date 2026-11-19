@@ -8,17 +8,6 @@ const efficiencyPrompt = renderPrompt({
     workspacePath: '/workspace',
 });
 
-test('memory arrives in the turn input under a cap, with no re-read ritual (ADR 0052)', () => {
-    expect(efficiencyPrompt).toContain(
-        '2. MEMORY.md (in your cwd) arrives in your turn input whenever it changed. Read only the additional memory/files you need to handle the current turn well.'
-    );
-    expect(efficiencyPrompt).toContain(
-        'Haus puts MEMORY.md in your turn input whenever it changed, and again after context compression. Keep it under 8,000 characters, with everything durable in it or reachable from it; Haus cuts a longer file.'
-    );
-    expect(efficiencyPrompt).toContain('MEMORY.md is your recovery point after compression');
-    expect(efficiencyPrompt).not.toContain('Re-read MEMORY.md');
-});
-
 test('an explicitly requested unavailable MCP does not trigger local configuration searches', () => {
     expect(efficiencyPrompt).toContain('For Server MCPs, use the injected `execute` tool');
     expect(efficiencyPrompt).toContain(
@@ -225,7 +214,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // Lowered (37,338 → 37,035) when the Haus-only `## Web access` section went: Agents get their runtime's native web tools with no gate and no prompt text, as in Raft.
     // Lowered by exactly 704 (38,457 → 37,753) by the owner-approved Tasks rewrite: a deliberate shrink, not room-making.
     // Raised by exactly 12 (37,753 → 37,765) when the Cloud agents sentence named "a cloud agent's run" for "its run".
-    expect(prompt.length).toBeLessThanOrEqual(37_765);
+    // Raised by exactly 145 (37,765 → 37,910) when MEMORY.md and notes/ moved into Drive at drive/agents/<handle>/ (ADR 0054, D3).
+    expect(prompt.length).toBeLessThanOrEqual(37_910);
     expect(prompt.toLowerCase()).not.toContain('thread');
 });
 

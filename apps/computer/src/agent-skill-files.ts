@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import type { AgentSkillFile, AgentSkillFileRequest, AgentSkillFileResult } from '@haus/api';
 import { agentSkillFileRequestSchema } from '@haus/api';
 import { reportStateError } from './computer-report.ts';
+import { readAgentDrive } from './drive/agent-drive.ts';
 import { readSkillBundle, skillNamePattern } from './host-skill-bundle.ts';
 
 export function parseAgentSkillFileRequest(frame: unknown): AgentSkillFileRequest | null {
@@ -97,15 +98,13 @@ async function resolveSkillRoot(input: {
     if (!skillNamePattern.test(name)) {
         throw new Error('That Agent skill does not exist.');
     }
-    const root = join(
-        input.dataRoot,
-        'servers',
-        input.serverId,
-        'agents',
-        input.request.agentId,
-        'skills',
-        name
+    const drive = await readAgentDrive(
+        join(input.dataRoot, 'servers', input.serverId, 'agents', input.request.agentId)
     );
+    if (!drive) {
+        throw new Error('That Agent skill does not exist.');
+    }
+    const root = join(drive.skills, name);
     const directory = await lstat(root).catch(() => null);
     const skillFile = await lstat(join(root, 'SKILL.md')).catch(() => null);
     if (!directory?.isDirectory() || directory.isSymbolicLink() || !skillFile?.isFile()) {

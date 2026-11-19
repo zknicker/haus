@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import {
+    artifactConflictCopyPath,
     artifactFolderSchema,
     artifactPathAncestors,
     artifactPathBasename,
@@ -65,4 +66,15 @@ test('folders accept the root as an empty string', () => {
     expect(artifactFolderSchema.parse('')).toBe('');
     expect(artifactFolderSchema.parse('starter-kit/scripts')).toBe('starter-kit/scripts');
     expect(artifactFolderSchema.safeParse('starter-kit/').success).toBe(false);
+});
+
+test('names keep-both copies at the last dot and numbers taken names', () => {
+    expect(artifactConflictCopyPath('agents/ada/notes/plan.v2.md', 'ada', 1)).toBe(
+        'agents/ada/notes/plan.v2.conflict-ada.md'
+    );
+    expect(artifactConflictCopyPath('agents/ada/notes/plan.md', 'ada', 3)).toBe(
+        'agents/ada/notes/plan.conflict-ada-3.md'
+    );
+    expect(artifactConflictCopyPath('haus/.env', 'blippy', 1)).toBe('haus/.env.conflict-blippy');
+    expect(artifactConflictCopyPath('README', 'blippy', 2)).toBe('README.conflict-blippy-2');
 });

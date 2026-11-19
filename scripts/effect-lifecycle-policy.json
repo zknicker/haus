@@ -428,6 +428,28 @@
                 "timer": 0
             }
         },
+        "apps/computer/src/drive-migration/drive-sources.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "The awaited seed render removes its scratch directory under runtime/ in lexical finally before returning the entries it read.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/launch-drive.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A failed Drive preparation releases the run's scoped runner authority before the turn reports; a revoke that fails is left to the Server's run-end revocation, as in launch.ts.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 1,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
         "apps/computer/src/launch.ts": {
             "disposition": "finite-cleanup",
             "reason": "The daemon traces and cancels the turn; this adapter releases its scoped runner authority and proxy sinks before returning.",

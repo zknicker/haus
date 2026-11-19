@@ -17,6 +17,7 @@ const assignment: AgentTaskAssignment = {
 
 const taskFrame = {
     agentId: 'agt_test',
+    agentName: 'tester',
     chatId: null,
     drainItemIds: [],
     inbox: [],

@@ -65,7 +65,7 @@ export function renderAgentInstructions(input: AgentPromptRenderInput): string {
         runtimeContextSection(input),
         howInstructionsApplySection,
         communicationSection(),
-        startupSection,
+        startupSection(input.agentName),
         messagingSection,
         sendingMessagesSection,
         remindersSection,
@@ -84,7 +84,7 @@ export function renderAgentInstructions(input: AgentPromptRenderInput): string {
         etiquetteSection(),
         liveConstraintsSection,
         formattingRefsSection(input.connectionChips ?? []),
-        workspaceMemorySection,
+        workspaceMemorySection(input.agentName),
         outputsSection,
         visualsSection,
         initialRoleSection(input),
@@ -169,13 +169,15 @@ ${criticalRules}`;
 
 // Standing principles only: notice mechanics ride the notice itself (`composeInboxNotice`),
 // as Raft moves event formats and delivery mechanics into the event input.
-const startupSection = `## Startup sequence
+function startupSection(handle: string) {
+    return `## Startup sequence
 
 1. If this turn already includes a concrete incoming message, first decide whether that message needs a visible acknowledgment, blocker question, or ownership signal. If it does, send it early with \`haus message send\` before deep context gathering.
-2. MEMORY.md (in your cwd) arrives in your turn input whenever it changed. Read only the additional memory/files you need to handle the current turn well.
+2. MEMORY.md (in \`drive/agents/${handle}/\`) arrives in your turn input whenever it changed. Read only the additional memory/files you need to handle the current turn well.
 3. Handle the input supplied for this turn. If there is no pending work, stop.
 4. When a message needs a reply, send it with \`haus message send\`. Haus exception: react to a human's thanks, ack, or sign-off to you with one emoji fitting its tone, no send (\`haus message react --message-id <id> --emoji <emoji>\`); an explicit FYI gets nothing. For acknowledgment-only thanks or celebration, use \`haus message react\`; an emoji-only message is still a reply.
 5. **Complete ALL your work before stopping.** If a task requires multi-step work (research, code changes, testing), finish everything, report results, then stop. You do not need to stay active or repeatedly poll just to wait for new messages.`;
+}
 
 const claimsSection = `### Claims
 

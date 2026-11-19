@@ -15,7 +15,8 @@ export interface AgentStartCommand {
     /** Server-owned Agent facts the Computer composes into the system prompt. */
     agentDescription?: string;
     agentId: string;
-    agentName?: string;
+    /** The Agent's handle, which also names its Drive area `agents/<handle>/`. */
+    agentName: string;
     /** Pickup reaction; null or absent means the prompt's default. */
     agentSignatureEmoji?: string | null;
     /** The run's Chat; null only for a chatless run: a wake or assignment. */

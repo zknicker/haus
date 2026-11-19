@@ -8,7 +8,6 @@
             "apps/computer/src/cloud-agents/provider-sign-in.test.ts": 3,
             "apps/computer/src/host-tools/mcp-server.test.ts": 1,
             "apps/computer/src/index.test.ts": 2,
-            "apps/computer/src/launch-start-failure.test.ts": 1,
             "apps/computer/src/proxy-runner-hold.test.ts": 1,
             "apps/computer/src/runtime/claude-code/claude-background-replay.test.ts": 4,
             "apps/computer/src/runtime/claude-code/claude-idle-compaction.test.ts": 3,

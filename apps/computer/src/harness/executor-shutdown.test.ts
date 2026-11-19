@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { AttachmentDaemonWork } from '../attachment-daemon-work.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
+import { agentDrive } from '../drive/agent-drive.ts';
 import type { RuntimeResumeState } from '../runtime/resume-state.ts';
 import { fakeRuntimeDriver, finishedTurn } from '../runtime/testing/fake-runtime-driver.ts';
 import type { TurnEvent } from '../runtime/turn-event.ts';
@@ -190,7 +191,7 @@ function turnInput(
         runtime,
         sessionGeneration: 1,
         signal,
-        skillsDir: join(root, 'skills'),
+        drive: agentDrive(root, 'agent'),
         totalPending: 0,
         workspaceDir: join(root, 'workspace'),
         tools: [],

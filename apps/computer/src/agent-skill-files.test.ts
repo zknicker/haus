@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runAgentSkillFileRequest } from './agent-skill-files.ts';
+import { readAgentDrive, recordAgentDriveHandle } from './drive/agent-drive.ts';
 
 const agentId = 'agt_1234567890123456';
 const serverId = 'srv_1234567890123456';
@@ -17,7 +18,7 @@ afterEach(async () => {
 });
 
 test('reads and hash-guards updates to an Agent skill', async () => {
-    const skillRoot = join(dataRoot, 'servers', serverId, 'agents', agentId, 'skills', 'research');
+    const skillRoot = await researchSkillRoot();
     await mkdir(skillRoot, { recursive: true });
     await writeFile(join(skillRoot, 'SKILL.md'), '# Research\n');
     const read = await request(dataRoot, { kind: 'read', name: 'research' });
@@ -44,7 +45,7 @@ test('reads and hash-guards updates to an Agent skill', async () => {
 });
 
 test('deletes the independent Agent skill bundle after hash confirmation', async () => {
-    const skillRoot = join(dataRoot, 'servers', serverId, 'agents', agentId, 'skills', 'research');
+    const skillRoot = await researchSkillRoot();
     await mkdir(skillRoot, { recursive: true });
     await writeFile(join(skillRoot, 'SKILL.md'), '# Research\n');
     await writeFile(join(skillRoot, 'helper.bin'), new Uint8Array([0, 1, 2]));
@@ -58,6 +59,23 @@ test('deletes the independent Agent skill bundle after hash confirmation', async
     expect(deleted.result).toEqual({ kind: 'deleted' });
     expect(await readFile(join(skillRoot, 'SKILL.md')).catch(() => null)).toBeNull();
 });
+
+test('an Agent that never launched has no skills to relay, even in the legacy library', async () => {
+    const legacy = join(dataRoot, 'servers', serverId, 'agents', agentId, 'skills', 'research');
+    await mkdir(legacy, { recursive: true });
+    await writeFile(join(legacy, 'SKILL.md'), '# Research\n');
+
+    const read = await request(dataRoot, { kind: 'read', name: 'research' });
+
+    expect(read.error).toBe('That Agent skill does not exist.');
+});
+
+async function researchSkillRoot() {
+    const agentRoot = join(dataRoot, 'servers', serverId, 'agents', agentId);
+    await recordAgentDriveHandle(agentRoot, 'scout');
+    const drive = await readAgentDrive(agentRoot);
+    return join(drive?.skills ?? '', 'research');
+}
 
 function request(
     dataRoot: string,

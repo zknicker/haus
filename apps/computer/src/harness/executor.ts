@@ -76,7 +76,7 @@ export interface HarnessTurnInput extends TurnDelivery {
     sessionGeneration: number;
     signal?: AbortSignal;
     signatureEmoji?: string | null;
-    skillsDir: string;
+    drive: import('../drive/agent-drive.ts').AgentDrive;
     thoughts?: import('./thought-narrator.ts').AgentThoughtNarrator;
     tools: HostToolSet;
     turnTimings?: AgentTurnTimings;
@@ -155,7 +155,7 @@ async function executeHarnessTurn(
 ): Promise<HarnessTurnResult> {
     const timings = input.turnTimings ?? new AgentTurnTimings();
     // For the prompt's activation hints; runtimes read the library natively.
-    const skillNames = await readAgentSkillNames(input.skillsDir);
+    const skillNames = await readAgentSkillNames(input.drive.skills);
     // The turn input carries every Agent fact the prompt reads; only the workspace is renamed.
     const composed = composeAgentInstructions({ ...input, workspacePath: input.workspaceDir });
     const wake = input.subagentWake !== undefined;
@@ -179,7 +179,7 @@ async function executeHarnessTurn(
             activityKey: instructionActivityKey,
             agentRoot: input.agentRoot,
             factoryKind: input.factoryKind,
-            workspaceDir: input.workspaceDir,
+            drive: input.drive,
         });
         // Remove only an unresumable cold generation; successful sessions retain resume state.
         if (!(resumeFrom || session.runtimeSessionId)) {
@@ -225,7 +225,7 @@ async function executeHarnessTurn(
             isResume: live.isResume,
             receipt: session.deliveredMemoryDigest,
             wake,
-            workspaceDir: input.workspaceDir,
+            memoryPath: input.drive.memory,
         });
         const record = turnSessionRecord(session, {
             composed,
@@ -338,7 +338,7 @@ async function executeHarnessTurn(
             record.completed(ended, {
                 bootstrapFingerprint,
                 coveGuidanceCanApply: coveGuidance.versionCanApply,
-                memoryDigest: await readMemoryDigest(input.workspaceDir),
+                memoryDigest: await readMemoryDigest(input.drive.memory),
                 modelId: input.modelId,
                 runtimeId: input.runtimeId,
             })

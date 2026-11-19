@@ -4,6 +4,7 @@ import { parseRestartCommand, parseStartCommand } from './agent-command-frames.t
 test('accepts only a valid trace carrier on a start command', () => {
     const frame = {
         agentId: 'agt_launchtest',
+        agentName: 'launch',
         chatId: 'cht_origin',
         inbox: [],
         inboxDelivery: 'notice',

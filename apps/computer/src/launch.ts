@@ -21,10 +21,10 @@ import {
     runHarnessTurn,
     type TurnDriverFactory,
 } from './harness/executor.ts';
-import { ensureNativeSkillLinks } from './harness/native-skill-links.ts';
 import type { AgentThoughtNarrator } from './harness/thought-narrator.ts';
 import { turnDeliveryOf } from './harness/turn-prompt.ts';
 import { readRunVisibleMessages } from './inbox-store.ts';
+import { prepareLaunchDrive } from './launch-drive.ts';
 import {
     fakeRuntimeOutcome,
     runnerMintFailureReport,
@@ -118,13 +118,10 @@ async function runLedgeredLaunch(
     const dirs = {
         home: join(agentRoot, 'home'),
         runtime: join(agentRoot, 'runtime'),
-        skills: join(agentRoot, 'skills'),
         workspace: join(agentRoot, 'workspace'),
     };
     await Promise.all(
-        [dirs.home, dirs.runtime, dirs.skills].map((dir) =>
-            mkdir(dir, { mode: 0o700, recursive: true })
-        )
+        [dirs.home, dirs.runtime].map((dir) => mkdir(dir, { mode: 0o700, recursive: true }))
     );
     const runtimeExecutable = resolveRuntimeById(command.runtimeId);
     if (command.runtimeId !== 'fake' && !runtimeExecutable && !options.runtimeDriverFactory) {
@@ -135,7 +132,6 @@ async function runLedgeredLaunch(
     } else {
         await ensureAgentWorkspace({ agentRoot, dataRoot: options.dataRoot });
     }
-    await ensureNativeSkillLinks(dirs.home, dirs.skills);
 
     let runner: { runnerId: string; runnerToken: string };
     try {
@@ -143,6 +139,10 @@ async function runLedgeredLaunch(
     } catch (error) {
         await writeTrace({ command, dirs }, `Runner authority mint failed: ${messageOf(error)}\n`);
         return reportTurn(options, runnerMintFailureReport(error, startedAt));
+    }
+    const prepared = await prepareLaunchDrive({ agentRoot, dirs, options, runner, startedAt });
+    if (!prepared.ok) {
+        return reportTurn(options, prepared.report);
     }
 
     const host = acquireAgentLaunchHost({
@@ -153,7 +153,7 @@ async function runLedgeredLaunch(
         runId: command.runId,
         serverId: options.attachment.serverId,
         serverOrigin: options.serverOrigin,
-        skillsDir: dirs.skills,
+        skillsDir: prepared.drive.skills,
     });
     const { proxy, proxyToken } = host;
     proxy.setTraceContext(options.turnTraceContext);
@@ -206,6 +206,7 @@ async function runLedgeredLaunch(
                       command,
                       dataRoot: options.dataRoot,
                       dirs,
+                      drive: prepared.drive,
                       runtimeDriverFactory: options.runtimeDriverFactory,
                       onStoredNoticeDelivered: options.onStoredNoticeDelivered,
                       activity,
@@ -255,7 +256,8 @@ interface RuntimeExecutionInput {
     agentEnv: Record<string, string>;
     command: AgentStartCommand;
     dataRoot: string;
-    dirs: { home: string; runtime: string; skills: string; workspace: string };
+    dirs: { home: string; runtime: string; workspace: string };
+    drive: import('./drive/agent-drive.ts').AgentDrive;
     onStoredNoticeDelivered?: (receipt: StoredNoticeReceipt) => void;
     registerNoticeSink?: NoticeSinkRegistrar;
     runtime: DaemonRuntime;
@@ -281,9 +283,7 @@ async function runRealRuntime(
             turnTimings: input.turnTimings,
             agentId: command.agentId,
             attestVisible: input.attestVisible,
-            // The Server owns the Agent handle/description; sensible defaults keep
-            // the managed contract intact when a facet is omitted.
-            agentName: command.agentName ?? command.agentId,
+            agentName: command.agentName,
             agentRoot: input.agentRoot,
             dataRoot: input.dataRoot,
             env: input.agentEnv,
@@ -308,7 +308,7 @@ async function runRealRuntime(
             sessionGeneration: command.sessionGeneration,
             signal: input.signal,
             serverId: input.serverId,
-            skillsDir: input.dirs.skills,
+            drive: input.drive,
             workspaceDir: input.dirs.workspace,
             tools: input.tools,
         });
