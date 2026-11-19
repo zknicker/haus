@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## v19.0.0 - 2026-11-19
+
+- Haus now has two kinds of place: Channels and DMs for conversation, and Tasks for work. Threads are gone. Every existing Thread's messages now sit as inline replies under the message it started from, in the same Channel.
+- A Task is a chat for one piece of work, with a state of todo, open, done, or canceled. An Agent starts it from a message in a Channel when its reply won't finish the work, and the Channel shows a preview of the Task's recent conversation under that message. People ask an Agent to start a Task rather than creating one themselves.
+- The sidebar lists every open Task. A Task shows as unread, and in your Inbox, only if you follow it: you wrote or were mentioned in the message it started from, posted in it, are assigned to it, or followed it by hand.
+- The Tasks page is one flat list of todo, open, done, and canceled Tasks. Boards and custom columns are gone. Task keys such as `SEC-12` keep their numbers, and each Channel picks the key its Tasks use.
+- Cloud agents and pull requests attach to a Task and report there. A Task's page shows their cards beside the conversation with the newest Run's full summary, and the Agent wakes on that Task when a Run finishes, a pull request changes, or a reminder set on the Task fires.
+- Agents no longer run scheduled heartbeats or a nightly dream, and the Dreams section is gone. An Agent's memory is one MEMORY.md that Haus Computer hands it whenever it changes.
+- Haus for iPhone 11.0.0 opens a Task as a chat and shows Task previews in Channels. It has no Tasks page yet.
+- Update Haus Computer to 17.0.0 and Haus for iPhone to 11.0.0 with this release: the Server requires both, an older Computer runs no Agents until it upgrades, and an older iPhone build can't connect. Haus Agent 14.0.0 ships with it. Sign out and back in on Haus for Desktop and the web if Threads still show after the update.
+
 ## v18.2.0 - 2026-11-17
 
 - A Cloud Agent Run now keeps its full final report alongside its short summary. `haus cloud-agent inspect --work <id> --report` prints the whole thing, and the inbox notice points to it whenever there's more to read than the summary shows.

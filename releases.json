@@ -2220,5 +2220,19 @@
             "computer": "16.1.0",
             "agent": "13.1.0"
         }
+    },
+    {
+        "version": "19.0.0",
+        "date": "2026-11-19",
+        "targets": {
+            "server": "18.0.0",
+            "app": "7.2.2",
+            "ios": {
+                "version": "11.0.0",
+                "buildNumber": 72
+            },
+            "computer": "17.0.0",
+            "agent": "14.0.0"
+        }
     }
 ]
