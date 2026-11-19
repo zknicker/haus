@@ -94,6 +94,7 @@ export * from './artifact-drive.ts';
 export * from './artifact-path.ts';
 export * from './artifact-public-link.ts';
 export * from './artifacts.ts';
+export * from './drive.ts';
 export * from './attachment-media-type.ts';
 export * from './attachments.ts';
 export * from './automation.ts';
