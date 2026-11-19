@@ -234,12 +234,23 @@ Each machine tool keeps the input shape its models are trained on:
 | `view_image` | `{ path: string }` |
 
 The implementations come from Pi's MIT tool code where Pi has the operation (bash spawning,
-process-tree kill, truncation, file reads, image resizing, exact-match replacement) and from
-OpenAI Codex's Apache-2.0 `apply_patch` parser for the patch grammar. Every ported file carries
-`// Ported from <repo> <path> (<license>)`, as Raft ports do.
+process-tree kill, truncation, file reads, exact-match replacement) and from OpenAI Codex's
+Apache-2.0 `apply_patch` parser for the patch grammar. Ported code lives in its own folder
+(`apps/computer/src/invocations/pi/` for Pi) with the upstream license and a `PROVENANCE.md` that
+maps each file to its upstream path and commit. The no-comments lint rule forbids a provenance
+header in the file itself.
 
-Every call starts in the Agent's working directory on the machine, with no cwd or environment
-carried from the call before. `view` returns an image file as an image, resized as Pi resizes.
+R2 builds the Claude tools: `bash` and `str_replace_based_edit_tool`, plus `view-image`. The GPT
+tools (`shell`, `apply_patch`, `view_image`) arrive with R5, the first harness that serves GPT
+models, which adds the patch variant of the `edit` operation and ports the Codex parser.
+
+Every call starts in the Agent's working directory on the machine, `<agent-root>/workspace`, with
+no cwd or environment carried from the call before. A command runs under `/bin/bash -c` in its own
+process group, with the environment reminder scripts get: the Agent's `HOME`, a `PATH` of the
+secrets wrapper and the runtime search path, and `LANG`, `LC_ALL` and `TMPDIR` when set. `view`
+returns an image file as an image. The Computer sends images as they are, up to 5 MiB, and the
+runner resizes them for the model it serves, because the runner knows that model's limits and the
+Computer carries no image library. `create` overwrites an existing file.
 
 ### `haus` runs on the runner
 
@@ -354,7 +365,8 @@ per path.
 | `browser` | `args` (today's allowlist) | 60 s | 60 s |
 
 `shell` maps to `bash`, with argv quoted into one command and `workdir` as `cwd`. A model's
-`timeout` above the max is clamped and the result says so.
+`timeout` above the max is clamped and the result says so. The Computer clamps `timeoutMs` to the
+same maximum again, so a bad frame cannot hold a command past it.
 
 ### Lifecycle
 
@@ -390,7 +402,7 @@ per path.
 The outcome text rides the tool result, never the prompt.
 
 **Never twice.** No layer reruns an invocation. A Computer that starts with ledger entries in
-`accepted` or `running` marks each `unknown` and reports it. The Server resends `invoke` for an
+`accepted` marks each `unknown` and reports it. The Server resends `invoke` for an
 id it holds no acceptance for, and the ledger answers any id it has seen, so a lost
 acknowledgement never runs a command twice. The model may choose to run a command again. That is
 a new tool call and a new invocation.
@@ -413,10 +425,18 @@ runner gets that answer.
 Stop, a fatal turn event, or the no-progress deadline makes the runner send `invocation-cancel`
 for each open invocation of the run. The Server forwards `invoke-cancel`. The Computer sends
 `SIGTERM` to the process group, then `SIGKILL` after five seconds, and reports `cancelled` with
-the output so far. A cancel for an id still waiting its turn removes it, reported `cancelled`.
+the output so far. A cancel for an id still waiting its turn removes it, reported `cancelled`
+with "Cancelled before it started.". A timeout kills the group at once with `SIGKILL`, stopping
+it first on macOS, as Pi does.
 On reconnect the Server sends `invoke-cancel` for every open invocation whose run has settled.
-A process that detaches itself from the process group survives, as it would in any shell, and
-Haus does not track it.
+When the shell exits, the Computer kills what is left of its process group before it reports
+the result, as Claude Code's Bash tool does, so a `&` background job never outlives its
+invocation or escapes its timeout and cancel. A process that leaves the group with `setsid`
+survives, as it would in any shell, and Haus does not track it. Long-running work goes to a
+Worker.
+
+A payload upload or download runs under the invocation's abort signal, so a cancel or timeout
+during a transfer settles as `cancelled` or `timed-out` and the Agent's next invocation runs.
 
 ### Output limits
 
@@ -424,8 +444,9 @@ Haus does not track it.
   what was cut. The full output stays on the machine at
   `agents/<agent-id>/runtime/invocations/<invocation-id>.log`, kept seven days, and the result
   names that path.
-- `view` and `file-read` return the first 2,000 lines or 50 KiB of text. Images are resized and
-  capped at 5 MiB.
+- `view` returns the first 2,000 lines or 50 KiB of text, with a line naming the `view_range` to
+  read on. Images are capped at 5 MiB and sent unresized. `file-read` returns raw bytes up to its
+  `maxBytes`, because it feeds `haus` commands rather than the model.
 - Every frame stays under 1 MiB.
 
 ### Large payloads
@@ -435,7 +456,7 @@ move through the existing streamed attachment upload (`attachment-upload-stream.
 frame carries a reference: `{ kind: 'attachment', attachmentId, mediaType, sizeBytes, sha256 }`.
 
 - **Results, machine to runner.** A Computer whose result payload is over the limit (an image
-  from `view` or `view_image` up to 5 MiB, a `browser` screenshot, a `file-read` for
+  from `view` or `view_image` up to 5 MiB, a `file-read` for
   `attachment upload --path` or `image generate --reference`) streams the bytes to the Server
   under the invocation id with its Computer credential, then sends `invoke-result` with the
   reference. The runner reads the bytes with the run credential when the model or the `haus`
@@ -445,6 +466,13 @@ frame carries a reference: `{ kind: 'attachment', attachmentId, mediaType, sizeB
   other write) uploads first, and `invoke` carries the
   reference. The Computer downloads it under the invocation id before it writes the file. A
   download that fails is the invocation's `failed` outcome, with nothing written.
+- The Computer uploads with `PUT /computer/invocations/:invocationId/payloads`, its Computer
+  credential as the bearer and the media type as `Content-Type`. The Server answers
+  `{ attachmentId, mediaType, sha256, sizeBytes }`, and the Computer refuses an answer whose digest
+  or size differs from what it sent. It downloads with
+  `GET /computer/invocations/:invocationId/payloads/:attachmentId` and checks the digest and size
+  before it writes. Bytes up to 700 KiB ride the frame as base64, which keeps the frame under
+  1 MiB. R2 builds the Computer side, and R3 builds both routes on the Server.
 - The reference is bound to its invocation and Agent, and only that invocation's run reads it.
   Bytes uploaded only to carry a payload expire with the invocation record. A webhook secret
   written through `--output` always rides the frame, which it fits, so it is never stored.
@@ -453,9 +481,12 @@ frame carries a reference: `{ kind: 'attachment', attachmentId, mediaType, sizeB
 
 Each Agent's ledger is `agents/<agent-id>/runtime/invocations/` on the Computer: one
 `<invocation-id>.json` per invocation with `{ invocationId, runId, operationKind, state,
-acceptedAt, finishedAt?, outcome?, exitCode?, outputBytes }`, written by atomic replace. A record
-the Server has confirmed is pruned after 24 hours. Payloads and output live only in the `.log`
-file and the result frame, so a webhook secret is never written to the ledger.
+acceptedAt, finishedAt?, outcome?, exitCode?, outputBytes, result?, confirmedAt? }`, written by
+atomic replace (write, fsync, rename, fsync the directory). `result` is the `invoke-result` frame,
+kept so a restarted Computer can resend a result the Server never confirmed. A record the Server
+has confirmed is pruned after 24 hours, and a `.log` file after seven days. The operation and its
+payload are never written to the ledger, and a `file-write` result never echoes its bytes, so a
+webhook secret never reaches it.
 
 The Server keeps `agent_invocations`: id, Agent, run, tool call id, `seq`, Computer, operation
 kind, state, outcome, and timestamps, with no payload or output. `unknown` is a terminal state
@@ -513,8 +544,16 @@ never attaches after the cutover. An older Computer connects update-required.
 | `invoke-result` | Computer → Server | `invocationId`, `outcome`, `exitCode?`, `output` (inline or an attachment reference), `truncated`, `logPath?` |
 | `invoke-result-ack` | Server → Computer | `invocationId` |
 | `invoke-cancel` | Server → Computer | `invocationId` |
-| `drive-pull` | Server → Computer | `agentId`, `runId` |
-| `drive-push` | Server → Computer | `agentId`, `runId` |
+
+R2 bumps the protocol to 39 for these frames. Their schemas live in
+`packages/haus-api/src/agent-invocations.ts`, and the three Server → Computer frames are members of
+`agentCommandSchema`. Nothing sends `invoke` until R3, so until then the Server drops the two
+upstream frames like any other unknown report.
+
+**Computer protocol, added with runner turns:** `drive-pull` and `drive-push`
+(Server → Computer, `agentId` and `runId`). They come with the PR that first sends them, when the
+runner reports a run started or settled, and D4's pull and push code handles them. R2 does not add
+them, because a frame with no sender and no handler is dead contract.
 
 **Computer protocol, removed by R4:** `start`, `notice`, `stop`, `ack`, `notice-ack`, `turn`,
 `agent-activity`, `agent-thought`, `agent-execution-journal-records`,
@@ -563,8 +602,9 @@ settings, reminder scripts, host skill discovery, inventory, updates, and Worker
 | A crash after accepting and before the result reports `unknown` and never runs the command again | `apps/computer/src/invocations/ledger-crash.test.ts` | R2 |
 | A resent `invoke` whose acknowledgement was lost returns the ledger's answer and runs nothing | `apps/computer/src/invocations/ledger-replay.test.ts` | R2 |
 | Timeout and cancel kill the process group and return partial output | `apps/computer/src/invocations/run.test.ts` | R2 |
-| An Agent with no machine or an offline one gets `offline` at once, and a turn with only `haus` calls completes | `apps/server/test/agent-invocations-offline.test.ts` | R2 |
-| After an acknowledgement is lost and the Computer reconnects, an invocation already `unknown` is never sent again, and a late result is recorded without reaching the model | `apps/server/test/agent-invocations-unknown.test.ts` | R2 |
+| A Computer that restarts after recording `unknown` answers every resent `invoke` with `unknown` and never runs it | `apps/computer/src/invocations/ledger-crash.test.ts` | R2 |
+| An Agent with no machine or an offline one gets `offline` at once, and a turn with only `haus` calls completes | `apps/server/test/agent-invocations-offline.test.ts` | R3 |
+| After an acknowledgement is lost and the Computer reconnects, an invocation already `unknown` is never sent again, and a late result is recorded without reaching the model | `apps/server/test/agent-invocations-unknown.test.ts` | R3 |
 | A result or write over 1 MiB moves as an attachment reference, and no frame exceeds 1 MiB | `apps/computer/src/invocations/large-payload.test.ts` | R2 |
 | A lone `haus` command runs on the runner, and a composed one is refused with `HAUS_NOT_ALONE` | `apps/runner/src/haus-command.test.ts` | R3 |
 | A runner crash after recording a dispatch accepted reports `unknown` and never sends it again | `apps/runner/src/dispatch-ledger-crash.test.ts` | R3 |
@@ -572,7 +612,13 @@ settings, reminder scripts, host skill discovery, inventory, updates, and Worker
 | A repeated MCP dispatch id never calls upstream twice | `apps/server/test/mcp-dispatch-id.test.ts` | R3 |
 | The runner cannot import Server or PostgreSQL modules | Oxlint rule tests in `scripts/lint/haus-rules` | R3 |
 | The SDK runs with native tools off and only `mcp__haus__*` tools reachable | `apps/runner/src/claude/claude-tools-live.test.ts` | R3 |
-| Ported Pi and Codex tools keep their upstream behavior | Ported upstream tests, provenance-marked | R2 |
+| Ported Pi tools keep their upstream behavior | Ported upstream tests, listed in `pi/PROVENANCE.md` | R2 |
+| The ported Codex patch grammar keeps its upstream behavior | Ported upstream tests | R5 |
+
+The two Server rows moved from R2 to R3. Offline answers, invocation records, and the grace that
+turns a lost invocation `unknown` are Server routing, and R3 builds that routing with the runner
+socket. R2 owns the Computer half and the shared protocol types, and ships the outcome texts
+(`invocationOutcomeNotices`) that R3's offline and unknown answers use.
 
 Each harness gets replay fixtures captured from the real SDK and Pi, scrubbed and committed, as
 the native drivers have. Live proof follows the plan: with every Computer offline an Agent

@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
-import { createBrowserTools, validateBrowserCommand } from './agent-tool.ts';
+import { validateBrowserCommand } from './agent-command.ts';
+import { createBrowserTools } from './agent-tool.ts';
 
 test('browser commands cannot replace the selected connection or close the shared browser', () => {
     for (const args of [
