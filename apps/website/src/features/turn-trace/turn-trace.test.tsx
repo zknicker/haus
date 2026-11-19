@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { AgentExecutionJournal, AgentExecutionJournalTool } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { classAttribute } from '../../lib/class-attribute.ts';
 import { TurnTraceCallBody } from './turn-trace-call-body.tsx';
 import { complexTurn } from './turn-trace-claude-fixtures.ts';
 import { codexFailureTurn, imageTurn } from './turn-trace-codex-fixtures.ts';
@@ -47,7 +48,9 @@ test('reasoning is a one-line row, its first line as detail, even before the fir
     assert.match(markup, /data-trace-row/);
     assert.match(
         markup,
-        />Thought<[\s\S]*?class="[^"]*text-muted">Inspecting the delivery queue\.</
+        new RegExp(
+            `>Thought<[\\s\\S]*?${classAttribute('text-muted')}>Inspecting the delivery queue\\.<`
+        )
     );
     // Closed like every other step; its prose mounts only once opened.
     assert.match(markup, /aria-expanded="false"/);
@@ -68,7 +71,9 @@ test('the trace is one grid of borderless rows with totals stated once, in its f
     // Durations sit in one right-aligned tabular column; a sub-second leaf states none.
     assert.match(
         markup,
-        /class="whitespace-nowrap text-end text-muted text-sm tabular-nums" data-trace-cell="duration">19s</
+        new RegExp(
+            `${classAttribute('whitespace-nowrap', 'text-end', 'text-muted', 'text-sm', 'tabular-nums')} data-trace-cell="duration">19s<`
+        )
     );
     assert.doesNotMatch(markup, />\d+ms</);
 });
@@ -105,7 +110,10 @@ test('Haus bookkeeping is one muted row', () => {
 
     assert.equal(markup.match(/Haus bookkeeping/g)?.length, 1);
     assert.match(markup, /2 steps/);
-    assert.doesNotMatch(markup, /text-foreground">Haus bookkeeping/);
+    assert.doesNotMatch(
+        markup,
+        new RegExp(`${classAttribute('text-foreground')}>Haus bookkeeping`)
+    );
 });
 
 test('a sub-agent that finished with failed calls warns and counts them', () => {
@@ -113,7 +121,10 @@ test('a sub-agent that finished with failed calls warns and counts them', () => 
 
     assert.match(markup, /text-warning/);
     assert.match(markup, /Ran sub-agent: Security review/);
-    assert.match(markup, /<span class="shrink-0 text-danger tabular-nums">2 failed<\/span>/);
+    assert.match(
+        markup,
+        new RegExp(`${classAttribute('shrink-0', 'text-danger', 'tabular-nums')}>2 failed</span>`)
+    );
 });
 
 test('a failed row tints but stays closed until someone opens it', () => {

@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { classAttribute } from '../../../lib/class-attribute.ts';
 import { chatFooterClearanceClassName } from '../../chats/chat-footer-surface.tsx';
 import { ChatTypingStrip } from './chat-typing-indicator.tsx';
 import {
@@ -199,8 +200,14 @@ test('only the faces and dots take the pointer, and hover adds no tab stop', () 
     const markup = renderToStaticMarkup(
         <ChatTypingStrip thoughts={{ latest: earlier, live: null }} typists={[juniper]} />
     );
-    expect(markup).toMatch(/class="pointer-events-none relative flex h-8/);
-    expect(markup).toMatch(/class="pointer-events-auto [^"]*" data-slot="chat-typing-recall"/);
+    expect(markup).toMatch(
+        new RegExp(
+            `${classAttribute('pointer-events-none', 'relative', 'flex', 'h-8')} data-slot="chat-typing"`
+        )
+    );
+    expect(markup).toMatch(
+        new RegExp(`${classAttribute('pointer-events-auto')} data-slot="chat-typing-recall"`)
+    );
     expect(markup).not.toContain('tabindex');
     // Not hovered: the retained thought stays hidden.
     expect(markup).not.toContain('data-slot="chat-typing-thought"');

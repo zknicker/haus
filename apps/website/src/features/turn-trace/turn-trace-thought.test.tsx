@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { AgentExecutionJournal } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { classAttribute } from '../../lib/class-attribute.ts';
 import { codexFailureTurn, imageTurn } from './turn-trace-codex-fixtures.ts';
 import { TurnTracePresentation } from './turn-trace.tsx';
 
@@ -14,7 +15,12 @@ test('a reasoning title is a Thought row on the grid, its title as muted detail'
     )?.[0];
     assert.ok(row, 'the title sits in a trace row');
     assert.match(row, /text-muted">Thought</);
-    assert.match(row, /class="min-w-0 shrink-\[4\] truncate text-muted">Running five parallel/);
+    assert.match(
+        row,
+        new RegExp(
+            `${classAttribute('min-w-0', 'shrink-[4]', 'truncate', 'text-muted')}>Running five parallel`
+        )
+    );
     // On the lane like any step: a mark at its time, nothing to open.
     assert.match(row, /data-trace-bar="thinking"/);
     assert.match(row, /data-trace-cell="slot"><\/span>/);

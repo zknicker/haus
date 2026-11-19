@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { AgentExecutionJournalTool } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { classAttribute } from '../../lib/class-attribute.ts';
 import { TurnTraceImagePreview } from './turn-trace-image.tsx';
 import { classifyTraceTool } from './turn-trace-tool-model.ts';
 
@@ -39,7 +40,9 @@ test('a Codex image generation reads as one and, unpreviewed, names its workspac
     assert.match(markup, /Generated an image/);
     assert.match(
         markup,
-        /20261006-130501-exec-4df6\.png<\/span><span class="min-w-0 truncate text-muted">generated-images</
+        new RegExp(
+            `20261006-130501-exec-4df6\\.png</span><span ${classAttribute('min-w-0', 'truncate', 'text-muted')}>generated-images<`
+        )
     );
     assert.doesNotMatch(markup, /<img/);
     assert.match(markup, /A red circle on white\./);
@@ -69,5 +72,10 @@ test('Grok Build edits and videos read as what they made', () => {
     assert.match(edit, /20261006-130501-2\.jpg/);
     assert.match(edit, /Make the circle blue\./);
     assert.match(video, /Made a video/);
-    assert.match(video, /1\.mp4<\/span><span class="min-w-0 truncate text-muted">[^<]*videos</);
+    assert.match(
+        video,
+        new RegExp(
+            `1\\.mp4</span><span ${classAttribute('min-w-0', 'truncate', 'text-muted')}>[^<]*videos<`
+        )
+    );
 });

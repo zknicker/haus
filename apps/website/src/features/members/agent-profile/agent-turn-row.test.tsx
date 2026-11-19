@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import type { AgentTurnOperationCount } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { classAttribute } from '../../../lib/class-attribute.ts';
 import type { AgentActivityTurn } from './agent-activity-turns.ts';
 import type { TurnRowTitle } from './agent-turn-row-model.ts';
 import { TurnRowContent } from './agent-turn-row.tsx';
@@ -12,13 +13,19 @@ test('a titled row is one line: time, request, place, length — no action marks
         text: 'Ship the changelog Then tag it',
     });
     expect(text(markup)).toEqual([time(), 'Ship the changelog Then tag it', 'DM', '11m']);
-    expect(markup).toMatch(/class="[^"]*truncate text-foreground/);
+    expect(markup).toMatch(new RegExp(classAttribute('truncate', 'text-foreground')));
     // The place stays regular weight even under a log header's semibold title.
-    expect(markup).toContain('<span class="shrink-0 font-normal text-muted">DM</span>');
+    expect(markup).toMatch(
+        new RegExp(`<span ${classAttribute('shrink-0', 'font-normal', 'text-muted')}>DM</span>`)
+    );
     expect(markup).not.toMatch(/font-medium|Failed|<svg/);
     // Time and length are tabular and never wrap.
-    expect(markup).toMatch(/<time class="whitespace-nowrap text-muted tabular-nums"/);
-    expect(markup).toMatch(/whitespace-nowrap text-end text-muted tabular-nums/);
+    expect(markup).toMatch(
+        new RegExp(`<time ${classAttribute('whitespace-nowrap', 'text-muted', 'tabular-nums')}`)
+    );
+    expect(markup).toMatch(
+        new RegExp(classAttribute('whitespace-nowrap', 'text-end', 'text-muted', 'tabular-nums'))
+    );
 });
 
 test('a row without a visible request is titled, muted, by what the turn did', () => {
@@ -27,19 +34,21 @@ test('a row without a visible request is titled, muted, by what the turn did', (
         { kind: 'none' }
     );
     expect(text(markup)).toEqual([time(), 'Edited 3 files · read 4', '1m']);
-    expect(markup).toMatch(/class="min-w-0 truncate text-muted">Edited/);
+    expect(markup).toMatch(
+        new RegExp(`${classAttribute('min-w-0', 'truncate', 'text-muted')}>Edited`)
+    );
 });
 
 test('a failed row shows only its glyph, with the folded repeat count', () => {
     const markup = render(settled({ status: 'failed' }), { kind: 'none' }, 3);
     expect(text(markup)).toEqual([time(), 'Failed', 'Sent 1 message', '3×', '1m']);
-    expect(markup).toMatch(/text-danger" title="Failed"/);
+    expect(markup).toMatch(new RegExp(`${classAttribute('text-danger')} title="Failed"`));
     expect(render(settled(), { kind: 'none' })).not.toContain('title=');
 });
 
 test('an interrupted row takes the warning glyph', () => {
     const markup = render(settled({ status: 'interrupted' }), { kind: 'none' });
-    expect(markup).toMatch(/text-warning" title="Interrupted"/);
+    expect(markup).toMatch(new RegExp(`${classAttribute('text-warning')} title="Interrupted"`));
 });
 
 test('a running row shows a spinner glyph and a live length', () => {

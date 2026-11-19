@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import type { AgentExecutionJournal } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { classAttribute } from '../../lib/class-attribute.ts';
 import { TurnTraceCallBody } from './turn-trace-call-body.tsx';
 import { TraceNested } from './turn-trace-depth.tsx';
 import { TurnTraceFooter } from './turn-trace-footer.tsx';
@@ -166,7 +167,7 @@ test('bodies open on the label text, and nested rows never sit inside one', () =
     for (const body of bodies) {
         assert.doesNotMatch(body, /data-trace-row/);
     }
-    assert.match(markup, /uppercase tracking-wide">Error</);
+    assert.match(markup, new RegExp(`${classAttribute('uppercase', 'tracking-wide')}>Error<`));
 });
 
 test('bars rescale and pulse only with motion allowed', () => {

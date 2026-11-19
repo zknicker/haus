@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { classAttribute } from '../../lib/class-attribute.ts';
 import { ChannelHoverCard, ChannelHoverCardContent } from './channel-hover-card.tsx';
 import { getMentionAppearance } from './mention-appearance.tsx';
 import { ReferenceChip } from './reference-chip.tsx';
@@ -151,7 +152,9 @@ test('previews Channels with activity beside the title and overlapping member av
     expect(markup).toContain('haus-hover-card__identity');
     expect(markup).toContain('items-center gap-1.5');
     expect(markup).toContain('items-baseline gap-1.5');
-    expect(markup).toContain('font-semibold text-foreground text-sm');
+    expect(markup).toMatch(
+        new RegExp(classAttribute('font-semibold', 'text-foreground', 'text-sm'))
+    );
     expect(markup).toContain('#product');
     expect(markup).toContain('· Active 1d ago');
     expect(markup).toContain('haus-hover-card__faces');

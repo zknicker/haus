@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { classAttribute } from '../../lib/class-attribute.ts';
 import { TraceElbow, TraceGroup, TraceNested, traceBranchClass } from './turn-trace-depth.tsx';
 import { TraceLine, TraceRow } from './turn-trace-row.tsx';
 import { TurnTraceSteps } from './turn-trace-steps-view.tsx';
@@ -71,7 +72,7 @@ test('each child of an opened group hangs off its rail by a square elbow, nested
         assert.match(rail, /\[:last-child&gt;&amp;\]:hidden/);
     }
     for (const elbow of elbows) {
-        assert.match(elbow, /border-separator border-b/);
+        assert.match(elbow, new RegExp(classAttribute('border-separator', 'border-b')));
         assert.match(elbow, /\[:last-child&gt;&amp;\]:border-s/);
         assert.match(elbow, /--trace-arm:calc\(1.25rem - var\(--spacing\) \* 2.5 - 0.5px\)/);
     }

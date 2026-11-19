@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { classAttribute } from '../../lib/class-attribute.ts';
 import { ImageGenerationCard } from './image-generation-card.tsx';
 import { failedResult, imageGenerationFixture } from './image-generation-fixture.ts';
 
@@ -55,7 +56,9 @@ test('only a card for a running job enters, staggered by its place in the Messag
             serverId="server-1"
         />
     );
-    expect(live).toMatch(/class="[^"]*\bbg-nested-surface image-generation-enter\b/u);
+    expect(live).toMatch(
+        new RegExp(classAttribute('bg-nested-surface', 'image-generation-enter'), 'u')
+    );
     expect(live).toContain('animation-delay:100ms');
     const settled = render(imageGenerationFixture({ result: failedResult }));
     expect(settled).not.toContain('image-generation-enter');

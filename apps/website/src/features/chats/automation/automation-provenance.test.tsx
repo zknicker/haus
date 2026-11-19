@@ -3,6 +3,7 @@ import type { MessageCause } from '@haus/api';
 import type * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { classAttribute } from '../../../lib/class-attribute.ts';
 import { TrpcTestProvider } from '../../../test-support/trpc-test-provider.tsx';
 import { keycapHour } from './automation-keycap.tsx';
 import { MessageCauseHoverContent, MessageCauseLine } from './message-cause-line.tsx';
@@ -11,12 +12,18 @@ test('the cause line reads like a reply line: keycap, muted title, then a quiete
     const trigger = render(<MessageCauseLine cause={triggerCause()} />);
     const reminder = render(<MessageCauseLine cause={reminderCause()} />);
 
-    expect(trigger).toMatch(/text-muted">Deploy finished<\/span>/);
-    expect(trigger).toMatch(/text-context-line-quiet">Webhook</);
-    expect(reminder).toMatch(/text-muted">Weekly self-review<\/span>/);
-    expect(reminder).toMatch(/text-context-line-quiet">Every Monday at 09:00</);
+    expect(trigger).toMatch(new RegExp(`${classAttribute('text-muted')}>Deploy finished</span>`));
+    expect(trigger).toMatch(new RegExp(`${classAttribute('text-context-line-quiet')}>Webhook<`));
+    expect(reminder).toMatch(
+        new RegExp(`${classAttribute('text-muted')}>Weekly self-review</span>`)
+    );
+    expect(reminder).toMatch(
+        new RegExp(`${classAttribute('text-context-line-quiet')}>Every Monday at 09:00<`)
+    );
     // Behind the message it introduces: the title never takes the body's ink.
-    expect(trigger + reminder).not.toContain('font-medium text-foreground');
+    expect(trigger + reminder).not.toMatch(
+        new RegExp(classAttribute('font-medium', 'text-foreground'))
+    );
     // Only the key carries the ink; the elbow is a reply's.
     expect(trigger + reminder).toContain('border-separator');
     // Neither borrows a status colour: a fired automation is not a warning.
