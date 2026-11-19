@@ -1,4 +1,5 @@
 import type { SQL } from 'bun';
+import { taskOriginNonce } from './thread-migration-invariants.ts';
 
 export interface UnreadSnapshot {
     affected: ChatRef[];
@@ -140,6 +141,7 @@ async function readChatUnread(database: SQL, chats: ChatRef[]) {
             ON reading.server_id = listed.server_id AND reading.chat_id = listed.chat_id
             AND reading.reader_user_id = member.user_id
         WHERE (message.author_user_id IS NULL OR message.author_user_id <> member.user_id)
+            AND message.nonce NOT LIKE $2
             AND message.sequence > coalesce(reading.sequence, 0)
         UNION ALL
         SELECT 'agent', listed.server_id, agent.id, listed.chat_id, message.id
@@ -152,8 +154,9 @@ async function readChatUnread(database: SQL, chats: ChatRef[]) {
             ON reading.server_id = listed.server_id AND reading.chat_id = listed.chat_id
             AND reading.agent_id = agent.id
         WHERE message.author_agent_id IS DISTINCT FROM agent.id
+            AND message.nonce NOT LIKE $2
             AND message.sequence > coalesce(reading.sequence, 0)`,
-        [JSON.stringify(chats)]
+        [JSON.stringify(chats), taskOriginNonce]
     )) as UnreadRow[];
     const unread: Record<string, string[]> = {};
     for (const row of rows) {

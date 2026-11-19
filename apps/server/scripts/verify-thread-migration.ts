@@ -83,6 +83,9 @@ async function main() {
         : undefined;
     const result = await verifyThreadMigration(databaseUrl, before);
     printResults(result.invariants);
+    console.log(
+        `excluded ${result.structure.counts.taskOriginPosts} 0127 Tracking posts (nonce task-origin:*) from the message total and unread`
+    );
     if (result.unread) {
         const unread = result.unread;
         console.log(

@@ -3,6 +3,10 @@ import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SQL } from 'bun';
+import {
+    takeThreadMigrationSnapshot,
+    verifyThreadMigration,
+} from '../scripts/verify-thread-migration.ts';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { seedLegacyTasks } from './legacy-tasks-seed.ts';
 import { startEmptyDatabase } from './postgres-cluster.ts';
@@ -23,11 +27,17 @@ test('0127 turns worked legacy Tasks into places and archives the rest', async (
         await writeFile(journalPath, through(126));
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
         await seedLegacyTasks(database);
+        const before = await takeThreadMigrationSnapshot(cluster.databaseUrl);
 
         await writeFile(journalPath, through(127));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
             '0127_legacy-tasks-and-boards',
         ]);
+        const verified = await verifyThreadMigration(cluster.databaseUrl, before);
+        expect(verified.invariants.filter((invariant) => !invariant.ok)).toEqual([]);
+        expect(verified.unread).toMatchObject({ affectedUnreadAfter: 0, unaffectedChanged: 0 });
+        expect(verified.structure.counts.taskOriginPosts).toBe(2);
+        expect(verified.ok).toBe(true);
 
         const tasks = await database`
             SELECT t.id, t.state, t.key_id, t.completed_at IS NOT NULL AS completed,

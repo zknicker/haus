@@ -9,6 +9,7 @@ export interface Structure {
         repliesBeforeParent: number;
         sparseChats: number;
         staleLastSequence: number;
+        taskOriginPosts: number;
         threadChats: number;
     };
     missingChats: Record<string, number>;
@@ -31,10 +32,15 @@ const pairs = [
     ['chats', 'parent_chat_id', 'anchor_message_id'],
 ] as const;
 
+export const taskOriginNonce = 'task-origin:%';
+
 export async function readStructure(database: SQL): Promise<Structure> {
     const [counts] = (await database`
         SELECT
-            (SELECT count(*)::integer FROM chat_messages) AS messages,
+            (SELECT count(*)::integer FROM chat_messages
+                WHERE nonce NOT LIKE ${taskOriginNonce}) AS messages,
+            (SELECT count(*)::integer FROM chat_messages
+                WHERE nonce LIKE ${taskOriginNonce}) AS "taskOriginPosts",
             (SELECT count(*)::integer FROM chats WHERE kind = 'thread') AS "threadChats",
             (SELECT count(*)::integer FROM (
                 SELECT 1 FROM chat_messages GROUP BY server_id, chat_id
