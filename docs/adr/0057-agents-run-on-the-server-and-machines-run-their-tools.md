@@ -17,9 +17,9 @@ read_when:
 
 Accepted 2026-11-19. Not yet implemented. Amended 2026-11-19 by the runtime contract
 ([specs/runtime-drivers.md](../../specs/runtime-drivers.md), [specs/mcp.md](../../specs/mcp.md))
-in decisions 2, 5 and 12: the runner volume has no backup, a reset builds no briefing, the `haus`
-CLI runs on the runner instead of behind `execute`, the tool shapes are named, and the cutover
-resets every session and ends sub-agents and background shells. Part of the direction in
+in decisions 2, 5 and 12: a reset builds no briefing, the `haus` CLI runs on the runner instead
+of behind `execute`, the tool shapes are named, and the cutover waits for both harnesses, resets
+every session, and ends sub-agents and background shells. Part of the direction in
 [the Capy and Amp proposal](../proposals/capy-product-model.md), with
 [ADR 0054](0054-drive-holds-what-agents-know-and-follow.md) (Drive),
 [ADR 0055](0055-projects-own-agents-and-tasks.md) (Projects) and
@@ -49,9 +49,9 @@ loops.
 2. **Two harnesses.** The Claude Agent SDK runs Claude plans, with a setup-token, its native tools
    off, and Haus tools bridged in. Pi Durable runs every other model, including ChatGPT plans and
    other providers. Each keeps its sessions in its own native storage on the runner's persistent
-   volume. The volume shares the Server's backup posture, which today is no off-machine backup,
-   so a lost volume costs live context and each Agent recovers by reset. The session never moves:
-   only the Agent's machine does, so it only has to survive the runner restarting. Each Agent is
+   volume, which is backed up with the Server's data. Rebuilding from Drive is the fallback only
+   when a restore is impossible. The session never moves: only the Agent's machine does, so it
+   only has to survive the runner restarting. Each Agent is
    pinned to one harness. Switching harness is an explicit reset: a fresh session from Drive's
    current rules and memory, with no constructed briefing (ADR 0011). The Agent reads recent
    history itself. Model logins live in runner settings in v1, with no sign-in screens.
@@ -101,9 +101,10 @@ loops.
 
 12. **Ship order.** Tasks (landed), then minimal Drive, then Agents move to the runner, then
     Projects, then Workers, then computer use (agent-desktop). The runner
-    ships with one harness, and the second follows once tool dispatch works. Agents move in one
-    cutover that resets every session, and no Agent stays on a Computer after it. Sub-agents and
-    background shells end with the cutover, and Workers take over parallel and long work.
+    ships with one harness, and the second follows once tool dispatch works. Both are in place
+    before Agents move in one cutover that resets every session, and no Agent stays on a
+    Computer after it. Sub-agents and background shells end with the cutover, and Workers take
+    over parallel and long work.
 
 ## Considered and rejected
 

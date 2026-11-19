@@ -1,5 +1,5 @@
 ---
-summary: Normative runtime contract after ADR 0057. Each Agent's loop runs in the runner, a sandboxed Server-side process, on the Claude Agent SDK or Pi Durable, with sessions on the runner's volume. The Agent's machine runs its tools through invocations with Server-minted ids, an accepted-before-run ledger, and fixed outcomes (completed, failed, timed-out, cancelled, unknown, offline). Covers the tool set, the `haus` CLI on the runner, inbox delivery to the runner, logins, the frames that change, and what stays on Computers for Workers.
+summary: Normative runtime contract after ADR 0057. Each Agent's loop runs in the runner, a sandboxed Server-side process, on the Claude Agent SDK or Pi Durable, with sessions on the runner's volume. Every dispatch (a machine invocation, a runner-side haus command, an execute MCP call) is keyed by (runId, toolCallId, seq), recorded as accepted before it runs, and never runs twice; unknown is terminal. Machine invocations have fixed outcomes (completed, failed, timed-out, cancelled, unknown, offline), and payloads over 1 MiB move as attachment references. Covers the tool set, the `haus` CLI on the runner, inbox delivery to the runner, logins, the frames that change, and what stays on Computers for Workers.
 read_when:
   - changing where an Agent's loop runs, the runner, its container, its volume, or its credentials
   - changing the Claude Agent SDK or Pi Durable harness, harness pinning, or session reset
@@ -58,10 +58,14 @@ runner can act as an Agent.
 In development, `bun run dev` runs the runner as a local process with the same environment
 contract and no container. The Oxlint rules hold the boundary there.
 
-The volume holds sessions only. Rules, memory, and skills are canonical in Drive. The Server host
-has no off-machine backup ([deploy](../docs/operations/haus-server-deploy.md#off-machine-backup)),
-so the volume shares that posture: losing it costs every Agent its live context, and each Agent
-recovers through the reset path below.
+The volume holds sessions and the runner's dispatch ledger. Rules, memory, and skills are
+canonical in Drive. The volume is backed up with the Server's data
+([ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md) decision 2):
+whatever backs up the Server's database backs up `haus_runner_data` on the same schedule, and a
+restore brings both back together. The Server host's off-machine backup is retired today
+([deploy](../docs/operations/haus-server-deploy.md#off-machine-backup)), so reintroducing it
+includes this volume. When a restore is impossible, each Agent falls back to the reset path
+below.
 
 ### Capacity
 
@@ -131,7 +135,8 @@ cold-starts once.
 
 ### Cutover
 
-R4 moves every Agent at once and resets every session. No native session is copied from a
+R5 lands Pi Durable before R4, so the cutover has both harnesses and every Agent has one for
+its model. R4 moves every Agent at once and resets every session. No native session is copied from a
 Computer. Codex and Grok Build stores cannot load in Pi, and a Claude Code session would resume
 with a recorded system prompt and tool set that no longer exist. Each Agent's first runner turn
 is a reset turn as above, with its generation rotated and its pending inbox offered again. R4
@@ -285,10 +290,57 @@ These end at R4 and are named here as intentional capability removals:
   ([Image Generation](image-generation.md)).
 - **Grok Build as an Agent runtime.** Grok models run on Pi Durable through xAI.
 
+## Dispatches
+
+A dispatch is one action a tool call takes outside the model: a machine invocation, an Agent API
+request from a `haus` command, or a Server MCP call from `execute`. Every dispatch keeps one
+contract wherever it runs. It has an id, it is recorded as accepted before it runs, and it never
+runs twice.
+
+A dispatch's id is `(runId, toolCallId, seq)`. `toolCallId` is the harness's id for the tool
+call, and `seq` counts that call's dispatches from 0 in the order the runner makes them. A
+`bash` call with no `haus` makes one dispatch. A `haus` command with a machine path makes one
+`file-read` or `file-write` dispatch per path, then its Agent API requests. An `execute` program
+makes one per `tools.call`, `browser` included. The Server mints a stored id for each dispatch it
+records, keyed by `(runId, toolCallId, seq)`, so a resend of the same key returns the same
+record.
+
+### Runner ledger
+
+The runner keeps a ledger per Agent at `/data/agents/<agent-id>/runtime/dispatches/`, one
+`<runId>.<toolCallId>.<seq>.json` per dispatch with `{ kind, state, acceptedAt, finishedAt?,
+outcome? }`, written by atomic replace. The runner writes `accepted` and syncs it to disk before it
+sends the request, then writes the outcome when the answer arrives. A record is pruned 24 hours
+after its run settles.
+
+A runner that starts with records still `accepted` marks each `unknown`, writes it to the Agent's
+execution journal for that run, and never sends it again. The run itself fails as a crashed turn
+does today, and its next turn is a new model decision, never a replay.
+
+### Agent API requests
+
+Every request the runner sends to `/api/agent/*` for a `haus` command carries
+`Haus-Dispatch-Id: <runId>:<toolCallId>:<seq>`. Every mutating route stores the dispatch id with
+its result in the same transaction as the mutation, keyed by Agent and dispatch id. A repeat of
+a stored id returns the stored result and changes nothing. A repeat of an id whose first request
+is still in flight waits for it. The same id with a different request body is refused with
+`IDEMPOTENCY_KEY_REUSED`. The CLI's existing keys (a message or claim `nonce`, a reminder
+`commandId`) are set from the dispatch id. R3 adds the header to the routes that have no key
+today, such as `task start` and `trigger create`. Read routes ignore it.
+
+### MCP calls
+
+A `tools.call` to a Server MCP tool carries its dispatch id. The Server records the call as
+accepted before it contacts the upstream server, and a repeat of a known id returns the stored
+result, waits for one still in flight, or answers `unknown` when the first attempt never
+finished, without calling upstream again. MCP
+tools are not idempotent, so a lost answer is never retried upstream.
+
 ## Invocations
 
-Every machine tool call is one invocation. An `execute` program makes one invocation per
-`browser` call. A `haus` command with a machine path makes one per path.
+Every machine tool call is one invocation, and an invocation is a machine dispatch. An `execute`
+program makes one invocation per `browser` call. A `haus` command with a machine path makes one
+per path.
 
 ### Operations
 
@@ -306,9 +358,9 @@ Every machine tool call is one invocation. An `execute` program makes one invoca
 
 ### Lifecycle
 
-1. **Request.** The runner sends `invocation-request` with the run id, the harness tool call id,
-   and the operation. The Server keys it by `(runId, toolCallId)`, so a resend returns the same
-   invocation.
+1. **Request.** The runner records the dispatch as accepted in its ledger, then sends
+   `invocation-request` with `runId`, `toolCallId`, `seq`, and the operation. The Server keys it
+   by `(runId, toolCallId, seq)`, so a resend returns the same invocation.
 2. **Route.** The Server mints the invocation id and resolves the Agent's machine from its
    setting. No machine, a detached one, or one in update-required mode answers `offline` at once,
    recorded, and nothing is sent.
@@ -343,10 +395,18 @@ id it holds no acceptance for, and the ledger answers any id it has seen, so a l
 acknowledgement never runs a command twice. The model may choose to run a command again. That is
 a new tool call and a new invocation.
 
+**Unknown is terminal.** Once the Server records an invocation as `unknown`, from the Computer,
+the grace below, or the runner, no path sends its `invoke` again. That includes a resend queued
+for a reconnect: the Server drops every pending send for an invocation the moment it turns
+`unknown`. An `invocation-request` that repeats its key gets `unknown` back. A result that already
+exists still reconciles: the Server records a late `invoke-result` on the invocation and in the
+journal, confirms it with `invoke-result-ack`, and does not deliver it to the model or change the
+outcome the model saw.
+
 **Grace.** When the Computer's socket drops with an invocation sent, the Server waits for the
 invocation's timeout plus 30 seconds for a reconnect. A reconnect inside it resends unacknowledged
-`invoke` frames and receives pending results. Past it the runner gets `unknown`. A result that
-arrives later is recorded on the invocation and in the journal, and not delivered to the model.
+`invoke` frames and receives pending results. Past it the invocation turns `unknown` and the
+runner gets that answer.
 
 ### Cancellation
 
@@ -366,11 +426,30 @@ Haus does not track it.
   names that path.
 - `view` and `file-read` return the first 2,000 lines or 50 KiB of text. Images are resized and
   capped at 5 MiB.
-- `file-read` for an attachment upload takes up to the attachment limit and streams to the
-  Server, outside the 1 MiB frame cap.
 - Every frame stays under 1 MiB.
 
-### Ledger
+### Large payloads
+
+One rule covers every handler. Bytes that would push a frame past 1 MiB never ride a frame. They
+move through the existing streamed attachment upload (`attachment-upload-stream.ts`), and the
+frame carries a reference: `{ kind: 'attachment', attachmentId, mediaType, sizeBytes, sha256 }`.
+
+- **Results, machine to runner.** A Computer whose result payload is over the limit (an image
+  from `view` or `view_image` up to 5 MiB, a `browser` screenshot, a `file-read` for
+  `attachment upload --path` or `image generate --reference`) streams the bytes to the Server
+  under the invocation id with its Computer credential, then sends `invoke-result` with the
+  reference. The runner reads the bytes with the run credential when the model or the `haus`
+  command needs them. An attachment upload uses the reference as the attachment, with no second
+  upload.
+- **Payloads, runner to machine.** A `file-write` over the limit (`image wait --out`, or any
+  other write) uploads first, and `invoke` carries the
+  reference. The Computer downloads it under the invocation id before it writes the file. A
+  download that fails is the invocation's `failed` outcome, with nothing written.
+- The reference is bound to its invocation and Agent, and only that invocation's run reads it.
+  Bytes uploaded only to carry a payload expire with the invocation record. A webhook secret
+  written through `--output` always rides the frame, which it fits, so it is never stored.
+
+### Computer ledger
 
 Each Agent's ledger is `agents/<agent-id>/runtime/invocations/` on the Computer: one
 `<invocation-id>.json` per invocation with `{ invocationId, runId, operationKind, state,
@@ -378,8 +457,9 @@ acceptedAt, finishedAt?, outcome?, exitCode?, outputBytes }`, written by atomic 
 the Server has confirmed is pruned after 24 hours. Payloads and output live only in the `.log`
 file and the result frame, so a webhook secret is never written to the ledger.
 
-The Server keeps `agent_invocations`: id, Agent, run, tool call id, Computer, operation kind,
-state, outcome, and timestamps, with no payload or output. It is evidence and routing, and the
+The Server keeps `agent_invocations`: id, Agent, run, tool call id, `seq`, Computer, operation
+kind, state, outcome, and timestamps, with no payload or output. `unknown` is a terminal state
+there. It is evidence and routing, and the
 execution journal remains the record of what the model saw.
 
 ## Inbox delivery
@@ -428,9 +508,9 @@ never attaches after the cutover. An older Computer connects update-required.
 
 | Frame | Direction | Carries |
 | --- | --- | --- |
-| `invoke` | Server → Computer | `invocationId`, `agentId`, `runId`, `operation`, `timeoutMs` |
+| `invoke` | Server → Computer | `invocationId`, `agentId`, `runId`, `operation` (its bytes inline or an attachment reference), `timeoutMs` |
 | `invoke-accepted` | Computer → Server | `invocationId` |
-| `invoke-result` | Computer → Server | `invocationId`, `outcome`, `exitCode?`, `output`, `truncated`, `logPath?` |
+| `invoke-result` | Computer → Server | `invocationId`, `outcome`, `exitCode?`, `output` (inline or an attachment reference), `truncated`, `logPath?` |
 | `invoke-result-ack` | Server → Computer | `invocationId` |
 | `invoke-cancel` | Server → Computer | `invocationId` |
 | `drive-pull` | Server → Computer | `agentId`, `runId` |
@@ -482,7 +562,12 @@ settings, reminder scripts, host skill discovery, inventory, updates, and Worker
 | A resent `invoke` whose acknowledgement was lost returns the ledger's answer and runs nothing | `apps/computer/src/invocations/ledger-replay.test.ts` | R2 |
 | Timeout and cancel kill the process group and return partial output | `apps/computer/src/invocations/run.test.ts` | R2 |
 | An Agent with no machine or an offline one gets `offline` at once, and a turn with only `haus` calls completes | `apps/server/test/agent-invocations-offline.test.ts` | R2 |
+| After an acknowledgement is lost and the Computer reconnects, an invocation already `unknown` is never sent again, and a late result is recorded without reaching the model | `apps/server/test/agent-invocations-unknown.test.ts` | R2 |
+| A result or write over 1 MiB moves as an attachment reference, and no frame exceeds 1 MiB | `apps/computer/src/invocations/large-payload.test.ts` | R2 |
 | A lone `haus` command runs on the runner, and a composed one is refused with `HAUS_NOT_ALONE` | `apps/runner/src/haus-command.test.ts` | R3 |
+| A runner crash after recording a dispatch accepted reports `unknown` and never sends it again | `apps/runner/src/dispatch-ledger-crash.test.ts` | R3 |
+| A repeated `Haus-Dispatch-Id` on a mutating Agent API route returns the stored result and mutates nothing; one with a different body is refused with `IDEMPOTENCY_KEY_REUSED` | `apps/server/test/agent-api-dispatch-id.test.ts` | R3 |
+| A repeated MCP dispatch id never calls upstream twice | `apps/server/test/mcp-dispatch-id.test.ts` | R3 |
 | The runner cannot import Server or PostgreSQL modules | Oxlint rule tests in `scripts/lint/haus-rules` | R3 |
 | The SDK runs with native tools off and only `mcp__haus__*` tools reachable | `apps/runner/src/claude/claude-tools-live.test.ts` | R3 |
 | Ported Pi and Codex tools keep their upstream behavior | Ported upstream tests, provenance-marked | R2 |

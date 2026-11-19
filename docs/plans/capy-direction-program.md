@@ -67,7 +67,7 @@ and this list only.
 - [ ] Follow this dependency graph.
   - [ ] P0 first.
   - [ ] D1, then D2, then D3 and D4 in parallel, then D5. D5 may start after D2.
-  - [ ] R1 after D4 merges. Then R2 and R3 in parallel. R4 after R2 and R3. R5 after R4.
+  - [ ] R1 after D4 merges. Then R2 and R3 in parallel. R5 after R2 and R3. R4 after R5.
   - [ ] J1 after R4 merges. Then J2. Then J3 and J4 in parallel.
   - [ ] W1 after J2 merges. Then W2. Then W3 and W4 in parallel.
   - [ ] C1 and C2 after W3 merges. Both are independent.
@@ -159,11 +159,11 @@ folder.
 
 ADR 0057 decisions 1 to 12, and ADR 0054 decision 7.
 
-- [ ] **R1. Write the runtime contract.** Rewrite `specs/runtime-drivers.md` for the runner, harnesses, the invocation contract, outcomes including unknown and offline, timeouts, cancellation, and output limits. Update `specs/mcp.md` for relayed agent-browser and the descoped local MCP. Bump `packages/haus-api/computer-protocol.json`.
+- [ ] **R1. Write the runtime contract.** Rewrite `specs/runtime-drivers.md` for the runner, harnesses, the invocation contract, outcomes including unknown and offline, timeouts, cancellation, and output limits. Update `specs/mcp.md` for relayed agent-browser and the descoped local MCP. Name the Computer protocol frames that change. R2 bumps `packages/haus-api/computer-protocol.json` for them, and R4 bumps it again.
 - [ ] **R2. Run tools on Computers by invocation.** The invocation handler, the accepted-before-run ledger, `bash` and the edit tool from Pi's MIT tool code with provenance marked, and agent-browser relayed behind `execute`. Computer gate plus a crash-before-acknowledgement regression.
 - [ ] **R3. Stand up the runner.** A runner process in its own container with a persistent volume, the Claude Agent SDK harness with native tools off and Haus tools bridged, inbox delivery to the runner, prompt composition from Server Drive, and logins in runner settings. Add the Oxlint boundary rules that stop the runner importing Postgres or Server internals. Server gate plus provider smoke.
-- [ ] **R4. Move every Agent to the runner.** One cutover. Delete the Computer Agent session store, the Agent-session parts of the runtime drivers, and Grok Build as an Agent runtime. The Claude Code and Codex drivers stay for Workers. `test:agents` full set and real-app proof.
-- [ ] **R5. Add Pi Durable.** The second harness for every non-Claude model, with its file backend on the runner volume. Each Agent is pinned to one harness, and a switch is an explicit reset. Provider smoke for ChatGPT plans.
+- [ ] **R5. Add Pi Durable.** The second harness for every non-Claude model, with its file backend on the runner volume. It lands before R4, so the cutover has a harness for every Agent. Each Agent is pinned to one harness, and a switch is an explicit reset. Provider smoke for ChatGPT plans.
+- [ ] **R4. Move every Agent to the runner.** One cutover, with both harnesses available. Delete the Computer Agent session store, the Agent-session parts of the runtime drivers, and Grok Build as an Agent runtime. The Claude Code and Codex drivers stay for Workers. `test:agents` full set and real-app proof.
 
 **Verify, live, for the phase.** With every Computer offline, an Agent answers a DM and dispatches nothing to a machine. With its Computer online, it runs `bash` there and edits a file in `drive/`.
 

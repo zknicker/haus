@@ -133,7 +133,9 @@ no MCP grants ([runtime-drivers.md](runtime-drivers.md#execute)). Headless Execu
 runner. Haus supplies `tools.search({query})`, `tools.describe({name})`, and
 `tools.call({name,args})`; each must be awaited. Search and schema lookup read current Server
 grants, and invocation uses the run's Server credential, the same authority as ordinary MCP
-calls. The harness schema and description never contain the changing connection inventory.
+calls. Each `tools.call` is a dispatch with its own id, recorded as accepted on the runner and on
+the Server before upstream is called, and never sent upstream twice
+([runtime-drivers.md](runtime-drivers.md#mcp-calls)). The harness schema and description never contain the changing connection inventory.
 
 Only humans add MCP servers. An Agent's MCP access is exactly the Server connections an Owner or
 Admin granted it, reached through `execute`. Neither harness reads MCP configuration the Agent can
