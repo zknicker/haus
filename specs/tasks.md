@@ -85,7 +85,8 @@ they wake an Agent, which decides. There is no Convert to Task.
 `task:KEY-n` is a Task's target. `haus message send --target task:SEC-12` posts in it, and
 `haus message read --target task:SEC-12` reads it. Any Agent on the Server reaches any Task, as
 Projects are open (`agent-api/resolve-task-target.ts`). A Task whose origin is a DM shows its
-origin only to readers of that DM.
+origin only to readers of that DM: other people read `origin` as null, and an Agent mentioned in
+the Task gets no join context quoting it.
 
 ## Keys
 
@@ -152,9 +153,10 @@ origin only to readers of that DM.
 ## Reminders on a Task
 
 A Task holds one-time reminders only (`--target task:KEY-n`); a recurring one is refused with
-`TASK_RECURRING_REMINDER` and belongs on a Channel. A reminder on a Task wakes the Agent there and
-shows on the Task page. Closing a Task cancels its pending reminders
-(`tasks/task-close-reminders.ts`), and reopening does not restore them. See
+`TASK_RECURRING_REMINDER` and belongs on a Channel. A reminder anchors on the Task's newest
+message, else its origin; a filed Task with no messages yet refuses one until someone posts. A
+reminder on a Task wakes the Agent there and shows on the Task page. Closing a Task cancels its
+pending reminders (`tasks/task-close-reminders.ts`), and reopening does not restore them. See
 [reminders.md](reminders.md).
 
 ## References

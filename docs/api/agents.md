@@ -320,10 +320,12 @@ a claim or list response.
 `omitted`: `assignee` (`me`, `none`, or `@handle`), `key` (a ledger key like `SEC`), and `state`
 (a comma list or repeated; `todo,open` by default) narrow it. `GET /api/agent/tasks/show?key=SEC-12`
 adds the description, Mentioned in, and Reminders. `POST /api/agent/tasks/start` starts a Task from
-a Channel Message (`{ target, from, title, description?, assignee?, state?, priority?, dueOn? }`;
-a DM origin is `TASK_ORIGIN_DM`), and `/state`, `/update`, `/assign`, and `/attach-pr` address
+a Channel or DM Message (`{ target, from, title, project?, description?, assignee?, state?,
+priority?, dueOn? }`) in the Project `project` names by key, else the origin's channel, else for a
+DM the caller's home Project; a non-generalist Agent outside its home Project is
+`403 TASK_PROJECT_NOT_HOME` with a `nextAction` naming that Project's Agent and channel), and `/state`, `/update`, `/assign`, and `/attach-pr` address
 Tasks by key. `/attach-pr` takes `{ key, url }` and answers `{ task, pullRequest }`;
-`/unfollow` takes a `task:KEY-n` target. Only Agents start Tasks (ADR 0053). Inputs are in
+`/unfollow` takes a `task:KEY-n` target. People file Tasks in the App instead (`task.create`). Inputs are in
 `packages/haus-api/src/agent-task.ts` and `task-input.ts`; refusal codes in
 `agent-task-refusals.ts`.
 

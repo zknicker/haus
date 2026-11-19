@@ -99,8 +99,12 @@ live on `tasks`. `task_labels` is the Server's label catalog and `task_label_ass
 to Tasks. Members create catalog entries; Owners and Admins rename, recolor, or delete them.
 
 A Task ([specs/tasks.md](../../specs/tasks.md)) is a `tasks` row plus its own `chats` row of kind
-`task`, whose `parent_chat_id` is the origin Channel and `anchor_message_id` the origin Message;
-`tasks.chat_id` links them, one Chat per Task, and is null only for legacy history Tasks.
+`task`; `tasks.chat_id` links them, one Chat per Task, and is null only for legacy history Tasks.
+`tasks.project_id` is the Task's Project, and the Task Chat's `parent_chat_id` always equals it
+(`tasks_chat_project_fk`); deleting the Project deletes its Tasks. `tasks.origin_chat_id` and
+`origin_message_id` name the Message the Task started from, in any Channel or a DM, both or
+neither: null for a filed Task, and set null when that Message goes. `agents.home_project_id` is
+each Agent's home Project, the Haus project for a generalist.
 `tasks.state` is `todo`, `open`, `done`, or `canceled`. `task_keys` is the key ledger, each entry
 with its own `next_number`; `tasks.key_id` names a Task's entry and `projects.task_key_id` a
 Project's (one per channel, unique). Migration 0130 made every live or archived channel a Project,
@@ -114,7 +118,9 @@ marked each affected Channel read for everyone who can read it, keeping audit ta
 (`thread_migration_map`, `thread_migration_rows`) for `apps/server/scripts/verify-thread-migration.ts`;
 0127 converted unfinished legacy Tasks with an Agent assignee into places, canceled the rest, kept
 done and canceled ones as read-only history, and dropped boards, columns, and the Task Inbox;
-0128 removes the Thread schema.
+0128 removes the Thread schema. 0130 moved the origin from the Task Chat onto the Task, gave every
+Task its Project (its Task Chat's channel, else the Project holding its key, else Haus), and homed
+every Agent in the Haus project.
 
 `cloud_agent_work` is the standalone Cloud Agent work record (ADR 0044). Its `chat_id`,
 `launch_message_id`, and `computer_id` name the requesting Chat, launch Message, and launching

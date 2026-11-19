@@ -3,7 +3,7 @@ summary: The Project tRPC procedures (`project.create`, `project.update`, `proje
 read_when:
   - calling or changing `project.create`, `project.update`, `project.list`, or `project.onUpdated`
   - creating or renaming a channel, or changing its description, icon, color, or key
-  - handling `TASK_KEY_TAKEN` or `PROJECT_KEY_FIXED`
+  - handling `TASK_KEY_TAKEN`, `PROJECT_KEY_FIXED`, `PROJECT_HAS_AGENTS`, or `PROJECT_NAME_FIXED`
 ---
 
 # Projects API
@@ -21,7 +21,8 @@ product logic in `apps/server/src/projects/`. Every procedure runs for an active
 | `project.onUpdated` (subscription) | `serverId` | `{ serverId, projectId }` on create and on every update that changed something |
 
 `project` carries `chatId`, `serverId`, `name`, `key`, `taskKeyId`, `keyEditable` (no Task holds
-the key yet), and `isHaus` (the channel's `isAll`, the Haus project).
+the key yet), `isHaus` (the channel's `isAll`, the Haus project), and `homeAgentIds` (the
+non-retired Agents whose home it is, oldest first).
 
 - `project.create` makes the channel, its creator's membership, its ledger entry, and its
   `projects` row in one transaction. A new Project has no Agents. Without `key` the Server
@@ -33,14 +34,18 @@ the key yet), and `isHaus` (the channel's `isAll`, the Haus project).
 - `project.update` renames the Project's ledger entry in place while no Task holds it.
 - Both publish `chat.onLifecycle` (`created`, or `updated` when a channel field changed) for the
   chat list, and `project.onUpdated`.
+- Archiving or deleting a Project goes through `chat.archiveChannel` and `chat.deleteChannel`.
+  Deleting one deletes its Tasks with their Chats; cloud work they had stays and leaves them.
 
 ## Refusals
 
-Refused key writes carry `data.project.code` on the tRPC error.
+Project refusals carry `data.project.code` on the tRPC error.
 
 | Code | When |
 | --- | --- |
 | `TASK_KEY_TAKEN` (`CONFLICT`) | The key is already a ledger entry on the Server: another Project's, or one held by Tasks |
 | `PROJECT_KEY_FIXED` (`CONFLICT`) | A Task already carries this Project's key |
+| `PROJECT_NAME_FIXED` (`CONFLICT`) | Renaming the Haus project's channel, which is always `haus` |
+| `PROJECT_HAS_AGENTS` (`CONFLICT`) | `chat.archiveChannel` or `chat.deleteChannel` on a Project that is still some Agent's home; the message names them |
 | `CONFLICT` "A channel already uses that name." | The name is taken by any channel, archived or deleted included |
 | `NOT_FOUND` | The chat is not a Project on the Server |

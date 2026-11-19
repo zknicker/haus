@@ -137,7 +137,7 @@ starts with a digit is prefixed with `P` before step 2.
   prompt contract.
 - Every member of the Server belongs to the Haus project's channel, as they belong to `#all` today.
 - Its rules are `haus/AGENTS.md`. It has no `projects/<key>/` folder, and its Drive area is `haus`.
-- It cannot be archived or deleted.
+- It cannot be archived or deleted, and its channel cannot be renamed (`PROJECT_NAME_FIXED`).
 - Its key is the key `#all` used, which is `GEN` on every Server that never configured another.
 
 ## Generalists
@@ -167,11 +167,12 @@ starts with a digit is prefixed with `P` before step 2.
 ## Archiving and deleting
 
 - A Project with home Agents cannot be archived or deleted. The Server refuses with
-  `PROJECT_HAS_AGENTS` and names them. A person moves them first.
+  `PROJECT_HAS_AGENTS` and names them. A person moves them first. Retired Agents do not count;
+  deleting the Project moves any retired Agent homed there to the Haus project.
 - Otherwise archiving and deleting a Project are the channel's archive and delete
   ([chats.md](chats.md#config-and-observation)). Deleting a Project deletes its Tasks with the
   channel, its `projects` row, and its repos. Its key's ledger entry stays, so its numbers are
-  never reused.
+  never reused. Cloud work attached to those Tasks stays and loses its Task.
 
 ## Migration from channels
 

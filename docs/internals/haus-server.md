@@ -283,9 +283,9 @@ See [Skills](../features/skills.md) and [Skills API](../api/skills.md).
 `apps/server/src/postgres/schema/` is the typed schema of record, and
 `apps/server/drizzle/postgres/` contains its ordered Drizzle migration history.
 Fresh bootstrap applies that history to an empty database; it does not maintain
-a second handwritten schema. The migration history carries the one composite
-anchor-Message foreign key (a Task Chat's origin) that cannot live in the typed modules without a
-`chats`/`chat_messages` initializer cycle. Each production activation applies
+a second handwritten schema. The migration history carries the one foreign key that cannot live
+in the typed modules without a schema import cycle: `agents_home_project_fk`, an Agent's home
+Project (migration 0130). Each production activation applies
 pending checked-in migrations before switching releases. The Server application
 role retains table DML authority but no DDL authority; only the root-scoped
 bootstrap/migration login can change the schema.
