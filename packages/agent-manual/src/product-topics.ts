@@ -152,7 +152,7 @@ The receipt returns the new \`@handle\` and the channels it landed in.
 
 \`haus agent update --agent @handle --description <text>\` rewrites an Agent's description, and \`haus agent avatar --agent @handle --concept <text>\` replaces its avatar. Cove's identity is protected: both refuse on Cove.
 
-The Agent profile in Haus App is where a human owns these values, along with runtime, model, and reasoning effort at Agent profile → Runs on, which an Owner or Admin alone changes. Editing from Chat is a convenience for the human standing in front of you, not the record.`,
+The Agent profile in Haus App is where a human owns these values, along with runtime, model, and reasoning effort at Captain profile → Runs on, which an Owner or Admin alone changes. Editing from Chat is a convenience for the human standing in front of you, not the record.`,
         id: 'agent',
         kind: 'overview',
         related: ['haus-cli-overview', 'recipes/decision/when-to-ask-human'],

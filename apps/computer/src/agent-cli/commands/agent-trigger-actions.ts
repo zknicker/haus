@@ -128,7 +128,7 @@ export async function runTriggerDelete(args: ParsedArgs, deps: TriggerDeps): Pro
         { method: 'DELETE' }
     );
     deps.write(
-        `Removed trigger ${response.id}. Recent fire history stays in the Agent profile for 30 days; provenance marks stay with their messages.\n`
+        `Removed trigger ${response.id}. Recent fire history stays in the Captain profile for 30 days; provenance marks stay with their messages.\n`
     );
     return 0;
 }
