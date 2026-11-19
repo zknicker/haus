@@ -19,7 +19,6 @@ export interface PinnedRequestTarget {
 
 const redirectStatuses = new Set([301, 302, 303, 307, 308]);
 const replayStatuses = new Set([307, 308]);
-const CREDENTIAL_HEADERS = ['authorization', 'cookie', 'proxy-authorization'];
 const maxHops = 5;
 
 // Errors that mean the socket never connected, so nothing was sent and the
@@ -65,7 +64,7 @@ export class CrossOriginRedirectError extends Error {
 
     constructor(label: string, status: number, from: URL, to: URL) {
         super(
-            `${label}: refused a ${status} redirect from ${from.origin} to ${to.origin} because it would resend the request body or credentials to another origin.`
+            `${label}: refused a ${status} redirect from ${from.origin} to ${to.origin} because it would resend the request body to another origin.`
         );
         this.name = 'CrossOriginRedirectError';
         this.fromOrigin = from.origin;
@@ -159,7 +158,7 @@ export async function safeFetch(
         await response.body?.cancel();
         const redirectUrl = new URL(location, url);
         const crossOrigin = !isSameOrigin(url, redirectUrl);
-        if (crossOrigin && replayStatuses.has(response.status) && carriesSecrets(requestInit)) {
+        if (crossOrigin && replayStatuses.has(response.status) && requestInit.body != null) {
             throw new CrossOriginRedirectError(label, response.status, url, redirectUrl);
         }
         requestInit = nextRequestInit(requestInit, response.status, crossOrigin);
@@ -238,14 +237,6 @@ function nextRequestInit(
         return next;
     }
     return { ...next, headers: stripCrossOriginHeaders(new Headers(next.headers)) };
-}
-
-function carriesSecrets(requestInit: RequestInit): boolean {
-    if (requestInit.body != null) {
-        return true;
-    }
-    const headers = new Headers(requestInit.headers);
-    return CREDENTIAL_HEADERS.some((name) => headers.has(name));
 }
 
 function isSameOrigin(a: URL, b: URL): boolean {

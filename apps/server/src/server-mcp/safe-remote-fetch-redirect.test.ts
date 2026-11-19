@@ -8,6 +8,7 @@ const fakeSecret = 'fake-client-secret';
 const fakeCode = 'fake-authorization-code';
 
 interface Received {
+    authorization: null | string;
     body: string;
     contentType: null | string;
     method: string;
@@ -26,6 +27,7 @@ function startOrigin(redirect?: { location: (origin: string) => string; status: 
         async fetch(request) {
             const url = new URL(request.url);
             received.push({
+                authorization: request.headers.get('authorization'),
                 body: await request.text(),
                 contentType: request.headers.get('content-type'),
                 method: request.method,
@@ -74,24 +76,27 @@ describe('safeFetch redirect replay', () => {
         expect(error).toBeInstanceOf(CrossOriginRedirectError);
         expect(error).toMatchObject({ fromOrigin: source.origin, status, toOrigin: target.origin });
         expect((error as Error).message).toBe(
-            `MCP and OAuth request: refused a ${status} redirect from ${source.origin} to ${target.origin} because it would resend the request body or credentials to another origin.`
+            `MCP and OAuth request: refused a ${status} redirect from ${source.origin} to ${target.origin} because it would resend the request body to another origin.`
         );
         expect(target.received).toEqual([]);
     });
 
-    test('refuses a cross-origin 307 for a bodyless request with an Authorization header', async () => {
+    test('follows a cross-origin 307 for an authenticated GET without forwarding Authorization', async () => {
         const target = startOrigin();
         const source = startOrigin({ location: () => `${target.origin}/mcp`, status: 307 });
 
-        await expect(
-            safeFetch(
-                `${source.origin}/token`,
-                { headers: { authorization: 'Bearer fake-token' } },
-                label,
-                allowLoopback
-            )
-        ).rejects.toBeInstanceOf(CrossOriginRedirectError);
-        expect(target.received).toEqual([]);
+        const response = await safeFetch(
+            `${source.origin}/token`,
+            { headers: { authorization: 'Bearer fake-token' } },
+            label,
+            allowLoopback
+        );
+
+        expect(response.status).toBe(200);
+        expect(source.received[0]?.authorization).toBe('Bearer fake-token');
+        expect(target.received).toEqual([
+            { authorization: null, body: '', contentType: null, method: 'GET', path: '/mcp' },
+        ]);
     });
 
     test('follows a cross-origin 307 for a GET without credentials', async () => {
@@ -102,7 +107,7 @@ describe('safeFetch redirect replay', () => {
 
         expect(response.status).toBe(200);
         expect(target.received).toEqual([
-            { body: '', contentType: null, method: 'GET', path: '/icon.png' },
+            { authorization: null, body: '', contentType: null, method: 'GET', path: '/icon.png' },
         ]);
     });
 
@@ -137,7 +142,7 @@ describe('safeFetch redirect replay', () => {
 
         expect(response.status).toBe(200);
         expect(target.received).toEqual([
-            { body: '', contentType: null, method: 'GET', path: '/done' },
+            { authorization: null, body: '', contentType: null, method: 'GET', path: '/done' },
         ]);
     });
 });
