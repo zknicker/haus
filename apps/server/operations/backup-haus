@@ -66,7 +66,8 @@ pg pg_restore --list <"${partial}/haus.dump" >/dev/null
 step=runner-volume
 runner=not-applicable
 if [ -n "$container" ]; then
-    if docker volume ls --quiet | /usr/bin/grep -qx "$runner_volume"; then
+    volumes=$(docker volume ls --quiet)
+    if printf '%s\n' "$volumes" | /usr/bin/grep -qx "$runner_volume"; then
         image=$(docker inspect --format '{{.Config.Image}}' "$container")
         docker run --rm --network none --volume "${runner_volume}:/data:ro" \
             --entrypoint tar "$image" -C /data -czf - . >"${partial}/runner-data.tar.gz"

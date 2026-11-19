@@ -1,5 +1,16 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { randomBytes } from 'node:crypto';
+import {
+    copyFileSync,
+    existsSync,
+    mkdirSync,
+    mkdtempSync,
+    readdirSync,
+    readFileSync,
+    rmSync,
+    statSync,
+    writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -101,6 +112,31 @@ test('restores the latest dump into a throwaway database and drops it', async ()
     }
 });
 
+test('fails verification when the runner archive is truncated', () => {
+    const latest = readdirSync(join(backupRoot, 'nightly')).sort().at(-1) ?? '';
+    const scratch = mkdtempSync(join(tmpdir(), 'haus-truncated-backup-'));
+    try {
+        const backup = join(scratch, 'backup');
+        const runnerData = join(scratch, 'runner-data');
+        mkdirSync(backup);
+        mkdirSync(runnerData);
+        writeFileSync(join(runnerData, 'session.jsonl'), randomBytes(200_000));
+        copyFileSync(join(backupRoot, 'nightly', latest, 'haus.dump'), join(backup, 'haus.dump'));
+        const archive = join(backup, 'runner-data.tar.gz');
+        const pack = Bun.spawnSync(['/usr/bin/tar', '-czf', archive, '-C', runnerData, '.']);
+        expect(pack.exitCode).toBe(0);
+        const whole = readFileSync(archive);
+        writeFileSync(archive, whole.subarray(0, Math.floor(whole.length / 2)));
+
+        const verify = runScript(verifyScript, environment, [backup]);
+
+        expect(verify.exitCode).not.toBe(0);
+        expect(verify.stdout).not.toContain('haus-backup-verify ok');
+    } finally {
+        rmSync(scratch, { force: true, recursive: true });
+    }
+});
+
 test('logs the failing step and leaves no partial backup when the dump fails', () => {
     const before = readdirSync(join(backupRoot, 'nightly'), { withFileTypes: false });
 
@@ -150,8 +186,12 @@ test('ships a nightly LaunchDaemon that logs beside the Server', () => {
     });
 });
 
-function runScript(script: string, env: Record<string, string>) {
-    const result = Bun.spawnSync(['/bin/sh', script], { env, stderr: 'pipe', stdout: 'pipe' });
+function runScript(script: string, env: Record<string, string>, args: string[] = []) {
+    const result = Bun.spawnSync(['/bin/sh', script, ...args], {
+        env,
+        stderr: 'pipe',
+        stdout: 'pipe',
+    });
     return {
         exitCode: result.exitCode,
         stderr: result.stderr.toString(),

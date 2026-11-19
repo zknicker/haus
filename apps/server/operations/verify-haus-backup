@@ -62,7 +62,8 @@ fi
 
 runner=absent
 if [ -e "${backup}/runner-data.tar.gz" ]; then
-    entries=$(/usr/bin/tar -tzf "${backup}/runner-data.tar.gz" | /usr/bin/wc -l | /usr/bin/tr -d ' ')
+    listing=$(/usr/bin/tar -tzf "${backup}/runner-data.tar.gz")
+    entries=$(printf '%s\n' "$listing" | /usr/bin/wc -l | /usr/bin/tr -d ' ')
     runner="entries=${entries}"
 fi
 
