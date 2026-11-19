@@ -109,6 +109,7 @@ export function AgentsUsageOverview({ serverId }: { serverId: string }) {
                 <TokenUsageDashboard
                     controls={
                         <>
+                            <TokenUsageRangePicker days={days} onChange={setDays} />
                             {view.agents.length > 0 ? (
                                 <AgentUsageScopePicker
                                     agents={view.agents}
@@ -116,7 +117,6 @@ export function AgentsUsageOverview({ serverId }: { serverId: string }) {
                                     selectedAgentId={view.selectedAgent?.agentId ?? null}
                                 />
                             ) : null}
-                            <TokenUsageRangePicker days={days} onChange={setDays} />
                         </>
                     }
                     view={view}

@@ -68,12 +68,12 @@ export const appPlaces: readonly AppPlace[] = [
     {
         area: 'people-and-agents',
         task: 'Invite someone to this Server',
-        path: ['Settings', 'Members', 'Invite by email'],
+        path: ['Settings', 'Members', 'Invite'],
         who: 'owner-or-admin',
         anchors: [
             settingsEntry(),
             settingsSection('members'),
-            label('features/servers/invite-popover.tsx', 'Invite by email'),
+            label('features/servers/invite-popover.tsx', 'Invite'),
         ],
     },
     {
@@ -200,7 +200,7 @@ export const appPlaces: readonly AppPlace[] = [
         task: 'Add a Computer',
         path: ['Settings', 'Devices', 'Add device'],
         who: 'owner-or-admin',
-        note: 'It is the + beside Devices.',
+        note: 'It is the Add device button on Devices.',
         anchors: [settingsEntry(), computers(), label(computersGroup, 'Add device')],
     },
     {

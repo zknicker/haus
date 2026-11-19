@@ -223,7 +223,7 @@ management remain Owner/Admin-only.
 
 Server settings apply to every Agent on the Server. Every member reads them with
 `server.settings`; only an Owner changes them, and they render in the App under
-Settings → Server → Agents. Today there is one: **Idle compaction**
+Settings → General → Captains. Today there is one: **Idle compaction**
 (`servers.idle_compaction`, `server.setIdleCompaction`, default off), the launch gate
 for compacting parked Claude Code sessions before their prompt cache expires
 (specs/runtime-drivers.md "Idle compaction"). The settings a Computer's runtimes
