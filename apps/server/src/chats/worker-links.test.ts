@@ -11,7 +11,7 @@ describe('applyWorkerLinks', () => {
         const content = `See ${formatWorkerLink('Fix [it]', seen)} and [Secret](worker://${hidden}).`;
         expect(applyWorkerLinks(content, new Set([seen]))).toEqual({
             content: `See [Fix \\[it](worker://${seen}) and Secret.`,
-            links: [{ ordinal: 0, workId: seen }],
+            links: [{ ordinal: 0, workerId: seen }],
         });
     });
 
@@ -22,8 +22,8 @@ describe('applyWorkerLinks', () => {
             `[B again](worker://${other})`,
         ].join(' ');
         expect(applyWorkerLinks(content, new Set([seen, other])).links).toEqual([
-            { ordinal: 0, workId: other },
-            { ordinal: 1, workId: seen },
+            { ordinal: 0, workerId: other },
+            { ordinal: 1, workerId: seen },
         ]);
     });
 
@@ -42,7 +42,7 @@ describe('applyWorkerLinks', () => {
     test('replaying with the recorded links reproduces the stored content', () => {
         const authored = `[Mine](worker://${seen}) [Theirs](worker://${hidden})`;
         const stored = applyWorkerLinks(authored, new Set([seen]));
-        const recorded = new Set(stored.links.map((link) => link.workId));
+        const recorded = new Set(stored.links.map((link) => link.workerId));
         expect(applyWorkerLinks(authored, recorded)).toEqual(stored);
     });
 });

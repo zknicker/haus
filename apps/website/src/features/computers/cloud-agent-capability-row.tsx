@@ -20,7 +20,7 @@ export function CloudAgentCapabilityRow({
     onSetEnvironment: (environmentId: string) => void;
     view: CloudAgentCapabilityView;
 }) {
-    const title = `${view.providerName} Workers`;
+    const title = `${view.providerName} Cloud Agents`;
     return (
         <ItemCard>
             <ItemCard.Content>

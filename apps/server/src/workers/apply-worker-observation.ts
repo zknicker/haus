@@ -70,14 +70,14 @@ export async function applyWorkerObservation(
                 workersTable,
                 and(
                     eq(workersTable.serverId, workerTurnsTable.serverId),
-                    eq(workersTable.id, workerTurnsTable.workId)
+                    eq(workersTable.id, workerTurnsTable.workerId)
                 )
             )
             .where(
                 and(
                     eq(workerTurnsTable.serverId, input.serverId),
-                    eq(workerTurnsTable.id, observation.runId),
-                    eq(workerTurnsTable.workId, observation.workId)
+                    eq(workerTurnsTable.id, observation.turnId),
+                    eq(workerTurnsTable.workerId, observation.workerId)
                 )
             )
             .limit(1);
@@ -110,7 +110,7 @@ export async function applyWorkerObservation(
             .where(
                 and(
                     eq(workerTurnsTable.serverId, input.serverId),
-                    eq(workerTurnsTable.id, observation.runId)
+                    eq(workerTurnsTable.id, observation.turnId)
                 )
             );
 
@@ -126,7 +126,7 @@ export async function applyWorkerObservation(
             .where(
                 and(
                     eq(workerTurnsTable.serverId, input.serverId),
-                    eq(workerTurnsTable.workId, observation.workId)
+                    eq(workerTurnsTable.workerId, observation.workerId)
                 )
             )
             .orderBy(desc(workerTurnsTable.createdAt))
@@ -136,7 +136,7 @@ export async function applyWorkerObservation(
         await tx
             .update(workersTable)
             .set(
-                latestRun?.id === observation.runId
+                latestRun?.id === observation.turnId
                     ? workObservationUpdate(observation, projectWorker(lifecycle))
                     : {
                           updatedAt: sql`greatest(${workersTable.updatedAt}, ${observation.observedAt}::timestamptz)`,
@@ -145,12 +145,12 @@ export async function applyWorkerObservation(
             .where(
                 and(
                     eq(workersTable.serverId, input.serverId),
-                    eq(workersTable.id, observation.workId)
+                    eq(workersTable.id, observation.workerId)
                 )
             );
 
         if (step.settled) {
-            await deleteQueuedStallNotices(tx, input.serverId, observation.runId);
+            await deleteQueuedStallNotices(tx, input.serverId, observation.turnId);
         }
         // The notice goes to the Chat that asked for the work, never to a later
         // link (ADR 0044). If that Chat is gone, the work settles (or keeps
@@ -164,22 +164,22 @@ export async function applyWorkerObservation(
                 agentId: row.agentId,
                 chatId: row.chatId,
                 workerNotice: notice.kind,
-                workerTurnId: observation.runId,
+                workerTurnId: observation.turnId,
                 content: '',
-                dedupeKey: noticeDedupeKey(observation.runId, notice, step.stall),
+                dedupeKey: noticeDedupeKey(observation.turnId, notice, step.stall),
                 serverId: input.serverId,
                 source: 'cloud_agent_work',
             });
         }
 
-        const work = await findWorker(tx, input.serverId, observation.workId);
+        const work = await findWorker(tx, input.serverId, observation.workerId);
         if (!work) {
             throw new Error('The Worker could not be projected after an observation.');
         }
         return {
             events: await prepareWorkerEvents(tx, {
                 serverId: input.serverId,
-                workId: observation.workId,
+                workerId: observation.workerId,
             }),
             wake: notice ? { agentId: row.agentId, serverId: input.serverId } : null,
             work,
@@ -247,13 +247,13 @@ async function deliverableNotice(
 }
 
 /** One outcome replaces every stall reminder the Agent has not read yet. */
-async function deleteQueuedStallNotices(db: HausDatabase, serverId: string, runId: string) {
+async function deleteQueuedStallNotices(db: HausDatabase, serverId: string, turnId: string) {
     await db
         .delete(agentInboxTable)
         .where(
             and(
                 eq(agentInboxTable.serverId, serverId),
-                eq(agentInboxTable.workerTurnId, runId),
+                eq(agentInboxTable.workerTurnId, turnId),
                 eq(agentInboxTable.workerNotice, 'stall'),
                 eq(agentInboxTable.state, 'queued')
             )

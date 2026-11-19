@@ -8,7 +8,7 @@ export interface WorkerSendRequest {
     instructions: string;
     interrupt: boolean;
     nonce: string;
-    workId: string;
+    workerId: string;
 }
 
 export async function sendWorker(input: {
@@ -34,22 +34,22 @@ export async function sendWorker(input: {
         throw new WorkerServerError(payload);
     }
     const receipt = agentWorkerSendReceiptSchema.parse(payload);
-    const providerAgentId = receipt.work.providerAgentId;
+    const providerAgentId = receipt.worker.providerAgentId;
     if (!providerAgentId) {
         throw new Error('Worker identity is not confirmed yet. Inspect it before sending.');
     }
-    const run = receipt.work.runs.find((candidate) => candidate.runId === receipt.runId);
+    const run = receipt.worker.turns.find((candidate) => candidate.turnId === receipt.turnId);
     const ref = {
-        provider: receipt.work.provider,
+        provider: receipt.worker.provider,
         providerAgentId,
         providerRunId: run?.providerRunId ?? null,
-        runId: receipt.runId,
-        workId: receipt.work.id,
+        turnId: receipt.turnId,
+        workerId: receipt.worker.id,
     };
     const journal = new CloudLaunchJournal(input.dataRoot);
     const claimed = await journal.claim(input.serverId, ref, {
         phase: 'pending',
-        workId: ref.workId,
+        workerId: ref.workerId,
         instructions,
         interrupt,
         model: cloudAgentModelSelectionOf(run?.model),

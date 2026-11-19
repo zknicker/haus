@@ -38,14 +38,18 @@ export function workerFixture(overrides: Partial<Worker> = {}): Worker {
         updatedAt: at,
         ...overrides,
     };
-    const runs = overrides.runs ?? [
+    const runs = overrides.turns ?? [
         workerTurnFixture({
             startedAt: base.status === 'queued' ? null : base.startedAt,
             status: base.status,
             terminalAt: base.terminalAt,
         }),
     ];
-    return { ...base, job: overrides.job ?? deriveWorkerJob({ ...base, runs }), runs };
+    return {
+        ...base,
+        job: overrides.job ?? deriveWorkerJob({ ...base, turns: runs }),
+        turns: runs,
+    };
 }
 
 export function workerTurnFixture(overrides: Partial<WorkerTurn> = {}): WorkerTurn {
@@ -59,7 +63,7 @@ export function workerTurnFixture(overrides: Partial<WorkerTurn> = {}): WorkerTu
         providerRunId: status === 'queued' ? null : 'run_cursor',
         rawStatus: null,
         report: null,
-        runId: 'car_one',
+        turnId: 'car_one',
         stall: null,
         startedAt: status === 'queued' ? null : at,
         status,

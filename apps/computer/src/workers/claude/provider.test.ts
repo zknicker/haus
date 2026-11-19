@@ -14,8 +14,8 @@ const ref: WorkerTurnRef = {
     provider: 'claude',
     providerAgentId: 'session_01Work',
     providerRunId: null,
-    runId: 'car_run',
-    workId: 'caw_work',
+    turnId: 'car_run',
+    workerId: 'caw_work',
 };
 
 function recordedController(input: {
@@ -191,7 +191,7 @@ test('a follow-up Claude already took is not delivered twice, and resolves no fr
             instructions: 'Trim the copy.',
             model: null,
             providerAgentId: 'session_01Work',
-            workId: 'caw_work',
+            workerId: 'caw_work',
         })
     ).toEqual({
         environmentId: null,

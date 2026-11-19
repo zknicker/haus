@@ -24,7 +24,7 @@ test('one update per linking Message refreshes each Message and its own Chat lis
     harness.ops.splice(0);
 
     // The Server fans one lifecycle change out to every linking Message (ADR 0044).
-    const work = { serverId, taskId: null, workId: 'caw_1' };
+    const work = { serverId, taskId: null, workerId: 'caw_1' };
     harness.emit(path, {
         ...work,
         chatId: 'cht_launch',
@@ -79,7 +79,7 @@ test('an update naming a Task refreshes exactly that Task, by key and by id', as
         messageId: 'msg_launch',
         serverId,
         taskId: 'tsk_12',
-        workId: 'caw_new',
+        workerId: 'caw_new',
     });
     const ops = harness.ops.splice(0);
     await mounted.unmount();

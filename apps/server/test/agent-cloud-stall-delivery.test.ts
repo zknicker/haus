@@ -23,9 +23,9 @@ afterAll(async () => {
 test('a stall notice reaches the Agent as a valid inbox item', async () => {
     const seed = await seedAgent(connection.db);
     const { delivery, wake } = offlineDelivery(connection.db, seed);
-    const runId = await seedRun(seed);
-    const key = `${runId}:stall:1793941134000:0`;
-    await queueNotice(delivery, seed, runId, key);
+    const turnId = await seedRun(seed);
+    const key = `${turnId}:stall:1793941134000:0`;
+    await queueNotice(delivery, seed, turnId, key);
 
     const frame = await wake();
 
@@ -33,7 +33,7 @@ test('a stall notice reaches the Agent as a valid inbox item', async () => {
     expect(items.map((item) => item.id)).toEqual([key]);
     expect(items[0]?.worker).toMatchObject({
         notice: 'stall',
-        runId,
+        turnId,
         stallCode: 'claude-prompt-not-found',
     });
 });
@@ -41,10 +41,10 @@ test('a stall notice reaches the Agent as a valid inbox item', async () => {
 test('a deleted Run takes its queued notice with it, so the message behind it is delivered', async () => {
     const seed = await seedAgent(connection.db);
     const { delivery, wake } = offlineDelivery(connection.db, seed);
-    const runId = await seedRun(seed);
-    await queueNotice(delivery, seed, runId, runId);
+    const turnId = await seedRun(seed);
+    await queueNotice(delivery, seed, turnId, turnId);
     const messageId = await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
-    await connection.db.delete(workerTurnsTable).where(eq(workerTurnsTable.id, runId));
+    await connection.db.delete(workerTurnsTable).where(eq(workerTurnsTable.id, turnId));
 
     const frame = await wake();
 
@@ -54,14 +54,14 @@ test('a deleted Run takes its queued notice with it, so the message behind it is
 async function queueNotice(
     delivery: ReturnType<typeof offlineDelivery>['delivery'],
     seed: Seed,
-    runId: string,
+    turnId: string,
     dedupeKey: string
 ) {
     await delivery.deliver({
         agentId: seed.agentId,
         chatId: seed.dmChatId,
-        workerNotice: dedupeKey === runId ? 'settled' : 'stall',
-        workerTurnId: runId,
+        workerNotice: dedupeKey === turnId ? 'settled' : 'stall',
+        workerTurnId: turnId,
         content: '',
         dedupeKey,
         serverId: seed.serverId,
@@ -70,13 +70,13 @@ async function queueNotice(
 }
 
 async function seedRun(seed: Seed): Promise<string> {
-    const workId = createOpaqueId('caw');
-    const runId = createOpaqueId('car');
+    const workerId = createOpaqueId('caw');
+    const turnId = createOpaqueId('car');
     await connection.db.insert(workersTable).values({
         agentId: seed.agentId,
         chatId: seed.dmChatId,
         computerId: seed.computerId,
-        id: workId,
+        id: workerId,
         launchMessageId: createOpaqueId('msg'),
         provider: 'claude',
         repository: 'haus/haus',
@@ -87,10 +87,10 @@ async function seedRun(seed: Seed): Promise<string> {
     await connection.db.insert(workerTurnsTable).values({
         stallCode: 'claude-prompt-not-found',
         stallSince: new Date(),
-        id: runId,
+        id: turnId,
         serverId: seed.serverId,
         status: 'running',
-        workId,
+        workerId,
     });
-    return runId;
+    return turnId;
 }

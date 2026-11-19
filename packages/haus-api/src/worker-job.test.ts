@@ -8,7 +8,7 @@ const settledAt = '2026-09-04T12:20:00.000Z';
 
 function run(
     status: WorkerTurnStatus,
-    overrides: Partial<Parameters<typeof deriveWorkerJob>[0]['runs'][number]> = {}
+    overrides: Partial<Parameters<typeof deriveWorkerJob>[0]['turns'][number]> = {}
 ) {
     const settled = ['pending_input', 'completed', 'failed', 'cancelled', 'expired'].includes(
         status
@@ -26,10 +26,10 @@ function run(
     };
 }
 
-function job(...runs: ReturnType<typeof run>[]) {
-    const [newest] = runs;
+function job(...turns: ReturnType<typeof run>[]) {
+    const [newest] = turns;
     return deriveWorkerJob({
-        runs,
+        turns,
         startedAt: newest?.startedAt ?? null,
         status: newest?.status ?? 'queued',
         terminalAt: newest?.terminalAt ?? null,
@@ -213,7 +213,7 @@ describe('deriveWorkerJob', () => {
 
     test('a work with no Run reads from its own lifecycle', () => {
         expect(
-            deriveWorkerJob({ runs: [], startedAt: null, status: 'queued', terminalAt: null })
+            deriveWorkerJob({ turns: [], startedAt: null, status: 'queued', terminalAt: null })
         ).toEqual({ followUp: null, startedAt: null, state: 'working' });
     });
 });

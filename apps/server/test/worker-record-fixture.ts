@@ -178,17 +178,17 @@ export function workerRecordFixture() {
                 code?: string;
                 idempotent?: boolean;
                 messageId?: string;
-                runId?: string;
+                turnId?: string;
                 target?: string;
-                work?: Worker;
+                worker?: Worker;
             },
             status: response.status,
         };
     }
 
-    async function postCancel(runner: { token: string }, workId: string) {
+    async function postCancel(runner: { token: string }, workerId: string) {
         const response = await fetch(new URL('/api/agent/workers/cancel', harness.url), {
-            body: JSON.stringify({ workId }),
+            body: JSON.stringify({ workerId }),
             headers: {
                 authorization: `Bearer ${runner.token}`,
                 'content-type': 'application/json',

@@ -21,9 +21,9 @@ const orphan = {
     provider: 'cursor' as const,
     providerAgentId: null,
     providerRunId: null,
-    runId: 'car_orphan1234567890',
+    turnId: 'car_orphan1234567890',
     status: 'queued' as const,
-    workId: 'caw_1234567890abcdef',
+    workerId: 'caw_1234567890abcdef',
 };
 const cleanup: Array<() => Promise<void>> = [];
 afterEach(async () => {
@@ -84,7 +84,7 @@ test('a Run with no Computer record settles failed after the grace window', asyn
     await f.tickUntil(() => f.observations.some((observation) => observation.status === 'failed'));
     expect(f.observations.at(-1)).toMatchObject({
         errorCode: 'launch-record-missing',
-        runId: orphan.runId,
+        turnId: orphan.turnId,
         status: 'failed',
     });
     expect(f.observations.at(-1)?.summary).toContain('never reached the provider');
@@ -100,7 +100,7 @@ test('stopping a Run with no Computer record settles it cancelled at once', asyn
     expect(f.observations.map((observation) => observation.status)).toEqual(['cancelled']);
     expect(await f.journal.read('srv_cloud', orphan)).toEqual({
         phase: 'cancelled',
-        workId: orphan.workId,
+        workerId: orphan.workerId,
     });
     expect(f.calls).toEqual([]);
 });
@@ -135,14 +135,14 @@ test('a follow-up stuck behind a Claude predecessor that is idle with open backg
         provider: 'claude' as const,
         providerAgentId: 'cse_stuck',
         providerRunId: 'r_predecessor',
-        runId: 'car_predecessor123456',
-        workId: 'caw_stuck1234567890',
+        turnId: 'car_predecessor123456',
+        workerId: 'caw_stuck1234567890',
     };
-    const followUp = { ...stuckPredecessor, providerRunId: null, runId: 'car_followup1234567' };
+    const followUp = { ...stuckPredecessor, providerRunId: null, turnId: 'car_followup1234567' };
     const f = await fixture(stuckClaudeTracked(createFakeCloudAgentProvider()));
     await f.journal.claim('srv_cloud', followUp, {
         phase: 'pending',
-        workId: followUp.workId,
+        workerId: followUp.workerId,
         providerAgentId: 'cse_stuck',
         instructions: 'Address the review.',
         interrupt: false,
@@ -150,7 +150,7 @@ test('a follow-up stuck behind a Claude predecessor that is idle with open backg
     });
     await f.work.reconcile([{ ...followUp, cancelRequested: false, status: 'queued' as const }]);
     const delivered = (observation: WorkerObservation) =>
-        observation.runId === followUp.runId && observation.providerRunId !== undefined;
+        observation.turnId === followUp.turnId && observation.providerRunId !== undefined;
     await f.tickUntil(
         () => f.observations.some(delivered),
         // Longer than the 30-minute delivery deadline (5s ticks): a timeout here would
@@ -166,10 +166,10 @@ test('a follow-up waiting on a genuinely busy predecessor reports why, instead o
         provider: 'cursor' as const,
         providerAgentId: 'bc_busy',
         providerRunId: 'r_busy',
-        runId: 'car_busypredecessor12',
-        workId: 'caw_busy1234567890',
+        turnId: 'car_busypredecessor12',
+        workerId: 'caw_busy1234567890',
     };
-    const followUp = { ...busyPredecessor, providerRunId: null, runId: 'car_busyfollowup1234' };
+    const followUp = { ...busyPredecessor, providerRunId: null, turnId: 'car_busyfollowup1234' };
     const busyTracked: CloudAgentProvider = {
         ...createFakeCloudAgentProvider(),
         read: () =>
@@ -182,7 +182,7 @@ test('a follow-up waiting on a genuinely busy predecessor reports why, instead o
     const f = await fixture(busyTracked);
     await f.journal.claim('srv_cloud', followUp, {
         phase: 'pending',
-        workId: followUp.workId,
+        workerId: followUp.workerId,
         providerAgentId: 'bc_busy',
         instructions: 'Address the review.',
         interrupt: false,
@@ -190,10 +190,10 @@ test('a follow-up waiting on a genuinely busy predecessor reports why, instead o
     });
     await f.work.reconcile([{ ...followUp, cancelRequested: false, status: 'queued' as const }]);
     await f.tickUntil(() =>
-        f.observations.some((observation) => observation.runId === followUp.runId)
+        f.observations.some((observation) => observation.turnId === followUp.turnId)
     );
     expect(
-        f.observations.find((observation) => observation.runId === followUp.runId)
+        f.observations.find((observation) => observation.turnId === followUp.turnId)
     ).toMatchObject({
         activity: {
             summary: 'Waiting for an earlier Run to finish before sending this follow-up.',
@@ -210,15 +210,15 @@ test('several follow-ups queued behind the same stuck predecessor each settle in
         provider: 'claude' as const,
         providerAgentId: 'cse_stuck',
         providerRunId: 'r_predecessor',
-        runId: 'car_predecessor654321',
-        workId: 'caw_stuck0987654321',
+        turnId: 'car_predecessor654321',
+        workerId: 'caw_stuck0987654321',
     };
-    const followUp1 = { ...stuckPredecessor, providerRunId: null, runId: 'car_followup_a' };
-    const followUp2 = { ...stuckPredecessor, providerRunId: null, runId: 'car_followup_b' };
+    const followUp1 = { ...stuckPredecessor, providerRunId: null, turnId: 'car_followup_a' };
+    const followUp2 = { ...stuckPredecessor, providerRunId: null, turnId: 'car_followup_b' };
     const f = await fixture(stuckClaudeTracked(createFakeCloudAgentProvider()));
     await f.journal.claim('srv_cloud', followUp1, {
         phase: 'pending',
-        workId: followUp1.workId,
+        workerId: followUp1.workerId,
         providerAgentId: 'cse_stuck',
         instructions: 'First correction.',
         interrupt: false,
@@ -226,7 +226,7 @@ test('several follow-ups queued behind the same stuck predecessor each settle in
     });
     await f.journal.claim('srv_cloud', followUp2, {
         phase: 'pending',
-        workId: followUp2.workId,
+        workerId: followUp2.workerId,
         providerAgentId: 'cse_stuck',
         instructions: 'Second correction.',
         interrupt: false,
@@ -240,7 +240,8 @@ test('several follow-ups queued behind the same stuck predecessor each settle in
         () =>
             f.observations.some(
                 (observation) =>
-                    observation.runId === followUp2.runId && observation.providerRunId !== undefined
+                    observation.turnId === followUp2.turnId &&
+                    observation.providerRunId !== undefined
             ),
         400
     );
@@ -254,10 +255,10 @@ test('a follow-up Cursor refuses settles failed with its reason and no provider 
         sendFailure: recordedAuthenticationError(),
     });
     const f = await fixture(createCursorCloudAgentProvider(transport));
-    const followUp = { ...orphan, runId: 'car_followup12345678', providerAgentId: 'bc_same' };
+    const followUp = { ...orphan, turnId: 'car_followup12345678', providerAgentId: 'bc_same' };
     await f.journal.claim('srv_cloud', followUp, {
         phase: 'pending',
-        workId: followUp.workId,
+        workerId: followUp.workerId,
         providerAgentId: 'bc_same',
         instructions: 'Address the review.',
         interrupt: false,

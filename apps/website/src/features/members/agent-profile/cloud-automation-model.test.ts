@@ -10,7 +10,7 @@ function row(overrides: Partial<WorkerAutomation> = {}): WorkerAutomation {
         conversationChatId: 'cht_one',
         location: { kind: 'message', chatId: 'cht_one', messageId: 'msg_one' },
         notification: 'waiting',
-        work: workerFixture({ updatedAt: new Date(now).toISOString() }),
+        worker: workerFixture({ updatedAt: new Date(now).toISOString() }),
         ...overrides,
     };
 }
@@ -51,7 +51,7 @@ test('history keeps the provider outcome color after the handoff is delivered', 
         terminalAt: new Date(now).toISOString(),
     });
     expect(
-        cloudAutomationPresentation(row({ notification: 'delivered', work }), now)
+        cloudAutomationPresentation(row({ notification: 'delivered', worker: work }), now)
     ).toMatchObject({
         color: 'danger',
         label: 'Failed',

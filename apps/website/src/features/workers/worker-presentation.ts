@@ -15,7 +15,7 @@ export const workerStaleAfterMs = 10 * 60_000;
 
 export type WorkerPresentationInput = Pick<
     Worker,
-    'activity' | 'cancelRequestedAt' | 'job' | 'runs' | 'status' | 'updatedAt'
+    'activity' | 'cancelRequestedAt' | 'job' | 'turns' | 'status' | 'updatedAt'
 >;
 
 export const workerJobLabels: Record<WorkerJobState, string> = {
@@ -37,8 +37,8 @@ export const workerTurnStatusLabels: Record<WorkerTurnStatus, string> = {
     running: 'Running',
 };
 
-export function newestWorkerTurn(work: { runs: readonly WorkerTurn[] }): WorkerTurn | null {
-    return work.runs[0] ?? null;
+export function newestWorkerTurn(work: { turns: readonly WorkerTurn[] }): WorkerTurn | null {
+    return work.turns[0] ?? null;
 }
 
 /** A cancelled or expired job ended without failing, so it no longer asks for attention. */
@@ -153,8 +153,8 @@ export function quietFor(
  * the newest Run that reported any branch: the pull request never disappears
  * because a follow-up was sent.
  */
-export function workerBranch(work: Pick<WorkerPresentationInput, 'runs'>): WorkerBranch | null {
-    const branches = work.runs.flatMap((run) => run.branches);
+export function workerBranch(work: Pick<WorkerPresentationInput, 'turns'>): WorkerBranch | null {
+    const branches = work.turns.flatMap((run) => run.branches);
     return branches.find((branch) => branch.pullRequestUrl !== null) ?? branches.at(0) ?? null;
 }
 

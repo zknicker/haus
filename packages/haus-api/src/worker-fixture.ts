@@ -39,7 +39,7 @@ export const linkedMessage: ChatMessage = {
     author: { agentId: linkedWork.agentId, kind: 'agent' },
     body: { kind: 'text' },
     chatId: linkedWork.chatId,
-    worker: [linkedWork],
+    workers: [linkedWork],
     content: `On it, sending this to a Worker.\n\n${linkedWorkLink}`,
     createdAt: linkedWork.createdAt,
     driveCitations: [],

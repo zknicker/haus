@@ -126,6 +126,6 @@ export async function runCloudAgentCapabilityRequest(
  * whole, and nothing here ever touches the credential itself.
  */
 function safeCapabilityError(error: unknown): string {
-    const message = error instanceof Error ? error.message : 'The Worker request failed.';
-    return message.trim().slice(0, 500) || 'The Worker request failed.';
+    const message = error instanceof Error ? error.message : 'The Cloud Agent request failed.';
+    return message.trim().slice(0, 500) || 'The Cloud Agent request failed.';
 }

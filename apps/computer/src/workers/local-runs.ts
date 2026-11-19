@@ -84,7 +84,7 @@ export class WorkerLocalRuns {
                                 })
                             );
                         }
-                        abortWorkerLaunch(run.ref.runId);
+                        abortWorkerLaunch(run.ref.turnId);
                         return yield* self.resolve(run);
                     }
                     return unsent(queued(observedAt, 'Starting the Worker.'));
@@ -109,9 +109,9 @@ export class WorkerLocalRuns {
         return Effect.gen(function* () {
             run.unrecordedSince ??= nowMs;
             const settled: CloudLaunchRecord | null = run.cancelRequested
-                ? { phase: 'cancelled', workId: run.ref.workId }
+                ? { phase: 'cancelled', workerId: run.ref.workerId }
                 : nowMs - run.unrecordedSince >= launchRecordGraceMs
-                  ? { phase: 'rejected', workId: run.ref.workId, ...launchRecordMissing }
+                  ? { phase: 'rejected', workerId: run.ref.workerId, ...launchRecordMissing }
                   : null;
             if (!settled) {
                 return unsent(

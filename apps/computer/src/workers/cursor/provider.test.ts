@@ -19,8 +19,8 @@ const ref = {
     provider: 'cursor' as const,
     providerAgentId: recordedAgentId,
     providerRunId: recordedRunId,
-    runId: 'car_1234567890abcdef',
-    workId: 'caw_1234567890abcdef',
+    turnId: 'car_1234567890abcdef',
+    workerId: 'caw_1234567890abcdef',
 };
 
 test('every Cursor Run status maps to one Haus status', () => {
@@ -69,7 +69,7 @@ test('a launch creates the provider Agent and returns its Run and page', async (
         model: { id: 'gpt-5.4-nano', params: [{ id: 'reasoning', value: 'low' }] },
         ref: 'main',
         repository: 'haus/haus',
-        workId: 'caw_1234567890abcdef',
+        workerId: 'caw_1234567890abcdef',
         title: 'Fix the flaky delivery test',
     });
 
@@ -98,7 +98,7 @@ test('a provider refusal reaches the caller instead of settling the Run', async 
                 model: null,
                 ref: null,
                 repository: 'haus/haus',
-                workId: 'caw_1234567890abcdef',
+                workerId: 'caw_1234567890abcdef',
                 title: 'Fix the flaky delivery test',
             })
         ).rejects.toThrow(failure.message);
@@ -195,7 +195,7 @@ test('connect stores the credential with Cursor and disconnect forgets it', asyn
 function parse(observation: CloudAgentProviderObservation) {
     return workerObservationSchema.parse({
         ...observation,
-        runId: ref.runId,
-        workId: ref.workId,
+        turnId: ref.turnId,
+        workerId: ref.workerId,
     });
 }

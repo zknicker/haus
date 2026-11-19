@@ -13,8 +13,8 @@ const ref = {
     provider: 'cursor' as const,
     providerAgentId: recordedAgentId,
     providerRunId: recordedRunId,
-    runId: 'car_1234567890abcdef',
-    workId: 'caw_1234567890abcdef',
+    turnId: 'car_1234567890abcdef',
+    workerId: 'caw_1234567890abcdef',
 };
 
 test('the Run event stream carries raw status and one bounded activity line', async () => {
@@ -144,7 +144,7 @@ test('a settling read that fails still settles the work from the streamed status
 function parse(observation: CloudAgentProviderObservation) {
     return workerObservationSchema.parse({
         ...observation,
-        runId: ref.runId,
-        workId: ref.workId,
+        turnId: ref.turnId,
+        workerId: ref.workerId,
     });
 }

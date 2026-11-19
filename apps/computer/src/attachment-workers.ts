@@ -29,7 +29,7 @@ export function handleWorkerFrame(
     const reconcile = parseWorkerReconcileCommand(frame);
     if (reconcile) {
         void options.track(
-            (options.workers?.reconcile(reconcile.work) ?? Promise.resolve()).catch(
+            (options.workers?.reconcile(reconcile.workers) ?? Promise.resolve()).catch(
                 options.onFailure
             )
         );

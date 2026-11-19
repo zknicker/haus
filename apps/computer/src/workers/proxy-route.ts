@@ -20,7 +20,7 @@ const workerStartSchema = z.object({
     title: z.string().trim().min(1),
 });
 const workerSendSchema = z.object({
-    workId: z.string().trim().min(1),
+    workerId: z.string().trim().min(1),
     nonce: z.string().trim().min(1).max(128),
     instructions: z.string().trim().min(1).max(128_000),
     interrupt: z.boolean().default(false),

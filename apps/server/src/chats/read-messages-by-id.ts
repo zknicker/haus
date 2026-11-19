@@ -98,7 +98,7 @@ export async function readMessagesById(
                     authorProfile: readStoredAuthorProfile(row),
                     body: bodies.get(row.id),
                     cause: causes.get(row.id),
-                    worker: works.get(row.id),
+                    workers: works.get(row.id),
                     driveCitations: citations.get(row.id),
                     imageGenerations: images.get(row.id),
                     reactions: reactions.get(row.id),

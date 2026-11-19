@@ -153,7 +153,7 @@ export const workerTurnSchema = z
         rawStatus: z.string().trim().min(1).max(120).nullable(),
         /** The full report `summary` was cut from; null until a Run observes one. */
         report: workerReportSchema.nullable(),
-        runId: workerIdSchema,
+        turnId: workerIdSchema,
         startedAt: workerTimestampSchema.nullable(),
         stall: z
             .object({ code: workerStallCodeSchema, since: workerTimestampSchema })
@@ -195,7 +195,7 @@ export const workerSchema = z
         providerAgentId: z.string().trim().min(1).max(200).nullable(),
         providerUrl: z.url().max(2000).nullable(),
         repository: workerRepositorySchema,
-        runs: z.array(workerTurnSchema).max(workerTurnsRetained),
+        turns: z.array(workerTurnSchema).max(workerTurnsRetained),
         startedAt: workerTimestampSchema.nullable(),
         startingRef: workerRefSchema.nullable(),
         status: workerTurnStatusSchema,

@@ -57,7 +57,7 @@ export async function sendWorkerReconcile(
     for (let offset = 0; offset < work.length; offset += 200) {
         connections.send(computer.id, {
             type: 'worker-reconcile',
-            work: work.slice(offset, offset + 200),
+            workers: work.slice(offset, offset + 200),
         });
     }
 }

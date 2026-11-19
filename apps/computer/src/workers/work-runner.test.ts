@@ -15,9 +15,9 @@ const entry = {
     provider: 'cursor' as const,
     providerAgentId: 'bc_one',
     providerRunId: 'run_one',
-    runId: 'car_1234567890abcdef',
+    turnId: 'car_1234567890abcdef',
     status: 'running' as const,
-    workId: 'caw_1234567890abcdef',
+    workerId: 'caw_1234567890abcdef',
 };
 const cleanup: Array<() => Promise<void>> = [];
 afterEach(async () => {

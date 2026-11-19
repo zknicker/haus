@@ -25,7 +25,7 @@ public struct ActiveCloudAgentWork: Decodable, Identifiable, Sendable, Equatable
         case chatPeerUserID = "chatPeerUserId"
         case conversationChatID = "conversationChatId"
         case location
-        case work
+        case work = "worker"
         case taskID = "taskId"
         case taskKey
     }

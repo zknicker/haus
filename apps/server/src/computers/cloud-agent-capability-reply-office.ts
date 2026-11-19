@@ -45,7 +45,9 @@ export class CloudAgentCapabilityReplyOffice {
                 Deferred.await(reply.deferred),
                 Effect.sleep(timeoutMs).pipe(
                     Effect.andThen(
-                        Effect.fail(new Error('The Computer did not answer the Worker request.'))
+                        Effect.fail(
+                            new Error('The Computer did not answer the Cloud Agent request.')
+                        )
                     )
                 )
             ).pipe(Effect.ensuring(Effect.sync(() => this.take(reply))))
@@ -62,7 +64,7 @@ export class CloudAgentCapabilityReplyOffice {
                 ? Deferred.succeed(reply.deferred, result.result)
                 : Deferred.fail(
                       reply.deferred,
-                      new Error(result.error ?? 'The Worker request failed.')
+                      new Error(result.error ?? 'The Cloud Agent request failed.')
                   )
         );
         return true;

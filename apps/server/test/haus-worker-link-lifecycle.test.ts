@@ -14,7 +14,7 @@ const links = workerLinkHelpers(fixture);
 test('a second link shows the card in both Channels and hears every lifecycle change', async () => {
     const runner = await fixture.mintRunner('run_link_two_places');
     const launched = await fixture.postStart(runner, fixture.startBody({ nonce: 'two-places' }));
-    const work = launched.body.work as Worker;
+    const work = launched.body.worker as Worker;
     const techOpsId = await links.createChannel('tech-ops', [fixture.peerUserId]);
     const linked = await links.humanSend(
         fixture.owner,
@@ -27,21 +27,21 @@ test('a second link shows the card in both Channels and hears every lifecycle ch
             chatId,
             serverId: fixture.serverId,
         });
-        expect(rows.map((row) => row.work.id)).toContain(work.id);
+        expect(rows.map((row) => row.worker.id)).toContain(work.id);
     }
 
     const updates = captureTopic(workerUpdatedTopic);
     const socket = await fixture.attachComputer();
     await links.observe(socket, {
         observedAt: '2026-10-11T12:00:00.000Z',
-        runId: launched.body.runId as string,
+        turnId: launched.body.turnId as string,
         status: 'running',
-        workId: work.id,
+        workerId: work.id,
     });
     await settleRealtime();
     updates.stop();
     expect(
-        updates.events.filter((event) => event.workId === work.id).map((event) => event.messageId)
+        updates.events.filter((event) => event.workerId === work.id).map((event) => event.messageId)
     ).toEqual([launched.body.messageId, linked.message.id]);
 
     // The Agent's own message view carries every link; the old field keeps the first.
@@ -58,9 +58,9 @@ test('a second link shows the card in both Channels and hears every lifecycle ch
 
     // Cancel authority is unchanged: an ordinary Member still cannot.
     await expect(
-        fixture.peer.trpc.worker.cancel.mutate({
+        fixture.peer.trpc.worker.stop.mutate({
             serverId: fixture.serverId,
-            workId: work.id,
+            workerId: work.id,
         })
     ).rejects.toThrow(/Owners and Admins/i);
     socket.close();
@@ -77,7 +77,7 @@ test('deleting the requesting Channel keeps the work, moves Happening now, and s
             title: 'Survivor',
         })
     );
-    const work = launched.body.work as Worker;
+    const work = launched.body.worker as Worker;
     const refugeId = await links.createChannel('refuge', [fixture.peerUserId]);
     const refuge = await links.humanSend(
         fixture.owner,
@@ -94,37 +94,37 @@ test('deleting the requesting Channel keeps the work, moves Happening now, and s
     });
     await settleRealtime();
     updates.stop();
-    expect(updates.events.filter((event) => event.workId === work.id)).toEqual([
+    expect(updates.events.filter((event) => event.workerId === work.id)).toEqual([
         {
             chatId: refugeId,
             messageId: refuge.message.id,
             serverId: fixture.serverId,
             taskId: expect.stringMatching(/^tsk_/u),
-            workId: work.id,
+            workerId: work.id,
         },
     ]);
 
     const active = await fixture.peer.trpc.worker.listActive.query({
         serverId: fixture.serverId,
     });
-    expect(active.find((row) => row.work.id === work.id)).toMatchObject({
+    expect(active.find((row) => row.worker.id === work.id)).toMatchObject({
         conversationChatId: refugeId,
         location: {
             chatId: refugeId,
             kind: 'message',
             messageId: refuge.message.id,
         },
-        work: { messageId: launched.body.messageId },
+        worker: { messageId: launched.body.messageId },
     });
 
     const socket = await fixture.attachComputer();
     await links.observe(socket, {
         observedAt: '2026-10-11T13:00:00.000Z',
-        runId: launched.body.runId as string,
+        turnId: launched.body.turnId as string,
         status: 'completed',
-        workId: work.id,
+        workerId: work.id,
     });
-    expect(await fixture.readAttentions(launched.body.runId as string)).toEqual([]);
+    expect(await fixture.readAttentions(launched.body.turnId as string)).toEqual([]);
     socket.close();
 });
 
@@ -135,11 +135,11 @@ test('a tombstoned Chat grants nothing even before its purge removes the rows', 
         runner,
         fixture.startBody({ nonce: 'tomb', task: await taskIn(tombId), title: 'Buried' })
     );
-    const work = launched.body.work as Worker;
+    const work = launched.body.worker as Worker;
     const before = await fixture.peer.trpc.worker.listActive.query({
         serverId: fixture.serverId,
     });
-    expect(before.map((row) => row.work.id)).toContain(work.id);
+    expect(before.map((row) => row.worker.id)).toContain(work.id);
 
     await fixture.harness.sql`
         update chats set deleted_at = now(), deleted_by_user_id = ${fixture.ownerUserId}
@@ -148,7 +148,7 @@ test('a tombstoned Chat grants nothing even before its purge removes the rows', 
     const after = await fixture.peer.trpc.worker.listActive.query({
         serverId: fixture.serverId,
     });
-    expect(after.map((row) => row.work.id)).not.toContain(work.id);
+    expect(after.map((row) => row.worker.id)).not.toContain(work.id);
 
     // Nor can anyone use it as the basis for a new link.
     const otherId = await links.createChannel('elsewhere', [fixture.peerUserId]);
@@ -162,9 +162,9 @@ test('a tombstoned Chat grants nothing even before its purge removes the rows', 
 
     // Cancel authority never depended on a visible link: an Owner still cancels.
     await expect(
-        fixture.owner.trpc.worker.cancel.mutate({
+        fixture.owner.trpc.worker.stop.mutate({
             serverId: fixture.serverId,
-            workId: work.id,
+            workerId: work.id,
         })
     ).resolves.toEqual({ cancelRequested: true });
 });
@@ -191,7 +191,7 @@ test('a second Agent links only work it can read through a Task or a link', asyn
     const launchIn = async (name: string) => {
         const channelId = await links.createChannel(name, [fixture.peerUserId]);
         const body = fixture.startBody({ nonce: name, task: await taskIn(channelId) });
-        const work = (await fixture.postStart(runner, body)).body.work as Worker;
+        const work = (await fixture.postStart(runner, body)).body.worker as Worker;
         return { channelId, content: `Saw [Fix](worker://${work.id})`, work };
     };
     const tombstone = (chatId: string) => fixture.harness.sql`

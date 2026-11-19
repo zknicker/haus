@@ -9,7 +9,7 @@ test('an Owner connects a Computer to Cursor Cloud Agents from Settings', async 
         displayName: 'Worker HQ',
         slug: 'worker-hq',
     });
-    const credential = 'computer-worker-credential-1234';
+    const credential = 'computer-worker-credential-123456789';
     await attachComputer(owner, { credential, slug: 'worker-hq' });
 
     const computer = new WebSocket(

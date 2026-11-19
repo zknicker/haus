@@ -52,8 +52,8 @@ test('each provider keeps its own model, and a Claude Run sends Claude’s', asy
         fixture.startBody({ nonce: 'claude-model', provider: 'claude' })
     );
     expect(started.status).toBe(200);
-    expect(started.body.work?.provider).toBe('claude');
-    expect(started.body.work?.runs[0]?.model).toEqual({
+    expect(started.body.worker?.provider).toBe('claude');
+    expect(started.body.worker?.turns[0]?.model).toEqual({
         droppedParams: [],
         fallbackFrom: null,
         id: 'opus',
@@ -67,8 +67,8 @@ test('a question settles the Run as pending input, wakes the Agent once, and an 
         runner,
         fixture.startBody({ nonce: 'claude-question', provider: 'claude' })
     );
-    const work = created.body.work as Worker;
-    const runId = created.body.runId as string;
+    const work = created.body.worker as Worker;
+    const turnId = created.body.turnId as string;
     const socket = await fixture.attachComputer();
     const question = {
         observation: {
@@ -77,10 +77,10 @@ test('a question settles the Run as pending input, wakes the Agent once, and an 
             providerRunId: 'prompt-uuid-1',
             providerUrl: 'https://claude.ai/code/session_01Question',
             rawStatus: 'requires_action',
-            runId,
+            turnId,
             status: 'pending_input',
             summary: 'Should the reminder default to 9am or 10am?',
-            workId: work.id,
+            workerId: work.id,
         },
         type: 'worker-observation',
     };
@@ -89,27 +89,27 @@ test('a question settles the Run as pending input, wakes the Agent once, and an 
     // The same reading again is a no-op: one question, one wake.
     socket.send(JSON.stringify(question));
     await Bun.sleep(150);
-    expect(await fixture.readAttentions(runId)).toHaveLength(1);
+    expect(await fixture.readAttentions(turnId)).toHaveLength(1);
 
     const active = await fixture.owner.trpc.worker.listActive.query({
         serverId: fixture.serverId,
     });
-    const listed = active.find((entry) => entry.work.id === work.id)?.work;
+    const listed = active.find((entry) => entry.worker.id === work.id)?.worker;
     expect(listed?.job).toMatchObject({
         question: 'Should the reminder default to 9am or 10am?',
         state: 'pending-input',
     });
 
     const answer = await fetch(new URL('/api/agent/workers/send', fixture.harness.url), {
-        body: JSON.stringify({ nonce: 'claude-answer', workId: work.id }),
+        body: JSON.stringify({ nonce: 'claude-answer', workerId: work.id }),
         headers: { authorization: `Bearer ${runner.token}`, 'content-type': 'application/json' },
         method: 'POST',
     });
     expect(answer.status).toBe(200);
     const sent = agentWorkerSendReceiptSchema.parse(await answer.json());
-    expect(sent.work.status).toBe('queued');
+    expect(sent.worker.status).toBe('queued');
     // Until Claude picks the answer up, the question still stands on the card.
-    expect(sent.work.job).toMatchObject({
+    expect(sent.worker.job).toMatchObject({
         followUp: { state: 'waiting' },
         state: 'pending-input',
     });

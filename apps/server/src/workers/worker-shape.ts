@@ -41,7 +41,7 @@ export function toWorkerTurn(row: RunRow): WorkerTurn {
         providerRunId: row.providerRunId,
         rawStatus: row.rawStatus,
         report: row.report ?? null,
-        runId: row.id,
+        turnId: row.id,
         stall:
             row.stallCode && row.stallSince
                 ? { code: row.stallCode, since: row.stallSince.toISOString() }
@@ -74,14 +74,14 @@ export function toWorker(row: WorkRow, details: WorkDetails = noDetails): Worker
         environmentId: row.environmentId,
         environmentName: row.environmentName,
         id: row.id,
-        job: deriveWorkerJob({ runs: recent, startedAt, status: row.status, terminalAt }),
+        job: deriveWorkerJob({ turns: recent, startedAt, status: row.status, terminalAt }),
         messageId: row.launchMessageId,
         provider: row.provider,
         providerAgentId: row.providerAgentId,
         providerUrl: row.providerUrl,
         pullRequest: details.pullRequest,
         repository: row.repository,
-        runs: recent,
+        turns: recent,
         startedAt,
         startingRef: row.startingRef,
         status: row.status,
@@ -94,18 +94,18 @@ export function toWorker(row: WorkRow, details: WorkDetails = noDetails): Worker
 export async function findWorker(
     db: WorkerReader,
     serverId: string,
-    workId: string
+    workerId: string
 ): Promise<Worker | null> {
     const [row] = await db
         .select()
         .from(workersTable)
-        .where(and(eq(workersTable.serverId, serverId), eq(workersTable.id, workId)))
+        .where(and(eq(workersTable.serverId, serverId), eq(workersTable.id, workerId)))
         .limit(1);
     if (!row) {
         return null;
     }
-    const details = await readWorkDetails(db, serverId, [workId]);
-    return toWorker(row, details.get(workId));
+    const details = await readWorkDetails(db, serverId, [workerId]);
+    return toWorker(row, details.get(workerId));
 }
 
 export async function findWorkerByLaunchMessage(
@@ -127,22 +127,22 @@ export async function findWorkerByLaunchMessage(
     return toWorker(row, details.get(row.id));
 }
 
-/** Everything a work projects beyond its own row, for each of `workIds`. */
+/** Everything a work projects beyond its own row, for each of `workerIds`. */
 export async function readWorkDetails(
     db: WorkerReader,
     serverId: string,
-    workIds: string[]
+    workerIds: string[]
 ): Promise<Map<string, WorkDetails>> {
-    const runsByWork = await readRuns(db, serverId, workIds);
+    const runsByWork = await readRuns(db, serverId, workerIds);
     const keyByWork = new Map(
-        [...runsByWork].map(([workId, runs]) => [workId, reportedPullRequest(runs)])
+        [...runsByWork].map(([workerId, runs]) => [workerId, reportedPullRequest(runs)])
     );
     const readings = await readPullRequestReadings(db, serverId, [...keyByWork.values()]);
     return new Map(
-        [...runsByWork].map(([workId, runs]) => {
-            const key = keyByWork.get(workId);
+        [...runsByWork].map(([workerId, runs]) => {
+            const key = keyByWork.get(workerId);
             const pullRequest = key ? (readings.get(pullRequestKey(key)) ?? null) : null;
-            return [workId, { pullRequest, runs }];
+            return [workerId, { pullRequest, runs }];
         })
     );
 }
@@ -150,21 +150,24 @@ export async function readWorkDetails(
 async function readRuns(
     db: WorkerReader,
     serverId: string,
-    workIds: string[]
+    workerIds: string[]
 ): Promise<Map<string, RunRow[]>> {
     const byWork = new Map<string, RunRow[]>();
-    if (workIds.length === 0) {
+    if (workerIds.length === 0) {
         return byWork;
     }
     const rows = await db
         .select()
         .from(workerTurnsTable)
         .where(
-            and(eq(workerTurnsTable.serverId, serverId), inArray(workerTurnsTable.workId, workIds))
+            and(
+                eq(workerTurnsTable.serverId, serverId),
+                inArray(workerTurnsTable.workerId, workerIds)
+            )
         )
         .orderBy(desc(workerTurnsTable.createdAt));
     for (const row of rows) {
-        byWork.set(row.workId, [...(byWork.get(row.workId) ?? []), row]);
+        byWork.set(row.workerId, [...(byWork.get(row.workerId) ?? []), row]);
     }
     return byWork;
 }

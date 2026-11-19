@@ -27,9 +27,9 @@ test("a branch may carry the Computer's own dated GitHub reading of its pull req
     const observation = {
         branches: [{ ...branch, pullRequest }],
         observedAt: '2026-09-05T12:00:00.000Z',
-        runId: 'car_1234567890abcdef',
+        turnId: 'car_1234567890abcdef',
         status: 'completed',
-        workId: 'caw_1234567890abcdef',
+        workerId: 'caw_1234567890abcdef',
     };
 
     expect(workerObservationSchema.parse(observation).branches?.[0]?.pullRequest).toEqual(

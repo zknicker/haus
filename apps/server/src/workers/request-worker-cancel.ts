@@ -34,7 +34,7 @@ export async function requestWorkerCancel(
     input: {
         requestedBy: WorkerCancelRequestedBy;
         serverId: string;
-        workId: string;
+        workerId: string;
     }
 ): Promise<WorkerCancelRequest> {
     return await db.transaction(async (tx) => {
@@ -47,7 +47,7 @@ export async function requestWorkerCancel(
             })
             .from(workersTable)
             .where(
-                and(eq(workersTable.serverId, input.serverId), eq(workersTable.id, input.workId))
+                and(eq(workersTable.serverId, input.serverId), eq(workersTable.id, input.workerId))
             )
             .limit(1);
         if (!row) {
@@ -64,7 +64,7 @@ export async function requestWorkerCancel(
             .where(
                 and(
                     eq(workerTurnsTable.serverId, input.serverId),
-                    eq(workerTurnsTable.workId, input.workId)
+                    eq(workerTurnsTable.workerId, input.workerId)
                 )
             )
             .orderBy(desc(workerTurnsTable.createdAt));
@@ -99,12 +99,12 @@ export async function requestWorkerCancel(
                 .where(
                     and(
                         eq(workersTable.serverId, input.serverId),
-                        eq(workersTable.id, input.workId)
+                        eq(workersTable.id, input.workerId)
                     )
                 );
         }
 
-        const work = await findWorker(tx, input.serverId, input.workId);
+        const work = await findWorker(tx, input.serverId, input.workerId);
         if (!work) {
             throw new WorkerNotFoundError();
         }
@@ -113,14 +113,14 @@ export async function requestWorkerCancel(
                 provider: row.provider,
                 providerAgentId: row.providerAgentId,
                 providerRunId: run.providerRunId,
-                runId: run.id,
+                turnId: run.id,
                 type: 'worker-stop',
-                workId: input.workId,
+                workerId: input.workerId,
             })),
             computerId: row.computerId,
             events: await prepareWorkerEvents(tx, {
                 serverId: input.serverId,
-                workId: input.workId,
+                workerId: input.workerId,
             }),
             work,
         };

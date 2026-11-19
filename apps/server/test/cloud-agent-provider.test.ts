@@ -11,7 +11,7 @@ let serverId: string;
 let socket: WebSocket;
 
 const computerId = 'cmp_worker0000000000';
-const credential = 'worker-computer-credential-0000';
+const credential = 'worker-computer-credential-000000000';
 
 beforeAll(async () => {
     harness = await startHausServerHarness();

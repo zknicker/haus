@@ -18,35 +18,35 @@ test('the job mirrors Cursor for the newest Run Cursor received, not a follow-up
     const observe = async (observation: WorkerObservation) => {
         socket.send(JSON.stringify({ type: 'worker-observation', observation }));
         await fixture.waitFor(
-            async () => (await fixture.readRun(observation.runId))?.status === observation.status
+            async () => (await fixture.readRun(observation.turnId))?.status === observation.status
         );
     };
     await observe({
         observedAt: '2026-09-06T12:00:00.000Z',
         providerAgentId: 'cursor_cancel',
         providerRunId: 'cursor_cancel_first',
-        runId: started.runId,
+        turnId: started.turnId,
         status: 'running',
-        workId: started.work.id,
+        workerId: started.worker.id,
     });
     await observe({
         observedAt: '2026-09-06T12:01:00.000Z',
-        runId: started.runId,
+        turnId: started.turnId,
         status: 'completed',
-        workId: started.work.id,
+        workerId: started.worker.id,
     });
 
     // Cancelled while still in the Computer's local queue: Cursor never received it.
     const held = agentWorkerSendReceiptSchema.parse(
-        await (await send(runner.token, started.work.id, 'held-followup')).json()
+        await (await send(runner.token, started.worker.id, 'held-followup')).json()
     );
     await observe({
         observedAt: '2026-09-06T12:02:00.000Z',
-        runId: held.runId,
+        turnId: held.turnId,
         status: 'cancelled',
-        workId: started.work.id,
+        workerId: started.worker.id,
     });
-    expect(await job(runner.token, started.work.id)).toEqual({
+    expect(await job(runner.token, started.worker.id)).toEqual({
         followUp: null,
         settledAt: '2026-09-06T12:01:00.000Z',
         startedAt: '2026-09-06T12:00:00.000Z',
@@ -55,43 +55,43 @@ test('the job mirrors Cursor for the newest Run Cursor received, not a follow-up
 
     // Cancelled after Cursor received it: Cursor's CANCELLED is the job.
     const delivered = agentWorkerSendReceiptSchema.parse(
-        await (await send(runner.token, started.work.id, 'delivered-followup')).json()
+        await (await send(runner.token, started.worker.id, 'delivered-followup')).json()
     );
     await observe({
         observedAt: '2026-09-06T12:03:00.000Z',
         providerRunId: 'cursor_cancel_second',
-        runId: delivered.runId,
+        turnId: delivered.turnId,
         status: 'running',
-        workId: started.work.id,
+        workerId: started.worker.id,
     });
     await observe({
         observedAt: '2026-09-06T12:04:00.000Z',
-        runId: delivered.runId,
+        turnId: delivered.turnId,
         status: 'cancelled',
-        workId: started.work.id,
+        workerId: started.worker.id,
     });
-    expect(await job(runner.token, started.work.id)).toMatchObject({
+    expect(await job(runner.token, started.worker.id)).toMatchObject({
         followUp: null,
         state: 'cancelled',
     });
     socket.close();
 });
 
-async function job(token: string, workId: string) {
+async function job(token: string, workerId: string) {
     const listed = agentWorkerListReceiptSchema.parse(
         await (
-            await fetch(new URL(`/api/agent/workers?workId=${workId}`, fixture.harness.url), {
+            await fetch(new URL(`/api/agent/workers?workerId=${workerId}`, fixture.harness.url), {
                 headers: { authorization: `Bearer ${token}` },
             })
         ).json()
     );
-    return listed.works[0]?.job;
+    return listed.workers[0]?.job;
 }
 
-function send(token: string, workId: string, nonce: string) {
+function send(token: string, workerId: string, nonce: string) {
     return fetch(new URL('/api/agent/workers/send', fixture.harness.url), {
         method: 'POST',
         headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ workId, nonce }),
+        body: JSON.stringify({ workerId, nonce }),
     });
 }

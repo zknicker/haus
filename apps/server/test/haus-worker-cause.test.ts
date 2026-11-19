@@ -83,8 +83,8 @@ async function cleanRun(name: string) {
  * The Computer is offline in this harness, so the run a pull needs is accepted
  * here the way `beginActiveRun` plus an ack would accept it.
  */
-async function acceptedRun(runId: string) {
-    const runner = await fixture.mintRunner(runId);
+async function acceptedRun(turnId: string) {
+    const runner = await fixture.mintRunner(turnId);
     await fixture.harness.sql`
         insert into agent_delivery (
             agent_id, server_id, active_run_id, active_run_chat_id, active_run_computer_id,
@@ -92,7 +92,7 @@ async function acceptedRun(runId: string) {
             accepted_at, dispatched_at
         )
         values (
-            ${fixture.orbitAgentId}, ${fixture.serverId}, ${runId}, ${fixture.channelId},
+            ${fixture.orbitAgentId}, ${fixture.serverId}, ${turnId}, ${fixture.channelId},
             ${fixture.computerId}, 'gpt-5.6-sol', 'medium', 'codex', now(), now()
         )
         on conflict (agent_id) do update set

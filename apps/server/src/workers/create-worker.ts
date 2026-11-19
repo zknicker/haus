@@ -68,8 +68,8 @@ export async function createWorker(
             content: authored,
             serverId: runner.serverId,
         });
-        const workId = createOpaqueId('caw');
-        const content = withLaunchLink(linked.content, input.title, workId);
+        const workerId = createOpaqueId('caw');
+        const content = withLaunchLink(linked.content, input.title, workerId);
         const written = await writeAgentAuthoredMessage(
             tx,
             runner,
@@ -98,7 +98,7 @@ export async function createWorker(
             agentId: runner.agentId,
             chatId: plan.chatId,
             computerId,
-            id: workId,
+            id: workerId,
             launchMessageId: written.messageId,
             provider: input.provider,
             repository: input.repository,
@@ -107,22 +107,22 @@ export async function createWorker(
             taskId: task.taskId,
             title: input.title,
         });
-        const runId = createOpaqueId('car');
+        const turnId = createOpaqueId('car');
         const model = await resolveRunModel(tx, {
             computerId,
             provider: input.provider,
             serverId: runner.serverId,
         });
         await tx.insert(workerTurnsTable).values({
-            id: runId,
+            id: turnId,
             modelDroppedParams: model.droppedParams,
             modelFallbackFrom: model.fallbackFrom,
             modelId: model.id,
             modelParams: model.params,
             serverId: runner.serverId,
-            workId,
+            workerId,
         });
-        const links = [...linked.links, { ordinal: linked.links.length, workId }];
+        const links = [...linked.links, { ordinal: linked.links.length, workerId }];
         await recordWorkerLinks(tx, {
             chatId: plan.chatId,
             links,
@@ -130,7 +130,7 @@ export async function createWorker(
             serverId: runner.serverId,
         });
 
-        const work = await findWorker(tx, runner.serverId, workId);
+        const work = await findWorker(tx, runner.serverId, workerId);
         if (!work) {
             throw new Error('The Worker could not be projected after creation.');
         }
@@ -142,7 +142,7 @@ export async function createWorker(
                     : [prepareTaskUpdatedEvent(await readTask(tx, runner.serverId, task.taskId))]),
                 ...(await prepareLinkedWorkEvents(tx, {
                     serverId: runner.serverId,
-                    workIds: links.map((link) => link.workId),
+                    workerIds: links.map((link) => link.workerId),
                 })),
             ],
             kind: 'started',
@@ -151,10 +151,10 @@ export async function createWorker(
                 chatId: plan.chatId,
                 idempotent: false,
                 messageId: written.messageId,
-                runId,
+                turnId,
                 sequence: written.sequence,
                 target: task.target,
-                work,
+                worker: work,
             },
             wakes: written.wakes,
         };

@@ -37,7 +37,7 @@ test('a work title naming @forge links the work without mentioning Forge', async
         })
     );
     expect(created.status).toBe(200);
-    const work = created.body.work as Worker;
+    const work = created.body.worker as Worker;
 
     expect(await readContent(created.body.messageId)).toBe(
         `Handing this to a Worker.\n\n${formatWorkerLink(work.title, work.id)}`
@@ -63,7 +63,7 @@ test('authored words at the limit reach the Task without the Server link', async
         })
     );
     expect(created.status).toBe(200);
-    const work = created.body.work as Worker;
+    const work = created.body.worker as Worker;
 
     expect(await readContent(created.body.messageId)).toBe(
         `${words}\n\n${formatWorkerLink(work.title, work.id)}`

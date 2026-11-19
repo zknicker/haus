@@ -36,10 +36,10 @@ export const chatMessageSchema = z
         chatId: idSchema,
         claim: messageClaimSchema.nullable().optional(),
         /**
-         * The Worker this Message links, in link order (ADR 0044).
+         * The Workers this Message links, in link order (ADR 0044).
          * Each entry is visible to the viewer; the card renders from here.
          */
-        worker: z.array(workerSchema).default([]),
+        workers: z.array(workerSchema).default([]),
         content: z.string().max(chatMessageContentMaxLength),
         createdAt: timestampSchema,
         /** Drive files the Message cites, in link order, each bound to a revision. */

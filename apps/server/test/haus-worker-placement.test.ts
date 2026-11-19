@@ -16,18 +16,18 @@ test('a launch on a Task posts in the Task, attaches to it, and reports there', 
     expect(await chatOf(placed.messageId)).toBe(fixture.task.chatId);
     expect(await chatsUnder(fixture.task.chatId, placed.messageId)).toEqual([]);
     const [work] = (await fixture.harness.sql`
-        select chat_id, task_id from cloud_agent_work where id = ${placed.work.id}
+        select chat_id, task_id from cloud_agent_work where id = ${placed.worker.id}
     `) as { chat_id: string; task_id: string }[];
     expect(work).toEqual({ chat_id: fixture.task.chatId, task_id: fixture.task.id });
     expect(await settleTarget(placed)).toBe(fixture.task.chatId);
     const connection = await connectHausDatabase(fixture.harness.databaseUrl);
     try {
         await fixture.harness.sql`
-            update agent_inbox set run_id = 'run_placement_read' where dedupe_key = ${placed.runId}
+            update agent_inbox set run_id = 'run_placement_read' where dedupe_key = ${placed.turnId}
         `;
         const rows = await listInboxItemsByDedupeKeys(connection.db, {
             agentId: fixture.orbitAgentId,
-            dedupeKeys: [placed.runId],
+            dedupeKeys: [placed.turnId],
             runId: 'run_placement_read',
         });
         expect((await buildInboxItems(connection.db, rows)).map((item) => item.target)).toEqual([
@@ -120,13 +120,13 @@ async function launch(nonce: string) {
     await fixture.readTarget(runner, `task:${fixture.task.key}`);
     const started = await fixture.postStart(runner, fixture.startBody({ nonce }));
     expect(started).toMatchObject({ status: 200 });
-    const work = started.body.work as Worker;
+    const work = started.body.worker as Worker;
     expect(work.messageId).toBe(started.body.messageId ?? '');
     return {
         messageId: started.body.messageId as string,
         receipt: started.body,
-        runId: started.body.runId as string,
-        work,
+        turnId: started.body.turnId as string,
+        worker: work,
     };
 }
 
@@ -147,18 +147,18 @@ async function chatsUnder(parentChatId: string, anchorMessageId: string) {
 }
 
 /** Settles the Run and returns the Chat its completion notice targeted. */
-async function settleTarget(placed: { runId: string; work: Worker }) {
+async function settleTarget(placed: { turnId: string; worker: Worker }) {
     const socket = await fixture.attachComputer();
     await links.observe(socket, {
         observedAt: '2026-10-11T15:00:00.000Z',
-        runId: placed.runId,
+        turnId: placed.turnId,
         status: 'completed',
-        workId: placed.work.id,
+        workerId: placed.worker.id,
     });
     socket.close();
     const [row] = (await fixture.harness.sql`
         select chat_id from agent_inbox
-        where source = 'cloud_agent_work' and dedupe_key = ${placed.runId}
+        where source = 'cloud_agent_work' and dedupe_key = ${placed.turnId}
     `) as { chat_id: string }[];
     return row?.chat_id;
 }

@@ -80,7 +80,7 @@ export async function prepareMessageLinkEvents(
     return [
         ...(await prepareLinkedWorkEvents(db, {
             serverId: input.serverId,
-            workIds: input.cloudLinks.map((link) => link.workId),
+            workerIds: input.cloudLinks.map((link) => link.workerId),
         })),
         ...(await prepareImageGenerationEvents(db, {
             generationIds: input.imageLinks.map((link) => link.generationId),

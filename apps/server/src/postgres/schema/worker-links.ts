@@ -27,15 +27,15 @@ export const workerHistoryLinksTable = pgTable(
         /** First-occurrence position among this Message's links; cards render in this order. */
         ordinal: integer('ordinal').notNull(),
         serverId: text('server_id').notNull(),
-        workId: text('work_id').notNull(),
+        workerId: text('work_id').notNull(),
     },
     (table) => [
         primaryKey({
-            columns: [table.serverId, table.messageId, table.workId],
+            columns: [table.serverId, table.messageId, table.workerId],
             name: 'cloud_agent_work_links_pkey',
         }),
         foreignKey({
-            columns: [table.serverId, table.workId],
+            columns: [table.serverId, table.workerId],
             foreignColumns: [workersTable.serverId, workersTable.id],
             name: 'cloud_agent_work_links_work_fk',
         }).onDelete('cascade'),
@@ -50,7 +50,7 @@ export const workerHistoryLinksTable = pgTable(
         }).onDelete('cascade'),
         index('cloud_agent_work_links_work_idx').on(
             table.serverId,
-            table.workId,
+            table.workerId,
             table.createdAt.desc(),
             table.messageId.desc()
         ),

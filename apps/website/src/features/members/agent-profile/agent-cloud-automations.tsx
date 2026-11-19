@@ -50,7 +50,7 @@ export function AgentCloudAutomations({ agent, server }: { agent: Agent; server:
                     </ProfileListSection.Empty>
                 ) : (
                     query.data?.map((row, index) => (
-                        <React.Fragment key={row.work.id}>
+                        <React.Fragment key={row.worker.id}>
                             {index > 0 ? <Separator /> : null}
                             <CloudAutomationRow now={now} row={row} />
                         </React.Fragment>
@@ -69,7 +69,7 @@ export function AgentCloudAutomations({ agent, server }: { agent: Agent; server:
 function CloudAutomationRow({ now, row }: { now: number; row: WorkerAutomation }) {
     const openWork = useOpenWorker();
     const presentation = cloudAutomationPresentation(row, now);
-    const open = () => openWork({ id: row.work.id, location: row.location });
+    const open = () => openWork({ id: row.worker.id, location: row.location });
     return (
         <ItemCard<'button'>
             className="focus-visible:ring-focus relative w-full cursor-(--cursor-interactive) overflow-hidden text-left focus-visible:ring-2"
@@ -78,12 +78,12 @@ function CloudAutomationRow({ now, row }: { now: number; row: WorkerAutomation }
         >
             <PressableFeedback.Highlight />
             <ItemCard.Icon aria-hidden="true" className="automation-mark">
-                <WorkerKeycapFace provider={row.work.provider} size={workerRowKeySize} />
+                <WorkerKeycapFace provider={row.worker.provider} size={workerRowKeySize} />
             </ItemCard.Icon>
             <ItemCard.Content>
-                <ItemCard.Title className="truncate">{row.work.title}</ItemCard.Title>
+                <ItemCard.Title className="truncate">{row.worker.title}</ItemCard.Title>
                 <ItemCard.Description className="max-w-full" title={presentation.detail}>
-                    {row.work.repository} · {presentation.detail}
+                    {row.worker.repository} · {presentation.detail}
                 </ItemCard.Description>
             </ItemCard.Content>
             <ItemCard.Action>

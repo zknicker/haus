@@ -16,7 +16,7 @@ export const workerStopCommandResponseSchema = z.looseObject(workerStopCommandSc
 
 export const workerReconcileCommandResponseSchema = z.looseObject({
     ...workerReconcileCommandSchema.shape,
-    work: z.array(workerReconcileEntryResponseSchema).max(200),
+    workers: z.array(workerReconcileEntryResponseSchema).max(200),
 });
 
 const [

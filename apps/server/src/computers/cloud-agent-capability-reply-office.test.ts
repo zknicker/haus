@@ -28,7 +28,9 @@ test('reads and connect requests time out after ten seconds, without waiting for
         const reply = capability(requestId(frames));
         const failure = pending.catch((error: unknown) => error);
         await runtime.runPromise(TestClock.adjust(10_000));
-        expect(await failure).toEqual(new Error('The Computer did not answer the Worker request.'));
+        expect(await failure).toEqual(
+            new Error('The Computer did not answer the Cloud Agent request.')
+        );
         expect(office.accept(computerId, reply)).toBe(false);
     }
 });

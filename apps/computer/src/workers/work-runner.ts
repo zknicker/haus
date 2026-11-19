@@ -105,7 +105,7 @@ export class WorkerSupervisor {
     }
 
     report(ref: WorkerTurnRef, observation: CloudAgentProviderObservation): void {
-        this.connection?.sink({ ...observation, runId: ref.runId, workId: ref.workId });
+        this.connection?.sink({ ...observation, turnId: ref.turnId, workerId: ref.workerId });
     }
     watch(ref: WorkerTurnRef): void {
         this.admit(ref, false);
@@ -136,7 +136,7 @@ export class WorkerSupervisor {
         if (!connection || this.closed) {
             return;
         }
-        const current = connection.runs.get(ref.runId);
+        const current = connection.runs.get(ref.turnId);
         if (current) {
             if (cancelRequested) {
                 current.cancelRequested = true;
@@ -151,7 +151,7 @@ export class WorkerSupervisor {
             terminal: false,
             wake: this.runtime.runSync(Deferred.make<void>()),
         };
-        connection.runs.set(ref.runId, run);
+        connection.runs.set(ref.turnId, run);
         this.runtime.runSync(Effect.forkIn(this.monitor(connection, run), connection.scope));
         return run;
     }
@@ -212,7 +212,7 @@ export class WorkerSupervisor {
                     yield* Effect.logWarning('Worker monitoring will retry').pipe(
                         Effect.annotateLogs({
                             operation: 'worker.monitor',
-                            runId: run.ref.runId,
+                            turnId: run.ref.turnId,
                         })
                     );
                     yield* self.pause(run, '60 seconds', wasCancelling);
@@ -222,7 +222,7 @@ export class WorkerSupervisor {
             }
         }).pipe(
             Effect.scoped,
-            Effect.ensuring(Effect.sync(() => connection.runs.delete(run.ref.runId))),
+            Effect.ensuring(Effect.sync(() => connection.runs.delete(run.ref.turnId))),
             Effect.ensuring(Deferred.succeed(run.ready, undefined)),
             Effect.asVoid
         );
@@ -288,8 +288,8 @@ export class WorkerSupervisor {
             ...observation,
             providerAgentId: run.ref.providerAgentId ?? undefined,
             providerRunId: run.ref.providerRunId ?? observation.providerRunId,
-            runId: run.ref.runId,
-            workId: run.ref.workId,
+            turnId: run.ref.turnId,
+            workerId: run.ref.workerId,
         });
         if (isTerminalWorkerTurnStatus(observation.status)) {
             run.terminal = true;

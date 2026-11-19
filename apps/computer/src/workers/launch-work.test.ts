@@ -4,8 +4,8 @@ import {
     receipt,
     registerLaunchWorkFixture,
     request,
-    runId,
-    workId,
+    turnId,
+    workerId,
 } from './launch-work-fixture.ts';
 import { startWorker } from './launch-work.ts';
 import { CloudAgentProviderUnavailableError } from './provider.ts';
@@ -31,7 +31,7 @@ test('a launch records the work, keeps instructions local, and reports the provi
     const result = await startWorker(fixture.input());
     await fixture.launched();
 
-    expect(result).toMatchObject({ state: 'started', work: { id: workId } });
+    expect(result).toMatchObject({ state: 'started', worker: { id: workerId } });
     expect(calls[0]?.url).toBe('https://haus.test/api/agent/workers');
     expect(calls[0]?.body).toEqual({
         content: request.content,
@@ -45,7 +45,7 @@ test('a launch records the work, keeps instructions local, and reports the provi
     });
     // The provider prompt reaches the provider and nothing else.
     expect(provider.launches[0]).toMatchObject({
-        idempotencyKey: runId,
+        idempotencyKey: turnId,
         instructions: request.instructions,
         ref: 'main',
         repository: 'haus/haus',
@@ -53,12 +53,12 @@ test('a launch records the work, keeps instructions local, and reports the provi
     expect(fixture.observations).toEqual([
         {
             observedAt: expect.any(String),
-            providerAgentId: `bc_${runId}`,
-            providerRunId: `run_${runId}`,
-            providerUrl: `https://cursor.com/agents/bc_${runId}`,
-            runId,
+            providerAgentId: `bc_${turnId}`,
+            providerRunId: `run_${turnId}`,
+            providerUrl: `https://cursor.com/agents/bc_${turnId}`,
+            turnId,
             status: 'running',
-            workId,
+            workerId,
         },
     ]);
 });
@@ -81,12 +81,12 @@ test('a launch pinned to a Claude cloud environment reports it on the observatio
             observedAt: expect.any(String),
             environmentId: 'env_fast',
             environmentName: 'Fast',
-            providerAgentId: `bc_${runId}`,
-            providerRunId: `run_${runId}`,
-            providerUrl: `https://cursor.com/agents/bc_${runId}`,
-            runId,
+            providerAgentId: `bc_${turnId}`,
+            providerRunId: `run_${turnId}`,
+            providerUrl: `https://cursor.com/agents/bc_${turnId}`,
+            turnId,
             status: 'running',
-            workId,
+            workerId,
         },
     ]);
 });
@@ -102,12 +102,12 @@ test('the receipt returns before a slow provider launch confirms', async () => {
     fixture.stubServer();
 
     const result = await startWorker(fixture.input());
-    expect(result).toMatchObject({ state: 'started', work: { id: workId } });
+    expect(result).toMatchObject({ state: 'started', worker: { id: workerId } });
     expect(fixture.observations).toHaveLength(0);
 
     confirm.resolve();
     await fixture.launched();
-    expect(fixture.observations).toMatchObject([{ runId, status: 'running', workId }]);
+    expect(fixture.observations).toMatchObject([{ turnId, status: 'running', workerId }]);
 });
 
 test('a Server refusal reaches the caller and reports nothing', async () => {
@@ -128,9 +128,9 @@ test('a lost identity report replays the journal address without a second launch
     await startWorker(fixture.input());
     expect(provider.launches).toHaveLength(1);
     expect(fixture.reconciled[0]).toMatchObject({
-        providerAgentId: `bc_${runId}`,
-        providerRunId: `run_${runId}`,
-        runId,
+        providerAgentId: `bc_${turnId}`,
+        providerRunId: `run_${turnId}`,
+        turnId,
     });
 });
 
@@ -144,20 +144,20 @@ test.each([
 ])('a launch sends the model and params Server resolved onto the Run', async (model, sent) => {
     const provider = fixture.install(createFakeCloudAgentProvider());
     const run = { branches: [], errorCode: null, model, providerRunId: null, rawStatus: null };
-    const settled = { createdAt: receipt.work.createdAt, startedAt: null, terminalAt: null };
+    const settled = { createdAt: receipt.worker.createdAt, startedAt: null, terminalAt: null };
     const runs = [
         {
             ...run,
             ...settled,
             report: null,
-            runId,
+            turnId,
             stall: null,
             status: 'queued',
             summary: null,
             usage: null,
         },
     ];
-    fixture.stubServer({ ...receipt, work: { ...receipt.work, runs } });
+    fixture.stubServer({ ...receipt, worker: { ...receipt.worker, turns: runs } });
     await startWorker(fixture.input());
     await fixture.launched();
     expect(provider.launches[0]?.model).toEqual(sent);

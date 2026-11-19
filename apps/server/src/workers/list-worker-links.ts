@@ -10,17 +10,17 @@ import { linkChatVisibleSql, linkParentChatsTable } from './worker-visibility.ts
 export async function listWorkerLinks(
     db: HausDatabase,
     member: HausUser | null,
-    input: { serverId: string; workIds: string[] }
+    input: { serverId: string; workerIds: string[] }
 ): Promise<WorkerLink[]> {
     await requireServerMembership(db, member, input.serverId);
-    if (!member || input.workIds.length === 0) {
+    if (!member || input.workerIds.length === 0) {
         return [];
     }
     const rows = await db
         .select({
             chatId: chatsTable.id,
             parentChatId: chatsTable.parentChatId,
-            workId: workerHistoryLinksTable.workId,
+            workerId: workerHistoryLinksTable.workerId,
         })
         .from(workerHistoryLinksTable)
         .innerJoin(
@@ -40,16 +40,16 @@ export async function listWorkerLinks(
         .where(
             and(
                 eq(workerHistoryLinksTable.serverId, input.serverId),
-                inArray(workerHistoryLinksTable.workId, input.workIds),
+                inArray(workerHistoryLinksTable.workerId, input.workerIds),
                 linkChatVisibleSql(input.serverId, { kind: 'user', userId: member.id })
             )
         )
         .orderBy(asc(workerHistoryLinksTable.createdAt));
 
     const links = new Map<string, WorkerLink>();
-    for (const { chatId, parentChatId, workId } of rows) {
-        const link = { chatId: parentChatId ?? chatId, workId };
-        links.set(`${workId}\0${link.chatId}`, link);
+    for (const { chatId, parentChatId, workerId } of rows) {
+        const link = { chatId: parentChatId ?? chatId, workerId };
+        links.set(`${workerId}\0${link.chatId}`, link);
     }
     return [...links.values()];
 }

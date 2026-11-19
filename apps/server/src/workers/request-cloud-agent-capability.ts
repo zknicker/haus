@@ -58,7 +58,7 @@ export async function requestCloudAgentCapability(
         });
     } catch (cause) {
         throw new CloudAgentCapabilityDeniedError(
-            cause instanceof Error ? cause.message : 'The Worker request failed.'
+            cause instanceof Error ? cause.message : 'The Cloud Agent request failed.'
         );
     }
 }

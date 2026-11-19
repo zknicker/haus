@@ -24,8 +24,8 @@ export type ClaudeLogEntry =
 const hausPromptPrefix = 'HAUS_CLOUD_RUN=';
 
 /** One Run's tag, the first line of every prompt Haus sends. */
-export function claudeRunTag(ref: { runId: string; workId: string }): string {
-    return `${hausPromptPrefix}${ref.workId}/${ref.runId}`;
+export function claudeRunTag(ref: { turnId: string; workerId: string }): string {
+    return `${hausPromptPrefix}${ref.workerId}/${ref.turnId}`;
 }
 
 /** Whether this event is the prompt Haus sent for the Run. */

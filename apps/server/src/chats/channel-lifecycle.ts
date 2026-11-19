@@ -138,7 +138,7 @@ export async function deleteChannel(
             prepareLifecycleEvent(input, 'deleted'),
             ...(await prepareLinkedWorkEvents(tx, {
                 serverId: input.serverId,
-                workIds: linkedWorkIds,
+                workerIds: linkedWorkIds,
             })),
         ];
     });

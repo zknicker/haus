@@ -44,9 +44,9 @@ test('Automations exposes automatic cloud handoffs and keeps delivered work in h
     socket.send(
         workerObservationFrame({
             observedAt: new Date().toISOString(),
-            runId: seeded.runId,
+            turnId: seeded.turnId,
             status: 'running',
-            workId: seeded.workId,
+            workerId: seeded.workerId,
         })
     );
     const route = `/s/${server.slug}/agents/${seeded.agentId}/automations`;
@@ -76,10 +76,10 @@ test('Automations exposes automatic cloud handoffs and keeps delivered work in h
     socket.send(
         workerObservationFrame({
             observedAt: new Date().toISOString(),
-            runId: seeded.runId,
+            turnId: seeded.turnId,
             status: 'completed',
             summary: 'The change is ready for review.',
-            workId: seeded.workId,
+            workerId: seeded.workerId,
         })
     );
     await expect(row).toContainText('Result queued');
@@ -97,7 +97,7 @@ test('Automations exposes automatic cloud handoffs and keeps delivered work in h
     runPsql(
         session.databaseUrl,
         `update agent_inbox set state = 'seen', seen_at = now()
-        where server_id = '${server.id}' and dedupe_key = '${seeded.runId}'`
+        where server_id = '${server.id}' and dedupe_key = '${seeded.turnId}'`
     );
     await page.reload();
     await expect(row).toHaveCount(0);

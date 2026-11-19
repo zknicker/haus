@@ -53,7 +53,7 @@ export async function projectChatMessages(
             authorProfile: readStoredAuthorProfile(message),
             body: bodyByMessageId.get(message.id),
             cause: causeByMessageId.get(message.id),
-            worker: workByMessageId.get(message.id),
+            workers: workByMessageId.get(message.id),
             driveCitations: citationsByMessageId.get(message.id),
             imageGenerations: imageGenerationsByMessageId.get(message.id),
             reactions: reactionsByMessageId.get(message.id),

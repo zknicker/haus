@@ -141,7 +141,7 @@ async function writeReading(
         return {
             events: await prepareLinkedWorkEvents(tx, {
                 serverId: row.serverId,
-                workIds: await reportingWorkIds(tx, row),
+                workerIds: await reportingWorkIds(tx, row),
             }),
             wakes: await enqueuePullRequestWakes(tx, dependencies.delivery, {
                 reading: { ...row, headSha: facts.headSha },
@@ -203,7 +203,7 @@ export async function reportingWorkIds(
     row: ReadingRow
 ): Promise<string[]> {
     const runs = await db
-        .selectDistinct({ workId: workerTurnsTable.workId })
+        .selectDistinct({ workId: workerTurnsTable.workerId })
         .from(workerTurnsTable)
         .where(
             and(

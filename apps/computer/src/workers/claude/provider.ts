@@ -59,7 +59,7 @@ export function createClaudeCloudAgentProvider(
     ): Promise<CloudAgentProviderObservation> => {
         const sessionId = requireSession(ref);
         const tag = claudeRunTag(ref);
-        const cached = windows.get(ref.runId) ?? null;
+        const cached = windows.get(ref.turnId) ?? null;
         const newest = cached?.[0]?.sequence;
         const stop = newest
             ? (event: ClaudeSessionEvent) => compareSequence(event.sequence, newest) <= 0
@@ -78,9 +78,9 @@ export function createClaudeCloudAgentProvider(
             truncated: !cached && page.truncated,
         });
         if (isTerminalWorkerTurnStatus(observation.status)) {
-            windows.delete(ref.runId);
+            windows.delete(ref.turnId);
         } else if (cached || !page.truncated || ref.providerRunId) {
-            windows.set(ref.runId, events);
+            windows.set(ref.turnId, events);
         }
         return observation;
     };
@@ -112,7 +112,7 @@ export function createClaudeCloudAgentProvider(
             for (const taskId of openTaskIds(entries)) {
                 await controller.stopTask(
                     sessionId,
-                    { requestId: `haus-stop-${ref.runId}-${taskId}`, taskId },
+                    { requestId: `haus-stop-${ref.turnId}-${taskId}`, taskId },
                     signal
                 );
             }
@@ -128,7 +128,7 @@ export function createClaudeCloudAgentProvider(
         readiness,
         async send(input): Promise<WorkerLaunch> {
             const sessionId = input.providerAgentId;
-            const tag = claudeRunTag({ runId: input.idempotencyKey, workId: input.workId });
+            const tag = claudeRunTag({ turnId: input.idempotencyKey, workerId: input.workerId });
             const delivered = (
                 await controller.events(sessionId, (event) => isRunPrompt(event, tag))
             ).events.find((event) => isRunPrompt(event, tag));
@@ -153,7 +153,7 @@ export function createClaudeCloudAgentProvider(
         async start(input, signal): Promise<WorkerLaunch> {
             await requireReady(readiness);
             const environment = await resolveClaudeEnvironment(dataRoot, signal);
-            const prompt = `${claudeRunTag({ runId: input.idempotencyKey, workId: input.workId })}\n\n${input.instructions}`;
+            const prompt = `${claudeRunTag({ turnId: input.idempotencyKey, workerId: input.workerId })}\n\n${input.instructions}`;
             const receipt = await withClaudeCheckout({ ...input, signal }, (cwd) =>
                 launchNativeClaudeCloud({
                     cwd,
@@ -197,13 +197,13 @@ export function createClaudeCloudAgentProvider(
 async function settleQuestion(
     controller: ClaudeController,
     sessionId: string,
-    runId: string
+    turnId: string
 ): Promise<void> {
     const session = await controller.session(sessionId);
     if (session.workerStatus !== 'requires_action') {
         return;
     }
-    await controller.interrupt(sessionId, `haus-answer-${runId}`);
+    await controller.interrupt(sessionId, `haus-answer-${turnId}`);
     const deadline = Date.now() + answerSettleTimeout;
     while (Date.now() < deadline) {
         await Bun.sleep(1000);
@@ -284,8 +284,8 @@ function requireSession(ref: WorkerTurnRef): string {
 }
 
 /** One deterministic id per Run, so a reading can tell Haus's own interrupt from any other. */
-function cancelRequestId(ref: { runId: string }): string {
-    return `haus-cancel-${ref.runId}`;
+function cancelRequestId(ref: { turnId: string }): string {
+    return `haus-cancel-${ref.turnId}`;
 }
 
 function sessionUrl(sessionId: string): string {

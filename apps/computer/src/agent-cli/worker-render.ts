@@ -15,11 +15,11 @@ export function renderWorkerStart(
 }
 
 /** `haus worker inspect` without `--work`: one line per work, each with its link. */
-export function renderWorkerList(works: readonly WorkerLinkSource[]): string {
-    if (works.length === 0) {
+export function renderWorkerList(workers: readonly WorkerLinkSource[]): string {
+    if (workers.length === 0) {
         return 'No Worker found.\n';
     }
-    const rows = works.map((work) => {
+    const rows = workers.map((work) => {
         // Only a pinned Claude launch carries a name; every other provider is null.
         const environment = work.environmentName ? ` [${work.environmentName}]` : '';
         return `${work.id} [${work.status}]${environment} ${work.title} (${work.repository})\n  Link: ${formatWorkerLink(work.title, work.id)}`;
@@ -28,15 +28,15 @@ export function renderWorkerList(works: readonly WorkerLinkSource[]): string {
 }
 
 /** `haus worker inspect --work <id>`: the recorded work, then its link. */
-export function renderWorkerDetail(works: readonly WorkerLinkSource[]): string {
-    const links = works.map((work) => `Link: ${formatWorkerLink(work.title, work.id)}`);
-    const reportPointers = works
+export function renderWorkerDetail(workers: readonly WorkerLinkSource[]): string {
+    const links = workers.map((work) => `Link: ${formatWorkerLink(work.title, work.id)}`);
+    const reportPointers = workers
         // One pointer per work, not per Run: `--report` always reads the newest
         // Run with one, so a second identical line would add nothing (TECH-8).
-        .filter((work) => work.runs.some(runHasMoreReport))
+        .filter((work) => work.turns.some(runHasMoreReport))
         .map((work) => reportPointerLine(work.id));
     const trailer = [...links, ...reportPointers, ...(links.length ? [linkSentence] : [])];
-    return `${JSON.stringify(works, null, 2)}\n${trailer.length ? `${trailer.join('\n')}\n` : ''}`;
+    return `${JSON.stringify(workers, null, 2)}\n${trailer.length ? `${trailer.join('\n')}\n` : ''}`;
 }
 
 /**
@@ -44,13 +44,13 @@ export function renderWorkerDetail(works: readonly WorkerLinkSource[]): string {
  * named by `--run`, or else the newest Run on that work carrying a report.
  */
 export function findWorkerReportRun(
-    works: readonly WorkerReportSource[],
-    workId: string,
-    runId?: string
+    workers: readonly WorkerReportSource[],
+    workerId: string,
+    turnId?: string
 ): WorkerTurnReportSource | undefined {
-    const work = works.find((candidate) => candidate.id === workId);
-    const runs = work?.runs ?? [];
-    return runId ? runs.find((run) => run.runId === runId) : runs.find((run) => run.report);
+    const work = workers.find((candidate) => candidate.id === workerId);
+    const turns = work?.turns ?? [];
+    return turnId ? turns.find((run) => run.turnId === turnId) : turns.find((run) => run.report);
 }
 
 /** The plain-text block `--report` prints for one resolved Run. */
@@ -59,8 +59,8 @@ export function renderWorkerReportText(run: WorkerTurnReportSource): string {
     return `${run.report?.text ?? ''}${clippedLine}\n`;
 }
 
-function reportPointerLine(workId: string): string {
-    return `More: haus worker inspect --work ${workId} --report`;
+function reportPointerLine(workerId: string): string {
+    return `More: haus worker inspect --work ${workerId} --report`;
 }
 
 /** Mirrors `hasFullReport`: the full report outgrew the capped `summary` already shown. */
@@ -70,13 +70,13 @@ function runHasMoreReport(run: WorkerTurnReportSource): boolean {
 
 export interface WorkerTurnReportSource {
     report: { clipped: boolean; text: string } | null;
-    runId: string;
+    turnId: string;
     summary?: string | null;
 }
 
 interface WorkerReportSource {
     id: string;
-    runs: readonly WorkerTurnReportSource[];
+    turns: readonly WorkerTurnReportSource[];
 }
 
 interface WorkerLinkSource extends WorkerReportSource {
@@ -95,11 +95,11 @@ function renderStarted(
 ): string {
     const ref = request.startingRef ? `@${request.startingRef}` : '';
     const lines = [
-        `Worker launching for ${request.repository}${ref}. Work ID: ${receipt.work.id}`,
+        `Worker launching for ${request.repository}${ref}. Work ID: ${receipt.worker.id}`,
         `Posted to ${receipt.target}. Message ID: ${receipt.messageId}`,
         `Haus wakes you on ${receipt.target} when the run settles, a failed launch included, and when its pull request becomes ready or its checks finish; post what you learn yourself.`,
         // Agents paste this line; they never build a work link themselves.
-        `Link: ${formatWorkerLink(receipt.work.title, receipt.work.id)}`,
+        `Link: ${formatWorkerLink(receipt.worker.title, receipt.worker.id)}`,
         linkSentence,
     ];
     return `${lines.join('\n')}\n`;

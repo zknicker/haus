@@ -137,7 +137,7 @@ function FastRow({
             <ItemCard.Action>
                 {canManage ? (
                     <Switch
-                        aria-label={`${cloudAgentProviderName(target.provider)} Worker fast mode`}
+                        aria-label={`${cloudAgentProviderName(target.provider)} cloud agent fast mode`}
                         isSelected={isOn}
                         onChange={(fast) =>
                             setModel.mutate({ ...target, model: settingWithParam(view, { fast }) })

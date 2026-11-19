@@ -13,9 +13,9 @@ test('the canonical strict cancel command schema rejects a field it does not kno
             provider: 'cursor',
             providerAgentId: 'bc_abc',
             providerRunId: 'run_abc',
-            runId: 'car_1234567890abcdef',
+            turnId: 'car_1234567890abcdef',
             type: 'worker-stop',
-            workId: 'caw_1234567890abcdef',
+            workerId: 'caw_1234567890abcdef',
         })
     ).toThrow(/futureCancelField/);
 });
@@ -26,31 +26,31 @@ test('the Computer response schema tolerates an unknown field on a cancel comman
         provider: 'cursor',
         providerAgentId: 'bc_abc',
         providerRunId: 'run_abc',
-        runId: 'car_1234567890abcdef',
+        turnId: 'car_1234567890abcdef',
         type: 'worker-stop',
-        workId: 'caw_1234567890abcdef',
+        workerId: 'caw_1234567890abcdef',
     });
-    expect(parsed.runId).toBe('car_1234567890abcdef');
+    expect(parsed.turnId).toBe('car_1234567890abcdef');
 });
 
 test('the Computer response schema tolerates an unknown field on a reconcile command, at every nesting level', () => {
     const parsed = workerReconcileCommandResponseSchema.parse({
         futureReconcileField: true,
         type: 'worker-reconcile',
-        work: [
+        workers: [
             {
                 cancelRequested: false,
                 futureEntryField: true,
                 provider: 'cursor',
                 providerAgentId: 'bc_abc',
                 providerRunId: 'run_abc',
-                runId: 'car_1234567890abcdef',
+                turnId: 'car_1234567890abcdef',
                 status: 'running',
-                workId: 'caw_1234567890abcdef',
+                workerId: 'caw_1234567890abcdef',
             },
         ],
     });
-    expect(parsed.work[0]?.workId).toBe('caw_1234567890abcdef');
+    expect(parsed.workers[0]?.workerId).toBe('caw_1234567890abcdef');
 });
 
 test('the Computer response schema tolerates an unknown field on a capability request, at every nesting level', () => {

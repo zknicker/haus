@@ -20,7 +20,7 @@ export function CloudAgentCapabilityCard({
         <section>
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header>
-                    <ItemCardGroup.Title>Workers</ItemCardGroup.Title>
+                    <ItemCardGroup.Title>Cloud Agents</ItemCardGroup.Title>
                 </ItemCardGroup.Header>
                 <ItemCardGroup className="overflow-hidden">
                     {cloudAgentProviders.map((provider) => (

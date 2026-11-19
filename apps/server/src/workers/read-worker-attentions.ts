@@ -16,7 +16,7 @@ const runAttentionSchema = workerAttentionSchema.omit({ notice: true });
 export async function readWorkerAttentions(
     db: HausDatabase,
     serverId: string,
-    runIds: string[]
+    turnIds: string[]
 ): Promise<Map<string, WorkerTurnAttention>> {
     const rows = await db
         .select({
@@ -26,22 +26,22 @@ export async function readWorkerAttentions(
             providerUrl: workersTable.providerUrl,
             report: workerTurnsTable.report,
             repository: workersTable.repository,
-            runId: workerTurnsTable.id,
+            turnId: workerTurnsTable.id,
             stallCode: workerTurnsTable.stallCode,
             status: workerTurnsTable.status,
             summary: workerTurnsTable.summary,
             title: workersTable.title,
-            workId: workersTable.id,
+            workerId: workersTable.id,
         })
         .from(workerTurnsTable)
         .innerJoin(
             workersTable,
             and(
                 eq(workersTable.serverId, workerTurnsTable.serverId),
-                eq(workersTable.id, workerTurnsTable.workId)
+                eq(workersTable.id, workerTurnsTable.workerId)
             )
         )
-        .where(and(eq(workerTurnsTable.serverId, serverId), inArray(workerTurnsTable.id, runIds)));
+        .where(and(eq(workerTurnsTable.serverId, serverId), inArray(workerTurnsTable.id, turnIds)));
     return new Map(
         rows.map((row) => {
             const { report, ...attention } = row;
@@ -49,7 +49,7 @@ export async function readWorkerAttentions(
             // the pointer whenever the full report outgrew that head.
             const hasFullReport =
                 report !== null && report.text.length > (row.summary?.length ?? 0);
-            return [row.runId, runAttentionSchema.parse({ ...attention, hasFullReport })];
+            return [row.turnId, runAttentionSchema.parse({ ...attention, hasFullReport })];
         })
     );
 }

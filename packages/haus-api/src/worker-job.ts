@@ -106,13 +106,13 @@ interface JobRun {
  * `startedAt` resets with each follow-up, so it cannot.
  */
 export function deriveWorkerJob(work: {
-    runs: readonly JobRun[];
+    turns: readonly JobRun[];
     stall?: null | { code: WorkerStallCode };
     startedAt: null | string;
     status: WorkerTurnStatus;
     terminalAt: null | string;
 }): WorkerJob {
-    const [newest] = work.runs;
+    const [newest] = work.turns;
     if (!newest) {
         return jobFrom(
             {
@@ -125,11 +125,11 @@ export function deriveWorkerJob(work: {
             null
         );
     }
-    const followUp = work.runs.length > 1 ? followUpOf(newest) : null;
-    const first = work.runs.at(-1) ?? newest;
-    const anchor = work.runs.find((run) => run.providerRunId !== null) ?? first;
+    const followUp = work.turns.length > 1 ? followUpOf(newest) : null;
+    const first = work.turns.at(-1) ?? newest;
+    const anchor = work.turns.find((run) => run.providerRunId !== null) ?? first;
     const jobStart =
-        [...work.runs].reverse().find((run) => run.startedAt !== null)?.startedAt ?? null;
+        [...work.turns].reverse().find((run) => run.startedAt !== null)?.startedAt ?? null;
     return jobFrom({ ...anchor, startedAt: jobStart }, followUp);
 }
 

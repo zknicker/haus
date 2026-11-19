@@ -69,13 +69,13 @@ export async function seedWorker(
     work: SeedWorker
 ): Promise<void> {
     const messageId = createOpaqueId('msg');
-    const workId = createOpaqueId('caw');
+    const workerId = createOpaqueId('caw');
     await appendSeedMessages(tx, {
         chatId: context.productChatId,
         messages: [
             {
                 authorAgentId: context.blippyId,
-                content: `${work.content}\n\n${formatWorkerLink(work.title, workId)}`,
+                content: `${work.content}\n\n${formatWorkerLink(work.title, workerId)}`,
                 createdAt: work.createdAt,
                 id: messageId,
                 nonce: work.nonce,
@@ -83,10 +83,10 @@ export async function seedWorker(
         ],
         serverId: context.serverId,
     });
-    await insertWorker(tx, context, work, { messageId, workId });
+    await insertWorker(tx, context, work, { messageId, workerId });
     await recordWorkerLinks(tx, {
         chatId: context.productChatId,
-        links: [{ ordinal: 0, workId }],
+        links: [{ ordinal: 0, workerId }],
         messageId,
         serverId: context.serverId,
     });
@@ -96,7 +96,7 @@ async function insertWorker(
     tx: HausDatabase,
     context: InboxSeedContext,
     work: SeedWorker,
-    { messageId, workId }: { messageId: string; workId: string }
+    { messageId, workerId }: { messageId: string; workerId: string }
 ): Promise<void> {
     await tx.insert(workersTable).values({
         activityAt: work.activityAt,
@@ -105,7 +105,7 @@ async function insertWorker(
         chatId: context.productChatId,
         computerId: context.computerId,
         createdAt: work.createdAt,
-        id: workId,
+        id: workerId,
         launchMessageId: messageId,
         provider: 'cursor',
         providerAgentId: work.providerAgentId,
@@ -138,6 +138,6 @@ async function insertWorker(
         summary: work.runSummary,
         terminalAt: work.terminalAt,
         usage: { costUsd: 0.42, inputTokens: 184_000, outputTokens: 12_400 },
-        workId,
+        workerId,
     });
 }

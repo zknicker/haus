@@ -46,12 +46,12 @@ export interface AgentWorkerAttention {
     providerUrl: string | null;
     pullRequestChange?: WorkerPullRequestChange;
     repository: string;
-    runId: string;
+    turnId: string;
     stallCode: WorkerStallCode | null;
     status: WorkerTurnStatus;
     summary: string | null;
     title: string;
-    workId: string;
+    workerId: string;
 }
 
 export interface WorkerPullRequestChange {

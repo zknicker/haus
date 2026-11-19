@@ -12,9 +12,9 @@ export const workerStopCommandSchema = z
         provider: cloudAgentProviderSchema,
         providerAgentId: z.string().trim().min(1).max(200).nullable(),
         providerRunId: z.string().trim().min(1).max(200).nullable(),
-        runId: idSchema,
+        turnId: idSchema,
         type: z.literal('worker-stop'),
-        workId: idSchema,
+        workerId: idSchema,
     })
     .strict();
 
@@ -28,7 +28,7 @@ export type WorkerStopCommand = z.infer<typeof workerStopCommandSchema>;
 export const workerReconcileCommandSchema = z
     .object({
         type: z.literal('worker-reconcile'),
-        work: z.array(workerReconcileEntrySchema).max(200),
+        workers: z.array(workerReconcileEntrySchema).max(200),
     })
     .strict();
 

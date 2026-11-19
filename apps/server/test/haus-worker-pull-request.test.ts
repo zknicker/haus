@@ -8,7 +8,7 @@ import { workerRecordFixture } from './worker-record-fixture.ts';
 const fixture = workerRecordFixture();
 
 test('work reads the live reading while its Run keeps the snapshot it reported', async () => {
-    const { work, runId } = await reportPullRequest();
+    const { work, turnId } = await reportPullRequest();
     await fixture.harness.sql`
         update cloud_agent_pull_requests set state = 'merged', source = 'github'
     `;
@@ -17,13 +17,13 @@ test('work reads the live reading while its Run keeps the snapshot it reported',
         serverId: fixture.serverId,
     });
 
-    expect(listed.find((row) => row.work.id === work.id)?.work.pullRequest).toMatchObject({
+    expect(listed.find((row) => row.worker.id === work.id)?.worker.pullRequest).toMatchObject({
         checks: 'unknown',
         number: 12,
         repository: 'haus/haus',
         state: 'merged',
     });
-    expect((await fixture.readBranches(runId))[0]?.pullRequest?.state).toBe('draft');
+    expect((await fixture.readBranches(turnId))[0]?.pullRequest?.state).toBe('draft');
 
     const connection = await connectHausDatabase(fixture.harness.databaseUrl);
     try {
@@ -37,8 +37,8 @@ test('work reads the live reading while its Run keeps the snapshot it reported',
 async function reportPullRequest() {
     const runner = await fixture.mintRunner('run_cloud_pull_request');
     const created = await fixture.postStart(runner, fixture.startBody({ nonce: 'cloud-pull' }));
-    const work = created.body.work as Worker;
-    const runId = created.body.runId as string;
+    const work = created.body.worker as Worker;
+    const turnId = created.body.turnId as string;
     const socket = await fixture.attachComputer();
     socket.send(
         JSON.stringify({
@@ -59,14 +59,14 @@ async function reportPullRequest() {
                     },
                 ],
                 observedAt: '2026-09-04T12:04:00.000Z',
-                runId,
+                turnId,
                 status: 'running',
-                workId: work.id,
+                workerId: work.id,
             },
             type: 'worker-observation',
         })
     );
-    await fixture.waitFor(async () => (await fixture.readBranches(runId))[0]?.pullRequest);
+    await fixture.waitFor(async () => (await fixture.readBranches(turnId))[0]?.pullRequest);
     socket.close();
-    return { runId, work };
+    return { turnId, work };
 }

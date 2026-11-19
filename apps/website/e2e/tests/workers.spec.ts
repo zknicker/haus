@@ -4,7 +4,7 @@ import { createTestServer, openHappeningNow } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 const workTitle = 'Fix the failing migration';
-const credential = 'computer-worker-credential-12';
+const credential = 'computer-worker-credential-1234567890ab';
 
 test('Worker reads as one card in the Chat and the Inbox', async ({ page }, testInfo) => {
     test.setTimeout(90_000);
@@ -68,9 +68,9 @@ test('Worker reads as one card in the Chat and the Inbox', async ({ page }, test
         workerObservationFrame({
             activity: 'Reading the failing migration.',
             observedAt: new Date().toISOString(),
-            runId: seeded.runId,
+            turnId: seeded.turnId,
             status: 'running',
-            workId: seeded.workId,
+            workerId: seeded.workerId,
         })
     );
     await expect(transcriptCard).toContainText('Working');
@@ -96,10 +96,10 @@ test('Worker reads as one card in the Chat and the Inbox', async ({ page }, test
                 },
             ],
             observedAt: new Date().toISOString(),
-            runId: seeded.runId,
+            turnId: seeded.turnId,
             status: 'completed',
             summary: 'Opened a pull request.',
-            workId: seeded.workId,
+            workerId: seeded.workerId,
         })
     );
     await expect(transcriptCard).toContainText('Done');

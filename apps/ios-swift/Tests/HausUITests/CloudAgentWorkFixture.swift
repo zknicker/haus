@@ -30,7 +30,7 @@ enum CloudAgentWorkFixture {
         {"activity":\(activity.map { #"{"at":"\#(updatedAt)","summary":\#(quoted($0))}"# } ?? "null"),
          "agentId":"agt_one","cancelRequestedAt":\(optional(cancelRequestedAt)),"chatId":"cht_one",
          "createdAt":"\(createdAt)","id":"\(id)","job":\(job),"messageId":"msg_one","provider":"cursor",
-         "providerUrl":\(optional(providerUrl)),"pullRequest":\(pullRequest),"repository":"haus/haus","runs":[\(runs.joined(separator: ","))],
+         "providerUrl":\(optional(providerUrl)),"pullRequest":\(pullRequest),"repository":"haus/haus","turns":[\(runs.joined(separator: ","))],
          "startedAt":"\(start)","startingRef":null,"status":"\(status)","terminalAt":null,
          "title":\(quoted(title)),"updatedAt":"\(updatedAt)"}
         """
@@ -47,7 +47,7 @@ enum CloudAgentWorkFixture {
     ) -> String {
         """
         {"branches":[\(branches.joined(separator: ","))],"createdAt":"\(createdAt)","errorCode":null,
-         "runId":"\(runId)","startedAt":\(optional(status == "queued" ? nil : startedAt)),
+         "turnId":"\(runId)","startedAt":\(optional(status == "queued" ? nil : startedAt)),
          "status":"\(status)","summary":null,"terminalAt":\(optional(terminalAt))}
         """
     }

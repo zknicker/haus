@@ -229,7 +229,7 @@ export async function sendChatMessage(
                 // A human send never creates a typed body; this Message is text.
                 message: toChatMessage(message, {
                     attachments: attachmentMetadata(attachments),
-                    worker:
+                    workers:
                         (await readLinkedWorker(tx, input.serverId, [messageId])).get(messageId) ??
                         [],
                     driveCitations,

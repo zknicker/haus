@@ -7,7 +7,7 @@ import {
 } from '../../workers/worker-presentation.ts';
 
 export function cloudAutomationPresentation(row: WorkerAutomation, now: number) {
-    const updated = `Last update ${formatRelativeTime(row.work.updatedAt, now)}`;
+    const updated = `Last update ${formatRelativeTime(row.worker.updatedAt, now)}`;
     switch (row.notification) {
         case 'pending':
             return {
@@ -17,9 +17,9 @@ export function cloudAutomationPresentation(row: WorkerAutomation, now: number) 
             } as const;
         case 'delivered':
             return {
-                label: workerJobLabels[row.work.job.state],
+                label: workerJobLabels[row.worker.job.state],
                 detail: 'Result delivered to the Captain',
-                color: workerJobChipColor(row.work.job.state),
+                color: workerJobChipColor(row.worker.job.state),
             } as const;
         case 'computer-removed':
             return {
@@ -41,12 +41,12 @@ export function cloudAutomationPresentation(row: WorkerAutomation, now: number) 
             } as const;
         case 'unavailable':
             return {
-                label: workerJobLabels[row.work.job.state],
+                label: workerJobLabels[row.worker.job.state],
                 detail: 'No delivery record is available',
                 color: 'warning',
             } as const;
         case 'waiting':
-            if (row.computerHealth !== 'healthy' || quietFor(row.work, now) !== null) {
+            if (row.computerHealth !== 'healthy' || quietFor(row.worker, now) !== null) {
                 return {
                     label: 'Status unconfirmed',
                     detail: `${updated} · Notification resumes when tracking recovers`,
@@ -54,7 +54,7 @@ export function cloudAutomationPresentation(row: WorkerAutomation, now: number) 
                 } as const;
             }
             return {
-                label: row.work.cancelRequestedAt ? 'Stopping' : 'Working',
+                label: row.worker.cancelRequestedAt ? 'Stopping' : 'Working',
                 detail: 'Will notify the Captain when this run finishes or needs input',
                 color: 'accent',
             } as const;

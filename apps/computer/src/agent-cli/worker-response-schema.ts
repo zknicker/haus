@@ -115,7 +115,7 @@ export const workerResponseSchema = z.looseObject({
     job: workerJobResponseSchema,
     // A Server older than this Computer sends no reading.
     pullRequest: pullRequestReadingResponseSchema.nullable().default(null),
-    runs: z.array(workerTurnResponseSchema).max(workerTurnsRetained),
+    turns: z.array(workerTurnResponseSchema).max(workerTurnsRetained),
 });
 
 export const workerReconcileEntryResponseSchema = z.looseObject(workerReconcileEntrySchema.shape);
@@ -125,24 +125,24 @@ export const agentWorkerReceiptResponseSchema = z.looseObject({
     chatId: z.string().trim().min(1),
     idempotent: z.boolean(),
     messageId: z.string().trim().min(1),
-    runId: z.string().trim().min(1),
+    turnId: z.string().trim().min(1),
     sequence: z.number().int().positive(),
     state: z.literal('started'),
     target: z.string().trim().min(1),
-    work: workerResponseSchema,
+    worker: workerResponseSchema,
 });
 
 export const agentWorkerSendReceiptResponseSchema = z.looseObject({
     idempotent: z.boolean(),
     predecessors: z.array(workerReconcileEntryResponseSchema),
-    runId: z.string().trim().min(1),
-    work: workerResponseSchema,
+    turnId: z.string().trim().min(1),
+    worker: workerResponseSchema,
 });
 
 export const agentWorkerListReceiptResponseSchema = z.looseObject({
-    works: z.array(workerResponseSchema),
+    workers: z.array(workerResponseSchema),
 });
 
 export const agentWorkerCancelReceiptResponseSchema = z.looseObject({
-    work: workerResponseSchema,
+    worker: workerResponseSchema,
 });

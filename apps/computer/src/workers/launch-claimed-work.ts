@@ -31,18 +31,18 @@ export interface ClaimedLaunch {
  */
 export async function launchClaimedWork(claimed: ClaimedLaunch): Promise<void> {
     const { journal, provider, receipt, ref, serverId, supervisor } = claimed;
-    const run = receipt.work.runs.find((candidate) => candidate.runId === receipt.runId);
+    const run = receipt.worker.turns.find((candidate) => candidate.turnId === receipt.turnId);
     let launch: WorkerLaunch;
     try {
         launch = await launchWorker(provider, {
-            idempotencyKey: receipt.runId,
+            idempotencyKey: receipt.turnId,
             instructions: claimed.instructions,
             // Server resolved the Server's chosen model, or its Auto fallback, onto the Run.
             model: cloudAgentModelSelectionOf(run?.model),
-            ref: receipt.work.startingRef,
-            repository: receipt.work.repository,
-            title: receipt.work.title,
-            workId: receipt.work.id,
+            ref: receipt.worker.startingRef,
+            repository: receipt.worker.repository,
+            title: receipt.worker.title,
+            workerId: receipt.worker.id,
         });
     } catch (cause) {
         await failLaunch(claimed, cause);
@@ -83,8 +83,8 @@ async function failLaunch(claimed: ClaimedLaunch, cause: unknown): Promise<void>
         errorCode: rejection.errorCode,
         operation: 'worker.launch',
         provider: ref.provider,
-        runId: ref.runId,
-        workId: ref.workId,
+        turnId: ref.turnId,
+        workerId: ref.workerId,
     });
     await journal.reject(serverId, ref, rejection);
     const stopped = await journal.read(serverId, ref);

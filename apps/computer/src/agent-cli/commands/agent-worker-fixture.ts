@@ -20,7 +20,7 @@ export const work = {
     providerUrl: null,
     pullRequest: null,
     repository: 'haus/haus',
-    runs: [],
+    turns: [],
     startedAt: null,
     startingRef: 'main',
     status: 'queued',
@@ -56,18 +56,23 @@ export function requester(seen: AgentApiRequest[], route: string[] = []): AgentA
                 chatId: 'cht_product',
                 idempotent: false,
                 messageId: work.messageId,
-                runId: 'car_1234567890abcdef',
+                turnId: 'car_1234567890abcdef',
                 sequence: 7,
                 target: 'task:SEC-12',
-                work,
+                worker: work,
             };
             const response =
                 input?.method !== 'POST'
-                    ? { works: [work] }
+                    ? { workers: [work] }
                     : path.endsWith('/cancel')
-                      ? { work }
+                      ? { worker: work }
                       : path.endsWith('/send')
-                        ? { work, runId: receipt.runId, idempotent: false, predecessors: [] }
+                        ? {
+                              worker: work,
+                              turnId: receipt.turnId,
+                              idempotent: false,
+                              predecessors: [],
+                          }
                         : receipt;
             return Promise.resolve(schema.parse(response));
         },

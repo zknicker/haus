@@ -78,9 +78,9 @@ export function workerLinkHelpers(fixture: WorkerFixture) {
 
     async function observe(
         socket: WebSocket,
-        input: { observedAt: string; runId: string; status: WorkerTurnStatus; workId: string }
+        input: { observedAt: string; turnId: string; status: WorkerTurnStatus; workerId: string }
     ) {
         socket.send(JSON.stringify({ observation: input, type: 'worker-observation' }));
-        await fixture.waitForWorkStatus(input.workId, input.status);
+        await fixture.waitForWorkStatus(input.workerId, input.status);
     }
 }

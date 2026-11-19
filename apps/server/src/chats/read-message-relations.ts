@@ -16,7 +16,7 @@ export async function readMessageRelations(
     messageId: string
 ): Promise<{
     attachments: AttachmentMetadata[];
-    worker: ChatMessage['worker'];
+    workers: ChatMessage['workers'];
     driveCitations: ChatMessage['driveCitations'];
     imageGenerations: ChatMessage['imageGenerations'];
     reactions: ChatMessage['reactions'] | undefined;
@@ -41,7 +41,7 @@ export async function readMessageRelations(
         .limit(1);
     return {
         attachments: attachments.get(messageId) ?? [],
-        worker: works.get(messageId) ?? [],
+        workers: works.get(messageId) ?? [],
         driveCitations: citations.get(messageId) ?? [],
         imageGenerations: images.get(messageId) ?? [],
         reactions: reactions.get(messageId),

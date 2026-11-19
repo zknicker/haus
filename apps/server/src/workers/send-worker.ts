@@ -37,7 +37,7 @@ export async function sendWorker(
             .where(
                 and(
                     eq(workersTable.serverId, runner.serverId),
-                    eq(workersTable.id, input.workId),
+                    eq(workersTable.id, input.workerId),
                     eq(workersTable.agentId, runner.agentId),
                     eq(workersTable.computerId, runner.computerId),
                     eq(agentsTable.computerId, runner.computerId)
@@ -51,7 +51,7 @@ export async function sendWorker(
                 .where(
                     and(
                         eq(workersTable.serverId, runner.serverId),
-                        eq(workersTable.id, input.workId),
+                        eq(workersTable.id, input.workerId),
                         eq(workersTable.agentId, runner.agentId)
                     )
                 )
@@ -64,15 +64,15 @@ export async function sendWorker(
         if (!row.work.providerAgentId) {
             throw new WorkerNotLaunchedError();
         }
-        const runId = `car_${createHash('sha256')
-            .update(JSON.stringify([runner.serverId, input.workId, input.nonce]))
+        const turnId = `car_${createHash('sha256')
+            .update(JSON.stringify([runner.serverId, input.workerId, input.nonce]))
             .digest('base64url')
             .slice(0, 16)}`;
         const [existing] = await tx
             .select()
             .from(workerTurnsTable)
             .where(
-                and(eq(workerTurnsTable.serverId, runner.serverId), eq(workerTurnsTable.id, runId))
+                and(eq(workerTurnsTable.serverId, runner.serverId), eq(workerTurnsTable.id, turnId))
             )
             .limit(1);
         let events: PreparedRealtimeEvent[] = [];
@@ -83,14 +83,14 @@ export async function sendWorker(
                 serverId: runner.serverId,
             });
             await tx.insert(workerTurnsTable).values({
-                id: runId,
+                id: turnId,
                 modelDroppedParams: model.droppedParams,
                 modelFallbackFrom: model.fallbackFrom,
                 modelId: model.id,
                 modelParams: model.params,
                 serverId: runner.serverId,
-                workId: input.workId,
-                createdAt: sql`greatest(clock_timestamp(), (select max(created_at) + interval '1 millisecond' from cloud_agent_runs where server_id = ${runner.serverId} and work_id = ${input.workId}))`,
+                workerId: input.workerId,
+                createdAt: sql`greatest(clock_timestamp(), (select max(created_at) + interval '1 millisecond' from cloud_agent_runs where server_id = ${runner.serverId} and work_id = ${input.workerId}))`,
             });
             await tx
                 .update(workersTable)
@@ -107,18 +107,18 @@ export async function sendWorker(
                 .where(
                     and(
                         eq(workersTable.serverId, runner.serverId),
-                        eq(workersTable.id, input.workId)
+                        eq(workersTable.id, input.workerId)
                     )
                 );
             events = await prepareWorkerEvents(tx, {
                 serverId: runner.serverId,
-                workId: input.workId,
+                workerId: input.workerId,
             });
         }
         const predecessors = await listComputerWorker(tx, {
             computerId: runner.computerId,
             serverId: runner.serverId,
-            workId: input.workId,
+            workerId: input.workerId,
         });
         const earlier = existing
             ? await tx
@@ -127,24 +127,24 @@ export async function sendWorker(
                   .where(
                       and(
                           eq(workerTurnsTable.serverId, runner.serverId),
-                          eq(workerTurnsTable.workId, input.workId),
+                          eq(workerTurnsTable.workerId, input.workerId),
                           lt(workerTurnsTable.createdAt, existing.createdAt)
                       )
                   )
             : null;
         const earlierIds = earlier ? new Set(earlier.map((run) => run.id)) : null;
-        const work = await findWorker(tx, runner.serverId, input.workId);
+        const work = await findWorker(tx, runner.serverId, input.workerId);
         if (!work) {
             throw new WorkerNotFoundError();
         }
         return {
             events,
             receipt: {
-                work,
-                runId,
+                worker: work,
+                turnId,
                 idempotent: Boolean(existing),
                 predecessors: predecessors.filter(
-                    (run) => run.runId !== runId && (!earlierIds || earlierIds.has(run.runId))
+                    (run) => run.turnId !== turnId && (!earlierIds || earlierIds.has(run.turnId))
                 ),
             },
         };

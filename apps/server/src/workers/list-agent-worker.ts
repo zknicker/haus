@@ -9,7 +9,7 @@ import { readWorkDetails, toWorker } from './worker-shape.ts';
 export async function listAgentWorker(
     db: HausDatabase,
     runner: ResolvedRunner,
-    workId?: string
+    workerId?: string
 ): Promise<Worker[]> {
     const rows = await db
         .select()
@@ -18,12 +18,12 @@ export async function listAgentWorker(
             and(
                 eq(workersTable.serverId, runner.serverId),
                 eq(workersTable.agentId, runner.agentId),
-                workId ? eq(workersTable.id, workId) : undefined
+                workerId ? eq(workersTable.id, workerId) : undefined
             )
         )
         .orderBy(desc(workersTable.updatedAt))
         .limit(200);
-    if (workId && rows.length === 0) {
+    if (workerId && rows.length === 0) {
         throw new WorkerNotFoundError();
     }
     const details = await readWorkDetails(
@@ -32,16 +32,16 @@ export async function listAgentWorker(
         rows.map((row) => row.id)
     );
     const works = rows.map((row) => toWorker(row, details.get(row.id)));
-    // A routine list-all-active-works call (no `workId`) never embeds a Run's
+    // A routine list-all-active-works call (no `workerId`) never embeds a Run's
     // full report (TECH-8): it can run to 64 KiB each, and this route is
     // polled far more often than a single-work fetch names a Run to inspect.
-    // A single-work fetch (`workId` set) keeps every stored `report` as is.
-    return workId ? works : works.map(stripReports);
+    // A single-work fetch (`workerId` set) keeps every stored `report` as is.
+    return workerId ? works : works.map(stripReports);
 }
 
 function stripReports(work: Worker): Worker {
     return {
         ...work,
-        runs: work.runs.map((run) => (run.report ? { ...run, report: null } : run)),
+        turns: work.turns.map((run) => (run.report ? { ...run, report: null } : run)),
     };
 }

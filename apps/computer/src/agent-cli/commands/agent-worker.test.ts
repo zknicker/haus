@@ -43,7 +43,7 @@ test('send reuses the work identity and defaults to queued delivery with optiona
         });
         expect(routes).toEqual(['/api/agent/workers/send']);
         expect(seen[0]?.body).toEqual({
-            workId: work.id,
+            workerId: work.id,
             instructions: 'Address the review comments.',
             interrupt,
             nonce: 'follow-up-nonce',
@@ -68,17 +68,17 @@ test('send rejects missing instructions before accepting work', async () => {
 });
 
 test('inspect lists owned work or requests recorded details for one work', async () => {
-    for (const workId of [undefined, work.id]) {
+    for (const workerId of [undefined, work.id]) {
         const seen: AgentApiRequest[] = [];
         const output: string[] = [];
-        await runWorkerInspect(args(workId ? { '--work': workId } : {}), {
+        await runWorkerInspect(args(workerId ? { '--work': workerId } : {}), {
             client: requester(seen),
             mintNonce: () => 'unused',
             readStdin: () => Promise.resolve(''),
             stdinIsTty: true,
             write: (text) => output.push(text),
         });
-        expect(seen[0]?.query).toEqual({ workId });
+        expect(seen[0]?.query).toEqual({ workerId });
         expect(output.join('')).toContain(work.id);
         expect(output.join('')).toContain(work.title);
     }
@@ -102,14 +102,14 @@ test('--report requires --work, with a clear usage error otherwise', async () =>
             stdinIsTty: true,
             write: () => undefined,
         })
-    ).rejects.toThrow(/--report only works alongside --work/);
+    ).rejects.toThrow(/--report only workers alongside --work/);
 });
 
 /** A work carrying one Run with a full report, for the `--report` tests below. */
 function requesterWithReport(report: { clipped: boolean; text: string } | null): AgentApiRequester {
     const workWithReport = {
         ...work,
-        runs: [
+        turns: [
             {
                 branches: [],
                 createdAt: work.createdAt,
@@ -118,7 +118,7 @@ function requesterWithReport(report: { clipped: boolean; text: string } | null):
                 providerRunId: 'run_abc',
                 rawStatus: 'FINISHED',
                 report,
-                runId: 'car_1234567890abcdef',
+                turnId: 'car_1234567890abcdef',
                 stall: null,
                 startedAt: work.createdAt,
                 status: 'completed',
@@ -130,7 +130,7 @@ function requesterWithReport(report: { clipped: boolean; text: string } | null):
     };
     return {
         request(_path, schema) {
-            return Promise.resolve(schema.parse({ works: [workWithReport] }));
+            return Promise.resolve(schema.parse({ workers: [workWithReport] }));
         },
     };
 }
@@ -170,15 +170,15 @@ function requesterFromNewerServer(): AgentApiRequester {
         request(path, schema, input) {
             const response =
                 input?.method !== 'POST'
-                    ? { works: [workFromNewerServer] }
+                    ? { workers: [workFromNewerServer] }
                     : path.endsWith('/send')
                       ? {
-                            work: workFromNewerServer,
-                            runId: 'car_follow_up',
+                            worker: workFromNewerServer,
+                            turnId: 'car_follow_up',
                             idempotent: false,
                             predecessors: [],
                         }
-                      : { work: workFromNewerServer };
+                      : { worker: workFromNewerServer };
             return Promise.resolve(schema.parse(response));
         },
     };

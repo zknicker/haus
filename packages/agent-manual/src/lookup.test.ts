@@ -69,7 +69,7 @@ test('get resolves normalized ids, titles, plurals, and observed aliases', () =>
         'recipes/technique/task-claim-lock'
     );
     expect(resolveManualTopic('Workers')?.id).toBe('workers');
-    expect(resolveManualTopic('cloud_agent')?.id).toBe('workers');
+    expect(resolveManualTopic('worker')?.id).toBe('workers');
     expect(resolveManualTopic('cloud agent model')?.id).toBe('workers');
     expect(resolveManualTopic('cursor')?.id).toBe('workers');
     expect(resolveManualTopic('merchbase')).toBeNull();

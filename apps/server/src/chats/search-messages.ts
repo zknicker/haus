@@ -154,7 +154,7 @@ export async function searchChatMessages(
             authorProfile: readStoredAuthorProfile(message),
             body: bodies.get(message.id),
             cause: causes.get(message.id),
-            worker: works.get(message.id),
+            workers: works.get(message.id),
             driveCitations: citations.get(message.id),
             imageGenerations: images.get(message.id),
             reactions: reactions.get(message.id),

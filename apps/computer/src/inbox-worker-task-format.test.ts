@@ -15,12 +15,12 @@ const taskWork = {
     provider: 'cursor' as const,
     providerUrl: 'https://cursor.com/agents/bc_one',
     repository: 'haus/haus',
-    runId: 'car_1234567890abcdef',
+    turnId: 'car_1234567890abcdef',
     stallCode: null,
     status: 'completed' as const,
     summary: 'Opened a pull request.',
     title: 'Fix the flaky delivery test',
-    workId: 'caw_1234567890abcdef',
+    workerId: 'caw_1234567890abcdef',
 };
 
 function taskAttention(work: AgentInboxItem['worker']): AgentInboxItem {

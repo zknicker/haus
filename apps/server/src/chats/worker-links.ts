@@ -6,7 +6,7 @@ import { type WorkerViewer, readVisibleWorkerIds } from '../workers/worker-visib
 
 export interface WorkerLink {
     ordinal: number;
-    workId: string;
+    workerId: string;
 }
 
 export interface ResolvedWorkerLinks {
@@ -25,14 +25,14 @@ export async function resolveWorkerLinks(
     db: Pick<HausDatabase, 'select'>,
     input: { author: WorkerViewer; content: string; serverId: string }
 ): Promise<ResolvedWorkerLinks> {
-    const workIds = readLinkedWorkIds(input.content);
-    if (workIds.length === 0) {
+    const workerIds = readLinkedWorkIds(input.content);
+    if (workerIds.length === 0) {
         return { content: input.content, links: [] };
     }
     const visible = await readVisibleWorkerIds(db, {
         serverId: input.serverId,
         viewer: input.author,
-        workIds,
+        workerIds,
     });
     return applyWorkerLinks(input.content, visible);
 }
@@ -51,8 +51,8 @@ export function applyWorkerLinks(
     let current = content;
     for (;;) {
         const rejected = parseHausRichReferences(current).filter((reference) => {
-            const workId = workIdOf(reference);
-            return workId !== null && !allowed.has(workId);
+            const workerId = workIdOf(reference);
+            return workerId !== null && !allowed.has(workerId);
         });
         if (rejected.length === 0) {
             break;
@@ -65,7 +65,7 @@ export function applyWorkerLinks(
     const ordered = readLinkedWorkIds(current);
     return {
         content: current,
-        links: ordered.map((workId, ordinal) => ({ ordinal, workId })),
+        links: ordered.map((workerId, ordinal) => ({ ordinal, workerId })),
     };
 }
 
@@ -83,7 +83,7 @@ export async function recordWorkerLinks(
             messageId: input.messageId,
             ordinal: link.ordinal,
             serverId: input.serverId,
-            workId: link.workId,
+            workerId: link.workerId,
         }))
     );
 }
@@ -94,7 +94,7 @@ export async function readRecordedWorkerIds(
     input: { messageId: string; serverId: string }
 ): Promise<Set<string>> {
     const rows = await db
-        .select({ workId: workerHistoryLinksTable.workId })
+        .select({ workerId: workerHistoryLinksTable.workerId })
         .from(workerHistoryLinksTable)
         .where(
             and(
@@ -103,7 +103,7 @@ export async function readRecordedWorkerIds(
             )
         )
         .orderBy(asc(workerHistoryLinksTable.ordinal));
-    return new Set(rows.map(({ workId }) => workId));
+    return new Set(rows.map(({ workerId }) => workerId));
 }
 
 /**
@@ -121,9 +121,9 @@ export async function replayWorkerLinks(
 function readLinkedWorkIds(content: string): string[] {
     const ids = new Set<string>();
     for (const reference of parseHausRichReferences(content)) {
-        const workId = workIdOf(reference);
-        if (workId !== null) {
-            ids.add(workId);
+        const workerId = workIdOf(reference);
+        if (workerId !== null) {
+            ids.add(workerId);
         }
     }
     return [...ids];

@@ -29,7 +29,7 @@ const deliverySchema = z.object({
 const recordSchema = z.discriminatedUnion('phase', [
     z.object({
         phase: z.literal('pending'),
-        workId: z.string(),
+        workerId: z.string(),
         instructions: z.string().min(1),
         /** Absent in records written before Server resolved a model: no model sent. */
         model: z
@@ -45,30 +45,30 @@ const recordSchema = z.discriminatedUnion('phase', [
             z.object({
                 /** Absent in records written before Claude: those were Cursor's. */
                 provider: cloudAgentProviderSchema.default('cursor'),
-                workId: z.string(),
-                runId: z.string(),
+                workerId: z.string(),
+                turnId: z.string(),
                 providerAgentId: z.string().nullable(),
                 providerRunId: z.string().nullable(),
             })
         ),
         delivery: deliverySchema.nullable().default(null),
     }),
-    z.object({ phase: z.literal('cancelled'), workId: z.string() }),
+    z.object({ phase: z.literal('cancelled'), workerId: z.string() }),
     z.object({
         phase: z.literal('launching'),
-        workId: z.string(),
+        workerId: z.string(),
         deadlineAt: z.iso.datetime().optional(),
     }),
     z.object({
         phase: z.literal('launched'),
-        workId: z.string(),
+        workerId: z.string(),
         launch: launchSchema,
         /** This follow-up only delivered after Haus auto-interrupted the session. */
         autoInterrupted: z.boolean().default(false),
     }),
     z.object({
         phase: z.literal('rejected'),
-        workId: z.string(),
+        workerId: z.string(),
         /** Absent in records written before rejections carried a reason. */
         errorCode: z.string().min(1).default('provider-launch-rejected'),
         summary: z.string().min(1).nullable().default(null),
@@ -89,7 +89,7 @@ export class CloudLaunchJournal {
     async read(serverId: string, ref: WorkerTurnRef): Promise<CloudLaunchRecord | null> {
         let contents: string;
         try {
-            contents = await readFile(this.path(serverId, ref.runId), 'utf8');
+            contents = await readFile(this.path(serverId, ref.turnId), 'utf8');
         } catch (cause) {
             if (hasCode(cause, 'ENOENT')) {
                 return null;
@@ -97,7 +97,7 @@ export class CloudLaunchJournal {
             throw cause;
         }
         const record = recordSchema.parse(JSON.parse(contents));
-        if (record.workId !== ref.workId) {
+        if (record.workerId !== ref.workerId) {
             throw new Error('Cloud launch journal work identity does not match.');
         }
         return record;
@@ -116,14 +116,14 @@ export class CloudLaunchJournal {
         const record = recordSchema.parse(
             initial ?? {
                 phase: 'launching',
-                workId: ref.workId,
+                workerId: ref.workerId,
                 deadlineAt: new Date(Date.now() + workerLaunchTimeoutMs).toISOString(),
             }
         );
         await mkdir(this.directory(serverId), { recursive: true, mode: 0o700 });
         let file: FileHandle;
         try {
-            file = await open(this.path(serverId, ref.runId), 'wx', 0o600);
+            file = await open(this.path(serverId, ref.turnId), 'wx', 0o600);
         } catch (cause) {
             if (hasCode(cause, 'EEXIST')) {
                 return false;
@@ -147,7 +147,7 @@ export class CloudLaunchJournal {
     ): Promise<boolean> {
         const record = recordSchema.parse({
             phase: 'launched',
-            workId: ref.workId,
+            workerId: ref.workerId,
             launch,
             autoInterrupted: options?.autoInterrupted ?? false,
         });
@@ -159,7 +159,11 @@ export class CloudLaunchJournal {
         ref: WorkerTurnRef,
         rejection: CloudLaunchRejection
     ): Promise<void> {
-        await this.write(serverId, ref, { phase: 'rejected', workId: ref.workId, ...rejection });
+        await this.write(serverId, ref, {
+            phase: 'rejected',
+            workerId: ref.workerId,
+            ...rejection,
+        });
     }
 
     /** Records one retryable send failure; the prompt stays pending. */
@@ -173,7 +177,7 @@ export class CloudLaunchJournal {
     }
 
     async cancel(serverId: string, ref: WorkerTurnRef): Promise<void> {
-        await this.write(serverId, ref, { phase: 'cancelled', workId: ref.workId });
+        await this.write(serverId, ref, { phase: 'cancelled', workerId: ref.workerId });
     }
 
     private async write(
@@ -181,7 +185,7 @@ export class CloudLaunchJournal {
         ref: WorkerTurnRef,
         record: CloudLaunchRecord
     ): Promise<boolean> {
-        const destination = this.path(serverId, ref.runId);
+        const destination = this.path(serverId, ref.turnId);
         return await serializeWrite(destination, async () => {
             const existing = await this.read(serverId, ref);
             if (existing?.phase === 'cancelled' || existing?.phase === 'rejected') {
@@ -214,8 +218,8 @@ export class CloudLaunchJournal {
         return join(this.dataRoot, 'worker-launches', partition);
     }
 
-    private path(serverId: string, runId: string): string {
-        const key = createHash('sha256').update(runId).digest('hex');
+    private path(serverId: string, turnId: string): string {
+        const key = createHash('sha256').update(turnId).digest('hex');
         return join(this.directory(serverId), `${key}.json`);
     }
 }

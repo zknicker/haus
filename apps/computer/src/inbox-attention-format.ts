@@ -6,7 +6,7 @@ export function formatWorkerAttention(work: AgentWorkerAttention, target: string
     const branches = work.branches.map(formatWorkerBranch);
     const notice = work.notice === 'pull_request' ? ' notice=pull_request' : '';
     return [
-        `[Haus Worker attention${notice} status=${work.status} work=${work.workId} run=${work.runId} target=${target}]`,
+        `[Haus Worker attention${notice} status=${work.status} work=${work.workerId} run=${work.turnId} target=${target}]`,
         indentContinuationLines(`${work.title} — ${work.repository} (${work.provider})`),
         ...(work.notice === 'pull_request' ? [pullRequestLine(work)] : []),
         `summary=${work.summary ? indentContinuationLines(work.summary) : '-'}`,
@@ -15,11 +15,11 @@ export function formatWorkerAttention(work: AgentWorkerAttention, target: string
         `url=${work.providerUrl ?? '-'}`,
         ...(work.status === 'pending_input'
             ? [
-                  `The Worker stopped to ask the question in summary. Answer it yourself when the request settles it, or ask the requester first; send the answer with: haus worker send --work ${work.workId}`,
+                  `The Worker stopped to ask the question in summary. Answer it yourself when the request settles it, or ask the requester first; send the answer with: haus worker send --work ${work.workerId}`,
               ]
             : []),
         ...((work.status === 'completed' || work.status === 'failed') && work.hasFullReport === true
-            ? [`More: haus worker inspect --work ${work.workId} --report`]
+            ? [`More: haus worker inspect --work ${work.workerId} --report`]
             : []),
         ...taskLine(target),
     ].join('\n');

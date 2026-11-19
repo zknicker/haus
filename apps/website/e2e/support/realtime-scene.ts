@@ -93,9 +93,9 @@ export async function createRealtimeScene(page: Page, slug: string) {
                 workerObservationFrame({
                     activity,
                     observedAt: new Date().toISOString(),
-                    runId: work.runId,
+                    turnId: work.turnId,
                     status: 'running',
-                    workId: work.workId,
+                    workerId: work.workerId,
                 })
             );
             return computer;

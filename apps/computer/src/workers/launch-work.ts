@@ -85,7 +85,7 @@ export async function startWorker(input: {
     }
     const receipt = agentWorkerStartResponseSchema.parse(payload);
     // A freshness hold created nothing, so there is no Run to launch.
-    if (receipt.state === 'held' || isTerminalWorkerTurnStatus(receipt.work.status)) {
+    if (receipt.state === 'held' || isTerminalWorkerTurnStatus(receipt.worker.status)) {
         return receipt;
     }
     return await launchRecordedWork(input, receipt, provider);
@@ -96,13 +96,13 @@ async function launchRecordedWork(
     receipt: AgentWorkerReceipt,
     provider: WorkerExecutor
 ): Promise<AgentWorkerStartResponse> {
-    const run = receipt.work.runs.find((candidate) => candidate.runId === receipt.runId);
+    const run = receipt.worker.turns.find((candidate) => candidate.turnId === receipt.turnId);
     const ref: WorkerTurnRef = {
-        provider: receipt.work.provider,
-        providerAgentId: receipt.work.providerAgentId,
+        provider: receipt.worker.provider,
+        providerAgentId: receipt.worker.providerAgentId,
         providerRunId: run?.providerRunId ?? null,
-        runId: receipt.runId,
-        workId: receipt.work.id,
+        turnId: receipt.turnId,
+        workerId: receipt.worker.id,
     };
     const journal = new CloudLaunchJournal(input.dataRoot);
     const existing = await journal.read(input.serverId, ref);
@@ -122,8 +122,8 @@ async function launchRecordedWork(
                 ...ref,
                 providerAgentId: existing.launch.providerAgentId,
                 providerRunId: existing.launch.providerRunId,
-                cancelRequested: receipt.work.cancelRequestedAt !== null,
-                status: receipt.work.status,
+                cancelRequested: receipt.worker.cancelRequestedAt !== null,
+                status: receipt.worker.status,
             },
         ]);
         return receipt;
@@ -133,8 +133,8 @@ async function launchRecordedWork(
             await input.supervisor.reconcile([
                 {
                     ...ref,
-                    cancelRequested: receipt.work.cancelRequestedAt !== null,
-                    status: receipt.work.status,
+                    cancelRequested: receipt.worker.cancelRequestedAt !== null,
+                    status: receipt.worker.status,
                 },
             ]);
             return receipt;
@@ -166,8 +166,8 @@ async function launchRecordedWork(
                 cause: cause instanceof Error ? cause.message : String(cause),
                 operation: 'worker.launch',
                 provider: ref.provider,
-                runId: ref.runId,
-                workId: ref.workId,
+                turnId: ref.turnId,
+                workerId: ref.workerId,
             });
         });
     return receipt;

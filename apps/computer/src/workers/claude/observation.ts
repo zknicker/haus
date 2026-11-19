@@ -35,7 +35,7 @@ export function claudeRunObservation(input: {
     cancelRequestId: string;
     events: ClaudeSessionEvent[];
     observedAt: string;
-    ref: { providerRunId?: string | null; runId: string; workId: string };
+    ref: { providerRunId?: string | null; turnId: string; workerId: string };
     session: ClaudeSession;
     /** The backward scan for this Run's own prompt gave up before reaching it or the log's end. */
     truncated?: boolean;

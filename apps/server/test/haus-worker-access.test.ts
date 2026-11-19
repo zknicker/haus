@@ -10,7 +10,7 @@ test('the delegating Agent and an Admin cancel; an ordinary Member cannot', asyn
         runner,
         fixture.startBody({ nonce: 'cloud-cancel-agent' })
     );
-    const agentWork = agentCancelled.body.work as Worker;
+    const agentWork = agentCancelled.body.worker as Worker;
     const byAgent = await fixture.postCancel(runner, agentWork.id);
     expect(byAgent.status).toBe(200);
     expect(await fixture.readWork(agentWork.id)).toMatchObject({
@@ -23,17 +23,17 @@ test('the delegating Agent and an Admin cancel; an ordinary Member cannot', asyn
         runner,
         fixture.startBody({ nonce: 'cloud-cancel-human' })
     );
-    const humanWork = humanCancelled.body.work as Worker;
+    const humanWork = humanCancelled.body.worker as Worker;
     await expect(
-        fixture.peer.trpc.worker.cancel.mutate({
+        fixture.peer.trpc.worker.stop.mutate({
             serverId: fixture.serverId,
-            workId: humanWork.id,
+            workerId: humanWork.id,
         })
     ).rejects.toThrow(/Owners and Admins/i);
     await expect(
-        fixture.owner.trpc.worker.cancel.mutate({
+        fixture.owner.trpc.worker.stop.mutate({
             serverId: fixture.serverId,
-            workId: humanWork.id,
+            workerId: humanWork.id,
         })
     ).resolves.toEqual({ cancelRequested: true });
     expect(await fixture.readWork(humanWork.id)).toMatchObject({
@@ -47,18 +47,18 @@ test('the delegating Agent and an Admin cancel; an ordinary Member cannot', asyn
         JSON.stringify({
             observation: {
                 observedAt: '2026-09-04T13:00:00.000Z',
-                runId: humanCancelled.body.runId,
+                turnId: humanCancelled.body.turnId,
                 status: 'cancelled',
-                workId: humanWork.id,
+                workerId: humanWork.id,
             },
             type: 'worker-observation',
         })
     );
     await fixture.waitForWorkStatus(humanWork.id, 'cancelled');
     await expect(
-        fixture.owner.trpc.worker.cancel.mutate({
+        fixture.owner.trpc.worker.stop.mutate({
             serverId: fixture.serverId,
-            workId: humanWork.id,
+            workerId: humanWork.id,
         })
     ).rejects.toThrow(/already settled/i);
     expect((await fixture.postCancel(runner, humanWork.id)).status).toBe(409);
@@ -68,11 +68,11 @@ test('the delegating Agent and an Admin cancel; an ordinary Member cannot', asyn
 test('listActive shows queued and running work to members with Chat access only', async () => {
     const runner = await fixture.mintRunner('run_cloud_list');
     const created = await fixture.postStart(runner, fixture.startBody({ nonce: 'cloud-list' }));
-    const work = created.body.work as Worker;
+    const work = created.body.worker as Worker;
 
     const forOwner = (
         await fixture.owner.trpc.worker.listActive.query({ serverId: fixture.serverId })
-    ).find((row) => row.work.id === work.id);
+    ).find((row) => row.worker.id === work.id);
     expect(forOwner).toMatchObject({
         agentName: 'Orbit',
         chatKind: 'channel',
@@ -84,7 +84,7 @@ test('listActive shows queued and running work to members with Chat access only'
             kind: 'message',
             messageId: created.body.messageId,
         },
-        work: { status: 'queued' },
+        worker: { status: 'queued' },
     });
     expect(Object.keys(forOwner ?? {}).sort()).toEqual([
         'agentName',
@@ -95,7 +95,7 @@ test('listActive shows queued and running work to members with Chat access only'
         'location',
         'taskId',
         'taskKey',
-        'work',
+        'worker',
     ]);
     expect(forOwner).toMatchObject({ taskId: fixture.task.id, taskKey: fixture.task.key });
     await expect(
@@ -107,10 +107,10 @@ test('listActive shows queued and running work to members with Chat access only'
         JSON.stringify({
             observation: {
                 observedAt: '2026-09-04T14:00:00.000Z',
-                runId: created.body.runId,
+                turnId: created.body.turnId,
                 status: 'failed',
                 summary: 'The provider refused the launch.',
-                workId: work.id,
+                workerId: work.id,
             },
             type: 'worker-observation',
         })
@@ -118,16 +118,16 @@ test('listActive shows queued and running work to members with Chat access only'
     await fixture.waitForWorkStatus(work.id, 'failed');
     expect(
         (await fixture.owner.trpc.worker.listActive.query({ serverId: fixture.serverId })).map(
-            (row) => row.work.id
+            (row) => row.worker.id
         )
     ).not.toContain(work.id);
     const history = await fixture.owner.trpc.worker.listForChat.query({
         serverId: fixture.serverId,
         chatId: fixture.task.chatId,
     });
-    expect(history.find((row) => row.work.id === work.id)).toMatchObject({
+    expect(history.find((row) => row.worker.id === work.id)).toMatchObject({
         anchorMessageId: work.messageId,
-        work: { status: 'failed' },
+        worker: { status: 'failed' },
     });
     await expect(
         fixture.outsider.trpc.worker.listForChat.query({
@@ -155,7 +155,7 @@ test('a Task lists every Worker attached to it without leaking other work', asyn
         chatId: fixture.task.chatId,
         serverId: fixture.serverId,
     });
-    const titles = rows.map((row) => row.work.title);
+    const titles = rows.map((row) => row.worker.title);
     expect(titles).toContain('First review');
     expect(titles).toContain('Second review');
     await expect(
@@ -174,7 +174,7 @@ test('reconnect hands the Computer every non-terminal work it still owns', async
         runner,
         fixture.startBody({ nonce: 'cloud-reconcile' })
     );
-    const work = created.body.work as Worker;
+    const work = created.body.worker as Worker;
     await fixture.postCancel(runner, work.id);
 
     const socket = new WebSocket(fixture.computerSocketUrl());
@@ -188,14 +188,14 @@ test('reconnect hands the Computer every non-terminal work it still owns', async
     const reconcile = await fixture.waitFor(() =>
         frames.find((frame) => frame.type === 'worker-reconcile')
     );
-    expect(reconcile.work).toContainEqual({
+    expect(reconcile.workers).toContainEqual({
         cancelRequested: true,
         provider: 'cursor',
         providerAgentId: null,
         providerRunId: null,
-        runId: created.body.runId,
+        turnId: created.body.turnId,
         status: 'queued',
-        workId: work.id,
+        workerId: work.id,
     });
     socket.close();
 });

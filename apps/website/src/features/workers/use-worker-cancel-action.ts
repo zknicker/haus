@@ -31,7 +31,7 @@ export function useWorkerCancelAction(work: Worker) {
                 return;
             }
             cancel
-                .mutateAsync({ serverId: server.id, workId: work.id })
+                .mutateAsync({ serverId: server.id, workerId: work.id })
                 .then(() => toast.success('Cancel requested'))
                 .catch((error: unknown) =>
                     toast.danger('Could not cancel this work', {

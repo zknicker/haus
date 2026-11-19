@@ -26,7 +26,7 @@ export async function readLinkedWorker(
             workersTable,
             and(
                 eq(workersTable.serverId, workerHistoryLinksTable.serverId),
-                eq(workersTable.id, workerHistoryLinksTable.workId)
+                eq(workersTable.id, workerHistoryLinksTable.workerId)
             )
         )
         .where(

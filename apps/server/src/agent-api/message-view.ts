@@ -114,7 +114,7 @@ export async function toAgentMessages(
         const handle = agent?.handle ?? human?.handle ?? null;
         const label = agent?.displayName ?? human?.displayName ?? 'Human';
         const claim = claimsByMessage.get(row.id);
-        const worker = workerByMessage.get(row.id) ?? [];
+        const workers = workerByMessage.get(row.id) ?? [];
         const createdAgent = createdAgentByMessage.get(row.id);
         const claimAssigneeAgent = claim?.assigneeAgentId
             ? agentById.get(claim.assigneeAgentId)
@@ -152,7 +152,7 @@ export async function toAgentMessages(
                 task_id: link.taskId,
                 text: link.text,
             })),
-            ...agentMessageBodies({ worker, createdAgent }),
+            ...agentMessageBodies({ workers, createdAgent }),
             ...(claim
                 ? {
                       claim: {

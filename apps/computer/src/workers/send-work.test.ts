@@ -24,7 +24,7 @@ const work = {
     title: 'Existing work',
     status: 'queued',
     activity: null,
-    runs: [],
+    turns: [],
     cancelRequestedAt: null,
     cancelRequestedBy: null,
     startedAt: null,
@@ -50,7 +50,12 @@ async function fixture(status = 200) {
             requests.push(await request.json());
             return Response.json(
                 status === 200
-                    ? { work, runId: 'car_followup12345678', idempotent: false, predecessors: [] }
+                    ? {
+                          worker: work,
+                          turnId: 'car_followup12345678',
+                          idempotent: false,
+                          predecessors: [],
+                      }
                     : {
                           code: 'WORKER_NOT_LAUNCHED',
                           message: 'Wait for launch confirmation.',
@@ -70,7 +75,7 @@ async function fixture(status = 200) {
         serverOrigin: server.url.origin,
         supervisor: { watch: (ref: WorkerTurnRef) => watched.push(ref) },
         request: {
-            workId: work.id,
+            workerId: work.id,
             nonce: 'followup',
             instructions: 'Change the same implementation',
             interrupt: false,
@@ -82,13 +87,13 @@ async function fixture(status = 200) {
 test('send persists the private prompt before starting its monitor and keeps it off Server', async () => {
     const f = await fixture();
     const receipt = await sendWorker(f.input);
-    expect(f.requests).toEqual([{ workId: work.id, nonce: 'followup' }]);
+    expect(f.requests).toEqual([{ workerId: work.id, nonce: 'followup' }]);
     expect(f.watched).toHaveLength(1);
     expect(
         await new CloudLaunchJournal(f.input.dataRoot).read(f.input.serverId, {
             provider: 'cursor',
-            runId: receipt.runId,
-            workId: work.id,
+            turnId: receipt.turnId,
+            workerId: work.id,
             providerAgentId: work.providerAgentId,
             providerRunId: null,
         })
@@ -99,14 +104,14 @@ test('a send retried after its monitor settled the Run unsent reports why, not s
     const f = await fixture();
     const ref = {
         provider: 'cursor' as const,
-        runId: 'car_followup12345678',
-        workId: work.id,
+        turnId: 'car_followup12345678',
+        workerId: work.id,
         providerAgentId: work.providerAgentId,
         providerRunId: null,
     };
     await new CloudLaunchJournal(f.input.dataRoot).claim(f.input.serverId, ref, {
         phase: 'rejected',
-        workId: work.id,
+        workerId: work.id,
         errorCode: 'launch-record-missing',
         summary: 'This Computer has no record of the prompt for this Run.',
     });

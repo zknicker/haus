@@ -9,11 +9,11 @@ const ownLink = formatWorkerLink(linkedWork.title, linkedWork.id);
 
 test('a Message shows every work it links, in link order', () => {
     expect(messageWorker(linkedMessage)).toEqual([linkedWork]);
-    expect(messageWorker({ ...linkedMessage, worker: [other, linkedWork] })).toEqual([
+    expect(messageWorker({ ...linkedMessage, workers: [other, linkedWork] })).toEqual([
         other,
         linkedWork,
     ]);
-    expect(messageWorker({ ...linkedMessage, worker: [] })).toEqual([]);
+    expect(messageWorker({ ...linkedMessage, workers: [] })).toEqual([]);
 });
 
 test('a closing paragraph of backed links is left out; the words before it stay', () => {

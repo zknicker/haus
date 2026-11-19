@@ -89,7 +89,7 @@ const startInput = {
     ref: null,
     repository: 'haus/haus',
     title: 'Trim the copy',
-    workId: 'caw_work',
+    workerId: 'caw_work',
 };
 
 test('a pin that no longer exists fails the launch before any checkout', async () => {

@@ -25,16 +25,16 @@ test.skipIf(!enabled)(
         const readiness = await provider.readiness();
         expect(readiness).toMatchObject({ ready: true });
 
-        const runId = `car_live_${Date.now().toString(36)}`;
+        const turnId = `car_live_${Date.now().toString(36)}`;
         const launch = await provider.start({
-            idempotencyKey: runId,
+            idempotencyKey: turnId,
             instructions:
                 'Read the repository README and reply with one sentence describing what it is. Change no files and open no pull request.',
             model: null,
             ref: null,
             repository,
             title: 'Haus live Worker smoke',
-            workId: `caw_live_${runId}`,
+            workerId: `caw_live_${turnId}`,
         });
         expect(launch.providerAgentId).toStartWith('bc');
         expect(launch.providerUrl).toContain(launch.providerAgentId);
@@ -43,8 +43,8 @@ test.skipIf(!enabled)(
             provider: 'cursor' as const,
             providerAgentId: launch.providerAgentId,
             providerRunId: launch.providerRunId ?? '',
-            runId,
-            workId: `caw_live_${runId}`,
+            turnId,
+            workerId: `caw_live_${turnId}`,
         };
         const settled = await waitForTerminal(provider, ref);
 
@@ -53,8 +53,8 @@ test.skipIf(!enabled)(
         // here rather than in production.
         const observation = workerObservationSchema.parse({
             ...settled,
-            runId,
-            workId: ref.workId,
+            turnId,
+            workerId: ref.workerId,
         });
         expect(isTerminalWorkerTurnStatus(observation.status)).toBe(true);
         expect(observation.rawStatus).toBeString();

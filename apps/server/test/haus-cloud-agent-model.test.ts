@@ -151,7 +151,7 @@ test('every Run records the model and params it asked for, falling back to Auto 
         ],
     };
     const chosen = await startWork('model-chosen');
-    expect(chosen.receipt.work.runs[0]?.model).toEqual(nanoHigh);
+    expect(chosen.receipt.worker.turns[0]?.model).toEqual(nanoHigh);
 
     // Cursor withdraws High effort and fast mode: the Run keeps the model with its defaults.
     const narrowed = {
@@ -165,7 +165,7 @@ test('every Run records the model and params it asked for, falling back to Auto 
         refreshedAt: '2026-10-02T13:00:00.000Z',
     });
     const dropped = await startWork('model-dropped-params');
-    expect(dropped.receipt.work.runs[0]?.model).toEqual({
+    expect(dropped.receipt.worker.turns[0]?.model).toEqual({
         droppedParams: ['effort', 'fast'],
         fallbackFrom: null,
         id: nano.id,
@@ -183,10 +183,10 @@ test('every Run records the model and params it asked for, falling back to Auto 
 
     await fixture.harness.sql`
         update cloud_agent_work set provider_agent_id = 'cursor_model_agent'
-        where id = ${chosen.receipt.work.id}
+        where id = ${chosen.receipt.worker.id}
     `;
     const followUp = await fetch(new URL('/api/agent/workers/send', fixture.harness.url), {
-        body: JSON.stringify({ nonce: 'model-followup', workId: chosen.receipt.work.id }),
+        body: JSON.stringify({ nonce: 'model-followup', workerId: chosen.receipt.worker.id }),
         headers: {
             authorization: `Bearer ${chosen.runner.token}`,
             'content-type': 'application/json',
@@ -194,24 +194,24 @@ test('every Run records the model and params it asked for, falling back to Auto 
         method: 'POST',
     });
     const sent = agentWorkerSendReceiptSchema.parse(await followUp.json());
-    expect(sent.work.runs.find((run) => run.runId === sent.runId)?.model).toEqual({
+    expect(sent.worker.turns.find((run) => run.turnId === sent.turnId)?.model).toEqual({
         ...auto,
         fallbackFrom: nano.id,
     });
-    expect(sent.work.runs.find((run) => run.runId === chosen.receipt.runId)?.model).toEqual(
+    expect(sent.worker.turns.find((run) => run.turnId === chosen.receipt.turnId)?.model).toEqual(
         nanoHigh
     );
 
     await reportCatalog(null);
     const missing = await startWork('model-no-catalog');
-    expect(missing.receipt.work.runs[0]?.model).toEqual({ ...noModel, fallbackFrom: nano.id });
+    expect(missing.receipt.worker.turns[0]?.model).toEqual({ ...noModel, fallbackFrom: nano.id });
 
     await fixture.owner.trpc.cloudAgentSettings.setModel.mutate({
         model: { kind: 'auto' },
         serverId: fixture.serverId,
     });
     const autoWithoutCatalog = await startWork('model-auto-no-catalog');
-    expect(autoWithoutCatalog.receipt.work.runs[0]?.model).toEqual(noModel);
+    expect(autoWithoutCatalog.receipt.worker.turns[0]?.model).toEqual(noModel);
 
     // Auto is sent as Cursor's own `default` id whenever the launching catalog offers it.
     await reportCatalog({
@@ -220,14 +220,14 @@ test('every Run records the model and params it asked for, falling back to Auto 
         refreshedAt: '2026-10-03T14:00:00.000Z',
     });
     const autoSent = await startWork('model-auto');
-    expect(autoSent.receipt.work.runs[0]?.model).toEqual(auto);
+    expect(autoSent.receipt.worker.turns[0]?.model).toEqual(auto);
     await reportCatalog({
         autoAvailable: false,
         models: [opus],
         refreshedAt: '2026-10-03T15:00:00.000Z',
     });
     const autoUnoffered = await startWork('model-auto-unoffered');
-    expect(autoUnoffered.receipt.work.runs[0]?.model).toEqual(noModel);
+    expect(autoUnoffered.receipt.worker.turns[0]?.model).toEqual(noModel);
 });
 
 test('a Computer report carries the Cursor catalog to Server settings', async () => {

@@ -29,14 +29,14 @@ export const chatMessageContentMaxLength =
     chatMessageAuthoredContentMaxLength + workerLinkSuffixMaxLength;
 
 /**
- * The one way to write a Worker link: `[<label>](worker://<workId>)`.
+ * The one way to write a Worker link: `[<label>](worker://<workerId>)`.
  * The label is the work title made safe for the link grammar: line breaks
  * become spaces, `]` is dropped, `\` and `[` are escaped, and a title with
  * nothing left reads as `workerLinkFallbackLabel`. The migration's SQL
  * mirrors this rule; change both together.
  */
-export function formatWorkerLink(title: string, workId: string): string {
-    const target = formatWorkerReferenceTarget(workId);
+export function formatWorkerLink(title: string, workerId: string): string {
+    const target = formatWorkerReferenceTarget(workerId);
     const encodedIdLength = target.length - targetPrefixLength;
     if (encodedIdLength < 1 || encodedIdLength > workerLinkIdMaxLength) {
         throw new Error('A Worker link needs an encoded work id of 1–64 characters.');

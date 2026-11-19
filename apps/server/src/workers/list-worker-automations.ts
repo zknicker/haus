@@ -59,17 +59,17 @@ export async function listWorkerAutomations(
         );
     // History is bounded independently, so old pending notifications are never crowded out.
     const rows = await (input.history ? selection.limit(100) : selection);
-    const workIds = rows.map(({ work }) => work.id);
+    const workerIds = rows.map(({ work }) => work.id);
     const links = await readVisibleWorkLinks(db, {
         serverId: input.serverId,
         userId: member.id,
-        workIds,
+        workerIds,
     });
-    const details = await readWorkDetails(db, input.serverId, workIds);
+    const details = await readWorkDetails(db, input.serverId, workerIds);
     return rows.flatMap((row) => {
         const chosen = chooseWorkLocation(
             row.work.launchMessageId,
-            links.filter((link) => link.workId === row.work.id)
+            links.filter((link) => link.workerId === row.work.id)
         );
         return chosen
             ? [
@@ -78,7 +78,7 @@ export async function listWorkerAutomations(
                       computerHealth: row.computerHealth,
                       location: chosen.location,
                       notification: row.notification,
-                      work: toWorker(row.work, details.get(row.work.id)),
+                      worker: toWorker(row.work, details.get(row.work.id)),
                   }),
               ]
             : [];

@@ -6,9 +6,9 @@ export interface SeededWorker {
     chatId: string;
     computerId: string;
     messageId: string;
-    runId: string;
+    turnId: string;
     taskKey: string;
-    workId: string;
+    workerId: string;
 }
 
 /**
@@ -81,9 +81,9 @@ export async function seedWorker(input: {
         chatId,
         computerId: attached.computerId,
         messageId: receipt.messageId,
-        runId: receipt.runId,
+        turnId: receipt.turnId,
         taskKey: receipt.taskKey,
-        workId: receipt.work.id,
+        workerId: receipt.worker.id,
     };
 }
 
@@ -97,7 +97,7 @@ export async function startWorker(input: {
     startingRef?: null | string;
     target: string;
     title: string;
-}): Promise<{ messageId: string; runId: string; taskKey: string; work: { id: string } }> {
+}): Promise<{ messageId: string; turnId: string; taskKey: string; worker: { id: string } }> {
     const runnerToken = await mintAgentRunner({
         agentId: input.agentId,
         chatId: input.chatId,
@@ -126,7 +126,7 @@ export async function startWorker(input: {
         });
         const receipt = (await response.json()) as {
             messageId?: string;
-            runId?: string;
+            turnId?: string;
             state?: string;
             work?: { id: string };
         };
@@ -138,13 +138,18 @@ export async function startWorker(input: {
     if (status === 200 && receipt.state === 'held') {
         ({ receipt, status } = await launch());
     }
-    if (status !== 200 || !(receipt.work && receipt.messageId && receipt.runId)) {
+    if (status !== 200 || !(receipt.worker && receipt.messageId && receipt.turnId)) {
         throw new Error(
-            `The Worker fixture could not start its work: ${status} ${JSON.stringify(receipt)}`
+            `The Worker fixture could not start its worker: ${status} ${JSON.stringify(receipt)}`
         );
     }
 
-    return { messageId: receipt.messageId, runId: receipt.runId, taskKey, work: receipt.work };
+    return {
+        messageId: receipt.messageId,
+        turnId: receipt.turnId,
+        taskKey,
+        worker: receipt.worker,
+    };
 }
 
 type AgentPost = (path: string, body: unknown) => Promise<Response>;
@@ -192,11 +197,11 @@ export function workerObservationFrame(input: {
     /** The Run's terminal branch evidence, including any pull request it opened. */
     branches?: import('@haus/api').WorkerBranch[];
     observedAt: string;
-    runId: string;
+    turnId: string;
     status: 'cancelled' | 'completed' | 'expired' | 'failed' | 'queued' | 'running';
     /** The Run's own report, which the surface reads once the work settles. */
     summary?: string;
-    workId: string;
+    workerId: string;
 }) {
     return JSON.stringify({
         observation: {
@@ -206,10 +211,10 @@ export function workerObservationFrame(input: {
             ...(input.branches ? { branches: input.branches } : {}),
             observedAt: input.observedAt,
             providerUrl: 'https://cursor.com/agents?id=bc_e2e',
-            runId: input.runId,
+            turnId: input.turnId,
             status: input.status,
             ...(input.summary ? { summary: input.summary } : {}),
-            workId: input.workId,
+            workerId: input.workerId,
         },
         type: 'worker-observation',
     });
@@ -221,7 +226,7 @@ async function mintAgentRunner(input: { agentId: string; chatId: string; credent
             agentId: input.agentId,
             chatId: input.chatId,
             credentialHash: createHash('sha256').update(input.credential).digest('hex'),
-            runId: 'run_e2e_cloud_agent',
+            turnId: 'run_e2e_cloud_agent',
         }),
         headers: { 'content-type': 'application/json' },
         method: 'POST',

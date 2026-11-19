@@ -17,9 +17,9 @@ const orphan = {
     provider: 'cursor' as const,
     providerAgentId: null,
     providerRunId: null,
-    runId: 'car_orphan1234567890',
+    turnId: 'car_orphan1234567890',
     status: 'queued' as const,
-    workId: 'caw_1234567890abcdef',
+    workerId: 'caw_1234567890abcdef',
 };
 const cleanup: Array<() => Promise<void>> = [];
 afterEach(async () => {
@@ -60,7 +60,7 @@ async function fixture(provider: CloudAgentProvider) {
 }
 
 test('a follow-up whose send keeps failing is auto-interrupted, and reports that too when it still fails', async () => {
-    const followUp = { ...orphan, providerAgentId: 'bc_stalled', runId: 'car_stalledfollowup1' };
+    const followUp = { ...orphan, providerAgentId: 'bc_stalled', turnId: 'car_stalledfollowup1' };
     const alwaysBusy: CloudAgentProvider = {
         ...createFakeCloudAgentProvider(),
         send: () => Promise.reject(recordedAgentBusyError()),
@@ -68,7 +68,7 @@ test('a follow-up whose send keeps failing is auto-interrupted, and reports that
     const f = await fixture(alwaysBusy);
     await f.journal.claim('srv_cloud', followUp, {
         phase: 'pending',
-        workId: followUp.workId,
+        workerId: followUp.workerId,
         providerAgentId: 'bc_stalled',
         instructions: 'Address the review.',
         interrupt: false,
@@ -76,7 +76,7 @@ test('a follow-up whose send keeps failing is auto-interrupted, and reports that
     });
     await f.work.reconcile([followUp]);
     const stalled = (observation: WorkerObservation) =>
-        observation.runId === followUp.runId &&
+        observation.turnId === followUp.turnId &&
         observation.stallCode === 'followup-auto-interrupt-failed';
     await f.tickUntil(() => f.observations.some(stalled), 60); // past the 2-minute interrupt grace
     expect(f.observations.find(stalled)).toMatchObject({ status: 'queued' });
@@ -87,7 +87,7 @@ test('a follow-up whose send keeps failing is auto-interrupted, and reports that
 });
 
 test('a follow-up whose send fails but then goes through once auto-interrupted records that it did', async () => {
-    const followUp = { ...orphan, providerAgentId: 'bc_recovers', runId: 'car_recoversfollowup1' };
+    const followUp = { ...orphan, providerAgentId: 'bc_recovers', turnId: 'car_recoversfollowup1' };
     let sendAttempts = 0;
     const failsUntilInterrupted: CloudAgentProvider = {
         ...createFakeCloudAgentProvider(),
@@ -111,7 +111,7 @@ test('a follow-up whose send fails but then goes through once auto-interrupted r
     const f = await fixture(failsUntilInterrupted);
     await f.journal.claim('srv_cloud', followUp, {
         phase: 'pending',
-        workId: followUp.workId,
+        workerId: followUp.workerId,
         providerAgentId: 'bc_recovers',
         instructions: 'Address the review.',
         interrupt: false,
@@ -119,7 +119,7 @@ test('a follow-up whose send fails but then goes through once auto-interrupted r
     });
     await f.work.reconcile([followUp]);
     const delivered = (observation: WorkerObservation) =>
-        observation.runId === followUp.runId && observation.providerRunId !== undefined;
+        observation.turnId === followUp.turnId && observation.providerRunId !== undefined;
     await f.tickUntil(() => f.observations.some(delivered), 60);
     expect(f.observations.find(delivered)?.summary).toContain('automatically interrupted');
     expect(await f.journal.read('srv_cloud', followUp)).toMatchObject({

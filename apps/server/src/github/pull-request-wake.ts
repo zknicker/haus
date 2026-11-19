@@ -123,7 +123,7 @@ async function readSettledWork(db: HausDatabase, reading: PullRequestWakeReading
             .where(
                 and(
                     eq(workerTurnsTable.serverId, reading.serverId),
-                    eq(workerTurnsTable.workId, work.id)
+                    eq(workerTurnsTable.workerId, work.id)
                 )
             )
             .orderBy(desc(workerTurnsTable.createdAt))
@@ -137,7 +137,7 @@ async function readSettledWork(db: HausDatabase, reading: PullRequestWakeReading
 
 async function relatedWorkIds(db: HausDatabase, reading: PullRequestWakeReading) {
     const reported = await db
-        .selectDistinct({ workId: workerTurnsTable.workId })
+        .selectDistinct({ workId: workerTurnsTable.workerId })
         .from(workerTurnsTable)
         .where(
             and(

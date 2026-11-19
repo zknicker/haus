@@ -46,12 +46,12 @@ export const workerAttentionSchema = z
         providerUrl: z.url().max(2000).nullable(),
         pullRequestChange: workerPullRequestChangeSchema.optional(),
         repository: z.string().trim().min(1).max(200),
-        runId: idSchema,
+        turnId: idSchema,
         stallCode: workerStallCodeSchema.nullable(),
         status: workerTurnStatusSchema,
         summary: z.string().trim().min(1).max(workerSummaryMaxLength).nullable(),
         title: workerTitleSchema,
-        workId: idSchema,
+        workerId: idSchema,
     })
     .strict();
 

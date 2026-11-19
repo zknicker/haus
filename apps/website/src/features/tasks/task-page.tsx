@@ -52,7 +52,7 @@ function TaskDetailView({
     return (
         <DockedWorkerProvider
             dock={dockRef}
-            workIds={panelShown ? task.attachedWork.map((work) => work.id) : []}
+            workerIds={panelShown ? task.attachedWork.map((work) => work.id) : []}
         >
             <div
                 className={

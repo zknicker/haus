@@ -90,7 +90,7 @@ function message(id: string): ChatMessage {
         author: { kind: 'human', userId: 'usr_1' },
         body: { kind: 'text' },
         chatId: 'cht_1',
-        worker: [],
+        workers: [],
         imageGenerations: [],
         driveCitations: [],
         content: id,

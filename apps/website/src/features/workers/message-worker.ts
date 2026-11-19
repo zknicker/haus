@@ -9,8 +9,8 @@ import {
  * The Worker a Message links, in link order (ADR 0044): the Server's
  * `worker` annotation.
  */
-export function messageWorker(message: Pick<ChatMessage, 'worker'>): readonly Worker[] {
-    return message.worker ?? noWork;
+export function messageWorker(message: Pick<ChatMessage, 'workers'>): readonly Worker[] {
+    return message.workers ?? noWork;
 }
 
 /**
@@ -54,9 +54,9 @@ function isBackedLinkOnlyParagraph(paragraph: string, backed: ReadonlySet<string
     }
     let rest = paragraph;
     for (const reference of references) {
-        const workId =
+        const workerId =
             reference.kind === 'worker' ? parseWorkerReferenceTarget(reference.id) : null;
-        if (!(workId && backed.has(workId))) {
+        if (!(workerId && backed.has(workerId))) {
             return false;
         }
         rest = rest.replace(reference.text, '');

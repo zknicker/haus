@@ -138,7 +138,7 @@ public struct ChatMessage: Codable, Identifiable, Sendable, Equatable {
         case body
         case cause
         case chatID = "chatId"
-        case cloudAgentWork
+        case cloudAgentWork = "workers"
         case content
         case createdAt
         case id

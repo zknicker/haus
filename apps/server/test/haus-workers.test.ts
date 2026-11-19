@@ -15,12 +15,12 @@ test('one Worker writes its Message in its Task, record, first Run, and events',
         fixture.startBody({ nonce: 'cloud-create', content: 'Handing @ada the work in #product.' })
     );
     expect(created.status).toBe(200);
-    const work = created.body.work as Worker;
+    const work = created.body.worker as Worker;
     expect(created.body).toMatchObject({
         chatId: taskChatId,
         idempotent: false,
         target: `task:${fixture.task.key}`,
-        work: {
+        worker: {
             agentId: fixture.orbitAgentId,
             cancelRequestedAt: null,
             chatId: taskChatId,
@@ -34,8 +34,8 @@ test('one Worker writes its Message in its Task, record, first Run, and events',
             title: 'Fix the flaky delivery test',
         },
     });
-    expect(work.runs).toHaveLength(1);
-    expect(work.runs[0]).toMatchObject({ runId: created.body.runId, status: 'queued' });
+    expect(work.turns).toHaveLength(1);
+    expect(work.turns[0]).toMatchObject({ turnId: created.body.turnId, status: 'queued' });
 
     const children = (await fixture.harness.sql`
         select id from tasks where origin_message_id = ${created.body.messageId ?? ''}
@@ -45,17 +45,17 @@ test('one Worker writes its Message in its Task, record, first Run, and events',
     const events = await publishedSince(realtime, fixture.serverId);
     realtime.stop();
     expect(events.map((event) => event.type)).toEqual([
-        'worker.updated',
         'message.created',
         'task.updated',
+        'worker.updated',
     ]);
-    expect(events[0]).toEqual({
+    expect(events[2]).toEqual({
         chatId: taskChatId,
         messageId: created.body.messageId,
         serverId: fixture.serverId,
         taskId: fixture.task.id,
         type: 'worker.updated',
-        workId: work.id,
+        workerId: work.id,
     });
 
     const replay = await fixture.postStart(
@@ -63,7 +63,7 @@ test('one Worker writes its Message in its Task, record, first Run, and events',
         fixture.startBody({ nonce: 'cloud-create', content: 'Handing @ada the work in #product.' })
     );
     expect(replay.status).toBe(200);
-    expect(replay.body).toMatchObject({ idempotent: true, work: { id: work.id } });
+    expect(replay.body).toMatchObject({ idempotent: true, worker: { id: work.id } });
     expect(await fixture.countWork()).toBe(1);
 
     // The launch Message is ordinary text that links its work (ADR 0044).
@@ -76,7 +76,7 @@ test('one Worker writes its Message in its Task, record, first Run, and events',
         body: { kind: 'text' },
         content: `Handing [@ada](user://${fixture.ownerUserId}) the work in [#product](chat://${fixture.channelId}).\n\n[Fix the flaky delivery test](worker://${work.id})`,
     });
-    expect(launch?.worker.map((linked) => linked.id)).toEqual([work.id]);
+    expect(launch?.workers.map((linked) => linked.id)).toEqual([work.id]);
 });
 
 test('a launch that fails validation creates nothing', async () => {

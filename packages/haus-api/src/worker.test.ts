@@ -43,7 +43,7 @@ test('a work update names the work and its Message, never their rows', () => {
         messageId: 'msg_1234567890abcdef',
         serverId: 'srv_1',
         taskId: 'tsk_1',
-        workId: work.id,
+        workerId: work.id,
     };
     expect(workerUpdatedEventSchema.parse(event)).toEqual(event);
     expect(() => workerUpdatedEventSchema.parse({ ...event, taskId: undefined })).toThrow();
@@ -70,10 +70,10 @@ test('an observation is bounded and its frames ride the command union', () => {
     expect(
         workerObservationSchema.parse({
             observedAt: '2026-09-04T12:05:00.000Z',
-            runId: 'car_1234567890abcdef',
+            turnId: 'car_1234567890abcdef',
             status: 'completed',
             summary: 'Opened a pull request.',
-            workId: 'caw_1234567890abcdef',
+            workerId: 'caw_1234567890abcdef',
         }).status
     ).toBe('completed');
     expect(
@@ -81,23 +81,23 @@ test('an observation is bounded and its frames ride the command union', () => {
             provider: 'cursor',
             providerAgentId: 'bc_abc',
             providerRunId: 'run_abc',
-            runId: 'car_1234567890abcdef',
+            turnId: 'car_1234567890abcdef',
             type: 'worker-stop',
-            workId: 'caw_1234567890abcdef',
+            workerId: 'caw_1234567890abcdef',
         }).success
     ).toBe(true);
     expect(
         agentCommandSchema.safeParse({
             type: 'worker-reconcile',
-            work: [
+            workers: [
                 {
                     cancelRequested: true,
                     provider: 'cursor',
                     providerAgentId: null,
                     providerRunId: null,
-                    runId: 'car_1234567890abcdef',
+                    turnId: 'car_1234567890abcdef',
                     status: 'queued',
-                    workId: 'caw_1234567890abcdef',
+                    workerId: 'caw_1234567890abcdef',
                 },
             ],
         }).success
@@ -118,12 +118,12 @@ test('a Worker attention is a bodiless inbox item keyed by its Run', () => {
         provider: 'cursor',
         providerUrl: 'https://cursor.com/agents/bc_abc',
         repository: 'haus/haus',
-        runId: 'car_1234567890abcdef',
+        turnId: 'car_1234567890abcdef',
         stallCode: null,
         status: 'completed',
         summary: 'Opened a pull request.',
         title: 'Fix the flaky delivery test',
-        workId: 'caw_1234567890abcdef',
+        workerId: 'caw_1234567890abcdef',
     };
     const item = {
         chatId: 'cht_product',
@@ -136,7 +136,7 @@ test('a Worker attention is a bodiless inbox item keyed by its Run', () => {
         sequence: 0,
         target: '#product',
     };
-    expect(agentInboxItemSchema.parse(item).worker?.workId).toBe('caw_1234567890abcdef');
+    expect(agentInboxItemSchema.parse(item).worker?.workerId).toBe('caw_1234567890abcdef');
     expect(agentInboxItemSchema.safeParse({ ...item, id: 'opaque:key' }).success).toBe(true);
     expect(agentInboxItemSchema.safeParse({ ...item, sequence: 3 }).success).toBe(false);
 });

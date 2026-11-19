@@ -26,20 +26,20 @@ export const workerListForChatInputSchema = z
     .strict();
 /** One work linked in a Chat, under the linking Message its card sits beneath. */
 export const chatWorkerSchema = z
-    .object({ anchorMessageId: idSchema, work: workerSchema })
+    .object({ anchorMessageId: idSchema, worker: workerSchema })
     .strict();
 export const chatWorkerListSchema = z.array(chatWorkerSchema);
 export type ChatWorker = z.infer<typeof chatWorkerSchema>;
 
 export const workerLinksInputSchema = z
-    .object({ serverId: idSchema, workIds: z.array(idSchema).max(50) })
+    .object({ serverId: idSchema, workerIds: z.array(idSchema).max(50) })
     .strict();
 
 /** A conversation linking some work. */
 export const workerLinkSchema = z
     .object({
         chatId: idSchema,
-        workId: idSchema,
+        workerId: idSchema,
     })
     .strict();
 
@@ -59,7 +59,7 @@ export const workerUpdatedEventSchema = z
         messageId: idSchema,
         serverId: idSchema,
         taskId: idSchema.nullable(),
-        workId: idSchema,
+        workerId: idSchema,
     })
     .strict();
 
@@ -96,10 +96,10 @@ export const agentWorkerReceiptSchema = z
         idempotent: z.boolean(),
         messageId: idSchema,
         /** The first Run, which the Computer launches against the provider. */
-        runId: idSchema,
+        turnId: idSchema,
         sequence: z.number().int().positive(),
         target: z.string().trim().min(1),
-        work: workerSchema,
+        worker: workerSchema,
     })
     .strict();
 
@@ -136,9 +136,9 @@ export const agentWorkerStartResponseSchema = z.discriminatedUnion('state', [
 export type AgentWorkerStartResponse = z.infer<typeof agentWorkerStartResponseSchema>;
 
 /** `haus worker cancel` — the delegating Agent's cancellation request. */
-export const agentWorkerCancelInputSchema = z.object({ workId: idSchema }).strict();
+export const agentWorkerCancelInputSchema = z.object({ workerId: idSchema }).strict();
 
-export const agentWorkerCancelReceiptSchema = z.object({ work: workerSchema }).strict();
+export const agentWorkerCancelReceiptSchema = z.object({ worker: workerSchema }).strict();
 
 export type AgentWorkerCancelReceipt = z.infer<typeof agentWorkerCancelReceiptSchema>;
 
@@ -168,13 +168,13 @@ export const workerObservationSchema = z.object({
     rawStatus: z.string().trim().min(1).max(120).optional(),
     /** The full report `summary` was cut from (TECH-8); absent before any Run observes one. */
     report: workerReportSchema.optional(),
-    runId: idSchema,
+    turnId: idSchema,
     /** Set on every reading of a stuck live Run; absent means it is not stalled. */
     stallCode: workerStallCodeSchema.optional(),
     status: workerTurnStatusSchema,
     summary: z.string().trim().min(1).max(workerSummaryMaxLength).optional(),
     usage: workerUsageSchema.optional(),
-    workId: idSchema,
+    workerId: idSchema,
 });
 
 export type WorkerObservation = z.infer<typeof workerObservationSchema>;
@@ -189,34 +189,36 @@ export const workerReconcileEntrySchema = z
         provider: cloudAgentProviderSchema,
         providerAgentId: z.string().trim().min(1).max(200).nullable(),
         providerRunId: z.string().trim().min(1).max(200).nullable(),
-        runId: idSchema,
+        turnId: idSchema,
         status: workerTurnStatusSchema,
-        workId: idSchema,
+        workerId: idSchema,
     })
     .strict();
 
 export type WorkerReconcileEntry = z.infer<typeof workerReconcileEntrySchema>;
 
 export const agentWorkerSendInputSchema = z
-    .object({ workId: idSchema, nonce: z.string().trim().min(1).max(128) })
+    .object({ workerId: idSchema, nonce: z.string().trim().min(1).max(128) })
     .strict();
 export type AgentWorkerSendInput = z.infer<typeof agentWorkerSendInputSchema>;
 export const agentWorkerSendReceiptSchema = z
     .object({
-        work: workerSchema,
-        runId: idSchema,
+        worker: workerSchema,
+        turnId: idSchema,
         idempotent: z.boolean(),
         predecessors: z.array(workerReconcileEntrySchema),
     })
     .strict();
 export type AgentWorkerSendReceipt = z.infer<typeof agentWorkerSendReceiptSchema>;
-export const agentWorkerListInputSchema = z.object({ workId: idSchema.optional() }).strict();
-export const agentWorkerListReceiptSchema = z.object({ works: z.array(workerSchema) }).strict();
+export const agentWorkerListInputSchema = z.object({ workerId: idSchema.optional() }).strict();
+export const agentWorkerListReceiptSchema = z.object({ workers: z.array(workerSchema) }).strict();
 
 /** Human reads. */
 export const workerListActiveInputSchema = z.object({ serverId: idSchema }).strict();
 
-export const workerCancelInputSchema = z.object({ serverId: idSchema, workId: idSchema }).strict();
+export const workerCancelInputSchema = z
+    .object({ serverId: idSchema, workerId: idSchema })
+    .strict();
 
 /**
  * Where "Happening now" opens one work (ADR 0044, Q4): the launch Message when
@@ -250,7 +252,7 @@ export const activeWorkerSchema = z
         location: activeWorkerLocationSchema,
         taskId: idSchema.nullable(),
         taskKey: z.string().min(1).nullable(),
-        work: workerSchema,
+        worker: workerSchema,
     })
     .strict()
     .refine((row) => (row.taskId === null) === (row.taskKey === null), {

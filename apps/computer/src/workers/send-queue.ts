@@ -97,7 +97,7 @@ export class WorkerSendQueue {
                     attempts: outcome.delivery.attempts,
                     error: outcome.delivery.lastError,
                     operation: 'worker.send',
-                    runId: ref.runId,
+                    turnId: ref.turnId,
                 })
             );
             yield* foreign(() => self.journal.defer(self.serverId, ref, pending, outcome.delivery));
@@ -108,11 +108,11 @@ export class WorkerSendQueue {
         return Effect.either(
             foreign(() =>
                 this.provider(ref.provider).send({
-                    idempotencyKey: ref.runId,
+                    idempotencyKey: ref.turnId,
                     instructions: pending.instructions,
                     model: pending.model,
                     providerAgentId: pending.providerAgentId,
-                    workId: ref.workId,
+                    workerId: ref.workerId,
                 })
             )
         );
@@ -154,7 +154,7 @@ export class WorkerSendQueue {
                     attempts: delivery.attempts,
                     error: errorMessageOf(retried.left),
                     operation: 'worker.send',
-                    runId: ref.runId,
+                    turnId: ref.turnId,
                 })
             );
             yield* foreign(() =>
@@ -241,7 +241,7 @@ export class WorkerSendQueue {
             ? foreign(() =>
                   this.journal.claim(this.serverId, previous, {
                       phase: 'cancelled',
-                      workId: previous.workId,
+                      workerId: previous.workerId,
                   })
               )
             : Effect.succeed(false);

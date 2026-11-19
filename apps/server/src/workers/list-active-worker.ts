@@ -47,20 +47,20 @@ export async function listActiveWorker(
             )
         )
         .orderBy(asc(workersTable.createdAt), asc(workersTable.id));
-    const workIds = rows.map((row) => row.work.id);
+    const workerIds = rows.map((row) => row.work.id);
     const links = await readVisibleWorkLinks(db, {
         serverId: input.serverId,
         userId: member.id,
-        workIds,
+        workerIds,
     });
     const chosen = rows.flatMap(({ agentName, work }) => {
         const location = chooseWorkLocation(
             work.launchMessageId,
-            links.filter((link) => link.workId === work.id)
+            links.filter((link) => link.workerId === work.id)
         );
         return location ? [{ agentName, chosen: location, work }] : [];
     });
-    const details = await readWorkDetails(db, input.serverId, workIds);
+    const details = await readWorkDetails(db, input.serverId, workerIds);
     const taskKeys = await readTaskKeys(db, {
         serverId: input.serverId,
         taskIds: chosen.flatMap(({ work }) => (work.taskId ? [work.taskId] : [])),
@@ -73,7 +73,7 @@ export async function listActiveWorker(
             location,
             taskId: taskKey ? row.taskId : null,
             taskKey,
-            work: toWorker(row, details.get(row.id)),
+            worker: toWorker(row, details.get(row.id)),
         };
     });
 }

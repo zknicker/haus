@@ -26,7 +26,7 @@ export async function listChatWorker(
             workersTable,
             and(
                 eq(workersTable.serverId, workerHistoryLinksTable.serverId),
-                eq(workersTable.id, workerHistoryLinksTable.workId)
+                eq(workersTable.id, workerHistoryLinksTable.workerId)
             )
         )
         .innerJoin(
@@ -68,7 +68,7 @@ export async function listChatWorker(
         seen.add(key);
         listed.push({
             anchorMessageId: messageId,
-            work: toWorker(work, details.get(work.id)),
+            worker: toWorker(work, details.get(work.id)),
         });
     }
     return listed;

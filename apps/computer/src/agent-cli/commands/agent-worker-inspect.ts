@@ -20,7 +20,7 @@ export const INSPECT_COMMAND: SubCommand = {
         {
             description: 'Work to inspect; omit to list your work',
             name: '--work',
-            valueName: '<workId>',
+            valueName: '<workerId>',
         },
         {
             description: "Print one Run's full report instead of the JSON detail; needs --work",
@@ -29,50 +29,50 @@ export const INSPECT_COMMAND: SubCommand = {
         {
             description: 'With --report, the Run to show; omit for the newest with a report',
             name: '--run',
-            valueName: '<runId>',
+            valueName: '<turnId>',
         },
     ],
     name: 'inspect',
     positionals: [],
     run: (args) => runWorkerInspect(args, defaultDeps()),
     summary: 'Inspect your Worker and its recorded results',
-    usage: 'haus worker inspect [--work <workId>] [--report [--run <runId>]]',
+    usage: 'haus worker inspect [--work <workerId>] [--report [--run <turnId>]]',
 };
 
 export async function runWorkerInspect(args: ParsedArgs, deps: WorkerDeps): Promise<number> {
-    const workId = args.values['--work']?.trim();
+    const workerId = args.values['--work']?.trim();
     const wantsReport = args.flags['--report'] === true;
-    if (wantsReport && !workId) {
-        throw new AgentCliError('INVALID_ARG', '--report only works alongside --work.', {
-            nextAction: 'haus worker inspect --work <workId> --report',
+    if (wantsReport && !workerId) {
+        throw new AgentCliError('INVALID_ARG', '--report only workers alongside --work.', {
+            nextAction: 'haus worker inspect --work <workerId> --report',
         });
     }
-    const { works } = await deps.client.request(
+    const { workers } = await deps.client.request(
         '/api/agent/workers',
         agentWorkerListReceiptResponseSchema,
-        { query: { workId } }
+        { query: { workerId } }
     );
-    if (wantsReport && workId) {
-        deps.write(renderReport(works, workId, args.values['--run']?.trim()));
+    if (wantsReport && workerId) {
+        deps.write(renderReport(workers, workerId, args.values['--run']?.trim()));
         return 0;
     }
-    deps.write(workId ? renderWorkerDetail(works) : renderWorkerList(works));
+    deps.write(workerId ? renderWorkerDetail(workers) : renderWorkerList(workers));
     return 0;
 }
 
 function renderReport(
-    works: Parameters<typeof findWorkerReportRun>[0],
-    workId: string,
-    runId: string | undefined
+    workers: Parameters<typeof findWorkerReportRun>[0],
+    workerId: string,
+    turnId: string | undefined
 ): string {
-    const run = findWorkerReportRun(works, workId, runId);
+    const run = findWorkerReportRun(workers, workerId, turnId);
     if (!run) {
         throw new AgentCliError(
             'WORKER_REPORT_NOT_FOUND',
-            runId
-                ? `Run ${runId} on work ${workId} has no recorded report.`
-                : `Work ${workId} has no Run with a recorded report.`,
-            { nextAction: `haus worker inspect --work ${workId}` }
+            turnId
+                ? `Run ${turnId} on work ${workerId} has no recorded report.`
+                : `Work ${workerId} has no Run with a recorded report.`,
+            { nextAction: `haus worker inspect --work ${workerId}` }
         );
     }
     return renderWorkerReportText(run);

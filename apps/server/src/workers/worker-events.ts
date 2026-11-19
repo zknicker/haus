@@ -12,9 +12,12 @@ import { linkParentChatsTable } from './worker-visibility.ts';
  */
 export async function prepareWorkerEvents(
     db: Pick<HausDatabase, 'select'>,
-    input: { serverId: string; workId: string }
+    input: { serverId: string; workerId: string }
 ): Promise<PreparedRealtimeEvent[]> {
-    return await prepareLinkedWorkEvents(db, { serverId: input.serverId, workIds: [input.workId] });
+    return await prepareLinkedWorkEvents(db, {
+        serverId: input.serverId,
+        workerIds: [input.workerId],
+    });
 }
 
 /**
@@ -23,9 +26,9 @@ export async function prepareWorkerEvents(
  */
 export async function prepareLinkedWorkEvents(
     db: Pick<HausDatabase, 'select'>,
-    input: { serverId: string; workIds: string[] }
+    input: { serverId: string; workerIds: string[] }
 ): Promise<PreparedRealtimeEvent[]> {
-    if (input.workIds.length === 0) {
+    if (input.workerIds.length === 0) {
         return [];
     }
     const links = await db
@@ -33,14 +36,14 @@ export async function prepareLinkedWorkEvents(
             chatId: workerHistoryLinksTable.chatId,
             messageId: workerHistoryLinksTable.messageId,
             taskId: workersTable.taskId,
-            workId: workerHistoryLinksTable.workId,
+            workerId: workerHistoryLinksTable.workerId,
         })
         .from(workerHistoryLinksTable)
         .innerJoin(
             workersTable,
             and(
                 eq(workersTable.serverId, workerHistoryLinksTable.serverId),
-                eq(workersTable.id, workerHistoryLinksTable.workId)
+                eq(workersTable.id, workerHistoryLinksTable.workerId)
             )
         )
         .innerJoin(
@@ -60,7 +63,7 @@ export async function prepareLinkedWorkEvents(
         .where(
             and(
                 eq(workerHistoryLinksTable.serverId, input.serverId),
-                inArray(workerHistoryLinksTable.workId, input.workIds),
+                inArray(workerHistoryLinksTable.workerId, input.workerIds),
                 isNull(chatsTable.deletedAt),
                 or(
                     isNull(chatsTable.parentChatId),
@@ -75,7 +78,7 @@ export async function prepareLinkedWorkEvents(
             messageId: link.messageId,
             serverId: input.serverId,
             taskId: link.taskId,
-            workId: link.workId,
+            workerId: link.workerId,
         })
     );
 }
@@ -89,7 +92,7 @@ export async function readWorkIdsLinkedFrom(
         return [];
     }
     const rows = await db
-        .select({ workId: workerHistoryLinksTable.workId })
+        .select({ workerId: workerHistoryLinksTable.workerId })
         .from(workerHistoryLinksTable)
         .where(
             and(
@@ -97,5 +100,5 @@ export async function readWorkIdsLinkedFrom(
                 inArray(workerHistoryLinksTable.chatId, input.chatIds)
             )
         );
-    return [...new Set(rows.map(({ workId }) => workId))];
+    return [...new Set(rows.map(({ workerId }) => workerId))];
 }

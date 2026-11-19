@@ -81,23 +81,23 @@ test('the Server location is where the row opens', () => {
 
 test('a follow-up queued behind a finished Run reads as the waiting follow-up, not done', () => {
     const followedUp = workerFixture({
-        runs: [
+        turns: [
             workerTurnFixture({
                 createdAt: '2026-09-04T12:05:00.000Z',
-                runId: 'car_two',
+                turnId: 'car_two',
                 status: 'queued',
             }),
             workerTurnFixture({ status: 'completed' }),
         ],
         status: 'queued',
     });
-    const [row] = toHappeningNowWork([activeWork({ work: followedUp })], humans, agents, now);
+    const [row] = toHappeningNowWork([activeWork({ worker: followedUp })], humans, agents, now);
 
     expect(row?.state).toBe('working');
     expect(row?.statusText).toBe('Follow-up waiting · 2m');
 });
 
-function workRecord(overrides: Partial<ActiveWorker['work']> = {}): ActiveWorker['work'] {
+function workRecord(overrides: Partial<ActiveWorker['worker']> = {}): ActiveWorker['worker'] {
     return workerFixture({
         agentId: 'agent_blippy',
         chatId: 'chat_product',
@@ -121,7 +121,7 @@ function activeWork(overrides: Partial<ActiveWorker> = {}): ActiveWorker {
         },
         taskId: null,
         taskKey: null,
-        work: workRecord(),
+        worker: workRecord(),
         ...overrides,
     };
 }

@@ -90,16 +90,16 @@ test('launching work on a Task announces the Task, and work events and rows name
         fixture.startBody({ nonce: 'surfaces-launch' })
     );
     expect(started.status).toBe(200);
-    const workId = started.body.work?.id ?? '';
+    const workerId = started.body.worker?.id ?? '';
 
     await taskEvents.next((event) => event.taskId === fixture.task.id);
-    const workEvent = await workEvents.next((event) => event.workId === workId);
+    const workEvent = await workEvents.next((event) => event.workerId === workerId);
     expect(workEvent.taskId).toBe(fixture.task.id);
 
     const rows = await fixture.owner.trpc.worker.listActive.query({
         serverId: fixture.serverId,
     });
-    expect(rows.find((row) => row.work.id === workId)).toMatchObject({
+    expect(rows.find((row) => row.worker.id === workerId)).toMatchObject({
         taskId: fixture.task.id,
         taskKey: fixture.task.key,
     });

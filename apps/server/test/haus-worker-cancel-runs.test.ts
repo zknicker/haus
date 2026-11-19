@@ -18,54 +18,56 @@ async function startWithFollowUp(nonce: string) {
         observedAt: '2026-11-05T12:00:00.000Z',
         providerAgentId: `cursor_${nonce}`,
         providerRunId: `cursor_${nonce}_first`,
-        runId: started.runId,
+        turnId: started.turnId,
         status: 'running',
-        workId: started.work.id,
+        workerId: started.worker.id,
     };
     socket.send(JSON.stringify({ observation, type: 'worker-observation' }));
-    await fixture.waitFor(async () => (await fixture.readRun(started.runId))?.status === 'running');
-    const followUp = await send(runner.token, started.work.id, `${nonce}-followup`);
+    await fixture.waitFor(
+        async () => (await fixture.readRun(started.turnId))?.status === 'running'
+    );
+    const followUp = await send(runner.token, started.worker.id, `${nonce}-followup`);
     return { followUp, runner, socket, started };
 }
 
 test('a cancel reaches every live Run, not only the newest', async () => {
     const { followUp, runner, socket, started } = await startWithFollowUp('cancel-all');
-    const frames: { runId?: string; type?: string }[] = [];
+    const frames: { turnId?: string; type?: string }[] = [];
     socket.addEventListener('message', (event) => {
         frames.push(JSON.parse(String(event.data)));
     });
 
-    expect((await fixture.postCancel(runner, started.work.id)).status).toBe(200);
+    expect((await fixture.postCancel(runner, started.worker.id)).status).toBe(200);
 
-    expect((await fixture.readRun(started.runId))?.cancel_requested_at).not.toBeNull();
-    expect((await fixture.readRun(followUp.runId))?.cancel_requested_at).not.toBeNull();
+    expect((await fixture.readRun(started.turnId))?.cancel_requested_at).not.toBeNull();
+    expect((await fixture.readRun(followUp.turnId))?.cancel_requested_at).not.toBeNull();
     await fixture.waitFor(() =>
         Promise.resolve(frames.filter((frame) => frame.type === 'worker-stop').length === 2)
     );
     expect(
         frames
             .filter((frame) => frame.type === 'worker-stop')
-            .map((frame) => frame.runId)
+            .map((frame) => frame.turnId)
             .sort()
-    ).toEqual([started.runId, followUp.runId].sort());
+    ).toEqual([started.turnId, followUp.turnId].sort());
     socket.close();
 });
 
 test('a follow-up after a cancel leaves the running predecessor cancelling', async () => {
     const { followUp, runner, socket, started } = await startWithFollowUp('cancel-then-send');
-    expect((await fixture.postCancel(runner, started.work.id)).status).toBe(200);
+    expect((await fixture.postCancel(runner, started.worker.id)).status).toBe(200);
 
-    const next = await send(runner.token, started.work.id, 'cancel-then-send-next');
+    const next = await send(runner.token, started.worker.id, 'cancel-then-send-next');
 
-    expect((await fixture.readRun(started.runId))?.cancel_requested_at).not.toBeNull();
-    expect((await fixture.readRun(followUp.runId))?.cancel_requested_at).not.toBeNull();
-    expect((await fixture.readRun(next.runId))?.cancel_requested_at).toBeNull();
+    expect((await fixture.readRun(started.turnId))?.cancel_requested_at).not.toBeNull();
+    expect((await fixture.readRun(followUp.turnId))?.cancel_requested_at).not.toBeNull();
+    expect((await fixture.readRun(next.turnId))?.cancel_requested_at).toBeNull();
     socket.close();
 });
 
-async function send(token: string, workId: string, nonce: string) {
+async function send(token: string, workerId: string, nonce: string) {
     const response = await fetch(new URL('/api/agent/workers/send', fixture.harness.url), {
-        body: JSON.stringify({ nonce, workId }),
+        body: JSON.stringify({ nonce, workerId }),
         headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
         method: 'POST',
     });

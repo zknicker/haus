@@ -8,10 +8,10 @@ type MessageWorker = NonNullable<HausAgentMessage['workers']>[number];
  * snake_case wire shape. `workers` carries every link in order (ADR 0044).
  */
 export function agentMessageBodies(input: {
-    worker: Worker[];
+    workers: Worker[];
     createdAgent: CreatedAgentSummary | undefined;
 }): Partial<AgentMessageBodies> {
-    const workers = input.worker.map(workerBody);
+    const workers = input.workers.map(workerBody);
     return {
         ...(input.createdAgent ? { agent_created: createdAgentBody(input.createdAgent) } : {}),
         ...(workers.length > 0 ? { workers } : {}),
@@ -29,7 +29,7 @@ function createdAgentBody(agent: CreatedAgentSummary): AgentMessageBodies['agent
 }
 
 function workerBody(work: Worker): MessageWorker {
-    const latest = work.runs[0];
+    const latest = work.turns[0];
     return {
         activity: work.activity?.summary ?? null,
         id: work.id,
@@ -41,7 +41,7 @@ function workerBody(work: Worker): MessageWorker {
                       repository: branch.repository,
                   })),
                   error_code: latest.errorCode,
-                  turn_id: latest.runId,
+                  turn_id: latest.turnId,
                   status: latest.status,
                   summary: latest.summary,
               }

@@ -64,7 +64,7 @@ export function workerVisibleSql(
             .where(
                 and(
                     eq(workerHistoryLinksTable.serverId, workersTable.serverId),
-                    eq(workerHistoryLinksTable.workId, workersTable.id),
+                    eq(workerHistoryLinksTable.workerId, workersTable.id),
                     linkChatVisibleSql(serverId, viewer)
                 )
             )
@@ -77,9 +77,9 @@ export function workerVisibleSql(
 /** Which of these work ids exist in the Server and are visible to the viewer. */
 export async function readVisibleWorkerIds(
     db: Pick<HausDatabase, 'select'>,
-    input: { serverId: string; viewer: WorkerViewer; workIds: string[] }
+    input: { serverId: string; viewer: WorkerViewer; workerIds: string[] }
 ): Promise<Set<string>> {
-    if (input.workIds.length === 0) {
+    if (input.workerIds.length === 0) {
         return new Set();
     }
     const rows = await db
@@ -88,7 +88,7 @@ export async function readVisibleWorkerIds(
         .where(
             and(
                 eq(workersTable.serverId, input.serverId),
-                inArray(workersTable.id, input.workIds),
+                inArray(workersTable.id, input.workerIds),
                 workerVisibleSql(db, input.serverId, input.viewer)
             )
         );

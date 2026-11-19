@@ -39,7 +39,7 @@ const workWithUnknownFields = {
     providerAgentId: 'bc_abc',
     providerUrl: 'https://cursor.com/agents/bc_abc',
     repository: 'haus/haus',
-    runs: [
+    turns: [
         {
             branches: [
                 {
@@ -65,7 +65,7 @@ const workWithUnknownFields = {
             providerRunId: 'run_abc',
             rawStatus: 'RUNNING',
             report: { clipped: false, futureReportField: true, text: 'Opened a pull request.' },
-            runId: 'car_1234567890abcdef',
+            turnId: 'car_1234567890abcdef',
             stall: null,
             startedAt: '2026-09-04T12:00:30.000Z',
             status: 'running',
@@ -90,34 +90,34 @@ test('the Computer response schema parses a work record carrying fields from a n
     const parsed = workerResponseSchema.parse(workWithUnknownFields);
     expect(parsed.id).toBe('caw_1234567890abcdef');
     expect(parsed.title).toBe('Fix the flaky delivery test');
-    expect(parsed.runs[0]?.runId).toBe('car_1234567890abcdef');
-    expect(parsed.runs[0]?.report?.text).toBe('Opened a pull request.');
+    expect(parsed.turns[0]?.turnId).toBe('car_1234567890abcdef');
+    expect(parsed.turns[0]?.report?.text).toBe('Opened a pull request.');
 });
 
 test('the Computer response schema defaults a missing report to null, for a Server older than this Computer', () => {
-    const { report: _omitted, ...runWithoutReport } = workWithUnknownFields.runs[0];
+    const { report: _omitted, ...runWithoutReport } = workWithUnknownFields.turns[0];
     const parsed = workerResponseSchema.parse({
         ...workWithUnknownFields,
-        runs: [runWithoutReport],
+        turns: [runWithoutReport],
     });
-    expect(parsed.runs[0]?.report).toBeNull();
+    expect(parsed.turns[0]?.report).toBeNull();
 });
 
 test('the Computer response schema tolerates an unknown field on a list receipt', () => {
-    const payload = { futureReceiptField: true, works: [workWithUnknownFields] };
+    const payload = { futureReceiptField: true, workers: [workWithUnknownFields] };
     expect(() => agentWorkerListReceiptSchema.parse(payload)).toThrow();
-    expect(agentWorkerListReceiptResponseSchema.parse(payload).works).toHaveLength(1);
+    expect(agentWorkerListReceiptResponseSchema.parse(payload).workers).toHaveLength(1);
 });
 
 test('the Computer response schema tolerates an unknown field on a send receipt', () => {
     const payload = {
         idempotent: false,
         predecessors: [],
-        runId: 'car_1234567890abcdef',
-        work: workWithUnknownFields,
+        turnId: 'car_1234567890abcdef',
+        worker: workWithUnknownFields,
     };
     expect(() => agentWorkerSendReceiptSchema.parse(payload)).toThrow();
-    expect(agentWorkerSendReceiptResponseSchema.parse(payload).work.id).toBe(
+    expect(agentWorkerSendReceiptResponseSchema.parse(payload).worker.id).toBe(
         'caw_1234567890abcdef'
     );
 });

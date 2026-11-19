@@ -25,7 +25,7 @@ export const workerAutomationSchema = z
             'agent-retired',
             'unavailable',
         ]),
-        work: workerSchema,
+        worker: workerSchema,
     })
     .strict();
 export const workerAutomationListSchema = z.array(workerAutomationSchema);

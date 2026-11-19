@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import type { ClaudeSession, ClaudeSessionEvent } from './controller.ts';
 import { claudeRunObservation } from './observation.ts';
 
-const ref = { runId: 'car_run', workId: 'caw_work' };
+const ref = { turnId: 'car_run', workerId: 'caw_work' };
 const observedAt = '2026-10-14T12:00:00.000Z';
 const prompt = event({
     message: { content: 'HAUS_CLOUD_RUN=caw_work/car_run\n\nTrim the copy.' },
@@ -184,7 +184,7 @@ test('a result landing after a mid-turn follow-up still settles the predecessor,
         cancelRequestId: 'haus-cancel-car_followup',
         events: [...chronological].reverse(),
         observedAt,
-        ref: { runId: 'car_followup', workId: 'caw_work' },
+        ref: { turnId: 'car_followup', workerId: 'caw_work' },
         session: session({ workerStatus: 'idle' }),
     });
     expect(followUp).toMatchObject({ status: 'completed', summary: 'Finished the follow-up.' });

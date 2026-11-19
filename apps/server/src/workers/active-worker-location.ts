@@ -17,7 +17,7 @@ export interface VisibleWorkLink {
     parentDmMemberTwoUserId: string | null;
     parentKind: 'channel' | 'dm' | 'task' | null;
     parentName: string | null;
-    workId: string;
+    workerId: string;
 }
 
 /** Where one row opens and the link it opens on. */
@@ -29,9 +29,9 @@ export interface ChosenWorkLocation {
 /** Every visible link of these works, newest first (`created_at`, then id). */
 export async function readVisibleWorkLinks(
     db: Pick<HausDatabase, 'select'>,
-    input: { serverId: string; userId: string; workIds: string[] }
+    input: { serverId: string; userId: string; workerIds: string[] }
 ): Promise<VisibleWorkLink[]> {
-    if (input.workIds.length === 0) {
+    if (input.workerIds.length === 0) {
         return [];
     }
     return await db
@@ -47,7 +47,7 @@ export async function readVisibleWorkLinks(
             parentDmMemberTwoUserId: linkParentChatsTable.dmMemberTwoUserId,
             parentKind: linkParentChatsTable.kind,
             parentName: linkParentChatsTable.name,
-            workId: workerHistoryLinksTable.workId,
+            workerId: workerHistoryLinksTable.workerId,
         })
         .from(workerHistoryLinksTable)
         .innerJoin(
@@ -67,7 +67,7 @@ export async function readVisibleWorkLinks(
         .where(
             and(
                 eq(workerHistoryLinksTable.serverId, input.serverId),
-                inArray(workerHistoryLinksTable.workId, input.workIds),
+                inArray(workerHistoryLinksTable.workerId, input.workerIds),
                 linkChatVisibleSql(input.serverId, { kind: 'user', userId: input.userId })
             )
         )

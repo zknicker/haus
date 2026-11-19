@@ -27,7 +27,7 @@ test('a working job counts up from the moment the provider started it', () => {
 
 test('a done job states how long it took, not how long ago it was', () => {
     const completed = work({
-        runs: [run({ status: 'completed', terminalAt: '2026-09-04T13:12:00.000Z' })],
+        turns: [run({ status: 'completed', terminalAt: '2026-09-04T13:12:00.000Z' })],
         status: 'completed',
     });
 
@@ -47,8 +47,8 @@ test('a done job under a second or with no known span names only its outcome', (
 
 test('a follow-up queued behind a finished Run keeps the job done', () => {
     const followedUp = work({
-        runs: [
-            run({ createdAt: '2026-09-04T12:03:00.000Z', runId: 'car_two', status: 'queued' }),
+        turns: [
+            run({ createdAt: '2026-09-04T12:03:00.000Z', turnId: 'car_two', status: 'queued' }),
             run({ status: 'completed', terminalAt: '2026-09-04T12:02:00.000Z' }),
         ],
         startedAt: null,
@@ -106,7 +106,7 @@ test('durations read coarsely, in the units a work surface states', () => {
 
 test('the branch that opened a pull request wins over the ones that did not', () => {
     const branched = work({
-        runs: [
+        turns: [
             run({
                 branches: [
                     { branch: 'cursor/spike', pullRequestUrl: null, repository: 'haus/haus' },
@@ -125,7 +125,7 @@ test('the branch that opened a pull request wins over the ones that did not', ()
 
 test('a work whose branches opened nothing still names the first one', () => {
     const branched = work({
-        runs: [
+        turns: [
             run({
                 branches: [
                     { branch: 'cursor/spike', pullRequestUrl: null, repository: 'haus/haus' },
@@ -143,8 +143,8 @@ test('a work with no reported branch has none', () => {
 
 test('a follow-up Run that reported nothing yet keeps the earlier pull request', () => {
     const followedUp = work({
-        runs: [
-            run({ runId: 'car_two', status: 'queued' }),
+        turns: [
+            run({ turnId: 'car_two', status: 'queued' }),
             run({
                 branches: [
                     {
@@ -199,7 +199,9 @@ test('launching reads Starting, a failed launch reads Stopped, and a requested s
     expect(workerText(starting, now)).toBe('Starting · 4m');
     const failed = work({
         status: 'failed',
-        runs: [run({ status: 'failed', providerRunId: null, errorCode: 'provider-launch-failed' })],
+        turns: [
+            run({ status: 'failed', providerRunId: null, errorCode: 'provider-launch-failed' }),
+        ],
     });
     expect(workerText(failed, now)).toBe('Stopped');
     expect(workerText(work({ cancelRequestedAt: new Date(now).toISOString() }), now)).toBe(

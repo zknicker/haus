@@ -15,12 +15,12 @@ afterEach(async () => {
 });
 const prior = {
     provider: 'cursor' as const,
-    workId: 'work',
-    runId: 'prior',
+    workerId: 'work',
+    turnId: 'prior',
     providerAgentId: 'bc_same',
     providerRunId: 'r_prior',
 };
-const next = { ...prior, runId: 'next', providerRunId: null };
+const next = { ...prior, turnId: 'next', providerRunId: null };
 
 const nanoLow = { id: 'gpt-5.4-nano', params: [{ id: 'reasoning', value: 'low' }] };
 
@@ -54,7 +54,7 @@ async function fixture(interrupt = false) {
     };
     await journal.claim('server', next, {
         phase: 'pending',
-        workId: 'work',
+        workerId: 'work',
         providerAgentId: 'bc_same',
         model: nanoLow,
         instructions: 'Revise the same code',
@@ -106,7 +106,7 @@ test('stop discards the pending prompt after stopping active work', async () => 
     await f.runtime.runPromise(f.queue.advance(next, () => true));
     await f.runtime.runPromise(f.queue.advance(next, () => true));
     expect(f.sent).toEqual([]);
-    expect(await f.journal.read('server', next)).toEqual({ phase: 'cancelled', workId: 'work' });
+    expect(await f.journal.read('server', next)).toEqual({ phase: 'cancelled', workerId: 'work' });
 });
 
 test('restart reloads a queued prompt from private Computer storage', async () => {
@@ -124,10 +124,10 @@ test('restart reloads a queued prompt from private Computer storage', async () =
 
 test('multiple pending prompts preserve order', async () => {
     const f = await fixture();
-    const last = { ...next, runId: 'last' };
+    const last = { ...next, turnId: 'last' };
     await f.journal.claim('server', last, {
         phase: 'pending',
-        workId: 'work',
+        workerId: 'work',
         providerAgentId: 'bc_same',
         model: null,
         instructions: 'Last correction',
@@ -144,10 +144,10 @@ test('multiple pending prompts preserve order', async () => {
 
 test('interrupt discards older queued prompts before sending the replacement', async () => {
     const f = await fixture();
-    const replacement = { ...next, runId: 'replacement' };
+    const replacement = { ...next, turnId: 'replacement' };
     await f.journal.claim('server', replacement, {
         phase: 'pending',
-        workId: 'work',
+        workerId: 'work',
         providerAgentId: 'bc_same',
         model: null,
         instructions: 'Replacement',
@@ -158,7 +158,7 @@ test('interrupt discards older queued prompts before sending the replacement', a
     await f.runtime.runPromise(f.queue.advance(replacement, () => false));
     await f.runtime.runPromise(f.queue.advance(next, () => false));
     expect(f.sent).toEqual(['Replacement']);
-    expect(await f.journal.read('server', next)).toEqual({ phase: 'cancelled', workId: 'work' });
+    expect(await f.journal.read('server', next)).toEqual({ phase: 'cancelled', workerId: 'work' });
 });
 
 test('concurrent queue ticks do not send twice', async () => {

@@ -1,6 +1,6 @@
 import { expect, spyOn, test } from 'bun:test';
 import { createFakeCloudAgentProvider } from './fake-provider.ts';
-import { receipt, registerLaunchWorkFixture, runId, workId } from './launch-work-fixture.ts';
+import { receipt, registerLaunchWorkFixture, turnId, workerId } from './launch-work-fixture.ts';
 import { WorkerLaunchFailedError, startWorker } from './launch-work.ts';
 
 const fixture = registerLaunchWorkFixture();
@@ -10,14 +10,14 @@ test('a provider that refuses the launch settles the recorded work as failed', a
     provider.failNextStart('Repository access is missing.');
     fixture.stubServer();
 
-    await expect(startWorker(fixture.input())).resolves.toMatchObject({ runId });
+    await expect(startWorker(fixture.input())).resolves.toMatchObject({ turnId });
     await fixture.launched();
     expect(fixture.observations[0]).toMatchObject({
         errorCode: 'provider-launch-rejected',
-        runId,
+        turnId,
         status: 'failed',
         summary: 'The provider rejected the launch: Repository access is missing.',
-        workId,
+        workerId,
     });
 });
 
@@ -51,8 +51,8 @@ test('a failed launch logs the provider cause but reports only the generic summa
         errorCode: 'provider-launch-failed',
         operation: 'worker.launch',
         provider: 'cursor',
-        runId,
-        workId,
+        turnId,
+        workerId,
     });
     expect(fixture.observations[0]?.summary).toBe(
         'The Worker launch failed before the provider confirmed it started.'

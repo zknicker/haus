@@ -16,7 +16,7 @@ export const work = {
     providerAgentId: 'bc_abc',
     providerUrl: 'https://cursor.com/agents/bc_abc',
     repository: 'haus/haus',
-    runs: [
+    turns: [
         {
             branches: [],
             createdAt: '2026-09-04T12:00:00.000Z',
@@ -25,7 +25,7 @@ export const work = {
             providerRunId: 'run_abc',
             rawStatus: 'RUNNING',
             report: null,
-            runId: 'car_1234567890abcdef',
+            turnId: 'car_1234567890abcdef',
             stall: null,
             startedAt: '2026-09-04T12:00:30.000Z',
             status: 'running',

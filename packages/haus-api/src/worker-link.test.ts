@@ -87,12 +87,12 @@ describe('Worker links', () => {
 
 describe('Worker Message annotation', () => {
     it('defaults to no linked work', () => {
-        const { worker: _omitted, ...wire } = linkedMessage;
-        expect(chatMessageSchema.parse(wire).worker).toEqual([]);
+        const { workers: _omitted, ...wire } = linkedMessage;
+        expect(chatMessageSchema.parse(wire).workers).toEqual([]);
     });
 
     it('carries linked work in link order', () => {
-        expect(chatMessageSchema.parse(linkedMessage).worker).toEqual([linkedWork]);
+        expect(chatMessageSchema.parse(linkedMessage).workers).toEqual([linkedWork]);
         expect(parseHausRichReferences(linkedMessage.content)).toHaveLength(1);
         expect(linkedMessage.content.endsWith(`\n\n${linkedWorkLink}`)).toBe(true);
     });
@@ -121,7 +121,7 @@ describe('Happening now location', () => {
             location: activeWorkLocations.message,
             taskId: 'tsk_work',
             taskKey: 'SEC-12',
-            work: linkedWork,
+            worker: linkedWork,
         };
         expect(activeWorkerSchema.parse(row).location).toEqual(activeWorkLocations.message);
         expect(activeWorkerSchema.safeParse({ ...row, taskKey: null }).success).toBe(false);

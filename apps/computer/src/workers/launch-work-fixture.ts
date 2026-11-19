@@ -9,8 +9,8 @@ import { setCloudAgentProvider } from './registry.ts';
 
 export const serverId = 'srv_cloud';
 export const serverOrigin = 'https://haus.test';
-export const workId = 'caw_1234567890abcdef';
-export const runId = 'car_1234567890abcdef';
+export const workerId = 'caw_1234567890abcdef';
+export const turnId = 'car_1234567890abcdef';
 export const request = {
     content: 'Handing this to a Worker.',
     instructions: 'Reproduce the flake and open a pull request.',
@@ -27,10 +27,10 @@ export const receipt = {
     chatId: 'cht_product',
     idempotent: false,
     messageId: 'msg_1a2b3c4d5e6f7890',
-    runId,
+    turnId,
     sequence: 7,
     target: '#product',
-    work: {
+    worker: {
         activity: null,
         agentId: 'agt_orbit',
         cancelRequestedAt: null,
@@ -40,7 +40,7 @@ export const receipt = {
         createdAt: '2026-09-04T12:00:00.000Z',
         environmentId: null,
         environmentName: null,
-        id: workId,
+        id: workerId,
         job: { followUp: null, startedAt: null, state: 'working' },
         messageId: 'msg_1a2b3c4d5e6f7890',
         provider: 'cursor',
@@ -48,7 +48,7 @@ export const receipt = {
         providerUrl: null,
         pullRequest: null,
         repository: 'haus/haus',
-        runs: [],
+        turns: [],
         startedAt: null,
         startingRef: 'main',
         status: 'queued',
@@ -70,10 +70,14 @@ export function registerLaunchWorkFixture() {
         restores,
         supervisor: {
             report(
-                ref: { runId: string; workId: string },
-                observation: Omit<WorkerObservation, 'runId' | 'workId'>
+                ref: { turnId: string; workerId: string },
+                observation: Omit<WorkerObservation, 'turnId' | 'workerId'>
             ) {
-                state.observations.push({ ...observation, runId: ref.runId, workId: ref.workId });
+                state.observations.push({
+                    ...observation,
+                    turnId: ref.turnId,
+                    workerId: ref.workerId,
+                });
             },
             watch() {},
             runLaunch<Value>(operation: () => Promise<Value>) {

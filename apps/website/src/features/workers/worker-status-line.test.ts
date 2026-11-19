@@ -10,8 +10,8 @@ const line = (value: Worker) => workerStatusLine(value, { agentName: 'Blippy', n
 /** A follow-up queued 3 minutes ago behind an earlier Run. */
 function followedUp(earlier: Parameters<typeof run>[0], overrides: Partial<Worker> = {}) {
     return work({
-        runs: [
-            run({ createdAt: minutesAgo(3), runId: 'car_two', status: 'queued' }),
+        turns: [
+            run({ createdAt: minutesAgo(3), turnId: 'car_two', status: 'queued' }),
             run({ terminalAt: minutesAgo(5), ...earlier }),
         ],
         startedAt: null,
@@ -48,10 +48,10 @@ test('a follow-up behind a finished Run keeps the job done and notes the wait', 
 
 test('a stalled follow-up reads distinctly from an ordinary wait', () => {
     const value = work({
-        runs: [
+        turns: [
             run({
                 createdAt: minutesAgo(35),
-                runId: 'car_two',
+                turnId: 'car_two',
                 stall: { code: 'followup-auto-interrupt-failed', since: minutesAgo(5) },
                 status: 'queued',
             }),
@@ -78,8 +78,8 @@ test('a follow-up queued while the earlier Run still goes reads working', () => 
 
 test('a running follow-up says how long it has run', () => {
     const value = work({
-        runs: [
-            run({ runId: 'car_two', startedAt: minutesAgo(2), status: 'running' }),
+        turns: [
+            run({ turnId: 'car_two', startedAt: minutesAgo(2), status: 'running' }),
             run({ status: 'completed' }),
         ],
         updatedAt: minutesAgo(1),
@@ -101,7 +101,7 @@ test('a follow-up behind a failed Run keeps the failure, and the failure wins th
 
 test('a failure without a report reads its error code', () => {
     expect(
-        line(work({ runs: [run({ errorCode: 'sample_build_failed', status: 'failed' })] })).text
+        line(work({ turns: [run({ errorCode: 'sample_build_failed', status: 'failed' })] })).text
     ).toBe('Sample build failed');
 });
 
@@ -120,13 +120,13 @@ test('a requested stop shows until the Run settles', () => {
 
 test('settled jobs say when they settled', () => {
     expect(
-        line(work({ runs: [run({ status: 'completed', terminalAt: minutesAgo(30) })] })).text
+        line(work({ turns: [run({ status: 'completed', terminalAt: minutesAgo(30) })] })).text
     ).toBe('Finished 30m ago');
     expect(
-        line(work({ runs: [run({ status: 'cancelled', terminalAt: minutesAgo(30) })] })).text
+        line(work({ turns: [run({ status: 'cancelled', terminalAt: minutesAgo(30) })] })).text
     ).toBe('Stopped · 30m ago');
     expect(
-        line(work({ runs: [run({ status: 'expired', terminalAt: minutesAgo(30) })] })).text
+        line(work({ turns: [run({ status: 'expired', terminalAt: minutesAgo(30) })] })).text
     ).toBe('Expired · 30m ago');
 });
 
@@ -145,7 +145,7 @@ test('every job state has a status line', () => {
 
 test('a job that needs input says when it updated and never shows the question', () => {
     const asked = work({
-        runs: [
+        turns: [
             run({
                 status: 'pending_input',
                 summary: 'Should the reminder default to **9am** or 10am?',

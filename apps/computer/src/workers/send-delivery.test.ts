@@ -20,12 +20,12 @@ afterEach(async () => {
 
 const prior = {
     provider: 'cursor' as const,
-    workId: 'work',
-    runId: 'prior',
+    workerId: 'work',
+    turnId: 'prior',
     providerAgentId: 'bc_same',
     providerRunId: 'r_p',
 };
-const next = { ...prior, runId: 'next', providerRunId: null };
+const next = { ...prior, turnId: 'next', providerRunId: null };
 
 async function fixture(options: { predecessor?: WorkerTurnRef; interrupt?: boolean } = {}) {
     const root = await mkdtemp(join(tmpdir(), 'haus-send-delivery-'));
@@ -59,7 +59,7 @@ async function fixture(options: { predecessor?: WorkerTurnRef; interrupt?: boole
     };
     await journal.claim('server', next, {
         phase: 'pending',
-        workId: 'work',
+        workerId: 'work',
         providerAgentId: 'bc_same',
         instructions: 'Revise the same code',
         interrupt: options.interrupt ?? false,
@@ -96,7 +96,7 @@ test('a definite refusal fails the follow-up at once with the provider reason', 
     );
     expect(await f.advance()).toEqual({
         phase: 'rejected',
-        workId: 'work',
+        workerId: 'work',
         errorCode: 'followup-delivery-rejected',
         summary: 'The provider rejected the follow-up: Invalid API key (unauthorized)',
     });
@@ -264,13 +264,13 @@ test('a predecessor that settled in any terminal state unblocks the follow-up', 
 });
 
 test('a predecessor that failed before reaching the provider unblocks the follow-up', async () => {
-    const orphan = { ...prior, runId: 'orphan', providerRunId: null };
+    const orphan = { ...prior, turnId: 'orphan', providerRunId: null };
     const f = await fixture({ predecessor: orphan });
     // No record yet: the predecessor's own monitor is still inside its grace window.
     expect((await f.advance())?.phase).toBe('pending');
     await f.journal.claim('server', orphan, {
         phase: 'rejected',
-        workId: 'work',
+        workerId: 'work',
         errorCode: 'launch-record-missing',
         summary: 'Never sent.',
     });
@@ -278,8 +278,11 @@ test('a predecessor that failed before reaching the provider unblocks the follow
 });
 
 test('interrupt claims an unrecorded predecessor as cancelled and sends', async () => {
-    const orphan = { ...prior, runId: 'orphan', providerRunId: null };
+    const orphan = { ...prior, turnId: 'orphan', providerRunId: null };
     const f = await fixture({ predecessor: orphan, interrupt: true });
     expect((await f.advance())?.phase).toBe('launched');
-    expect(await f.journal.read('server', orphan)).toEqual({ phase: 'cancelled', workId: 'work' });
+    expect(await f.journal.read('server', orphan)).toEqual({
+        phase: 'cancelled',
+        workerId: 'work',
+    });
 });

@@ -4,7 +4,7 @@ import { createProjectWithAgents } from '../support/project.ts';
 import { createTestServer, openChannel, openHappeningNow } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
-const credential = 'computer-worker-links-credential-1';
+const credential = 'computer-worker-links-credential-12345';
 const slug = 'worker-links';
 const launchTitle = 'Move the export worker';
 
@@ -52,7 +52,7 @@ test('linked Worker reads as the same card wherever it is linked', async ({ page
     // made-up link to work nobody recorded stays words, with no card.
     const moved = await client.chat.send.mutate({
         chatId: techOps.id,
-        content: `Tracking the move here.\n\n${formatWorkerLink(launchTitle, started.work.id)}`,
+        content: `Tracking the move here.\n\n${formatWorkerLink(launchTitle, started.worker.id)}`,
         nonce: 'link-move',
         serverId: server.id,
     });
@@ -80,7 +80,7 @@ test('linked Worker reads as the same card wherever it is linked', async ({ page
     await expect(forged).toContainText('Forged job');
     await expect(forged.getByTestId('worker-card')).toHaveCount(0);
 
-    // Deleting the Chat that asked for the work keeps the work: Happening now
+    // Deleting the Chat that asked for the work keeps the worker: Happening now
     // still lists it, and opening it goes to the Message that links it.
     await client.chat.deleteChannel.mutate({
         chatId: launch.id,

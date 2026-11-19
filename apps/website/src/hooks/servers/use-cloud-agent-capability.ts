@@ -22,15 +22,15 @@ export function useCloudAgentCapability(target: CloudAgentCapabilityTarget, enab
 /**
  * Mutations seed the same snapshot the waiting-state query follows.
  */
-export function useWorkerConnect(target: CloudAgentCapabilityTarget) {
+export function useCloudAgentConnect(target: CloudAgentCapabilityTarget) {
     return hausTrpc.cloudAgentProvider.connect.useMutation(useCapabilityMutationOptions(target));
 }
 
-export function useWorkerDisconnect(target: CloudAgentCapabilityTarget) {
+export function useCloudAgentDisconnect(target: CloudAgentCapabilityTarget) {
     return hausTrpc.cloudAgentProvider.disconnect.useMutation(useCapabilityMutationOptions(target));
 }
 
-export function useWorkerCancelSignIn(target: CloudAgentCapabilityTarget) {
+export function useCloudAgentCancelSignIn(target: CloudAgentCapabilityTarget) {
     return hausTrpc.cloudAgentProvider.cancelSignIn.useMutation(
         useCapabilityMutationOptions(target)
     );
@@ -40,7 +40,7 @@ export function useWorkerCancelSignIn(target: CloudAgentCapabilityTarget) {
  * The default is one flag across the Computer's providers, so every provider's
  * snapshot on that Computer is read again once it moves.
  */
-export function useWorkerMakeDefault(target: CloudAgentCapabilityTarget) {
+export function useCloudAgentMakeDefault(target: CloudAgentCapabilityTarget) {
     const utils = hausTrpc.useUtils();
     const options = useCapabilityMutationOptions(target);
     return hausTrpc.cloudAgentProvider.makeDefault.useMutation({

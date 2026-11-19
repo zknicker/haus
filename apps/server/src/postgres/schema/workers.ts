@@ -146,13 +146,13 @@ export const workerTurnsTable = pgTable(
         summary: text('summary'),
         terminalAt: timestamp('terminal_at', { withTimezone: true }),
         usage: bunJsonb('usage').$type<WorkerUsage | null>(),
-        workId: text('work_id').notNull(),
+        workerId: text('work_id').notNull(),
     },
     (table) => [
         unique('cloud_agent_runs_server_id_key').on(table.serverId, table.id),
-        index('cloud_agent_runs_work_idx').on(table.serverId, table.workId, table.createdAt),
+        index('cloud_agent_runs_work_idx').on(table.serverId, table.workerId, table.createdAt),
         foreignKey({
-            columns: [table.serverId, table.workId],
+            columns: [table.serverId, table.workerId],
             foreignColumns: [workersTable.serverId, workersTable.id],
             name: 'cloud_agent_runs_work_fk',
         }).onDelete('cascade'),

@@ -25,8 +25,8 @@ export interface WorkerTurnRef {
     provider: CloudAgentProviderId;
     providerAgentId: string | null;
     providerRunId: string | null;
-    runId: string;
-    workId: string;
+    turnId: string;
+    workerId: string;
 }
 
 /** One provider parameter value, under the provider's own parameter id. */
@@ -68,7 +68,7 @@ export interface WorkerStartInput {
     repository: string;
     title: string;
     /** Haus's work id; a provider without Run ids tags its prompt with it. */
-    workId: string;
+    workerId: string;
 }
 
 export interface WorkerLaunch {
@@ -115,7 +115,7 @@ export interface WorkerSendInput {
     /** The model Server resolved for this Run (`default` is Auto); `null` sends none. */
     model: CloudAgentModelSelection | null;
     providerAgentId: string;
-    workId: string;
+    workerId: string;
 }
 
 /** One bounded provider reading, before Haus's own work and Run identities. */

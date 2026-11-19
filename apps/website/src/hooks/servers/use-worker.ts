@@ -6,11 +6,11 @@ export function useChatWorker(serverId: string, chatId: string) {
 }
 
 /** Every conversation linking these jobs, for the Work panel's Linked from block. */
-export function useWorkerLinks(serverId: string, workIds: string[]) {
+export function useWorkerLinks(serverId: string, workerIds: string[]) {
     return (
         hausTrpc.worker.listLinks.useQuery(
-            { serverId, workIds },
-            { ...queryPolicy.syncedSnapshot, enabled: workIds.length > 0 }
+            { serverId, workerIds },
+            { ...queryPolicy.syncedSnapshot, enabled: workerIds.length > 0 }
         ).data ?? []
     );
 }
@@ -35,5 +35,5 @@ export function useActiveWorker(serverId: string | undefined) {
  * surface reads as cancelling until `worker.updated` arrives.
  */
 export function useWorkerCancel() {
-    return hausTrpc.worker.cancel.useMutation();
+    return hausTrpc.worker.stop.useMutation();
 }

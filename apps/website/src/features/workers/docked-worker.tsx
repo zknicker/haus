@@ -7,8 +7,8 @@ import { workerText } from './worker-presentation.ts';
 import { WorkerStatusDisc } from './worker-status-disc.tsx';
 
 interface DockedWorker {
-    isDocked: (workId: string) => boolean;
-    reveal: (workId: string) => void;
+    isDocked: (workerId: string) => boolean;
+    reveal: (workerId: string) => void;
 }
 
 const DockedWorkerContext = React.createContext<DockedWorker | null>(null);
@@ -16,20 +16,20 @@ const DockedWorkerContext = React.createContext<DockedWorker | null>(null);
 export function DockedWorkerProvider({
     children,
     dock,
-    workIds,
+    workerIds,
 }: {
     children: React.ReactNode;
     dock: React.RefObject<HTMLElement | null>;
-    workIds: readonly string[];
+    workerIds: readonly string[];
 }) {
-    const key = workIds.join('\n');
+    const key = workerIds.join('\n');
     const value = React.useMemo<DockedWorker>(() => {
         const docked = new Set(key.split('\n'));
         return {
-            isDocked: (workId) => docked.has(workId),
-            reveal: (workId) => {
+            isDocked: (workerId) => docked.has(workerId),
+            reveal: (workerId) => {
                 const card = dock.current?.querySelector<HTMLElement>(
-                    `[data-work-id="${CSS.escape(workId)}"]`
+                    `[data-work-id="${CSS.escape(workerId)}"]`
                 );
                 card?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 card?.focus({ preventScroll: true });

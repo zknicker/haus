@@ -94,7 +94,7 @@ export async function listClaims(
             message: {
                 ...toChatMessage(row.message, {
                     body: bodies.get(row.message.id),
-                    worker: works.get(row.message.id),
+                    workers: works.get(row.message.id),
                     imageGenerations: images.get(row.message.id),
                     reactions: reactions.get(row.message.id),
                     taskLinks: taskLinks.get(row.message.id),

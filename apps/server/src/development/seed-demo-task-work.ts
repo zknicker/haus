@@ -26,13 +26,13 @@ export async function seedDemoTaskWork(
     const { serverId, task } = input;
     const now = new Date();
     const messageId = createOpaqueId('msg');
-    const workId = createOpaqueId('caw');
+    const workerId = createOpaqueId('caw');
     const sequence = task.messageCount + 1;
     const pullRequestUrl = `https://github.com/${repository}/pull/${pullRequestNumber}`;
     await tx.insert(chatMessagesTable).values({
         authorAgentId: input.agentId,
         chatId: task.chatId,
-        content: `A Worker built it and opened a draft pull request.\n\n${formatWorkerLink(title, workId)}`,
+        content: `A Worker built it and opened a draft pull request.\n\n${formatWorkerLink(title, workerId)}`,
         id: messageId,
         nonce: `dev-${task.chatId}-${sequence}`,
         replyRootMessageId: messageId,
@@ -49,7 +49,7 @@ export async function seedDemoTaskWork(
         agentId: input.agentId,
         chatId: task.chatId,
         computerId: input.computerId,
-        id: workId,
+        id: workerId,
         launchMessageId: messageId,
         provider: 'cursor',
         repository,
@@ -70,14 +70,14 @@ export async function seedDemoTaskWork(
         status: 'completed',
         summary: 'Added square cropping and a resize step before upload. Checks are still running.',
         terminalAt: now,
-        workId,
+        workerId,
     });
     await tx.insert(workerHistoryLinksTable).values({
         chatId: task.chatId,
         messageId,
         ordinal: 0,
         serverId,
-        workId,
+        workerId,
     });
     await tx.insert(pullRequestReadingsTable).values({
         additions: 214,

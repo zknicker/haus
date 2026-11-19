@@ -11,12 +11,7 @@ import {
 import { requestWorkerCancel } from '../../workers/request-worker-cancel.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
-/**
- * Owners and Admins cancel Worker from its card. The
- * request is recorded either way; an offline Computer applies it on reconnect,
- * and the Run settles through the ordinary observation path.
- */
-export const cancelWorkerProcedure = memberProcedure
+export const stopWorkerProcedure = memberProcedure
     .input(workerCancelInputSchema)
     .output(z.object({ cancelRequested: z.literal(true) }).strict())
     .mutation(async ({ ctx, input }) => {
@@ -34,7 +29,7 @@ export const cancelWorkerProcedure = memberProcedure
             const requested = await requestWorkerCancel(ctx.hausDb, {
                 requestedBy: { id: ctx.member.id, kind: 'user' },
                 serverId: input.serverId,
-                workId: input.workId,
+                workerId: input.workerId,
             });
             for (const event of requested.events) {
                 publishRealtime(event);

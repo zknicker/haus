@@ -1151,7 +1151,7 @@
             "apps/server/src/haus-api/cloud-agent-settings/get.ts",
             "apps/server/src/haus-api/cloud-agent-settings/router.ts",
             "apps/server/src/haus-api/cloud-agent-settings/set-model.ts",
-            "apps/server/src/haus-api/worker/cancel.ts",
+            "apps/server/src/haus-api/worker/stop.ts",
             "apps/server/src/haus-api/worker/router.ts",
             "apps/server/src/haus-api/computer-secrets/connect.ts",
             "apps/server/src/haus-api/computer-secrets/disconnect.ts",

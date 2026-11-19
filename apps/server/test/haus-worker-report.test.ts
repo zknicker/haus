@@ -11,8 +11,8 @@ const fixture = workerRecordFixture();
 test("a Run's full report persists and round-trips through findWorker", async () => {
     const runner = await fixture.mintRunner('run_cloud_report');
     const created = await fixture.postStart(runner, fixture.startBody({ nonce: 'cloud-report' }));
-    const work = created.body.work as Worker;
-    const runId = created.body.runId as string;
+    const work = created.body.worker as Worker;
+    const turnId = created.body.turnId as string;
     const report = { clipped: false, text: 'Fixed the flaky test and opened a pull request.' };
 
     const socket = await fixture.attachComputer();
@@ -21,10 +21,10 @@ test("a Run's full report persists and round-trips through findWorker", async ()
             observation: {
                 observedAt: '2026-09-04T12:05:00.000Z',
                 report,
-                runId,
+                turnId,
                 status: 'completed',
                 summary: 'Opened a pull request.',
-                workId: work.id,
+                workerId: work.id,
             },
             type: 'worker-observation',
         })
@@ -32,12 +32,12 @@ test("a Run's full report persists and round-trips through findWorker", async ()
     await fixture.waitForWorkStatus(work.id, 'completed');
     socket.close();
 
-    expect(await fixture.readRun(runId)).toMatchObject({ report });
+    expect(await fixture.readRun(turnId)).toMatchObject({ report });
 
     const connection = await connectHausDatabase(fixture.harness.databaseUrl);
     try {
         const projected = await findWorker(connection.db, fixture.serverId, work.id);
-        expect(projected?.runs[0]?.report).toEqual(report);
+        expect(projected?.turns[0]?.report).toEqual(report);
     } finally {
         await connection.close();
     }
@@ -49,8 +49,8 @@ test('a drained attention reads hasFullReport from whether the stored report out
         runner,
         fixture.startBody({ nonce: 'cloud-report-attention' })
     );
-    const work = created.body.work as Worker;
-    const runId = created.body.runId as string;
+    const work = created.body.worker as Worker;
+    const turnId = created.body.turnId as string;
 
     const socket = await fixture.attachComputer();
     socket.send(
@@ -59,10 +59,10 @@ test('a drained attention reads hasFullReport from whether the stored report out
                 observedAt: '2026-09-04T12:05:00.000Z',
                 // The report is longer than the summary it was cut from.
                 report: { clipped: false, text: 'Opened a pull request. Also ran the full suite.' },
-                runId,
+                turnId,
                 status: 'completed',
                 summary: 'Opened a pull request.',
-                workId: work.id,
+                workerId: work.id,
             },
             type: 'worker-observation',
         })
@@ -72,8 +72,8 @@ test('a drained attention reads hasFullReport from whether the stored report out
 
     const connection = await connectHausDatabase(fixture.harness.databaseUrl);
     try {
-        const attentions = await readWorkerAttentions(connection.db, fixture.serverId, [runId]);
-        expect(attentions.get(runId)?.hasFullReport).toBe(true);
+        const attentions = await readWorkerAttentions(connection.db, fixture.serverId, [turnId]);
+        expect(attentions.get(turnId)?.hasFullReport).toBe(true);
     } finally {
         await connection.close();
     }
@@ -85,8 +85,8 @@ test('a drained attention reads hasFullReport as false when the report is no lon
         runner,
         fixture.startBody({ nonce: 'cloud-report-no-more' })
     );
-    const work = created.body.work as Worker;
-    const runId = created.body.runId as string;
+    const work = created.body.worker as Worker;
+    const turnId = created.body.turnId as string;
     const text = 'Opened a pull request.';
 
     const socket = await fixture.attachComputer();
@@ -96,10 +96,10 @@ test('a drained attention reads hasFullReport as false when the report is no lon
                 observedAt: '2026-09-04T12:05:00.000Z',
                 // `summary` is exactly `report.text` here: nothing more to read.
                 report: { clipped: false, text },
-                runId,
+                turnId,
                 status: 'completed',
                 summary: text,
-                workId: work.id,
+                workerId: work.id,
             },
             type: 'worker-observation',
         })
@@ -109,8 +109,8 @@ test('a drained attention reads hasFullReport as false when the report is no lon
 
     const connection = await connectHausDatabase(fixture.harness.databaseUrl);
     try {
-        const attentions = await readWorkerAttentions(connection.db, fixture.serverId, [runId]);
-        expect(attentions.get(runId)?.hasFullReport).toBe(false);
+        const attentions = await readWorkerAttentions(connection.db, fixture.serverId, [turnId]);
+        expect(attentions.get(turnId)?.hasFullReport).toBe(false);
     } finally {
         await connection.close();
     }
@@ -122,8 +122,8 @@ test('a routine list-all fetch strips report text; a single-work fetch keeps it'
         runner,
         fixture.startBody({ nonce: 'cloud-report-list-strip' })
     );
-    const work = created.body.work as Worker;
-    const runId = created.body.runId as string;
+    const work = created.body.worker as Worker;
+    const turnId = created.body.turnId as string;
     const report = { clipped: false, text: 'Opened a pull request. Ran the full suite too.' };
 
     const socket = await fixture.attachComputer();
@@ -132,10 +132,10 @@ test('a routine list-all fetch strips report text; a single-work fetch keeps it'
             observation: {
                 observedAt: '2026-09-04T12:05:00.000Z',
                 report,
-                runId,
+                turnId,
                 status: 'completed',
                 summary: 'Opened a pull request.',
-                workId: work.id,
+                workerId: work.id,
             },
             type: 'worker-observation',
         })
@@ -144,21 +144,21 @@ test('a routine list-all fetch strips report text; a single-work fetch keeps it'
     socket.close();
 
     const listedAll = await fetchWorks(runner.token);
-    expect(listedAll.find((row) => row.id === work.id)?.runs[0]?.report).toBeNull();
+    expect(listedAll.find((row) => row.id === work.id)?.turns[0]?.report).toBeNull();
 
     const listedOne = await fetchWorks(runner.token, work.id);
-    expect(listedOne[0]?.runs[0]?.report).toEqual(report);
+    expect(listedOne[0]?.turns[0]?.report).toEqual(report);
 });
 
-async function fetchWorks(token: string, workId?: string) {
+async function fetchWorks(token: string, workerId?: string) {
     const url = new URL('/api/agent/workers', fixture.harness.url);
-    if (workId) {
-        url.searchParams.set('workId', workId);
+    if (workerId) {
+        url.searchParams.set('workerId', workerId);
     }
     const listed = agentWorkerListReceiptSchema.parse(
         await (await fetch(url, { headers: { authorization: `Bearer ${token}` } })).json()
     );
-    return listed.works;
+    return listed.workers;
 }
 
 test(
@@ -172,8 +172,8 @@ test(
             runner,
             fixture.startBody({ nonce: 'cloud-version-skew' })
         );
-        const work = created.body.work as Worker;
-        const runId = created.body.runId as string;
+        const work = created.body.worker as Worker;
+        const turnId = created.body.turnId as string;
 
         const socket = await fixture.attachComputer();
         socket.send(
@@ -184,10 +184,10 @@ test(
                     futureProviderField: 'a-value-this-server-does-not-model-yet',
                     observedAt: '2026-09-04T12:05:00.000Z',
                     rawStatus: 'FINISHED',
-                    runId,
+                    turnId,
                     status: 'completed',
                     summary: 'Opened a pull request.',
-                    workId: work.id,
+                    workerId: work.id,
                 },
                 type: 'worker-observation',
             })
@@ -197,7 +197,7 @@ test(
 
         // Every recognized field on the same frame was still applied: the
         // unrecognized key cost nothing beyond itself.
-        expect(await fixture.readRun(runId)).toMatchObject({
+        expect(await fixture.readRun(turnId)).toMatchObject({
             raw_status: 'FINISHED',
             status: 'completed',
             summary: 'Opened a pull request.',

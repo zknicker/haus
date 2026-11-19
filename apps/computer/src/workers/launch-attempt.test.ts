@@ -23,7 +23,7 @@ test('stopping an in-flight launch aborts provisioning and cancels a late provid
         ref: null,
         repository: 'haus/haus',
         title: 'Probe',
-        workId: 'caw_abort',
+        workerId: 'caw_abort',
     });
     const stopped = attempt.catch((error: unknown) => error);
     abortWorkerLaunch('car_abort');

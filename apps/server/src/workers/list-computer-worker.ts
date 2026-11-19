@@ -11,16 +11,16 @@ import { workerTurnsTable, workersTable } from '../postgres/schema.ts';
  */
 export async function listComputerWorker(
     db: Pick<HausDatabase, 'select'>,
-    input: { computerId: string; serverId: string; workId?: string }
+    input: { computerId: string; serverId: string; workerId?: string }
 ): Promise<WorkerReconcileEntry[]> {
     const rows = await db
         .select({
             cancelRequestedAt: workerTurnsTable.cancelRequestedAt,
-            workId: workersTable.id,
+            workerId: workersTable.id,
             provider: workersTable.provider,
             providerAgentId: workersTable.providerAgentId,
             status: workerTurnsTable.status,
-            runId: workerTurnsTable.id,
+            turnId: workerTurnsTable.id,
             providerRunId: workerTurnsTable.providerRunId,
         })
         .from(workersTable)
@@ -28,14 +28,14 @@ export async function listComputerWorker(
             workerTurnsTable,
             and(
                 eq(workerTurnsTable.serverId, workersTable.serverId),
-                eq(workerTurnsTable.workId, workersTable.id)
+                eq(workerTurnsTable.workerId, workersTable.id)
             )
         )
         .where(
             and(
                 eq(workersTable.serverId, input.serverId),
                 eq(workersTable.computerId, input.computerId),
-                input.workId ? eq(workersTable.id, input.workId) : undefined,
+                input.workerId ? eq(workersTable.id, input.workerId) : undefined,
                 inArray(workerTurnsTable.status, ['queued', 'running'])
             )
         )

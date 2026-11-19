@@ -15,13 +15,13 @@ beforeAll(async () => {
     outsiderUserId = await fixture.readUserId('user_cloud_outsider');
     const runner = await fixture.mintRunner('run_link_authz');
     work = (await fixture.postStart(runner, fixture.startBody({ nonce: 'link-authz-one' }))).body
-        .work as Worker;
+        .worker as Worker;
     second = (
         await fixture.postStart(
             runner,
             fixture.startBody({ nonce: 'link-authz-two', title: 'Second job' })
         )
-    ).body.work as Worker;
+    ).body.worker as Worker;
     // The outsider joins #tech-ops but not #product, where the work was launched.
     techOpsId = await links.createChannel('tech-ops', [fixture.peerUserId, outsiderUserId]);
 });
@@ -34,7 +34,7 @@ test('a human links only work they can already see; unknown ids become plain tex
         'outsider-unseen'
     );
     expect(unseen.message.content).toBe('Is this done? Fix it');
-    expect(unseen.message.worker).toEqual([]);
+    expect(unseen.message.workers).toEqual([]);
     expect(await links.linkRows(unseen.message.id)).toEqual([]);
 
     const sent = await links.humanSend(
@@ -46,7 +46,7 @@ test('a human links only work they can already see; unknown ids become plain tex
     expect(sent.message.content).toBe(
         `Moved here: [B](worker://${second.id}) [A](worker://${work.id}) [B again](worker://${second.id}) Nope`
     );
-    expect(sent.message.worker.map(({ id }) => id)).toEqual([second.id, work.id]);
+    expect(sent.message.workers.map(({ id }) => id)).toEqual([second.id, work.id]);
     expect(await links.linkRows(sent.message.id)).toEqual([
         { chat_id: techOpsId, ordinal: 0, work_id: second.id },
         { chat_id: techOpsId, ordinal: 1, work_id: work.id },
@@ -57,7 +57,7 @@ test('a human links only work they can already see; unknown ids become plain tex
         chatId: techOpsId,
         serverId: fixture.serverId,
     });
-    expect(listed.map((row) => [row.anchorMessageId, row.work.id])).toEqual([
+    expect(listed.map((row) => [row.anchorMessageId, row.worker.id])).toEqual([
         [sent.message.id, second.id],
         [sent.message.id, work.id],
     ]);
@@ -118,7 +118,7 @@ test('a launch keeps authored links and appends its own trusted link last', asyn
     });
     const launched = await fixture.postStart(runner, body);
     expect(launched.status).toBe(200);
-    const launchedWork = launched.body.work as Worker;
+    const launchedWork = launched.body.worker as Worker;
     const [stored] = (await fixture.harness.sql`
         select content, body_kind from chat_messages where id = ${launched.body.messageId}
     `) as { body_kind: string; content: string }[];
@@ -128,7 +128,7 @@ test('a launch keeps authored links and appends its own trusted link last', asyn
     });
     expect(await linkedIds(launched.body.messageId ?? '')).toEqual([work.id, launchedWork.id]);
     const replay = await fixture.postStart(runner, body);
-    expect(replay.body).toMatchObject({ idempotent: true, work: { id: launchedWork.id } });
+    expect(replay.body).toMatchObject({ idempotent: true, worker: { id: launchedWork.id } });
     const changed = await fixture.postStart(runner, { ...body, content: 'Different words.' });
     expect(changed.status).toBe(409);
 });
@@ -141,7 +141,7 @@ test('replay compares against the links the send recorded, not current access', 
             runner,
             fixture.startBody({ nonce: 'link-replay-work', title: 'Fresh job' })
         )
-    ).body.work as Worker;
+    ).body.worker as Worker;
     const stripped = `Seen this? [Fix it](worker://${fresh.id})`;
     const sideId = await links.createChannel('side-room', [outsiderUserId]);
     const first = await links.humanSend(fixture.outsider, sideId, stripped, 'outsider-retry');

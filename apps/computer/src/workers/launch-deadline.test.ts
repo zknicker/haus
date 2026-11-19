@@ -30,8 +30,8 @@ test('a launch that outlasts its deadline stops once and survives restart', asyn
         provider: 'claude' as const,
         providerAgentId: null,
         providerRunId: null,
-        runId: 'car_deadline',
-        workId: 'caw_deadline',
+        turnId: 'car_deadline',
+        workerId: 'caw_deadline',
         status: 'queued' as const,
         cancelRequested: false,
     };
@@ -39,7 +39,7 @@ test('a launch that outlasts its deadline stops once and survives restart', asyn
         const journal = new CloudLaunchJournal(dataRoot);
         await journal.claim('srv_cloud', ref, {
             phase: 'launching',
-            workId: ref.workId,
+            workerId: ref.workerId,
             deadlineAt: new Date(5 * 60_000).toISOString(),
         });
         await work.reconcile([ref]);

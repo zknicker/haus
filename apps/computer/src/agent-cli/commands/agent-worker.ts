@@ -66,24 +66,24 @@ const SEND_COMMAND: SubCommand = {
         'printf "Address the review comments." | haus worker send --work caw_9f2c1a0b7d4e6f81',
     ],
     flags: [
-        { description: 'Existing work to continue', name: '--work', valueName: '<workId>' },
+        { description: 'Existing work to continue', name: '--work', valueName: '<workerId>' },
         { description: 'Replace active work and older queued prompts', name: '--interrupt' },
     ],
     name: 'send',
     positionals: [],
     run: (args) => runWorkerSend(args, defaultDeps()),
     summary: 'Send stdin instructions to the same Worker; queue while busy',
-    usage: 'haus worker send --work <workId> [--interrupt]',
+    usage: 'haus worker send --work <workerId> [--interrupt]',
 };
 
 const STOP_COMMAND: SubCommand = {
     examples: ['haus worker stop --work caw_9f2c1a0b7d4e6f81'],
-    flags: [{ description: 'The work to stop', name: '--work', valueName: '<workId>' }],
+    flags: [{ description: 'The work to stop', name: '--work', valueName: '<workerId>' }],
     name: 'stop',
     positionals: [],
     run: (args) => runWorkerCancel(args, defaultDeps()),
     summary: 'Ask the provider to stop work you delegated',
-    usage: 'haus worker stop --work <workId>',
+    usage: 'haus worker stop --work <workerId>',
 };
 
 const CANCEL_COMMAND: SubCommand = {
@@ -91,7 +91,7 @@ const CANCEL_COMMAND: SubCommand = {
     examples: ['haus worker cancel --work caw_9f2c1a0b7d4e6f81'],
     name: 'cancel',
     summary: 'Compatibility alias for worker stop',
-    usage: 'haus worker cancel --work <workId>',
+    usage: 'haus worker cancel --work <workerId>',
 };
 
 export const WORKER_SUBCOMMANDS: SubCommand[] = [
@@ -103,14 +103,14 @@ export const WORKER_SUBCOMMANDS: SubCommand[] = [
 ];
 
 export async function runWorkerSend(args: ParsedArgs, deps: WorkerDeps): Promise<number> {
-    const workId = requiredValue(args, '--work');
+    const workerId = requiredValue(args, '--work');
     const instructions = deps.stdinIsTty ? '' : await deps.readStdin();
     if (!instructions.trim()) {
         throw new AgentCliError(
             'MISSING_CONTENT',
             'Follow-up instructions are required on stdin.',
             {
-                nextAction: `printf "Address the review comments." | haus worker send --work ${workId}`,
+                nextAction: `printf "Address the review comments." | haus worker send --work ${workerId}`,
             }
         );
     }
@@ -119,7 +119,7 @@ export async function runWorkerSend(args: ParsedArgs, deps: WorkerDeps): Promise
         agentWorkerSendReceiptResponseSchema,
         {
             body: {
-                workId,
+                workerId,
                 instructions: instructions.trimEnd(),
                 nonce: deps.mintNonce(),
                 interrupt: args.flags['--interrupt'] === true,
@@ -129,7 +129,7 @@ export async function runWorkerSend(args: ParsedArgs, deps: WorkerDeps): Promise
         }
     );
     deps.write(
-        `Follow-up accepted for ${receipt.work.title}. Work ID: ${receipt.work.id}\nThe result reaches your inbox when this follow-up settles. Use this Work ID for further revisions.\n`
+        `Follow-up accepted for ${receipt.worker.title}. Work ID: ${receipt.worker.id}\nThe result reaches your inbox when this follow-up settles. Use this Work ID for further revisions.\n`
     );
     return 0;
 }
@@ -183,7 +183,7 @@ export async function runWorkerStart(args: ParsedArgs, deps: WorkerDeps): Promis
 
 function readTask(args: ParsedArgs): string {
     if (!args.values['--task']?.trim()) {
-        throw taskRequired('A Worker works for a Task, and this launch named none.');
+        throw taskRequired('A Worker workers for a Task, and this launch named none.');
     }
     return taskKeyArgument(args.values['--task'], '--task');
 }
@@ -195,14 +195,14 @@ function taskRequired(message: string): AgentCliError {
 }
 
 export async function runWorkerCancel(args: ParsedArgs, deps: WorkerDeps): Promise<number> {
-    const workId = requiredValue(args, '--work');
+    const workerId = requiredValue(args, '--work');
     const receipt = await deps.client.request(
         '/api/agent/workers/cancel',
         agentWorkerCancelReceiptResponseSchema,
-        { body: { workId }, method: 'POST' }
+        { body: { workerId }, method: 'POST' }
     );
     deps.write(
-        `Cancel requested for ${receipt.work.title} (${receipt.work.id}). The run settles as cancelled when the provider stops.\n`
+        `Cancel requested for ${receipt.worker.title} (${receipt.worker.id}). The run settles as cancelled when the provider stops.\n`
     );
     return 0;
 }

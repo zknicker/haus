@@ -8,7 +8,7 @@ private let workJSON = """
  "createdAt":"2026-09-11T09:00:00.000Z","id":"work_1","messageId":"message_work",
  "job":{"followUp":null,"startedAt":"2026-09-11T09:01:00.000Z","state":"working"},
  "provider":"cursor","providerUrl":"https://cursor.com/work_1","repository":"zknicker/haus",
- "runs":[],"startedAt":"2026-09-11T09:01:00.000Z","startingRef":"main","status":"running",
+ "turns":[],"startedAt":"2026-09-11T09:01:00.000Z","startingRef":"main","status":"running",
  "terminalAt":null,"title":"Ship the iPhone build","updatedAt":"2026-09-11T09:05:00.000Z"}
 """
 
@@ -56,7 +56,7 @@ final class InboxReadModelsTests: XCTestCase {
         [{"agentName":"Blippy","chatKind":"dm","chatName":null,"chatPeerUserId":"user_2",
           "conversationChatId":"chat_1",
           "location":{"chatId":"chat_1","kind":"message","messageId":"message_work"},
-          "work":\(workJSON)}]
+          "worker":\(workJSON)}]
         """
 
         let rows = try HausJSON.decoder().decode([ActiveCloudAgentWork].self, from: Data(json.utf8))
@@ -76,7 +76,7 @@ final class InboxReadModelsTests: XCTestCase {
     func testRejectsARowWithoutALocation() {
         let json = """
         {"agentName":"Blippy","chatKind":"channel","chatName":"product","chatPeerUserId":null,
-         "conversationChatId":"chat_1","work":\(workJSON)}
+         "conversationChatId":"chat_1","worker":\(workJSON)}
         """
 
         XCTAssertThrowsError(try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8)))
@@ -89,7 +89,7 @@ final class InboxReadModelsTests: XCTestCase {
         {"agentName":"Blippy","chatKind":"channel","chatName":"tech-ops","chatPeerUserId":null,
          "conversationChatId":"cht_tech_ops",
          "location":{"chatId":"cht_tech_ops","kind":"message","messageId":"msg_linking_elsewhere"},
-         "work":\(workJSON)}
+         "worker":\(workJSON)}
         """
 
         let row = try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8))
@@ -103,7 +103,7 @@ final class InboxReadModelsTests: XCTestCase {
     func testRejectsAnUnknownLocationKind() {
         let json = """
         {"agentName":"Blippy","chatKind":"channel","chatName":null,"chatPeerUserId":null,"conversationChatId":"chat_1",
-         "location":{"kind":"elsewhere"},"work":\(workJSON)}
+         "location":{"kind":"elsewhere"},"worker":\(workJSON)}
         """
 
         XCTAssertThrowsError(try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8))) {
@@ -115,13 +115,13 @@ final class InboxReadModelsTests: XCTestCase {
     func testListSkipsARowWithAnUnknownLocationKind() throws {
         let unknown = """
         {"agentName":"Blippy","chatKind":"channel","chatName":null,"chatPeerUserId":null,"conversationChatId":"chat_1",
-         "location":{"kind":"elsewhere"},"work":\(workJSON)}
+         "location":{"kind":"elsewhere"},"worker":\(workJSON)}
         """
         let known = """
         {"agentName":"Blippy","chatKind":"channel","chatName":"tech-ops","chatPeerUserId":null,
          "conversationChatId":"cht_tech_ops",
          "location":{"chatId":"cht_tech_ops","kind":"message","messageId":"msg_linking_elsewhere"},
-         "work":\(workJSON)}
+         "worker":\(workJSON)}
         """
 
         let list = try HausJSON.decoder().decode(
@@ -134,7 +134,7 @@ final class InboxReadModelsTests: XCTestCase {
 
     func testListStillFailsOnAMalformedRow() {
         let malformed = """
-        {"agentName":"Blippy","chatKind":"channel","chatName":null,"chatPeerUserId":null,"work":\(workJSON)}
+        {"agentName":"Blippy","chatKind":"channel","chatName":null,"chatPeerUserId":null,"worker":\(workJSON)}
         """
 
         XCTAssertThrowsError(

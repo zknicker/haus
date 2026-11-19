@@ -64,7 +64,7 @@ export async function readWorkByNonce(
         .where(
             and(
                 eq(workerTurnsTable.serverId, runner.serverId),
-                eq(workerTurnsTable.workId, work.id)
+                eq(workerTurnsTable.workerId, work.id)
             )
         )
         .orderBy(asc(workerTurnsTable.createdAt))
@@ -77,10 +77,10 @@ export async function readWorkByNonce(
         chatId,
         idempotent: true,
         messageId: message.id,
-        runId: firstRun.id,
+        turnId: firstRun.id,
         sequence: message.sequence,
         target: place.target,
-        work,
+        worker: work,
     };
 }
 
@@ -99,6 +99,6 @@ export async function authoredContent(
     );
 }
 
-export function withLaunchLink(authored: string, title: string, workId: string): string {
-    return `${authored}\n\n${formatWorkerLink(title, workId)}`;
+export function withLaunchLink(authored: string, title: string, workerId: string): string {
+    return `${authored}\n\n${formatWorkerLink(title, workerId)}`;
 }

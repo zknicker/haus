@@ -95,15 +95,15 @@ test('Happening now shows gallery samples and settled work keeps its evidence', 
         chatId: productChatId,
         serverId,
     });
-    const settled = chatWork.find((entry) => entry.work.title === 'Sidebar Inbox badge');
+    const settled = chatWork.find((entry) => entry.worker.title === 'Sidebar Inbox badge');
 
     expect(chatWork).toHaveLength(1);
-    expect(settled?.work).toMatchObject({
+    expect(settled?.worker).toMatchObject({
         provider: 'cursor',
         repository: 'zknicker/haus',
         status: 'completed',
     });
-    expect(settled?.work.runs[0]?.branches[0]).toMatchObject({
+    expect(settled?.worker.turns[0]?.branches[0]).toMatchObject({
         branch: 'cloud/sidebar-inbox-badge',
         pullRequestUrl: 'https://github.com/zknicker/haus/pull/482',
     });
@@ -195,14 +195,14 @@ test('UI gallery reads the attachment combinations and isolates live samples', a
     expect(works).toHaveLength(20);
     // Follow-ups read as the job they follow, never as queued.
     const followUps = works
-        .filter((entry) => entry.work.job.followUp !== null)
-        .map((entry) => [entry.work.job.state, entry.work.job.followUp?.state]);
+        .filter((entry) => entry.worker.job.followUp !== null)
+        .map((entry) => [entry.worker.job.state, entry.worker.job.followUp?.state]);
     expect(followUps.sort()).toEqual([
         ['done', 'waiting'],
         ['failed', 'waiting'],
         ['working', 'running'],
     ]);
-    expect([...new Set(works.map((entry) => entry.work.status))].sort()).toEqual([
+    expect([...new Set(works.map((entry) => entry.worker.status))].sort()).toEqual([
         'cancelled',
         'completed',
         'expired',
@@ -220,9 +220,9 @@ test('UI gallery reads the attachment combinations and isolates live samples', a
         })
     ).toEqual([]);
     const active = works.filter(
-        (entry) => entry.work.status === 'running' || entry.work.status === 'queued'
+        (entry) => entry.worker.status === 'running' || entry.worker.status === 'queued'
     );
     expect(active).toHaveLength(9);
-    expect(active.every((entry) => entry.work.computerId !== onboarding.computer_id)).toBe(true);
-    expect(works.every((entry) => entry.work.providerUrl === null)).toBe(true);
+    expect(active.every((entry) => entry.worker.computerId !== onboarding.computer_id)).toBe(true);
+    expect(works.every((entry) => entry.worker.providerUrl === null)).toBe(true);
 });

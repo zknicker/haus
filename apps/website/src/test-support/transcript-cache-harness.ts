@@ -147,7 +147,7 @@ export function message(
         author: { kind: 'human', userId: 'usr_cache' },
         body: { kind: 'text' },
         chatId,
-        worker: [],
+        workers: [],
         imageGenerations: [],
         driveCitations: [],
         content: `Message ${sequence}`,

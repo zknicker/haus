@@ -40,12 +40,12 @@ export function toHappeningNowWork(
     return items.map((item) => ({
         agentName: workAgentName(item, agentsById),
         chatLabel: conversationLabel(item, humans),
-        id: item.work.id,
+        id: item.worker.id,
         location: item.location,
-        provider: item.work.provider,
-        ...liveStatus(item.work, now),
+        provider: item.worker.provider,
+        ...liveStatus(item.worker, now),
         task: workTask(item),
-        title: item.work.title,
+        title: item.worker.title,
     }));
 }
 
@@ -63,7 +63,7 @@ export function happeningNowWorkSubline(work: HappeningNowWork): string {
  * is live reads as that follow-up, not as the settled job behind it.
  */
 function liveStatus(
-    work: ActiveWorker['work'],
+    work: ActiveWorker['worker'],
     now: number
 ): Pick<HappeningNowWork, 'state' | 'statusText'> {
     const { job } = work;
@@ -76,5 +76,5 @@ function liveStatus(
 }
 
 function workAgentName(item: ActiveWorker, agentsById: ReadonlyMap<string, Agent>): string {
-    return agentsById.get(item.work.agentId)?.displayName ?? item.agentName;
+    return agentsById.get(item.worker.agentId)?.displayName ?? item.agentName;
 }

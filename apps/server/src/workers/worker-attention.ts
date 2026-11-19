@@ -11,13 +11,13 @@ import { linkParentChatsTable } from './worker-visibility.ts';
  * next window opens a fresh one.
  */
 export function noticeDedupeKey(
-    runId: string,
+    turnId: string,
     notice: WorkerTurnNotice,
     stall: WorkerTurnStall | null
 ): string {
     return notice.kind === 'stall' && stall
-        ? `${runId}:stall:${stall.since.getTime()}:${notice.window}`
-        : runId;
+        ? `${turnId}:stall:${stall.since.getTime()}:${notice.window}`
+        : turnId;
 }
 
 /** A Chat that still exists and is not tombstoned, nor is its parent. */

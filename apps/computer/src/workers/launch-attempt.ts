@@ -17,8 +17,8 @@ export async function launchWorker(
                 {
                     ...launch,
                     provider: provider.provider,
-                    runId: input.idempotencyKey,
-                    workId: input.workId,
+                    turnId: input.idempotencyKey,
+                    workerId: input.workerId,
                 },
                 AbortSignal.timeout(15_000)
             );
@@ -30,6 +30,6 @@ export async function launchWorker(
     }
 }
 
-export function abortWorkerLaunch(runId: string): void {
-    activeLaunches.get(runId)?.abort(new DOMException('Worker launch stopped.', 'AbortError'));
+export function abortWorkerLaunch(turnId: string): void {
+    activeLaunches.get(turnId)?.abort(new DOMException('Worker launch stopped.', 'AbortError'));
 }

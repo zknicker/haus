@@ -64,7 +64,7 @@ export function registerAgentWorkerRoutes(
         }
         try {
             return {
-                works: await listAgentWorker(dependencies.db, runner, parsed.data.workId),
+                workers: await listAgentWorker(dependencies.db, runner, parsed.data.workerId),
             };
         } catch (cause) {
             return sendWorkerFailure(reply, cause);
@@ -155,12 +155,12 @@ export function registerAgentWorkerRoutes(
             await requireCancellableWorkAgent(dependencies.db, {
                 agentId: runner.agentId,
                 serverId: runner.serverId,
-                workId: parsed.data.workId,
+                workerId: parsed.data.workerId,
             });
             const requested = await requestWorkerCancel(dependencies.db, {
                 requestedBy: { id: runner.agentId, kind: 'agent' },
                 serverId: runner.serverId,
-                workId: parsed.data.workId,
+                workerId: parsed.data.workerId,
             });
             for (const event of requested.events) {
                 publishRealtime(event);
@@ -168,7 +168,7 @@ export function registerAgentWorkerRoutes(
             for (const command of requested.commands) {
                 dependencies.computers.send(requested.computerId, command);
             }
-            return { work: requested.work };
+            return { worker: requested.work };
         } catch (cause) {
             return sendWorkerFailure(reply, cause);
         }

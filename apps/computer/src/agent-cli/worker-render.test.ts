@@ -25,7 +25,7 @@ const work = {
     providerAgentId: null,
     providerUrl: null,
     repository: 'haus/haus',
-    runs: [],
+    turns: [],
     startedAt: null,
     startingRef: 'main',
     status: 'queued' as const,
@@ -39,11 +39,11 @@ function receipt(target: string) {
         chatId: 'cht_product',
         idempotent: false,
         messageId: work.messageId,
-        runId: 'car_1234567890abcdef',
+        turnId: 'car_1234567890abcdef',
         sequence: 7,
         state: 'started' as const,
         target,
-        work,
+        worker: work,
     };
 }
 
@@ -85,10 +85,10 @@ test('the detail dump points to --report only for a Run whose stored report outg
     const outgrown = {
         ...work,
         id: 'caw_outgrown',
-        runs: [
+        turns: [
             {
                 report: { clipped: false, text: 'Opened a pull request. Also ran the full suite.' },
-                runId: 'car_outgrown',
+                turnId: 'car_outgrown',
                 summary: 'Opened a pull request.',
             },
         ],
@@ -96,14 +96,14 @@ test('the detail dump points to --report only for a Run whose stored report outg
     const noMore = {
         ...work,
         id: 'caw_no_more',
-        runs: [
-            { report: { clipped: false, text: 'Done.' }, runId: 'car_no_more', summary: 'Done.' },
+        turns: [
+            { report: { clipped: false, text: 'Done.' }, turnId: 'car_no_more', summary: 'Done.' },
         ],
     };
     const noReport = {
         ...work,
         id: 'caw_no_report',
-        runs: [{ report: null, runId: 'car_no_report', summary: 'Done.' }],
+        turns: [{ report: null, turnId: 'car_no_report', summary: 'Done.' }],
     };
 
     const detail = renderWorkerDetail([outgrown, noMore, noReport]);
@@ -115,30 +115,30 @@ test('the detail dump points to --report only for a Run whose stored report outg
 test('findWorkerReportRun resolves the newest Run with a report by default, or one named by id', () => {
     const olderWithReport = {
         report: { clipped: false, text: 'Older report.' },
-        runId: 'car_older',
+        turnId: 'car_older',
         summary: null,
     };
-    const newestWithoutReport = { report: null, runId: 'car_newest', summary: null };
+    const newestWithoutReport = { report: null, turnId: 'car_newest', summary: null };
     // Runs are newest-first, matching the stored shape `workerTurnSchema` documents.
-    const works = [{ id: 'caw_1', runs: [newestWithoutReport, olderWithReport] }];
+    const workers = [{ id: 'caw_1', turns: [newestWithoutReport, olderWithReport] }];
 
-    expect(findWorkerReportRun(works, 'caw_1')).toEqual(olderWithReport);
-    expect(findWorkerReportRun(works, 'caw_1', 'car_newest')).toEqual(newestWithoutReport);
-    expect(findWorkerReportRun(works, 'caw_1', 'car_missing')).toBeUndefined();
-    expect(findWorkerReportRun(works, 'caw_missing')).toBeUndefined();
+    expect(findWorkerReportRun(workers, 'caw_1')).toEqual(olderWithReport);
+    expect(findWorkerReportRun(workers, 'caw_1', 'car_newest')).toEqual(newestWithoutReport);
+    expect(findWorkerReportRun(workers, 'caw_1', 'car_missing')).toBeUndefined();
+    expect(findWorkerReportRun(workers, 'caw_missing')).toBeUndefined();
 });
 
 test('renderWorkerReportText prints the full text, with a clip marker only when clipped', () => {
     expect(
         renderWorkerReportText({
             report: { clipped: false, text: 'Opened a pull request.' },
-            runId: 'car_1',
+            turnId: 'car_1',
         })
     ).toBe('Opened a pull request.\n');
     expect(
         renderWorkerReportText({
             report: { clipped: true, text: 'Opened a pull request.' },
-            runId: 'car_1',
+            turnId: 'car_1',
         })
     ).toBe('Opened a pull request.\n[clipped at 64 KiB]\n');
 });

@@ -22,7 +22,7 @@ async function start(nonce: string) {
 test('automations follow durable work and per-Run inbox handoffs without creating Triggers', async () => {
     const created = await start('automation_handoff');
     const list = () => fixture.owner.trpc.worker.listAutomations.query(input());
-    expect((await list()).find((row) => row.work.id === created.work.id)).toMatchObject({
+    expect((await list()).find((row) => row.worker.id === created.worker.id)).toMatchObject({
         notification: 'waiting',
         conversationChatId: fixture.task.chatId,
         location: { chatId: fixture.task.chatId, kind: 'message' },
@@ -31,29 +31,29 @@ test('automations follow durable work and per-Run inbox handoffs without creatin
     const socket = await fixture.attachComputer();
     const observation = {
         observedAt: '2026-10-20T19:00:00.000Z',
-        runId: created.runId,
+        turnId: created.turnId,
         status: 'completed',
-        workId: created.work.id,
+        workerId: created.worker.id,
     };
     socket.send(JSON.stringify({ observation, type: 'worker-observation' }));
-    await fixture.waitForWorkStatus(created.work.id, 'completed');
+    await fixture.waitForWorkStatus(created.worker.id, 'completed');
     socket.send(JSON.stringify({ observation, type: 'worker-observation' }));
-    expect((await list()).find((row) => row.work.id === created.work.id)?.notification).toBe(
+    expect((await list()).find((row) => row.worker.id === created.worker.id)?.notification).toBe(
         'pending'
     );
     const inbox = await fixture.harness.sql`
         select id from agent_inbox where server_id = ${fixture.serverId}
-            and source = 'cloud_agent_work' and dedupe_key = ${created.runId}
+            and source = 'cloud_agent_work' and dedupe_key = ${created.turnId}
     `;
     expect(inbox).toHaveLength(1);
     await fixture.harness.sql`
         update agent_inbox set state = 'seen', seen_at = now()
-        where server_id = ${fixture.serverId} and dedupe_key = ${created.runId}
+        where server_id = ${fixture.serverId} and dedupe_key = ${created.turnId}
     `;
-    expect((await list()).find((row) => row.work.id === created.work.id)).toBeUndefined();
+    expect((await list()).find((row) => row.worker.id === created.worker.id)).toBeUndefined();
     expect(
         (await fixture.owner.trpc.worker.listAutomations.query(input(true))).find(
-            (row) => row.work.id === created.work.id
+            (row) => row.worker.id === created.worker.id
         )?.notification
     ).toBe('delivered');
     socket.close();
@@ -79,7 +79,7 @@ test('deleting the requesting Chat disables its future wake without moving it to
     await links.humanSend(
         fixture.owner,
         fixture.channelId,
-        `[Work](worker://${created.work.id})`,
+        `[Work](worker://${created.worker.id})`,
         'automation-alternate-link'
     );
     await fixture.owner.trpc.chat.deleteChannel.mutate({
@@ -88,14 +88,14 @@ test('deleting the requesting Chat disables its future wake without moving it to
         serverId: fixture.serverId,
     });
     const history = await fixture.owner.trpc.worker.listAutomations.query(input(true));
-    expect(history.find((row) => row.work.id === created.work.id)).toMatchObject({
+    expect(history.find((row) => row.worker.id === created.worker.id)).toMatchObject({
         notification: 'chat-removed',
         conversationChatId: fixture.channelId,
         location: { kind: 'message', chatId: fixture.channelId },
     });
     expect(
         (await fixture.owner.trpc.worker.listAutomations.query(input())).some(
-            (row) => row.work.id === created.work.id
+            (row) => row.worker.id === created.worker.id
         )
     ).toBe(false);
 });
@@ -106,7 +106,7 @@ test('reassignment preserves the original tracking Computer; a missing Computer 
     await fixture.harness.sql`
         update computers set health = 'offline' where id = ${fixture.computerId}
     `;
-    expect((await list()).find((row) => row.work.id === created.work.id)).toMatchObject({
+    expect((await list()).find((row) => row.worker.id === created.worker.id)).toMatchObject({
         computerHealth: 'offline',
         notification: 'waiting',
     });
@@ -118,18 +118,18 @@ test('reassignment preserves the original tracking Computer; a missing Computer 
     await fixture.harness.sql`
         update agents set computer_id = ${newComputerId} where id = ${fixture.orbitAgentId}
     `;
-    expect((await list()).find((row) => row.work.id === created.work.id)?.work.computerId).toBe(
-        fixture.computerId
-    );
+    expect(
+        (await list()).find((row) => row.worker.id === created.worker.id)?.worker.computerId
+    ).toBe(fixture.computerId);
     await fixture.owner.trpc.computer.remove.mutate({
         computerId: fixture.computerId,
         confirmation: 'REMOVE',
         serverId: fixture.serverId,
     });
-    expect((await list()).find((row) => row.work.id === created.work.id)).toBeUndefined();
+    expect((await list()).find((row) => row.worker.id === created.worker.id)).toBeUndefined();
     expect(
         (await fixture.owner.trpc.worker.listAutomations.query(input(true))).find(
-            (row) => row.work.id === created.work.id
+            (row) => row.worker.id === created.worker.id
         )?.notification
     ).toBe('computer-removed');
 });

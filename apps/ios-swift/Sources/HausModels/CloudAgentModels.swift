@@ -29,6 +29,13 @@ public struct CloudAgentWork: Codable, Identifiable, Hashable, Sendable {
     public let runs: [CloudAgentRun]
     /// The Server's live reading, which outlives a Run's frozen snapshot.
     public var pullRequest: CloudAgentPullRequest? = nil
+
+    enum CodingKeys: String, CodingKey {
+        case id, agentId, chatId, messageId, provider, providerUrl, repository, startingRef, title
+        case status, createdAt, updatedAt, startedAt, terminalAt, cancelRequestedAt, activity, job
+        case runs = "turns"
+        case pullRequest
+    }
 }
 
 public struct CloudAgentActivity: Codable, Hashable, Sendable {
@@ -48,6 +55,11 @@ public struct CloudAgentRun: Codable, Hashable, Sendable {
     public let errorCode: String?
     /// Nil only for a Server older than the model contract.
     public let model: CloudAgentRunModel?
+
+    enum CodingKeys: String, CodingKey {
+        case runId = "turnId"
+        case status, createdAt, branches, startedAt, terminalAt, summary, errorCode, model
+    }
 }
 
 public struct CloudAgentBranch: Codable, Hashable, Sendable {

@@ -7,8 +7,8 @@ import { CloudLaunchJournal } from './launch-journal.ts';
 const roots: string[] = [];
 const ref = {
     provider: 'cursor' as const,
-    workId: 'caw_work',
-    runId: 'car_run',
+    workerId: 'caw_work',
+    turnId: 'car_run',
     providerAgentId: null,
     providerRunId: null,
 };
@@ -36,7 +36,7 @@ test('only one concurrent caller admits a launch, and a restart keeps the admiss
     expect(await new CloudLaunchJournal(root).claim('server', ref)).toBe(false);
     expect(await journal.read('server', ref)).toMatchObject({
         phase: 'launching',
-        workId: ref.workId,
+        workerId: ref.workerId,
         deadlineAt: expect.any(String),
     });
 });
@@ -49,14 +49,14 @@ test('a saved provider address survives restart and contains no instructions or 
     expect(await new CloudLaunchJournal(root).read('server', ref)).toEqual({
         autoInterrupted: false,
         phase: 'launched',
-        workId: ref.workId,
+        workerId: ref.workerId,
         launch,
     });
     const path = await recordPath(root);
     expect((await stat(path)).mode & 0o777).toBe(0o600);
     expect(Object.keys(JSON.parse(await readFile(path, 'utf8')))).toEqual([
         'phase',
-        'workId',
+        'workerId',
         'launch',
         'autoInterrupted',
     ]);
@@ -70,7 +70,7 @@ test('definite rejection survives a lost failure report', async () => {
     await journal.reject('server', ref, rejection);
     expect(await new CloudLaunchJournal(root).read('server', ref)).toEqual({
         phase: 'rejected',
-        workId: ref.workId,
+        workerId: ref.workerId,
         ...rejection,
     });
 });
@@ -81,11 +81,11 @@ test('a rejection recorded before rejections carried a reason reads as a launch 
     await journal.claim('server', ref);
     await writeFile(
         await recordPath(root),
-        JSON.stringify({ phase: 'rejected', workId: ref.workId })
+        JSON.stringify({ phase: 'rejected', workerId: ref.workerId })
     );
     expect(await journal.read('server', ref)).toEqual({
         phase: 'rejected',
-        workId: ref.workId,
+        workerId: ref.workerId,
         errorCode: 'provider-launch-rejected',
         summary: null,
     });
@@ -99,7 +99,7 @@ test('a launch recorded before the environment pin existed reads as unpinned', a
         await recordPath(root),
         JSON.stringify({
             phase: 'launched',
-            workId: ref.workId,
+            workerId: ref.workerId,
             launch: {
                 providerAgentId: launch.providerAgentId,
                 providerRunId: launch.providerRunId,
@@ -117,7 +117,7 @@ test('corrupt or mismatched records fail closed rather than admitting another la
     const root = await directory();
     const journal = new CloudLaunchJournal(root);
     await journal.claim('server', ref);
-    await expect(journal.read('server', { ...ref, workId: 'different' })).rejects.toThrow(
+    await expect(journal.read('server', { ...ref, workerId: 'different' })).rejects.toThrow(
         'identity'
     );
     await writeFile(await recordPath(root), '{');
