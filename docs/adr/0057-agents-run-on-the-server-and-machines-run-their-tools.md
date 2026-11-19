@@ -1,6 +1,6 @@
 ---
 status: accepted
-summary: An Agent's loop runs on the Server in a sandboxed runner, on the Claude Agent SDK for Claude plans and Pi Durable for every other model, with sessions on the runner's persistent volume. Each Agent is pinned to one harness, and the first harness ships before the second. The Agent has one machine where its tools run, changed while idle; v1 machines are Computers. Its tools are bash and edit on that machine plus the one execute tool. Every invocation has an id, is recorded as accepted before it runs, and never reruns after an unknown outcome; an offline machine answers at once. Logins live in runner settings. Inbox items go to the runner. Workers keep native harnesses on machines. User-configured local MCP is descoped, and computer use ships later. Accepted 2026-11-19, not yet implemented.
+summary: An Agent's loop runs on the Server in a sandboxed runner, on the Claude Agent SDK for Claude plans and Pi Durable for every other model, with sessions on the runner's persistent volume. Each Agent is pinned to one harness, and the first harness ships before the second. The Agent has one machine where its tools run, changed while idle; v1 machines are Computers. Its tools are bash and edit on that machine, the haus CLI run by the runner, and the one execute tool. Every invocation has an id, is recorded as accepted before it runs, and never reruns after an unknown outcome; an offline machine answers at once. Logins live in runner settings. Inbox items go to the runner. Workers keep native harnesses on machines. User-configured local MCP is descoped, and computer use ships later. Accepted 2026-11-19, not yet implemented.
 read_when:
   - changing where an Agent's loop runs, its harnesses, or where its session is stored
   - changing the Agent's machine, moving an Agent, or what an Agent can do while its machine is offline
@@ -15,7 +15,11 @@ read_when:
 
 ## Status
 
-Accepted 2026-11-19. Not yet implemented. Part of the direction in
+Accepted 2026-11-19. Not yet implemented. Amended 2026-11-19 by the runtime contract
+([specs/runtime-drivers.md](../../specs/runtime-drivers.md), [specs/mcp.md](../../specs/mcp.md))
+in decisions 2, 5 and 12: a reset builds no briefing, the `haus` CLI runs on the runner instead
+of behind `execute`, the tool shapes are named, and the cutover waits for both harnesses, resets
+every session, and ends sub-agents and background shells. Part of the direction in
 [the Capy and Amp proposal](../proposals/capy-product-model.md), with
 [ADR 0054](0054-drive-holds-what-agents-know-and-follow.md) (Drive),
 [ADR 0055](0055-projects-own-agents-and-tasks.md) (Projects) and
@@ -45,10 +49,12 @@ loops.
 2. **Two harnesses.** The Claude Agent SDK runs Claude plans, with a setup-token, its native tools
    off, and Haus tools bridged in. Pi Durable runs every other model, including ChatGPT plans and
    other providers. Each keeps its sessions in its own native storage on the runner's persistent
-   volume, which is backed up with the Server's data. The session never moves: only the Agent's
-   machine does, so it only has to survive the runner restarting. Each Agent is pinned to one
-   harness. Switching harness is an explicit reset that rebuilds the session from Drive and recent
-   history. Model logins live in runner settings in v1, with no sign-in screens.
+   volume, which is backed up with the Server's data. Rebuilding from Drive is the fallback only
+   when a restore is impossible. The session never moves: only the Agent's machine does, so it
+   only has to survive the runner restarting. Each Agent is
+   pinned to one harness. Switching harness is an explicit reset: a fresh session from Drive's
+   current rules and memory, with no constructed briefing (ADR 0011). The Agent reads recent
+   history itself. Model logins live in runner settings in v1, with no sign-in screens.
 
 3. **One endless session per Agent.** ADR 0011 stands. The session now lives on the Server, not on
    a Computer. The Server delivers inbox items to the runner.
@@ -58,9 +64,12 @@ loops.
    idle. Nothing on the old machine is carried over.
 
 5. **The Agent's tools.** `bash` and an edit tool run on its machine through the invocation
-   contract. They are built from Pi's MIT tool code, in the shapes the models are trained on:
-   `bash` and the `str_replace` editor for Claude, `shell` and `apply_patch` for GPT models.
-   Everything else sits behind the one `execute` tool: Haus actions, Server-held remote MCP, and
+   contract, in the shapes the models are trained on: `bash` and `str_replace_based_edit_tool`
+   for Claude and every other non-GPT model, `shell`, `apply_patch` and `view_image` for GPT
+   models. They are built from Pi's MIT tool code, and the patch grammar from OpenAI Codex's
+   Apache-2.0 parser, each marked with its source. Haus actions are the `haus` CLI, which the
+   runner runs itself when a shell command is one `haus` invocation, so they never need the
+   machine. Everything else sits behind the one `execute` tool: Server-held remote MCP and
    agent-browser (and later agent-desktop) relayed from the machine. Skills load from Drive.
 
 6. **A machine offline is not an Agent offline.** A tool call to an offline machine answers
@@ -92,8 +101,10 @@ loops.
 
 12. **Ship order.** Tasks (landed), then minimal Drive, then Agents move to the runner, then
     Projects, then Workers, then computer use (agent-desktop). The runner
-    ships with one harness, and the second follows once tool dispatch works. Agents move in one
-    cutover, and no Agent stays on a Computer after it.
+    ships with one harness, and the second follows once tool dispatch works. Both are in place
+    before Agents move in one cutover that resets every session, and no Agent stays on a
+    Computer after it. Sub-agents and background shells end with the cutover, and Workers take
+    over parallel and long work.
 
 ## Considered and rejected
 
@@ -118,7 +129,7 @@ loops.
 - **Rerunning a command after an unknown outcome.** Shell commands are not idempotent, so a blind
   replay can repeat a side effect.
 - **Carrying a session across harnesses.** Their native stores are incompatible, so a switch starts
-  fresh from Drive and recent history.
+  fresh from Drive.
 - **Moving an Agent's checkouts and processes with it.** Moving machine-local state is its own
   feature. Workers reach other machines today.
 
@@ -156,10 +167,16 @@ Deleted:
 - Agent sessions on Computers, and the per-Computer Agent session store.
 - Grok Build as an Agent runtime. Grok models stay reachable through Pi's xAI provider, and Grok
   Build stays a Worker runtime on Computers that have it.
+- Agent sub-agents, background shells, the sub-agent wake, and the `subagent` inbox kind.
+- Codex native image generation for Agents. Agents generate images with `haus image`.
 
 Follow-up:
 
-- Rewrite [specs/runtime-drivers.md](../../specs/runtime-drivers.md) for the runner and its two
-  harnesses, and [specs/mcp.md](../../specs/mcp.md) for agent-desktop and agent-browser.
-- Bump the Computer protocol for the invocation contract and the result ledger.
+- Done: [specs/runtime-drivers.md](../../specs/runtime-drivers.md) carries the runner, both
+  harnesses, the invocation contract and the frames, and [specs/mcp.md](../../specs/mcp.md)
+  carries `execute` on the runner, agent-browser behind it, and the descoped local MCP.
+- Bump the Computer protocol in R2 for the invocation frames, and again in R4 when the Agent
+  session frames are deleted.
+- `specs/inbox.md`: `accepted` means the runner acknowledged the run, and the `subagent` kind is
+  deleted in R4.
 - Move the prompt contract (size cap, divergence register, `test:prompt-contract`) to the runner.
