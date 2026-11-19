@@ -197,25 +197,12 @@ export class WorkerSendQueue {
             if (!(ref.providerAgentId && (launched || ref.providerRunId))) {
                 return yield* self.unaddressedReady(previous, record === null && stop);
             }
-            // A hosted Claude session takes a new prompt the moment the one ahead of
-            // it was dispatched, exactly like a message sent mid-turn in local Claude
-            // Code: Haus never middle-mans it waiting for that turn to finish (TECH-7,
-            // round 4). Sending still only follows dispatch order — a still-`pending`
-            // predecessor above this still blocks — and an explicit interrupt still
-            // clears the predecessor's own work first. Cursor has no such capability,
-            // so it keeps the original wait for its own Run to go terminal.
-            if (ref.provider === 'claude') {
-                if (stop) {
-                    yield* foreign((signal) => self.provider(ref.provider).cancel(ref, signal));
-                }
-                return true;
-            }
-            return yield* self.cursorPredecessorReady(ref, stop);
+            return yield* self.providerPredecessorReady(ref, stop);
         });
     }
 
-    /** Cursor has no mid-turn input: wait for its own Run to go terminal. */
-    private cursorPredecessorReady(ref: WorkerTurnRef, stop: boolean) {
+    /** A turn is never steered: wait for the one ahead to settle at the provider. */
+    private providerPredecessorReady(ref: WorkerTurnRef, stop: boolean) {
         const self = this;
         return Effect.gen(function* () {
             const provider = self.provider(ref.provider);

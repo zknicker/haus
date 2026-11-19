@@ -105,62 +105,6 @@ test('stopping a Run with no Computer record settles it cancelled at once', asyn
     expect(f.calls).toEqual([]);
 });
 
-/**
- * Reproduces TECH-7: a Claude session whose foreground turn ended but that
- * kept an open background task (its own "staying subscribed to CI") reads
- * `status: 'running'` forever from `claudeRunObservation`, even though
- * `workerStatus` is `idle` and the session will happily take a new prompt.
- * Before the fix, `previousReady` waits on `isTerminalWorkerTurnStatus`
- * alone, so a follow-up queued behind it never attempts delivery — no send,
- * no `delivery` bookkeeping, no deadline, no inbox attention, forever.
- */
-function stuckClaudeTracked(base: CloudAgentProvider): CloudAgentProvider {
-    return {
-        ...base,
-        // Every Run in the fixture shares one hosted Claude session: the whole
-        // chain reads idle-with-an-open-background-task, exactly like the
-        // production incident's predecessor and each follow-up sent after it.
-        read: () =>
-            Promise.resolve<CloudAgentProviderObservation>({
-                observedAt: new Date().toISOString(),
-                rawStatus: 'idle',
-                status: 'running',
-                summary: 'Staying subscribed to CI.',
-            }),
-    };
-}
-
-test('a follow-up stuck behind a Claude predecessor that is idle with open background tasks is delivered, not left silent', async () => {
-    const stuckPredecessor = {
-        provider: 'claude' as const,
-        providerAgentId: 'cse_stuck',
-        providerRunId: 'r_predecessor',
-        turnId: 'car_predecessor123456',
-        workerId: 'caw_stuck1234567890',
-    };
-    const followUp = { ...stuckPredecessor, providerRunId: null, turnId: 'car_followup1234567' };
-    const f = await fixture(stuckClaudeTracked(createFakeCloudAgentProvider()));
-    await f.journal.claim('srv_cloud', followUp, {
-        phase: 'pending',
-        workerId: followUp.workerId,
-        providerAgentId: 'cse_stuck',
-        instructions: 'Address the review.',
-        interrupt: false,
-        predecessors: [stuckPredecessor],
-    });
-    await f.work.reconcile([{ ...followUp, cancelRequested: false, status: 'queued' as const }]);
-    const delivered = (observation: WorkerObservation) =>
-        observation.turnId === followUp.turnId && observation.providerRunId !== undefined;
-    await f.tickUntil(
-        () => f.observations.some(delivered),
-        // Longer than the 30-minute delivery deadline (5s ticks): a timeout here would
-        // also prove delivery eventually settles, but the fixed behavior is immediate.
-        400
-    );
-    expect(f.observations.some(delivered)).toBe(true);
-    expect(await f.journal.read('srv_cloud', followUp)).toMatchObject({ phase: 'launched' });
-});
-
 test('a follow-up waiting on a genuinely busy predecessor reports why, instead of staying silent', async () => {
     const busyPredecessor = {
         provider: 'cursor' as const,
@@ -203,50 +147,6 @@ test('a follow-up waiting on a genuinely busy predecessor reports why, instead o
     // Still genuinely unbounded while the predecessor keeps reporting running: unchanged contract.
     await f.tickUntil(() => false, 20);
     expect(await f.journal.read('srv_cloud', followUp)).toMatchObject({ phase: 'pending' });
-});
-
-test('several follow-ups queued behind the same stuck predecessor each settle in order', async () => {
-    const stuckPredecessor = {
-        provider: 'claude' as const,
-        providerAgentId: 'cse_stuck',
-        providerRunId: 'r_predecessor',
-        turnId: 'car_predecessor654321',
-        workerId: 'caw_stuck0987654321',
-    };
-    const followUp1 = { ...stuckPredecessor, providerRunId: null, turnId: 'car_followup_a' };
-    const followUp2 = { ...stuckPredecessor, providerRunId: null, turnId: 'car_followup_b' };
-    const f = await fixture(stuckClaudeTracked(createFakeCloudAgentProvider()));
-    await f.journal.claim('srv_cloud', followUp1, {
-        phase: 'pending',
-        workerId: followUp1.workerId,
-        providerAgentId: 'cse_stuck',
-        instructions: 'First correction.',
-        interrupt: false,
-        predecessors: [stuckPredecessor],
-    });
-    await f.journal.claim('srv_cloud', followUp2, {
-        phase: 'pending',
-        workerId: followUp2.workerId,
-        providerAgentId: 'cse_stuck',
-        instructions: 'Second correction.',
-        interrupt: false,
-        predecessors: [stuckPredecessor, followUp1],
-    });
-    await f.work.reconcile([
-        { ...followUp1, cancelRequested: false, status: 'queued' as const },
-        { ...followUp2, cancelRequested: false, status: 'queued' as const },
-    ]);
-    await f.tickUntil(
-        () =>
-            f.observations.some(
-                (observation) =>
-                    observation.turnId === followUp2.turnId &&
-                    observation.providerRunId !== undefined
-            ),
-        400
-    );
-    expect(await f.journal.read('srv_cloud', followUp1)).toMatchObject({ phase: 'launched' });
-    expect(await f.journal.read('srv_cloud', followUp2)).toMatchObject({ phase: 'launched' });
 });
 
 test('a follow-up Cursor refuses settles failed with its reason and no provider Run', async () => {

@@ -142,10 +142,6 @@ test('an archived session that never took the prompt expires', () => {
 });
 
 test("a predecessor that already finished is unaffected by a later follow-up's own result", () => {
-    // Haus never waits behind a Claude predecessor's turn (TECH-7, round 4), so
-    // this Run's own window stops at the next Haus prompt: the ordinary case,
-    // where the predecessor's own result already landed before the follow-up
-    // was even sent.
     const followUpPrompt = event({
         message: { content: 'HAUS_CLOUD_RUN=caw_work/car_followup\n\nOne more thing.' },
         type: 'user',
@@ -162,12 +158,7 @@ test("a predecessor that already finished is unaffected by a later follow-up's o
     });
 });
 
-test('a result landing after a mid-turn follow-up still settles the predecessor, not just the follow-up', () => {
-    // A follow-up injected while the predecessor was still generating can merge
-    // into one continuous turn whose only result logs after the follow-up's own
-    // prompt (TECH-7, round 5). Without this fallback, the predecessor's own
-    // window never sees a result and reads `running` forever: it never settles
-    // and its inbox attention never fires.
+test("a later turn's result never settles an earlier turn whose window has none", () => {
     const followUpPrompt = event({
         message: { content: 'HAUS_CLOUD_RUN=caw_work/car_followup\n\nOne more thing.' },
         type: 'user',
@@ -176,9 +167,8 @@ test('a result landing after a mid-turn follow-up still settles the predecessor,
     const chronological = [prompt, followUpPrompt, result({ result: 'Finished the follow-up.' })];
 
     const predecessor = observe(chronological, session({ workerStatus: 'idle' }));
-    expect(predecessor.status).toBe('completed');
-    expect(predecessor.summary).toContain('Continued in follow-up car_followup');
-    expect(predecessor.summary).toContain('Finished the follow-up.');
+    expect(predecessor.status).toBe('running');
+    expect(predecessor).not.toHaveProperty('report');
 
     const followUp = claudeRunObservation({
         cancelRequestId: 'haus-cancel-car_followup',

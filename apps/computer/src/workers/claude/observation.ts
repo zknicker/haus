@@ -78,10 +78,7 @@ export function claudeRunObservation(input: {
                   'Waiting for Claude to take the prompt.'
               );
     }
-    // Bounded at the next Haus prompt: Haus may already have sent a follow-up
-    // into this same session before this Run's own turn finished, so reading
-    // past that point would attribute a later Run's activity and result to
-    // this one.
+    // Haus sends the next prompt only after this turn settled, so everything past it is a later turn's.
     const rest = prompt ? chronological.slice(start + 1) : chronological;
     const nextPromptOffset = rest.findIndex(isHausPrompt);
     const after = nextPromptOffset === -1 ? rest : rest.slice(0, nextPromptOffset);
@@ -95,13 +92,6 @@ export function claudeRunObservation(input: {
         ...(startedAt ? { startedAt: new Date(startedAt).toISOString() } : {}),
     };
     const observation = afterPrompt(base, after, input);
-    const shared =
-        observation.status === 'running' && nextPromptOffset !== -1
-            ? sharedTurnResult(rest, nextPromptOffset)
-            : null;
-    if (shared) {
-        return sharedResultObservation(base, shared);
-    }
     return anchoredRunId ? surfaceLostResult(observation, after, session) : observation;
 }
 
@@ -188,49 +178,6 @@ function resultObservation(base: Base, result: Entry<'result'>): CloudAgentProvi
         errorCode: `claude-${result.subtype}`.slice(0, 120),
         report,
         status: 'failed',
-        summary: boundedSummary(report),
-    };
-}
-
-/**
- * A follow-up injected mid-turn can merge into one continuous turn whose
- * result logs after that follow-up's own prompt, not before it. This Run's
- * own window carried no result, so look past the next Haus prompt for the
- * turn's eventual, shared one rather than leaving this Run reading `running`
- * forever (TECH-7, round 5).
- */
-function sharedTurnResult(
-    rest: ClaudeLogEntry[],
-    nextPromptOffset: number
-): { followUpRunId: string; result: Entry<'result'> } | null {
-    const result = rest
-        .slice(nextPromptOffset)
-        .find((entry): entry is Entry<'result'> => entry.kind === 'result');
-    if (!result) {
-        return null;
-    }
-    const followUpPrompt = rest[nextPromptOffset] as Entry<'prompt'>;
-    return { followUpRunId: runIdOf(followUpPrompt.text), result };
-}
-
-function runIdOf(text: string): string {
-    const tag = text.split(/\r?\n/u).find((line) => line.trim().startsWith('HAUS_CLOUD_RUN='));
-    return tag?.trim().split('/').at(-1) ?? 'a later follow-up';
-}
-
-function sharedResultObservation(
-    base: Base,
-    shared: { followUpRunId: string; result: Entry<'result'> }
-): CloudAgentProviderObservation {
-    const settled = resultObservation(base, shared.result);
-    const note = `Continued in follow-up ${shared.followUpRunId}, which finished it.`;
-    // Rebuild from the settled report's own full text, not its already-cut
-    // summary, so the note never costs report detail a summary-only rebound
-    // would silently drop.
-    const report = boundedReport(settled.report ? `${note} ${settled.report.text}` : note);
-    return {
-        ...settled,
-        report,
         summary: boundedSummary(report),
     };
 }
