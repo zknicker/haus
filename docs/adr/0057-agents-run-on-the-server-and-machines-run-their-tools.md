@@ -165,8 +165,9 @@ Amended:
 Deleted:
 
 - Agent sessions on Computers, and the per-Computer Agent session store.
-- Grok Build as an Agent runtime. Grok models stay reachable through Pi's xAI provider, and Grok
-  Build stays a Worker runtime on Computers that have it.
+- Grok Build as an Agent runtime. Grok models stay reachable through Pi's xAI provider. Grok Build
+  as a Worker runtime is deferred; v1 Workers run Claude Code or Codex
+  ([specs/workers.md](../../specs/workers.md), amended by the Workers contract 2026-11-19).
 - Agent sub-agents, background shells, the sub-agent wake, and the `subagent` inbox kind.
 - Codex native image generation for Agents. Agents generate images with `haus image`.
 

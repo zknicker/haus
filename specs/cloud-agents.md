@@ -29,6 +29,9 @@ adapter for that Worker: launch, follow-ups, monitoring, stop, and reconciliatio
 in flight, credentials, raw transcripts, and hosted workspace files stay on the carrier or with the
 provider.
 
+A carrier needs only a ready provider capability. The **Workers can run here** switch governs
+local execution, not carrying.
+
 The carrier journals launch intent and acknowledged provider ids in its private data directory,
 without credentials. Reconnect recovers acknowledged ids even when their report to the Server was
 lost. An intent without an acknowledgement stops at its five-minute launch deadline, or at once on
@@ -101,12 +104,12 @@ ordinary follow-up turn. A person answering directly in the provider's own UI is
 A follow-up on a cloud place is sent to the same hosted agent. Each send uses the turn id as the
 provider idempotency key, so a retry after a lost answer never starts a second provider run.
 
-- **Cursor** takes one active run per hosted agent. The carrier sends a follow-up only after every
-  earlier turn is settled in any way. Waiting behind a run Cursor still reports running has no
-  deadline, because Cursor expires runs itself.
-- **Claude** takes a new prompt while a turn runs, the way local Claude Code does. The carrier
-  sends a follow-up as soon as the turn ahead of it was sent. A merged turn that answers both
-  prompts settles both turns from the one result, each with its own report and inbox item.
+On both providers the carrier sends a follow-up only after every earlier turn has settled in any
+way, as [Follow-ups and stop](workers.md#follow-ups-and-stop) requires. One turn gives one report.
+Waiting behind a run the provider still reports as running has no deadline, because Cursor expires
+runs itself and a person or the Agent can stop a Claude turn. Claude would take a prompt mid-turn,
+but Haus never sends one, because that would steer a working turn and merge two turns into one
+result. W2 deletes today's Claude early send and its shared-result settlement.
 
 A failed send is classified by the adapter.
 
@@ -160,9 +163,8 @@ The Claude adapter (`apps/computer/src/cloud-agents/claude/`) drives Claude Code
   `worker_status` (`running`, `idle`, `requires_action`), `status` (`active`, `archived`), and the
   event log. It reads the log newest first until it finds this turn's tagged prompt, with a bound
   on the scan, then keeps that window and resumes from its newest event. The tagged prompt's event
-  id becomes the turn's `providerRunId`. Each turn's window ends at the next Haus-tagged prompt. A
-  turn whose own window has no result settles from the next result past it, noting that it
-  continued in that follow-up.
+  id becomes the turn's `providerRunId`. Each turn's window ends at the next Haus-tagged prompt,
+  which only arrives after the turn settled.
 - **Mapping.**
 
   | Claude session state | Turn |
@@ -300,5 +302,5 @@ capacity, remaining allowance, or reset time, because Cursor exposes no supporte
 | --- | --- |
 | A `Haus-Outcome` line types the report, and its absence reads `done` | `apps/computer/src/cloud-agents/report-from-result.test.ts` (W2) |
 | A provider question settles `needs-you` with the question as its ask and no person | `apps/computer/src/cloud-agents/claude/observation.test.ts` |
-| Cursor sends a follow-up only after every earlier turn settles, and Claude sends as soon as the earlier prompt was sent | `apps/computer/src/cloud-agents/send-delivery.test.ts` |
+| Cursor and Claude both send a follow-up only after every earlier turn settles | `apps/computer/src/cloud-agents/send-delivery.test.ts` |
 | A carrier that reconnects reconciles every unsettled turn it holds | `apps/server/test/worker-reconcile.test.ts` (W2) |

@@ -32,7 +32,8 @@ noun when W2 lands.
   follow-ups. Each turn ends with one report or with an outcome Haus records.
 - A Worker has no inbox, no chat, and no participant identity. It never posts progress and never
   talks to another Worker or Agent.
-- A Worker closes when its Task is done or canceled. A closed Worker takes no more turns.
+- A Worker closes when its Task is done or canceled ([Closing](#closing)). A closed Worker takes
+  no more turns.
 
 A Worker is not a session of its Agent ([ADR 0011](../docs/adr/0011-agents-own-one-global-session.md)
 stands) and not a Task. It has no assignee, state, or key of its own. The Task's state belongs to
@@ -53,7 +54,7 @@ type WorkerStatus = 'queued' | 'working' | 'done' | 'needs-you' | 'failed' | 'st
 
 type Worker = {
     id: string; // `wkr_`; migrated cloud agent work keeps its `caw_` id
-    taskId: string;
+    taskId: string | null; // null only for read-only history from before ADR 0053
     agentId: string; // the delegating Agent
     place: WorkerPlace;
     carrierComputerId: string; // runs it, or carries its cloud place
@@ -155,7 +156,7 @@ A place is where a Worker runs. The CLI and every surface write it as a string:
 `--on` also takes a bare Computer name. When two Computers share a name, `haus worker places`
 prints `computer:<computerId>` for each, and only that form resolves.
 
-**The switch.** A Computer runs Workers only while its **Workers can run here** switch is on. The
+**The switch.** A Computer runs Workers locally only while its **Workers can run here** switch is on. The
 person who attached the Computer, or an Owner or Admin, sets it from the Computer's settings. The
 switch is Server state on the Computer record, and the Server checks it at every start and
 follow-up. It is off for a newly attached Computer. Turning it on lets Agents run unattended Claude
@@ -164,8 +165,9 @@ working turns finish, refuses new starts and follow-ups with `WORKER_PLACE_OFF`,
 queued there as failed `place-off`.
 
 **Carrying a cloud place.** A cloud Worker's provider login lives on a Computer, as it does today.
-So each cloud Worker has a carrier Computer: one whose switch is on and whose provider capability
-is ready. At start the Server picks the Agent's own machine when it qualifies, else the qualifying
+So each cloud Worker has a carrier Computer: one whose provider capability is ready. Carrying needs
+no switch, because the switch governs local execution and the provider login already belongs to
+the person who connected it. At start the Server picks the Agent's own machine when it qualifies, else the qualifying
 online Computer that has been attached longest. The carrier never changes. A Worker whose carrier
 is offline reads **Status unconfirmed** while the hosted run keeps working, and reconciles when the
 carrier returns. Because a cloud place needs no particular machine, an Agent whose machine is
@@ -239,9 +241,16 @@ Claude Code loads `CLAUDE.md` instead.
 
 A later turn carries its follow-ups. When `WORKER.md`'s current revision differs from
 `workerMdRevisionId`, the turn's input starts with the whole new file as a receipt, as memory is
-delivered ([ADR 0052](../docs/adr/0052-memory-is-one-capped-file-and-heartbeats-retire.md)), and
-the Server records the new revision. Unchanged rule files are never sent again. A rule change
-reaches a working turn at its next turn, because mid-turn steering is deferred.
+delivered ([ADR 0052](../docs/adr/0052-memory-is-one-capped-file-and-heartbeats-retire.md)).
+Unchanged rule files are never sent again. A rule change reaches a working turn at its next turn,
+because mid-turn steering is deferred.
+
+The Server composes a turn's input when it dispatches the turn, not when it queues it, so a
+`WORKER.md` change that lands while a turn waits rides that turn. A dispatch the place has not
+acknowledged is composed again when it is sent again. `workerMdRevisionId` advances only when the
+place acknowledges the input that carried the revision: the Computer once the harness accepted the
+turn's input, the carrier once the provider accepted the send. A turn that fails before that
+acknowledgement leaves the revision undelivered, so the next turn carries it again.
 
 A cloud Worker has no Drive folder, so this inlining is how it gets its rules. A Worker on a
 Computer gets the same inlined text and also has the files in its folder.
@@ -374,11 +383,25 @@ A turn whose outcome is unknown after a Computer crash is never run again. On re
 reports any accepted turn with no live process as ended, and the Server settles it with its report,
 or as failed `no-report`. A dead machine is a failed turn, not a moved Worker.
 
-### Close
+### Closing
 
-When the Worker closes, the Computer runs `git worktree remove` on its checkout and deletes its
-drive folder after a final push. The branch stays, so committed work survives. The native session
-files stay where the harness keeps them.
+When a Task becomes done or canceled, the Server closes each of its Workers in this order:
+
+1. It marks the Worker closing. From here every start, follow-up, and report for it is refused.
+2. It settles each queued turn as `stopped` and drops queued follow-ups. Nothing was sent, so
+   nothing runs.
+3. It stops each working turn as `stop` does. The Computer ends the harness process, or the
+   carrier cancels the hosted run. The Computer pushes the drive folder and closes the push. The
+   turn settles with the report it already recorded, or as `stopped`.
+4. It delivers each Worker's final outcome to the delegating Agent as one `worker_report` item
+   ([inbox](inbox.md#worker-items)). A written report posts as usual. A `stopped` outcome posts
+   nothing.
+5. It sets `closedAt` and tells the place. Only then does the Computer run `git worktree remove`
+   on the checkout and delete the drive folder. The branch stays, so committed work survives. The
+   native session files stay where the harness keeps them.
+
+A place that is offline gets steps 3 and 5 when it reconnects. The Server settles the turn on its
+own side at step 3 and never waits on the place to deliver step 4.
 
 ## Deliverables
 
@@ -470,7 +493,8 @@ Liveness reads from the Worker's own `updatedAt`, never from Computer connection
 ## Visibility and events
 
 Anyone who can read a Worker's Task sees the Worker, its turns, and its reports. The delegating
-Agent always sees its own Workers. Messages do not link Workers. A Message points at a Worker's
+Agent always sees its own Workers. Messages do not link Workers, except links kept on read-only
+history ([Migration](#migration-from-cloud-agents)). A Message points at a Worker's
 Task, and a report Message names its Worker in its body.
 
 `worker.onUpdated` notifies with the Task and Worker ids on every record change. The App refetches
@@ -494,18 +518,29 @@ W2 migrates every caller and deletes the cloud agent path in one change.
 - Each `cloud_agent_work` row with a Task becomes a Worker with the same id, place from its
   provider, and carrier from its `computer_id`. Each Run becomes a turn with the same id. A
   settled Run's summary becomes a provider report.
-- Work with no Task, from before ADR 0053, has no surface today. W2 counts it on production and
-  deletes it, and the count goes in the W2 PR for Zach's merge.
-- Each Message link `cloud-agent://<id>` becomes a reference to its work's Task, and
-  `cloud_agent_work_links` is dropped.
+- Work with no Task, from before ADR 0053, becomes a closed Worker with `taskId: null`. It stays
+  as read-only history, the way ADR 0053 kept pre-place records. Anyone who can read a Message
+  that links it, and its delegating Agent, can read it. Every write refuses with
+  `WORKER_HISTORY_READ_ONLY`. Nothing is deleted.
+- Each Message link `cloud-agent://<id>` to work with a Task becomes a reference to that Task.
+  Links to taskless history stay, and `cloud_agent_work_links` keeps only those rows.
+- Pending follow-ups that exist only in a Computer's local file move to Server-owned turns before
+  that file goes, in this order. The Server already holds each pending Run as a turn with no
+  input. On reconnect the Computer sends each pending entry (its work id, Run id, preceding Run
+  ids, and instructions) and its acknowledged provider ids from the launch journal. The Server
+  writes each into its turn, recovering the provider ids, and acknowledges each item. The
+  Computer removes an entry only after its acknowledgement. The Server dispatches a migrated turn
+  only once it holds that turn's input. An offline carrier drains when it reconnects. W3 deletes
+  the drain path once every attached Computer reports an empty file.
 - `cloud_agent_work` inbox rows become `worker_report`, `worker_stall`, or `pull_request` items by
   their notice.
 - Each Project's default place becomes the default provider of the Computer that launched the
-  Server's newest cloud agent work. A Server with none leaves defaults unset. Each Computer with a
-  ready cloud provider gets its switch on, so the work it carries today keeps a carrier.
+  Server's newest cloud agent work. A Server with none leaves defaults unset. The migration never
+  turns **Workers can run here** on. Cloud places keep working without it, and local execution
+  stays off until the attaching person, an Owner, or an Admin turns it on.
 - Deleted with no alias: `haus cloud-agent` and its `cancel` spelling, `--provider`, `--say`,
   `--cause` on start, the launch Message, **Make default** and `defaultProvider`, and the
-  Computer-local pending follow-up file. The website's older `TranscriptWorker` row type is renamed
+  Computer-local pending follow-up file once drained. The website's older `TranscriptWorker` row type is renamed
   so the word means one thing.
 
 ## Deferred
@@ -531,4 +566,7 @@ W2 to W4 add these.
 | A start without a usable place, switch, or linked repo writes nothing | `apps/server/test/worker-start.test.ts` |
 | The turn credential reports for its own turn only and cannot send a message | `apps/server/test/worker-credential.test.ts` |
 | A pull request change wakes the Agent of each settled Worker that reported it, once per head commit | `apps/server/test/pull-request-wake.test.ts` |
+| A `WORKER.md` change while a turn is queued rides that turn, and advances only on acknowledgement | `apps/server/test/worker-turn-input.test.ts` |
+| Closing a Task stops and settles its Workers, delivers each outcome, then removes checkouts | `apps/server/test/worker-close.test.ts` |
+| A pending local follow-up becomes a Server turn and leaves the Computer only after acknowledgement | `apps/computer/src/workers/follow-up-drain.test.ts` |
 | A crash after acceptance never reruns the turn | `apps/computer/src/workers/turn-journal.test.ts` |

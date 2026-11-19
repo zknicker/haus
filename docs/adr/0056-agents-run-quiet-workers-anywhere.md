@@ -48,8 +48,10 @@ runs silent until they finish or are blocked.
    noun and one status set. `haus cloud-agent start --task` becomes
    `haus worker start --task ENG-41 [--on macbook]`. A cloud agent work record becomes a Worker,
    its Runs become the Worker's turns, and its card in the Task's attached-work panel becomes the
-   Worker card. A cloud place is carried by a Computer that has the provider connected and allows
-   Workers, because the provider login stays on that machine. Starting a Worker posts no Message.
+   Worker card. A cloud place is carried by a Computer that has the provider connected, because
+   the provider login stays on that machine. Carrying needs only the provider login, not the
+   "Workers can run here" switch, which governs local execution. Starting a Worker posts no
+   Message.
 
 3. **What a Worker reads.** The Haus `AGENTS.md`, its Task's Project `AGENTS.md`, the repo's own
    `AGENTS.md`, and its Agent's `WORKER.md`. It gets the stack at launch and `WORKER.md` again
@@ -149,7 +151,7 @@ Amended:
 Deleted:
 
 - "Cloud agent" as a noun and the `haus cloud-agent` CLI family.
-- The launch Message, `cloud-agent://` links, and their link table.
+- The launch Message, and `cloud-agent://` links except on read-only history from before ADR 0053.
 - The per-Computer **Make default** provider setting, replaced by the Project's default place.
 - An Agent's lock to one machine for its work.
 

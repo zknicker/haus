@@ -136,9 +136,9 @@ origin only to readers of that DM.
 
 ## Attached work and wakes
 
-- Cloud agents attach to a Task (`cloud_agent_work.task_id`). `haus cloud-agent start` requires
-  `--task`, and the Server refuses a launch without one (`CLOUD_AGENT_TASK_REQUIRED`). The launch
-  Message posts in the Task. See [cloud-agents.md](cloud-agents.md).
+- Workers attach to a Task (`cloud_agent_work.task_id` until W2 renames it). `haus worker start`
+  requires `--task`, and the Server refuses a start without one. Starting a Worker posts no
+  Message. Each written report posts one Message in the Task. See [Workers](workers.md).
 - Pull requests attach in `task_pull_requests` (repository and number). A pull request a cloud
   agent opens for the Task attaches on its own; `haus task attach-pr` attaches one opened another
   way. The Task page reads the Server's stored pull request readings.
