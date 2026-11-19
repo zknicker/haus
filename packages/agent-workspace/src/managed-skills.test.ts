@@ -8,6 +8,8 @@ import {
 } from '../../../scripts/visuals-lab/engine/skill-fragments.mjs';
 import {
     defaultVisualsSkill,
+    factoryManagedSkillHashes,
+    heldManagedSkillHash,
     seedFactoryManagedSkills,
     visualsSkillFiles,
 } from './managed-skills.ts';
@@ -49,6 +51,20 @@ test('restores visuals without removing authored or stale factory skills', async
     await expect(
         readFile(join(skillsDir, 'visuals', 'references', 'design-system.md'), 'utf8')
     ).resolves.toContain('# Haus visuals — design system');
+});
+
+test('a held skill hashes like its release until it is edited', async () => {
+    expect(await heldManagedSkillHash(skillsDir, 'visuals')).toBeNull();
+
+    await seedFactoryManagedSkills(skillsDir, ['visuals']);
+
+    expect(await heldManagedSkillHash(skillsDir, 'visuals')).toBe(
+        factoryManagedSkillHashes().visuals ?? ''
+    );
+    await writeFile(join(skillsDir, 'visuals', 'notes.md'), 'mine');
+    expect(await heldManagedSkillHash(skillsDir, 'visuals')).not.toBe(
+        factoryManagedSkillHashes().visuals ?? ''
+    );
 });
 
 test('every visuals module and fragment seeds into references/', async () => {

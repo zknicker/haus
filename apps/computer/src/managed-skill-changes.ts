@@ -1,17 +1,17 @@
 import { randomBytes } from 'node:crypto';
-import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
     factoryManagedSkillHashes,
-    factoryManagedSkillMatches,
+    heldManagedSkillHash,
     seedFactoryManagedSkills,
 } from '@haus/agent-workspace';
 
-/** The release-owned skills one seed writes, and the content hash of each. */
+/** The release-owned skills, the content hash of each, and how to hash and write an Agent's copy. */
 export interface ManagedSkillFactory {
     hashes(): Record<string, string>;
-    matches(skillsDir: string, skillId: string): Promise<boolean>;
-    seed(skillsDir: string): Promise<void>;
+    held(skillsDir: string, skillId: string): Promise<string | null>;
+    seed(skillsDir: string, skillIds: readonly string[]): Promise<void>;
 }
 
 /** A pending change notice, plus the exact hashes it announces so a clear cannot drop a newer change. */
@@ -22,17 +22,15 @@ export interface ManagedSkillChangeNotice {
 
 const releaseFactory: ManagedSkillFactory = {
     hashes: factoryManagedSkillHashes,
-    matches: factoryManagedSkillMatches,
+    held: heldManagedSkillHash,
     seed: seedFactoryManagedSkills,
 };
 
 /**
- * Seeds the factory-managed skills into one Agent's library and queues a one-turn notice for every
- * managed skill whose content changed since this Agent's last seed. An identical reseed, a
- * brand-new Agent, and a managed skill this Agent never had queue nothing, and an unchanged release
- * writes nothing, so edits made in Drive stand. An Agent with no record (never seeded, or fully
- * reset) is notified once for a skill it holds whose bytes differ from the release.
- * Agent-authored and imported skills never participate.
+ * Seeds the factory-managed skills into one Agent's library by comparing the bytes it holds with
+ * the release. A missing skill is written, an unedited copy of the release this Agent was last
+ * seeded with is updated and queues a one-turn notice, and anything else is an edit made in Drive
+ * and stands, with or without a record. Agent-authored and imported skills never participate.
  */
 export async function seedAgentManagedSkills(
     agentRoot: string,
@@ -44,16 +42,22 @@ export async function seedAgentManagedSkills(
     if (prior && sameMap(prior.seeded, current)) {
         return;
     }
-    const heldBeforeSeed = prior ? null : await differingHeldSkills(skillsDir, factory, current);
-    await factory.seed(skillsDir);
-    const changed = Object.keys(current).filter((skillId) =>
-        prior
-            ? prior.seeded[skillId] !== undefined && prior.seeded[skillId] !== current[skillId]
-            : (heldBeforeSeed?.has(skillId) ?? false)
+    const steps = new Map<string, ReturnType<typeof seedStep>>();
+    for (const [skillId, hash] of Object.entries(current)) {
+        steps.set(
+            skillId,
+            seedStep(await factory.held(skillsDir, skillId), hash, prior?.seeded[skillId])
+        );
+    }
+    await factory.seed(
+        skillsDir,
+        [...steps].flatMap(([skillId, step]) => (step === 'keep' ? [] : [skillId]))
     );
     const pending = { ...prior?.pending };
-    for (const skillId of changed) {
-        pending[skillId] = current[skillId] as string;
+    for (const [skillId, step] of steps) {
+        if (step === 'update') {
+            pending[skillId] = current[skillId] as string;
+        }
     }
     const next: ManagedSkillRecord = { pending, seeded: current };
     if (prior && sameRecord(prior, next)) {
@@ -145,27 +149,14 @@ async function writeRecord(agentRoot: string, record: ManagedSkillRecord): Promi
     await rename(temporary, destination);
 }
 
-async function differingHeldSkills(
-    skillsDir: string,
-    factory: ManagedSkillFactory,
-    current: Record<string, string>
-): Promise<Set<string>> {
-    const held = new Set<string>();
-    for (const skillId of Object.keys(current)) {
-        try {
-            if (
-                (await stat(join(skillsDir, skillId))).isDirectory() &&
-                !(await factory.matches(skillsDir, skillId))
-            ) {
-                held.add(skillId);
-            }
-        } catch (error) {
-            if (!isMissing(error)) {
-                throw error;
-            }
-        }
+function seedStep(held: string | null, release: string, lastSeeded: string | undefined) {
+    if (held === null) {
+        return 'write';
     }
-    return held;
+    if (held !== release && held === lastSeeded) {
+        return 'update';
+    }
+    return 'keep';
 }
 
 function sameRecord(left: ManagedSkillRecord, right: ManagedSkillRecord): boolean {

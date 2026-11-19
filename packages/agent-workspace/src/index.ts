@@ -12,7 +12,7 @@ export {
 export {
     defaultVisualsSkill,
     factoryManagedSkillHashes,
-    factoryManagedSkillMatches,
+    heldManagedSkillHash,
     seedFactoryManagedSkills,
     visualsSkillFiles,
     visualsSkillId,

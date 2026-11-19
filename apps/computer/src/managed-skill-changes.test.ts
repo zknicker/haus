@@ -24,17 +24,16 @@ afterEach(async () => {
     await rm(agentRoot, { force: true, recursive: true });
 });
 
-/** A release whose managed skills and their contents the test can change between seeds. */
+/** A release whose one-file skills hash to their own contents, so a test can change them between seeds. */
 function release(contents: Record<string, string>): ManagedSkillFactory {
     return {
         hashes: () => ({ ...contents }),
-        matches: async (skillsDir, skillId) =>
-            (await readFile(join(skillsDir, skillId, 'SKILL.md'), 'utf8').catch(() => null)) ===
-            contents[skillId],
-        seed: async (skillsDir) => {
-            for (const [skillId, content] of Object.entries(contents)) {
+        held: (skillsDir, skillId) =>
+            readFile(join(skillsDir, skillId, 'SKILL.md'), 'utf8').catch(() => null),
+        seed: async (skillsDir, skillIds) => {
+            for (const skillId of skillIds) {
                 await mkdir(join(skillsDir, skillId), { recursive: true });
-                await writeFile(join(skillsDir, skillId, 'SKILL.md'), content);
+                await writeFile(join(skillsDir, skillId, 'SKILL.md'), contents[skillId] ?? '');
             }
         },
     };
@@ -62,6 +61,18 @@ test('a changed managed skill queues exactly one notice naming it', async () => 
     const notice = await readManagedSkillChangeNotice(agentRoot);
     expect(notice?.text).toBe(managedSkillChangeText(['visuals']));
     expect(notice?.announced).toEqual({ visuals: 'v2' });
+    expect(await readFile(join(skills, 'visuals', 'SKILL.md'), 'utf8')).toBe('v2');
+    expect(await readFile(join(skills, 'charts', 'SKILL.md'), 'utf8')).toBe('c1');
+});
+
+test('a changed release over a Drive edit keeps the edit and queues nothing', async () => {
+    await seedAgentManagedSkills(agentRoot, skills, release({ visuals: 'v1' }));
+    await writeFile(join(skills, 'visuals', 'SKILL.md'), 'edited in Drive');
+
+    await seedAgentManagedSkills(agentRoot, skills, release({ visuals: 'v2' }));
+
+    expect(await readFile(join(skills, 'visuals', 'SKILL.md'), 'utf8')).toBe('edited in Drive');
+    expect(await readManagedSkillChangeNotice(agentRoot)).toBeNull();
 });
 
 test('a managed skill added by a release queues nothing', async () => {
@@ -72,16 +83,14 @@ test('a managed skill added by a release queues nothing', async () => {
     expect(await readFile(join(skills, 'charts', 'SKILL.md'), 'utf8')).toBe('c1');
 });
 
-test('an Agent seeded before the record existed is notified once for skills it held', async () => {
+test('an Agent with no record keeps bytes that differ from the release and gets the missing skills', async () => {
     await mkdir(join(skills, 'visuals'), { recursive: true });
     await writeFile(join(skills, 'visuals', 'SKILL.md'), 'old release');
 
     await seedAgentManagedSkills(agentRoot, skills, release({ charts: 'c1', visuals: 'v2' }));
 
-    const notice = await readManagedSkillChangeNotice(agentRoot);
-    expect(notice?.text).toBe(managedSkillChangeText(['visuals']));
-    await clearManagedSkillChangeNotice(agentRoot, notice ?? fail());
-    await seedAgentManagedSkills(agentRoot, skills, release({ charts: 'c1', visuals: 'v2' }));
+    expect(await readFile(join(skills, 'visuals', 'SKILL.md'), 'utf8')).toBe('old release');
+    expect(await readFile(join(skills, 'charts', 'SKILL.md'), 'utf8')).toBe('c1');
     expect(await readManagedSkillChangeNotice(agentRoot)).toBeNull();
 });
 
@@ -149,6 +158,17 @@ test('Agent-authored and imported skills never participate', async () => {
 
     expect(await readManagedSkillChangeNotice(agentRoot)).toBeNull();
     expect(await readFile(join(skills, 'sales-charts', 'SKILL.md'), 'utf8')).toBe('mine v2');
+});
+
+test('a full reset after a Drive edit to the visuals skill keeps the edit', async () => {
+    await seedAgentManagedSkills(agentRoot, skills);
+    await writeFile(join(skills, 'visuals', 'SKILL.md'), 'edited in Drive');
+    await rm(join(agentRoot, 'runtime'), { recursive: true });
+
+    await seedAgentManagedSkills(agentRoot, skills);
+
+    expect(await readFile(join(skills, 'visuals', 'SKILL.md'), 'utf8')).toBe('edited in Drive');
+    expect(await readManagedSkillChangeNotice(agentRoot)).toBeNull();
 });
 
 test('the release seed records the shipped skill hashes', async () => {

@@ -30,7 +30,7 @@ let restore: () => void;
 
 const release = (visuals: string): ManagedSkillFactory => ({
     hashes: () => ({ visuals }),
-    matches: async () => true,
+    held: async () => 'v1',
     seed: async () => undefined,
 });
 const notice = managedSkillChangeText(['visuals']);
