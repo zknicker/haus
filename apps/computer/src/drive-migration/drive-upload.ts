@@ -1,7 +1,7 @@
 import { inferAttachmentMediaType } from '@haus/api';
-import { readUploadResponse } from '../agent-cli/commands/artifact-upload.ts';
 import { applyServerAcceptEncoding } from '../server-encoding.ts';
 import { type DriveSeedEntry, sha256Of } from './drive-sources.ts';
+import { readUploadResponse } from './upload-response.ts';
 
 export interface DriveAuthority {
     agentId: string;

@@ -44,6 +44,7 @@ test('a turn starts on a pulled folder and its edits are pushed under its run id
             if (
                 !(
                     url.pathname.startsWith('/api/agent/drive/') ||
+                    url.pathname.startsWith('/api/agent/artifacts/') ||
                     url.pathname.startsWith('/blob/') ||
                     url.pathname.includes('/download')
                 )

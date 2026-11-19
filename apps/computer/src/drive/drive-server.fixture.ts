@@ -6,23 +6,19 @@ import {
     artifactPathKey,
     driveChangesPageMax,
 } from '@haus/api';
+import {
+    areaOf,
+    areas,
+    changeOf,
+    copyPath,
+    handles,
+    listed,
+    metadataOf,
+    type Row,
+} from './drive-wire.fixture.ts';
 import { mergeLines } from './merge-lines.fixture.ts';
 
 type Revision = DriveRevision;
-interface Row {
-    area: string;
-    artifact_id: string;
-    path: string;
-    revision: Revision | null;
-    sequence: number;
-}
-
-const handles: Record<string, string> = { agt_alpha: 'alpha', agt_beta: 'beta' };
-const areas = [
-    { area: 'haus', root: 'haus' },
-    { area: 'agent:agt_alpha', root: 'agents/alpha' },
-    { area: 'agent:agt_beta', root: 'agents/beta' },
-];
 
 export function startDriveServer(options: { pageSize?: number } = {}) {
     const pageSize = options.pageSize ?? driveChangesPageMax;
@@ -195,6 +191,22 @@ export function startDriveServer(options: { pageSize?: number } = {}) {
         return Response.json(outcome);
     }
 
+    async function publishRaw(request: Request, url: URL) {
+        const path = url.searchParams.get('path') ?? '';
+        const writer = request.headers.get('authorization')?.replace('Bearer ', '') ?? '';
+        const bytes = new Uint8Array(await request.arrayBuffer());
+        const sha = createHash('sha256').update(bytes).digest('hex');
+        const head = live.get(artifactPathKey(path));
+        if (head && head.sha256 !== sha) {
+            const current = metadataOf(head);
+            return Response.json(
+                { code: 'REVISION_CONFLICT', current, message: 'taken' },
+                { status: 409 }
+            );
+        }
+        return Response.json({ artifact: metadataOf(head ?? write(path, bytes, writer)) });
+    }
+
     const server = Bun.serve({
         port: 0,
         fetch: (request) => {
@@ -202,6 +214,9 @@ export function startDriveServer(options: { pageSize?: number } = {}) {
             requests.push(`${request.method} ${url.pathname}`);
             if (url.pathname === '/api/agent/drive/changes') {
                 return changes(url);
+            }
+            if (url.pathname === '/api/agent/artifacts/publish-artifact-raw') {
+                return publishRaw(request, url);
             }
             if (url.pathname === '/api/agent/artifacts/by-path') {
                 const head = live.get(artifactPathKey(url.searchParams.get('path') ?? ''));
@@ -243,58 +258,3 @@ export function startDriveServer(options: { pageSize?: number } = {}) {
     };
 }
 export type DriveServer = ReturnType<typeof startDriveServer>;
-
-function areaOf(path: string) {
-    return areas.find((area) => path.startsWith(`${area.root}/`)) ?? null;
-}
-
-function changeOf(row: Row) {
-    const { revision } = row;
-    return {
-        area: row.area,
-        artifact_id: row.artifact_id,
-        change: revision ? 'put' : 'delete',
-        content_type: revision?.content_type ?? null,
-        path: row.path,
-        revision_id: revision?.revision_id ?? null,
-        sequence: row.sequence,
-        sha256: revision?.sha256 ?? null,
-        size_bytes: revision?.size_bytes ?? null,
-    };
-}
-
-function copyPath(path: string, handle: string) {
-    const slash = path.lastIndexOf('/');
-    const dot = path.lastIndexOf('.');
-    return dot > slash + 1
-        ? `${path.slice(0, dot)}.conflict-${handle}${path.slice(dot)}`
-        : `${path}.conflict-${handle}`;
-}
-
-function listed(outcome: DrivePushOutcome) {
-    if (outcome.outcome === 'kept_both' || outcome.outcome === 'kept_edit') {
-        return {
-            copyPath: outcome.outcome === 'kept_both' ? outcome.copy.path : null,
-            currentAuthorHandle: handleOf(outcome.current),
-            currentRevisionId: outcome.current?.revision_id ?? null,
-            outcome: outcome.outcome,
-            path: outcome.path,
-            reason: outcome.reason,
-        } satisfies DriveConflictFile;
-    }
-    if (outcome.outcome === 'refused') {
-        return {
-            copyPath: null,
-            currentAuthorHandle: handleOf(outcome.current),
-            currentRevisionId: outcome.current?.revision_id ?? null,
-            outcome: outcome.outcome,
-            path: outcome.path,
-            reason: outcome.code,
-        } satisfies DriveConflictFile;
-    }
-    return null;
-}
-
-function handleOf(revision: Revision | null) {
-    return revision?.author.type === 'agent' ? (handles[revision.author.agent_id] ?? null) : null;
-}
