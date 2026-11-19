@@ -125,9 +125,11 @@ A durable `message.created` is planned once by Server delivery
   that pushed, or for a Worker's push, the Worker's Agent. It has no Chat, so the row holds its
   typed attention as JSON, as a Task assignment's does. That attention is `driveConflict` in
   `packages/haus-api/src/agent-inbox.ts`: the push id, the writer (the Agent, or a Worker with its
-  Task), up to 200 files, and `more`, the count past 200. Each file carries `path`, `outcome`,
-  `copyPath` for `kept_both`, `currentRevisionId`, the current revision author's handle, and
-  `reason` (`same_lines`, `binary`, `base_gone`, `edit_over_delete`, or the refusal code).
+  Task), and every listed file of the push, uncapped because conflicts are rare. Each file carries
+  `path`, `outcome`, `copyPath` for `kept_both`, `currentRevisionId`, `currentAuthorHandle`, and
+  `reason` (`same_lines`, `binary`, `base_gone`, `edit_over_delete`, or the refusal code). When
+  nothing is live at the path, as after a refused create, `currentRevisionId` and
+  `currentAuthorHandle` are explicit nulls. The item never invents a revision or an actor.
   `drive_conflict` joins `chatlessInboxSources`, and the start frame carries the item as
   `driveConflict`. An idle Agent gets it as the prompt of its own run. A push closes only after its
   turn settles, so a busy Agent gets it as its next run, with no notice. An Agent's push is

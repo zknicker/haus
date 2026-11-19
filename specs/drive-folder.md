@@ -1,8 +1,8 @@
 ---
-summary: The machine half of Drive. Each Agent keeps its own plain drive/ folder on its machine (and each Worker on a Computer keeps one), pulled at turn start while the turn runs, with large binaries fetched on first use, and pushed after every turn with the revision each file started from. Covers what waits for the pull, how push outcomes land in the folder, and how instruction composition reads the folder until the runner ships.
+summary: The machine half of Drive. Each Agent keeps its own plain drive/ folder on its machine (and each Worker on a Computer keeps one), pulled at turn start while the turn runs and pushed after every turn with the revision each file started from. Covers what waits for the pull, how a failed pull stays safe, how push outcomes land in the folder, and how the Computer pulls before the turn until the runner ships.
 read_when:
   - changing the drive/ folder on a Computer, its layout, its location, or its state file
-  - changing turn-start pull, what waits for it, or large-binary placeholders
+  - changing turn-start pull, what waits for it, or what a failed pull leaves behind
   - changing the push after a turn, deletes, renames, or how a machine applies push outcomes
   - changing how instruction composition or MEMORY.md delivery reads the drive/ folder before the runner
   - retiring or replacing haus files pull and push
@@ -45,41 +45,31 @@ deletes `haus files pull` and `haus files push`, with their `.haus-artifacts.jso
 
 When a turn starts and the Agent's machine is online, the machine pulls while the model works.
 
-1. It calls `drive.changes` once with the folder's counters, then once more per incomplete page.
-2. It skips a change whose revision the folder already has, which is the folder's own last push.
-3. A file whose local bytes still match its recorded hash takes the new revision by atomic
-   replace, or is removed for a delete. A move arrives as a delete and a put of the same artifact,
-   and lands as a local rename.
+1. It calls `drive.changes` with the folder's counters, then once per further page under the
+   first page's `until` ([Change counter](artifact-drive.md#change-counter)).
+2. It skips a change whose revision the folder already records.
+3. A file whose local bytes still match its record takes the new revision by atomic replace, or is
+   removed for a delete. A local file with no record whose bytes equal the incoming revision is
+   recorded as that revision.
 4. A file the Agent changed locally keeps its bytes and its recorded base. The next push merges it
    on the Server, so a pull never makes a local conflict.
-5. It records each area's counter once that area's changes are applied.
+5. Each file's bytes and its record are written together, one file at a time. The area counters
+   advance only after the whole pull finishes.
 
-Files up to `driveEagerFetchMaxBytes` (8 MiB) download during the pull. Larger files become
-placeholders (below).
+The pull downloads every changed file, whatever its size. Fetching large files on first use is
+deferred.
 
 Only a tool call on the machine waits for the pull. A `bash` or edit invocation that arrives during
 the pull runs once the pull ends. The model's first response, Haus actions through `execute`, and
 Drive reads through the Server never wait. An Agent whose machine is offline or unset pulls nothing.
-A pull that fails leaves the folder as last pulled, and waiting calls run on it. The next turn
-pulls again.
+
+A pull that fails leaves every file it already applied correctly recorded, and waiting calls run on
+the folder as it stands. Its counters did not advance, so the next pull asks again from the same
+point and skips what is already recorded. A file it never reached keeps its old bytes and base. The
+push is safe at any point of a failed pull, because every file's base names the bytes the folder
+holds.
 
 A folder's pull and push never overlap. A pull waits for the previous turn's push to finish.
-
-## Large binaries on first use
-
-A file over `driveEagerFetchMaxBytes` arrives as a placeholder. A placeholder is a symbolic link at
-the file's path whose target is `haus-remote:<revision_id>`. `ls` lists it, `ls -l` shows the
-target, and opening it fails until it is fetched.
-
-Before a `bash` or edit invocation runs, the machine fetches every placeholder whose file name
-appears in the command text or the edit path, and replaces each link with the file. A command that
-reaches a placeholder without naming it, through a glob or a script, sees a missing file. Naming
-the file fetches it. The fetch belongs to the invocation and happens after the invocation is
-recorded as accepted, so it never makes a call run twice
-([ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md) decision 7).
-
-Replacing a placeholder with a real file is an edit. Removing it is a delete. An untouched
-placeholder pushes nothing.
 
 ## Push after the turn
 
@@ -88,14 +78,13 @@ a turn that replied, one that ended without a reply, and one that failed or was 
 is never stranded.
 
 1. Walk regular files. Skip `.git`, `node_modules`, `__pycache__`, and `.DS_Store`, as
-   `haus files push` does today. Symbolic links other than untouched placeholders are not Drive
-   content and are skipped. An empty folder exists only locally.
-2. Compare each file with its recorded hash, using size and modification time as a shortcut.
+   `haus files push` does today. Symbolic links are not Drive content and are skipped. An empty
+   folder exists only locally.
+2. Compare each file with its record, using size and modification time as a shortcut.
 3. Send every delete, then every put ([Pushes](artifact-drive.md#pushes)). A changed file goes
    with its recorded revision as its base, and a new file goes with none. A missing file is a
-   delete with its base. A rename is a delete plus an add, and the Server records it as a move when
-   the bytes match.
-4. Apply each outcome to the folder and the state file.
+   delete with its base. A rename is a delete plus an add.
+4. Apply each outcome to the folder and its record.
 5. Close the push.
 
 | Outcome | What the folder does |
@@ -111,8 +100,9 @@ that names it cannot repeat every turn.
 
 A push that cannot reach the Server changes nothing locally. The edits stay, the next pull keeps
 them, and the next push sends them. A machine that crashes mid-push sends the rest in its next push
-under the next run id, and the Server closes the old push then. Request ids derive from the push
-id, path, hash, and base, so a request repeated after a lost answer gets the first outcome.
+under the next run id, and the Server closes the old push then. Each request id derives from the
+change itself, not the run ([Pushes](artifact-drive.md#pushes)). So a request repeated after a lost
+answer gets the stored outcome, and never a second copy or a second conflict item.
 
 Changing an Agent's machine happens while the Agent is idle, after its last push
 ([ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md) decision 4).
@@ -120,16 +110,13 @@ Edits that a failed push left on the old machine stay there.
 
 ## Before the runner
 
-Until the runner ships (R3 and R4), an Agent's loop runs on its Computer.
-
-- Instruction composition and `MEMORY.md` delivery read the Agent's `drive/` folder (D3). They wait
-  for the pull's first `drive.changes` answer, then only for the files they read that it names.
-- Tool calls wait for the pull through the runtime driver's pre-tool hook. A runtime with no such
-  hook waits for the whole pull before its harness starts. The same hook fetches placeholders.
+Until the runner ships (R3 and R4), an Agent's loop runs on its Computer. The Computer finishes the
+pull before the turn starts, then composes the instructions and delivers `MEMORY.md` from the
+folder (D3). That is one `drive.changes` round trip, and it is usually empty.
 
 After R4 the runner composes from the Server's current revisions
 ([ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md) decision
-10), and the machine pulls only for tool calls. The runtime contract (R1) names the message that
+10), and only machine tool calls wait for the pull. The runtime contract (R1) names the message that
 starts a machine's pull.
 
 ## Workers
@@ -148,7 +135,7 @@ D2 and D4 add these guards.
 | Two folders edit one text file on different lines, and both edits land in one merged revision | `apps/server/test/drive-push-merge.test.ts` |
 | The same lines, or a binary, keep both versions and queue exactly one `drive_conflict` item per push | `apps/server/test/drive-push-conflict.test.ts` |
 | A push that never closed is closed by the writer's next push, and its item queues once | `apps/server/test/drive-push-conflict.test.ts` |
-| `drive.changes` from any counter returns exactly the paths changed since, tombstones included | `apps/server/test/drive-changes.test.ts` |
-| A pull updates unedited files, keeps edited ones, and never blocks a turn that makes no tool call | `apps/computer/src/drive/pull.test.ts` |
-| A placeholder is fetched before an invocation that names it, and never refetched on replay | `apps/computer/src/drive/placeholder.test.ts` |
+| A replayed request returns its stored outcome, even after its push closed, and makes no second copy or item | `apps/server/test/drive-push-replay.test.ts` |
+| `drive.changes` from any counter returns exactly the paths changed since, tombstones included, and finishes under continuous writes | `apps/server/test/drive-changes.test.ts` |
+| A pull updates unedited files, keeps edited ones, and a pull that fails midway leaves a folder that pushes correctly | `apps/computer/src/drive/pull.test.ts` |
 | A push applies every outcome to the folder, and a refused file does not repeat | `apps/computer/src/drive/push.test.ts` |

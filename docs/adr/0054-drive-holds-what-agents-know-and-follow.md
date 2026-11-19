@@ -17,8 +17,8 @@ read_when:
 Accepted 2026-11-19. Not yet implemented. Amended 2026-11-19 by the Drive contract
 ([specs/artifact-drive.md](../../specs/artifact-drive.md),
 [specs/drive-folder.md](../../specs/drive-folder.md)) in decisions 4, 5, 6 and 11: one folder per
-writer, no pull without an online machine, people see conflicts instead of copies, and citations
-follow the turn's push. Part of the direction in
+writer, no pull without an online machine, large binaries fetched in full with lazy fetch deferred,
+people see conflicts instead of copies, and citations follow the turn's push. Part of the direction in
 [the Capy and Amp proposal](../proposals/capy-product-model.md), with
 [ADR 0055](0055-projects-own-agents-and-tasks.md) (Projects),
 [ADR 0056](0056-agents-run-quiet-workers-anywhere.md) (Workers) and
@@ -78,7 +78,8 @@ searchable threads. Rules people can edit outlast facts a model remembers.
    - When a turn starts, the Agent's machine pulls only what changed since its last pull, while the
      turn runs. Only a tool call on the machine waits for the pull. An Agent whose machine is
      offline or unset pulls nothing.
-   - Large binaries are listed and fetched the first time something opens them.
+   - The pull fetches every changed file. Fetching large binaries the first time something opens
+     them is deferred.
    - After the reply, the Computer pushes each changed file with the revision it started from. A
      deleted file records a delete, and a rename is a delete plus an add.
 
@@ -175,6 +176,7 @@ Deleted:
 Deferred:
 
 - Held mass deletes, and mounts of any kind.
+- Fetching large binaries on first open, and History that follows a rename.
 - The "Loaded before the first message" token panel.
 
 Follow-up:

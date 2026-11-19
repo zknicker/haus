@@ -147,8 +147,10 @@ is, because deployed CLIs parse it strictly.
 
 Each area keeps one counter that starts at zero and only grows. Every committed change in the area
 takes the next value. A new revision, a delete, and a restore are one change each. A move inside an
-area is a delete at the old path and a put at the new one. A move across areas is a delete in one
-area and a put in the other. A batch takes one value per file.
+area is a delete at the old path and a put at the new one, so it takes two values. A move across
+areas takes one value in each area, a delete in one and a put in the other. A batch takes what its
+files would take one at a time, so a batch move of n files inside one area takes 2n values and a
+batch delete takes n.
 
 The Server keeps one change row per live or deleted path key in each area, holding the latest
 sequence that touched it and its state. A delete leaves its row as a tombstone. Rows are never
@@ -160,9 +162,11 @@ answers what changed.
 
 ```ts
 // packages/haus-api/src/drive.ts
-driveChangesInput  = { serverId, since: Record<DriveAreaId, number> }
+driveChangesInput  = { serverId, since: Record<DriveAreaId, number>,
+                       until?: Record<DriveAreaId, number> }
 driveChangesResult = {
   areas:   { area: DriveAreaId, root: string, counter: number }[],
+  until:   Record<DriveAreaId, number>,
   changes: { area: DriveAreaId, sequence: number, path: string, change: 'put' | 'delete',
              artifact_id: string, revision_id: string | null, sha256: string | null,
              size_bytes: number | null, content_type: string | null }[],
@@ -172,9 +176,11 @@ driveChangesResult = {
 
 An area missing from `since` reads from zero. `areas` lists every area with its current counter, so
 a caller learns of a new Agent or Project from any call. Changes come in area order, then sequence
-order, at most 1,000 per page. When `complete` is false, the caller applies the page and asks
-again from the last sequence it applied in each area. A delete carries null revision, hash, size,
-and type.
+order, at most 1,000 per page. A call without `until` fixes it at each area's counter and returns
+it. When `complete` is false, the caller applies the page and asks again from the last sequence it
+applied in each area, passing the same `until`. Every page returns only changes at or below
+`until`, so writes that land while a caller pages cannot keep it from finishing. Those writes come
+in its next call. A delete carries null revision, hash, size, and type.
 
 ## Writes
 
@@ -234,7 +240,9 @@ neither. A Worker's push uses its own run's id (W2).
 | `POST /api/agent/drive/push/close` | JSON `push_id`; answers `{ listed }`, the files the conflict item lists |
 
 Each put or delete answers one `drivePushOutcomeSchema` (`packages/haus-api/src/drive.ts`). Every
-outcome carries `current`, the revision now at the path, or null.
+outcome carries `current`, the revision now at the path with its author. When nothing is live at
+the path, as after a refused create, `current` is an explicit null. Drive never invents a revision
+or an author to fill it.
 
 | Outcome | When | What Drive holds after |
 | --- | --- | --- |
@@ -253,14 +261,20 @@ name takes `-2`, then `-3`, before the extension. The copy is an ordinary new fi
 folder, authored by the writer with the push's Task. It is resolved by merging into the original
 and deleting the copy.
 
-A machine sends deletes before puts. A put with no base whose bytes equal a file this push just
-deleted at its head is recorded as a move of that file, so History follows a rename. `request_id`
-derives from the push id, path, hash, and base, so a request repeated after a lost answer returns
-the first outcome.
+A machine sends deletes before puts, so a case-only rename frees its path key first. A rename is a
+delete plus an add. The added file is a new file, and History does not follow it yet.
+
+`request_id` derives from the change, never the run. It hashes the writer, the path, the base
+revision, and the content hash (null for a delete). A create has no base, so it hashes the area
+counter the folder had pulled in its place, so recreating a deleted file with the same bytes is a
+new request. A lost create replayed after a later pull finds the folder already recorded the file,
+and sends nothing. A request repeated after a lost answer, even under a
+later push, returns the stored outcome. It never makes a second copy or a second `drive_conflict`
+item, and it succeeds even after the push it first belonged to has closed.
 
 The Server records each file's outcome under the push id. A push closes on `close`, or when the
 same writer opens its next push, so a machine that crashed mid-push still reaches the Agent.
-Closing twice changes nothing. A request for a closed push fails with `PUSH_CLOSED`, and the
+Closing twice changes nothing. A new request for a closed push fails with `PUSH_CLOSED`, and the
 machine sends that file in its next push. On close, a push with any `kept_both`, `kept_edit`, or
 `refused` outcome queues one `drive_conflict` item ([Agent inbox](inbox.md)). A Worker's item goes
 to its Agent.
@@ -275,8 +289,9 @@ exists.
 
 An Agent cites files its turn wrote, and the push runs after the turn. The Server binds the
 citation to the head at send time. When the sending run's push closes, each citation whose path
-that push changed moves to the revision the push left. A path that does not exist at send has null
-ids until the push creates it. A citation that never resolves renders its label as plain text.
+that push changed moves to the revision the push left. When the push kept both versions, the
+citation moves to the writer's own copy, because the copy holds what the Agent meant. A path that
+does not exist at send has null ids until the push creates it. A citation that never resolves renders its label as plain text.
 Citations keep artifact and revision ids, so they survive moves. A citation whose revision was
 purged opens the current revision and says the cited one is gone. Attachments stay as they are.
 
@@ -363,7 +378,13 @@ becomes `haus/starter-kit/scripts/tm_check.py`. It rewrites paths only, like a m
 area's counter at the number of its files. Moving Agent workspaces into `agents/<handle>/` is D3,
 which writes each file as the Agent that owned the workspace, with no Task.
 
+## Deferred
+
+- Fetching large files on first use. v1 pulls every changed file in full.
+- History that follows a rename. v1 records a rename as a delete plus an add.
+- Held mass deletes and the "Loaded before the first message" token panel.
+
 ## Out of scope
 
-Mounts, continuous sync, background watchers, held mass deletes, empty folders, private folders, a
-personal rules layer, and the "Loaded before the first message" token panel.
+Mounts, continuous sync, background watchers, empty folders, private folders, and a personal rules
+layer.
