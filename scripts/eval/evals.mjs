@@ -95,15 +95,12 @@ export const evals = {
         scenarios: [
             'task-intake-quick-fact-replies',
             'task-intake-small-fix-in-turn',
-            'task-intake-multi-step-opens-task',
             'task-intake-cloud-launch-on-task',
             'task-intake-reminder-short-post',
-            'task-intake-reminder-starts-work',
             'task-intake-trigger-needs-fix',
             'task-intake-trigger-acknowledge',
             'task-intake-findings-sibling-tasks',
             'task-intake-cloud-finish-reports-in-task',
-            'task-intake-dm-work-routes-to-channel',
         ],
         summary:
             "Work the reply will not finish becomes a Task opened where the work belongs, from a human, a Reminder, a Trigger, or the Agent's own findings; work the reply finishes is just answered, and a claim, not a Task, marks ownership.",

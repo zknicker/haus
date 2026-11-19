@@ -229,9 +229,9 @@ one findings message, can run side by side.
 - Guards: `task-instructions.test.ts`, `automation-instructions.test.ts`,
   `cloud-agent-instructions.test.ts`; `packages/agent-manual/src/work-topics.test.ts`; the
   `task-intake` eval (`bun run eval task-intake`, scenarios `task-intake-*` in
-  `scripts/agent-tests/scenarios/`): quick facts and in-turn fixes are just answered, multi-step
-  work, a fire that finds work, a DM request, and several findings open Tasks where the work
-  belongs, and a peer's quick claim is left alone. Its two cloud scenarios are opt-in because they
+  `scripts/agent-tests/scenarios/`): quick facts and in-turn fixes are just answered, a fire
+  that finds work and several findings open Tasks where the work belongs, and a peer's quick claim
+  is left alone. Its two cloud scenarios are opt-in because they
   spend real Cursor runs. The `task-pacing` eval (`task-pacing-*`) covers an assigned queue, a
   blocked Task, and self-started Tasks side by side. Not yet run against this build.
 
