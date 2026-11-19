@@ -177,6 +177,21 @@ test('a fresh Agent is seeded into Drive and its folder once', async () => {
     expect(await readFile(join(area, 'MEMORY.md'), 'utf8')).toBe(seeded);
 });
 
+test('legacy notes without a MEMORY.md move and the seed fills MEMORY.md', async () => {
+    await mkdir(join(agentRoot, 'workspace', 'notes'), { recursive: true });
+    await writeFile(join(agentRoot, 'workspace', 'notes', 'tabs.md'), 'Tab strip polish.\n');
+
+    const result = await prepare();
+
+    const seeded = await readFile(result.drive.memory, 'utf8');
+    expect(seeded).toContain('# Scout\n\n## Role\n\nTracks competitor launches.\n');
+    expect(routes.bytes.get('agents/scout/MEMORY.md')).toEqual(new TextEncoder().encode(seeded));
+    expect(new TextDecoder().decode(routes.bytes.get('agents/scout/notes/tabs.md'))).toBe(
+        'Tab strip polish.\n'
+    );
+    expect(result.memory?.before).toBe(digest(seeded));
+});
+
 test('a seed never overwrites a Drive file someone else already wrote', async () => {
     routes.put('agents/scout/MEMORY.md', '# Scout\n\nWritten by a person.\n');
 

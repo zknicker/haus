@@ -103,7 +103,9 @@ brief) for the launch to read. The ordinary factory seed provides:
 - The release-owned `visuals` skill under `skills/`.
 
 The seed runs only when the Agent has no `runtime/drive-seed.json` receipt, no legacy files, and
-no `MEMORY.md` in its folder. It writes each file to Drive with no base, so a path Drive already
+no `MEMORY.md` in its folder. An Agent with legacy files but no `MEMORY.md`, in its workspace or
+its folder, gets the seed's `MEMORY.md` alone beside its migrated files, as the workspace seed
+always filled a missing `MEMORY.md`. The seed writes each file to Drive with no base, so a path Drive already
 holds keeps Drive's copy: a seed never overwrites, exactly as the workspace seed never did. It
 then places the same bytes in the folder.
 

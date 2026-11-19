@@ -108,10 +108,15 @@ export function driveMigrationTrace(migration: DriveMigration) {
 
 async function sourceEntries(input: PrepareAgentDriveInput, drive: AgentDrive) {
     const legacy = await legacyEntries(input.agentRoot, drive);
-    if (legacy.length > 0 || (await exists(drive.memory))) {
+    if (legacy.length === 0 && !(await exists(drive.memory))) {
+        return await seedEntries(input.agentRoot, drive, input.seed);
+    }
+    const memoryPath = `agents/${drive.handle}/MEMORY.md`;
+    if (legacy.some((entry) => entry.drivePath === memoryPath) || (await exists(drive.memory))) {
         return legacy;
     }
-    return await seedEntries(input.agentRoot, drive, input.seed);
+    const seed = await seedEntries(input.agentRoot, drive, input.seed);
+    return [...legacy, ...seed.filter((entry) => entry.drivePath === memoryPath)];
 }
 
 async function memoryDigests(drive: AgentDrive, outcomes: readonly DriveEntryOutcome[]) {
