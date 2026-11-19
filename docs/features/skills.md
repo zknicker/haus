@@ -14,9 +14,9 @@ path reads that exact directory, so an Agent never executes the operator's
 global skills or another Agent's library by accident.
 
 Every runtime reaches the library through its own native skill directory, which
-Computer links to the library when it prepares the Agent home. Computer never
-materializes a second copy. It removes any skills manifest the retired AI SDK
-harness left in the library before each turn.
+Computer links to the library when it prepares the Agent home. The library is
+`skills/` in the Agent's Drive area (`workspace/drive/agents/<handle>/skills/`).
+Computer never materializes a second copy.
 The turn prompt names the library's current skills so an Agent knows what it
 can activate.
 
@@ -70,15 +70,16 @@ overwriting it. Successful changes refresh from a Computer event, not a timer.
 
 ## Factory-managed skills
 
-Haus ships a small set of release-owned skills, presently `visuals`. Computer rewrites their files
-into every Agent's library whenever it applies that Agent's configuration (attach, reconnect,
-configuration change) and on full reset. Agent-authored and imported skills are never touched.
+Haus ships a small set of release-owned skills, presently `visuals`. Computer seeds them into an
+Agent's library at launch, writing their files only when the release changed them since the
+Agent's last seed, so an edit made in Drive stands until the next release. Agent-authored and
+imported skills are never touched.
 
 Each seed hashes every file of each managed skill and records the hashes in the Agent's
 machine-local `runtime/managed-skills.json`. A managed skill whose hash differs from the recorded
 one is queued as changed. An identical reseed, a brand-new Agent, and a managed skill a release
-adds queue nothing; an Agent seeded before the record existed that already held the skill is
-notified once. Several changes before the Agent's next turn coalesce into one pending entry per
+adds queue nothing; an Agent with no record (never seeded, or fully reset) is notified once for
+a skill it holds whose bytes differ from the release. Several changes before the Agent's next turn coalesce into one pending entry per
 skill.
 
 The next turn carries one private notice in its event input, never a Chat message and never the
@@ -91,7 +92,8 @@ standing system prompt:
 
 The notice clears only after a completed turn included it, so a turn that fails or is interrupted
 retries it. A skill that changes again after the notice was composed stays pending. Session reset
-keeps a pending notice; full reset discards the record with the library and reseeds as new. The
+keeps a pending notice; full reset discards the record, keeps the library in Drive, and the next
+launch reseeds without a notice when the held copy matches the release. The
 visuals skill also tells Agents to mark anything they derive from it and rebuild it when the skill
 changes. Owner: `apps/computer/src/managed-skill-changes.ts`.
 

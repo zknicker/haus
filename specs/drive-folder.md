@@ -114,6 +114,11 @@ Until the runner ships (R3 and R4), an Agent's loop runs on its Computer. The Co
 pull before the turn starts, then composes the instructions and delivers `MEMORY.md` from the
 folder (D3). That is one `drive.changes` round trip, and it is usually empty.
 
+D3 runs first at launch: it moves a legacy workspace into the Agent's area, or seeds a fresh one
+([workspace](workspace.md#migration)), and places those files in the folder with no record in
+`runtime/drive.json`. Pull step 3 adopts them: a local file with no record whose bytes equal the
+incoming revision is recorded as that revision, so the first pull downloads nothing it placed.
+
 After R4 the runner composes from the Server's current revisions
 ([ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md) decision
 10), and only machine tool calls wait for the pull. The runtime contract (R1) names the message that

@@ -32,7 +32,11 @@ export async function withWeeklyCove(
     const runtime = makeDaemonRuntime();
     const bootstrap = await coveTestBootstrap(legacyRepo, ordinary);
     const subjectAgentId = ordinary ? fixture.orbitAgentId : fixture.coveAgentId;
-    await bootstrap.seed(workspace);
+    const area = legacyRepo
+        ? workspace
+        : join(workspace, 'drive', 'agents', ordinary ? 'Orbit' : 'Cove');
+    await mkdir(area, { recursive: true });
+    await bootstrap.seed(area);
     await fixture.harness
         .sql`update agents set home_timezone=${homeTimezone} where id=${subjectAgentId}`;
     await mkdir(join(root, 'bin'));
@@ -156,7 +160,7 @@ export async function withWeeklyCove(
             : process.env.HAUS_COVE_WEEKLY_REPORT;
         await writeFile(reportPath, JSON.stringify(evidence, null, 2));
     }
-    const notes = join(workspace, 'notes', 'coordination.md');
+    const notes = join(area, 'notes', 'coordination.md');
     const humanSend = (content, nonce) => sendWeeklyOwnerMessage(fixture, content, nonce);
     const streamTurn = (prompt) =>
         streamWeeklyTurn({ session, turn, notes, persistEvidence, prompt });

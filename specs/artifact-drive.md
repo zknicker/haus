@@ -431,7 +431,10 @@ contract are gone; the path is the identity.
 The Drive migration (D2, `0129_drive`) prefixes every path with `haus/`, deleted rows included, so `starter-kit/scripts/tm_check.py`
 becomes `haus/starter-kit/scripts/tm_check.py`. It rewrites paths only, like a move, and starts each
 area's counter at the number of its files. Moving Agent workspaces into `agents/<handle>/` is D3,
-which writes each file as the Agent that owned the workspace, with no Task.
+which writes each file as the Agent that owned the workspace, with no Task. It writes a fresh Agent's
+factory seed the same way, never over a path Drive already holds, and derives each `request_id` as
+the SHA-256 of `drive-migration`, the Agent id, the Drive path and the content hash (NUL-separated),
+so a rerun after a crash gets the first revision back ([workspace](workspace.md#migration)).
 
 ## Deferred
 
