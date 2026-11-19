@@ -25,23 +25,30 @@ export interface InvocationHarness {
 }
 
 export function manualInvocationClock() {
-    const scheduled: { callback: () => void; cancelled: boolean; delayMs: number }[] = [];
+    const scheduled: {
+        callback: () => void;
+        cancelled: boolean;
+        delayMs: number;
+        dueAt: number;
+    }[] = [];
+    let now = 0;
     const clock: InvocationClock = {
         schedule(callback, delayMs) {
-            const timer = { callback, cancelled: false, delayMs };
+            const timer = { callback, cancelled: false, delayMs, dueAt: now + delayMs };
             scheduled.push(timer);
             return { cancel: () => (timer.cancelled = true) };
         },
     };
     const live = () => scheduled.filter((timer) => !timer.cancelled);
     return {
-        clock,
-        fireAll() {
-            for (const timer of live()) {
+        advance(ms: number) {
+            now += ms;
+            for (const timer of live().filter((candidate) => candidate.dueAt <= now)) {
                 timer.cancelled = true;
                 timer.callback();
             }
         },
+        clock,
         live: () => live().map((timer) => timer.delayMs),
     };
 }

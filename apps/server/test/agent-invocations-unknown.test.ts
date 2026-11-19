@@ -42,7 +42,7 @@ test('an invocation unknown past the grace is never sent again, and its late res
     first.close();
     await first.closed;
     expect(timers.live()).toEqual([35_000]);
-    timers.fireAll();
+    timers.advance(35_000);
 
     expect(
         await runner.next(frameOfType('invocation-result', { toolCallId: 'toolu_lost' }))
@@ -114,7 +114,7 @@ test('a connected Computer that answers past the window leaves the invocation un
     computer.send({ invocationId, type: 'invoke-accepted' });
 
     expect(timers.live()).toEqual([35_000]);
-    timers.fireAll();
+    timers.advance(35_000);
     expect(
         await runner.next(frameOfType('invocation-result', { toolCallId: 'toolu_slow' }))
     ).toEqual({
@@ -163,4 +163,27 @@ test('a connected Computer that answers past the window leaves the invocation un
     ]);
     computer.close();
     await computer.closed;
+});
+
+test('a Computer that reconnects after the window that began at send gets no invoke again', async () => {
+    const first = await connectComputer(setup.harness, setup.computerCredential);
+    runner.send({
+        ...invocationRequest(setup.agentId, 'run_late_return', 'toolu_late_return'),
+        timeoutMs: 5000,
+    });
+    const invoke = await first.next(frameOfType('invoke', { runId: 'run_late_return' }));
+    timers.advance(30_000);
+    first.close();
+    await first.closed;
+    timers.advance(5000);
+
+    const second = await connectComputer(setup.harness, setup.computerCredential);
+    runner.send(invocationRequest(setup.agentId, 'run_after_return', 'toolu_after_return'));
+    const next = await second.next(frameOfType('invoke', { runId: 'run_after_return' }));
+    expect(second.frames.filter((frame) => frame.type === 'invoke')).toEqual([next]);
+    expect(
+        await runner.next(frameOfType('invocation-result', { toolCallId: 'toolu_late_return' }))
+    ).toMatchObject({ invocationId: invoke.invocationId, outcome: 'unknown' });
+    second.close();
+    await second.closed;
 });
