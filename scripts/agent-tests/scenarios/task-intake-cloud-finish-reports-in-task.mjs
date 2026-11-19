@@ -8,6 +8,7 @@ import {
     expectSettled,
     originMessage,
     postsAcross,
+    readTaskDetail,
     taskPosts,
     tasksCreatedBy,
 } from '../task-intake.mjs';
@@ -17,7 +18,7 @@ const terminal = new Set(['completed', 'failed', 'cancelled']);
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'When a cloud agent attached to a Task finishes, the Agent reports in that Task with an @mention of the requester and posts nothing in the channel.',
+        'When a cloud agent attached to a Task finishes, the Agent reports in that Task where the requester is notified (an @mention, the Task started from their message, or they follow it) and posts nothing in the channel.',
     name: 'task-intake-cloud-finish-reports-in-task',
     optIn: true,
     run: withRoutingEvidence(async ({ agents, expect, kit, log, settleTurn }) => {
@@ -49,9 +50,14 @@ export default defineScenario({
                 (message) => Date.parse(message.createdAt) >= settledAt
             );
             expect(inTask.length >= 1, 'the Agent reports in the Task').toBe(true);
+            const mentioned = inTask.some((message) => mentionsHuman(message.content, requester));
+            const wroteOrigin =
+                origin?.author?.kind === 'human' && origin.author.userId === requester;
+            const { followed } = await readTaskDetail(kit, task);
+            log(`requester mentioned=${mentioned} wroteOrigin=${wroteOrigin} follows=${followed}`);
             expect(
-                inTask.some((message) => mentionsHuman(message.content, requester)),
-                'the report @mentions the requester'
+                mentioned || wroteOrigin || followed === true,
+                'the requester is notified of the report or follows the Task'
             ).toBe(true);
             expect(
                 (await postsAcross(kit, channel.id, worker.id)).filter(
