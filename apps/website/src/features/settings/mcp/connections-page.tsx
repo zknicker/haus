@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { RequireOperator } from '../../servers/require-operator.tsx';
 import { useServerContext } from '../../servers/server-context.ts';
 import { serverRoute, settingsConnectionRoute } from '../../servers/server-routes.ts';
-import { PageColumn } from '../../shell/page-column.tsx';
+import { SettingsPageColumn } from '../layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { ConnectionAddDrawer } from './connection-add-drawer.tsx';
 import { ConnectionListSection } from './connection-list-section.tsx';
@@ -20,7 +20,7 @@ export function ConnectionsPage({ embedded = false }: { embedded?: boolean }) {
             description="Connections are managed by Server operators."
             role={server.role}
         >
-            <PageColumn>
+            <SettingsPageColumn width="table">
                 {embedded ? null : (
                     <Link
                         className="text-muted hover:text-foreground text-sm"
@@ -29,10 +29,7 @@ export function ConnectionsPage({ embedded = false }: { embedded?: boolean }) {
                         Back to /{slug}
                     </Link>
                 )}
-                <SettingsPageHeader
-                    description="Connect the services your Captains work in, then choose which Captains can use each one."
-                    title="Connections"
-                />
+                <SettingsPageHeader title="Connections" />
                 <ConnectionPresetSection serverId={server.id} />
                 <ConnectionListSection
                     onAdd={() => setIsAddOpen(true)}
@@ -46,7 +43,7 @@ export function ConnectionsPage({ embedded = false }: { embedded?: boolean }) {
                     open={isAddOpen}
                     serverId={server.id}
                 />
-            </PageColumn>
+            </SettingsPageColumn>
         </RequireOperator>
     );
 }

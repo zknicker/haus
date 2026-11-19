@@ -578,23 +578,22 @@ chat body size while trace evidence stays at `xs`.
 
 ### Document type roles
 
-Settings, member profiles, and every other page built from `PageColumn` use four
-roles and nothing else. Two are call-site classes on `SettingsPageHeader`; the
+Settings, member profiles, and every other page built from `PageColumn` use these
+roles and nothing else. The page title is a call-site class on `SettingsPageHeader`; the
 rest are BEM overrides in `default-theme.css`, so a stock component already
 carries the right step and a call site never sets its own size.
 
 | Role | Step | Weight | Carried by |
 | --- | --- | --- | --- |
 | Page title | `2xl` (22px), `tracking-tight` | 600 | `SettingsPageHeader`, `MemberProfileHeader` |
-| Page description | `sm` (13px) | 400, muted | `SettingsPageHeader` |
 | Dialog title | `lg` (17px) | 600 | `.modal__heading`, `.drawer__heading`, `.alert-dialog__heading` |
 | Section heading | `base` (14px) | 600 | `ItemCardGroup.Title`, `SettingsSection` |
 | Sub-section inside one | `sm` (13px) | 600 | `Widget.Title` |
 | Body: row titles, descriptions, table headers and cells, facts, errors | `sm` (13px) | 500 title / 400 rest | `ItemCard`, `DataGrid`, `SettingsFact` |
 
-A page description is body copy, not a third heading: what separates it from
-the title is the space around it, not a larger step. Stepping it up made it the
-biggest thing on the page after the title.
+A settings page has no description under its title: the title is the page's
+identity, and guidance a reader needs rides an info tooltip beside it
+(`SettingsPageHeader`'s `info`).
 
 `xs` (11px) is not a body size. It belongs to Chip, Badge, and the other
 component-owned labels that set it themselves — not to prose, a table, or
@@ -969,10 +968,14 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   freshness, a connected state the section title already states) never take a row
   description; they go in that row's info tooltip. The only lines that may break a row's
   shape are `SettingsRowWarning` and `SettingsRowError`, since the taller row is the alarm.
-  Every settings list row has a 60px floor (`.settings-frame` in `default-theme.css`): the
-  height a field, an icon, or a title + description already gives a row, so a Switch or
-  fact row matches a Select row beside it. Controls in one group share one width, and rows in
-  one list box are divided by a stock `Separator`.
+  Every settings list row has a ×14 (~53px) floor (`.settings-frame` in `default-theme.css`):
+  the row's padding around the compact ×8 (30px) field, so a Switch or fact row matches a
+  Select row beside it. Fields in a settings row or section header are that compact height,
+  the height of the `sm` buttons beside them, set once in the theme because HeroUI 3.2 has no
+  field `size`. A settings page reads in one of two measures (`SettingsPageColumn`): a ×153
+  (~574px) form column, or a ×212 (~795px) column for pages led by a table or catalog.
+  Controls in one group share one width, and rows in one list box are divided by a stock
+  `Separator`.
   Connection logos use `ConnectionGlyph` inside the shared surface tile: artwork occupies
   75% of the box with `object-fit: contain`, preserving circular and irregular brand shapes
   without cropping them. Artwork inherits the tile's corner radius so square brand

@@ -5,7 +5,7 @@ import { useServerList } from '../../../hooks/servers/use-server-list.ts';
 import type { ServerSummary } from '../../../lib/haus-server.tsx';
 import { CreateServerDialog } from '../../servers/create-server-dialog.tsx';
 import { JoinServerDialog } from '../../servers/join-server-dialog.tsx';
-import { PageColumn } from '../../shell/page-column.tsx';
+import { SettingsPageColumn } from '../layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { ServerList } from './server-list.tsx';
 
@@ -26,11 +26,8 @@ export function ServersSettingsView({ servers }: { servers: ServerSummary[] | un
     const [dialog, setDialog] = React.useState<'create' | 'join' | null>(null);
 
     return (
-        <PageColumn>
-            <SettingsPageHeader
-                description="The Servers you belong to. Open another, or start one of your own."
-                title="Servers"
-            />
+        <SettingsPageColumn>
+            <SettingsPageHeader title="Servers" />
             <ItemCardGroup variant="transparent">
                 {/* Creating and joining both add a row to this list, so the
                     controls belong to the section rather than the page. */}
@@ -55,6 +52,6 @@ export function ServersSettingsView({ servers }: { servers: ServerSummary[] | un
                 isOpen={dialog === 'join'}
                 onOpenChange={(isOpen) => setDialog(isOpen ? 'join' : null)}
             />
-        </PageColumn>
+        </SettingsPageColumn>
     );
 }

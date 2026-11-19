@@ -300,6 +300,12 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   every page together. Every destination shares its one `max-w-6xl` measure —
   per-page width variants made sibling pages visibly different widths one
   click apart; do not reintroduce them or a call-site `max-w-[…]` override.
+  Settings is the one exception, and it has exactly two measures:
+  `SettingsPageColumn` narrows the column to `max-w-153` (~574px) for pages of
+  settings rows and `max-w-212` (~795px, `width="table"`) for pages led by a
+  table or catalog (Members, Connections, Models, Skills, Usage, a Computer).
+  Both are steps of `--spacing`, so they rescale with it, and both measure the
+  content box, so the gutter never narrows a settings card.
 * Two shapes mean a HeroUI component is being replaced rather than composed:
   a layout element dropped straight into a compound header or footer, and a
   `className` that cancels a component's own padding or gap. Both typecheck and
@@ -389,9 +395,9 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   page band's `PageBand.Controls`; a control
   scoped to one section rides in that section's `ItemCardGroup.Header`; a
   control acting on one row lives in that row's `ItemCard.Action`.
-  `SettingsPageHeader` carries identity only — a title with either a
-  description, a `meta` identity line, or an `aside` of the record's
-  facts — and takes no action slot.
+  `SettingsPageHeader` carries identity only — a title, optionally an `info`
+  tooltip, a `meta` identity line, or an `aside` of the record's facts — and
+  takes no description and no action slot.
 * Empty states have exactly three shapes, by surface. A full pane or
   page-level empty/error is stock `EmptyState` with `Media variant="icon"`
   (inside a `Card` when it stands in for a card the data would have filled —
