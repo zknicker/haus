@@ -1,13 +1,13 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { seededArtifactText } from '../support/artifact-transport.ts';
 import {
     libraryRows,
     librarySection,
     routeArtifactUploads,
     seedArtifactLibrary,
     seededArtifactAgent,
-    seededArtifactText,
 } from '../support/artifacts.ts';
 import { createTestServer, openSection, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
@@ -23,9 +23,12 @@ test('a Server member opens the shared library and reloads its stable address', 
 
     await openSection(page, 'Drive');
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/artifacts$`, 'u'));
+    const folders = librarySection(page, 'Folders');
+    await expect(folders.getByRole('row')).toHaveText(driveRootTiles);
+    await folders.getByRole('row', { name: 'Haus' }).dblclick();
+    await expect(page).toHaveURL(/folder=haus$/u);
     await expect(page.getByRole('heading', { name: 'No files yet' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Upload files' })).toBeVisible();
-    await expect(librarySection(page, 'Folders')).toHaveCount(0);
     expect(await client.artifact.list.query({ serverId: server.id })).toEqual({
         artifacts: [],
         folders: [],
@@ -43,10 +46,10 @@ test('a Server member opens the shared library and reloads its stable address', 
     await openSection(page, 'Inbox');
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/inbox$`, 'u'));
     await openSection(page, 'Drive');
-    await expect(page.getByRole('heading', { name: 'No files yet' })).toBeVisible();
+    await expect(folders.getByRole('row')).toHaveText(driveRootTiles);
 });
 
-test('members browse folders in Files, filter by kind and creator, search, and open a file', async ({
+test('members browse folders in Drive, filter by kind and creator, search, and open a file', async ({
     page,
 }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
@@ -59,31 +62,37 @@ test('members browse folders in Files, filter by kind and creator, search, and o
     // The seeded Agent joins the shell's Agent list on a fresh load.
     await page.reload();
     await openSection(page, 'Drive');
+    const folders = librarySection(page, 'Folders');
+    await folders.getByRole('row', { name: 'Haus' }).dblclick();
+    await expect(page).toHaveURL(/folder=haus$/u);
 
-    // The root holds its child folders, then only the files directly in it.
+    // A folder holds its child folders, then only the files directly in it.
     const today = librarySection(page, 'Today');
     await expect(libraryRows(today)).toHaveCount(7);
     await expect(today.getByRole('row', { name: 'concept.png' })).toContainText(
         'Concept render · You · Image · just now'
     );
-    const folders = librarySection(page, 'Folders');
     await expect(folders.getByRole('row')).toHaveText([/docs\s*1 file/u, /starter-kit\s*4 files/u]);
 
     await folders.getByRole('row', { name: 'starter-kit' }).dblclick();
-    await expect(page).toHaveURL(/folder=starter-kit$/u);
+    await expect(page).toHaveURL(/folder=haus%2Fstarter-kit$/u);
     // Newest first: the seed writes scripts after assets.
     await expect(folders.getByRole('row')).toHaveText([/scripts\s*2 files/u, /assets\s*1 file/u]);
     await expect(libraryRows(today)).toHaveText([/README\.md/u]);
     await folders.getByRole('row', { name: 'scripts' }).dblclick();
-    await expect(page).toHaveURL(/folder=starter-kit%2Fscripts$/u);
+    await expect(page).toHaveURL(/folder=haus%2Fstarter-kit%2Fscripts$/u);
     await expect(libraryRows(today)).toHaveCount(2);
     await expect(folders).toHaveCount(0);
 
     // The band is the folder trail; each folder above is a way back.
     const trail = page.getByRole('navigation', { name: 'Breadcrumb' });
-    await expect(trail).toContainText('Drive');
-    await expect(trail).toContainText('starter-kit');
-    await expect(trail).toContainText('scripts');
+    await expect(trail.getByRole('listitem')).toHaveText([
+        'Haus',
+        'Drive',
+        'Haus',
+        'starter-kit',
+        'scripts',
+    ]);
 
     await page.getByRole('button', { name: 'Created by: Anyone', exact: true }).click();
     await page.getByRole('menuitemradio', { name: seededArtifactAgent }).click();
@@ -96,11 +105,12 @@ test('members browse folders in Files, filter by kind and creator, search, and o
     await expect(libraryRows(today)).toHaveCount(2);
 
     await trail.getByRole('link', { name: 'starter-kit', exact: true }).click();
-    await expect(page).toHaveURL(/folder=starter-kit$/u);
+    await expect(page).toHaveURL(/folder=haus%2Fstarter-kit$/u);
     await page.goBack();
-    await expect(page).toHaveURL(/folder=starter-kit%2Fscripts$/u);
-    await trail.getByRole('link', { name: 'Drive', exact: true }).click();
-    await expect(page).toHaveURL(new RegExp(`/s/${slug}/artifacts$`, 'u'));
+    await expect(page).toHaveURL(/folder=haus%2Fstarter-kit%2Fscripts$/u);
+    // The product crumb is Haus too; the area's crumb follows Drive.
+    await trail.getByRole('link', { name: 'Haus', exact: true }).last().click();
+    await expect(page).toHaveURL(/folder=haus$/u);
 
     // Search covers the whole subtree and names where each hit lives.
     await page.getByRole('searchbox').fill('logo');
@@ -137,7 +147,7 @@ test('members browse folders in Files, filter by kind and creator, search, and o
     await page.reload();
     await expect(page.getByText('Revision 1,', { exact: false })).toBeVisible();
     await page.getByRole('link', { name: 'Open latest', exact: true }).click();
-    await expect(page).toHaveURL(new RegExp(`${conceptId}\\?kind=images&in=$`, 'u'));
+    await expect(page).toHaveURL(new RegExp(`${conceptId}\\?kind=images&in=haus$`, 'u'));
     await expect(details.getByText('Viewing')).toBeVisible();
     await page.screenshot({ path: '/tmp/haus-artifacts-viewer.png' });
 
@@ -160,7 +170,7 @@ test('members browse folders in Files, filter by kind and creator, search, and o
     await expect(page.getByRole('menuitem', { name: /File type\s*Images/u })).toBeVisible();
 });
 
-test('a viewer names the file by its path in Files, each folder a way back', async ({ page }) => {
+test('a viewer names the file by its path in Drive, each folder a way back', async ({ page }) => {
     const slug = 'artifact-viewer-path';
     const { server, session } = await createTestServer(page, { displayName: 'Viewer Path', slug });
     await seedArtifactLibrary(page, session.databaseUrl, server.id);
@@ -169,7 +179,7 @@ test('a viewer names the file by its path in Files, each folder a way back', asy
     await expect(page.getByRole('heading', { name: 'tm_check.py', exact: true })).toBeVisible();
     await expect(trail).toContainText('scripts');
     await trail.getByRole('link', { name: 'scripts', exact: true }).click();
-    await expect(page).toHaveURL(/folder=starter-kit%2Fscripts$/u);
+    await expect(page).toHaveURL(/folder=haus%2Fstarter-kit%2Fscripts$/u);
     await expect(libraryRows(librarySection(page, 'Today'))).toHaveCount(2);
 });
 
@@ -181,7 +191,7 @@ test('members upload files and folders into the open folder, replace, and rename
     const { server, session } = await createTestServer(page, { displayName: 'Uploads', slug });
     await seedArtifactLibrary(page, session.databaseUrl, server.id);
     await routeArtifactUploads(page, session.databaseUrl, server.id);
-    await page.goto(`/s/${slug}/artifacts?folder=starter-kit%2Fscripts`);
+    await page.goto(`/s/${slug}/artifacts?folder=haus%2Fstarter-kit%2Fscripts`);
     const today = librarySection(page, 'Today');
     await expect(libraryRows(today)).toHaveCount(2);
 
@@ -252,6 +262,7 @@ test('text artifacts render inline like workspace files, and oversize text offer
     });
     await seedArtifactLibrary(page, session.databaseUrl, server.id);
     await openSection(page, 'Drive');
+    await librarySection(page, 'Folders').getByRole('row', { name: 'Haus' }).dblclick();
     const today = librarySection(page, 'Today');
     const preview = page.getByRole('region', { name: 'File preview' });
 
@@ -281,5 +292,7 @@ test('an unavailable fixed revision reports an error within the persistent Serve
     await page.reload();
     await expect(page.getByRole('alert')).toContainText('File or revision was not found.');
     await openSection(page, 'Drive');
-    await expect(page.getByRole('heading', { name: 'No files yet' })).toBeVisible();
+    await expect(librarySection(page, 'Folders').getByRole('row')).toHaveText(driveRootTiles);
 });
+
+const driveRootTiles = [/Haus\s*0 files/u, /Projects\s*0 files/u, /Captains\s*0 files/u];

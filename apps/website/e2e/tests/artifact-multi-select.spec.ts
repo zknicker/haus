@@ -7,7 +7,7 @@ import {
 import { createTestServer, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
-test('Files selects many items Finder-style and acts on the whole selection', async ({ page }) => {
+test('Drive selects many items Finder-style and acts on the whole selection', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     const slug = 'artifact-multi-select';
     const { client, server, session } = await createTestServer(page, {
@@ -15,7 +15,7 @@ test('Files selects many items Finder-style and acts on the whole selection', as
         slug,
     });
     await seedArtifactLibrary(page, session.databaseUrl, server.id);
-    await page.goto(`/s/${slug}/artifacts`);
+    await page.goto(`/s/${slug}/artifacts?folder=haus`);
     const library = page.getByRole('grid', { name: 'Drive' });
     const items = libraryRows(library);
     const selected = library.locator('[role="row"][aria-selected="true"]');
@@ -79,11 +79,11 @@ test('Files selects many items Finder-style and acts on the whole selection', as
     await picker.getByRole('button', { name: 'Move here' }).click();
     await expect(notes).toHaveCount(0);
     await expect(readme).toHaveCount(0);
-    const docs = await client.artifact.list.query({ prefix: 'docs', serverId: server.id });
+    const docs = await client.artifact.list.query({ prefix: 'haus/docs', serverId: server.id });
     expect(docs.artifacts.map((file) => file.path).sort()).toEqual([
-        'docs/guide.md',
-        'docs/notes.txt',
-        'docs/readme.md',
+        'haus/docs/guide.md',
+        'haus/docs/notes.txt',
+        'haus/docs/readme.md',
     ]);
 
     // Downloading a selection asks the Server for a zip (no bucket in e2e, so it says why not).
@@ -103,7 +103,7 @@ test('dragging items onto a folder tile or a trail crumb moves them; into itself
         slug,
     });
     await seedArtifactLibrary(page, session.databaseUrl, server.id);
-    await page.goto(`/s/${slug}/artifacts`);
+    await page.goto(`/s/${slug}/artifacts?folder=haus`);
     const items = libraryRows(page.getByRole('grid', { name: 'Drive' }));
     const folders = librarySection(page, 'Folders');
     const docs = folders.getByRole('row', { name: 'docs' });
@@ -117,24 +117,26 @@ test('dragging items onto a folder tile or a trail crumb moves them; into itself
     await large.dragTo(docs);
     await expect(concept).toHaveCount(0);
     await expect(large).toHaveCount(0);
-    const moved = await client.artifact.list.query({ prefix: 'docs', serverId: server.id });
+    const moved = await client.artifact.list.query({ prefix: 'haus/docs', serverId: server.id });
     expect(moved.artifacts.map((file) => file.path).sort()).toEqual([
-        'docs/concept.png',
-        'docs/guide.md',
-        'docs/large.png',
+        'haus/docs/concept.png',
+        'haus/docs/guide.md',
+        'haus/docs/large.png',
     ]);
 
     // A folder dropped on itself stays put.
     await kit.dragTo(kit, { targetPosition: { x: 30, y: 30 } });
     await expect(kit).toHaveCount(1);
 
-    // A trail crumb is a drop target too: the assets folder goes back up to Files.
+    // A trail crumb is a drop target too: the assets folder goes back up to Haus.
     await kit.dblclick();
-    await expect(page).toHaveURL(/folder=starter-kit$/u);
+    await expect(page).toHaveURL(/folder=haus%2Fstarter-kit$/u);
     const assets = librarySection(page, 'Folders').getByRole('row', { name: 'assets' });
+    // The product crumb is Haus too; the area's crumb follows Drive.
     const crumb = page
         .getByRole('navigation', { name: 'Breadcrumb' })
-        .getByRole('link', { name: 'Drive', exact: true });
+        .getByRole('link', { name: 'Haus', exact: true })
+        .last();
     // Several small moves, so the crumb sees dragenter and dragover as a pointer would give it.
     await assets.hover();
     await page.mouse.down();
@@ -143,8 +145,8 @@ test('dragging items onto a folder tile or a trail crumb moves them; into itself
     await expect(crumb.locator('[data-drop-target]')).toHaveCount(1);
     await page.mouse.up();
     await expect(assets).toHaveCount(0);
-    const root = await client.artifact.list.query({ serverId: server.id });
-    expect(root.folders.map((entry) => entry.path)).toContain('assets');
+    const area = await client.artifact.list.query({ prefix: 'haus', serverId: server.id });
+    expect(area.folders.map((entry) => entry.path)).toContain('haus/assets');
 });
 
 test('bulk delete says how many of the selection this member may delete', async ({ page }) => {
@@ -161,7 +163,7 @@ test('bulk delete says how many of the selection this member may delete', async 
          where server_id = '${server.id}'
            and user_id = (select id from users where id = 'usr_e2e_human')`
     );
-    await page.goto(`/s/${slug}/artifacts?folder=starter-kit%2Fscripts`);
+    await page.goto(`/s/${slug}/artifacts?folder=haus%2Fstarter-kit%2Fscripts`);
     const items = libraryRows(page.getByRole('grid', { name: 'Drive' }));
     await expect(items).toHaveCount(2);
     await page.keyboard.press('Tab');
@@ -181,7 +183,7 @@ test('files dropped from the system still upload when they land on a row', async
     const { server, session } = await createTestServer(page, { displayName: 'Drop', slug });
     await seedArtifactLibrary(page, session.databaseUrl, server.id);
     await routeArtifactUploads(page, session.databaseUrl, server.id);
-    await page.goto(`/s/${slug}/artifacts?folder=docs`);
+    await page.goto(`/s/${slug}/artifacts?folder=haus%2Fdocs`);
     const row = libraryRows(librarySection(page, 'Today')).filter({ hasText: 'guide.md' });
     await row.evaluate((element) => {
         const data = new DataTransfer();
