@@ -29,19 +29,27 @@ export const fileReadRunner: OperationRunner<'file-read'> = async (operation, co
         }
         const output = await context.payloads.store(
             bytes,
-            imageMediaType(bytes) ?? 'application/octet-stream'
+            imageMediaType(bytes) ?? 'application/octet-stream',
+            context.signal
         );
         return { outcome: 'completed' as const, output, truncated: false };
     } catch (error) {
-        return filesystemFailure(error, `Could not read file: ${operation.path}.`);
+        return (
+            stoppedBeforeReturn(context.signal, operation.path) ??
+            filesystemFailure(error, `Could not read file: ${operation.path}.`)
+        );
     }
 };
 
 export const fileWriteRunner: OperationRunner<'file-write'> = async (operation, context) => {
     let bytes: Uint8Array;
     try {
-        bytes = await context.payloads.fetch(operation.bytes);
+        bytes = await context.payloads.fetch(operation.bytes, context.signal);
     } catch (error) {
+        const stopped = stoppedOutcome(context.signal);
+        if (stopped) {
+            return stoppedBeforeWrite(stopped, operation.path);
+        }
         const reason = error instanceof Error ? error.message : String(error);
         return textResult(
             'failed',
@@ -77,10 +85,13 @@ export async function viewImage(path: string, context: OperationContext) {
         if (!mediaType) {
             return textResult('failed', `${path} is not a PNG, JPEG, GIF, or WebP image.`);
         }
-        const output = await context.payloads.store(bytes, mediaType);
+        const output = await context.payloads.store(bytes, mediaType, context.signal);
         return { outcome: 'completed' as const, output, truncated: false };
     } catch (error) {
-        return filesystemFailure(error, `Could not read file: ${path}.`);
+        return (
+            stoppedBeforeReturn(context.signal, path) ??
+            filesystemFailure(error, `Could not read file: ${path}.`)
+        );
     }
 }
 
@@ -164,6 +175,11 @@ function errorCode(error: unknown) {
     return error instanceof Error && 'code' in error && typeof error.code === 'string'
         ? error.code
         : null;
+}
+
+function stoppedBeforeReturn(signal: AbortSignal, path: string) {
+    const stopped = stoppedOutcome(signal);
+    return stopped ? textResult(stopped, `Stopped before returning ${path}.`) : null;
 }
 
 function tooLarge(path: string, sizeBytes: number, maxBytes: number) {

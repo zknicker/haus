@@ -429,8 +429,14 @@ the output so far. A cancel for an id still waiting its turn removes it, reporte
 with "Cancelled before it started.". A timeout kills the group at once with `SIGKILL`, stopping
 it first on macOS, as Pi does.
 On reconnect the Server sends `invoke-cancel` for every open invocation whose run has settled.
-A process that detaches itself from the process group survives, as it would in any shell, and
-Haus does not track it.
+When the shell exits, the Computer kills what is left of its process group before it reports
+the result, as Claude Code's Bash tool does, so a `&` background job never outlives its
+invocation or escapes its timeout and cancel. A process that leaves the group with `setsid`
+survives, as it would in any shell, and Haus does not track it. Long-running work goes to a
+Worker.
+
+A payload upload or download runs under the invocation's abort signal, so a cancel or timeout
+during a transfer settles as `cancelled` or `timed-out` and the Agent's next invocation runs.
 
 ### Output limits
 

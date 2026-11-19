@@ -7,6 +7,8 @@ import {
     truncateTail,
 } from './truncate.ts';
 
+export type OutputPipe = 'stderr' | 'stdout';
+
 export interface OutputTailOptions {
     maxBytes?: number;
     maxLines?: number;
@@ -16,7 +18,7 @@ export class OutputTail {
     private readonly maxLines: number;
     private readonly maxBytes: number;
     private readonly maxRollingBytes: number;
-    private readonly decoder = new TextDecoder();
+    private readonly decoders = { stderr: new TextDecoder(), stdout: new TextDecoder() };
     private readonly log: WriteStream;
     private logError: Error | undefined;
 
@@ -40,12 +42,12 @@ export class OutputTail {
         });
     }
 
-    append(data: Buffer) {
+    append(data: Buffer, pipe: OutputPipe) {
         if (this.ended) {
             throw new Error('Cannot append to a finished output tail');
         }
         this.log.write(data);
-        this.appendDecodedText(this.decoder.decode(data, { stream: true }));
+        this.appendDecodedText(this.decoders[pipe].decode(data, { stream: true }));
     }
 
     finish() {
@@ -53,7 +55,8 @@ export class OutputTail {
             return;
         }
         this.ended = true;
-        this.appendDecodedText(this.decoder.decode());
+        this.appendDecodedText(this.decoders.stdout.decode());
+        this.appendDecodedText(this.decoders.stderr.decode());
     }
 
     snapshot() {

@@ -351,6 +351,17 @@
                 "timer": 2
             }
         },
+        "apps/computer/src/invocations/browser.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Each browser invocation streams agent-browser output into one output tail whose log file is finished and closed in lexical finally once the process settles.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
         "apps/computer/src/invocations/handler-run.ts": {
             "disposition": "finite-cleanup",
             "reason": "The invocation timeout timer aborts the run's controller and is cleared in lexical finally when the operation returns or throws.",
@@ -384,15 +395,37 @@
                 "timer": 0
             }
         },
+        "apps/computer/src/invocations/payload-server.test-support.ts": {
+            "disposition": "test-support",
+            "reason": "The test payload server can hold requests open: one resolver signals arrival and another releases every held request when the test stops the server.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 2,
+                "timer": 0
+            }
+        },
         "apps/computer/src/invocations/pi/shell.ts": {
             "disposition": "external-adapter",
-            "reason": "Ported Pi child-process wait: one manual promise settles on exit or close, with a short post-exit idle timer cleared on settlement so detached descendants never hang it.",
+            "reason": "Ported Pi child-process wait: one manual promise settles on exit or close, with a fixed post-exit grace timer cleared on settlement so descendants holding the pipes never hang it.",
             "risks": {
                 "abortController": 0,
                 "catchAndIgnore": 0,
                 "finallyBlock": 0,
                 "manualPromise": 1,
                 "timer": 1
+            }
+        },
+        "apps/computer/src/invocations/stream-process.ts": {
+            "disposition": "external-adapter",
+            "reason": "Adapts one spawned child to an abort signal: the abort listener that terminates the child is removed in lexical finally once the child and its pipes settle.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
             }
         },
         "apps/computer/src/launch.ts": {

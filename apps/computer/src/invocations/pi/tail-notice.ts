@@ -1,6 +1,15 @@
+import type { OutputTail } from './output-tail.ts';
 import { DEFAULT_MAX_BYTES, formatSize, type TruncationResult } from './truncate.ts';
 
-export function tailNotice(truncation: TruncationResult, logPath: string, lastLineBytes: number) {
+export function formatTail(output: OutputTail, logPath: string, emptyText: string) {
+    const truncation = output.snapshot();
+    const text = truncation.content || emptyText;
+    return truncation.truncated
+        ? `${text}\n\n${tailNotice(truncation, logPath, output.lastLineBytes())}`
+        : text;
+}
+
+function tailNotice(truncation: TruncationResult, logPath: string, lastLineBytes: number) {
     const startLine = truncation.totalLines - truncation.outputLines + 1;
     const endLine = truncation.totalLines;
     if (truncation.lastLinePartial) {

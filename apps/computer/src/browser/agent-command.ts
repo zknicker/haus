@@ -1,11 +1,9 @@
-import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { promisify } from 'node:util';
+import type { StreamedCommand } from '../invocations/stream-process.ts';
 import { runtimeSearchPath } from '../runtime-discovery.ts';
 import { SystemCdpProber } from './cdp-probe.ts';
 import { getBrowserService } from './service.ts';
 
-const execFileAsync = promisify(execFile);
 const commands = new Set([
     'open',
     'snapshot',
@@ -60,7 +58,10 @@ export function validateBrowserCommand(args: string[]) {
     }
 }
 
-export async function runAgentBrowserCommand(command: AgentBrowserCommand) {
+export async function runAgentBrowserCommand<Result>(
+    command: AgentBrowserCommand,
+    run: (process: StreamedCommand) => Promise<Result>
+) {
     validateBrowserCommand(command.args);
     const service = getBrowserService();
     if (!service || service.root !== command.browserRoot) {
@@ -89,34 +90,11 @@ export async function runAgentBrowserCommand(command: AgentBrowserCommand) {
             .update(`${command.browserRoot}:${command.agentId}`)
             .digest('hex')
             .slice(0, 20);
-        try {
-            const result = await execFileAsync(
-                executable,
-                ['--session', `haus-${session}`, '--cdp', webSocketDebuggerUrl, ...command.args],
-                {
-                    ...(command.cwd ? { cwd: command.cwd } : {}),
-                    maxBuffer: 1024 * 1024,
-                    signal: command.signal,
-                }
-            );
-            return { exitCode: 0, stderr: result.stderr, stdout: result.stdout };
-        } catch (error) {
-            if (isExit(error)) {
-                return { exitCode: error.code, stderr: error.stderr, stdout: error.stdout };
-            }
-            throw error;
-        }
+        return await run({
+            args: ['--session', `haus-${session}`, '--cdp', webSocketDebuggerUrl, ...command.args],
+            ...(command.cwd ? { cwd: command.cwd } : {}),
+            executable,
+            signal: command.signal,
+        });
     });
-}
-
-function isExit(error: unknown): error is { code: number; stderr: string; stdout: string } {
-    return (
-        error instanceof Error &&
-        'code' in error &&
-        typeof error.code === 'number' &&
-        'stdout' in error &&
-        typeof error.stdout === 'string' &&
-        'stderr' in error &&
-        typeof error.stderr === 'string'
-    );
 }

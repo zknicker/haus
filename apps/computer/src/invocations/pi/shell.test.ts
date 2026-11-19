@@ -57,6 +57,18 @@ describe('waitForChildProcess', () => {
         killProcessTree(pid(child));
     });
 
+    test('resolves after the grace while a background child keeps writing to the pipes', async () => {
+        const child = spawn('/bin/bash', ['-c', 'yes & exit 4'], {
+            detached: true,
+            stdio: ['ignore', 'pipe', 'pipe'],
+        });
+        child.stdout.resume();
+
+        expect(await waitForChildProcess(child)).toBe(4);
+
+        killProcessTree(pid(child));
+    });
+
     test('rejects when the shell cannot be spawned', async () => {
         const child = spawn('/nonexistent-shell-path-xyz123', ['-c', 'echo test'], {
             stdio: ['ignore', 'pipe', 'pipe'],

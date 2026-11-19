@@ -39,8 +39,6 @@ export function waitForChildProcess(child: ChildProcess) {
             child.removeListener('close', onClose);
             child.stdout?.removeListener('end', onStdoutEnd);
             child.stderr?.removeListener('end', onStderrEnd);
-            child.stdout?.removeListener('data', onData);
-            child.stderr?.removeListener('data', onData);
         };
 
         const finalize = (code: number | null) => {
@@ -60,19 +58,6 @@ export function waitForChildProcess(child: ChildProcess) {
             }
             if (stdoutEnded && stderrEnded) {
                 finalize(exitCode);
-            }
-        };
-
-        const armIdleTimer = () => {
-            if (postExitTimer) {
-                clearTimeout(postExitTimer);
-            }
-            postExitTimer = setTimeout(() => finalize(exitCode), exitStdioGraceMs);
-        };
-
-        const onData = () => {
-            if (exited && !settled) {
-                armIdleTimer();
             }
         };
 
@@ -100,7 +85,7 @@ export function waitForChildProcess(child: ChildProcess) {
             exitCode = code;
             maybeFinalizeAfterExit();
             if (!settled) {
-                armIdleTimer();
+                postExitTimer = setTimeout(() => finalize(exitCode), exitStdioGraceMs);
             }
         };
 
@@ -110,8 +95,6 @@ export function waitForChildProcess(child: ChildProcess) {
 
         child.stdout?.once('end', onStdoutEnd);
         child.stderr?.once('end', onStderrEnd);
-        child.stdout?.on('data', onData);
-        child.stderr?.on('data', onData);
         child.once('error', onError);
         child.once('exit', onExit);
         child.once('close', onClose);

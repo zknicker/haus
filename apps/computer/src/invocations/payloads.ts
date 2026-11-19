@@ -15,21 +15,26 @@ export function createInvocationPayloads(input: {
     );
     const authorization = `Bearer ${input.credential}`;
     const payloads: InvocationPayloads = {
-        fetch: async (bytes) => {
+        fetch: async (bytes, signal) => {
             if (bytes.kind === 'inline') {
-                return await inlinePayloads.fetch(bytes);
+                return await inlinePayloads.fetch(bytes, signal);
             }
-            return await download(bytes, `${collection}/${encodeURIComponent(bytes.attachmentId)}`);
+            return await download(
+                bytes,
+                `${collection}/${encodeURIComponent(bytes.attachmentId)}`,
+                signal
+            );
         },
-        store: async (bytes, mediaType) => {
+        store: async (bytes, mediaType, signal) => {
             if (bytes.byteLength <= inlineByteBudget) {
-                return await inlinePayloads.store(bytes, mediaType);
+                return await inlinePayloads.store(bytes, mediaType, signal);
             }
             const sha256 = digest(bytes);
             const response = await fetch(collection, {
                 body: bytes,
                 headers: { authorization, 'content-type': mediaType },
                 method: 'PUT',
+                signal,
             });
             if (!response.ok) {
                 throw new Error(
@@ -47,9 +52,10 @@ export function createInvocationPayloads(input: {
 
     async function download(
         reference: Extract<InvocationBytes, { kind: 'attachment' }>,
-        url: string
+        url: string,
+        signal: AbortSignal
     ) {
-        const response = await fetch(url, { headers: { authorization } });
+        const response = await fetch(url, { headers: { authorization }, signal });
         if (!response.ok) {
             throw new Error(
                 `The invocation payload could not be downloaded (HTTP ${response.status}).`

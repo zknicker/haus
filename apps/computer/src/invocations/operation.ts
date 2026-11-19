@@ -10,8 +10,8 @@ import type {
 export type StopReason = 'cancel' | 'timeout';
 
 export interface InvocationPayloads {
-    fetch: (bytes: InvocationBytes) => Promise<Uint8Array>;
-    store: (bytes: Uint8Array, mediaType: string) => Promise<InvocationOutput>;
+    fetch: (bytes: InvocationBytes, signal: AbortSignal) => Promise<Uint8Array>;
+    store: (bytes: Uint8Array, mediaType: string, signal: AbortSignal) => Promise<InvocationOutput>;
 }
 
 export interface OperationContext {

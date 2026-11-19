@@ -82,13 +82,28 @@ describe('bash tool', () => {
     test('should decode UTF-8 characters split across output chunks', async () => {
         const euro = Buffer.from('€\n', 'utf-8');
         const tail = new OutputTail(logPath);
-        tail.append(euro.subarray(0, 1));
-        tail.append(euro.subarray(1));
+        tail.append(euro.subarray(0, 1), 'stdout');
+        tail.append(euro.subarray(1), 'stdout');
         tail.finish();
         await tail.close();
 
         expect(tail.snapshot().content).toBe('€\n');
         expect(await readFile(logPath, 'utf8')).toBe('€\n');
+    });
+
+    test('decodes stdout and stderr apart when their chunks interleave', async () => {
+        const euro = Buffer.from('€\n', 'utf-8');
+        const tail = new OutputTail(logPath);
+        tail.append(euro.subarray(0, 1), 'stdout');
+        tail.append(Buffer.from('err\n'), 'stderr');
+        tail.append(euro.subarray(1), 'stdout');
+        tail.finish();
+        await tail.close();
+
+        expect(tail.snapshot().content).toBe('err\n€\n');
+        expect([...(await readFile(logPath))]).toEqual([
+            0xe2, 0x65, 0x72, 0x72, 0x0a, 0x82, 0xac, 0x0a,
+        ]);
     });
 
     test('should persist full output when truncation happens by line count only', async () => {

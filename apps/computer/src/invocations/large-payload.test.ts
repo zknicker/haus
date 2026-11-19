@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { createHash, randomBytes } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -9,22 +9,13 @@ import {
     type InvokeResult,
     invocationFrameMaxBytes,
 } from '@haus/api';
-import { bashRunner } from './bash.ts';
-import { createBrowserRunner } from './browser.ts';
-import { editRunner } from './editor.ts';
-import { fileReadRunner, fileWriteRunner, viewImageRunner } from './files.ts';
+import { invocationRunners } from './handler-host.test-support.ts';
 import { createInvocationHandler } from './handler.ts';
+import { digest, serveInvocationPayloads } from './payload-server.test-support.ts';
 import { createInvocationPayloads } from './payloads.ts';
 
 const credential = 'computer-credential';
 const pngSignature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
-
-interface ReceivedUpload {
-    authorization: string | null;
-    bytes: Uint8Array;
-    contentType: string | null;
-    invocationId: string;
-}
 
 let root: string;
 let server: ReturnType<typeof serveInvocationPayloads>;
@@ -35,7 +26,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-    await server.http.stop(true);
+    await server.stop();
     await rm(root, { force: true, recursive: true });
 });
 
@@ -166,91 +157,140 @@ describe('large invocation payloads', () => {
     });
 });
 
+describe('stopped payload transfers', () => {
+    test('a cancel during an upload settles cancelled and the next invocation runs', async () => {
+        server.hold.enabled = true;
+        const path = join(root, 'large.png');
+        await writeFile(path, new Uint8Array([...pngSignature, ...randomBytes(2 * 1024 * 1024)]));
+        const notePath = join(root, 'note.txt');
+        await writeFile(notePath, 'next');
+        const { handler, results } = await startHandler();
+
+        handler.receive(invokeFrame('invocation-1', { kind: 'view-image', path }, 30_000));
+        handler.receive(
+            invokeFrame('invocation-2', { kind: 'file-read', maxBytes: 1024, path: notePath })
+        );
+        await server.hold.arrived.promise;
+        handler.receive({ invocationId: 'invocation-1', type: 'invoke-cancel' });
+        await handler.settled();
+
+        expect(server.hold.requests).toEqual(['PUT /computer/invocations/invocation-1/payloads']);
+        expect(results()).toEqual([
+            {
+                invocationId: 'invocation-1',
+                outcome: 'cancelled',
+                output: { kind: 'text', text: `Stopped before returning ${path}.` },
+                truncated: false,
+                type: 'invoke-result',
+            },
+            nextResult,
+        ]);
+    });
+
+    test('a timeout during a download settles timed-out and the next invocation runs', async () => {
+        server.hold.enabled = true;
+        const path = join(root, 'written.bin');
+        const notePath = join(root, 'note.txt');
+        await writeFile(notePath, 'next');
+        const { handler, results } = await startHandler();
+
+        handler.receive(
+            invokeFrame(
+                'invocation-1',
+                {
+                    bytes: {
+                        attachmentId: 'attachment-in',
+                        kind: 'attachment',
+                        mediaType: 'application/octet-stream',
+                        sha256: '0'.repeat(64),
+                        sizeBytes: 2 * 1024 * 1024,
+                    },
+                    kind: 'file-write',
+                    mode: 0o644,
+                    path,
+                },
+                500
+            )
+        );
+        handler.receive(
+            invokeFrame('invocation-2', { kind: 'file-read', maxBytes: 1024, path: notePath })
+        );
+        await handler.settled();
+
+        expect(server.hold.requests).toEqual([
+            'GET /computer/invocations/invocation-1/payloads/attachment-in',
+        ]);
+        expect(results()).toEqual([
+            {
+                invocationId: 'invocation-1',
+                outcome: 'timed-out',
+                output: {
+                    kind: 'text',
+                    text: `Stopped before writing ${path}. Nothing was written.`,
+                },
+                truncated: false,
+                type: 'invoke-result',
+            },
+            nextResult,
+        ]);
+        expect(await Bun.file(path).exists()).toBe(false);
+    });
+});
+
+const nextResult = {
+    invocationId: 'invocation-2',
+    outcome: 'completed',
+    output: {
+        base64: Buffer.from('next').toString('base64'),
+        kind: 'inline',
+        mediaType: 'application/octet-stream',
+    },
+    truncated: false,
+    type: 'invoke-result',
+} satisfies InvokeResult;
+
 async function invoke(operation: InvocationOperation) {
+    const { handler, results, sent } = await startHandler();
+    expect(handler.receive(invokeFrame('invocation-1', operation))).toBe(true);
+    await handler.settled();
+    for (const frame of sent) {
+        expect(Buffer.byteLength(JSON.stringify(frame))).toBeLessThan(invocationFrameMaxBytes);
+    }
+    return { results: results() };
+}
+
+async function startHandler() {
     const sent: (InvokeAccepted | InvokeResult)[] = [];
+    const agentsRoot = join(root, 'servers', 'server-1', 'agents');
     const handler = await createInvocationHandler({
-        agentsRoot: join(root, 'servers', 'server-1', 'agents'),
+        agentsRoot,
         payloadsFor: (invocationId) =>
             createInvocationPayloads({
                 credential,
                 invocationId,
                 serverOrigin: server.http.url.origin,
             }),
-        runners: {
-            bash: bashRunner,
-            browser: createBrowserRunner({ browserRoot: join(root, 'browser') }),
-            edit: editRunner,
-            'file-read': fileReadRunner,
-            'file-write': fileWriteRunner,
-            'view-image': viewImageRunner,
-        },
+        runners: invocationRunners(agentsRoot),
         send: (frame) => {
             sent.push(frame);
             return true;
         },
     });
-    expect(
-        handler.receive({
-            agentId: 'agent-1',
-            invocationId: 'invocation-1',
-            operation,
-            runId: 'run-1',
-            timeoutMs: 60_000,
-            type: 'invoke',
-        })
-    ).toBe(true);
-    await handler.settled();
-    for (const frame of sent) {
-        expect(Buffer.byteLength(JSON.stringify(frame))).toBeLessThan(invocationFrameMaxBytes);
-    }
     return {
-        results: sent.filter((frame): frame is InvokeResult => frame.type === 'invoke-result'),
+        handler,
+        results: () =>
+            sent.filter((frame): frame is InvokeResult => frame.type === 'invoke-result'),
+        sent,
     };
 }
 
-function serveInvocationPayloads() {
-    const uploads: ReceivedUpload[] = [];
-    const downloads: { authorization: string | null; path: string }[] = [];
-    const attachments = new Map<string, Uint8Array>();
-    const http = Bun.serve({
-        port: 0,
-        fetch: async (request) => {
-            const url = new URL(request.url);
-            const [, computer, invocations, invocationId, payloads, attachmentId] =
-                url.pathname.split('/');
-            if (
-                computer !== 'computer' ||
-                invocations !== 'invocations' ||
-                payloads !== 'payloads' ||
-                !invocationId
-            ) {
-                return new Response('Not found', { status: 404 });
-            }
-            const authorization = request.headers.get('authorization');
-            if (request.method === 'PUT' && !attachmentId) {
-                const bytes = new Uint8Array(await request.arrayBuffer());
-                const contentType = request.headers.get('content-type');
-                uploads.push({ authorization, bytes, contentType, invocationId });
-                const id = `attachment-${uploads.length}`;
-                attachments.set(id, bytes);
-                return Response.json({
-                    attachmentId: id,
-                    mediaType: contentType,
-                    sha256: digest(bytes),
-                    sizeBytes: bytes.byteLength,
-                });
-            }
-            if (request.method === 'GET' && attachmentId) {
-                downloads.push({ authorization, path: url.pathname });
-                const bytes = attachments.get(attachmentId);
-                return bytes ? new Response(bytes) : new Response('Not found', { status: 404 });
-            }
-            return new Response('Method not allowed', { status: 405 });
-        },
-    });
-    return { attachments, downloads, http, uploads };
-}
-
-function digest(bytes: Uint8Array) {
-    return createHash('sha256').update(bytes).digest('hex');
+function invokeFrame(invocationId: string, operation: InvocationOperation, timeoutMs = 60_000) {
+    return {
+        agentId: 'agent-1',
+        invocationId,
+        operation,
+        runId: 'run-1',
+        timeoutMs,
+        type: 'invoke',
+    };
 }

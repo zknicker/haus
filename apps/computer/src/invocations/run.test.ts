@@ -33,6 +33,19 @@ test('a timeout kills the process group and returns partial output', async () =>
     expect(processState(Number(await readFile(pidFile, 'utf8')))).toBe('gone');
 });
 
+test('a background job dies with the shell that started it', async () => {
+    const pidFile = join(root, 'background.pid');
+    const { frames, handler } = await start();
+
+    handler.receive(invoke('inv-1', `sleep 30 & echo $! > ${pidFile}`));
+    await handler.settled();
+
+    expect(results(frames)).toEqual([
+        { ...textResult('inv-1', 'completed', '(no output)'), exitCode: 0 },
+    ]);
+    expect(processState(Number(await readFile(pidFile, 'utf8')))).toBe('gone');
+});
+
 test('a cancel stops a running command and returns partial output', async () => {
     const fifo = makeFifo('started');
     const pidFile = join(root, 'grandchild.pid');
